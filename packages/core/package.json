@@ -1,6 +1,6 @@
 {
   "name": "@stapel/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Stapel frontend runtime (L0): typed fetch with the Stapel error envelope, auth token/refresh seams, verification-403 interception, TanStack Query layer with per-user persistence, i18n engine, config provider, breakpoints hook.",
   "license": "MIT",
   "repository": {
