@@ -1,0 +1,54 @@
+name: Release
+
+# Publishes the @stapel/* packages to npm via Changesets. On push to main with
+# pending .changeset/*.md files it opens/updates a "Version Packages" PR (bumps
+# versions + changelogs); once that PR is merged (no changesets left) the next
+# run builds and runs `changeset publish` to publish to npm with provenance.
+#
+# Requires: the @stapel npm scope owned by an account/org, and an npm token with
+# publish rights stored as the repo/org secret NPM_TOKEN. (npm's tokenless
+# trusted publishing can only be configured on packages that already exist, so
+# the first publish is bootstrapped with a token; you may switch to trusted
+# publishing afterwards.)
+
+on:
+  push:
+    branches: [main]
+
+concurrency: release-${{ github.ref }}
+
+env:
+  COREPACK_INTEGRITY_KEYS: "0"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # push the version commit / tags
+      pull-requests: write   # open the "Version Packages" PR
+      id-token: write        # npm provenance attestation
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Version PR or publish to npm
+        uses: changesets/action@v1
+        with:
+          version: corepack pnpm run version-packages
+          publish: corepack pnpm run release
+          commit: "chore: version packages"
+          title: "chore: version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
