@@ -1,0 +1,35 @@
+{
+  "name": "stapel-react",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Stapel React monorepo: headless frontend pairs for Stapel backend modules",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usestapel/stapel-react.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "size": "turbo run size",
+    "ci": "turbo run lint test build",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm run ci && changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.5",
+    "@eslint/js": "^9.30.0",
+    "eslint": "^9.30.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.35.0"
+  }
+}

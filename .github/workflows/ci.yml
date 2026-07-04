@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  # Tolerate corepack versions predating the 2025 npm signing-key rotation.
+  COREPACK_INTEGRITY_KEYS: "0"
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Lint, test, build
+        run: corepack pnpm turbo run lint test build
+
+      - name: Standalone build gate (frontend-standard §7)
+        run: |
+          for pkg in packages/*/; do
+            echo "--- standalone build: $pkg"
+            (cd "$pkg" && corepack pnpm run build)
+          done
