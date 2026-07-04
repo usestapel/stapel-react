@@ -56,4 +56,10 @@ jobs:
           title: "chore: version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Bootstrap: if NPM_TOKEN is set, publish with it (needed for the FIRST
+          # publish of a new package — npm can't pre-register a trusted publisher
+          # for a package that doesn't exist yet). Once the packages exist and a
+          # trusted publisher is configured, delete the secret and this falls back
+          # to tokenless OIDC (id-token: write + provenance above).
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
