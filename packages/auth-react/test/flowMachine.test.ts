@@ -41,6 +41,30 @@ describe("createFlowMachine (the reusable primitive)", () => {
     expect(machine.getState()).toEqual({ step: "failed", reason: "boom" });
   });
 
+  it("staleness guard: a newer transition drops a late run result (R1)", async () => {
+    const machine = createFlowMachine<S>({ id: "t", initial: { step: "idle" } });
+    let release!: (v: number) => void;
+    const task = (): Promise<number> =>
+      new Promise<number>((res) => {
+        release = res;
+      });
+
+    const pending = machine.run({ step: "pending" }, task, {
+      resolve: (v) => ({ step: "done", value: v }),
+      reject: () => ({ step: "failed", reason: "x" }),
+    });
+    expect(machine.getState().step).toBe("pending");
+
+    // A newer transition happens while the task is in flight.
+    machine.to({ step: "idle" });
+    expect(machine.getState()).toEqual({ step: "idle" });
+
+    // The stale task now resolves — it must NOT clobber the newer state.
+    release(99);
+    await pending;
+    expect(machine.getState()).toEqual({ step: "idle" });
+  });
+
   it("auto-instruments started/completed/failed analytics", async () => {
     const track = vi.fn();
     const analytics = {

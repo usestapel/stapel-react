@@ -36,6 +36,12 @@ import type { FlowError } from "./errors.js";
  * // render <VerificationChallenge controller={verification}> at the app root
  * ```
  *
+ * Lifecycle safety: exactly one challenge is live at a time. It self-releases
+ * on `expires_at` (an abandoned modal resolves `retry:false` instead of hanging
+ * the core request forever and wedging future challenges), and a factor whose
+ * `initiate` fails recoverably returns to the picker so a different factor is
+ * still choosable — only a 404 (challenge gone) ends the whole challenge.
+ *
  * WebAuthn note: the `passkey` factor is **flow-complete but its browser
  * binding is a thin TODO** — the machine surfaces `session_key` + `options`
  * and accepts a finished credential via `submitPasskey`; calling
@@ -44,7 +50,12 @@ import type { FlowError } from "./errors.js";
  */
 export type VerificationState =
   | { readonly step: "idle" }
-  | { readonly step: "picking"; readonly challenge: VerificationEnvelope }
+  | {
+      readonly step: "picking";
+      readonly challenge: VerificationEnvelope;
+      /** Set when a prior factor's initiate failed recoverably — pick another. */
+      readonly error?: FlowError;
+    }
   | {
       readonly step: "initiating";
       readonly challenge: VerificationEnvelope;
@@ -75,7 +86,8 @@ export type VerificationState =
       readonly target: string | null;
       readonly error: FlowError;
     }
-  | { readonly step: "unavailable"; readonly error: FlowError };
+  | { readonly step: "unavailable"; readonly error: FlowError }
+  | { readonly step: "expired" };
 
 export interface VerificationController {
   readonly machine: FlowMachine<VerificationState>;
@@ -134,11 +146,40 @@ export function createVerificationController(
   // The awaited outcome for the in-flight core request. Exactly one challenge
   // is handled at a time; a second arriving while one is active is declined.
   let resolveOutcome: ((outcome: VerificationOutcome) => void) | null = null;
+  // Self-release timer: without it, a user who abandons the modal (never
+  // cancels) leaves the core `await onVerificationChallenge(...)` hanging
+  // forever AND — because `resolveOutcome` stays set — wedges every FUTURE
+  // challenge into `retry:false`. The envelope's `expires_at` bounds this.
+  let expiryTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function clearExpiry(): void {
+    if (expiryTimer !== null) {
+      clearTimeout(expiryTimer);
+      expiryTimer = null;
+    }
+  }
 
   function settle(outcome: VerificationOutcome): void {
+    clearExpiry();
     const resolve = resolveOutcome;
     resolveOutcome = null;
     resolve?.(outcome);
+  }
+
+  function scheduleExpiry(envelope: VerificationEnvelope): void {
+    clearExpiry();
+    if (!envelope.expires_at) return; // no bound advertised
+    const fire = (): void => {
+      if (resolveOutcome === null) return; // already settled
+      machine.to({ step: "expired" });
+      settle({ retry: false });
+    };
+    const delayMs = envelope.expires_at * 1000 - Date.now();
+    if (delayMs <= 0) {
+      fire();
+      return;
+    }
+    expiryTimer = setTimeout(fire, delayMs);
   }
 
   const handler: VerificationChallengeHandler = (challenge) => {
@@ -150,6 +191,7 @@ export function createVerificationController(
     return new Promise<VerificationOutcome>((resolve) => {
       resolveOutcome = resolve;
       machine.to({ step: "picking", challenge: envelope });
+      scheduleExpiry(envelope);
     });
   };
 
@@ -193,15 +235,18 @@ export function createVerificationController(
         },
         reject: (error): VerificationState => {
           const flowError = toFlowError(error);
-          return (
-            foldUnavailable(flowError) ?? {
-              step: "factorError",
-              challenge,
-              factor,
-              target: null,
-              error: flowError,
-            }
-          );
+          // A 404 means the whole challenge is gone — restart the original
+          // action; release the core request.
+          if (flowError.status === NOT_FOUND_STATUS) {
+            settle({ retry: false });
+            return { step: "unavailable", error: flowError };
+          }
+          // Any other initiate failure (a locked/invalid factor, network) is
+          // factor-scoped: keep the challenge alive and return to the picker so
+          // the user can choose a DIFFERENT factor. A 423-locked email factor
+          // must not kill an available TOTP factor. Do NOT settle — the expiry
+          // timer still bounds abandonment.
+          return { step: "picking", challenge, error: flowError };
         },
       }
     );

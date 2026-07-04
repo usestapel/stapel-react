@@ -18,7 +18,8 @@ function envelope(): Record<string, unknown> {
       challenge_id: "chg_1",
       scope: "payout",
       factors: ["otp_email", "totp"],
-      expires_at: 1783020000,
+      // Always in the future so the self-release timer does not fire mid-test.
+      expires_at: Math.floor(Date.now() / 1000) + 300,
     },
   };
 }

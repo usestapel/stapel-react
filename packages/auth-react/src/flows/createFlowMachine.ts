@@ -16,7 +16,10 @@ import type { Analytics } from "@stapel/core";
  *     through `run`, which parks the machine in a `pending` step, awaits the
  *     task, then transitions to a success/failure step. `run` never throws:
  *     rejections are folded into a state, so hosts render errors instead of
- *     catching them.
+ *     catching them. `run` is also **staleness-guarded**: if a newer `to`
+ *     happens while the task is in flight (double-submit, cancel, navigate,
+ *     challenge expiry), the late result is dropped — it never clobbers the
+ *     newer state nor runs its resolve/reject side effects.
  *  3. **Auto-instrumentation** — every transition emits
  *     `flow.<id>.<step>` (`started`), and every `run` emits `completed` /
  *     `failed` for its pending step (analytics-standard §1.2). Funnels exist
@@ -72,8 +75,14 @@ export function createFlowMachine<S extends FlowStateBase>(
     for (const listener of listeners) listener();
   }
 
+  // Monotonic transition counter — the staleness epoch. Every `to` bumps it; a
+  // `run` captures it after parking in `pending` and only applies its terminal
+  // transition if no newer `to` happened while the task was in flight.
+  let generation = 0;
+
   function to(next: S): void {
     state = next;
+    generation += 1;
     emit(next.step, "started");
     notify();
   }
@@ -87,13 +96,18 @@ export function createFlowMachine<S extends FlowStateBase>(
     }
   ): Promise<void> {
     to(pending);
+    // Epoch of THIS run's pending transition. If it advances before the task
+    // settles (double-submit, cancel, navigate, expiry), the late result is
+    // stale and must NOT clobber the newer state — nor run its resolve/reject
+    // side effects. Analytics still fires so funnels stay honest.
+    const epoch = generation;
     try {
       const result = await task();
       emit(pending.step, "completed");
-      to(handlers.resolve(result));
+      if (generation === epoch) to(handlers.resolve(result));
     } catch (error) {
       emit(pending.step, "failed");
-      to(handlers.reject(error));
+      if (generation === epoch) to(handlers.reject(error));
     }
   }
 

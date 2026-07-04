@@ -18,7 +18,12 @@ things for free:
   an async step goes through `run(pending, task, { resolve, reject })`, which
   parks in `pending`, awaits, then transitions on the result. `run` **never
   throws** — rejections fold into an error state, so hosts render errors
-  instead of catching them.
+  instead of catching them. `run` is **staleness-guarded** (an epoch counter
+  bumped on every `to`): if a newer transition happens while the task is in
+  flight — double-submit, cancel, navigate, challenge expiry — the late result
+  is dropped, never clobbering the newer state nor running its resolve/reject
+  side effects (analytics still fires). This guard lives in the primitive so
+  every future pair inherits it.
 - **Auto-instrumentation** — each transition emits `flow.<id>.<step>` started;
   each `run` emits `completed`/`failed` for its pending step
   (analytics-standard §1.2). Funnels exist without hand-written tracking.
@@ -62,6 +67,23 @@ begin→ceremony→complete journey and surface the server `options` /
 
 No "no credentials" heuristics — per auth-sa.md §19.6 that leak works against
 the privacy property; show the single copy key `auth.passkey.no_credentials`.
+
+## Verification challenge lifecycle
+
+Exactly one challenge is live at a time. The controller holds the core
+request's awaited resolver, so it must always release it:
+
+- **Success** → `settle({ retry: true, token })`; core replays with
+  `X-Verification-Token`.
+- **Cancel** → `settle({ retry: false })`; the original 403 propagates.
+- **Expiry** → the envelope's `expires_at` schedules an auto-release: an
+  abandoned modal (user walks away, never cancels) resolves `{ retry: false }`
+  instead of hanging the core `fetch` forever — and because the resolver is
+  cleared, subsequent challenges are handled rather than declined (no wedge).
+- **Factor initiate failure** → a 404 (challenge gone) ends the whole challenge
+  (`unavailable` + settle `retry:false`); any other failure (a 423-locked or
+  invalid factor, network) returns to the **picker** carrying the error, so a
+  different, still-valid factor remains choosable.
 
 ## Model hooks
 
