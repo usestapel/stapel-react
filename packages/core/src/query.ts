@@ -1,82 +1,13 @@
 import { QueryClient, dehydrate, hydrate } from "@tanstack/react-query";
 import type { DehydratedState } from "@tanstack/react-query";
-import { get as idbGet, set as idbSet, del as idbDel, keys as idbKeys } from "idb-keyval";
+import { defaultPersistStorage } from "./storage.js";
+import type { PersistStorage } from "./storage.js";
 
-/**
- * Pluggable persistence backend. Default resolution order:
- * IndexedDB (idb-keyval) → localStorage → in-memory (no-op across reloads).
- */
-export interface PersistStorage {
-  get(key: string): Promise<unknown>;
-  set(key: string, value: unknown): Promise<void>;
-  del(key: string): Promise<void>;
-  keys(): Promise<string[]>;
-}
+export type { PersistStorage } from "./storage.js";
 
 interface PersistedRecord {
   readonly version: string;
   readonly state: DehydratedState;
-}
-
-function idbStorage(): PersistStorage {
-  return {
-    get: (key) => idbGet(key),
-    set: (key, value) => idbSet(key, value),
-    del: (key) => idbDel(key),
-    keys: async () => (await idbKeys()).map(String),
-  };
-}
-
-function localStorageAdapter(storageArea: Storage): PersistStorage {
-  return {
-    get: (key) => {
-      const raw = storageArea.getItem(key);
-      if (raw === null) return Promise.resolve(undefined);
-      try {
-        return Promise.resolve(JSON.parse(raw) as unknown);
-      } catch {
-        return Promise.resolve(undefined);
-      }
-    },
-    set: (key, value) => {
-      storageArea.setItem(key, JSON.stringify(value));
-      return Promise.resolve();
-    },
-    del: (key) => {
-      storageArea.removeItem(key);
-      return Promise.resolve();
-    },
-    keys: () => {
-      const result: string[] = [];
-      for (let i = 0; i < storageArea.length; i += 1) {
-        const key = storageArea.key(i);
-        if (key !== null) result.push(key);
-      }
-      return Promise.resolve(result);
-    },
-  };
-}
-
-function memoryStorage(): PersistStorage {
-  const map = new Map<string, unknown>();
-  return {
-    get: (key) => Promise.resolve(map.get(key)),
-    set: (key, value) => {
-      map.set(key, value);
-      return Promise.resolve();
-    },
-    del: (key) => {
-      map.delete(key);
-      return Promise.resolve();
-    },
-    keys: () => Promise.resolve([...map.keys()]),
-  };
-}
-
-function defaultStorage(): PersistStorage {
-  if (typeof indexedDB !== "undefined") return idbStorage();
-  if (typeof localStorage !== "undefined") return localStorageAdapter(localStorage);
-  return memoryStorage();
 }
 
 export interface StapelQueryClientOptions {
@@ -123,7 +54,7 @@ export function createStapelQueryClient(
 ): StapelQueryRuntime {
   const prefix = options.cacheKeyPrefix ?? "stapel-query";
   const version = options.cacheVersion ?? "0";
-  const storage = options.storage ?? defaultStorage();
+  const storage = options.storage ?? defaultPersistStorage();
   const throttleMs = options.throttleMs ?? 100;
 
   const queryClient =

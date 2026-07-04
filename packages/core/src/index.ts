@@ -46,6 +46,27 @@ export type {
   CreateI18nOptions,
 } from "./i18n.js";
 
+// analytics facade (analytics-standard §2)
+export { createAnalytics } from "./analytics/createAnalytics.js";
+export {
+  consoleProvider,
+  stapelCollectorProvider,
+} from "./analytics/providers.js";
+export type { StapelCollectorOptions } from "./analytics/providers.js";
+export { trackFlowStep } from "./analytics/flow.js";
+export type { FlowStepPhase } from "./analytics/flow.js";
+export { AnalyticsContext, useAnalytics } from "./analytics/context.js";
+export type {
+  Analytics,
+  AnalyticsEvent,
+  AnalyticsEventKind,
+  AnalyticsProvider,
+  AnalyticsOptions,
+  AnalyticsBatchOptions,
+  ConsentState,
+  PiiGuardMode,
+} from "./analytics/types.js";
+
 // breakpoints
 export { useBreakpoint } from "./useBreakpoint.js";
 export type { Breakpoint } from "@stapel/tokens";

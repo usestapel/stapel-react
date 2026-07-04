@@ -1,6 +1,8 @@
 import { createContext, useContext } from "react";
 import type { ReactElement, ReactNode } from "react";
 import type { StapelClient } from "./client.js";
+import { AnalyticsContext } from "./analytics/context.js";
+import type { Analytics } from "./analytics/types.js";
 
 /**
  * App-level Stapel configuration. `clients` allows per-module client
@@ -19,11 +21,19 @@ const StapelConfigContext = createContext<StapelConfig | null>(null);
 
 export function StapelConfigProvider(props: {
   config: StapelConfig;
+  /**
+   * Optional analytics facade (analytics-standard §2); when provided,
+   * `useAnalytics()` works anywhere below. Omitting it keeps the previous
+   * behaviour.
+   */
+  analytics?: Analytics;
   children: ReactNode;
 }): ReactElement {
   return (
     <StapelConfigContext.Provider value={props.config}>
-      {props.children}
+      <AnalyticsContext.Provider value={props.analytics ?? null}>
+        {props.children}
+      </AnalyticsContext.Provider>
     </StapelConfigContext.Provider>
   );
 }
