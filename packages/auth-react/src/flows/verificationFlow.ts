@@ -119,6 +119,8 @@ export interface VerificationControllerDeps {
 
 const NOT_FOUND_STATUS = 404;
 const LOCKED_STATUS = 423;
+/** Longest delay `setTimeout` honors before int32 overflow kicks in. */
+const MAX_TIMEOUT_MS = 2 ** 31 - 1;
 
 function asEnvelope(challenge: VerificationChallenge): VerificationEnvelope {
   return {
@@ -177,6 +179,12 @@ export function createVerificationController(
     const delayMs = envelope.expires_at * 1000 - Date.now();
     if (delayMs <= 0) {
       fire();
+      return;
+    }
+    // setTimeout folds delays > 2^31-1 ms to ~1ms (int32 overflow), which
+    // would EXPIRE a far-future challenge instantly. Chain bounded timers.
+    if (delayMs > MAX_TIMEOUT_MS) {
+      expiryTimer = setTimeout(() => scheduleExpiry(envelope), MAX_TIMEOUT_MS);
       return;
     }
     expiryTimer = setTimeout(fire, delayMs);
@@ -258,6 +266,10 @@ export function createVerificationController(
         const credential = await deps.webauthnGet(after.options);
         await submitPasskey(credential);
       } catch (error) {
+        // The native prompt settled AFTER the challenge moved on (cancel,
+        // expiry, a newer transition) — its rejection must not resurrect a
+        // dead challenge UI by clobbering `idle`/`expired` with `factorError`.
+        if (machine.getState() !== after) return;
         machine.to({
           step: "factorError",
           challenge,

@@ -148,3 +148,40 @@ describe("step-up verification (flagship cross-module flow)", () => {
     expect(runtime.verification.machine.getState().step).toBe("idle");
   });
 });
+
+describe("runtime cookie mode (HTTP-only JWT cookies)", () => {
+  it("defaults the client to credentials:'include' so cookies ride every request", async () => {
+    const inits: (RequestInit | undefined)[] = [];
+    const fetchSpy: typeof globalThis.fetch = async (_input, init) => {
+      inits.push(init);
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+    const runtime = createAuthRuntime({
+      baseUrl: BASE,
+      cookieMode: true,
+      fetch: fetchSpy,
+    });
+    await runtime.client.get("/me/");
+    expect(inits[0]?.credentials).toBe("include");
+    // Cookie mode: no bearer header is attached.
+    const headers = new Headers(inits[0]?.headers);
+    expect(headers.get("authorization")).toBeNull();
+  });
+
+  it("bearer mode leaves credentials at the browser default", async () => {
+    const inits: (RequestInit | undefined)[] = [];
+    const fetchSpy: typeof globalThis.fetch = async (_input, init) => {
+      inits.push(init);
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+    const runtime = createAuthRuntime({ baseUrl: BASE, fetch: fetchSpy });
+    await runtime.client.get("/me/");
+    expect(inits[0]?.credentials).toBeUndefined();
+  });
+});

@@ -111,6 +111,92 @@ describe("verification lifecycle (A2)", () => {
     await expect(outcome).resolves.toEqual({ retry: false });
   });
 
+  it("expiry during an in-flight verify: the late success is dropped, outcome stays retry:false", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    let releaseComplete!: (v: {
+      verified: boolean;
+      verification_token: string;
+    }) => void;
+    const api = fakeApi({
+      verificationInitiate: vi.fn(() =>
+        Promise.resolve({ factor: "totp", data: {} })
+      ),
+      verificationComplete: vi.fn(
+        () =>
+          new Promise((res) => {
+            releaseComplete = res;
+          })
+      ),
+    });
+    const controller = createVerificationController({ api: () => api });
+
+    const outcome = controller.handler(challenge("c1", ["totp"], 300));
+    await controller.chooseFactor("totp");
+    const submit = controller.submitCode({ code: "111111" });
+    expect(controller.machine.getState().step).toBe("verifying");
+
+    // The challenge expires while the verify request is in flight.
+    await vi.advanceTimersByTimeAsync(300_000);
+    expect(controller.machine.getState().step).toBe("expired");
+    await expect(outcome).resolves.toEqual({ retry: false });
+
+    // The verify then succeeds — too late; it must not flip to "verified".
+    releaseComplete({ verified: true, verification_token: "vt" });
+    await submit;
+    expect(controller.machine.getState().step).toBe("expired");
+  });
+
+  it("a far-future expires_at does not expire the challenge instantly (setTimeout int32 overflow)", async () => {
+    const controller = createVerificationController({ api: () => fakeApi({}) });
+    // ~60 days out: the raw delay overflows int32, which setTimeout folds to
+    // ~1ms — the challenge would self-expire immediately.
+    const outcome = controller.handler(
+      challenge("c1", ["totp"], 60 * 24 * 60 * 60)
+    );
+    await new Promise((res) => setTimeout(res, 20));
+    expect(controller.machine.getState().step).toBe("picking");
+    controller.cancel();
+    await expect(outcome).resolves.toEqual({ retry: false });
+  });
+
+  it("cancel during the native passkey prompt: its late rejection must not resurrect the challenge", async () => {
+    let rejectGet: ((e: unknown) => void) | null = null;
+    const api = fakeApi({
+      verificationInitiate: vi.fn(() =>
+        Promise.resolve({
+          factor: "passkey",
+          data: { session_key: "sk", options: { rpId: "x" } },
+        })
+      ),
+    });
+    const controller = createVerificationController({
+      api: () => api,
+      webauthnGet: () =>
+        new Promise((_res, rej) => {
+          rejectGet = rej;
+        }),
+    });
+
+    const outcome = controller.handler(challenge("c1", ["passkey"], 300));
+    const choosing = controller.chooseFactor("passkey");
+    // Wait until the native prompt is actually open (webauthnGet invoked).
+    while (rejectGet === null) {
+      await new Promise((res) => setTimeout(res, 1));
+    }
+
+    // The user closes the modal while the native prompt is still open…
+    controller.cancel();
+    expect(controller.machine.getState().step).toBe("idle");
+    await expect(outcome).resolves.toEqual({ retry: false });
+
+    // …then the native prompt rejects (NotAllowedError). The dead challenge
+    // must NOT be resurrected as a `factorError` UI.
+    (rejectGet as (e: unknown) => void)(new Error("NotAllowedError"));
+    await choosing;
+    expect(controller.machine.getState().step).toBe("idle");
+  });
+
   it("cancel during an in-flight verify wins over the late success (R1 in the controller)", async () => {
     let releaseComplete!: (v: {
       verified: boolean;

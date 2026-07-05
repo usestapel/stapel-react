@@ -50,6 +50,14 @@ export interface StapelClientOptions {
   readonly onVerificationChallenge?: VerificationChallengeHandler;
   /** Merged into every request (overridable per request). */
   readonly defaultHeaders?: Record<string, string>;
+  /**
+   * Fetch `credentials` mode for every request (including refresh /
+   * verification retries). Cookie-mode backends (HTTP-only JWT cookies) need
+   * `"include"` when the API is on another origin — the fetch default
+   * (`"same-origin"`) silently drops cookies cross-origin. Default: unset
+   * (browser default).
+   */
+  readonly credentials?: RequestCredentials;
   /** Injectable fetch (tests, SSR, instrumentation). Default: global fetch. */
   readonly fetch?: typeof globalThis.fetch;
 }
@@ -151,6 +159,9 @@ export function createStapelClient(options: StapelClientOptions): StapelClient {
       }
 
       const requestInit: RequestInit = { method, headers };
+      if (options.credentials !== undefined) {
+        requestInit.credentials = options.credentials;
+      }
       if (body !== undefined) requestInit.body = body;
       if (requestOptions.signal) requestInit.signal = requestOptions.signal;
       const response = await fetchImpl(url, requestInit);

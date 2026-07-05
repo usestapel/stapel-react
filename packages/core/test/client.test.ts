@@ -34,6 +34,49 @@ describe("createStapelClient", () => {
     await expect(client.get("/v1/me")).resolves.toEqual({ id: "u1" });
   });
 
+  it("cookie mode: passes credentials through to fetch on every request (incl. retries)", async () => {
+    const inits: (RequestInit | undefined)[] = [];
+    const fetchSpy: typeof globalThis.fetch = async (input, init) => {
+      inits.push(init);
+      if (inits.length === 1) {
+        return new Response(
+          JSON.stringify({ localizable_error: "auth.expired", error: "x" }),
+          { status: 401, headers: { "content-type": "application/json" } }
+        );
+      }
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+    const client = createStapelClient({
+      baseUrl: BASE,
+      credentials: "include",
+      fetch: fetchSpy,
+      onAuthRefresh: () => Promise.resolve("tok-2"),
+    });
+    await expect(client.get("/v1/me")).resolves.toEqual({ ok: true });
+    // HTTP-only cookies must ride BOTH the original request and the
+    // post-refresh retry.
+    expect(inits).toHaveLength(2);
+    expect(inits[0]?.credentials).toBe("include");
+    expect(inits[1]?.credentials).toBe("include");
+  });
+
+  it("leaves fetch credentials untouched when the option is not set", async () => {
+    const inits: (RequestInit | undefined)[] = [];
+    const fetchSpy: typeof globalThis.fetch = async (_input, init) => {
+      inits.push(init);
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+    const client = createStapelClient({ baseUrl: BASE, fetch: fetchSpy });
+    await client.get("/v1/me");
+    expect(inits[0]?.credentials).toBeUndefined();
+  });
+
   it("throws StapelApiError parsed from the error envelope", async () => {
     server.use(
       http.post(`${BASE}/v1/otp`, () =>

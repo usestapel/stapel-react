@@ -36,6 +36,12 @@ export interface CreateAuthRuntimeOptions {
   readonly analytics?: Analytics | null;
   /** Cookie mode (httponly JWT cookies) vs header/bearer. Default false. */
   readonly cookieMode?: boolean;
+  /**
+   * Fetch `credentials` mode for the built client. Defaults to `"include"`
+   * in cookie mode (HTTP-only cookies must ride cross-origin requests) and
+   * to the browser default otherwise.
+   */
+  readonly credentials?: RequestCredentials;
   /** Called after a session teardown (revoked/expired/logout). */
   readonly onTeardown?: (reason: TeardownReason) => void;
   /** Extra headers merged into every request (e.g. a captcha or tenant id). */
@@ -75,9 +81,14 @@ export function createAuthRuntime(
       : {}),
   });
 
+  const credentials =
+    options.credentials ??
+    (options.cookieMode === true ? ("include" as const) : undefined);
+
   const client = createStapelClient({
     baseUrl: options.baseUrl,
     ...(options.fetch !== undefined ? { fetch: options.fetch } : {}),
+    ...(credentials !== undefined ? { credentials } : {}),
     getToken: () => session.getAccessToken(),
     onAuthRefresh: () => session.onAuthRefresh(),
     onVerificationChallenge: verification.handler,

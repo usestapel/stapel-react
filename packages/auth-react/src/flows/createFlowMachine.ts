@@ -39,8 +39,9 @@ export interface FlowMachine<S extends FlowStateBase> {
   /**
    * Run an async step. Parks in `pending` immediately, awaits `task`, then
    * transitions via `resolve`/`reject`. Emits `completed`/`failed` for the
-   * pending step. Resolves once the terminal transition is applied — it does
-   * not reject.
+   * pending step. Resolves once the terminal transition is applied — a task
+   * rejection never rejects `run` (it is folded into the `reject` state); only
+   * a throwing `resolve`/`reject` mapper (a programming error) propagates.
    */
   run<T>(
     pending: S,
@@ -75,16 +76,30 @@ export function createFlowMachine<S extends FlowStateBase>(
     for (const listener of listeners) listener();
   }
 
-  // Monotonic transition counter — the staleness epoch. Every `to` bumps it; a
-  // `run` captures it after parking in `pending` and only applies its terminal
-  // transition if no newer `to` happened while the task was in flight.
+  // Monotonic transition counter — the staleness epoch. Every transition bumps
+  // it; a `run` captures the epoch OF its own pending transition and only
+  // applies its terminal transition if no newer transition happened while the
+  // task was in flight.
   let generation = 0;
 
-  function to(next: S): void {
+  // Apply a transition and return its epoch. The epoch is captured BEFORE
+  // listeners are notified (R2): a subscriber that re-entrantly calls `to()`
+  // from the notification advances the generation past the returned epoch, so
+  // a `run` whose pending state was displaced synchronously is correctly seen
+  // as stale. Capturing `generation` after `to(pending)` returned (the old
+  // shape) read the LISTENER's epoch instead and let the late result clobber
+  // the re-entrant transition.
+  function transition(next: S): number {
     state = next;
     generation += 1;
+    const epoch = generation;
     emit(next.step, "started");
     notify();
+    return epoch;
+  }
+
+  function to(next: S): void {
+    transition(next);
   }
 
   async function run<T>(
@@ -95,20 +110,28 @@ export function createFlowMachine<S extends FlowStateBase>(
       readonly reject: (error: unknown) => S;
     }
   ): Promise<void> {
-    to(pending);
     // Epoch of THIS run's pending transition. If it advances before the task
     // settles (double-submit, cancel, navigate, expiry), the late result is
     // stale and must NOT clobber the newer state — nor run its resolve/reject
     // side effects. Analytics still fires so funnels stay honest.
-    const epoch = generation;
+    const epoch = transition(pending);
+    // Fold the task's settlement into data BEFORE touching the machine, so a
+    // throwing `resolve` mapper (a host programming error) is never mistaken
+    // for a task failure. The old try/catch-around-everything shape both
+    // double-emitted `completed`+`failed` AND applied a reject state built
+    // from the mapper's own exception; now a mapper/listener throw propagates
+    // loudly out of `run` instead of corrupting the machine.
+    let settled:
+      | { readonly ok: true; readonly result: T }
+      | { readonly ok: false; readonly error: unknown };
     try {
-      const result = await task();
-      emit(pending.step, "completed");
-      if (generation === epoch) to(handlers.resolve(result));
+      settled = { ok: true, result: await task() };
     } catch (error) {
-      emit(pending.step, "failed");
-      if (generation === epoch) to(handlers.reject(error));
+      settled = { ok: false, error };
     }
+    emit(pending.step, settled.ok ? "completed" : "failed");
+    if (generation !== epoch) return; // stale — a newer transition won
+    to(settled.ok ? handlers.resolve(settled.result) : handlers.reject(settled.error));
   }
 
   return {
