@@ -93,6 +93,50 @@ describe("session persistence (frontend-standard §4.6)", () => {
     expect(b.getState().tokens?.access).toBe("acc_1");
   });
 
+  it("cookie mode: never persists JWTs into JS-readable storage; restore is an optimistic user cache", async () => {
+    const storage = memoryStorage();
+    const a = createAuthSession({
+      api: () => makeApi(),
+      storage,
+      cookieMode: true,
+    });
+    a.adopt(authResponse("LOGGED_IN"));
+
+    // The persisted snapshot holds the user but NO tokens: HTTP-only cookies
+    // carry the session, and mirroring JWTs into storage would reopen the
+    // XSS-theft hole cookie mode exists to close.
+    const stored = (await storage.get("stapel-auth:session")) as {
+      user: unknown;
+      tokens: unknown;
+    };
+    expect(stored.user).toBeTruthy();
+    expect(stored.tokens).toBeNull();
+
+    // A fresh session (reload) restores the user optimistically — the cookies
+    // authenticate the next request; a dead cookie pair tears down via the
+    // refresh seam.
+    const b = createAuthSession({
+      api: () => makeApi(),
+      storage,
+      cookieMode: true,
+    });
+    await b.restore();
+    expect(b.getState().status).toBe("authenticated");
+    expect(b.getState().user).toEqual(authResponse("LOGGED_IN").user);
+    expect(b.getAccessToken()).toBeNull();
+  });
+
+  it("bearer mode: a stored user WITHOUT tokens does not restore as authenticated", async () => {
+    const storage = memoryStorage();
+    await storage.set("stapel-auth:session", {
+      user: authResponse("LOGGED_IN").user,
+      tokens: null,
+    });
+    const session = createAuthSession({ api: () => makeApi(), storage });
+    await session.restore();
+    expect(session.getState().status).toBe("anonymous");
+  });
+
   it("logout revokes server-side, tears down, and purges persisted state", async () => {
     let loggedOut = false;
     server.use(

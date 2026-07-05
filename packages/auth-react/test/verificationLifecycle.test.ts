@@ -197,6 +197,57 @@ describe("verification lifecycle (A2)", () => {
     expect(controller.machine.getState().step).toBe("idle");
   });
 
+  it("a stale native passkey credential is not submitted against a NEWER challenge", async () => {
+    const prompts: ((credential: unknown) => void)[] = [];
+    const verificationComplete = vi.fn(() =>
+      Promise.resolve({ verified: true, verification_token: "vt" })
+    );
+    const api = fakeApi({
+      verificationInitiate: vi.fn(() =>
+        Promise.resolve({
+          factor: "passkey",
+          data: { session_key: "sk", options: { rpId: "x" } },
+        })
+      ),
+      verificationComplete,
+    });
+    const controller = createVerificationController({
+      api: () => api,
+      webauthnGet: () =>
+        new Promise((res) => {
+          prompts.push(res);
+        }),
+    });
+
+    const outcome1 = controller.handler(challenge("c1", ["passkey"], 300));
+    const choosing1 = controller.chooseFactor("passkey");
+    while (prompts.length < 1) {
+      await new Promise((res) => setTimeout(res, 1));
+    }
+
+    // The user closes the modal while the first native prompt is open…
+    controller.cancel();
+    await expect(outcome1).resolves.toEqual({ retry: false });
+
+    // …a NEW challenge arrives and the user chooses passkey again.
+    const outcome2 = controller.handler(challenge("c2", ["passkey"], 300));
+    void controller.chooseFactor("passkey");
+    while (prompts.length < 2) {
+      await new Promise((res) => setTimeout(res, 1));
+    }
+    expect(controller.machine.getState().step).toBe("awaitingPasskey");
+
+    // The FIRST (stale) prompt now resolves. Its credential belongs to the
+    // dead challenge and must NOT be submitted against the new session_key.
+    prompts[0]?.({ id: "stale-credential" });
+    await choosing1;
+    expect(verificationComplete).not.toHaveBeenCalled();
+    expect(controller.machine.getState().step).toBe("awaitingPasskey");
+
+    controller.cancel();
+    await expect(outcome2).resolves.toEqual({ retry: false });
+  });
+
   it("cancel during an in-flight verify wins over the late success (R1 in the controller)", async () => {
     let releaseComplete!: (v: {
       verified: boolean;

@@ -86,7 +86,15 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
     // stays in memory for the page lifetime.
     const storage = options.storage;
     if (storage) {
-      void storage.set(persistKey, { user: state.user, tokens: state.tokens });
+      // Cookie mode: NEVER persist JWTs into JS-readable storage — the whole
+      // point of HTTP-only cookies is that tokens are not stealable via XSS,
+      // and mirroring them into IndexedDB/localStorage would reopen exactly
+      // that hole. Only the user snapshot is persisted (optimistic user
+      // cache); requests authenticate via cookies.
+      void storage.set(persistKey, {
+        user: state.user,
+        tokens: cookieMode ? null : state.tokens,
+      });
     }
   }
 
@@ -165,7 +173,14 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
       setState({
         user: stored.user,
         tokens: stored.tokens,
-        status: stored.tokens !== null ? "authenticated" : "anonymous",
+        // Bearer mode: tokens are the session. Cookie mode: tokens are never
+        // persisted (see `persist`), so a stored user IS the optimistic
+        // session — the HTTP-only cookies ride the next request, and a dead
+        // cookie pair tears the session down via the refresh seam.
+        status:
+          stored.tokens !== null || (cookieMode && stored.user !== null)
+            ? "authenticated"
+            : "anonymous",
       });
     }
   }

@@ -264,6 +264,11 @@ export function createVerificationController(
     if (after.step === "awaitingPasskey" && deps.webauthnGet) {
       try {
         const credential = await deps.webauthnGet(after.options);
+        // Same identity guard as the catch below, for the SUCCESS path: the
+        // prompt may resolve after the challenge moved on (cancel + a NEW
+        // challenge reaching `awaitingPasskey`) — the stale credential must
+        // not be submitted against the newer challenge's session_key.
+        if (machine.getState() !== after) return;
         await submitPasskey(credential);
       } catch (error) {
         // The native prompt settled AFTER the challenge moved on (cancel,
