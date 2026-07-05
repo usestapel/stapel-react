@@ -536,12 +536,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description RFC 7662 token introspection endpoint.
-         *
-         *     For use by trusted internal services only (requires service API key).
-         *     POST body: ``token=<jwt_string>`` (application/x-www-form-urlencoded or JSON).
-         *
-         *     Returns ``{"active": false}`` for invalid/expired tokens — not 401.
+         * RFC 7662 token introspection (service-to-service)
+         * @description Introspect a JWT. Requires a service API key. Returns `{"active": false}` for invalid/expired tokens (never 401 for those). A 401 is only returned when the caller's service API key is missing/invalid.
          */
         post: operations["auth_api_oauth2_introspect_create"];
         delete?: never;
@@ -1569,7 +1565,9 @@ export interface paths {
         put?: never;
         /**
          * SAML Assertion Consumer Service — IdP posts SAMLResponse here
-         * @description **Permissions:** `AllowAny`
+         * @description Backend-facing endpoint the IdP POSTs to after authentication. The body is an external, application/x-www-form-urlencoded form carrying a base64-encoded `SAMLResponse` (and optional `RelayState`) — its schema is defined by the SAML 2.0 spec, not this API. Always responds with a 302 redirect to the frontend (with session cookies on success, or an `?error=` query param on failure).
+         *
+         *     **Permissions:** `AllowAny`
          */
         post: operations["auth_api_sso_saml_acs_create"];
         delete?: never;
@@ -2270,12 +2268,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Overridable serializer seam for every billing APIView.
-         *
-         *     Host projects can swap the request/response serializer of any view by
-         *     subclassing and setting ``request_serializer_class`` /
-         *     ``response_serializer_class`` (or overriding the getters for
-         *     per-request decisions) — no need to rewrite the HTTP method bodies.
+         * @description Cancel the authenticated user's subscription. Cancels the subscription at the Stripe provider (when one exists) and marks it cancelled locally. Takes no request body.
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -2358,12 +2351,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Overridable serializer seam for every billing APIView.
-         *
-         *     Host projects can swap the request/response serializer of any view by
-         *     subclassing and setting ``request_serializer_class`` /
-         *     ``response_serializer_class`` (or overriding the getters for
-         *     per-request decisions) — no need to rewrite the HTTP method bodies.
+         * Stripe webhook receiver
+         * @description External Stripe webhook endpoint. The request body is a raw Stripe Event object (JSON) whose authenticity is verified against the `Stripe-Signature` header using the configured webhook secret. Events are processed idempotently. Not called by first-party clients.
          *
          *     **Permissions:** `AllowAny`
          */
@@ -4143,6 +4132,42 @@ export interface components {
              */
             created_at: string;
         };
+        /** @description Body for removing a Figma URL ref from a translation entry. */
+        FigmaRemoveRefRequest: {
+            /** @description Translation key */
+            key: string;
+            /** @description Figma URL to remove from refs */
+            figma_url: string;
+            /** @description Figma screen name to remove from comment */
+            screen_name?: string;
+        };
+        /** @description Figma ref removal result. */
+        FigmaRemoveRefResponse: {
+            /**
+             * @description Translation key
+             * @example common.save
+             */
+            key: string;
+            /**
+             * @description Whether the ref was removed
+             * @example true
+             */
+            ref_removed: boolean;
+            /**
+             * @description Remaining Figma refs after removal
+             * @example [
+             *       "1:23"
+             *     ]
+             */
+            refs: string[];
+        };
+        /** @description Body for uploading a screen screenshot for a translation key. */
+        FigmaScreenshotUploadRequest: {
+            /** @description Translation key */
+            key: string;
+            /** @description Base64-encoded PNG image */
+            image: string;
+        };
         /** @description Screenshot upload result for a single key. */
         FigmaScreenshotUploadResponse: {
             /**
@@ -4155,6 +4180,155 @@ export interface components {
              * @example true
              */
             uploaded: boolean;
+        };
+        /** @description Body for searching a translation by exact English text. */
+        FigmaSearchRequest: {
+            /** @description English text to search for */
+            text: string;
+            /** @description Figma selection URL to add as ref if a match is found */
+            figma_url?: string;
+            /** @description Figma screen name appended to comment */
+            screen_name?: string;
+        };
+        /** @description Search for translation entry by text (Figma plugin). */
+        FigmaSearchResponse: {
+            /**
+             * @description Whether a match was found
+             * @example true
+             */
+            found: boolean;
+            /**
+             * @description Matched translation entry object
+             * @example {
+             *       "id": 42,
+             *       "key": "common.save"
+             *     }
+             */
+            entry: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * @description Whether a Figma ref was added to the entry
+             * @example true
+             */
+            ref_added: boolean;
+        };
+        /** @description A single Figma node in a bulk-sync payload. */
+        FigmaSyncEntry: {
+            /** @description Translation key */
+            key: string;
+            /** @description Current text of the node */
+            currentText?: string;
+            /** @description Figma node URL */
+            figmaUrl?: string;
+            /** @description Screen/container name */
+            containerName?: string;
+            /** @description Ordering index */
+            order?: number | null;
+        };
+        /** @description Body for a bulk sync of Figma translatable nodes. */
+        FigmaSyncRequest: {
+            /** @description Figma nodes to sync */
+            entries: components["schemas"]["FigmaSyncEntry"][];
+        };
+        /** @description Figma bulk sync result. */
+        FigmaSyncResponse: {
+            /**
+             * @description Total entries processed
+             * @example 50
+             */
+            synced: number;
+            /**
+             * @description New entries created
+             * @example 5
+             */
+            created: number;
+            /**
+             * @description Existing entries updated
+             * @example 12
+             */
+            updated: number;
+        };
+        /** @description Body for creating/updating a translation entry from Figma. */
+        FigmaTranslationUpsertRequest: {
+            /** @description Translation key */
+            key: string;
+            /** @description Text value for the target language */
+            value: string;
+            /** @description Context/comment for translators */
+            comment?: string;
+            /** @description Figma selection URL to add as ref */
+            figma_url?: string;
+            /** @description Language to save to (default: en) */
+            lang?: string;
+            /**
+             * @description Set verified flag for the language
+             * @default false
+             */
+            verify: boolean;
+            /**
+             * @description Override verified guard and save anyway
+             * @default false
+             */
+            force: boolean;
+            /** @description Ordering index */
+            order?: number | null;
+            /** @description Author email recorded in translation history */
+            author_email?: string | null;
+            /** @description Author name recorded in history */
+            author_name?: string;
+            /** @description Figma screen name appended to comment */
+            screen_name?: string;
+        };
+        /** @description Created or updated translation entry (Figma plugin). */
+        FigmaTranslationUpsertResponse: {
+            /**
+             * @description Entry database ID
+             * @example 42
+             */
+            id: number;
+            /**
+             * @description Translation key
+             * @example common.save
+             */
+            key: string;
+            /**
+             * @description Translation text
+             * @example Sauvegarder
+             */
+            value: string;
+            /**
+             * @description Admin comment
+             * @example Save button label
+             */
+            comment: string;
+            /**
+             * @description Translator note
+             * @example Used in header
+             */
+            translator_comment: string;
+            /**
+             * @description Figma node references
+             * @example [
+             *       "1:23",
+             *       "4:56"
+             *     ]
+             */
+            refs: string[];
+            /**
+             * @description Sort order
+             * @example 10
+             */
+            order: number | null;
+            /**
+             * @description True if newly created
+             * @example true
+             */
+            created: boolean;
+            /** @description True if an existing entry was modified */
+            updated?: boolean | null;
+            /** @description Verification status after upsert */
+            verified?: boolean | null;
         };
         /** @description Serializer for file existence check by hash. */
         FileExists: {
@@ -4188,7 +4362,10 @@ export interface components {
             readonly original_size: number;
             /** @description URL prefix: file/<hash> */
             readonly prefix: string;
-            /** @description URL to original uploaded file */
+            /**
+             * Format: uri
+             * @description URL to original uploaded file
+             */
             readonly original_url: string;
             /** @description List of references: service/entity_type/entity_id */
             refs?: unknown;
@@ -4199,6 +4376,18 @@ export interface components {
             readonly created_at: string;
             /** Format: date-time */
             readonly updated_at: string;
+        };
+        /**
+         * @description Serializer for file upload requests.
+         *
+         *     Upload a file using multipart/form-data with the 'file' field.
+         */
+        FileUpload: {
+            /**
+             * Format: uri
+             * @description The file to upload. Images: jpg, jpeg, png, gif, webp, bmp, heic, heif. Videos: mp4, webm, mov, avi, mkv.
+             */
+            file: string;
         };
         /** @description Successful file upload. */
         FileUploadResponse: {
@@ -4240,6 +4429,10 @@ export interface components {
              */
             count: number;
         };
+        GDPRDownloadTokenRequest: {
+            /** @description Single-use download token bound to the authenticated user. */
+            token: string;
+        };
         /**
          * @description Serializer for Image model.
          *
@@ -4266,31 +4459,70 @@ export interface components {
             readonly original_height: number;
             /** @description File size in bytes */
             readonly original_size: number;
-            /** @description URL to original uploaded image */
+            /**
+             * Format: uri
+             * @description URL to original uploaded image
+             */
             readonly original_url: string;
-            /** @description 16px thumbnail (WebP) */
+            /**
+             * Format: uri
+             * @description 16px thumbnail (WebP)
+             */
             readonly variant_16_url: string;
-            /** @description 32px thumbnail (WebP) */
+            /**
+             * Format: uri
+             * @description 32px thumbnail (WebP)
+             */
             readonly variant_32_url: string;
-            /** @description 64px thumbnail (WebP) */
+            /**
+             * Format: uri
+             * @description 64px thumbnail (WebP)
+             */
             readonly variant_64_url: string;
-            /** @description 120px thumbnail (WebP) */
+            /**
+             * Format: uri
+             * @description 120px thumbnail (WebP)
+             */
             readonly variant_120_url: string;
-            /** @description 160px preview (WebP) */
+            /**
+             * Format: uri
+             * @description 160px preview (WebP)
+             */
             readonly variant_160_url: string;
-            /** @description 240px preview (WebP) */
+            /**
+             * Format: uri
+             * @description 240px preview (WebP)
+             */
             readonly variant_240_url: string;
-            /** @description 480px medium (WebP) */
+            /**
+             * Format: uri
+             * @description 480px medium (WebP)
+             */
             readonly variant_480_url: string;
-            /** @description 720px HD (WebP) */
+            /**
+             * Format: uri
+             * @description 720px HD (WebP)
+             */
             readonly variant_720_url: string;
-            /** @description 720px HD (JPEG fallback) */
+            /**
+             * Format: uri
+             * @description 720px HD (JPEG fallback)
+             */
             readonly variant_720_jpg_url: string;
-            /** @description 1080px Full HD (WebP) */
+            /**
+             * Format: uri
+             * @description 1080px Full HD (WebP)
+             */
             readonly variant_1080_url: string;
-            /** @description 1440px 2K (WebP) */
+            /**
+             * Format: uri
+             * @description 1440px 2K (WebP)
+             */
             readonly variant_1440_url: string;
-            /** @description 2160px 4K (WebP) */
+            /**
+             * Format: uri
+             * @description 2160px 4K (WebP)
+             */
             readonly variant_2160_url: string;
             /** @description Whether variants have been generated */
             readonly is_processed: boolean;
@@ -4381,6 +4613,14 @@ export interface components {
              * @example 2025-01-15T12:00:00Z
              */
             expires_at: string;
+        };
+        /** @description Get-or-create result for a user's personal workspace (service-to-service). */
+        InternalPersonalWorkspaceResponse: {
+            /**
+             * Format: uuid
+             * @description Personal workspace UUID.
+             */
+            workspace_id: string;
         };
         /** @description Accept an invite. */
         InvitationAcceptRequest: {
@@ -4487,6 +4727,12 @@ export interface components {
              * @example 70
              */
             unverified: number;
+        };
+        /** @description Serializer for a single language translation. */
+        LanguageTranslation: {
+            lang: string;
+            value: string | null;
+            verified: boolean;
         };
         LoginResponse: components["schemas"]["AuthResponse"] | components["schemas"]["TOTPChallengeResponse"];
         LogoutRequest: {
@@ -4997,9 +5243,12 @@ export interface components {
             location_display_name_narrow?: string;
             /** @description Cached broad location display name from geo service */
             location_display_name_broad?: string;
-            readonly followers_count: string;
-            readonly following_count: string;
-            readonly relationship_status: string;
+            /** @description Get count of users following this profile. */
+            readonly followers_count: number;
+            /** @description Get count of users this profile is following. */
+            readonly following_count: number;
+            /** @description Get relationship status with current user. */
+            readonly relationship_status: string | null;
         };
         /** @description Public profile for viewing other users. */
         ProfilePublicResponse: {
@@ -5631,6 +5880,33 @@ export interface components {
              */
             expires_in: number;
         };
+        /** @description RFC 7662 introspection request body. */
+        TokenIntrospectRequest: {
+            /** @description The JWT access token to introspect. */
+            token: string;
+        };
+        /**
+         * @description RFC 7662 introspection response.
+         *
+         *     ``active`` is always present; the claim fields are only populated when the
+         *     token is valid.
+         */
+        TokenIntrospectResponse: {
+            /** @description Whether the token is currently valid. */
+            active: boolean;
+            /** @description Subject (user_id) claim. */
+            sub?: string;
+            username?: string;
+            email?: string;
+            scope?: string;
+            /** @description Expiry (unix ts). */
+            exp?: number;
+            /** @description Issued-at (unix ts). */
+            iat?: number;
+            /** @description Issuer. */
+            iss?: string;
+            token_type?: string;
+        };
         TokenObtainRequest: {
             /** @description Username or email */
             username: string;
@@ -5700,7 +5976,7 @@ export interface components {
             refs?: unknown;
             /** @description Whether this translation was generated by LLM */
             llm_translated?: boolean;
-            readonly translations: string;
+            readonly translations: components["schemas"]["LanguageTranslation"][];
         };
         /**
          * @description Entry serializer that keeps the legacy flat shape.
@@ -5734,8 +6010,12 @@ export interface components {
         TranslationList: {
             readonly id: number;
             key: string;
+            /**
+             * @description Given the *incoming* primitive data, return the value for this field
+             *     that should be validated and transformed to a native value.
+             */
             readonly value: string;
-            readonly verified: string;
+            readonly verified: boolean;
             source?: string;
             comment?: string;
             /** @description Notes from translator */
@@ -5910,13 +6190,21 @@ export interface components {
              * @description Duration in seconds
              */
             readonly duration: number | null;
+            /** Format: uri */
             readonly original_url: string;
+            /** Format: uri */
             readonly variant_16p_url: string;
+            /** Format: uri */
             readonly variant_32p_url: string;
+            /** Format: uri */
             readonly variant_240p_url: string;
+            /** Format: uri */
             readonly variant_480p_url: string;
+            /** Format: uri */
             readonly variant_720p_url: string;
+            /** Format: uri */
             readonly variant_1080p_url: string;
+            /** Format: uri */
             readonly variant_2160p_url: string;
             /** @description Whether variants have been generated */
             readonly is_processed: boolean;
@@ -6861,14 +7149,29 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenIntrospectRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["TokenIntrospectRequest"];
+                "multipart/form-data": components["schemas"]["TokenIntrospectRequest"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TokenIntrospectResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
             };
         };
     };
@@ -6975,6 +7278,14 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["_PasskeyRegOptions"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
         };
@@ -7707,12 +8018,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SimpleStatusResponse"];
+                };
             };
             400: {
                 headers: {
@@ -7751,12 +8063,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SimpleStatusResponse"];
+                };
             };
             404: {
                 headers: {
@@ -8209,7 +8522,19 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+                "application/x-www-form-urlencoded": {
+                    [key: string]: unknown;
+                };
+                "multipart/form-data": {
+                    [key: string]: unknown;
+                };
+            };
+        };
         responses: {
             /** @description No response body */
             302: {
@@ -8705,6 +9030,14 @@ export interface operations {
                     "application/json": components["schemas"]["ClosureStatusDTO"];
                 };
             };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
         };
     };
     auth_api_user_account_close_create: {
@@ -8722,6 +9055,14 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClosureStatusDTO"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
         };
@@ -8747,19 +9088,47 @@ export interface operations {
     };
     auth_api_user_data_export_download_retrieve: {
         parameters: {
-            query?: never;
+            query: {
+                /** @description Single-use download token bound to the authenticated user. */
+                token: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/zip": string;
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            425: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
             };
         };
     };
@@ -8770,14 +9139,45 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GDPRDownloadTokenRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["GDPRDownloadTokenRequest"];
+                "multipart/form-data": components["schemas"]["GDPRDownloadTokenRequest"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/zip": string;
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            425: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
             };
         };
     };
@@ -8796,6 +9196,14 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExportRequestDTO"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
         };
@@ -9159,6 +9567,24 @@ export interface operations {
                     "application/json": components["schemas"]["SubscriptionResponse"];
                 };
             };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
         };
     };
     billing_api_wallet_retrieve: {
@@ -9227,18 +9653,54 @@ export interface operations {
     billing_api_webhooks_stripe_create: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description Stripe signature header used to verify the event payload. */
+                "Stripe-Signature": string;
+            };
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+                "application/x-www-form-urlencoded": {
+                    [key: string]: unknown;
+                };
+                "multipart/form-data": {
+                    [key: string]: unknown;
+                };
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
             };
         };
     };
@@ -9575,15 +10037,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
-                "multipart/form-data": {
-                    /**
-                     * Format: binary
-                     * @description Image file to upload (jpg, png, gif, webp, bmp, heic, heif)
-                     */
-                    file: string;
-                };
+                "multipart/form-data": components["schemas"]["FileUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["FileUpload"];
             };
         };
         responses: {
@@ -9592,9 +10049,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ImageUploadResponse"];
                 };
             };
             201: {
@@ -9602,9 +10057,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ImageUploadResponse"];
                 };
             };
             400: {
@@ -10589,29 +11042,28 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
-                type: {
-                    [key: string]: unknown;
-                };
-                properties: unknown;
-                required: {
-                    [key: string]: unknown;
-                };
+                "application/json": components["schemas"]["FigmaTranslationUpsertRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["FigmaTranslationUpsertRequest"];
+                "multipart/form-data": components["schemas"]["FigmaTranslationUpsertRequest"];
             };
         };
         responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FigmaTranslationUpsertResponse"];
+                };
+            };
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        id?: number;
-                        key?: string;
-                        value?: string;
-                        created?: boolean;
-                    };
+                    "application/json": components["schemas"]["FigmaTranslationUpsertResponse"];
                 };
             };
             400: {
@@ -10619,20 +11071,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        error?: string;
-                    };
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
-            409: {
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        error?: string;
-                        existing?: Record<string, never>;
-                    };
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
         };
@@ -10686,15 +11133,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
-                type: {
-                    [key: string]: unknown;
-                };
-                properties: unknown;
-                required: {
-                    [key: string]: unknown;
-                };
+                "application/json": components["schemas"]["FigmaRemoveRefRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["FigmaRemoveRefRequest"];
+                "multipart/form-data": components["schemas"]["FigmaRemoveRefRequest"];
             };
         };
         responses: {
@@ -10703,11 +11146,23 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        key?: string;
-                        ref_removed?: boolean;
-                        refs?: string[];
-                    };
+                    "application/json": components["schemas"]["FigmaRemoveRefResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
             404: {
@@ -10715,9 +11170,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        error?: string;
-                    };
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
         };
@@ -10729,15 +11182,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
-                type: {
-                    [key: string]: unknown;
-                };
-                properties: unknown;
-                required: {
-                    [key: string]: unknown;
-                };
+                "application/json": components["schemas"]["FigmaScreenshotUploadRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["FigmaScreenshotUploadRequest"];
+                "multipart/form-data": components["schemas"]["FigmaScreenshotUploadRequest"];
             };
         };
         responses: {
@@ -10749,14 +11198,28 @@ export interface operations {
                     "application/json": components["schemas"]["FigmaScreenshotUploadResponse"];
                 };
             };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        error?: string;
-                    };
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
         };
@@ -10768,15 +11231,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
-                type: {
-                    [key: string]: unknown;
-                };
-                properties: unknown;
-                required: {
-                    [key: string]: unknown;
-                };
+                "application/json": components["schemas"]["FigmaSearchRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["FigmaSearchRequest"];
+                "multipart/form-data": components["schemas"]["FigmaSearchRequest"];
             };
         };
         responses: {
@@ -10785,18 +11244,23 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        found?: boolean;
-                        entry?: {
-                            id?: number;
-                            key?: string;
-                            en?: string;
-                            comment?: string;
-                            source?: string;
-                            refs?: string[];
-                        };
-                        ref_added?: boolean;
-                    };
+                    "application/json": components["schemas"]["FigmaSearchResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
         };
@@ -10808,15 +11272,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
-                type: {
-                    [key: string]: unknown;
-                };
-                properties: unknown;
-                required: {
-                    [key: string]: unknown;
-                };
+                "application/json": components["schemas"]["FigmaSyncRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["FigmaSyncRequest"];
+                "multipart/form-data": components["schemas"]["FigmaSyncRequest"];
             };
         };
         responses: {
@@ -10825,11 +11285,23 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        synced?: number;
-                        created?: number;
-                        updated?: number;
-                    };
+                    "application/json": components["schemas"]["FigmaSyncResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
         };
@@ -11270,12 +11742,21 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InternalPersonalWorkspaceResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
             };
         };
     };
