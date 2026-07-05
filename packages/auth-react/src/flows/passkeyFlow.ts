@@ -84,8 +84,17 @@ export function createPasskeyRegistrationFlow(
     if (after.step === "awaitingCredential" && deps.webauthnCreate) {
       try {
         const credential = await deps.webauthnCreate(after.options);
+        // Identity guard (same as the verification controller's, 52ae5ac):
+        // the native prompt may settle after the machine moved on (reset,
+        // re-begin). A stale credential must not be submitted against the
+        // NEWER ceremony — `submitCredential` only checks the step.
+        if (machine.getState() !== after) return;
         await submitCredential(credential);
       } catch (error) {
+        // Same guard for the rejection path: a prompt abandoned and timing
+        // out later must not clobber the newer state (idle / a fresh ceremony
+        // / registered) with `error`.
+        if (machine.getState() !== after) return;
         machine.to({ step: "error", error: toFlowError(error) });
       }
     }
@@ -176,8 +185,15 @@ export function createPasskeyLoginFlow(
     if (after.step === "awaitingAssertion" && deps.webauthnGet) {
       try {
         const credential = await deps.webauthnGet(after.options);
+        // Identity guard (same as the verification controller's, 52ae5ac): a
+        // late-settling prompt must not submit a stale assertion against the
+        // NEWER ceremony's session_key — `submitAssertion` only checks the step.
+        if (machine.getState() !== after) return;
         await submitAssertion(credential);
       } catch (error) {
+        // A prompt rejected after the machine moved on (reset, re-begin,
+        // authenticated via another path) must not clobber the newer state.
+        if (machine.getState() !== after) return;
         machine.to({ step: "error", error: toFlowError(error) });
       }
     }
