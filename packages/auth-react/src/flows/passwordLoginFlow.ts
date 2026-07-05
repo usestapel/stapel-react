@@ -4,6 +4,7 @@ import type { AuthResponse } from "../api/types.js";
 import { isTotpChallenge } from "../api/types.js";
 import { createFlowMachine } from "./createFlowMachine.js";
 import type { FlowMachine } from "./createFlowMachine.js";
+import { AUTH_FLOWS } from "./generated/flows.gen.js";
 import { toFlowError } from "./errors.js";
 import type { FlowError } from "./errors.js";
 
@@ -61,7 +62,9 @@ export function createPasswordLoginFlow(
   deps: PasswordLoginFlowDeps
 ): PasswordLoginFlow {
   const machine = createFlowMachine<PasswordLoginState>({
-    id: "auth.password_login",
+    // Canonical id from the generated flow registry (flows.json is the source):
+    // binds the analytics funnel + contract to the backend flow. Drift-gated.
+    id: AUTH_FLOWS["auth.password_login"].id,
     initial: { step: "idle" },
     analytics: deps.analytics ?? null,
   });

@@ -1,49 +1,69 @@
 /**
- * Wire types for the stapel-auth HTTP contract (auth-sa.md §1–18).
+ * Wire types for the stapel-auth HTTP contract — **derived from the generated
+ * OpenAPI surface**, not hand-maintained (frontend-standard §2/§3).
  *
- * These are hand-authored here because the auth backend does not yet publish
- * an `openapi.json` artifact to this monorepo. When it does, this file is the
- * codegen target (frontend-standard §2/§3): the shapes below are transcribed
- * verbatim from auth-sa.md's documented request/response bodies so a future
- * `regen` produces a compatible surface.
+ * The single source of truth is `components["schemas"]` from `@stapel/core`
+ * (`packages/core/src/generated/schema.ts`, produced by `pnpm gen:api` from the
+ * unified all-modules OpenAPI). This module is a thin *adapter* over that
+ * surface: it re-exports the generated schemas under the names the pair uses
+ * and applies three small, documented corrections where drf-spectacular +
+ * openapi-typescript under-describe the runtime contract:
+ *
+ *  1. **Enum-discriminant repair.** openapi-typescript flattens an enum-valued
+ *     property to the *schema name* (`status: "AuthResponse"`), while the real
+ *     runtime values live in the sibling `*StatusEnum`. We re-attach the enum so
+ *     discriminated unions (the login `oneOf`) narrow correctly.
+ *  2. **Array element typing.** A few `unknown[]` payloads (verification
+ *     `factors`, TOTP `backup_codes`) carry a known element type at runtime.
+ *  3. **Present-but-optional.** `VerificationInitiate` always returns `data`;
+ *     the generator marks it optional.
+ *
+ * Everything the generated surface already describes cleanly is a *direct*
+ * alias — no parallel definitions. Only genuinely un-generated shapes remain
+ * hand-authored, each flagged with WHY the codegen does not cover it.
  */
+import type { components } from "@stapel/core";
 
-/** Result status of any flow that ends in a session (auth-sa.md §"AuthResponse"). */
-export type AuthStatus = "LOGGED_IN" | "REGISTERED" | "MERGED" | "MODIFIED";
+/** The generated schema table — the one source of truth for wire shapes. */
+type Schemas = components["schemas"];
 
-/** The authenticated principal. Backend adds fields freely; kept open. */
-export interface StapelUser {
-  readonly id: string;
-  readonly username?: string;
-  readonly email?: string | null;
-  readonly phone?: string | null;
-  readonly is_anonymous?: boolean;
-  readonly [extra: string]: unknown;
-}
+// ── Identity & session ───────────────────────────────────────────────────────
+
+/** Result status of any flow that ends in a session. */
+export type AuthStatus = Schemas["AuthResponseStatusEnum"];
+
+/** The authenticated principal. */
+export type StapelUser = Schemas["User"];
 
 /** Access/refresh JWT pair returned in the body (also set as cookies). */
-export interface AuthTokens {
-  readonly access: string;
-  readonly refresh: string;
-}
+export type AuthTokens = Schemas["TokenPairResponse"];
 
-/** Returned by every flow that results in a session. */
-export interface AuthResponse {
+/**
+ * Returned by every flow that results in a session.
+ *
+ * ADAPTER (1): the generated `AuthResponse.status` is the flattened literal
+ * `"AuthResponse"`; the real values are in `AuthResponseStatusEnum`.
+ */
+export type AuthResponse = Omit<Schemas["AuthResponse"], "status"> & {
   readonly status: AuthStatus;
-  readonly user: StapelUser;
-  readonly tokens: AuthTokens;
-}
+};
 
-/** Returned instead of `AuthResponse` when the account has TOTP enabled. */
-export interface TOTPChallengeResponse {
-  readonly status: "TOTP_REQUIRED";
-  readonly challenge_token: string;
-  readonly expires_in: number;
-}
+/**
+ * Returned instead of `AuthResponse` when the account has TOTP enabled.
+ *
+ * ADAPTER (1): re-attach the `"TOTP_REQUIRED"` discriminant so the login union
+ * narrows on it.
+ */
+export type TOTPChallengeResponse = Omit<
+  Schemas["TOTPChallengeResponse"],
+  "status"
+> & {
+  readonly status: Schemas["TOTPChallengeResponseStatusEnum"];
+};
 
 /**
  * The `oneOf` login union (discriminator: `status`). Narrow with
- * `if (r.status === "TOTP_REQUIRED")`.
+ * {@link isTotpChallenge}.
  */
 export type LoginResponse = AuthResponse | TOTPChallengeResponse;
 
@@ -53,17 +73,23 @@ export function isTotpChallenge(r: LoginResponse): r is TOTPChallengeResponse {
 }
 
 /** `{ message, target }` — target is the masked destination to display. */
-export interface OtpRequestResponse {
-  readonly message: string;
-  readonly target: string;
-}
+export type OtpRequestResponse = Schemas["OtpSentResponse"];
 
-/** Simple status envelopes returned by several mutations. */
-export interface StatusResponse {
-  readonly status: string;
-}
+/** Simple `{ status }` envelope returned by several mutations. */
+export type StatusResponse = Schemas["SimpleStatusResponse"];
 
-// ── Capabilities (auth-sa.md §"Which login methods to render") ──────────────
+/** `{ access, refresh }` from POST/GET /token/refresh/. */
+export type RefreshResponse = Schemas["TokenPairResponse"];
+
+/** Which identifier channel an OTP flow uses. */
+export type OtpChannel = "email" | "phone";
+
+// ── Capabilities ─────────────────────────────────────────────────────────────
+// NOT GENERATED: `GET /auth/api/capabilities/` is annotated `@extend_schema`
+// without a response serializer, so the generated surface carries no body for
+// it (`operations["auth_api_capabilities_retrieve"]` → `content?: never`). These
+// shapes are transcribed from auth-sa.md until the endpoint gains a serializer;
+// once it does, delete these and alias the generated schema.
 
 export interface OAuthProviderInfo {
   readonly id: string;
@@ -95,37 +121,23 @@ export interface Capabilities {
   readonly login: LoginCapabilities;
 }
 
-// ── Password change methods (auth-sa.md §4) ─────────────────────────────────
+// ── Password change / reset methods ──────────────────────────────────────────
 
-export type PasswordChangeMethod = "password" | "email" | "phone";
+export type PasswordChangeMethod = Schemas["PasswordMethodMethodEnum"];
+export type PasswordMethodEntry = Schemas["PasswordMethod"];
+export type PasswordMethods = Schemas["PasswordMethodsResponse"];
 
-export interface PasswordMethodEntry {
-  readonly method: PasswordChangeMethod;
-  readonly target?: string;
-}
+// ── Security status ──────────────────────────────────────────────────────────
 
-export interface PasswordMethods {
-  readonly has_password: boolean;
-  readonly methods: readonly PasswordMethodEntry[];
-}
+export type SecurityStatus = Schemas["SecurityStatusResponse"];
 
-// ── Security status (auth-sa.md §10) ────────────────────────────────────────
+// ── Sessions ─────────────────────────────────────────────────────────────────
 
-export interface SecurityStatus {
-  readonly password: { readonly is_set: boolean };
-  readonly totp: {
-    readonly is_enabled: boolean;
-    readonly backup_codes_remaining: number;
-  };
-  readonly email: { readonly value: string | null; readonly is_verified: boolean };
-  readonly phone: { readonly value: string | null; readonly is_verified: boolean };
-  readonly oauth: { readonly connected_providers: readonly string[] };
-  readonly sessions: { readonly active_count: number };
-  readonly passkeys: { readonly count: number };
-}
-
-// ── Sessions (auth-sa.md §12) ───────────────────────────────────────────────
-
+/**
+ * NOT GENERATED as an enum: `SessionResponse.device_type` is a bare string in
+ * the schema. This convenience union documents the icon-rendering categories
+ * (auth-sa.md §12); it is assignable from the generated `string` field.
+ */
 export type SessionDeviceType =
   | "phone"
   | "tablet"
@@ -133,94 +145,80 @@ export type SessionDeviceType =
   | "api"
   | "unknown";
 
-export interface AuthSession {
-  readonly id: string;
-  readonly device_type: SessionDeviceType;
-  readonly device_name: string;
-  readonly device_details: string;
-  readonly ip_address: string;
-  readonly created_at: string;
-  readonly last_used_at: string;
-  readonly is_current: boolean;
-  readonly is_suspicious: boolean;
-}
+export type AuthSession = Schemas["SessionResponse"];
 
-// ── TOTP (auth-sa.md §11) ───────────────────────────────────────────────────
+// ── TOTP ─────────────────────────────────────────────────────────────────────
 
-export interface TotpSetupResponse {
-  readonly secret: string;
-  readonly qr_uri: string;
-  readonly expires_in: number;
-}
+export type TotpSetupResponse = Schemas["TOTPSetupResponse"];
 
-export interface TotpSetupConfirmResponse {
+/**
+ * ADAPTER (2): the generated `backup_codes` is `unknown[]`; the endpoint
+ * returns a list of string codes.
+ */
+export type TotpSetupConfirmResponse = Omit<
+  Schemas["TOTPSetupConfirmResponse"],
+  "backup_codes"
+> & {
   readonly backup_codes: readonly string[];
-}
+};
 
-/** `oneOf` discriminated by `method` (auth-sa.md §"Disable TOTP"). */
-export type TotpDisableRequest =
-  | { readonly method: "totp"; readonly code: string }
-  | { readonly method: "backup"; readonly backup_code: string }
-  | { readonly method: "otp"; readonly otp_code: string };
+/** `oneOf` discriminated by `method` (totp / backup / otp). */
+export type TotpDisableRequest = Schemas["TOTPDisableRequest"];
 
-// ── Verification / step-up (auth-sa.md §11 "verification challenges") ────────
+// ── Verification / step-up ───────────────────────────────────────────────────
 
+/**
+ * NOT GENERATED as an enum: the challenge `factors` field is `unknown[]` in the
+ * schema. The interchangeable factor ids are a closed set (auth-sa.md §11 /
+ * flows-and-verification.md §2).
+ */
 export type VerificationFactorId =
   | "otp_email"
   | "otp_phone"
   | "totp"
   | "passkey";
 
-/** The `verification` object inside the 403 envelope. */
-export interface VerificationEnvelope {
-  readonly challenge_id: string;
-  readonly scope: string;
+/**
+ * The `verification` object inside the 403 envelope.
+ *
+ * ADAPTER (2): type `factors` down to the known factor-id set.
+ */
+export type VerificationEnvelope = Omit<
+  Schemas["VerificationChallengeInfoResponse"],
+  "factors"
+> & {
   readonly factors: readonly VerificationFactorId[];
-  readonly expires_at: number;
-}
+};
 
-export interface VerificationInitiateResponse {
-  readonly factor: VerificationFactorId;
-  /** For otp_* — `{ target }`; for passkey — `{ session_key, options }`. */
+/**
+ * ADAPTER (3): `initiate` always returns `data` (masked target for OTP, or
+ * `{ session_key, options }` for passkey); the generator marks it optional.
+ */
+export type VerificationInitiateResponse = Omit<
+  Schemas["VerificationInitiateResponse"],
+  "data"
+> & {
   readonly data: Record<string, unknown>;
-}
+};
 
-export interface VerificationCompleteResponse {
-  readonly verified: boolean;
-  readonly verification_token: string;
-}
+export type VerificationCompleteResponse =
+  Schemas["VerificationCompleteResponse"];
 
-// ── QR (auth-sa.md §8) ──────────────────────────────────────────────────────
+// ── QR ───────────────────────────────────────────────────────────────────────
 
-export type QrType = "session_share" | "login_request";
+export type QrType = Schemas["QRGenerateTypeEnum"];
+export type QrGenerateResponse = Schemas["QRGenerateResponse"];
+export type QrStatusValue = Schemas["QRStatusResponseStatusEnum"];
+export type QrStatusResponse = Schemas["QRStatusResponse"];
 
-export interface QrGenerateResponse {
-  readonly key: string;
-  readonly type: QrType;
-  readonly expires_in: number;
-  readonly scan_url: string;
-}
+// ── Passkeys ─────────────────────────────────────────────────────────────────
 
-export type QrStatusValue = "pending" | "fulfilled" | "expired" | "rejected";
+export type Passkey = Schemas["PasskeyItem"];
 
-export interface QrStatusResponse {
-  readonly status: QrStatusValue;
-  /** Present only on `login_request` fulfilment. */
-  readonly access_token?: string;
-  readonly refresh_token?: string;
-}
-
-// ── Passkeys (auth-sa.md §17) ───────────────────────────────────────────────
-
-export interface Passkey {
-  readonly id: string;
-  readonly device_name: string;
-  readonly aaguid: string;
-  readonly transports: readonly string[];
-  readonly created_at: string;
-  readonly last_used_at: string | null;
-}
-
+// NOT GENERATED: the WebAuthn `begin` endpoints return opaque
+// PublicKeyCredential*Options JSON with no named response serializer in the
+// schema. Kept as thin `Record` carriers (the ceremony is host/injected — see
+// MODULE.md "Thin-WebAuthn").
 export interface PasskeyRegisterBeginResponse {
   /** PublicKeyCredentialCreationOptions (JSON form). */
   readonly options: Record<string, unknown>;
@@ -232,60 +230,17 @@ export interface PasskeyAuthenticateBeginResponse {
   readonly options: Record<string, unknown>;
 }
 
-// ── Authenticator change (auth-sa.md §9) ────────────────────────────────────
+// ── Authenticator change ─────────────────────────────────────────────────────
 
-export interface ChangeOldVerifiedResponse {
-  readonly status: "OLD_VERIFIED";
-  readonly change_token: string;
-  readonly expires_at: string;
-}
+export type ChangeOldVerifiedResponse = Schemas["InstantVerifyOldResponse"];
+export type DelayedChangeInitiatedResponse = Schemas["DelayedInitiateResponse"];
+export type DelayedChangeStatus = Schemas["DelayedStatusResponse"];
 
-export interface DelayedChangeInitiatedResponse {
-  readonly status: "PENDING";
-  readonly change_request_id: string;
-  readonly scheduled_at: string;
-  readonly can_cancel_until: string;
-}
+// ── SSO ──────────────────────────────────────────────────────────────────────
 
-export type DelayedChangeStatus =
-  | { readonly has_pending_change: false }
-  | {
-      readonly has_pending_change?: true;
-      readonly change_request_id: string;
-      readonly scheduled_at: string;
-      readonly can_cancel_until: string;
-    };
+export type SsoLookupResponse = Schemas["SSODomainLookupResponse"];
 
-// ── SSO (auth-sa.md §18) ────────────────────────────────────────────────────
+// ── Audit log ────────────────────────────────────────────────────────────────
 
-export interface SsoLookupResponse {
-  readonly sso_required: boolean;
-  readonly org_slug: string | null;
-  readonly protocol?: "saml" | "oidc";
-}
-
-// ── Audit log (auth-sa.md §16) ──────────────────────────────────────────────
-
-export interface AuditEvent {
-  readonly id: string;
-  readonly event_type: string;
-  readonly ip_address: string;
-  readonly user_agent: string;
-  readonly metadata: Record<string, unknown>;
-  readonly created_at: string;
-}
-
-export interface AuditPage {
-  readonly results: readonly AuditEvent[];
-  readonly count: number;
-  readonly next: number | null;
-}
-
-/** `{ access, refresh }` from POST/GET /token/refresh/. */
-export interface RefreshResponse {
-  readonly access: string;
-  readonly refresh: string;
-}
-
-/** Which identifier channel an OTP flow uses. */
-export type OtpChannel = "email" | "phone";
+export type AuditEvent = Schemas["AuditLogEntry"];
+export type AuditPage = Schemas["AuditLogPage"];

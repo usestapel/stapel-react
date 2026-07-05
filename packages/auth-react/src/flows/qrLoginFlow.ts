@@ -96,7 +96,7 @@ export function createQrLoginFlow(deps: QrLoginFlowDeps): QrLoginFlow {
         case "fulfilled": {
           clearTimer();
           const tokens: AuthTokens | null =
-            status.access_token !== undefined && status.refresh_token !== undefined
+            status.access_token != null && status.refresh_token != null
               ? { access: status.access_token, refresh: status.refresh_token }
               : null;
           if (tokens) deps.onAuthenticated?.(tokens);

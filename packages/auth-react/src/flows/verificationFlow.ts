@@ -11,6 +11,7 @@ import type {
 } from "../api/types.js";
 import { createFlowMachine } from "./createFlowMachine.js";
 import type { FlowMachine } from "./createFlowMachine.js";
+import { AUTH_FLOWS } from "./generated/flows.gen.js";
 import { toFlowError } from "./errors.js";
 import type { FlowError } from "./errors.js";
 
@@ -138,7 +139,8 @@ export function createVerificationController(
   deps: VerificationControllerDeps
 ): VerificationController {
   const machine = createFlowMachine<VerificationState>({
-    id: "auth.verification",
+    // THE reference step-up flow — canonical id from flows.json. Drift-gated.
+    id: AUTH_FLOWS["auth.step_up_verification"].id,
     initial: { step: "idle" },
     analytics: deps.analytics ?? null,
   });

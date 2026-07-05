@@ -121,7 +121,8 @@ describe("otpFlow (email/phone passwordless)", () => {
     const flow = createOtpFlow({ api: makeApi(), analytics });
     await flow.requestCode("email", "a@b.com");
     const names = track.mock.calls.map((c) => c[0] as string);
-    expect(names).toContain("flow.auth.otp.requesting");
-    expect(names).toContain("flow.auth.otp.codeSent");
+    // Canonical flow id from flows.json (email/phone OTP = passwordless_login).
+    expect(names).toContain("flow.auth.passwordless_login.requesting");
+    expect(names).toContain("flow.auth.passwordless_login.codeSent");
   });
 });
