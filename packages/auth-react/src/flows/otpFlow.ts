@@ -3,6 +3,7 @@ import type { AuthApi } from "../api/authApi.js";
 import type { AuthResponse, OtpChannel } from "../api/types.js";
 import { createFlowMachine } from "./createFlowMachine.js";
 import type { FlowMachine } from "./createFlowMachine.js";
+import { AUTH_FLOWS } from "./generated/flows.gen.js";
 import { toFlowError } from "./errors.js";
 import type { FlowError } from "./errors.js";
 
@@ -74,7 +75,10 @@ const LOCKED_STATUS = 423;
 
 export function createOtpFlow(deps: OtpFlowDeps): OtpFlow {
   const machine = createFlowMachine<OtpState>({
-    id: "auth.otp",
+    // Email/phone OTP IS the `auth.passwordless_login` flow in flows.json —
+    // bind to the canonical id (analytics funnel = the documented flow). The
+    // phone channel reuses the same machine (only the endpoint differs).
+    id: AUTH_FLOWS["auth.passwordless_login"].id,
     initial: { step: "idle" },
     analytics: deps.analytics ?? null,
   });

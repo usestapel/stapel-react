@@ -1,0 +1,175 @@
+[
+  {
+    "id": "auth.password_login",
+    "titleKey": "flow.auth.password_login.title",
+    "descriptionKey": "flow.auth.password_login.description",
+    "actors": [
+      "Anonymous user"
+    ],
+    "steps": [
+      {
+        "kind": "human",
+        "order": 0,
+        "noteKey": "flow.auth.password_login.step.0.note",
+        "ref": "",
+        "endpoints": []
+      },
+      {
+        "kind": "http",
+        "order": 1,
+        "noteKey": "flow.auth.password_login.step.1.note",
+        "ref": "stapel_auth.password.views.PasswordViewSet.login",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/auth/api/password/login/"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 2,
+        "noteKey": "flow.auth.password_login.step.2.note",
+        "ref": "stapel_auth.mfa.views.TOTPViewSet.challenge_verify",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/auth/api/totp/challenge/verify/"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "auth.passwordless_login",
+    "titleKey": "flow.auth.passwordless_login.title",
+    "descriptionKey": "flow.auth.passwordless_login.description",
+    "actors": [
+      "Anonymous user"
+    ],
+    "steps": [
+      {
+        "kind": "human",
+        "order": 0,
+        "noteKey": "flow.auth.passwordless_login.step.0.note",
+        "ref": "",
+        "endpoints": []
+      },
+      {
+        "kind": "http",
+        "order": 1,
+        "noteKey": "flow.auth.passwordless_login.step.1.note",
+        "ref": "stapel_auth.otp.views.AuthViewSet.email_request",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/auth/api/email/request/"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 2,
+        "noteKey": "flow.auth.passwordless_login.step.2.note",
+        "ref": "stapel_auth.otp.views.AuthViewSet.email_verify",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/auth/api/email/verify/"
+          }
+        ]
+      },
+      {
+        "kind": "action",
+        "order": 3,
+        "noteKey": "flow.auth.passwordless_login.step.3.note",
+        "ref": "user.registered",
+        "endpoints": []
+      }
+    ]
+  },
+  {
+    "id": "auth.step_up_verification",
+    "titleKey": "flow.auth.step_up_verification.title",
+    "descriptionKey": "flow.auth.step_up_verification.description",
+    "actors": [
+      "Authenticated user"
+    ],
+    "steps": [
+      {
+        "kind": "human",
+        "order": 0,
+        "noteKey": "flow.auth.step_up_verification.step.0.note",
+        "ref": "",
+        "endpoints": []
+      },
+      {
+        "kind": "http",
+        "order": 1,
+        "noteKey": "flow.auth.step_up_verification.step.1.note",
+        "ref": "stapel_auth.verification.views.VerificationViewSet.info",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/auth/api/verification/<str:challenge_id>/"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 2,
+        "noteKey": "flow.auth.step_up_verification.step.2.note",
+        "ref": "stapel_auth.verification.views.VerificationViewSet.initiate",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/auth/api/verification/<str:challenge_id>/initiate/"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 3,
+        "noteKey": "flow.auth.step_up_verification.step.3.note",
+        "ref": "stapel_auth.verification.views.VerificationViewSet.complete",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/auth/api/verification/<str:challenge_id>/complete/"
+          }
+        ]
+      },
+      {
+        "kind": "human",
+        "order": 4,
+        "noteKey": "flow.auth.step_up_verification.step.4.note",
+        "ref": "",
+        "endpoints": []
+      },
+      {
+        "kind": "http",
+        "order": 5,
+        "noteKey": "flow.auth.step_up_verification.step.5.note",
+        "ref": "stapel_auth.verification.views.VerificationPreferenceViewSet.list_preferences",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/auth/api/verification/preferences/"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 6,
+        "noteKey": "flow.auth.step_up_verification.step.6.note",
+        "ref": "stapel_auth.verification.views.VerificationPreferenceViewSet.set_preference",
+        "endpoints": [
+          {
+            "method": "PUT",
+            "path": "/auth/api/verification/preferences/"
+          }
+        ]
+      }
+    ]
+  }
+]

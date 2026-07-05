@@ -6,6 +6,41 @@ it. Layers: `api/` (typed client over `@stapel/core`) → `model/` (runtime,
 session, query hooks) → `flows/` (state machines) → `headless/` (render props)
 → `i18n/` (key bundle).
 
+## Documentation source: the generated SA-doc (do not duplicate prose)
+
+Per docs/flow-system.md §5, the flow source of truth is `flows.json`
+(`generate_flow_docs`). It fans out to five projections; this pair consumes two
+of them — the **SA-doc** (people) and the **flow machines** (code) — plus the
+typed client from the OpenAPI projection. The prose for each documented flow
+lives in the **generated SA-doc**, not here:
+
+- Index: [`stapel-auth/docs/flows/en/README.md`](../../../stapel-auth/docs/flows/en/README.md)
+  · [RU](../../../stapel-auth/docs/flows/ru/README.md)
+- [`auth.password_login`](../../../stapel-auth/docs/flows/en/auth.password_login.md)
+  · [`auth.passwordless_login`](../../../stapel-auth/docs/flows/en/auth.passwordless_login.md)
+  · [`auth.step_up_verification`](../../../stapel-auth/docs/flows/en/auth.step_up_verification.md)
+
+## Client & machines are generated projections (drift-gated)
+
+- **Client types** — `api/types.ts` is a thin adapter over the generated
+  `components["schemas"]` in `@stapel/core` (`pnpm gen:api`, drift gate
+  `pnpm gen:api:check`). It re-exports the generated schemas under the pair's
+  names and applies only three documented corrections (enum-discriminant repair,
+  array-element typing, present-but-optional) where the codegen under-describes
+  the runtime. No parallel hand-written response shapes.
+- **Flow registry** — `flows/generated/flows.gen.ts` is scaffolded from
+  `flows.json` (`pnpm gen:flows`, drift gate `pnpm gen:flows:check`). The three
+  documented flows bind their machine `id` to the canonical registry id, so the
+  analytics funnel (`flow.<id>.<step>`) and the endpoint contract match the
+  backend flow. `test/flowsContract.test.ts` proves the coupling (id binding +
+  "machine HTTP surface ⊆ registry endpoints"). Machines for journeys the
+  backend has not annotated yet keep local ids until they appear in `flows.json`.
+- **E2E** — the generated Gherkin `.feature` projection (docs/flow-system.md §3)
+  is **not yet wired**: `arch-flow-gherkin` (the step-implementation generator)
+  is still blocked. When it lands, generated `.feature` files run against the
+  same `flows.json`; until then the vitest happy-path suites (MSW-mocked) are the
+  behavioural gate. See "Follow-up" at the end.
+
 ## The `createFlowMachine` pattern (reusable primitive)
 
 A flow is a tiny state container whose state is a discriminated union keyed by
@@ -33,13 +68,17 @@ Each flow is a factory `createXxxFlow(deps) → { machine, ...actions }`. Deps a
 
 ## Flows & headless components
 
+Flows marked **[flows.json]** bind to a canonical registry id and are
+drift-gated against the backend flow; the rest keep local ids until the backend
+annotates them.
+
 | Journey (auth-sa.md) | Flow factory | Headless | Status |
 |---|---|---|---|
-| Email/Phone OTP §1–2 | `createOtpFlow` | `<PasswordlessLogin>` | **full** |
-| Password login + TOTP branch §3/§11 | `createPasswordLoginFlow` | `<PasswordLogin>` | **full** |
+| Email/Phone OTP §1–2 **[flows.json: `auth.passwordless_login`]** | `createOtpFlow` | `<PasswordlessLogin>` | **full** |
+| Password login + TOTP branch §3/§11 **[flows.json: `auth.password_login`]** | `createPasswordLoginFlow` | `<PasswordLogin>` | **full** |
 | Password change §4 | `createPasswordChangeFlow` | `<PasswordChange>` | **full** |
 | Password reset §5 | `createPasswordResetFlow` | `<PasswordReset>` | **full** |
-| Step-up verification §11 | `createVerificationController` | `<VerificationChallenge>` | **full** (passkey factor thin) |
+| Step-up verification §11 **[flows.json: `auth.step_up_verification`]** | `createVerificationController` | `<VerificationChallenge>` | **full** (passkey factor thin) |
 | TOTP setup §11 | `createTotpSetupFlow` | `<TotpSetup>` | **full** |
 | OAuth token exchange §7 | `createOAuthFlow` | — (+ `authUrls().oauthAuthorize`) | **full** |
 | Sessions §12 | model hooks/mutations | — | **full** |
@@ -118,14 +157,17 @@ cache persistence is per-user via core's `setPersistUser` — call
 
 ## Ambiguities / conflicts surfaced from auth-sa.md
 
-1. **Legacy step-up vs verification envelope.** §11 keeps `POST /totp/step-up/`
-   + `X-Step-Up-Token`, while §19.4 says the interceptor currently handles
-   `403 error.403.step_up_required` (the legacy path). auth-sa.md itself says
-   "new integrations should implement the envelope flow." We implement **only**
-   the envelope flow (`error.403.verification_required` → `verification`
-   object), matching `@stapel/core`'s interception seam. The legacy
-   `X-Step-Up-Token` path is intentionally **not** implemented — flag for review
-   if any endpoint still emits it.
+1. **Legacy step-up — decided (arch-stepup-unification): NOT in this pair.**
+   §11 documents a legacy `POST /totp/step-up/` + `X-Step-Up-Token` path
+   (§19.4's interceptor handled `403 error.403.step_up_required`). The
+   unification decision is a **server-side bridge**: the backend maps any
+   legacy step-up requirement onto the standard verification envelope, so the
+   client implements **one** contract. auth-react therefore ships **only** the
+   envelope flow (`error.403.verification_required` → `verification` object),
+   matching `@stapel/core`'s interception seam. The legacy `X-Step-Up-Token`
+   client path is an **invariant absence** — do not reintroduce it; a legacy
+   endpoint that still emits the old 403 is a backend-bridge bug, not a client
+   gap.
 2. **QR error codes diverge.** The §8 status polling uses a `{status}` body
    (`rejected`/`expired`) while the Error reference lists `error.409.qr_*` /
    `error.403.qr_*` HTTP errors. The flow treats the status body as
@@ -141,7 +183,22 @@ cache persistence is per-user via core's `setPersistUser` — call
 5. **Capabilities `password` under registration** is documented but no
    password-registration endpoint exists in §1–18; treated as display-only.
 
+## Follow-up
+
+- **Generated `.feature` E2E** awaits `arch-flow-gherkin` (step-implementation
+  generator, currently blocked). Wiring is a drop-in against the same
+  `flows.json` once it lands; the vitest happy-path suites hold the line until
+  then.
+- **Capabilities endpoint** has no response serializer in the OpenAPI surface,
+  so `Capabilities`/`*Capabilities` stay hand-authored in `api/types.ts` (flagged
+  there). Delete them and alias the generated schema once the backend annotates
+  `GET /auth/api/capabilities/`.
+- **Verification preferences** endpoints (`GET`/`PUT /verification/preferences/`)
+  appear in the `auth.step_up_verification` flow but are not yet surfaced on
+  `AuthApi` (the pair covers the challenge write-path; preferences are optional
+  CRUD).
+
 ## Status
 
 **NOT released** — Opus-authored first instance; awaits independent adversarial
-review before any npm publish (no-Fable protocol).
+review of the pair (fable) before any npm publish (no-Fable protocol).

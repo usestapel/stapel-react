@@ -20,6 +20,10 @@
     "ci": "turbo run lint test build",
     "gen:api": "node scripts/gen-api.mjs",
     "gen:api:check": "node scripts/gen-api.mjs && git diff --exit-code -- packages/core/src/generated/schema.ts",
+    "gen:flows": "node scripts/gen-flows.mjs",
+    "gen:flows:check": "node scripts/gen-flows.mjs && git diff --exit-code -- packages/auth-react/src/flows/generated",
+    "gen": "pnpm gen:api && pnpm gen:flows",
+    "gen:check": "pnpm gen:api:check && pnpm gen:flows:check",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm run ci && changeset publish"
