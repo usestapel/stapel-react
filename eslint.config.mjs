@@ -14,6 +14,8 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/coverage/**",
       "**/*.css",
+      // AUTO-GENERATED typed API surface (pnpm gen:api) — not hand-edited.
+      "**/generated/**",
     ],
   },
   js.configs.recommended,
