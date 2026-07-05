@@ -18,6 +18,8 @@
     "lint": "turbo run lint",
     "size": "turbo run size",
     "ci": "turbo run lint test build",
+    "gen:api": "node scripts/gen-api.mjs",
+    "gen:api:check": "node scripts/gen-api.mjs && git diff --exit-code -- packages/core/src/generated/schema.ts",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm run ci && changeset publish"
@@ -28,6 +30,7 @@
     "eslint": "^9.30.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "openapi-typescript": "^7.13.0",
     "turbo": "^2.5.4",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.35.0"

@@ -43,6 +43,24 @@ corepack pnpm install
 corepack pnpm run ci   # lint + test + build via turbo
 ```
 
+## Typed API codegen
+
+The typed API surface is **generated**, not hand-written (docs/flow-system.md
+§0.1). The codegen source is the all-modules `stapel-example-monolith` instance,
+which emits a unified `schema.json` (`make codegen` on the backend side). Here:
+
+```sh
+pnpm gen:api          # openapi-typescript: schema.json → packages/core/src/generated/schema.ts
+pnpm gen:api:check    # drift gate: regenerate + `git diff --exit-code` (red CI on drift)
+```
+
+`openapi-typescript` is deliberate: it emits **types only** (`paths`,
+`components`, `operations`), re-exported from `@stapel/core`. No client/hooks
+runtime is bundled (unlike orval) — it pairs with `@stapel/core`'s own fetch
+client and adds zero shipped bytes. The schema is read from a local file
+(`API_SCHEMA=/path/to/schema.json`, default: the sibling monolith's committed
+`codegen/generated/schema.json`), so generation is hermetic and byte-stable.
+
 ## License
 
 MIT © Stapel contributors

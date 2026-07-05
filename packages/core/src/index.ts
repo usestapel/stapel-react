@@ -70,3 +70,12 @@ export type {
 // breakpoints
 export { useBreakpoint } from "./useBreakpoint.js";
 export type { Breakpoint } from "@stapel/tokens";
+
+// generated typed API surface — openapi-typescript from the unified Stapel
+// OpenAPI (all-modules codegen source). Types only, zero runtime.
+// Regenerate: `pnpm gen:api` at the monorepo root (docs/flow-system.md §0.1).
+export type {
+  paths,
+  components,
+  operations,
+} from "./generated/schema.js";
