@@ -45,7 +45,7 @@
     }
   ],
   "peerDependencies": {
-    "@stapel/core": "workspace:^",
+    "@stapel/core": ">=0.3.0 <1.0.0",
     "@tanstack/react-query": "^5.0.0",
     "react": ">=19"
   },
