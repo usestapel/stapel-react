@@ -40,6 +40,24 @@ at scaffold time (one env-parametrized invocation per driver). The typed
 `schema.ts` is core-owned (`pnpm gen:api`); design tokens are tokens-owned
 (`pnpm gen:tokens`).
 
+### Russian locale (opt-in subpath)
+
+The `ru` bundle ships as a separate subpath so it never bloats the main entry
+(size-limit gated — the locale stays out of hosts that don't register it):
+
+```tsx
+import { registerNotificationsI18nRu } from "@stapel/notifications-react/i18n/ru";
+
+registerNotificationsI18n(i18n);      // en floor + polish
+registerNotificationsI18nRu(i18n);    // ru locale (generated from the backend catalog)
+await i18n.setLocale("ru");           // live switch; a missing key degrades to English
+```
+
+Backend error texts are generated from stapel-notifications's
+`translations/errors.ru.json` catalog (`pnpm gen:errors`, drift-gated); the
+pair's UI keys carry hand-written ru copy. Register your own bundle AFTER the
+pair's to override any key — registration order is override priority.
+
 ## Guardrails
 
 Linted by the shared `@stapel/eslint-plugin` flat config (no raw colours, no raw
