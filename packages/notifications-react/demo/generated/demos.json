@@ -1,0 +1,66 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/notifications-react",
+  "version": "0.0.0",
+  "demos": [
+    {
+      "id": "notifications.device_registration",
+      "title": "Device registration",
+      "description": "The headless DeviceRegistration wraps the register / unregister push-token mutations and exposes their pending / result / error state. Bring your own permission-prompt UI — the component is renderless.",
+      "component": "DeviceRegistration",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/DeviceRegistration.demo.tsx",
+        "line": 78
+      }
+    },
+    {
+      "id": "notifications.feed",
+      "title": "Notification feed",
+      "description": "The headless NotificationFeed renders an anchor-paginated, load-more list from the user's push-notification log. Bring your own row/skeleton/empty UI — the component is renderless.",
+      "component": "NotificationFeed",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/NotificationFeed.demo.tsx",
+        "line": 123
+      }
+    },
+    {
+      "id": "notifications.provider",
+      "title": "Notifications provider",
+      "description": "The headless notifications root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "NotificationsProvider",
+      "covers": [],
+      "tokens": [
+        "card-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/Notifications.demo.tsx",
+        "line": 24
+      }
+    }
+  ]
+}

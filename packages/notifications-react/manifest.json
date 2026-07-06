@@ -1,0 +1,470 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/notifications-react",
+  "version": "0.0.0",
+  "backend": {
+    "module": "stapel-notifications",
+    "contract": ">=0.3 <0.4"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "get_notification_feed": {
+      "method": "GET",
+      "path": "/notifications/api/feed/",
+      "tag": "Feed",
+      "request": null,
+      "response": "PaginatedFeedItemResponseList"
+    },
+    "get_notification_keys": {
+      "method": "GET",
+      "path": "/notifications/api/notification-keys/",
+      "tag": "Translation Keys",
+      "request": null,
+      "response": null
+    },
+    "register_device_token": {
+      "method": "POST",
+      "path": "/notifications/api/devices/",
+      "tag": "Devices",
+      "request": "DeviceTokenRequest",
+      "response": "DeviceTokenResponse"
+    },
+    "unregister_device_token": {
+      "method": "DELETE",
+      "path": "/notifications/api/devices/{token}/",
+      "tag": "Devices",
+      "request": null,
+      "response": null
+    }
+  },
+  "hooks": {
+    "useNotificationFeed": {
+      "kind": "query",
+      "operation": "feed",
+      "queryKey": [
+        "notifications",
+        "feed",
+        "{params}"
+      ]
+    },
+    "useRegisterDevice": {
+      "kind": "mutation",
+      "operation": "registerDevice"
+    },
+    "useUnregisterDevice": {
+      "kind": "mutation",
+      "operation": "unregisterDevice"
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_platform": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.token_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "notifications.device_registration",
+      "title": "Device registration",
+      "description": "The headless DeviceRegistration wraps the register / unregister push-token mutations and exposes their pending / result / error state. Bring your own permission-prompt UI — the component is renderless.",
+      "component": "DeviceRegistration",
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/DeviceRegistration.demo.tsx"
+    },
+    {
+      "id": "notifications.feed",
+      "title": "Notification feed",
+      "description": "The headless NotificationFeed renders an anchor-paginated, load-more list from the user's push-notification log. Bring your own row/skeleton/empty UI — the component is renderless.",
+      "component": "NotificationFeed",
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/NotificationFeed.demo.tsx"
+    },
+    {
+      "id": "notifications.provider",
+      "title": "Notifications provider",
+      "description": "The headless notifications root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "NotificationsProvider",
+      "tokens": [
+        "card-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/Notifications.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.invalid_platform",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.not_found",
+    "error.404.token_not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "notifications.device.register",
+    "notifications.device.registered",
+    "notifications.device.registering",
+    "notifications.device.unregister",
+    "notifications.error.unknown",
+    "notifications.feed.empty",
+    "notifications.feed.end",
+    "notifications.feed.load_more",
+    "notifications.feed.loading"
+  ],
+  "exports": {
+    "runtime": [
+      "DeviceRegistration",
+      "NOTIFICATIONS_ERRORS",
+      "NOTIFICATIONS_ERROR_CODES",
+      "NOTIFICATIONS_FLOWS",
+      "NOTIFICATIONS_I18N_KEYS",
+      "NotificationFeed",
+      "NotificationsProvider",
+      "NotificationsRuntimeContext",
+      "createFlowMachine",
+      "createNotificationsApi",
+      "createNotificationsRuntime",
+      "explainNotificationsError",
+      "flowEndpoints",
+      "isErrorCode",
+      "notificationsErrorBundleEn",
+      "notificationsI18nBundleEn",
+      "notificationsQueryKeys",
+      "registerNotificationsI18n",
+      "toFlowError",
+      "useFlow",
+      "useInfiniteNotificationFeed",
+      "useNotificationFeed",
+      "useNotificationsAnalytics",
+      "useNotificationsApi",
+      "useNotificationsRuntime",
+      "useRegisterDevice",
+      "useUnregisterDevice"
+    ],
+    "types": [
+      "CreateNotificationsRuntimeOptions",
+      "DeviceRegistrationBag",
+      "DeviceTokenRequest",
+      "DeviceTokenResponse",
+      "FeedItem",
+      "FlowEndpoint",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "NotificationFeedBag",
+      "NotificationFeedPage",
+      "NotificationFeedParams",
+      "NotificationsApi",
+      "NotificationsErrorCode",
+      "NotificationsErrorSpec",
+      "NotificationsFlowId",
+      "NotificationsFlowSpec",
+      "NotificationsI18nKey",
+      "NotificationsRuntime",
+      "Platform",
+      "RegisterDeviceVariables",
+      "Remediation",
+      "Schemas"
+    ]
+  }
+}
