@@ -36,3 +36,21 @@ Per-repo showcases and the future aggregate site (`design.stapel.dev`) both read
 `manifest.demos`, so demos aggregate across packages without a second format.
 
 Run the workspace showcase: `pnpm showcase` (from the stapel-react root).
+
+## Introspection gating (§5)
+
+The showcase is an **introspection surface**, not a product surface. It stays out
+of every production bundle *by construction* — a separate entry point
+(`@stapel/showcase-viewer`), never imported by a pair; `@stapel/showcase` is a
+**devDependency only** and `demo/` is excluded from a pair's published tarball
+(enforced by `packages/auth-react/test/prodBundlePurity.test.ts`).
+
+Whether the showcase artifact is **built and deployed** for an environment is
+gated by `STAPEL_INTROSPECTION` — the frontend mirror of the backend's
+`get_dev_urls()`: explicit `STAPEL_INTROSPECTION=1|0` wins, else it follows
+`DJANGO_ENV` (on for `local`/`dev`, off otherwise), else off. `pnpm showcase:build`
+runs through this gate (`scripts/introspection-gate.mjs`) and, when on, minifies
+(Vite) and Brotli/gzip-precompresses the output for `nginx brotli_static`.
+
+Deploy recipe (nginx basic-auth + `brotli_static`, CI wiring, full convention
+table): [`docs/deploy-introspection.md`](../../docs/deploy-introspection.md).
