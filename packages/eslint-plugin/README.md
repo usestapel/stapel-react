@@ -30,7 +30,9 @@ The `recommended` preset:
 
 - turns the rules on for `**/*.{ts,tsx,js,jsx,mjs,…}` (JSX-only rules on `*.{tsx,jsx}`);
 - **overrides** `no-raw-token-import` **off** in theme-config / showcase / demo / scripts,
-  and `no-raw-fetch` **off** in the codegen api layer (`**/api/**`, `*client.ts`);
+  `no-raw-fetch` and `no-string-paths` **off** in the codegen api layer
+  (`**/api/**`, `*client.ts`, `generated/`), and `query-keys-from-factory`
+  **off** in the key-factory file (`**/queryKeys.*`);
 - **overrides** the content rules off in tests and fixtures (they exercise the
   anti-patterns on purpose).
 
@@ -41,6 +43,8 @@ The `recommended` preset:
 | `stapel/no-raw-colors` | hex/rgb/hsl/named colours in style objects & CSS templates; Tailwind arbitrary colour values `bg-[#…]`; arbitrary values built by interpolation `bg-[${x}]` (JIT-invisible); bare raw-ramp refs `gray.500` |
 | `stapel/no-raw-token-import` | importing `@stapel/tokens/raw` outside theme-config / showcase |
 | `stapel/no-raw-fetch` | `fetch` / `globalThis.fetch` / `new XMLHttpRequest()` / `axios` / `ky` outside the codegen client |
+| `stapel/no-string-paths` | a hand-written API path — `client.get("/…")` on an http verb, or a bare literal/template that IS a catalogued operation path (`manifest.json §operations`) — outside the codegen api layer. Call the named operation instead. Off in `api/`, `*client.ts`, `generated/` |
+| `stapel/query-keys-from-factory` | an inline `queryKey`/`mutationKey` array literal in `useQuery`/`useMutation`/`queryClient.*` — keys come only from the module's `<module>QueryKeys` factory (drift from invalidations otherwise). Off in the factory file (`**/queryKeys.*`) |
 | `stapel/i18n-key-exists` | `t("…")` keys absent from the generated registry (only within a managed namespace — app-local keys are left alone) |
 | `stapel/no-hardcoded-text` | user-facing JSX text and `alt`/`title`/`placeholder`/`aria-*` string literals |
 | `stapel/require-disable-description` | an `eslint-disable` without a `-- reason` (§2.4 escape-hatch policy) |
@@ -63,6 +67,9 @@ settings: {
     httpModules: ["my-http"],   // extra banned HTTP clients
     rawModules: ["@x/raw"],     // extra raw-token entry points
     eventsManifests: [manifest],// or eventNames: ["pricing.plan.selected", …]
+    operationsManifests: [manifest], // or operationPaths: ["/auth/api/me/", …]
+    httpVerbs: ["get","post"],   // client methods no-string-paths inspects
+    queryHooks: ["useQuery"],    // extra react-query hooks to inspect for keys
     trackedWrappers: ["tracked"],
     clickHandlers: ["onClick"], // extra interactive handler props
   },

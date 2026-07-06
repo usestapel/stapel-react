@@ -875,6 +875,169 @@
       "response": "TokenVerifyResponse"
     }
   },
+  "hooks": {
+    "useAuditLog": {
+      "kind": "query",
+      "operation": "auditLog",
+      "queryKey": [
+        "auth",
+        "audit",
+        "{page}"
+      ]
+    },
+    "useCancelDelayedChange": {
+      "kind": "mutation",
+      "operation": "changeDelayedCancel",
+      "invalidates": [
+        [
+          "auth",
+          "change",
+          "delayed",
+          "{channel}"
+        ]
+      ]
+    },
+    "useCapabilities": {
+      "kind": "query",
+      "operation": "capabilities",
+      "queryKey": [
+        "auth",
+        "capabilities"
+      ]
+    },
+    "useConfirmSession": {
+      "kind": "mutation",
+      "operation": "confirmSession",
+      "invalidates": [
+        [
+          "auth",
+          "sessions"
+        ]
+      ]
+    },
+    "useDelayedChangeStatus": {
+      "kind": "query",
+      "operation": "changeDelayedStatus",
+      "queryKey": [
+        "auth",
+        "change",
+        "delayed",
+        "{channel}"
+      ]
+    },
+    "useDisableTotp": {
+      "kind": "mutation",
+      "operation": "totpDisable",
+      "invalidates": [
+        [
+          "auth",
+          "security",
+          "status"
+        ]
+      ]
+    },
+    "useLogout": {
+      "kind": "mutation",
+      "operation": "logout",
+      "invalidates": [
+        [
+          "auth"
+        ]
+      ]
+    },
+    "useMe": {
+      "kind": "query",
+      "operation": "me",
+      "queryKey": [
+        "auth",
+        "me"
+      ]
+    },
+    "usePasskeys": {
+      "kind": "query",
+      "operation": "passkeys",
+      "queryKey": [
+        "auth",
+        "passkeys"
+      ]
+    },
+    "usePasswordMethods": {
+      "kind": "query",
+      "operation": "passwordMethods",
+      "queryKey": [
+        "auth",
+        "password",
+        "methods"
+      ]
+    },
+    "useRemovePasskey": {
+      "kind": "mutation",
+      "operation": "passkeyRemove",
+      "invalidates": [
+        [
+          "auth",
+          "passkeys"
+        ],
+        [
+          "auth",
+          "security",
+          "status"
+        ]
+      ]
+    },
+    "useRevokeOtherSessions": {
+      "kind": "mutation",
+      "operation": "revokeOtherSessions",
+      "invalidates": [
+        [
+          "auth",
+          "sessions"
+        ]
+      ]
+    },
+    "useRevokeSession": {
+      "kind": "mutation",
+      "operation": "revokeSession",
+      "invalidates": [
+        [
+          "auth",
+          "security",
+          "status"
+        ],
+        [
+          "auth",
+          "sessions"
+        ]
+      ]
+    },
+    "useSecurityStatus": {
+      "kind": "query",
+      "operation": "securityStatus",
+      "queryKey": [
+        "auth",
+        "security",
+        "status"
+      ]
+    },
+    "useSessions": {
+      "kind": "query",
+      "operation": "sessions",
+      "queryKey": [
+        "auth",
+        "sessions"
+      ]
+    },
+    "useSsoLookup": {
+      "kind": "query",
+      "operation": "ssoLookup",
+      "queryKey": [
+        "auth",
+        "sso",
+        "lookup",
+        "{domain}"
+      ]
+    }
+  },
   "errors": {
     "error.400.bad_request": {
       "status": 400,

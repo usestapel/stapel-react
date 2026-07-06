@@ -45,6 +45,24 @@ export const I18N_SETTINGS = {
   },
 };
 
+// An operation-path catalog matching the manifest.operations projection shape,
+// so no-string-paths tests don't depend on filesystem discovery. Paths carry
+// the backend prefix (`/auth/api/…`); client-relative literals (`/me/`) match by
+// trailing-segment suffix.
+export const OPERATION_SETTINGS = {
+  stapel: {
+    operationsManifests: [
+      {
+        package: "@stapel/auth-react",
+        operations: {
+          me: { method: "GET", path: "/auth/api/me/" },
+          capabilities: { method: "GET", path: "/auth/api/capabilities/" },
+        },
+      },
+    ],
+  },
+};
+
 // A known-event catalog matching the manifest.events projection shape, so
 // known-event tests don't depend on filesystem discovery. `defined` names are
 // exact; `flows[].event` bases match by prefix (flow.<id>.<step>).

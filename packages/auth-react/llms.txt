@@ -141,6 +141,24 @@ Request/response schema names are in manifest.json + the generated types.
 - auth_api_verification_retrieve: GET /auth/api/verification/{challenge_id}/
 - auth_api_verify_create: POST /auth/api/verify/
 
+## Query hooks (server state; keys come only from the key factory)
+- useAuditLog (query) → auditLog
+- useCancelDelayedChange (mutation) → changeDelayedCancel
+- useCapabilities (query) → capabilities
+- useConfirmSession (mutation) → confirmSession
+- useDelayedChangeStatus (query) → changeDelayedStatus
+- useDisableTotp (mutation) → totpDisable
+- useLogout (mutation) → logout
+- useMe (query) → me
+- usePasskeys (query) → passkeys
+- usePasswordMethods (query) → passwordMethods
+- useRemovePasskey (mutation) → passkeyRemove
+- useRevokeOtherSessions (mutation) → revokeOtherSessions
+- useRevokeSession (mutation) → revokeSession
+- useSecurityStatus (query) → securityStatus
+- useSessions (query) → sessions
+- useSsoLookup (query) → ssoLookup
+
 ## Errors (render t(code, params); UX from remediation)
 114 keys (full catalog: manifest.json §errors). By remediation: fix_input 52 · retry 30 · reauthenticate 12 · wait_and_retry 8 · verify 7 · contact_support 5.
 Param-bearing keys (interpolation slots matter):

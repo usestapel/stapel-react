@@ -7,6 +7,8 @@
 import noRawColors from "./rules/no-raw-colors.js";
 import noRawTokenImport from "./rules/no-raw-token-import.js";
 import noRawFetch from "./rules/no-raw-fetch.js";
+import noStringPaths from "./rules/no-string-paths.js";
+import queryKeysFromFactory from "./rules/query-keys-from-factory.js";
 import i18nKeyExists from "./rules/i18n-key-exists.js";
 import noHardcodedText from "./rules/no-hardcoded-text.js";
 import requireDisableDescription from "./rules/require-disable-description.js";
@@ -21,6 +23,9 @@ const rules = {
   "no-raw-colors": noRawColors,
   "no-raw-token-import": noRawTokenImport,
   "no-raw-fetch": noRawFetch,
+  // Server-state guardrails (frontend-guardrails §2.2 / §2.6).
+  "no-string-paths": noStringPaths,
+  "query-keys-from-factory": queryKeysFromFactory,
   "i18n-key-exists": i18nKeyExists,
   "no-hardcoded-text": noHardcodedText,
   "require-disable-description": requireDisableDescription,
@@ -79,6 +84,23 @@ const FETCH_ALLOWED = [
   "**/scripts/**",
 ];
 
+// The codegen API layer — the one legal home of path STRINGS (the operation
+// definitions themselves), mirroring the fetch carve-out (§2.2 override).
+const PATHS_ALLOWED = [
+  "**/api/**",
+  "**/*client.{ts,js}",
+  "**/generated/**",
+  "**/scripts/**",
+];
+
+// The query-key factory file — where the literal key arrays legitimately live
+// (§2.2 override; the rest of the pair/app must reach them through the factory).
+const KEY_FACTORY = [
+  "**/queryKeys.{ts,tsx,js,mjs}",
+  "**/*QueryKeys.{ts,tsx,js,mjs}",
+  "**/query-keys.{ts,tsx,js,mjs}",
+];
+
 /**
  * Flat-config `recommended` preset. Consumers spread it AFTER their parser
  * config:
@@ -94,6 +116,10 @@ const recommended = [
       "stapel/no-raw-colors": "error",
       "stapel/no-raw-token-import": "error",
       "stapel/no-raw-fetch": "error",
+      // Server state: reach endpoints through named operations, keys through the
+      // factory (§2.2 / §2.6). Both carved out in their one legal home below.
+      "stapel/no-string-paths": "error",
+      "stapel/query-keys-from-factory": "error",
       "stapel/i18n-key-exists": "error",
       "stapel/require-disable-description": "error",
       // Typed analytics (§3). Literal-meta keeps events statically extractable;
@@ -125,6 +151,14 @@ const recommended = [
     rules: { "stapel/no-raw-fetch": "off" },
   },
   {
+    files: PATHS_ALLOWED,
+    rules: { "stapel/no-string-paths": "off" },
+  },
+  {
+    files: KEY_FACTORY,
+    rules: { "stapel/query-keys-from-factory": "off" },
+  },
+  {
     // The facade's provider adapters — the ONE legal home of vendor SDK
     // imports (§2.2 override; mirrors the FETCH_ALLOWED api-layer carve-out).
     files: ["**/analytics/providers.{ts,js}", "**/analytics/providers/**"],
@@ -137,6 +171,8 @@ const recommended = [
       "stapel/no-hardcoded-text": "off",
       "stapel/i18n-key-exists": "off",
       "stapel/no-raw-fetch": "off",
+      "stapel/no-string-paths": "off",
+      "stapel/query-keys-from-factory": "off",
       "stapel/no-raw-token-import": "off",
       // Fixtures / headless test factories legitimately train the analytics
       // anti-patterns (dynamic defineEvent, deliberate double-count, unknown
