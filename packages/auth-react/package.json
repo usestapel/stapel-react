@@ -17,6 +17,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./i18n/ru": {
+      "types": "./dist/i18n/ru.d.ts",
+      "default": "./dist/i18n/ru.js"
+    },
     "./manifest": "./manifest.json",
     "./manifest.json": "./manifest.json",
     "./llms.txt": "./llms.txt",
@@ -40,8 +44,14 @@
   },
   "size-limit": [
     {
+      "name": "index — the ru locale must NOT be in the main bundle",
       "path": "dist/index.js",
       "limit": "12 KB"
+    },
+    {
+      "name": "i18n/ru subpath (opt-in locale: en floor + generated ru + ru UI)",
+      "path": "dist/i18n/ru.js",
+      "limit": "7 KB"
     }
   ],
   "peerDependencies": {

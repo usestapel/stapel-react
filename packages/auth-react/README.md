@@ -106,6 +106,24 @@ Error codes on every flow error state are backend `localizable_error` keys —
 resolve them with core's `useT()`. auth-react ships an English fallback bundle
 (`registerAuthI18n`) covering both its UI keys and the auth-sa.md error codes.
 
+### Russian locale (opt-in subpath)
+
+The `ru` bundle ships as a separate subpath so it never bloats the main entry
+(size-limit gated — the locale stays out of hosts that don't register it):
+
+```tsx
+import { registerAuthI18nRu } from "@stapel/auth-react/i18n/ru";
+
+registerAuthI18n(i18n);      // en floor + polish
+registerAuthI18nRu(i18n);    // ru locale (generated from the backend catalog)
+await i18n.setLocale("ru");  // live switch; a missing key degrades to English
+```
+
+Backend error texts are generated from stapel-auth's
+`translations/errors.ru.json` catalog (`pnpm gen:errors`, drift-gated); the
+pair's UI keys carry hand-written ru copy. Register your own bundle AFTER the
+pair's to override any key — registration order is override priority.
+
 ## Shadcn mode (frontend-standard §7)
 
 Every headless component is app-layer by definition — copy it into your repo
