@@ -240,6 +240,22 @@ const { tracked } = useTracked();
 // data-analytics="flow" instead; tracked() on top double-counts (§3.2).
 ```
 
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- auth.anonymous-session → <AnonymousSession> [default]  demo/AnonymousSession.demo.tsx
+- auth.authenticator-change → <AuthenticatorChange> [default]  demo/AuthenticatorChange.demo.tsx
+- auth.magic-link → <MagicLink> [default]  demo/MagicLink.demo.tsx
+- auth.passkey-login → <PasskeyLogin> [default]  demo/PasskeyLogin.demo.tsx
+- auth.passkey-registration → <PasskeyRegistration> [default]  demo/PasskeyRegistration.demo.tsx
+- auth.password-change → <PasswordChange> [default]  demo/PasswordChange.demo.tsx
+- auth.password-login → <PasswordLogin> [default]  demo/PasswordLogin.demo.tsx
+- auth.password-reset → <PasswordReset> [default]  demo/PasswordReset.demo.tsx
+- auth.passwordless-login → <PasswordlessLogin> [default|locked]  demo/PasswordlessLogin.demo.tsx
+- auth.qr-login → <QrLogin> [default]  demo/QrLogin.demo.tsx
+- auth.sso-discovery → <SsoDiscovery> [default]  demo/SsoDiscovery.demo.tsx
+- auth.totp-setup → <TotpSetup> [default]  demo/TotpSetup.demo.tsx
+- auth.verification-challenge → <VerificationChallenge> [default]  demo/VerificationChallenge.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
+
 ## Snippets
 ```tsx
 // A flow machine drives state; you render each step.

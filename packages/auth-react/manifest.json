@@ -1277,6 +1277,210 @@
       }
     ]
   },
+  "demos": [
+    {
+      "id": "auth.anonymous-session",
+      "title": "Anonymous session",
+      "description": "Headless guest session: create(deviceId) mints an anonymous user you can later upgrade to a full account.",
+      "component": "AnonymousSession",
+      "flow": "auth.anonymous",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/AnonymousSession.demo.tsx"
+    },
+    {
+      "id": "auth.authenticator-change",
+      "title": "Authenticator change (instant)",
+      "description": "Headless instant email/phone change: verify the old channel, then confirm the new one — a four-step OTP ladder.",
+      "component": "AuthenticatorChange",
+      "flow": "auth.authenticator_change",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/AuthenticatorChange.demo.tsx"
+    },
+    {
+      "id": "auth.magic-link",
+      "title": "Magic link",
+      "description": "Headless magic-link request: request(email, redirectUrl) sends a one-tap sign-in link; the redirect is open-redirect-guarded.",
+      "component": "MagicLink",
+      "flow": "auth.magic_link",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/MagicLink.demo.tsx"
+    },
+    {
+      "id": "auth.passkey-login",
+      "title": "Passkey login (WebAuthn)",
+      "description": "Headless passkey sign-in: begin() fetches assertion options; the host performs the credential ceremony and calls submitAssertion().",
+      "component": "PasskeyLogin",
+      "flow": "auth.passkey_login",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg",
+        "text-brand"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/PasskeyLogin.demo.tsx"
+    },
+    {
+      "id": "auth.passkey-registration",
+      "title": "Passkey registration",
+      "description": "Headless passkey enrolment for a signed-in user: begin() fetches creation options; submitCredential() finishes the ceremony result.",
+      "component": "PasskeyRegistration",
+      "flow": "auth.passkey_registration",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/PasskeyRegistration.demo.tsx"
+    },
+    {
+      "id": "auth.password-change",
+      "title": "Password change",
+      "description": "Headless change-password for a signed-in user: directly with the old password, or OTP-verified when no password is set.",
+      "component": "PasswordChange",
+      "flow": "auth.password_change",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/PasswordChange.demo.tsx"
+    },
+    {
+      "id": "auth.password-login",
+      "title": "Password login",
+      "description": "Headless login/password sign-in; on a TOTP challenge the bag surfaces submitTotp() for the second factor.",
+      "component": "PasswordLogin",
+      "flow": "auth.password_login",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/PasswordLogin.demo.tsx"
+    },
+    {
+      "id": "auth.password-reset",
+      "title": "Password reset",
+      "description": "Headless forgot-password: request an OTP to a channel, then submit the code with the new password.",
+      "component": "PasswordReset",
+      "flow": "auth.password_reset",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/PasswordReset.demo.tsx"
+    },
+    {
+      "id": "auth.passwordless-login",
+      "title": "Passwordless login (OTP)",
+      "description": "Headless email → code → session. The render-prop bag exposes state.step plus requestCode/submitCode/reset; wire your own markup.",
+      "component": "PasswordlessLogin",
+      "covers": [
+        "AuthProvider"
+      ],
+      "flow": "auth.otp",
+      "tokens": [
+        "card-bg",
+        "card-border",
+        "button-primary-bg",
+        "text-brand"
+      ],
+      "variants": [
+        "default",
+        "locked"
+      ],
+      "source": "demo/PasswordlessLogin.demo.tsx"
+    },
+    {
+      "id": "auth.qr-login",
+      "title": "QR login (cross-device)",
+      "description": "Headless QR authentication with background polling: start() yields a scanUrl to render as a QR image; delivered tokens adopt into the session.",
+      "component": "QrLogin",
+      "flow": "auth.qr_login",
+      "tokens": [
+        "card-bg",
+        "background-secondary",
+        "button-primary-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/QrLogin.demo.tsx"
+    },
+    {
+      "id": "auth.sso-discovery",
+      "title": "SSO discovery",
+      "description": "Headless enterprise SSO: lookup(domain) resolves whether a work email must use SSO; beginLogin(orgSlug) redirects to the IdP.",
+      "component": "SsoDiscovery",
+      "flow": "auth.sso",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/SsoDiscovery.demo.tsx"
+    },
+    {
+      "id": "auth.totp-setup",
+      "title": "TOTP setup",
+      "description": "Headless authenticator enrolment: start() returns the secret/otpauth URL to render as a QR; confirm() verifies the first code.",
+      "component": "TotpSetup",
+      "flow": "auth.totp_setup",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/TotpSetup.demo.tsx"
+    },
+    {
+      "id": "auth.verification-challenge",
+      "title": "Verification challenge (step-up)",
+      "description": "Headless step-up factor prompt raised by a 403 verification interception: chooseFactor(), then submitCode()/submitPasskey().",
+      "component": "VerificationChallenge",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/VerificationChallenge.demo.tsx"
+    }
+  ],
   "i18nKeys": [
     "auth.error.unknown",
     "auth.otp.enter_code",

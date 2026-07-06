@@ -1,0 +1,28 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/tokens",
+  "version": "0.1.0",
+  "demos": [
+    {
+      "id": "tokens.palette",
+      "title": "Token palette",
+      "description": "Every design token by name — L1 raw ramps (hex), L2 core (live var refs, re-theme on data-theme), L3 component, and the spacing/radii/fontSize scales. Enumerated from the generated surface, so it never drifts.",
+      "component": "Palette",
+      "covers": [],
+      "tokens": [
+        "background-primary",
+        "text-primary",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/tokens-palette.demo.tsx",
+        "line": 110
+      }
+    }
+  ]
+}

@@ -14,6 +14,7 @@ import clickableNeedsEvent from "./rules/clickable-needs-event.js";
 import noDoubleCount from "./rules/no-double-count.js";
 import eventLiteralMeta from "./rules/event-literal-meta.js";
 import knownEvent from "./rules/known-event.js";
+import demoLiteralMeta from "./rules/demo-literal-meta.js";
 
 const rules = {
   "no-raw-colors": noRawColors,
@@ -27,6 +28,8 @@ const rules = {
   "no-double-count": noDoubleCount,
   "event-literal-meta": eventLiteralMeta,
   "known-event": knownEvent,
+  // Showcase guardrail (frontend-guardrails §4, task G7).
+  "demo-literal-meta": demoLiteralMeta,
 };
 
 const plugin = {
@@ -97,6 +100,8 @@ const recommended = [
       "stapel/event-literal-meta": "error",
       "stapel/no-double-count": "error",
       "stapel/known-event": "warn",
+      // Showcase (§4): defineDemo meta must stay literal (extractable).
+      "stapel/demo-literal-meta": "error",
     },
   },
   {
@@ -130,6 +135,7 @@ const recommended = [
       "stapel/event-literal-meta": "off",
       "stapel/no-double-count": "off",
       "stapel/known-event": "off",
+      "stapel/demo-literal-meta": "off",
       // require-disable-description stays ON — disable hygiene applies everywhere.
     },
   },

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "_comment": "Config for the Ladle showcase app. Not built by the package pipeline (no build/test/size scripts); Ladle/Vite type-strips. Present so editors resolve the generated stories + .ladle files.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": [".ladle", "../*/demo/generated"]
+}
