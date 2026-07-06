@@ -14,6 +14,7 @@ import clickableNeedsEvent from "./rules/clickable-needs-event.js";
 import noDoubleCount from "./rules/no-double-count.js";
 import eventLiteralMeta from "./rules/event-literal-meta.js";
 import knownEvent from "./rules/known-event.js";
+import noDirectAnalyticsProvider from "./rules/no-direct-analytics-provider.js";
 import demoLiteralMeta from "./rules/demo-literal-meta.js";
 
 const rules = {
@@ -28,6 +29,7 @@ const rules = {
   "no-double-count": noDoubleCount,
   "event-literal-meta": eventLiteralMeta,
   "known-event": knownEvent,
+  "no-direct-analytics-provider": noDirectAnalyticsProvider,
   // Showcase guardrail (frontend-guardrails §4, task G7).
   "demo-literal-meta": demoLiteralMeta,
 };
@@ -100,6 +102,8 @@ const recommended = [
       "stapel/event-literal-meta": "error",
       "stapel/no-double-count": "error",
       "stapel/known-event": "warn",
+      // Vendor SDKs only behind the core facade (§2.2 / F9).
+      "stapel/no-direct-analytics-provider": "error",
       // Showcase (§4): defineDemo meta must stay literal (extractable).
       "stapel/demo-literal-meta": "error",
     },
@@ -121,6 +125,12 @@ const recommended = [
     rules: { "stapel/no-raw-fetch": "off" },
   },
   {
+    // The facade's provider adapters — the ONE legal home of vendor SDK
+    // imports (§2.2 override; mirrors the FETCH_ALLOWED api-layer carve-out).
+    files: ["**/analytics/providers.{ts,js}", "**/analytics/providers/**"],
+    rules: { "stapel/no-direct-analytics-provider": "off" },
+  },
+  {
     files: TEST_FILES,
     rules: {
       "stapel/no-raw-colors": "off",
@@ -135,6 +145,7 @@ const recommended = [
       "stapel/event-literal-meta": "off",
       "stapel/no-double-count": "off",
       "stapel/known-event": "off",
+      "stapel/no-direct-analytics-provider": "off",
       "stapel/demo-literal-meta": "off",
       // require-disable-description stays ON — disable hygiene applies everywhere.
     },

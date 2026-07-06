@@ -48,6 +48,8 @@ The `recommended` preset:
 | `stapel/no-double-count` | `tracked()`/`trackedSubmit()` over a handler that also steps a flow machine (`run`/`step`/`submit*`, or `data-analytics="flow"` on the same element) — the funnel already auto-emits (hard ban, Q12а / §3.2) |
 | `stapel/event-literal-meta` | `defineEvent()` with a non-literal argument (dynamic `name`/`description`, non-`prop.*` props) — breaks static extraction into `events.json` (§3.1) |
 | `stapel/known-event` (warn) | `track()`/`tracked()` with an event name absent from the generated `events.json` — registry drift; run `pnpm gen:events` (§3) |
+| `stapel/no-direct-analytics-provider` | importing an analytics vendor SDK (posthog-js, mixpanel, `@amplitude/*`, `@segment/*`, …) outside the core facade's provider adapters (`analytics/providers.*`) — bypasses consent/PII/queue (§3). Extend the vendor list via `options.providers` or `settings.stapel.providerModules` |
+| `stapel/demo-literal-meta` | `defineDemo()` with non-literal meta (dynamic `id`/`title`/`description`/`covers`) — breaks static extraction into `demos.json`/`manifest.demos` (§4.2) |
 
 ### Settings
 
