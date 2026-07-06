@@ -2,6 +2,7 @@ import { defaultPersistStorage } from "../storage.js";
 import type { PersistStorage } from "../storage.js";
 import { guardPii } from "./pii.js";
 import { sha256Hex } from "./hash.js";
+import type { AnyEventDef } from "./defineEvent.js";
 import type {
   Analytics,
   AnalyticsEvent,
@@ -14,6 +15,19 @@ import type {
 /** Exponential backoff delay for a batch delivery attempt (1-based). */
 export function backoffDelay(attempt: number, baseMs: number): number {
   return Math.min(30_000, baseMs * 2 ** Math.max(0, attempt - 1));
+}
+
+/** Whether dev-only diagnostics run — off in production bundles. */
+function devEnabled(): boolean {
+  // Read process.env via globalThis so core needs no @types/node; bundlers
+  // (Vite/webpack) statically replace `process.env.NODE_ENV`, so this
+  // dead-code-eliminates to `false` in production builds.
+  const env = (
+    globalThis as {
+      process?: { env?: Record<string, string | undefined> };
+    }
+  ).process?.env;
+  return !env || env["NODE_ENV"] !== "production";
 }
 
 interface InflightBatch {
@@ -69,6 +83,9 @@ export function createAnalytics(options: AnalyticsOptions = {}): Analytics {
   let seq = 0;
   const warnedPii = new Set<string>();
   const warnedRegistry = new Set<string>();
+  const warnedDouble = new Set<string>();
+  /** Dev-only: the tracked() event name whose handler is currently running. */
+  let trackedScopeName: string | null = null;
   /** In-flight async work (identify hashing, persist writes) awaited by flush. */
   let pendingOps: Promise<unknown>[] = [];
   /** Serializes identify hashing so enqueue order matches call order. */
@@ -237,16 +254,38 @@ export function createAnalytics(options: AnalyticsOptions = {}): Analytics {
     }
   }
 
-  function track(event: string, props?: Record<string, unknown>): void {
+  function track(
+    event: string | AnyEventDef,
+    props?: Record<string, unknown>
+  ): void {
     if (consent === "denied") return;
-    if (registry && !registry.has(event) && !warnedRegistry.has(event)) {
-      warnedRegistry.add(event);
+    const name = typeof event === "string" ? event : event.name;
+    // Dev-only: a flow.* emission while a tracked() handler runs = double count
+    // (the flow step is already auto-instrumented). frontend-guardrails §3.2.
+    if (
+      trackedScopeName !== null &&
+      trackedScopeName !== name &&
+      name.startsWith("flow.")
+    ) {
+      const key = `${trackedScopeName}→${name}`;
+      if (!warnedDouble.has(key)) {
+        warnedDouble.add(key);
+        console.warn(
+          `[stapel analytics] double-count: tracked("${trackedScopeName}") wraps a ` +
+            `handler that also steps flow "${name}". A flow-stepping click is already ` +
+            `instrumented — drop the tracked() wrapper and mark the element ` +
+            `data-analytics="flow" (frontend-guardrails §3.2).`
+        );
+      }
+    }
+    if (registry && !registry.has(name) && !warnedRegistry.has(name)) {
+      warnedRegistry.add(name);
       console.warn(
-        `[stapel analytics] event "${event}" is not in the registry ` +
+        `[stapel analytics] event "${name}" is not in the registry ` +
           "(analytics-standard §1.1) — delivered anyway; declare it in events.json."
       );
     }
-    enqueue("track", event, guardPii(event, props ?? {}, piiMode, warnedPii));
+    enqueue("track", name, guardPii(name, props ?? {}, piiMode, warnedPii));
   }
 
   function page(name: string, props?: Record<string, unknown>): void {
@@ -293,7 +332,7 @@ export function createAnalytics(options: AnalyticsOptions = {}): Analytics {
   }, flushIntervalMs);
   (interval as { unref?: () => void }).unref?.();
 
-  return {
+  const facade: Analytics = {
     track,
     identify,
     page,
@@ -307,4 +346,14 @@ export function createAnalytics(options: AnalyticsOptions = {}): Analytics {
       providers.delete(name);
     },
   };
+  if (devEnabled()) {
+    facade.__trackedScope = (eventName: string): (() => void) => {
+      const prev = trackedScopeName;
+      trackedScopeName = eventName;
+      return () => {
+        trackedScopeName = prev;
+      };
+    };
+  }
+  return facade;
 }

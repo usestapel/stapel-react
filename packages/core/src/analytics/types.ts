@@ -5,6 +5,7 @@
  */
 
 import type { PersistStorage } from "../storage.js";
+import type { AnyEventDef, EventProps } from "./defineEvent.js";
 
 export type AnalyticsEventKind = "track" | "page" | "identify";
 
@@ -80,8 +81,19 @@ export interface AnalyticsOptions {
 }
 
 export interface Analytics {
-  /** Queue a registry event. No-op while consent is `"denied"`. */
+  /**
+   * Queue a registry event. No-op while consent is `"denied"`.
+   *
+   * Two forms (frontend-guardrails §3.1):
+   *  - `track(name, props?)` — the low-level string form, kept for library
+   *    auto-instrumentation (`flow.<id>.<step>`); in app code the eslint rule
+   *    steers callers to the typed form.
+   *  - `track(event, props)` — the typed form: `event` is a {@link defineEvent}
+   *    object, `props` is checked against its schema (required props enforced,
+   *    unknown props rejected, `oneOf` narrowed).
+   */
   track(event: string, props?: Record<string, unknown>): void;
+  track<E extends AnyEventDef>(event: E, props: EventProps<E>): void;
   /**
    * Queue an identify. The raw `userId` never leaves the facade: providers
    * see its SHA-256 hex. Traits pass the PII guard.
@@ -102,4 +114,12 @@ export interface Analytics {
   /** Register a provider at runtime (merge semantics). */
   register(name: string, provider: AnalyticsProvider): void;
   unregister(name: string): void;
+  /**
+   * @internal Dev-only double-count detector (frontend-guardrails §3.2).
+   * `tracked()` opens a scope around its wrapped handler; a `flow.*` emission
+   * inside that scope is a `tracked()`-over-a-flow-step double count and warns.
+   * Returns a closer. Absent (undefined) in production builds — callers guard
+   * with `?.`.
+   */
+  __trackedScope?(eventName: string): () => void;
 }

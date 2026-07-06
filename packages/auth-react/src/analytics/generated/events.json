@@ -1,0 +1,138 @@
+{
+  "$generated": "by scripts/gen-events.mjs — do not edit; drift-gated (pnpm gen:events:check)",
+  "package": "@stapel/auth-react",
+  "version": "1.0.0",
+  "defined": [],
+  "flows": [
+    {
+      "flow": "auth.password_login",
+      "event": "flow.auth.password_login.<step>",
+      "titleKey": "flow.auth.password_login.title",
+      "descriptionKey": "flow.auth.password_login.description",
+      "props": {
+        "phase": {
+          "type": "string",
+          "description": "Transition phase of the funnel step",
+          "options": [
+            "started",
+            "completed",
+            "failed"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "order": 0,
+          "kind": "human",
+          "noteKey": "flow.auth.password_login.step.0.note"
+        },
+        {
+          "order": 1,
+          "kind": "http",
+          "noteKey": "flow.auth.password_login.step.1.note"
+        },
+        {
+          "order": 2,
+          "kind": "http",
+          "noteKey": "flow.auth.password_login.step.2.note"
+        }
+      ],
+      "source": "flows.json"
+    },
+    {
+      "flow": "auth.passwordless_login",
+      "event": "flow.auth.passwordless_login.<step>",
+      "titleKey": "flow.auth.passwordless_login.title",
+      "descriptionKey": "flow.auth.passwordless_login.description",
+      "props": {
+        "phase": {
+          "type": "string",
+          "description": "Transition phase of the funnel step",
+          "options": [
+            "started",
+            "completed",
+            "failed"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "order": 0,
+          "kind": "human",
+          "noteKey": "flow.auth.passwordless_login.step.0.note"
+        },
+        {
+          "order": 1,
+          "kind": "http",
+          "noteKey": "flow.auth.passwordless_login.step.1.note"
+        },
+        {
+          "order": 2,
+          "kind": "http",
+          "noteKey": "flow.auth.passwordless_login.step.2.note"
+        },
+        {
+          "order": 3,
+          "kind": "action",
+          "noteKey": "flow.auth.passwordless_login.step.3.note"
+        }
+      ],
+      "source": "flows.json"
+    },
+    {
+      "flow": "auth.step_up_verification",
+      "event": "flow.auth.step_up_verification.<step>",
+      "titleKey": "flow.auth.step_up_verification.title",
+      "descriptionKey": "flow.auth.step_up_verification.description",
+      "props": {
+        "phase": {
+          "type": "string",
+          "description": "Transition phase of the funnel step",
+          "options": [
+            "started",
+            "completed",
+            "failed"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "order": 0,
+          "kind": "human",
+          "noteKey": "flow.auth.step_up_verification.step.0.note"
+        },
+        {
+          "order": 1,
+          "kind": "http",
+          "noteKey": "flow.auth.step_up_verification.step.1.note"
+        },
+        {
+          "order": 2,
+          "kind": "http",
+          "noteKey": "flow.auth.step_up_verification.step.2.note"
+        },
+        {
+          "order": 3,
+          "kind": "http",
+          "noteKey": "flow.auth.step_up_verification.step.3.note"
+        },
+        {
+          "order": 4,
+          "kind": "human",
+          "noteKey": "flow.auth.step_up_verification.step.4.note"
+        },
+        {
+          "order": 5,
+          "kind": "http",
+          "noteKey": "flow.auth.step_up_verification.step.5.note"
+        },
+        {
+          "order": 6,
+          "kind": "http",
+          "noteKey": "flow.auth.step_up_verification.step.6.note"
+        }
+      ],
+      "source": "flows.json"
+    }
+  ]
+}

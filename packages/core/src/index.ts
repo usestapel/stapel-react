@@ -56,6 +56,20 @@ export type { StapelCollectorOptions } from "./analytics/providers.js";
 export { trackFlowStep } from "./analytics/flow.js";
 export type { FlowStepPhase } from "./analytics/flow.js";
 export { AnalyticsContext, useAnalytics } from "./analytics/context.js";
+// typed analytics (frontend-guardrails §3): defineEvent + tracked over the facade
+export { defineEvent, prop } from "./analytics/defineEvent.js";
+export type {
+  EventDef,
+  EventDefInput,
+  EventProps,
+  AnyEventDef,
+  PropSpec,
+  PropsSchema,
+  PropType,
+} from "./analytics/defineEvent.js";
+export { createTracked } from "./analytics/tracked.js";
+export type { TrackedApi } from "./analytics/tracked.js";
+export { useTracked } from "./analytics/useTracked.js";
 export type {
   Analytics,
   AnalyticsEvent,

@@ -61,17 +61,26 @@ export interface FlowMachineOptions<S extends FlowStateBase> {
   readonly initial: S;
   /** Facade for auto-instrumentation. Omit to disable tracking. */
   readonly analytics?: Analytics | null;
+  /**
+   * Runtime switch for the `flow.<id>.<step>` auto-instrumentation
+   * (frontend-guardrails §3, item 5). Defaults to `true` when `analytics` is
+   * present — so funnels exist for free — but a host can pass `false` to keep
+   * the facade (for hand-rolled events) while silencing the auto funnel for a
+   * given machine.
+   */
+  readonly instrument?: boolean;
 }
 
 export function createFlowMachine<S extends FlowStateBase>(
   options: FlowMachineOptions<S>
 ): FlowMachine<S> {
   const { id, analytics } = options;
+  const instrument = analytics != null && (options.instrument ?? true);
   let state = options.initial;
   const listeners = new Set<() => void>();
 
   function emit(step: string, phase: "started" | "completed" | "failed"): void {
-    if (analytics) trackFlowStep(analytics, id, step, phase);
+    if (instrument && analytics) trackFlowStep(analytics, id, step, phase);
   }
 
   function notify(): void {

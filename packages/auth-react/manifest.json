@@ -1257,6 +1257,26 @@
       "remediation": "contact_support"
     }
   },
+  "events": {
+    "defined": [],
+    "flows": [
+      {
+        "flow": "auth.password_login",
+        "event": "flow.auth.password_login.<step>",
+        "steps": 3
+      },
+      {
+        "flow": "auth.passwordless_login",
+        "event": "flow.auth.passwordless_login.<step>",
+        "steps": 4
+      },
+      {
+        "flow": "auth.step_up_verification",
+        "event": "flow.auth.step_up_verification.<step>",
+        "steps": 7
+      }
+    ]
+  },
   "i18nKeys": [
     "auth.error.unknown",
     "auth.otp.enter_code",
