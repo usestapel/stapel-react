@@ -55,13 +55,24 @@ jobs:
           API_SCHEMA: ${{ github.workspace }}/.codegen-source/codegen/generated/schema.json
           FLOWS_JSON: ${{ github.workspace }}/.codegen-source/codegen/generated/flows.json
           AUTH_ERRORS_JSON: ${{ github.workspace }}/.errors-source/stapel-auth/docs/errors.json
+          # Backend version pin → manifest backend.contract (gen:manifest).
+          MANIFEST_BACKEND_PYPROJECT: ${{ github.workspace }}/.errors-source/stapel-auth/pyproject.toml
+
+      - name: CSS guardrail (stylelint)
+        # The CSS half of the guardrails (frontend-guardrails §2.2): colours in
+        # .css only as var(--stapel-*) tokens. ESLint ignores *.css, so this is
+        # the only gate over hand-written stylesheets (e.g. the viewer's).
+        run: corepack pnpm lint:css
 
       - name: Lint, test, build, size
         run: corepack pnpm turbo run lint test build size
 
       - name: Standalone build gate (frontend-standard §7)
+        # --if-present: the gate proves every PUBLISHED package builds in
+        # isolation; the private showcase-viewer app has no `build` script
+        # (its Ladle build runs behind the STAPEL_INTROSPECTION gate, §5).
         run: |
           for pkg in packages/*/; do
             echo "--- standalone build: $pkg"
-            (cd "$pkg" && corepack pnpm run build)
+            (cd "$pkg" && corepack pnpm run --if-present build)
           done
