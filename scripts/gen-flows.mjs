@@ -124,9 +124,15 @@ export interface FlowEndpoint {
 
 /** All HTTP endpoints a flow touches, in step order (for the contract test / MSW). */
 export function flowEndpoints(id: ${TYPE_PREFIX}FlowId): readonly FlowEndpoint[] {
-  return ${REGISTRY}[id].steps.flatMap(
-    (s) => s.endpoints as readonly FlowEndpoint[]
-  );
+  // Guard the empty-registry case: a module with no annotated flows makes
+  // \`${TYPE_PREFIX}FlowId\` = \`never\` and \`${REGISTRY}\` = \`{}\`, so a direct
+  // \`${REGISTRY}[id].steps\` does not type-check. Widening to an optional spec
+  // keeps this body valid for the zero-flow scaffold AND correct once the
+  // backend annotates \`@flow_step\` and the registry fills in.
+  const spec = ${REGISTRY}[id] as
+    | { readonly steps: readonly { readonly endpoints: readonly FlowEndpoint[] }[] }
+    | undefined;
+  return spec ? spec.steps.flatMap((s) => s.endpoints) : [];
 }
 `;
 

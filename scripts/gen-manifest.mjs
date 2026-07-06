@@ -36,6 +36,24 @@ const SCHEMA_PATH =
   process.env.API_SCHEMA ??
   resolve(ROOT, "../stapel-example-monolith/codegen/generated/schema.json");
 
+// ── prose knobs (frontend-core-architecture §2.4) ────────────────────────────
+// The llms.txt narrative and the i18n-key scan name a pair's public entry
+// points (`<XProvider>`, `explainXError`, `xQueryKeys`, `registerXI18n`, the
+// `x.` i18n namespace). These derive from the react module slug — the last
+// path segment of MANIFEST_PKG_DIR minus the `-react` suffix — so a NEW pair
+// self-describes with zero extra env, while each name stays overridable in the
+// same style as gen-flows' FLOW_* knobs. Defaults reproduce the auth surface.
+const MODULE_BASE =
+  process.env.MANIFEST_MODULE_BASE ??
+  (PKG_DIR.split("/").pop() ?? "auth-react").replace(/-react$/, "");
+const CAMEL = MODULE_BASE.charAt(0).toUpperCase() + MODULE_BASE.slice(1);
+const PROVIDER = process.env.MANIFEST_PROVIDER ?? `${CAMEL}Provider`;
+const QUERY_KEYS = process.env.MANIFEST_QUERYKEYS ?? `${MODULE_BASE}QueryKeys`;
+const I18N_REGISTER = process.env.MANIFEST_I18N_REGISTER ?? `register${CAMEL}I18n`;
+const ERROR_FN = process.env.MANIFEST_ERROR_FN ?? `explain${CAMEL}Error`;
+const API_HOOK = process.env.MANIFEST_API_HOOK ?? `use${CAMEL}Api`;
+const I18N_PREFIX = process.env.MANIFEST_I18N_PREFIX ?? MODULE_BASE;
+
 const OUT_MANIFEST = resolve(PKG_DIR, "manifest.json");
 const OUT_LLMS = resolve(PKG_DIR, "llms.txt");
 const LLMS_TOKEN_BUDGET = 4000; // §2.4 — a pair's slice must fit an agent's context
@@ -122,7 +140,8 @@ function flowsCatalog(flows) {
 /** i18n keys the pair owns: UI keys + flow keys + error keys, de-duplicated. */
 function i18nKeys(uiKeysSrc, flows, errors) {
   const keys = new Set();
-  for (const m of uiKeysSrc.matchAll(/"(auth\.[a-z0-9_.]+)"/g)) keys.add(m[1]);
+  const uiKeyRe = new RegExp(`"(${I18N_PREFIX}\\.[a-z0-9_.]+)"`, "g");
+  for (const m of uiKeysSrc.matchAll(uiKeyRe)) keys.add(m[1]);
   for (const f of flows) {
     keys.add(f.titleKey);
     keys.add(f.descriptionKey);
@@ -148,23 +167,25 @@ function renderLlms(m, factories) {
   L.push("");
   L.push("## The one right way (do this, the rest is a review/lint smell)");
   L.push(
-    "- No raw fetch/axios. The client is injected via <AuthProvider>/StapelConfigProvider;"
+    `- No raw fetch/axios. The client is injected via <${PROVIDER}>/StapelConfigProvider;`
   );
   L.push("  every hook and flow already carries auth, refresh, and the error envelope.");
   L.push(
     "- Render errors, never try/catch them: a flow's state carries FlowError{code,params};"
   );
-  L.push("  render `t(code, params)` and branch on `explainAuthError(code)` remediation.");
-  L.push("- Server state = the use* hooks (query layer); keys come only from authQueryKeys.");
-  L.push("- User strings = i18n keys (registerAuthI18n); never string literals.");
+  L.push(`  render \`t(code, params)\` and branch on \`${ERROR_FN}(code)\` remediation.`);
+  L.push(`- Server state = the use* hooks (query layer); keys come only from ${QUERY_KEYS}.`);
+  L.push(`- User strings = i18n keys (${I18N_REGISTER}); never string literals.`);
   L.push("- Sign-in UI = a headless flow component; copy it (shadcn-style) to restyle.");
   L.push("");
   L.push("## Layers");
   L.push("api (typed client) · model (hooks, session) · flows (machines) · headless · i18n");
   L.push("");
-  L.push("## Machines (createFlowMachine; analytics funnel flow.<id>.<step>)");
-  for (const f of factories) L.push(`- ${f}`);
-  L.push("");
+  if (factories.length > 0) {
+    L.push("## Machines (createFlowMachine; analytics funnel flow.<id>.<step>)");
+    for (const f of factories) L.push(`- ${f}`);
+    L.push("");
+  }
   L.push("## Documented flows (flows.json — canonical id, steps, endpoints)");
   for (const [id, f] of Object.entries(m.flows)) {
     L.push(`- ${id}: ${f.endpoints.join(", ") || "(no http steps)"}`);
@@ -183,15 +204,20 @@ function renderLlms(m, factories) {
   }
   L.push("");
   L.push("## Snippets");
-  L.push("```tsx");
-  L.push("// Passwordless login — machine drives state, you render steps.");
-  L.push("const flow = createOtpFlow({ api: useAuthApi() });");
-  L.push("const s = useFlow(flow.machine);");
-  L.push("if (s.step === 'codeError') return <p>{t(s.error.code, s.error.params)}</p>;");
-  L.push("```");
+  const sampleFlow = factories.find((n) => /Flow$/.test(n));
+  if (sampleFlow) {
+    L.push("```tsx");
+    L.push("// A flow machine drives state; you render each step.");
+    L.push(`const flow = ${sampleFlow}({ api: ${API_HOOK}() });`);
+    L.push("const s = useFlow(flow.machine);");
+    L.push(
+      "if (s.step.endsWith('Error')) return <p>{t(s.error.code, s.error.params)}</p>;"
+    );
+    L.push("```");
+  }
   L.push("```tsx");
   L.push("// Error rendering + remediation branch (one pattern for every pair).");
-  L.push("const r = explainAuthError(err.code); // 'wait_and_retry' | 'verify' | ...");
+  L.push(`const r = ${ERROR_FN}(err.code); // 'wait_and_retry' | 'verify' | ...`);
   L.push("return <Alert action={r}>{t(err.code, err.params)}</Alert>;");
   L.push("```");
   return L.join("\n") + "\n";
