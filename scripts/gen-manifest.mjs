@@ -22,11 +22,12 @@
 //   node scripts/gen-manifest.mjs      # generate
 //   pnpm gen:manifest                  # generate (root script)
 //   pnpm gen:manifest:check            # drift gate (fails on divergence)
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile, readdir } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { manifestEvents, renderLlmsEvents } from "./events-lib.mjs";
 import { manifestDemos, renderLlmsDemos } from "./demos-lib.mjs";
+import { parseKeyFactory, extractHooks, buildHooks, renderLlmsHooks } from "./hooks-lib.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
@@ -63,6 +64,10 @@ const I18N_REGISTER = process.env.MANIFEST_I18N_REGISTER ?? `register${CAMEL}I18
 const ERROR_FN = process.env.MANIFEST_ERROR_FN ?? `explain${CAMEL}Error`;
 const API_HOOK = process.env.MANIFEST_API_HOOK ?? `use${CAMEL}Api`;
 const I18N_PREFIX = process.env.MANIFEST_I18N_PREFIX ?? MODULE_BASE;
+// Query-hook catalog (§2.4): the model layer's exported use*-hooks and the key
+// factory that names their keys. Same slug-derived defaults + override knobs.
+const MODEL_DIR = process.env.MANIFEST_MODEL_DIR ?? "src/model";
+const QUERYKEYS_FILE = process.env.MANIFEST_QUERYKEYS_FILE ?? "src/model/queryKeys.ts";
 
 const OUT_MANIFEST = resolve(PKG_DIR, "manifest.json");
 const OUT_LLMS = resolve(PKG_DIR, "llms.txt");
@@ -178,6 +183,36 @@ function i18nKeys(uiKeysSrc, flows, errors) {
   return [...keys].sort();
 }
 
+/**
+ * The pair's query-hook catalog (§2.4): scan the model dir for exported use*
+ * hooks, resolve their keys against the key factory. A pair without a model dir
+ * (or key factory) degrades to an empty catalog rather than failing.
+ */
+async function hooksCatalog() {
+  let factoryMap = new Map();
+  try {
+    const factorySrc = await readFile(resolve(PKG_DIR, QUERYKEYS_FILE), "utf8");
+    factoryMap = parseKeyFactory(factorySrc, QUERYKEYS_FILE, QUERY_KEYS);
+  } catch {
+    /* no key factory → keys stay unresolved */
+  }
+  let files = [];
+  try {
+    files = (await readdir(resolve(PKG_DIR, MODEL_DIR)))
+      .filter((f) => /\.tsx?$/.test(f))
+      .sort();
+  } catch {
+    return {}; // no model dir → no hooks
+  }
+  const all = [];
+  for (const f of files) {
+    const rel = `${MODEL_DIR}/${f}`;
+    const src = await readFile(resolve(PKG_DIR, rel), "utf8");
+    all.push(...extractHooks(src, rel, QUERY_KEYS));
+  }
+  return buildHooks(all, factoryMap);
+}
+
 function renderLlms(m, factories, eventsJson, demosJson) {
   const L = [];
   L.push(`# ${m.package} ${m.version}`);
@@ -224,6 +259,11 @@ function renderLlms(m, factories, eventsJson, demosJson) {
     L.push(`- ${id}: ${op.method} ${op.path}`);
   }
   L.push("");
+  const hookLines = renderLlmsHooks(m.hooks);
+  if (hookLines.length > 0) {
+    for (const line of hookLines) L.push(line);
+    L.push("");
+  }
   L.push("## Errors (render t(code, params); UX from remediation)");
   // Digest, not catalogue: the full code→spec map is manifest.json §errors (and
   // the generated AUTH_ERRORS). Here we keep llms.txt within its token budget
@@ -322,6 +362,7 @@ async function main() {
     flows: flowsCatalog(flows),
     machines: factories,
     operations: operations(schema),
+    hooks: await hooksCatalog(),
     errors: errorsBlock,
     events: manifestEvents(eventsJson),
     demos: manifestDemos(demosJson),

@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { loadTokenCatalog, loadI18nRegistry, __resetCaches } from "../lib/data.js";
+import {
+  loadTokenCatalog,
+  loadI18nRegistry,
+  loadOperationCatalog,
+  __resetCaches,
+} from "../lib/data.js";
 
 describe("data layer reads generated manifests dynamically", () => {
   it("loads the real @stapel/tokens catalog (not a hardcoded list)", () => {
@@ -35,5 +40,27 @@ describe("data layer reads generated manifests dynamically", () => {
     expect(registry.has("auth.otp.enter_code")).toBe(true);
     expect(registry.manages("auth.made.up")).toBe(true); // managed namespace
     expect(registry.manages("randomhost.key")).toBe(false); // app-local
+  });
+
+  it("discovers workspace operation paths from manifest.operations", () => {
+    __resetCaches();
+    const catalog = loadOperationCatalog();
+    // auth-react's manifest ships /auth/api/… operation paths — discovered by
+    // walking the workspace, not baked into the rule.
+    expect(catalog.loaded).toBe(true);
+    expect(catalog.matches("/auth/api/me/")).toBe(true);
+    // A client-relative literal matches by trailing-segment suffix and resolves
+    // to the catalogued operation id.
+    expect(catalog.matches("/me/")).toBe(true);
+    expect(catalog.resolve("/me/")?.operation).toBeTruthy();
+    // A route path that is not an API operation is absent.
+    expect(catalog.matches("/sign-in")).toBe(false);
+  });
+
+  it("honours an operation-paths settings override without the filesystem", () => {
+    const catalog = loadOperationCatalog({ operationPaths: ["/x/api/thing/"] });
+    expect(catalog.matches("/x/api/thing/")).toBe(true);
+    expect(catalog.matches("/thing/")).toBe(true);
+    expect(catalog.matches("/auth/api/me/")).toBe(false);
   });
 });

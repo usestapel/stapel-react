@@ -242,6 +242,97 @@ export function loadEventsCatalog(settings = {}) {
   return _eventsCatalogDefault;
 }
 
+// ── operation-path catalog (manifest.operations) ─────────────────────────────
+//
+// The no-string-paths lint reads the SAME generated projection the code and the
+// llms.txt read: the `operations` section of each package manifest.json (schema
+// operationId → { method, path }). A path an agent hand-writes is authoritative
+// only if it matches a catalogued operation — so the rule can name the op to
+// call instead. A missing manifest / operations section degrades the data to an
+// empty catalog (the rule still flags the syntactic `client.<verb>("/…")` shape,
+// never crashes) — exactly like the token / i18n / events loaders above (§2.1).
+
+function discoverWorkspaceOperationManifests(from) {
+  const root = workspaceRoot(from);
+  if (!root) return [];
+  const pkgsDir = join(root, "packages");
+  if (!existsSync(pkgsDir)) return [];
+  const out = [];
+  let entries = [];
+  try {
+    entries = readdirSync(pkgsDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name);
+  } catch {
+    return [];
+  }
+  for (const name of entries) {
+    const manifest = readJson(join(pkgsDir, name, "manifest.json"));
+    if (manifest && manifest.operations) out.push(manifest);
+  }
+  return out;
+}
+
+function buildOperationCatalog(manifests, extraPaths) {
+  // path → { pkg, operation } for the exact-match lookup + a set of paths for
+  // template-prefix matching (`\`${base}/me/\`` shares the trailing segments).
+  const byPath = new Map();
+  for (const p of extraPaths ?? []) if (p) byPath.set(p, { pkg: null, operation: null });
+  for (const m of manifests) {
+    const pkg = m.package ?? null;
+    for (const [id, op] of Object.entries(m.operations ?? {})) {
+      if (op && typeof op.path === "string" && !byPath.has(op.path)) {
+        byPath.set(op.path, { pkg, operation: id });
+      }
+    }
+  }
+  const paths = [...byPath.keys()];
+  /**
+   * The catalogued operation for a path string, by exact match or — for a
+   * client-relative literal like `/me/` under a `/auth/api` base URL — by
+   * trailing-segment suffix. Returns { pkg, operation } or null.
+   */
+  const resolve = (str) => {
+    // A meaningful path has a segment beyond the leading slash — never resolve a
+    // bare "/" (every catalogued path ends with one, so it would match all).
+    if (typeof str !== "string" || str.length < 2 || !/[A-Za-z0-9]/.test(str)) {
+      return null;
+    }
+    const exact = byPath.get(str);
+    if (exact) return exact;
+    // Suffix match aligns at a segment boundary because `str` starts with "/".
+    for (const p of paths) if (str.startsWith("/") && p.endsWith(str)) return byPath.get(p);
+    return null;
+  };
+  return {
+    byPath,
+    paths,
+    resolve,
+    /** Exact catalogued operation for a literal path string, else null. */
+    lookup: (str) => byPath.get(str) ?? null,
+    /** True if `str` is (or ends with) a catalogued operation path. */
+    matches: (str) => resolve(str) !== null,
+    loaded: byPath.size > 0,
+  };
+}
+
+let _operationCatalogDefault;
+export function loadOperationCatalog(settings = {}) {
+  if (settings.operationPaths) {
+    return buildOperationCatalog([], settings.operationPaths);
+  }
+  if (settings.operationsManifests) {
+    return buildOperationCatalog(settings.operationsManifests, settings.extraOperationPaths);
+  }
+  if (!_operationCatalogDefault) {
+    _operationCatalogDefault = buildOperationCatalog(
+      discoverWorkspaceOperationManifests(process.cwd ? process.cwd() : HERE),
+      undefined
+    );
+  }
+  return _operationCatalogDefault;
+}
+
 /** Read `context.settings.stapel` (flat config) with a stable empty default. */
 export function stapelSettings(context) {
   return (context.settings && context.settings.stapel) || {};
@@ -252,6 +343,7 @@ export function __resetCaches() {
   _tokenCatalogDefault = undefined;
   _i18nDefault = undefined;
   _eventsCatalogDefault = undefined;
+  _operationCatalogDefault = undefined;
 }
 
 export { resolve as _resolve };
