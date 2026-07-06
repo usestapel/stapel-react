@@ -160,7 +160,7 @@ Request/response schema names are in manifest.json + the generated types.
 - useSsoLookup (query) → ssoLookup
 
 ## Errors (render t(code, params); UX from remediation)
-114 keys (full catalog: manifest.json §errors). By remediation: fix_input 52 · retry 30 · reauthenticate 12 · wait_and_retry 8 · verify 7 · contact_support 5.
+116 keys (full catalog: manifest.json §errors). By remediation: fix_input 54 · retry 30 · reauthenticate 12 · wait_and_retry 8 · verify 7 · contact_support 5.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
