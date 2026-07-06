@@ -1,0 +1,95 @@
+# @stapel/profiles-react 0.0.0
+
+Headless React flow pair for stapel-profiles (contract >=0.3 <0.4) — business + state, zero visual opinion.
+Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
+verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
+
+## The one right way (do this, the rest is a review/lint smell)
+- No raw fetch/axios. The client is injected via <ProfilesProvider>/StapelConfigProvider;
+  every hook and flow already carries auth, refresh, and the error envelope.
+- Render errors, never try/catch them: a flow's state carries FlowError{code,params};
+  render `t(code, params)` and branch on `explainProfilesError(code)` remediation.
+- Server state = the use* hooks (query layer); keys come only from profilesQueryKeys.
+- User strings = i18n keys (registerProfilesI18n); never string literals.
+- Sign-in UI = a headless flow component; copy it (shadcn-style) to restyle.
+
+## Layers
+api (typed client) · model (hooks, session) · flows (machines) · headless · i18n
+
+## Documented flows (flows.json — canonical id, steps, endpoints)
+
+## Operations (typed; use the named op, never a path string)
+Request/response schema names are in manifest.json + the generated types.
+- block_user: POST /profiles/api/{user_id}/block
+- follow_user: POST /profiles/api/{user_id}/follow
+- get_language: GET /profiles/api/languages/{code}/
+- get_my_blocked: GET /profiles/api/me/blocked
+- get_my_followers: GET /profiles/api/me/followers
+- get_my_following: GET /profiles/api/me/following
+- get_my_profile: GET /profiles/api/me
+- get_profile: GET /profiles/api/{user_id}
+- get_relationship: GET /profiles/api/{user_id}/relationship
+- list_languages: GET /profiles/api/languages/
+- unblock_user: POST /profiles/api/{user_id}/unblock
+- unfollow_user: POST /profiles/api/{user_id}/unfollow
+- unsubscribe_notifications: POST /profiles/api/notifications/unsubscribe
+- update_my_profile: PATCH /profiles/api/me
+
+## Query hooks (server state; keys come only from the key factory)
+- useLanguages (query) → listLanguages
+- useMyBlocked (query) → getMyBlocked
+- useMyFollowers (query) → getMyFollowers
+- useMyFollowing (query) → getMyFollowing
+- useMyProfile (query) → getMyProfile
+- useProfile (query) → getProfile
+- useRelationship (query) → getRelationship
+- useUpdateMyProfile (mutation) → updateMyProfile
+
+## Errors (render t(code, params); UX from remediation)
+51 keys (full catalog: manifest.json §errors). By remediation: fix_input 26 · retry 12 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+Param-bearing keys (interpolation slots matter):
+- error.400.field.blank [400] → fix_input {field}
+- error.400.field.does_not_exist [400] → fix_input {field}
+- error.400.field.invalid [400] → fix_input {field}
+- error.400.field.invalid_choice [400] → fix_input {field}
+- error.400.field.max_length [400] → fix_input {field,max_length}
+- error.400.field.max_value [400] → fix_input {field,max_value}
+- error.400.field.min_length [400] → fix_input {field,min_length}
+- error.400.field.min_value [400] → fix_input {field,min_value}
+- error.400.field.null [400] → fix_input {field}
+- error.400.field.required [400] → fix_input {field}
+- error.400.field.unique [400] → fix_input {field}
+- error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
+
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- profiles.connection_list → <ConnectionList> [default]  demo/ConnectionList.demo.tsx
+- profiles.my_profile → <MyProfile> [default]  demo/MyProfile.demo.tsx
+- profiles.provider → <ProfilesProvider> [default]  demo/Profiles.demo.tsx
+- profiles.relationship → <Relationship> [default]  demo/Relationship.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
+
+## Snippets
+```tsx
+// Error rendering + remediation branch (one pattern for every pair).
+const r = explainProfilesError(err.code); // 'wait_and_retry' | 'verify' | ...
+return <Alert action={r}>{t(err.code, err.params)}</Alert>;
+```

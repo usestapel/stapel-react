@@ -1,0 +1,86 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/profiles-react",
+  "version": "0.0.0",
+  "demos": [
+    {
+      "id": "profiles.connection_list",
+      "title": "Connection list",
+      "description": "The headless ConnectionList selects the followers / following / blocked read by `kind`, normalizes the three response shapes to { ids, count }, and exposes loading / error state. Bring your own list UI — the component is renderless.",
+      "component": "ConnectionList",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/ConnectionList.demo.tsx",
+        "line": 62
+      }
+    },
+    {
+      "id": "profiles.my_profile",
+      "title": "My profile",
+      "description": "The headless MyProfile wraps the read + partial-update of the caller's own profile and exposes loading / saving / saved / error state. Bring your own form UI — the component is renderless.",
+      "component": "MyProfile",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/MyProfile.demo.tsx",
+        "line": 91
+      }
+    },
+    {
+      "id": "profiles.provider",
+      "title": "Profiles provider",
+      "description": "The headless profiles root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "ProfilesProvider",
+      "covers": [],
+      "tokens": [
+        "card-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/Profiles.demo.tsx",
+        "line": 24
+      }
+    },
+    {
+      "id": "profiles.relationship",
+      "title": "Relationship",
+      "description": "The headless Relationship wraps the caller↔target status read and the follow / unfollow / block / unblock actions, exposing the live status plus pending / error state. Bring your own controls — the component is renderless.",
+      "component": "Relationship",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/Relationship.demo.tsx",
+        "line": 74
+      }
+    }
+  ]
+}
