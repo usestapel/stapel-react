@@ -1,5 +1,8 @@
 packages:
   - "packages/*"
 allowBuilds:
+  # tokens' Tailwind-bridge fixture test uses @tailwindcss/cli for a one-shot
+  # compile; @parcel/watcher (watch mode) is never invoked, so skip its build.
+  '@parcel/watcher': false
   esbuild: true
   msw: true

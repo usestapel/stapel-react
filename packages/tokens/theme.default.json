@@ -1,0 +1,122 @@
+{
+  "_comment": "Default Stapel theme (frontend-guardrails §1). SOURCE OF TRUTH — code (tokens.css/tokens.ts/tailwind.css) is generated from this file via `pnpm gen:tokens` and drift-gated by `pnpm gen:tokens:check`. A host copies this to `stapel.theme.json` and edits it; absence of a host file = this default. THREE LEVELS: (L1) `ramps` = custom raw ramps merged over the built-in standard ramps (ramps.standard.json) — hex is born here and NOWHERE else; (L2) `core` = semantic tokens, each EXACTLY a {light,dark} pair of `<ramp>.<step>` refs (unpaired or hex ⇒ build error); (L3) `component` = component tokens, each EXACTLY one core-token ref (emitted as a var() reference, so light/dark ends at L2 and a theme-dependent component token is syntactically impossible). `scales`/`elevation` are the non-colour tokens on the same source.",
+  "ramps": {
+    "brand": {
+      "100": "#eef0fd",
+      "300": "#98a5fa",
+      "400": "#7c8cf8",
+      "500": "#4657d9",
+      "700": "#3948b8",
+      "900": "#232b4d"
+    }
+  },
+  "core": {
+    "background-primary": { "light": "gray.25", "dark": "gray.950" },
+    "background-secondary": { "light": "gray.100", "dark": "gray.900" },
+    "background-brand-subtle": { "light": "brand.100", "dark": "brand.900" },
+    "background-positive-subtle": { "light": "green.100", "dark": "green.900" },
+    "background-negative-subtle": { "light": "red.100", "dark": "red.900" },
+    "background-warning-subtle": { "light": "amber.100", "dark": "amber.900" },
+    "background-info-subtle": { "light": "blue.100", "dark": "blue.900" },
+
+    "upperground-primary": { "light": "gray.25", "dark": "gray.850" },
+
+    "text-primary": { "light": "gray.900", "dark": "gray.100" },
+    "text-secondary": { "light": "gray.600", "dark": "gray.400" },
+    "text-brand": { "light": "brand.500", "dark": "brand.300" },
+    "text-positive": { "light": "green.500", "dark": "green.300" },
+    "text-negative": { "light": "red.500", "dark": "red.300" },
+    "text-warning": { "light": "amber.500", "dark": "amber.300" },
+    "text-info": { "light": "blue.500", "dark": "blue.300" },
+    "text-on-accent": { "light": "gray.25", "dark": "gray.25" },
+    "text-invert": { "light": "gray.25", "dark": "gray.900" },
+
+    "icon-primary": { "light": "gray.900", "dark": "gray.100" },
+    "icon-secondary": { "light": "gray.600", "dark": "gray.400" },
+    "icon-brand": { "light": "brand.500", "dark": "brand.300" },
+
+    "border-primary": { "light": "gray.400", "dark": "gray.700" },
+    "border-secondary": { "light": "gray.300", "dark": "gray.800" },
+    "border-brand": { "light": "brand.500", "dark": "brand.300" },
+
+    "accent": { "light": "brand.500", "dark": "brand.300" },
+    "accent-hover": { "light": "brand.700", "dark": "brand.100" },
+    "focus-ring": { "light": "brand.500", "dark": "brand.300" },
+    "overlay": { "light": "scrim.medium", "dark": "scrim.strong" }
+  },
+  "component": {
+    "button-primary-bg": "accent",
+    "button-primary-bg-hover": "accent-hover",
+    "button-primary-text": "text-on-accent",
+    "button-secondary-bg": "background-secondary",
+    "button-secondary-text": "text-primary",
+    "button-secondary-border": "border-primary",
+    "card-bg": "upperground-primary",
+    "card-border": "border-secondary",
+    "input-border": "border-primary",
+    "input-border-focus": "focus-ring",
+    "link-text": "text-brand",
+    "danger-bg": "background-negative-subtle",
+    "danger-text": "text-negative"
+  },
+  "scales": {
+    "fontFamily": {
+      "sans": "'Inter', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif",
+      "mono": "'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace"
+    },
+    "fontSize": {
+      "xs": { "fontSize": 12, "lineHeight": 16 },
+      "sm": { "fontSize": 14, "lineHeight": 20 },
+      "md": { "fontSize": 16, "lineHeight": 24 },
+      "lg": { "fontSize": 18, "lineHeight": 28 },
+      "xl": { "fontSize": 22, "lineHeight": 30 },
+      "2xl": { "fontSize": 28, "lineHeight": 36 },
+      "3xl": { "fontSize": 36, "lineHeight": 44 }
+    },
+    "fontWeight": {
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    },
+    "spacing": {
+      "0": 0,
+      "1": 4,
+      "2": 8,
+      "3": 12,
+      "4": 16,
+      "5": 24,
+      "6": 32,
+      "7": 48,
+      "8": 64
+    },
+    "radii": {
+      "none": 0,
+      "sm": 4,
+      "md": 8,
+      "lg": 12,
+      "xl": 20,
+      "full": 9999
+    },
+    "breakpoints": {
+      "phone": 0,
+      "tablet": 768,
+      "desktop": 1200
+    }
+  },
+  "elevation": {
+    "none": { "light": "none", "dark": "none" },
+    "low": {
+      "light": "0 1px 2px rgba(15, 18, 24, 0.08)",
+      "dark": "0 1px 2px rgba(0, 0, 0, 0.4)"
+    },
+    "medium": {
+      "light": "0 2px 8px rgba(15, 18, 24, 0.12)",
+      "dark": "0 2px 8px rgba(0, 0, 0, 0.5)"
+    },
+    "high": {
+      "light": "0 8px 24px rgba(15, 18, 24, 0.16)",
+      "dark": "0 8px 24px rgba(0, 0, 0, 0.6)"
+    }
+  }
+}

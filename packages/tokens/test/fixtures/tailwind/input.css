@@ -1,0 +1,6 @@
+@import "tailwindcss";
+/* The generated Tailwind v4 bridge: maps each token to a --color-* var. */
+@import "../../../src/generated/tailwind.css";
+/* Static sources JIT scans for class candidates. */
+@source "./markup.html";
+@source "./antipattern.tsx";

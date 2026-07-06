@@ -26,8 +26,10 @@
     "gen:errors:check": "node scripts/gen-errors.mjs && git diff --exit-code -- packages/auth-react/src/i18n/generated",
     "gen:manifest": "node scripts/gen-manifest.mjs",
     "gen:manifest:check": "node scripts/gen-manifest.mjs && git diff --exit-code -- packages/auth-react/manifest.json packages/auth-react/llms.txt",
-    "gen": "pnpm gen:api && pnpm gen:flows && pnpm gen:errors && pnpm gen:manifest",
-    "gen:check": "pnpm gen:api:check && pnpm gen:flows:check && pnpm gen:errors:check && pnpm gen:manifest:check",
+    "gen:tokens": "node scripts/gen-tokens.mjs",
+    "gen:tokens:check": "node scripts/gen-tokens.mjs && git diff --exit-code -- packages/tokens/src/generated packages/tokens/manifest.json packages/tokens/llms.txt",
+    "gen": "pnpm gen:api && pnpm gen:flows && pnpm gen:errors && pnpm gen:manifest && pnpm gen:tokens",
+    "gen:check": "pnpm gen:api:check && pnpm gen:flows:check && pnpm gen:errors:check && pnpm gen:manifest:check && pnpm gen:tokens:check",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm run ci && changeset publish"

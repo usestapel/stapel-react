@@ -1,16 +1,14 @@
 /**
  * Exactly three breakpoints (frontend-standard §4.3): phone / tablet /
- * desktop. Values are min-width px: a viewport is `tablet` when
- * `width >= breakpoints.tablet` and `< breakpoints.desktop`.
- * `@stapel/core`'s `useBreakpoint()` reads these.
+ * desktop. Values live in theme.json and are generated into
+ * `src/generated/tokens.ts`; the runtime helpers below are hand-written and
+ * consume them. `@stapel/core`'s `useBreakpoint()` reads these.
  */
-export const breakpoints = {
-  phone: 0,
-  tablet: 768,
-  desktop: 1200,
-} as const;
+import { breakpoints } from "./generated/tokens.js";
+import type { Breakpoint } from "./generated/tokens.js";
 
-export type Breakpoint = keyof typeof breakpoints;
+export { breakpoints };
+export type { Breakpoint };
 
 export const breakpointOrder = ["phone", "tablet", "desktop"] as const;
 
