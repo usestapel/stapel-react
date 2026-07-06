@@ -10,6 +10,10 @@ import noRawFetch from "./rules/no-raw-fetch.js";
 import i18nKeyExists from "./rules/i18n-key-exists.js";
 import noHardcodedText from "./rules/no-hardcoded-text.js";
 import requireDisableDescription from "./rules/require-disable-description.js";
+import clickableNeedsEvent from "./rules/clickable-needs-event.js";
+import noDoubleCount from "./rules/no-double-count.js";
+import eventLiteralMeta from "./rules/event-literal-meta.js";
+import knownEvent from "./rules/known-event.js";
 
 const rules = {
   "no-raw-colors": noRawColors,
@@ -18,6 +22,11 @@ const rules = {
   "i18n-key-exists": i18nKeyExists,
   "no-hardcoded-text": noHardcodedText,
   "require-disable-description": requireDisableDescription,
+  // Typed-analytics guardrails (frontend-guardrails §3, task G4).
+  "clickable-needs-event": clickableNeedsEvent,
+  "no-double-count": noDoubleCount,
+  "event-literal-meta": eventLiteralMeta,
+  "known-event": knownEvent,
 };
 
 const plugin = {
@@ -82,12 +91,20 @@ const recommended = [
       "stapel/no-raw-fetch": "error",
       "stapel/i18n-key-exists": "error",
       "stapel/require-disable-description": "error",
+      // Typed analytics (§3). Literal-meta keeps events statically extractable;
+      // double-count is a hard ban (Q12а); known-event is drift → warn (goes
+      // green after `pnpm gen:events`). These fire on .ts (defineEvent, track).
+      "stapel/event-literal-meta": "error",
+      "stapel/no-double-count": "error",
+      "stapel/known-event": "warn",
     },
   },
   {
     files: JSX,
     rules: {
       "stapel/no-hardcoded-text": "error",
+      // Clickable-without-an-outcome is a JSX concern (§3.2).
+      "stapel/clickable-needs-event": "error",
     },
   },
   {
@@ -106,6 +123,13 @@ const recommended = [
       "stapel/i18n-key-exists": "off",
       "stapel/no-raw-fetch": "off",
       "stapel/no-raw-token-import": "off",
+      // Fixtures / headless test factories legitimately train the analytics
+      // anti-patterns (dynamic defineEvent, deliberate double-count, unknown
+      // events, un-tracked clickables) — off there, on in product/demos.
+      "stapel/clickable-needs-event": "off",
+      "stapel/event-literal-meta": "off",
+      "stapel/no-double-count": "off",
+      "stapel/known-event": "off",
       // require-disable-description stays ON — disable hygiene applies everywhere.
     },
   },
