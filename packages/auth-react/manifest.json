@@ -3,7 +3,8 @@
   "package": "@stapel/auth-react",
   "version": "1.0.0",
   "backend": {
-    "module": "stapel-auth"
+    "module": "stapel-auth",
+    "contract": ">=0.5 <0.6"
   },
   "layers": [
     "api",

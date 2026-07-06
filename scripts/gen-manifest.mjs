@@ -37,6 +37,14 @@ const PATH_PREFIX = process.env.MANIFEST_TAGPREFIX ?? "/auth/api/";
 const SCHEMA_PATH =
   process.env.API_SCHEMA ??
   resolve(ROOT, "../stapel-example-monolith/codegen/generated/schema.json");
+// Backend version source → `backend.contract` (frontend-core-architecture
+// §2.4 / §3.4.2: drift must be ADDRESSABLE — the manifest states which backend
+// range this surface was generated against). Read from the backend module's
+// pyproject at gen time; a backend minor bump reddens the drift gate exactly
+// like a schema change would. Same sibling convention as gen-errors.
+const BACKEND_PYPROJECT =
+  process.env.MANIFEST_BACKEND_PYPROJECT ??
+  resolve(ROOT, `../${MODULE}/pyproject.toml`);
 
 // ── prose knobs (frontend-core-architecture §2.4) ────────────────────────────
 // The llms.txt narrative and the i18n-key scan name a pair's public entry
@@ -59,6 +67,23 @@ const I18N_PREFIX = process.env.MANIFEST_I18N_PREFIX ?? MODULE_BASE;
 const OUT_MANIFEST = resolve(PKG_DIR, "manifest.json");
 const OUT_LLMS = resolve(PKG_DIR, "llms.txt");
 const LLMS_TOKEN_BUDGET = 4000; // §2.4 — a pair's slice must fit an agent's context
+
+/**
+ * Derive the semver contract range from the backend module's pyproject
+ * version: `0.5.3` → `>=0.5 <0.6` (pre-1.0 minors are breaking, so the range
+ * is one backend minor wide — frontend-standard §3).
+ */
+async function backendContract() {
+  const src = await readFile(BACKEND_PYPROJECT, "utf8");
+  const m = src.match(/^version\s*=\s*"(\d+)\.(\d+)(?:\.\d+)?"/m);
+  if (!m) {
+    throw new Error(
+      `gen:manifest: no version in ${BACKEND_PYPROJECT} — cannot derive backend.contract`
+    );
+  }
+  const [, major, minor] = m;
+  return `>=${major}.${minor} <${major}.${Number(minor) + 1}`;
+}
 
 const refName = (schema) =>
   schema && schema.$ref ? schema.$ref.split("/").pop() : null;
@@ -158,7 +183,7 @@ function renderLlms(m, factories, eventsJson, demosJson) {
   L.push(`# ${m.package} ${m.version}`);
   L.push("");
   L.push(
-    `Headless React flow pair for ${m.backend.module} — business + state, zero visual opinion.`
+    `Headless React flow pair for ${m.backend.module} (contract ${m.backend.contract}) — business + state, zero visual opinion.`
   );
   L.push(
     "Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,"
@@ -292,7 +317,7 @@ async function main() {
     $generated: "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
     package: pkg.name,
     version: pkg.version,
-    backend: { module: MODULE },
+    backend: { module: MODULE, contract: await backendContract() },
     layers: ["api", "model", "flows", "headless", "i18n"],
     flows: flowsCatalog(flows),
     machines: factories,
