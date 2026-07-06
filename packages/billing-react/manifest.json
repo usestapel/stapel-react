@@ -1,0 +1,650 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/billing-react",
+  "version": "0.0.0",
+  "backend": {
+    "module": "stapel-billing",
+    "contract": ">=0.4 <0.5"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "billing_api_checkout_create": {
+      "method": "POST",
+      "path": "/billing/api/checkout",
+      "tag": "Checkout",
+      "request": "CheckoutRequest",
+      "response": "CheckoutResponse"
+    },
+    "billing_api_internal_debit_create": {
+      "method": "POST",
+      "path": "/billing/api/internal/debit",
+      "tag": "Internal",
+      "request": "CreditDebitRequest",
+      "response": "CreditOperationResponse"
+    },
+    "billing_api_portal_retrieve": {
+      "method": "GET",
+      "path": "/billing/api/portal",
+      "tag": "Checkout",
+      "request": null,
+      "response": "CustomerPortalResponse"
+    },
+    "billing_api_products_retrieve": {
+      "method": "GET",
+      "path": "/billing/api/products",
+      "tag": "Catalog",
+      "request": null,
+      "response": "CatalogResponse"
+    },
+    "billing_api_subscription_cancel_create": {
+      "method": "POST",
+      "path": "/billing/api/subscription/cancel",
+      "tag": "Subscription",
+      "request": null,
+      "response": "SubscriptionResponse"
+    },
+    "billing_api_subscription_retrieve": {
+      "method": "GET",
+      "path": "/billing/api/subscription",
+      "tag": "Subscription",
+      "request": null,
+      "response": "SubscriptionResponse"
+    },
+    "billing_api_wallet_partial_update": {
+      "method": "PATCH",
+      "path": "/billing/api/wallet",
+      "tag": "Wallet",
+      "request": "PatchedWalletUpdateRequest",
+      "response": "WalletResponse"
+    },
+    "billing_api_wallet_retrieve": {
+      "method": "GET",
+      "path": "/billing/api/wallet",
+      "tag": "Wallet",
+      "request": null,
+      "response": "WalletResponse"
+    },
+    "billing_api_wallet_transactions_retrieve": {
+      "method": "GET",
+      "path": "/billing/api/wallet/transactions",
+      "tag": "Wallet",
+      "request": null,
+      "response": "TransactionListResponse"
+    },
+    "billing_api_webhooks_stripe_create": {
+      "method": "POST",
+      "path": "/billing/api/webhooks/stripe",
+      "tag": "Webhooks",
+      "request": null,
+      "response": null
+    }
+  },
+  "hooks": {
+    "useCancelSubscription": {
+      "kind": "mutation",
+      "operation": "cancelSubscription",
+      "invalidates": [
+        [
+          "billing",
+          "subscription"
+        ]
+      ]
+    },
+    "useCatalog": {
+      "kind": "query",
+      "operation": "getCatalog",
+      "queryKey": [
+        "billing",
+        "catalog"
+      ]
+    },
+    "useCreateCheckout": {
+      "kind": "mutation",
+      "operation": "createCheckout"
+    },
+    "useOpenCustomerPortal": {
+      "kind": "mutation",
+      "operation": "getCustomerPortal"
+    },
+    "useSubscription": {
+      "kind": "query",
+      "operation": "getSubscription",
+      "queryKey": [
+        "billing",
+        "subscription"
+      ]
+    },
+    "useTransactions": {
+      "kind": "query",
+      "operation": "listTransactions",
+      "queryKey": [
+        "billing",
+        "transactions",
+        "{cursor}"
+      ]
+    },
+    "useUpdateWallet": {
+      "kind": "mutation",
+      "operation": "updateWallet",
+      "invalidates": [
+        [
+          "billing",
+          "wallet"
+        ]
+      ]
+    },
+    "useWallet": {
+      "kind": "query",
+      "operation": "getWallet",
+      "queryKey": [
+        "billing",
+        "wallet"
+      ]
+    }
+  },
+  "errors": {
+    "error.400.amount_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_package": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_plan": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_stripe_signature": {
+      "status": 400,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.400.invalid_webhook_payload": {
+      "status": 400,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.400.redirect_url_not_configured": {
+      "status": 400,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.insufficient_credits": {
+      "status": 402,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden_billing": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.subscription_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.404.transaction_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.wallet_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.duplicate_webhook_event": {
+      "status": 409,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "billing.pricing_table",
+      "title": "Pricing table",
+      "description": "The headless PricingTable wraps the catalogue read + Stripe Checkout mutation and exposes packages / plans / checking-out / checkoutUrl / error state. Bring your own pricing cards — the component is renderless.",
+      "component": "PricingTable",
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/PricingTable.demo.tsx"
+    },
+    {
+      "id": "billing.provider",
+      "title": "Billing provider",
+      "description": "The headless billing root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "BillingProvider",
+      "tokens": [
+        "card-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/Billing.demo.tsx"
+    },
+    {
+      "id": "billing.subscription",
+      "title": "Subscription",
+      "description": "The headless Subscription wraps the subscription read + cancel + customer-portal link and exposes plan / status / isActive / cancelling / portalUrl / error state. Bring your own UI — the component is renderless.",
+      "component": "Subscription",
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/Subscription.demo.tsx"
+    },
+    {
+      "id": "billing.wallet",
+      "title": "Wallet",
+      "description": "The headless Wallet wraps the read + partial auto-recharge settings update of the caller's wallet and exposes balance / currency / saving / saved / error state. Bring your own UI — the component is renderless.",
+      "component": "Wallet",
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/Wallet.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "billing.error.unknown",
+    "billing.pricing.buy",
+    "billing.pricing.checking_out",
+    "billing.pricing.packages",
+    "billing.pricing.plans",
+    "billing.pricing.subscribe",
+    "billing.subscription.active",
+    "billing.subscription.cancel",
+    "billing.subscription.cancelling",
+    "billing.subscription.inactive",
+    "billing.subscription.manage",
+    "billing.wallet.auto_recharge",
+    "billing.wallet.balance",
+    "billing.wallet.loading",
+    "billing.wallet.save",
+    "billing.wallet.saved",
+    "billing.wallet.saving",
+    "error.400.amount_invalid",
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.invalid_package",
+    "error.400.invalid_plan",
+    "error.400.invalid_stripe_signature",
+    "error.400.invalid_webhook_payload",
+    "error.400.redirect_url_not_configured",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.insufficient_credits",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.forbidden_billing",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.not_found",
+    "error.404.subscription_not_found",
+    "error.404.transaction_not_found",
+    "error.404.verification_challenge_not_found",
+    "error.404.wallet_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.409.duplicate_webhook_event",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal"
+  ],
+  "exports": {
+    "runtime": [
+      "BILLING_ERRORS",
+      "BILLING_ERROR_CODES",
+      "BILLING_FLOWS",
+      "BILLING_I18N_KEYS",
+      "BillingProvider",
+      "BillingRuntimeContext",
+      "PricingTable",
+      "Subscription",
+      "Wallet",
+      "billingErrorBundleEn",
+      "billingI18nBundleEn",
+      "billingQueryKeys",
+      "createBillingApi",
+      "createBillingRuntime",
+      "createFlowMachine",
+      "explainBillingError",
+      "flowEndpoints",
+      "isErrorCode",
+      "registerBillingI18n",
+      "toFlowError",
+      "useBillingAnalytics",
+      "useBillingApi",
+      "useBillingRuntime",
+      "useCancelSubscription",
+      "useCatalog",
+      "useCreateCheckout",
+      "useFlow",
+      "useOpenCustomerPortal",
+      "useSubscription",
+      "useTransactions",
+      "useUpdateWallet",
+      "useWallet"
+    ],
+    "types": [
+      "BillingApi",
+      "BillingErrorCode",
+      "BillingErrorSpec",
+      "BillingFlowId",
+      "BillingFlowSpec",
+      "BillingI18nKey",
+      "BillingRuntime",
+      "Catalog",
+      "CheckoutRequest",
+      "CheckoutSelection",
+      "CheckoutSession",
+      "CreateBillingRuntimeOptions",
+      "CreditPackage",
+      "CustomerPortal",
+      "FlowEndpoint",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "Plan",
+      "PricingTableBag",
+      "Remediation",
+      "Schemas",
+      "SubscriptionBag",
+      "SubscriptionData",
+      "SubscriptionStatus",
+      "Transaction",
+      "TransactionList",
+      "WalletBag",
+      "WalletData",
+      "WalletUpdate"
+    ]
+  }
+}

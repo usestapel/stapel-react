@@ -1,0 +1,91 @@
+# @stapel/billing-react 0.0.0
+
+Headless React flow pair for stapel-billing (contract >=0.4 <0.5) — business + state, zero visual opinion.
+Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
+verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
+
+## The one right way (do this, the rest is a review/lint smell)
+- No raw fetch/axios. The client is injected via <BillingProvider>/StapelConfigProvider;
+  every hook and flow already carries auth, refresh, and the error envelope.
+- Render errors, never try/catch them: a flow's state carries FlowError{code,params};
+  render `t(code, params)` and branch on `explainBillingError(code)` remediation.
+- Server state = the use* hooks (query layer); keys come only from billingQueryKeys.
+- User strings = i18n keys (registerBillingI18n); never string literals.
+- Sign-in UI = a headless flow component; copy it (shadcn-style) to restyle.
+
+## Layers
+api (typed client) · model (hooks, session) · flows (machines) · headless · i18n
+
+## Documented flows (flows.json — canonical id, steps, endpoints)
+
+## Operations (typed; use the named op, never a path string)
+Request/response schema names are in manifest.json + the generated types.
+- billing_api_checkout_create: POST /billing/api/checkout
+- billing_api_internal_debit_create: POST /billing/api/internal/debit
+- billing_api_portal_retrieve: GET /billing/api/portal
+- billing_api_products_retrieve: GET /billing/api/products
+- billing_api_subscription_cancel_create: POST /billing/api/subscription/cancel
+- billing_api_subscription_retrieve: GET /billing/api/subscription
+- billing_api_wallet_partial_update: PATCH /billing/api/wallet
+- billing_api_wallet_retrieve: GET /billing/api/wallet
+- billing_api_wallet_transactions_retrieve: GET /billing/api/wallet/transactions
+- billing_api_webhooks_stripe_create: POST /billing/api/webhooks/stripe
+
+## Query hooks (server state; keys come only from the key factory)
+- useCancelSubscription (mutation) → cancelSubscription
+- useCatalog (query) → getCatalog
+- useCreateCheckout (mutation) → createCheckout
+- useOpenCustomerPortal (mutation) → getCustomerPortal
+- useSubscription (query) → getSubscription
+- useTransactions (query) → listTransactions
+- useUpdateWallet (mutation) → updateWallet
+- useWallet (query) → getWallet
+
+## Errors (render t(code, params); UX from remediation)
+53 keys (full catalog: manifest.json §errors). By remediation: fix_input 23 · retry 13 · contact_support 6 · verify 5 · wait_and_retry 5 · reauthenticate 1.
+Param-bearing keys (interpolation slots matter):
+- error.400.field.blank [400] → fix_input {field}
+- error.400.field.does_not_exist [400] → fix_input {field}
+- error.400.field.invalid [400] → fix_input {field}
+- error.400.field.invalid_choice [400] → fix_input {field}
+- error.400.field.max_length [400] → fix_input {field,max_length}
+- error.400.field.max_value [400] → fix_input {field,max_value}
+- error.400.field.min_length [400] → fix_input {field,min_length}
+- error.400.field.min_value [400] → fix_input {field,min_value}
+- error.400.field.null [400] → fix_input {field}
+- error.400.field.required [400] → fix_input {field}
+- error.400.field.unique [400] → fix_input {field}
+- error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
+
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- billing.pricing_table → <PricingTable> [default]  demo/PricingTable.demo.tsx
+- billing.provider → <BillingProvider> [default]  demo/Billing.demo.tsx
+- billing.subscription → <Subscription> [default]  demo/Subscription.demo.tsx
+- billing.wallet → <Wallet> [default]  demo/Wallet.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
+
+## Snippets
+```tsx
+// Error rendering + remediation branch (one pattern for every pair).
+const r = explainBillingError(err.code); // 'wait_and_retry' | 'verify' | ...
+return <Alert action={r}>{t(err.code, err.params)}</Alert>;
+```
