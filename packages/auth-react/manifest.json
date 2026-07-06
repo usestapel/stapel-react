@@ -1307,6 +1307,11 @@
       "params": [],
       "remediation": "contact_support"
     },
+    "error.400.staff_role_target_not_staff": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
     "error.400.token_required": {
       "status": 400,
       "params": [],
@@ -1316,6 +1321,11 @@
       "status": 400,
       "params": [],
       "remediation": "retry"
+    },
+    "error.400.unknown_staff_role": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
     },
     "error.400.validation_error": {
       "status": 400,
@@ -1929,8 +1939,10 @@
     "error.400.qr_type_required",
     "error.400.sso_invalid_response",
     "error.400.sso_not_configured",
+    "error.400.staff_role_target_not_staff",
     "error.400.token_required",
     "error.400.totp_not_pending",
+    "error.400.unknown_staff_role",
     "error.400.validation_error",
     "error.400.verification_failed",
     "error.400.verification_invalid_factor",
