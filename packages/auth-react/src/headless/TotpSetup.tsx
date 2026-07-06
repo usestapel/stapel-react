@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { ReactNode } from "react";
 import { createTotpSetupFlow } from "../flows/totpSetupFlow.js";
 import type { TotpSetupState } from "../flows/totpSetupFlow.js";
-import { useFlow } from "../flows/useFlow.js";
+import { useFlow } from "@stapel/core";
 import { useAuthAnalytics, useAuthApi } from "../model/context.js";
 
 export interface TotpSetupBag {

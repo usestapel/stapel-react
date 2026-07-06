@@ -8,7 +8,7 @@ import type {
   PasskeyLoginState,
   PasskeyRegisterState,
 } from "../flows/passkeyFlow.js";
-import { useFlow } from "../flows/useFlow.js";
+import { useFlow } from "@stapel/core";
 import { useAuthAnalytics, useAuthApi, useAuthSession } from "../model/context.js";
 
 /**

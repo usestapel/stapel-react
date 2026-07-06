@@ -9,7 +9,7 @@ import { createMagicLinkFlow } from "../flows/magicLinkFlow.js";
 import type { MagicLinkState } from "../flows/magicLinkFlow.js";
 import { createSsoFlow } from "../flows/ssoFlow.js";
 import type { SsoState } from "../flows/ssoFlow.js";
-import { useFlow } from "../flows/useFlow.js";
+import { useFlow } from "@stapel/core";
 import { useAuthAnalytics, useAuthApi, useAuthSession } from "../model/context.js";
 
 // ── Magic link ──────────────────────────────────────────────────────────────

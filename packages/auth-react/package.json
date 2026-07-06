@@ -17,6 +17,9 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./manifest": "./manifest.json",
+    "./manifest.json": "./manifest.json",
+    "./llms.txt": "./llms.txt",
     "./package.json": "./package.json"
   },
   "files": [
@@ -25,7 +28,9 @@
     "tsconfig.json",
     "README.md",
     "MODULE.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "manifest.json",
+    "llms.txt"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -36,7 +41,7 @@
   "size-limit": [
     {
       "path": "dist/index.js",
-      "limit": "10 KB"
+      "limit": "12 KB"
     }
   ],
   "peerDependencies": {

@@ -5,7 +5,7 @@ import type {
   PasswordLoginState,
   TotpProof,
 } from "../flows/passwordLoginFlow.js";
-import { useFlow } from "../flows/useFlow.js";
+import { useFlow } from "@stapel/core";
 import { useAuthAnalytics, useAuthApi, useAuthSession } from "../model/context.js";
 
 export interface PasswordLoginBag {

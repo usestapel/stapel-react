@@ -1,29 +1,16 @@
-import { StapelApiError } from "@stapel/core";
+import { toFlowError as coreToFlowError } from "@stapel/core";
+import type { FlowError } from "@stapel/core";
+
+export type { FlowError } from "@stapel/core";
+export { isErrorCode } from "@stapel/core";
 
 /**
- * Normalized error shape carried by flow error states. `code` is the backend
- * `localizable_error` i18n key (auth-sa.md "Error reference"); `params` feed
- * `{param}` interpolation (e.g. `retry_after_minutes`, `attempts_remaining`).
+ * Fold any thrown value into a {@link FlowError}, using auth-react's own
+ * module-scoped fallback key. `auth.error.unknown` ships an en string in
+ * {@link authI18nBundleEn}, so a non-`StapelApiError` fault still renders real
+ * copy rather than a raw key. The primitive lives in `@stapel/core`
+ * (frontend-core-architecture §4b); this wrapper only pins the fallback.
  */
-export interface FlowError {
-  readonly code: string;
-  readonly params: Readonly<Record<string, unknown>>;
-  readonly status: number | undefined;
-}
-
-/** Fold any thrown value into a {@link FlowError} for a flow error state. */
 export function toFlowError(error: unknown): FlowError {
-  if (error instanceof StapelApiError) {
-    return { code: error.code, params: error.params, status: error.status };
-  }
-  return {
-    code: "auth.error.unknown",
-    params: {},
-    status: undefined,
-  };
-}
-
-/** Convenience predicate: did this error carry a specific backend code? */
-export function isErrorCode(error: FlowError, code: string): boolean {
-  return error.code === code;
+  return coreToFlowError(error, "auth.error.unknown");
 }

@@ -9,8 +9,8 @@ import type {
   VerificationEnvelope,
   VerificationFactorId,
 } from "../api/types.js";
-import { createFlowMachine } from "./createFlowMachine.js";
-import type { FlowMachine } from "./createFlowMachine.js";
+import { createFlowMachine } from "@stapel/core";
+import type { FlowMachine } from "@stapel/core";
 import { AUTH_FLOWS } from "./generated/flows.gen.js";
 import { toFlowError } from "./errors.js";
 import type { FlowError } from "./errors.js";

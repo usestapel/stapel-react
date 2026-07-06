@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { QrType } from "../api/types.js";
 import { createQrLoginFlow } from "../flows/qrLoginFlow.js";
 import type { QrLoginState } from "../flows/qrLoginFlow.js";
-import { useFlow } from "../flows/useFlow.js";
+import { useFlow } from "@stapel/core";
 import { useAuthAnalytics, useAuthApi, useAuthSession } from "../model/context.js";
 
 export interface QrLoginBag {

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { OtpChannel } from "../api/types.js";
 import { createOtpFlow } from "../flows/otpFlow.js";
 import type { OtpState } from "../flows/otpFlow.js";
-import { useFlow } from "../flows/useFlow.js";
+import { useFlow } from "@stapel/core";
 import { useAuthAnalytics, useAuthApi, useAuthSession } from "../model/context.js";
 
 /** Render-prop bag for {@link PasswordlessLogin}. */
