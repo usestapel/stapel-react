@@ -1,0 +1,86 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/workspaces-react",
+  "version": "0.0.0",
+  "demos": [
+    {
+      "id": "workspaces.accept",
+      "title": "Accept invitation",
+      "description": "The headless AcceptInvitation wraps joining a workspace by its email-link token, exposing accept() plus accepting / accepted / error state (a dead token surfaces a localizable StapelApiError). Bring your own UI — the component is renderless.",
+      "component": "AcceptInvitation",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/AcceptInvitation.demo.tsx",
+        "line": 73
+      }
+    },
+    {
+      "id": "workspaces.list",
+      "title": "Workspace list",
+      "description": "The headless WorkspaceList wraps the read of the caller's workspaces plus an owner-seeded create, exposing workspaces / loading / creating / error state. Bring your own UI — the component is renderless.",
+      "component": "WorkspaceList",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/WorkspaceList.demo.tsx",
+        "line": 74
+      }
+    },
+    {
+      "id": "workspaces.members",
+      "title": "Members",
+      "description": "The headless Members wraps a workspace's roster plus invite / role-change / removal controls, exposing members / loading / per-action pending / error state. Bring your own UI — the component is renderless.",
+      "component": "Members",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/Members.demo.tsx",
+        "line": 83
+      }
+    },
+    {
+      "id": "workspaces.provider",
+      "title": "Workspaces provider",
+      "description": "The headless workspaces root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "WorkspacesProvider",
+      "covers": [],
+      "tokens": [
+        "card-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/Workspaces.demo.tsx",
+        "line": 24
+      }
+    }
+  ]
+}
