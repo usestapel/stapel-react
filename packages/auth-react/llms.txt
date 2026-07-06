@@ -142,81 +142,23 @@ Request/response schema names are in manifest.json + the generated types.
 - auth_api_verify_create: POST /auth/api/verify/
 
 ## Errors (render t(code, params); UX from remediation)
-- error.400.captcha_invalid [400] → fix_input
-- error.400.captcha_required [400] → fix_input
-- error.400.code_expired [400] → retry
-- error.400.code_required [400] → retry
-- error.400.credentials_required [400] → fix_input
-- error.400.email_or_phone_not_both [400] → fix_input
-- error.400.email_or_phone_required [400] → fix_input
-- error.400.email_required [400] → fix_input
-- error.400.invalid_change_token [400] → fix_input
-- error.400.invalid_code [400] → fix_input
+114 keys (full catalog: manifest.json §errors). By remediation: fix_input 52 · retry 30 · reauthenticate 12 · wait_and_retry 8 · verify 7 · contact_support 5.
+Param-bearing keys (interpolation slots matter):
+- error.400.field.blank [400] → fix_input {field}
+- error.400.field.does_not_exist [400] → fix_input {field}
+- error.400.field.invalid [400] → fix_input {field}
+- error.400.field.invalid_choice [400] → fix_input {field}
+- error.400.field.max_length [400] → fix_input {field,max_length}
+- error.400.field.max_value [400] → fix_input {field,max_value}
+- error.400.field.min_length [400] → fix_input {field,min_length}
+- error.400.field.min_value [400] → fix_input {field,min_value}
+- error.400.field.null [400] → fix_input {field}
+- error.400.field.required [400] → fix_input {field}
+- error.400.field.unique [400] → fix_input {field}
 - error.400.invalid_code_attempts [400] → fix_input {attempts_remaining}
-- error.400.invalid_method [400] → fix_input
-- error.400.invalid_phone [400] → fix_input
-- error.400.invalid_phone_format [400] → fix_input
-- error.400.invalid_redirect_url [400] → fix_input
-- error.400.last_auth_method [400] → fix_input
-- error.400.magic_link_invalid [400] → retry
-- error.400.no_current_value [400] → fix_input
-- error.400.no_password [400] → fix_input
-- error.400.no_verified_contact [400] → fix_input
-- error.400.not_available [400] → fix_input
-- error.400.oauth_failed [400] → fix_input
-- error.400.oauth_fields_required [400] → fix_input
-- error.400.passkey_challenge_expired [400] → retry
-- error.400.passkey_invalid [400] → fix_input
-- error.400.password_already_set [400] → fix_input
-- error.400.passwords_dont_match [400] → fix_input
-- error.400.phone_required [400] → fix_input
-- error.400.phone_too_long [400] → fix_input
-- error.400.qr_expired [400] → retry
-- error.400.qr_fulfilled [400] → retry
-- error.400.qr_type_required [400] → fix_input
-- error.400.sso_invalid_response [400] → fix_input
-- error.400.sso_not_configured [400] → fix_input
-- error.400.token_required [400] → fix_input
-- error.400.totp_not_pending [400] → retry
-- error.400.verification_failed [400] → verify
-- error.400.verification_invalid_factor [400] → verify
-- error.400.wrong_password [400] → fix_input
-- error.401.account_disabled [401] → reauthenticate
-- error.401.invalid_credentials [401] → reauthenticate
-- error.401.qr_auth_required [401] → reauthenticate
-- error.401.refresh_invalid [401] → reauthenticate
-- error.401.refresh_not_provided [401] → reauthenticate
-- error.401.refresh_revoked [401] → reauthenticate
-- error.401.token_invalid [401] → reauthenticate
-- error.401.token_revoked [401] → reauthenticate
-- error.401.user_not_found [401] → reauthenticate
-- error.403.mock_otp_admin [403] → retry
-- error.403.qr_device_mismatch [403] → retry
-- error.403.qr_unauth_scan [403] → retry
-- error.403.sso_required [403] → reauthenticate
-- error.403.step_up_required [403] → verify
-- error.403.verification_enrollment_required [403] → verify
-- error.403.verification_required [403] → verify
-- error.404.change_not_found [404] → retry
-- error.404.not_found [404] → retry
-- error.404.passkey_not_found [404] → retry
-- error.404.qr_not_found [404] → retry
-- error.404.sso_org_not_found [404] → retry
-- error.404.user_for_reset [404] → fix_input
-- error.404.verification_challenge_not_found [404] → verify
-- error.409.email_reserved [409] → fix_input
-- error.409.email_taken [409] → fix_input
-- error.409.passkey_already_registered [409] → fix_input
-- error.409.phone_reserved [409] → fix_input
-- error.409.phone_taken [409] → fix_input
-- error.409.qr_account_conflict [409] → fix_input
-- error.409.sso_org_slug_taken [409] → fix_input
-- error.409.username_taken [409] → fix_input
 - error.422.blocked [422] → wait_and_retry {retry_after_minutes}
 - error.423.account_locked [423] → wait_and_retry {retry_after_minutes}
-- error.423.verification_locked [423] → verify
-- error.429.magic_link_rate [429] → wait_and_retry
-- error.500.send_failed [500] → contact_support
+- error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
 
 ## Analytics events (typed; defineEvent → events.json, drift-gated)
 - (no app defineEvent() in this pair — its analytic events are the

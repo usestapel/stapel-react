@@ -34,21 +34,17 @@ jobs:
           repository: usestapel/stapel-example-monolith
           path: .codegen-source
 
-      - name: Check out error-registry sources (stapel-auth + stapel-core)
-        # The generated backend-error map (gen:errors) reads the auth module's
-        # error registry plus the stapel-core verification registry. These are
-        # sibling backend repos, so the drift gate needs them checked out here.
-        # (Long-term the backend should emit an `errors.json` codegen artifact
-        # alongside schema.json/flows.json — task `error-remediation` — collapsing
-        # this to the single `.codegen-source` checkout.)
+      - name: Check out error-registry artifact (stapel-auth)
+        # The generated backend-error map (gen:errors) now reads the backend's
+        # CANONICAL `errors.json` codegen artifact — emitted by stapel-auth
+        # alongside schema.json/flows.json (task `error-remediation`) and
+        # committed at `docs/errors.json`. No more Python-source parsing, so the
+        # stapel-core verification-registry checkout this step used to need is
+        # gone; only the stapel-auth artifact remains.
         uses: actions/checkout@v4
         with:
           repository: usestapel/stapel-auth
           path: .errors-source/stapel-auth
-      - uses: actions/checkout@v4
-        with:
-          repository: usestapel/stapel-core
-          path: .errors-source/stapel-core
 
       - name: Codegen drift gates (api / flows / errors / manifest)
         # Regenerates the committed projections from the pinned backend sources
@@ -58,7 +54,7 @@ jobs:
         env:
           API_SCHEMA: ${{ github.workspace }}/.codegen-source/codegen/generated/schema.json
           FLOWS_JSON: ${{ github.workspace }}/.codegen-source/codegen/generated/flows.json
-          AUTH_ERRORS_SOURCES: ${{ github.workspace }}/.errors-source/stapel-auth/errors.py,${{ github.workspace }}/.errors-source/stapel-core/verification/grants.py,${{ github.workspace }}/.errors-source/stapel-core/verification/errors.py
+          AUTH_ERRORS_JSON: ${{ github.workspace }}/.errors-source/stapel-auth/docs/errors.json
 
       - name: Lint, test, build, size
         run: corepack pnpm turbo run lint test build size

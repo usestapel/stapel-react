@@ -875,15 +875,20 @@
     }
   },
   "errors": {
-    "error.400.captcha_invalid": {
+    "error.400.bad_request": {
       "status": 400,
       "params": [],
       "remediation": "fix_input"
     },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.400.captcha_required": {
       "status": 400,
       "params": [],
-      "remediation": "fix_input"
+      "remediation": "retry"
     },
     "error.400.code_expired": {
       "status": 400,
@@ -893,7 +898,7 @@
     "error.400.code_required": {
       "status": 400,
       "params": [],
-      "remediation": "retry"
+      "remediation": "fix_input"
     },
     "error.400.credentials_required": {
       "status": 400,
@@ -915,10 +920,101 @@
       "params": [],
       "remediation": "fix_input"
     },
-    "error.400.invalid_change_token": {
+    "error.400.expected_list": {
       "status": 400,
       "params": [],
       "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_change_token": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
     },
     "error.400.invalid_code": {
       "status": 400,
@@ -975,7 +1071,7 @@
     "error.400.no_verified_contact": {
       "status": 400,
       "params": [],
-      "remediation": "fix_input"
+      "remediation": "verify"
     },
     "error.400.not_available": {
       "status": 400,
@@ -985,7 +1081,7 @@
     "error.400.oauth_failed": {
       "status": 400,
       "params": [],
-      "remediation": "fix_input"
+      "remediation": "retry"
     },
     "error.400.oauth_fields_required": {
       "status": 400,
@@ -1000,7 +1096,7 @@
     "error.400.passkey_invalid": {
       "status": 400,
       "params": [],
-      "remediation": "fix_input"
+      "remediation": "retry"
     },
     "error.400.password_already_set": {
       "status": 400,
@@ -1040,12 +1136,12 @@
     "error.400.sso_invalid_response": {
       "status": 400,
       "params": [],
-      "remediation": "fix_input"
+      "remediation": "retry"
     },
     "error.400.sso_not_configured": {
       "status": 400,
       "params": [],
-      "remediation": "fix_input"
+      "remediation": "contact_support"
     },
     "error.400.token_required": {
       "status": 400,
@@ -1056,6 +1152,11 @@
       "status": 400,
       "params": [],
       "remediation": "retry"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
     },
     "error.400.verification_failed": {
       "status": 400,
@@ -1075,7 +1176,7 @@
     "error.401.account_disabled": {
       "status": 401,
       "params": [],
-      "remediation": "reauthenticate"
+      "remediation": "contact_support"
     },
     "error.401.invalid_credentials": {
       "status": 401,
@@ -1112,15 +1213,35 @@
       "params": [],
       "remediation": "reauthenticate"
     },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
     "error.401.user_not_found": {
       "status": 401,
       "params": [],
       "remediation": "reauthenticate"
     },
-    "error.403.mock_otp_admin": {
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
       "status": 403,
       "params": [],
       "remediation": "retry"
+    },
+    "error.403.mock_otp_admin": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
     },
     "error.403.qr_device_mismatch": {
       "status": 403,
@@ -1130,7 +1251,7 @@
     "error.403.qr_unauth_scan": {
       "status": 403,
       "params": [],
-      "remediation": "retry"
+      "remediation": "reauthenticate"
     },
     "error.403.sso_required": {
       "status": 403,
@@ -1152,10 +1273,25 @@
       "params": [],
       "remediation": "verify"
     },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.404.change_not_found": {
       "status": 404,
       "params": [],
       "remediation": "retry"
+    },
+    "error.404.gdpr.export_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.gdpr.no_active_closure": {
+      "status": 404,
+      "params": [],
+      "remediation": "fix_input"
     },
     "error.404.not_found": {
       "status": 404,
@@ -1175,7 +1311,7 @@
     "error.404.sso_org_not_found": {
       "status": 404,
       "params": [],
-      "remediation": "retry"
+      "remediation": "fix_input"
     },
     "error.404.user_for_reset": {
       "status": 404,
@@ -1187,12 +1323,47 @@
       "params": [],
       "remediation": "verify"
     },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
     "error.409.email_reserved": {
       "status": 409,
       "params": [],
       "remediation": "fix_input"
     },
     "error.409.email_taken": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.gdpr.closure_already_pending": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.gdpr.export_cooldown": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.gdpr.legal_hold": {
       "status": 409,
       "params": [],
       "remediation": "fix_input"
@@ -1215,7 +1386,7 @@
     "error.409.qr_account_conflict": {
       "status": 409,
       "params": [],
-      "remediation": "fix_input"
+      "remediation": "reauthenticate"
     },
     "error.409.sso_org_slug_taken": {
       "status": 409,
@@ -1227,11 +1398,36 @@
       "params": [],
       "remediation": "fix_input"
     },
+    "error.410.gdpr.download_expired": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.422.blocked": {
       "status": 422,
       "params": [
         "retry_after_minutes"
       ],
+      "remediation": "wait_and_retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
       "remediation": "wait_and_retry"
     },
     "error.423.account_locked": {
@@ -1241,20 +1437,47 @@
       ],
       "remediation": "wait_and_retry"
     },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
     "error.423.verification_locked": {
       "status": 423,
       "params": [],
-      "remediation": "verify"
+      "remediation": "wait_and_retry"
+    },
+    "error.425.gdpr.export_not_ready": {
+      "status": 425,
+      "params": [],
+      "remediation": "retry"
     },
     "error.429.magic_link_rate": {
       "status": 429,
       "params": [],
       "remediation": "wait_and_retry"
     },
-    "error.500.send_failed": {
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
       "status": 500,
       "params": [],
       "remediation": "contact_support"
+    },
+    "error.500.send_failed": {
+      "status": 500,
+      "params": [],
+      "remediation": "retry"
     }
   },
   "events": {
@@ -1494,6 +1717,7 @@
     "auth.totp.use_backup",
     "auth.verification.choose_factor",
     "auth.verification.success",
+    "error.400.bad_request",
     "error.400.captcha_invalid",
     "error.400.captcha_required",
     "error.400.code_expired",
@@ -1502,6 +1726,19 @@
     "error.400.email_or_phone_not_both",
     "error.400.email_or_phone_required",
     "error.400.email_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
     "error.400.invalid_change_token",
     "error.400.invalid_code",
     "error.400.invalid_code_attempts",
@@ -1530,6 +1767,7 @@
     "error.400.sso_not_configured",
     "error.400.token_required",
     "error.400.totp_not_pending",
+    "error.400.validation_error",
     "error.400.verification_failed",
     "error.400.verification_invalid_factor",
     "error.400.wrong_password",
@@ -1541,33 +1779,57 @@
     "error.401.refresh_revoked",
     "error.401.token_invalid",
     "error.401.token_revoked",
+    "error.401.unauthorized",
     "error.401.user_not_found",
+    "error.402.payment_required",
+    "error.403.forbidden",
     "error.403.mock_otp_admin",
+    "error.403.network_blocked",
     "error.403.qr_device_mismatch",
     "error.403.qr_unauth_scan",
     "error.403.sso_required",
     "error.403.step_up_required",
     "error.403.verification_enrollment_required",
     "error.403.verification_required",
+    "error.404.ad_not_found",
     "error.404.change_not_found",
+    "error.404.gdpr.export_not_found",
+    "error.404.gdpr.no_active_closure",
     "error.404.not_found",
     "error.404.passkey_not_found",
     "error.404.qr_not_found",
     "error.404.sso_org_not_found",
     "error.404.user_for_reset",
     "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
     "error.409.email_reserved",
     "error.409.email_taken",
+    "error.409.gdpr.closure_already_pending",
+    "error.409.gdpr.export_cooldown",
+    "error.409.gdpr.legal_hold",
     "error.409.passkey_already_registered",
     "error.409.phone_reserved",
     "error.409.phone_taken",
     "error.409.qr_account_conflict",
     "error.409.sso_org_slug_taken",
     "error.409.username_taken",
+    "error.410.gdpr.download_expired",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
     "error.422.blocked",
+    "error.422.unprocessable_entity",
     "error.423.account_locked",
+    "error.423.locked",
     "error.423.verification_locked",
+    "error.425.gdpr.export_not_ready",
     "error.429.magic_link_rate",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
     "error.500.send_failed",
     "flow.auth.password_login.description",
     "flow.auth.password_login.step.0.note",
