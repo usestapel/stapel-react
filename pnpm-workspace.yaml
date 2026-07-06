@@ -4,5 +4,7 @@ allowBuilds:
   # tokens' Tailwind-bridge fixture test uses @tailwindcss/cli for a one-shot
   # compile; @parcel/watcher (watch mode) is never invoked, so skip its build.
   '@parcel/watcher': false
+  # The showcase viewer (Ladle) transforms via SWC — allow its native build.
+  '@swc/core': true
   esbuild: true
   msw: true

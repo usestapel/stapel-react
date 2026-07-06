@@ -1,0 +1,294 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/auth-react",
+  "version": "1.0.0",
+  "demos": [
+    {
+      "id": "auth.anonymous-session",
+      "title": "Anonymous session",
+      "description": "Headless guest session: create(deviceId) mints an anonymous user you can later upgrade to a full account.",
+      "component": "AnonymousSession",
+      "covers": [],
+      "flow": "auth.anonymous",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/AnonymousSession.demo.tsx",
+        "line": 42
+      }
+    },
+    {
+      "id": "auth.authenticator-change",
+      "title": "Authenticator change (instant)",
+      "description": "Headless instant email/phone change: verify the old channel, then confirm the new one — a four-step OTP ladder.",
+      "component": "AuthenticatorChange",
+      "covers": [],
+      "flow": "auth.authenticator_change",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/AuthenticatorChange.demo.tsx",
+        "line": 40
+      }
+    },
+    {
+      "id": "auth.magic-link",
+      "title": "Magic link",
+      "description": "Headless magic-link request: request(email, redirectUrl) sends a one-tap sign-in link; the redirect is open-redirect-guarded.",
+      "component": "MagicLink",
+      "covers": [],
+      "flow": "auth.magic_link",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/MagicLink.demo.tsx",
+        "line": 34
+      }
+    },
+    {
+      "id": "auth.passkey-login",
+      "title": "Passkey login (WebAuthn)",
+      "description": "Headless passkey sign-in: begin() fetches assertion options; the host performs the credential ceremony and calls submitAssertion().",
+      "component": "PasskeyLogin",
+      "covers": [],
+      "flow": "auth.passkey_login",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg",
+        "text-brand"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Begin an assertion; parks at awaitingAssertion (no binding)."
+        }
+      ],
+      "source": {
+        "file": "demo/PasskeyLogin.demo.tsx",
+        "line": 48
+      }
+    },
+    {
+      "id": "auth.passkey-registration",
+      "title": "Passkey registration",
+      "description": "Headless passkey enrolment for a signed-in user: begin() fetches creation options; submitCredential() finishes the ceremony result.",
+      "component": "PasskeyRegistration",
+      "covers": [],
+      "flow": "auth.passkey_registration",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Begin enrolment; parks at awaitingCredential (no binding)."
+        }
+      ],
+      "source": {
+        "file": "demo/PasskeyRegistration.demo.tsx",
+        "line": 45
+      }
+    },
+    {
+      "id": "auth.password-change",
+      "title": "Password change",
+      "description": "Headless change-password for a signed-in user: directly with the old password, or OTP-verified when no password is set.",
+      "component": "PasswordChange",
+      "covers": [],
+      "flow": "auth.password_change",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/PasswordChange.demo.tsx",
+        "line": 38
+      }
+    },
+    {
+      "id": "auth.password-login",
+      "title": "Password login",
+      "description": "Headless login/password sign-in; on a TOTP challenge the bag surfaces submitTotp() for the second factor.",
+      "component": "PasswordLogin",
+      "covers": [],
+      "flow": "auth.password_login",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/PasswordLogin.demo.tsx",
+        "line": 34
+      }
+    },
+    {
+      "id": "auth.password-reset",
+      "title": "Password reset",
+      "description": "Headless forgot-password: request an OTP to a channel, then submit the code with the new password.",
+      "component": "PasswordReset",
+      "covers": [],
+      "flow": "auth.password_reset",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/PasswordReset.demo.tsx",
+        "line": 40
+      }
+    },
+    {
+      "id": "auth.passwordless-login",
+      "title": "Passwordless login (OTP)",
+      "description": "Headless email → code → session. The render-prop bag exposes state.step plus requestCode/submitCode/reset; wire your own markup.",
+      "component": "PasswordlessLogin",
+      "covers": [
+        "AuthProvider"
+      ],
+      "flow": "auth.otp",
+      "tokens": [
+        "card-bg",
+        "card-border",
+        "button-primary-bg",
+        "text-brand"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Happy path: request a code, then verify it."
+        },
+        {
+          "id": "locked",
+          "description": "Rate-limited account — the flow reaches its error step.",
+          "mock": "otp-locked"
+        }
+      ],
+      "source": {
+        "file": "demo/PasswordlessLogin.demo.tsx",
+        "line": 60
+      }
+    },
+    {
+      "id": "auth.qr-login",
+      "title": "QR login (cross-device)",
+      "description": "Headless QR authentication with background polling: start() yields a scanUrl to render as a QR image; delivered tokens adopt into the session.",
+      "component": "QrLogin",
+      "covers": [],
+      "flow": "auth.qr_login",
+      "tokens": [
+        "card-bg",
+        "background-secondary",
+        "button-primary-bg"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Generate a QR and poll; parks at awaitingScan (pending)."
+        }
+      ],
+      "source": {
+        "file": "demo/QrLogin.demo.tsx",
+        "line": 66
+      }
+    },
+    {
+      "id": "auth.sso-discovery",
+      "title": "SSO discovery",
+      "description": "Headless enterprise SSO: lookup(domain) resolves whether a work email must use SSO; beginLogin(orgSlug) redirects to the IdP.",
+      "component": "SsoDiscovery",
+      "covers": [],
+      "flow": "auth.sso",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/SsoDiscovery.demo.tsx",
+        "line": 36
+      }
+    },
+    {
+      "id": "auth.totp-setup",
+      "title": "TOTP setup",
+      "description": "Headless authenticator enrolment: start() returns the secret/otpauth URL to render as a QR; confirm() verifies the first code.",
+      "component": "TotpSetup",
+      "covers": [],
+      "flow": "auth.totp_setup",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/TotpSetup.demo.tsx",
+        "line": 39
+      }
+    },
+    {
+      "id": "auth.verification-challenge",
+      "title": "Verification challenge (step-up)",
+      "description": "Headless step-up factor prompt raised by a 403 verification interception: chooseFactor(), then submitCode()/submitPasskey().",
+      "component": "VerificationChallenge",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/VerificationChallenge.demo.tsx",
+        "line": 38
+      }
+    }
+  ]
+}
