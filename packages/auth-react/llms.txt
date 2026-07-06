@@ -218,6 +218,28 @@ Request/response schema names are in manifest.json + the generated types.
 - error.429.magic_link_rate [429] → wait_and_retry
 - error.500.send_failed [500] → contact_support
 
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+- flow.auth.password_login.<step> — 3 documented step(s)
+- flow.auth.passwordless_login.<step> — 4 documented step(s)
+- flow.auth.step_up_verification.<step> — 7 documented step(s)
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
 ## Snippets
 ```tsx
 // A flow machine drives state; you render each step.
