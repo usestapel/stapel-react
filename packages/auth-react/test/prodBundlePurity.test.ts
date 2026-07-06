@@ -61,5 +61,5 @@ describe("prod bundle carries no showcase/demo code (§5.1)", () => {
     );
     expect(paths.filter((p) => /(^|\/)demo(\/|\.)/i.test(p))).toEqual([]);
     expect(paths.filter((p) => /showcase/i.test(p))).toEqual([]);
-  });
+  }, 30_000); // `npm pack` cold-starts slowly — beyond vitest's 5s default
 });
