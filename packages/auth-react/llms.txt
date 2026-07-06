@@ -220,10 +220,10 @@ Request/response schema names are in manifest.json + the generated types.
 
 ## Snippets
 ```tsx
-// Passwordless login — machine drives state, you render steps.
-const flow = createOtpFlow({ api: useAuthApi() });
+// A flow machine drives state; you render each step.
+const flow = createAnonymousFlow({ api: useAuthApi() });
 const s = useFlow(flow.machine);
-if (s.step === 'codeError') return <p>{t(s.error.code, s.error.params)}</p>;
+if (s.step.endsWith('Error')) return <p>{t(s.error.code, s.error.params)}</p>;
 ```
 ```tsx
 // Error rendering + remediation branch (one pattern for every pair).
