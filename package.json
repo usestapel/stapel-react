@@ -16,8 +16,9 @@
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
+    "lint:css": "stylelint \"packages/**/*.css\" \"packages/**/.*/**/*.css\" --allow-empty-input",
     "size": "turbo run size",
-    "ci": "pnpm gen:check && turbo run lint test build size",
+    "ci": "pnpm gen:check && pnpm lint:css && turbo run lint test build size",
     "gen:api": "node scripts/gen-api.mjs",
     "gen:api:check": "node scripts/gen-api.mjs && git diff --exit-code -- packages/core/src/generated/schema.ts",
     "gen:flows": "node scripts/gen-flows.mjs",
@@ -49,6 +50,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "openapi-typescript": "^7.13.0",
+    "stylelint": "^16.26.1",
     "turbo": "^2.5.4",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.35.0"

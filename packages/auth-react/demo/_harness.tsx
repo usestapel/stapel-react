@@ -165,7 +165,9 @@ export function StepBadge(props: { step: string }): ReactElement {
           background: cssVar("color-background-secondary"),
           color: cssVar("color-text-brand"),
           borderRadius: radii.sm,
-          padding: `${spacing["1"]} ${spacing["2"]}`,
+          // Size tokens are unitless numbers; React only auto-appends `px` to
+          // single numeric values, so multi-value shorthands spell the unit.
+          padding: `${spacing["1"]}px ${spacing["2"]}px`,
         }}
       >
         {props.step}
@@ -179,7 +181,8 @@ const buttonStyle: CSSProperties = {
   color: cssVar("button-primary-text"),
   border: "none",
   borderRadius: radii.md,
-  padding: `${spacing["2"]} ${spacing["4"]}`,
+  // See StepBadge: unitless tokens need an explicit unit in shorthands.
+  padding: `${spacing["2"]}px ${spacing["4"]}px`,
   cursor: "pointer",
   fontSize: fontSize.sm.fontSize,
 };
