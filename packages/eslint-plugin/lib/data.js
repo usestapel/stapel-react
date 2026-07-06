@@ -158,6 +158,90 @@ export function loadI18nRegistry(settings = {}) {
   return _i18nDefault;
 }
 
+// ── analytics event registry (events.json / manifest.events) ─────────────────
+//
+// The known-event lint (G4) reads the SAME generated projection the report (G5)
+// reads: the `events` section of each package manifest.json (defineEvent call
+// sites → `defined`, flows.json funnels → `flows`). A missing manifest / events
+// section degrades the rule to a no-op (empty catalog), never a crash — exactly
+// like the token and i18n loaders above (§2.1: one source, all projections).
+
+function discoverWorkspaceEventManifests(from) {
+  const root = workspaceRoot(from);
+  if (!root) return [];
+  const pkgsDir = join(root, "packages");
+  if (!existsSync(pkgsDir)) return [];
+  const out = [];
+  let entries = [];
+  try {
+    entries = readdirSync(pkgsDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name);
+  } catch {
+    return [];
+  }
+  for (const name of entries) {
+    const manifest = readJson(join(pkgsDir, name, "manifest.json"));
+    if (manifest && manifest.events) out.push(manifest);
+  }
+  return out;
+}
+
+/** Strip the `<step>` / `*` placeholder tail off a flow event pattern. */
+function flowBaseOf(eventPattern) {
+  return String(eventPattern)
+    .replace(/\.<step>$/, "")
+    .replace(/\.\*$/, "");
+}
+
+function buildEventsCatalog(manifests, extraNames) {
+  const defined = new Set(extraNames ?? []);
+  const flowBases = new Set();
+  for (const m of manifests) {
+    const ev = m.events;
+    if (!ev) continue;
+    for (const d of ev.defined ?? []) if (d && d.name) defined.add(d.name);
+    for (const f of ev.flows ?? []) {
+      if (f && f.event) flowBases.add(flowBaseOf(f.event));
+      if (f && f.flow) flowBases.add(`flow.${f.flow}`);
+    }
+  }
+  return {
+    defined,
+    flowBases,
+    /**
+     * A name is known if it is a declared event, OR it is a flow event under a
+     * known funnel base (`flow.<id>.<step>`) — flow steps are open-ended, so we
+     * match by prefix rather than enumerating every step.
+     */
+    isKnown: (name) => {
+      if (defined.has(name)) return true;
+      for (const base of flowBases) {
+        if (name === base || name.startsWith(base + ".")) return true;
+      }
+      return false;
+    },
+    loaded: defined.size > 0 || flowBases.size > 0,
+  };
+}
+
+let _eventsCatalogDefault;
+export function loadEventsCatalog(settings = {}) {
+  if (settings.eventNames) {
+    return buildEventsCatalog([], settings.eventNames);
+  }
+  if (settings.eventsManifests) {
+    return buildEventsCatalog(settings.eventsManifests, settings.extraEventNames);
+  }
+  if (!_eventsCatalogDefault) {
+    _eventsCatalogDefault = buildEventsCatalog(
+      discoverWorkspaceEventManifests(process.cwd ? process.cwd() : HERE),
+      undefined
+    );
+  }
+  return _eventsCatalogDefault;
+}
+
 /** Read `context.settings.stapel` (flat config) with a stable empty default. */
 export function stapelSettings(context) {
   return (context.settings && context.settings.stapel) || {};
@@ -167,6 +251,7 @@ export function stapelSettings(context) {
 export function __resetCaches() {
   _tokenCatalogDefault = undefined;
   _i18nDefault = undefined;
+  _eventsCatalogDefault = undefined;
 }
 
 export { resolve as _resolve };

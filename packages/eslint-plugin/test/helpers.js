@@ -44,3 +44,22 @@ export const I18N_SETTINGS = {
     ],
   },
 };
+
+// A known-event catalog matching the manifest.events projection shape, so
+// known-event tests don't depend on filesystem discovery. `defined` names are
+// exact; `flows[].event` bases match by prefix (flow.<id>.<step>).
+export const EVENT_SETTINGS = {
+  stapel: {
+    eventsManifests: [
+      {
+        events: {
+          defined: [
+            { name: "pricing.plan.selected" },
+            { name: "auth.login.submitted" },
+          ],
+          flows: [{ flow: "auth.otp", event: "flow.auth.otp.<step>" }],
+        },
+      },
+    ],
+  },
+};
