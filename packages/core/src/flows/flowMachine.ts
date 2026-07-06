@@ -1,13 +1,15 @@
-import { trackFlowStep } from "@stapel/core";
-import type { Analytics } from "@stapel/core";
+import { trackFlowStep } from "../analytics/flow.js";
+import type { Analytics } from "../analytics/types.js";
 
 /**
- * The shared flow-machine primitive — the FIRST INSTANCE of the pattern every
- * later `@stapel/<module>-react` pair copies (frontend-standard §2, "flows/").
+ * The shared flow-machine primitive (frontend-standard §2, "flows/"). Lives in
+ * `@stapel/core` so every `@stapel/<module>-react` pair imports ONE reviewed
+ * implementation instead of copying it — a copied primitive would fork the
+ * staleness/re-entrancy fixes into every pair (frontend-core-architecture §4b).
  *
  * A flow is a tiny state container whose state is a discriminated union keyed
  * by a `step` string. Three things earn this primitive its keep across every
- * auth journey:
+ * journey:
  *
  *  1. **Typed transitions** — `to(next)` replaces state and notifies React via
  *     `useSyncExternalStore` (see `useFlow`).

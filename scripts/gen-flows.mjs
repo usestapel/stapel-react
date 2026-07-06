@@ -1,20 +1,32 @@
 #!/usr/bin/env node
-// AUTO-GEN driver for the typed flow registry (docs/flow-system.md §5).
+// AUTO-GEN driver for a pair's typed flow registry (docs/flow-system.md §5).
 //
 // Reads the language-agnostic `flows.json` emitted by the all-modules codegen
 // source (stapel-example-monolith `make codegen` → `generate_flow_docs`) and
-// scaffolds a typed, frozen flow registry consumed by the auth-react flow
-// machines. This is the machine-facing projection of the single flow source:
-// the SAME flows.json also renders the SA-doc (people) and the Gherkin `.feature`
-// (E2E). `createFlowMachine` bodies stay hand-written; what the codegen owns is
-// the CONTRACT each machine binds to — its canonical id, i18n keys, and the
-// ordered step→endpoint map — so a backend flow change surfaces here as a drift.
+// scaffolds a typed, frozen flow registry consumed by a pair's flow machines.
+// This is the machine-facing projection of the single flow source: the SAME
+// flows.json also renders the SA-doc (people) and the Gherkin `.feature` (E2E).
+// `createFlowMachine` bodies stay hand-written; what the codegen owns is the
+// CONTRACT each machine binds to — its canonical id, i18n keys, and the ordered
+// step→endpoint map — so a backend flow change surfaces here as a drift.
+//
+// PARAMETRIZED BY MODULE (frontend-core-architecture §4, M-finding): the
+// registry only holds flows whose id is prefixed `<module>.`, so a second
+// module annotating `@flow_step` does not leak its flows into another pair's
+// registry (which would redden that pair's drift gate on a foreign change).
+// The scaffold (`stapel-new-react-lib`) drives these knobs per package via env:
+//
+//   FLOW_MODULE       id prefix filter + naming base   (default "auth")
+//   FLOW_OUT          output dir                       (default packages/<module>-react/src/flows/generated)
+//   FLOW_REGISTRY     exported registry const name     (default "<MODULE>_FLOWS")
+//   FLOW_TYPE_PREFIX  generated type-name prefix        (default Capitalized module, e.g. "Auth")
+//   FLOWS_JSON        source flows.json path            (default sibling monolith)
 //
 // Source: a *file*, hermetic + byte-stable for the drift gate (mirrors
 // gen-api.mjs). The live monolith serves the identical document for the dev
 // loop. Point elsewhere with FLOWS_JSON=/path/to/flows.json.
 //
-//   node scripts/gen-flows.mjs         # generate
+//   node scripts/gen-flows.mjs         # generate (auth defaults)
 //   pnpm gen:flows                     # generate (root script)
 //   pnpm gen:flows:check               # drift gate (fails on divergence)
 import { readFile, writeFile, mkdir } from "node:fs/promises";
@@ -24,11 +36,20 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 
+const MODULE = process.env.FLOW_MODULE ?? "auth";
+const REGISTRY =
+  process.env.FLOW_REGISTRY ?? `${MODULE.toUpperCase()}_FLOWS`;
+const TYPE_PREFIX =
+  process.env.FLOW_TYPE_PREFIX ??
+  MODULE.charAt(0).toUpperCase() + MODULE.slice(1);
+
 const FLOWS_PATH =
   process.env.FLOWS_JSON ??
   resolve(ROOT, "../stapel-example-monolith/codegen/generated/flows.json");
 
-const OUT_DIR = resolve(ROOT, "packages/auth-react/src/flows/generated");
+const OUT_DIR =
+  process.env.FLOW_OUT ??
+  resolve(ROOT, `packages/${MODULE}-react/src/flows/generated`);
 const OUT_JSON = resolve(OUT_DIR, "flows.json");
 const OUT_TS = resolve(OUT_DIR, "flows.gen.ts");
 
@@ -68,7 +89,11 @@ async function main() {
   if (!Array.isArray(flows)) {
     throw new Error(`flows.json is not an array: ${FLOWS_PATH}`);
   }
-  const stable = flows.map(stableFlow).sort((a, b) => a.id.localeCompare(b.id));
+  // Only this module's flows — a foreign module's flows must not pollute this
+  // pair's registry (and thus its drift gate).
+  const prefix = `${MODULE}.`;
+  const mine = flows.filter((f) => typeof f.id === "string" && f.id.startsWith(prefix));
+  const stable = mine.map(stableFlow).sort((a, b) => a.id.localeCompare(b.id));
 
   const entries = stable
     .map((f) => `  ${JSON.stringify(f.id)}: ${lit(f).replace(/\n/g, "\n  ")},`)
@@ -76,21 +101,21 @@ async function main() {
 
   const body = `${HEADER}
 /**
- * The canonical auth flow registry — the machine-facing projection of the flow
- * source (docs/flow-system.md §5). Each entry carries a flow's canonical id
- * (\`flow.<id>.<step>\` analytics funnel = this flow), its i18n keys, and its
+ * The canonical ${MODULE} flow registry — the machine-facing projection of the
+ * flow source (docs/flow-system.md §5). Each entry carries a flow's canonical
+ * id (\`flow.<id>.<step>\` analytics funnel = this flow), its i18n keys, and its
  * ordered step→endpoint contract. Flow machines bind their \`id\` to
- * \`AUTH_FLOWS[...].id\` so a backend flow rename/re-step surfaces as a drift
+ * \`${REGISTRY}[...].id\` so a backend flow rename/re-step surfaces as a drift
  * here (\`pnpm gen:flows:check\`) rather than a silent analytics/contract skew.
  */
-export const AUTH_FLOWS = {
+export const ${REGISTRY} = {
 ${entries}
 } as const;
 
 /** Canonical flow ids present in flows.json (a subset grows as the backend annotates more). */
-export type AuthFlowId = keyof typeof AUTH_FLOWS;
+export type ${TYPE_PREFIX}FlowId = keyof typeof ${REGISTRY};
 
-export type AuthFlowSpec = (typeof AUTH_FLOWS)[AuthFlowId];
+export type ${TYPE_PREFIX}FlowSpec = (typeof ${REGISTRY})[${TYPE_PREFIX}FlowId];
 
 export interface FlowEndpoint {
   readonly method: string;
@@ -98,8 +123,8 @@ export interface FlowEndpoint {
 }
 
 /** All HTTP endpoints a flow touches, in step order (for the contract test / MSW). */
-export function flowEndpoints(id: AuthFlowId): readonly FlowEndpoint[] {
-  return AUTH_FLOWS[id].steps.flatMap(
+export function flowEndpoints(id: ${TYPE_PREFIX}FlowId): readonly FlowEndpoint[] {
+  return ${REGISTRY}[id].steps.flatMap(
     (s) => s.endpoints as readonly FlowEndpoint[]
   );
 }
@@ -110,7 +135,7 @@ export function flowEndpoints(id: AuthFlowId): readonly FlowEndpoint[] {
   await writeFile(OUT_TS, body);
 
   console.error(
-    `gen:flows: ${stable.length} flows from ${FLOWS_PATH}\n           → ${OUT_TS}`
+    `gen:flows[${MODULE}]: ${stable.length} flows from ${FLOWS_PATH}\n           → ${OUT_TS}`
   );
 }
 

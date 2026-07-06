@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createFlowMachine } from "../src/flows/createFlowMachine.js";
+import { createFlowMachine } from "../src/flows/flowMachine.js";
 
 type S =
   | { readonly step: "idle" }

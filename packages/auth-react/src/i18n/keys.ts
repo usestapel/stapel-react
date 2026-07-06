@@ -1,4 +1,5 @@
 import type { I18nDictionary, I18nEngine } from "@stapel/core";
+import { authErrorBundleEn } from "./generated/errors.gen.js";
 
 /**
  * auth-react's own translation KEYS (frontend-standard §4.2): headless
@@ -28,8 +29,21 @@ export const AUTH_I18N_KEYS = {
 export type AuthI18nKey =
   (typeof AUTH_I18N_KEYS)[keyof typeof AUTH_I18N_KEYS];
 
-/** English fallback bundle for auth-react UI keys + backend auth error codes. */
+/**
+ * English fallback bundle for auth-react UI keys + backend auth error codes.
+ *
+ * The generated `authErrorBundleEn` (from stapel-auth's error registry, `pnpm
+ * gen:errors`) is spread FIRST so every backend `error.*` key has a fallback —
+ * a `StapelApiError.code` never renders as a raw key (this closes the 43
+ * uncovered keys the pair review flagged). The hand-polished copy below then
+ * OVERRIDES the generated backend English for the keys users see most, and adds
+ * the auth-react-owned UI keys. A `gen:errors:check` drift gate + the
+ * `errorsBundle` test keep new backend keys from slipping through silently.
+ */
 export const authI18nBundleEn: I18nDictionary = {
+  // Backend error codes — generated en fallbacks (coverage by construction).
+  ...authErrorBundleEn,
+
   // auth-react UI
   "auth.otp.enter_code": "Enter the code we sent you",
   "auth.otp.resend": "Resend code",

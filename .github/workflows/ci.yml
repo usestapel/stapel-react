@@ -34,16 +34,34 @@ jobs:
           repository: usestapel/stapel-example-monolith
           path: .codegen-source
 
-      - name: API type drift gate (gen:api:check)
-        # Regenerates packages/core/src/generated/schema.ts from the monolith
-        # schema and fails if the committed types diverge — without this the
-        # frontend types silently drift from the API when a serializer changes.
-        run: corepack pnpm gen:api:check
+      - name: Check out error-registry sources (stapel-auth + stapel-core)
+        # The generated backend-error map (gen:errors) reads the auth module's
+        # error registry plus the stapel-core verification registry. These are
+        # sibling backend repos, so the drift gate needs them checked out here.
+        # (Long-term the backend should emit an `errors.json` codegen artifact
+        # alongside schema.json/flows.json — task `error-remediation` — collapsing
+        # this to the single `.codegen-source` checkout.)
+        uses: actions/checkout@v4
+        with:
+          repository: usestapel/stapel-auth
+          path: .errors-source/stapel-auth
+      - uses: actions/checkout@v4
+        with:
+          repository: usestapel/stapel-core
+          path: .errors-source/stapel-core
+
+      - name: Codegen drift gates (api / flows / errors / manifest)
+        # Regenerates the committed projections from the pinned backend sources
+        # and fails if any diverge — types, the flow registry, the backend-error
+        # map, and the manifest/llms.txt self-description all under one gate.
+        run: corepack pnpm gen:check
         env:
           API_SCHEMA: ${{ github.workspace }}/.codegen-source/codegen/generated/schema.json
+          FLOWS_JSON: ${{ github.workspace }}/.codegen-source/codegen/generated/flows.json
+          AUTH_ERRORS_SOURCES: ${{ github.workspace }}/.errors-source/stapel-auth/errors.py,${{ github.workspace }}/.errors-source/stapel-core/verification/grants.py,${{ github.workspace }}/.errors-source/stapel-core/verification/errors.py
 
-      - name: Lint, test, build
-        run: corepack pnpm turbo run lint test build
+      - name: Lint, test, build, size
+        run: corepack pnpm turbo run lint test build size
 
       - name: Standalone build gate (frontend-standard §7)
         run: |

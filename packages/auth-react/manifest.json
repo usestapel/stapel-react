@@ -1,0 +1,1559 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/auth-react",
+  "version": "1.0.0",
+  "backend": {
+    "module": "stapel-auth"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {
+    "auth.password_login": {
+      "titleKey": "flow.auth.password_login.title",
+      "descriptionKey": "flow.auth.password_login.description",
+      "steps": [
+        {
+          "kind": "human",
+          "order": 0,
+          "noteKey": "flow.auth.password_login.step.0.note",
+          "endpoints": []
+        },
+        {
+          "kind": "http",
+          "order": 1,
+          "noteKey": "flow.auth.password_login.step.1.note",
+          "endpoints": [
+            "POST /auth/api/password/login/"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 2,
+          "noteKey": "flow.auth.password_login.step.2.note",
+          "endpoints": [
+            "POST /auth/api/totp/challenge/verify/"
+          ]
+        }
+      ],
+      "endpoints": [
+        "POST /auth/api/password/login/",
+        "POST /auth/api/totp/challenge/verify/"
+      ]
+    },
+    "auth.passwordless_login": {
+      "titleKey": "flow.auth.passwordless_login.title",
+      "descriptionKey": "flow.auth.passwordless_login.description",
+      "steps": [
+        {
+          "kind": "human",
+          "order": 0,
+          "noteKey": "flow.auth.passwordless_login.step.0.note",
+          "endpoints": []
+        },
+        {
+          "kind": "http",
+          "order": 1,
+          "noteKey": "flow.auth.passwordless_login.step.1.note",
+          "endpoints": [
+            "POST /auth/api/email/request/"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 2,
+          "noteKey": "flow.auth.passwordless_login.step.2.note",
+          "endpoints": [
+            "POST /auth/api/email/verify/"
+          ]
+        },
+        {
+          "kind": "action",
+          "order": 3,
+          "noteKey": "flow.auth.passwordless_login.step.3.note",
+          "endpoints": []
+        }
+      ],
+      "endpoints": [
+        "POST /auth/api/email/request/",
+        "POST /auth/api/email/verify/"
+      ]
+    },
+    "auth.step_up_verification": {
+      "titleKey": "flow.auth.step_up_verification.title",
+      "descriptionKey": "flow.auth.step_up_verification.description",
+      "steps": [
+        {
+          "kind": "human",
+          "order": 0,
+          "noteKey": "flow.auth.step_up_verification.step.0.note",
+          "endpoints": []
+        },
+        {
+          "kind": "http",
+          "order": 1,
+          "noteKey": "flow.auth.step_up_verification.step.1.note",
+          "endpoints": [
+            "GET /auth/api/verification/<str:challenge_id>/"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 2,
+          "noteKey": "flow.auth.step_up_verification.step.2.note",
+          "endpoints": [
+            "POST /auth/api/verification/<str:challenge_id>/initiate/"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 3,
+          "noteKey": "flow.auth.step_up_verification.step.3.note",
+          "endpoints": [
+            "POST /auth/api/verification/<str:challenge_id>/complete/"
+          ]
+        },
+        {
+          "kind": "human",
+          "order": 4,
+          "noteKey": "flow.auth.step_up_verification.step.4.note",
+          "endpoints": []
+        },
+        {
+          "kind": "http",
+          "order": 5,
+          "noteKey": "flow.auth.step_up_verification.step.5.note",
+          "endpoints": [
+            "GET /auth/api/verification/preferences/"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 6,
+          "noteKey": "flow.auth.step_up_verification.step.6.note",
+          "endpoints": [
+            "PUT /auth/api/verification/preferences/"
+          ]
+        }
+      ],
+      "endpoints": [
+        "GET /auth/api/verification/<str:challenge_id>/",
+        "POST /auth/api/verification/<str:challenge_id>/initiate/",
+        "POST /auth/api/verification/<str:challenge_id>/complete/",
+        "GET /auth/api/verification/preferences/",
+        "PUT /auth/api/verification/preferences/"
+      ]
+    }
+  },
+  "machines": [
+    "createAnonymousFlow",
+    "createAuthenticatorChangeFlow",
+    "createMagicLinkFlow",
+    "createOAuthFlow",
+    "createOtpFlow",
+    "createPasskeyLoginFlow",
+    "createPasskeyRegistrationFlow",
+    "createPasswordChangeFlow",
+    "createPasswordLoginFlow",
+    "createPasswordResetFlow",
+    "createQrLoginFlow",
+    "createSsoFlow",
+    "createTotpSetupFlow",
+    "createVerificationController"
+  ],
+  "operations": {
+    "auth_api_admin_audit_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/admin/audit/",
+      "tag": "Admin",
+      "request": null,
+      "response": "AuditLogPage"
+    },
+    "auth_api_admin_users_create": {
+      "method": "POST",
+      "path": "/auth/api/admin-users/",
+      "tag": "Admin",
+      "request": "AdminUserCreateRequest",
+      "response": "AdminUserCreateResponse"
+    },
+    "auth_api_anonymous_create": {
+      "method": "POST",
+      "path": "/auth/api/anonymous/",
+      "tag": "Anonymous Auth",
+      "request": "AnonymousAuth",
+      "response": "AuthResponse"
+    },
+    "auth_api_capabilities_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/capabilities/",
+      "tag": "Auth",
+      "request": null,
+      "response": null
+    },
+    "auth_api_email_change_delayed_cancel_create": {
+      "method": "POST",
+      "path": "/auth/api/email/change/delayed/cancel/",
+      "tag": "Email Change",
+      "request": "DelayedChangeCancel",
+      "response": "DelayedCancelResponse"
+    },
+    "auth_api_email_change_delayed_initiate_create": {
+      "method": "POST",
+      "path": "/auth/api/email/change/delayed/initiate/",
+      "tag": "Email Change",
+      "request": "DelayedChangeInitiate",
+      "response": "DelayedInitiateResponse"
+    },
+    "auth_api_email_change_delayed_status_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/email/change/delayed/status/",
+      "tag": "Email Change",
+      "request": null,
+      "response": "DelayedStatusResponse"
+    },
+    "auth_api_email_change_instant_request_new_create": {
+      "method": "POST",
+      "path": "/auth/api/email/change/instant/request-new/",
+      "tag": "Email Change",
+      "request": "InstantChangeRequestNew",
+      "response": "InstantRequestNewResponse"
+    },
+    "auth_api_email_change_instant_request_old_create": {
+      "method": "POST",
+      "path": "/auth/api/email/change/instant/request-old/",
+      "tag": "Email Change",
+      "request": "InstantChangeRequestOld",
+      "response": "InstantRequestOldResponse"
+    },
+    "auth_api_email_change_instant_verify_new_create": {
+      "method": "POST",
+      "path": "/auth/api/email/change/instant/verify-new/",
+      "tag": "Email Change",
+      "request": "InstantChangeVerifyNew",
+      "response": "AuthResponse"
+    },
+    "auth_api_email_change_instant_verify_old_create": {
+      "method": "POST",
+      "path": "/auth/api/email/change/instant/verify-old/",
+      "tag": "Email Change",
+      "request": "InstantChangeVerifyOld",
+      "response": "InstantVerifyOldResponse"
+    },
+    "auth_api_email_request_create": {
+      "method": "POST",
+      "path": "/auth/api/email/request/",
+      "tag": "Email Auth",
+      "request": "EmailAuthRequest",
+      "response": "OtpSentResponse"
+    },
+    "auth_api_email_verify_create": {
+      "method": "POST",
+      "path": "/auth/api/email/verify/",
+      "tag": "Email Auth",
+      "request": "EmailAuthVerify",
+      "response": "AuthResponse"
+    },
+    "auth_api_gdpr_schema_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/gdpr/schema/",
+      "tag": "auth",
+      "request": null,
+      "response": null
+    },
+    "auth_api_logout_create": {
+      "method": "POST",
+      "path": "/auth/api/logout/",
+      "tag": "Session",
+      "request": "LogoutRequest",
+      "response": "LogoutResponse"
+    },
+    "auth_api_logout_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/logout/",
+      "tag": "Session",
+      "request": null,
+      "response": "LogoutResponse"
+    },
+    "auth_api_magic_request_create": {
+      "method": "POST",
+      "path": "/auth/api/magic/request/",
+      "tag": "Auth",
+      "request": "MagicLinkRequestBody",
+      "response": "MagicLinkRequestResponse"
+    },
+    "auth_api_magic_verify_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/magic/verify/",
+      "tag": "Auth",
+      "request": null,
+      "response": null
+    },
+    "auth_api_me_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/me/",
+      "tag": "User",
+      "request": null,
+      "response": "User"
+    },
+    "auth_api_oauth_authorize_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/oauth/{provider}/authorize/",
+      "tag": "OAuth",
+      "request": null,
+      "response": null
+    },
+    "auth_api_oauth_callback_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/oauth/{provider}/callback",
+      "tag": "OAuth",
+      "request": null,
+      "response": null
+    },
+    "auth_api_oauth_callback_retrieve_2": {
+      "method": "GET",
+      "path": "/auth/api/oauth/{provider}/callback/",
+      "tag": "OAuth",
+      "request": null,
+      "response": null
+    },
+    "auth_api_oauth_login_create": {
+      "method": "POST",
+      "path": "/auth/api/oauth/login/",
+      "tag": "OAuth",
+      "request": "OAuth",
+      "response": "LoginResponse"
+    },
+    "auth_api_oauth2_introspect_create": {
+      "method": "POST",
+      "path": "/auth/api/oauth2/introspect/",
+      "tag": "OpenID",
+      "request": "TokenIntrospectRequest",
+      "response": "TokenIntrospectResponse"
+    },
+    "auth_api_passkey_authenticate_begin_create": {
+      "method": "POST",
+      "path": "/auth/api/passkey/authenticate/begin/",
+      "tag": "Passkeys",
+      "request": "_PasskeyAuthBeginBody",
+      "response": "_PasskeyAuthOptions"
+    },
+    "auth_api_passkey_authenticate_complete_create": {
+      "method": "POST",
+      "path": "/auth/api/passkey/authenticate/complete/",
+      "tag": "Passkeys",
+      "request": "_PasskeyAuthCompleteBody",
+      "response": null
+    },
+    "auth_api_passkey_destroy": {
+      "method": "DELETE",
+      "path": "/auth/api/passkey/{id}/",
+      "tag": "Passkeys",
+      "request": null,
+      "response": null
+    },
+    "auth_api_passkey_register_begin_create": {
+      "method": "POST",
+      "path": "/auth/api/passkey/register/begin/",
+      "tag": "Passkeys",
+      "request": null,
+      "response": "_PasskeyRegOptions"
+    },
+    "auth_api_passkey_register_complete_create": {
+      "method": "POST",
+      "path": "/auth/api/passkey/register/complete/",
+      "tag": "Passkeys",
+      "request": "_PasskeyRegisterCompleteBody",
+      "response": "PasskeyItem"
+    },
+    "auth_api_passkey_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/passkey/",
+      "tag": "Passkeys",
+      "request": null,
+      "response": "_PasskeyListResponse"
+    },
+    "auth_api_password_change_create": {
+      "method": "POST",
+      "path": "/auth/api/password/change/",
+      "tag": "Password Auth",
+      "request": "PasswordChangeDirect",
+      "response": null
+    },
+    "auth_api_password_change_otp_request_create": {
+      "method": "POST",
+      "path": "/auth/api/password/change/otp/request/",
+      "tag": "Password Auth",
+      "request": "PasswordOtpRequest",
+      "response": "OtpSentResponse"
+    },
+    "auth_api_password_change_otp_verify_create": {
+      "method": "POST",
+      "path": "/auth/api/password/change/otp/verify/",
+      "tag": "Password Auth",
+      "request": "PasswordOtpVerify",
+      "response": null
+    },
+    "auth_api_password_login_create": {
+      "method": "POST",
+      "path": "/auth/api/password/login/",
+      "tag": "Password Auth",
+      "request": "PasswordLogin",
+      "response": "LoginResponse"
+    },
+    "auth_api_password_methods_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/password/methods/",
+      "tag": "Password Auth",
+      "request": null,
+      "response": "PasswordMethodsResponse"
+    },
+    "auth_api_password_register_create": {
+      "method": "POST",
+      "path": "/auth/api/password/register/",
+      "tag": "auth",
+      "request": "PasswordRegister",
+      "response": "AuthResponse"
+    },
+    "auth_api_password_reset_email_request_create": {
+      "method": "POST",
+      "path": "/auth/api/password/reset/email/request/",
+      "tag": "Password Auth",
+      "request": "PasswordResetEmailRequest",
+      "response": "OtpSentResponse"
+    },
+    "auth_api_password_reset_email_verify_create": {
+      "method": "POST",
+      "path": "/auth/api/password/reset/email/verify/",
+      "tag": "Password Auth",
+      "request": "PasswordResetEmailVerify",
+      "response": "AuthResponse"
+    },
+    "auth_api_password_reset_phone_request_create": {
+      "method": "POST",
+      "path": "/auth/api/password/reset/phone/request/",
+      "tag": "Password Auth",
+      "request": "PasswordResetPhoneRequest",
+      "response": "OtpSentResponse"
+    },
+    "auth_api_password_reset_phone_verify_create": {
+      "method": "POST",
+      "path": "/auth/api/password/reset/phone/verify/",
+      "tag": "Password Auth",
+      "request": "PasswordResetPhoneVerify",
+      "response": "AuthResponse"
+    },
+    "auth_api_phone_change_delayed_cancel_create": {
+      "method": "POST",
+      "path": "/auth/api/phone/change/delayed/cancel/",
+      "tag": "Phone Change",
+      "request": "DelayedChangeCancel",
+      "response": "DelayedCancelResponse"
+    },
+    "auth_api_phone_change_delayed_initiate_create": {
+      "method": "POST",
+      "path": "/auth/api/phone/change/delayed/initiate/",
+      "tag": "Phone Change",
+      "request": "DelayedChangeInitiate",
+      "response": "DelayedInitiateResponse"
+    },
+    "auth_api_phone_change_delayed_status_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/phone/change/delayed/status/",
+      "tag": "Phone Change",
+      "request": null,
+      "response": "DelayedStatusResponse"
+    },
+    "auth_api_phone_change_instant_request_new_create": {
+      "method": "POST",
+      "path": "/auth/api/phone/change/instant/request-new/",
+      "tag": "Phone Change",
+      "request": "InstantChangeRequestNew",
+      "response": "InstantRequestNewResponse"
+    },
+    "auth_api_phone_change_instant_request_old_create": {
+      "method": "POST",
+      "path": "/auth/api/phone/change/instant/request-old/",
+      "tag": "Phone Change",
+      "request": "InstantChangeRequestOld",
+      "response": "InstantRequestOldResponse"
+    },
+    "auth_api_phone_change_instant_verify_new_create": {
+      "method": "POST",
+      "path": "/auth/api/phone/change/instant/verify-new/",
+      "tag": "Phone Change",
+      "request": "InstantChangeVerifyNew",
+      "response": "AuthResponse"
+    },
+    "auth_api_phone_change_instant_verify_old_create": {
+      "method": "POST",
+      "path": "/auth/api/phone/change/instant/verify-old/",
+      "tag": "Phone Change",
+      "request": "InstantChangeVerifyOld",
+      "response": "InstantVerifyOldResponse"
+    },
+    "auth_api_phone_request_create": {
+      "method": "POST",
+      "path": "/auth/api/phone/request/",
+      "tag": "Phone Auth",
+      "request": "PhoneAuthRequest",
+      "response": "OtpSentResponse"
+    },
+    "auth_api_phone_verify_create": {
+      "method": "POST",
+      "path": "/auth/api/phone/verify/",
+      "tag": "Phone Auth",
+      "request": "PhoneAuthVerify",
+      "response": "AuthResponse"
+    },
+    "auth_api_qr_confirm_create": {
+      "method": "POST",
+      "path": "/auth/api/qr/{key}/confirm/",
+      "tag": "QR Auth",
+      "request": null,
+      "response": "SimpleStatusResponse"
+    },
+    "auth_api_qr_generate_create": {
+      "method": "POST",
+      "path": "/auth/api/qr/generate/",
+      "tag": "QR Auth",
+      "request": "QRGenerate",
+      "response": "QRGenerateResponse"
+    },
+    "auth_api_qr_reject_create": {
+      "method": "POST",
+      "path": "/auth/api/qr/{key}/reject/",
+      "tag": "auth",
+      "request": null,
+      "response": "SimpleStatusResponse"
+    },
+    "auth_api_qr_scan_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/qr/{key}/scan/",
+      "tag": "QR Auth",
+      "request": null,
+      "response": null
+    },
+    "auth_api_qr_status_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/qr/{key}/status/",
+      "tag": "QR Auth",
+      "request": null,
+      "response": "QRStatusResponse"
+    },
+    "auth_api_security_audit_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/security/audit/",
+      "tag": "Security",
+      "request": null,
+      "response": "AuditLogPage"
+    },
+    "auth_api_security_revoke_suspicious_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/security/revoke-suspicious/",
+      "tag": "Security",
+      "request": null,
+      "response": null
+    },
+    "auth_api_security_status_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/security/status/",
+      "tag": "Security",
+      "request": null,
+      "response": "SecurityStatusResponse"
+    },
+    "auth_api_service_keys_create": {
+      "method": "POST",
+      "path": "/auth/api/service-keys",
+      "tag": "API Keys",
+      "request": "ServiceAPIKey",
+      "response": "ServiceAPIKey"
+    },
+    "auth_api_service_keys_destroy": {
+      "method": "DELETE",
+      "path": "/auth/api/service-keys/{id}",
+      "tag": "API Keys",
+      "request": null,
+      "response": null
+    },
+    "auth_api_service_keys_list": {
+      "method": "GET",
+      "path": "/auth/api/service-keys",
+      "tag": "API Keys",
+      "request": null,
+      "response": null
+    },
+    "auth_api_service_keys_partial_update": {
+      "method": "PATCH",
+      "path": "/auth/api/service-keys/{id}",
+      "tag": "API Keys",
+      "request": "PatchedServiceAPIKey",
+      "response": "ServiceAPIKey"
+    },
+    "auth_api_service_keys_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/service-keys/{id}",
+      "tag": "API Keys",
+      "request": null,
+      "response": "ServiceAPIKey"
+    },
+    "auth_api_service_keys_update": {
+      "method": "PUT",
+      "path": "/auth/api/service-keys/{id}",
+      "tag": "API Keys",
+      "request": "ServiceAPIKey",
+      "response": "ServiceAPIKey"
+    },
+    "auth_api_sessions_confirm_create": {
+      "method": "POST",
+      "path": "/auth/api/sessions/{session_id}/confirm/",
+      "tag": "Session",
+      "request": null,
+      "response": "SimpleStatusResponse"
+    },
+    "auth_api_sessions_destroy": {
+      "method": "DELETE",
+      "path": "/auth/api/sessions/",
+      "tag": "Session",
+      "request": null,
+      "response": null
+    },
+    "auth_api_sessions_destroy_2": {
+      "method": "DELETE",
+      "path": "/auth/api/sessions/{session_id}/",
+      "tag": "Session",
+      "request": null,
+      "response": null
+    },
+    "auth_api_sessions_list": {
+      "method": "GET",
+      "path": "/auth/api/sessions/",
+      "tag": "Session",
+      "request": null,
+      "response": null
+    },
+    "auth_api_sso_login_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/sso/{slug}/login/",
+      "tag": "SSO",
+      "request": null,
+      "response": null
+    },
+    "auth_api_sso_lookup_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/sso/lookup/",
+      "tag": "SSO",
+      "request": null,
+      "response": "SSODomainLookupResponse"
+    },
+    "auth_api_sso_oidc_callback_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/sso/{slug}/oidc/callback/",
+      "tag": "SSO",
+      "request": null,
+      "response": null
+    },
+    "auth_api_sso_orgs_config_partial_update": {
+      "method": "PATCH",
+      "path": "/auth/api/sso/orgs/{slug}/config/",
+      "tag": "SSO Admin",
+      "request": "Patched_SSOConfig",
+      "response": "_SSOConfig"
+    },
+    "auth_api_sso_orgs_config_update": {
+      "method": "PUT",
+      "path": "/auth/api/sso/orgs/{slug}/config/",
+      "tag": "SSO Admin",
+      "request": "_SSOConfig",
+      "response": "_SSOConfig"
+    },
+    "auth_api_sso_orgs_create": {
+      "method": "POST",
+      "path": "/auth/api/sso/orgs/",
+      "tag": "SSO Admin",
+      "request": "_Org",
+      "response": "_Org"
+    },
+    "auth_api_sso_orgs_destroy": {
+      "method": "DELETE",
+      "path": "/auth/api/sso/orgs/{slug}/",
+      "tag": "SSO Admin",
+      "request": null,
+      "response": null
+    },
+    "auth_api_sso_orgs_list": {
+      "method": "GET",
+      "path": "/auth/api/sso/orgs/",
+      "tag": "SSO Admin",
+      "request": null,
+      "response": null
+    },
+    "auth_api_sso_orgs_partial_update": {
+      "method": "PATCH",
+      "path": "/auth/api/sso/orgs/{slug}/",
+      "tag": "SSO Admin",
+      "request": "Patched_Org",
+      "response": "_Org"
+    },
+    "auth_api_sso_orgs_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/sso/orgs/{slug}/",
+      "tag": "SSO Admin",
+      "request": null,
+      "response": "_Org"
+    },
+    "auth_api_sso_saml_acs_create": {
+      "method": "POST",
+      "path": "/auth/api/sso/{slug}/saml/acs/",
+      "tag": "SSO",
+      "request": null,
+      "response": null
+    },
+    "auth_api_sso_saml_metadata_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/sso/{slug}/saml/metadata/",
+      "tag": "SSO",
+      "request": null,
+      "response": null
+    },
+    "auth_api_token_create": {
+      "method": "POST",
+      "path": "/auth/api/token/",
+      "tag": "Token",
+      "request": "TokenObtainRequest",
+      "response": "TokenPairResponse"
+    },
+    "auth_api_token_refresh_create": {
+      "method": "POST",
+      "path": "/auth/api/token/refresh/",
+      "tag": "Token",
+      "request": "TokenRefreshRequest",
+      "response": "TokenPairResponse"
+    },
+    "auth_api_token_refresh_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/token/refresh/",
+      "tag": "Token",
+      "request": null,
+      "response": "TokenPairResponse"
+    },
+    "auth_api_totp_challenge_verify_create": {
+      "method": "POST",
+      "path": "/auth/api/totp/challenge/verify/",
+      "tag": "auth",
+      "request": "TOTPChallengeVerify",
+      "response": null
+    },
+    "auth_api_totp_disable_create": {
+      "method": "POST",
+      "path": "/auth/api/totp/disable/",
+      "tag": "auth",
+      "request": "TOTPDisableRequest",
+      "response": null
+    },
+    "auth_api_totp_disable_otp_request_create": {
+      "method": "POST",
+      "path": "/auth/api/totp/disable-otp/request/",
+      "tag": "auth",
+      "request": null,
+      "response": null
+    },
+    "auth_api_totp_setup_confirm_create": {
+      "method": "POST",
+      "path": "/auth/api/totp/setup/confirm/",
+      "tag": "auth",
+      "request": "TOTPSetupConfirm",
+      "response": "TOTPSetupConfirmResponse"
+    },
+    "auth_api_totp_setup_create": {
+      "method": "POST",
+      "path": "/auth/api/totp/setup/",
+      "tag": "auth",
+      "request": null,
+      "response": "TOTPSetupResponse"
+    },
+    "auth_api_totp_step_up_create": {
+      "method": "POST",
+      "path": "/auth/api/totp/step-up/",
+      "tag": "auth",
+      "request": "TOTPStepUp",
+      "response": "TOTPStepUpResponse"
+    },
+    "auth_api_user_account_cancel_close_create": {
+      "method": "POST",
+      "path": "/auth/api/user/account/cancel-close",
+      "tag": "GDPR",
+      "request": null,
+      "response": "ClosureStatusDTO"
+    },
+    "auth_api_user_account_close_create": {
+      "method": "POST",
+      "path": "/auth/api/user/account/close",
+      "tag": "GDPR",
+      "request": null,
+      "response": "ClosureStatusDTO"
+    },
+    "auth_api_user_account_close_status_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/user/account/close/status",
+      "tag": "GDPR",
+      "request": null,
+      "response": "ClosureStatusDTO"
+    },
+    "auth_api_user_data_export_download_create": {
+      "method": "POST",
+      "path": "/auth/api/user/data-export/download",
+      "tag": "GDPR",
+      "request": "GDPRDownloadTokenRequest",
+      "response": null
+    },
+    "auth_api_user_data_export_download_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/user/data-export/download",
+      "tag": "GDPR",
+      "request": null,
+      "response": null
+    },
+    "auth_api_user_data_export_request_create": {
+      "method": "POST",
+      "path": "/auth/api/user/data-export/request",
+      "tag": "GDPR",
+      "request": null,
+      "response": "ExportRequestDTO"
+    },
+    "auth_api_user_data_export_status_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/user/data-export/status",
+      "tag": "GDPR",
+      "request": null,
+      "response": "ExportStatusDTO"
+    },
+    "auth_api_verification_complete_create": {
+      "method": "POST",
+      "path": "/auth/api/verification/{challenge_id}/complete/",
+      "tag": "auth",
+      "request": "VerificationComplete",
+      "response": "VerificationCompleteResponse"
+    },
+    "auth_api_verification_initiate_create": {
+      "method": "POST",
+      "path": "/auth/api/verification/{challenge_id}/initiate/",
+      "tag": "auth",
+      "request": "VerificationInitiate",
+      "response": "VerificationInitiateResponse"
+    },
+    "auth_api_verification_preferences_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/verification/preferences/",
+      "tag": "auth",
+      "request": null,
+      "response": "VerificationPreferencesResponse"
+    },
+    "auth_api_verification_preferences_update": {
+      "method": "PUT",
+      "path": "/auth/api/verification/preferences/",
+      "tag": "auth",
+      "request": "VerificationPreference",
+      "response": "VerificationPreferenceRow"
+    },
+    "auth_api_verification_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/verification/{challenge_id}/",
+      "tag": "auth",
+      "request": null,
+      "response": "VerificationChallengeInfoResponse"
+    },
+    "auth_api_verify_create": {
+      "method": "POST",
+      "path": "/auth/api/verify/",
+      "tag": "Token",
+      "request": "TokenVerify",
+      "response": "TokenVerifyResponse"
+    }
+  },
+  "errors": {
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.code_expired": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.code_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.credentials_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.email_or_phone_not_both": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.email_or_phone_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.email_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_change_token": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_code": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_code_attempts": {
+      "status": 400,
+      "params": [
+        "attempts_remaining"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_method": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_phone": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_phone_format": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_redirect_url": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.last_auth_method": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.magic_link_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.no_current_value": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.no_password": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.no_verified_contact": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.not_available": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.oauth_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.oauth_fields_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.passkey_challenge_expired": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.passkey_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.password_already_set": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.passwords_dont_match": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.phone_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.phone_too_long": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.qr_expired": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.qr_fulfilled": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.qr_type_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.sso_invalid_response": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.sso_not_configured": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.token_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.totp_not_pending": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.wrong_password": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.401.account_disabled": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.401.invalid_credentials": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.401.qr_auth_required": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.401.refresh_invalid": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.401.refresh_not_provided": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.401.refresh_revoked": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.401.token_invalid": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.401.token_revoked": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.401.user_not_found": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.403.mock_otp_admin": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.qr_device_mismatch": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.qr_unauth_scan": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.sso_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.403.step_up_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.change_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.passkey_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.qr_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.sso_org_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.user_for_reset": {
+      "status": 404,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.409.email_reserved": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.email_taken": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.passkey_already_registered": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.phone_reserved": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.phone_taken": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.qr_account_conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.sso_org_slug_taken": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.username_taken": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.422.blocked": {
+      "status": 422,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.account_locked": {
+      "status": 423,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.429.magic_link_rate": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.send_failed": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    }
+  },
+  "i18nKeys": [
+    "auth.error.unknown",
+    "auth.otp.enter_code",
+    "auth.otp.resend",
+    "auth.otp.sent_to",
+    "auth.passkey.no_credentials",
+    "auth.password.label",
+    "auth.session.suspicious",
+    "auth.session.this_device",
+    "auth.totp.enter_code",
+    "auth.totp.use_backup",
+    "auth.verification.choose_factor",
+    "auth.verification.success",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.code_expired",
+    "error.400.code_required",
+    "error.400.credentials_required",
+    "error.400.email_or_phone_not_both",
+    "error.400.email_or_phone_required",
+    "error.400.email_required",
+    "error.400.invalid_change_token",
+    "error.400.invalid_code",
+    "error.400.invalid_code_attempts",
+    "error.400.invalid_method",
+    "error.400.invalid_phone",
+    "error.400.invalid_phone_format",
+    "error.400.invalid_redirect_url",
+    "error.400.last_auth_method",
+    "error.400.magic_link_invalid",
+    "error.400.no_current_value",
+    "error.400.no_password",
+    "error.400.no_verified_contact",
+    "error.400.not_available",
+    "error.400.oauth_failed",
+    "error.400.oauth_fields_required",
+    "error.400.passkey_challenge_expired",
+    "error.400.passkey_invalid",
+    "error.400.password_already_set",
+    "error.400.passwords_dont_match",
+    "error.400.phone_required",
+    "error.400.phone_too_long",
+    "error.400.qr_expired",
+    "error.400.qr_fulfilled",
+    "error.400.qr_type_required",
+    "error.400.sso_invalid_response",
+    "error.400.sso_not_configured",
+    "error.400.token_required",
+    "error.400.totp_not_pending",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.400.wrong_password",
+    "error.401.account_disabled",
+    "error.401.invalid_credentials",
+    "error.401.qr_auth_required",
+    "error.401.refresh_invalid",
+    "error.401.refresh_not_provided",
+    "error.401.refresh_revoked",
+    "error.401.token_invalid",
+    "error.401.token_revoked",
+    "error.401.user_not_found",
+    "error.403.mock_otp_admin",
+    "error.403.qr_device_mismatch",
+    "error.403.qr_unauth_scan",
+    "error.403.sso_required",
+    "error.403.step_up_required",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.change_not_found",
+    "error.404.not_found",
+    "error.404.passkey_not_found",
+    "error.404.qr_not_found",
+    "error.404.sso_org_not_found",
+    "error.404.user_for_reset",
+    "error.404.verification_challenge_not_found",
+    "error.409.email_reserved",
+    "error.409.email_taken",
+    "error.409.passkey_already_registered",
+    "error.409.phone_reserved",
+    "error.409.phone_taken",
+    "error.409.qr_account_conflict",
+    "error.409.sso_org_slug_taken",
+    "error.409.username_taken",
+    "error.422.blocked",
+    "error.423.account_locked",
+    "error.423.verification_locked",
+    "error.429.magic_link_rate",
+    "error.500.send_failed",
+    "flow.auth.password_login.description",
+    "flow.auth.password_login.step.0.note",
+    "flow.auth.password_login.step.1.note",
+    "flow.auth.password_login.step.2.note",
+    "flow.auth.password_login.title",
+    "flow.auth.passwordless_login.description",
+    "flow.auth.passwordless_login.step.0.note",
+    "flow.auth.passwordless_login.step.1.note",
+    "flow.auth.passwordless_login.step.2.note",
+    "flow.auth.passwordless_login.step.3.note",
+    "flow.auth.passwordless_login.title",
+    "flow.auth.step_up_verification.description",
+    "flow.auth.step_up_verification.step.0.note",
+    "flow.auth.step_up_verification.step.1.note",
+    "flow.auth.step_up_verification.step.2.note",
+    "flow.auth.step_up_verification.step.3.note",
+    "flow.auth.step_up_verification.step.4.note",
+    "flow.auth.step_up_verification.step.5.note",
+    "flow.auth.step_up_verification.step.6.note",
+    "flow.auth.step_up_verification.title"
+  ],
+  "exports": {
+    "runtime": [
+      "AUTH_ERRORS",
+      "AUTH_ERROR_CODES",
+      "AUTH_I18N_KEYS",
+      "AnonymousSession",
+      "AuthProvider",
+      "AuthRuntimeContext",
+      "AuthenticatorChange",
+      "MagicLink",
+      "PasskeyLogin",
+      "PasskeyRegistration",
+      "PasswordChange",
+      "PasswordLogin",
+      "PasswordReset",
+      "PasswordlessLogin",
+      "QrLogin",
+      "SsoDiscovery",
+      "TotpSetup",
+      "VerificationChallenge",
+      "authErrorBundleEn",
+      "authI18nBundleEn",
+      "authQueryKeys",
+      "authUrls",
+      "createAnonymousFlow",
+      "createAuthApi",
+      "createAuthRuntime",
+      "createAuthSession",
+      "createAuthenticatorChangeFlow",
+      "createFlowMachine",
+      "createMagicLinkFlow",
+      "createOAuthFlow",
+      "createOtpFlow",
+      "createPasskeyLoginFlow",
+      "createPasskeyRegistrationFlow",
+      "createPasswordChangeFlow",
+      "createPasswordLoginFlow",
+      "createPasswordResetFlow",
+      "createQrLoginFlow",
+      "createSsoFlow",
+      "createTotpSetupFlow",
+      "createVerificationController",
+      "explainAuthError",
+      "isErrorCode",
+      "isTotpChallenge",
+      "registerAuthI18n",
+      "safeNextPath",
+      "safeScanRedirect",
+      "toFlowError",
+      "useAuditLog",
+      "useAuthAnalytics",
+      "useAuthApi",
+      "useAuthRuntime",
+      "useAuthSession",
+      "useAuthSessionState",
+      "useCancelDelayedChange",
+      "useCapabilities",
+      "useConfirmSession",
+      "useDelayedChangeStatus",
+      "useDisableTotp",
+      "useFlow",
+      "useLogout",
+      "useMe",
+      "usePasskeys",
+      "usePasswordMethods",
+      "useRemovePasskey",
+      "useRevokeOtherSessions",
+      "useRevokeSession",
+      "useSecurityStatus",
+      "useSessions",
+      "useSsoLookup",
+      "useVerification",
+      "validRedirectUrl"
+    ],
+    "types": [
+      "AnonymousBag",
+      "AnonymousFlow",
+      "AnonymousFlowDeps",
+      "AnonymousState",
+      "AuditEvent",
+      "AuditPage",
+      "AuthApi",
+      "AuthErrorCode",
+      "AuthErrorSpec",
+      "AuthI18nKey",
+      "AuthResponse",
+      "AuthRuntime",
+      "AuthSession",
+      "AuthSessionOptions",
+      "AuthSessionRecord",
+      "AuthSessionState",
+      "AuthStatus",
+      "AuthTokens",
+      "AuthUrls",
+      "AuthenticatorChangeBag",
+      "AuthenticatorChangeFlow",
+      "AuthenticatorChangeFlowDeps",
+      "AuthenticatorChangeState",
+      "Capabilities",
+      "ChangeOldVerifiedResponse",
+      "CreateAuthRuntimeOptions",
+      "DelayedChangeInitiatedResponse",
+      "DelayedChangeStatus",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "LoginCapabilities",
+      "LoginResponse",
+      "MagicLinkBag",
+      "MagicLinkFlow",
+      "MagicLinkFlowDeps",
+      "MagicLinkState",
+      "OAuthFlow",
+      "OAuthFlowDeps",
+      "OAuthProviderInfo",
+      "OAuthState",
+      "OtpChannel",
+      "OtpFlow",
+      "OtpFlowDeps",
+      "OtpRequestResponse",
+      "OtpState",
+      "Passkey",
+      "PasskeyAuthenticateBeginResponse",
+      "PasskeyLoginBag",
+      "PasskeyLoginFlow",
+      "PasskeyLoginFlowDeps",
+      "PasskeyLoginState",
+      "PasskeyRegisterBeginResponse",
+      "PasskeyRegisterState",
+      "PasskeyRegistrationBag",
+      "PasskeyRegistrationFlow",
+      "PasskeyRegistrationFlowDeps",
+      "PasswordChangeBag",
+      "PasswordChangeFlow",
+      "PasswordChangeFlowDeps",
+      "PasswordChangeMethod",
+      "PasswordChangeState",
+      "PasswordLoginBag",
+      "PasswordLoginFlow",
+      "PasswordLoginFlowDeps",
+      "PasswordLoginState",
+      "PasswordMethodEntry",
+      "PasswordMethods",
+      "PasswordResetBag",
+      "PasswordResetFlow",
+      "PasswordResetFlowDeps",
+      "PasswordResetState",
+      "PasswordlessLoginBag",
+      "QrGenerateResponse",
+      "QrLoginBag",
+      "QrLoginFlow",
+      "QrLoginFlowDeps",
+      "QrLoginState",
+      "QrStatusResponse",
+      "QrStatusValue",
+      "QrType",
+      "RefreshResponse",
+      "RegistrationCapabilities",
+      "Remediation",
+      "SecurityStatus",
+      "SessionDeviceType",
+      "SsoDiscoveryBag",
+      "SsoFlow",
+      "SsoFlowDeps",
+      "SsoLookupResponse",
+      "SsoState",
+      "StapelUser",
+      "StatusResponse",
+      "TOTPChallengeResponse",
+      "TeardownReason",
+      "TotpDisableRequest",
+      "TotpProof",
+      "TotpSetupBag",
+      "TotpSetupConfirmResponse",
+      "TotpSetupFlow",
+      "TotpSetupFlowDeps",
+      "TotpSetupResponse",
+      "TotpSetupState",
+      "VerificationChallengeBag",
+      "VerificationCompleteResponse",
+      "VerificationController",
+      "VerificationControllerDeps",
+      "VerificationEnvelope",
+      "VerificationFactorId",
+      "VerificationInitiateResponse",
+      "VerificationState",
+      "WebauthnBinding"
+    ]
+  }
+}

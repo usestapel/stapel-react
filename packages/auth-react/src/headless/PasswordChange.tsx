@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { OtpChannel } from "../api/types.js";
 import { createPasswordChangeFlow } from "../flows/passwordChangeFlow.js";
 import type { PasswordChangeState } from "../flows/passwordChangeFlow.js";
-import { useFlow } from "../flows/useFlow.js";
+import { useFlow } from "@stapel/core";
 import { useAuthAnalytics, useAuthApi } from "../model/context.js";
 
 export interface PasswordChangeBag {

@@ -59,16 +59,18 @@ export type {
   RefreshResponse,
 } from "./api/types.js";
 
-// ── flows (the reusable machine pattern — first instance) ────────────────────
-export { createFlowMachine } from "./flows/createFlowMachine.js";
+// ── flows ────────────────────────────────────────────────────────────────────
+// The flow-machine primitive now lives in `@stapel/core` (one reviewed copy for
+// every pair — frontend-core-architecture §4b). Re-exported here for one minor
+// so existing `@stapel/auth-react` imports keep resolving.
+export { createFlowMachine, useFlow, isErrorCode } from "@stapel/core";
 export type {
   FlowMachine,
   FlowMachineOptions,
   FlowStateBase,
-} from "./flows/createFlowMachine.js";
-export { useFlow } from "./flows/useFlow.js";
-export { toFlowError, isErrorCode } from "./flows/errors.js";
-export type { FlowError } from "./flows/errors.js";
+  FlowError,
+} from "@stapel/core";
+export { toFlowError } from "./flows/errors.js";
 
 export { createOtpFlow } from "./flows/otpFlow.js";
 export type { OtpFlow, OtpFlowDeps, OtpState } from "./flows/otpFlow.js";
@@ -227,3 +229,16 @@ export {
   registerAuthI18n,
 } from "./i18n/keys.js";
 export type { AuthI18nKey } from "./i18n/keys.js";
+
+// ── errors map (code → status/params/remediation/en; generated) ──────────────
+export {
+  AUTH_ERRORS,
+  AUTH_ERROR_CODES,
+  authErrorBundleEn,
+  explainAuthError,
+} from "./i18n/errorsMap.js";
+export type {
+  AuthErrorCode,
+  AuthErrorSpec,
+  Remediation,
+} from "./i18n/errorsMap.js";

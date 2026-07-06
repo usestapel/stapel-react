@@ -1,8 +1,8 @@
 import type { Analytics } from "@stapel/core";
 import type { AuthApi } from "../api/authApi.js";
 import { validRedirectUrl } from "../api/urls.js";
-import { createFlowMachine } from "./createFlowMachine.js";
-import type { FlowMachine } from "./createFlowMachine.js";
+import { createFlowMachine } from "@stapel/core";
+import type { FlowMachine } from "@stapel/core";
 import { toFlowError } from "./errors.js";
 import type { FlowError } from "./errors.js";
 

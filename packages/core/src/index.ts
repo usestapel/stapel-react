@@ -71,6 +71,20 @@ export type {
 export { useBreakpoint } from "./useBreakpoint.js";
 export type { Breakpoint } from "@stapel/tokens";
 
+// flow-machine primitive (frontend-standard §2 — the shared state container
+// every `@stapel/<module>-react` pair builds its machines on; lives here, not
+// copied per pair — frontend-core-architecture §4b). `useFlow` ships from core
+// today and relocates to `@stapel/react` on the framework-agnostic split (§3.1).
+export { createFlowMachine } from "./flows/flowMachine.js";
+export type {
+  FlowMachine,
+  FlowMachineOptions,
+  FlowStateBase,
+} from "./flows/flowMachine.js";
+export { useFlow } from "./flows/useFlow.js";
+export { toFlowError, isErrorCode } from "./flows/flowError.js";
+export type { FlowError } from "./flows/flowError.js";
+
 // generated typed API surface — openapi-typescript from the unified Stapel
 // OpenAPI (all-modules codegen source). Types only, zero runtime.
 // Regenerate: `pnpm gen:api` at the monorepo root (docs/flow-system.md §0.1).

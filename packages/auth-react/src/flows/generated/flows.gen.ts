@@ -3,9 +3,9 @@
 // Regenerate: pnpm gen:flows   ·   Drift gate: pnpm gen:flows:check
 
 /**
- * The canonical auth flow registry — the machine-facing projection of the flow
- * source (docs/flow-system.md §5). Each entry carries a flow's canonical id
- * (`flow.<id>.<step>` analytics funnel = this flow), its i18n keys, and its
+ * The canonical auth flow registry — the machine-facing projection of the
+ * flow source (docs/flow-system.md §5). Each entry carries a flow's canonical
+ * id (`flow.<id>.<step>` analytics funnel = this flow), its i18n keys, and its
  * ordered step→endpoint contract. Flow machines bind their `id` to
  * `AUTH_FLOWS[...].id` so a backend flow rename/re-step surfaces as a drift
  * here (`pnpm gen:flows:check`) rather than a silent analytics/contract skew.

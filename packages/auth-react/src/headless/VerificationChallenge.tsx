@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { VerificationFactorId } from "../api/types.js";
-import { useFlow } from "../flows/useFlow.js";
+import { useFlow } from "@stapel/core";
 import type { VerificationState } from "../flows/verificationFlow.js";
 import { useVerification } from "../model/context.js";
 
