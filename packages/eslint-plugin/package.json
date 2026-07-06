@@ -1,0 +1,54 @@
+{
+  "name": "@stapel/eslint-plugin",
+  "version": "0.1.0",
+  "description": "Stapel frontend guardrails as static lint rules (frontend-guardrails §2): no raw colours, no raw fetch, no raw-ramp imports, i18n-key existence, no hardcoded user-facing text — every rule reads the same generated artifacts (tokens manifest, i18n key registries) as the codegen, so lint and code never drift. Ships a flat-config `recommended` preset plus a self-contained stylelint preset for CSS.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usestapel/stapel-react.git",
+    "directory": "packages/eslint-plugin"
+  },
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./stylelint": "./stylelint/index.js",
+    "./stylelint/preset": "./stylelint/preset.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "rules",
+    "stylelint",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@stapel/tokens": "workspace:^"
+  },
+  "peerDependencies": {
+    "eslint": ">=9",
+    "stylelint": ">=16"
+  },
+  "peerDependenciesMeta": {
+    "stylelint": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@typescript-eslint/parser": "^8.35.0",
+    "eslint": "^9.30.0",
+    "stylelint": "^16.0.0",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
