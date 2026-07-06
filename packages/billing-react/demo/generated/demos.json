@@ -1,0 +1,86 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/billing-react",
+  "version": "0.0.0",
+  "demos": [
+    {
+      "id": "billing.pricing_table",
+      "title": "Pricing table",
+      "description": "The headless PricingTable wraps the catalogue read + Stripe Checkout mutation and exposes packages / plans / checking-out / checkoutUrl / error state. Bring your own pricing cards — the component is renderless.",
+      "component": "PricingTable",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/PricingTable.demo.tsx",
+        "line": 95
+      }
+    },
+    {
+      "id": "billing.provider",
+      "title": "Billing provider",
+      "description": "The headless billing root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "BillingProvider",
+      "covers": [],
+      "tokens": [
+        "card-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/Billing.demo.tsx",
+        "line": 24
+      }
+    },
+    {
+      "id": "billing.subscription",
+      "title": "Subscription",
+      "description": "The headless Subscription wraps the subscription read + cancel + customer-portal link and exposes plan / status / isActive / cancelling / portalUrl / error state. Bring your own UI — the component is renderless.",
+      "component": "Subscription",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/Subscription.demo.tsx",
+        "line": 89
+      }
+    },
+    {
+      "id": "billing.wallet",
+      "title": "Wallet",
+      "description": "The headless Wallet wraps the read + partial auto-recharge settings update of the caller's wallet and exposes balance / currency / saving / saved / error state. Bring your own UI — the component is renderless.",
+      "component": "Wallet",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/Wallet.demo.tsx",
+        "line": 73
+      }
+    }
+  ]
+}
