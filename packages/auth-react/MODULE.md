@@ -153,7 +153,15 @@ cache persistence is per-user via core's `setPersistUser` — call
 - **Steps/guards** — flows are plain factories; wrap or replace actions.
 - **Headless layer** — render props are replaceable by definition; shadcn-copy
   them into the app.
-- **i18n** — override any key via core's `loadLocale`.
+- **i18n** — override any key via core's `loadLocale`, or statically by
+  registering a host bundle AFTER the pair's (registration order = override
+  priority, later wins per key — i18n-shipping.md §3). Layering inside one
+  locale: generated en floor → pair polish/UI copy → pair locale bundle
+  (`@stapel/auth-react/i18n/ru`: generated from the backend's
+  `translations/errors.ru.json` catalog + hand-written ru UI copy; it registers
+  the en floor UNDER ru so a missing key degrades to English, never a raw key)
+  → host bundle last. The ru subpath is opt-in and stays out of the main entry
+  (size-limit budget + module-graph test in `test/i18nRu.test.ts`).
 
 ## Ambiguities / conflicts surfaced from auth-sa.md
 
