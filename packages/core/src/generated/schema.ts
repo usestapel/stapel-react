@@ -1692,6 +1692,53 @@ export interface paths {
         patch: operations["auth_api_sso_orgs_config_partial_update"];
         trace?: never;
     };
+    "/auth/api/staff-roles/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description List staff role assignments, optionally filtered by ?user_id=. Requires the view permission on StaffRoleAssignment (clearance HIGH under the mandate).
+         *
+         *     **Permissions:** `IsAdminUser`
+         */
+        get: operations["auth_api_staff_roles_list"];
+        put?: never;
+        /**
+         * @description Assign a staff role (a name from the STAPEL_ACCESS['ROLES'] registry) to a staff user. Idempotent: 201 on a new assignment, 200 when it already existed. Emits staff.role.assigned.
+         *
+         *     **Permissions:** `IsAdminUser`
+         */
+        post: operations["auth_api_staff_roles_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/api/staff-roles/{assignment_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * @description Revoke a staff role assignment by its id. Emits staff.role.revoked.
+         *
+         *     **Permissions:** `IsAdminUser`
+         */
+        delete: operations["auth_api_staff_roles_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/api/token/": {
         parameters: {
             query?: never;
@@ -1856,7 +1903,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Issue a step-up token after TOTP verification. Valid for 15 minutes. Pass it as X-Step-Up-Token on sensitive actions.
+         * @deprecated
+         * @description DEPRECATED (removed in 1.0). Issue a one-time step-up token after TOTP verification (valid 15 min, X-Step-Up-Token). Superseded by the unified step-up contract: guard sensitive actions with @requires_verification and drive the /verification/ envelope flow instead. For transit, a successful call ALSO writes a server-side verification grant for the LEGACY_STEP_UP_GRANT_SCOPES scopes, so deployed legacy frontends keep passing @requires_verification while the backend migrates. See auth-stepup-unification.md.
          *
          *     **Permissions:** `IsServiceRequest, IsSuperUser`
          */
@@ -2357,6 +2405,595 @@ export interface paths {
          *     **Permissions:** `AllowAny`
          */
         post: operations["billing_api_webhooks_stripe_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/categories/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description List categories with revision-based pagination.
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        get: operations["categories_api_categories_list"];
+        put?: never;
+        /**
+         * @description ViewSet for Category with revision-based synchronization.
+         *
+         *     **Sync flow:**
+         *     1. Initial sync: ``GET /categories/`` — returns all categories with revision info
+         *     2. Store ``revisions.global_max`` from the response
+         *     3. Subsequent sync: ``GET /categories/?min_revision={stored_max}`` — only changes
+         *     4. Handle items with ``deleted=true`` by removing them locally
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        post: operations["categories_api_categories_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/categories/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description ViewSet for Category with revision-based synchronization.
+         *
+         *     **Sync flow:**
+         *     1. Initial sync: ``GET /categories/`` — returns all categories with revision info
+         *     2. Store ``revisions.global_max`` from the response
+         *     3. Subsequent sync: ``GET /categories/?min_revision={stored_max}`` — only changes
+         *     4. Handle items with ``deleted=true`` by removing them locally
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        get: operations["categories_api_categories_retrieve"];
+        /**
+         * @description ViewSet for Category with revision-based synchronization.
+         *
+         *     **Sync flow:**
+         *     1. Initial sync: ``GET /categories/`` — returns all categories with revision info
+         *     2. Store ``revisions.global_max`` from the response
+         *     3. Subsequent sync: ``GET /categories/?min_revision={stored_max}`` — only changes
+         *     4. Handle items with ``deleted=true`` by removing them locally
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        put: operations["categories_api_categories_update"];
+        post?: never;
+        /**
+         * @description ViewSet for Category with revision-based synchronization.
+         *
+         *     **Sync flow:**
+         *     1. Initial sync: ``GET /categories/`` — returns all categories with revision info
+         *     2. Store ``revisions.global_max`` from the response
+         *     3. Subsequent sync: ``GET /categories/?min_revision={stored_max}`` — only changes
+         *     4. Handle items with ``deleted=true`` by removing them locally
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        delete: operations["categories_api_categories_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description ViewSet for Category with revision-based synchronization.
+         *
+         *     **Sync flow:**
+         *     1. Initial sync: ``GET /categories/`` — returns all categories with revision info
+         *     2. Store ``revisions.global_max`` from the response
+         *     3. Subsequent sync: ``GET /categories/?min_revision={stored_max}`` — only changes
+         *     4. Handle items with ``deleted=true`` by removing them locally
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        patch: operations["categories_api_categories_partial_update"];
+        trace?: never;
+    };
+    "/categories/api/categories/{id}/children/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Get all non-deleted children of this category, sorted by tn_priority descending.
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        get: operations["categories_api_categories_children_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/categories/{id}/deleted-children/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Get all deleted children of this category.
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        get: operations["categories_api_categories_deleted_children_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/categories/{id}/feature-editor/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Get feature editor state for admin UI.
+         *
+         *     **Permissions:** `IsStaffUser`
+         */
+        get: operations["categories_api_categories_feature_editor_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/categories/{id}/feature-editor/apply/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Apply feature editor actions to category and descendants.
+         *
+         *     **Permissions:** `IsStaffUser`
+         */
+        post: operations["categories_api_categories_feature_editor_apply_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/categories/{id}/feature-editor/draft/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Save feature editor draft without applying changes.
+         *
+         *     **Permissions:** `IsStaffUser`
+         */
+        post: operations["categories_api_categories_feature_editor_draft_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/categories/{id}/features/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Get all features for this category, sorted by order. Includes inherited features.
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        get: operations["categories_api_categories_features_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/categories/{id}/undelete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Restore deleted category and all its descendants.
+         *
+         *     **Permissions:** `IsStaffUser`
+         */
+        post: operations["categories_api_categories_undelete_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/categories/{id}/validate-configs/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Validate all feature configs in this category.
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        get: operations["categories_api_categories_validate_configs_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/categories/{id}/validate-dto/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Validate a features DTO against this category's schema.
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        post: operations["categories_api_categories_validate_dto_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/categories/bulk-commands/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Execute bulk commands on categories (add/edit/delete/reorder).
+         *
+         *     **Permissions:** `IsStaffUser`
+         */
+        post: operations["categories_api_categories_bulk_commands_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/categories/bulk_add/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Bulk create or update categories. Provide an array of category objects with IDs.
+         *
+         *     **Permissions:** `IsStaffUser`
+         */
+        post: operations["categories_api_categories_bulk_add_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/categories/carousel/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Get categories for carousel display (active and carousel_enabled).
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        get: operations["categories_api_categories_carousel_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/categories/data.json/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Get all data as a cacheable JSON array.
+         *
+         *     The `revision` parameter is required for cache busting - clients should use the current
+         *     max revision from `/revision` endpoint. Response includes Cache-Control header for 30 days.
+         *
+         *     **Usage:**
+         *     1. Call `/revision` to get current max revision
+         *     2. Call `/data.json?revision={max_revision}` to get all data
+         *     3. Cache the response locally - it won't change until revision changes
+         *
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        get: operations["categories_api_categories_data.json_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/categories/revision/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Get the current maximum revision number for this resource.
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        get: operations["categories_api_categories_revision_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/categories/translation-keys/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Collect all translation keys
+         * @description Collect translation keys from categories, features and feature config options.
+         *
+         *     **Permissions:** `IsServiceRequest`
+         */
+        get: operations["collect_translation_keys"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/features/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description List features with revision-based pagination.
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        get: operations["categories_api_features_list"];
+        put?: never;
+        /**
+         * @description Create a new feature with polymorphic config.
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        post: operations["categories_api_features_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/features/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Get feature details with tree structure info.
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        get: operations["categories_api_features_retrieve"];
+        /**
+         * @description Update an existing feature with polymorphic config.
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        put: operations["categories_api_features_update"];
+        post?: never;
+        /**
+         * @description Mixin for ViewSets working with RevisionMixin models.
+         *
+         *     Provides:
+         *     - Automatic revision-based filtering
+         *     - OpenAPI documentation for revision query parameters
+         *     - Optional filtering of soft-deleted items
+         *     - /revision endpoint to get current max revision
+         *
+         *     Usage:
+         *         class MyModelViewSet(RevisionViewSetMixin, viewsets.ModelViewSet):
+         *             queryset = MyModel.objects.all()
+         *             serializer_class = MyModelSerializer
+         *             pagination_class = RevisionPagination
+         *
+         *     Query parameters:
+         *     - min_revision: Return objects with revision > min_revision (default: 0)
+         *     - max_revision: Return objects with revision <= max_revision (default: None)
+         *     - include_deleted: Include soft-deleted items (default: true)
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        delete: operations["categories_api_features_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description Partially update a feature.
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        patch: operations["categories_api_features_partial_update"];
+        trace?: never;
+    };
+    "/categories/api/features/{id}/convert-type/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Convert feature type between select and string, optionally propagating to descendants.
+         *
+         *     **Permissions:** `IsStaffUser`
+         */
+        post: operations["categories_api_features_convert_type_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/features/bulk_add/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Bulk create or update features. Provide an array of feature objects with IDs.
+         *
+         *     **Permissions:** `IsStaffUser`
+         */
+        post: operations["categories_api_features_bulk_add_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/features/data.json/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Get all data as a cacheable JSON array.
+         *
+         *     The `revision` parameter is required for cache busting - clients should use the current
+         *     max revision from `/revision` endpoint. Response includes Cache-Control header for 30 days.
+         *
+         *     **Usage:**
+         *     1. Call `/revision` to get current max revision
+         *     2. Call `/data.json?revision={max_revision}` to get all data
+         *     3. Cache the response locally - it won't change until revision changes
+         *
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        get: operations["categories_api_features_data.json_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/features/revision/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Get the current maximum revision number for this resource.
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        get: operations["categories_api_features_revision_retrieve"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3749,6 +4386,17 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description * `keep` - keep
+         *     * `add` - add
+         *     * `edit` - edit
+         *     * `inherit` - inherit
+         *     * `remove` - remove
+         *     * `create` - create
+         *     * `replace` - replace
+         * @enum {string}
+         */
+        ActionEnum: "keep" | "add" | "edit" | "inherit" | "remove" | "create" | "replace";
         AdminUserCreateRequest: {
             /** Format: email */
             email?: string | null;
@@ -3839,6 +4487,32 @@ export interface components {
          * @enum {string}
          */
         AuthTypeEnum: "email" | "phone" | "oauth" | "anonymous";
+        /**
+         * @description * `keep` - keep
+         *     * `add` - add
+         *     * `edit` - edit
+         *     * `inherit` - inherit
+         *     * `remove` - remove
+         *     * `create` - create
+         *     * `replace` - replace
+         * @enum {string}
+         */
+        AvailableActionsEnum: "keep" | "add" | "edit" | "inherit" | "remove" | "create" | "replace";
+        /** @description Serializer for boolean feature configuration. */
+        BoolConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "BoolConfig";
+            trueLabel?: string | null;
+            falseLabel?: string | null;
+        };
+        /**
+         * @description * `bool` - bool
+         * @enum {string}
+         */
+        BoolConfigTypeEnum: "bool";
         /** @description Response for bulk create/update operations. */
         BulkUpdateResponse: {
             /** @description List of created/updated object IDs */
@@ -3848,6 +4522,86 @@ export interface components {
         CatalogResponse: {
             packages?: components["schemas"]["PackageResponse"][];
             plans?: components["schemas"]["PlanResponse"][];
+        };
+        /** @description Category serializer with feature references and revision tracking. */
+        Category: {
+            readonly id: number;
+            name: string;
+            slug: string;
+            /** @description CDN catalog icon reference (opaque string, e.g. catalog/asset-name) */
+            catalog_icon?: string;
+            /** @description CDN carousel icon reference (opaque string, e.g. carousel/asset-name) */
+            carousel_icon?: string;
+            /** @description Whether this category appears in the carousel */
+            carousel_enabled?: boolean;
+            /** @description Whether this category is active */
+            active?: boolean;
+            readonly features: number[];
+            /** @description If True, category name is a translation key */
+            translatable?: boolean;
+            /** Parent */
+            tn_parent?: number | null;
+            /**
+             * Priority
+             * Format: int64
+             */
+            tn_priority?: number;
+            /** Ancestors pks */
+            readonly tn_ancestors_pks: string;
+            /** Children pks */
+            readonly tn_children_pks: string;
+            readonly revision: number;
+            deleted?: boolean;
+        };
+        /** @description Serializer for bulk add/update operations — id is required. */
+        CategoryBulk: {
+            id: number;
+            name: string;
+            slug: string;
+            /** @description CDN catalog icon reference (opaque string, e.g. catalog/asset-name) */
+            catalog_icon?: string;
+            /** @description CDN carousel icon reference (opaque string, e.g. carousel/asset-name) */
+            carousel_icon?: string;
+            readonly features: number[];
+            /** Parent */
+            tn_parent?: number | null;
+            /**
+             * Priority
+             * Format: int64
+             */
+            tn_priority?: number;
+        };
+        /** @description Serializer for bulk category commands. */
+        CategoryBulkCommand: {
+            categories: components["schemas"]["CategoryCommand"][];
+        };
+        /** @description Serializer for category command pattern. */
+        CategoryCommand: {
+            /** @description Category ID (null for add command) */
+            id?: number | null;
+            /**
+             * @description Command to execute
+             *
+             *     * `keep` - keep
+             *     * `add` - add
+             *     * `edit` - edit
+             *     * `delete` - delete
+             *     * `reorder` - reorder
+             */
+            command: components["schemas"]["CommandEnum"];
+            /** @description Category name (for add/edit) */
+            name?: string;
+            /** @description Category slug (for add/edit) */
+            slug?: string;
+            /**
+             * @description If True, name is translation key
+             * @default true
+             */
+            translatable: boolean;
+            /** @description Parent category ID (for add) */
+            parent_id?: number | null;
+            /** @description Tree node priority (for add/reorder) */
+            priority?: number;
         };
         /** @description Initiate a Stripe Checkout session. */
         CheckoutRequest: {
@@ -3883,6 +4637,15 @@ export interface components {
              */
             can_cancel: boolean;
         };
+        /**
+         * @description * `keep` - keep
+         *     * `add` - add
+         *     * `edit` - edit
+         *     * `delete` - delete
+         *     * `reorder` - reorder
+         * @enum {string}
+         */
+        CommandEnum: "keep" | "add" | "edit" | "delete" | "reorder";
         /** @description Service-to-service debit (transcription/AI charge). */
         CreditDebitRequest: {
             /** Format: uuid */
@@ -3916,6 +4679,28 @@ export interface components {
              */
             total_entries: number;
         };
+        /** @description Serializer for date feature configuration. */
+        DateConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "DateConfig";
+            precision?: components["schemas"]["PrecisionEnum"];
+            minDate?: number | null;
+            maxDate?: number | null;
+            allowFuture?: boolean;
+            allowPast?: boolean;
+            default?: number | null;
+            options?: number[];
+            lockInput?: boolean;
+            placeholder?: string | null;
+        };
+        /**
+         * @description * `date` - date
+         * @enum {string}
+         */
+        DateConfigTypeEnum: "date";
         /** @description Delayed change cancelled. */
         DelayedCancelResponse: {
             /**
@@ -4048,6 +4833,25 @@ export interface components {
             email: string;
             code: string;
         };
+        /**
+         * @description * `below_minimum` - below_minimum
+         *     * `above_maximum` - above_maximum
+         *     * `not_in_options` - not_in_options
+         *     * `invalid_type` - invalid_type
+         *     * `invalid_format` - invalid_format
+         *     * `mandatory_missing` - mandatory_missing
+         *     * `duplicate_slug` - duplicate_slug
+         *     * `unknown_feature_type` - unknown_feature_type
+         *     * `not_allowed` - not_allowed
+         *     * `unknown_feature` - unknown_feature
+         *     * `description_too_short` - description_too_short
+         *     * `description_too_long` - description_too_long
+         *     * `invalid_config` - invalid_config
+         *     * `min_greater_than_max` - min_greater_than_max
+         *     * `empty_options` - empty_options
+         * @enum {string}
+         */
+        ErrorEnum: "below_minimum" | "above_maximum" | "not_in_options" | "invalid_type" | "invalid_format" | "mandatory_missing" | "duplicate_slug" | "unknown_feature_type" | "not_allowed" | "unknown_feature" | "description_too_short" | "description_too_long" | "invalid_config" | "min_greater_than_max" | "empty_options";
         /** @description Response after initiating a data export request. */
         ExportRequestDTO: {
             /**
@@ -4099,6 +4903,291 @@ export interface components {
              */
             expires_at: string | null;
         };
+        /** @description Feature serializer with polymorphic config support. */
+        Feature: {
+            readonly id: number;
+            name: string;
+            slug?: string;
+            icon?: string;
+            comment?: string;
+            readonly config: Omit<components["schemas"]["FeatureConfig"], "type">;
+            mandatory?: boolean;
+            show_as_badge?: boolean;
+            show_at_title?: boolean;
+            /**
+             * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
+             *
+             *     * `all` - All (title + options)
+             *     * `title` - Title only
+             *     * `none` - None
+             */
+            translate?: components["schemas"]["Translate2c2Enum"];
+            /** Parent */
+            tn_parent?: number | null;
+            /**
+             * Priority
+             * Format: int64
+             */
+            tn_priority?: number;
+            /** Ancestors pks */
+            readonly tn_ancestors_pks: string;
+            /** Children pks */
+            readonly tn_children_pks: string;
+            /** Descendants pks */
+            readonly tn_descendants_pks: string;
+            /** Siblings pks */
+            readonly tn_siblings_pks: string;
+        };
+        /** @description Serializer for bulk add/update operations — id is required. */
+        FeatureBulk: {
+            id: number;
+            config?: unknown;
+            readonly revision: number;
+            deleted?: boolean;
+            /** Ancestors pks */
+            readonly tn_ancestors_pks: string;
+            /** Ancestors count */
+            readonly tn_ancestors_count: number;
+            /** Children pks */
+            readonly tn_children_pks: string;
+            /** Children count */
+            readonly tn_children_count: number;
+            /** Depth */
+            readonly tn_depth: number;
+            /** Descendants pks */
+            readonly tn_descendants_pks: string;
+            /** Descendants count */
+            readonly tn_descendants_count: number;
+            /** Index */
+            readonly tn_index: number;
+            /** Level */
+            readonly tn_level: number;
+            /**
+             * Priority
+             * Format: int64
+             */
+            tn_priority?: number;
+            /** Order */
+            readonly tn_order: number;
+            /** Siblings pks */
+            readonly tn_siblings_pks: string;
+            /** Siblings count */
+            readonly tn_siblings_count: number;
+            name: string;
+            slug?: string;
+            icon?: string;
+            comment?: string;
+            mandatory?: boolean;
+            show_as_badge?: boolean;
+            show_at_title?: boolean;
+            /**
+             * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
+             *
+             *     * `all` - All (title + options)
+             *     * `title` - Title only
+             *     * `none` - None
+             */
+            translate?: components["schemas"]["Translate2c2Enum"];
+            /** @description Test/scratch data — excluded from export_catalog fixtures. */
+            is_test?: boolean;
+            /** Parent */
+            tn_parent?: number | null;
+        };
+        /** @description Compact feature serializer for list endpoints and embedded feature data. */
+        FeatureCompact: {
+            readonly id: number;
+            /** Parent */
+            tn_parent?: number | null;
+            name: string;
+            slug?: string;
+            icon?: string;
+            comment?: string;
+            readonly config: Omit<components["schemas"]["FeatureConfig"], "type">;
+            mandatory?: boolean;
+            show_as_badge?: boolean;
+            show_at_title?: boolean;
+            /**
+             * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
+             *
+             *     * `all` - All (title + options)
+             *     * `title` - Title only
+             *     * `none` - None
+             */
+            translate?: components["schemas"]["Translate2c2Enum"];
+        };
+        FeatureConfig: components["schemas"]["IntConfig"] | components["schemas"]["FloatConfig"] | components["schemas"]["StringConfig"] | components["schemas"]["BoolConfig"] | components["schemas"]["HexColorConfig"] | components["schemas"]["SelectConfig"] | components["schemas"]["DateConfig"] | components["schemas"]["HeaderConfig"] | components["schemas"]["HierarchicalSelectConfig"];
+        FeatureConvertType: {
+            /** @description New config after conversion */
+            config: {
+                [key: string]: unknown;
+            };
+            /**
+             * @description Whether to propagate to all descendants
+             * @default false
+             */
+            propagate: boolean;
+        };
+        /** @description Serializer for creating/updating features with polymorphic config. */
+        FeatureCreateUpdate: {
+            readonly id: number;
+            config?: components["schemas"]["FeatureConfig"];
+            readonly revision: number;
+            deleted?: boolean;
+            /** Ancestors pks */
+            readonly tn_ancestors_pks: string;
+            /** Ancestors count */
+            readonly tn_ancestors_count: number;
+            /** Children pks */
+            readonly tn_children_pks: string;
+            /** Children count */
+            readonly tn_children_count: number;
+            /** Depth */
+            readonly tn_depth: number;
+            /** Descendants pks */
+            readonly tn_descendants_pks: string;
+            /** Descendants count */
+            readonly tn_descendants_count: number;
+            /** Index */
+            readonly tn_index: number;
+            /** Level */
+            readonly tn_level: number;
+            /**
+             * Priority
+             * Format: int64
+             */
+            tn_priority?: number;
+            /** Order */
+            readonly tn_order: number;
+            /** Siblings pks */
+            readonly tn_siblings_pks: string;
+            /** Siblings count */
+            readonly tn_siblings_count: number;
+            name: string;
+            slug?: string;
+            icon?: string;
+            comment?: string;
+            mandatory?: boolean;
+            show_as_badge?: boolean;
+            show_at_title?: boolean;
+            /**
+             * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
+             *
+             *     * `all` - All (title + options)
+             *     * `title` - Title only
+             *     * `none` - None
+             */
+            translate?: components["schemas"]["Translate2c2Enum"];
+            /** @description Test/scratch data — excluded from export_catalog fixtures. */
+            is_test?: boolean;
+            /** Parent */
+            tn_parent?: number | null;
+        };
+        /** @description Request payload for applying feature editor changes. */
+        FeatureEditorApply: {
+            features: components["schemas"]["FeatureEditorItem"][];
+            draft?: string | null;
+            base_revision?: number | null;
+        };
+        /** @description Draft serializer for feature editor. */
+        FeatureEditorDraft: {
+            /** @default  */
+            draft: string;
+        };
+        /** @description Feature editor draft state. */
+        FeatureEditorDraftResponse: {
+            /**
+             * @description JSON-encoded draft string, null if no draft saved
+             * @example {
+             *       "features": []
+             *     }
+             */
+            draft: string | null;
+        };
+        /**
+         * @description Writable feature payload for the category feature editor.
+         *
+         *     Uses Serializer instead of ModelSerializer to avoid model-level
+         *     validation (like the unique slug constraint) since this is just a data
+         *     container for the editor.
+         */
+        FeatureEditorFeature: {
+            id?: number | null;
+            /** @default  */
+            name: string;
+            /** @default  */
+            slug: string;
+            icon?: string | null;
+            /** @default  */
+            comment: string;
+            config?: components["schemas"]["FeatureConfig"];
+            /** @default false */
+            mandatory: boolean;
+            /** @default false */
+            show_as_badge: boolean;
+            /** @default false */
+            show_at_title: boolean;
+            /**
+             * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
+             *
+             *     * `all` - all
+             *     * `title` - title
+             *     * `none` - none
+             * @default all
+             */
+            translate: components["schemas"]["FeatureEditorFeatureTranslateEnum"];
+            tn_parent?: number | null;
+            /** @default 0 */
+            tn_priority: number;
+        };
+        /**
+         * @description * `all` - all
+         *     * `title` - title
+         *     * `none` - none
+         * @enum {string}
+         */
+        FeatureEditorFeatureTranslateEnum: "all" | "title" | "none";
+        /** @description Item from the feature editor list. */
+        FeatureEditorItem: {
+            order: number;
+            action: components["schemas"]["ActionEnum"];
+            feature: components["schemas"]["FeatureEditorFeature"];
+            replace_with?: number | null;
+        };
+        /** @description Response serializer for feature editor state. */
+        FeatureEditorState: {
+            features: components["schemas"]["FeatureEditorStateItem"][];
+            available_root_features: components["schemas"]["Feature"][];
+            /** @default  */
+            draft: string;
+            revision?: number;
+        };
+        /** @description Single item in feature editor state. */
+        FeatureEditorStateItem: {
+            order: number;
+            available_actions: components["schemas"]["AvailableActionsEnum"][];
+            action: components["schemas"]["ActionEnum"];
+            feature: components["schemas"]["Feature"];
+            parent_feature?: components["schemas"]["Feature"] | null;
+        };
+        /** @description Serializer for FeatureValidationResult. */
+        FeatureValidationResult: {
+            id?: unknown;
+            slug: string;
+            status: components["schemas"]["FeatureValidationResultStatusEnum"];
+            error?: (components["schemas"]["ErrorEnum"] | components["schemas"]["NullEnum"]) | null;
+            ref_value?: unknown;
+            message?: string | null;
+            localizable_error?: string | null;
+            params?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * @description * `ok` - ok
+         *     * `validation_failed` - validation_failed
+         * @enum {string}
+         */
+        FeatureValidationResultStatusEnum: "ok" | "validation_failed";
         /** @description Notification feed item. */
         FeedItemResponse: {
             /**
@@ -4399,6 +5488,30 @@ export interface components {
              */
             message: string;
         };
+        /** @description Serializer for float feature configuration. */
+        FloatConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "FloatConfig";
+            /** Format: double */
+            min?: number | null;
+            /** Format: double */
+            max?: number | null;
+            precision?: number;
+            options?: number[] | null;
+            allowCustom?: boolean;
+            prefix?: string | null;
+            postfix?: string | null;
+            postfix1000?: string | null;
+            placeholder?: string | null;
+        };
+        /**
+         * @description * `float` - float
+         * @enum {string}
+         */
+        FloatConfigTypeEnum: "float";
         /** @description User's followers list. */
         FollowersResponse: {
             /**
@@ -4433,6 +5546,65 @@ export interface components {
             /** @description Single-use download token bound to the authenticated user. */
             token: string;
         };
+        /** @description Serializer for header feature configuration. */
+        HeaderConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "HeaderConfig";
+            style?: components["schemas"]["StyleEnum"];
+        };
+        /**
+         * @description * `header` - header
+         * @enum {string}
+         */
+        HeaderConfigTypeEnum: "header";
+        /** @description Serializer for hex color feature configuration. */
+        HexColorConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "HexColorConfig";
+            options?: components["schemas"]["HexColorOption"][];
+            allowCustom?: boolean;
+        };
+        /**
+         * @description * `hex_color` - hex_color
+         * @enum {string}
+         */
+        HexColorConfigTypeEnum: "hex_color";
+        HexColorOption: {
+            simple: string;
+            hex?: string | null;
+            label?: string | null;
+        };
+        HierarchicalOption: {
+            value: string;
+            label?: string | null;
+            icon?: string | null;
+            childrenTitle?: string | null;
+            children?: components["schemas"]["HierarchicalOption"][];
+        };
+        /** @description Serializer for hierarchical select feature configuration. */
+        HierarchicalSelectConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "null";
+            options?: components["schemas"]["HierarchicalOption"][];
+            required?: boolean;
+            minDepth?: number;
+            maxDepth?: number | null;
+            translatable_options?: boolean;
+        };
+        /**
+         * @description * `hierarchical_select` - hierarchical_select
+         * @enum {string}
+         */
+        HierarchicalSelectConfigTypeEnum: "hierarchical_select";
         /**
          * @description Serializer for Image model.
          *
@@ -4614,6 +5786,28 @@ export interface components {
              */
             expires_at: string;
         };
+        /** @description Serializer for integer feature configuration. */
+        IntConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "IntConfig";
+            min?: number | null;
+            max?: number | null;
+            options?: number[] | null;
+            allowCustom?: boolean;
+            prefix?: string | null;
+            postfix?: string | null;
+            postfix1000?: string | null;
+            placeholder?: string | null;
+            precision?: number;
+        };
+        /**
+         * @description * `int` - int
+         * @enum {string}
+         */
+        IntConfigTypeEnum: "int";
         /** @description Get-or-create result for a user's personal workspace (service-to-service). */
         InternalPersonalWorkspaceResponse: {
             /**
@@ -4849,6 +6043,8 @@ export interface components {
              */
             next_id: number | null;
         };
+        /** @enum {unknown} */
+        NullEnum: null;
         /** @description Serializer for OAuth authentication */
         OAuth: {
             provider: string;
@@ -4874,6 +6070,60 @@ export interface components {
             credits: number;
             price_cents: number;
             currency: string;
+        };
+        PaginatedCategoryList: {
+            pagination: {
+                /** @description Current page number */
+                page: number;
+                /** @description Number of items per page */
+                page_size: number;
+                /** @description Total number of pages */
+                total_pages: number;
+                /** @description Total number of items */
+                total_count: number;
+                /** @description Whether there is a next page */
+                has_next: boolean;
+                /** @description Whether there is a previous page */
+                has_previous: boolean;
+            };
+            revisions: {
+                /** @description Minimum revision in current response */
+                min: number | null;
+                /** @description Maximum revision in current response */
+                max: number | null;
+                /** @description Global maximum revision in the table */
+                global_max: number;
+                /** @description IDs of soft-deleted items since min_revision */
+                deleted_ids: number[];
+            };
+            results: components["schemas"]["Category"][];
+        };
+        PaginatedFeatureCompactList: {
+            pagination: {
+                /** @description Current page number */
+                page: number;
+                /** @description Number of items per page */
+                page_size: number;
+                /** @description Total number of pages */
+                total_pages: number;
+                /** @description Total number of items */
+                total_count: number;
+                /** @description Whether there is a next page */
+                has_next: boolean;
+                /** @description Whether there is a previous page */
+                has_previous: boolean;
+            };
+            revisions: {
+                /** @description Minimum revision in current response */
+                min: number | null;
+                /** @description Maximum revision in current response */
+                max: number | null;
+                /** @description Global maximum revision in the table */
+                global_max: number;
+                /** @description IDs of soft-deleted items since min_revision */
+                deleted_ids: number[];
+            };
+            results: components["schemas"]["FeatureCompact"][];
         };
         PaginatedFeedItemResponseList: {
             items: components["schemas"]["FeedItemResponse"][];
@@ -5035,6 +6285,91 @@ export interface components {
             phone: string;
             code: string;
             new_password: string;
+        };
+        /** @description Category serializer with feature references and revision tracking. */
+        PatchedCategory: {
+            readonly id?: number;
+            name?: string;
+            slug?: string;
+            /** @description CDN catalog icon reference (opaque string, e.g. catalog/asset-name) */
+            catalog_icon?: string;
+            /** @description CDN carousel icon reference (opaque string, e.g. carousel/asset-name) */
+            carousel_icon?: string;
+            /** @description Whether this category appears in the carousel */
+            carousel_enabled?: boolean;
+            /** @description Whether this category is active */
+            active?: boolean;
+            readonly features?: number[];
+            /** @description If True, category name is a translation key */
+            translatable?: boolean;
+            /** Parent */
+            tn_parent?: number | null;
+            /**
+             * Priority
+             * Format: int64
+             */
+            tn_priority?: number;
+            /** Ancestors pks */
+            readonly tn_ancestors_pks?: string;
+            /** Children pks */
+            readonly tn_children_pks?: string;
+            readonly revision?: number;
+            deleted?: boolean;
+        };
+        /** @description Serializer for creating/updating features with polymorphic config. */
+        PatchedFeatureCreateUpdate: {
+            readonly id?: number;
+            config?: components["schemas"]["FeatureConfig"];
+            readonly revision?: number;
+            deleted?: boolean;
+            /** Ancestors pks */
+            readonly tn_ancestors_pks?: string;
+            /** Ancestors count */
+            readonly tn_ancestors_count?: number;
+            /** Children pks */
+            readonly tn_children_pks?: string;
+            /** Children count */
+            readonly tn_children_count?: number;
+            /** Depth */
+            readonly tn_depth?: number;
+            /** Descendants pks */
+            readonly tn_descendants_pks?: string;
+            /** Descendants count */
+            readonly tn_descendants_count?: number;
+            /** Index */
+            readonly tn_index?: number;
+            /** Level */
+            readonly tn_level?: number;
+            /**
+             * Priority
+             * Format: int64
+             */
+            tn_priority?: number;
+            /** Order */
+            readonly tn_order?: number;
+            /** Siblings pks */
+            readonly tn_siblings_pks?: string;
+            /** Siblings count */
+            readonly tn_siblings_count?: number;
+            name?: string;
+            slug?: string;
+            icon?: string;
+            comment?: string;
+            mandatory?: boolean;
+            show_as_badge?: boolean;
+            show_at_title?: boolean;
+            /**
+             * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
+             *
+             *     * `all` - All (title + options)
+             *     * `title` - Title only
+             *     * `none` - None
+             */
+            translate?: components["schemas"]["Translate2c2Enum"];
+            /** @description Test/scratch data — excluded from export_catalog fixtures. */
+            is_test?: boolean;
+            /** Parent */
+            tn_parent?: number | null;
         };
         /** @description MemberUpdateRequest(role: str) */
         PatchedMemberUpdateRequest: {
@@ -5223,6 +6558,14 @@ export interface components {
             storage_limit_bytes: number;
             description: string;
         };
+        /**
+         * @description * `year` - year
+         *     * `month` - month
+         *     * `date` - date
+         *     * `datetime` - datetime
+         * @enum {string}
+         */
+        PrecisionEnum: "year" | "month" | "date" | "datetime";
         /** @description Compact serializer for viewing other user's profile. */
         ProfilePublic: {
             /**
@@ -5699,6 +7042,31 @@ export interface components {
              */
             backup_codes_remaining: number;
         };
+        /** @description Serializer for select feature configuration. */
+        SelectConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "SelectConfig";
+            options?: components["schemas"]["SelectOption"][];
+            uiStyle?: components["schemas"]["UiStyleEnum"];
+            minSelected?: number;
+            maxSelected?: number | null;
+            lockUserInput?: boolean;
+            translatable_options?: boolean;
+        };
+        /**
+         * @description * `select` - select
+         * @enum {string}
+         */
+        SelectConfigTypeEnum: "select";
+        SelectOption: {
+            value: string;
+            label: string;
+            icon?: string | null;
+            default?: boolean;
+        };
         /** @description Serializer for Service API Keys */
         ServiceAPIKey: {
             readonly id: number;
@@ -5765,6 +7133,27 @@ export interface components {
              */
             status: string;
         };
+        /**
+         * @description Assign a staff role: target user UUID + a role name from the
+         *     STAPEL_ACCESS["ROLES"] registry (validated in the service layer).
+         */
+        StaffRoleAssignRequest: {
+            /** Format: uuid */
+            user_id: string;
+            role: string;
+        };
+        /** @description One user → role assignment row (read-only representation). */
+        StaffRoleAssignment: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly user: string;
+            readonly role_name: string;
+            /** Format: uuid */
+            readonly assigned_by: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
         /** @description Structured error returned by all Stapel API endpoints. */
         StapelError: {
             /**
@@ -5787,6 +7176,34 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** @description Serializer for string feature configuration. */
+        StringConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "StringConfig";
+            minLength?: number | null;
+            maxLength?: number | null;
+            pattern?: string | null;
+            options?: string[] | null;
+            allowCustom?: boolean;
+            prefix?: string | null;
+            postfix?: string | null;
+            placeholder?: string | null;
+            translatable_options?: boolean;
+        };
+        /**
+         * @description * `string` - string
+         * @enum {string}
+         */
+        StringConfigTypeEnum: "string";
+        /**
+         * @description * `l` - l
+         *     * `m` - m
+         * @enum {string}
+         */
+        StyleEnum: "l" | "m";
         /** @description SubscriptionResponse(plan: str, status: str, stripe_subscription_id: Optional[str], current_period_start: Optional[str], current_period_end: Optional[str], cancelled_at: Optional[str]) */
         SubscriptionResponse: {
             plan: string;
@@ -5964,6 +7381,13 @@ export interface components {
             };
             created_at: string;
         };
+        /**
+         * @description * `all` - All (title + options)
+         *     * `title` - Title only
+         *     * `none` - None
+         * @enum {string}
+         */
+        Translate2c2Enum: "all" | "title" | "none";
         /** @description Serializer for translation detail view with all languages. */
         TranslationDetail: {
             readonly id: number;
@@ -6028,6 +7452,25 @@ export interface components {
             lang: string;
             verified: boolean;
         };
+        /**
+         * @description * `dropdown` - dropdown
+         *     * `checkboxes` - checkboxes
+         *     * `chips` - chips
+         * @enum {string}
+         */
+        UiStyleEnum: "dropdown" | "checkboxes" | "chips";
+        /** @description Restored soft-deleted categories. */
+        UndeleteResponse: {
+            /**
+             * @description List of restored category IDs
+             * @example [
+             *       1,
+             *       2,
+             *       3
+             *     ]
+             */
+            restored: number[];
+        };
         User: {
             /** Format: uuid */
             readonly id: string;
@@ -6063,6 +7506,16 @@ export interface components {
             readonly last_login: string | null;
             onboarding_completed?: boolean;
             profile_completed?: boolean;
+        };
+        /** @description Request serializer for validate_dto endpoint. */
+        ValidateDtoRequest: {
+            /** @description Features DTO object keyed by feature slug: {slug: {type, value, ...}} */
+            features: unknown;
+        };
+        /** @description Serializer for ValidationBatchResult. */
+        ValidationBatchResult: {
+            valid: boolean;
+            results: components["schemas"]["FeatureValidationResult"][];
         };
         /** @description Step-up verification challenge as seen by its owner. */
         VerificationChallengeInfoResponse: {
@@ -8753,6 +10206,112 @@ export interface operations {
             };
         };
     };
+    auth_api_staff_roles_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffRoleAssignment"][];
+                };
+            };
+            /** @description No response body */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_api_staff_roles_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffRoleAssignRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["StaffRoleAssignRequest"];
+                "multipart/form-data": components["schemas"]["StaffRoleAssignRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffRoleAssignment"];
+                };
+            };
+            /** @description No response body */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No response body */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No response body */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_api_staff_roles_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No response body */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No response body */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     auth_api_token_create: {
         parameters: {
             query?: never;
@@ -9700,6 +11259,793 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    categories_api_categories_list: {
+        parameters: {
+            query?: {
+                /** @description Include soft-deleted items in response. Default: true */
+                include_deleted?: boolean;
+                /** @description Return objects with revision less than or equal to this value (inclusive). Default: no limit */
+                max_revision?: number;
+                /** @description Return objects with revision greater than this value (exclusive). Omit for initial sync to get all items. */
+                min_revision?: number;
+                /** @description Page number. Default: 1 */
+                page?: number;
+                /** @description Number of items per page. Default: 100, Max: 1000 */
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedCategoryList"];
+                };
+            };
+        };
+    };
+    categories_api_categories_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Category"];
+                "application/x-www-form-urlencoded": components["schemas"]["Category"];
+                "multipart/form-data": components["schemas"]["Category"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"];
+                };
+            };
+        };
+    };
+    categories_api_categories_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this category. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"];
+                };
+            };
+        };
+    };
+    categories_api_categories_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this category. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Category"];
+                "application/x-www-form-urlencoded": components["schemas"]["Category"];
+                "multipart/form-data": components["schemas"]["Category"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"];
+                };
+            };
+        };
+    };
+    categories_api_categories_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this category. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    categories_api_categories_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this category. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedCategory"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedCategory"];
+                "multipart/form-data": components["schemas"]["PatchedCategory"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"];
+                };
+            };
+        };
+    };
+    categories_api_categories_children_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this category. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"][];
+                };
+            };
+        };
+    };
+    categories_api_categories_deleted_children_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this category. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"][];
+                };
+            };
+        };
+    };
+    categories_api_categories_feature_editor_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this category. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureEditorState"];
+                };
+            };
+        };
+    };
+    categories_api_categories_feature_editor_apply_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this category. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeatureEditorApply"];
+                "application/x-www-form-urlencoded": components["schemas"]["FeatureEditorApply"];
+                "multipart/form-data": components["schemas"]["FeatureEditorApply"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureEditorState"];
+                };
+            };
+        };
+    };
+    categories_api_categories_feature_editor_draft_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this category. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["FeatureEditorDraft"];
+                "application/x-www-form-urlencoded": components["schemas"]["FeatureEditorDraft"];
+                "multipart/form-data": components["schemas"]["FeatureEditorDraft"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureEditorDraftResponse"];
+                };
+            };
+        };
+    };
+    categories_api_categories_features_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this category. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureCompact"][];
+                };
+            };
+        };
+    };
+    categories_api_categories_undelete_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this category. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Category"];
+                "application/x-www-form-urlencoded": components["schemas"]["Category"];
+                "multipart/form-data": components["schemas"]["Category"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UndeleteResponse"];
+                };
+            };
+        };
+    };
+    categories_api_categories_validate_configs_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this category. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationBatchResult"];
+                };
+            };
+        };
+    };
+    categories_api_categories_validate_dto_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this category. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidateDtoRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ValidateDtoRequest"];
+                "multipart/form-data": components["schemas"]["ValidateDtoRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationBatchResult"];
+                };
+            };
+        };
+    };
+    categories_api_categories_bulk_commands_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryBulkCommand"];
+                "application/x-www-form-urlencoded": components["schemas"]["CategoryBulkCommand"];
+                "multipart/form-data": components["schemas"]["CategoryBulkCommand"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    categories_api_categories_bulk_add_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryBulk"][];
+                "application/x-www-form-urlencoded": components["schemas"]["CategoryBulk"][];
+                "multipart/form-data": components["schemas"]["CategoryBulk"][];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkUpdateResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    categories_api_categories_carousel_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"][];
+                };
+            };
+        };
+    };
+    "categories_api_categories_data.json_retrieve": {
+        parameters: {
+            query: {
+                /** @description Current revision number (for cache busting). Get from /revision endpoint. */
+                revision: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"];
+                };
+            };
+        };
+    };
+    categories_api_categories_revision_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaxRevision"];
+                };
+            };
+        };
+    };
+    collect_translation_keys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    categories_api_features_list: {
+        parameters: {
+            query?: {
+                /** @description Include soft-deleted items in response. Default: true */
+                include_deleted?: boolean;
+                /** @description Return objects with revision less than or equal to this value (inclusive). Default: no limit */
+                max_revision?: number;
+                /** @description Return objects with revision greater than this value (exclusive). Omit for initial sync to get all items. */
+                min_revision?: number;
+                /** @description Page number. Default: 1 */
+                page?: number;
+                /** @description Number of items per page. Default: 100, Max: 1000 */
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedFeatureCompactList"];
+                };
+            };
+        };
+    };
+    categories_api_features_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeatureCreateUpdate"];
+                "application/x-www-form-urlencoded": components["schemas"]["FeatureCreateUpdate"];
+                "multipart/form-data": components["schemas"]["FeatureCreateUpdate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Feature"];
+                };
+            };
+        };
+    };
+    categories_api_features_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this feature. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Feature"];
+                };
+            };
+        };
+    };
+    categories_api_features_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this feature. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeatureCreateUpdate"];
+                "application/x-www-form-urlencoded": components["schemas"]["FeatureCreateUpdate"];
+                "multipart/form-data": components["schemas"]["FeatureCreateUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Feature"];
+                };
+            };
+        };
+    };
+    categories_api_features_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this feature. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    categories_api_features_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this feature. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedFeatureCreateUpdate"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedFeatureCreateUpdate"];
+                "multipart/form-data": components["schemas"]["PatchedFeatureCreateUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Feature"];
+                };
+            };
+        };
+    };
+    categories_api_features_convert_type_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this feature. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeatureConvertType"];
+                "application/x-www-form-urlencoded": components["schemas"]["FeatureConvertType"];
+                "multipart/form-data": components["schemas"]["FeatureConvertType"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Feature"];
+                };
+            };
+        };
+    };
+    categories_api_features_bulk_add_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeatureBulk"][];
+                "application/x-www-form-urlencoded": components["schemas"]["FeatureBulk"][];
+                "multipart/form-data": components["schemas"]["FeatureBulk"][];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkUpdateResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    "categories_api_features_data.json_retrieve": {
+        parameters: {
+            query: {
+                /** @description Current revision number (for cache busting). Get from /revision endpoint. */
+                revision: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Feature"];
+                };
+            };
+        };
+    };
+    categories_api_features_revision_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaxRevision"];
                 };
             };
         };

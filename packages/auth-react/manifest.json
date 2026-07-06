@@ -720,6 +720,27 @@
       "request": null,
       "response": null
     },
+    "auth_api_staff_roles_create": {
+      "method": "POST",
+      "path": "/auth/api/staff-roles/",
+      "tag": "Staff Roles",
+      "request": "StaffRoleAssignRequest",
+      "response": "StaffRoleAssignment"
+    },
+    "auth_api_staff_roles_destroy": {
+      "method": "DELETE",
+      "path": "/auth/api/staff-roles/{assignment_id}/",
+      "tag": "Staff Roles",
+      "request": null,
+      "response": null
+    },
+    "auth_api_staff_roles_list": {
+      "method": "GET",
+      "path": "/auth/api/staff-roles/",
+      "tag": "Staff Roles",
+      "request": null,
+      "response": null
+    },
     "auth_api_token_create": {
       "method": "POST",
       "path": "/auth/api/token/",

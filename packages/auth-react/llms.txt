@@ -118,6 +118,9 @@ Request/response schema names are in manifest.json + the generated types.
 - auth_api_sso_orgs_retrieve: GET /auth/api/sso/orgs/{slug}/
 - auth_api_sso_saml_acs_create: POST /auth/api/sso/{slug}/saml/acs/
 - auth_api_sso_saml_metadata_retrieve: GET /auth/api/sso/{slug}/saml/metadata/
+- auth_api_staff_roles_create: POST /auth/api/staff-roles/
+- auth_api_staff_roles_destroy: DELETE /auth/api/staff-roles/{assignment_id}/
+- auth_api_staff_roles_list: GET /auth/api/staff-roles/
 - auth_api_token_create: POST /auth/api/token/
 - auth_api_token_refresh_create: POST /auth/api/token/refresh/
 - auth_api_token_refresh_retrieve: GET /auth/api/token/refresh/
