@@ -61,8 +61,22 @@ export const workspacesI18nBundleEn: I18nDictionary = {
 
 /**
  * Register workspaces-react's key bundle into a core i18n engine (call once at
- * startup). A later `loadLocale` from stapel-translate can layer localized
- * overrides on top.
+ * startup). Registers under the given locale (default `"en"`); a later
+ * `loadLocale` from stapel-translate can layer localized overrides.
+ *
+ * MERGE-PRIORITY CONVENTION (pair checklist rule; i18n-shipping.md §3 — every
+ * `@stapel/*-react` pair follows it): registration order IS override
+ * priority, later wins per key. Within a locale, layers register bottom-up:
+ *
+ *   1. generated en floor  (`WorkspacesErrorBundleEn` — coverage by construction),
+ *   2. the pair's polish / UI copy (this bundle spreads 1 then overrides),
+ *   3. the pair's locale bundle from the `./i18n/<locale>` subpath
+ *      (e.g. `registerWorkspacesI18nRu` — registers the en floor UNDER the
+ *      locale texts so a missing key degrades to English, never a raw key),
+ *   4. the HOST's own bundle — always registered LAST, so a host overrides any
+ *      pair text without a fork.
+ *
+ * Dynamic overrides (stapel-translate `loadLocale`) layer on top at runtime.
  */
 export function registerWorkspacesI18n(engine: I18nEngine, locale = "en"): void {
   engine.registerBundle(locale, workspacesI18nBundleEn);
