@@ -16,3 +16,11 @@ Etalon re-review fixes (post G1–G8 pair review):
   ("8 16") that browsers silently dropped. The canonical demos now spell the
   unit (`` `${spacing["2"]}px ${spacing["4"]}px` ``) — demos are the snippets
   agents copy, so the broken pattern must not replicate.
+- **Explicit `@stapel/core` peer range** (`>=0.3.0 <1.0.0`, floor = the release
+  that ships the flow primitive the pair re-exports) instead of `workspace:^`.
+  With a caret peer on a 0.x core, every core minor left the range and
+  Changesets force-MAJORED the pair (the unpublished pair was heading for a
+  2.0.0 first release). The wide floor+ceiling states real compatibility; the
+  new `onlyUpdatePeerDependentsWhenOutOfRange` policy in the changeset config
+  keeps in-range core bumps from cascading. Local dev linking is unchanged
+  (devDependency stays `workspace:^`).
