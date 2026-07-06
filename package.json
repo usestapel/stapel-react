@@ -35,7 +35,8 @@
     "gen": "pnpm gen:api && pnpm gen:flows && pnpm gen:errors && pnpm gen:events && pnpm gen:demos && pnpm gen:manifest && pnpm gen:tokens",
     "gen:check": "pnpm gen:api:check && pnpm gen:flows:check && pnpm gen:errors:check && pnpm gen:events:check && pnpm gen:demos:check && pnpm gen:manifest:check && pnpm gen:tokens:check",
     "showcase": "pnpm --filter @stapel/showcase-viewer dev",
-    "showcase:build": "pnpm --filter @stapel/showcase-viewer build:showcase",
+    "showcase:build": "node scripts/introspection-gate.mjs -- pnpm --filter @stapel/showcase-viewer build:showcase",
+    "introspection:gate": "node scripts/introspection-gate.mjs",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm run ci && changeset publish"
