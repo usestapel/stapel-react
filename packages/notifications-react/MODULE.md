@@ -18,7 +18,16 @@ generated `llms.txt` (agent context) and `manifest.json` (machine catalog).
 - **headless/** — render-prop components; `<NotificationsProvider>` wires the
   runtime into context. shadcn-copyable (frontend-standard §7).
 - **i18n/** — `NOTIFICATIONS_I18N_KEYS` + en bundle; the generated backend error
-  bundle is merged in so every `error.*` code has a fallback.
+  bundle is merged in so every `error.*` code has a fallback. Override any key
+  via core's `loadLocale`, or statically by registering a host bundle AFTER
+  the pair's (registration order = override priority, later wins per key —
+  i18n-shipping.md §3). Layering inside one locale: generated en floor → pair
+  polish/UI copy → pair locale bundle (`@stapel/notifications-react/i18n/ru`:
+  generated from the backend's `translations/errors.ru.json` catalog +
+  hand-written ru UI copy; it registers the en floor UNDER ru so a missing key
+  degrades to English, never a raw key) → host bundle last. The ru subpath is
+  opt-in and stays out of the main entry (size-limit budget + module-graph
+  test in `test/i18nRu.test.ts`).
 - **analytics/** — `generated/events.json`, the typed-event registry projected
   from `defineEvent` call sites + flow funnels (`pnpm gen:events`). Read by the
   analytics lint and embedded into `manifest.json`; nothing to hand-edit.
