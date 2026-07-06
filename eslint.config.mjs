@@ -6,6 +6,7 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
+import stapel from "@stapel/eslint-plugin";
 
 export default tseslint.config(
   {
@@ -41,13 +42,9 @@ export default tseslint.config(
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
-      // TODO(frontend-standard §4.2): enable a no-literal-strings rule for JSX
-      // (user-facing strings must be i18n keys). Candidates:
-      // eslint-plugin-i18next `no-literal-string` or a custom @stapel rule that
-      // whitelists i18n keys and technical attributes. Placeholder until the
-      // first L2 package lands.
-      // TODO(frontend-standard §4.1): add a no-raw-colors rule (stylelint +
-      // eslint) once styled surfaces exist; tokens-only enforcement.
+      // Guardrail enforcement (no-raw-colors, no-literal-strings, no-raw-fetch,
+      // i18n-key-exists, escape-hatch) is delivered by @stapel/eslint-plugin's
+      // recommended preset, spread below (frontend-guardrails §2).
     },
   },
   {
@@ -60,5 +57,20 @@ export default tseslint.config(
         URL: "readonly",
       },
     },
-  }
+  },
+  {
+    // @stapel/eslint-plugin's own JS source runs on Node.
+    files: ["packages/eslint-plugin/**/*.js"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+        console: "readonly",
+        URL: "readonly",
+      },
+    },
+  },
+  // Guardrail preset (frontend-guardrails §2): data-driven rules reading the
+  // generated token/i18n manifests. Spread last so its file-scoped overrides
+  // (raw-ramp imports in theme/showcase, fetch in the api layer) win.
+  ...stapel.configs.recommended
 );
