@@ -200,9 +200,27 @@ function renderLlms(m, factories, eventsJson, demosJson) {
   }
   L.push("");
   L.push("## Errors (render t(code, params); UX from remediation)");
-  for (const [code, e] of Object.entries(m.errors)) {
-    const p = e.params.length ? ` {${e.params.join(",")}}` : "";
-    L.push(`- ${code} [${e.status}] → ${e.remediation}${p}`);
+  // Digest, not catalogue: the full code→spec map is manifest.json §errors (and
+  // the generated AUTH_ERRORS). Here we keep llms.txt within its token budget
+  // (§2.4) by summarising by remediation and enumerating only the param-bearing
+  // keys — the ones an agent needs the exact `{slot}` names for.
+  const errEntries = Object.entries(m.errors);
+  const byRemediation = {};
+  for (const [, e] of errEntries)
+    byRemediation[e.remediation] = (byRemediation[e.remediation] ?? 0) + 1;
+  const histogram = Object.entries(byRemediation)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([r, n]) => `${r} ${n}`)
+    .join(" · ");
+  L.push(
+    `${errEntries.length} keys (full catalog: manifest.json §errors). By remediation: ${histogram}.`
+  );
+  const withParams = errEntries.filter(([, e]) => e.params.length);
+  if (withParams.length > 0) {
+    L.push("Param-bearing keys (interpolation slots matter):");
+    for (const [code, e] of withParams) {
+      L.push(`- ${code} [${e.status}] → ${e.remediation} {${e.params.join(",")}}`);
+    }
   }
   L.push("");
   for (const line of renderLlmsEvents(eventsJson)) L.push(line);
