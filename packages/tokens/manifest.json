@@ -1,0 +1,124 @@
+{
+  "$generated": "by scripts/gen-tokens.mjs — do not edit; drift-gated (pnpm gen:tokens:check)",
+  "package": "@stapel/tokens",
+  "version": "0.1.0",
+  "tokens": {
+    "core": [
+      "accent",
+      "accent-hover",
+      "background-brand-subtle",
+      "background-info-subtle",
+      "background-negative-subtle",
+      "background-positive-subtle",
+      "background-primary",
+      "background-secondary",
+      "background-warning-subtle",
+      "border-brand",
+      "border-primary",
+      "border-secondary",
+      "focus-ring",
+      "icon-brand",
+      "icon-primary",
+      "icon-secondary",
+      "overlay",
+      "text-brand",
+      "text-info",
+      "text-invert",
+      "text-negative",
+      "text-on-accent",
+      "text-positive",
+      "text-primary",
+      "text-secondary",
+      "text-warning",
+      "upperground-primary"
+    ],
+    "component": [
+      "button-primary-bg",
+      "button-primary-bg-hover",
+      "button-primary-text",
+      "button-secondary-bg",
+      "button-secondary-border",
+      "button-secondary-text",
+      "card-bg",
+      "card-border",
+      "danger-bg",
+      "danger-text",
+      "input-border",
+      "input-border-focus",
+      "link-text"
+    ],
+    "elevation": [
+      "high",
+      "low",
+      "medium",
+      "none"
+    ],
+    "scales": {
+      "fontFamily": [
+        "mono",
+        "sans"
+      ],
+      "fontSize": [
+        "2xl",
+        "3xl",
+        "lg",
+        "md",
+        "sm",
+        "xl",
+        "xs"
+      ],
+      "fontWeight": [
+        "bold",
+        "medium",
+        "regular",
+        "semibold"
+      ],
+      "spacing": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "radii": [
+        "full",
+        "lg",
+        "md",
+        "none",
+        "sm",
+        "xl"
+      ],
+      "breakpoints": [
+        "desktop",
+        "phone",
+        "tablet"
+      ]
+    }
+  },
+  "ramps": {
+    "$note": "L1 raw ramps — hex source of truth; NOT a CSS API (no --stapel-raw-*). Reachable only via @stapel/tokens/raw.",
+    "names": [
+      "amber",
+      "blue",
+      "brand",
+      "gray",
+      "green",
+      "red",
+      "scrim"
+    ]
+  },
+  "usage": {
+    "tailwind": "bg-background-primary / text-text-primary / border-border-primary / bg-button-primary-bg (static utilities; import @stapel/tokens/tailwind.css)",
+    "css": "var(--stapel-color-<core>) · var(--stapel-<component>)",
+    "ts": "cssVar(\"color-accent\")",
+    "forbidden": [
+      "hex/rgb/hsl literals in component code (hex is born only in ramps)",
+      "raw ramps in components (@stapel/tokens/raw is theme-config/showcase only)",
+      "Tailwind arbitrary values with interpolation (bg-[${x}]) — JIT-invisible"
+    ]
+  }
+}

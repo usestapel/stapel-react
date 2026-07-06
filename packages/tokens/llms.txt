@@ -1,0 +1,34 @@
+# @stapel/tokens 0.1.0
+
+Three-tier design tokens (frontend-guardrails §1). Generated from theme.default.json;
+code is never hand-edited. Theme switches via a `data-theme` attribute on the root —
+never a JS re-render, never reading hex at runtime.
+
+## The one right way (do this; anything else is a lint/review smell)
+- Tailwind (canonical, static utilities — import `@stapel/tokens/tailwind.css`):
+    <div class="bg-background-primary text-text-primary border-border-primary">
+    <button class="bg-button-primary-bg text-button-primary-text">
+- Plain CSS: `color: var(--stapel-color-text-primary)` ·
+    `background: var(--stapel-button-primary-bg)`
+- TS: `cssVar("color-accent")` → `var(--stapel-color-accent)` (typed; typos fail to compile)
+
+## Never (closed by construction and/or lint)
+- hex/rgb/hsl literals in components — hex is born ONLY in ramps (theme.json).
+- raw ramps (`gray.500`, `@stapel/tokens/raw`) in components — theme-config/showcase only;
+  raw ramps are NOT CSS vars, there is no `--stapel-raw-*` to reference.
+- Tailwind arbitrary values with interpolation (`bg-[${x}]`) — JIT cannot see them.
+- theme-dependent component tokens — L3 is a var() ref; light/dark ends at L2.
+
+## Levels
+L1 ramps (raw hex) → L2 core (semantic, {light,dark} pair) → L3 component (1 core ref).
+A core token missing a pair, or a component token with ≠1 core ref, is a BUILD ERROR.
+
+## Core tokens (L2 — `--stapel-color-<name>`, Tailwind `*-<name>`)
+accent, accent-hover, background-brand-subtle, background-info-subtle, background-negative-subtle, background-positive-subtle, background-primary, background-secondary, background-warning-subtle, border-brand, border-primary, border-secondary, focus-ring, icon-brand, icon-primary, icon-secondary, overlay, text-brand, text-info, text-invert, text-negative, text-on-accent, text-positive, text-primary, text-secondary, text-warning, upperground-primary
+
+## Component tokens (L3 — `--stapel-<name>`, Tailwind `*-<name>`)
+button-primary-bg, button-primary-bg-hover, button-primary-text, button-secondary-bg, button-secondary-border, button-secondary-text, card-bg, card-border, danger-bg, danger-text, input-border, input-border-focus, link-text
+
+## Non-colour scales (`--stapel-space-*`, `-radius-*`, `-font-size-*`, `-elevation-*`)
+spacing: 0, 1, 2, 3, 4, 5, 6, 7, 8 · radii: none, sm, md, lg, xl, full
+fontSize: xs, sm, md, lg, xl, 2xl, 3xl · fontWeight: regular, medium, semibold, bold

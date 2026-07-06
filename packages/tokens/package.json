@@ -1,7 +1,7 @@
 {
   "name": "@stapel/tokens",
   "version": "0.1.0",
-  "description": "Stapel design tokens: semantic colors (light/dark pairs), typography, spacing, radii, elevation, and the three breakpoints. TypeScript source of truth + generated CSS custom properties. Not components.",
+  "description": "Stapel design tokens: three-tier colour system (raw ramps → semantic core light/dark pairs → component tokens) generated from theme.json, plus typography, spacing, radii, elevation, and the three breakpoints. CSS custom properties + typed names + a vanilla-Tailwind bridge. Not components.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -17,17 +17,29 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./tokens.css": "./dist/tokens.css",
+    "./raw": {
+      "types": "./dist/generated/raw.d.ts",
+      "default": "./dist/generated/raw.js"
+    },
+    "./tokens.css": "./src/generated/tokens.css",
+    "./tailwind.css": "./src/generated/tailwind.css",
+    "./theme.default.json": "./theme.default.json",
+    "./manifest.json": "./manifest.json",
+    "./llms.txt": "./llms.txt",
     "./package.json": "./package.json"
   },
   "files": [
     "dist",
     "src",
+    "theme.default.json",
+    "ramps.standard.json",
+    "manifest.json",
+    "llms.txt",
     "tsconfig.json",
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && node ./scripts/build-css.mjs",
+    "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "lint": "eslint .",
     "size": "size-limit"
@@ -35,12 +47,14 @@
   "size-limit": [
     {
       "path": "dist/index.js",
-      "limit": "4 KB"
+      "limit": "10 KB"
     }
   ],
   "devDependencies": {
     "@size-limit/preset-small-lib": "^11.2.0",
+    "@tailwindcss/cli": "^4.1.0",
     "size-limit": "^11.2.0",
+    "tailwindcss": "^4.1.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   },

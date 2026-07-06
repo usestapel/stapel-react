@@ -1,0 +1,50 @@
+{
+  "_comment": "Standard raw colour ramps baked into @stapel/tokens (L1). This is the ONE place hex is born. Steps follow the 50–950 grid; values are theme-independent. A host adds custom ramps in its theme's `ramps` section (they merge on top of these). Ramps are NOT emitted as CSS custom properties — they are inlined into core-token definitions at generation time, so there is no `--stapel-raw-*` to reference (bypass closed by absence of API). Reachable in code only via the `@stapel/tokens/raw` subpath (theme-config + showcase; lint-guarded elsewhere).",
+  "gray": {
+    "25": "#ffffff",
+    "50": "#fafafb",
+    "100": "#f4f5f7",
+    "200": "#e8eaee",
+    "300": "#d9dde3",
+    "400": "#aeb6c2",
+    "500": "#7b828f",
+    "600": "#5c6470",
+    "700": "#3d4759",
+    "800": "#2a3242",
+    "850": "#1c2230",
+    "900": "#151a23",
+    "950": "#0b0e14"
+  },
+  "blue": {
+    "100": "#e9f4fb",
+    "300": "#6cb8e8",
+    "500": "#1168a7",
+    "700": "#0d4f80",
+    "900": "#12293a"
+  },
+  "red": {
+    "100": "#fdeeee",
+    "300": "#f28b8b",
+    "500": "#c93a3a",
+    "700": "#a12d2d",
+    "900": "#3a2020"
+  },
+  "green": {
+    "100": "#eaf7f0",
+    "300": "#6fd0a0",
+    "500": "#1f7a4d",
+    "700": "#175c3a",
+    "900": "#152e22"
+  },
+  "amber": {
+    "100": "#fdf6e7",
+    "300": "#e8b34b",
+    "500": "#9a6700",
+    "700": "#7a5100",
+    "900": "#33270f"
+  },
+  "scrim": {
+    "medium": "rgba(15, 18, 24, 0.45)",
+    "strong": "rgba(0, 0, 0, 0.6)"
+  }
+}
