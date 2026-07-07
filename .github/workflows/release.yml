@@ -32,6 +32,50 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # `pnpm run release` = `pnpm run ci && changeset publish` — the same
+      # codegen drift gate as ci.yml runs, so a release can't ship generated
+      # code (schema.ts, flows, error maps, manifests) that has drifted from
+      # the backend contract. That gate reads its sources from sibling repos —
+      # checked out here exactly as ci.yml does.
+      - name: Check out codegen source (monolith schema.json + flows.json)
+        uses: actions/checkout@v4
+        with:
+          repository: usestapel/stapel-example-monolith
+          path: .codegen-source
+
+      - name: Check out error-registry artifact (stapel-auth)
+        uses: actions/checkout@v4
+        with:
+          repository: usestapel/stapel-auth
+          path: .errors-source/stapel-auth
+
+      # gen:errors / gen:manifest hardcode `../stapel-<module>` for the
+      # notifications/profiles/billing/workspaces pairs (package.json scripts),
+      # so those four need true sibling checkouts, not nested ones.
+      - name: Check out stapel-notifications (errors.json + pyproject.toml)
+        uses: actions/checkout@v4
+        with:
+          repository: usestapel/stapel-notifications
+          path: ../stapel-notifications
+
+      - name: Check out stapel-profiles (errors.json + pyproject.toml)
+        uses: actions/checkout@v4
+        with:
+          repository: usestapel/stapel-profiles
+          path: ../stapel-profiles
+
+      - name: Check out stapel-billing (errors.json + pyproject.toml)
+        uses: actions/checkout@v4
+        with:
+          repository: usestapel/stapel-billing
+          path: ../stapel-billing
+
+      - name: Check out stapel-workspaces (errors.json + pyproject.toml)
+        uses: actions/checkout@v4
+        with:
+          repository: usestapel/stapel-workspaces
+          path: ../stapel-workspaces
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -60,3 +104,7 @@ jobs:
           # The first publish of each package is bootstrapped locally
           # (`pnpm -r publish`), then a trusted publisher is configured on npm.
           NPM_CONFIG_PROVENANCE: "true"
+          API_SCHEMA: ${{ github.workspace }}/.codegen-source/codegen/generated/schema.json
+          FLOWS_JSON: ${{ github.workspace }}/.codegen-source/codegen/generated/flows.json
+          AUTH_ERRORS_JSON: ${{ github.workspace }}/.errors-source/stapel-auth/docs/errors.json
+          MANIFEST_BACKEND_PYPROJECT: ${{ github.workspace }}/.errors-source/stapel-auth/pyproject.toml
