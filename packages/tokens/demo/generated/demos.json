@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/tokens",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "demos": [
     {
       "id": "tokens.palette",

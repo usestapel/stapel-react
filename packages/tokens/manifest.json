@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-tokens.mjs — do not edit; drift-gated (pnpm gen:tokens:check)",
   "package": "@stapel/tokens",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "tokens": {
     "core": [
       "accent",
