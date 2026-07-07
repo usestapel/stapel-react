@@ -50,31 +50,38 @@ jobs:
           path: .errors-source/stapel-auth
 
       # gen:errors / gen:manifest hardcode `../stapel-<module>` for the
-      # notifications/profiles/billing/workspaces pairs (package.json scripts),
-      # so those four need true sibling checkouts, not nested ones.
+      # notifications/profiles/billing/workspaces pairs (package.json scripts).
+      # actions/checkout refuses a path outside the workspace root, so these
+      # land nested and get symlinked into place below.
       - name: Check out stapel-notifications (errors.json + pyproject.toml)
         uses: actions/checkout@v4
         with:
           repository: usestapel/stapel-notifications
-          path: ../stapel-notifications
+          path: .other-source/stapel-notifications
 
       - name: Check out stapel-profiles (errors.json + pyproject.toml)
         uses: actions/checkout@v4
         with:
           repository: usestapel/stapel-profiles
-          path: ../stapel-profiles
+          path: .other-source/stapel-profiles
 
       - name: Check out stapel-billing (errors.json + pyproject.toml)
         uses: actions/checkout@v4
         with:
           repository: usestapel/stapel-billing
-          path: ../stapel-billing
+          path: .other-source/stapel-billing
 
       - name: Check out stapel-workspaces (errors.json + pyproject.toml)
         uses: actions/checkout@v4
         with:
           repository: usestapel/stapel-workspaces
-          path: ../stapel-workspaces
+          path: .other-source/stapel-workspaces
+
+      - name: Symlink sibling repos to where gen:errors/gen:manifest expect them
+        run: |
+          for m in stapel-notifications stapel-profiles stapel-billing stapel-workspaces; do
+            ln -sf "$GITHUB_WORKSPACE/.other-source/$m" "$GITHUB_WORKSPACE/../$m"
+          done
 
       - uses: actions/setup-node@v4
         with:
