@@ -1,6 +1,6 @@
 {
   "name": "@stapel/showcase",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Stapel design-system showcase format (frontend-guardrails §4): defineDemo — a literal, statically-extractable demo registration. The source format behind manifest.demos, canonical llms.txt snippets, generated CSF stories, and the headless-coverage completeness gate. Viewer-agnostic; not components.",
   "license": "MIT",
   "repository": {
