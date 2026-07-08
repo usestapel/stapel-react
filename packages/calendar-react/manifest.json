@@ -1,0 +1,603 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/calendar-react",
+  "version": "0.2.0",
+  "backend": {
+    "module": "stapel-calendar",
+    "contract": ">=0.2 <0.3"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "calendar_api_availability_retrieve": {
+      "method": "GET",
+      "path": "/calendar/api/availability",
+      "tag": "Calendar",
+      "request": null,
+      "response": "AvailabilityResponse"
+    },
+    "calendar_api_calendar_retrieve": {
+      "method": "GET",
+      "path": "/calendar/api/calendar",
+      "tag": "Calendar",
+      "request": null,
+      "response": "CalendarResponse"
+    },
+    "calendar_api_events_create": {
+      "method": "POST",
+      "path": "/calendar/api/events",
+      "tag": "Calendar",
+      "request": "EventCreateRequest",
+      "response": "EventResponse"
+    },
+    "calendar_api_events_destroy": {
+      "method": "DELETE",
+      "path": "/calendar/api/events/{event_id}",
+      "tag": "Calendar",
+      "request": null,
+      "response": "EventResponse"
+    },
+    "calendar_api_events_ics_retrieve": {
+      "method": "GET",
+      "path": "/calendar/api/events/{event_id}/ics",
+      "tag": "Calendar",
+      "request": null,
+      "response": null
+    },
+    "calendar_api_events_list": {
+      "method": "GET",
+      "path": "/calendar/api/events",
+      "tag": "Calendar",
+      "request": null,
+      "response": null
+    },
+    "calendar_api_events_respond_create": {
+      "method": "POST",
+      "path": "/calendar/api/events/{event_id}/respond",
+      "tag": "Calendar",
+      "request": "RSVPRequest",
+      "response": "EventResponse"
+    },
+    "calendar_api_events_retrieve": {
+      "method": "GET",
+      "path": "/calendar/api/events/{event_id}",
+      "tag": "Calendar",
+      "request": null,
+      "response": "EventResponse"
+    }
+  },
+  "hooks": {
+    "useAvailability": {
+      "kind": "query",
+      "operation": "availability",
+      "queryKey": [
+        "calendar",
+        "availability",
+        "{params}"
+      ]
+    },
+    "useCalendar": {
+      "kind": "query",
+      "operation": "calendar",
+      "queryKey": [
+        "calendar",
+        "range",
+        "{params}"
+      ]
+    },
+    "useCreateEvent": {
+      "kind": "mutation",
+      "operation": "createEvent",
+      "invalidates": [
+        [
+          "calendar"
+        ]
+      ]
+    },
+    "useDeleteEvent": {
+      "kind": "mutation",
+      "operation": "deleteEvent",
+      "invalidates": [
+        [
+          "calendar"
+        ]
+      ]
+    },
+    "useEvent": {
+      "kind": "query",
+      "operation": "getEvent",
+      "queryKey": [
+        "calendar",
+        "event",
+        "{eventId}"
+      ]
+    },
+    "useEvents": {
+      "kind": "query",
+      "operation": "listEvents",
+      "queryKey": [
+        "calendar",
+        "events",
+        "{params}"
+      ]
+    },
+    "useRespondToEvent": {
+      "kind": "mutation",
+      "operation": "respond",
+      "invalidates": [
+        [
+          "calendar"
+        ]
+      ]
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.calendar_invalid_range": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.calendar_invalid_recurrence": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.calendar_invalid_rsvp": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.calendar_invalid_slot_minutes": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.calendar_not_event_owner": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.calendar_event_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.calendar_not_invited": {
+      "status": 404,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "calendar.composer",
+      "title": "Event composer",
+      "description": "The headless EventComposer wraps the create-event mutation; on success the pair invalidates the calendar reads. Bring your own form UI — the component is renderless.",
+      "component": "EventComposer",
+      "tokens": [
+        "card-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/EventComposer.demo.tsx"
+    },
+    {
+      "id": "calendar.provider",
+      "title": "Calendar provider",
+      "description": "The headless calendar root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "CalendarProvider",
+      "tokens": [
+        "card-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/Calendar.demo.tsx"
+    },
+    {
+      "id": "calendar.rsvp",
+      "title": "Event RSVP",
+      "description": "The headless EventRsvp wraps the respond mutation for one event (accepted/tentative/declined). Bring your own control UI — the component is renderless.",
+      "component": "EventRsvp",
+      "tokens": [
+        "card-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/EventRsvp.demo.tsx"
+    },
+    {
+      "id": "calendar.view",
+      "title": "Calendar view",
+      "description": "The headless CalendarView reads the user's events + expanded series occurrences over a range. Bring your own month/week/day grid — the component is renderless.",
+      "component": "CalendarView",
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/CalendarView.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "calendar.composer.create",
+    "calendar.composer.created",
+    "calendar.composer.creating",
+    "calendar.error.unknown",
+    "calendar.rsvp.accept",
+    "calendar.rsvp.decline",
+    "calendar.rsvp.responding",
+    "calendar.rsvp.tentative",
+    "calendar.view.empty",
+    "calendar.view.error",
+    "calendar.view.loading",
+    "calendar.view.retry",
+    "error.400.bad_request",
+    "error.400.calendar_invalid_range",
+    "error.400.calendar_invalid_recurrence",
+    "error.400.calendar_invalid_rsvp",
+    "error.400.calendar_invalid_slot_minutes",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.calendar_not_event_owner",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.calendar_event_not_found",
+    "error.404.calendar_not_invited",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal"
+  ],
+  "exports": {
+    "runtime": [
+      "CALENDAR_ERRORS",
+      "CALENDAR_ERROR_CODES",
+      "CALENDAR_FLOWS",
+      "CALENDAR_I18N_KEYS",
+      "CalendarProvider",
+      "CalendarRuntimeContext",
+      "CalendarView",
+      "EventComposer",
+      "EventRsvp",
+      "calendarErrorBundleEn",
+      "calendarI18nBundleEn",
+      "calendarQueryKeys",
+      "createCalendarApi",
+      "createCalendarRuntime",
+      "createFlowMachine",
+      "eventIcsUrl",
+      "explainCalendarError",
+      "flowEndpoints",
+      "isErrorCode",
+      "isSubmittableRsvp",
+      "registerCalendarI18n",
+      "toFlowError",
+      "useAvailability",
+      "useCalendar",
+      "useCalendarAnalytics",
+      "useCalendarApi",
+      "useCalendarRuntime",
+      "useCreateEvent",
+      "useDeleteEvent",
+      "useEvent",
+      "useEvents",
+      "useFlow",
+      "useRespondToEvent"
+    ],
+    "types": [
+      "AvailabilityParams",
+      "AvailabilityResponse",
+      "CalendarApi",
+      "CalendarErrorCode",
+      "CalendarErrorSpec",
+      "CalendarEvent",
+      "CalendarFlowId",
+      "CalendarFlowSpec",
+      "CalendarI18nKey",
+      "CalendarRangeParams",
+      "CalendarResponse",
+      "CalendarRuntime",
+      "CalendarViewBag",
+      "CreateCalendarRuntimeOptions",
+      "EventComposerBag",
+      "EventCreateRequest",
+      "EventRsvpBag",
+      "EventStatus",
+      "FlowEndpoint",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "Interval",
+      "Occurrence",
+      "Participant",
+      "ParticipantRsvp",
+      "RecurrenceType",
+      "Remediation",
+      "RespondVariables",
+      "Rsvp",
+      "Schemas"
+    ]
+  }
+}

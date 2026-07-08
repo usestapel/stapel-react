@@ -1,0 +1,84 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/calendar-react",
+  "version": "0.2.0",
+  "demos": [
+    {
+      "id": "calendar.composer",
+      "title": "Event composer",
+      "description": "The headless EventComposer wraps the create-event mutation; on success the pair invalidates the calendar reads. Bring your own form UI — the component is renderless.",
+      "component": "EventComposer",
+      "covers": [],
+      "tokens": [
+        "card-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/EventComposer.demo.tsx",
+        "line": 79
+      }
+    },
+    {
+      "id": "calendar.provider",
+      "title": "Calendar provider",
+      "description": "The headless calendar root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "CalendarProvider",
+      "covers": [],
+      "tokens": [
+        "card-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/Calendar.demo.tsx",
+        "line": 24
+      }
+    },
+    {
+      "id": "calendar.rsvp",
+      "title": "Event RSVP",
+      "description": "The headless EventRsvp wraps the respond mutation for one event (accepted/tentative/declined). Bring your own control UI — the component is renderless.",
+      "component": "EventRsvp",
+      "covers": [],
+      "tokens": [
+        "card-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/EventRsvp.demo.tsx",
+        "line": 78
+      }
+    },
+    {
+      "id": "calendar.view",
+      "title": "Calendar view",
+      "description": "The headless CalendarView reads the user's events + expanded series occurrences over a range. Bring your own month/week/day grid — the component is renderless.",
+      "component": "CalendarView",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/CalendarView.demo.tsx",
+        "line": 111
+      }
+    }
+  ]
+}
