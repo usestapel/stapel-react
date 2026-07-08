@@ -1,6 +1,15 @@
 # @stapel/auth-react
 
-## 1.1.0
+## 0.2.0
+
+Version reset: this release was previously tagged `1.0.0`/`1.1.0` in error. The
+ecosystem is pre-1.0 (semver convention here: minor = breaking) and every other
+pair sits at 0.x; auth-react's 1.x came from an unadjusted `npm init` default on
+the hand-built etalon, before the scaffold (which correctly emits `0.0.0`)
+existed. The erroneous pre-contract `1.0.0` was unpublished from npm (<72h
+window) and never had a real release under that number. The entries below are
+the unified, renumbered history of both former sections — no changes were
+added, removed, or altered.
 
 ### Minor Changes
 
@@ -133,6 +142,24 @@ title, description, component, covers?, flow?, tokens?, decorator?, variants })`
   **`@stapel/tokens`**: a `Token palette` auto-demo that enumerates the generated
   token surface (L1 ramps, L2 core live var-refs, L3 component, scales) — always
   reflects the catalog, never a hardcoded list.
+
+- 809b706: New package: headless React auth flow pair for stapel-auth (frontend-standard
+  §2), built on `@stapel/core`. First instance of the framework's
+  `createFlowMachine` pattern (typed steps, human-wait vs async `run`,
+  auto-instrumented `flow.<id>.<step>` analytics).
+
+  Full journeys: Email/Phone OTP, password login (with TOTP challenge branch),
+  password change/reset, the step-up **verification factor flow** wired into
+  core's verification-403 interception (the flagship cross-module seam), TOTP
+  setup, OAuth token exchange, sessions, token refresh with rotation + teardown,
+  QR login polling, magic-link request, anonymous, instant authenticator change,
+  and SSO discovery. Passkeys + the passkey verification factor are flow-complete
+  with a thin injectable WebAuthn binding (see MODULE.md).
+
+  Ships typed API client (CSRF on mutations), open-redirect guards (§19.2),
+  namespaced TanStack Query hooks/mutations, `createAuthRuntime` (session token
+  seam + verification controller wired into the client), render-prop headless
+  components, and an i18n key bundle.
 
 ### Patch Changes
 
@@ -277,33 +304,6 @@ title, description, component, covers?, flow?, tokens?, decorator?, variants })`
     and report (G5) read. `gen:manifest` embeds it into `manifest.json` (`events`)
     and `llms.txt`. auth-react ships its funnel registry and a typed-events
     demonstration (no full annotation of the pair).
-
-## 1.0.0
-
-### Minor Changes
-
-- 809b706: New package: headless React auth flow pair for stapel-auth (frontend-standard
-  §2), built on `@stapel/core`. First instance of the framework's
-  `createFlowMachine` pattern (typed steps, human-wait vs async `run`,
-  auto-instrumented `flow.<id>.<step>` analytics).
-
-  Full journeys: Email/Phone OTP, password login (with TOTP challenge branch),
-  password change/reset, the step-up **verification factor flow** wired into
-  core's verification-403 interception (the flagship cross-module seam), TOTP
-  setup, OAuth token exchange, sessions, token refresh with rotation + teardown,
-  QR login polling, magic-link request, anonymous, instant authenticator change,
-  and SSO discovery. Passkeys + the passkey verification factor are flow-complete
-  with a thin injectable WebAuthn binding (see MODULE.md).
-
-  Ships typed API client (CSRF on mutations), open-redirect guards (§19.2),
-  namespaced TanStack Query hooks/mutations, `createAuthRuntime` (session token
-  seam + verification controller wired into the client), render-prop headless
-  components, and an i18n key bundle.
-
-  Not released — Opus-authored first instance, awaits independent adversarial
-  review.
-
-### Patch Changes
 
 - Updated dependencies [5dfa61e]
   - @stapel/core@0.2.0
