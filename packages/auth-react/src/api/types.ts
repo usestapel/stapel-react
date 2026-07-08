@@ -2,10 +2,11 @@
  * Wire types for the stapel-auth HTTP contract — **derived from the generated
  * OpenAPI surface**, not hand-maintained (frontend-standard §2/§3).
  *
- * The single source of truth is `components["schemas"]` from `@stapel/core`
- * (`packages/core/src/generated/schema.ts`, produced by `pnpm gen:api` from the
- * unified all-modules OpenAPI). This module is a thin *adapter* over that
- * surface: it re-exports the generated schemas under the names the pair uses
+ * The single source of truth is `components["schemas"]` from this pair's own
+ * package-LOCAL generated schema (`./generated/schema.js`, produced by
+ * `pnpm gen:api` from stapel-auth's OWN `docs/schema.json` — the §17-native
+ * per-module contract, not the unified monolith). This module is a thin
+ * *adapter* over that surface: it re-exports the generated schemas under the names the pair uses
  * and applies three small, documented corrections where drf-spectacular +
  * openapi-typescript under-describe the runtime contract:
  *
@@ -22,7 +23,7 @@
  * alias — no parallel definitions. Only genuinely un-generated shapes remain
  * hand-authored, each flagged with WHY the codegen does not cover it.
  */
-import type { components } from "@stapel/core";
+import type { components } from "./generated/schema.js";
 
 /** The generated schema table — the one source of truth for wire shapes. */
 type Schemas = components["schemas"];
