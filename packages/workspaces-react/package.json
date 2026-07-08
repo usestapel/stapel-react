@@ -1,6 +1,6 @@
 {
   "name": "@stapel/workspaces-react",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Headless React flow pair for stapel-workspaces: typed API client, TanStack Query hooks, flow machines, headless components, and i18n keys. Zero visual opinion.",
   "license": "MIT",
   "repository": {

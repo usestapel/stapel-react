@@ -1,4 +1,4 @@
-# @stapel/notifications-react 0.1.0
+# @stapel/notifications-react 0.3.0
 
 Headless React flow pair for stapel-notifications (contract >=0.3 <0.4) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,

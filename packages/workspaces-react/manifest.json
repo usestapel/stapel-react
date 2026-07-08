@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/workspaces-react",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "backend": {
     "module": "stapel-workspaces",
     "contract": ">=0.3 <0.4"
