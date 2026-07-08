@@ -1,5 +1,5 @@
 ---
-"@stapel/calendar-react": minor
+"@stapel/calendar-react": patch
 ---
 
 New pair: **`@stapel/calendar-react`** — the headless React pair for

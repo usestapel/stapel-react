@@ -1,5 +1,5 @@
 ---
-"@stapel/recordings-react": minor
+"@stapel/recordings-react": patch
 ---
 
 New pair: **`@stapel/recordings-react`** — the headless React pair for

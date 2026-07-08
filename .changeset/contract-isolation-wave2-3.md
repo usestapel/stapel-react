@@ -1,9 +1,9 @@
 ---
-"@stapel/auth-react": minor
-"@stapel/notifications-react": minor
-"@stapel/profiles-react": minor
-"@stapel/billing-react": minor
-"@stapel/workspaces-react": minor
+"@stapel/auth-react": patch
+"@stapel/notifications-react": patch
+"@stapel/profiles-react": patch
+"@stapel/billing-react": patch
+"@stapel/workspaces-react": patch
 ---
 
 §17 arch-contract-pipeline Wave 2 + Wave 3 — the five original pairs are now
