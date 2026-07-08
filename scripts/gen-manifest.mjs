@@ -17,7 +17,7 @@
 //   MANIFEST_PKG_DIR   package dir (default packages/auth-react)
 //   MANIFEST_MODULE    backend module name (default "stapel-auth")
 //   MANIFEST_TAGPREFIX operation path prefix filter (default "/auth/api/")
-//   API_SCHEMA         source schema.json (default sibling monolith)
+//   API_SCHEMA         source schema.json (default ../<MANIFEST_MODULE>/docs/schema.json)
 //
 //   node scripts/gen-manifest.mjs      # generate
 //   pnpm gen:manifest                  # generate (root script)
@@ -35,9 +35,12 @@ const ROOT = resolve(__dirname, "..");
 const PKG_DIR = resolve(ROOT, process.env.MANIFEST_PKG_DIR ?? "packages/auth-react");
 const MODULE = process.env.MANIFEST_MODULE ?? "stapel-auth";
 const PATH_PREFIX = process.env.MANIFEST_TAGPREFIX ?? "/auth/api/";
+// §17-native per-module contract: the schema source is the backend module's
+// own committed docs/schema.json (default: the auth pair, matching the other
+// auth defaults above). The monolith aggregate is retired as a contract source.
 const SCHEMA_PATH =
   process.env.API_SCHEMA ??
-  resolve(ROOT, "../stapel-example-monolith/codegen/generated/schema.json");
+  resolve(ROOT, `../${MODULE}/docs/schema.json`);
 // Backend version source → `backend.contract` (frontend-core-architecture
 // §2.4 / §3.4.2: drift must be ADDRESSABLE — the manifest states which backend
 // range this surface was generated against). Read from the backend module's

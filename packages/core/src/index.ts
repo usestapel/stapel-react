@@ -99,11 +99,13 @@ export { useFlow } from "./flows/useFlow.js";
 export { toFlowError, isErrorCode } from "./flows/flowError.js";
 export type { FlowError } from "./flows/flowError.js";
 
-// generated typed API surface — openapi-typescript from the unified Stapel
-// OpenAPI (all-modules codegen source). Types only, zero runtime.
-// Regenerate: `pnpm gen:api` at the monorepo root (docs/flow-system.md §0.1).
-export type {
-  paths,
-  components,
-  operations,
-} from "./generated/schema.js";
+// NOTE: @stapel/core no longer exports a generated `paths`/`components`/
+// `operations` surface. Under the §17 per-module contract pipeline every
+// `@stapel/<module>-react` pair generates its OWN self-contained wire types
+// (`src/api/generated/schema.ts`) from its backend's committed `docs/schema.json`
+// — nothing consumed core's aggregate export (grep-confirmed), and stapel-core
+// has no DRF endpoints of its own from which to emit a meaningful core slice
+// (the shared `User`/`StapelError`/`TokenPairResponse` schemas only materialise
+// via a module's endpoints). The hand-authored runtime error contract lives in
+// `./errors.js` (`StapelApiError`, `StapelErrorEnvelope`), not the schema.
+// This retired core as the last reader of the monolith aggregate (contract-pipeline.md §5).
