@@ -11,6 +11,8 @@
 // Everything is deterministic + byte-stable: keys are sorted, numbers
 // canonicalised, no timestamps — same input, same bytes.
 
+import { checkContrastPairs } from "./contrast.mjs";
+
 export const PREFIX = "--stapel";
 
 // Core-token name grid (frontend-guardrails §1.1): recommendation, not a gate.
@@ -57,7 +59,9 @@ export function mergeRamps(standardRamps, themeRamps) {
 
 /** Resolve a `<ramp>.<step>` reference to a raw hex/colour value. */
 function resolveRef(ramps, ref) {
+  if (typeof ref !== "string") return undefined;
   const dot = ref.indexOf(".");
+  if (dot === -1) return undefined;
   const ramp = ref.slice(0, dot);
   const step = ref.slice(dot + 1);
   return ramps[ramp]?.[step];
@@ -166,6 +170,21 @@ export function validateTheme(theme, ramps) {
       );
     }
   }
+
+  // ── Contrast contract — WARNING only (user decision Q10a, frontend-
+  // guardrails §1.3b): tighten to an error later once palettes stabilise.
+  // Resolved independently of the errors above — a pair with an invalid ref
+  // just resolves to undefined and is skipped by checkContrastPairs, so a
+  // structural error is never double-reported as a contrast warning.
+  const resolvedForContrast = {};
+  for (const [name, def] of sortedEntries(core)) {
+    if (name.startsWith("_")) continue;
+    resolvedForContrast[name] = {
+      light: resolveRef(ramps, def?.light),
+      dark: resolveRef(ramps, def?.dark),
+    };
+  }
+  warnings.push(...checkContrastPairs(resolvedForContrast));
 
   return { errors, warnings };
 }

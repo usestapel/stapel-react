@@ -132,6 +132,41 @@ describe("resolve + render", () => {
   });
 });
 
+describe("validateTheme — contrast contract (warning only, user decision Q10a)", () => {
+  it("warns (not errors) on an intentionally-failing fg/bg pair, and still passes", () => {
+    // Deliberately low-contrast: a light-gray "text-primary" on a near-white
+    // "background-primary" — a real theme.json a host might author by mistake.
+    const theme = base({
+      core: {
+        "background-primary": { light: "gray.50", dark: "gray.900" },
+        "text-primary": { light: "gray.50", dark: "brand.300" },
+        accent: { light: "brand.500", dark: "brand.300" },
+      },
+    });
+    const { errors, warnings } = validateTheme(theme, RAMPS);
+    // Structurally valid theme (paired, valid refs) ⇒ no errors ⇒ gen:tokens
+    // still exits 0 — a contrast failure alone must never fail the build.
+    expect(errors).toEqual([]);
+    expect(
+      warnings.some((w: string) =>
+        w.includes("contrast: text-primary на background-primary (light)")
+      )
+    ).toBe(true);
+  });
+
+  it("does not warn when the intentional pairs are legible", () => {
+    const theme = base({
+      core: {
+        "background-primary": { light: "gray.50", dark: "gray.900" },
+        "text-primary": { light: "gray.900", dark: "gray.50" },
+        accent: { light: "brand.500", dark: "brand.300" },
+      },
+    });
+    const { warnings } = validateTheme(theme, RAMPS);
+    expect(warnings.filter((w: string) => w.startsWith("contrast:"))).toEqual([]);
+  });
+});
+
 describe("mergeRamps", () => {
   it("merges host ramps over standard ramps and drops _comment", () => {
     const merged = mergeRamps(
