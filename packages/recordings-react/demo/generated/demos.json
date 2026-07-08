@@ -1,0 +1,84 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/recordings-react",
+  "version": "0.1.0",
+  "demos": [
+    {
+      "id": "recordings.composer",
+      "title": "Recording composer",
+      "description": "The headless RecordingComposer wraps create-recording and surfaces the opened upload session; on success the pair invalidates the list read. Bring your own form UI — the component is renderless.",
+      "component": "RecordingComposer",
+      "covers": [],
+      "tokens": [
+        "card-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/RecordingComposer.demo.tsx",
+        "line": 97
+      }
+    },
+    {
+      "id": "recordings.finalize",
+      "title": "Upload finalizer",
+      "description": "The headless UploadFinalizer wraps the finalize mutation for one recording (call after the media is uploaded). Bring your own control UI — the component is renderless.",
+      "component": "UploadFinalizer",
+      "covers": [],
+      "tokens": [
+        "card-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/UploadFinalizer.demo.tsx",
+        "line": 74
+      }
+    },
+    {
+      "id": "recordings.list",
+      "title": "Recording list",
+      "description": "The headless RecordingList reads the user's own recordings. Bring your own list/table — the component is renderless.",
+      "component": "RecordingList",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/RecordingList.demo.tsx",
+        "line": 113
+      }
+    },
+    {
+      "id": "recordings.provider",
+      "title": "Recordings provider",
+      "description": "The headless recordings root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "RecordingsProvider",
+      "covers": [],
+      "tokens": [
+        "card-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/Recordings.demo.tsx",
+        "line": 24
+      }
+    }
+  ]
+}
