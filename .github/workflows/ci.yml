@@ -25,15 +25,6 @@ jobs:
       - name: Install
         run: corepack pnpm install --frozen-lockfile
 
-      - name: Check out codegen source (monolith schema.json)
-        # The typed API surface is generated from the all-modules monolith's
-        # committed OpenAPI schema.json (docs/flow-system.md §0.1); it lives in
-        # a sibling repo, so the drift gate needs it checked out here.
-        uses: actions/checkout@v4
-        with:
-          repository: usestapel/stapel-example-monolith
-          path: .codegen-source
-
       - name: Check out error-registry artifact (stapel-auth)
         # The generated backend-error map (gen:errors) now reads the backend's
         # CANONICAL `errors.json` codegen artifact — emitted by stapel-auth
@@ -84,10 +75,14 @@ jobs:
         # Regenerates the committed projections from the pinned backend sources
         # and fails if any diverge — types, the flow registry, the backend-error
         # map, and the manifest/llms.txt self-description all under one gate.
+        # Sources are per-module: every gen invocation passes its own backend's
+        # committed docs/*.json inline (package.json scripts) — the monolith
+        # aggregate is retired as a contract source (contract-pipeline.md §5), so
+        # its checkout + the API_SCHEMA/FLOWS_JSON env pointing at it are gone.
+        # Only the two BARE invocations (auth gen:errors / gen:manifest) still
+        # read env: the stapel-auth error registry + pyproject version pin.
         run: corepack pnpm gen:check
         env:
-          API_SCHEMA: ${{ github.workspace }}/.codegen-source/codegen/generated/schema.json
-          FLOWS_JSON: ${{ github.workspace }}/.codegen-source/codegen/generated/flows.json
           AUTH_ERRORS_JSON: ${{ github.workspace }}/.errors-source/stapel-auth/docs/errors.json
           # Backend version pin → manifest backend.contract (gen:manifest).
           MANIFEST_BACKEND_PYPROJECT: ${{ github.workspace }}/.errors-source/stapel-auth/pyproject.toml
