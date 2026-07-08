@@ -1,6 +1,9 @@
 # stapel-react
 
 [![CI](https://github.com/usestapel/stapel-react/actions/workflows/ci.yml/badge.svg)](https://github.com/usestapel/stapel-react/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/%40stapel%2Fcore.svg?label=%40stapel%2Fcore)](https://www.npmjs.com/package/@stapel/core)
+[![npm](https://img.shields.io/npm/v/%40stapel%2Ftokens.svg?label=%40stapel%2Ftokens)](https://www.npmjs.com/package/@stapel/tokens)
+[![npm](https://img.shields.io/npm/v/%40stapel%2Fauth-react.svg?label=%40stapel%2Fauth-react)](https://www.npmjs.com/package/@stapel/auth-react)
 
 React/TypeScript monorepo of the Stapel frontend pipeline. Every Stapel backend
 library with endpoints gets a paired React library that implements its flows
