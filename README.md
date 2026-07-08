@@ -1,5 +1,7 @@
 # stapel-react
 
+[![CI](https://github.com/usestapel/stapel-react/actions/workflows/ci.yml/badge.svg)](https://github.com/usestapel/stapel-react/actions/workflows/ci.yml)
+
 React/TypeScript monorepo of the Stapel frontend pipeline. Every Stapel backend
 library with endpoints gets a paired React library that implements its flows
 **business-wise and state-wise, but headless** — no visual constraints, any
