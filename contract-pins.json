@@ -10,24 +10,24 @@
       "note": "post-v0.3.6 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave"
     },
     "stapel-profiles": {
-      "ref": "4a6c0ff207a4ff85da1b3181ba363b0fd46cb5c0",
-      "note": "post-v0.3.11 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave"
+      "ref": "f51203b96392c21eec607808cb9030517d9fdcab",
+      "note": "post-v0.3.11 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave; sha remapped 2026-07-10 (истории переписаны скрабом, контент идентичен)"
     },
     "stapel-billing": {
-      "ref": "32e173dd2718b5374af7a6e60e5ba3882f8dbd0d",
-      "note": "post-v0.4.7 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave"
+      "ref": "55f9bb743109e2e5daba1bd76059349306b37a07",
+      "note": "post-v0.4.7 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave; sha remapped 2026-07-10 (истории переписаны скрабом, контент идентичен)"
     },
     "stapel-workspaces": {
-      "ref": "463e3d870f1ae95fb2e492f80c14d8e9bfcd0588",
-      "note": "post-v0.3.9 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave"
+      "ref": "ecb627a9c61a08bb24fb668fc228bde6072d12c8",
+      "note": "post-v0.3.9 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave; sha remapped 2026-07-10 (истории переписаны скрабом, контент идентичен)"
     },
     "stapel-calendar": {
-      "ref": "e75c6633b1ffe1383584473d056bf3c861191026",
-      "note": "post-v0.2.2 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave"
+      "ref": "375b5efe631f6370d78bbcb22939f8f1c8048cd8",
+      "note": "post-v0.2.2 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave; sha remapped 2026-07-10 (истории переписаны скрабом, контент идентичен)"
     },
     "stapel-recordings": {
-      "ref": "617db8691b42137f105f23567d8a41cb46ab9246",
-      "note": "post-v0.1.2 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave"
+      "ref": "8ac2c7bcd0e6ff45d455cb2ad2ed1beebdea336f",
+      "note": "post-v0.1.2 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave; sha remapped 2026-07-10 (истории переписаны скрабом, контент идентичен)"
     }
   }
 }
