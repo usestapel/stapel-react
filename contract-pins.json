@@ -14,20 +14,20 @@
       "note": "post-v0.3.11 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave; sha remapped 2026-07-10 (истории переписаны скрабом, контент идентичен)"
     },
     "stapel-billing": {
-      "ref": "55f9bb743109e2e5daba1bd76059349306b37a07",
-      "note": "post-v0.4.7 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave; sha remapped 2026-07-10 (истории переписаны скрабом, контент идентичен)"
+      "ref": "bf2e380d34cff60b7f0e47c8976db85855e34b2d",
+      "note": "release v0.4.9 (tag bf2e380) — current_period_end semantics refined; contract shape unchanged since 0.4.x"
     },
     "stapel-workspaces": {
       "ref": "ecb627a9c61a08bb24fb668fc228bde6072d12c8",
       "note": "post-v0.3.9 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave; sha remapped 2026-07-10 (истории переписаны скрабом, контент идентичен)"
     },
     "stapel-calendar": {
-      "ref": "375b5efe631f6370d78bbcb22939f8f1c8048cd8",
-      "note": "post-v0.2.2 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave; sha remapped 2026-07-10 (истории переписаны скрабом, контент идентичен)"
+      "ref": "db2b1c22f5c8bf63f17aa6d7d2efafd2848a58db",
+      "note": "release v0.3.1 (tag db2b1c2) — PATCH /events/{id}, PUT /events/{id}/participants, VISIBILITY axis (participants|scope); 10 operations"
     },
     "stapel-recordings": {
-      "ref": "8ac2c7bcd0e6ff45d455cb2ad2ed1beebdea336f",
-      "note": "post-v0.1.2 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave; sha remapped 2026-07-10 (истории переписаны скрабом, контент идентичен)"
+      "ref": "692c0048638c6bead430aa17222a420cca24158a",
+      "note": "release v0.2.1 (tag 692c004) — ?workspace_id= list filter + resource_key, filename in upload-session, SOURCE_TYPES merge-registry"
     }
   }
 }

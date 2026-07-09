@@ -94,7 +94,12 @@ export interface paths {
         delete: operations["calendar_api_events_destroy"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * @description Retrieve/update/delete a single event (mutations owner-only).
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        patch: operations["calendar_api_events_partial_update"];
         trace?: never;
     };
     "/calendar/api/events/{event_id}/ics": {
@@ -111,6 +116,27 @@ export interface paths {
          */
         get: operations["calendar_api_events_ics_retrieve"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calendar/api/events/{event_id}/participants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * @description Replace an event's participant set (replace-set semantics, owner-only).
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        put: operations["calendar_api_events_participants_update"];
         post?: never;
         delete?: never;
         options?: never;
@@ -263,6 +289,52 @@ export interface components {
             /** @description One of invited/accepted/tentative/declined */
             rsvp: string;
         };
+        /** @description Replace an event's participant set (PUT). */
+        ParticipantsReplaceRequest: {
+            /** @description The complete desired invitee list. The owner is always */
+            participant_ids?: string[];
+        };
+        /**
+         * @description Partially update an event (PATCH). Every field is optional — only the
+         *     fields present in the request body are changed.
+         *
+         *     Editing any recurrence field (or ``start``, the series anchor) of a series
+         *     master re-specifies and rebuilds the whole rule — send the COMPLETE
+         *     recurrence spec, exactly as for create (the library stores only the
+         *     canonical RRULE, not its constituent inputs, so recurrence params cannot be
+         *     merged individually).
+         */
+        PatchedEventUpdateRequest: {
+            /** @description New title */
+            title?: string | null;
+            /** @description New description */
+            description?: string | null;
+            /**
+             * Format: date-time
+             * @description New start (tz-aware ISO 8601)
+             */
+            start?: string | null;
+            /**
+             * Format: date-time
+             * @description New end (tz-aware ISO 8601)
+             */
+            end?: string | null;
+            /** @description confirmed/tentative/cancelled */
+            status?: string | null;
+            /** @description none/daily/weekdays/weekly/biweekly/monthly/custom */
+            recurrence_type?: string | null;
+            /** @description RRULE INTERVAL (>=1) */
+            recurrence_interval?: number | null;
+            /** @description Weekday ints (0=Mon..6=Sun) for custom */
+            recurrence_weekdays?: number[];
+            /**
+             * Format: date-time
+             * @description Series end (tz-aware ISO 8601), maps to RRULE UNTIL
+             */
+            recurrence_until?: string | null;
+            /** @description Number of occurrences, maps to RRULE COUNT */
+            recurrence_count?: number | null;
+        };
         /** @description Respond to an event invitation. */
         RSVPRequest: {
             /** @description One of accepted/tentative/declined */
@@ -401,6 +473,33 @@ export interface operations {
             };
         };
     };
+    calendar_api_events_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedEventUpdateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedEventUpdateRequest"];
+                "multipart/form-data": components["schemas"]["PatchedEventUpdateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventResponse"];
+                };
+            };
+        };
+    };
     calendar_api_events_ics_retrieve: {
         parameters: {
             query?: never;
@@ -418,6 +517,33 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    calendar_api_events_participants_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ParticipantsReplaceRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ParticipantsReplaceRequest"];
+                "multipart/form-data": components["schemas"]["ParticipantsReplaceRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventResponse"];
+                };
             };
         };
     };

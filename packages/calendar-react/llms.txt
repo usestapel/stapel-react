@@ -1,6 +1,6 @@
 # @stapel/calendar-react 0.2.0
 
-Headless React flow pair for stapel-calendar (contract >=0.2 <0.3) — business + state, zero visual opinion.
+Headless React flow pair for stapel-calendar (contract >=0.3 <0.4) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -26,6 +26,8 @@ Request/response schema names are in manifest.json + the generated types.
 - calendar_api_events_destroy: DELETE /calendar/api/events/{event_id}
 - calendar_api_events_ics_retrieve: GET /calendar/api/events/{event_id}/ics
 - calendar_api_events_list: GET /calendar/api/events
+- calendar_api_events_partial_update: PATCH /calendar/api/events/{event_id}
+- calendar_api_events_participants_update: PUT /calendar/api/events/{event_id}/participants
 - calendar_api_events_respond_create: POST /calendar/api/events/{event_id}/respond
 - calendar_api_events_retrieve: GET /calendar/api/events/{event_id}
 

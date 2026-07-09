@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "backend": {
     "module": "stapel-recordings",
-    "contract": ">=0.1 <0.2"
+    "contract": ">=0.2 <0.3"
   },
   "layers": [
     "api",
@@ -229,6 +229,11 @@
       "params": [],
       "remediation": "contact_support"
     },
+    "error.403.recording_workspace_forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.403.verification_enrollment_required": {
       "status": 403,
       "params": [],
@@ -291,6 +296,11 @@
     },
     "error.413.recording_too_large": {
       "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.recording_unsupported_media": {
+      "status": 415,
       "params": [],
       "remediation": "retry"
     },
@@ -416,6 +426,7 @@
     "error.402.payment_required",
     "error.403.forbidden",
     "error.403.network_blocked",
+    "error.403.recording_workspace_forbidden",
     "error.403.verification_enrollment_required",
     "error.403.verification_required",
     "error.404.ad_not_found",
@@ -429,6 +440,7 @@
     "error.410.gone",
     "error.413.payload_too_large",
     "error.413.recording_too_large",
+    "error.415.recording_unsupported_media",
     "error.415.unsupported_media_type",
     "error.422.unprocessable_entity",
     "error.423.locked",

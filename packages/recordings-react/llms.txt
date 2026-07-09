@@ -1,6 +1,6 @@
 # @stapel/recordings-react 0.1.0
 
-Headless React flow pair for stapel-recordings (contract >=0.1 <0.2) — business + state, zero visual opinion.
+Headless React flow pair for stapel-recordings (contract >=0.2 <0.3) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -32,7 +32,7 @@ Request/response schema names are in manifest.json + the generated types.
 - useRecordings (query) → listRecordings
 
 ## Errors (render t(code, params); UX from remediation)
-44 keys (full catalog: manifest.json §errors). By remediation: fix_input 17 · retry 14 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+46 keys (full catalog: manifest.json §errors). By remediation: fix_input 17 · retry 16 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}

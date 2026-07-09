@@ -4,7 +4,7 @@
   "version": "0.2.0",
   "backend": {
     "module": "stapel-calendar",
-    "contract": ">=0.2 <0.3"
+    "contract": ">=0.3 <0.4"
   },
   "layers": [
     "api",
@@ -57,6 +57,20 @@
       "tag": "Calendar",
       "request": null,
       "response": null
+    },
+    "calendar_api_events_partial_update": {
+      "method": "PATCH",
+      "path": "/calendar/api/events/{event_id}",
+      "tag": "Calendar",
+      "request": "PatchedEventUpdateRequest",
+      "response": "EventResponse"
+    },
+    "calendar_api_events_participants_update": {
+      "method": "PUT",
+      "path": "/calendar/api/events/{event_id}/participants",
+      "tag": "Calendar",
+      "request": "ParticipantsReplaceRequest",
+      "response": "EventResponse"
     },
     "calendar_api_events_respond_create": {
       "method": "POST",

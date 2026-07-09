@@ -10,14 +10,22 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Create a recording and open its upload session, or list your own.
+         * @description Create a recording and open its upload session, or list recordings.
+         *
+         *     ``GET`` lists your own recordings by default; pass ``?workspace_id=<uuid>``
+         *     to list every recording in a workspace you are a member of (membership is
+         *     verified against the workspaces module; non-members get 403).
          *
          *     **Permissions:** `IsAuthenticated`
          */
         get: operations["recordings_api_recordings_list"];
         put?: never;
         /**
-         * @description Create a recording and open its upload session, or list your own.
+         * @description Create a recording and open its upload session, or list recordings.
+         *
+         *     ``GET`` lists your own recordings by default; pass ``?workspace_id=<uuid>``
+         *     to list every recording in a workspace you are a member of (membership is
+         *     verified against the workspaces module; non-members get 403).
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -83,6 +91,7 @@ export interface components {
             language?: string | null;
             /** @default true */
             diarization_enabled: boolean;
+            filename?: string;
         };
         /** @description CreateRecordingResponse(recording: 'RecordingDTO', upload: 'UploadSessionDTO') */
         CreateRecordingResponse: {
@@ -95,6 +104,7 @@ export interface components {
         /** @description A recording as seen by the API. */
         RecordingDTO: {
             id: string;
+            resource_key: string;
             workspace_id: string;
             title: string;
             status: string;
@@ -129,7 +139,10 @@ export type $defs = Record<string, never>;
 export interface operations {
     recordings_api_recordings_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description List all recordings in this workspace (requires membership) instead of only your own. */
+                workspace_id?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
