@@ -17,6 +17,8 @@ export type {
   Schemas,
   CalendarEvent,
   EventCreateRequest,
+  EventUpdateRequest,
+  ParticipantsReplaceRequest,
   CalendarResponse,
   Occurrence,
   AvailabilityResponse,
@@ -69,10 +71,16 @@ export {
 } from "./model/queries.js";
 export {
   useCreateEvent,
+  useUpdateEvent,
+  useReplaceParticipants,
   useDeleteEvent,
   useRespondToEvent,
 } from "./model/mutations.js";
-export type { RespondVariables } from "./model/mutations.js";
+export type {
+  RespondVariables,
+  UpdateEventVariables,
+  ReplaceParticipantsVariables,
+} from "./model/mutations.js";
 
 // ── headless (renderless components) ─────────────────────────────────────────
 export { CalendarProvider } from "./headless/CalendarProvider.js";

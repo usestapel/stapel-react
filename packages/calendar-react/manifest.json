@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/calendar-react",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "backend": {
     "module": "stapel-calendar",
     "contract": ">=0.3 <0.4"
@@ -142,9 +142,27 @@
         "{params}"
       ]
     },
+    "useReplaceParticipants": {
+      "kind": "mutation",
+      "operation": "replaceParticipants",
+      "invalidates": [
+        [
+          "calendar"
+        ]
+      ]
+    },
     "useRespondToEvent": {
       "kind": "mutation",
       "operation": "respond",
+      "invalidates": [
+        [
+          "calendar"
+        ]
+      ]
+    },
+    "useUpdateEvent": {
+      "kind": "mutation",
+      "operation": "updateEvent",
       "invalidates": [
         [
           "calendar"
@@ -577,7 +595,9 @@
       "useEvent",
       "useEvents",
       "useFlow",
-      "useRespondToEvent"
+      "useReplaceParticipants",
+      "useRespondToEvent",
+      "useUpdateEvent"
     ],
     "types": [
       "AvailabilityParams",
@@ -598,6 +618,7 @@
       "EventCreateRequest",
       "EventRsvpBag",
       "EventStatus",
+      "EventUpdateRequest",
       "FlowEndpoint",
       "FlowError",
       "FlowMachine",
@@ -607,11 +628,14 @@
       "Occurrence",
       "Participant",
       "ParticipantRsvp",
+      "ParticipantsReplaceRequest",
       "RecurrenceType",
       "Remediation",
+      "ReplaceParticipantsVariables",
       "RespondVariables",
       "Rsvp",
-      "Schemas"
+      "Schemas",
+      "UpdateEventVariables"
     ]
   }
 }

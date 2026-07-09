@@ -22,6 +22,19 @@ export type Schemas = components["schemas"];
 export type CalendarEvent = Schemas["EventResponse"];
 /** POST /events request body — create an event (optionally a recurring series). */
 export type EventCreateRequest = Schemas["EventCreateRequest"];
+/**
+ * PATCH /events/{id} request body — partially update an event (every field
+ * optional; only the fields present are changed). Editing any recurrence field
+ * of a series master re-specifies the whole rule — send the COMPLETE recurrence
+ * spec, exactly as for create (the backend stores only the canonical RRULE).
+ */
+export type EventUpdateRequest = Schemas["PatchedEventUpdateRequest"];
+/**
+ * PUT /events/{id}/participants request body — replace-set semantics: the
+ * `participant_ids` array is the COMPLETE desired invitee list (the owner is
+ * always kept). Absent invitees are removed; new ids are invited.
+ */
+export type ParticipantsReplaceRequest = Schemas["ParticipantsReplaceRequest"];
 /** GET /calendar 200 body — concrete events + expanded series occurrences. */
 export type CalendarResponse = Schemas["CalendarResponse"];
 /** A single (possibly virtual) instance of a recurring event. */

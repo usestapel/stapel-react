@@ -20,6 +20,7 @@ export type { UploadBlobOptions } from "./api/extensions.js";
 export type {
   Schemas,
   Recording,
+  RecordingListParams,
   CreateRecordingRequest,
   CreateRecordingResponse,
   UploadSession,

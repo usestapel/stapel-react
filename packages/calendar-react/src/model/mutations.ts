@@ -4,7 +4,13 @@ import type {
   UseMutationResult,
 } from "@tanstack/react-query";
 import type { StapelApiError } from "@stapel/core";
-import type { CalendarEvent, EventCreateRequest, Rsvp } from "../api/types.js";
+import type {
+  CalendarEvent,
+  EventCreateRequest,
+  EventUpdateRequest,
+  ParticipantsReplaceRequest,
+  Rsvp,
+} from "../api/types.js";
 import { useCalendarApi } from "./context.js";
 import { calendarQueryKeys } from "./queryKeys.js";
 
@@ -26,6 +32,27 @@ import { calendarQueryKeys } from "./queryKeys.js";
 export interface RespondVariables {
   readonly eventId: string;
   readonly rsvp: Rsvp;
+}
+
+/** Variables for {@link useUpdateEvent}. */
+export interface UpdateEventVariables {
+  readonly eventId: string;
+  /**
+   * The partial patch — only the fields present are changed. To edit a series
+   * master's recurrence, send the COMPLETE recurrence spec (the backend rebuilds
+   * the whole RRULE), exactly as for create.
+   */
+  readonly patch: EventUpdateRequest;
+}
+
+/** Variables for {@link useReplaceParticipants}. */
+export interface ReplaceParticipantsVariables {
+  readonly eventId: string;
+  /**
+   * The COMPLETE desired invitee list (replace-set semantics): absent ids are
+   * removed, new ids are invited. The owner is always kept by the backend.
+   */
+  readonly participantIds: readonly string[];
 }
 
 /** Create an event (optionally a recurring series) — returns the created event. */
@@ -59,6 +86,56 @@ export function useDeleteEvent(): UseMutationResult<
   const queryClient = useQueryClient();
   const options: UseMutationOptions<CalendarEvent, StapelApiError, string> = {
     mutationFn: (eventId) => api.deleteEvent(eventId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: calendarQueryKeys.all });
+    },
+  };
+  return useMutation(options);
+}
+
+/** Partially update an event (owner-only, PATCH) — returns the updated event. */
+export function useUpdateEvent(): UseMutationResult<
+  CalendarEvent,
+  StapelApiError,
+  UpdateEventVariables
+> {
+  const api = useCalendarApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    CalendarEvent,
+    StapelApiError,
+    UpdateEventVariables
+  > = {
+    mutationFn: (vars) => api.updateEvent(vars.eventId, vars.patch),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: calendarQueryKeys.all });
+    },
+  };
+  return useMutation(options);
+}
+
+/**
+ * Replace an event's participant set (owner-only, PUT, replace-set) — returns
+ * the updated event. The `participantIds` list is the complete desired invitees.
+ */
+export function useReplaceParticipants(): UseMutationResult<
+  CalendarEvent,
+  StapelApiError,
+  ReplaceParticipantsVariables
+> {
+  const api = useCalendarApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    CalendarEvent,
+    StapelApiError,
+    ReplaceParticipantsVariables
+  > = {
+    mutationFn: (vars) => {
+      const body: ParticipantsReplaceRequest = {
+        participant_ids: [...vars.participantIds],
+      };
+      return api.replaceParticipants(vars.eventId, body);
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: calendarQueryKeys.all });
     },

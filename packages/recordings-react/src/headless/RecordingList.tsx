@@ -18,21 +18,26 @@ export interface RecordingListBag {
 }
 
 /**
- * Headless recording list — a renderless read of the user's own recordings.
- * Wires {@link useRecordings} and hands a {@link RecordingListBag} to
- * `children`; bring your own list/table, skeleton, and empty UI. Zero visual
- * opinion (frontend-standard §2).
+ * Headless recording list — a renderless read of recordings. Reads the caller's
+ * own recordings by default, or a whole workspace's when `workspaceId` is set
+ * (requires membership). Wires {@link useRecordings} and hands a
+ * {@link RecordingListBag} to `children`; bring your own list/table, skeleton,
+ * and empty UI. Zero visual opinion (frontend-standard §2).
  *
  * ```tsx
- * <RecordingList>
+ * <RecordingList workspaceId="ws-1">
  *   {({ recordings }) => ( ... )}
  * </RecordingList>
  * ```
  */
 export function RecordingList(props: {
+  /** List a whole workspace's recordings (requires membership) instead of own. */
+  workspaceId?: string;
   children: (bag: RecordingListBag) => ReactNode;
 }): ReactNode {
-  const query = useRecordings();
+  const query = useRecordings(
+    props.workspaceId !== undefined ? { workspaceId: props.workspaceId } : undefined
+  );
   return props.children({
     recordings: query.data ?? [],
     isLoading: query.isLoading,

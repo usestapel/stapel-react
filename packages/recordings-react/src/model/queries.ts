@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { StapelApiError } from "@stapel/core";
-import type { Recording } from "../api/types.js";
+import type { Recording, RecordingListParams } from "../api/types.js";
 import { useRecordingsApi } from "./context.js";
 import { recordingsQueryKeys } from "./queryKeys.js";
 
@@ -11,12 +11,20 @@ import { recordingsQueryKeys } from "./queryKeys.js";
  * that needs fresher data. Keys are namespaced (see `recordingsQueryKeys`).
  */
 
-/** The current user's own recordings, newest-first as the backend orders them. */
-export function useRecordings(): UseQueryResult<Recording[], StapelApiError> {
+/**
+ * Recordings newest-first as the backend orders them — the caller's own by
+ * default, or every recording in a workspace they belong to when `params`
+ * carries a `workspaceId` (a non-member read fails
+ * `error.403.recording_workspace_forbidden`).
+ */
+export function useRecordings(
+  params?: RecordingListParams
+): UseQueryResult<Recording[], StapelApiError> {
   const api = useRecordingsApi();
+  const p = params ?? {};
   return useQuery({
-    queryKey: recordingsQueryKeys.list(),
-    queryFn: () => api.listRecordings(),
+    queryKey: recordingsQueryKeys.list(p),
+    queryFn: () => api.listRecordings(p),
   });
 }
 

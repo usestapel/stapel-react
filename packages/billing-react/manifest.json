@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/billing-react",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "backend": {
     "module": "stapel-billing",
     "contract": ">=0.4 <0.5"

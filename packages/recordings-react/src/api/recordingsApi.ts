@@ -4,6 +4,7 @@ import type {
   CreateRecordingResponse,
   FinalizeUploadRequest,
   Recording,
+  RecordingListParams,
 } from "./types.js";
 
 /**
@@ -42,8 +43,12 @@ function mutating(
 export interface RecordingsApi {
   readonly client: StapelClient;
 
-  /** List the current user's own recordings. */
-  listRecordings(): Promise<Recording[]>;
+  /**
+   * List recordings: the caller's own by default, or every recording in a
+   * workspace they are a member of when `workspaceId` is passed (a non-member
+   * gets `error.403.recording_workspace_forbidden`).
+   */
+  listRecordings(params?: RecordingListParams): Promise<Recording[]>;
   /**
    * Create a recording and open its single-PUT upload session; resolves to the
    * 201 body — the {@link Recording} plus the {@link UploadSession} to PUT the
@@ -71,7 +76,13 @@ export function createRecordingsApi(client: StapelClient): RecordingsApi {
   return {
     client,
 
-    listRecordings: () => client.get("/recordings"),
+    listRecordings: (params) => {
+      const query: Record<string, string> = {};
+      if (params?.workspaceId !== undefined) {
+        query.workspace_id = params.workspaceId;
+      }
+      return client.get("/recordings", { query });
+    },
 
     createRecording: (body) => client.post("/recordings", body, mutating()),
 

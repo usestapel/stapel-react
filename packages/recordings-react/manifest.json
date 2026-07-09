@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/recordings-react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "backend": {
     "module": "stapel-recordings",
     "contract": ">=0.2 <0.3"
@@ -78,7 +78,8 @@
       "operation": "listRecordings",
       "queryKey": [
         "recordings",
-        "list"
+        "list",
+        "{params}"
       ]
     }
   },
@@ -508,6 +509,7 @@
       "Recording",
       "RecordingComposerBag",
       "RecordingListBag",
+      "RecordingListParams",
       "RecordingsApi",
       "RecordingsErrorCode",
       "RecordingsErrorSpec",

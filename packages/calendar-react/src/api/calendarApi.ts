@@ -6,6 +6,8 @@ import type {
   CalendarRangeParams,
   CalendarResponse,
   EventCreateRequest,
+  EventUpdateRequest,
+  ParticipantsReplaceRequest,
   Rsvp,
 } from "./types.js";
 
@@ -64,6 +66,19 @@ export interface CalendarApi {
   createEvent(body: EventCreateRequest): Promise<CalendarEvent>;
   /** Retrieve a single event by id. */
   getEvent(eventId: string): Promise<CalendarEvent>;
+  /** Partially update an event (owner-only, PATCH); resolves to the updated event. */
+  updateEvent(
+    eventId: string,
+    body: EventUpdateRequest
+  ): Promise<CalendarEvent>;
+  /**
+   * Replace an event's participant set (owner-only, PUT, replace-set semantics);
+   * resolves to the updated event.
+   */
+  replaceParticipants(
+    eventId: string,
+    body: ParticipantsReplaceRequest
+  ): Promise<CalendarEvent>;
   /** Cancel/delete an event (owner-only); resolves to the updated event. */
   deleteEvent(eventId: string): Promise<CalendarEvent>;
   /** Record the current user's RSVP to an event; resolves to the updated event. */
@@ -92,6 +107,12 @@ export function createCalendarApi(client: StapelClient): CalendarApi {
     createEvent: (body) => client.post("/events", body, mutating()),
 
     getEvent: (eventId) => client.get(eventPath(eventId)),
+
+    updateEvent: (eventId, body) =>
+      client.patch(eventPath(eventId), body, mutating()),
+
+    replaceParticipants: (eventId, body) =>
+      client.put(`${eventPath(eventId)}/participants`, body, mutating()),
 
     deleteEvent: (eventId) => client.delete(eventPath(eventId), mutating()),
 

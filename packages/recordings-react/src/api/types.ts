@@ -33,13 +33,27 @@ export type UploadSession = Schemas["UploadSessionDTO"];
 /** POST /recordings/{id}/finalize request body — the uploaded object's size. */
 export type FinalizeUploadRequest = Schemas["FinalizeUploadRequest"];
 
+/**
+ * Query for `GET /recordings`: by default the endpoint lists the caller's own
+ * recordings; pass `workspaceId` to list every recording in a workspace the
+ * caller is a member of (membership is verified backend-side — a non-member
+ * gets `error.403.recording_workspace_forbidden`). The generated schema types
+ * `workspace_id` as an optional query param; this is its camelCase JS-facing
+ * shape, mirroring calendar-react's range-params convention.
+ */
+export interface RecordingListParams {
+  /** List all recordings in this workspace (requires membership) instead of own. */
+  readonly workspaceId?: string;
+}
+
 // ── documented corrections ────────────────────────────────────────────────────
 //
-// None. Unlike calendar-react (whose error registry — `calendar_invalid_rsvp` —
-// enumerated the exact submittable values, licensing a bare-`string` → union
-// narrowing), stapel-recordings' contract does NOT enumerate the values of any
-// bare-`string` field: `RecordingDTO.status` and `.source_type` are opaque, and
-// `error.400.recording_invalid_state` names no states. Narrowing them here would
-// be invention, not a correction, so the generated `string` types stand. The GET
-// /recordings list carries no documented query params (it "lists your own"), so
-// no params type is added either. Revisit when the backend widens the contract.
+// No bare-`string` narrowing. Unlike calendar-react (whose error registry —
+// `calendar_invalid_rsvp` — enumerated the exact submittable values, licensing a
+// bare-`string` → union narrowing), stapel-recordings' contract does NOT
+// enumerate the values of any bare-`string` field: `RecordingDTO.status`,
+// `.source_type` (the SOURCE_TYPES registry is a backend-side merge extension —
+// deploy-configurable, so the client keeps it open) and `.resource_key` are
+// opaque, and `error.400.recording_invalid_state` names no states. Narrowing
+// them here would be invention, not a correction, so the generated `string`
+// types stand. Revisit when the backend widens the contract.

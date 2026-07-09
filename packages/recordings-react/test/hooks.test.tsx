@@ -21,6 +21,7 @@ const BASE = "https://recordings.stapel.test/recordings/api";
 
 const RECORDING = {
   id: "550e8400-e29b-41d4-a716-446655440000",
+  resource_key: "rec/550e8400",
   workspace_id: "ws-1",
   title: "Team standup",
   status: "processing",
@@ -75,6 +76,40 @@ describe("useRecordings (happy path)", () => {
   });
 });
 
+describe("useRecordings (workspace filter)", () => {
+  it("passes ?workspace_id= when a workspaceId is given", async () => {
+    let seenUrl = "";
+    server.use(
+      http.get(`${BASE}/recordings`, ({ request }) => {
+        seenUrl = request.url;
+        return HttpResponse.json([RECORDING]);
+      })
+    );
+    const runtime = createRecordingsRuntime({ baseUrl: BASE });
+    const { result } = renderHook(() => useRecordings({ workspaceId: "ws-9" }), {
+      wrapper: ({ children }) => wrap(runtime, children),
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(seenUrl).toContain("workspace_id=ws-9");
+  });
+
+  it("omits the query param for the own-recordings read", async () => {
+    let seenUrl = "";
+    server.use(
+      http.get(`${BASE}/recordings`, ({ request }) => {
+        seenUrl = request.url;
+        return HttpResponse.json([RECORDING]);
+      })
+    );
+    const runtime = createRecordingsRuntime({ baseUrl: BASE });
+    const { result } = renderHook(() => useRecordings(), {
+      wrapper: ({ children }) => wrap(runtime, children),
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(seenUrl).not.toContain("workspace_id");
+  });
+});
+
 describe("<RecordingList> (headless)", () => {
   it("renders the recordings bag", async () => {
     server.use(
@@ -94,6 +129,31 @@ describe("<RecordingList> (headless)", () => {
     await waitFor(() =>
       expect(screen.getByTestId("count").textContent).toBe("1")
     );
+  });
+
+  it("forwards the workspaceId prop as the ?workspace_id= filter", async () => {
+    let seenUrl = "";
+    server.use(
+      http.get(`${BASE}/recordings`, ({ request }) => {
+        seenUrl = request.url;
+        return HttpResponse.json([RECORDING]);
+      })
+    );
+    const runtime = createRecordingsRuntime({ baseUrl: BASE });
+    render(
+      wrap(
+        runtime,
+        <RecordingList workspaceId="ws-7">
+          {({ recordings }) => (
+            <span data-testid="ws-count">{recordings.length}</span>
+          )}
+        </RecordingList>
+      )
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("ws-count").textContent).toBe("1")
+    );
+    expect(seenUrl).toContain("workspace_id=ws-7");
   });
 });
 

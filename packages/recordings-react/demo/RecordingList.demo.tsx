@@ -11,6 +11,7 @@ import { RecordingsDemoHarness, DemoCard } from "./_harness.js";
 const RECORDINGS: Recording[] = [
   {
     id: "rec-1",
+    resource_key: "rec/rec-1",
     workspace_id: "ws-1",
     title: "Team standup",
     status: "processing",
@@ -27,6 +28,7 @@ const RECORDINGS: Recording[] = [
   },
   {
     id: "rec-2",
+    resource_key: "rec/rec-2",
     workspace_id: "ws-1",
     title: "Customer interview",
     status: "done",

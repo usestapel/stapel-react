@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/recordings-react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "demos": [
     {
       "id": "recordings.composer",
@@ -58,7 +58,7 @@
       ],
       "source": {
         "file": "demo/RecordingList.demo.tsx",
-        "line": 113
+        "line": 115
       }
     },
     {

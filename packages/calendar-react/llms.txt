@@ -1,4 +1,4 @@
-# @stapel/calendar-react 0.2.0
+# @stapel/calendar-react 0.3.0
 
 Headless React flow pair for stapel-calendar (contract >=0.3 <0.4) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
@@ -38,7 +38,9 @@ Request/response schema names are in manifest.json + the generated types.
 - useDeleteEvent (mutation) → deleteEvent
 - useEvent (query) → getEvent
 - useEvents (query) → listEvents
+- useReplaceParticipants (mutation) → replaceParticipants
 - useRespondToEvent (mutation) → respond
+- useUpdateEvent (mutation) → updateEvent
 
 ## Errors (render t(code, params); UX from remediation)
 48 keys (full catalog: manifest.json §errors). By remediation: fix_input 21 · retry 14 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.

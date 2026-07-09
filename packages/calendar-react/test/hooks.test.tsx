@@ -11,6 +11,10 @@ import { CalendarView } from "../src/headless/CalendarView.js";
 import { EventComposer } from "../src/headless/EventComposer.js";
 import { EventRsvp } from "../src/headless/EventRsvp.js";
 import { useCalendar } from "../src/model/queries.js";
+import {
+  useReplaceParticipants,
+  useUpdateEvent,
+} from "../src/model/mutations.js";
 
 /** Base the msw handlers mount on (mirrors stapel-calendar `/calendar/api/`). */
 const BASE = "https://calendar.stapel.test/calendar/api";
@@ -85,6 +89,51 @@ describe("<CalendarView> (headless)", () => {
     );
     expect(seenUrl).toContain("start=");
     expect(seenUrl).toContain("end=");
+  });
+});
+
+describe("useUpdateEvent (PATCH, happy path)", () => {
+  it("PATCHes the event and resolves the updated body", async () => {
+    let seenMethod = "";
+    let seenBody: unknown;
+    server.use(
+      http.patch(`${BASE}/events/:id`, async ({ request }) => {
+        seenMethod = request.method;
+        seenBody = await request.json();
+        return HttpResponse.json({ ...EVENT, title: "Renamed review" });
+      })
+    );
+    const runtime = createCalendarRuntime({ baseUrl: BASE });
+    const { result } = renderHook(() => useUpdateEvent(), {
+      wrapper: ({ children }) => wrap(runtime, children),
+    });
+    result.current.mutate({ eventId: EVENT.id, patch: { title: "Renamed review" } });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(seenMethod).toBe("PATCH");
+    expect(seenBody).toEqual({ title: "Renamed review" });
+    expect(result.current.data?.title).toBe("Renamed review");
+  });
+});
+
+describe("useReplaceParticipants (PUT, replace-set)", () => {
+  it("PUTs the complete invitee list and resolves the updated event", async () => {
+    let seenMethod = "";
+    let seenBody: unknown;
+    server.use(
+      http.put(`${BASE}/events/:id/participants`, async ({ request }) => {
+        seenMethod = request.method;
+        seenBody = await request.json();
+        return HttpResponse.json({ ...EVENT, participants: [] });
+      })
+    );
+    const runtime = createCalendarRuntime({ baseUrl: BASE });
+    const { result } = renderHook(() => useReplaceParticipants(), {
+      wrapper: ({ children }) => wrap(runtime, children),
+    });
+    result.current.mutate({ eventId: EVENT.id, participantIds: ["u-2", "u-3"] });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(seenMethod).toBe("PUT");
+    expect(seenBody).toEqual({ participant_ids: ["u-2", "u-3"] });
   });
 });
 

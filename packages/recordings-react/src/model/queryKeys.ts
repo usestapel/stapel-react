@@ -10,14 +10,21 @@
  * so the broad invalidation keeps every cached read honest without the pair
  * guessing which entries changed.
  */
+import type { RecordingListParams } from "../api/types.js";
+
 const ROOT = "recordings" as const;
 
 export const recordingsQueryKeys: {
   readonly all: readonly ["recordings"];
-  readonly list: () => readonly ["recordings", "list"];
+  list(
+    params: RecordingListParams
+  ): readonly ["recordings", "list", RecordingListParams];
   detail(recordingId: string): readonly ["recordings", "detail", string];
 } = {
   all: [ROOT],
-  list: () => [ROOT, "list"],
+  // The list key carries its params so the own-recordings view and a
+  // per-workspace view are cached distinctly (a workspace filter is a different
+  // read surface, not the same list).
+  list: (params) => [ROOT, "list", params],
   detail: (recordingId) => [ROOT, "detail", recordingId],
 };
