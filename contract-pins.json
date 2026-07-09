@@ -1,33 +1,33 @@
 {
-  "$comment": "Single source of truth for the immutable refs that ci.yml and release.yml pin each sibling backend checkout to (§17 pin B). Each pinned commit CONTAINS the committed contract artifacts the gen:* drivers regenerate from: docs/schema.json, docs/flows.json, docs/errors.json (+ pyproject.toml for the manifest backend-version pin). Bumping a pin is a deliberate PR after the backend releases a new contract — never float main. Procedure: CONTRIBUTING.md, section 'Contract pins'. NOTE: these shas are currently the siblings' LOCAL HEADs (contract commits not yet pushed/tagged); GitHub-side checkout resolves them only once the backend push wave lands — until then a GitHub CI run fails at the checkout step, which is expected and fine.",
+  "$comment": "Single source of truth for the immutable refs that ci.yml and release.yml pin each sibling backend checkout to (§17 pin B). Each pinned commit CONTAINS the committed contract artifacts the gen:* drivers regenerate from: docs/schema.json, docs/flows.json, docs/errors.json, docs/capabilities.json (+ pyproject.toml for the manifest backend-version pin). Bumping a pin is a deliberate PR after the backend releases a new contract — never float main. Procedure: CONTRIBUTING.md, section 'Contract pins'. NOTE: these shas are currently the siblings' LOCAL HEADs (contract commits not yet pushed/tagged); GitHub-side checkout resolves them only once the backend push wave lands — until then a GitHub CI run fails at the checkout step, which is expected and fine.",
   "modules": {
     "stapel-auth": {
-      "ref": "2ea8530aed5bbf68f4021807c0bab2f5b8337292",
-      "note": "post-v0.5.4 contract emission (Python 3.12 rendering-skew guard); local HEAD, untagged until push wave"
+      "ref": "ca2b827994c027b8ee68a50530cde8b68ced16c0",
+      "note": "post-v0.5.4 capabilities.json artifact (A6 sweep: shim over stapel_tools.capabilities); local HEAD, untagged until push wave"
     },
     "stapel-notifications": {
-      "ref": "a57d3335bf7725ab5542795390a12c49e471c8be",
-      "note": "post-v0.3.4 contract emission (Python 3.12 rendering-skew guard); local HEAD, untagged until push wave"
+      "ref": "2d0e697a058ecb327ee952b3cdad9dd3ed9c9dc1",
+      "note": "post-v0.3.6 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave"
     },
     "stapel-profiles": {
-      "ref": "e25ea6509bb9ff69abf97a76eaa14d0ef440e840",
-      "note": "post-v0.3.8 contract emission (Python 3.12 rendering-skew guard); local HEAD, untagged until push wave"
+      "ref": "4a6c0ff207a4ff85da1b3181ba363b0fd46cb5c0",
+      "note": "post-v0.3.11 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave"
     },
     "stapel-billing": {
-      "ref": "ea54822edc21fc7c7182bc5ac5db2f6f8ac6f310",
-      "note": "post-v0.4.4 contract emission (Python 3.12 rendering-skew guard); local HEAD, untagged until push wave"
+      "ref": "32e173dd2718b5374af7a6e60e5ba3882f8dbd0d",
+      "note": "post-v0.4.7 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave"
     },
     "stapel-workspaces": {
-      "ref": "72da968718541febe7b1f8778cc6fbbe057c6ff4",
-      "note": "post-v0.3.6 contract emission (Python 3.12 rendering-skew guard); local HEAD, untagged until push wave"
+      "ref": "463e3d870f1ae95fb2e492f80c14d8e9bfcd0588",
+      "note": "post-v0.3.9 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave"
     },
     "stapel-calendar": {
-      "ref": "8a6b9e074cf590ed541a003aeddbe65cdf029f06",
-      "note": "post-v0.2.2 contract emission (Python 3.12 rendering-skew guard); local HEAD, untagged until push wave"
+      "ref": "e75c6633b1ffe1383584473d056bf3c861191026",
+      "note": "post-v0.2.2 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave"
     },
     "stapel-recordings": {
-      "ref": "1045692f0108fd11473461bac35e8a146531f3dd",
-      "note": "post-v0.1.2 contract emission (Python 3.12 rendering-skew guard); local HEAD, untagged until push wave"
+      "ref": "617db8691b42137f105f23567d8a41cb46ab9246",
+      "note": "post-v0.1.2 capabilities.json artifact (A6 sweep); local HEAD, untagged until push wave"
     }
   }
 }
