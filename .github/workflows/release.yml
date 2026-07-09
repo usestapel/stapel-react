@@ -39,43 +39,77 @@ jobs:
       # checked out here exactly as ci.yml does. The monolith aggregate is
       # retired as a contract source (contract-pipeline.md §5): its checkout is
       # gone; sources are per-module.
-      - name: Check out error-registry artifact (stapel-auth)
+      - name: Load contract pins (contract-pins.json)
+        # §17 pin B: every sibling-backend checkout below is pinned to an
+        # immutable ref from contract-pins.json — the single visible place the
+        # pins live (shared with ci.yml). Bumping a pin is a deliberate PR
+        # after the backend releases a new contract (CONTRIBUTING.md
+        # "Contract pins"); never float main. NOTE: the current pins are the
+        # siblings' LOCAL HEAD shas (contract commits not pushed/tagged yet) —
+        # GitHub can only resolve them once the backend push wave lands; a
+        # checkout failure before that is expected and fine.
+        id: pins
+        run: echo "pins=$(jq -c .modules contract-pins.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out contract artifacts (stapel-auth)
         uses: actions/checkout@v4
         with:
           repository: usestapel/stapel-auth
+          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-auth'].ref }}
           path: .errors-source/stapel-auth
 
-      # gen:errors / gen:manifest hardcode `../stapel-<module>` for the
-      # notifications/profiles/billing/workspaces pairs (package.json scripts).
+      # gen:api / gen:flows / gen:errors / gen:manifest hardcode
+      # `../stapel-<module>` for every pair (package.json scripts).
       # actions/checkout refuses a path outside the workspace root, so these
       # land nested and get symlinked into place below.
-      - name: Check out stapel-notifications (errors.json + pyproject.toml)
+      - name: Check out stapel-notifications (contract artifacts)
         uses: actions/checkout@v4
         with:
           repository: usestapel/stapel-notifications
+          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-notifications'].ref }}
           path: .other-source/stapel-notifications
 
-      - name: Check out stapel-profiles (errors.json + pyproject.toml)
+      - name: Check out stapel-profiles (contract artifacts)
         uses: actions/checkout@v4
         with:
           repository: usestapel/stapel-profiles
+          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-profiles'].ref }}
           path: .other-source/stapel-profiles
 
-      - name: Check out stapel-billing (errors.json + pyproject.toml)
+      - name: Check out stapel-billing (contract artifacts)
         uses: actions/checkout@v4
         with:
           repository: usestapel/stapel-billing
+          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-billing'].ref }}
           path: .other-source/stapel-billing
 
-      - name: Check out stapel-workspaces (errors.json + pyproject.toml)
+      - name: Check out stapel-workspaces (contract artifacts)
         uses: actions/checkout@v4
         with:
           repository: usestapel/stapel-workspaces
+          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-workspaces'].ref }}
           path: .other-source/stapel-workspaces
 
-      - name: Symlink sibling repos to where gen:errors/gen:manifest expect them
+      - name: Check out stapel-calendar (contract artifacts)
+        uses: actions/checkout@v4
+        with:
+          repository: usestapel/stapel-calendar
+          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-calendar'].ref }}
+          path: .other-source/stapel-calendar
+
+      - name: Check out stapel-recordings (contract artifacts)
+        uses: actions/checkout@v4
+        with:
+          repository: usestapel/stapel-recordings
+          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-recordings'].ref }}
+          path: .other-source/stapel-recordings
+
+      - name: Symlink sibling repos to where the gen:* drivers expect them
+        # stapel-auth included: gen:api/gen:flows read ../stapel-auth/docs/*
+        # inline from package.json, same as every other pair.
         run: |
-          for m in stapel-notifications stapel-profiles stapel-billing stapel-workspaces; do
+          ln -sf "$GITHUB_WORKSPACE/.errors-source/stapel-auth" "$GITHUB_WORKSPACE/../stapel-auth"
+          for m in stapel-notifications stapel-profiles stapel-billing stapel-workspaces stapel-calendar stapel-recordings; do
             ln -sf "$GITHUB_WORKSPACE/.other-source/$m" "$GITHUB_WORKSPACE/../$m"
           done
 
