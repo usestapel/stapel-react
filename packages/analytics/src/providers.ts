@@ -1,5 +1,4 @@
-import type { StapelClient } from "../client.js";
-import type { AnalyticsEvent, AnalyticsProvider } from "./types.js";
+import type { AnalyticsEvent, AnalyticsProvider, StapelClient } from "@stapel/core";
 
 /** Dev provider: logs every event via console.debug. Never throws. */
 export function consoleProvider(): AnalyticsProvider {

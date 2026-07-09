@@ -46,18 +46,15 @@ export type {
   CreateI18nOptions,
 } from "./i18n.js";
 
-// analytics facade (analytics-standard §2)
-export { createAnalytics } from "./analytics/createAnalytics.js";
-export {
-  consoleProvider,
-  stapelCollectorProvider,
-} from "./analytics/providers.js";
-export type { StapelCollectorOptions } from "./analytics/providers.js";
+// analytics TYPE seam + context plumbing (analytics-standard §2). The facade
+// IMPLEMENTATION (createAnalytics, the console/Stapel-collector providers,
+// defineEvent/prop, tracked/useTracked) lives in `@stapel/analytics`
+// (slim-wave §21/S1): pairs thread the `Analytics` seam through context and
+// depend only on core; hosts pick @stapel/analytics (the stapel-studio
+// default) or bring their own provider behind the same seam.
 export { trackFlowStep } from "./analytics/flow.js";
 export type { FlowStepPhase } from "./analytics/flow.js";
 export { AnalyticsContext, useAnalytics } from "./analytics/context.js";
-// typed analytics (frontend-guardrails §3): defineEvent + tracked over the facade
-export { defineEvent, prop } from "./analytics/defineEvent.js";
 export type {
   EventDef,
   EventDefInput,
@@ -66,10 +63,8 @@ export type {
   PropSpec,
   PropsSchema,
   PropType,
-} from "./analytics/defineEvent.js";
-export { createTracked } from "./analytics/tracked.js";
-export type { TrackedApi } from "./analytics/tracked.js";
-export { useTracked } from "./analytics/useTracked.js";
+  ResolveProps,
+} from "./analytics/events.js";
 export type {
   Analytics,
   AnalyticsEvent,
@@ -80,6 +75,16 @@ export type {
   ConsentState,
   PiiGuardMode,
 } from "./analytics/types.js";
+
+// persistence adapters — shared by the query layer and @stapel/analytics'
+// offline queue (the impl package builds on these rather than re-implementing
+// the IndexedDB → localStorage → memory ladder).
+export {
+  defaultPersistStorage,
+  idbStorage,
+  localStorageAdapter,
+  memoryStorage,
+} from "./storage.js";
 
 // breakpoints
 export { useBreakpoint } from "./useBreakpoint.js";

@@ -1,8 +1,8 @@
-import { defaultPersistStorage } from "../storage.js";
-import type { PersistStorage } from "../storage.js";
+import { defaultPersistStorage } from "@stapel/core";
+import type { PersistStorage } from "@stapel/core";
 import { guardPii } from "./pii.js";
 import { sha256Hex } from "./hash.js";
-import type { AnyEventDef } from "./defineEvent.js";
+import type { AnyEventDef } from "@stapel/core";
 import type {
   Analytics,
   AnalyticsEvent,
@@ -10,7 +10,7 @@ import type {
   AnalyticsOptions,
   AnalyticsProvider,
   ConsentState,
-} from "./types.js";
+} from "@stapel/core";
 
 /** Exponential backoff delay for a batch delivery attempt (1-based). */
 export function backoffDelay(attempt: number, baseMs: number): number {

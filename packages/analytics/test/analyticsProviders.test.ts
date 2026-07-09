@@ -9,14 +9,13 @@ import {
 } from "vitest";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { createAnalytics } from "../src/analytics/createAnalytics.js";
+import { createAnalytics } from "../src/createAnalytics.js";
 import {
   consoleProvider,
   stapelCollectorProvider,
-} from "../src/analytics/providers.js";
-import { memoryStorage } from "../src/storage.js";
-import type { StapelClient } from "../src/client.js";
-import type { AnalyticsEvent } from "../src/analytics/types.js";
+} from "../src/providers.js";
+import { memoryStorage } from "@stapel/core";
+import type { AnalyticsEvent, StapelClient } from "@stapel/core";
 
 const BASE = "https://collector.stapel.test";
 const server = setupServer();

@@ -3,12 +3,11 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createAnalytics } from "../src/analytics/createAnalytics.js";
-import { createTracked } from "../src/analytics/tracked.js";
-import { defineEvent, prop } from "../src/analytics/defineEvent.js";
-import { createFlowMachine } from "../src/flows/flowMachine.js";
-import type { AnalyticsProvider } from "../src/analytics/types.js";
-import { memoryStorage } from "../src/storage.js";
+import { createAnalytics } from "../src/createAnalytics.js";
+import { createTracked } from "../src/tracked.js";
+import { defineEvent, prop } from "../src/defineEvent.js";
+import { createFlowMachine, memoryStorage } from "@stapel/core";
+import type { AnalyticsProvider } from "@stapel/core";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);

@@ -14,7 +14,7 @@ import {
   createTracked,
   defineEvent,
   prop,
-} from "@stapel/core";
+} from "@stapel/analytics";
 import type { AnalyticsProvider, PersistStorage } from "@stapel/core";
 import { createOtpFlow } from "../src/flows/otpFlow.js";
 import { BASE, authResponse, makeApi } from "./helpers.js";

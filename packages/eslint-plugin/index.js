@@ -81,6 +81,7 @@ const FETCH_ALLOWED = [
   "**/api/**",
   "**/*client.{ts,js}",
   "**/analytics/providers.{ts,js}",
+  "**/analytics/src/providers.{ts,js}",
   "**/scripts/**",
 ];
 
@@ -161,7 +162,7 @@ const recommended = [
   {
     // The facade's provider adapters — the ONE legal home of vendor SDK
     // imports (§2.2 override; mirrors the FETCH_ALLOWED api-layer carve-out).
-    files: ["**/analytics/providers.{ts,js}", "**/analytics/providers/**"],
+    files: ["**/analytics/providers.{ts,js}", "**/analytics/src/providers.{ts,js}", "**/analytics/providers/**"],
     rules: { "stapel/no-direct-analytics-provider": "off" },
   },
   {

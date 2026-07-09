@@ -1,5 +1,6 @@
 // stapel/no-direct-analytics-provider — frontend-guardrails §2.2 / §3.
-// Analytics goes through the @stapel/core facade (consent gate, PII guard,
+// Analytics goes through the Stapel facade (the @stapel/core type seam,
+// implemented by @stapel/analytics): consent gate, PII guard,
 // offline queue, fan-out), NEVER straight into a vendor SDK. Importing a
 // provider package anywhere but the facade's provider-adapter module bypasses
 // consent and PII enforcement in one line — the cheapest F9 violation there
@@ -49,7 +50,7 @@ export default {
     ],
     messages: {
       directProvider:
-        'Direct analytics provider import "{{source}}". Emit through the @stapel/core facade instead — analytics.track(event, props) / tracked(event, props, handler) — which owns consent, PII guarding, and the offline queue (§3). Provider SDKs are wired ONCE, in the facade\'s provider adapter (analytics/providers.ts). See @stapel/core/llms.txt §analytics.',
+        'Direct analytics provider import "{{source}}". Emit through the Stapel analytics facade instead — analytics.track(event, props) / tracked(event, props, handler) — which owns consent, PII guarding, and the offline queue (§3). Provider SDKs are wired ONCE, in the facade\'s provider adapter (analytics/providers.ts — implementation: @stapel/analytics; type seam: @stapel/core).',
     },
   },
   create(context) {

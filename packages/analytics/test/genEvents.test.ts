@@ -11,7 +11,7 @@ import {
 } from "../../../scripts/events-lib.mjs";
 
 const SRC = `
-import { defineEvent, prop } from "@stapel/core";
+import { defineEvent, prop } from "@stapel/analytics";
 
 export const planSelected = defineEvent({
   name: "pricing.plan.selected",

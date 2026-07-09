@@ -5,7 +5,7 @@
  */
 
 import type { PersistStorage } from "../storage.js";
-import type { AnyEventDef, EventProps } from "./defineEvent.js";
+import type { AnyEventDef, EventProps } from "./events.js";
 
 export type AnalyticsEventKind = "track" | "page" | "identify";
 

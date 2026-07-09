@@ -62,6 +62,7 @@
   },
   "devDependencies": {
     "@size-limit/preset-small-lib": "^11.2.0",
+    "@stapel/analytics": "workspace:^",
     "@stapel/core": "workspace:^",
     "@stapel/showcase": "workspace:^",
     "@stapel/tokens": "workspace:^",

@@ -26,50 +26,33 @@ The Stapel frontend runtime (L0, frontend-standard §1). Everything the
   fall back to the key itself.
 - **`useBreakpoint()`** — resolves the three `@stapel/tokens` breakpoints;
   SSR-safe (`undefined` until mounted).
-- **Analytics facade** — see the dedicated section below
-  (analytics-standard §2).
+- **Analytics seam** — the `Analytics` type + context plumbing; the facade
+  implementation lives in `@stapel/analytics` (see below).
 
-## Analytics facade
+## Analytics seam
 
 Per [analytics-standard](../../../docs/analytics-standard.md) §1–2 and
 frontend-standard §4.7: packages and hosts talk to the facade only, never to
-providers directly.
+providers directly. Core owns the **type seam + context plumbing** — the
+`Analytics` / `AnalyticsProvider` / `EventDef` types, `AnalyticsContext` +
+`useAnalytics`, and the flow-machine auto-instrumentation hook
+(`trackFlowStep`). The facade **implementation** (consent gate, PII guard,
+offline queue, provider fan-out, `defineEvent`/`tracked`/`useTracked`) lives
+in [`@stapel/analytics`](../analytics) (slim-wave §21/S1).
 
-```ts
-import {
-  createAnalytics,
-  consoleProvider,
-  stapelCollectorProvider,
-  trackFlowStep,
-} from "@stapel/core";
+Mandatory analytics is a stapel-studio policy: scaffolded apps always wire
+`@stapel/analytics`. OSS consumers may implement the core `Analytics` type
+with any provider instead — the pairs only ever see the seam.
 
-const analytics = createAnalytics({
-  providers: {
-    stapel: stapelCollectorProvider({ client, writeKey: "wk_…" }),
-    console: consoleProvider(), // dev
-  },
-  registry: eventsJson.map((e) => e.name), // dev warning; hard gate = eslint
-  piiGuard: "strip", // email/phone-like prop values → "[redacted]"
-});
+```tsx
+import { createAnalytics } from "@stapel/analytics"; // or your own impl of the core type
 
-analytics.track("cart.checkout", { total: 42 });
-analytics.identify(user.id, { plan: "pro" }); // id is SHA-256-hashed first
-analytics.page("pricing");
-await analytics.setConsent("granted"); // "pending" buffers, "denied" drops
-trackFlowStep(analytics, "onboarding", "otp", "completed"); // flow.<id>.<step>
+const analytics = createAnalytics({ /* providers, registry, piiGuard */ });
+
+<StapelConfigProvider config={{ client }} analytics={analytics}>…</StapelConfigProvider>;
+// below it: useAnalytics(), and every pair's flow machines emit
+// flow.<id>.<step> {phase} via trackFlowStep — funnels for free.
 ```
-
-Semantics: consent gate (buffer while `pending`, flush on `granted`, drop +
-no-op on `denied`; consent persists), offline queue on the shared persist
-storage (IndexedDB → localStorage → memory; survives instance recreation),
-batched fan-out to all registered providers with per-provider delivery
-tracking, exponential-backoff retries (drop with a warning after
-`maxAttempts`), flush on interval / `maxSize` / explicit `flush()` /
-`pagehide` + `visibilitychange: hidden` (the Stapel collector uses
-`navigator.sendBeacon` for that final batch). `register`/`unregister` change
-the fan-out at runtime — extra providers (Mixpanel, GA4, PostHog…) are tiny
-`@stapel/analytics-<provider>` packages or app-layer classes. Wire React via
-`<StapelConfigProvider analytics={analytics}>` and `useAnalytics()`.
 
 ## Quick start
 

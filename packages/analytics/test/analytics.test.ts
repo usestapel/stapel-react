@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { backoffDelay, createAnalytics } from "../src/analytics/createAnalytics.js";
-import { trackFlowStep } from "../src/analytics/flow.js";
-import { memoryStorage } from "../src/storage.js";
-import type { AnalyticsEvent, AnalyticsProvider } from "../src/analytics/types.js";
+import { backoffDelay, createAnalytics } from "../src/createAnalytics.js";
+import { memoryStorage, trackFlowStep } from "@stapel/core";
+import type { AnalyticsEvent, AnalyticsProvider } from "@stapel/core";
 
 interface SpyProvider extends AnalyticsProvider {
   tracked: AnalyticsEvent[];

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useAnalytics } from "./context.js";
+import { useAnalytics } from "@stapel/core";
 import { createTracked } from "./tracked.js";
 import type { TrackedApi } from "./tracked.js";
 

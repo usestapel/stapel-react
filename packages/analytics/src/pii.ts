@@ -1,4 +1,4 @@
-import type { PiiGuardMode } from "./types.js";
+import type { PiiGuardMode } from "@stapel/core";
 
 /**
  * PII guard heuristics (analytics-standard §1.4): prop VALUES that look

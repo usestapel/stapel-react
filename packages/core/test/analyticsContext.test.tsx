@@ -3,15 +3,33 @@ import { renderHook } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 import { createStapelClient } from "../src/client.js";
 import { StapelConfigProvider } from "../src/config.js";
-import { createAnalytics } from "../src/analytics/createAnalytics.js";
 import { useAnalytics } from "../src/analytics/context.js";
-import { memoryStorage } from "../src/storage.js";
+import type { Analytics } from "../src/analytics/types.js";
 
 const client = createStapelClient({ baseUrl: "https://api.test" });
 
+/**
+ * A minimal in-test seam implementation. The real facade moved to
+ * `@stapel/analytics` (slim-wave §21/S1) — core's contract is only the
+ * `Analytics` TYPE + the context plumbing, which is exactly what a
+ * bring-your-own-provider host exercises.
+ */
+function fakeAnalytics(): Analytics {
+  return {
+    track: () => undefined,
+    identify: () => undefined,
+    page: () => undefined,
+    flush: () => Promise.resolve(),
+    setConsent: () => Promise.resolve(),
+    getConsent: () => "granted",
+    register: () => undefined,
+    unregister: () => undefined,
+  };
+}
+
 describe("useAnalytics via StapelConfigProvider", () => {
   it("returns the instance passed through the analytics prop", () => {
-    const analytics = createAnalytics({ storage: memoryStorage() });
+    const analytics = fakeAnalytics();
     function Wrapper(props: { children: ReactNode }): ReactElement {
       return (
         <StapelConfigProvider config={{ client }} analytics={analytics}>

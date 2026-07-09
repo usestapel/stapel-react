@@ -1,5 +1,4 @@
-import type { AnyEventDef, EventProps } from "./defineEvent.js";
-import type { Analytics } from "./types.js";
+import type { Analytics, AnyEventDef, EventProps } from "@stapel/core";
 
 /**
  * `tracked()` (frontend-guardrails §3.2): wrap a clickable's handler so the
