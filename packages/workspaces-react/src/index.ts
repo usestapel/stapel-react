@@ -25,12 +25,12 @@ export type {
   FlowError,
 } from "@stapel/core";
 export { toFlowError } from "./flows/errors.js";
-export { WORKSPACES_FLOWS, flowEndpoints } from "./flows/generated/flows.gen.js";
+export { WORKSPACES_FLOWS, flowEndpoints } from "./flows/registry.js";
 export type {
   WorkspacesFlowId,
   WorkspacesFlowSpec,
   FlowEndpoint,
-} from "./flows/generated/flows.gen.js";
+} from "./flows/registry.js";
 
 // ── model (runtime wiring, query keys, context) ──────────────────────────────
 export { createWorkspacesRuntime } from "./model/runtime.js";

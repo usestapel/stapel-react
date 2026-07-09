@@ -320,9 +320,16 @@ function renderLlms(m, factories, eventsJson, demosJson) {
 async function main() {
   const pkg = JSON.parse(await readFile(resolve(PKG_DIR, "package.json"), "utf8"));
   const schema = JSON.parse(await readFile(SCHEMA_PATH, "utf8"));
-  const flows = JSON.parse(
-    await readFile(resolve(PKG_DIR, "src/flows/generated/flows.json"), "utf8")
-  );
+  // Zero-flow pairs (slim wave §21/S3) carry no generated flows.json at all —
+  // gen:flows skips emission for them; treat that as an empty flow list.
+  let flows = [];
+  try {
+    flows = JSON.parse(
+      await readFile(resolve(PKG_DIR, "src/flows/generated/flows.json"), "utf8")
+    );
+  } catch (e) {
+    if (e?.code !== "ENOENT") throw e;
+  }
   const errors = JSON.parse(
     await readFile(resolve(PKG_DIR, "src/i18n/generated/errors.json"), "utf8")
   );

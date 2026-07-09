@@ -41,12 +41,12 @@ export type {
   FlowError,
 } from "@stapel/core";
 export { toFlowError } from "./flows/errors.js";
-export { CALENDAR_FLOWS, flowEndpoints } from "./flows/generated/flows.gen.js";
+export { CALENDAR_FLOWS, flowEndpoints } from "./flows/registry.js";
 export type {
   CalendarFlowId,
   CalendarFlowSpec,
   FlowEndpoint,
-} from "./flows/generated/flows.gen.js";
+} from "./flows/registry.js";
 
 // ── model (runtime wiring, query keys, context) ──────────────────────────────
 export { createCalendarRuntime } from "./model/runtime.js";

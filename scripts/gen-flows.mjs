@@ -29,7 +29,7 @@
 //   node scripts/gen-flows.mjs         # generate (auth defaults)
 //   pnpm gen:flows                     # generate (root script)
 //   pnpm gen:flows:check               # drift gate (fails on divergence)
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -97,6 +97,18 @@ async function main() {
   const prefix = `${MODULE}.`;
   const mine = flows.filter((f) => typeof f.id === "string" && f.id.startsWith(prefix));
   const stable = mine.map(stableFlow).sort((a, b) => a.id.localeCompare(b.id));
+
+  if (stable.length === 0) {
+    // Slim wave §21/S3: a module with no annotated flows gets NO generated
+    // scaffolding. The pair keeps a tiny hand-written zero-flow shim
+    // (src/flows/registry.ts) so its public surface stays stable; remove any
+    // previously emitted registry so the drift gate cannot hold stale files.
+    await rm(OUT_DIR, { recursive: true, force: true });
+    console.error(
+      `gen:flows[${MODULE}]: 0 flows from ${FLOWS_PATH} — skipping emission (zero-flow module; no ${OUT_DIR})`
+    );
+    return;
+  }
 
   const entries = stable
     .map((f) => `  ${JSON.stringify(f.id)}: ${lit(f).replace(/\n/g, "\n  ")},`)

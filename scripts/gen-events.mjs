@@ -68,7 +68,14 @@ async function collectSources(dir) {
 
 async function main() {
   const pkg = JSON.parse(await readFile(resolve(PKG_DIR, "package.json"), "utf8"));
-  const flows = JSON.parse(await readFile(FLOWS_PATH, "utf8"));
+  // Zero-flow pairs (slim wave §21/S3) have no generated flows.json at all —
+  // gen:flows skips emission for them; treat that as an empty flow list.
+  let flows = [];
+  try {
+    flows = JSON.parse(await readFile(FLOWS_PATH, "utf8"));
+  } catch (e) {
+    if (e?.code !== "ENOENT") throw e;
+  }
 
   const files = (await collectSources(SRC_DIR)).sort();
   const defined = [];
