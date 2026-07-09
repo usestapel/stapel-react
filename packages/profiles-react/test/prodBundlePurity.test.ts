@@ -13,6 +13,10 @@ import { describe, expect, it } from "vitest";
  * must never reach a customer's app or the published tarball. This test is the
  * teeth: it fails if a demo dependency leaks into the runtime graph or the demos
  * slip into the shipped files.
+ *
+ * Runs via the dedicated `test:pack` script (CI serializes it across packages
+ * with --workspace-concurrency=1): the `npm pack` below is real I/O, too heavy
+ * for the parallel turbo `test` graph, so the default `test` run excludes it.
  */
 const PKG_DIR = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
 const pkg = JSON.parse(
@@ -61,5 +65,5 @@ describe("prod bundle carries no showcase/demo code (§5.1)", () => {
     );
     expect(paths.filter((p) => /(^|\/)demo(\/|\.)/i.test(p))).toEqual([]);
     expect(paths.filter((p) => /showcase/i.test(p))).toEqual([]);
-  }, 30_000); // `npm pack` cold-starts slowly — beyond vitest's 5s default
+  }, 120_000); // real npm-pack I/O; generous — runs in the serialized `test:pack` CI step
 });

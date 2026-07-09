@@ -38,7 +38,8 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "tsc -p tsconfig.demo.json && vitest run",
+    "test": "tsc -p tsconfig.demo.json && vitest run --exclude test/prodBundlePurity.test.ts",
+    "test:pack": "vitest run test/prodBundlePurity.test.ts",
     "lint": "eslint .",
     "size": "size-limit"
   },

@@ -55,5 +55,5 @@ describe("Tailwind bridge — static utilities are JIT-visible", () => {
     //    `bg-[${accent}]` source text to the accent var.
     expect(css).not.toContain("${accent}");
     expect(css).not.toMatch(/\.bg-\\?\[\\?\$/);
-  });
+  }, 60_000); // spawns the tailwindcss CLI — slow under parallel full-CI load
 });

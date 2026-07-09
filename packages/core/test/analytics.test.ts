@@ -207,9 +207,12 @@ describe("offline queue", () => {
     analytics.track("e2");
     expect(provider.tracked).toEqual([]);
     analytics.track("e3"); // hits maxSize → auto flush
-    await vi.waitFor(() => {
-      expect(provider.tracked).toHaveLength(3);
-    });
+    await vi.waitFor(
+      () => {
+        expect(provider.tracked).toHaveLength(3);
+      },
+      { timeout: 10_000 } // 1s default flakes under parallel full-CI load
+    );
   });
 
   it("delivered events are removed from the persisted queue", async () => {

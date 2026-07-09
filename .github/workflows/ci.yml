@@ -96,6 +96,13 @@ jobs:
       - name: Lint, test, build, size
         run: corepack pnpm turbo run lint test build size
 
+      - name: Pack purity gate (§5.1, serialized)
+        # Each pair's prodBundlePurity suite shells out to `npm pack --dry-run`
+        # — real I/O that flaked inside the parallel turbo `test` graph. It is
+        # excluded from the per-package `test` script and runs here one package
+        # at a time (pnpm --workspace-concurrency=1), contention-free.
+        run: corepack pnpm run test:pack
+
       - name: Standalone build gate (frontend-standard §7)
         # --if-present: the gate proves every PUBLISHED package builds in
         # isolation; the private showcase-viewer app has no `build` script

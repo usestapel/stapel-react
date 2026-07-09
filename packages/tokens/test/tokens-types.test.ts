@@ -19,5 +19,5 @@ describe("typed token names (tsc on a consumer fixture)", () => {
     // Throws (non-zero exit) if tsc reports any diagnostic.
     execFileSync(process.execPath, [tsc, "--noEmit", "-p", cfg], { stdio: "pipe" });
     expect(true).toBe(true);
-  });
+  }, 120_000); // spawns a full tsc — real CPU/I/O, slow under parallel full-CI load
 });

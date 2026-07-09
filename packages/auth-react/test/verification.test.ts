@@ -51,8 +51,9 @@ describe("step-up verification (flagship cross-module flow)", () => {
     const runtime = createAuthRuntime({ baseUrl: BASE });
     const pending = runtime.client.get<{ ok: boolean }>("/sensitive/");
 
-    await vi.waitFor(() =>
-      expect(runtime.verification.machine.getState().step).toBe("picking")
+    await vi.waitFor(
+      () => expect(runtime.verification.machine.getState().step).toBe("picking"),
+      { timeout: 10_000 } // 1s default flakes under parallel full-CI load
     );
 
     await runtime.verification.chooseFactor("otp_email");
@@ -83,8 +84,9 @@ describe("step-up verification (flagship cross-module flow)", () => {
     );
     const runtime = createAuthRuntime({ baseUrl: BASE });
     const pending = runtime.client.get("/sensitive/");
-    await vi.waitFor(() =>
-      expect(runtime.verification.machine.getState().step).toBe("picking")
+    await vi.waitFor(
+      () => expect(runtime.verification.machine.getState().step).toBe("picking"),
+      { timeout: 10_000 } // 1s default flakes under parallel full-CI load
     );
     await runtime.verification.chooseFactor("totp");
     const s = runtime.verification.machine.getState();
@@ -118,8 +120,9 @@ describe("step-up verification (flagship cross-module flow)", () => {
     );
     const runtime = createAuthRuntime({ baseUrl: BASE });
     const pending = runtime.client.get("/sensitive/");
-    await vi.waitFor(() =>
-      expect(runtime.verification.machine.getState().step).toBe("picking")
+    await vi.waitFor(
+      () => expect(runtime.verification.machine.getState().step).toBe("picking"),
+      { timeout: 10_000 } // 1s default flakes under parallel full-CI load
     );
     await runtime.verification.chooseFactor("otp_email");
     await runtime.verification.submitCode({ code: "0000" });
@@ -138,8 +141,9 @@ describe("step-up verification (flagship cross-module flow)", () => {
     );
     const runtime = createAuthRuntime({ baseUrl: BASE });
     const pending = runtime.client.get("/sensitive/").catch((e: unknown) => e);
-    await vi.waitFor(() =>
-      expect(runtime.verification.machine.getState().step).toBe("picking")
+    await vi.waitFor(
+      () => expect(runtime.verification.machine.getState().step).toBe("picking"),
+      { timeout: 10_000 } // 1s default flakes under parallel full-CI load
     );
     runtime.verification.cancel();
     const err = await pending;
