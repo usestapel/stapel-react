@@ -28,6 +28,12 @@ export {
 } from "./config.js";
 export type { StapelConfig } from "./config.js";
 
+// one-provider setup (slim wave §21/S4): StapelConfigProvider +
+// QueryClientProvider + I18nProvider in one component. The individual
+// providers stay exported below — composition, not deprecation.
+export { StapelProvider } from "./provider.js";
+export type { StapelProviderProps } from "./provider.js";
+
 // query layer + persistence
 export { createStapelQueryClient } from "./query.js";
 export type {

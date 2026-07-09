@@ -56,15 +56,13 @@ const analytics = createAnalytics({ /* providers, registry, piiGuard */ });
 
 ## Quick start
 
+One `<StapelProvider>` composes the three core providers
+(`StapelConfigProvider` + TanStack's `QueryClientProvider` + `I18nProvider`)
+— slim wave §21/S4. The individual providers stay exported; this is
+composition, not deprecation.
+
 ```tsx
-import {
-  createStapelClient,
-  createStapelQueryClient,
-  createI18n,
-  StapelConfigProvider,
-  I18nProvider,
-} from "@stapel/core";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { createStapelClient, StapelProvider } from "@stapel/core";
 
 const client = createStapelClient({
   baseUrl: "https://api.example.com",
@@ -73,17 +71,28 @@ const client = createStapelClient({
   onVerificationChallenge: (challenge) => verificationUi.run(challenge),
 });
 
+<StapelProvider client={client} cacheVersion="0.1.0" locale="en">
+  {app}
+</StapelProvider>;
+```
+
+Props: `baseUrl` **or** `client` (+ optional per-module `clients` overrides),
+`locale`, `cacheVersion`, `analytics`, and the escape hatches `queryClient`
+(BYO TanStack client, still wrapped with Stapel persistence), `queryRuntime`
+(full `createStapelQueryClient` runtime — when the host needs
+`setPersistUser`/`purgePersistedCache` outside the tree) and `i18n` (BYO
+engine — when you register pair bundles / locale loaders at module scope):
+
+```tsx
 const query = createStapelQueryClient({ cacheVersion: "0.1.0" });
 const i18n = createI18n({
   locale: "en",
   loadLocale: (locale) => translateClient.resolve(locale), // stapel-translate
 });
 
-<StapelConfigProvider config={{ client }}>
-  <QueryClientProvider client={query.queryClient}>
-    <I18nProvider i18n={i18n}>{app}</I18nProvider>
-  </QueryClientProvider>
-</StapelConfigProvider>;
+<StapelProvider client={client} queryRuntime={query} i18n={i18n}>
+  {app}
+</StapelProvider>;
 
 // on login:  await query.setPersistUser(user.id);
 // on logout: await query.purgePersistedCache();

@@ -21,16 +21,11 @@ pnpm add @stapel/auth-react @stapel/core @tanstack/react-query react
 `createAuthRuntime` is the single place the flagship seams are connected: it
 builds a `StapelClient` whose token refresh comes from the session and whose
 `onVerificationChallenge` is the verification controller. Hand that client to
-core's provider.
+ONE `<StapelProvider>` (core's config + query + i18n composed — slim wave
+§21/S4) and nest `<AuthProvider>` inside it.
 
 ```tsx
-import {
-  createStapelQueryClient,
-  StapelConfigProvider,
-  I18nProvider,
-  createI18n,
-} from "@stapel/core";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { createStapelQueryClient, createI18n, StapelProvider } from "@stapel/core";
 import {
   createAuthRuntime,
   AuthProvider,
@@ -38,6 +33,7 @@ import {
   registerAuthI18n,
 } from "@stapel/auth-react";
 
+const query = createStapelQueryClient({ cacheVersion: "0.1.0" });
 const runtime = createAuthRuntime({
   baseUrl: "/auth/api",
   // cookieMode: true,          // httponly JWT cookies instead of bearer
@@ -47,32 +43,35 @@ const runtime = createAuthRuntime({
   },
 });
 
-const query = createStapelQueryClient({ cacheVersion: "0.1.0" });
 const i18n = createI18n({ locale: "en" });
 registerAuthI18n(i18n); // auth-react's key bundle → core's engine
 
 export function Root({ children }: { children: React.ReactNode }) {
   return (
-    <StapelConfigProvider config={{ client: runtime.client }} analytics={analytics}>
-      <QueryClientProvider client={query.queryClient}>
-        <I18nProvider i18n={i18n}>
-          <AuthProvider runtime={runtime}>
-            {children}
-            {/* Mount ONCE — renders your step-up modal on demand */}
-            <VerificationChallenge>
-              {({ state, chooseFactor, submitCode, cancel }) => (
-                <YourModal open={state.step !== "idle"} onClose={cancel}>
-                  {/* render state.challenge.factors → chooseFactor(f) → submitCode({code}) */}
-                </YourModal>
-              )}
-            </VerificationChallenge>
-          </AuthProvider>
-        </I18nProvider>
-      </QueryClientProvider>
-    </StapelConfigProvider>
+    <StapelProvider client={runtime.client} queryRuntime={query} i18n={i18n} analytics={analytics}>
+      <AuthProvider runtime={runtime}>
+        {children}
+        {/* Mount ONCE — renders your step-up modal on demand */}
+        <VerificationChallenge>
+          {({ state, chooseFactor, submitCode, cancel }) => (
+            <YourModal open={state.step !== "idle"} onClose={cancel}>
+              {/* render state.challenge.factors → chooseFactor(f) → submitCode({code}) */}
+            </YourModal>
+          )}
+        </VerificationChallenge>
+      </AuthProvider>
+    </StapelProvider>
   );
 }
 ```
+
+The `queryRuntime` / `i18n` props are escape hatches: this host needs
+`query.purgePersistedCache()` in `onTeardown` and registers the pair's i18n
+bundle at module scope, so it creates both and hands them in. A host that
+needs neither passes just `client` (+ optional `cacheVersion` / `locale`).
+The individual providers (`StapelConfigProvider`, TanStack's
+`QueryClientProvider`, `I18nProvider`) remain exported for bespoke
+composition — `<StapelProvider>` is composition, not deprecation.
 
 ## Use a headless component
 
