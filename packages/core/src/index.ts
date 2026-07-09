@@ -86,6 +86,16 @@ export {
   memoryStorage,
 } from "./storage.js";
 
+// module-pair plumbing factories (slim wave §21/S2) — the one reviewed copy
+// of the runtime/context/provider boilerplate every standard pair binds under
+// its module-prefixed names. auth-react stays bespoke (its runtime differs).
+export { createModuleRuntime, createModuleContext } from "./module.js";
+export type {
+  ModuleRuntime,
+  CreateModuleRuntimeOptions,
+  ModuleContextKit,
+} from "./module.js";
+
 // breakpoints
 export { useBreakpoint } from "./useBreakpoint.js";
 export type { Breakpoint } from "@stapel/tokens";

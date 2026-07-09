@@ -1,11 +1,12 @@
 import type { ReactElement, ReactNode } from "react";
-import { RecordingsRuntimeContext } from "../model/context.js";
+import { ModuleProvider } from "../model/context.js";
 import type { RecordingsRuntime } from "../model/runtime.js";
 
 /**
  * Provides the wired {@link RecordingsRuntime} to every recordings hook and
  * headless component below it. Bring your own visual shell — this component
- * renders nothing of its own.
+ * renders nothing of its own. (Core's `createModuleContext` provider, bound
+ * to this pair — slim wave §21/S2.)
  *
  * ```tsx
  * const runtime = createRecordingsRuntime({ baseUrl: "/recordings/api/" });
@@ -13,13 +14,7 @@ import type { RecordingsRuntime } from "../model/runtime.js";
  * <RecordingsProvider runtime={runtime}>{app}</RecordingsProvider>
  * ```
  */
-export function RecordingsProvider(props: {
+export const RecordingsProvider: (props: {
   runtime: RecordingsRuntime;
   children: ReactNode;
-}): ReactElement {
-  return (
-    <RecordingsRuntimeContext.Provider value={props.runtime}>
-      {props.children}
-    </RecordingsRuntimeContext.Provider>
-  );
-}
+}) => ReactElement = ModuleProvider;

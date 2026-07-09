@@ -1,29 +1,28 @@
-import { createContext, useContext } from "react";
 import type { Context } from "react";
-import type { Analytics } from "@stapel/core";
+import { createModuleContext } from "@stapel/core";
+import type { Analytics, ModuleContextKit } from "@stapel/core";
 import type { ProfilesApi } from "../api/profilesApi.js";
 import type { ProfilesRuntime } from "./runtime.js";
 
 /**
  * The wired ProfilesRuntime shared through React context by
  * `<ProfilesProvider>`. Hooks in `model/` and `headless/` read the singletons
- * from here.
+ * from here. One reviewed copy of this plumbing lives in `@stapel/core`
+ * (`createModuleContext`, slim wave §21/S2); this module binds it under the
+ * pair's public names.
  */
+const kit: ModuleContextKit<ProfilesRuntime> =
+  createModuleContext<ProfilesRuntime>("Profiles");
+
 export const ProfilesRuntimeContext: Context<ProfilesRuntime | null> =
-  createContext<ProfilesRuntime | null>(null);
+  kit.RuntimeContext;
 
-export function useProfilesRuntime(): ProfilesRuntime {
-  const runtime = useContext(ProfilesRuntimeContext);
-  if (runtime === null) {
-    throw new Error("Profiles hooks must be used within a <ProfilesProvider>");
-  }
-  return runtime;
-}
+export const useProfilesRuntime: () => ProfilesRuntime = kit.useRuntime;
 
-export function useProfilesApi(): ProfilesApi {
-  return useProfilesRuntime().api;
-}
+export const useProfilesApi: () => ProfilesApi = kit.useApi;
 
-export function useProfilesAnalytics(): Analytics | null {
-  return useProfilesRuntime().analytics;
-}
+export const useProfilesAnalytics: () => Analytics | null = kit.useAnalytics;
+
+/** @internal Re-exported as `<ProfilesProvider>` from `headless/`. */
+export const ModuleProvider: ModuleContextKit<ProfilesRuntime>["Provider"] =
+  kit.Provider;

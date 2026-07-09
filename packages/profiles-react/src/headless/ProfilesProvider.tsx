@@ -1,11 +1,12 @@
 import type { ReactElement, ReactNode } from "react";
-import { ProfilesRuntimeContext } from "../model/context.js";
+import { ModuleProvider } from "../model/context.js";
 import type { ProfilesRuntime } from "../model/runtime.js";
 
 /**
  * Provides the wired {@link ProfilesRuntime} to every profiles hook and
  * headless component below it. Bring your own visual shell — this component
- * renders nothing of its own.
+ * renders nothing of its own. (Core's `createModuleContext` provider, bound
+ * to this pair — slim wave §21/S2.)
  *
  * ```tsx
  * const runtime = createProfilesRuntime({ baseUrl: "/profiles/api/" });
@@ -13,13 +14,7 @@ import type { ProfilesRuntime } from "../model/runtime.js";
  * <ProfilesProvider runtime={runtime}>{app}</ProfilesProvider>
  * ```
  */
-export function ProfilesProvider(props: {
+export const ProfilesProvider: (props: {
   runtime: ProfilesRuntime;
   children: ReactNode;
-}): ReactElement {
-  return (
-    <ProfilesRuntimeContext.Provider value={props.runtime}>
-      {props.children}
-    </ProfilesRuntimeContext.Provider>
-  );
-}
+}) => ReactElement = ModuleProvider;

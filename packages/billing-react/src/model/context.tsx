@@ -1,29 +1,28 @@
-import { createContext, useContext } from "react";
 import type { Context } from "react";
-import type { Analytics } from "@stapel/core";
+import { createModuleContext } from "@stapel/core";
+import type { Analytics, ModuleContextKit } from "@stapel/core";
 import type { BillingApi } from "../api/billingApi.js";
 import type { BillingRuntime } from "./runtime.js";
 
 /**
  * The wired BillingRuntime shared through React context by
  * `<BillingProvider>`. Hooks in `model/` and `headless/` read the singletons
- * from here.
+ * from here. One reviewed copy of this plumbing lives in `@stapel/core`
+ * (`createModuleContext`, slim wave §21/S2); this module binds it under the
+ * pair's public names.
  */
+const kit: ModuleContextKit<BillingRuntime> =
+  createModuleContext<BillingRuntime>("Billing");
+
 export const BillingRuntimeContext: Context<BillingRuntime | null> =
-  createContext<BillingRuntime | null>(null);
+  kit.RuntimeContext;
 
-export function useBillingRuntime(): BillingRuntime {
-  const runtime = useContext(BillingRuntimeContext);
-  if (runtime === null) {
-    throw new Error("Billing hooks must be used within a <BillingProvider>");
-  }
-  return runtime;
-}
+export const useBillingRuntime: () => BillingRuntime = kit.useRuntime;
 
-export function useBillingApi(): BillingApi {
-  return useBillingRuntime().api;
-}
+export const useBillingApi: () => BillingApi = kit.useApi;
 
-export function useBillingAnalytics(): Analytics | null {
-  return useBillingRuntime().analytics;
-}
+export const useBillingAnalytics: () => Analytics | null = kit.useAnalytics;
+
+/** @internal Re-exported as `<BillingProvider>` from `headless/`. */
+export const ModuleProvider: ModuleContextKit<BillingRuntime>["Provider"] =
+  kit.Provider;

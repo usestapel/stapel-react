@@ -1,29 +1,28 @@
-import { createContext, useContext } from "react";
 import type { Context } from "react";
-import type { Analytics } from "@stapel/core";
+import { createModuleContext } from "@stapel/core";
+import type { Analytics, ModuleContextKit } from "@stapel/core";
 import type { NotificationsApi } from "../api/notificationsApi.js";
 import type { NotificationsRuntime } from "./runtime.js";
 
 /**
  * The wired NotificationsRuntime shared through React context by
  * `<NotificationsProvider>`. Hooks in `model/` and `headless/` read the singletons
- * from here.
+ * from here. One reviewed copy of this plumbing lives in `@stapel/core`
+ * (`createModuleContext`, slim wave §21/S2); this module binds it under the
+ * pair's public names.
  */
+const kit: ModuleContextKit<NotificationsRuntime> =
+  createModuleContext<NotificationsRuntime>("Notifications");
+
 export const NotificationsRuntimeContext: Context<NotificationsRuntime | null> =
-  createContext<NotificationsRuntime | null>(null);
+  kit.RuntimeContext;
 
-export function useNotificationsRuntime(): NotificationsRuntime {
-  const runtime = useContext(NotificationsRuntimeContext);
-  if (runtime === null) {
-    throw new Error("Notifications hooks must be used within a <NotificationsProvider>");
-  }
-  return runtime;
-}
+export const useNotificationsRuntime: () => NotificationsRuntime = kit.useRuntime;
 
-export function useNotificationsApi(): NotificationsApi {
-  return useNotificationsRuntime().api;
-}
+export const useNotificationsApi: () => NotificationsApi = kit.useApi;
 
-export function useNotificationsAnalytics(): Analytics | null {
-  return useNotificationsRuntime().analytics;
-}
+export const useNotificationsAnalytics: () => Analytics | null = kit.useAnalytics;
+
+/** @internal Re-exported as `<NotificationsProvider>` from `headless/`. */
+export const ModuleProvider: ModuleContextKit<NotificationsRuntime>["Provider"] =
+  kit.Provider;

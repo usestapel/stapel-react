@@ -1,29 +1,28 @@
-import { createContext, useContext } from "react";
 import type { Context } from "react";
-import type { Analytics } from "@stapel/core";
+import { createModuleContext } from "@stapel/core";
+import type { Analytics, ModuleContextKit } from "@stapel/core";
 import type { RecordingsApi } from "../api/recordingsApi.js";
 import type { RecordingsRuntime } from "./runtime.js";
 
 /**
  * The wired RecordingsRuntime shared through React context by
  * `<RecordingsProvider>`. Hooks in `model/` and `headless/` read the singletons
- * from here.
+ * from here. One reviewed copy of this plumbing lives in `@stapel/core`
+ * (`createModuleContext`, slim wave §21/S2); this module binds it under the
+ * pair's public names.
  */
+const kit: ModuleContextKit<RecordingsRuntime> =
+  createModuleContext<RecordingsRuntime>("Recordings");
+
 export const RecordingsRuntimeContext: Context<RecordingsRuntime | null> =
-  createContext<RecordingsRuntime | null>(null);
+  kit.RuntimeContext;
 
-export function useRecordingsRuntime(): RecordingsRuntime {
-  const runtime = useContext(RecordingsRuntimeContext);
-  if (runtime === null) {
-    throw new Error("Recordings hooks must be used within a <RecordingsProvider>");
-  }
-  return runtime;
-}
+export const useRecordingsRuntime: () => RecordingsRuntime = kit.useRuntime;
 
-export function useRecordingsApi(): RecordingsApi {
-  return useRecordingsRuntime().api;
-}
+export const useRecordingsApi: () => RecordingsApi = kit.useApi;
 
-export function useRecordingsAnalytics(): Analytics | null {
-  return useRecordingsRuntime().analytics;
-}
+export const useRecordingsAnalytics: () => Analytics | null = kit.useAnalytics;
+
+/** @internal Re-exported as `<RecordingsProvider>` from `headless/`. */
+export const ModuleProvider: ModuleContextKit<RecordingsRuntime>["Provider"] =
+  kit.Provider;

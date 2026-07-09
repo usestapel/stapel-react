@@ -1,29 +1,28 @@
-import { createContext, useContext } from "react";
 import type { Context } from "react";
-import type { Analytics } from "@stapel/core";
+import { createModuleContext } from "@stapel/core";
+import type { Analytics, ModuleContextKit } from "@stapel/core";
 import type { CalendarApi } from "../api/calendarApi.js";
 import type { CalendarRuntime } from "./runtime.js";
 
 /**
  * The wired CalendarRuntime shared through React context by
  * `<CalendarProvider>`. Hooks in `model/` and `headless/` read the singletons
- * from here.
+ * from here. One reviewed copy of this plumbing lives in `@stapel/core`
+ * (`createModuleContext`, slim wave §21/S2); this module binds it under the
+ * pair's public names.
  */
+const kit: ModuleContextKit<CalendarRuntime> =
+  createModuleContext<CalendarRuntime>("Calendar");
+
 export const CalendarRuntimeContext: Context<CalendarRuntime | null> =
-  createContext<CalendarRuntime | null>(null);
+  kit.RuntimeContext;
 
-export function useCalendarRuntime(): CalendarRuntime {
-  const runtime = useContext(CalendarRuntimeContext);
-  if (runtime === null) {
-    throw new Error("Calendar hooks must be used within a <CalendarProvider>");
-  }
-  return runtime;
-}
+export const useCalendarRuntime: () => CalendarRuntime = kit.useRuntime;
 
-export function useCalendarApi(): CalendarApi {
-  return useCalendarRuntime().api;
-}
+export const useCalendarApi: () => CalendarApi = kit.useApi;
 
-export function useCalendarAnalytics(): Analytics | null {
-  return useCalendarRuntime().analytics;
-}
+export const useCalendarAnalytics: () => Analytics | null = kit.useAnalytics;
+
+/** @internal Re-exported as `<CalendarProvider>` from `headless/`. */
+export const ModuleProvider: ModuleContextKit<CalendarRuntime>["Provider"] =
+  kit.Provider;
