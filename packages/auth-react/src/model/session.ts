@@ -1,5 +1,5 @@
-import { StapelApiError } from "@stapel/core";
-import type { PersistStorage } from "@stapel/core";
+import { createSessionManager, StapelApiError } from "@stapel/core";
+import type { PersistStorage, SessionLostReason, SessionManager } from "@stapel/core";
 import type { AuthApi } from "../api/authApi.js";
 import type { AuthResponse, AuthTokens, StapelUser } from "../api/types.js";
 
@@ -23,7 +23,7 @@ export interface AuthSession {
   subscribe(listener: () => void): () => void;
   /** For `createStapelClient({ getToken })`. Header mode only; cookie mode → null. */
   getAccessToken(): string | null;
-  /** For `createStapelClient({ onAuthRefresh })`. Dedups + breaks recursion. */
+  /** For `createStapelClient({ onAuthRefresh })`. Delegates to the core `SessionManager`. */
   onAuthRefresh(): Promise<string | null>;
   /** Commit a session from any AuthResponse (login/register/merge/modify). */
   adopt(response: AuthResponse): void;
@@ -33,11 +33,35 @@ export interface AuthSession {
   logout(): Promise<void>;
   /** Load a persisted session (call once on mount). */
   restore(): Promise<void>;
+  /**
+   * The core session substrate this session is built on
+   * (frontend-core-architecture-v2 §43.1) — single-flight refresh, the
+   * three-state status (`getSessionManager().getStatus()` also distinguishes
+   * `"anonymous"` guest sessions via `is_anonymous` on the adopted user,
+   * where this session's OWN two-value `status` field collapses both into
+   * `"authenticated"` for backward compatibility), the typed events, the
+   * logout-hook registry, and the per-session encryption key
+   * `createRepository` uses. Most callers never need this directly — it
+   * exists so other modules (repositories, other `@stapel/*-react` pairs)
+   * can register their own logout hooks / read status without depending on
+   * auth-react.
+   */
+  getSessionManager(): SessionManager;
 }
 
 export interface AuthSessionOptions {
   /** Lazy to break the client↔session wiring cycle (see README). */
   readonly api: AuthApi | (() => AuthApi);
+  /**
+   * API bound to a client WITHOUT the `onAuthRefresh` seam, used ONLY for
+   * the token-refresh call itself. Breaks the refresh call's own 401 from
+   * recursively re-entering the core `SessionManager`'s single-flight window
+   * (frontend-core-architecture-v2 §43.1 — see `src/session.ts`'s doc
+   * comment in `@stapel/core` for why this can't be a runtime guard).
+   * Default: same as `api` — fine for tests with one mock api; hosts built
+   * via `createAuthRuntime` always get a dedicated one.
+   */
+  readonly refreshApi?: AuthApi | (() => AuthApi);
   /** Persist backend. Default: core's IndexedDB→localStorage→memory. */
   readonly storage?: PersistStorage;
   /** Persist key. Default `"stapel-auth:session"`. */
@@ -50,6 +74,15 @@ export interface AuthSessionOptions {
   readonly cookieMode?: boolean;
   /** Notified after a teardown so the host can purge caches / redirect. */
   readonly onTeardown?: (reason: TeardownReason) => void;
+  /**
+   * Host policy for an involuntary session loss (frontend-core-architecture-v2
+   * §43.1): redirect to the login form, or trigger an anonymous auto-login
+   * when the guest axis is enabled. Resolve the CHOICE from your own
+   * discovery/manifest config — not hardcoded here. Runs in addition to
+   * `onTeardown` (which fires for every teardown, including explicit
+   * logout; this only fires for an involuntary loss).
+   */
+  readonly onSessionLost?: (reason: SessionLostReason) => void | Promise<void>;
 }
 
 const REFRESH_REVOKED = "error.401.refresh_revoked";
@@ -59,6 +92,11 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
   const cookieMode = options.cookieMode ?? false;
   const resolveApi = (): AuthApi =>
     typeof options.api === "function" ? options.api() : options.api;
+  const resolveRefreshApi = (): AuthApi => {
+    const refreshApi = options.refreshApi;
+    if (refreshApi === undefined) return resolveApi();
+    return typeof refreshApi === "function" ? refreshApi() : refreshApi;
+  };
 
   let state: AuthSessionState = {
     user: null,
@@ -66,11 +104,6 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
     status: "anonymous",
   };
   const listeners = new Set<() => void>();
-
-  // Recursion guard: while the refresh network call is in flight, its own 401
-  // must NOT re-enter refresh (that call goes through the same client).
-  let refreshing = false;
-  let inFlight: Promise<string | null> | null = null;
 
   function notify(): void {
     for (const listener of listeners) listener();
@@ -98,6 +131,45 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
     }
   }
 
+  const sessionManager = createSessionManager({
+    doRefresh: async () => {
+      const refreshToken = state.tokens?.refresh ?? null;
+      if (!cookieMode && refreshToken === null) {
+        // Mechanical cleanup (the registered hook) runs BEFORE the host
+        // notification, same order as an explicit logout — see `logout()`.
+        await sessionManager.sessionLost("expired");
+        options.onTeardown?.("expired");
+        return null;
+      }
+      try {
+        const r = await resolveRefreshApi().tokenRefresh(
+          cookieMode ? undefined : (refreshToken ?? undefined)
+        );
+        setTokens({ access: r.access, refresh: r.refresh });
+        return "authenticated";
+      } catch (error) {
+        const code = error instanceof StapelApiError ? error.code : "";
+        const reason: TeardownReason = code === REFRESH_REVOKED ? "revoked" : "expired";
+        await sessionManager.sessionLost(reason === "revoked" ? "revoked" : "expired");
+        options.onTeardown?.(reason);
+        return null;
+      }
+    },
+    ...(options.onSessionLost !== undefined
+      ? { onSessionLost: options.onSessionLost }
+      : {}),
+  });
+
+  // The mechanical cleanup half of §43.3: this session's own cache (local
+  // state + persisted storage) is registered on the SAME logout-hook
+  // registry every other `@stapel/*-react` pair uses, instead of a bespoke
+  // inline call site. Runs on BOTH `logout()` and an involuntary `sessionLost()`.
+  sessionManager.registerLogoutHook(() => {
+    setState({ user: null, tokens: null, status: "anonymous" });
+    const storage = options.storage;
+    if (storage) void storage.del(persistKey);
+  });
+
   function adopt(response: AuthResponse): void {
     setState({
       user: response.user,
@@ -105,53 +177,29 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
       status: "authenticated",
     });
     persist();
+    if (response.user.is_anonymous) {
+      sessionManager.markAnonymous();
+    } else {
+      sessionManager.markAuthenticated();
+    }
   }
 
   function setTokens(tokens: AuthTokens): void {
     setState({ ...state, tokens, status: "authenticated" });
     persist();
-  }
-
-  function clearLocal(): void {
-    setState({ user: null, tokens: null, status: "anonymous" });
-    const storage = options.storage;
-    if (storage) void storage.del(persistKey);
-  }
-
-  function teardown(reason: TeardownReason): void {
-    clearLocal();
-    options.onTeardown?.(reason);
-  }
-
-  async function doRefresh(): Promise<string | null> {
-    const refreshToken = state.tokens?.refresh ?? null;
-    if (!cookieMode && refreshToken === null) {
-      teardown("expired");
-      return null;
-    }
-    refreshing = true;
-    try {
-      const r = await resolveApi().tokenRefresh(
-        cookieMode ? undefined : (refreshToken ?? undefined)
-      );
-      setTokens({ access: r.access, refresh: r.refresh });
-      return r.access;
-    } catch (error) {
-      const code = error instanceof StapelApiError ? error.code : "";
-      teardown(code === REFRESH_REVOKED ? "revoked" : "expired");
-      return null;
-    } finally {
-      refreshing = false;
+    if (state.user?.is_anonymous) {
+      sessionManager.markAnonymous();
+    } else {
+      sessionManager.markAuthenticated();
     }
   }
 
   function onAuthRefresh(): Promise<string | null> {
-    if (refreshing) return Promise.resolve(null);
-    if (inFlight) return inFlight;
-    inFlight = doRefresh().finally(() => {
-      inFlight = null;
-    });
-    return inFlight;
+    return sessionManager.refresh().then((ok) => (ok ? getAccessToken() : null));
+  }
+
+  function getAccessToken(): string | null {
+    return cookieMode ? null : (state.tokens?.access ?? null);
   }
 
   async function logout(): Promise<void> {
@@ -160,7 +208,11 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
     } catch {
       // Best-effort — tear down locally regardless.
     }
-    teardown("logout");
+    // Mechanical cleanup (the registered hook, incl. this session's own
+    // local-state/persisted-storage clear) runs before the host notification
+    // — matches the involuntary-loss ordering in `doRefresh` above.
+    await sessionManager.logout();
+    options.onTeardown?.("logout");
   }
 
   async function restore(): Promise<void> {
@@ -170,18 +222,24 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
       | { user: StapelUser | null; tokens: AuthTokens | null }
       | undefined;
     if (stored && (stored.tokens !== null || stored.user !== null)) {
+      // Bearer mode: tokens are the session. Cookie mode: tokens are never
+      // persisted (see `persist`), so a stored user IS the optimistic
+      // session — the HTTP-only cookies ride the next request, and a dead
+      // cookie pair tears the session down via the refresh seam.
+      const authenticated =
+        stored.tokens !== null || (cookieMode && stored.user !== null);
       setState({
         user: stored.user,
         tokens: stored.tokens,
-        // Bearer mode: tokens are the session. Cookie mode: tokens are never
-        // persisted (see `persist`), so a stored user IS the optimistic
-        // session — the HTTP-only cookies ride the next request, and a dead
-        // cookie pair tears the session down via the refresh seam.
-        status:
-          stored.tokens !== null || (cookieMode && stored.user !== null)
-            ? "authenticated"
-            : "anonymous",
+        status: authenticated ? "authenticated" : "anonymous",
       });
+      if (authenticated) {
+        if (stored.user?.is_anonymous) {
+          sessionManager.markAnonymous();
+        } else {
+          sessionManager.markAuthenticated();
+        }
+      }
     }
   }
 
@@ -193,11 +251,12 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
         listeners.delete(listener);
       };
     },
-    getAccessToken: () => (cookieMode ? null : (state.tokens?.access ?? null)),
+    getAccessToken,
     onAuthRefresh,
     adopt,
     setTokens,
     logout,
     restore,
+    getSessionManager: () => sessionManager,
   };
 }

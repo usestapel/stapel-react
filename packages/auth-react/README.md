@@ -1,6 +1,6 @@
 # @stapel/auth-react
 
-The **headless** React flow pair for [stapel-auth](../../../docs/auth-sa.md)
+The **headless** React flow pair for [stapel-auth](../../../docs/reference/auth-sa.md)
 (frontend-standard §2). Business + state only — **zero visual opinion**. Every
 flow is a typed state machine; every headless component is a render prop. You
 bring the markup and design; auth-react brings the auth journeys, the token
@@ -39,7 +39,14 @@ const runtime = createAuthRuntime({
   // cookieMode: true,          // httponly JWT cookies instead of bearer
   onTeardown: (reason) => {     // auth-sa.md §19.3
     void query.purgePersistedCache();
+  },
+  // Session-lost policy (frontend-core-architecture-v2 §43.1): the HOST
+  // decides — login redirect or anonymous auto-login — and resolves the
+  // choice from ITS discovery config (e.g. `capabilities()`), never
+  // hardcoded in the framework.
+  onSessionLost: (reason) => {
     location.assign(reason === "revoked" ? "/sign-in?session_revoked=1" : "/sign-in");
+    // …or, when the guest axis is on: void api.anonymous(deviceId);
   },
 });
 
@@ -64,6 +71,21 @@ export function Root({ children }: { children: React.ReactNode }) {
   );
 }
 ```
+
+### The session substrate underneath (frontend-core-architecture-v2 §43)
+
+`createAuthRuntime` builds on `@stapel/core`'s `createSessionManager`: auth
+owns the **tokens** and the refresh HTTP call; the core `SessionManager` owns
+the **lifecycle** — three-state status (`authenticated | anonymous |
+unauthenticated`, guest sessions map from `user.is_anonymous`), single-flight
+refresh (N concurrent 401s → ONE refresh call), the
+`session:refreshed`/`session:lost`/`session:logout` events, the logout-hook
+registry, and the per-session encryption key `createRepository` uses. Reach
+it via `runtime.session.getSessionManager()` — e.g. for another module to
+`registerLogoutHook(fn)` without depending on auth-react. `logout()` runs
+EVERY registered hook (auth-react's own state/storage cleanup is registered
+the same way); the refresh call itself rides a dedicated client without the
+`onAuthRefresh` seam, so a failing refresh can never re-enter itself.
 
 The `queryRuntime` / `i18n` props are escape hatches: this host needs
 `query.purgePersistedCache()` in `onTeardown` and registers the pair's i18n

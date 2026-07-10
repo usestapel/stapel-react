@@ -1,5 +1,10 @@
 import { createStapelClient } from "@stapel/core";
-import type { Analytics, PersistStorage, StapelClient } from "@stapel/core";
+import type {
+  Analytics,
+  PersistStorage,
+  SessionLostReason,
+  StapelClient,
+} from "@stapel/core";
 import { createAuthApi } from "../api/authApi.js";
 import type { AuthApi } from "../api/authApi.js";
 import {
@@ -44,6 +49,15 @@ export interface CreateAuthRuntimeOptions {
   readonly credentials?: RequestCredentials;
   /** Called after a session teardown (revoked/expired/logout). */
   readonly onTeardown?: (reason: TeardownReason) => void;
+  /**
+   * Host policy for an involuntary session loss
+   * (frontend-core-architecture-v2 §43.1): redirect to the login form, or
+   * trigger an anonymous auto-login when the guest axis is enabled. Resolve
+   * the CHOICE from your own discovery/manifest config — never hardcoded
+   * here. Fires in addition to `onTeardown` (which also covers explicit
+   * logout); this fires only for `revoked`/`expired`.
+   */
+  readonly onSessionLost?: (reason: SessionLostReason) => void | Promise<void>;
   /** Extra headers merged into every request (e.g. a captcha or tenant id). */
   readonly defaultHeaders?: Record<string, string>;
   /** THIN WebAuthn binding for the passkey verification factor. */
@@ -66,11 +80,35 @@ export function createAuthRuntime(
     return holder.current;
   };
 
+  const credentials =
+    options.credentials ??
+    (options.cookieMode === true ? ("include" as const) : undefined);
+
+  // A SEPARATE client for the token-refresh call only — deliberately WITHOUT
+  // `onAuthRefresh` (frontend-core-architecture-v2 §43.1). The refresh
+  // endpoint's own request must not be able to recursively re-enter the core
+  // `SessionManager`'s single-flight window through the same seam; see
+  // `@stapel/core`'s `session.ts` doc comment and `model/session.ts`'s
+  // `refreshApi` option for the full reasoning.
+  const refreshClient = createStapelClient({
+    baseUrl: options.baseUrl,
+    ...(options.fetch !== undefined ? { fetch: options.fetch } : {}),
+    ...(credentials !== undefined ? { credentials } : {}),
+    ...(options.defaultHeaders !== undefined
+      ? { defaultHeaders: options.defaultHeaders }
+      : {}),
+  });
+  const refreshApi = createAuthApi(refreshClient);
+
   const session = createAuthSession({
     api: getApi,
+    refreshApi,
     ...(options.storage !== undefined ? { storage: options.storage } : {}),
     cookieMode: options.cookieMode ?? false,
     ...(options.onTeardown !== undefined ? { onTeardown: options.onTeardown } : {}),
+    ...(options.onSessionLost !== undefined
+      ? { onSessionLost: options.onSessionLost }
+      : {}),
   });
 
   const verification = createVerificationController({
@@ -80,10 +118,6 @@ export function createAuthRuntime(
       ? { webauthnGet: options.webauthnGet }
       : {}),
   });
-
-  const credentials =
-    options.credentials ??
-    (options.cookieMode === true ? ("include" as const) : undefined);
 
   const client = createStapelClient({
     baseUrl: options.baseUrl,
