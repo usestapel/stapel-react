@@ -13,7 +13,7 @@ own committed contract artifacts (§17 per-module pipeline):
 `docs/schema.json`, `docs/flows.json`, `docs/errors.json`, plus its locale
 catalogs.
 
-Normative standard: [`docs/frontend-standard.md`](../docs/frontend-standard.md)
+Normative standard: [`docs/reference/frontend-standard.md`](../docs/reference/frontend-standard.md)
 in the main Stapel repository (mirrors `library-standard.md` on the backend
 side).
 
