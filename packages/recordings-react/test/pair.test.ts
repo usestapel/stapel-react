@@ -1,10 +1,12 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { createSessionManager } from "@stapel/core";
 import {
   recordingsQueryKeys,
   recordingsI18nBundleEn,
   registerRecordingsI18n,
 } from "../src/index.js";
+import { createRecordingsRuntime } from "../src/index.js";
 
 describe("query keys (frontend-standard §2 — namespaced)", () => {
   it("namespaces under the module root", () => {
@@ -40,5 +42,18 @@ describe("self-description (frontend-core §2.4 — drift-gated manifest)", () =
     // the drift gate (frontend-core §2.4 / §3.4.2).
     expect(manifest.backend.contract).toBeTruthy();
     expect(Array.isArray(manifest.layers)).toBe(true);
+  });
+});
+describe("logout hook (frontend-core-architecture-v2 §43.7 — pair contract)", () => {
+  it("registers a logout hook (no-op by default) on the active SessionManager", async () => {
+    // The hook comes from core's createModuleRuntime — the one reviewed
+    // template every standard pair binds — so the cleanup call site exists
+    // mechanically even while this pair caches nothing of its own (core's
+    // query layer and createRepository already wipe themselves).
+    const manager = createSessionManager({ doRefresh: async () => null });
+    const spy = vi.spyOn(manager, "registerLogoutHook");
+    createRecordingsRuntime({ baseUrl: "/recordings/api" });
+    expect(spy).toHaveBeenCalledTimes(1);
+    await expect(manager.logout()).resolves.toBeUndefined();
   });
 });
