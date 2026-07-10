@@ -92,6 +92,33 @@ export {
   memoryStorage,
 } from "./storage.js";
 
+// session substrate (frontend-core-architecture-v2 §43.1–§43.3): status,
+// single-flight refresh, the logout-hook registry, the per-session
+// encryption key `createRepository` uses. An authenticating module (today:
+// @stapel/auth-react) owns tokens and the refresh mechanics; SessionManager
+// owns the generic lifecycle around them.
+export {
+  createSessionManager,
+  getActiveSessionManager,
+} from "./session.js";
+export type {
+  SessionManager,
+  SessionStatus,
+  SessionLostReason,
+  SessionLogoutReason,
+  LogoutHook,
+  CreateSessionManagerOptions,
+  SessionManagerEventMap,
+  SessionEventName,
+} from "./session.js";
+
+// repositories (§43.4) — the one sanctioned client-side persistence
+// primitive. `scope: "user"` auto-wipes on logout (no opt-out) and is
+// encrypted by default (§43.5 — WebCrypto AES-GCM, honest boundaries in the
+// package README: at-rest defense only, not an XSS mitigation).
+export { createRepository } from "./repository.js";
+export type { Repository, RepositoryOptions } from "./repository.js";
+
 // module-pair plumbing factories (slim wave §21/S2) — the one reviewed copy
 // of the runtime/context/provider boilerplate every standard pair binds under
 // its module-prefixed names. auth-react stays bespoke (its runtime differs).

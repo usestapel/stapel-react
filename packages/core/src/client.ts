@@ -39,7 +39,12 @@ export interface StapelClientOptions {
   /**
    * Refresh seam: called once per request on a 401. Return the new access
    * token to retry the request with it; return null/undefined to give up
-   * (the 401 is then thrown as `StapelApiError`).
+   * (the 401 is then thrown as `StapelApiError`). Concurrent requests each
+   * call this independently — wire it to `SessionManager.refresh()`
+   * (frontend-core-architecture-v2 §43.1/§43.2), which coalesces them into
+   * ONE actual refresh call and hands every caller the same result. This is
+   * the ONE legal place a 401 gets handled (`stapel/no-adhoc-401`) — modules
+   * do not write their own retry/redirect logic on 401.
    */
   readonly onAuthRefresh?: () => Promise<string | null | undefined>;
   /**

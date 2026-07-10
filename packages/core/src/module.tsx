@@ -16,6 +16,8 @@ import type { Context, ReactElement, ReactNode } from "react";
 import { createStapelClient } from "./client.js";
 import type { StapelClient } from "./client.js";
 import type { Analytics } from "./analytics/types.js";
+import { getActiveSessionManager } from "./session.js";
+import type { SessionLogoutReason } from "./session.js";
 
 /**
  * The wired runtime a standard pair shares through React context — a
@@ -40,7 +42,19 @@ export interface CreateModuleRuntimeOptions {
   readonly analytics?: Analytics | null;
   /** Extra headers merged into every request (e.g. a tenant id). */
   readonly defaultHeaders?: Record<string, string>;
+  /**
+   * Logout/session-lost cleanup for anything this pair caches OUTSIDE core's
+   * query layer / `createRepository` (both already wipe themselves —
+   * frontend-core-architecture-v2 §43.3/§43.7). Default: a no-op — most
+   * pairs cache nothing of their own. Registered on the active
+   * `SessionManager` if one exists when the runtime is created; a pair that
+   * genuinely caches nothing still gets a (no-op) hook registered, which is
+   * what the pair-template contract test checks for.
+   */
+  readonly onLogout?: LogoutHook;
 }
+
+type LogoutHook = (reason: SessionLogoutReason) => void | Promise<void>;
 
 /**
  * Build a standard pair runtime: a {@link StapelClient} for the module's
@@ -63,6 +77,14 @@ export function createModuleRuntime<TApi>(
       : {}),
   });
   const api = createApi(client);
+
+  // Pair-template contract (§43.7): every standard pair has a registered
+  // logout hook, even if it is a no-op, so the cleanup call site always
+  // exists mechanically rather than depending on someone remembering to add
+  // one the day the pair starts caching something.
+  const sessionManager = getActiveSessionManager();
+  sessionManager?.registerLogoutHook(options.onLogout ?? (() => {}));
+
   return { client, api, analytics };
 }
 

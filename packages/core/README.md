@@ -31,7 +31,7 @@ The Stapel frontend runtime (L0, frontend-standard §1). Everything the
 
 ## Analytics seam
 
-Per [analytics-standard](../../../docs/analytics-standard.md) §1–2 and
+Per [analytics-standard](../../../docs/done/analytics-standard-v1.md) §1–2 and
 frontend-standard §4.7: packages and hosts talk to the facade only, never to
 providers directly. Core owns the **type seam + context plumbing** — the
 `Analytics` / `AnalyticsProvider` / `EventDef` types, `AnalyticsContext` +
@@ -97,6 +97,83 @@ const i18n = createI18n({
 // on login:  await query.setPersistUser(user.id);
 // on logout: await query.purgePersistedCache();
 ```
+
+## Session substrate & user-data hygiene (frontend-core-architecture-v2 §43)
+
+Authentication state and user data on the client are the two places where a
+bug is both critical and invisible — so they live at the FRAMEWORK level, not
+per-library.
+
+### `createSessionManager` (§43.1)
+
+The one owner of session lifecycle. Status is three-state —
+`authenticated | anonymous | unauthenticated` — and refresh is
+**single-flight**: N requests that concurrently hit a 401 share ONE
+`doRefresh()` call and all resolve together. Typed events:
+`session:refreshed` / `session:lost` / `session:logout`.
+
+```ts
+const sessionManager = createSessionManager({
+  doRefresh: async () => {/* module-owned: call the refresh endpoint */},
+  onSessionLost: (reason) => {
+    // HOST policy, resolved from your discovery config — not hardcoded here:
+    // redirect to the login form, OR anonymous auto-login when the guest
+    // axis is enabled.
+  },
+});
+```
+
+The module that authenticates (`@stapel/auth-react`) owns its tokens and the
+refresh mechanics; the SessionManager owns everything generic around them.
+`@stapel/auth-react` wires all of this for you (`createAuthRuntime` →
+`session.getSessionManager()`).
+
+### 401 handling lives in the client, not in services (§43.2)
+
+`createStapelClient`'s 401 path: `onAuthRefresh` (wire it to
+`SessionManager.refresh()`) → retry the request exactly once → still 401 →
+the session is lost. No library writes its own 401 branch — enforced by
+`stapel/no-adhoc-401` (`@stapel/eslint-plugin`).
+
+### Logout-hook registry (§43.3)
+
+`sessionManager.registerLogoutHook(fn)` — run on BOTH explicit `logout()` and
+involuntary session loss. Hard rule: put something in a store, you must
+register how it comes out. `createRepository(…, { scope: "user" })` and
+`createModuleRuntime` register theirs automatically.
+
+### `createRepository` — the one sanctioned client-side store (§43.4)
+
+```ts
+const drafts = createRepository("drafts", {
+  storage: "indexeddb",   // or "local"; graceful fallback ladder
+  scope: "user",          // wiped on logout/loss — NO opt-out; encrypted by default
+});
+const theme = createRepository("theme", { storage: "local", scope: "app" }); // survives logout
+```
+
+Direct `localStorage` / `indexedDB` access is a lint error
+(`stapel/no-raw-storage`) — that is what makes wipe-at-logout mechanical: the
+teardown happens at the repository layer; a library can forget, the framework
+cannot. Contract-tested: after `logout()`, user-scoped data is physically
+absent from both stores and the encryption key is dropped.
+
+### Encryption at rest — honest boundaries (§43.5)
+
+User-scoped repositories are encrypted by default: WebCrypto AES-GCM with a
+per-session key held in memory only (never persisted). Logout = drop the key,
+so even if the wipe didn't finish (tab crash), the leftovers are unreadable.
+
+**The honest boundary (state it, do not oversell it):** frontend encryption
+does NOT protect against XSS with code execution — a script running in your
+origin can call `repo.get()` like any other code. This is protection against
+a shared computer, residual data on disk, and casual access — not more.
+
+Verbatim from the governing doc (frontend-core-architecture-v2 §43.5):
+
+> от XSS с исполняемым кодом фронт-шифрование НЕ защищает (это защита от
+> общего компьютера, остаточных данных и казуального доступа) — не продавать
+> как большее.
 
 ## Notes
 
