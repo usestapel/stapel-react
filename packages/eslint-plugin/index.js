@@ -18,6 +18,8 @@ import eventLiteralMeta from "./rules/event-literal-meta.js";
 import knownEvent from "./rules/known-event.js";
 import noDirectAnalyticsProvider from "./rules/no-direct-analytics-provider.js";
 import demoLiteralMeta from "./rules/demo-literal-meta.js";
+import noRawStorage from "./rules/no-raw-storage.js";
+import noAdhoc401 from "./rules/no-adhoc-401.js";
 
 const rules = {
   "no-raw-colors": noRawColors,
@@ -37,6 +39,9 @@ const rules = {
   "no-direct-analytics-provider": noDirectAnalyticsProvider,
   // Showcase guardrail (frontend-guardrails §4, task G7).
   "demo-literal-meta": demoLiteralMeta,
+  // Session-substrate guardrails (frontend-core-architecture-v2 §43).
+  "no-raw-storage": noRawStorage,
+  "no-adhoc-401": noAdhoc401,
 };
 
 const plugin = {
@@ -102,6 +107,23 @@ const KEY_FACTORY = [
   "**/query-keys.{ts,tsx,js,mjs}",
 ];
 
+// @stapel/core's storage/repository internals — the ONE legal home of direct
+// localStorage/indexedDB access (§43.4 override; everything else persists
+// through createRepository, which is what makes wipe-at-logout mechanical).
+const STORAGE_ALLOWED = [
+  "**/core/src/storage.{ts,js}",
+  "**/core/src/repository.{ts,js}",
+  "**/core/src/query.{ts,js}",
+];
+
+// @stapel/core's client + session internals — the ONE legal home of 401
+// handling (§43.2 override; the onAuthRefresh seam + SessionManager.refresh()
+// are where the single-flight retry lives).
+const ADHOC_401_ALLOWED = [
+  "**/core/src/client.{ts,js}",
+  "**/core/src/session.{ts,js}",
+];
+
 /**
  * Flat-config `recommended` preset. Consumers spread it AFTER their parser
  * config:
@@ -133,6 +155,11 @@ const recommended = [
       "stapel/no-direct-analytics-provider": "error",
       // Showcase (§4): defineDemo meta must stay literal (extractable).
       "stapel/demo-literal-meta": "error",
+      // Session substrate (frontend-core-architecture-v2 §43): persistence
+      // only through createRepository; 401 handling only in core's client
+      // + SessionManager.
+      "stapel/no-raw-storage": "error",
+      "stapel/no-adhoc-401": "error",
     },
   },
   {
@@ -160,6 +187,18 @@ const recommended = [
     rules: { "stapel/query-keys-from-factory": "off" },
   },
   {
+    // Core's storage/repository internals — the one legal home of raw
+    // storage access (§43.4 override).
+    files: STORAGE_ALLOWED,
+    rules: { "stapel/no-raw-storage": "off" },
+  },
+  {
+    // Core's client + session — the one legal home of 401 handling
+    // (§43.2 override).
+    files: ADHOC_401_ALLOWED,
+    rules: { "stapel/no-adhoc-401": "off" },
+  },
+  {
     // The facade's provider adapters — the ONE legal home of vendor SDK
     // imports (§2.2 override; mirrors the FETCH_ALLOWED api-layer carve-out).
     files: ["**/analytics/providers.{ts,js}", "**/analytics/src/providers.{ts,js}", "**/analytics/providers/**"],
@@ -184,6 +223,10 @@ const recommended = [
       "stapel/known-event": "off",
       "stapel/no-direct-analytics-provider": "off",
       "stapel/demo-literal-meta": "off",
+      // Tests legitimately assert on raw storage state (the wipe-at-logout
+      // contract test greps localStorage directly) and on 401 fixtures.
+      "stapel/no-raw-storage": "off",
+      "stapel/no-adhoc-401": "off",
       // require-disable-description stays ON — disable hygiene applies everywhere.
     },
   },

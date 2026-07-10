@@ -31,8 +31,10 @@ The `recommended` preset:
 - turns the rules on for `**/*.{ts,tsx,js,jsx,mjs,…}` (JSX-only rules on `*.{tsx,jsx}`);
 - **overrides** `no-raw-token-import` **off** in theme-config / showcase / demo / scripts,
   `no-raw-fetch` and `no-string-paths` **off** in the codegen api layer
-  (`**/api/**`, `*client.ts`, `generated/`), and `query-keys-from-factory`
-  **off** in the key-factory file (`**/queryKeys.*`);
+  (`**/api/**`, `*client.ts`, `generated/`), `query-keys-from-factory`
+  **off** in the key-factory file (`**/queryKeys.*`), `no-raw-storage` **off**
+  in core's storage/repository internals, and `no-adhoc-401` **off** in core's
+  client/session (each rule's one legal home);
 - **overrides** the content rules off in tests and fixtures (they exercise the
   anti-patterns on purpose).
 
@@ -54,6 +56,8 @@ The `recommended` preset:
 | `stapel/known-event` (warn) | `track()`/`tracked()` with an event name absent from the generated `events.json` — registry drift; run `pnpm gen:events` (§3) |
 | `stapel/no-direct-analytics-provider` | importing an analytics vendor SDK (posthog-js, mixpanel, `@amplitude/*`, `@segment/*`, …) outside the core facade's provider adapters (`analytics/providers.*`) — bypasses consent/PII/queue (§3). Extend the vendor list via `options.providers` or `settings.stapel.providerModules` |
 | `stapel/demo-literal-meta` | `defineDemo()` with non-literal meta (dynamic `id`/`title`/`description`/`covers`) — breaks static extraction into `demos.json`/`manifest.demos` (§4.2) |
+| `stapel/no-raw-storage` | direct `localStorage`/`sessionStorage`/`indexedDB` (bare or via `window.`/`globalThis.`/`self.`) or importing `idb-keyval` outside `@stapel/core`'s repository layer — raw storage is neither wiped on logout nor encrypted; persist through `createRepository()` (frontend-core-architecture-v2 §43.4). Off in core's `storage.ts`/`repository.ts`/`query.ts` (the one legal home) and in tests. Extend the banned module list via `options.modules` or `settings.stapel.storageModules` |
+| `stapel/no-adhoc-401` | comparing a status to the literal `401` (`===`/`!==`/`case 401:`) or wiring an axios-style `*.interceptors` chain — ad hoc 401 handling bypasses the single-flight refresh + logout-hook registry; 401s are handled ONCE, in core's `createStapelClient` (`onAuthRefresh` seam) + `SessionManager` (§43.2). Off in core's `client.ts`/`session.ts` and in tests |
 
 ### Settings
 
@@ -66,6 +70,7 @@ settings: {
     i18nKeys: ["auth.otp.…"],   // or i18nManifests: [manifest, …]
     httpModules: ["my-http"],   // extra banned HTTP clients
     rawModules: ["@x/raw"],     // extra raw-token entry points
+    storageModules: ["level"],  // extra banned storage-backend packages
     eventsManifests: [manifest],// or eventNames: ["pricing.plan.selected", …]
     operationsManifests: [manifest], // or operationPaths: ["/auth/api/me/", …]
     httpVerbs: ["get","post"],   // client methods no-string-paths inspects
