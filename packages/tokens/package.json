@@ -1,6 +1,6 @@
 {
   "name": "@stapel/tokens",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Stapel design tokens: three-tier colour system (raw ramps → semantic core light/dark pairs → component tokens) generated from theme.json, plus typography, spacing, radii, elevation, and the three breakpoints. CSS custom properties + typed names + a vanilla-Tailwind bridge. Not components.",
   "license": "MIT",
   "repository": {

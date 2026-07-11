@@ -36,6 +36,35 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.passkey.no_credentials":
     "Не удалось войти по passkey на этом устройстве. Добавьте его в настройках безопасности, войдя другим способом, или выберите другой способ входа ниже.",
   "auth.error.unknown": "Что-то пошло не так. Попробуйте ещё раз.",
+
+  // Default-skin UI (§54 AuthPanel)
+  "auth.ui.login_title": "Вход",
+  "auth.ui.or": "или",
+  "auth.ui.more_methods": "Другие способы входа",
+  "auth.ui.resend_in": "Повторить через {s} с",
+  "auth.ui.email_label": "Эл. почта",
+  "auth.ui.email_placeholder": "you@example.com",
+  "auth.ui.phone_label": "Телефон",
+  "auth.ui.phone_placeholder": "+7 900 000 0000",
+  "auth.ui.send_code": "Отправить код",
+  "auth.ui.continue": "Продолжить",
+  "auth.ui.submit": "Войти",
+  "auth.ui.password_placeholder": "Ваш пароль",
+  "auth.ui.qr_hint": "Отсканируйте этот код телефоном, чтобы войти.",
+  "auth.ui.passkey_cta": "Войти по passkey",
+  "auth.ui.magic_link_cta": "Прислать ссылку для входа",
+  "auth.ui.magic_link_sent_title": "Проверьте почту",
+  "auth.ui.magic_link_sent_body": "Мы отправили ссылку для входа. Откройте её на этом устройстве.",
+  "auth.ui.sso_domain_label": "Рабочий домен",
+  "auth.ui.sso_continue": "Продолжить через SSO",
+  "auth.ui.channel_email": "Эл. почта",
+  "auth.ui.channel_phone": "Телефон",
+  "auth.ui.channel_password": "Пароль",
+  "auth.ui.channel_passkey": "Passkey",
+  "auth.ui.channel_oauth": "Соцсети",
+  "auth.ui.channel_sso": "SSO",
+  "auth.ui.channel_qr": "QR-код",
+  "auth.ui.channel_magic_link": "Ссылка для входа",
 };
 
 /**

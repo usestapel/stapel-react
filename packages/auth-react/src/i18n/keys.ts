@@ -24,6 +24,37 @@ export const AUTH_I18N_KEYS = {
   sessionSuspicious: "auth.session.suspicious",
   passkeyNoCredentials: "auth.passkey.no_credentials",
   unknownError: "auth.error.unknown",
+
+  // Default-skin UI keys (§54 AuthPanel). Rendered by @stapel/auth-react/default;
+  // the headless layer never uses them. Kept here so the manifest i18n scan
+  // (gen:manifest) registers them and `stapel/i18n-key-exists` recognises them.
+  uiLoginTitle: "auth.ui.login_title",
+  uiOr: "auth.ui.or",
+  uiMoreMethods: "auth.ui.more_methods",
+  uiResendIn: "auth.ui.resend_in",
+  uiEmailLabel: "auth.ui.email_label",
+  uiEmailPlaceholder: "auth.ui.email_placeholder",
+  uiPhoneLabel: "auth.ui.phone_label",
+  uiPhonePlaceholder: "auth.ui.phone_placeholder",
+  uiSendCode: "auth.ui.send_code",
+  uiContinue: "auth.ui.continue",
+  uiSubmit: "auth.ui.submit",
+  uiPasswordPlaceholder: "auth.ui.password_placeholder",
+  uiQrHint: "auth.ui.qr_hint",
+  uiPasskeyCta: "auth.ui.passkey_cta",
+  uiMagicLinkCta: "auth.ui.magic_link_cta",
+  uiMagicLinkSentTitle: "auth.ui.magic_link_sent_title",
+  uiMagicLinkSentBody: "auth.ui.magic_link_sent_body",
+  uiSsoDomainLabel: "auth.ui.sso_domain_label",
+  uiSsoContinue: "auth.ui.sso_continue",
+  uiChannelEmail: "auth.ui.channel_email",
+  uiChannelPhone: "auth.ui.channel_phone",
+  uiChannelPassword: "auth.ui.channel_password",
+  uiChannelPasskey: "auth.ui.channel_passkey",
+  uiChannelOauth: "auth.ui.channel_oauth",
+  uiChannelSso: "auth.ui.channel_sso",
+  uiChannelQr: "auth.ui.channel_qr",
+  uiChannelMagicLink: "auth.ui.channel_magic_link",
 } as const;
 
 export type AuthI18nKey =
@@ -58,6 +89,35 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.passkey.no_credentials":
     "Couldn't sign in with a passkey on this device. Add one in Security settings after signing in another way, or pick a different sign-in method below.",
   "auth.error.unknown": "Something went wrong. Please try again.",
+
+  // Default-skin UI (§54 AuthPanel)
+  "auth.ui.login_title": "Sign in",
+  "auth.ui.or": "or",
+  "auth.ui.more_methods": "More ways to sign in",
+  "auth.ui.resend_in": "Resend in {s}s",
+  "auth.ui.email_label": "Email",
+  "auth.ui.email_placeholder": "you@example.com",
+  "auth.ui.phone_label": "Phone",
+  "auth.ui.phone_placeholder": "+1 555 000 0000",
+  "auth.ui.send_code": "Send code",
+  "auth.ui.continue": "Continue",
+  "auth.ui.submit": "Sign in",
+  "auth.ui.password_placeholder": "Your password",
+  "auth.ui.qr_hint": "Scan this code with your phone to sign in.",
+  "auth.ui.passkey_cta": "Use a passkey",
+  "auth.ui.magic_link_cta": "Email me a sign-in link",
+  "auth.ui.magic_link_sent_title": "Check your email",
+  "auth.ui.magic_link_sent_body": "We sent you a sign-in link. Open it on this device.",
+  "auth.ui.sso_domain_label": "Work email domain",
+  "auth.ui.sso_continue": "Continue with SSO",
+  "auth.ui.channel_email": "Email",
+  "auth.ui.channel_phone": "Phone",
+  "auth.ui.channel_password": "Password",
+  "auth.ui.channel_passkey": "Passkey",
+  "auth.ui.channel_oauth": "Social",
+  "auth.ui.channel_sso": "SSO",
+  "auth.ui.channel_qr": "QR code",
+  "auth.ui.channel_magic_link": "Magic link",
 
   // Backend error codes (auth-sa.md "Error reference")
   "error.401.invalid_credentials": "Incorrect email or password.",

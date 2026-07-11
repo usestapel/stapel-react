@@ -1,0 +1,61 @@
+{
+  "name": "@stapel/tokens-antd",
+  "version": "0.1.0",
+  "description": "Token bridge (frontend-guidelines §2.4, §38 T3): projects @stapel/tokens L2 core tokens onto an Ant Design ConfigProvider theme. `toAntdTheme(mode)` → theme.token; `toAntdThemeConfig(mode)` → the full ThemeConfig (algorithm + token). Pure functions, one mapping table shared with @stapel/tokens-mui. Not components.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usestapel/stapel-react.git",
+    "directory": "packages/tokens-antd"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "tsconfig.json",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "size": "size-limit"
+  },
+  "size-limit": [
+    {
+      "path": "dist/index.js",
+      "limit": "4 KB"
+    }
+  ],
+  "peerDependencies": {
+    "antd": ">=5.20.0 <7"
+  },
+  "dependencies": {
+    "@stapel/tokens": "workspace:^"
+  },
+  "devDependencies": {
+    "@size-limit/preset-small-lib": "^11.2.0",
+    "antd": "^6.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "size-limit": "^11.2.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

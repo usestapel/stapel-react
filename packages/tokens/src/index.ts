@@ -40,3 +40,11 @@ export {
   mediaQuery,
 } from "./breakpoints.js";
 export type { Breakpoint } from "./breakpoints.js";
+
+// ── design-system theme bridge roles (hand-written; frontend-guidelines §2.4)─
+export {
+  bridgeColorRoles,
+  bridgeRadiusRole,
+  bridgeFontSizeRole,
+} from "./bridge.js";
+export type { BridgeColorRole } from "./bridge.js";

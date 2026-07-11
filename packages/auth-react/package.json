@@ -1,6 +1,6 @@
 {
   "name": "@stapel/auth-react",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Headless React flow pair for stapel-auth: typed API client, TanStack Query hooks, flow machines (OTP, password, OAuth, TOTP, sessions, passkeys, QR, magic links, SSO), and the step-up verification factor flow. Zero visual opinion.",
   "license": "MIT",
   "repository": {
@@ -16,6 +16,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./default": {
+      "types": "./dist/default/index.d.ts",
+      "default": "./dist/default/index.js"
     },
     "./i18n/ru": {
       "types": "./dist/i18n/ru.d.ts",
@@ -57,8 +61,14 @@
   ],
   "peerDependencies": {
     "@stapel/core": ">=0.3.0 <1.0.0",
+    "@stapel/tokens-antd": ">=0.1.0 <0.2.0",
     "@tanstack/react-query": "^5.0.0",
+    "antd": ">=5.20.0 <7",
     "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "@stapel/tokens-antd": { "optional": true },
+    "antd": { "optional": true }
   },
   "devDependencies": {
     "@size-limit/preset-small-lib": "^11.2.0",
@@ -66,6 +76,8 @@
     "@stapel/core": "workspace:^",
     "@stapel/showcase": "workspace:^",
     "@stapel/tokens": "workspace:^",
+    "@stapel/tokens-antd": "workspace:^",
+    "antd": "^6.5.0",
     "@tanstack/react-query": "^5.81.0",
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.1.0",
