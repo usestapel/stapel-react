@@ -3,8 +3,9 @@ import type {
   Member,
   MemberInvite,
   MemberInviteResult,
-  MemberList,
+  MemberPage,
   MemberRoleUpdate,
+  MembersParams,
   InvitationAccept,
   Workspace,
   WorkspaceCreate,
@@ -64,8 +65,11 @@ export interface WorkspacesApi {
   /** Soft-delete a workspace (owner only). */
   deleteWorkspace(workspaceId: string): Promise<void>;
 
-  /** A workspace's members (viewer+). */
-  listMembers(workspaceId: string): Promise<MemberList>;
+  /** A workspace's members (viewer+), an anchor-paginated page. */
+  listMembers(
+    workspaceId: string,
+    params?: MembersParams
+  ): Promise<MemberPage>;
   /** Invite one or more emails to a workspace at a role (admin+). */
   inviteMembers(
     workspaceId: string,
@@ -106,8 +110,16 @@ export function createWorkspacesApi(client: StapelClient): WorkspacesApi {
     deleteWorkspace: (workspaceId) =>
       client.delete(`/${encodeURIComponent(workspaceId)}`, mutating()),
 
-    listMembers: (workspaceId) =>
-      client.get(`/${encodeURIComponent(workspaceId)}/members`),
+    listMembers: (workspaceId, params) => {
+      const query: Record<string, string | number> = {};
+      if (params?.anchor !== undefined) query.anchor = params.anchor;
+      if (params?.direction !== undefined) query.direction = params.direction;
+      if (params?.limit !== undefined) query.limit = params.limit;
+      if (params?.search !== undefined) query.search = params.search;
+      return client.get(`/${encodeURIComponent(workspaceId)}/members`, {
+        query,
+      });
+    },
 
     inviteMembers: (workspaceId, body) =>
       client.post(

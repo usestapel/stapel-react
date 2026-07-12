@@ -16,6 +16,16 @@ export interface paths {
          *     to list every recording in a workspace you are a member of (membership is
          *     verified against the workspaces module; non-members get 403).
          *
+         *     Pass ``?resource_key=<opaque-token>`` to narrow the listing to the single
+         *     recording that token references. The key is the opaque, signed handle
+         *     carried in every recording payload (``resolve_resource_key``); it composes
+         *     with ``workspace_id`` (workspace scope stays membership-gated) or with the
+         *     default owner scope. A missing/forged/tampered key resolves to nothing, so
+         *     the listing comes back **empty** rather than 400 — the token is
+         *     tamper-evident and opaque by design, so we neither leak whether a token is
+         *     genuine nor surface a distinct error for a value the client only ever
+         *     obtains from a prior server response.
+         *
          *     **Permissions:** `IsAuthenticated`
          */
         get: operations["recordings_api_recordings_list"];
@@ -26,6 +36,16 @@ export interface paths {
          *     ``GET`` lists your own recordings by default; pass ``?workspace_id=<uuid>``
          *     to list every recording in a workspace you are a member of (membership is
          *     verified against the workspaces module; non-members get 403).
+         *
+         *     Pass ``?resource_key=<opaque-token>`` to narrow the listing to the single
+         *     recording that token references. The key is the opaque, signed handle
+         *     carried in every recording payload (``resolve_resource_key``); it composes
+         *     with ``workspace_id`` (workspace scope stays membership-gated) or with the
+         *     default owner scope. A missing/forged/tampered key resolves to nothing, so
+         *     the listing comes back **empty** rather than 400 — the token is
+         *     tamper-evident and opaque by design, so we neither leak whether a token is
+         *     genuine nor surface a distinct error for a value the client only ever
+         *     obtains from a prior server response.
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -72,6 +92,34 @@ export interface paths {
          *     **Permissions:** `IsAuthenticated`
          */
         post: operations["recordings_api_recordings_finalize_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recordings/api/recordings/{recording_id}/reprocess": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Re-run the whole pipeline for a finished recording (``completed → queued``).
+         *
+         *     Exposes the ``pipeline.reprocess_recording`` transition: the progress cursor
+         *     is cleared and every stage re-runs from stage 0 (distinct from the
+         *     resume-in-place retry). Allowed **only** from ``completed`` — from any other
+         *     status the transition is a no-op and the endpoint answers ``409``
+         *     (``error.409.recording_invalid_state``). Owner-scoped, like every other
+         *     per-recording verb; an unknown/foreign/deleted recording is ``404``.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["recordings_api_recordings_reprocess_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -140,6 +188,8 @@ export interface operations {
     recordings_api_recordings_list: {
         parameters: {
             query?: {
+                /** @description Narrow the listing to the single recording this opaque resource_key references. A missing/forged key yields an empty listing. */
+                resource_key?: string;
                 /** @description List all recordings in this workspace (requires membership) instead of only your own. */
                 workspace_id?: string;
             };
@@ -221,6 +271,27 @@ export interface operations {
                 "multipart/form-data": components["schemas"]["FinalizeUploadRequest"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingDTO"];
+                };
+            };
+        };
+    };
+    recordings_api_recordings_reprocess_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recording_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

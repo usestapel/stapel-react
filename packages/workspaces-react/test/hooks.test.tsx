@@ -45,7 +45,14 @@ const MEMBER = {
   last_accessed_at: null,
 };
 
-const MEMBER_LIST = { members: [MEMBER] };
+const MEMBER_LIST = {
+  items: [MEMBER],
+  next_anchor: null,
+  prev_anchor: null,
+  has_next: false,
+  has_prev: false,
+  count: 1,
+};
 
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));

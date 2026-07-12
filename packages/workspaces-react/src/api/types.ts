@@ -26,8 +26,8 @@ export type WorkspaceCreate = Schemas["WorkspaceCreateRequest"];
 export type WorkspaceUpdate = Schemas["PatchedWorkspaceUpdateRequest"];
 /** One workspace member (GET members, PATCH member role, POST accept). */
 export type Member = Schemas["MemberResponse"];
-/** GET /{id}/members 200 body — a workspace's members. */
-export type MemberList = Schemas["MemberListResponse"];
+/** GET /{id}/members 200 body — an anchor-paginated page of a workspace's {@link Member}s. */
+export type MemberPage = Schemas["PaginatedMemberResponseList"];
 /** POST /{id}/members/invite request body — one or more emails + a role. */
 export type MemberInvite = Schemas["MemberInviteRequest"];
 /** POST /{id}/members/invite 201 body — the created invitations. */
@@ -57,3 +57,19 @@ export type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
  * {@link WorkspaceRole}.
  */
 export type WorkspaceKind = "personal" | "work";
+
+/**
+ * Anchor-pagination query for GET /{id}/members (core `AnchorPagination`, same
+ * shape as notifications-react's `NotificationFeedParams`). All optional: no
+ * params fetches the newest page (default limit 100, max 500).
+ */
+export interface MembersParams {
+  /** Anchor value to paginate from (exclusive) — a page's `next_anchor`. */
+  readonly anchor?: string;
+  /** Pagination direction relative to `anchor`. */
+  readonly direction?: "next" | "prev" | "center";
+  /** Page size (default 100, max 500). */
+  readonly limit?: number;
+  /** Case-insensitive substring filter matched against a member's email or display name. */
+  readonly search?: string;
+}

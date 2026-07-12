@@ -1,7 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { StapelApiError } from "@stapel/core";
-import type { MemberList, Workspace, WorkspaceList } from "../api/types.js";
+import type {
+  MemberPage,
+  MembersParams,
+  Workspace,
+  WorkspaceList,
+} from "../api/types.js";
 import { useWorkspacesApi } from "./context.js";
 import { workspacesQueryKeys } from "./queryKeys.js";
 
@@ -36,16 +41,20 @@ export function useWorkspace(
 }
 
 /**
- * A workspace's members (GET /{id}/members). Disabled until a `workspaceId` is
- * given.
+ * A page of a workspace's members (GET /{id}/members, anchor-paginated).
+ * Disabled until a `workspaceId` is given. Pass `{ anchor, direction, limit,
+ * search }` to jump to a specific page or filter; omit for the newest page
+ * (default limit 100).
  */
 export function useMembers(
-  workspaceId: string | null
-): UseQueryResult<MemberList, StapelApiError> {
+  workspaceId: string | null,
+  params?: MembersParams
+): UseQueryResult<MemberPage, StapelApiError> {
   const api = useWorkspacesApi();
+  const p = params ?? {};
   return useQuery({
-    queryKey: workspacesQueryKeys.members(workspaceId ?? ""),
-    queryFn: () => api.listMembers(workspaceId as string),
+    queryKey: workspacesQueryKeys.membersPage(workspaceId ?? "", p),
+    queryFn: () => api.listMembers(workspaceId as string, p),
     enabled: workspaceId !== null && workspaceId !== "",
   });
 }

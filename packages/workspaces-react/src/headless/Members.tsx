@@ -11,7 +11,12 @@ import type { MemberRoleChange } from "../model/mutations.js";
 
 /** Render-prop bag for {@link Members}. */
 export interface MembersBag {
-  /** The workspace's members once loaded (empty before load). */
+  /**
+   * The workspace's members once loaded (empty before load). This is one page
+   * (default 100) — the roster's own {@link Member.email}/`search` narrows
+   * further; a full pager is out of scope for this renderless view (bring
+   * your own via `useMembers`' `params` for anchor pagination).
+   */
   readonly members: readonly Member[];
   /** The initial member-list load is in flight. */
   readonly isLoading: boolean;
@@ -57,7 +62,7 @@ export function Members(props: {
   const roleMutation = useUpdateMemberRole(props.workspaceId);
   const removeMutation = useRemoveMember(props.workspaceId);
   return props.children({
-    members: query.data?.members ?? [],
+    members: query.data?.items ?? [],
     isLoading: query.isLoading,
     isError:
       query.isError ||

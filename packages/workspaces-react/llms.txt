@@ -1,6 +1,6 @@
 # @stapel/workspaces-react 0.3.0
 
-Headless React flow pair for stapel-workspaces (contract >=0.3 <0.4) — business + state, zero visual opinion.
+Headless React flow pair for stapel-workspaces (contract >=0.4 <0.5) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -27,8 +27,8 @@ Request/response schema names are in manifest.json + the generated types.
 - workspaces_api_invitations_accept_create: POST /workspaces/api/invitations/accept
 - workspaces_api_members_destroy: DELETE /workspaces/api/{workspace_id}/members/{user_id}
 - workspaces_api_members_invite_create: POST /workspaces/api/{workspace_id}/members/invite
+- workspaces_api_members_list: GET /workspaces/api/{workspace_id}/members
 - workspaces_api_members_partial_update: PATCH /workspaces/api/{workspace_id}/members/{user_id}
-- workspaces_api_members_retrieve: GET /workspaces/api/{workspace_id}/members
 - workspaces_api_partial_update: PATCH /workspaces/api/{workspace_id}
 - workspaces_api_retrieve: GET /workspaces/api/
 - workspaces_api_retrieve_2: GET /workspaces/api/{workspace_id}

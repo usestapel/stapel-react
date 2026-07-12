@@ -4,7 +4,7 @@
   "version": "0.2.0",
   "backend": {
     "module": "stapel-recordings",
-    "contract": ">=0.2 <0.3"
+    "contract": ">=0.3 <0.4"
   },
   "layers": [
     "api",
@@ -36,6 +36,13 @@
       "tag": "Recordings",
       "request": null,
       "response": null
+    },
+    "recordings_api_recordings_reprocess_create": {
+      "method": "POST",
+      "path": "/recordings/api/recordings/{recording_id}/reprocess",
+      "tag": "Recordings",
+      "request": null,
+      "response": "RecordingDTO"
     },
     "recordings_api_recordings_retrieve": {
       "method": "GET",
@@ -285,6 +292,11 @@
       "params": [],
       "remediation": "fix_input"
     },
+    "error.409.recording_invalid_state": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
     "error.410.gone": {
       "status": 410,
       "params": [],
@@ -438,6 +450,7 @@
     "error.406.not_acceptable",
     "error.408.request_timeout",
     "error.409.conflict",
+    "error.409.recording_invalid_state",
     "error.410.gone",
     "error.413.payload_too_large",
     "error.413.recording_too_large",

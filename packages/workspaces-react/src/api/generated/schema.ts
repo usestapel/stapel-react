@@ -107,7 +107,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["workspaces_api_members_retrieve"];
+        get: operations["workspaces_api_members_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -299,10 +299,6 @@ export interface components {
         MemberInviteResponse: {
             invitations?: components["schemas"]["InvitationResponse"][];
         };
-        /** @description MemberListResponse(members: List[stapel_workspaces.dto.MemberResponse] = <factory>) */
-        MemberListResponse: {
-            members?: components["schemas"]["MemberResponse"][];
-        };
         /** @description Workspace member. */
         MemberResponse: {
             /**
@@ -334,6 +330,19 @@ export interface components {
             accepted_at: string | null;
             /** @description ISO 8601 last access; null if never accessed */
             last_accessed_at: string | null;
+        };
+        PaginatedMemberResponseList: {
+            items: components["schemas"]["MemberResponse"][];
+            /** @description Anchor value for next page */
+            next_anchor?: string | null;
+            /** @description Anchor value for previous page */
+            prev_anchor?: string | null;
+            /** @description Whether there are more items after this page */
+            has_next: boolean;
+            /** @description Whether there are items before this page */
+            has_prev: boolean;
+            /** @description Number of items in current page */
+            count: number;
         };
         /** @description MemberUpdateRequest(role: str) */
         PatchedMemberUpdateRequest: {
@@ -567,9 +576,18 @@ export interface operations {
             };
         };
     };
-    workspaces_api_members_retrieve: {
+    workspaces_api_members_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Anchor value to paginate from (exclusive) */
+                anchor?: string;
+                /** @description Pagination direction */
+                direction?: "next" | "prev" | "center";
+                /** @description Number of items (default 100, max 500) */
+                limit?: number;
+                /** @description Case-insensitive substring filter matched against a member's email OR display name (full name / username). Lets a people-picker filter server-side instead of pulling every member. */
+                search?: string;
+            };
             header?: never;
             path: {
                 workspace_id: string;
@@ -583,7 +601,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MemberListResponse"];
+                    "application/json": components["schemas"]["PaginatedMemberResponseList"];
                 };
             };
         };
