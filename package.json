@@ -40,7 +40,7 @@
     "showcase:build": "node scripts/introspection-gate.mjs -- pnpm --filter @stapel/showcase-viewer build:showcase",
     "introspection:gate": "node scripts/introspection-gate.mjs",
     "changeset": "changeset",
-    "version-packages": "changeset version && pnpm gen:events && pnpm gen:manifest && pnpm gen:demos",
+    "version-packages": "changeset version && pnpm gen",
     "release": "pnpm run ci && changeset publish"
   },
   "devDependencies": {

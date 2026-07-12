@@ -131,16 +131,20 @@ jobs:
       - name: Version PR or publish to npm
         uses: changesets/action@v1
         with:
-          # `version-packages` = `changeset version && pnpm gen:events &&
-          # pnpm gen:manifest`. The bump rewrites each package.json version;
-          # events.json/manifest.json/llms.txt embed that version, so they MUST
-          # be regenerated in the same step or the Version-PR's own CI fails the
-          # gen:events/gen:manifest drift gate (the embedded version lags the
-          # bumped package.json). gen:events needs no backend sources; gen:manifest
-          # reads the siblings + env (AUTH_ERRORS_JSON/MANIFEST_BACKEND_PYPROJECT
-          # below), both already present in this job. The action's post-version
-          # `git add . && commit` then carries the regenerated artifacts onto the
-          # changeset-release/main branch.
+          # `version-packages` = `changeset version && pnpm gen`. The bump
+          # rewrites each package.json version, and FOUR generated artifact
+          # families embed that version inline — events.json ($.version),
+          # manifest.json + llms.txt (`# @stapel/<pkg> <version>`), demos.json
+          # ($.version), and the tokens manifest/llms. If any is not regenerated
+          # in the same step, the Version-PR's own CI fails its gen:* drift gate
+          # (the embedded version lags the bumped package.json), and because
+          # gen:check short-circuits (`&&`) the failures surface one layer at a
+          # time. Running the FULL `pnpm gen` regenerates every family from the
+          # same pinned sources CI checks against, so no version-embed layer can
+          # be missed. gen reads the siblings (symlinked above) + env
+          # (AUTH_ERRORS_JSON/MANIFEST_BACKEND_PYPROJECT below), both present in
+          # this job. The action's post-version `git add . && commit` carries the
+          # regenerated artifacts onto the changeset-release/main branch.
           version: corepack pnpm run version-packages
           publish: corepack pnpm run release
           commit: "chore: version packages"
