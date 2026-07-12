@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-events.mjs — do not edit; drift-gated (pnpm gen:events:check)",
   "package": "@stapel/billing-react",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "defined": [],
   "flows": []
 }

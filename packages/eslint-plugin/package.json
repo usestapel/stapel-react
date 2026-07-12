@@ -1,6 +1,6 @@
 {
   "name": "@stapel/eslint-plugin",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Stapel frontend guardrails as static lint rules (frontend-guardrails §2): no raw colours, no raw fetch, no raw-ramp imports, i18n-key existence, no hardcoded user-facing text — every rule reads the same generated artifacts (tokens manifest, i18n key registries) as the codegen, so lint and code never drift. Ships a flat-config `recommended` preset plus a self-contained stylelint preset for CSS.",
   "license": "MIT",
   "repository": {

@@ -1,5 +1,98 @@
 # @stapel/core
 
+## 0.4.0
+
+### Minor Changes
+
+- e4a29b7: Analytics restratification (slim wave §21/S1). Core keeps the analytics **type
+  seam + context plumbing** — the `Analytics`/`AnalyticsProvider`/`AnalyticsEvent`
+  types, the `defineEvent` type layer (`EventDef`, `EventDefInput`, `EventProps`,
+  `AnyEventDef`, `PropSpec`, `PropsSchema`, `PropType`, `ResolveProps`),
+  `AnalyticsContext` + `useAnalytics`, and `trackFlowStep` (flow-machine
+  auto-instrumentation) — while the facade **implementation** moves to the new
+  `@stapel/analytics` package.
+
+  - **Removed exports** (now in `@stapel/analytics`): `createAnalytics`,
+    `consoleProvider`, `stapelCollectorProvider`, `StapelCollectorOptions`,
+    `defineEvent`, `prop`, `createTracked`, `TrackedApi`, `useTracked`.
+  - **New exports**: the persistence adapters `defaultPersistStorage`,
+    `idbStorage`, `localStorageAdapter`, `memoryStorage` (shared by the query
+    layer and `@stapel/analytics`' offline queue), and the `ResolveProps` type.
+
+  Rationale: mandatory analytics is a stapel-studio policy — scaffolded apps
+  always wire `@stapel/analytics`; OSS consumers may bring their own provider
+  behind the core type seam (pairs thread it through context; the
+  `stapel/no-direct-analytics-provider` rule still guards vendor SDK imports).
+
+- b3ac272: §17 arch-contract-pipeline Wave 0 — retire `@stapel/core`'s generated schema
+  surface and the monolith as a contract source.
+
+  `@stapel/core` no longer exports the generated `paths` / `components` /
+  `operations` types (and no longer ships `src/generated/schema.ts`). Under the
+  per-module contract pipeline every `@stapel/<module>-react` pair already
+  generates its OWN self-contained wire types from its backend's committed
+  `docs/schema.json`; nothing consumed core's aggregate export (grep-confirmed),
+  and stapel-core has no DRF endpoints of its own from which a meaningful core
+  slice could be emitted — the shared `User` / `StapelError` / `TokenPairResponse`
+  schemas only materialise via a module's endpoints. The hand-authored runtime
+  error contract (`StapelApiError`, `StapelErrorEnvelope`) is unchanged and stays
+  the public error surface.
+
+  This removed core as the last reader of the monolith aggregate: `gen:api` now
+  requires per-module `API_SCHEMA` + `API_OUT` (no monolith default), and the
+  monolith checkout is dropped from CI. A minor bump because generated type
+  exports are removed from the public API, even though no workspace consumer
+  imported them.
+
+- c3482e7: New `<StapelProvider>` (slim wave §21/S4) — the one-provider setup composing
+  `StapelConfigProvider` + TanStack's `QueryClientProvider` (via
+  `createStapelQueryClient`) + `I18nProvider` (via `createI18n`). Props:
+  `baseUrl` or `client` (+ per-module `clients` overrides), `locale`,
+  `cacheVersion`, `analytics?`, and the escape hatches `queryClient?`,
+  `queryRuntime?`, `i18n?`. Ceremony target: install → `create<Mod>Runtime` per
+  pair → ONE `<StapelProvider>` + per-pair `<ModProvider>`. The individual
+  providers remain exported — composition, not deprecation.
+
+  Also new: `createModuleRuntime` / `createModuleContext` (+ `ModuleRuntime`,
+  `CreateModuleRuntimeOptions`, `ModuleContextKit` types) — the one reviewed
+  copy of the runtime/context/provider plumbing the six standard pairs
+  previously stamped per package (§21/S2).
+
+- dc98063: Session substrate & user-data hygiene (frontend-core-architecture-v2 §43).
+
+  - **`createSessionManager`** (§43.1) — the one owner of session lifecycle:
+    three-state status (`authenticated | anonymous | unauthenticated`),
+    **single-flight refresh** (N concurrent 401s share ONE `doRefresh()` call),
+    typed events (`session:refreshed` / `session:lost` / `session:logout`), a
+    host-injected `onSessionLost` policy (login redirect vs anonymous
+    auto-login — resolved from the host's discovery config, never hardcoded),
+    and the per-session WebCrypto key repositories encrypt with.
+  - **Logout-hook registry** (§43.3) — `registerLogoutHook(fn)`, run on BOTH
+    explicit `logout()` and involuntary session loss; one throwing hook never
+    blocks the others.
+  - **`createRepository(namespace, { storage, scope, encrypted })`** (§43.4) —
+    the ONE sanctioned client-side store. `scope: "user"` auto-registers
+    wipe-at-logout with NO opt-out and is encrypted by default (AES-GCM,
+    per-session in-memory key; logout drops the key first, synchronously, so a
+    crash mid-wipe still leaves ciphertext unreadable — §43.5). `scope: "app"`
+    (theme, locale) survives logout and never uses the session key.
+    Contract-tested: after `logout()` user-scoped data is physically absent
+    from both stores and the key is dropped. Honest boundary (in the README,
+    verbatim from the governing doc): frontend encryption does NOT defend
+    against XSS with code execution — it defends data at rest.
+  - **`createModuleRuntime`** now registers a logout hook on the active
+    `SessionManager` — the pair's `onLogout` option, or a no-op default
+    (§43.7: every standard pair mechanically has a cleanup call site).
+  - `createStapelClient`'s 401 path is unchanged in behavior and now documented
+    as the ONE legal home of 401 handling (§43.2): `onAuthRefresh` (wire it to
+    `SessionManager.refresh()`) → retry once → still 401 → session lost.
+
+### Patch Changes
+
+- Updated dependencies [48188d9]
+- Updated dependencies [2c22f06]
+  - @stapel/tokens@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "@stapel/analytics",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Stapel analytics facade implementation: consent gate, PII guard, offline queue, provider fan-out (console + Stapel collector), typed defineEvent/tracked. The type seam it implements lives in @stapel/core.",
   "license": "MIT",
   "repository": {

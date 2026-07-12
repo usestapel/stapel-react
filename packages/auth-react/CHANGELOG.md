@@ -1,5 +1,87 @@
 # @stapel/auth-react
 
+## 1.0.0
+
+### Minor Changes
+
+- 48188d9: Add the **§54 pilot default skin** behind a new `@stapel/auth-react/default`
+  subpath: `<AuthPanel/>` — the pair's existing headless layer (flows +
+  `useCapabilities`) rendered with an Ant Design skin whose theme comes
+  AUTOMATICALLY from the user's `@stapel/tokens` via `@stapel/tokens-antd`. Import
+  it and you have a working, themed sign-in screen; zero hand-written UI.
+
+  - Follows domain-guidelines-auth: four zones A-D in fixed order, channels
+    discovered from the backend and sorted by the ratified priority, cut into ≤3
+    primary tabs + ≤2 secondary buttons + a "More" overflow, exactly one primary
+    button, inline errors at the source (`t(code, params)`), OTP via `Input.OTP`
+    with a per-flow resend cooldown, inline TOTP step-up, and an inline QR panel
+    (never a modal).
+  - Separate entry point so apps that build their own visuals never pull `antd`
+    into their bundle — the main `index.js` stays antd-free (size-gate holds at
+    11.25 kB < 12 kB). `antd` and `@stapel/tokens-antd` are OPTIONAL peer
+    dependencies; only `/default` needs them.
+  - Pure channel-discovery/zone-splitting helpers (`enabledChannels`,
+    `splitZones`, `DEFAULT_CHANNEL_PRIORITY`) are exported and unit-tested; a
+    render test proves `<AuthPanel/>` mounts a themed screen and that
+    `toAntdThemeConfig` flips antd's runtime token to the tokens' light/dark
+    container colour. Adds the `auth.ui.*` UI keys (en + ru).
+
+- 9ed6a4b: `createAuthSession` now builds on `@stapel/core`'s `createSessionManager`
+  (frontend-core-architecture-v2 §43): auth keeps owning the tokens and the
+  refresh HTTP call; the core SessionManager owns the lifecycle — single-flight
+  refresh, status, events, the logout-hook registry, and the per-session
+  encryption key.
+
+  - New: `AuthSession.getSessionManager()` — other modules register logout
+    hooks / read three-state status (guest sessions map from
+    `user.is_anonymous` → `"anonymous"`) without depending on auth-react.
+  - New: `createAuthRuntime({ onSessionLost })` / `createAuthSession({
+onSessionLost })` — the host's involuntary-loss policy (login redirect vs
+    anonymous auto-login, resolved from the host's discovery config). Fires
+    only for `revoked`/`expired`, never for explicit `logout()`; `onTeardown`
+    keeps firing for all three.
+  - New: `createAuthSession({ refreshApi })` — the token-refresh call now rides
+    a dedicated client WITHOUT the `onAuthRefresh` seam (wired automatically by
+    `createAuthRuntime`), replacing the old in-module recursion flag.
+  - `logout()` now fans out through the core logout-hook registry; auth-react's
+    own state/persisted-storage cleanup is registered as a hook like everyone
+    else's, and hooks also run on involuntary session loss.
+  - Removed duplicate state: single-flight/dedup bookkeeping now lives only in
+    core. Public API and existing behavior (teardown reasons, cookie mode,
+    persistence shape) are unchanged.
+
+### Patch Changes
+
+- 2fa025a: §17 arch-contract-pipeline Wave 2 + Wave 3 — the five original pairs are now
+  self-contained per-module contracts, aligned to their backend minor.
+
+  **Wave 2 (contract isolation).** Each pair generates its typed surface from its
+  backend module's OWN committed `docs/{schema,flows}.json` (byte-identical to the
+  former monolith slice) instead of the unified monolith aggregate:
+
+  - `gen:api` emits a package-LOCAL `src/api/generated/schema.ts` per pair (via the
+    `API_SCHEMA`/`API_OUT` knobs — the calendar/recordings §17-native shape);
+    `api/types.ts` aliases `components` from `./generated/schema.js`, no longer from
+    `@stapel/core`. `@stapel/core` stays a RUNTIME peer (client / react-query),
+    not the type source.
+  - `gen:flows` reads `../stapel-<mod>/docs/flows.json`; `gen:manifest` reads the
+    per-module `docs/schema.json`. Public types are unchanged — the repoint is a
+    zero-diff source-swap (byte-identity proven), so no consumer breaks.
+
+  **Wave 3 (version scheme B).** Each pair's minor now tracks its backend minor:
+  `auth-react → 0.5.0` (stapel-auth 0.5.x), `notifications-react → 0.3.0`,
+  `profiles-react → 0.3.0`, `billing-react → 0.4.0`, `workspaces-react → 0.3.0`.
+  `manifest.backend.contract` records the one-minor compatibility window
+  (`>=0.5 <0.6` etc.), auto-derived from the backend `pyproject.toml`.
+
+- c3482e7: README wave (slim wave §21/S4): every pair now documents its setup — a new
+  Install + "Wire the app once" section built on core's `<StapelProvider>`
+  (previously only auth-react's README showed any wiring, as a 5-level provider
+  nest). auth-react's wiring example moves to the one-provider shape with the
+  `queryRuntime`/`i18n` escape hatches spelled out.
+- Updated dependencies [48188d9]
+  - @stapel/tokens-antd@0.2.0
+
 ## 0.2.0
 
 Version reset: this release was previously tagged `1.0.0`/`1.1.0` in error. The

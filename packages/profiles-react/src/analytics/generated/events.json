@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-events.mjs — do not edit; drift-gated (pnpm gen:events:check)",
   "package": "@stapel/profiles-react",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "defined": [],
   "flows": []
 }
