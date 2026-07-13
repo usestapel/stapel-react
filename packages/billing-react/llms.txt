@@ -1,4 +1,4 @@
-# @stapel/billing-react 0.4.1
+# @stapel/billing-react 0.4.2
 
 Headless React flow pair for stapel-billing (contract >=0.4 <0.5) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,

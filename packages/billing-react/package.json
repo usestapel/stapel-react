@@ -1,6 +1,6 @@
 {
   "name": "@stapel/billing-react",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Headless React flow pair for stapel-billing: typed API client, TanStack Query hooks, flow machines, headless components, and i18n keys. Zero visual opinion.",
   "license": "MIT",
   "repository": {

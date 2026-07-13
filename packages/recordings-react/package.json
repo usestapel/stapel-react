@@ -1,6 +1,6 @@
 {
   "name": "@stapel/recordings-react",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Headless React flow pair for stapel-recordings: typed API client, TanStack Query hooks, headless components (list / compose / upload-finalize), and i18n keys. Zero visual opinion.",
   "license": "MIT",
   "repository": {

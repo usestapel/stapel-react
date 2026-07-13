@@ -1,6 +1,6 @@
 {
   "name": "@stapel/tokens-mui",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Token bridge (frontend-guidelines §2.4, §38 T3): projects @stapel/tokens L2 core tokens onto a Material UI theme. `toMuiTheme(mode)` → a MUI Theme (createTheme). Pure function, one mapping table shared with @stapel/tokens-antd. Not components.",
   "license": "MIT",
   "repository": {

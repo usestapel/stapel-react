@@ -1,6 +1,6 @@
 {
   "name": "@stapel/showcase-viewer",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "description": "Workspace design-system showcase (frontend-guardrails §4.1, §5). A thin Ladle (Vite) app that renders the generated CSF stories from every package's demo/generated. Introspection surface — not published, not in any prod bundle; deploy behind STAPEL_INTROSPECTION (§5).",
   "type": "module",

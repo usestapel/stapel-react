@@ -1,4 +1,4 @@
-# @stapel/tokens 0.3.0
+# @stapel/tokens 0.4.0
 
 Three-tier design tokens (frontend-guardrails §1). Generated from theme.default.json;
 code is never hand-edited. Theme switches via a `data-theme` attribute on the root —
