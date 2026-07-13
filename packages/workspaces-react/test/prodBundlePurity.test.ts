@@ -60,9 +60,16 @@ describe("prod bundle carries no showcase/demo code (§5.1)", () => {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     });
-    const paths: string[] = JSON.parse(out)[0].files.map(
-      (f: { path: string }) => f.path
-    );
+    // npm <11 emits an array `[{ files }]`; npm >=11 emits an object keyed
+    // by package name `{ "@scope/name": { files } }`. The Release job runs a
+    // newer npm (OIDC) than PR CI, so tolerate both: take the sole report.
+    const parsed: unknown = JSON.parse(out);
+    const report = (
+      Array.isArray(parsed)
+        ? parsed[0]
+        : Object.values(parsed as Record<string, unknown>)[0]
+    ) as { files: { path: string }[] };
+    const paths: string[] = report.files.map((f) => f.path);
     expect(paths.filter((p) => /(^|\/)demo(\/|\.)/i.test(p))).toEqual([]);
     expect(paths.filter((p) => /showcase/i.test(p))).toEqual([]);
   }, 120_000); // real npm-pack I/O; generous — runs in the serialized `test:pack` CI step
