@@ -121,9 +121,15 @@ jobs:
       - name: Enable corepack (pnpm)
         run: corepack enable
 
-      # npm >= 11.5.1 is required for OIDC trusted publishing.
+      # npm >= 11.5.1 is required for OIDC trusted publishing. Pin to the 11.x
+      # line rather than `@latest`: npm 12 (a) declares it does not support the
+      # runners' Node 22 (`^22.22.2 || ^24 || >=26`), and (b) changed its
+      # `pack`/`publish` --json output shapes, which breaks changesets@2.31.0 —
+      # a failed publish crashes in isAlreadyPublishedError (`json.error.summary`
+      # is undefined on npm 12) with a TypeError that masks the real npm error
+      # (e.g. an E403). npm 11 keeps the shapes changesets expects.
       - name: Upgrade npm (OIDC trusted publishing)
-        run: npm install -g npm@latest
+        run: npm install -g npm@11
 
       - name: Install
         run: corepack pnpm install --frozen-lockfile
