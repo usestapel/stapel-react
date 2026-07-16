@@ -16,6 +16,29 @@ engine, and the analytics facade.
 pnpm add @stapel/auth-react @stapel/core @tanstack/react-query react
 ```
 
+The headless surface above (flows, `AuthProvider`, `createAuthRuntime`, the
+render-prop components) has **zero UI dependency** — it works under any
+renderer (MUI, Chakra, plain HTML/CSS) on React `>=19`. `antd` and
+`@stapel/tokens-antd` are declared as **optional** peer dependencies
+(`peerDependenciesMeta`); npm/pnpm/yarn won't require or warn about them
+unless you actually import the default skin below.
+
+### Optional: the default AntD skin
+
+```
+pnpm add antd @stapel/tokens-antd
+```
+
+```tsx
+import { AuthPanel } from "@stapel/auth-react/default";
+```
+
+`@stapel/auth-react/default` is a separate subpath entry (§54 pilot skin) —
+importing it is the opt-in that pulls `antd` + `@stapel/tokens-antd` into your
+bundle. The main `@stapel/auth-react` entry never imports from `./default`,
+so consumers who bring their own visuals (or another design system) never pay
+for AntD.
+
 ## Wire the app once
 
 `createAuthRuntime` is the single place the flagship seams are connected: it
