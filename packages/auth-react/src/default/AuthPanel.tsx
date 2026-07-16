@@ -97,7 +97,7 @@ export interface AuthPanelProps {
   readonly notice?: AuthPanelNotice;
   /**
    * Replace a channel's bottom-row / overflow-menu icon (keyed by
-   * `ChannelId`). Takes precedence over the backend's `plan[id].icon_svg`.
+   * `ChannelId`). Takes precedence over the backend's `methods[].icon_svg`.
    */
   readonly iconOverrides?: Readonly<Partial<Record<ChannelId, ReactNode>>>;
   /**
@@ -330,7 +330,7 @@ function ChannelIcon(props: { override?: ReactNode; svg?: string | undefined }):
 
 /** The persistent bottom icon row: OAuth renders its provider-button group
  * directly (no dialog, per `resolveInteraction`); every other bottom channel
- * (qr, passkey by default, or anything a backend plan places here) renders a
+ * (qr, passkey by default, or anything the backend places here) renders a
  * single icon button that opens the shared dialog above. */
 function BottomRow(props: {
   ids: readonly ChannelId[];
