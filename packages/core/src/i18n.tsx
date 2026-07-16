@@ -25,6 +25,15 @@ export interface I18nEngine {
   setLocale(locale: string): Promise<void>;
   /** Register a static bundle (packages register their keys this way). */
   registerBundle(locale: string, bundle: I18nDictionary): void;
+  /**
+   * The merged flat dictionary for a locale (default: the current one) —
+   * every bundle registered under it, later registrations winning per key
+   * (the same merge-priority convention every pair's `register*I18n` follows).
+   * For `formatFlowError`'s `bundle` argument, and any other caller that needs
+   * a raw lookup table rather than `t`'s key-or-fallback string. Returns `{}`
+   * for a locale nothing has been registered under yet.
+   */
+  getBundle(locale?: string): I18nDictionary;
   /** Subscribe to engine changes (locale switches, bundle registration). */
   subscribe(listener: () => void): () => void;
   /** Monotonic change counter (for useSyncExternalStore). */
@@ -110,6 +119,7 @@ export function createI18n(options: CreateI18nOptions): I18nEngine {
       };
     },
     getVersion: () => version,
+    getBundle: (bundleLocale) => ({ ...dictionaries.get(bundleLocale ?? locale) }),
   };
 
   return engine;
