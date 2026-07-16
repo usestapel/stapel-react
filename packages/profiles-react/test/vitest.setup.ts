@@ -9,3 +9,39 @@
 import { configure } from "@testing-library/react";
 
 configure({ asyncUtilTimeout: 10_000 });
+
+// jsdom ships neither `matchMedia` nor `ResizeObserver`; Ant Design (the
+// `/default` settings-skin suite) reads both on mount. Minimal no-op
+// polyfills, mirroring auth-react's suite, so the DOM render is exercised
+// without pulling a heavier test env.
+if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
+  window.matchMedia = (query: string): MediaQueryList =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }) as unknown as MediaQueryList;
+}
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  } as unknown as typeof ResizeObserver;
+}
+
+// jsdom doesn't implement the Blob URL registry either; `useAvatarUpload`'s
+// local preview relies on it (see its module doc). A counter-based stub is
+// enough — the tests only assert the value round-trips, never its content.
+if (typeof URL.createObjectURL !== "function") {
+  let counter = 0;
+  URL.createObjectURL = (() => `blob:mock-${++counter}`) as typeof URL.createObjectURL;
+}
+if (typeof URL.revokeObjectURL !== "function") {
+  URL.revokeObjectURL = (() => {}) as typeof URL.revokeObjectURL;
+}

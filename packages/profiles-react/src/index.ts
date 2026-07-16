@@ -91,6 +91,14 @@ export type {
   ConnectionListBag,
   ConnectionKind,
 } from "./headless/ConnectionList.js";
+export { useAvatarUpload } from "./headless/AvatarUpload.js";
+export type { AvatarUploadBag } from "./headless/AvatarUpload.js";
+export { NotificationPreferences } from "./headless/NotificationPreferences.js";
+export type {
+  NotificationPrefsBag,
+  NotificationCategory,
+  NotificationChannel,
+} from "./headless/NotificationPreferences.js";
 
 // ── i18n ─────────────────────────────────────────────────────────────────────
 export {
