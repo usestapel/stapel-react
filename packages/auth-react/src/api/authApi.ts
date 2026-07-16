@@ -83,9 +83,10 @@ export interface AuthApi {
   // OAuth (auth-sa.md §7, option B)
   oauthLogin(provider: string, accessToken: string): Promise<LoginResponse>;
 
-  // OAuth account links — security settings, requires auth (§0.5.9's
-  // `/oauth/links/` trio; same client-side-token-exchange pattern as
-  // `oauthLogin`, just while already signed in).
+  // OAuth account links — security settings, requires auth. WIP on the
+  // stapel-auth side (not yet committed/pinned — see `LinkedOAuthAccount`'s
+  // doc in api/types.ts); same client-side-token-exchange pattern as
+  // `oauthLogin`, just while already signed in.
   oauthLinks(): Promise<readonly LinkedOAuthAccount[]>;
   oauthLink(provider: string, accessToken: string): Promise<readonly LinkedOAuthAccount[]>;
   oauthUnlink(provider: string): Promise<void>;

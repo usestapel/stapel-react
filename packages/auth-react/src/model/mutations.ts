@@ -135,7 +135,9 @@ export function useDisableTotp(): UseMutationResult<
 }
 
 /**
- * Link an additional OAuth provider (§0.5.9's `POST /oauth/links/`). Same
+ * Link an additional OAuth provider (`POST /oauth/links/` — WIP on the
+ * stapel-auth side, not yet committed/pinned; see api/types.ts's
+ * `LinkedOAuthAccount` doc). Same
  * client-side-token-exchange pattern as `oauthLogin` — the host runs the
  * provider's OAuth SDK/popup and hands us the resulting `accessToken`; this
  * pair does not perform that browser step itself (same "thin" boundary as
@@ -162,7 +164,8 @@ export function useLinkOAuth(): UseMutationResult<
   return useMutation(options);
 }
 
-/** Unlink an OAuth provider (§0.5.9's `DELETE /oauth/links/{provider}/`). */
+/** Unlink an OAuth provider (`DELETE /oauth/links/{provider}/` — WIP, see
+ * `LinkedOAuthAccount`'s doc in api/types.ts). */
 export function useUnlinkOAuth(): UseMutationResult<void, StapelApiError, string> {
   const api = useAuthApi();
   const queryClient = useQueryClient();

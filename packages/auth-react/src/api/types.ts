@@ -178,12 +178,27 @@ export type PasswordMethods = Schemas["PasswordMethodsResponse"];
 export type SecurityStatus = Schemas["SecurityStatusResponse"];
 
 // ── OAuth account links (security settings, requires auth) ──────────────────
+// NOT GENERATED: `/oauth/links/` (list/link) and `/oauth/links/{provider}/`
+// (unlink) exist ONLY as uncommitted work-in-progress in the stapel-auth
+// sibling checkout as of this writing — a parallel agent's in-flight 0.6.0
+// contract work, not yet committed/pinned (contract-pins.json's stapel-auth
+// ref does NOT have these paths; confirmed by diffing the pinned commit's
+// docs/schema.json). Hand-transcribed from that WIP so `OAuthLinks` has real
+// types to build against per the owner's directive ("работай против
+// сиблинга"); delete this section and alias the generated schema once
+// stapel-auth commits + the pin is bumped to include it.
 
-/** One OAuth provider account connected to the current user (§0.5.9's
- * `/oauth/links/` trio). `primary` marks the account the user originally
- * registered/logged in with — immutable through this endpoint; a secondary
- * link is added via `oauthLink`/removed via `oauthUnlink`. */
-export type LinkedOAuthAccount = Schemas["LinkedOAuthAccountDTO"];
+/** One OAuth provider account connected to the current user. `primary` marks
+ * the account the user originally registered/logged in with — immutable
+ * through this endpoint; a secondary link is added via `oauthLink`/removed
+ * via `oauthUnlink`. */
+export interface LinkedOAuthAccount {
+  readonly provider: string;
+  readonly email: string | null;
+  readonly display_name: string;
+  readonly linked_at: string | null;
+  readonly primary: boolean;
+}
 
 // ── Sessions ─────────────────────────────────────────────────────────────────
 

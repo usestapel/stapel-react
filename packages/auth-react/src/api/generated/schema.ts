@@ -357,7 +357,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Request an email link for sign-in
+         * Request a magic link login email
          * @description Overridable serializer seams for stapel-auth API views.
          *
          *     Views declare ``<purpose>_serializer_class`` class attributes following the
@@ -392,7 +392,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Verify an email link token and issue session
+         * Verify a magic link token and issue session
          * @description Overridable serializer seams for stapel-auth API views.
          *
          *     Views declare ``<purpose>_serializer_class`` class attributes following the
@@ -500,56 +500,6 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/api/v1/oauth/links/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List OAuth accounts connected to the current user
-         * @description Manage OAuth accounts connected to the current user.
-         *
-         *     **Permissions:** `IsAuthenticated`
-         */
-        get: operations["auth_api_v1_oauth_links_retrieve"];
-        put?: never;
-        /**
-         * Link an additional OAuth provider account
-         * @description Manage OAuth accounts connected to the current user.
-         *
-         *     **Permissions:** `IsAuthenticated`
-         */
-        post: operations["auth_api_v1_oauth_links_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/api/v1/oauth/links/{provider}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Unlink an OAuth provider account
-         * @description Manage OAuth accounts connected to the current user.
-         *
-         *     **Permissions:** `IsAuthenticated`
-         */
-        delete: operations["auth_api_v1_oauth_links_destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2568,39 +2518,6 @@ export interface components {
              */
             expires_at: string;
         };
-        /**
-         * @description One OAuth provider account connected to the current user.
-         *
-         *     ``primary`` distinguishes the account a user originally registered/logged
-         *     in with (``User.oauth_provider``/``oauth_id`` — immutable through this
-         *     endpoint) from a secondary link the user attached later from their
-         *     security settings page (an actual ``LinkedOAuthAccount`` row, removable
-         *     via DELETE /oauth/links/{provider}/).
-         */
-        LinkedOAuthAccountDTO: {
-            /**
-             * @description Provider identifier
-             * @example google
-             */
-            provider: string;
-            /**
-             * @description Email reported by the provider, if any
-             * @example user@example.com
-             */
-            email: string | null;
-            /**
-             * @description Provider display name/username, if any
-             * @example Jane Doe
-             */
-            display_name: string;
-            /**
-             * @description When this account was linked
-             * @example 2026-07-16T12:00:00Z
-             */
-            linked_at: string | null;
-            /** @description Whether this is the account the user originally registered/ */
-            primary: boolean;
-        };
         LoginResponse: components["schemas"]["AuthResponse"] | components["schemas"]["TOTPChallengeResponse"];
         LogoutRequest: {
             /** @description Refresh token to blacklist (optional, will also use cookie if available) */
@@ -2647,21 +2564,6 @@ export interface components {
         OAuth: {
             provider: string;
             access_token: string;
-        };
-        /**
-         * @description Body for POST /oauth/links/ — same shape as OAuthSerializer (the login
-         *     request), reusing the client-side OAuth exchange already in place: the
-         *     frontend runs the provider's OAuth flow and hands us the resulting
-         *     access_token, which we verify server-side via the provider before linking.
-         */
-        OAuthLinkRequest: {
-            provider: string;
-            access_token: string;
-        };
-        /** @description All OAuth accounts connected to the current user. */
-        OAuthLinksResponse: {
-            /** @description Connected provider accounts (primary first, then secondary */
-            links: components["schemas"]["LinkedOAuthAccountDTO"][];
         };
         /** @description OTP has been sent to the target. */
         OtpSentResponse: {
@@ -3134,7 +3036,10 @@ export interface components {
              * @example error.404.not_found
              */
             localizable_error: string;
-            /** @description Human-readable fallback/debug message — not reliably English, */
+            /**
+             * @description Human-readable message in English
+             * @example Requested resource not found
+             */
             error: string;
             /**
              * @description Context values for template placeholders
@@ -3145,8 +3050,6 @@ export interface components {
             params?: {
                 [key: string]: unknown;
             };
-            /** @description Active Django locale `error` was rendered in (e.g */
-            error_language?: string;
         };
         /** @description Intermediate response when TOTP 2FA is required to complete login. */
         TOTPChallengeResponse: {
@@ -4210,98 +4113,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["StapelError"];
                 };
-            };
-        };
-    };
-    auth_api_v1_oauth_links_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OAuthLinksResponse"];
-                };
-            };
-        };
-    };
-    auth_api_v1_oauth_links_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OAuthLinkRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["OAuthLinkRequest"];
-                "multipart/form-data": components["schemas"]["OAuthLinkRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OAuthLinksResponse"];
-                };
-            };
-            /** @description No response body */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No response body */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    auth_api_v1_oauth_links_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                provider: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No response body */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No response body */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };

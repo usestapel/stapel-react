@@ -61,9 +61,6 @@ Request/response schema names are in manifest.json + the generated types.
 - auth_api_v1_oauth_authorize_retrieve: GET /auth/api/v1/oauth/{provider}/authorize/
 - auth_api_v1_oauth_callback_retrieve: GET /auth/api/v1/oauth/{provider}/callback
 - auth_api_v1_oauth_callback_retrieve_2: GET /auth/api/v1/oauth/{provider}/callback/
-- auth_api_v1_oauth_links_create: POST /auth/api/v1/oauth/links/
-- auth_api_v1_oauth_links_destroy: DELETE /auth/api/v1/oauth/links/{provider}/
-- auth_api_v1_oauth_links_retrieve: GET /auth/api/v1/oauth/links/
 - auth_api_v1_oauth_login_create: POST /auth/api/v1/oauth/login/
 - auth_api_v1_oauth2_introspect_create: POST /auth/api/v1/oauth2/introspect/
 - auth_api_v1_passkey_authenticate_begin_create: POST /auth/api/v1/passkey/authenticate/begin/
@@ -169,7 +166,7 @@ Request/response schema names are in manifest.json + the generated types.
 - useUnlinkOAuth (mutation) → oauthUnlink
 
 ## Errors (render t(code, params); UX from remediation)
-119 keys (full catalog: manifest.json §errors). By remediation: fix_input 56 · retry 31 · reauthenticate 12 · wait_and_retry 8 · verify 7 · contact_support 5.
+116 keys (full catalog: manifest.json §errors). By remediation: fix_input 54 · retry 30 · reauthenticate 12 · wait_and_retry 8 · verify 7 · contact_support 5.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}

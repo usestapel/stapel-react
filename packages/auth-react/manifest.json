@@ -321,27 +321,6 @@
       "request": null,
       "response": null
     },
-    "auth_api_v1_oauth_links_create": {
-      "method": "POST",
-      "path": "/auth/api/v1/oauth/links/",
-      "tag": "OAuth",
-      "request": "OAuthLinkRequest",
-      "response": "OAuthLinksResponse"
-    },
-    "auth_api_v1_oauth_links_destroy": {
-      "method": "DELETE",
-      "path": "/auth/api/v1/oauth/links/{provider}/",
-      "tag": "OAuth",
-      "request": null,
-      "response": null
-    },
-    "auth_api_v1_oauth_links_retrieve": {
-      "method": "GET",
-      "path": "/auth/api/v1/oauth/links/",
-      "tag": "OAuth",
-      "request": null,
-      "response": "OAuthLinksResponse"
-    },
     "auth_api_v1_oauth_login_create": {
       "method": "POST",
       "path": "/auth/api/v1/oauth/login/",
@@ -1555,11 +1534,6 @@
       "params": [],
       "remediation": "retry"
     },
-    "error.404.oauth_link_not_found": {
-      "status": 404,
-      "params": [],
-      "remediation": "retry"
-    },
     "error.404.passkey_not_found": {
       "status": 404,
       "params": [],
@@ -1626,16 +1600,6 @@
       "remediation": "fix_input"
     },
     "error.409.gdpr.legal_hold": {
-      "status": 409,
-      "params": [],
-      "remediation": "fix_input"
-    },
-    "error.409.oauth_account_linked_elsewhere": {
-      "status": 409,
-      "params": [],
-      "remediation": "fix_input"
-    },
-    "error.409.oauth_already_linked": {
       "status": 409,
       "params": [],
       "remediation": "fix_input"
@@ -2150,7 +2114,6 @@
     "error.404.gdpr.export_not_found",
     "error.404.gdpr.no_active_closure",
     "error.404.not_found",
-    "error.404.oauth_link_not_found",
     "error.404.passkey_not_found",
     "error.404.qr_not_found",
     "error.404.sso_org_not_found",
@@ -2165,8 +2128,6 @@
     "error.409.gdpr.closure_already_pending",
     "error.409.gdpr.export_cooldown",
     "error.409.gdpr.legal_hold",
-    "error.409.oauth_account_linked_elsewhere",
-    "error.409.oauth_already_linked",
     "error.409.passkey_already_registered",
     "error.409.phone_reserved",
     "error.409.phone_taken",

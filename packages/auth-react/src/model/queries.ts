@@ -93,7 +93,8 @@ export function usePasskeys(): UseQueryResult<
   });
 }
 
-/** OAuth accounts connected to the current user (§0.5.9's `/oauth/links/`). */
+/** OAuth accounts connected to the current user (`GET /oauth/links/` — WIP,
+ * see `LinkedOAuthAccount`'s doc in api/types.ts). */
 export function useOAuthLinks(): UseQueryResult<
   readonly LinkedOAuthAccount[],
   StapelApiError

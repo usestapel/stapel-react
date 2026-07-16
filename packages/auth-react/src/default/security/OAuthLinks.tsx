@@ -1,20 +1,24 @@
 /**
  * `<OAuthLinks/>` — default skin for the security-settings connected-accounts
- * screen (owner directive point 5). Backed by stapel-auth's real
- * `/oauth/links/` trio (found in the 0.5.9 sibling schema while building this
- * — NOT yet wired into this package's own generated client until this
- * change; `useOAuthLinks`/`useLinkOAuth`/`useUnlinkOAuth` in `model/` are the
- * new hooks):
+ * screen (owner directive point 5). Built against stapel-auth's `/oauth/links/`
+ * trio as seen in the sibling checkout's WORK-IN-PROGRESS 0.6.0 contract work
+ * (uncommitted there as of this writing — confirmed absent from
+ * contract-pins.json's pinned `stapel-auth` ref, so `LinkedOAuthAccount` etc.
+ * in api/types.ts are hand-transcribed, NOT generated, per that file's doc):
  *
- *  - **Read** is real: `useOAuthLinks()` (`GET /oauth/links/`), plus the
- *    provider catalog from the EXISTING `useCapabilities()` query.
- *  - **Unlink** is real: `useUnlinkOAuth()` (`DELETE /oauth/links/{provider}/`).
- *  - **Link** is THIN by necessity, same boundary as WebAuthn's
+ *  - **Read**: `useOAuthLinks()` (`GET /oauth/links/`), plus the provider
+ *    catalog from the EXISTING `useCapabilities()` query.
+ *  - **Unlink**: `useUnlinkOAuth()` (`DELETE /oauth/links/{provider}/`).
+ *  - **Link** is additionally THIN by necessity, same boundary as WebAuthn's
  *    `webauthnCreate`/`webauthnGet`: `POST /oauth/links/` wants a provider
  *    `access_token` obtained by running that provider's OAuth SDK/popup in
  *    the browser — a host-specific integration this pair cannot perform
  *    itself. Supply `getAccessToken(providerId)`; without it, "Connect" is
  *    disabled with an explanatory tooltip instead of silently doing nothing.
+ *
+ * All three calls will 404 against the currently-pinned stapel-auth release —
+ * this component is ready for the day the pin bumps to a commit that has
+ * them, not a claim that it works against today's released contract.
  */
 import { useState } from "react";
 import type { ReactElement } from "react";

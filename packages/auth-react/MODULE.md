@@ -206,12 +206,14 @@ auto-submit, the Waylot-referenced responsive alt-method sheet):
 - **Security-settings components** (`default/security/`) — `SessionsList`,
   `TotpManager`, `PasskeysManager`, `PasswordChangePanel`, `OAuthLinks`. Each
   wraps EXISTING query/mutation hooks and headless flows; no new backend
-  surface except `OAuthLinks`, which uses the real `/oauth/links/` trio
-  (`useOAuthLinks`/`useLinkOAuth`/`useUnlinkOAuth`, `AuthApi.oauthLink*` —
-  found in stapel-auth 0.5.9's schema while building this, previously unwired
-  into this pair). `OAuthLinks`' "Connect" and `PasskeysManager`'s "Add" both
-  carry a THIN host binding (`getAccessToken`/`webauthnCreate`) for the
-  browser-side ceremony this pair cannot perform itself — same boundary as
+  surface except `OAuthLinks`, which is built against a `/oauth/links/` trio
+  (`useOAuthLinks`/`useLinkOAuth`/`useUnlinkOAuth`, `AuthApi.oauthLink*`) seen
+  as uncommitted WORK-IN-PROGRESS in the stapel-auth sibling checkout while
+  building this (NOT in the pinned contract yet — `api/types.ts`'s
+  `LinkedOAuthAccount` is hand-transcribed, not generated; delete that note
+  once the pin bumps past it). `OAuthLinks`' "Connect" and `PasskeysManager`'s
+  "Add" both carry a THIN host binding (`getAccessToken`/`webauthnCreate`) for
+  the browser-side ceremony this pair cannot perform itself — same boundary as
   the existing Thin-WebAuthn TODO below.
 
 ## Follow-up
