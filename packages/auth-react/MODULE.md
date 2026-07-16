@@ -191,6 +191,29 @@ cache persistence is per-user via core's `setPersistUser` — call
 5. **Capabilities `password` under registration** is documented but no
    password-registration endpoint exists in §1–18; treated as display-only.
 
+## Default skin (`/default` subpath) — sign-in + security settings
+
+`@stapel/auth-react/default` ships two families of Ant Design components over
+the SAME headless layer above — see each file's own doc comment for the
+owner-directive tuning history (channel placement/modal rework, OTP
+auto-submit, the Waylot-referenced responsive alt-method sheet):
+
+- **`<AuthPanel/>`** (`default/AuthPanel.tsx`) — the sign-in screen. Channel
+  zones (`main`/`bottom`/`overflow`) come from `default/channels.ts`'s
+  `computeZones`, driven by the backend's `LoginCapabilities.plan`
+  (stapel-auth ≥0.6.0 — per-method `placement`/`interaction`/`icon_svg`) with
+  a priority-only fallback for older backends.
+- **Security-settings components** (`default/security/`) — `SessionsList`,
+  `TotpManager`, `PasskeysManager`, `PasswordChangePanel`, `OAuthLinks`. Each
+  wraps EXISTING query/mutation hooks and headless flows; no new backend
+  surface except `OAuthLinks`, which uses the real `/oauth/links/` trio
+  (`useOAuthLinks`/`useLinkOAuth`/`useUnlinkOAuth`, `AuthApi.oauthLink*` —
+  found in stapel-auth 0.5.9's schema while building this, previously unwired
+  into this pair). `OAuthLinks`' "Connect" and `PasskeysManager`'s "Add" both
+  carry a THIN host binding (`getAccessToken`/`webauthnCreate`) for the
+  browser-side ceremony this pair cannot perform itself — same boundary as
+  the existing Thin-WebAuthn TODO below.
+
 ## Follow-up
 
 - **Generated `.feature` E2E** awaits `arch-flow-gherkin` (step-implementation
@@ -205,6 +228,13 @@ cache persistence is per-user via core's `setPersistUser` — call
   appear in the `auth.step_up_verification` flow but are not yet surfaced on
   `AuthApi` (the pair covers the challenge write-path; preferences are optional
   CRUD).
+- **`TotpManager`'s disable dialog** ships authenticator-code and backup-code
+  disable only; SMS-based disable (`_TOTPDisableByOTP`, needs
+  `totpDisableOtpRequest` wired to a code-request step first) is a follow-up.
+- **`PasswordChangePanel`** renders `"password"`/`"email"`/`"phone"` tabs from
+  `usePasswordMethods()`; a `"totp"` entry is informational only — the
+  headless `PasswordChange` flow's OTP channel is email/phone-only, so there
+  is no verification path for it to drive yet.
 
 ## Status
 

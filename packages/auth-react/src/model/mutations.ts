@@ -5,6 +5,7 @@ import type {
 } from "@tanstack/react-query";
 import type { StapelApiError } from "@stapel/core";
 import type {
+  LinkedOAuthAccount,
   OtpChannel,
   StatusResponse,
   TotpDisableRequest,
@@ -128,6 +129,48 @@ export function useDisableTotp(): UseMutationResult<
       void queryClient.invalidateQueries({
         queryKey: authQueryKeys.securityStatus(),
       });
+    },
+  };
+  return useMutation(options);
+}
+
+/**
+ * Link an additional OAuth provider (§0.5.9's `POST /oauth/links/`). Same
+ * client-side-token-exchange pattern as `oauthLogin` — the host runs the
+ * provider's OAuth SDK/popup and hands us the resulting `accessToken`; this
+ * pair does not perform that browser step itself (same "thin" boundary as
+ * WebAuthn's `webauthnCreate`/`webauthnGet`).
+ */
+export function useLinkOAuth(): UseMutationResult<
+  readonly LinkedOAuthAccount[],
+  StapelApiError,
+  { provider: string; accessToken: string }
+> {
+  const api = useAuthApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    readonly LinkedOAuthAccount[],
+    StapelApiError,
+    { provider: string; accessToken: string }
+  > = {
+    mutationFn: ({ provider, accessToken }) => api.oauthLink(provider, accessToken),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: authQueryKeys.oauthLinks() });
+      void queryClient.invalidateQueries({ queryKey: authQueryKeys.securityStatus() });
+    },
+  };
+  return useMutation(options);
+}
+
+/** Unlink an OAuth provider (§0.5.9's `DELETE /oauth/links/{provider}/`). */
+export function useUnlinkOAuth(): UseMutationResult<void, StapelApiError, string> {
+  const api = useAuthApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<void, StapelApiError, string> = {
+    mutationFn: (provider) => api.oauthUnlink(provider),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: authQueryKeys.oauthLinks() });
+      void queryClient.invalidateQueries({ queryKey: authQueryKeys.securityStatus() });
     },
   };
   return useMutation(options);

@@ -321,6 +321,27 @@
       "request": null,
       "response": null
     },
+    "auth_api_v1_oauth_links_create": {
+      "method": "POST",
+      "path": "/auth/api/v1/oauth/links/",
+      "tag": "OAuth",
+      "request": "OAuthLinkRequest",
+      "response": "OAuthLinksResponse"
+    },
+    "auth_api_v1_oauth_links_destroy": {
+      "method": "DELETE",
+      "path": "/auth/api/v1/oauth/links/{provider}/",
+      "tag": "OAuth",
+      "request": null,
+      "response": null
+    },
+    "auth_api_v1_oauth_links_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/v1/oauth/links/",
+      "tag": "OAuth",
+      "request": null,
+      "response": "OAuthLinksResponse"
+    },
     "auth_api_v1_oauth_login_create": {
       "method": "POST",
       "path": "/auth/api/v1/oauth/login/",
@@ -957,6 +978,22 @@
         ]
       ]
     },
+    "useLinkOAuth": {
+      "kind": "mutation",
+      "operation": "oauthLink",
+      "invalidates": [
+        [
+          "auth",
+          "oauth",
+          "links"
+        ],
+        [
+          "auth",
+          "security",
+          "status"
+        ]
+      ]
+    },
     "useLogout": {
       "kind": "mutation",
       "operation": "logout",
@@ -972,6 +1009,15 @@
       "queryKey": [
         "auth",
         "me"
+      ]
+    },
+    "useOAuthLinks": {
+      "kind": "query",
+      "operation": "oauthLinks",
+      "queryKey": [
+        "auth",
+        "oauth",
+        "links"
       ]
     },
     "usePasskeys": {
@@ -1056,6 +1102,22 @@
         "sso",
         "lookup",
         "{domain}"
+      ]
+    },
+    "useUnlinkOAuth": {
+      "kind": "mutation",
+      "operation": "oauthUnlink",
+      "invalidates": [
+        [
+          "auth",
+          "oauth",
+          "links"
+        ],
+        [
+          "auth",
+          "security",
+          "status"
+        ]
       ]
     }
   },
@@ -1493,6 +1555,11 @@
       "params": [],
       "remediation": "retry"
     },
+    "error.404.oauth_link_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.404.passkey_not_found": {
       "status": 404,
       "params": [],
@@ -1559,6 +1626,16 @@
       "remediation": "fix_input"
     },
     "error.409.gdpr.legal_hold": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.oauth_account_linked_elsewhere": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.oauth_already_linked": {
       "status": 409,
       "params": [],
       "remediation": "fix_input"
@@ -1906,6 +1983,58 @@
     "auth.otp.sent_to",
     "auth.passkey.no_credentials",
     "auth.password.label",
+    "auth.sec.oauth.empty",
+    "auth.sec.oauth.link",
+    "auth.sec.oauth.link_unavailable",
+    "auth.sec.oauth.linked",
+    "auth.sec.oauth.title",
+    "auth.sec.oauth.unlink",
+    "auth.sec.oauth.unlink_confirm_title",
+    "auth.sec.oauth.unlink_unavailable",
+    "auth.sec.passkeys.add",
+    "auth.sec.passkeys.add_title",
+    "auth.sec.passkeys.added_success",
+    "auth.sec.passkeys.awaiting_ceremony",
+    "auth.sec.passkeys.begin_cta",
+    "auth.sec.passkeys.empty",
+    "auth.sec.passkeys.name_label",
+    "auth.sec.passkeys.name_placeholder",
+    "auth.sec.passkeys.remove",
+    "auth.sec.passkeys.remove_confirm_title",
+    "auth.sec.passkeys.title",
+    "auth.sec.password.change_cta",
+    "auth.sec.password.new_label",
+    "auth.sec.password.old_label",
+    "auth.sec.password.success",
+    "auth.sec.password.title",
+    "auth.sec.password.via_otp_hint",
+    "auth.sec.sessions.confirm_me",
+    "auth.sec.sessions.empty",
+    "auth.sec.sessions.last_used",
+    "auth.sec.sessions.sign_out",
+    "auth.sec.sessions.sign_out_all",
+    "auth.sec.sessions.sign_out_all_confirm_title",
+    "auth.sec.sessions.sign_out_confirm_title",
+    "auth.sec.sessions.subtitle",
+    "auth.sec.sessions.title",
+    "auth.sec.totp.backup_codes_ack",
+    "auth.sec.totp.backup_codes_hint",
+    "auth.sec.totp.backup_codes_title",
+    "auth.sec.totp.backup_remaining",
+    "auth.sec.totp.confirm_cta",
+    "auth.sec.totp.confirm_label",
+    "auth.sec.totp.disable",
+    "auth.sec.totp.disable_backup_label",
+    "auth.sec.totp.disable_code_label",
+    "auth.sec.totp.disable_title",
+    "auth.sec.totp.disabled",
+    "auth.sec.totp.enabled",
+    "auth.sec.totp.scan_hint",
+    "auth.sec.totp.secret_label",
+    "auth.sec.totp.set_up",
+    "auth.sec.totp.setup_title",
+    "auth.sec.totp.title",
+    "auth.sec.totp.use_backup_toggle",
     "auth.session.suspicious",
     "auth.session.this_device",
     "auth.totp.enter_code",
@@ -1936,6 +2065,7 @@
     "auth.ui.send_code",
     "auth.ui.sso_continue",
     "auth.ui.sso_domain_label",
+    "auth.ui.sso_domain_placeholder",
     "auth.ui.submit",
     "auth.verification.choose_factor",
     "auth.verification.success",
@@ -2020,6 +2150,7 @@
     "error.404.gdpr.export_not_found",
     "error.404.gdpr.no_active_closure",
     "error.404.not_found",
+    "error.404.oauth_link_not_found",
     "error.404.passkey_not_found",
     "error.404.qr_not_found",
     "error.404.sso_org_not_found",
@@ -2034,6 +2165,8 @@
     "error.409.gdpr.closure_already_pending",
     "error.409.gdpr.export_cooldown",
     "error.409.gdpr.legal_hold",
+    "error.409.oauth_account_linked_elsewhere",
+    "error.409.oauth_already_linked",
     "error.409.passkey_already_registered",
     "error.409.phone_reserved",
     "error.409.phone_taken",
@@ -2085,6 +2218,7 @@
       "AuthProvider",
       "AuthRuntimeContext",
       "AuthenticatorChange",
+      "DEFAULT_DIAL_CODES",
       "MagicLink",
       "PasskeyLogin",
       "PasskeyRegistration",
@@ -2137,16 +2271,20 @@
       "useDelayedChangeStatus",
       "useDisableTotp",
       "useFlow",
+      "useLinkOAuth",
       "useLogout",
       "useMe",
+      "useOAuthLinks",
       "usePasskeys",
       "usePasswordMethods",
+      "usePhoneCountryDefault",
       "useRemovePasskey",
       "useRevokeOtherSessions",
       "useRevokeSession",
       "useSecurityStatus",
       "useSessions",
       "useSsoLookup",
+      "useUnlinkOAuth",
       "useVerification",
       "validRedirectUrl"
     ],
@@ -2176,6 +2314,9 @@
       "AuthenticatorChangeState",
       "Capabilities",
       "ChangeOldVerifiedResponse",
+      "ChannelInteraction",
+      "ChannelPlacement",
+      "ChannelPlanEntry",
       "CreateAuthRuntimeOptions",
       "DelayedChangeInitiatedResponse",
       "DelayedChangeStatus",
@@ -2183,6 +2324,7 @@
       "FlowMachine",
       "FlowMachineOptions",
       "FlowStateBase",
+      "LinkedOAuthAccount",
       "LoginCapabilities",
       "LoginResponse",
       "MagicLinkBag",
@@ -2225,6 +2367,7 @@
       "PasswordResetFlowDeps",
       "PasswordResetState",
       "PasswordlessLoginBag",
+      "PhoneCountryDefault",
       "QrGenerateResponse",
       "QrLoginBag",
       "QrLoginFlow",
@@ -2255,6 +2398,7 @@
       "TotpSetupFlowDeps",
       "TotpSetupResponse",
       "TotpSetupState",
+      "UsePhoneCountryDefaultOptions",
       "VerificationChallengeBag",
       "VerificationCompleteResponse",
       "VerificationController",

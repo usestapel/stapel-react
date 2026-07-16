@@ -84,6 +84,60 @@ describe("browser-redirect URL builders", () => {
   });
 });
 
+describe("authApi — OAuth account links (§0.5.9's /oauth/links/ trio)", () => {
+  it("oauthLinks unwraps the `links` envelope", async () => {
+    server.use(
+      http.get(`${BASE}/oauth/links/`, () =>
+        HttpResponse.json({
+          links: [
+            {
+              provider: "google",
+              email: "a@b.com",
+              display_name: "Ada",
+              linked_at: "2026-01-01T00:00:00Z",
+              primary: true,
+            },
+          ],
+        })
+      )
+    );
+    const api = makeApi();
+    const links = await api.oauthLinks();
+    expect(links).toHaveLength(1);
+    expect(links[0]?.provider).toBe("google");
+    expect(links[0]?.primary).toBe(true);
+  });
+
+  it("oauthLink posts { provider, access_token } and unwraps the response", async () => {
+    server.use(
+      http.post(`${BASE}/oauth/links/`, async ({ request }) => {
+        expect(await request.json()).toEqual({ provider: "github", access_token: "tok" });
+        return HttpResponse.json({
+          links: [
+            { provider: "github", email: null, display_name: "gh", linked_at: null, primary: false },
+          ],
+        });
+      })
+    );
+    const api = makeApi();
+    const links = await api.oauthLink("github", "tok");
+    expect(links[0]?.provider).toBe("github");
+  });
+
+  it("oauthUnlink deletes /oauth/links/{provider}/", async () => {
+    let called = false;
+    server.use(
+      http.delete(`${BASE}/oauth/links/github/`, () => {
+        called = true;
+        return new HttpResponse(null, { status: 204 });
+      })
+    );
+    const api = makeApi();
+    await api.oauthUnlink("github");
+    expect(called).toBe(true);
+  });
+});
+
 describe("open-redirect defence (auth-sa.md §19.2)", () => {
   it("validRedirectUrl accepts single-slash relative paths only", () => {
     expect(validRedirectUrl("/app")).toBe("/app");

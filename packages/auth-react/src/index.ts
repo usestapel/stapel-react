@@ -37,6 +37,7 @@ export type {
   PasswordMethodEntry,
   PasswordMethods,
   SecurityStatus,
+  LinkedOAuthAccount,
   SessionDeviceType,
   AuthSession as AuthSessionRecord,
   TotpSetupResponse,
@@ -176,6 +177,7 @@ export {
   usePasswordMethods,
   useSessions,
   usePasskeys,
+  useOAuthLinks,
   useAuditLog,
   useDelayedChangeStatus,
   useSsoLookup,
@@ -187,6 +189,8 @@ export {
   useConfirmSession,
   useRemovePasskey,
   useDisableTotp,
+  useLinkOAuth,
+  useUnlinkOAuth,
   useCancelDelayedChange,
 } from "./model/mutations.js";
 

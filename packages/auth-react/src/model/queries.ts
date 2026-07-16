@@ -6,6 +6,7 @@ import type {
   AuthSession as AuthSessionRecord,
   Capabilities,
   DelayedChangeStatus,
+  LinkedOAuthAccount,
   OtpChannel,
   Passkey,
   PasswordMethods,
@@ -89,6 +90,18 @@ export function usePasskeys(): UseQueryResult<
   return useQuery({
     queryKey: authQueryKeys.passkeys(),
     queryFn: () => api.passkeys(),
+  });
+}
+
+/** OAuth accounts connected to the current user (§0.5.9's `/oauth/links/`). */
+export function useOAuthLinks(): UseQueryResult<
+  readonly LinkedOAuthAccount[],
+  StapelApiError
+> {
+  const api = useAuthApi();
+  return useQuery({
+    queryKey: authQueryKeys.oauthLinks(),
+    queryFn: () => api.oauthLinks(),
   });
 }
 

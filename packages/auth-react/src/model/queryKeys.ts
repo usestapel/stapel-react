@@ -15,6 +15,7 @@ export const authQueryKeys: {
   passwordMethods(): readonly ["auth", "password", "methods"];
   sessions(): readonly ["auth", "sessions"];
   passkeys(): readonly ["auth", "passkeys"];
+  oauthLinks(): readonly ["auth", "oauth", "links"];
   audit(page: number): readonly ["auth", "audit", number];
   delayedChange(channel: string): readonly ["auth", "change", "delayed", string];
   ssoLookup(domain: string): readonly ["auth", "sso", "lookup", string];
@@ -26,6 +27,7 @@ export const authQueryKeys: {
   passwordMethods: () => [ROOT, "password", "methods"],
   sessions: () => [ROOT, "sessions"],
   passkeys: () => [ROOT, "passkeys"],
+  oauthLinks: () => [ROOT, "oauth", "links"],
   audit: (page) => [ROOT, "audit", page],
   delayedChange: (channel) => [ROOT, "change", "delayed", channel],
   ssoLookup: (domain) => [ROOT, "sso", "lookup", domain],

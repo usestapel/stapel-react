@@ -113,6 +113,8 @@ export const AUTH_I18N_KEYS = {
   secOauthUnlink: "auth.sec.oauth.unlink",
   secOauthUnlinkConfirmTitle: "auth.sec.oauth.unlink_confirm_title",
   secOauthEmpty: "auth.sec.oauth.empty",
+  secOauthUnlinkUnavailable: "auth.sec.oauth.unlink_unavailable",
+  secOauthLinkUnavailable: "auth.sec.oauth.link_unavailable",
 } as const;
 
 export type AuthI18nKey =
@@ -239,6 +241,10 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.sec.oauth.unlink": "Disconnect",
   "auth.sec.oauth.unlink_confirm_title": "Disconnect this account?",
   "auth.sec.oauth.empty": "No providers configured.",
+  "auth.sec.oauth.unlink_unavailable":
+    "Disconnect isn't available yet — this backend has no unlink endpoint.",
+  "auth.sec.oauth.link_unavailable":
+    "Connecting a new provider needs a getAccessToken binding — see the OAuthLinks docs.",
 
   // Backend error codes (auth-sa.md "Error reference")
   "error.401.invalid_credentials": "Incorrect email or password.",

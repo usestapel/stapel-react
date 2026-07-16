@@ -7,6 +7,7 @@ import type {
   ChangeOldVerifiedResponse,
   DelayedChangeInitiatedResponse,
   DelayedChangeStatus,
+  LinkedOAuthAccount,
   LoginResponse,
   OtpChannel,
   OtpRequestResponse,
@@ -81,6 +82,13 @@ export interface AuthApi {
 
   // OAuth (auth-sa.md §7, option B)
   oauthLogin(provider: string, accessToken: string): Promise<LoginResponse>;
+
+  // OAuth account links — security settings, requires auth (§0.5.9's
+  // `/oauth/links/` trio; same client-side-token-exchange pattern as
+  // `oauthLogin`, just while already signed in).
+  oauthLinks(): Promise<readonly LinkedOAuthAccount[]>;
+  oauthLink(provider: string, accessToken: string): Promise<readonly LinkedOAuthAccount[]>;
+  oauthUnlink(provider: string): Promise<void>;
 
   // TOTP (auth-sa.md §11)
   totpChallengeVerify(challengeToken: string, proof: { code?: string; backup_code?: string }): Promise<AuthResponse>;
@@ -206,6 +214,20 @@ export function createAuthApi(client: StapelClient): AuthApi {
         { provider, access_token: accessToken },
         mutating()
       ),
+
+    oauthLinks: () =>
+      client
+        .get<{ links: readonly LinkedOAuthAccount[] }>("/oauth/links/")
+        .then((r) => r.links),
+    oauthLink: (provider, accessToken) =>
+      client
+        .post<{ links: readonly LinkedOAuthAccount[] }>(
+          "/oauth/links/",
+          { provider, access_token: accessToken },
+          mutating()
+        )
+        .then((r) => r.links),
+    oauthUnlink: (provider) => client.delete(`/oauth/links/${provider}/`, mutating()),
 
     totpChallengeVerify: (challengeToken, proof) =>
       client.post(

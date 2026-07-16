@@ -127,6 +127,10 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.sec.oauth.unlink": "Отвязать",
   "auth.sec.oauth.unlink_confirm_title": "Отвязать этот аккаунт?",
   "auth.sec.oauth.empty": "Провайдеры не настроены.",
+  "auth.sec.oauth.unlink_unavailable":
+    "Отвязка пока недоступна — у этого бэкенда нет эндпоинта для отвязки.",
+  "auth.sec.oauth.link_unavailable":
+    "Для привязки нового провайдера нужна функция getAccessToken — см. документацию OAuthLinks.",
 };
 
 /**

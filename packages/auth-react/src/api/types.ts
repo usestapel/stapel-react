@@ -177,6 +177,14 @@ export type PasswordMethods = Schemas["PasswordMethodsResponse"];
 
 export type SecurityStatus = Schemas["SecurityStatusResponse"];
 
+// ── OAuth account links (security settings, requires auth) ──────────────────
+
+/** One OAuth provider account connected to the current user (§0.5.9's
+ * `/oauth/links/` trio). `primary` marks the account the user originally
+ * registered/logged in with — immutable through this endpoint; a secondary
+ * link is added via `oauthLink`/removed via `oauthUnlink`. */
+export type LinkedOAuthAccount = Schemas["LinkedOAuthAccountDTO"];
+
 // ── Sessions ─────────────────────────────────────────────────────────────────
 
 /**

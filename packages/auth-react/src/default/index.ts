@@ -18,3 +18,4 @@ export {
   resolveInteraction,
 } from "./channels.js";
 export type { AuthZones, ChannelId } from "./channels.js";
+export * from "./security/index.js";
