@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/calendar-react",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "demos": [
     {
       "id": "calendar.composer",

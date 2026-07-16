@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/auth-react",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "demos": [
     {
       "id": "auth.anonymous-session",
