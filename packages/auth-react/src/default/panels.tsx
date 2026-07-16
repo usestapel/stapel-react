@@ -36,7 +36,7 @@ import { useAuthApi } from "../model/context.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
 
 /**
- * Fallback digit count when the backend doesn't send `otp_code_length`
+ * Fallback digit count when the backend doesn't send `otp` metadata
  * (stapel-auth <0.6.0) — every backend has used 6 to date, so this is the
  * ONE safe fallback, not a guess between arbitrary lengths.
  */
@@ -168,8 +168,10 @@ export function OtpPanel(props: { channel: OtpChannel }): ReactElement {
   const t = useT();
   const fieldError = useFieldError();
   const caps = useCapabilities();
-  const otpLength = caps.data?.login.otp_code_length ?? DEFAULT_OTP_LENGTH;
   const { channel } = props;
+  const otpLength =
+    (channel === "email" ? caps.data?.otp?.email_code_length : caps.data?.otp?.phone_code_length) ??
+    DEFAULT_OTP_LENGTH;
   const labelKey =
     channel === "email"
       ? AUTH_I18N_KEYS.uiEmailLabel

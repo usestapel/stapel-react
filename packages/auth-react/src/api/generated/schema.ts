@@ -357,7 +357,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Request a magic link login email
+         * Request an email link for sign-in
          * @description Overridable serializer seams for stapel-auth API views.
          *
          *     Views declare ``<purpose>_serializer_class`` class attributes following the
@@ -392,7 +392,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Verify a magic link token and issue session
+         * Verify an email link token and issue session
          * @description Overridable serializer seams for stapel-auth API views.
          *
          *     Views declare ``<purpose>_serializer_class`` class attributes following the
@@ -500,6 +500,56 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/api/v1/oauth/links/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List OAuth accounts connected to the current user
+         * @description Manage OAuth accounts connected to the current user.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        get: operations["auth_api_v1_oauth_links_retrieve"];
+        put?: never;
+        /**
+         * Link an additional OAuth provider account
+         * @description Manage OAuth accounts connected to the current user.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["auth_api_v1_oauth_links_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/api/v1/oauth/links/{provider}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Unlink an OAuth provider account
+         * @description Manage OAuth accounts connected to the current user.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        delete: operations["auth_api_v1_oauth_links_destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2240,6 +2290,43 @@ export interface components {
             count: number;
             next: number | null;
         };
+        /** @description Auth method availability for this deployment. */
+        AuthCapabilities: {
+            /** @description Available registration methods */
+            registration: components["schemas"]["RegistrationCapabilities"];
+            /** @description Available login methods */
+            login: components["schemas"]["LoginCapabilities"];
+            /** @description Available multi-factor methods */
+            mfa: components["schemas"]["MFACapabilities"];
+            /** @description Per-method placement/interaction/icon descriptors for every */
+            methods: components["schemas"]["AuthMethodInfo"][];
+            /** @description Server-authoritative OTP parameters (code lengths, ttl, resend */
+            otp: components["schemas"]["OtpMeta"];
+        };
+        /**
+         * @description Per-method display descriptor for the sign-in panel (owner directive:
+         *     placement is configured on the backend the same way availability is).
+         *
+         *     ``placement`` is configured per-method via ``AUTH_<METHOD>_PLACEMENT``
+         *     (conf.py); ``order`` and ``interaction`` are derived server-side so the
+         *     frontend never has to guess: ``interaction`` follows the client rule
+         *     "main -> inline in the tab; overflow/bottom -> modal, except oauth/sso
+         *     which always redirect to the provider".
+         */
+        AuthMethodInfo: {
+            /** @description Method identifier — one of email, phone, password, passkey, qr, */
+            id: string;
+            /** @description Whether this method is currently available (mirrors the */
+            enabled: boolean;
+            /** @description Where the client renders this method's trigger. One of */
+            placement: string;
+            /** @description Sort order among methods sharing the same placement (lower */
+            order: number;
+            /** @description How the client should present the method once */
+            interaction: string;
+            /** @description Inline SVG glyph for this method (24x24, currentColor) — a */
+            icon_svg: string;
+        };
         /** @description Authentication response with user data and tokens. */
         AuthResponse: {
             /** @description Authenticated user object */
@@ -2518,6 +2605,76 @@ export interface components {
              */
             expires_at: string;
         };
+        /**
+         * @description One OAuth provider account connected to the current user.
+         *
+         *     ``primary`` distinguishes the account a user originally registered/logged
+         *     in with (``User.oauth_provider``/``oauth_id`` — immutable through this
+         *     endpoint) from a secondary link the user attached later from their
+         *     security settings page (an actual ``LinkedOAuthAccount`` row, removable
+         *     via DELETE /oauth/links/{provider}/).
+         */
+        LinkedOAuthAccountDTO: {
+            /**
+             * @description Provider identifier
+             * @example google
+             */
+            provider: string;
+            /**
+             * @description Email reported by the provider, if any
+             * @example user@example.com
+             */
+            email: string | null;
+            /**
+             * @description Provider display name/username, if any
+             * @example Jane Doe
+             */
+            display_name: string;
+            /**
+             * @description When this account was linked
+             * @example 2026-07-16T12:00:00Z
+             */
+            linked_at: string | null;
+            /** @description Whether this is the account the user originally registered/ */
+            primary: boolean;
+        };
+        /** @description Available login methods for this deployment. */
+        LoginCapabilities: {
+            /** @description Enabled OAuth providers */
+            oauth: components["schemas"]["OAuthProviderInfo"][];
+            /**
+             * @description Phone OTP login enabled
+             * @example true
+             */
+            phone: boolean;
+            /**
+             * @description Email OTP login enabled
+             * @example true
+             */
+            email: boolean;
+            /** @description Password login enabled */
+            password: boolean;
+            /**
+             * @description SSO login enabled
+             * @example true
+             */
+            sso: boolean;
+            /**
+             * @description QR code login enabled
+             * @example true
+             */
+            qr: boolean;
+            /**
+             * @description Passkey/WebAuthn login enabled
+             * @example true
+             */
+            passkey: boolean;
+            /**
+             * @description Magic link login enabled
+             * @example true
+             */
+            magic_link: boolean;
+        };
         LoginResponse: components["schemas"]["AuthResponse"] | components["schemas"]["TOTPChallengeResponse"];
         LogoutRequest: {
             /** @description Refresh token to blacklist (optional, will also use cookie if available) */
@@ -2530,6 +2687,19 @@ export interface components {
              * @example Successfully logged out
              */
             message: string;
+        };
+        /** @description Available multi-factor methods for this deployment. */
+        MFACapabilities: {
+            /**
+             * @description TOTP (authenticator app) MFA enabled
+             * @example true
+             */
+            totp: boolean;
+            /**
+             * @description Passkey/WebAuthn enabled (also a login method)
+             * @example true
+             */
+            passkey: boolean;
         };
         /**
          * @description DRF serializer mixin that validates a ``captcha_token`` field.
@@ -2564,6 +2734,70 @@ export interface components {
         OAuth: {
             provider: string;
             access_token: string;
+        };
+        /**
+         * @description Body for POST /oauth/links/ — same shape as OAuthSerializer (the login
+         *     request), reusing the client-side OAuth exchange already in place: the
+         *     frontend runs the provider's OAuth flow and hands us the resulting
+         *     access_token, which we verify server-side via the provider before linking.
+         */
+        OAuthLinkRequest: {
+            provider: string;
+            access_token: string;
+        };
+        /** @description All OAuth accounts connected to the current user. */
+        OAuthLinksResponse: {
+            /** @description Connected provider accounts (primary first, then secondary */
+            links: components["schemas"]["LinkedOAuthAccountDTO"][];
+        };
+        /** @description OAuth provider available for authentication. */
+        OAuthProviderInfo: {
+            /**
+             * @description Provider identifier
+             * @example google
+             */
+            id: string;
+            /**
+             * @description Display name
+             * @example Google
+             */
+            name: string;
+        };
+        /**
+         * @description Server-authoritative OTP parameters — the frontend must read these
+         *     instead of guessing (e.g. hardcoding a 6-box code input when the backend
+         *     actually issues 4-digit codes).
+         *
+         *     Every value here is sourced from the exact same constant/setting that
+         *     the backend validates against (otp/services.py.OTP_CODE_LENGTH,
+         *     mfa/services.py.TOTPService.CODE_LENGTH, AUTH_OTP_TTL, AUTH_OTP_RESEND_COOLDOWN)
+         *     — a guard test asserts the DB/serializer field widths agree with the
+         *     same constants, so this can't silently drift from what the server
+         *     actually accepts.
+         */
+        OtpMeta: {
+            /**
+             * @description Digits in an email OTP code
+             * @example 4
+             */
+            email_code_length: number;
+            /**
+             * @description Digits in a phone/SMS OTP code
+             * @example 4
+             */
+            phone_code_length: number;
+            /**
+             * @description Digits in a TOTP authenticator-app code
+             * @example 6
+             */
+            totp_code_length: number;
+            /**
+             * @description Seconds an OTP code stays valid after being sent
+             * @example 600
+             */
+            ttl_seconds: number;
+            /** @description Seconds the client must wait before requesting */
+            resend_cooldown_seconds: number;
         };
         /** @description OTP has been sent to the target. */
         OtpSentResponse: {
@@ -2847,6 +3081,33 @@ export interface components {
          * @enum {string}
          */
         QRStatusResponseStatusEnum: "pending" | "fulfilled" | "expired" | "rejected";
+        /** @description Available registration methods for this deployment. */
+        RegistrationCapabilities: {
+            /** @description Enabled OAuth providers */
+            oauth: components["schemas"]["OAuthProviderInfo"][];
+            /**
+             * @description Phone OTP registration enabled
+             * @example true
+             */
+            phone: boolean;
+            /**
+             * @description Email OTP registration enabled
+             * @example true
+             */
+            email: boolean;
+            /** @description Password registration enabled */
+            password: boolean;
+            /**
+             * @description SSO/SAML JIT provisioning enabled
+             * @example true
+             */
+            sso: boolean;
+            /**
+             * @description Anonymous registration enabled
+             * @example true
+             */
+            anonymous: boolean;
+        };
         /** @description SSO organization lookup result for a given email domain. */
         SSODomainLookupResponse: {
             /**
@@ -3036,10 +3297,7 @@ export interface components {
              * @example error.404.not_found
              */
             localizable_error: string;
-            /**
-             * @description Human-readable message in English
-             * @example Requested resource not found
-             */
+            /** @description Human-readable fallback/debug message — not reliably English, */
             error: string;
             /**
              * @description Context values for template placeholders
@@ -3050,6 +3308,8 @@ export interface components {
             params?: {
                 [key: string]: unknown;
             };
+            /** @description Active Django locale `error` was rendered in (e.g */
+            error_language?: string;
         };
         /** @description Intermediate response when TOTP 2FA is required to complete login. */
         TOTPChallengeResponse: {
@@ -3560,12 +3820,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AuthCapabilities"];
+                };
             };
         };
     };
@@ -4113,6 +4374,98 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["StapelError"];
                 };
+            };
+        };
+    };
+    auth_api_v1_oauth_links_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthLinksResponse"];
+                };
+            };
+        };
+    };
+    auth_api_v1_oauth_links_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthLinkRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["OAuthLinkRequest"];
+                "multipart/form-data": components["schemas"]["OAuthLinkRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthLinksResponse"];
+                };
+            };
+            /** @description No response body */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No response body */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_api_v1_oauth_links_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No response body */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No response body */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

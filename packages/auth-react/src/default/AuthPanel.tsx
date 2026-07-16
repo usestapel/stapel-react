@@ -29,11 +29,12 @@
  * redirect (`resolveInteraction` → `"redirect"`), so it renders identically
  * whether it's in the bottom row or (rarer) the overflow dialog.
  *
- * stapel-auth ≥0.6.0 can drive all of this from the backend via
- * `capabilities.login.plan` (per-method `placement`/`interaction`/`icon_svg`
- * — see `api/types.ts`). Older backends simply omit `plan`, and
- * `computeZones` falls back to the priority-only heuristic — no code change
- * required on either side.
+ * stapel-auth ≥0.6.0 drives all of this from the backend via
+ * `capabilities.methods` (per-method `placement`/`order`/`interaction`/
+ * `icon_svg` — see `api/types.ts`'s `AuthMethodInfo`). Older backends simply
+ * omit `methods`, and `computeZones` falls back to a fixed default placement
+ * table (email/phone → main, password/magic_link → overflow, the rest →
+ * bottom) — no code change required on either side.
  */
 import { useMemo, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
@@ -57,8 +58,16 @@ import { useBreakpoint, useT } from "@stapel/core";
 import { useCapabilities } from "../model/queries.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
 import type { AuthI18nKey } from "../i18n/keys.js";
-import { DEFAULT_CHANNEL_PRIORITY, computeZones, enabledChannels, resolveInteraction } from "./channels.js";
+import {
+  DEFAULT_CHANNEL_PRIORITY,
+  computeZones,
+  enabledChannels,
+  methodIconSvg,
+  methodInteraction,
+  resolveInteraction,
+} from "./channels.js";
 import type { ChannelId } from "./channels.js";
+import type { AuthMethodInfo } from "../api/types.js";
 import {
   MagicLinkPanel,
   OAuthPanel,
@@ -132,8 +141,9 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
   const isPhone = useBreakpoint() === "phone";
 
   const login = caps.data?.login;
+  const methods = caps.data?.methods;
   const channels = login ? enabledChannels(login, channelPriority) : [];
-  const zones = computeZones(channels, login?.plan);
+  const zones = computeZones(channels, methods);
   const oauthProviders = login?.oauth ?? [];
 
   /** Zone-B/dialog panel for a channel. OAuth/SSO get real panels now (a
@@ -186,6 +196,9 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
   const overflowItems = zones.overflow.map((id) => ({
     key: id,
     label: t(CHANNEL_LABEL[id]),
+    icon: (
+      <ChannelIcon override={props.iconOverrides?.[id]} svg={methodIconSvg(id, methods)} />
+    ),
     onClick: () => pick(id),
   }));
 
@@ -198,7 +211,7 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
    */
   function pick(id: ChannelId): void {
     const placement = zones.bottom.includes(id) ? "bottom" : "overflow";
-    const interaction = resolveInteraction(id, placement, login?.plan?.[id]?.interaction);
+    const interaction = resolveInteraction(id, placement, methodInteraction(id, methods));
     if (interaction === "redirect") return; // OAuth: the button IS the action.
     setOpenChannel(id);
   }
@@ -244,6 +257,7 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
                 oauthProviders={oauthProviders}
                 onPick={pick}
                 labelFor={(id) => t(CHANNEL_LABEL[id])}
+                {...(methods !== undefined ? { methods } : {})}
                 {...(props.iconOverrides !== undefined
                   ? { iconOverrides: props.iconOverrides }
                   : {})}
@@ -298,6 +312,22 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
   );
 }
 
+/** An icon for a channel: a host override wins; otherwise the backend's own
+ * `methods[].icon_svg` (stapel-auth ≥0.6.0, sanitized upstream) renders as
+ * raw inline SVG; otherwise no icon (the label carries the button). */
+function ChannelIcon(props: { override?: ReactNode; svg?: string | undefined }): ReactElement | null {
+  if (props.override !== undefined) return <>{props.override}</>;
+  if (props.svg) {
+    return (
+      <span
+        style={{ display: "inline-flex", width: 16, height: 16 }}
+        dangerouslySetInnerHTML={{ __html: props.svg }}
+      />
+    );
+  }
+  return null;
+}
+
 /** The persistent bottom icon row: OAuth renders its provider-button group
  * directly (no dialog, per `resolveInteraction`); every other bottom channel
  * (qr, passkey by default, or anything a backend plan places here) renders a
@@ -307,6 +337,7 @@ function BottomRow(props: {
   oauthProviders: Parameters<typeof OAuthPanel>[0]["providers"];
   onPick: (id: ChannelId) => void;
   labelFor: (id: ChannelId) => string;
+  methods?: readonly AuthMethodInfo[];
   iconOverrides?: Readonly<Partial<Record<ChannelId, ReactNode>>>;
   oauthRedirectUri?: string;
   oauthIconOverrides?: Readonly<Record<string, ReactNode>>;
@@ -328,7 +359,12 @@ function BottomRow(props: {
         ) : (
           <Button
             key={id}
-            icon={props.iconOverrides?.[id]}
+            icon={
+              <ChannelIcon
+                override={props.iconOverrides?.[id]}
+                svg={methodIconSvg(id, props.methods)}
+              />
+            }
             onClick={() => props.onPick(id)}
             data-analytics="none"
             data-analytics-reason="local-ui-open-bottom-row-channel"

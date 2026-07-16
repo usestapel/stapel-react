@@ -25,9 +25,10 @@ lives in the **generated SA-doc**, not here:
 - **Client types** — `api/types.ts` is a thin adapter over the generated
   `components["schemas"]` in `@stapel/core` (`pnpm gen:api`, drift gate
   `pnpm gen:api:check`). It re-exports the generated schemas under the pair's
-  names and applies only three documented corrections (enum-discriminant repair,
-  array-element typing, present-but-optional) where the codegen under-describes
-  the runtime. No parallel hand-written response shapes.
+  names and applies only four documented corrections (enum-discriminant repair,
+  array-element typing, present-but-optional, untyped-string literal repair)
+  where the codegen under-describes the runtime. No parallel hand-written
+  response shapes.
 - **Flow registry** — `flows/generated/flows.gen.ts` is scaffolded from
   `flows.json` (`pnpm gen:flows`, drift gate `pnpm gen:flows:check`). The three
   documented flows bind their machine `id` to the canonical registry id, so the
@@ -200,20 +201,19 @@ auto-submit, the Waylot-referenced responsive alt-method sheet):
 
 - **`<AuthPanel/>`** (`default/AuthPanel.tsx`) — the sign-in screen. Channel
   zones (`main`/`bottom`/`overflow`) come from `default/channels.ts`'s
-  `computeZones`, driven by the backend's `LoginCapabilities.plan`
-  (stapel-auth ≥0.6.0 — per-method `placement`/`interaction`/`icon_svg`) with
-  a priority-only fallback for older backends.
+  `computeZones`, driven by the backend's `capabilities().methods` (stapel-auth
+  ≥0.6.0 — per-method `placement`/`order`/`interaction`/`icon_svg`,
+  `AuthMethodInfo` in `api/types.ts`) with a fixed default-placement-table
+  fallback for older backends (matches stapel-auth's own defaults:
+  email/phone → main, password/magic_link → overflow, the rest → bottom).
 - **Security-settings components** (`default/security/`) — `SessionsList`,
   `TotpManager`, `PasskeysManager`, `PasswordChangePanel`, `OAuthLinks`. Each
-  wraps EXISTING query/mutation hooks and headless flows; no new backend
-  surface except `OAuthLinks`, which is built against a `/oauth/links/` trio
-  (`useOAuthLinks`/`useLinkOAuth`/`useUnlinkOAuth`, `AuthApi.oauthLink*`) seen
-  as uncommitted WORK-IN-PROGRESS in the stapel-auth sibling checkout while
-  building this (NOT in the pinned contract yet — `api/types.ts`'s
-  `LinkedOAuthAccount` is hand-transcribed, not generated; delete that note
-  once the pin bumps past it). `OAuthLinks`' "Connect" and `PasskeysManager`'s
-  "Add" both carry a THIN host binding (`getAccessToken`/`webauthnCreate`) for
-  the browser-side ceremony this pair cannot perform itself — same boundary as
+  wraps EXISTING query/mutation hooks and headless flows; `OAuthLinks`
+  (`useOAuthLinks`/`useLinkOAuth`/`useUnlinkOAuth`, `AuthApi.oauthLink*`) is
+  the pair's newest real surface — `/oauth/links/` list/link/unlink, part of
+  the same 0.6.0 contract. Its "Connect" action and `PasskeysManager`'s "Add"
+  both carry a THIN host binding (`getAccessToken`/`webauthnCreate`) for the
+  browser-side ceremony this pair cannot perform itself — same boundary as
   the existing Thin-WebAuthn TODO below.
 
 ## Follow-up
@@ -222,10 +222,6 @@ auto-submit, the Waylot-referenced responsive alt-method sheet):
   generator, currently blocked). Wiring is a drop-in against the same
   `flows.json` once it lands; the vitest happy-path suites hold the line until
   then.
-- **Capabilities endpoint** has no response serializer in the OpenAPI surface,
-  so `Capabilities`/`*Capabilities` stay hand-authored in `api/types.ts` (flagged
-  there). Delete them and alias the generated schema once the backend annotates
-  `GET /auth/api/capabilities/`.
 - **Verification preferences** endpoints (`GET`/`PUT /verification/preferences/`)
   appear in the `auth.step_up_verification` flow but are not yet surfaced on
   `AuthApi` (the pair covers the challenge write-path; preferences are optional

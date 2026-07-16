@@ -15,7 +15,7 @@ import { useFormatFlowError, useT } from "@stapel/core";
 import type { OtpChannel } from "../../api/types.js";
 import { PasswordChange } from "../../headless/PasswordChange.js";
 import type { PasswordChangeBag } from "../../headless/PasswordChange.js";
-import { usePasswordMethods } from "../../model/queries.js";
+import { useCapabilities, usePasswordMethods } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import type { AuthI18nKey } from "../../i18n/keys.js";
 
@@ -23,6 +23,8 @@ const CHANNEL_LABEL: Record<OtpChannel, AuthI18nKey> = {
   email: AUTH_I18N_KEYS.uiChannelEmail,
   phone: AUTH_I18N_KEYS.uiChannelPhone,
 };
+/** Fallback when the backend omits `otp` metadata (stapel-auth <0.6.0). */
+const DEFAULT_OTP_LENGTH = 6;
 
 /** The `"password"` tab: old password + new password. */
 function OldPasswordTab(props: { bag: PasswordChangeBag }): ReactElement {
@@ -59,8 +61,12 @@ function OldPasswordTab(props: { bag: PasswordChangeBag }): ReactElement {
 function OtpTab(props: { bag: PasswordChangeBag; channel: OtpChannel; target: string | null | undefined }): ReactElement {
   const t = useT();
   const formatError = useFormatFlowError();
+  const caps = useCapabilities();
   const { bag, channel } = props;
   const s = bag.state;
+  const otpLength =
+    (channel === "email" ? caps.data?.otp?.email_code_length : caps.data?.otp?.phone_code_length) ??
+    DEFAULT_OTP_LENGTH;
 
   if (s.step === "changed") {
     return <Result status="success" title={t(AUTH_I18N_KEYS.secPasswordSuccess)} />;
@@ -84,7 +90,7 @@ function OtpTab(props: { bag: PasswordChangeBag; channel: OtpChannel; target: st
           {t(AUTH_I18N_KEYS.secPasswordViaOtpHint, { target: s.target })}
         </Typography.Text>
         <Form.Item name="code" label={t(AUTH_I18N_KEYS.otpEnterCode)}>
-          <Input.OTP length={6} autoFocus />
+          <Input.OTP length={otpLength} autoFocus />
         </Form.Item>
         <Form.Item name="newPassword" label={t(AUTH_I18N_KEYS.secPasswordNewLabel)}>
           <Input.Password />

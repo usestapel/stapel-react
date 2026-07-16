@@ -40,7 +40,8 @@ const CAPABILITIES = {
     anonymous: false,
   },
   login: {
-    // 5 channels enabled → 3 primary tabs + 2 secondary buttons (ПРАВИЛО 4).
+    // 5 channels enabled, no methods[] (pre-0.6.0 fallback): email/phone →
+    // main, qr/passkey → bottom, password → overflow (owner-directive defaults).
     phone: true,
     email: true,
     password: true,
@@ -79,12 +80,12 @@ describe("<AuthPanel/> — the §54 default skin renders out of the box", () => 
     await waitFor(() =>
       expect(screen.getByText("Sign in")).toBeDefined()
     );
-    // Zone B primary tabs: email/phone/passkey (first 3 by priority).
+    // Zone B main tabs: email/phone (both default to "main").
     await waitFor(() => {
       expect(screen.getByRole("tab", { name: "Email" })).toBeDefined();
     });
     expect(screen.getByRole("tab", { name: "Phone" })).toBeDefined();
-    expect(screen.getByRole("tab", { name: "Passkey" })).toBeDefined();
+    expect(screen.queryByRole("tab", { name: "Passkey" })).toBeNull();
     // The active email panel shows its primary submit — a real working form.
     expect(screen.getByRole("button", { name: "Send code" })).toBeDefined();
     // Exactly one primary button on screen (ПРАВИЛО 5).
@@ -122,7 +123,7 @@ function TokenProbe(): ReactElement {
  * cells + refocuses rather than leaving stale digits sitting there.
  */
 describe("<AuthPanel/> — OTP auto-submit (owner directive point 3)", () => {
-  const EMAIL_ONLY_CAPS = (otpCodeLength?: number) => ({
+  const EMAIL_ONLY_CAPS = (emailCodeLength?: number) => ({
     registration: {
       phone: false,
       email: true,
@@ -140,8 +141,20 @@ describe("<AuthPanel/> — OTP auto-submit (owner directive point 3)", () => {
       qr: false,
       passkey: false,
       magic_link: false,
-      ...(otpCodeLength !== undefined ? { otp_code_length: otpCodeLength } : {}),
     },
+    mfa: { totp: false, passkey: false },
+    methods: [],
+    ...(emailCodeLength !== undefined
+      ? {
+          otp: {
+            email_code_length: emailCodeLength,
+            phone_code_length: emailCodeLength,
+            totp_code_length: 6,
+            ttl_seconds: 600,
+            resend_cooldown_seconds: 30,
+          },
+        }
+      : {}),
   });
 
   function fillOtp(code: string): void {
@@ -256,8 +269,8 @@ describe("<AuthPanel/> — alt-method dialog (owner directive: overflow/bottom n
       anonymous: false,
     },
     login: {
-      // 6 channels enabled → 3 main tabs, qr in the bottom row, password +
-      // magic_link behind the overflow menu.
+      // 6 channels enabled, no methods[] (pre-0.6.0 fallback): email/phone →
+      // main, qr/passkey → bottom, password/magic_link → overflow.
       phone: true,
       email: true,
       password: true,
@@ -279,8 +292,8 @@ describe("<AuthPanel/> — alt-method dialog (owner directive: overflow/bottom n
     await waitFor(() =>
       expect(screen.getByRole("tab", { name: "Email" })).toBeDefined()
     );
-    // Still exactly 3 tabs — main never grows past ПРАВИЛО 4's cap.
-    expect(screen.getAllByRole("tab")).toHaveLength(3);
+    // Still exactly 2 main tabs — main never grows past ПРАВИЛО 4's cap.
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
     expect(screen.queryByRole("tab", { name: "Password" })).toBeNull();
 
     // No dialog yet.
@@ -313,7 +326,7 @@ describe("<AuthPanel/> — alt-method dialog (owner directive: overflow/bottom n
     expect(dialog.querySelector("canvas")).not.toBeNull(); // antd <QRCode/>
   });
 
-  it("SSO is never a tab — it renders behind the overflow menu as a dialog form", async () => {
+  it("SSO is never a tab — it defaults to the bottom row and opens as a dialog form", async () => {
     server.use(
       http.get(`${BASE}/capabilities/`, () =>
         HttpResponse.json({
@@ -341,12 +354,10 @@ describe("<AuthPanel/> — alt-method dialog (owner directive: overflow/bottom n
     const runtime = createAuthRuntime({ baseUrl: BASE });
     render(wrap(runtime, <AuthPanel mode="light" />));
     await waitFor(() =>
-      expect(screen.getByText(/Send code|SSO/)).toBeDefined()
+      expect(screen.getByTestId("auth-bottom-row")).toBeDefined()
     );
     expect(screen.queryByRole("tab", { name: "SSO" })).toBeNull();
-    screen.getByText("More ways to sign in").click();
-    const ssoItem = await screen.findByText("SSO");
-    ssoItem.click();
+    screen.getByText("SSO").click();
     const dialog = await screen.findByRole("dialog");
     expect(dialog.textContent).toContain("Work email domain");
   });

@@ -2,8 +2,8 @@
   "$comment": "Single source of truth for the immutable refs that ci.yml and release.yml pin each sibling backend checkout to (§17 pin B). Each pinned commit CONTAINS the committed contract artifacts the gen:* drivers regenerate from: docs/schema.json, docs/flows.json, docs/errors.json, docs/capabilities.json (+ pyproject.toml for the manifest backend-version pin). Bumping a pin is a deliberate PR after the backend releases a new contract — never float main. Procedure: CONTRIBUTING.md, section 'Contract pins'. 2026-07-16: bumped to the v1-canon-sweep release tags (§60, api-versioning.md) — auth v0.5.8, notifications v0.3.8, profiles v0.3.13, billing v0.4.11, workspaces v0.4.2, calendar v0.3.4, recordings v0.3.2; all contracts now carry /<mod>/api/v1/ paths; react gen:* artifacts regenerated against these refs in the same change.",
   "modules": {
     "stapel-auth": {
-      "ref": "28299c684c012dc24117cba7c20b36e746cfa0d2",
-      "note": "release v0.5.9 — v1 canon sweep §60 retag (capabilities envelope regenerated at the bumped version; contract shape identical to v0.5.8)"
+      "ref": "6f75ed5dfb7b9af869930f58459fdf71f9d74e19",
+      "note": "release v0.6.0 — capabilities gains methods[] (per-method placement/order/interaction/icon_svg) + otp{} (server-authoritative code lengths/ttl/resend cooldown), OAuth account links (/oauth/links/ list/link/unlink); capabilities response is now a real generated schema (AuthCapabilities) — no longer hand-authored"
     },
     "stapel-notifications": {
       "ref": "50922e5ba84f6bda8537861d4f1f0e059899c237",

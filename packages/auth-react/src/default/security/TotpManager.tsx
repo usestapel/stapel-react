@@ -26,11 +26,13 @@ import { useFormatFlowError, useT } from "@stapel/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { TotpSetup } from "../../headless/TotpSetup.js";
 import { useDisableTotp } from "../../model/mutations.js";
-import { useSecurityStatus } from "../../model/queries.js";
+import { useCapabilities, useSecurityStatus } from "../../model/queries.js";
 import { authQueryKeys } from "../../model/queryKeys.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 
 const LOW_BACKUP_THRESHOLD = 3;
+/** Fallback when the backend omits `otp.totp_code_length` (stapel-auth <0.6.0). */
+const DEFAULT_TOTP_LENGTH = 6;
 
 /** The enable dialog's body, given the `TotpSetup` bag — a genuine component
  * (not hooks inlined in a render-prop lambda, same rule the sign-in QR panel
@@ -41,6 +43,8 @@ function SetupJourney(props: { bag: TotpSetupBag; onDone: () => void }): ReactEl
   const t = useT();
   const formatError = useFormatFlowError();
   const [code, setCode] = useState("");
+  const caps = useCapabilities();
+  const totpLength = caps.data?.otp?.totp_code_length ?? DEFAULT_TOTP_LENGTH;
   const { bag } = props;
   const s = bag.state;
   const started = useRef(false);
@@ -108,7 +112,7 @@ function SetupJourney(props: { bag: TotpSetupBag; onDone: () => void }): ReactEl
           label={t(AUTH_I18N_KEYS.secTotpConfirmLabel)}
           {...(err ? { validateStatus: "error" as const, help: formatError(err) } : {})}
         >
-          <Input.OTP length={6} autoFocus onChange={setCode} />
+          <Input.OTP length={totpLength} autoFocus onChange={setCode} />
         </Form.Item>
         <Button
           type="primary"

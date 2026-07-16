@@ -7,7 +7,7 @@
  * `pnpm gen:api` from stapel-auth's OWN `docs/schema.json` — the §17-native
  * per-module contract, not the unified monolith). This module is a thin
  * *adapter* over that surface: it re-exports the generated schemas under the names the pair uses
- * and applies three small, documented corrections where drf-spectacular +
+ * and applies four small, documented corrections where drf-spectacular +
  * openapi-typescript under-describe the runtime contract:
  *
  *  1. **Enum-discriminant repair.** openapi-typescript flattens an enum-valued
@@ -18,6 +18,13 @@
  *     `factors`, TOTP `backup_codes`) carry a known element type at runtime.
  *  3. **Present-but-optional.** `VerificationInitiate` always returns `data`;
  *     the generator marks it optional.
+ *  4. **Untyped-string literal repair.** `AuthMethodInfo.placement`/
+ *     `.interaction` are plain `string` in the generated surface — the
+ *     backend declares them without an OpenAPI `enum` (prose-only in the
+ *     description), so openapi-typescript can't narrow them. `ChannelPlacement`/
+ *     `ChannelInteraction` re-declare the concrete literal unions stapel-auth's
+ *     `AuthMethodInfo` docstring specifies (`"main"|"overflow"|"bottom"`,
+ *     `"inline"|"modal"|"redirect"`).
  *
  * Everything the generated surface already describes cleanly is a *direct*
  * alias — no parallel definitions. Only genuinely un-generated shapes remain
@@ -86,32 +93,24 @@ export type RefreshResponse = Schemas["TokenPairResponse"];
 export type OtpChannel = "email" | "phone";
 
 // ── Capabilities ─────────────────────────────────────────────────────────────
-// NOT GENERATED: `GET /auth/api/v1/capabilities/` is annotated `@extend_schema`
-// without a response serializer, so the generated surface carries no body for
-// it (`operations["auth_api_capabilities_retrieve"]` → `content?: never`). These
-// shapes are transcribed from auth-sa.md until the endpoint gains a serializer;
-// once it does, delete these and alias the generated schema.
+// GENERATED as of stapel-auth 0.6.0: `GET /auth/api/v1/capabilities/` now
+// carries a real response serializer (`AuthCapabilities`) — the endpoint used
+// to be `@extend_schema`-annotated with no body, which is why these were
+// hand-transcribed before. `login`/`registration` keep the same shape pairs
+// have always read; `methods`/`otp` are new (see `AuthMethodInfo`/`OtpMeta`
+// below and `../default/channels.ts`'s `computeZones`, which is what actually
+// consumes `methods`).
 
-export interface OAuthProviderInfo {
-  readonly id: string;
-  readonly name: string;
-}
-
-export interface RegistrationCapabilities {
-  readonly phone: boolean;
-  readonly email: boolean;
-  readonly password: boolean;
-  readonly oauth: readonly OAuthProviderInfo[];
-  readonly sso: boolean;
-  readonly anonymous: boolean;
-}
+export type OAuthProviderInfo = Schemas["OAuthProviderInfo"];
+export type RegistrationCapabilities = Schemas["RegistrationCapabilities"];
+export type LoginCapabilities = Schemas["LoginCapabilities"];
+export type MFACapabilities = Schemas["MFACapabilities"];
 
 /**
  * Where a sign-in method's control renders in the default skin, and how it is
- * triggered — the stapel-auth ≥0.6.0 plan-contract extension to
- * `LoginCapabilities`. `"main"` sits inline as a tab, `"overflow"` sits behind
- * the "More ways to sign in" three-dot menu, `"bottom"` sits in the icon row
- * beneath the primary form (alongside social buttons).
+ * triggered (stapel-auth ≥0.6.0). `"main"` sits inline as a tab, `"overflow"`
+ * sits behind the "More ways to sign in" three-dot menu, `"bottom"` sits in
+ * the icon row beneath the primary form (alongside social buttons).
  */
 export type ChannelPlacement = "main" | "overflow" | "bottom";
 
@@ -119,53 +118,42 @@ export type ChannelPlacement = "main" | "overflow" | "bottom";
  * `"inline"` renders the method's panel directly where it's placed (a `main`
  * tab's body). `"modal"` opens the panel in a dialog when the method is picked
  * from `overflow`/`bottom`. `"redirect"` performs the action immediately on
- * pick with no dialog (OAuth: a full-page provider redirect).
+ * pick with no dialog — stapel-auth always sends this for oauth/sso.
  */
 export type ChannelInteraction = "inline" | "modal" | "redirect";
 
-/** Per-method plan entry (stapel-auth ≥0.6.0). Every field is optional so a
- * partially-populated plan (or one from an older backend that only sends
- * some methods) degrades gracefully — see `../default/channels.ts`. */
-export interface ChannelPlanEntry {
-  readonly placement?: ChannelPlacement;
-  readonly interaction?: ChannelInteraction;
-  /** Raw inline `<svg>…</svg>` markup for the method's icon (bottom-row /
-   * overflow rendering). Sanitized upstream by stapel-auth; a host can still
-   * replace it via `AuthPanel`'s `iconOverrides`/`oauthIconOverrides` props. */
-  readonly icon_svg?: string;
-}
+/**
+ * One method's display descriptor (stapel-auth ≥0.6.0 — every field is
+ * server-derived: `placement` from `AUTH_<METHOD>_PLACEMENT`, `order` and
+ * `interaction` computed so the frontend never has to guess). `id` matches a
+ * `ChannelId` (`../default/channels.ts`) for every method the default skin
+ * knows how to render. Correction (4): `placement`/`interaction` re-typed from
+ * the generated surface's plain `string`.
+ */
+export type AuthMethodInfo = Omit<Schemas["AuthMethodInfo"], "placement" | "interaction"> & {
+  readonly placement: ChannelPlacement;
+  readonly interaction: ChannelInteraction;
+};
 
-export interface LoginCapabilities {
-  readonly phone: boolean;
-  readonly email: boolean;
-  readonly password: boolean;
-  readonly oauth: readonly OAuthProviderInfo[];
-  readonly sso: boolean;
-  readonly qr: boolean;
-  readonly passkey: boolean;
-  readonly magic_link: boolean;
-  /**
-   * Digit count of the email/phone OTP code (stapel-auth ≥0.6.0). `undefined`
-   * on older backends — the default skin then renders 6 digits, same as
-   * before (frontend-standard: no fallback guess between two arbitrary
-   * lengths — the ONLY safe fallback for "the contract didn't say" is the
-   * value every backend has used to date).
-   */
-  readonly otp_code_length?: number;
-  /**
-   * Per-method placement/interaction/icon plan (stapel-auth ≥0.6.0), keyed by
-   * channel id (`"email"`, `"phone"`, `"password"`, `"passkey"`, `"oauth"`,
-   * `"sso"`, `"qr"`, `"magic_link"`). `undefined` on older backends — the
-   * default skin then computes zones from `DEFAULT_CHANNEL_PRIORITY` alone
-   * (back-compat fallback, see `../default/channels.ts`'s `computeZones`).
-   */
-  readonly plan?: Readonly<Record<string, ChannelPlanEntry>>;
-}
+/**
+ * Server-authoritative OTP parameters (stapel-auth ≥0.6.0) — read these
+ * instead of guessing a fixed digit count; a guard test on the backend keeps
+ * them from silently drifting off the actual DB/serializer field widths.
+ */
+export type OtpMeta = Schemas["OtpMeta"];
 
-export interface Capabilities {
-  readonly registration: RegistrationCapabilities;
-  readonly login: LoginCapabilities;
-}
+/**
+ * `methods`/`otp` are REQUIRED on this (0.6.0+) generated shape — this
+ * backend version always sends them. Callers still read them defensively
+ * (`caps.methods ?? []`, optional chaining is legal on a non-optional field)
+ * for the real-world case of THIS frontend pointed at an OLDER, pre-0.6.0
+ * backend that structurally cannot send them despite the type here — see
+ * `computeZones`'s back-compat fallback in `../default/channels.ts`. `methods`
+ * is re-typed to correction (4)'s `AuthMethodInfo`, not the generated one.
+ */
+export type Capabilities = Omit<Schemas["AuthCapabilities"], "methods"> & {
+  readonly methods: readonly AuthMethodInfo[];
+};
 
 // ── Password change / reset methods ──────────────────────────────────────────
 
@@ -178,27 +166,17 @@ export type PasswordMethods = Schemas["PasswordMethodsResponse"];
 export type SecurityStatus = Schemas["SecurityStatusResponse"];
 
 // ── OAuth account links (security settings, requires auth) ──────────────────
-// NOT GENERATED: `/oauth/links/` (list/link) and `/oauth/links/{provider}/`
-// (unlink) exist ONLY as uncommitted work-in-progress in the stapel-auth
-// sibling checkout as of this writing — a parallel agent's in-flight 0.6.0
-// contract work, not yet committed/pinned (contract-pins.json's stapel-auth
-// ref does NOT have these paths; confirmed by diffing the pinned commit's
-// docs/schema.json). Hand-transcribed from that WIP so `OAuthLinks` has real
-// types to build against per the owner's directive ("работай против
-// сиблинга"); delete this section and alias the generated schema once
-// stapel-auth commits + the pin is bumped to include it.
+// GENERATED as of stapel-auth 0.6.0: `/oauth/links/` (list/link) and
+// `/oauth/links/{provider}/` (unlink) now ship in the pinned contract
+// (contract-pins.json). Was hand-transcribed against the sibling's
+// work-in-progress while this was being built, before it was committed/
+// released/pinned — see git history for that interim version.
 
 /** One OAuth provider account connected to the current user. `primary` marks
  * the account the user originally registered/logged in with — immutable
  * through this endpoint; a secondary link is added via `oauthLink`/removed
  * via `oauthUnlink`. */
-export interface LinkedOAuthAccount {
-  readonly provider: string;
-  readonly email: string | null;
-  readonly display_name: string;
-  readonly linked_at: string | null;
-  readonly primary: boolean;
-}
+export type LinkedOAuthAccount = Schemas["LinkedOAuthAccountDTO"];
 
 // ── Sessions ─────────────────────────────────────────────────────────────────
 
