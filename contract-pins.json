@@ -1,33 +1,33 @@
 {
-  "$comment": "Single source of truth for the immutable refs that ci.yml and release.yml pin each sibling backend checkout to (§17 pin B). Each pinned commit CONTAINS the committed contract artifacts the gen:* drivers regenerate from: docs/schema.json, docs/flows.json, docs/errors.json, docs/capabilities.json (+ pyproject.toml for the manifest backend-version pin). Bumping a pin is a deliberate PR after the backend releases a new contract — never float main. Procedure: CONTRIBUTING.md, section 'Contract pins'. 2026-07-12: bumped to each sibling's current `main` HEAD (all verified present on usestapel/* via `gh api repos/.../commits/main`) to track the PyPI publish wave (auth 0.5.4, notifications 0.3.7, profiles 0.3.12, workspaces 0.4.1, calendar 0.3.2, recordings 0.3.1, billing 0.4.9 unchanged); react gen:* artifacts regenerated against these refs in the same change.",
+  "$comment": "Single source of truth for the immutable refs that ci.yml and release.yml pin each sibling backend checkout to (§17 pin B). Each pinned commit CONTAINS the committed contract artifacts the gen:* drivers regenerate from: docs/schema.json, docs/flows.json, docs/errors.json, docs/capabilities.json (+ pyproject.toml for the manifest backend-version pin). Bumping a pin is a deliberate PR after the backend releases a new contract — never float main. Procedure: CONTRIBUTING.md, section 'Contract pins'. 2026-07-16: bumped to the v1-canon-sweep release tags (§60, api-versioning.md) — auth v0.5.8, notifications v0.3.8, profiles v0.3.13, billing v0.4.11, workspaces v0.4.2, calendar v0.3.4, recordings v0.3.2; all contracts now carry /<mod>/api/v1/ paths; react gen:* artifacts regenerated against these refs in the same change.",
   "modules": {
     "stapel-auth": {
-      "ref": "281a9ca854652ac5a3df92b354acd544a24ddd64",
-      "note": "post-v0.5.4 (main HEAD 2026-07-12) — migration-lint gate + stapel-tools test dep; contract shape unchanged since 0.5.4"
+      "ref": "c05260741b57977d1da85cd9f4778bf80200c1a5",
+      "note": "release v0.5.8 — v1 canon sweep §60: /auth/api/v1/ paths + auth_api_v1_* operationIds"
     },
     "stapel-notifications": {
-      "ref": "cd0eb37c7f3b6b12749eb69cddeb6da04f797d16",
-      "note": "release v0.3.7 (main HEAD 2026-07-12) — core pin >=0.10,<0.11 patch bump; capabilities.json regenerated"
+      "ref": "50922e5ba84f6bda8537861d4f1f0e059899c237",
+      "note": "release v0.3.8 — v1 canon sweep §60: /notifications/api/v1/ paths"
     },
     "stapel-profiles": {
-      "ref": "990e8223032432c3c38b52aa33750677a2397fed",
-      "note": "release v0.3.12 (main HEAD 2026-07-12) — core pin >=0.10,<0.11 patch bump; capabilities.json regenerated"
+      "ref": "66fae108fb4ad4f1564567b384675097593faf33",
+      "note": "release v0.3.13 — v1 canon sweep §60: /profiles/api/v1/ paths"
     },
     "stapel-billing": {
-      "ref": "bf2e380d34cff60b7f0e47c8976db85855e34b2d",
-      "note": "release v0.4.9 (tag bf2e380) — current_period_end semantics refined; contract shape unchanged since 0.4.x"
+      "ref": "16a94aaddae0332a3ca3a93a3379b36fa6813f7f",
+      "note": "release v0.4.11 — v1 canon sweep §60: /billing/api/v1/ paths"
     },
     "stapel-workspaces": {
-      "ref": "7530ba85f2cab2583cd1cde3a2aa8b3803e1f0a3",
-      "note": "release v0.4.1 (main HEAD 2026-07-12) — anchor pagination for member list (G12); core pin >=0.10,<0.11"
+      "ref": "869c1ee268d8ae5c494293dc9715ea8ed5e669a2",
+      "note": "release v0.4.2 — v1 canon sweep §60: /workspaces/api/v1/ paths"
     },
     "stapel-calendar": {
-      "ref": "13e79ef24d70632544a7b907bfe35f469c16584e",
-      "note": "release v0.3.2 (main HEAD 2026-07-12) — core pin >=0.10,<0.11 patch bump; contract shape unchanged since 0.3.1"
+      "ref": "a8fa34c437b62c8b1234a9b92c5ceca4215bc2d0",
+      "note": "release v0.3.4 — v1 canon sweep §60: /calendar/api/v1/ paths"
     },
     "stapel-recordings": {
-      "ref": "b46155bd29f72732d1f6ead5d0cbe379f9beeb15",
-      "note": "release v0.3.1 (main HEAD 2026-07-12) — core pin >=0.10,<0.11 patch bump; capabilities.json regenerated"
+      "ref": "4c1810d29bbc804728722ada35e1034f8f31f401",
+      "note": "release v0.3.2 — v1 canon sweep §60: /recordings/api/v1/ paths"
     }
   }
 }
