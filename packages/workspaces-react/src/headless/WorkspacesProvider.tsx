@@ -9,7 +9,7 @@ import type { WorkspacesRuntime } from "../model/runtime.js";
  * to this pair — slim wave §21/S2.)
  *
  * ```tsx
- * const runtime = createWorkspacesRuntime({ baseUrl: "/workspaces/api/" });
+ * const runtime = createWorkspacesRuntime({ baseUrl: "/workspaces/api/v1/" });
  * // give runtime.client to core's <StapelConfigProvider config={{ client }}>
  * <WorkspacesProvider runtime={runtime}>{app}</WorkspacesProvider>
  * ```

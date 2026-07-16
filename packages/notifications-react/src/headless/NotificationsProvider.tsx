@@ -9,7 +9,7 @@ import type { NotificationsRuntime } from "../model/runtime.js";
  * to this pair — slim wave §21/S2.)
  *
  * ```tsx
- * const runtime = createNotificationsRuntime({ baseUrl: "/notifications/api/" });
+ * const runtime = createNotificationsRuntime({ baseUrl: "/notifications/api/v1/" });
  * // give runtime.client to core's <StapelConfigProvider config={{ client }}>
  * <NotificationsProvider runtime={runtime}>{app}</NotificationsProvider>
  * ```

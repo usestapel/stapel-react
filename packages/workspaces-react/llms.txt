@@ -20,18 +20,18 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 
 ## Operations (typed; use the named op, never a path string)
 Request/response schema names are in manifest.json + the generated types.
-- workspaces_api_create: POST /workspaces/api/
-- workspaces_api_destroy: DELETE /workspaces/api/{workspace_id}
-- workspaces_api_internal_members_retrieve: GET /workspaces/api/internal/{workspace_id}/members/{user_id}
-- workspaces_api_internal_users_personal_create: POST /workspaces/api/internal/users/{user_id}/personal
-- workspaces_api_invitations_accept_create: POST /workspaces/api/invitations/accept
-- workspaces_api_members_destroy: DELETE /workspaces/api/{workspace_id}/members/{user_id}
-- workspaces_api_members_invite_create: POST /workspaces/api/{workspace_id}/members/invite
-- workspaces_api_members_list: GET /workspaces/api/{workspace_id}/members
-- workspaces_api_members_partial_update: PATCH /workspaces/api/{workspace_id}/members/{user_id}
-- workspaces_api_partial_update: PATCH /workspaces/api/{workspace_id}
-- workspaces_api_retrieve: GET /workspaces/api/
-- workspaces_api_retrieve_2: GET /workspaces/api/{workspace_id}
+- workspaces_api_v1_create: POST /workspaces/api/v1/
+- workspaces_api_v1_destroy: DELETE /workspaces/api/v1/{workspace_id}
+- workspaces_api_v1_internal_members_retrieve: GET /workspaces/api/v1/internal/{workspace_id}/members/{user_id}
+- workspaces_api_v1_internal_users_personal_create: POST /workspaces/api/v1/internal/users/{user_id}/personal
+- workspaces_api_v1_invitations_accept_create: POST /workspaces/api/v1/invitations/accept
+- workspaces_api_v1_members_destroy: DELETE /workspaces/api/v1/{workspace_id}/members/{user_id}
+- workspaces_api_v1_members_invite_create: POST /workspaces/api/v1/{workspace_id}/members/invite
+- workspaces_api_v1_members_list: GET /workspaces/api/v1/{workspace_id}/members
+- workspaces_api_v1_members_partial_update: PATCH /workspaces/api/v1/{workspace_id}/members/{user_id}
+- workspaces_api_v1_partial_update: PATCH /workspaces/api/v1/{workspace_id}
+- workspaces_api_v1_retrieve: GET /workspaces/api/v1/
+- workspaces_api_v1_retrieve_2: GET /workspaces/api/v1/{workspace_id}
 
 ## Query hooks (server state; keys come only from the key factory)
 - useAcceptInvitation (mutation) → acceptInvitation

@@ -18,28 +18,28 @@
   "operations": {
     "get_notification_feed": {
       "method": "GET",
-      "path": "/notifications/api/feed/",
+      "path": "/notifications/api/v1/feed/",
       "tag": "Feed",
       "request": null,
       "response": "PaginatedFeedItemResponseList"
     },
     "get_notification_keys": {
       "method": "GET",
-      "path": "/notifications/api/notification-keys/",
+      "path": "/notifications/api/v1/notification-keys/",
       "tag": "Translation Keys",
       "request": null,
       "response": null
     },
     "register_device_token": {
       "method": "POST",
-      "path": "/notifications/api/devices/",
+      "path": "/notifications/api/v1/devices/",
       "tag": "Devices",
       "request": "DeviceTokenRequest",
       "response": "DeviceTokenResponse"
     },
     "unregister_device_token": {
       "method": "DELETE",
-      "path": "/notifications/api/devices/{token}/",
+      "path": "/notifications/api/v1/devices/{token}/",
       "tag": "Devices",
       "request": null,
       "response": null

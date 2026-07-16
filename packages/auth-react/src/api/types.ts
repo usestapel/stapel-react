@@ -86,7 +86,7 @@ export type RefreshResponse = Schemas["TokenPairResponse"];
 export type OtpChannel = "email" | "phone";
 
 // ── Capabilities ─────────────────────────────────────────────────────────────
-// NOT GENERATED: `GET /auth/api/capabilities/` is annotated `@extend_schema`
+// NOT GENERATED: `GET /auth/api/v1/capabilities/` is annotated `@extend_schema`
 // without a response serializer, so the generated surface carries no body for
 // it (`operations["auth_api_capabilities_retrieve"]` → `content?: never`). These
 // shapes are transcribed from auth-sa.md until the endpoint gains a serializer;

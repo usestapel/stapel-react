@@ -9,7 +9,7 @@ import type { BillingRuntime } from "../model/runtime.js";
  * to this pair — slim wave §21/S2.)
  *
  * ```tsx
- * const runtime = createBillingRuntime({ baseUrl: "/billing/api/" });
+ * const runtime = createBillingRuntime({ baseUrl: "/billing/api/v1/" });
  * // give runtime.client to core's <StapelConfigProvider config={{ client }}>
  * <BillingProvider runtime={runtime}>{app}</BillingProvider>
  * ```

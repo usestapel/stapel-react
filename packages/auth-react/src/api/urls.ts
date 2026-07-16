@@ -76,7 +76,7 @@ export function safeNextPath(
 
 /**
  * auth-sa.md §19.2 `safeScanRedirect`: accept only same-origin URLs whose path
- * starts with `/auth/api/qr/` (the QR scan-flow continuation). Used for
+ * starts with `/auth/api/v1/qr/` (the QR scan-flow continuation). Used for
  * `?redirect=` on `/sign-in`.
  */
 export function safeScanRedirect(
@@ -91,7 +91,7 @@ export function safeScanRedirect(
   try {
     const url = new URL(raw, selfOrigin);
     if (url.origin !== selfOrigin) return null;
-    if (!url.pathname.startsWith("/auth/api/qr/")) return null;
+    if (!url.pathname.startsWith("/auth/api/v1/qr/")) return null;
     return url.toString();
   } catch {
     return null;

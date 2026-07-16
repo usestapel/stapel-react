@@ -22,7 +22,7 @@
         "endpoints": [
           {
             "method": "POST",
-            "path": "/auth/api/password/login/"
+            "path": "/auth/api/v1/password/login/"
           }
         ]
       },
@@ -34,7 +34,7 @@
         "endpoints": [
           {
             "method": "POST",
-            "path": "/auth/api/totp/challenge/verify/"
+            "path": "/auth/api/v1/totp/challenge/verify/"
           }
         ]
       }
@@ -63,7 +63,7 @@
         "endpoints": [
           {
             "method": "POST",
-            "path": "/auth/api/email/request/"
+            "path": "/auth/api/v1/email/request/"
           }
         ]
       },
@@ -75,7 +75,7 @@
         "endpoints": [
           {
             "method": "POST",
-            "path": "/auth/api/email/verify/"
+            "path": "/auth/api/v1/email/verify/"
           }
         ]
       },
@@ -111,7 +111,7 @@
         "endpoints": [
           {
             "method": "GET",
-            "path": "/auth/api/verification/<str:challenge_id>/"
+            "path": "/auth/api/v1/verification/<str:challenge_id>/"
           }
         ]
       },
@@ -123,7 +123,7 @@
         "endpoints": [
           {
             "method": "POST",
-            "path": "/auth/api/verification/<str:challenge_id>/initiate/"
+            "path": "/auth/api/v1/verification/<str:challenge_id>/initiate/"
           }
         ]
       },
@@ -135,7 +135,7 @@
         "endpoints": [
           {
             "method": "POST",
-            "path": "/auth/api/verification/<str:challenge_id>/complete/"
+            "path": "/auth/api/v1/verification/<str:challenge_id>/complete/"
           }
         ]
       },
@@ -154,7 +154,7 @@
         "endpoints": [
           {
             "method": "GET",
-            "path": "/auth/api/verification/preferences/"
+            "path": "/auth/api/v1/verification/preferences/"
           }
         ]
       },
@@ -166,7 +166,7 @@
         "endpoints": [
           {
             "method": "PUT",
-            "path": "/auth/api/verification/preferences/"
+            "path": "/auth/api/v1/verification/preferences/"
           }
         ]
       }

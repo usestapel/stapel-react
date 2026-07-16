@@ -14,7 +14,7 @@ import { useWallet } from "../src/model/queries.js";
 import { useCreateCheckout } from "../src/model/mutations.js";
 
 /** Base the msw handlers mount on (mirrors stapel-billing `/billing/api`). */
-const BASE = "https://billing.stapel.test/billing/api";
+const BASE = "https://billing.stapel.test/billing/api/v1";
 
 const WALLET = {
   user_id: "b3f1c0de-0000-4000-8000-000000000001",

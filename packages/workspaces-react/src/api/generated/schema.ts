@@ -2,7 +2,7 @@
 // Source: the backend module's own docs/schema.json (§17-native per-module contract).
 // Regenerate: pnpm gen:api   ·   Drift gate: pnpm gen:api:check
 export interface paths {
-    "/workspaces/api/": {
+    "/workspaces/api/v1/": {
         parameters: {
             query?: never;
             header?: never;
@@ -20,7 +20,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["workspaces_api_retrieve"];
+        get: operations["workspaces_api_v1_retrieve"];
         put?: never;
         /**
          * @description Overridable serializer seams for API views.
@@ -33,14 +33,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["workspaces_api_create"];
+        post: operations["workspaces_api_v1_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/api/{workspace_id}": {
+    "/workspaces/api/v1/{workspace_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -58,7 +58,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["workspaces_api_retrieve_2"];
+        get: operations["workspaces_api_v1_retrieve_2"];
         put?: never;
         post?: never;
         /**
@@ -72,7 +72,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        delete: operations["workspaces_api_destroy"];
+        delete: operations["workspaces_api_v1_destroy"];
         options?: never;
         head?: never;
         /**
@@ -86,10 +86,10 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        patch: operations["workspaces_api_partial_update"];
+        patch: operations["workspaces_api_v1_partial_update"];
         trace?: never;
     };
-    "/workspaces/api/{workspace_id}/members": {
+    "/workspaces/api/v1/{workspace_id}/members": {
         parameters: {
             query?: never;
             header?: never;
@@ -107,7 +107,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["workspaces_api_members_list"];
+        get: operations["workspaces_api_v1_members_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -116,7 +116,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/api/{workspace_id}/members/{user_id}": {
+    "/workspaces/api/v1/{workspace_id}/members/{user_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -137,7 +137,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        delete: operations["workspaces_api_members_destroy"];
+        delete: operations["workspaces_api_v1_members_destroy"];
         options?: never;
         head?: never;
         /**
@@ -151,10 +151,10 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        patch: operations["workspaces_api_members_partial_update"];
+        patch: operations["workspaces_api_v1_members_partial_update"];
         trace?: never;
     };
-    "/workspaces/api/{workspace_id}/members/invite": {
+    "/workspaces/api/v1/{workspace_id}/members/invite": {
         parameters: {
             query?: never;
             header?: never;
@@ -174,14 +174,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["workspaces_api_members_invite_create"];
+        post: operations["workspaces_api_v1_members_invite_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/api/internal/{workspace_id}/members/{user_id}": {
+    "/workspaces/api/v1/internal/{workspace_id}/members/{user_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -193,7 +193,7 @@ export interface paths {
          *
          *     **Permissions:** `OperandHolder`
          */
-        get: operations["workspaces_api_internal_members_retrieve"];
+        get: operations["workspaces_api_v1_internal_members_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -202,7 +202,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/api/internal/users/{user_id}/personal": {
+    "/workspaces/api/v1/internal/users/{user_id}/personal": {
         parameters: {
             query?: never;
             header?: never;
@@ -216,14 +216,14 @@ export interface paths {
          *
          *     **Permissions:** `OperandHolder`
          */
-        post: operations["workspaces_api_internal_users_personal_create"];
+        post: operations["workspaces_api_v1_internal_users_personal_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/api/invitations/accept": {
+    "/workspaces/api/v1/invitations/accept": {
         parameters: {
             query?: never;
             header?: never;
@@ -243,7 +243,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["workspaces_api_invitations_accept_create"];
+        post: operations["workspaces_api_v1_invitations_accept_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -464,7 +464,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    workspaces_api_retrieve: {
+    workspaces_api_v1_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -483,7 +483,7 @@ export interface operations {
             };
         };
     };
-    workspaces_api_create: {
+    workspaces_api_v1_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -508,7 +508,7 @@ export interface operations {
             };
         };
     };
-    workspaces_api_retrieve_2: {
+    workspaces_api_v1_retrieve_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -529,7 +529,7 @@ export interface operations {
             };
         };
     };
-    workspaces_api_destroy: {
+    workspaces_api_v1_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -549,7 +549,7 @@ export interface operations {
             };
         };
     };
-    workspaces_api_partial_update: {
+    workspaces_api_v1_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -576,7 +576,7 @@ export interface operations {
             };
         };
     };
-    workspaces_api_members_list: {
+    workspaces_api_v1_members_list: {
         parameters: {
             query?: {
                 /** @description Anchor value to paginate from (exclusive) */
@@ -606,7 +606,7 @@ export interface operations {
             };
         };
     };
-    workspaces_api_members_destroy: {
+    workspaces_api_v1_members_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -627,7 +627,7 @@ export interface operations {
             };
         };
     };
-    workspaces_api_members_partial_update: {
+    workspaces_api_v1_members_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -655,7 +655,7 @@ export interface operations {
             };
         };
     };
-    workspaces_api_members_invite_create: {
+    workspaces_api_v1_members_invite_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -682,7 +682,7 @@ export interface operations {
             };
         };
     };
-    workspaces_api_internal_members_retrieve: {
+    workspaces_api_v1_internal_members_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -704,7 +704,7 @@ export interface operations {
             };
         };
     };
-    workspaces_api_internal_users_personal_create: {
+    workspaces_api_v1_internal_users_personal_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -733,7 +733,7 @@ export interface operations {
             };
         };
     };
-    workspaces_api_invitations_accept_create: {
+    workspaces_api_v1_invitations_accept_create: {
         parameters: {
             query?: never;
             header?: never;

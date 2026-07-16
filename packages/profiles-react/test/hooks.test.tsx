@@ -13,7 +13,7 @@ import { ConnectionList } from "../src/headless/ConnectionList.js";
 import { useMyProfile, useProfile } from "../src/model/queries.js";
 
 /** Base the msw handlers mount on (mirrors stapel-profiles `/profiles/api`). */
-const BASE = "https://profiles.stapel.test/profiles/api";
+const BASE = "https://profiles.stapel.test/profiles/api/v1";
 const USER = "b3f1c0de-0000-4000-8000-0000000000aa";
 
 const server = setupServer();

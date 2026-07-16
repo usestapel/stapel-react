@@ -2,7 +2,7 @@
 // Source: the backend module's own docs/schema.json (§17-native per-module contract).
 // Regenerate: pnpm gen:api   ·   Drift gate: pnpm gen:api:check
 export interface paths {
-    "/profiles/api/{user_id}": {
+    "/profiles/api/v1/{user_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -24,7 +24,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/profiles/api/{user_id}/block": {
+    "/profiles/api/v1/{user_id}/block": {
         parameters: {
             query?: never;
             header?: never;
@@ -46,7 +46,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/profiles/api/{user_id}/follow": {
+    "/profiles/api/v1/{user_id}/follow": {
         parameters: {
             query?: never;
             header?: never;
@@ -68,7 +68,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/profiles/api/{user_id}/relationship": {
+    "/profiles/api/v1/{user_id}/relationship": {
         parameters: {
             query?: never;
             header?: never;
@@ -90,7 +90,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/profiles/api/{user_id}/unblock": {
+    "/profiles/api/v1/{user_id}/unblock": {
         parameters: {
             query?: never;
             header?: never;
@@ -112,7 +112,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/profiles/api/{user_id}/unfollow": {
+    "/profiles/api/v1/{user_id}/unfollow": {
         parameters: {
             query?: never;
             header?: never;
@@ -134,7 +134,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/profiles/api/languages/": {
+    "/profiles/api/v1/languages/": {
         parameters: {
             query?: never;
             header?: never;
@@ -156,7 +156,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/profiles/api/languages/{code}/": {
+    "/profiles/api/v1/languages/{code}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -178,7 +178,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/profiles/api/me": {
+    "/profiles/api/v1/me": {
         parameters: {
             query?: never;
             header?: never;
@@ -206,7 +206,7 @@ export interface paths {
         patch: operations["update_my_profile"];
         trace?: never;
     };
-    "/profiles/api/me/blocked": {
+    "/profiles/api/v1/me/blocked": {
         parameters: {
             query?: never;
             header?: never;
@@ -228,7 +228,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/profiles/api/me/followers": {
+    "/profiles/api/v1/me/followers": {
         parameters: {
             query?: never;
             header?: never;
@@ -250,7 +250,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/profiles/api/me/following": {
+    "/profiles/api/v1/me/following": {
         parameters: {
             query?: never;
             header?: never;
@@ -272,7 +272,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/profiles/api/notifications/unsubscribe": {
+    "/profiles/api/v1/notifications/unsubscribe": {
         parameters: {
             query?: never;
             header?: never;

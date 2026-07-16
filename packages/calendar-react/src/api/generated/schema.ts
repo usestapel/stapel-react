@@ -2,7 +2,7 @@
 // Source: the backend module's own docs/schema.json (§17-native per-module contract).
 // Regenerate: pnpm gen:api   ·   Drift gate: pnpm gen:api:check
 export interface paths {
-    "/calendar/api/availability": {
+    "/calendar/api/v1/availability": {
         parameters: {
             query?: never;
             header?: never;
@@ -14,7 +14,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["calendar_api_availability_retrieve"];
+        get: operations["calendar_api_v1_availability_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -23,7 +23,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/calendar/api/calendar": {
+    "/calendar/api/v1/calendar": {
         parameters: {
             query?: never;
             header?: never;
@@ -36,7 +36,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["calendar_api_calendar_retrieve"];
+        get: operations["calendar_api_v1_calendar_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -45,7 +45,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/calendar/api/events": {
+    "/calendar/api/v1/events": {
         parameters: {
             query?: never;
             header?: never;
@@ -57,21 +57,21 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["calendar_api_events_list"];
+        get: operations["calendar_api_v1_events_list"];
         put?: never;
         /**
          * @description List the requesting user's events in a range, or create an event.
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["calendar_api_events_create"];
+        post: operations["calendar_api_v1_events_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/calendar/api/events/{event_id}": {
+    "/calendar/api/v1/events/{event_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -83,7 +83,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["calendar_api_events_retrieve"];
+        get: operations["calendar_api_v1_events_retrieve"];
         put?: never;
         post?: never;
         /**
@@ -91,7 +91,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        delete: operations["calendar_api_events_destroy"];
+        delete: operations["calendar_api_v1_events_destroy"];
         options?: never;
         head?: never;
         /**
@@ -99,10 +99,10 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        patch: operations["calendar_api_events_partial_update"];
+        patch: operations["calendar_api_v1_events_partial_update"];
         trace?: never;
     };
-    "/calendar/api/events/{event_id}/ics": {
+    "/calendar/api/v1/events/{event_id}/ics": {
         parameters: {
             query?: never;
             header?: never;
@@ -114,7 +114,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["calendar_api_events_ics_retrieve"];
+        get: operations["calendar_api_v1_events_ics_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -123,7 +123,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/calendar/api/events/{event_id}/participants": {
+    "/calendar/api/v1/events/{event_id}/participants": {
         parameters: {
             query?: never;
             header?: never;
@@ -136,7 +136,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        put: operations["calendar_api_events_participants_update"];
+        put: operations["calendar_api_v1_events_participants_update"];
         post?: never;
         delete?: never;
         options?: never;
@@ -144,7 +144,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/calendar/api/events/{event_id}/respond": {
+    "/calendar/api/v1/events/{event_id}/respond": {
         parameters: {
             query?: never;
             header?: never;
@@ -158,7 +158,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["calendar_api_events_respond_create"];
+        post: operations["calendar_api_v1_events_respond_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -349,7 +349,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    calendar_api_availability_retrieve: {
+    calendar_api_v1_availability_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -368,7 +368,7 @@ export interface operations {
             };
         };
     };
-    calendar_api_calendar_retrieve: {
+    calendar_api_v1_calendar_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -387,7 +387,7 @@ export interface operations {
             };
         };
     };
-    calendar_api_events_list: {
+    calendar_api_v1_events_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -406,7 +406,7 @@ export interface operations {
             };
         };
     };
-    calendar_api_events_create: {
+    calendar_api_v1_events_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -431,7 +431,7 @@ export interface operations {
             };
         };
     };
-    calendar_api_events_retrieve: {
+    calendar_api_v1_events_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -452,7 +452,7 @@ export interface operations {
             };
         };
     };
-    calendar_api_events_destroy: {
+    calendar_api_v1_events_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -473,7 +473,7 @@ export interface operations {
             };
         };
     };
-    calendar_api_events_partial_update: {
+    calendar_api_v1_events_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -500,7 +500,7 @@ export interface operations {
             };
         };
     };
-    calendar_api_events_ics_retrieve: {
+    calendar_api_v1_events_ics_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -520,7 +520,7 @@ export interface operations {
             };
         };
     };
-    calendar_api_events_participants_update: {
+    calendar_api_v1_events_participants_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -547,7 +547,7 @@ export interface operations {
             };
         };
     };
-    calendar_api_events_respond_create: {
+    calendar_api_v1_events_respond_create: {
         parameters: {
             query?: never;
             header?: never;

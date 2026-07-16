@@ -12,7 +12,7 @@ import { DeviceRegistration } from "../src/headless/DeviceRegistration.js";
 import { useNotificationFeed } from "../src/model/queries.js";
 
 /** Base the msw handlers mount on (mirrors stapel-notifications `/notifications/api/`). */
-const BASE = "https://notifications.stapel.test/notifications/api";
+const BASE = "https://notifications.stapel.test/notifications/api/v1";
 
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));

@@ -2,7 +2,7 @@
 // Source: the backend module's own docs/schema.json (§17-native per-module contract).
 // Regenerate: pnpm gen:api   ·   Drift gate: pnpm gen:api:check
 export interface paths {
-    "/notifications/api/devices/": {
+    "/notifications/api/v1/devices/": {
         parameters: {
             query?: never;
             header?: never;
@@ -24,7 +24,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/notifications/api/devices/{token}/": {
+    "/notifications/api/v1/devices/{token}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -46,7 +46,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/notifications/api/feed/": {
+    "/notifications/api/v1/feed/": {
         parameters: {
             query?: never;
             header?: never;
@@ -68,7 +68,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/notifications/api/notification-keys/": {
+    "/notifications/api/v1/notification-keys/": {
         parameters: {
             query?: never;
             header?: never;

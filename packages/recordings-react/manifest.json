@@ -16,37 +16,37 @@
   "flows": {},
   "machines": [],
   "operations": {
-    "recordings_api_recordings_create": {
+    "recordings_api_v1_recordings_create": {
       "method": "POST",
-      "path": "/recordings/api/recordings",
+      "path": "/recordings/api/v1/recordings",
       "tag": "Recordings",
       "request": "CreateRecordingRequest",
       "response": "CreateRecordingResponse"
     },
-    "recordings_api_recordings_finalize_create": {
+    "recordings_api_v1_recordings_finalize_create": {
       "method": "POST",
-      "path": "/recordings/api/recordings/{recording_id}/finalize",
+      "path": "/recordings/api/v1/recordings/{recording_id}/finalize",
       "tag": "Recordings",
       "request": "FinalizeUploadRequest",
       "response": "RecordingDTO"
     },
-    "recordings_api_recordings_list": {
+    "recordings_api_v1_recordings_list": {
       "method": "GET",
-      "path": "/recordings/api/recordings",
+      "path": "/recordings/api/v1/recordings",
       "tag": "Recordings",
       "request": null,
       "response": null
     },
-    "recordings_api_recordings_reprocess_create": {
+    "recordings_api_v1_recordings_reprocess_create": {
       "method": "POST",
-      "path": "/recordings/api/recordings/{recording_id}/reprocess",
+      "path": "/recordings/api/v1/recordings/{recording_id}/reprocess",
       "tag": "Recordings",
       "request": null,
       "response": "RecordingDTO"
     },
-    "recordings_api_recordings_retrieve": {
+    "recordings_api_v1_recordings_retrieve": {
       "method": "GET",
-      "path": "/recordings/api/recordings/{recording_id}",
+      "path": "/recordings/api/v1/recordings/{recording_id}",
       "tag": "Recordings",
       "request": null,
       "response": "RecordingDTO"

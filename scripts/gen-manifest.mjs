@@ -16,7 +16,7 @@
 //
 //   MANIFEST_PKG_DIR   package dir (default packages/auth-react)
 //   MANIFEST_MODULE    backend module name (default "stapel-auth")
-//   MANIFEST_TAGPREFIX operation path prefix filter (default "/auth/api/")
+//   MANIFEST_TAGPREFIX operation path prefix filter (default "/auth/api/v1/")
 //   API_SCHEMA         source schema.json (default ../<MANIFEST_MODULE>/docs/schema.json)
 //
 //   node scripts/gen-manifest.mjs      # generate
@@ -34,7 +34,7 @@ const ROOT = resolve(__dirname, "..");
 
 const PKG_DIR = resolve(ROOT, process.env.MANIFEST_PKG_DIR ?? "packages/auth-react");
 const MODULE = process.env.MANIFEST_MODULE ?? "stapel-auth";
-const PATH_PREFIX = process.env.MANIFEST_TAGPREFIX ?? "/auth/api/";
+const PATH_PREFIX = process.env.MANIFEST_TAGPREFIX ?? "/auth/api/v1/";
 // §17-native per-module contract: the schema source is the backend module's
 // own committed docs/schema.json (default: the auth pair, matching the other
 // auth defaults above). The monolith aggregate is retired as a contract source.

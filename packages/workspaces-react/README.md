@@ -29,7 +29,7 @@ import {
   registerWorkspacesI18n,
 } from "@stapel/workspaces-react";
 
-const runtime = createWorkspacesRuntime({ baseUrl: "/workspaces/api/" });
+const runtime = createWorkspacesRuntime({ baseUrl: "/workspaces/api/v1/" });
 const i18n = createI18n({ locale: "en" });
 registerWorkspacesI18n(i18n); // the pair's key bundle → core's engine
 

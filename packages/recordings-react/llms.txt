@@ -20,11 +20,11 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 
 ## Operations (typed; use the named op, never a path string)
 Request/response schema names are in manifest.json + the generated types.
-- recordings_api_recordings_create: POST /recordings/api/recordings
-- recordings_api_recordings_finalize_create: POST /recordings/api/recordings/{recording_id}/finalize
-- recordings_api_recordings_list: GET /recordings/api/recordings
-- recordings_api_recordings_reprocess_create: POST /recordings/api/recordings/{recording_id}/reprocess
-- recordings_api_recordings_retrieve: GET /recordings/api/recordings/{recording_id}
+- recordings_api_v1_recordings_create: POST /recordings/api/v1/recordings
+- recordings_api_v1_recordings_finalize_create: POST /recordings/api/v1/recordings/{recording_id}/finalize
+- recordings_api_v1_recordings_list: GET /recordings/api/v1/recordings
+- recordings_api_v1_recordings_reprocess_create: POST /recordings/api/v1/recordings/{recording_id}/reprocess
+- recordings_api_v1_recordings_retrieve: GET /recordings/api/v1/recordings/{recording_id}
 
 ## Query hooks (server state; keys come only from the key factory)
 - useCreateRecording (mutation) → createRecording

@@ -58,7 +58,7 @@ import {
 
 const query = createStapelQueryClient({ cacheVersion: "0.1.0" });
 const runtime = createAuthRuntime({
-  baseUrl: "/auth/api",
+  baseUrl: "/auth/api/v1",
   // cookieMode: true,          // httponly JWT cookies instead of bearer
   onTeardown: (reason) => {     // auth-sa.md §19.3
     void query.purgePersistedCache();

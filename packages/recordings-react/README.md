@@ -29,7 +29,7 @@ import {
   registerRecordingsI18n,
 } from "@stapel/recordings-react";
 
-const runtime = createRecordingsRuntime({ baseUrl: "/recordings/api/" });
+const runtime = createRecordingsRuntime({ baseUrl: "/recordings/api/v1/" });
 const i18n = createI18n({ locale: "en" });
 registerRecordingsI18n(i18n); // the pair's key bundle → core's engine
 

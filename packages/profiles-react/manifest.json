@@ -18,98 +18,98 @@
   "operations": {
     "block_user": {
       "method": "POST",
-      "path": "/profiles/api/{user_id}/block",
+      "path": "/profiles/api/v1/{user_id}/block",
       "tag": "Relationships",
       "request": null,
       "response": "RelationshipActionResponse"
     },
     "follow_user": {
       "method": "POST",
-      "path": "/profiles/api/{user_id}/follow",
+      "path": "/profiles/api/v1/{user_id}/follow",
       "tag": "Relationships",
       "request": null,
       "response": "RelationshipActionResponse"
     },
     "get_language": {
       "method": "GET",
-      "path": "/profiles/api/languages/{code}/",
+      "path": "/profiles/api/v1/languages/{code}/",
       "tag": "Languages",
       "request": null,
       "response": "LanguageResponse"
     },
     "get_my_blocked": {
       "method": "GET",
-      "path": "/profiles/api/me/blocked",
+      "path": "/profiles/api/v1/me/blocked",
       "tag": "Relationships",
       "request": null,
       "response": null
     },
     "get_my_followers": {
       "method": "GET",
-      "path": "/profiles/api/me/followers",
+      "path": "/profiles/api/v1/me/followers",
       "tag": "Relationships",
       "request": null,
       "response": "FollowersResponse"
     },
     "get_my_following": {
       "method": "GET",
-      "path": "/profiles/api/me/following",
+      "path": "/profiles/api/v1/me/following",
       "tag": "Relationships",
       "request": null,
       "response": "FollowingResponse"
     },
     "get_my_profile": {
       "method": "GET",
-      "path": "/profiles/api/me",
+      "path": "/profiles/api/v1/me",
       "tag": "Profile",
       "request": null,
       "response": "ProfileResponse"
     },
     "get_profile": {
       "method": "GET",
-      "path": "/profiles/api/{user_id}",
+      "path": "/profiles/api/v1/{user_id}",
       "tag": "Profile",
       "request": null,
       "response": "ProfilePublicResponse"
     },
     "get_relationship": {
       "method": "GET",
-      "path": "/profiles/api/{user_id}/relationship",
+      "path": "/profiles/api/v1/{user_id}/relationship",
       "tag": "Relationships",
       "request": null,
       "response": "RelationshipResponse"
     },
     "list_languages": {
       "method": "GET",
-      "path": "/profiles/api/languages/",
+      "path": "/profiles/api/v1/languages/",
       "tag": "Languages",
       "request": null,
       "response": null
     },
     "unblock_user": {
       "method": "POST",
-      "path": "/profiles/api/{user_id}/unblock",
+      "path": "/profiles/api/v1/{user_id}/unblock",
       "tag": "Relationships",
       "request": null,
       "response": "RelationshipActionResponse"
     },
     "unfollow_user": {
       "method": "POST",
-      "path": "/profiles/api/{user_id}/unfollow",
+      "path": "/profiles/api/v1/{user_id}/unfollow",
       "tag": "Relationships",
       "request": null,
       "response": "RelationshipActionResponse"
     },
     "unsubscribe_notifications": {
       "method": "POST",
-      "path": "/profiles/api/notifications/unsubscribe",
+      "path": "/profiles/api/v1/notifications/unsubscribe",
       "tag": "Notifications",
       "request": null,
       "response": null
     },
     "update_my_profile": {
       "method": "PATCH",
-      "path": "/profiles/api/me",
+      "path": "/profiles/api/v1/me",
       "tag": "Profile",
       "request": "PatchedProfileUpdateRequest",
       "response": "ProfileResponse"

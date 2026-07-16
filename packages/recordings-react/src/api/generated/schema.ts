@@ -2,7 +2,7 @@
 // Source: the backend module's own docs/schema.json (§17-native per-module contract).
 // Regenerate: pnpm gen:api   ·   Drift gate: pnpm gen:api:check
 export interface paths {
-    "/recordings/api/recordings": {
+    "/recordings/api/v1/recordings": {
         parameters: {
             query?: never;
             header?: never;
@@ -28,7 +28,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["recordings_api_recordings_list"];
+        get: operations["recordings_api_v1_recordings_list"];
         put?: never;
         /**
          * @description Create a recording and open its upload session, or list recordings.
@@ -49,14 +49,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["recordings_api_recordings_create"];
+        post: operations["recordings_api_v1_recordings_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/recordings/api/recordings/{recording_id}": {
+    "/recordings/api/v1/recordings/{recording_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -68,7 +68,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["recordings_api_recordings_retrieve"];
+        get: operations["recordings_api_v1_recordings_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -77,7 +77,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/recordings/api/recordings/{recording_id}/finalize": {
+    "/recordings/api/v1/recordings/{recording_id}/finalize": {
         parameters: {
             query?: never;
             header?: never;
@@ -91,14 +91,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["recordings_api_recordings_finalize_create"];
+        post: operations["recordings_api_v1_recordings_finalize_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/recordings/api/recordings/{recording_id}/reprocess": {
+    "/recordings/api/v1/recordings/{recording_id}/reprocess": {
         parameters: {
             query?: never;
             header?: never;
@@ -119,7 +119,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["recordings_api_recordings_reprocess_create"];
+        post: operations["recordings_api_v1_recordings_reprocess_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -185,7 +185,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    recordings_api_recordings_list: {
+    recordings_api_v1_recordings_list: {
         parameters: {
             query?: {
                 /** @description Narrow the listing to the single recording this opaque resource_key references. A missing/forged key yields an empty listing. */
@@ -209,7 +209,7 @@ export interface operations {
             };
         };
     };
-    recordings_api_recordings_create: {
+    recordings_api_v1_recordings_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -234,7 +234,7 @@ export interface operations {
             };
         };
     };
-    recordings_api_recordings_retrieve: {
+    recordings_api_v1_recordings_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -255,7 +255,7 @@ export interface operations {
             };
         };
     };
-    recordings_api_recordings_finalize_create: {
+    recordings_api_v1_recordings_finalize_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -282,7 +282,7 @@ export interface operations {
             };
         };
     };
-    recordings_api_recordings_reprocess_create: {
+    recordings_api_v1_recordings_reprocess_create: {
         parameters: {
             query?: never;
             header?: never;

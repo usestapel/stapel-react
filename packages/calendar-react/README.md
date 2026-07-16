@@ -29,7 +29,7 @@ import {
   registerCalendarI18n,
 } from "@stapel/calendar-react";
 
-const runtime = createCalendarRuntime({ baseUrl: "/calendar/api/" });
+const runtime = createCalendarRuntime({ baseUrl: "/calendar/api/v1/" });
 const i18n = createI18n({ locale: "en" });
 registerCalendarI18n(i18n); // the pair's key bundle → core's engine
 

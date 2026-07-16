@@ -39,7 +39,7 @@ function seg(userId: string): string {
  * The pair's typed operation surface — one method per stapel-profiles endpoint a
  * JS client may call, bound to the injected {@link StapelClient} (the per-module
  * override seam of frontend-standard §7.2). Paths are relative to the runtime's
- * `baseUrl` (e.g. `/profiles/api/`).
+ * `baseUrl` (e.g. `/profiles/api/v1/`).
  *
  * The token-based `POST /notifications/unsubscribe` (one-click email unsubscribe)
  * is intentionally absent — it is a public, token-authenticated email surface,

@@ -35,7 +35,7 @@ export interface ModuleRuntime<TApi> {
 }
 
 export interface CreateModuleRuntimeOptions {
-  /** e.g. `/profiles/api/` or `https://app.example.com/profiles/api/`. */
+  /** e.g. `/profiles/api/v1/` or `https://app.example.com/profiles/api/v1/`. */
   readonly baseUrl: string;
   readonly fetch?: typeof globalThis.fetch;
   readonly credentials?: RequestCredentials;

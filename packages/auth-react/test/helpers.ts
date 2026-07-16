@@ -5,7 +5,7 @@ import type { AuthApi } from "../src/api/authApi.js";
 import type { AuthResponse, StapelUser } from "../src/api/types.js";
 
 /** Base the msw handlers mount on (mirrors auth-sa.md's `/auth/api/`). */
-export const BASE = "https://auth.stapel.test/auth/api";
+export const BASE = "https://auth.stapel.test/auth/api/v1";
 
 export function makeClient(
   overrides: Partial<Parameters<typeof createStapelClient>[0]> = {}

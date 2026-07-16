@@ -52,7 +52,7 @@ describe("logout hook (frontend-core-architecture-v2 §43.7 — pair contract)",
     // query layer and createRepository already wipe themselves).
     const manager = createSessionManager({ doRefresh: async () => null });
     const spy = vi.spyOn(manager, "registerLogoutHook");
-    createBillingRuntime({ baseUrl: "/billing/api" });
+    createBillingRuntime({ baseUrl: "/billing/api/v1" });
     expect(spy).toHaveBeenCalledTimes(1);
     await expect(manager.logout()).resolves.toBeUndefined();
   });

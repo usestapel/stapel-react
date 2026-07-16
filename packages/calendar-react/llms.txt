@@ -20,16 +20,16 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 
 ## Operations (typed; use the named op, never a path string)
 Request/response schema names are in manifest.json + the generated types.
-- calendar_api_availability_retrieve: GET /calendar/api/availability
-- calendar_api_calendar_retrieve: GET /calendar/api/calendar
-- calendar_api_events_create: POST /calendar/api/events
-- calendar_api_events_destroy: DELETE /calendar/api/events/{event_id}
-- calendar_api_events_ics_retrieve: GET /calendar/api/events/{event_id}/ics
-- calendar_api_events_list: GET /calendar/api/events
-- calendar_api_events_partial_update: PATCH /calendar/api/events/{event_id}
-- calendar_api_events_participants_update: PUT /calendar/api/events/{event_id}/participants
-- calendar_api_events_respond_create: POST /calendar/api/events/{event_id}/respond
-- calendar_api_events_retrieve: GET /calendar/api/events/{event_id}
+- calendar_api_v1_availability_retrieve: GET /calendar/api/v1/availability
+- calendar_api_v1_calendar_retrieve: GET /calendar/api/v1/calendar
+- calendar_api_v1_events_create: POST /calendar/api/v1/events
+- calendar_api_v1_events_destroy: DELETE /calendar/api/v1/events/{event_id}
+- calendar_api_v1_events_ics_retrieve: GET /calendar/api/v1/events/{event_id}/ics
+- calendar_api_v1_events_list: GET /calendar/api/v1/events
+- calendar_api_v1_events_partial_update: PATCH /calendar/api/v1/events/{event_id}
+- calendar_api_v1_events_participants_update: PUT /calendar/api/v1/events/{event_id}/participants
+- calendar_api_v1_events_respond_create: POST /calendar/api/v1/events/{event_id}/respond
+- calendar_api_v1_events_retrieve: GET /calendar/api/v1/events/{event_id}
 
 ## Query hooks (server state; keys come only from the key factory)
 - useAvailability (query) → availability

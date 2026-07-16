@@ -8,7 +8,7 @@ import type { FlowError } from "./errors.js";
 
 /**
  * Magic-link request (auth-sa.md §15). Only the *request* is a frontend flow:
- * the email link points directly at the backend (`/auth/api/magic/verify/`),
+ * the email link points directly at the backend (`/auth/api/v1/magic/verify/`),
  * so there is no `/magic-login` page — the browser opens the link and the
  * backend redirects (TOTP / conflict / success handled by the `/login` route
  * consumers, not this flow). Always resolves `sent` on 200 regardless of

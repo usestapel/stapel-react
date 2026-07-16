@@ -33,7 +33,7 @@ function mutating(
  * The pair's typed operation surface — one method per stapel-billing endpoint a
  * signed-in browser client may call, bound to the injected {@link StapelClient}
  * (the per-module override seam of frontend-standard §7.2). Paths are relative
- * to the runtime's `baseUrl` (e.g. `/billing/api/`).
+ * to the runtime's `baseUrl` (e.g. `/billing/api/v1/`).
  *
  * The service-to-service `POST /internal/debit` (credit debit from another
  * backend) and `POST /webhooks/stripe` (Stripe → server) are intentionally

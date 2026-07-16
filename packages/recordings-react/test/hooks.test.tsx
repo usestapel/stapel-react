@@ -17,7 +17,7 @@ import {
 } from "../src/api/extensions.js";
 
 /** Base the msw handlers mount on (mirrors stapel-recordings `/recordings/api/`). */
-const BASE = "https://recordings.stapel.test/recordings/api";
+const BASE = "https://recordings.stapel.test/recordings/api/v1";
 
 const RECORDING = {
   id: "550e8400-e29b-41d4-a716-446655440000",

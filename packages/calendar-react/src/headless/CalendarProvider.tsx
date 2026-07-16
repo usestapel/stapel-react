@@ -9,7 +9,7 @@ import type { CalendarRuntime } from "../model/runtime.js";
  * to this pair — slim wave §21/S2.)
  *
  * ```tsx
- * const runtime = createCalendarRuntime({ baseUrl: "/calendar/api/" });
+ * const runtime = createCalendarRuntime({ baseUrl: "/calendar/api/v1/" });
  * // give runtime.client to core's <StapelConfigProvider config={{ client }}>
  * <CalendarProvider runtime={runtime}>{app}</CalendarProvider>
  * ```

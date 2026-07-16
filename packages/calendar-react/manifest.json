@@ -16,72 +16,72 @@
   "flows": {},
   "machines": [],
   "operations": {
-    "calendar_api_availability_retrieve": {
+    "calendar_api_v1_availability_retrieve": {
       "method": "GET",
-      "path": "/calendar/api/availability",
+      "path": "/calendar/api/v1/availability",
       "tag": "Calendar",
       "request": null,
       "response": "AvailabilityResponse"
     },
-    "calendar_api_calendar_retrieve": {
+    "calendar_api_v1_calendar_retrieve": {
       "method": "GET",
-      "path": "/calendar/api/calendar",
+      "path": "/calendar/api/v1/calendar",
       "tag": "Calendar",
       "request": null,
       "response": "CalendarResponse"
     },
-    "calendar_api_events_create": {
+    "calendar_api_v1_events_create": {
       "method": "POST",
-      "path": "/calendar/api/events",
+      "path": "/calendar/api/v1/events",
       "tag": "Calendar",
       "request": "EventCreateRequest",
       "response": "EventResponse"
     },
-    "calendar_api_events_destroy": {
+    "calendar_api_v1_events_destroy": {
       "method": "DELETE",
-      "path": "/calendar/api/events/{event_id}",
+      "path": "/calendar/api/v1/events/{event_id}",
       "tag": "Calendar",
       "request": null,
       "response": "EventResponse"
     },
-    "calendar_api_events_ics_retrieve": {
+    "calendar_api_v1_events_ics_retrieve": {
       "method": "GET",
-      "path": "/calendar/api/events/{event_id}/ics",
+      "path": "/calendar/api/v1/events/{event_id}/ics",
       "tag": "Calendar",
       "request": null,
       "response": null
     },
-    "calendar_api_events_list": {
+    "calendar_api_v1_events_list": {
       "method": "GET",
-      "path": "/calendar/api/events",
+      "path": "/calendar/api/v1/events",
       "tag": "Calendar",
       "request": null,
       "response": null
     },
-    "calendar_api_events_partial_update": {
+    "calendar_api_v1_events_partial_update": {
       "method": "PATCH",
-      "path": "/calendar/api/events/{event_id}",
+      "path": "/calendar/api/v1/events/{event_id}",
       "tag": "Calendar",
       "request": "PatchedEventUpdateRequest",
       "response": "EventResponse"
     },
-    "calendar_api_events_participants_update": {
+    "calendar_api_v1_events_participants_update": {
       "method": "PUT",
-      "path": "/calendar/api/events/{event_id}/participants",
+      "path": "/calendar/api/v1/events/{event_id}/participants",
       "tag": "Calendar",
       "request": "ParticipantsReplaceRequest",
       "response": "EventResponse"
     },
-    "calendar_api_events_respond_create": {
+    "calendar_api_v1_events_respond_create": {
       "method": "POST",
-      "path": "/calendar/api/events/{event_id}/respond",
+      "path": "/calendar/api/v1/events/{event_id}/respond",
       "tag": "Calendar",
       "request": "RSVPRequest",
       "response": "EventResponse"
     },
-    "calendar_api_events_retrieve": {
+    "calendar_api_v1_events_retrieve": {
       "method": "GET",
-      "path": "/calendar/api/events/{event_id}",
+      "path": "/calendar/api/v1/events/{event_id}",
       "tag": "Calendar",
       "request": null,
       "response": "EventResponse"

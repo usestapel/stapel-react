@@ -17,7 +17,7 @@ import {
 } from "../src/model/mutations.js";
 
 /** Base the msw handlers mount on (mirrors stapel-calendar `/calendar/api/`). */
-const BASE = "https://calendar.stapel.test/calendar/api";
+const BASE = "https://calendar.stapel.test/calendar/api/v1";
 
 const EVENT = {
   id: "550e8400-e29b-41d4-a716-446655440000",

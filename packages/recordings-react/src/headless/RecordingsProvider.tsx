@@ -9,7 +9,7 @@ import type { RecordingsRuntime } from "../model/runtime.js";
  * to this pair — slim wave §21/S2.)
  *
  * ```tsx
- * const runtime = createRecordingsRuntime({ baseUrl: "/recordings/api/" });
+ * const runtime = createRecordingsRuntime({ baseUrl: "/recordings/api/v1/" });
  * // give runtime.client to core's <StapelConfigProvider config={{ client }}>
  * <RecordingsProvider runtime={runtime}>{app}</RecordingsProvider>
  * ```

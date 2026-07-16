@@ -29,7 +29,7 @@ import {
   registerProfilesI18n,
 } from "@stapel/profiles-react";
 
-const runtime = createProfilesRuntime({ baseUrl: "/profiles/api/" });
+const runtime = createProfilesRuntime({ baseUrl: "/profiles/api/v1/" });
 const i18n = createI18n({ locale: "en" });
 registerProfilesI18n(i18n); // the pair's key bundle → core's engine
 

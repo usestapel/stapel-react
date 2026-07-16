@@ -12,7 +12,7 @@ import type { ParticipantRsvp, Rsvp } from "./types.js";
  * the natural client surface is a URL you point an `<a download>` / `window.open`
  * at rather than a fetch you parse — the browser streams the download and sends
  * the `stapel_jwt` cookie itself. `baseUrl` is the runtime's base (e.g.
- * `/calendar/api/` or `https://app.example.com/calendar/api/`).
+ * `/calendar/api/v1/` or `https://app.example.com/calendar/api/v1/`).
  *
  * ```tsx
  * <a href={eventIcsUrl(runtime.client.baseUrl, event.id)} download>Add to calendar</a>

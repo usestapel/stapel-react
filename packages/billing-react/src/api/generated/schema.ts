@@ -2,7 +2,7 @@
 // Source: the backend module's own docs/schema.json (§17-native per-module contract).
 // Regenerate: pnpm gen:api   ·   Drift gate: pnpm gen:api:check
 export interface paths {
-    "/billing/api/checkout": {
+    "/billing/api/v1/checkout": {
         parameters: {
             query?: never;
             header?: never;
@@ -21,14 +21,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["billing_api_checkout_create"];
+        post: operations["billing_api_v1_checkout_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/billing/api/internal/debit": {
+    "/billing/api/v1/internal/debit": {
         parameters: {
             query?: never;
             header?: never;
@@ -42,14 +42,14 @@ export interface paths {
          *
          *     **Permissions:** `OperandHolder`
          */
-        post: operations["billing_api_internal_debit_create"];
+        post: operations["billing_api_v1_internal_debit_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/billing/api/portal": {
+    "/billing/api/v1/portal": {
         parameters: {
             query?: never;
             header?: never;
@@ -66,7 +66,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["billing_api_portal_retrieve"];
+        get: operations["billing_api_v1_portal_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -75,7 +75,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/billing/api/products": {
+    "/billing/api/v1/products": {
         parameters: {
             query?: never;
             header?: never;
@@ -92,7 +92,7 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        get: operations["billing_api_products_retrieve"];
+        get: operations["billing_api_v1_products_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -101,7 +101,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/billing/api/subscription": {
+    "/billing/api/v1/subscription": {
         parameters: {
             query?: never;
             header?: never;
@@ -118,7 +118,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["billing_api_subscription_retrieve"];
+        get: operations["billing_api_v1_subscription_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -127,7 +127,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/billing/api/subscription/cancel": {
+    "/billing/api/v1/subscription/cancel": {
         parameters: {
             query?: never;
             header?: never;
@@ -141,14 +141,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["billing_api_subscription_cancel_create"];
+        post: operations["billing_api_v1_subscription_cancel_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/billing/api/wallet": {
+    "/billing/api/v1/wallet": {
         parameters: {
             query?: never;
             header?: never;
@@ -165,7 +165,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["billing_api_wallet_retrieve"];
+        get: operations["billing_api_v1_wallet_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -181,10 +181,10 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        patch: operations["billing_api_wallet_partial_update"];
+        patch: operations["billing_api_v1_wallet_partial_update"];
         trace?: never;
     };
-    "/billing/api/wallet/transactions": {
+    "/billing/api/v1/wallet/transactions": {
         parameters: {
             query?: never;
             header?: never;
@@ -201,7 +201,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["billing_api_wallet_transactions_retrieve"];
+        get: operations["billing_api_v1_wallet_transactions_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -210,7 +210,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/billing/api/webhooks/stripe": {
+    "/billing/api/v1/webhooks/stripe": {
         parameters: {
             query?: never;
             header?: never;
@@ -225,7 +225,7 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["billing_api_webhooks_stripe_create"];
+        post: operations["billing_api_v1_webhooks_stripe_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -387,7 +387,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    billing_api_checkout_create: {
+    billing_api_v1_checkout_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -412,7 +412,7 @@ export interface operations {
             };
         };
     };
-    billing_api_internal_debit_create: {
+    billing_api_v1_internal_debit_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -437,7 +437,7 @@ export interface operations {
             };
         };
     };
-    billing_api_portal_retrieve: {
+    billing_api_v1_portal_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -456,7 +456,7 @@ export interface operations {
             };
         };
     };
-    billing_api_products_retrieve: {
+    billing_api_v1_products_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -475,7 +475,7 @@ export interface operations {
             };
         };
     };
-    billing_api_subscription_retrieve: {
+    billing_api_v1_subscription_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -494,7 +494,7 @@ export interface operations {
             };
         };
     };
-    billing_api_subscription_cancel_create: {
+    billing_api_v1_subscription_cancel_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -531,7 +531,7 @@ export interface operations {
             };
         };
     };
-    billing_api_wallet_retrieve: {
+    billing_api_v1_wallet_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -550,7 +550,7 @@ export interface operations {
             };
         };
     };
-    billing_api_wallet_partial_update: {
+    billing_api_v1_wallet_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -575,7 +575,7 @@ export interface operations {
             };
         };
     };
-    billing_api_wallet_transactions_retrieve: {
+    billing_api_v1_wallet_transactions_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -594,7 +594,7 @@ export interface operations {
             };
         };
     };
-    billing_api_webhooks_stripe_create: {
+    billing_api_v1_webhooks_stripe_create: {
         parameters: {
             query?: never;
             header: {

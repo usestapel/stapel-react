@@ -34,7 +34,7 @@ export const AUTH_FLOWS = {
         "endpoints": [
           {
             "method": "POST",
-            "path": "/auth/api/password/login/"
+            "path": "/auth/api/v1/password/login/"
           }
         ]
       },
@@ -46,7 +46,7 @@ export const AUTH_FLOWS = {
         "endpoints": [
           {
             "method": "POST",
-            "path": "/auth/api/totp/challenge/verify/"
+            "path": "/auth/api/v1/totp/challenge/verify/"
           }
         ]
       }
@@ -75,7 +75,7 @@ export const AUTH_FLOWS = {
         "endpoints": [
           {
             "method": "POST",
-            "path": "/auth/api/email/request/"
+            "path": "/auth/api/v1/email/request/"
           }
         ]
       },
@@ -87,7 +87,7 @@ export const AUTH_FLOWS = {
         "endpoints": [
           {
             "method": "POST",
-            "path": "/auth/api/email/verify/"
+            "path": "/auth/api/v1/email/verify/"
           }
         ]
       },
@@ -123,7 +123,7 @@ export const AUTH_FLOWS = {
         "endpoints": [
           {
             "method": "GET",
-            "path": "/auth/api/verification/<str:challenge_id>/"
+            "path": "/auth/api/v1/verification/<str:challenge_id>/"
           }
         ]
       },
@@ -135,7 +135,7 @@ export const AUTH_FLOWS = {
         "endpoints": [
           {
             "method": "POST",
-            "path": "/auth/api/verification/<str:challenge_id>/initiate/"
+            "path": "/auth/api/v1/verification/<str:challenge_id>/initiate/"
           }
         ]
       },
@@ -147,7 +147,7 @@ export const AUTH_FLOWS = {
         "endpoints": [
           {
             "method": "POST",
-            "path": "/auth/api/verification/<str:challenge_id>/complete/"
+            "path": "/auth/api/v1/verification/<str:challenge_id>/complete/"
           }
         ]
       },
@@ -166,7 +166,7 @@ export const AUTH_FLOWS = {
         "endpoints": [
           {
             "method": "GET",
-            "path": "/auth/api/verification/preferences/"
+            "path": "/auth/api/v1/verification/preferences/"
           }
         ]
       },
@@ -178,7 +178,7 @@ export const AUTH_FLOWS = {
         "endpoints": [
           {
             "method": "PUT",
-            "path": "/auth/api/verification/preferences/"
+            "path": "/auth/api/v1/verification/preferences/"
           }
         ]
       }

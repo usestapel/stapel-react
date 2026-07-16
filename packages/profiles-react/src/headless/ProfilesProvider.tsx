@@ -9,7 +9,7 @@ import type { ProfilesRuntime } from "../model/runtime.js";
  * to this pair — slim wave §21/S2.)
  *
  * ```tsx
- * const runtime = createProfilesRuntime({ baseUrl: "/profiles/api/" });
+ * const runtime = createProfilesRuntime({ baseUrl: "/profiles/api/v1/" });
  * // give runtime.client to core's <StapelConfigProvider config={{ client }}>
  * <ProfilesProvider runtime={runtime}>{app}</ProfilesProvider>
  * ```

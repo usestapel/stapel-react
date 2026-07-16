@@ -29,7 +29,7 @@ import {
   registerNotificationsI18n,
 } from "@stapel/notifications-react";
 
-const runtime = createNotificationsRuntime({ baseUrl: "/notifications/api/" });
+const runtime = createNotificationsRuntime({ baseUrl: "/notifications/api/v1/" });
 const i18n = createI18n({ locale: "en" });
 registerNotificationsI18n(i18n); // the pair's key bundle → core's engine
 

@@ -20,20 +20,20 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 
 ## Operations (typed; use the named op, never a path string)
 Request/response schema names are in manifest.json + the generated types.
-- block_user: POST /profiles/api/{user_id}/block
-- follow_user: POST /profiles/api/{user_id}/follow
-- get_language: GET /profiles/api/languages/{code}/
-- get_my_blocked: GET /profiles/api/me/blocked
-- get_my_followers: GET /profiles/api/me/followers
-- get_my_following: GET /profiles/api/me/following
-- get_my_profile: GET /profiles/api/me
-- get_profile: GET /profiles/api/{user_id}
-- get_relationship: GET /profiles/api/{user_id}/relationship
-- list_languages: GET /profiles/api/languages/
-- unblock_user: POST /profiles/api/{user_id}/unblock
-- unfollow_user: POST /profiles/api/{user_id}/unfollow
-- unsubscribe_notifications: POST /profiles/api/notifications/unsubscribe
-- update_my_profile: PATCH /profiles/api/me
+- block_user: POST /profiles/api/v1/{user_id}/block
+- follow_user: POST /profiles/api/v1/{user_id}/follow
+- get_language: GET /profiles/api/v1/languages/{code}/
+- get_my_blocked: GET /profiles/api/v1/me/blocked
+- get_my_followers: GET /profiles/api/v1/me/followers
+- get_my_following: GET /profiles/api/v1/me/following
+- get_my_profile: GET /profiles/api/v1/me
+- get_profile: GET /profiles/api/v1/{user_id}
+- get_relationship: GET /profiles/api/v1/{user_id}/relationship
+- list_languages: GET /profiles/api/v1/languages/
+- unblock_user: POST /profiles/api/v1/{user_id}/unblock
+- unfollow_user: POST /profiles/api/v1/{user_id}/unfollow
+- unsubscribe_notifications: POST /profiles/api/v1/notifications/unsubscribe
+- update_my_profile: PATCH /profiles/api/v1/me
 
 ## Query hooks (server state; keys come only from the key factory)
 - useLanguages (query) → listLanguages

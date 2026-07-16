@@ -45,10 +45,10 @@ describe("data layer reads generated manifests dynamically", () => {
   it("discovers workspace operation paths from manifest.operations", () => {
     __resetCaches();
     const catalog = loadOperationCatalog();
-    // auth-react's manifest ships /auth/api/… operation paths — discovered by
+    // auth-react's manifest ships /auth/api/v1/… operation paths — discovered by
     // walking the workspace, not baked into the rule.
     expect(catalog.loaded).toBe(true);
-    expect(catalog.matches("/auth/api/me/")).toBe(true);
+    expect(catalog.matches("/auth/api/v1/me/")).toBe(true);
     // A client-relative literal matches by trailing-segment suffix and resolves
     // to the catalogued operation id.
     expect(catalog.matches("/me/")).toBe(true);

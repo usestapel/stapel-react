@@ -30,7 +30,7 @@ function mutating(
  * The pair's typed operation surface — one method per stapel-notifications
  * endpoint a JS client may call, bound to the injected {@link StapelClient}
  * (the per-module override seam of frontend-standard §7.2). Paths are relative
- * to the runtime's `baseUrl` (e.g. `/notifications/api/`).
+ * to the runtime's `baseUrl` (e.g. `/notifications/api/v1/`).
  *
  * The staff/service-only `GET /notification-keys/` (translate collector) is
  * intentionally absent — it is not part of any end-user surface.

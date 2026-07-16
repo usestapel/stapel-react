@@ -14,7 +14,7 @@ import { useWorkspaces } from "../src/model/queries.js";
 import { useAcceptInvitation } from "../src/model/mutations.js";
 
 /** Base the msw handlers mount on (mirrors stapel-workspaces `/workspaces/api`). */
-const BASE = "https://workspaces.stapel.test/workspaces/api";
+const BASE = "https://workspaces.stapel.test/workspaces/api/v1";
 const WS = "0192f000-0000-4000-8000-000000000001";
 
 const WORKSPACE = {

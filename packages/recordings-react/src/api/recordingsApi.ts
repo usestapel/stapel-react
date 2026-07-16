@@ -32,7 +32,7 @@ function mutating(
  * The pair's typed operation surface — one method per stapel-recordings endpoint
  * a JS client may call, bound to the injected {@link StapelClient} (the
  * per-module override seam of frontend-standard §7.2). Paths are relative to the
- * runtime's `baseUrl` (e.g. `/recordings/api/`).
+ * runtime's `baseUrl` (e.g. `/recordings/api/v1/`).
  *
  * These operations are hand-authored here — the ONE legal home of path strings
  * (`stapel/no-string-paths` §2.3 carve-out) — until gen-api v2 emits typed ops

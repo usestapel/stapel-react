@@ -2,7 +2,7 @@
 // Source: the backend module's own docs/schema.json (§17-native per-module contract).
 // Regenerate: pnpm gen:api   ·   Drift gate: pnpm gen:api:check
 export interface paths {
-    "/auth/api/admin-users/": {
+    "/auth/api/v1/admin-users/": {
         parameters: {
             query?: never;
             header?: never;
@@ -16,14 +16,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_admin_users_create"];
+        post: operations["auth_api_v1_admin_users_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/admin/audit/": {
+    "/auth/api/v1/admin/audit/": {
         parameters: {
             query?: never;
             header?: never;
@@ -34,7 +34,7 @@ export interface paths {
          * List audit log entries for all users (admin only)
          * @description **Permissions:** `IsAdminUser`
          */
-        get: operations["auth_api_admin_audit_retrieve"];
+        get: operations["auth_api_v1_admin_audit_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -43,7 +43,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/anonymous/": {
+    "/auth/api/v1/anonymous/": {
         parameters: {
             query?: never;
             header?: never;
@@ -57,14 +57,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_anonymous_create"];
+        post: operations["auth_api_v1_anonymous_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/capabilities/": {
+    "/auth/api/v1/capabilities/": {
         parameters: {
             query?: never;
             header?: never;
@@ -76,7 +76,7 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_capabilities_retrieve"];
+        get: operations["auth_api_v1_capabilities_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -85,7 +85,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/email/change/delayed/cancel/": {
+    "/auth/api/v1/email/change/delayed/cancel/": {
         parameters: {
             query?: never;
             header?: never;
@@ -99,14 +99,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_email_change_delayed_cancel_create"];
+        post: operations["auth_api_v1_email_change_delayed_cancel_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/email/change/delayed/initiate/": {
+    "/auth/api/v1/email/change/delayed/initiate/": {
         parameters: {
             query?: never;
             header?: never;
@@ -120,14 +120,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_email_change_delayed_initiate_create"];
+        post: operations["auth_api_v1_email_change_delayed_initiate_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/email/change/delayed/status/": {
+    "/auth/api/v1/email/change/delayed/status/": {
         parameters: {
             query?: never;
             header?: never;
@@ -139,7 +139,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["auth_api_email_change_delayed_status_retrieve"];
+        get: operations["auth_api_v1_email_change_delayed_status_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -148,7 +148,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/email/change/instant/request-new/": {
+    "/auth/api/v1/email/change/instant/request-new/": {
         parameters: {
             query?: never;
             header?: never;
@@ -162,14 +162,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_email_change_instant_request_new_create"];
+        post: operations["auth_api_v1_email_change_instant_request_new_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/email/change/instant/request-old/": {
+    "/auth/api/v1/email/change/instant/request-old/": {
         parameters: {
             query?: never;
             header?: never;
@@ -183,14 +183,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_email_change_instant_request_old_create"];
+        post: operations["auth_api_v1_email_change_instant_request_old_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/email/change/instant/verify-new/": {
+    "/auth/api/v1/email/change/instant/verify-new/": {
         parameters: {
             query?: never;
             header?: never;
@@ -204,14 +204,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_email_change_instant_verify_new_create"];
+        post: operations["auth_api_v1_email_change_instant_verify_new_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/email/change/instant/verify-old/": {
+    "/auth/api/v1/email/change/instant/verify-old/": {
         parameters: {
             query?: never;
             header?: never;
@@ -225,14 +225,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_email_change_instant_verify_old_create"];
+        post: operations["auth_api_v1_email_change_instant_verify_old_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/email/request/": {
+    "/auth/api/v1/email/request/": {
         parameters: {
             query?: never;
             header?: never;
@@ -253,14 +253,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_email_request_create"];
+        post: operations["auth_api_v1_email_request_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/email/verify/": {
+    "/auth/api/v1/email/verify/": {
         parameters: {
             query?: never;
             header?: never;
@@ -290,14 +290,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_email_verify_create"];
+        post: operations["auth_api_v1_email_verify_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/gdpr/schema/": {
+    "/auth/api/v1/gdpr/schema/": {
         parameters: {
             query?: never;
             header?: never;
@@ -312,7 +312,7 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_gdpr_schema_retrieve"];
+        get: operations["auth_api_v1_gdpr_schema_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -321,7 +321,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/logout/": {
+    "/auth/api/v1/logout/": {
         parameters: {
             query?: never;
             header?: never;
@@ -333,21 +333,21 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_logout_retrieve"];
+        get: operations["auth_api_v1_logout_retrieve"];
         put?: never;
         /**
          * @description Logout user and blacklist both access and refresh tokens
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_logout_create"];
+        post: operations["auth_api_v1_logout_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/magic/request/": {
+    "/auth/api/v1/magic/request/": {
         parameters: {
             query?: never;
             header?: never;
@@ -377,14 +377,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_magic_request_create"];
+        post: operations["auth_api_v1_magic_request_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/magic/verify/": {
+    "/auth/api/v1/magic/verify/": {
         parameters: {
             query?: never;
             header?: never;
@@ -412,7 +412,7 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_magic_verify_retrieve"];
+        get: operations["auth_api_v1_magic_verify_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -421,7 +421,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/me/": {
+    "/auth/api/v1/me/": {
         parameters: {
             query?: never;
             header?: never;
@@ -433,7 +433,7 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_me_retrieve"];
+        get: operations["auth_api_v1_me_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -442,7 +442,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/oauth/{provider}/authorize/": {
+    "/auth/api/v1/oauth/{provider}/authorize/": {
         parameters: {
             query?: never;
             header?: never;
@@ -454,7 +454,7 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_oauth_authorize_retrieve"];
+        get: operations["auth_api_v1_oauth_authorize_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -463,7 +463,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/oauth/{provider}/callback": {
+    "/auth/api/v1/oauth/{provider}/callback": {
         parameters: {
             query?: never;
             header?: never;
@@ -475,7 +475,7 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_oauth_callback_retrieve"];
+        get: operations["auth_api_v1_oauth_callback_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -484,7 +484,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/oauth/{provider}/callback/": {
+    "/auth/api/v1/oauth/{provider}/callback/": {
         parameters: {
             query?: never;
             header?: never;
@@ -496,7 +496,7 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_oauth_callback_retrieve_2"];
+        get: operations["auth_api_v1_oauth_callback_retrieve_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -505,7 +505,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/oauth/login/": {
+    "/auth/api/v1/oauth/login/": {
         parameters: {
             query?: never;
             header?: never;
@@ -519,14 +519,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_oauth_login_create"];
+        post: operations["auth_api_v1_oauth_login_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/oauth2/introspect/": {
+    "/auth/api/v1/oauth2/introspect/": {
         parameters: {
             query?: never;
             header?: never;
@@ -539,14 +539,14 @@ export interface paths {
          * RFC 7662 token introspection (service-to-service)
          * @description Introspect a JWT. Requires a service API key. Returns `{"active": false}` for invalid/expired tokens (never 401 for those). A 401 is only returned when the caller's service API key is missing/invalid.
          */
-        post: operations["auth_api_oauth2_introspect_create"];
+        post: operations["auth_api_v1_oauth2_introspect_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/passkey/": {
+    "/auth/api/v1/passkey/": {
         parameters: {
             query?: never;
             header?: never;
@@ -574,7 +574,7 @@ export interface paths {
          *
          *     **Permissions:** `IsServiceRequest, IsSuperUser`
          */
-        get: operations["auth_api_passkey_retrieve"];
+        get: operations["auth_api_v1_passkey_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -583,7 +583,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/passkey/{id}/": {
+    "/auth/api/v1/passkey/{id}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -614,13 +614,13 @@ export interface paths {
          *
          *     **Permissions:** `IsServiceRequest, IsSuperUser`
          */
-        delete: operations["auth_api_passkey_destroy"];
+        delete: operations["auth_api_v1_passkey_destroy"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/passkey/authenticate/begin/": {
+    "/auth/api/v1/passkey/authenticate/begin/": {
         parameters: {
             query?: never;
             header?: never;
@@ -650,14 +650,14 @@ export interface paths {
          *
          *     **Permissions:** `IsServiceRequest, IsSuperUser`
          */
-        post: operations["auth_api_passkey_authenticate_begin_create"];
+        post: operations["auth_api_v1_passkey_authenticate_begin_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/passkey/authenticate/complete/": {
+    "/auth/api/v1/passkey/authenticate/complete/": {
         parameters: {
             query?: never;
             header?: never;
@@ -687,14 +687,14 @@ export interface paths {
          *
          *     **Permissions:** `IsServiceRequest, IsSuperUser`
          */
-        post: operations["auth_api_passkey_authenticate_complete_create"];
+        post: operations["auth_api_v1_passkey_authenticate_complete_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/passkey/register/begin/": {
+    "/auth/api/v1/passkey/register/begin/": {
         parameters: {
             query?: never;
             header?: never;
@@ -724,14 +724,14 @@ export interface paths {
          *
          *     **Permissions:** `IsServiceRequest, IsSuperUser`
          */
-        post: operations["auth_api_passkey_register_begin_create"];
+        post: operations["auth_api_v1_passkey_register_begin_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/passkey/register/complete/": {
+    "/auth/api/v1/passkey/register/complete/": {
         parameters: {
             query?: never;
             header?: never;
@@ -761,14 +761,14 @@ export interface paths {
          *
          *     **Permissions:** `IsServiceRequest, IsSuperUser`
          */
-        post: operations["auth_api_passkey_register_complete_create"];
+        post: operations["auth_api_v1_passkey_register_complete_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/password/change/": {
+    "/auth/api/v1/password/change/": {
         parameters: {
             query?: never;
             header?: never;
@@ -782,14 +782,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_password_change_create"];
+        post: operations["auth_api_v1_password_change_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/password/change/otp/request/": {
+    "/auth/api/v1/password/change/otp/request/": {
         parameters: {
             query?: never;
             header?: never;
@@ -803,14 +803,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_password_change_otp_request_create"];
+        post: operations["auth_api_v1_password_change_otp_request_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/password/change/otp/verify/": {
+    "/auth/api/v1/password/change/otp/verify/": {
         parameters: {
             query?: never;
             header?: never;
@@ -824,14 +824,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_password_change_otp_verify_create"];
+        post: operations["auth_api_v1_password_change_otp_verify_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/password/login/": {
+    "/auth/api/v1/password/login/": {
         parameters: {
             query?: never;
             header?: never;
@@ -845,14 +845,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_password_login_create"];
+        post: operations["auth_api_v1_password_login_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/password/methods/": {
+    "/auth/api/v1/password/methods/": {
         parameters: {
             query?: never;
             header?: never;
@@ -864,7 +864,7 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_password_methods_retrieve"];
+        get: operations["auth_api_v1_password_methods_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -873,7 +873,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/password/register/": {
+    "/auth/api/v1/password/register/": {
         parameters: {
             query?: never;
             header?: never;
@@ -887,14 +887,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_password_register_create"];
+        post: operations["auth_api_v1_password_register_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/password/reset/email/request/": {
+    "/auth/api/v1/password/reset/email/request/": {
         parameters: {
             query?: never;
             header?: never;
@@ -908,14 +908,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_password_reset_email_request_create"];
+        post: operations["auth_api_v1_password_reset_email_request_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/password/reset/email/verify/": {
+    "/auth/api/v1/password/reset/email/verify/": {
         parameters: {
             query?: never;
             header?: never;
@@ -929,14 +929,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_password_reset_email_verify_create"];
+        post: operations["auth_api_v1_password_reset_email_verify_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/password/reset/phone/request/": {
+    "/auth/api/v1/password/reset/phone/request/": {
         parameters: {
             query?: never;
             header?: never;
@@ -950,14 +950,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_password_reset_phone_request_create"];
+        post: operations["auth_api_v1_password_reset_phone_request_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/password/reset/phone/verify/": {
+    "/auth/api/v1/password/reset/phone/verify/": {
         parameters: {
             query?: never;
             header?: never;
@@ -971,14 +971,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_password_reset_phone_verify_create"];
+        post: operations["auth_api_v1_password_reset_phone_verify_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/phone/change/delayed/cancel/": {
+    "/auth/api/v1/phone/change/delayed/cancel/": {
         parameters: {
             query?: never;
             header?: never;
@@ -992,14 +992,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_phone_change_delayed_cancel_create"];
+        post: operations["auth_api_v1_phone_change_delayed_cancel_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/phone/change/delayed/initiate/": {
+    "/auth/api/v1/phone/change/delayed/initiate/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1013,14 +1013,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_phone_change_delayed_initiate_create"];
+        post: operations["auth_api_v1_phone_change_delayed_initiate_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/phone/change/delayed/status/": {
+    "/auth/api/v1/phone/change/delayed/status/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1032,7 +1032,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["auth_api_phone_change_delayed_status_retrieve"];
+        get: operations["auth_api_v1_phone_change_delayed_status_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1041,7 +1041,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/phone/change/instant/request-new/": {
+    "/auth/api/v1/phone/change/instant/request-new/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1055,14 +1055,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_phone_change_instant_request_new_create"];
+        post: operations["auth_api_v1_phone_change_instant_request_new_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/phone/change/instant/request-old/": {
+    "/auth/api/v1/phone/change/instant/request-old/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1076,14 +1076,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_phone_change_instant_request_old_create"];
+        post: operations["auth_api_v1_phone_change_instant_request_old_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/phone/change/instant/verify-new/": {
+    "/auth/api/v1/phone/change/instant/verify-new/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1097,14 +1097,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_phone_change_instant_verify_new_create"];
+        post: operations["auth_api_v1_phone_change_instant_verify_new_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/phone/change/instant/verify-old/": {
+    "/auth/api/v1/phone/change/instant/verify-old/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1118,14 +1118,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_phone_change_instant_verify_old_create"];
+        post: operations["auth_api_v1_phone_change_instant_verify_old_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/phone/request/": {
+    "/auth/api/v1/phone/request/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1146,14 +1146,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_phone_request_create"];
+        post: operations["auth_api_v1_phone_request_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/phone/verify/": {
+    "/auth/api/v1/phone/verify/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1183,14 +1183,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_phone_verify_create"];
+        post: operations["auth_api_v1_phone_verify_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/qr/{key}/confirm/": {
+    "/auth/api/v1/qr/{key}/confirm/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1207,14 +1207,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_qr_confirm_create"];
+        post: operations["auth_api_v1_qr_confirm_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/qr/{key}/reject/": {
+    "/auth/api/v1/qr/{key}/reject/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1228,14 +1228,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_qr_reject_create"];
+        post: operations["auth_api_v1_qr_reject_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/qr/{key}/scan/": {
+    "/auth/api/v1/qr/{key}/scan/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1254,7 +1254,7 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_qr_scan_retrieve"];
+        get: operations["auth_api_v1_qr_scan_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1263,7 +1263,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/qr/{key}/status/": {
+    "/auth/api/v1/qr/{key}/status/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1282,7 +1282,7 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_qr_status_retrieve"];
+        get: operations["auth_api_v1_qr_status_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1291,7 +1291,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/qr/generate/": {
+    "/auth/api/v1/qr/generate/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1314,14 +1314,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_qr_generate_create"];
+        post: operations["auth_api_v1_qr_generate_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/security/audit/": {
+    "/auth/api/v1/security/audit/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1332,7 +1332,7 @@ export interface paths {
          * List security audit log
          * @description **Permissions:** `IsAuthenticated`
          */
-        get: operations["auth_api_security_audit_retrieve"];
+        get: operations["auth_api_v1_security_audit_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1341,7 +1341,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/security/revoke-suspicious/": {
+    "/auth/api/v1/security/revoke-suspicious/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1352,7 +1352,7 @@ export interface paths {
          * Revoke all sessions via suspicious login email link
          * @description **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_security_revoke_suspicious_retrieve"];
+        get: operations["auth_api_v1_security_revoke_suspicious_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1361,7 +1361,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/security/status/": {
+    "/auth/api/v1/security/status/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1373,7 +1373,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["auth_api_security_status_retrieve"];
+        get: operations["auth_api_v1_security_status_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1382,7 +1382,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/service-keys": {
+    "/auth/api/v1/service-keys": {
         parameters: {
             query?: never;
             header?: never;
@@ -1394,21 +1394,21 @@ export interface paths {
          *
          *     **Permissions:** `IsAdminUser`
          */
-        get: operations["auth_api_service_keys_list"];
+        get: operations["auth_api_v1_service_keys_list"];
         put?: never;
         /**
          * @description ViewSet for managing service API keys
          *
          *     **Permissions:** `IsAdminUser`
          */
-        post: operations["auth_api_service_keys_create"];
+        post: operations["auth_api_v1_service_keys_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/service-keys/{id}": {
+    "/auth/api/v1/service-keys/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1420,20 +1420,20 @@ export interface paths {
          *
          *     **Permissions:** `IsAdminUser`
          */
-        get: operations["auth_api_service_keys_retrieve"];
+        get: operations["auth_api_v1_service_keys_retrieve"];
         /**
          * @description ViewSet for managing service API keys
          *
          *     **Permissions:** `IsAdminUser`
          */
-        put: operations["auth_api_service_keys_update"];
+        put: operations["auth_api_v1_service_keys_update"];
         post?: never;
         /**
          * @description ViewSet for managing service API keys
          *
          *     **Permissions:** `IsAdminUser`
          */
-        delete: operations["auth_api_service_keys_destroy"];
+        delete: operations["auth_api_v1_service_keys_destroy"];
         options?: never;
         head?: never;
         /**
@@ -1441,10 +1441,10 @@ export interface paths {
          *
          *     **Permissions:** `IsAdminUser`
          */
-        patch: operations["auth_api_service_keys_partial_update"];
+        patch: operations["auth_api_v1_service_keys_partial_update"];
         trace?: never;
     };
-    "/auth/api/sessions/": {
+    "/auth/api/v1/sessions/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1456,7 +1456,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["auth_api_sessions_list"];
+        get: operations["auth_api_v1_sessions_list"];
         put?: never;
         post?: never;
         /**
@@ -1464,13 +1464,13 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        delete: operations["auth_api_sessions_destroy"];
+        delete: operations["auth_api_v1_sessions_destroy"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/sessions/{session_id}/": {
+    "/auth/api/v1/sessions/{session_id}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1485,13 +1485,13 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        delete: operations["auth_api_sessions_destroy_2"];
+        delete: operations["auth_api_v1_sessions_destroy_2"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/sessions/{session_id}/confirm/": {
+    "/auth/api/v1/sessions/{session_id}/confirm/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1505,14 +1505,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_sessions_confirm_create"];
+        post: operations["auth_api_v1_sessions_confirm_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/sso/{slug}/login/": {
+    "/auth/api/v1/sso/{slug}/login/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1525,7 +1525,7 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_sso_login_retrieve"];
+        get: operations["auth_api_v1_sso_login_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1534,7 +1534,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/sso/{slug}/oidc/callback/": {
+    "/auth/api/v1/sso/{slug}/oidc/callback/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1545,7 +1545,7 @@ export interface paths {
          * OIDC callback — IdP redirects here with auth code
          * @description **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_sso_oidc_callback_retrieve"];
+        get: operations["auth_api_v1_sso_oidc_callback_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1554,7 +1554,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/sso/{slug}/saml/acs/": {
+    "/auth/api/v1/sso/{slug}/saml/acs/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1569,14 +1569,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_sso_saml_acs_create"];
+        post: operations["auth_api_v1_sso_saml_acs_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/sso/{slug}/saml/metadata/": {
+    "/auth/api/v1/sso/{slug}/saml/metadata/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1587,7 +1587,7 @@ export interface paths {
          * SAML SP metadata XML — register this with your IdP
          * @description **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_sso_saml_metadata_retrieve"];
+        get: operations["auth_api_v1_sso_saml_metadata_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1596,7 +1596,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/sso/lookup/": {
+    "/auth/api/v1/sso/lookup/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1607,7 +1607,7 @@ export interface paths {
          * Check if an email domain has SSO configured
          * @description **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_sso_lookup_retrieve"];
+        get: operations["auth_api_v1_sso_lookup_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1616,7 +1616,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/sso/orgs/": {
+    "/auth/api/v1/sso/orgs/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1627,20 +1627,20 @@ export interface paths {
          * List all SSO organizations
          * @description **Permissions:** `IsAdminUser`
          */
-        get: operations["auth_api_sso_orgs_list"];
+        get: operations["auth_api_v1_sso_orgs_list"];
         put?: never;
         /**
          * Create a new SSO organization
          * @description **Permissions:** `IsAdminUser`
          */
-        post: operations["auth_api_sso_orgs_create"];
+        post: operations["auth_api_v1_sso_orgs_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/sso/orgs/{slug}/": {
+    "/auth/api/v1/sso/orgs/{slug}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1651,24 +1651,24 @@ export interface paths {
          * Get an SSO organization with its config
          * @description **Permissions:** `IsAdminUser`
          */
-        get: operations["auth_api_sso_orgs_retrieve"];
+        get: operations["auth_api_v1_sso_orgs_retrieve"];
         put?: never;
         post?: never;
         /**
          * Delete an SSO organization
          * @description **Permissions:** `IsAdminUser`
          */
-        delete: operations["auth_api_sso_orgs_destroy"];
+        delete: operations["auth_api_v1_sso_orgs_destroy"];
         options?: never;
         head?: never;
         /**
          * Update an SSO organization
          * @description **Permissions:** `IsAdminUser`
          */
-        patch: operations["auth_api_sso_orgs_partial_update"];
+        patch: operations["auth_api_v1_sso_orgs_partial_update"];
         trace?: never;
     };
-    "/auth/api/sso/orgs/{slug}/config/": {
+    "/auth/api/v1/sso/orgs/{slug}/config/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1680,7 +1680,7 @@ export interface paths {
          * Create or update SSO config for an organization
          * @description **Permissions:** `IsAdminUser`
          */
-        put: operations["auth_api_sso_orgs_config_update"];
+        put: operations["auth_api_v1_sso_orgs_config_update"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1689,10 +1689,10 @@ export interface paths {
          * Create or update SSO config for an organization
          * @description **Permissions:** `IsAdminUser`
          */
-        patch: operations["auth_api_sso_orgs_config_partial_update"];
+        patch: operations["auth_api_v1_sso_orgs_config_partial_update"];
         trace?: never;
     };
-    "/auth/api/staff-roles/": {
+    "/auth/api/v1/staff-roles/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1704,21 +1704,21 @@ export interface paths {
          *
          *     **Permissions:** `IsAdminUser`
          */
-        get: operations["auth_api_staff_roles_list"];
+        get: operations["auth_api_v1_staff_roles_list"];
         put?: never;
         /**
          * @description Assign a staff role (a name from the STAPEL_ACCESS['ROLES'] registry) to a staff user. Idempotent: 201 on a new assignment, 200 when it already existed. Emits staff.role.assigned.
          *
          *     **Permissions:** `IsAdminUser`
          */
-        post: operations["auth_api_staff_roles_create"];
+        post: operations["auth_api_v1_staff_roles_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/staff-roles/{assignment_id}/": {
+    "/auth/api/v1/staff-roles/{assignment_id}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1733,13 +1733,13 @@ export interface paths {
          *
          *     **Permissions:** `IsAdminUser`
          */
-        delete: operations["auth_api_staff_roles_destroy"];
+        delete: operations["auth_api_v1_staff_roles_destroy"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/token/": {
+    "/auth/api/v1/token/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1755,14 +1755,14 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_token_create"];
+        post: operations["auth_api_v1_token_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/token/refresh/": {
+    "/auth/api/v1/token/refresh/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1774,21 +1774,21 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        get: operations["auth_api_token_refresh_retrieve"];
+        get: operations["auth_api_v1_token_refresh_retrieve"];
         put?: never;
         /**
          * @description Refresh access token using refresh token from cookies or request body
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_token_refresh_create"];
+        post: operations["auth_api_v1_token_refresh_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/totp/challenge/verify/": {
+    "/auth/api/v1/totp/challenge/verify/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1802,14 +1802,14 @@ export interface paths {
          *
          *     **Permissions:** `IsServiceRequest, IsSuperUser`
          */
-        post: operations["auth_api_totp_challenge_verify_create"];
+        post: operations["auth_api_v1_totp_challenge_verify_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/totp/disable/": {
+    "/auth/api/v1/totp/disable/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1823,14 +1823,14 @@ export interface paths {
          *
          *     **Permissions:** `IsServiceRequest, IsSuperUser`
          */
-        post: operations["auth_api_totp_disable_create"];
+        post: operations["auth_api_v1_totp_disable_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/totp/disable-otp/request/": {
+    "/auth/api/v1/totp/disable-otp/request/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1844,14 +1844,14 @@ export interface paths {
          *
          *     **Permissions:** `IsServiceRequest, IsSuperUser`
          */
-        post: operations["auth_api_totp_disable_otp_request_create"];
+        post: operations["auth_api_v1_totp_disable_otp_request_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/totp/setup/": {
+    "/auth/api/v1/totp/setup/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1865,14 +1865,14 @@ export interface paths {
          *
          *     **Permissions:** `IsServiceRequest, IsSuperUser`
          */
-        post: operations["auth_api_totp_setup_create"];
+        post: operations["auth_api_v1_totp_setup_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/totp/setup/confirm/": {
+    "/auth/api/v1/totp/setup/confirm/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1886,14 +1886,14 @@ export interface paths {
          *
          *     **Permissions:** `IsServiceRequest, IsSuperUser`
          */
-        post: operations["auth_api_totp_setup_confirm_create"];
+        post: operations["auth_api_v1_totp_setup_confirm_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/totp/step-up/": {
+    "/auth/api/v1/totp/step-up/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1908,14 +1908,14 @@ export interface paths {
          *
          *     **Permissions:** `IsServiceRequest, IsSuperUser`
          */
-        post: operations["auth_api_totp_step_up_create"];
+        post: operations["auth_api_v1_totp_step_up_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/user/account/cancel-close": {
+    "/auth/api/v1/user/account/cancel-close": {
         parameters: {
             query?: never;
             header?: never;
@@ -1936,14 +1936,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_user_account_cancel_close_create"];
+        post: operations["auth_api_v1_user_account_cancel_close_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/user/account/close": {
+    "/auth/api/v1/user/account/close": {
         parameters: {
             query?: never;
             header?: never;
@@ -1958,14 +1958,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_user_account_close_create"];
+        post: operations["auth_api_v1_user_account_close_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/user/account/close/status": {
+    "/auth/api/v1/user/account/close/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -1984,7 +1984,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["auth_api_user_account_close_status_retrieve"];
+        get: operations["auth_api_v1_user_account_close_status_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1993,7 +1993,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/user/data-export/download": {
+    "/auth/api/v1/user/data-export/download": {
         parameters: {
             query?: never;
             header?: never;
@@ -2006,7 +2006,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["auth_api_user_data_export_download_retrieve"];
+        get: operations["auth_api_v1_user_data_export_download_retrieve"];
         put?: never;
         /**
          * Download data export archive (token in body)
@@ -2014,14 +2014,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_user_data_export_download_create"];
+        post: operations["auth_api_v1_user_data_export_download_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/user/data-export/request": {
+    "/auth/api/v1/user/data-export/request": {
         parameters: {
             query?: never;
             header?: never;
@@ -2036,14 +2036,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_user_data_export_request_create"];
+        post: operations["auth_api_v1_user_data_export_request_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/user/data-export/status": {
+    "/auth/api/v1/user/data-export/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -2062,7 +2062,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["auth_api_user_data_export_status_retrieve"];
+        get: operations["auth_api_v1_user_data_export_status_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2071,7 +2071,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/verification/{challenge_id}/": {
+    "/auth/api/v1/verification/{challenge_id}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -2083,7 +2083,7 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["auth_api_verification_retrieve"];
+        get: operations["auth_api_v1_verification_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2092,7 +2092,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/verification/{challenge_id}/complete/": {
+    "/auth/api/v1/verification/{challenge_id}/complete/": {
         parameters: {
             query?: never;
             header?: never;
@@ -2106,14 +2106,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_verification_complete_create"];
+        post: operations["auth_api_v1_verification_complete_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/verification/{challenge_id}/initiate/": {
+    "/auth/api/v1/verification/{challenge_id}/initiate/": {
         parameters: {
             query?: never;
             header?: never;
@@ -2127,14 +2127,14 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        post: operations["auth_api_verification_initiate_create"];
+        post: operations["auth_api_v1_verification_initiate_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/api/verification/preferences/": {
+    "/auth/api/v1/verification/preferences/": {
         parameters: {
             query?: never;
             header?: never;
@@ -2146,13 +2146,13 @@ export interface paths {
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        get: operations["auth_api_verification_preferences_retrieve"];
+        get: operations["auth_api_v1_verification_preferences_retrieve"];
         /**
          * @description Upsert a step-up verification preference {scope, enabled}. Enabling (enabled=true) applies immediately. Disabling (enabled=false) is itself step-up protected: without a fresh grant for scope verification.settings the request is rejected with the 403 verification envelope — complete a factor and retry. Both writes invalidate the cached policy, so protected endpoints see the change within one request.
          *
          *     **Permissions:** `IsAuthenticated`
          */
-        put: operations["auth_api_verification_preferences_update"];
+        put: operations["auth_api_v1_verification_preferences_update"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2160,7 +2160,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/verify/": {
+    "/auth/api/v1/verify/": {
         parameters: {
             query?: never;
             header?: never;
@@ -2174,7 +2174,7 @@ export interface paths {
          *
          *     **Permissions:** `AllowAny`
          */
-        post: operations["auth_api_verify_create"];
+        post: operations["auth_api_v1_verify_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2729,15 +2729,9 @@ export interface components {
             is_active?: boolean;
             /** @description IdP entity ID / issuer */
             saml_entity_id?: string;
-            /**
-             * Format: uri
-             * @description IdP SSO URL (redirect binding)
-             */
+            /** @description IdP SSO URL (redirect binding) */
             saml_sso_url?: string;
-            /**
-             * Format: uri
-             * @description IdP SLO URL (optional)
-             */
+            /** @description IdP SLO URL (optional) */
             saml_slo_url?: string;
             /** @description IdP signing certificate (PEM or raw base64) */
             saml_x509_cert?: string;
@@ -2747,10 +2741,7 @@ export interface components {
             attr_last_name?: string;
             oidc_client_id?: string;
             oidc_client_secret?: string;
-            /**
-             * Format: uri
-             * @description .well-known/openid-configuration URL
-             */
+            /** @description .well-known/openid-configuration URL */
             oidc_discovery_url?: string;
             oidc_scopes?: string;
         };
@@ -2809,7 +2800,7 @@ export interface components {
             expires_in: number;
             /**
              * @description The URL to encode inside the QR image. When a phone camera scans the QR code it opens this URL on the scanner's device, which triggers the auth flow. Pass this to your QR-code renderer (e.g. qrcode.js)
-             * @example https://app.example.com/auth/api/qr/abc123xyz/scan/
+             * @example https://app.example.com/auth/api/v1/qr/abc123xyz/scan/
              */
             scan_url: string;
         };
@@ -3213,11 +3204,8 @@ export interface components {
             readonly id: string;
             /** @description Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only. */
             username: string;
-            /**
-             * Email address
-             * Format: email
-             */
-            email?: string | null;
+            /** Email address */
+            email?: (string) | null;
             phone?: string | null;
             readonly auth_type: components["schemas"]["AuthTypeEnum"];
             readonly is_email_verified: boolean;
@@ -3234,8 +3222,7 @@ export interface components {
              */
             readonly is_superuser: boolean;
             readonly oauth_provider: string | null;
-            /** Format: uri */
-            avatar?: string | null;
+            avatar?: (string) | null;
             bio?: string;
             /** Format: date-time */
             readonly created_at: string;
@@ -3398,15 +3385,9 @@ export interface components {
             is_active?: boolean;
             /** @description IdP entity ID / issuer */
             saml_entity_id?: string;
-            /**
-             * Format: uri
-             * @description IdP SSO URL (redirect binding)
-             */
+            /** @description IdP SSO URL (redirect binding) */
             saml_sso_url?: string;
-            /**
-             * Format: uri
-             * @description IdP SLO URL (optional)
-             */
+            /** @description IdP SLO URL (optional) */
             saml_slo_url?: string;
             /** @description IdP signing certificate (PEM or raw base64) */
             saml_x509_cert?: string;
@@ -3416,10 +3397,7 @@ export interface components {
             attr_last_name?: string;
             oidc_client_id?: string;
             oidc_client_secret?: string;
-            /**
-             * Format: uri
-             * @description .well-known/openid-configuration URL
-             */
+            /** @description .well-known/openid-configuration URL */
             oidc_discovery_url?: string;
             oidc_scopes?: string;
         };
@@ -3474,7 +3452,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    auth_api_admin_users_create: {
+    auth_api_v1_admin_users_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3513,7 +3491,7 @@ export interface operations {
             };
         };
     };
-    auth_api_admin_audit_retrieve: {
+    auth_api_v1_admin_audit_retrieve: {
         parameters: {
             query?: {
                 /** @description ISO date */
@@ -3540,7 +3518,7 @@ export interface operations {
             };
         };
     };
-    auth_api_anonymous_create: {
+    auth_api_v1_anonymous_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3573,7 +3551,7 @@ export interface operations {
             };
         };
     };
-    auth_api_capabilities_retrieve: {
+    auth_api_v1_capabilities_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -3591,7 +3569,7 @@ export interface operations {
             };
         };
     };
-    auth_api_email_change_delayed_cancel_create: {
+    auth_api_v1_email_change_delayed_cancel_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3624,7 +3602,7 @@ export interface operations {
             };
         };
     };
-    auth_api_email_change_delayed_initiate_create: {
+    auth_api_v1_email_change_delayed_initiate_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3657,7 +3635,7 @@ export interface operations {
             };
         };
     };
-    auth_api_email_change_delayed_status_retrieve: {
+    auth_api_v1_email_change_delayed_status_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -3676,7 +3654,7 @@ export interface operations {
             };
         };
     };
-    auth_api_email_change_instant_request_new_create: {
+    auth_api_v1_email_change_instant_request_new_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3709,7 +3687,7 @@ export interface operations {
             };
         };
     };
-    auth_api_email_change_instant_request_old_create: {
+    auth_api_v1_email_change_instant_request_old_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3734,7 +3712,7 @@ export interface operations {
             };
         };
     };
-    auth_api_email_change_instant_verify_new_create: {
+    auth_api_v1_email_change_instant_verify_new_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3766,7 +3744,7 @@ export interface operations {
             };
         };
     };
-    auth_api_email_change_instant_verify_old_create: {
+    auth_api_v1_email_change_instant_verify_old_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3791,7 +3769,7 @@ export interface operations {
             };
         };
     };
-    auth_api_email_request_create: {
+    auth_api_v1_email_request_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3848,7 +3826,7 @@ export interface operations {
             };
         };
     };
-    auth_api_email_verify_create: {
+    auth_api_v1_email_verify_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3897,7 +3875,7 @@ export interface operations {
             };
         };
     };
-    auth_api_gdpr_schema_retrieve: {
+    auth_api_v1_gdpr_schema_retrieve: {
         parameters: {
             query?: {
                 format?: "json" | "yaml";
@@ -3930,7 +3908,7 @@ export interface operations {
             };
         };
     };
-    auth_api_logout_retrieve: {
+    auth_api_v1_logout_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -3957,7 +3935,7 @@ export interface operations {
             };
         };
     };
-    auth_api_logout_create: {
+    auth_api_v1_logout_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3990,7 +3968,7 @@ export interface operations {
             };
         };
     };
-    auth_api_magic_request_create: {
+    auth_api_v1_magic_request_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4015,7 +3993,7 @@ export interface operations {
             };
         };
     };
-    auth_api_magic_verify_retrieve: {
+    auth_api_v1_magic_verify_retrieve: {
         parameters: {
             query: {
                 token: string;
@@ -4035,7 +4013,7 @@ export interface operations {
             };
         };
     };
-    auth_api_me_retrieve: {
+    auth_api_v1_me_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4062,7 +4040,7 @@ export interface operations {
             };
         };
     };
-    auth_api_oauth_authorize_retrieve: {
+    auth_api_v1_oauth_authorize_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4082,35 +4060,7 @@ export interface operations {
             };
         };
     };
-    auth_api_oauth_callback_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                provider: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            302: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StapelError"];
-                };
-            };
-        };
-    };
-    auth_api_oauth_callback_retrieve_2: {
+    auth_api_v1_oauth_callback_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4138,7 +4088,35 @@ export interface operations {
             };
         };
     };
-    auth_api_oauth_login_create: {
+    auth_api_v1_oauth_callback_retrieve_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    auth_api_v1_oauth_login_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4171,7 +4149,7 @@ export interface operations {
             };
         };
     };
-    auth_api_oauth2_introspect_create: {
+    auth_api_v1_oauth2_introspect_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4204,7 +4182,7 @@ export interface operations {
             };
         };
     };
-    auth_api_passkey_retrieve: {
+    auth_api_v1_passkey_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4223,7 +4201,7 @@ export interface operations {
             };
         };
     };
-    auth_api_passkey_destroy: {
+    auth_api_v1_passkey_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -4243,7 +4221,7 @@ export interface operations {
             };
         };
     };
-    auth_api_passkey_authenticate_begin_create: {
+    auth_api_v1_passkey_authenticate_begin_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4268,7 +4246,7 @@ export interface operations {
             };
         };
     };
-    auth_api_passkey_authenticate_complete_create: {
+    auth_api_v1_passkey_authenticate_complete_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4292,7 +4270,7 @@ export interface operations {
             };
         };
     };
-    auth_api_passkey_register_begin_create: {
+    auth_api_v1_passkey_register_begin_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4319,7 +4297,7 @@ export interface operations {
             };
         };
     };
-    auth_api_passkey_register_complete_create: {
+    auth_api_v1_passkey_register_complete_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4344,7 +4322,7 @@ export interface operations {
             };
         };
     };
-    auth_api_password_change_create: {
+    auth_api_v1_password_change_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4376,7 +4354,7 @@ export interface operations {
             };
         };
     };
-    auth_api_password_change_otp_request_create: {
+    auth_api_v1_password_change_otp_request_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4425,7 +4403,7 @@ export interface operations {
             };
         };
     };
-    auth_api_password_change_otp_verify_create: {
+    auth_api_v1_password_change_otp_verify_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4457,7 +4435,7 @@ export interface operations {
             };
         };
     };
-    auth_api_password_login_create: {
+    auth_api_v1_password_login_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4490,7 +4468,7 @@ export interface operations {
             };
         };
     };
-    auth_api_password_methods_retrieve: {
+    auth_api_v1_password_methods_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4509,7 +4487,7 @@ export interface operations {
             };
         };
     };
-    auth_api_password_register_create: {
+    auth_api_v1_password_register_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4550,7 +4528,7 @@ export interface operations {
             };
         };
     };
-    auth_api_password_reset_email_request_create: {
+    auth_api_v1_password_reset_email_request_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4599,7 +4577,7 @@ export interface operations {
             };
         };
     };
-    auth_api_password_reset_email_verify_create: {
+    auth_api_v1_password_reset_email_verify_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4640,7 +4618,7 @@ export interface operations {
             };
         };
     };
-    auth_api_password_reset_phone_request_create: {
+    auth_api_v1_password_reset_phone_request_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4689,7 +4667,7 @@ export interface operations {
             };
         };
     };
-    auth_api_password_reset_phone_verify_create: {
+    auth_api_v1_password_reset_phone_verify_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4730,7 +4708,7 @@ export interface operations {
             };
         };
     };
-    auth_api_phone_change_delayed_cancel_create: {
+    auth_api_v1_phone_change_delayed_cancel_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4763,7 +4741,7 @@ export interface operations {
             };
         };
     };
-    auth_api_phone_change_delayed_initiate_create: {
+    auth_api_v1_phone_change_delayed_initiate_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4796,7 +4774,7 @@ export interface operations {
             };
         };
     };
-    auth_api_phone_change_delayed_status_retrieve: {
+    auth_api_v1_phone_change_delayed_status_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4815,7 +4793,7 @@ export interface operations {
             };
         };
     };
-    auth_api_phone_change_instant_request_new_create: {
+    auth_api_v1_phone_change_instant_request_new_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4848,7 +4826,7 @@ export interface operations {
             };
         };
     };
-    auth_api_phone_change_instant_request_old_create: {
+    auth_api_v1_phone_change_instant_request_old_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4873,7 +4851,7 @@ export interface operations {
             };
         };
     };
-    auth_api_phone_change_instant_verify_new_create: {
+    auth_api_v1_phone_change_instant_verify_new_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4905,7 +4883,7 @@ export interface operations {
             };
         };
     };
-    auth_api_phone_change_instant_verify_old_create: {
+    auth_api_v1_phone_change_instant_verify_old_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4930,7 +4908,7 @@ export interface operations {
             };
         };
     };
-    auth_api_phone_request_create: {
+    auth_api_v1_phone_request_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4987,7 +4965,7 @@ export interface operations {
             };
         };
     };
-    auth_api_phone_verify_create: {
+    auth_api_v1_phone_verify_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -5036,7 +5014,7 @@ export interface operations {
             };
         };
     };
-    auth_api_qr_confirm_create: {
+    auth_api_v1_qr_confirm_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -5081,7 +5059,7 @@ export interface operations {
             };
         };
     };
-    auth_api_qr_reject_create: {
+    auth_api_v1_qr_reject_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -5110,7 +5088,7 @@ export interface operations {
             };
         };
     };
-    auth_api_qr_scan_retrieve: {
+    auth_api_v1_qr_scan_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -5138,7 +5116,7 @@ export interface operations {
             };
         };
     };
-    auth_api_qr_status_retrieve: {
+    auth_api_v1_qr_status_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -5159,7 +5137,7 @@ export interface operations {
             };
         };
     };
-    auth_api_qr_generate_create: {
+    auth_api_v1_qr_generate_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -5200,7 +5178,7 @@ export interface operations {
             };
         };
     };
-    auth_api_security_audit_retrieve: {
+    auth_api_v1_security_audit_retrieve: {
         parameters: {
             query?: {
                 /** @description ISO date, e.g. 2026-01-01 */
@@ -5226,7 +5204,7 @@ export interface operations {
             };
         };
     };
-    auth_api_security_revoke_suspicious_retrieve: {
+    auth_api_v1_security_revoke_suspicious_retrieve: {
         parameters: {
             query: {
                 token: string;
@@ -5246,7 +5224,7 @@ export interface operations {
             };
         };
     };
-    auth_api_security_status_retrieve: {
+    auth_api_v1_security_status_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -5265,7 +5243,7 @@ export interface operations {
             };
         };
     };
-    auth_api_service_keys_list: {
+    auth_api_v1_service_keys_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -5284,7 +5262,7 @@ export interface operations {
             };
         };
     };
-    auth_api_service_keys_create: {
+    auth_api_v1_service_keys_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -5309,7 +5287,7 @@ export interface operations {
             };
         };
     };
-    auth_api_service_keys_retrieve: {
+    auth_api_v1_service_keys_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -5331,7 +5309,7 @@ export interface operations {
             };
         };
     };
-    auth_api_service_keys_update: {
+    auth_api_v1_service_keys_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -5359,7 +5337,7 @@ export interface operations {
             };
         };
     };
-    auth_api_service_keys_destroy: {
+    auth_api_v1_service_keys_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -5380,7 +5358,7 @@ export interface operations {
             };
         };
     };
-    auth_api_service_keys_partial_update: {
+    auth_api_v1_service_keys_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -5408,7 +5386,7 @@ export interface operations {
             };
         };
     };
-    auth_api_sessions_list: {
+    auth_api_v1_sessions_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -5427,7 +5405,7 @@ export interface operations {
             };
         };
     };
-    auth_api_sessions_destroy: {
+    auth_api_v1_sessions_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -5445,7 +5423,7 @@ export interface operations {
             };
         };
     };
-    auth_api_sessions_destroy_2: {
+    auth_api_v1_sessions_destroy_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -5473,7 +5451,7 @@ export interface operations {
             };
         };
     };
-    auth_api_sessions_confirm_create: {
+    auth_api_v1_sessions_confirm_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -5502,7 +5480,7 @@ export interface operations {
             };
         };
     };
-    auth_api_sso_login_retrieve: {
+    auth_api_v1_sso_login_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -5522,7 +5500,7 @@ export interface operations {
             };
         };
     };
-    auth_api_sso_oidc_callback_retrieve: {
+    auth_api_v1_sso_oidc_callback_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -5542,7 +5520,7 @@ export interface operations {
             };
         };
     };
-    auth_api_sso_saml_acs_create: {
+    auth_api_v1_sso_saml_acs_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -5574,7 +5552,7 @@ export interface operations {
             };
         };
     };
-    auth_api_sso_saml_metadata_retrieve: {
+    auth_api_v1_sso_saml_metadata_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -5594,7 +5572,7 @@ export interface operations {
             };
         };
     };
-    auth_api_sso_lookup_retrieve: {
+    auth_api_v1_sso_lookup_retrieve: {
         parameters: {
             query: {
                 /** @description Email domain, e.g. acmecorp.com */
@@ -5616,7 +5594,7 @@ export interface operations {
             };
         };
     };
-    auth_api_sso_orgs_list: {
+    auth_api_v1_sso_orgs_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -5635,7 +5613,7 @@ export interface operations {
             };
         };
     };
-    auth_api_sso_orgs_create: {
+    auth_api_v1_sso_orgs_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -5660,7 +5638,7 @@ export interface operations {
             };
         };
     };
-    auth_api_sso_orgs_retrieve: {
+    auth_api_v1_sso_orgs_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -5681,7 +5659,7 @@ export interface operations {
             };
         };
     };
-    auth_api_sso_orgs_destroy: {
+    auth_api_v1_sso_orgs_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -5701,7 +5679,7 @@ export interface operations {
             };
         };
     };
-    auth_api_sso_orgs_partial_update: {
+    auth_api_v1_sso_orgs_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -5728,7 +5706,7 @@ export interface operations {
             };
         };
     };
-    auth_api_sso_orgs_config_update: {
+    auth_api_v1_sso_orgs_config_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -5755,7 +5733,7 @@ export interface operations {
             };
         };
     };
-    auth_api_sso_orgs_config_partial_update: {
+    auth_api_v1_sso_orgs_config_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -5782,7 +5760,7 @@ export interface operations {
             };
         };
     };
-    auth_api_staff_roles_list: {
+    auth_api_v1_staff_roles_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -5808,7 +5786,7 @@ export interface operations {
             };
         };
     };
-    auth_api_staff_roles_create: {
+    auth_api_v1_staff_roles_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -5854,7 +5832,7 @@ export interface operations {
             };
         };
     };
-    auth_api_staff_roles_destroy: {
+    auth_api_v1_staff_roles_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -5888,7 +5866,7 @@ export interface operations {
             };
         };
     };
-    auth_api_token_create: {
+    auth_api_v1_token_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -5921,7 +5899,7 @@ export interface operations {
             };
         };
     };
-    auth_api_token_refresh_retrieve: {
+    auth_api_v1_token_refresh_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -5948,7 +5926,7 @@ export interface operations {
             };
         };
     };
-    auth_api_token_refresh_create: {
+    auth_api_v1_token_refresh_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -5981,7 +5959,7 @@ export interface operations {
             };
         };
     };
-    auth_api_totp_challenge_verify_create: {
+    auth_api_v1_totp_challenge_verify_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -6013,7 +5991,7 @@ export interface operations {
             };
         };
     };
-    auth_api_totp_disable_create: {
+    auth_api_v1_totp_disable_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -6045,7 +6023,7 @@ export interface operations {
             };
         };
     };
-    auth_api_totp_disable_otp_request_create: {
+    auth_api_v1_totp_disable_otp_request_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -6071,7 +6049,7 @@ export interface operations {
             };
         };
     };
-    auth_api_totp_setup_create: {
+    auth_api_v1_totp_setup_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -6090,7 +6068,7 @@ export interface operations {
             };
         };
     };
-    auth_api_totp_setup_confirm_create: {
+    auth_api_v1_totp_setup_confirm_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -6115,7 +6093,7 @@ export interface operations {
             };
         };
     };
-    auth_api_totp_step_up_create: {
+    auth_api_v1_totp_step_up_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -6148,7 +6126,7 @@ export interface operations {
             };
         };
     };
-    auth_api_user_account_cancel_close_create: {
+    auth_api_v1_user_account_cancel_close_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -6175,7 +6153,7 @@ export interface operations {
             };
         };
     };
-    auth_api_user_account_close_create: {
+    auth_api_v1_user_account_close_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -6202,7 +6180,7 @@ export interface operations {
             };
         };
     };
-    auth_api_user_account_close_status_retrieve: {
+    auth_api_v1_user_account_close_status_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -6221,7 +6199,7 @@ export interface operations {
             };
         };
     };
-    auth_api_user_data_export_download_retrieve: {
+    auth_api_v1_user_data_export_download_retrieve: {
         parameters: {
             query: {
                 /** @description Single-use download token bound to the authenticated user. */
@@ -6267,7 +6245,7 @@ export interface operations {
             };
         };
     };
-    auth_api_user_data_export_download_create: {
+    auth_api_v1_user_data_export_download_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -6316,7 +6294,7 @@ export interface operations {
             };
         };
     };
-    auth_api_user_data_export_request_create: {
+    auth_api_v1_user_data_export_request_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -6343,7 +6321,7 @@ export interface operations {
             };
         };
     };
-    auth_api_user_data_export_status_retrieve: {
+    auth_api_v1_user_data_export_status_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -6362,7 +6340,7 @@ export interface operations {
             };
         };
     };
-    auth_api_verification_retrieve: {
+    auth_api_v1_verification_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -6391,7 +6369,7 @@ export interface operations {
             };
         };
     };
-    auth_api_verification_complete_create: {
+    auth_api_v1_verification_complete_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -6442,7 +6420,7 @@ export interface operations {
             };
         };
     };
-    auth_api_verification_initiate_create: {
+    auth_api_v1_verification_initiate_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -6485,7 +6463,7 @@ export interface operations {
             };
         };
     };
-    auth_api_verification_preferences_retrieve: {
+    auth_api_v1_verification_preferences_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -6504,7 +6482,7 @@ export interface operations {
             };
         };
     };
-    auth_api_verification_preferences_update: {
+    auth_api_v1_verification_preferences_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -6545,7 +6523,7 @@ export interface operations {
             };
         };
     };
-    auth_api_verify_create: {
+    auth_api_v1_verify_create: {
         parameters: {
             query?: never;
             header?: never;

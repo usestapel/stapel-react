@@ -75,12 +75,12 @@ describe("authApi", () => {
 
 describe("browser-redirect URL builders", () => {
   it("builds authorize / sso / qr-scan URLs", () => {
-    const u = authUrls("/auth/api");
+    const u = authUrls("/auth/api/v1");
     expect(u.oauthAuthorize("google", "https://app/after")).toBe(
-      "/auth/api/oauth/google/authorize/?redirect_uri=https%3A%2F%2Fapp%2Fafter"
+      "/auth/api/v1/oauth/google/authorize/?redirect_uri=https%3A%2F%2Fapp%2Fafter"
     );
-    expect(u.ssoLogin("acme")).toBe("/auth/api/sso/acme/login/");
-    expect(u.qrScan("k1")).toBe("/auth/api/qr/k1/scan/");
+    expect(u.ssoLogin("acme")).toBe("/auth/api/v1/sso/acme/login/");
+    expect(u.qrScan("k1")).toBe("/auth/api/v1/qr/k1/scan/");
   });
 });
 
@@ -99,12 +99,12 @@ describe("open-redirect defence (auth-sa.md §19.2)", () => {
     expect(safeNextPath("//evil.com", origin)).toBeNull();
   });
 
-  it("safeScanRedirect only accepts same-origin /auth/api/qr/ paths", () => {
+  it("safeScanRedirect only accepts same-origin /auth/api/v1/qr/ paths", () => {
     const origin = "https://app.example.com";
     expect(
-      safeScanRedirect("https://app.example.com/auth/api/qr/k/scan/", origin)
-    ).toBe("https://app.example.com/auth/api/qr/k/scan/");
+      safeScanRedirect("https://app.example.com/auth/api/v1/qr/k/scan/", origin)
+    ).toBe("https://app.example.com/auth/api/v1/qr/k/scan/");
     expect(safeScanRedirect("https://app.example.com/other", origin)).toBeNull();
-    expect(safeScanRedirect("https://evil.com/auth/api/qr/k/", origin)).toBeNull();
+    expect(safeScanRedirect("https://evil.com/auth/api/v1/qr/k/", origin)).toBeNull();
   });
 });

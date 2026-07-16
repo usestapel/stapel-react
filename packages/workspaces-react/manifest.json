@@ -16,86 +16,86 @@
   "flows": {},
   "machines": [],
   "operations": {
-    "workspaces_api_create": {
+    "workspaces_api_v1_create": {
       "method": "POST",
-      "path": "/workspaces/api/",
+      "path": "/workspaces/api/v1/",
       "tag": "Workspaces",
       "request": "WorkspaceCreateRequest",
       "response": "WorkspaceResponse"
     },
-    "workspaces_api_destroy": {
+    "workspaces_api_v1_destroy": {
       "method": "DELETE",
-      "path": "/workspaces/api/{workspace_id}",
+      "path": "/workspaces/api/v1/{workspace_id}",
       "tag": "Workspaces",
       "request": null,
       "response": null
     },
-    "workspaces_api_internal_members_retrieve": {
+    "workspaces_api_v1_internal_members_retrieve": {
       "method": "GET",
-      "path": "/workspaces/api/internal/{workspace_id}/members/{user_id}",
+      "path": "/workspaces/api/v1/internal/{workspace_id}/members/{user_id}",
       "tag": "Internal",
       "request": null,
       "response": "MemberResponse"
     },
-    "workspaces_api_internal_users_personal_create": {
+    "workspaces_api_v1_internal_users_personal_create": {
       "method": "POST",
-      "path": "/workspaces/api/internal/users/{user_id}/personal",
+      "path": "/workspaces/api/v1/internal/users/{user_id}/personal",
       "tag": "Internal",
       "request": null,
       "response": "InternalPersonalWorkspaceResponse"
     },
-    "workspaces_api_invitations_accept_create": {
+    "workspaces_api_v1_invitations_accept_create": {
       "method": "POST",
-      "path": "/workspaces/api/invitations/accept",
+      "path": "/workspaces/api/v1/invitations/accept",
       "tag": "Members",
       "request": "InvitationAcceptRequest",
       "response": "MemberResponse"
     },
-    "workspaces_api_members_destroy": {
+    "workspaces_api_v1_members_destroy": {
       "method": "DELETE",
-      "path": "/workspaces/api/{workspace_id}/members/{user_id}",
+      "path": "/workspaces/api/v1/{workspace_id}/members/{user_id}",
       "tag": "Members",
       "request": null,
       "response": null
     },
-    "workspaces_api_members_invite_create": {
+    "workspaces_api_v1_members_invite_create": {
       "method": "POST",
-      "path": "/workspaces/api/{workspace_id}/members/invite",
+      "path": "/workspaces/api/v1/{workspace_id}/members/invite",
       "tag": "Members",
       "request": "MemberInviteRequest",
       "response": "MemberInviteResponse"
     },
-    "workspaces_api_members_list": {
+    "workspaces_api_v1_members_list": {
       "method": "GET",
-      "path": "/workspaces/api/{workspace_id}/members",
+      "path": "/workspaces/api/v1/{workspace_id}/members",
       "tag": "Members",
       "request": null,
       "response": "PaginatedMemberResponseList"
     },
-    "workspaces_api_members_partial_update": {
+    "workspaces_api_v1_members_partial_update": {
       "method": "PATCH",
-      "path": "/workspaces/api/{workspace_id}/members/{user_id}",
+      "path": "/workspaces/api/v1/{workspace_id}/members/{user_id}",
       "tag": "Members",
       "request": "PatchedMemberUpdateRequest",
       "response": "MemberResponse"
     },
-    "workspaces_api_partial_update": {
+    "workspaces_api_v1_partial_update": {
       "method": "PATCH",
-      "path": "/workspaces/api/{workspace_id}",
+      "path": "/workspaces/api/v1/{workspace_id}",
       "tag": "Workspaces",
       "request": "PatchedWorkspaceUpdateRequest",
       "response": "WorkspaceResponse"
     },
-    "workspaces_api_retrieve": {
+    "workspaces_api_v1_retrieve": {
       "method": "GET",
-      "path": "/workspaces/api/",
+      "path": "/workspaces/api/v1/",
       "tag": "Workspaces",
       "request": null,
       "response": "WorkspaceListResponse"
     },
-    "workspaces_api_retrieve_2": {
+    "workspaces_api_v1_retrieve_2": {
       "method": "GET",
-      "path": "/workspaces/api/{workspace_id}",
+      "path": "/workspaces/api/v1/{workspace_id}",
       "tag": "Workspaces",
       "request": null,
       "response": "WorkspaceResponse"

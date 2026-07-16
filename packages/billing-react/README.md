@@ -29,7 +29,7 @@ import {
   registerBillingI18n,
 } from "@stapel/billing-react";
 
-const runtime = createBillingRuntime({ baseUrl: "/billing/api/" });
+const runtime = createBillingRuntime({ baseUrl: "/billing/api/v1/" });
 const i18n = createI18n({ locale: "en" });
 registerBillingI18n(i18n); // the pair's key bundle → core's engine
 

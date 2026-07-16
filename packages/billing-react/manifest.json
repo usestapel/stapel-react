@@ -16,72 +16,72 @@
   "flows": {},
   "machines": [],
   "operations": {
-    "billing_api_checkout_create": {
+    "billing_api_v1_checkout_create": {
       "method": "POST",
-      "path": "/billing/api/checkout",
+      "path": "/billing/api/v1/checkout",
       "tag": "Checkout",
       "request": "CheckoutRequest",
       "response": "CheckoutResponse"
     },
-    "billing_api_internal_debit_create": {
+    "billing_api_v1_internal_debit_create": {
       "method": "POST",
-      "path": "/billing/api/internal/debit",
+      "path": "/billing/api/v1/internal/debit",
       "tag": "Internal",
       "request": "CreditDebitRequest",
       "response": "CreditOperationResponse"
     },
-    "billing_api_portal_retrieve": {
+    "billing_api_v1_portal_retrieve": {
       "method": "GET",
-      "path": "/billing/api/portal",
+      "path": "/billing/api/v1/portal",
       "tag": "Checkout",
       "request": null,
       "response": "CustomerPortalResponse"
     },
-    "billing_api_products_retrieve": {
+    "billing_api_v1_products_retrieve": {
       "method": "GET",
-      "path": "/billing/api/products",
+      "path": "/billing/api/v1/products",
       "tag": "Catalog",
       "request": null,
       "response": "CatalogResponse"
     },
-    "billing_api_subscription_cancel_create": {
+    "billing_api_v1_subscription_cancel_create": {
       "method": "POST",
-      "path": "/billing/api/subscription/cancel",
+      "path": "/billing/api/v1/subscription/cancel",
       "tag": "Subscription",
       "request": null,
       "response": "SubscriptionResponse"
     },
-    "billing_api_subscription_retrieve": {
+    "billing_api_v1_subscription_retrieve": {
       "method": "GET",
-      "path": "/billing/api/subscription",
+      "path": "/billing/api/v1/subscription",
       "tag": "Subscription",
       "request": null,
       "response": "SubscriptionResponse"
     },
-    "billing_api_wallet_partial_update": {
+    "billing_api_v1_wallet_partial_update": {
       "method": "PATCH",
-      "path": "/billing/api/wallet",
+      "path": "/billing/api/v1/wallet",
       "tag": "Wallet",
       "request": "PatchedWalletUpdateRequest",
       "response": "WalletResponse"
     },
-    "billing_api_wallet_retrieve": {
+    "billing_api_v1_wallet_retrieve": {
       "method": "GET",
-      "path": "/billing/api/wallet",
+      "path": "/billing/api/v1/wallet",
       "tag": "Wallet",
       "request": null,
       "response": "WalletResponse"
     },
-    "billing_api_wallet_transactions_retrieve": {
+    "billing_api_v1_wallet_transactions_retrieve": {
       "method": "GET",
-      "path": "/billing/api/wallet/transactions",
+      "path": "/billing/api/v1/wallet/transactions",
       "tag": "Wallet",
       "request": null,
       "response": "TransactionListResponse"
     },
-    "billing_api_webhooks_stripe_create": {
+    "billing_api_v1_webhooks_stripe_create": {
       "method": "POST",
-      "path": "/billing/api/webhooks/stripe",
+      "path": "/billing/api/v1/webhooks/stripe",
       "tag": "Webhooks",
       "request": null,
       "response": null

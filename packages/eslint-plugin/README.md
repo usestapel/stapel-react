@@ -72,7 +72,7 @@ settings: {
     rawModules: ["@x/raw"],     // extra raw-token entry points
     storageModules: ["level"],  // extra banned storage-backend packages
     eventsManifests: [manifest],// or eventNames: ["pricing.plan.selected", …]
-    operationsManifests: [manifest], // or operationPaths: ["/auth/api/me/", …]
+    operationsManifests: [manifest], // or operationPaths: ["/auth/api/v1/me/", …]
     httpVerbs: ["get","post"],   // client methods no-string-paths inspects
     queryHooks: ["useQuery"],    // extra react-query hooks to inspect for keys
     trackedWrappers: ["tracked"],
