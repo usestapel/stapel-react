@@ -193,6 +193,14 @@ export {
   useUnlinkOAuth,
   useCancelDelayedChange,
 } from "./model/mutations.js";
+export {
+  usePhoneCountryDefault,
+  DEFAULT_DIAL_CODES,
+} from "./model/usePhoneCountryDefault.js";
+export type {
+  UsePhoneCountryDefaultOptions,
+  PhoneCountryDefault,
+} from "./model/usePhoneCountryDefault.js";
 
 // ── headless (renderless components) ─────────────────────────────────────────
 export { AuthProvider } from "./headless/AuthProvider.js";
@@ -228,14 +236,6 @@ export type {
   SsoDiscoveryBag,
   AuthenticatorChangeBag,
 } from "./headless/misc.js";
-export {
-  usePhoneCountryDefault,
-  DEFAULT_DIAL_CODES,
-} from "./headless/usePhoneCountryDefault.js";
-export type {
-  UsePhoneCountryDefaultOptions,
-  PhoneCountryDefault,
-} from "./headless/usePhoneCountryDefault.js";
 
 // ── i18n ─────────────────────────────────────────────────────────────────────
 export {

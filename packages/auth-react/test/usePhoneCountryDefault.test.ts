@@ -7,7 +7,7 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
-import { usePhoneCountryDefault } from "../src/headless/usePhoneCountryDefault.js";
+import { usePhoneCountryDefault } from "../src/model/usePhoneCountryDefault.js";
 
 function jsonResponse(body: unknown, ok = true, status = 200): Response {
   return {
