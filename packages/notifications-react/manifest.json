@@ -408,7 +408,11 @@
     "notifications.feed.empty",
     "notifications.feed.end",
     "notifications.feed.load_more",
-    "notifications.feed.loading"
+    "notifications.feed.loading",
+    "notifications.settings.feed.subtitle",
+    "notifications.settings.feed.title",
+    "notifications.settings.push.subtitle",
+    "notifications.settings.push.title"
   ],
   "exports": {
     "runtime": [
