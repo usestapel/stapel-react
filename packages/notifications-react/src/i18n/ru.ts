@@ -33,6 +33,10 @@ export const notificationsI18nBundleRu: I18nDictionary = {
   "notifications.device.unregister": "Отключить push-уведомления",
   "notifications.device.registering": "Включение…",
   "notifications.device.registered": "Push-уведомления включены.",
+  "notifications.settings.push.title": "Push-уведомления",
+  "notifications.settings.push.subtitle": "Включите push-уведомления на этом устройстве.",
+  "notifications.settings.feed.title": "Недавние уведомления",
+  "notifications.settings.feed.subtitle": "Что мы вам недавно отправляли.",
 };
 
 /**

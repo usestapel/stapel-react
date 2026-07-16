@@ -22,6 +22,11 @@ export const NOTIFICATIONS_I18N_KEYS = {
   deviceUnregister: "notifications.device.unregister",
   deviceRegistering: "notifications.device.registering",
   deviceRegistered: "notifications.device.registered",
+  // Default skin — PushNotificationToggle / NotificationFeedList
+  pushSettingsTitle: "notifications.settings.push.title",
+  pushSettingsSubtitle: "notifications.settings.push.subtitle",
+  feedSettingsTitle: "notifications.settings.feed.title",
+  feedSettingsSubtitle: "notifications.settings.feed.subtitle",
 } as const;
 
 export type NotificationsI18nKey =
@@ -48,6 +53,10 @@ export const notificationsI18nBundleEn: I18nDictionary = {
   "notifications.device.unregister": "Disable push notifications",
   "notifications.device.registering": "Enabling…",
   "notifications.device.registered": "Push notifications enabled.",
+  "notifications.settings.push.title": "Push notifications",
+  "notifications.settings.push.subtitle": "Enable push notifications on this device.",
+  "notifications.settings.feed.title": "Recent notifications",
+  "notifications.settings.feed.subtitle": "What we've sent you lately.",
 };
 
 /**

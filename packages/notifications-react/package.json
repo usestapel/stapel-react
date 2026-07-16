@@ -17,6 +17,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./default": {
+      "types": "./dist/default/index.d.ts",
+      "default": "./dist/default/index.js"
+    },
     "./i18n/ru": {
       "types": "./dist/i18n/ru.d.ts",
       "default": "./dist/i18n/ru.js"
@@ -53,12 +57,23 @@
       "name": "i18n/ru subpath (opt-in locale: en floor + generated ru + ru UI)",
       "path": "dist/i18n/ru.js",
       "limit": "3 KB"
+    },
+    {
+      "name": "default — the settings skin (antd) must stay out of the main bundle",
+      "path": "dist/default/index.js",
+      "limit": "12 KB"
     }
   ],
   "peerDependencies": {
     "@stapel/core": ">=0.3.0 <1.0.0",
     "@tanstack/react-query": "^5.0.0",
+    "antd": ">=5.20.0 <7",
     "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "antd": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@size-limit/preset-small-lib": "^11.2.0",
@@ -69,6 +84,7 @@
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "antd": "^6.5.0",
     "jsdom": "^26.1.0",
     "msw": "^2.10.2",
     "react": "^19.1.0",
