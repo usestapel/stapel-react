@@ -144,8 +144,8 @@ export type {
   FlowStateBase,
 } from "./flows/flowMachine.js";
 export { useFlow } from "./flows/useFlow.js";
-export { toFlowError, isErrorCode } from "./flows/flowError.js";
-export type { FlowError } from "./flows/flowError.js";
+export { toFlowError, isErrorCode, formatFlowError } from "./flows/flowError.js";
+export type { FlowError, FormatFlowErrorOptions } from "./flows/flowError.js";
 
 // NOTE: @stapel/core no longer exports a generated `paths`/`components`/
 // `operations` surface. Under the §17 per-module contract pipeline every

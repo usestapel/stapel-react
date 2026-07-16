@@ -43,4 +43,18 @@ describe("parseErrorEnvelope", () => {
     const body = { localizable_error: "x.y", extra: { nested: true } };
     expect(parseErrorEnvelope(400, body).body).toBe(body);
   });
+
+  it("carries the envelope's language tag when present", () => {
+    const error = parseErrorEnvelope(400, {
+      localizable_error: "auth.otp.invalid",
+      error: "Code invalide",
+      language: "fr",
+    });
+    expect(error.language).toBe("fr");
+  });
+
+  it("language is undefined when the backend doesn't send one (rollout in progress)", () => {
+    const error = parseErrorEnvelope(400, { error: "boom" });
+    expect(error.language).toBeUndefined();
+  });
 });
