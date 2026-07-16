@@ -146,27 +146,52 @@ function SignIn() {
 }
 ```
 
-Error codes on every flow error state are backend `localizable_error` keys —
-resolve them with core's `useT()`. auth-react ships an English fallback bundle
-(`registerAuthI18n`) covering both its UI keys and the auth-sa.md error codes.
+## Rendering a flow error
 
-### Russian locale (opt-in subpath)
+Every flow error state carries a `FlowError` (`{ code, params, status,
+message, language }`) — `code` is a backend `localizable_error` key,
+`params` feed `{param}` interpolation. **Don't** hand-roll
+`bundle[code] ?? code`: use core's `useFormatFlowError()`, which chains
+1) your i18n bundle's translation for `code` (interpolated), 2) the
+backend's own `message` text (ONLY when its `language` matches the host's
+current locale — never an off-locale string), 3) the raw `code` as the
+last resort:
 
-The `ru` bundle ships as a separate subpath so it never bloats the main entry
-(size-limit gated — the locale stays out of hosts that don't register it):
+```tsx
+import { useFormatFlowError } from "@stapel/core";
+
+function OtpError({ error }: { error: FlowError }) {
+  const formatError = useFormatFlowError();
+  return <Alert type="error" message={formatError(error)} />;
+}
+```
+
+The default skin (`@stapel/auth-react/default`) already renders every
+inline error this way — nothing to wire yourself if you use `<AuthPanel/>`.
+
+auth-react ships an English fallback bundle (`registerAuthI18n`) covering
+both its UI keys and the auth-sa.md error codes, so `formatError`'s bundle
+step always has an en floor to fall back on.
+
+### Russian locale — one line to register (opt-in subpath)
+
+auth-react ships a COMPLETE `ru` bundle (`authI18nBundleRu`/
+`registerAuthI18nRu`) — every UI key hand-translated, every backend error
+code generated from stapel-auth's own `translations/errors.ru.json` catalog
+(`pnpm gen:errors`, drift-gated). It's a separate subpath so it never bloats
+the main entry (size-limit gated — the locale stays out of hosts that don't
+register it), but registering it is exactly ONE extra line:
 
 ```tsx
 import { registerAuthI18nRu } from "@stapel/auth-react/i18n/ru";
 
-registerAuthI18n(i18n);      // en floor + polish
-registerAuthI18nRu(i18n);    // ru locale (generated from the backend catalog)
-await i18n.setLocale("ru");  // live switch; a missing key degrades to English
+registerAuthI18n(i18n);      // en floor + polish (always register this first)
+registerAuthI18nRu(i18n);    // ← the one line: full ru locale, backend + UI copy
+await i18n.setLocale("ru");  // live switch; a missing key degrades to English, never a raw key
 ```
 
-Backend error texts are generated from stapel-auth's
-`translations/errors.ru.json` catalog (`pnpm gen:errors`, drift-gated); the
-pair's UI keys carry hand-written ru copy. Register your own bundle AFTER the
-pair's to override any key — registration order is override priority.
+Register your own bundle AFTER the pair's to override any key — registration
+order is override priority (last registered wins per key).
 
 ## Shadcn mode (frontend-standard §7)
 

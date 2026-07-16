@@ -8,7 +8,7 @@
  * `ConfigProvider` fed by `toAntdThemeConfig` (ПРАВИЛО 12).
  */
 import { useEffect, useRef, useState } from "react";
-import type { ReactElement, ReactNode } from "react";
+import type { ElementRef, ReactElement, ReactNode } from "react";
 import {
   Alert,
   Avatar,
@@ -20,12 +20,13 @@ import {
   Result,
   Typography,
 } from "antd";
-import { useT } from "@stapel/core";
+import { useFormatFlowError, useT } from "@stapel/core";
 import type { FlowError } from "../flows/errors.js";
 import type { OAuthProviderInfo, OtpChannel } from "../api/types.js";
 import { authUrls } from "../api/urls.js";
 import type { QrLoginState } from "../flows/qrLoginFlow.js";
 import type { SsoState } from "../flows/ssoFlow.js";
+import { useCapabilities } from "../model/queries.js";
 import { PasswordlessLogin } from "../headless/PasswordlessLogin.js";
 import { PasswordLogin } from "../headless/PasswordLogin.js";
 import { QrLogin } from "../headless/QrLogin.js";
@@ -34,13 +35,24 @@ import { MagicLink, SsoDiscovery } from "../headless/misc.js";
 import { useAuthApi } from "../model/context.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
 
-const OTP_LENGTH = 6;
+/**
+ * Fallback digit count when the backend doesn't send `otp_code_length`
+ * (stapel-auth <0.6.0) — every backend has used 6 to date, so this is the
+ * ONE safe fallback, not a guess between arbitrary lengths.
+ */
+const DEFAULT_OTP_LENGTH = 6;
 const RESEND_COOLDOWN_S = 30;
 
-/** Inline error copy for a flow error — `t(code, params)` (ПРАВИЛО 8). */
+/**
+ * Inline error copy for a flow error (ПРАВИЛО 8) — routed through core's
+ * `useFormatFlowError` (frontend-core-architecture gap fix): bundle template
+ * → the backend's own locale-matched message → the raw code, instead of a
+ * bare `t(code, params)` that shows an unformatted code whenever a bundle key
+ * is missing.
+ */
 function useErrorText(): (e: FlowError | undefined) => string | undefined {
-  const t = useT();
-  return (e) => (e ? t(e.code, e.params) : undefined);
+  const format = useFormatFlowError();
+  return (e) => (e ? format(e) : undefined);
 }
 
 /** `Form.Item` error props for a flow error, spread so no `undefined` is
@@ -49,9 +61,8 @@ function useErrorText(): (e: FlowError | undefined) => string | undefined {
 function useFieldError(): (
   e: FlowError | undefined
 ) => { validateStatus: "error"; help: string } | Record<string, never> {
-  const t = useT();
-  return (e) =>
-    e ? { validateStatus: "error", help: t(e.code, e.params) } : {};
+  const format = useFormatFlowError();
+  return (e) => (e ? { validateStatus: "error", help: format(e) } : {});
 }
 
 /**
@@ -86,10 +97,78 @@ function ResendLink(props: { onResend: () => void }): ReactElement {
   );
 }
 
+/**
+ * The OTP code step — auto-submits the moment every cell is filled (owner
+ * directive: no "Confirm" button, matching every real-world OTP UX). Guards
+ * against a double-submit with `submittedRef` (armed the instant length is
+ * reached, only re-armed by a FRESH error — a `verifying`/success re-render
+ * can't re-trigger it since the value doesn't change again on its own). On
+ * error the cells clear and refocus so the next attempt starts clean.
+ */
+function OtpCodeStep(props: {
+  target: string;
+  length: number;
+  error: FlowError | undefined;
+  submitting: boolean;
+  onSubmit: (code: string) => void;
+  onResend: () => void;
+  /** Purely a static marker for `stapel/clickable-needs-event` — the actual
+   * submit happens inside, on `Input.OTP`'s auto-fill (a flow action; the
+   * machine auto-emits `flow.<id>.<step>`), not on a DOM click/submit here. */
+  "data-analytics"?: "flow";
+}): ReactElement {
+  const t = useT();
+  const errorText = useErrorText();
+  const [code, setCode] = useState("");
+  const submittedRef = useRef(false);
+  const otpRef = useRef<ElementRef<typeof Input.OTP>>(null);
+
+  useEffect(() => {
+    if (!props.error) return;
+    setCode("");
+    submittedRef.current = false;
+    otpRef.current?.focus();
+  }, [props.error]);
+
+  function handleChange(value: string): void {
+    setCode(value);
+    if (value.length === props.length && !submittedRef.current && !props.submitting) {
+      submittedRef.current = true;
+      props.onSubmit(value);
+    }
+  }
+
+  return (
+    <Flex vertical gap="middle">
+      <Typography.Text type="secondary">
+        {t(AUTH_I18N_KEYS.otpSentTo, { target: props.target })}
+      </Typography.Text>
+      <Flex vertical gap="small">
+        <Typography.Text>{t(AUTH_I18N_KEYS.otpEnterCode)}</Typography.Text>
+        <Input.OTP
+          ref={otpRef}
+          length={props.length}
+          value={code}
+          onChange={handleChange}
+          autoFocus
+          disabled={props.submitting}
+          {...(props.error ? { status: "error" as const } : {})}
+        />
+        {props.error && (
+          <Alert type="error" showIcon message={errorText(props.error)} />
+        )}
+      </Flex>
+      <ResendLink onResend={props.onResend} />
+    </Flex>
+  );
+}
+
 /** Email / phone one-time-code panel (ПРАВИЛА 8-9). */
 export function OtpPanel(props: { channel: OtpChannel }): ReactElement {
   const t = useT();
   const fieldError = useFieldError();
+  const caps = useCapabilities();
+  const otpLength = caps.data?.login.otp_code_length ?? DEFAULT_OTP_LENGTH;
   const { channel } = props;
   const labelKey =
     channel === "email"
@@ -114,34 +193,15 @@ export function OtpPanel(props: { channel: OtpChannel }): ReactElement {
         if (sent) {
           const err = s.step === "codeError" ? s.error : undefined;
           return (
-            <Flex vertical gap="middle">
-              <Typography.Text type="secondary">
-                {t(AUTH_I18N_KEYS.otpSentTo, { target: s.target })}
-              </Typography.Text>
-              <Form
-                layout="vertical"
-                onFinish={(v: { code?: string }) =>
-                  bag.submitCode(v.code ?? "")
-                }
-              >
-                <Form.Item
-                  name="code"
-                  label={t(AUTH_I18N_KEYS.otpEnterCode)}
-                  {...fieldError(err)}
-                >
-                  <Input.OTP length={OTP_LENGTH} autoFocus />
-                </Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  block
-                  loading={s.step === "verifying"}
-                >
-                  {t(AUTH_I18N_KEYS.uiSubmit)}
-                </Button>
-              </Form>
-              <ResendLink onResend={() => bag.resend()} />
-            </Flex>
+            <OtpCodeStep
+              target={s.target}
+              length={otpLength}
+              error={err}
+              submitting={s.step === "verifying"}
+              onSubmit={(code) => bag.submitCode(code)}
+              onResend={() => bag.resend()}
+              data-analytics="flow"
+            />
           );
         }
         const reqErr =

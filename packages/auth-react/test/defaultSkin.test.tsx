@@ -8,7 +8,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConfigProvider, theme as antdTheme } from "antd";
 import type { ReactElement, ReactNode } from "react";
@@ -114,6 +114,130 @@ function TokenProbe(): ReactElement {
   const { token } = antdTheme.useToken();
   return <span data-testid="bg">{token.colorBgContainer}</span>;
 }
+
+/**
+ * Owner directive point 3 (OTP UX): no "Confirm" button — the code auto-
+ * submits the instant every cell is filled, the digit count comes from the
+ * backend's `otp_code_length` (fallback 6), and a wrong code clears the
+ * cells + refocuses rather than leaving stale digits sitting there.
+ */
+describe("<AuthPanel/> — OTP auto-submit (owner directive point 3)", () => {
+  const EMAIL_ONLY_CAPS = (otpCodeLength?: number) => ({
+    registration: {
+      phone: false,
+      email: true,
+      password: false,
+      oauth: [],
+      sso: false,
+      anonymous: false,
+    },
+    login: {
+      phone: false,
+      email: true,
+      password: false,
+      oauth: [],
+      sso: false,
+      qr: false,
+      passkey: false,
+      magic_link: false,
+      ...(otpCodeLength !== undefined ? { otp_code_length: otpCodeLength } : {}),
+    },
+  });
+
+  function fillOtp(code: string): void {
+    for (let i = 0; i < code.length; i++) {
+      const cell = screen.getByLabelText(`OTP Input ${i + 1}`) as HTMLInputElement;
+      fireEvent.input(cell, { target: { value: code[i] } });
+    }
+  }
+
+  it("auto-submits (no button) once every cell is filled, honouring a custom otp_code_length", async () => {
+    let verifyCalls = 0;
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(EMAIL_ONLY_CAPS(4))),
+      http.post(`${BASE}/email/request/`, () =>
+        HttpResponse.json({ message: "sent", target: "a***@b.com" })
+      ),
+      http.post(`${BASE}/email/verify/`, async ({ request }) => {
+        verifyCalls += 1;
+        const body = (await request.json()) as { code: string };
+        expect(body.code).toBe("1234"); // exactly 4 digits — the plan's otp_code_length
+        return HttpResponse.json({
+          status: "LOGGED_IN",
+          user: {
+            id: "u1", username: "a", email: "a@b.com", phone: null,
+            auth_type: "email", is_email_verified: true, is_phone_verified: false,
+            is_anonymous: false, is_staff: false, is_superuser: false,
+            oauth_provider: null, created_at: "2026-01-01T00:00:00Z", last_login: null,
+          },
+          tokens: { access: "a", refresh: "r" },
+        });
+      })
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+
+    const emailInput = await screen.findByPlaceholderText("you@example.com");
+    fireEvent.change(emailInput, { target: { value: "a@b.com" } });
+    screen.getByRole("button", { name: "Send code" }).click();
+
+    await screen.findByLabelText("OTP Input 1");
+    expect(screen.queryByLabelText("OTP Input 5")).toBeNull(); // exactly 4 cells
+    expect(screen.queryByRole("button", { name: "Confirm" })).toBeNull(); // no confirm button anywhere
+
+    fillOtp("1234");
+
+    await waitFor(() => expect(verifyCalls).toBe(1));
+    // Filling never re-triggers a second call (anti-dup-submit guard).
+    expect(verifyCalls).toBe(1);
+  });
+
+  it("defaults to 6 digits when the backend omits otp_code_length", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(EMAIL_ONLY_CAPS())),
+      http.post(`${BASE}/email/request/`, () =>
+        HttpResponse.json({ message: "sent", target: "a***@b.com" })
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+    const emailInput = await screen.findByPlaceholderText("you@example.com");
+    fireEvent.change(emailInput, { target: { value: "a@b.com" } });
+    screen.getByRole("button", { name: "Send code" }).click();
+    await screen.findByLabelText("OTP Input 6");
+    expect(screen.queryByLabelText("OTP Input 7")).toBeNull();
+  });
+
+  it("clears the cells and refocuses the first one on a wrong code", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(EMAIL_ONLY_CAPS(4))),
+      http.post(`${BASE}/email/request/`, () =>
+        HttpResponse.json({ message: "sent", target: "a***@b.com" })
+      ),
+      http.post(`${BASE}/email/verify/`, () =>
+        HttpResponse.json(
+          { localizable_error: "error.400.invalid_code", error: "Wrong code" },
+          { status: 400 }
+        )
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+    const emailInput = await screen.findByPlaceholderText("you@example.com");
+    fireEvent.change(emailInput, { target: { value: "a@b.com" } });
+    screen.getByRole("button", { name: "Send code" }).click();
+    await screen.findByLabelText("OTP Input 1");
+
+    fillOtp("1234");
+    await screen.findByText("That code is incorrect.");
+
+    // Cells cleared and refocused — ready for a fresh attempt, not stuck on
+    // 4 stale wrong digits.
+    const first = screen.getByLabelText("OTP Input 1") as HTMLInputElement;
+    await waitFor(() => expect(first.value).toBe(""));
+    expect(document.activeElement).toBe(first);
+  });
+});
 
 /**
  * Owner directive (tuning §54's pilot, points 1/3/4): the "three-dot" overflow
@@ -273,6 +397,76 @@ describe("<AuthPanel/> — alt-method dialog (owner directive: overflow/bottom n
     screen.getByText("More ways to sign in").click();
     expect(await screen.findByText("Email link")).toBeDefined();
     expect(screen.queryByText("Magic link")).toBeNull();
+  });
+});
+
+/**
+ * Waylot UX reference (owner directive): the alt-method dialog should behave
+ * like a bottom sheet on mobile, not a centred dialog — cheap here because
+ * `@stapel/core`'s `useBreakpoint()` already exists; this is just an
+ * additional render path on the SAME `openChannel` state.
+ */
+describe("<AuthPanel/> — alt-method surface is responsive (Modal on desktop, bottom sheet on phone)", () => {
+  const ONE_OVERFLOW_CHANNEL = {
+    registration: {
+      phone: false,
+      email: true,
+      password: false,
+      oauth: [],
+      sso: false,
+      anonymous: false,
+    },
+    login: {
+      // 6 enabled → main=[email,phone,passkey], bottom=[qr], overflow=[password,magic_link].
+      phone: true,
+      email: true,
+      password: true,
+      oauth: [],
+      sso: false,
+      qr: true,
+      passkey: true,
+      magic_link: true,
+    },
+  };
+
+  function setViewportWidth(width: number): void {
+    Object.defineProperty(window, "innerWidth", { value: width, writable: true });
+    window.dispatchEvent(new Event("resize"));
+  }
+
+  it("uses a centred Modal at desktop width", async () => {
+    setViewportWidth(1440);
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(ONE_OVERFLOW_CHANNEL))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+    await waitFor(() =>
+      expect(screen.getByRole("tab", { name: "Email" })).toBeDefined()
+    );
+    screen.getByText("More ways to sign in").click();
+    (await screen.findByText("Password")).click();
+    await screen.findByRole("dialog");
+    expect(document.querySelector(".ant-modal")).not.toBeNull();
+    expect(document.querySelector(".ant-drawer")).toBeNull();
+  });
+
+  it("uses a bottom Drawer ('sheet') at phone width — same content, different surface", async () => {
+    setViewportWidth(375);
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(ONE_OVERFLOW_CHANNEL))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+    await waitFor(() =>
+      expect(screen.getByRole("tab", { name: "Email" })).toBeDefined()
+    );
+    screen.getByText("More ways to sign in").click();
+    (await screen.findByText("Password")).click();
+    await waitFor(() => expect(document.querySelector(".ant-drawer")).not.toBeNull());
+    expect(document.querySelector(".ant-drawer")?.className).toContain("ant-drawer-bottom");
+    expect(document.querySelector(".ant-modal")).toBeNull();
+    setViewportWidth(1440); // restore for subsequent tests in this file
   });
 });
 

@@ -56,6 +56,63 @@ export const AUTH_I18N_KEYS = {
   uiChannelSso: "auth.ui.channel_sso",
   uiChannelQr: "auth.ui.channel_qr",
   uiChannelMagicLink: "auth.ui.channel_magic_link",
+
+  // Security-profile default-skin components (owner directive point 5):
+  // SessionsList, TotpManager, PasskeysManager, PasswordChangePanel, OAuthLinks.
+  secSessionsTitle: "auth.sec.sessions.title",
+  secSessionsSubtitle: "auth.sec.sessions.subtitle",
+  secSessionsSignOut: "auth.sec.sessions.sign_out",
+  secSessionsSignOutAll: "auth.sec.sessions.sign_out_all",
+  secSessionsConfirmMe: "auth.sec.sessions.confirm_me",
+  secSessionsSignOutConfirmTitle: "auth.sec.sessions.sign_out_confirm_title",
+  secSessionsSignOutAllConfirmTitle: "auth.sec.sessions.sign_out_all_confirm_title",
+  secSessionsEmpty: "auth.sec.sessions.empty",
+  secSessionsLastUsed: "auth.sec.sessions.last_used",
+
+  secTotpTitle: "auth.sec.totp.title",
+  secTotpEnabled: "auth.sec.totp.enabled",
+  secTotpDisabled: "auth.sec.totp.disabled",
+  secTotpBackupRemaining: "auth.sec.totp.backup_remaining",
+  secTotpSetUp: "auth.sec.totp.set_up",
+  secTotpDisable: "auth.sec.totp.disable",
+  secTotpSetupTitle: "auth.sec.totp.setup_title",
+  secTotpScanHint: "auth.sec.totp.scan_hint",
+  secTotpSecretLabel: "auth.sec.totp.secret_label",
+  secTotpConfirmLabel: "auth.sec.totp.confirm_label",
+  secTotpConfirmCta: "auth.sec.totp.confirm_cta",
+  secTotpBackupCodesTitle: "auth.sec.totp.backup_codes_title",
+  secTotpBackupCodesHint: "auth.sec.totp.backup_codes_hint",
+  secTotpBackupCodesAck: "auth.sec.totp.backup_codes_ack",
+  secTotpDisableTitle: "auth.sec.totp.disable_title",
+  secTotpDisableCodeLabel: "auth.sec.totp.disable_code_label",
+  secTotpDisableBackupLabel: "auth.sec.totp.disable_backup_label",
+  secTotpUseBackupToggle: "auth.sec.totp.use_backup_toggle",
+
+  secPasskeysTitle: "auth.sec.passkeys.title",
+  secPasskeysAdd: "auth.sec.passkeys.add",
+  secPasskeysRemove: "auth.sec.passkeys.remove",
+  secPasskeysEmpty: "auth.sec.passkeys.empty",
+  secPasskeysAddTitle: "auth.sec.passkeys.add_title",
+  secPasskeysNameLabel: "auth.sec.passkeys.name_label",
+  secPasskeysNamePlaceholder: "auth.sec.passkeys.name_placeholder",
+  secPasskeysBeginCta: "auth.sec.passkeys.begin_cta",
+  secPasskeysAwaitingCeremony: "auth.sec.passkeys.awaiting_ceremony",
+  secPasskeysRemoveConfirmTitle: "auth.sec.passkeys.remove_confirm_title",
+  secPasskeysAddedSuccess: "auth.sec.passkeys.added_success",
+
+  secPasswordTitle: "auth.sec.password.title",
+  secPasswordOldLabel: "auth.sec.password.old_label",
+  secPasswordNewLabel: "auth.sec.password.new_label",
+  secPasswordChangeCta: "auth.sec.password.change_cta",
+  secPasswordViaOtpHint: "auth.sec.password.via_otp_hint",
+  secPasswordSuccess: "auth.sec.password.success",
+
+  secOauthTitle: "auth.sec.oauth.title",
+  secOauthLinked: "auth.sec.oauth.linked",
+  secOauthLink: "auth.sec.oauth.link",
+  secOauthUnlink: "auth.sec.oauth.unlink",
+  secOauthUnlinkConfirmTitle: "auth.sec.oauth.unlink_confirm_title",
+  secOauthEmpty: "auth.sec.oauth.empty",
 } as const;
 
 export type AuthI18nKey =
@@ -122,6 +179,66 @@ export const authI18nBundleEn: I18nDictionary = {
   // Owner directive: "Волшебная ссылка" reads as a gimmick — call it what it
   // is, a link sent to your email.
   "auth.ui.channel_magic_link": "Email link",
+
+  // Security-profile default-skin components (owner directive point 5)
+  "auth.sec.sessions.title": "Active sessions",
+  "auth.sec.sessions.subtitle":
+    "Where you're currently signed in. Signing out revokes that device immediately.",
+  "auth.sec.sessions.sign_out": "Sign out",
+  "auth.sec.sessions.sign_out_all": "Sign out everyone else",
+  "auth.sec.sessions.confirm_me": "This was me",
+  "auth.sec.sessions.sign_out_confirm_title": "Sign out this device?",
+  "auth.sec.sessions.sign_out_all_confirm_title": "Sign out all other devices?",
+  "auth.sec.sessions.empty": "No active sessions.",
+  "auth.sec.sessions.last_used": "Last used {when}",
+
+  "auth.sec.totp.title": "Two-factor authentication",
+  "auth.sec.totp.enabled": "Enabled",
+  "auth.sec.totp.disabled": "Not set up",
+  "auth.sec.totp.backup_remaining": "{n} backup codes left",
+  "auth.sec.totp.set_up": "Set up",
+  "auth.sec.totp.disable": "Disable",
+  "auth.sec.totp.setup_title": "Set up two-factor authentication",
+  "auth.sec.totp.scan_hint":
+    "Scan this with your authenticator app, or enter the code manually.",
+  "auth.sec.totp.secret_label": "Manual entry code",
+  "auth.sec.totp.confirm_label": "Enter the 6-digit code",
+  "auth.sec.totp.confirm_cta": "Confirm",
+  "auth.sec.totp.backup_codes_title": "Save your backup codes",
+  "auth.sec.totp.backup_codes_hint":
+    "Each code works once, if you ever lose access to your authenticator. This is the only time they're shown.",
+  "auth.sec.totp.backup_codes_ack": "I've saved these codes",
+  "auth.sec.totp.disable_title": "Disable two-factor authentication",
+  "auth.sec.totp.disable_code_label": "Authenticator code",
+  "auth.sec.totp.disable_backup_label": "Backup code",
+  "auth.sec.totp.use_backup_toggle": "Use a backup code instead",
+
+  "auth.sec.passkeys.title": "Passkeys",
+  "auth.sec.passkeys.add": "Add a passkey",
+  "auth.sec.passkeys.remove": "Remove",
+  "auth.sec.passkeys.empty": "No passkeys yet.",
+  "auth.sec.passkeys.add_title": "Add a passkey",
+  "auth.sec.passkeys.name_label": "Name this passkey",
+  "auth.sec.passkeys.name_placeholder": "e.g. My laptop",
+  "auth.sec.passkeys.begin_cta": "Continue",
+  "auth.sec.passkeys.awaiting_ceremony":
+    "Follow your browser or device's prompt to finish adding this passkey.",
+  "auth.sec.passkeys.remove_confirm_title": "Remove this passkey?",
+  "auth.sec.passkeys.added_success": "Passkey added.",
+
+  "auth.sec.password.title": "Change password",
+  "auth.sec.password.old_label": "Current password",
+  "auth.sec.password.new_label": "New password",
+  "auth.sec.password.change_cta": "Change password",
+  "auth.sec.password.via_otp_hint": "We'll send a code to {target}",
+  "auth.sec.password.success": "Password changed.",
+
+  "auth.sec.oauth.title": "Connected accounts",
+  "auth.sec.oauth.linked": "Connected",
+  "auth.sec.oauth.link": "Connect",
+  "auth.sec.oauth.unlink": "Disconnect",
+  "auth.sec.oauth.unlink_confirm_title": "Disconnect this account?",
+  "auth.sec.oauth.empty": "No providers configured.",
 
   // Backend error codes (auth-sa.md "Error reference")
   "error.401.invalid_credentials": "Incorrect email or password.",

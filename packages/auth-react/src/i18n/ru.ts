@@ -66,6 +66,67 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.ui.channel_sso": "SSO",
   "auth.ui.channel_qr": "QR-код",
   "auth.ui.channel_magic_link": "Ссылка на почту",
+
+  // Компоненты профиля безопасности (директива владельца, пункт 5)
+  "auth.sec.sessions.title": "Активные сеансы",
+  "auth.sec.sessions.subtitle":
+    "Где вы сейчас вошли в систему. Выход из сеанса отзывает устройство немедленно.",
+  "auth.sec.sessions.sign_out": "Выйти",
+  "auth.sec.sessions.sign_out_all": "Выйти на всех других устройствах",
+  "auth.sec.sessions.confirm_me": "Это я",
+  "auth.sec.sessions.sign_out_confirm_title": "Выйти на этом устройстве?",
+  "auth.sec.sessions.sign_out_all_confirm_title":
+    "Выйти на всех других устройствах?",
+  "auth.sec.sessions.empty": "Нет активных сеансов.",
+  "auth.sec.sessions.last_used": "Последняя активность {when}",
+
+  "auth.sec.totp.title": "Двухфакторная аутентификация",
+  "auth.sec.totp.enabled": "Включена",
+  "auth.sec.totp.disabled": "Не настроена",
+  "auth.sec.totp.backup_remaining": "Осталось резервных кодов: {n}",
+  "auth.sec.totp.set_up": "Настроить",
+  "auth.sec.totp.disable": "Отключить",
+  "auth.sec.totp.setup_title": "Настройка двухфакторной аутентификации",
+  "auth.sec.totp.scan_hint":
+    "Отсканируйте в приложении-аутентификаторе или введите код вручную.",
+  "auth.sec.totp.secret_label": "Код для ручного ввода",
+  "auth.sec.totp.confirm_label": "Введите 6-значный код",
+  "auth.sec.totp.confirm_cta": "Подтвердить",
+  "auth.sec.totp.backup_codes_title": "Сохраните резервные коды",
+  "auth.sec.totp.backup_codes_hint":
+    "Каждый код работает один раз, если вы потеряете доступ к аутентификатору. Они показываются только сейчас.",
+  "auth.sec.totp.backup_codes_ack": "Я сохранил(а) эти коды",
+  "auth.sec.totp.disable_title": "Отключение двухфакторной аутентификации",
+  "auth.sec.totp.disable_code_label": "Код аутентификатора",
+  "auth.sec.totp.disable_backup_label": "Резервный код",
+  "auth.sec.totp.use_backup_toggle": "Использовать резервный код",
+
+  "auth.sec.passkeys.title": "Passkey",
+  "auth.sec.passkeys.add": "Добавить passkey",
+  "auth.sec.passkeys.remove": "Удалить",
+  "auth.sec.passkeys.empty": "Passkey пока не добавлены.",
+  "auth.sec.passkeys.add_title": "Добавить passkey",
+  "auth.sec.passkeys.name_label": "Название passkey",
+  "auth.sec.passkeys.name_placeholder": "например, Мой ноутбук",
+  "auth.sec.passkeys.begin_cta": "Продолжить",
+  "auth.sec.passkeys.awaiting_ceremony":
+    "Следуйте подсказке браузера или устройства, чтобы завершить добавление passkey.",
+  "auth.sec.passkeys.remove_confirm_title": "Удалить этот passkey?",
+  "auth.sec.passkeys.added_success": "Passkey добавлен.",
+
+  "auth.sec.password.title": "Смена пароля",
+  "auth.sec.password.old_label": "Текущий пароль",
+  "auth.sec.password.new_label": "Новый пароль",
+  "auth.sec.password.change_cta": "Сменить пароль",
+  "auth.sec.password.via_otp_hint": "Мы отправим код на {target}",
+  "auth.sec.password.success": "Пароль изменён.",
+
+  "auth.sec.oauth.title": "Привязанные аккаунты",
+  "auth.sec.oauth.linked": "Привязан",
+  "auth.sec.oauth.link": "Привязать",
+  "auth.sec.oauth.unlink": "Отвязать",
+  "auth.sec.oauth.unlink_confirm_title": "Отвязать этот аккаунт?",
+  "auth.sec.oauth.empty": "Провайдеры не настроены.",
 };
 
 /**

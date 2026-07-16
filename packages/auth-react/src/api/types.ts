@@ -145,6 +145,14 @@ export interface LoginCapabilities {
   readonly passkey: boolean;
   readonly magic_link: boolean;
   /**
+   * Digit count of the email/phone OTP code (stapel-auth ≥0.6.0). `undefined`
+   * on older backends — the default skin then renders 6 digits, same as
+   * before (frontend-standard: no fallback guess between two arbitrary
+   * lengths — the ONLY safe fallback for "the contract didn't say" is the
+   * value every backend has used to date).
+   */
+  readonly otp_code_length?: number;
+  /**
    * Per-method placement/interaction/icon plan (stapel-auth ≥0.6.0), keyed by
    * channel id (`"email"`, `"phone"`, `"password"`, `"passkey"`, `"oauth"`,
    * `"sso"`, `"qr"`, `"magic_link"`). `undefined` on older backends — the

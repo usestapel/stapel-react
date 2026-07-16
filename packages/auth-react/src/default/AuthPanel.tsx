@@ -42,6 +42,7 @@ import {
   Button,
   ConfigProvider,
   Divider,
+  Drawer,
   Dropdown,
   Flex,
   Modal,
@@ -52,7 +53,7 @@ import {
 import type { TabsProps } from "antd";
 import { toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { useT } from "@stapel/core";
+import { useBreakpoint, useT } from "@stapel/core";
 import { useCapabilities } from "../model/queries.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
 import type { AuthI18nKey } from "../i18n/keys.js";
@@ -123,6 +124,12 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
   const caps = useCapabilities();
   const [openChannel, setOpenChannel] = useState<ChannelId | null>(null);
   const [active, setActive] = useState<ChannelId | null>(null);
+  // UX reference: Waylot's sign-in sheet keeps every alt method in ONE bottom
+  // sheet on mobile rather than a separate page. `useBreakpoint` (already in
+  // `@stapel/core`) makes that cheap here too — same dialog content, just a
+  // `Drawer` sliding up from the bottom on phones instead of a centred
+  // `Modal` on tablet/desktop.
+  const isPhone = useBreakpoint() === "phone";
 
   const login = caps.data?.login;
   const channels = login ? enabledChannels(login, channelPriority) : [];
@@ -263,16 +270,30 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
 
       {/* The alt-method dialog (owner directive point 1): picking anything
           from the bottom row or the overflow menu (other than a direct OAuth
-          redirect) opens THIS, never a phantom fourth tab. */}
-      <Modal
-        open={openChannel !== null}
-        title={openChannel ? t(CHANNEL_LABEL[openChannel]) : undefined}
-        onCancel={() => setOpenChannel(null)}
-        footer={null}
-        destroyOnHidden
-      >
-        {openChannel ? channelPanel(openChannel) : null}
-      </Modal>
+          redirect) opens THIS, never a phantom fourth tab. A Modal on
+          tablet/desktop, a bottom Drawer ("sheet") on phone. */}
+      {isPhone ? (
+        <Drawer
+          open={openChannel !== null}
+          title={openChannel ? t(CHANNEL_LABEL[openChannel]) : undefined}
+          onClose={() => setOpenChannel(null)}
+          placement="bottom"
+          size="large"
+          destroyOnHidden
+        >
+          {openChannel ? channelPanel(openChannel) : null}
+        </Drawer>
+      ) : (
+        <Modal
+          open={openChannel !== null}
+          title={openChannel ? t(CHANNEL_LABEL[openChannel]) : undefined}
+          onCancel={() => setOpenChannel(null)}
+          footer={null}
+          destroyOnHidden
+        >
+          {openChannel ? channelPanel(openChannel) : null}
+        </Modal>
+      )}
     </ConfigProvider>
   );
 }
