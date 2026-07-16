@@ -115,6 +115,167 @@ function TokenProbe(): ReactElement {
   return <span data-testid="bg">{token.colorBgContainer}</span>;
 }
 
+/**
+ * Owner directive (tuning §54's pilot, points 1/3/4): the "three-dot" overflow
+ * menu used to `setActive()` a channel absent from the tab strip's own
+ * `items` — nothing ever rendered. This proves the fix: picking an overflow
+ * channel opens a DIALOG with its real panel, and it does NOT add a 4th tab.
+ */
+describe("<AuthPanel/> — alt-method dialog (owner directive: overflow/bottom never overlay the main tabs)", () => {
+  const MANY_CHANNELS = {
+    registration: {
+      phone: false,
+      email: true,
+      password: false,
+      oauth: [],
+      sso: false,
+      anonymous: false,
+    },
+    login: {
+      // 6 channels enabled → 3 main tabs, qr in the bottom row, password +
+      // magic_link behind the overflow menu.
+      phone: true,
+      email: true,
+      password: true,
+      oauth: [],
+      sso: false,
+      qr: true,
+      passkey: true,
+      magic_link: true,
+    },
+  };
+
+  it("picking a channel from the overflow menu opens it in a dialog — never a phantom tab", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(MANY_CHANNELS))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+
+    await waitFor(() =>
+      expect(screen.getByRole("tab", { name: "Email" })).toBeDefined()
+    );
+    // Still exactly 3 tabs — main never grows past ПРАВИЛО 4's cap.
+    expect(screen.getAllByRole("tab")).toHaveLength(3);
+    expect(screen.queryByRole("tab", { name: "Password" })).toBeNull();
+
+    // No dialog yet.
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    screen.getByText("More ways to sign in").click();
+    const passwordItem = await screen.findByText("Password");
+    passwordItem.click();
+
+    // The dialog now renders the REAL password panel — the bug this fixes is
+    // that this content used to render nowhere at all.
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog.textContent).toContain("Password");
+  });
+
+  it("the bottom icon row shows qr/passkey; picking qr opens the dialog with the QR panel", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(MANY_CHANNELS))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+    await waitFor(() =>
+      expect(screen.getByTestId("auth-bottom-row")).toBeDefined()
+    );
+    const row = screen.getByTestId("auth-bottom-row");
+    expect(row.textContent).toContain("QR code");
+
+    screen.getByText("QR code").click();
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog.querySelector("canvas")).not.toBeNull(); // antd <QRCode/>
+  });
+
+  it("SSO is never a tab — it renders behind the overflow menu as a dialog form", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () =>
+        HttpResponse.json({
+          registration: {
+            phone: false,
+            email: true,
+            password: false,
+            oauth: [],
+            sso: false,
+            anonymous: false,
+          },
+          login: {
+            phone: false,
+            email: true,
+            password: false,
+            oauth: [],
+            sso: true,
+            qr: false,
+            passkey: false,
+            magic_link: false,
+          },
+        })
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+    await waitFor(() =>
+      expect(screen.getByText(/Send code|SSO/)).toBeDefined()
+    );
+    expect(screen.queryByRole("tab", { name: "SSO" })).toBeNull();
+    screen.getByText("More ways to sign in").click();
+    const ssoItem = await screen.findByText("SSO");
+    ssoItem.click();
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog.textContent).toContain("Work email domain");
+  });
+
+  it("OAuth renders as direct provider buttons — no dialog, never a tab", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () =>
+        HttpResponse.json({
+          registration: {
+            phone: false,
+            email: true,
+            password: false,
+            oauth: [{ id: "google", name: "Google" }],
+            sso: false,
+            anonymous: false,
+          },
+          login: {
+            phone: false,
+            email: true,
+            password: false,
+            oauth: [{ id: "google", name: "Google" }],
+            sso: false,
+            qr: false,
+            passkey: false,
+            magic_link: false,
+          },
+        })
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+    const googleButton = await screen.findByRole("link", { name: /Google/ });
+    expect(googleButton.getAttribute("href")).toContain("/oauth/google/authorize/");
+    expect(screen.queryByRole("tab", { name: "Social" })).toBeNull();
+    googleButton.click();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("the magic-link channel now reads 'Email link', not 'Magic link'", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(MANY_CHANNELS))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+    await waitFor(() =>
+      expect(screen.getByRole("tab", { name: "Email" })).toBeDefined()
+    );
+    screen.getByText("More ways to sign in").click();
+    expect(await screen.findByText("Email link")).toBeDefined();
+    expect(screen.queryByText("Magic link")).toBeNull();
+  });
+});
+
 describe("toAntdThemeConfig drives antd's runtime token (AuthPanel's theme source)", () => {
   it("light mode resolves to the tokens' light container colour", () => {
     render(

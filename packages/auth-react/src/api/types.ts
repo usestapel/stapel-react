@@ -106,6 +106,35 @@ export interface RegistrationCapabilities {
   readonly anonymous: boolean;
 }
 
+/**
+ * Where a sign-in method's control renders in the default skin, and how it is
+ * triggered — the stapel-auth ≥0.6.0 plan-contract extension to
+ * `LoginCapabilities`. `"main"` sits inline as a tab, `"overflow"` sits behind
+ * the "More ways to sign in" three-dot menu, `"bottom"` sits in the icon row
+ * beneath the primary form (alongside social buttons).
+ */
+export type ChannelPlacement = "main" | "overflow" | "bottom";
+
+/**
+ * `"inline"` renders the method's panel directly where it's placed (a `main`
+ * tab's body). `"modal"` opens the panel in a dialog when the method is picked
+ * from `overflow`/`bottom`. `"redirect"` performs the action immediately on
+ * pick with no dialog (OAuth: a full-page provider redirect).
+ */
+export type ChannelInteraction = "inline" | "modal" | "redirect";
+
+/** Per-method plan entry (stapel-auth ≥0.6.0). Every field is optional so a
+ * partially-populated plan (or one from an older backend that only sends
+ * some methods) degrades gracefully — see `../default/channels.ts`. */
+export interface ChannelPlanEntry {
+  readonly placement?: ChannelPlacement;
+  readonly interaction?: ChannelInteraction;
+  /** Raw inline `<svg>…</svg>` markup for the method's icon (bottom-row /
+   * overflow rendering). Sanitized upstream by stapel-auth; a host can still
+   * replace it via `AuthPanel`'s `iconOverrides`/`oauthIconOverrides` props. */
+  readonly icon_svg?: string;
+}
+
 export interface LoginCapabilities {
   readonly phone: boolean;
   readonly email: boolean;
@@ -115,6 +144,14 @@ export interface LoginCapabilities {
   readonly qr: boolean;
   readonly passkey: boolean;
   readonly magic_link: boolean;
+  /**
+   * Per-method placement/interaction/icon plan (stapel-auth ≥0.6.0), keyed by
+   * channel id (`"email"`, `"phone"`, `"password"`, `"passkey"`, `"oauth"`,
+   * `"sso"`, `"qr"`, `"magic_link"`). `undefined` on older backends — the
+   * default skin then computes zones from `DEFAULT_CHANNEL_PRIORITY` alone
+   * (back-compat fallback, see `../default/channels.ts`'s `computeZones`).
+   */
+  readonly plan?: Readonly<Record<string, ChannelPlanEntry>>;
 }
 
 export interface Capabilities {

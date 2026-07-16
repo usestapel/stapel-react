@@ -8,9 +8,10 @@
  * `ConfigProvider` fed by `toAntdThemeConfig` (ПРАВИЛО 12).
  */
 import { useEffect, useRef, useState } from "react";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import {
   Alert,
+  Avatar,
   Button,
   Flex,
   Form,
@@ -21,13 +22,16 @@ import {
 } from "antd";
 import { useT } from "@stapel/core";
 import type { FlowError } from "../flows/errors.js";
-import type { OtpChannel } from "../api/types.js";
+import type { OAuthProviderInfo, OtpChannel } from "../api/types.js";
+import { authUrls } from "../api/urls.js";
 import type { QrLoginState } from "../flows/qrLoginFlow.js";
+import type { SsoState } from "../flows/ssoFlow.js";
 import { PasswordlessLogin } from "../headless/PasswordlessLogin.js";
 import { PasswordLogin } from "../headless/PasswordLogin.js";
 import { QrLogin } from "../headless/QrLogin.js";
 import { PasskeyLogin } from "../headless/Passkey.js";
-import { MagicLink } from "../headless/misc.js";
+import { MagicLink, SsoDiscovery } from "../headless/misc.js";
+import { useAuthApi } from "../model/context.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
 
 const OTP_LENGTH = 6;
@@ -393,5 +397,91 @@ export function MagicLinkPanel(): ReactElement {
         );
       }}
     </MagicLink>
+  );
+}
+
+/**
+ * Social panel — one button per configured OAuth provider (owner directive
+ * point 1/4: OAuth is a GROUP of provider buttons, never a single form or a
+ * tab). Each button is a direct, full-page redirect
+ * (`authUrls(base).oauthAuthorize`, auth-sa.md §7 option A) — no client state,
+ * no dialog needed, which is why `resolveInteraction("oauth", …)` defaults to
+ * `"redirect"` in `channels.ts`. Rendered inline in the bottom icon row AND
+ * (identically) inside the overflow dialog when a plan places `oauth` there.
+ */
+export function OAuthPanel(props: {
+  providers: readonly OAuthProviderInfo[];
+  /** `location.href` by default — where the provider redirects back to. */
+  redirectUri?: string;
+  /** Per-provider icon override (keyed by provider id), e.g. `{ google: <MyGoogleMark/> }`. */
+  iconOverrides?: Readonly<Record<string, ReactNode>>;
+}): ReactElement {
+  const api = useAuthApi();
+  const redirectUri =
+    props.redirectUri ??
+    (typeof window !== "undefined" ? window.location.href : "/");
+  return (
+    <Flex wrap gap="small" data-testid="oauth-panel">
+      {props.providers.map((provider) => {
+        const href = authUrls(api.client.baseUrl).oauthAuthorize(
+          provider.id,
+          redirectUri
+        );
+        const icon = props.iconOverrides?.[provider.id] ?? (
+          <Avatar size="small">{provider.name.slice(0, 1).toUpperCase()}</Avatar>
+        );
+        return (
+          <Button key={provider.id} href={href} icon={icon} data-analytics="flow">
+            {provider.name}
+          </Button>
+        );
+      })}
+    </Flex>
+  );
+}
+
+/** SSO domain-lookup panel (auth-sa.md §18). A real form — domain in, look up,
+ * then a full-page redirect to the resolved org's IdP — so it always opens as
+ * a DIALOG from the overflow menu (owner directive point 3), never a tab. */
+export function SsoPanel(): ReactElement {
+  const t = useT();
+  const errorText = useErrorText();
+  return (
+    <SsoDiscovery>
+      {(bag) => {
+        const s: SsoState = bag.state;
+        const err = s.step === "error" ? s.error : undefined;
+        const resolved = s.step === "resolved" ? s.result : undefined;
+        return (
+          <Flex vertical gap="middle">
+            <Form
+              layout="vertical"
+              onFinish={(v: { domain?: string }) => bag.lookup(v.domain ?? "")}
+            >
+              <Form.Item
+                name="domain"
+                label={t(AUTH_I18N_KEYS.uiSsoDomainLabel)}
+                {...(err ? { validateStatus: "error" as const, help: errorText(err) } : {})}
+              >
+                <Input autoFocus placeholder={t(AUTH_I18N_KEYS.uiSsoDomainPlaceholder)} />
+              </Form.Item>
+              <Button type="primary" htmlType="submit" block loading={s.step === "looking"}>
+                {t(AUTH_I18N_KEYS.uiSubmit)}
+              </Button>
+            </Form>
+            {resolved && resolved.sso_required && resolved.org_slug && (
+              <Button
+                type="primary"
+                block
+                onClick={() => bag.beginLogin(resolved.org_slug as string)}
+                data-analytics="flow"
+              >
+                {t(AUTH_I18N_KEYS.uiSsoContinue)}
+              </Button>
+            )}
+          </Flex>
+        );
+      }}
+    </SsoDiscovery>
   );
 }

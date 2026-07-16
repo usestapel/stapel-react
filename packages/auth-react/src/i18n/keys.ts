@@ -46,6 +46,7 @@ export const AUTH_I18N_KEYS = {
   uiMagicLinkSentTitle: "auth.ui.magic_link_sent_title",
   uiMagicLinkSentBody: "auth.ui.magic_link_sent_body",
   uiSsoDomainLabel: "auth.ui.sso_domain_label",
+  uiSsoDomainPlaceholder: "auth.ui.sso_domain_placeholder",
   uiSsoContinue: "auth.ui.sso_continue",
   uiChannelEmail: "auth.ui.channel_email",
   uiChannelPhone: "auth.ui.channel_phone",
@@ -109,6 +110,7 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.ui.magic_link_sent_title": "Check your email",
   "auth.ui.magic_link_sent_body": "We sent you a sign-in link. Open it on this device.",
   "auth.ui.sso_domain_label": "Work email domain",
+  "auth.ui.sso_domain_placeholder": "acme.com",
   "auth.ui.sso_continue": "Continue with SSO",
   "auth.ui.channel_email": "Email",
   "auth.ui.channel_phone": "Phone",
@@ -117,7 +119,9 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.ui.channel_oauth": "Social",
   "auth.ui.channel_sso": "SSO",
   "auth.ui.channel_qr": "QR code",
-  "auth.ui.channel_magic_link": "Magic link",
+  // Owner directive: "Волшебная ссылка" reads as a gimmick — call it what it
+  // is, a link sent to your email.
+  "auth.ui.channel_magic_link": "Email link",
 
   // Backend error codes (auth-sa.md "Error reference")
   "error.401.invalid_credentials": "Incorrect email or password.",

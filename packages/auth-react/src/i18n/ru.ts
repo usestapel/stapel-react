@@ -56,6 +56,7 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.ui.magic_link_sent_title": "Проверьте почту",
   "auth.ui.magic_link_sent_body": "Мы отправили ссылку для входа. Откройте её на этом устройстве.",
   "auth.ui.sso_domain_label": "Рабочий домен",
+  "auth.ui.sso_domain_placeholder": "acme.com",
   "auth.ui.sso_continue": "Продолжить через SSO",
   "auth.ui.channel_email": "Эл. почта",
   "auth.ui.channel_phone": "Телефон",
@@ -64,7 +65,7 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.ui.channel_oauth": "Соцсети",
   "auth.ui.channel_sso": "SSO",
   "auth.ui.channel_qr": "QR-код",
-  "auth.ui.channel_magic_link": "Ссылка для входа",
+  "auth.ui.channel_magic_link": "Ссылка на почту",
 };
 
 /**

@@ -13,7 +13,8 @@ export { AuthPanel } from "./AuthPanel.js";
 export type { AuthPanelProps, AuthPanelNotice } from "./AuthPanel.js";
 export {
   DEFAULT_CHANNEL_PRIORITY,
+  computeZones,
   enabledChannels,
-  splitZones,
+  resolveInteraction,
 } from "./channels.js";
-export type { ChannelId, ZoneSplit } from "./channels.js";
+export type { AuthZones, ChannelId } from "./channels.js";

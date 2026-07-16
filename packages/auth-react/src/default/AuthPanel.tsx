@@ -1,27 +1,50 @@
 /**
- * `<AuthPanel/>` — the §54 pilot default skin for `@stapel/auth-react`. It is
- * the pair's existing headless layer (flows + `useCapabilities`) rendered with
- * an Ant Design skin whose theme comes AUTOMATICALLY from the user's
- * `@stapel/tokens` via `@stapel/tokens-antd`. Import it and you have a working,
- * themed sign-in screen — zero hand-written UI.
+ * `<AuthPanel/>` — the default skin for `@stapel/auth-react`. It is the
+ * pair's existing headless layer (flows + `useCapabilities`) rendered with an
+ * Ant Design skin whose theme comes AUTOMATICALLY from the user's
+ * `@stapel/tokens` via `@stapel/tokens-antd`. Import it and you have a
+ * working, themed sign-in screen — zero hand-written UI.
  *
  * Lives behind the `@stapel/auth-react/default` subpath so apps that build
  * their own visuals never pull `antd` into their bundle (§54 form).
  *
- * The layout follows domain-guidelines-auth exactly: four zones A-D in fixed
- * order (ПРАВИЛО 3), channels discovered from the backend and sorted by the
- * ratified priority (ПРАВИЛА 1-2), cut into ≤3 primary tabs + ≤2 secondary
- * buttons + a "More" overflow (ПРАВИЛО 4), with exactly one primary button per
- * screen (ПРАВИЛО 5).
+ * Layout (owner directive, tuning §54's pilot): every enabled channel is
+ * sorted by priority (`channelPriority`, defaulting to the ratified
+ * `DEFAULT_CHANNEL_PRIORITY`) then cut into three zones by `computeZones`
+ * (`./channels.js`):
+ *
+ *  - **main** — up to 3 channels, rendered INLINE as tabs (or a lone form).
+ *  - **bottom** — a persistent icon-button row beneath the form (social
+ *    provider buttons + qr/passkey by default) — never a tab, never adds one.
+ *  - **overflow** — behind the "More ways to sign in" three-dot menu; picking
+ *    one opens a DIALOG with that channel's panel. It does NOT try to squeeze
+ *    into the tab strip — that was the bug: an overflow pick used to set
+ *    `active` to a channel absent from the tabs' own `items`, so nothing
+ *    rendered at all.
+ *
+ * SSO and OAuth are never a `main` tab (`computeZones` clamps this even if a
+ * backend plan claims otherwise) — SSO's domain-lookup form and OAuth's
+ * provider-button group both read badly as a single tab. OAuth additionally
+ * never opens a dialog: each provider button is its own direct, full-page
+ * redirect (`resolveInteraction` → `"redirect"`), so it renders identically
+ * whether it's in the bottom row or (rarer) the overflow dialog.
+ *
+ * stapel-auth ≥0.6.0 can drive all of this from the backend via
+ * `capabilities.login.plan` (per-method `placement`/`interaction`/`icon_svg`
+ * — see `api/types.ts`). Older backends simply omit `plan`, and
+ * `computeZones` falls back to the priority-only heuristic — no code change
+ * required on either side.
  */
 import { useMemo, useState } from "react";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import {
   Alert,
+  Button,
   ConfigProvider,
   Divider,
   Dropdown,
   Flex,
+  Modal,
   Spin,
   Tabs,
   Typography,
@@ -33,18 +56,16 @@ import { useT } from "@stapel/core";
 import { useCapabilities } from "../model/queries.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
 import type { AuthI18nKey } from "../i18n/keys.js";
-import {
-  DEFAULT_CHANNEL_PRIORITY,
-  enabledChannels,
-  splitZones,
-} from "./channels.js";
+import { DEFAULT_CHANNEL_PRIORITY, computeZones, enabledChannels, resolveInteraction } from "./channels.js";
 import type { ChannelId } from "./channels.js";
 import {
   MagicLinkPanel,
+  OAuthPanel,
   OtpPanel,
   PasskeyPanel,
   PasswordPanel,
   QrPanel,
+  SsoPanel,
 } from "./panels.js";
 
 /** A system notice for zone A's single Alert slot (ПРАВИЛО 3). */
@@ -64,6 +85,19 @@ export interface AuthPanelProps {
   readonly channelPriority?: readonly ChannelId[];
   /** Optional zone-A system notice (session revoked, link expired, …). */
   readonly notice?: AuthPanelNotice;
+  /**
+   * Replace a channel's bottom-row / overflow-menu icon (keyed by
+   * `ChannelId`). Takes precedence over the backend's `plan[id].icon_svg`.
+   */
+  readonly iconOverrides?: Readonly<Partial<Record<ChannelId, ReactNode>>>;
+  /**
+   * Replace a specific OAuth PROVIDER's icon (keyed by provider id, e.g.
+   * `"google"`, `"github"`) — finer-grained than `iconOverrides.oauth`,
+   * which would replace the whole social button group at once.
+   */
+  readonly oauthIconOverrides?: Readonly<Record<string, ReactNode>>;
+  /** Where an OAuth provider redirects back to. Default `location.href`. */
+  readonly oauthRedirectUri?: string;
 }
 
 const CHANNEL_LABEL: Record<ChannelId, AuthI18nKey> = {
@@ -77,28 +111,6 @@ const CHANNEL_LABEL: Record<ChannelId, AuthI18nKey> = {
   magic_link: AUTH_I18N_KEYS.uiChannelMagicLink,
 };
 
-/** Zone-B panel for a channel (SSO/OAuth redirect channels have no inline
- * panel here in the pilot — they surface as secondary buttons only). */
-function channelPanel(id: ChannelId): ReactElement | null {
-  switch (id) {
-    case "email":
-      return <OtpPanel channel="email" />;
-    case "phone":
-      return <OtpPanel channel="phone" />;
-    case "password":
-      return <PasswordPanel />;
-    case "qr":
-      return <QrPanel />;
-    case "passkey":
-      return <PasskeyPanel />;
-    case "magic_link":
-      return <MagicLinkPanel />;
-    case "oauth":
-    case "sso":
-      return null;
-  }
-}
-
 /**
  * The rendered sign-in screen. Must sit under the pair's `<AuthProvider>` (for
  * the runtime) and a core `<I18nProvider>` (for copy) — the standard pair
@@ -109,18 +121,53 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
   const t = useT();
   const theme = useMemo(() => toAntdThemeConfig(mode), [mode]);
   const caps = useCapabilities();
-
-  const channels = caps.data
-    ? enabledChannels(caps.data.login, channelPriority)
-    : [];
-  const zones = splitZones(channels);
+  const [openChannel, setOpenChannel] = useState<ChannelId | null>(null);
   const [active, setActive] = useState<ChannelId | null>(null);
 
-  // Active tab: the user's pick if it is a primary tab, else the first primary.
-  const primaryActive =
-    active && zones.primary.includes(active) ? active : zones.primary[0];
+  const login = caps.data?.login;
+  const channels = login ? enabledChannels(login, channelPriority) : [];
+  const zones = computeZones(channels, login?.plan);
+  const oauthProviders = login?.oauth ?? [];
 
-  const tabs: TabsProps["items"] = zones.primary
+  /** Zone-B/dialog panel for a channel. OAuth/SSO get real panels now (a
+   * provider-button group and a domain-lookup form respectively) — they were
+   * `null` in the §54 pilot, which silently dropped them whenever they landed
+   * outside a tab. */
+  function channelPanel(id: ChannelId): ReactElement | null {
+    switch (id) {
+      case "email":
+        return <OtpPanel channel="email" />;
+      case "phone":
+        return <OtpPanel channel="phone" />;
+      case "password":
+        return <PasswordPanel />;
+      case "qr":
+        return <QrPanel />;
+      case "passkey":
+        return <PasskeyPanel />;
+      case "magic_link":
+        return <MagicLinkPanel />;
+      case "sso":
+        return <SsoPanel />;
+      case "oauth":
+        return oauthProviders.length > 0 ? (
+          <OAuthPanel
+            providers={oauthProviders}
+            {...(props.oauthRedirectUri !== undefined
+              ? { redirectUri: props.oauthRedirectUri }
+              : {})}
+            {...(props.oauthIconOverrides !== undefined
+              ? { iconOverrides: props.oauthIconOverrides }
+              : {})}
+          />
+        ) : null;
+    }
+  }
+
+  // Active tab: the user's pick if it is a main tab, else the first main one.
+  const mainActive = active && zones.main.includes(active) ? active : zones.main[0];
+
+  const tabs: TabsProps["items"] = zones.main
     .map((id) => {
       const panel = channelPanel(id);
       return panel
@@ -132,8 +179,22 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
   const overflowItems = zones.overflow.map((id) => ({
     key: id,
     label: t(CHANNEL_LABEL[id]),
-    onClick: () => setActive(id),
+    onClick: () => pick(id),
   }));
+
+  /**
+   * Pick an overflow/bottom channel (owner directive point 1: this used to
+   * `setActive` and hope the tab strip picked it up — it never did, because
+   * `tabs` is built from `zones.main` alone. Now every non-main channel opens
+   * a DIALOG with its own panel, except OAuth (a direct provider redirect —
+   * `resolveInteraction` returns `"redirect"`, so there's nothing to open).
+   */
+  function pick(id: ChannelId): void {
+    const placement = zones.bottom.includes(id) ? "bottom" : "overflow";
+    const interaction = resolveInteraction(id, placement, login?.plan?.[id]?.interaction);
+    if (interaction === "redirect") return; // OAuth: the button IS the action.
+    setOpenChannel(id);
+  }
 
   return (
     <ConfigProvider theme={theme}>
@@ -150,7 +211,7 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
           />
         )}
 
-        {/* Zone B — primary channels as tabs (or a lone form) */}
+        {/* Zone B — main channels as tabs (or a lone form) */}
         {caps.isLoading ? (
           <Flex justify="center">
             <Spin />
@@ -159,64 +220,102 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
           tabs[0]?.children
         ) : (
           <Tabs
-            {...(primaryActive ? { activeKey: primaryActive } : {})}
+            {...(mainActive ? { activeKey: mainActive } : {})}
             onChange={(k) => setActive(k as ChannelId)}
             items={tabs}
           />
         )}
 
-        {/* Zone C — secondary channels + "More" overflow */}
-        {(zones.secondary.length > 0 || zones.overflow.length > 0) && (
-          <>
+        {/* Zone C — the bottom icon row (social + qr/passkey by default) and
+            the "More ways to sign in" overflow menu. */}
+        {(zones.bottom.length > 0 || overflowItems.length > 0) && (
+          <Flex vertical gap="small" style={{ width: "100%" }}>
             <Divider plain>{t(AUTH_I18N_KEYS.uiOr)}</Divider>
-            <Flex vertical gap="small" style={{ width: "100%" }}>
-              {zones.secondary.map((id) => (
-                <SecondaryChannel
-                  key={id}
-                  id={id}
-                  label={t(CHANNEL_LABEL[id])}
-                  panel={channelPanel(id)}
-                />
-              ))}
-              {overflowItems.length > 0 && (
-                <Dropdown menu={{ items: overflowItems }}>
-                  <Typography.Link>
+            {zones.bottom.length > 0 && (
+              <BottomRow
+                ids={zones.bottom}
+                oauthProviders={oauthProviders}
+                onPick={pick}
+                labelFor={(id) => t(CHANNEL_LABEL[id])}
+                {...(props.iconOverrides !== undefined
+                  ? { iconOverrides: props.iconOverrides }
+                  : {})}
+                {...(props.oauthRedirectUri !== undefined
+                  ? { oauthRedirectUri: props.oauthRedirectUri }
+                  : {})}
+                {...(props.oauthIconOverrides !== undefined
+                  ? { oauthIconOverrides: props.oauthIconOverrides }
+                  : {})}
+              />
+            )}
+            {overflowItems.length > 0 && (
+              <Flex justify="center">
+                <Dropdown menu={{ items: overflowItems }} trigger={["click"]}>
+                  <Typography.Link data-analytics="none" data-analytics-reason="local-ui-open-overflow-menu">
                     {t(AUTH_I18N_KEYS.uiMoreMethods)}
                   </Typography.Link>
                 </Dropdown>
-              )}
-            </Flex>
-          </>
+              </Flex>
+            )}
+          </Flex>
         )}
       </Flex>
+
+      {/* The alt-method dialog (owner directive point 1): picking anything
+          from the bottom row or the overflow menu (other than a direct OAuth
+          redirect) opens THIS, never a phantom fourth tab. */}
+      <Modal
+        open={openChannel !== null}
+        title={openChannel ? t(CHANNEL_LABEL[openChannel]) : undefined}
+        onCancel={() => setOpenChannel(null)}
+        footer={null}
+        destroyOnHidden
+      >
+        {openChannel ? channelPanel(openChannel) : null}
+      </Modal>
     </ConfigProvider>
   );
 }
 
-/**
- * A zone-C secondary channel: a disclosure whose body is the same headless
- * panel used in zone B (redirect-only channels without an inline panel render
- * just their label). Kept inline (no modal) per the guideline spirit.
- */
-function SecondaryChannel(props: {
-  id: ChannelId;
-  label: string;
-  panel: ReactElement | null;
+/** The persistent bottom icon row: OAuth renders its provider-button group
+ * directly (no dialog, per `resolveInteraction`); every other bottom channel
+ * (qr, passkey by default, or anything a backend plan places here) renders a
+ * single icon button that opens the shared dialog above. */
+function BottomRow(props: {
+  ids: readonly ChannelId[];
+  oauthProviders: Parameters<typeof OAuthPanel>[0]["providers"];
+  onPick: (id: ChannelId) => void;
+  labelFor: (id: ChannelId) => string;
+  iconOverrides?: Readonly<Partial<Record<ChannelId, ReactNode>>>;
+  oauthRedirectUri?: string;
+  oauthIconOverrides?: Readonly<Record<string, ReactNode>>;
 }): ReactElement {
-  const [open, setOpen] = useState(false);
-  if (!props.panel) {
-    return <Typography.Text type="secondary">{props.label}</Typography.Text>;
-  }
   return (
-    <Flex vertical gap="small">
-      <Typography.Link
-        onClick={() => setOpen((o) => !o)}
-        data-analytics="none"
-        data-analytics-reason="local-ui-toggle-secondary-channel"
-      >
-        {props.label}
-      </Typography.Link>
-      {open && props.panel}
+    <Flex wrap gap="small" justify="center" data-testid="auth-bottom-row">
+      {props.ids.map((id) =>
+        id === "oauth" ? (
+          <OAuthPanel
+            key="oauth"
+            providers={props.oauthProviders}
+            {...(props.oauthRedirectUri !== undefined
+              ? { redirectUri: props.oauthRedirectUri }
+              : {})}
+            {...(props.oauthIconOverrides !== undefined
+              ? { iconOverrides: props.oauthIconOverrides }
+              : {})}
+          />
+        ) : (
+          <Button
+            key={id}
+            icon={props.iconOverrides?.[id]}
+            onClick={() => props.onPick(id)}
+            data-analytics="none"
+            data-analytics-reason="local-ui-open-bottom-row-channel"
+          >
+            {props.labelFor(id)}
+          </Button>
+        )
+      )}
     </Flex>
   );
 }
