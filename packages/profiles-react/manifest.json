@@ -504,6 +504,20 @@
       "source": "demo/MyProfile.demo.tsx"
     },
     {
+      "id": "profiles.notification_preferences",
+      "title": "Notification preferences",
+      "description": "Headless category (messages/system) x channel (email/push) notification matrix over the caller's profile fields. Bring your own grid — the component is renderless.",
+      "component": "NotificationPreferences",
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/NotificationPreferences.demo.tsx"
+    },
+    {
       "id": "profiles.provider",
       "title": "Profiles provider",
       "description": "The headless profiles root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
