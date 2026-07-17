@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/profiles-react",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "demos": [
     {
       "id": "profiles.connection_list",
@@ -40,7 +40,7 @@
       ],
       "source": {
         "file": "demo/MyProfile.demo.tsx",
-        "line": 91
+        "line": 98
       }
     },
     {

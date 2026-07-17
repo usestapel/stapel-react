@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/profiles-react",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "backend": {
     "module": "stapel-profiles",
-    "contract": ">=0.3 <0.4"
+    "contract": ">=0.5 <0.6"
   },
   "layers": [
     "api",
@@ -29,6 +29,13 @@
       "tag": "Relationships",
       "request": null,
       "response": "RelationshipActionResponse"
+    },
+    "get_field_manifest": {
+      "method": "GET",
+      "path": "/profiles/api/v1/field-manifest",
+      "tag": "Profile",
+      "request": null,
+      "response": null
     },
     "get_language": {
       "method": "GET",
@@ -163,6 +170,14 @@
         "profiles",
         "profile",
         "{userId}"
+      ]
+    },
+    "useProfileFieldManifest": {
+      "kind": "query",
+      "operation": "getFieldManifest",
+      "queryKey": [
+        "profiles",
+        "fieldManifest"
       ]
     },
     "useRelationship": {
@@ -627,17 +642,8 @@
     "profiles.settings.avatar.change",
     "profiles.settings.avatar.upload_error",
     "profiles.settings.avatar.uploading",
-    "profiles.settings.field.currency",
-    "profiles.settings.field.display_name",
-    "profiles.settings.field.theme",
-    "profiles.settings.field.units",
     "profiles.settings.subtitle",
-    "profiles.settings.theme.dark",
-    "profiles.settings.theme.light",
-    "profiles.settings.theme.system",
-    "profiles.settings.title",
-    "profiles.settings.units.imperial",
-    "profiles.settings.units.metric"
+    "profiles.settings.title"
   ],
   "exports": {
     "runtime": [
@@ -672,6 +678,7 @@
       "useMyFollowing",
       "useMyProfile",
       "useProfile",
+      "useProfileFieldManifest",
       "useProfilesAnalytics",
       "useProfilesApi",
       "useProfilesRuntime",
@@ -699,6 +706,8 @@
       "NotificationCategory",
       "NotificationChannel",
       "NotificationPrefsBag",
+      "ProfileFieldKind",
+      "ProfileFieldManifestEntry",
       "ProfileUpdate",
       "ProfilesApi",
       "ProfilesErrorCode",

@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/auth-react",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "backend": {
     "module": "stapel-auth",
     "contract": ">=0.6 <0.7"
@@ -1992,13 +1992,9 @@
     "auth.sec.oauth.unlink_confirm_title",
     "auth.sec.oauth.unlink_unavailable",
     "auth.sec.passkeys.add",
-    "auth.sec.passkeys.add_title",
     "auth.sec.passkeys.added_success",
     "auth.sec.passkeys.awaiting_ceremony",
-    "auth.sec.passkeys.begin_cta",
     "auth.sec.passkeys.empty",
-    "auth.sec.passkeys.name_label",
-    "auth.sec.passkeys.name_placeholder",
     "auth.sec.passkeys.remove",
     "auth.sec.passkeys.remove_confirm_title",
     "auth.sec.passkeys.title",
