@@ -1,6 +1,6 @@
 # @stapel/auth-react 0.5.1
 
-Headless React flow pair for stapel-auth (contract >=0.6 <0.7) — business + state, zero visual opinion.
+Headless React flow pair for stapel-auth (contract >=0.7 <0.8) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -132,7 +132,6 @@ Request/response schema names are in manifest.json + the generated types.
 - auth_api_v1_totp_disable_otp_request_create: POST /auth/api/v1/totp/disable-otp/request/
 - auth_api_v1_totp_setup_confirm_create: POST /auth/api/v1/totp/setup/confirm/
 - auth_api_v1_totp_setup_create: POST /auth/api/v1/totp/setup/
-- auth_api_v1_totp_step_up_create: POST /auth/api/v1/totp/step-up/
 - auth_api_v1_user_account_cancel_close_create: POST /auth/api/v1/user/account/cancel-close
 - auth_api_v1_user_account_close_create: POST /auth/api/v1/user/account/close
 - auth_api_v1_user_account_close_status_retrieve: GET /auth/api/v1/user/account/close/status
@@ -169,7 +168,7 @@ Request/response schema names are in manifest.json + the generated types.
 - useUnlinkOAuth (mutation) → oauthUnlink
 
 ## Errors (render t(code, params); UX from remediation)
-119 keys (full catalog: manifest.json §errors). By remediation: fix_input 56 · retry 31 · reauthenticate 12 · wait_and_retry 8 · verify 7 · contact_support 5.
+118 keys (full catalog: manifest.json §errors). By remediation: fix_input 56 · retry 31 · reauthenticate 12 · wait_and_retry 8 · verify 6 · contact_support 5.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}

@@ -155,3 +155,83 @@ describe("SessionManager delegation — host onSessionLost policy (§43.1)", () 
     expect(onSessionLost).not.toHaveBeenCalled();
   });
 });
+
+describe("SessionManager delegation — logout vs. a racing 401 (owner-diagnosed live incident, 2026-07-17, миттудей race)", () => {
+  // Reproduces the exact finisher diagnosis: `logout()` used to await the
+  // server revoke BEFORE any local teardown. In the window between the
+  // server honoring that revoke and this session getting back around to
+  // tearing itself down, a parallel authenticated request (e.g. a Navbar
+  // still holding a stale `useWorkspaces` query) 401s, retries its own
+  // refresh against the now-revoked token, fails, and used to race a
+  // `sessionLost('expired'/'revoked')` teardown in ahead of the explicit
+  // logout — rendering a "session expired" banner on a logout the user
+  // asked for themselves. Cookie mode (the default the incident occurred
+  // in — `GET /token/refresh/` rides the cookie jar, no local token
+  // required) so the racing refresh always hits the network regardless of
+  // how far the logout's own (concurrent) local-state cleanup has
+  // progressed. This test stalls BOTH the logout's own teardown (via a
+  // registered hook) and the racing request's refresh response so the race
+  // is deterministic instead of timing-dependent.
+  it("never fires onTeardown/onSessionLost for the racing 401 — teardown('logout') fires exactly once", async () => {
+    let releaseHook: () => void = () => {};
+    const hookGate = new Promise<void>((resolve) => {
+      releaseHook = resolve;
+    });
+    let releaseRefresh: () => void = () => {};
+    const refreshGate = new Promise<void>((resolve) => {
+      releaseRefresh = resolve;
+    });
+    let refreshReceived: () => void = () => {};
+    const refreshReceivedPromise = new Promise<void>((resolve) => {
+      refreshReceived = resolve;
+    });
+
+    server.use(
+      http.post(`${BASE}/logout/`, () => HttpResponse.json({ message: "ok" })),
+      http.get(`${BASE}/me/`, () =>
+        HttpResponse.json({ localizable_error: "auth.token.expired" }, { status: 401 })
+      ),
+      http.get(`${BASE}/token/refresh/`, async () => {
+        refreshReceived();
+        await refreshGate;
+        // The server has ALREADY revoked the token by the time this
+        // resolves — "the server rejected it first", exactly as diagnosed.
+        return HttpResponse.json(
+          { localizable_error: "error.401.refresh_revoked" },
+          { status: 401 }
+        );
+      })
+    );
+
+    const reasons: string[] = [];
+    const onSessionLost = vi.fn();
+    const hook = vi.fn(() => hookGate); // stalls the logout's own teardown
+    const runtime = createAuthRuntime({
+      baseUrl: BASE,
+      onTeardown: (r) => reasons.push(r),
+      onSessionLost,
+    });
+    runtime.session.adopt(authResponse("LOGGED_IN"));
+    runtime.session.getSessionManager().registerLogoutHook(hook);
+
+    // Explicit logout — its local teardown is stalled mid-flight on `hook`.
+    const logoutPromise = runtime.session.logout();
+
+    // A parallel authenticated request races in while teardown is still
+    // pending, gets a 401, and retries via a refresh the server has
+    // already revoked.
+    const racedRequest = runtime.client.get("/me/");
+    await refreshReceivedPromise;
+
+    // Let both stalls resolve together and let everything settle.
+    releaseRefresh();
+    releaseHook();
+    await Promise.allSettled([logoutPromise, racedRequest]);
+
+    await expect(racedRequest).rejects.toBeTruthy();
+    expect(reasons).toEqual(["logout"]); // never "expired"/"revoked", no duplicate
+    expect(onSessionLost).not.toHaveBeenCalled();
+    expect(hook.mock.calls).toEqual([["logout"]]); // teardown ran exactly once
+    expect(runtime.session.getSessionManager().getStatus()).toBe("unauthenticated");
+  });
+});

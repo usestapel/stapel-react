@@ -163,6 +163,16 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
    * `doRefresh` — the bootstrap probe on cold `restore()` and a live 401
    * retry both go through this same function (`sessionManager.refresh()`),
    * so there is nowhere left for the wrong banner to sneak back in from.
+   *
+   * `onTeardown(reason)` fires ONLY if `sessionManager.sessionLost()`
+   * actually performed a teardown (owner-diagnosed live incident,
+   * 2026-07-17, miттудей race): a request racing in with a 401 while an
+   * explicit `logout()` is already tearing this session down gets a `false`
+   * back (core's `SessionManager` guards `sessionLost()` off for the
+   * duration of `logout()`) — calling `onTeardown('expired'|'revoked')`
+   * anyway would fire a "session expired" banner alongside (or ahead of)
+   * the logout's own `onTeardown('logout')`, on a session the user
+   * deliberately ended.
    */
   async function settleRefreshFailure(reason: TeardownReason): Promise<void> {
     const wasEstablished = sessionManager.getStatus() !== "initializing";
@@ -170,8 +180,10 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
       sessionManager.markUnauthenticated();
       return;
     }
-    await sessionManager.sessionLost(reason === "revoked" ? "revoked" : "expired");
-    options.onTeardown?.(reason);
+    const tornDown = await sessionManager.sessionLost(
+      reason === "revoked" ? "revoked" : "expired"
+    );
+    if (tornDown) options.onTeardown?.(reason);
   }
 
   const sessionManager = createSessionManager({
@@ -249,17 +261,38 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
     return cookieMode ? null : (state.tokens?.access ?? null);
   }
 
+  /**
+   * Explicit logout (owner-diagnosed live incident, 2026-07-17, миттудей
+   * race): local teardown runs FIRST, the server revoke is best-effort
+   * AFTER. This used to await the network revoke before any local
+   * teardown — in the window between the server honoring that revoke and
+   * this function getting back around to `sessionManager.logout()`, a
+   * parallel authenticated request (e.g. a `Navbar` still holding a stale
+   * query) would 401, retry its own refresh against the now-revoked token,
+   * fail, and race a `sessionLost('expired')` teardown in ahead of the
+   * explicit logout — rendering a "session expired" banner on a logout the
+   * user asked for themselves.
+   *
+   * Two independent layers close that race, deliberately combined rather
+   * than either alone: (1) local teardown no longer waits on the network at
+   * all, so the window shrinks to the (synchronous-ish) local
+   * teardown/hook-running itself; (2) `sessionManager.logout()` also holds
+   * core's `loggingOut` guard for that whole window, so `sessionLost()`
+   * calls racing in during it (e.g. from `settleRefreshFailure` above) are
+   * no-ops regardless of exactly how the two overlap in time.
+   */
   async function logout(): Promise<void> {
+    // Mechanical cleanup (the registered hook, incl. this session's own
+    // local-state/persisted-storage clear) + the host notification run
+    // FIRST — logout is instant from the user's perspective and never
+    // depends on (or is raced by) the network revoke below.
+    await sessionManager.logout();
+    options.onTeardown?.("logout");
     try {
       await resolveApi().logout();
     } catch {
-      // Best-effort — tear down locally regardless.
+      // Best-effort — local state is already torn down regardless.
     }
-    // Mechanical cleanup (the registered hook, incl. this session's own
-    // local-state/persisted-storage clear) runs before the host notification
-    // — matches the involuntary-loss ordering in `doRefresh` above.
-    await sessionManager.logout();
-    options.onTeardown?.("logout");
   }
 
   /**

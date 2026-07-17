@@ -126,14 +126,33 @@ export interface SessionManager {
    * fallback after `doRefresh` already reported a more specific reason
    * itself, or from N concurrent callers that each independently exhaust
    * their retry).
+   *
+   * ALSO a no-op while an explicit {@link logout} is in flight (owner-
+   * diagnosed live incident, 2026-07-17: a request racing in against a
+   * server that already honored the logout's revoke call, but before local
+   * teardown/`registerLogoutHook`s finish running, 401s and fails its own
+   * refresh — that must never sneak in a contradictory `"session lost"`
+   * teardown/notification ahead of the logout that is already tearing this
+   * session down). Resolves `true` if this call actually performed the
+   * teardown, `false` if it was a no-op for either reason — callers that
+   * gate a user-facing notification on "did a loss really happen" (e.g.
+   * `@stapel/auth-react`'s `onTeardown`) should check the return value
+   * rather than assume every call reports something.
    */
-  sessionLost(reason?: SessionLostReason): Promise<void>;
+  sessionLost(reason?: SessionLostReason): Promise<boolean>;
 
   /**
    * Explicit logout (§43.3): drops the encryption key FIRST and
    * synchronously (a tab crash mid-wipe still leaves any un-deleted
    * ciphertext unreadable — §43.5), then runs every registered logout hook,
    * then transitions to `"unauthenticated"` and emits `session:logout`.
+   *
+   * For the FULL duration of this call (set synchronously before the first
+   * `await`, cleared once teardown settles) {@link sessionLost} is guarded
+   * off — see its doc comment. A caller that itself does a network revoke
+   * around this call (e.g. `@stapel/auth-react`'s `AuthSession.logout`)
+   * should call this FIRST and treat the revoke as best-effort afterward:
+   * local teardown must never wait on — or be raced by — the network.
    */
   logout(): Promise<void>;
 
@@ -187,6 +206,14 @@ export function createSessionManager(
 
   // Single-flight coalescing (see `refresh()` doc above).
   let inFlight: Promise<boolean> | null = null;
+
+  // Logout-in-progress guard (owner-diagnosed live incident, 2026-07-17 —
+  // see `sessionLost`'s doc comment on the interface above). Set
+  // SYNCHRONOUSLY at the top of `logout()`, before its first `await`, so no
+  // window exists where a concurrent 401's failed refresh can observe it as
+  // `false` and slip a `sessionLost()` teardown in ahead of the logout that
+  // is already tearing this exact session down.
+  let loggingOut = false;
 
   // Per-session encryption key (§43.5) — lazy, memory-only, dropped on
   // teardown. Non-extractable: it never needs to leave this process.
@@ -269,13 +296,22 @@ export function createSessionManager(
     }
   }
 
-  async function sessionLost(reason: SessionLostReason = "unknown"): Promise<void> {
-    if (status === "unauthenticated") return; // idempotent
+  async function sessionLost(reason: SessionLostReason = "unknown"): Promise<boolean> {
+    if (status === "unauthenticated") return false; // idempotent
+    // An explicit logout() already owns tearing this session down — see the
+    // interface doc comment and `logout()` below.
+    if (loggingOut) return false;
     await teardown("lost", reason);
+    return true;
   }
 
   async function logout(): Promise<void> {
-    await teardown("logout");
+    loggingOut = true;
+    try {
+      await teardown("logout");
+    } finally {
+      loggingOut = false;
+    }
   }
 
   function refresh(): Promise<boolean> {

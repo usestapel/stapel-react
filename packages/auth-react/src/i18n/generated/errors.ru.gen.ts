@@ -85,7 +85,6 @@ export const authErrorBundleRu: Record<AuthErrorCode, string> = {
   "error.403.qr_device_mismatch": "Этот QR-код принадлежит другому устройству.",
   "error.403.qr_unauth_scan": "Этот QR-код нельзя отсканировать с неаутентифицированного устройства.",
   "error.403.sso_required": "Для этой учётной записи вход возможен только через SSO. Используйте SSO-ссылку вашей организации.",
-  "error.403.step_up_required": "Для этого действия требуется подтверждение TOTP. Сначала получите step-up-токен.",
   "error.403.verification_enrollment_required": "Требуется регистрация фактора подтверждения.",
   "error.403.verification_required": "Требуется дополнительная проверка",
   "error.404.ad_not_found": "Объявление не найдено",

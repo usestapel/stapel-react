@@ -116,6 +116,48 @@ describe("createSessionManager — events (§43.1)", () => {
   });
 });
 
+describe("createSessionManager — logout-in-progress guard (owner-diagnosed live incident, 2026-07-17, миттудей race)", () => {
+  it("sessionLost() is a no-op (returns false, no event, no teardown) while logout() is mid-teardown, even before status has flipped", async () => {
+    let releaseHook: () => void = () => {};
+    const hookGate = new Promise<void>((resolve) => {
+      releaseHook = resolve;
+    });
+    const manager = createSessionManager({
+      initialStatus: "authenticated",
+      doRefresh: async () => null,
+    });
+    manager.registerLogoutHook(() => hookGate); // stalls teardown mid-flight
+
+    const logoutPromise = manager.logout();
+    // Still mid-teardown: the hook hasn't resolved, so status has NOT
+    // flipped to "unauthenticated" yet — this is exactly the window a
+    // racing 401's failed refresh lands in.
+    expect(manager.getStatus()).toBe("authenticated");
+
+    const lost = vi.fn();
+    manager.on("session:lost", lost);
+    const tornDown = await manager.sessionLost("expired");
+
+    expect(tornDown).toBe(false);
+    expect(lost).not.toHaveBeenCalled();
+    expect(manager.getStatus()).toBe("authenticated"); // untouched by the race
+
+    releaseHook();
+    await logoutPromise;
+    expect(manager.getStatus()).toBe("unauthenticated");
+    expect(lost).not.toHaveBeenCalled(); // never fired, not even after settling
+  });
+
+  it("sessionLost() reports true and behaves normally once no logout() is in flight", async () => {
+    const manager = createSessionManager({
+      initialStatus: "authenticated",
+      doRefresh: async () => null,
+    });
+    expect(await manager.sessionLost("expired")).toBe(true);
+    expect(await manager.sessionLost("expired")).toBe(false); // idempotent, unrelated to the guard
+  });
+});
+
 describe("createSessionManager — logout-hook registry (§43.3)", () => {
   it("runs every registered hook on logout() with reason 'logout'", async () => {
     const manager = createSessionManager({ doRefresh: async () => null });

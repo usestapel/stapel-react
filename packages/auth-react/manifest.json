@@ -4,7 +4,7 @@
   "version": "0.5.1",
   "backend": {
     "module": "stapel-auth",
-    "contract": ">=0.6 <0.7"
+    "contract": ">=0.7 <0.8"
   },
   "layers": [
     "api",
@@ -818,13 +818,6 @@
       "request": null,
       "response": "TOTPSetupResponse"
     },
-    "auth_api_v1_totp_step_up_create": {
-      "method": "POST",
-      "path": "/auth/api/v1/totp/step-up/",
-      "tag": "auth",
-      "request": "TOTPStepUp",
-      "response": "TOTPStepUpResponse"
-    },
     "auth_api_v1_user_account_cancel_close_create": {
       "method": "POST",
       "path": "/auth/api/v1/user/account/cancel-close",
@@ -1515,11 +1508,6 @@
       "params": [],
       "remediation": "reauthenticate"
     },
-    "error.403.step_up_required": {
-      "status": 403,
-      "params": [],
-      "remediation": "verify"
-    },
     "error.403.verification_enrollment_required": {
       "status": 403,
       "params": [],
@@ -2152,7 +2140,6 @@
     "error.403.qr_device_mismatch",
     "error.403.qr_unauth_scan",
     "error.403.sso_required",
-    "error.403.step_up_required",
     "error.403.verification_enrollment_required",
     "error.403.verification_required",
     "error.404.ad_not_found",

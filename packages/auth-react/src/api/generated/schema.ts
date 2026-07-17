@@ -1359,7 +1359,7 @@ export interface paths {
          *
          *     **`redirect_url`** (optional) — where to send the scanner after the auth flow completes. Defaults to `/`.
          *
-         *     **Response:** encode `scan_url` into a QR image (e.g. via qrcode.js) and display it. Poll `GET /qr/{key}/status/` to know when the flow completes.
+         *     **Response:** encode `scan_url` into a QR image (e.g. via qrcode.js) and display it. Poll `GET /qr/{key}/status/` to know when the flow completes. `redirect_url` and `allow_unauthenticated_scanner` echo back the accepted, normalized values actually stored against the key (including applied defaults), so the response is never silent about what was recorded.
          *
          *
          *     **Permissions:** `AllowAny`
@@ -1943,28 +1943,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/api/v1/totp/step-up/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @deprecated
-         * @description DEPRECATED (removed in 1.0). Issue a one-time step-up token after TOTP verification (valid 15 min, X-Step-Up-Token). Superseded by the unified step-up contract: guard sensitive actions with @requires_verification and drive the /verification/ envelope flow instead. For transit, a successful call ALSO writes a server-side verification grant for the LEGACY_STEP_UP_GRANT_SCOPES scopes, so deployed legacy frontends keep passing @requires_verification while the backend migrates. See auth-stepup-unification.md.
-         *
-         *     **Permissions:** `IsServiceRequest, IsSuperUser`
-         */
-        post: operations["auth_api_v1_totp_step_up_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/auth/api/v1/user/account/cancel-close": {
         parameters: {
             query?: never;
@@ -2326,6 +2304,8 @@ export interface components {
             interaction: string;
             /** @description Inline SVG glyph for this method (24x24, currentColor) — a */
             icon_svg: string;
+            /** @description Whether this method's OTP delivery is mocked in this */
+            mock?: boolean;
         };
         /** @description Authentication response with user data and tokens. */
         AuthResponse: {
@@ -2674,6 +2654,10 @@ export interface components {
              * @example true
              */
             magic_link: boolean;
+            /** @description Email OTP delivery is mocked in this environment (the */
+            email_mock?: boolean;
+            /** @description Same as ``email_mock``, for phone/SMS OTP delivery */
+            phone_mock?: boolean;
         };
         LoginResponse: components["schemas"]["AuthResponse"] | components["schemas"]["TOTPChallengeResponse"];
         LogoutRequest: {
@@ -3037,6 +3021,13 @@ export interface components {
              * @example https://app.example.com/auth/api/v1/qr/abc123xyz/scan/
              */
             scan_url: string;
+            /**
+             * @description Echoes the accepted, normalized `redirect_url` as stored against this key — null if none was supplied (the `/` default applies at scan time)
+             * @example /home
+             */
+            redirect_url?: string | null;
+            /** @description Echoes the `allow_unauthenticated_scanner` flag as actually applied and stored against this key (false unless explicitly set true on a `session_share` request) */
+            allow_unauthenticated_scanner?: boolean;
         };
         /**
          * @description * `session_share` - Logged-in user shares their session to another device
@@ -3107,6 +3098,10 @@ export interface components {
              * @example true
              */
             anonymous: boolean;
+            /** @description Email OTP delivery is mocked in this environment (the */
+            email_mock?: boolean;
+            /** @description Same as ``email_mock``, for phone/SMS OTP delivery */
+            phone_mock?: boolean;
         };
         /** @description SSO organization lookup result for a given email domain. */
         SSODomainLookupResponse: {
@@ -3374,23 +3369,6 @@ export interface components {
             qr_uri: string;
             /**
              * @description Seconds until setup session expires
-             * @example 300
-             */
-            expires_in: number;
-        };
-        TOTPStepUp: {
-            /** @description 6-digit TOTP code. */
-            code: string;
-        };
-        /** @description Issued step-up token after TOTP verification. */
-        TOTPStepUpResponse: {
-            /**
-             * @description Opaque token proving recent TOTP verification
-             * @example su_abc123
-             */
-            step_up_token: string;
-            /**
-             * @description Seconds until the step-up token expires
              * @example 300
              */
             expires_in: number;
@@ -6442,39 +6420,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TOTPSetupConfirmResponse"];
-                };
-            };
-        };
-    };
-    auth_api_v1_totp_step_up_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TOTPStepUp"];
-                "application/x-www-form-urlencoded": components["schemas"]["TOTPStepUp"];
-                "multipart/form-data": components["schemas"]["TOTPStepUp"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TOTPStepUpResponse"];
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StapelError"];
                 };
             };
         };
