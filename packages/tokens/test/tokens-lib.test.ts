@@ -103,8 +103,8 @@ describe("resolve + render", () => {
   });
 });
 
-describe("validateTheme — contrast contract (warning only, user decision Q10a)", () => {
-  it("warns (not errors) on an intentionally-failing fg/bg pair, and still passes", () => {
+describe("validateTheme — contrast contract is a GATE (§68 Ф6, 2026-07-18)", () => {
+  it("errors (not just warns) on an intentionally-failing fg/bg pair — the build must fail", () => {
     // Deliberately low-contrast: a light-gray "text" on a near-white
     // "surface" — a real theme.json a host might author by mistake.
     const theme = base({
@@ -114,16 +114,13 @@ describe("validateTheme — contrast contract (warning only, user decision Q10a)
         brand: { light: "brand.500", dark: "brand.300" },
       },
     });
-    const { errors, warnings } = validateTheme(theme, RAMPS);
-    // Structurally valid theme (paired, valid refs) ⇒ no errors ⇒ gen:tokens
-    // still exits 0 — a contrast failure alone must never fail the build.
-    expect(errors).toEqual([]);
+    const { errors } = validateTheme(theme, RAMPS);
     expect(
-      warnings.some((w: string) => w.includes("contrast: text на surface (light)"))
+      errors.some((e: string) => e.includes("contrast: text на surface (light)"))
     ).toBe(true);
   });
 
-  it("does not warn when the intentional pairs are legible", () => {
+  it("does not error when the intentional pairs are legible", () => {
     const theme = base({
       core: {
         surface: { light: "gray.50", dark: "gray.900" },
@@ -131,8 +128,69 @@ describe("validateTheme — contrast contract (warning only, user decision Q10a)
         brand: { light: "brand.500", dark: "brand.300" },
       },
     });
-    const { warnings } = validateTheme(theme, RAMPS);
+    const { errors, warnings } = validateTheme(theme, RAMPS);
+    expect(errors.filter((e: string) => e.startsWith("contrast:"))).toEqual([]);
     expect(warnings.filter((w: string) => w.startsWith("contrast:"))).toEqual([]);
+  });
+
+  it("a documented contrastExceptions entry downgrades a real failure to a (non-fatal) warning", () => {
+    const theme = base({
+      core: {
+        surface: { light: "gray.50", dark: "gray.900" },
+        text: { light: "gray.50", dark: "brand.300" },
+        brand: { light: "brand.500", dark: "brand.300" },
+      },
+      contrastExceptions: [
+        {
+          fg: "text",
+          bg: "surface",
+          mode: "light",
+          reason: "test fixture — intentionally exempted for this spec",
+        },
+      ],
+    });
+    const { errors, warnings } = validateTheme(theme, RAMPS);
+    expect(errors.filter((e: string) => e.startsWith("contrast:"))).toEqual([]);
+    expect(
+      warnings.some(
+        (w: string) =>
+          w.includes("contrast: text на surface (light)") &&
+          w.includes("задокументированное исключение") &&
+          w.includes("test fixture")
+      )
+    ).toBe(true);
+  });
+
+  it("errors if a contrastExceptions entry is missing a reason", () => {
+    const theme = base({
+      core: {
+        surface: { light: "gray.50", dark: "gray.900" },
+        text: { light: "gray.50", dark: "brand.300" },
+        brand: { light: "brand.500", dark: "brand.300" },
+      },
+      contrastExceptions: [{ fg: "text", bg: "surface", mode: "light" }],
+    });
+    const { errors } = validateTheme(theme, RAMPS);
+    expect(errors.some((e: string) => e.includes('нужно непустое поле "reason"'))).toBe(
+      true
+    );
+  });
+
+  it("errors on a stale exception whose pairing no longer fails (escape hatch must track live exceptions only)", () => {
+    const theme = base({
+      core: {
+        surface: { light: "gray.50", dark: "gray.900" },
+        text: { light: "gray.900", dark: "gray.50" }, // legible — no failure
+        brand: { light: "brand.500", dark: "brand.300" },
+      },
+      contrastExceptions: [
+        { fg: "text", bg: "surface", mode: "light", reason: "no longer applies" },
+      ],
+    });
+    const { errors } = validateTheme(theme, RAMPS);
+    expect(errors.some((e: string) => e.includes("исключение больше не нужно"))).toBe(
+      true
+    );
   });
 });
 

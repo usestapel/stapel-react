@@ -132,7 +132,7 @@ export const colors = {
     "dark": "#232b4d"
   },
   "error": {
-    "light": "#c93a3a",
+    "light": "#c13838",
     "dark": "#f28b8b"
   },
   "error-bg": {
@@ -145,7 +145,7 @@ export const colors = {
   },
   "error-on": {
     "light": "#ffffff",
-    "dark": "#ffffff"
+    "dark": "#151a23"
   },
   "focus-ring": {
     "light": "#4657d9",
@@ -165,7 +165,7 @@ export const colors = {
   },
   "info-on": {
     "light": "#ffffff",
-    "dark": "#ffffff"
+    "dark": "#151a23"
   },
   "link": {
     "light": "#4657d9",
@@ -189,7 +189,7 @@ export const colors = {
   },
   "success-on": {
     "light": "#ffffff",
-    "dark": "#ffffff"
+    "dark": "#151a23"
   },
   "surface": {
     "light": "#ffffff",
@@ -217,7 +217,7 @@ export const colors = {
   },
   "text-on-accent": {
     "light": "#ffffff",
-    "dark": "#ffffff"
+    "dark": "#151a23"
   },
   "text-subtle": {
     "light": "#7b828f",
@@ -237,7 +237,7 @@ export const colors = {
   },
   "warning-on": {
     "light": "#ffffff",
-    "dark": "#ffffff"
+    "dark": "#151a23"
   }
 } as const;
 

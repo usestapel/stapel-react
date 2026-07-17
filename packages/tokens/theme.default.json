@@ -19,7 +19,7 @@
     "text": { "light": "gray.900", "dark": "gray.100" },
     "text-muted": { "light": "gray.600", "dark": "gray.400" },
     "text-subtle": { "light": "gray.500", "dark": "gray.500" },
-    "text-on-accent": { "light": "gray.25", "dark": "gray.25" },
+    "text-on-accent": { "light": "gray.25", "dark": "gray.900" },
 
     "border": { "light": "gray.400", "dark": "gray.700" },
     "border-subtle": { "light": "gray.300", "dark": "gray.800" },
@@ -36,23 +36,25 @@
     "success": { "light": "green.500", "dark": "green.300" },
     "success-bg": { "light": "green.100", "dark": "green.900" },
     "success-border": { "light": "green.300", "dark": "green.700" },
-    "success-on": { "light": "gray.25", "dark": "gray.25" },
+    "success-on": { "light": "gray.25", "dark": "gray.900" },
 
     "warning": { "light": "amber.500", "dark": "amber.300" },
     "warning-bg": { "light": "amber.100", "dark": "amber.900" },
     "warning-border": { "light": "amber.300", "dark": "amber.700" },
-    "warning-on": { "light": "gray.25", "dark": "gray.25" },
+    "warning-on": { "light": "gray.25", "dark": "gray.900" },
 
     "error": { "light": "red.500", "dark": "red.300" },
     "error-bg": { "light": "red.100", "dark": "red.900" },
     "error-border": { "light": "red.300", "dark": "red.700" },
-    "error-on": { "light": "gray.25", "dark": "gray.25" },
+    "error-on": { "light": "gray.25", "dark": "gray.900" },
 
     "info": { "light": "blue.500", "dark": "blue.300" },
     "info-bg": { "light": "blue.100", "dark": "blue.900" },
     "info-border": { "light": "blue.300", "dark": "blue.700" },
-    "info-on": { "light": "gray.25", "dark": "gray.25" }
+    "info-on": { "light": "gray.25", "dark": "gray.900" }
   },
+  "contrastExceptions": [],
+  "_contrastExceptionsComment": "Documented per-pairing escape hatch for the contrast GATE (src/gen/contrast.mjs CONTRAST_PAIRS, checked by validateTheme in src/gen/lib.mjs). Empty here — the default theme's real fixes make every checked pairing legible on its own. Format if ever needed: { \"fg\": \"<role>\", \"bg\": \"<role>\", \"mode\": \"light\"|\"dark\", \"reason\": \"<why this pairing is intentionally exempt>\" }. `reason` is required (non-empty) — an exception can never be silent. An entry that stops failing (pairing now legit) or that is malformed is itself a validation ERROR — the list must only ever hold live, reasoned exceptions.",
   "scales": {
     "fontFamily": {
       "sans": "'Inter', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif",

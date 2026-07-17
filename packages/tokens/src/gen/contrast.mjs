@@ -1,8 +1,12 @@
 // WCAG contrast checker for @stapel/tokens (§68 neutral role dictionary,
-// frontend-guardrails §1, user decision Q10a — 2026-07-08): a WARNING, not a
-// build gate. v1 ships with contrast surfaced as diagnostic output only,
-// tightened to an error once the palettes (ramps.standard.json + host themes)
-// stabilise.
+// frontend-guardrails §1). GATE, not a warning (2026-07-18 — the palettes
+// have stabilised per user decision Q10a's own plan): a failing pair is a
+// build ERROR (bin exits non-zero, `--check` fails) unless the theme
+// author has explicitly documented an exception (see `contrastExceptions`
+// in lib.mjs's `validateTheme`) — the escape hatch exists so the gate isn't
+// a straitjacket for a genuinely-intentional low-contrast pairing, but
+// silence is never an option: every failing pair either gets fixed or gets
+// a named, reasoned exception on record.
 //
 // Pure, side-effect-free — same contract as lib.mjs: no I/O, no randomness,
 // so it is directly unit-testable and safely importable by the validator.
@@ -66,8 +70,23 @@ export function contrastRatio(hexA, hexB) {
  *
  * Each entry: [fg role name, bg role name, "text" | "ui"].
  *   "text" → WCAG AA normal text, 4.5:1.
- *   "ui"   → large text / icon / border / focus ring, 3:1 (WCAG 1.4.11
- *            non-text contrast + 1.4.3 large-text exception).
+ *   "ui"   → large text / icon / meaningful graphical object / focus ring,
+ *            3:1 (WCAG 1.4.11 non-text contrast + 1.4.3 large-text exception).
+ *
+ * ROLE-CATEGORY DECISION (2026-07-18, §68 Ф6): `border` and `border-subtle`
+ * are DELIBERATELY ABSENT from this list. WCAG 1.4.11 itself only reaches UI
+ * components/graphical objects that convey required information — it
+ * explicitly carves out "a component that... is pure decoration, or has no
+ * requirement of visibility" (and inactive/disabled chrome). By the §68
+ * dictionary's own definitions `border` is "декоративная граница" and
+ * `border-subtle` is "разделители" (a subtle divider, intentionally faint) —
+ * neither conveys information on its own (no border-only affordance in this
+ * system relies on hitting 3:1 to be perceivable; state is always carried by
+ * a text/icon/fill change too). Gating them at 3:1 would be a false positive
+ * against their own design intent, not a real accessibility gap. `focus-ring`
+ * stays IN the list — a focus indicator is not decorative, WCAG 2.4.11/2.4.7
+ * require it to be perceivable, and it has no accompanying text/fill change
+ * to fall back on.
  */
 export const CONTRAST_PAIRS = [
   // text on the surfaces it actually renders over
@@ -87,13 +106,16 @@ export const CONTRAST_PAIRS = [
   ["warning-on", "warning", "text"],
   ["error-on", "error", "text"],
   ["info-on", "info", "text"],
-  // border/focus — UI (non-text) contrast, 3:1
-  ["border", "surface", "ui"],
-  ["border-subtle", "surface-sunken", "ui"],
+  // focus indicator — UI (non-text) contrast, 3:1 (a11y-critical, not decorative)
   ["focus-ring", "surface", "ui"],
 ];
 
 const THRESHOLD = { text: 4.5, ui: 3.0 };
+
+/** Build the exception lookup key for a (fg, bg, mode) triple. */
+export function contrastExceptionKey(fgName, bgName, mode) {
+  return `${fgName}:${bgName}:${mode}`;
+}
 
 /**
  * Check CONTRAST_PAIRS against a theme's resolved roles, in BOTH light and
@@ -106,11 +128,16 @@ const THRESHOLD = { text: 4.5, ui: 3.0 };
  * (frontend-guardrails §1.4). Same for a non-hex resolved value — contrastRatio
  * returns null and it's skipped, not warned.
  *
- * Returns an array of warning strings (no `⚠` prefix — the caller/driver adds
- * that, same convention as elsewhere in the validator).
+ * Returns an array of FAILURE records (not strings — the caller decides
+ * error vs. warning depending on whether a documented exception covers the
+ * pairing): `{ fgName, bgName, mode, kind, ratio, threshold, key, message }`.
+ * `message` has no `⚠`/`✖` prefix — the caller/driver adds that, same
+ * convention as elsewhere in the validator. `key` is the
+ * `contrastExceptionKey` for this exact (fg, bg, mode) — match it against a
+ * theme's `contrastExceptions` list to grant a documented escape hatch.
  */
 export function checkContrastPairs(resolvedCore) {
-  const warnings = [];
+  const failures = [];
   for (const [fgName, bgName, kind] of CONTRAST_PAIRS) {
     const fg = resolvedCore[fgName];
     const bg = resolvedCore[bgName];
@@ -120,11 +147,18 @@ export function checkContrastPairs(resolvedCore) {
       const ratio = contrastRatio(fg[mode], bg[mode]);
       if (ratio === null) continue;
       if (ratio < threshold) {
-        warnings.push(
-          `contrast: ${fgName} на ${bgName} (${mode}) = ${ratio.toFixed(1)}:1 < ${threshold} (WCAG AA)`
-        );
+        failures.push({
+          fgName,
+          bgName,
+          mode,
+          kind,
+          ratio,
+          threshold,
+          key: contrastExceptionKey(fgName, bgName, mode),
+          message: `contrast: ${fgName} на ${bgName} (${mode}) = ${ratio.toFixed(1)}:1 < ${threshold} (WCAG AA)`,
+        });
       }
     }
   }
-  return warnings;
+  return failures;
 }

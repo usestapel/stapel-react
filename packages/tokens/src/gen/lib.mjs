@@ -29,7 +29,7 @@
 // Everything is deterministic + byte-stable: keys are sorted, numbers
 // canonicalised, no timestamps — same input, same bytes.
 
-import { checkContrastPairs, hexToRgb } from "./contrast.mjs";
+import { checkContrastPairs, contrastExceptionKey, hexToRgb } from "./contrast.mjs";
 
 export const PREFIX = "--stapel";
 
@@ -164,11 +164,14 @@ export function validateTheme(theme, ramps) {
     }
   }
 
-  // ── Contrast contract — WARNING only (user decision Q10a, frontend-
-  // guardrails §1.3b): tighten to an error later once palettes stabilise.
-  // Resolved independently of the errors above — a pair with an invalid ref
-  // just resolves to undefined and is skipped by checkContrastPairs, so a
-  // structural error is never double-reported as a contrast warning.
+  // ── Contrast contract — a real GATE (§68 Ф6, 2026-07-18; supersedes the
+  // v1 "warning only" of user decision Q10a now that the palettes have
+  // stabilised): a failing pair is a build ERROR, unless the theme carries a
+  // documented exception for that exact pairing in `contrastExceptions`.
+  // Resolved independently of the structural errors above — a pair with an
+  // invalid ref just resolves to undefined and is skipped by
+  // checkContrastPairs, so a structural error is never double-reported as a
+  // contrast failure.
   const resolvedForContrast = {};
   for (const [name, def] of sortedEntries(core)) {
     if (name.startsWith("_")) continue;
@@ -177,7 +180,57 @@ export function validateTheme(theme, ramps) {
       dark: resolveRef(ramps, def?.dark),
     };
   }
-  warnings.push(...checkContrastPairs(resolvedForContrast));
+
+  // `contrastExceptions`: an explicit, per-pairing escape hatch (documented
+  // author override — frontend-guardrails "the gate must not be a
+  // straitjacket for a genuinely-intentional exception"). Each entry is
+  // `{ fg, bg, mode, reason }` — `reason` is REQUIRED and non-empty, so an
+  // exception can never be silent; it shows up verbatim in the (still
+  // surfaced, non-fatal) warning. An exception that doesn't match any actual
+  // failure, or is missing its reason, is itself a validation error — it
+  // must not be possible to accumulate dead/unreasoned entries.
+  const exceptions = Array.isArray(theme.contrastExceptions) ? theme.contrastExceptions : [];
+  const exceptionByKey = new Map();
+  for (const exc of exceptions) {
+    const { fg, bg, mode } = exc ?? {};
+    if (!fg || !bg || !mode) {
+      errors.push(
+        `tokens: contrastExceptions entry ${JSON.stringify(exc)} — нужны поля ` +
+          `"fg", "bg", "mode"`
+      );
+      continue;
+    }
+    if (typeof exc.reason !== "string" || exc.reason.trim() === "") {
+      errors.push(
+        `tokens: contrastExceptions "${fg}:${bg}:${mode}" — нужно непустое поле ` +
+          `"reason" (документированное исключение, не молчаливое)`
+      );
+      continue;
+    }
+    exceptionByKey.set(contrastExceptionKey(fg, bg, mode), exc.reason);
+  }
+
+  const contrastFailures = checkContrastPairs(resolvedForContrast);
+  const usedExceptionKeys = new Set();
+  for (const failure of contrastFailures) {
+    const reason = exceptionByKey.get(failure.key);
+    if (reason !== undefined) {
+      usedExceptionKeys.add(failure.key);
+      warnings.push(`${failure.message} — задокументированное исключение: ${reason}`);
+    } else {
+      errors.push(failure.message);
+    }
+  }
+  // A stale exception (nothing currently fails that pairing) is a validation
+  // error too — the escape hatch must track real, live exceptions only.
+  for (const [key, reason] of exceptionByKey) {
+    if (!usedExceptionKeys.has(key)) {
+      errors.push(
+        `tokens: contrastExceptions "${key}" (reason: "${reason}") — эта пара ` +
+          `сейчас проходит контраст, исключение больше не нужно (удали)`
+      );
+    }
+  }
 
   return { errors, warnings };
 }
