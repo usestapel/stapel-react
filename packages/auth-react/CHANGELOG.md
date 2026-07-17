@@ -1,5 +1,17 @@
 # @stapel/auth-react
 
+## 0.5.2
+
+### Patch Changes
+
+- c20f56f: Bumps the `stapel-auth` contract pin (`contract-pins.json`) from v0.6.0 to v0.7.5 and regenerates `api/generated/schema.ts`, `i18n/generated/errors.*`, `manifest.json`, and `llms.txt` against it. This removes the orphaned `totp_step_up` operation/types/error (`TOTPStepUp`, `TOTPStepUpResponse`, `error.403.step_up_required`) that had drifted into the generated output from a locally-ahead checkout — the backend's v0.7.0 release scrubbed the legacy `X-Step-Up-Token` surface entirely (superseded by the unified `/verification/` step-up flow), and this regen catches auth-react's generated contract up to that removal. Also picks up v0.7.1-0.7.5's additive changes: QR `generate` now echoes back the accepted `redirect_url`/`allow_unauthenticated_scanner`, and capabilities/login-config gain `mock`/`email_mock`/`phone_mock` flags for mocked OTP delivery.
+- c20f56f: Fixes a live-incident race (owner-diagnosed finisher, миттудей): `AuthSession.logout()` used to await the server-side revoke call BEFORE any local teardown. In the window between the server honoring that revoke and this session getting back around to tearing itself down, a parallel authenticated request (e.g. a Navbar still holding a stale `useWorkspaces` query) would 401, retry its own refresh against the now-revoked token, fail, and race a `sessionLost('expired'/'revoked')` teardown in ahead of the explicit logout — rendering a "session expired" banner on a logout the user asked for themselves.
+
+  Two changes, combined:
+
+  - `@stapel/core`'s `SessionManager.logout()` now holds a `loggingOut` guard for its full duration (set synchronously before its first `await`). `sessionLost()` is a no-op while that guard is up — in addition to its existing idempotent no-op once already `"unauthenticated"` — and now reports which case applies via its return value (`Promise<boolean>`: `true` only if it actually performed a teardown).
+  - `@stapel/auth-react`'s `AuthSession.logout()` now runs the local teardown (`sessionManager.logout()` + `onTeardown('logout')`) FIRST — instant, no network dependency — and treats the server revoke as best-effort afterward. `settleRefreshFailure` only calls `onTeardown(reason)` when `sessionLost()` reports it actually tore the session down, so a racing refresh failure during an in-flight logout never fires a contradictory `onTeardown('expired'|'revoked')`.
+
 ## 0.5.1
 
 ### Patch Changes
