@@ -4,7 +4,7 @@
   "version": "0.5.1",
   "backend": {
     "module": "stapel-auth",
-    "contract": ">=0.7 <0.8"
+    "contract": ">=0.6 <0.7"
   },
   "layers": [
     "api",
@@ -817,6 +817,13 @@
       "tag": "auth",
       "request": null,
       "response": "TOTPSetupResponse"
+    },
+    "auth_api_v1_totp_step_up_create": {
+      "method": "POST",
+      "path": "/auth/api/v1/totp/step-up/",
+      "tag": "auth",
+      "request": "TOTPStepUp",
+      "response": "TOTPStepUpResponse"
     },
     "auth_api_v1_user_account_cancel_close_create": {
       "method": "POST",
