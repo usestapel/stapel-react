@@ -44,7 +44,7 @@ describe("token refresh (auth-sa.md §13)", () => {
         return HttpResponse.json({ access: "acc_2", refresh: "ref_2" });
       })
     );
-    const runtime = createAuthRuntime({ baseUrl: BASE });
+    const runtime = createAuthRuntime({ baseUrl: BASE, cookieMode: false });
     runtime.session.adopt(authResponse("LOGGED_IN"));
     await expect(runtime.client.get("/me/")).resolves.toEqual({ id: "u_1" });
     expect(runtime.session.getState().tokens).toEqual({
@@ -71,6 +71,7 @@ describe("token refresh (auth-sa.md §13)", () => {
     const runtime = createAuthRuntime({
       baseUrl: BASE,
       onTeardown: (r) => reasons.push(r),
+      cookieMode: false,
     });
     runtime.session.adopt(authResponse("LOGGED_IN"));
     await expect(runtime.client.get("/me/")).rejects.toBeTruthy();
@@ -81,12 +82,12 @@ describe("token refresh (auth-sa.md §13)", () => {
 });
 
 describe("session persistence (frontend-standard §4.6)", () => {
-  it("persists on adopt and restores in a fresh session", async () => {
+  it("bearer mode: persists tokens on adopt and restores them in a fresh session", async () => {
     const storage = memoryStorage();
-    const a = createAuthSession({ api: () => makeApi(), storage });
+    const a = createAuthSession({ api: () => makeApi(), storage, cookieMode: false });
     a.adopt(authResponse("LOGGED_IN"));
 
-    const b = createAuthSession({ api: () => makeApi(), storage });
+    const b = createAuthSession({ api: () => makeApi(), storage, cookieMode: false });
     expect(b.getState().status).toBe("anonymous");
     await b.restore();
     expect(b.getState().status).toBe("authenticated");
@@ -132,7 +133,7 @@ describe("session persistence (frontend-standard §4.6)", () => {
       user: authResponse("LOGGED_IN").user,
       tokens: null,
     });
-    const session = createAuthSession({ api: () => makeApi(), storage });
+    const session = createAuthSession({ api: () => makeApi(), storage, cookieMode: false });
     await session.restore();
     expect(session.getState().status).toBe("anonymous");
   });

@@ -204,3 +204,67 @@ describe("createSessionManager — status", () => {
     expect(listener.mock.calls).toEqual([["authenticated"], ["anonymous"]]);
   });
 });
+
+/**
+ * `"initializing"` + the ready-gate (owner-diagnosed live incident,
+ * 2026-07-17): a QR `session_share` scan sets fresh httponly cookies via a
+ * plain HTTP redirect, entirely outside any JS `adopt()`/`restore()` call —
+ * the freshly loaded SPA has nothing to restore and has not yet been told
+ * it's authenticated. Collapsing that "haven't checked yet" moment into the
+ * OLD default (`"unauthenticated"`, a CONFIRMED negative) is what let a
+ * query hook with no manual `enabled` gate read a valid cookie session as
+ * "session expired" before the bootstrap probe ever got a chance to run.
+ */
+describe("createSessionManager — initializing / ready-gate", () => {
+  it("is born 'initializing' by default, not 'unauthenticated'", () => {
+    const manager = createSessionManager({ doRefresh: async () => null });
+    expect(manager.getStatus()).toBe("initializing");
+    expect(manager.isReady()).toBe(false);
+  });
+
+  it("an explicit initialStatus skips the ready-gate entirely", async () => {
+    const manager = createSessionManager({
+      initialStatus: "authenticated",
+      doRefresh: async () => null,
+    });
+    expect(manager.isReady()).toBe(true);
+    await expect(manager.whenReady()).resolves.toBeUndefined(); // already settled
+  });
+
+  it("whenReady() resolves once markAuthenticated() leaves 'initializing'", async () => {
+    const manager = createSessionManager({ doRefresh: async () => null });
+    let resolved = false;
+    void manager.whenReady().then(() => {
+      resolved = true;
+    });
+    expect(resolved).toBe(false);
+    manager.markAuthenticated();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(resolved).toBe(true);
+    expect(manager.isReady()).toBe(true);
+  });
+
+  it("whenReady() resolves once markAnonymous() leaves 'initializing'", async () => {
+    const manager = createSessionManager({ doRefresh: async () => null });
+    manager.markAnonymous();
+    await expect(manager.whenReady()).resolves.toBeUndefined();
+    expect(manager.isReady()).toBe(true);
+  });
+
+  it("whenReady() resolves once a failed bootstrap refresh settles into 'unauthenticated'", async () => {
+    const manager = createSessionManager({ doRefresh: async () => null });
+    const ready = manager.whenReady();
+    await manager.refresh(); // the bootstrap probe: no valid cookies, refresh fails
+    await ready;
+    expect(manager.getStatus()).toBe("unauthenticated");
+    expect(manager.isReady()).toBe(true);
+  });
+
+  it("whenReady() called AFTER the transition already happened still resolves (no late-subscriber hang)", async () => {
+    const manager = createSessionManager({ doRefresh: async () => null });
+    manager.markAuthenticated();
+    // whenReady() is called well after the transition — must not hang.
+    await expect(manager.whenReady()).resolves.toBeUndefined();
+  });
+});

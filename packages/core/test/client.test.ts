@@ -63,6 +63,64 @@ describe("createStapelClient", () => {
     expect(inits[1]?.credentials).toBe("include");
   });
 
+  /**
+   * Owner-diagnosed live incident (2026-07-17): `onAuthRefresh` resolving to
+   * `""` (a successful cookie-mode refresh with no token to attach — the
+   * new httponly cookie already rode the refresh response's `Set-Cookie`)
+   * used to be indistinguishable from a FAILED refresh (`null`), because the
+   * retry condition checked `refreshed.length > 0` instead of `refreshed !=
+   * null`. Every cookie-mode 401 retry threw the original error instead of
+   * ever re-issuing the request — this is exactly what made a fresh,
+   * validly-cookied session read as "session expired".
+   */
+  it("retries on a 401 even when onAuthRefresh resolves '' (cookie mode: refresh succeeded, no token to attach)", async () => {
+    const inits: (RequestInit | undefined)[] = [];
+    const fetchSpy: typeof globalThis.fetch = async (_input, init) => {
+      inits.push(init);
+      if (inits.length === 1) {
+        return new Response(
+          JSON.stringify({ localizable_error: "auth.expired", error: "x" }),
+          { status: 401, headers: { "content-type": "application/json" } }
+        );
+      }
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+    const onAuthRefresh = vi.fn(async () => ""); // cookie mode: succeeded, nothing to attach
+    const client = createStapelClient({
+      baseUrl: BASE,
+      credentials: "include",
+      fetch: fetchSpy,
+      onAuthRefresh,
+    });
+    await expect(client.get("/v1/me")).resolves.toEqual({ ok: true });
+    expect(onAuthRefresh).toHaveBeenCalledTimes(1);
+    expect(inits).toHaveLength(2); // the retry actually happened
+    // No bogus `Authorization` header on the retry — cookie mode relies
+    // purely on the (now-refreshed) cookie jar.
+    expect(new Headers(inits[1]?.headers).has("authorization")).toBe(false);
+  });
+
+  it("does NOT retry when onAuthRefresh resolves null (refresh genuinely failed)", async () => {
+    const inits: (RequestInit | undefined)[] = [];
+    const fetchSpy: typeof globalThis.fetch = async (_input, init) => {
+      inits.push(init);
+      return new Response(
+        JSON.stringify({ localizable_error: "auth.expired", error: "x" }),
+        { status: 401, headers: { "content-type": "application/json" } }
+      );
+    };
+    const client = createStapelClient({
+      baseUrl: BASE,
+      fetch: fetchSpy,
+      onAuthRefresh: async () => null,
+    });
+    await expect(client.get("/v1/me")).rejects.toBeTruthy();
+    expect(inits).toHaveLength(1); // no retry — gave up as designed
+  });
+
   it("leaves fetch credentials untouched when the option is not set", async () => {
     const inits: (RequestInit | undefined)[] = [];
     const fetchSpy: typeof globalThis.fetch = async (_input, init) => {

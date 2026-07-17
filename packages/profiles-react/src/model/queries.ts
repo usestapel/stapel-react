@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { UseQueryResult } from "@tanstack/react-query";
+import { useActiveSessionReady } from "@stapel/core";
 import type { StapelApiError } from "@stapel/core";
 import type {
   Blocked,
@@ -19,55 +20,71 @@ import { profilesQueryKeys } from "./queryKeys.js";
  * namespaced (see `profilesQueryKeys`).
  */
 
-/** The caller's own full profile (GET /me). */
+/**
+ * The caller's own full profile (GET /me). Gated on
+ * {@link useActiveSessionReady} (owner-diagnosed live incident,
+ * 2026-07-17): a top-level "the caller's own …" hook with no natural
+ * `enabled` condition of its own is exactly the shape that raced a
+ * still-bootstrapping session and read a live one as "expired" — zero
+ * manual `enabled` wiring needed at the call site by design.
+ */
 export function useMyProfile(): UseQueryResult<MyProfile, StapelApiError> {
   const api = useProfilesApi();
+  const sessionReady = useActiveSessionReady();
   return useQuery({
     queryKey: profilesQueryKeys.me(),
     queryFn: () => api.getMyProfile(),
+    enabled: sessionReady,
   });
 }
 
 /**
  * Another user's public profile (GET /{user_id}). Disabled until `userId` is
- * given, so it is safe to call with an empty id while a route param resolves.
+ * given, so it is safe to call with an empty id while a route param resolves —
+ * AND until the session is ready (a `userId` can be known synchronously,
+ * e.g. from a URL param, before the session has finished bootstrapping).
  */
 export function useProfile(
   userId: string
 ): UseQueryResult<PublicProfile, StapelApiError> {
   const api = useProfilesApi();
+  const sessionReady = useActiveSessionReady();
   return useQuery({
     queryKey: profilesQueryKeys.profile(userId),
     queryFn: () => api.getProfile(userId),
-    enabled: userId.length > 0,
+    enabled: sessionReady && userId.length > 0,
   });
 }
 
-/** The caller↔target relationship status (GET /{user_id}/relationship). */
+/** The caller↔target relationship status (GET /{user_id}/relationship). See
+ * {@link useProfile} for the session-readiness gating. */
 export function useRelationship(
   userId: string
 ): UseQueryResult<RelationshipInfo, StapelApiError> {
   const api = useProfilesApi();
+  const sessionReady = useActiveSessionReady();
   return useQuery({
     queryKey: profilesQueryKeys.relationship(userId),
     queryFn: () => api.getRelationship(userId),
-    enabled: userId.length > 0,
+    enabled: sessionReady && userId.length > 0,
   });
 }
 
 /**
  * The caller's followers (GET /me/followers). `enabled` (default true) lets a
  * caller that shows one of several lists at a time keep the others dormant —
- * {@link ConnectionList} passes it so only the active list fetches.
+ * {@link ConnectionList} passes it so only the active list fetches. ALSO
+ * gated on session readiness — see {@link useMyProfile}.
  */
 export function useMyFollowers(
   enabled = true
 ): UseQueryResult<Followers, StapelApiError> {
   const api = useProfilesApi();
+  const sessionReady = useActiveSessionReady();
   return useQuery({
     queryKey: profilesQueryKeys.followers(),
     queryFn: () => api.getMyFollowers(),
-    enabled,
+    enabled: sessionReady && enabled,
   });
 }
 
@@ -76,10 +93,11 @@ export function useMyFollowing(
   enabled = true
 ): UseQueryResult<Following, StapelApiError> {
   const api = useProfilesApi();
+  const sessionReady = useActiveSessionReady();
   return useQuery({
     queryKey: profilesQueryKeys.following(),
     queryFn: () => api.getMyFollowing(),
-    enabled,
+    enabled: sessionReady && enabled,
   });
 }
 
@@ -88,10 +106,11 @@ export function useMyBlocked(
   enabled = true
 ): UseQueryResult<Blocked, StapelApiError> {
   const api = useProfilesApi();
+  const sessionReady = useActiveSessionReady();
   return useQuery({
     queryKey: profilesQueryKeys.blocked(),
     queryFn: () => api.getMyBlocked(),
-    enabled,
+    enabled: sessionReady && enabled,
   });
 }
 

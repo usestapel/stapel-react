@@ -50,6 +50,19 @@ export interface QrLoginFlow {
    * the key expires on its own TTL regardless.
    */
   cancel(): void;
+  /**
+   * Poll RIGHT NOW instead of waiting for the next scheduled tick (a no-op
+   * unless a key is currently `awaitingScan`). Browsers throttle
+   * `setTimeout` in a backgrounded tab (the exact moment a user switches to
+   * their phone to scan the code, or a mobile browser backgrounds the tab
+   * mid-scan) — the scheduled poll can be delayed minutes past the real
+   * backend TTL, which reads as "no polling happens" and, if the delayed
+   * tick finally lands on an already-expired key, as a stuck regenerate. The
+   * `QrLogin` headless hook calls this on `visibilitychange` so the moment
+   * the tab is foregrounded again, status is re-checked immediately instead
+   * of waiting out however long the browser throttled the timer.
+   */
+  pollNow(): void;
 }
 
 export interface QrLoginFlowDeps {
@@ -182,5 +195,14 @@ export function createQrLoginFlow(deps: QrLoginFlowDeps): QrLoginFlow {
     dispose();
   }
 
-  return { machine, start, dispose, cancel };
+  function pollNow(): void {
+    const s = machine.getState();
+    if (s.step !== "awaitingScan") return;
+    // Cancel the pending scheduled tick — poll() below reschedules on its
+    // own terms, so leaving the old timer armed would double up polls.
+    clearTimer();
+    void poll(s.key);
+  }
+
+  return { machine, start, dispose, cancel, pollNow };
 }

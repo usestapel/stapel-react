@@ -45,6 +45,19 @@ export function QrLogin(props: {
   );
   const state = useFlow(flow.machine);
   useEffect(() => () => flow.dispose(), [flow]);
+  // A backgrounded tab throttles the flow's `setTimeout`-driven poll —
+  // exactly what happens the moment a user turns to their phone to scan the
+  // code. Re-poll the instant the tab is foregrounded again instead of
+  // leaving the next real status check to however long the browser chose to
+  // throttle it (module doc on `pollNow`).
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const onVisible = (): void => {
+      if (document.visibilityState === "visible") flow.pollNow();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [flow]);
   return props.children({
     state,
     start: (type, redirectUrl, allow) => {

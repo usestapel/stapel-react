@@ -21,7 +21,27 @@
  * it is nested inside and deadlocks.
  */
 
-export type SessionStatus = "authenticated" | "anonymous" | "unauthenticated";
+/**
+ * `"initializing"` (owner-diagnosed live incident, 2026-07-17 — a QR
+ * `session_share` scan sets fresh httponly cookies via a plain HTTP redirect,
+ * entirely OUTSIDE this JS runtime's `adopt()`/`restore()`; the freshly
+ * loaded SPA has no persisted user to restore and has not yet been told it's
+ * authenticated) is a DISTINCT state from `"unauthenticated"` — the
+ * difference is the whole fix. `"unauthenticated"` means "we checked, there
+ * is no session"; `"initializing"` means "we have not checked yet". Every
+ * `SessionManager` is born `"initializing"` and MUST resolve to one of the
+ * other three (via `markAuthenticated`/`markAnonymous`, or a `refresh()`
+ * bootstrap probe that fails) before a query hook gated on
+ * {@link SessionManager.isReady}/`whenReady` is allowed to fire. Collapsing
+ * this into `"unauthenticated"` (the previous default) is what let a query
+ * hook with no manual `enabled` gate race the bootstrap window and read a
+ * confirmed-valid cookie session as "session expired".
+ */
+export type SessionStatus =
+  | "initializing"
+  | "authenticated"
+  | "anonymous"
+  | "unauthenticated";
 
 /** Why a session was declared lost (refresh failed or was never possible). */
 export type SessionLostReason = "expired" | "revoked" | "unknown";
@@ -75,6 +95,18 @@ export interface SessionManager {
 
   markAuthenticated(): void;
   markAnonymous(): void;
+  /**
+   * Settle `"initializing"` into a CONFIRMED `"unauthenticated"` with no
+   * session ever having existed — e.g. bearer/header mode restoring nothing
+   * from storage, or a cookie-mode bootstrap probe (`refresh()`) coming back
+   * negative. Deliberately distinct from `sessionLost()`: this is "we
+   * checked, there was never a session" (no logout hooks, no
+   * `onSessionLost` callback — nothing was ever torn down), not "there WAS
+   * one and it just ended" (`sessionLost()`'s job, which DOES run that
+   * teardown). Calling `sessionLost()` here would fire a host's redirect-to-
+   * login policy for a plain first-time anonymous visitor.
+   */
+  markUnauthenticated(): void;
 
   /**
    * Single-flight guarded refresh (§43.1): concurrent callers (N requests
@@ -113,6 +145,25 @@ export interface SessionManager {
   registerLogoutHook(hook: LogoutHook): () => void;
 
   /**
+   * `true` once the session has left `"initializing"` (authenticated,
+   * anonymous, OR confirmed unauthenticated — any of the three is "ready",
+   * only "we haven't checked yet" is not). A module's query hooks gate on
+   * this (directly, or via `@stapel/core`'s `useSessionReady`) instead of
+   * each hand-rolling an `enabled` condition per hook.
+   */
+  isReady(): boolean;
+
+  /**
+   * Resolves the first time the session leaves `"initializing"` — resolves
+   * immediately (already-settled promise) if it already has. The framework-
+   * level ready-gate (owner directive, 2026-07-17 incident): a module's http
+   * client / query layer awaits this before firing the first request that
+   * needs to know whether a session exists, so no individual query hook has
+   * to manually gate on session readiness.
+   */
+  whenReady(): Promise<void>;
+
+  /**
    * The per-session WebCrypto AES-GCM key `createRepository`'s encrypted
    * repositories use (§43.5). Generated lazily, kept in memory only (never
    * persisted, never exported — non-extractable), and dropped on
@@ -125,7 +176,11 @@ export interface SessionManager {
 export function createSessionManager(
   options: CreateSessionManagerOptions
 ): SessionManager {
-  let status: SessionStatus = options.initialStatus ?? "unauthenticated";
+  // Default is `"initializing"`, NOT `"unauthenticated"` — see the module
+  // doc on `SessionStatus`. A caller that already knows its status
+  // synchronously (rare — most sessions restore/probe asynchronously) can
+  // still pass `initialStatus` to skip the ready-gate entirely.
+  let status: SessionStatus = options.initialStatus ?? "initializing";
   const statusListeners = new Set<(status: SessionStatus) => void>();
   const eventListeners = new Map<SessionEventName, Set<(payload: unknown) => void>>();
   const logoutHooks = new Set<LogoutHook>();
@@ -137,9 +192,27 @@ export function createSessionManager(
   // teardown. Non-extractable: it never needs to leave this process.
   let keyPromise: Promise<CryptoKey> | null = null;
 
+  // The ready-gate (§ owner directive 2026-07-17): resolves the first time
+  // `status` leaves `"initializing"`. Built from a manually-resolved promise
+  // (not derived from `subscribe`) so `whenReady()` called AFTER the
+  // transition already happened still resolves immediately — a `subscribe`-
+  // based wait would hang forever for a late caller.
+  let resolveReady: (() => void) | null = null;
+  const readyPromise: Promise<void> =
+    status === "initializing"
+      ? new Promise((resolve) => {
+          resolveReady = resolve;
+        })
+      : Promise.resolve();
+
   function setStatus(next: SessionStatus): void {
     if (status === next) return;
+    const wasInitializing = status === "initializing";
     status = next;
+    if (wasInitializing && next !== "initializing" && resolveReady) {
+      resolveReady();
+      resolveReady = null;
+    }
     for (const listener of statusListeners) listener(status);
   }
 
@@ -252,6 +325,7 @@ export function createSessionManager(
     },
     markAuthenticated: () => setStatus("authenticated"),
     markAnonymous: () => setStatus("anonymous"),
+    markUnauthenticated: () => setStatus("unauthenticated"),
     refresh,
     sessionLost,
     logout,
@@ -261,6 +335,8 @@ export function createSessionManager(
         logoutHooks.delete(hook);
       };
     },
+    isReady: () => status !== "initializing",
+    whenReady: () => readyPromise,
     getSessionKey,
   };
   __setActiveSessionManager(manager);

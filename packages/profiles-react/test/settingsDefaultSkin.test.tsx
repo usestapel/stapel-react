@@ -197,31 +197,75 @@ describe("<HeadlessNotificationPreferences> (category × channel matrix)", () =>
   });
 });
 
-describe("<ProfileSettings/> (default skin)", () => {
-  it("loads the profile, edits the name, and saves", async () => {
+describe("<ProfileSettings/> (default skin) — reactive pickers, modal-edited text (frontend-guidelines.md §8)", () => {
+  it("shows the display name read-only; the pencil opens a dialog that saves on its own", async () => {
+    let lastPatch: Record<string, unknown> | null = null;
     server.use(
       http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE)),
       http.patch(`${BASE}/me`, async ({ request }) => {
-        const patch = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ ...MY_PROFILE, ...patch });
+        lastPatch = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ...MY_PROFILE, ...lastPatch });
       })
     );
     const runtime = createProfilesRuntime({ baseUrl: BASE });
     render(wrap(runtime, <ProfileSettings />));
 
+    await waitFor(() => expect(screen.getByTestId("profile-display-name-value").textContent).toBe("Ada Lovelace"));
+    // No inline input for the name pre-edit — read-only + a pencil trigger.
+    expect(screen.queryByDisplayValue("Ada Lovelace")).toBeNull();
+
+    screen.getByRole("button", { name: "Display name" }).click();
+    const dialogInput = await screen.findByDisplayValue("Ada Lovelace");
+    fireEvent.change(dialogInput, { target: { value: "Ada C. Lovelace" } });
+    screen.getByText("Save changes").click();
+
+    await waitFor(() => expect(lastPatch).toMatchObject({ display_name: "Ada C. Lovelace" }));
     await waitFor(() =>
-      expect(screen.getByDisplayValue("Ada Lovelace")).toBeDefined()
+      expect(screen.getByTestId("profile-display-name-value").textContent).toBe("Ada C. Lovelace")
     );
-    fireEvent.change(screen.getByDisplayValue("Ada Lovelace"), {
-      target: { value: "Ada C. Lovelace" },
-    });
-    fireEvent.click(screen.getByText("Save changes"));
-    await waitFor(() => expect(screen.getByText("Save changes")).toBeDefined());
+  });
+
+  it("the currency picker PATCHes immediately on selection — no Save button anywhere on the screen", async () => {
+    let lastPatch: Record<string, unknown> | null = null;
+    server.use(
+      http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE)),
+      http.patch(`${BASE}/me`, async ({ request }) => {
+        lastPatch = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ...MY_PROFILE, ...lastPatch });
+      })
+    );
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <ProfileSettings />));
+    await waitFor(() => expect(screen.getByTestId("profile-display-name-value")).toBeDefined());
+
+    expect(screen.queryByText("Save changes")).toBeNull();
+
+    fireEvent.mouseDown(screen.getByText("GBP")); // MY_PROFILE's current currency, opens the Select
+    await screen.findByTitle("USD");
+    screen.getByTitle("USD").click();
+
+    await waitFor(() => expect(lastPatch).toMatchObject({ currency_code: "USD" }));
+  });
+
+  it("the units picker is NOT rendered by default (owner directive point 2 — catalog concern, not a profile field)", async () => {
+    server.use(http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE)));
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <ProfileSettings />));
+    await waitFor(() => expect(screen.getByTestId("profile-display-name-value")).toBeDefined());
+    expect(screen.queryByText("Units")).toBeNull();
+  });
+
+  it("showUnits opts back in for a host that wants it here", async () => {
+    server.use(http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE)));
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <ProfileSettings showUnits />));
+    await waitFor(() => expect(screen.getByText("Units")).toBeDefined());
   });
 });
 
-describe("<LanguageSettings/> (default skin)", () => {
-  it("renders the caller's app language and saves", async () => {
+describe("<LanguageSettings/> (default skin) — Auto-first reactive picker", () => {
+  it("renders 'Auto' as the first option, plus the supported languages, and PATCHes immediately", async () => {
+    let lastPatch: Record<string, unknown> | null = null;
     server.use(
       http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE)),
       http.get(`${BASE}/languages/`, () =>
@@ -231,16 +275,52 @@ describe("<LanguageSettings/> (default skin)", () => {
         ])
       ),
       http.patch(`${BASE}/me`, async ({ request }) => {
-        const patch = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ ...MY_PROFILE, ...patch });
+        lastPatch = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ...MY_PROFILE, ...lastPatch });
       })
     );
     const runtime = createProfilesRuntime({ baseUrl: BASE });
     render(wrap(runtime, <LanguageSettings />));
 
     await waitFor(() => expect(screen.getByText("Language")).toBeDefined());
-    fireEvent.click(screen.getByText("Save changes"));
-    await waitFor(() => expect(screen.getByText("Save changes")).toBeDefined());
+    expect(screen.queryByText("Save changes")).toBeNull();
+
+    fireEvent.mouseDown(screen.getByText("English (EN)")); // MY_PROFILE's current app_language, opens the Select
+    // rc-select also renders a hidden width-measurement list (raw values,
+    // no labels) that shares `role="option"` — assert on the VISIBLE
+    // dropdown option text instead of `findAllByRole`, which picks up both.
+    // ("English (EN)" is skipped here: it's ALSO the currently-selected
+    // display value shown in the closed control, so it legitimately matches
+    // twice once the dropdown is open — not itself in question here.)
+    await screen.findByText("Auto");
+    expect(screen.getByText("Russian (RU)")).toBeDefined();
+
+    fireEvent.click(screen.getByText("Russian (RU)"));
+    await waitFor(() =>
+      expect(lastPatch).toMatchObject({ app_language: "ru", use_device_language: false })
+    );
+  });
+
+  it("picking 'Auto' PATCHes use_device_language: true", async () => {
+    let lastPatch: Record<string, unknown> | null = null;
+    server.use(
+      http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE)),
+      http.get(`${BASE}/languages/`, () =>
+        HttpResponse.json([{ code: "en", name: "English", flag: null }])
+      ),
+      http.patch(`${BASE}/me`, async ({ request }) => {
+        lastPatch = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ...MY_PROFILE, ...lastPatch });
+      })
+    );
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <LanguageSettings />));
+    await waitFor(() => expect(screen.getByText("Language")).toBeDefined());
+
+    fireEvent.mouseDown(screen.getByText("English (EN)"));
+    fireEvent.click(await screen.findByText("Auto"));
+
+    await waitFor(() => expect(lastPatch).toMatchObject({ use_device_language: true }));
   });
 });
 

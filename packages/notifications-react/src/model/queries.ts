@@ -4,6 +4,7 @@ import type {
   UseInfiniteQueryResult,
   UseQueryResult,
 } from "@tanstack/react-query";
+import { useActiveSessionReady } from "@stapel/core";
 import type { StapelApiError } from "@stapel/core";
 import type {
   NotificationFeedPage,
@@ -22,22 +23,31 @@ import { notificationsQueryKeys } from "./queryKeys.js";
  * A single page of the notification feed (frontend-standard §2 — read hook).
  * Pass `{ anchor, direction }` to jump to a specific page; omit for the newest.
  * For scroll-to-load-more use {@link useInfiniteNotificationFeed} instead.
+ *
+ * Gated on {@link useActiveSessionReady} (owner-diagnosed live incident,
+ * 2026-07-17): the caller's own feed has no natural `enabled` condition of
+ * its own — a top-level hook shaped exactly like the one that raced a
+ * still-bootstrapping session and read a live one as "expired". Zero manual
+ * `enabled` wiring needed at the call site by design.
  */
 export function useNotificationFeed(
   params?: NotificationFeedParams
 ): UseQueryResult<NotificationFeedPage, StapelApiError> {
   const api = useNotificationsApi();
+  const sessionReady = useActiveSessionReady();
   const p = params ?? {};
   return useQuery({
     queryKey: notificationsQueryKeys.feedPage(p),
     queryFn: () => api.feed(p),
+    enabled: sessionReady,
   });
 }
 
 /**
  * The notification feed as an infinite (load-more) list. Follows the backend's
  * anchor pagination: each page advances via its `next_anchor` while `has_next`
- * holds. `data.pages.flatMap(p => p.items)` is the flat item list.
+ * holds. `data.pages.flatMap(p => p.items)` is the flat item list. Gated on
+ * session readiness — see {@link useNotificationFeed}.
  */
 export function useInfiniteNotificationFeed(
   limit?: number
@@ -46,6 +56,7 @@ export function useInfiniteNotificationFeed(
   StapelApiError
 > {
   const api = useNotificationsApi();
+  const sessionReady = useActiveSessionReady();
   return useInfiniteQuery({
     queryKey: notificationsQueryKeys.feed(),
     queryFn: ({ pageParam }) =>
@@ -57,5 +68,6 @@ export function useInfiniteNotificationFeed(
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) =>
       last.has_next ? (last.next_anchor ?? undefined) : undefined,
+    enabled: sessionReady,
   });
 }

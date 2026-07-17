@@ -111,6 +111,7 @@ export type {
   SessionManagerEventMap,
   SessionEventName,
 } from "./session.js";
+export { useSessionReady, useActiveSessionReady } from "./useSessionReady.js";
 
 // repositories (§43.4) — the one sanctioned client-side persistence
 // primitive. `scope: "user"` auto-wipes on logout (no opt-out) and is

@@ -68,8 +68,25 @@ export interface AuthSessionOptions {
   readonly persistKey?: string;
   /**
    * Cookie mode: the backend sets httponly JWT cookies, so no bearer token is
-   * attached and refresh uses `GET /token/refresh/` (cookie). `getAccessToken`
-   * returns null. Default `false` (header/bearer mode).
+   * attached and refresh uses `GET /token/refresh/` (cookie, `credentials:
+   * "include"` on the client — see `createAuthRuntime`). `getAccessToken`
+   * returns null.
+   *
+   * **Default `true`** (owner canon, 2026-07-17 incident write-up):
+   * cookie mode is the right default for a web app — the backend already
+   * issues httponly JWT cookies, and header/bearer mode is a NATIVE/mobile
+   * concern (no cookie jar shared with a webview, so the token has to live
+   * in app storage instead). A web host that actually wants header mode
+   * opts in explicitly with `cookieMode: false`.
+   *
+   * This used to default `false`. The flip matters beyond preference: with
+   * bearer assumed, `doRefresh`'s "no local refresh token → give up
+   * immediately" early-out (correct FOR bearer mode, where a token really is
+   * the only way to refresh) also fired for cookie-mode backends that were
+   * simply never told they were in cookie mode — killing the exact bootstrap
+   * window a `session_share` QR scan depends on (fresh httponly cookies set
+   * by a plain HTTP redirect, no local token, no persisted user; only an
+   * actual refresh ATTEMPT over the cookie can discover them).
    */
   readonly cookieMode?: boolean;
   /** Notified after a teardown so the host can purge caches / redirect. */
@@ -89,7 +106,7 @@ const REFRESH_REVOKED = "error.401.refresh_revoked";
 
 export function createAuthSession(options: AuthSessionOptions): AuthSession {
   const persistKey = options.persistKey ?? "stapel-auth:session";
-  const cookieMode = options.cookieMode ?? false;
+  const cookieMode = options.cookieMode ?? true;
   const resolveApi = (): AuthApi =>
     typeof options.api === "function" ? options.api() : options.api;
   const resolveRefreshApi = (): AuthApi => {
@@ -195,7 +212,15 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
   }
 
   function onAuthRefresh(): Promise<string | null> {
-    return sessionManager.refresh().then((ok) => (ok ? getAccessToken() : null));
+    // `""` (not `null`) on a successful cookie-mode refresh (owner-diagnosed
+    // live incident, 2026-07-17): `getAccessToken()` is ALWAYS null in
+    // cookie mode (no bearer token, ever — see its own doc), but `null` is
+    // core's `@stapel/core` client's signal for "refresh FAILED, give up".
+    // Collapsing "succeeded with no token to attach" into that same `null`
+    // made every cookie-mode 401 retry throw the original error instead of
+    // ever re-issuing the request (`client.ts`'s `StapelClientOptions.
+    // onAuthRefresh` doc has the full three-outcome contract).
+    return sessionManager.refresh().then((ok) => (ok ? (getAccessToken() ?? "") : null));
   }
 
   function getAccessToken(): string | null {
@@ -215,12 +240,45 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
     options.onTeardown?.("logout");
   }
 
+  /**
+   * Cookie-mode bootstrap probe (owner-diagnosed live incident, 2026-07-17):
+   * a `session_share` QR scan sets fresh httponly JWT cookies via a plain
+   * HTTP redirect, entirely outside this JS runtime's `adopt()`/`restore()`
+   * — the freshly loaded SPA has nothing persisted locally to restore, yet a
+   * perfectly valid session already exists server-side. The ONLY way to
+   * discover it is to actually attempt the refresh call and see whether the
+   * browser's cookie jar carries a live refresh-token cookie.
+   *
+   * Deliberately NOT routed through `sessionManager.refresh()`/`doRefresh` —
+   * those assume an EXISTING session is (maybe) ending, so a failure calls
+   * `sessionLost()`, which runs logout hooks and the host's `onSessionLost`
+   * policy (redirect-to-login, say). A probe that simply finds nothing is
+   * not a loss — there was never a session to lose — so a negative result
+   * here settles quietly via `markUnauthenticated()` instead.
+   */
+  async function bootstrapProbe(): Promise<void> {
+    if (!cookieMode) {
+      // Bearer mode has no cookie jar to probe — a stored refresh token IS
+      // the only way to have a session, and `restore()` already checked for
+      // one. Nothing further to try; settle definitively.
+      sessionManager.markUnauthenticated();
+      return;
+    }
+    try {
+      const r = await resolveRefreshApi().tokenRefresh(undefined);
+      setTokens({ access: r.access, refresh: r.refresh });
+    } catch {
+      sessionManager.markUnauthenticated();
+    }
+  }
+
   async function restore(): Promise<void> {
     const storage = options.storage;
-    if (!storage) return;
-    const stored = (await storage.get(persistKey)) as
-      | { user: StapelUser | null; tokens: AuthTokens | null }
-      | undefined;
+    const stored = storage
+      ? ((await storage.get(persistKey)) as
+          | { user: StapelUser | null; tokens: AuthTokens | null }
+          | undefined)
+      : undefined;
     if (stored && (stored.tokens !== null || stored.user !== null)) {
       // Bearer mode: tokens are the session. Cookie mode: tokens are never
       // persisted (see `persist`), so a stored user IS the optimistic
@@ -239,8 +297,13 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
         } else {
           sessionManager.markAuthenticated();
         }
+        return; // a restored session is settled — no need to probe further
       }
     }
+    // Nothing (usable) was persisted locally — the ready-gate (`isReady()`/
+    // `whenReady()`) must still resolve, or every query hook gated on it
+    // hangs forever. Settle for real, via a bootstrap probe in cookie mode.
+    await bootstrapProbe();
   }
 
   return {

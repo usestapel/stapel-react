@@ -26,7 +26,10 @@ const CHANNEL_LABEL: Record<OtpChannel, AuthI18nKey> = {
 /** Fallback when the backend omits `otp` metadata (stapel-auth <0.6.0). */
 const DEFAULT_OTP_LENGTH = 6;
 
-/** The `"password"` tab: old password + new password. */
+/** The `"password"` tab: old password → new password + confirmation (owner
+ * UX audit 2026-07-17, point 7 — the confirm field, an antd cross-field
+ * `dependencies` validator against `newPassword`, catches a typo before the
+ * round trip rather than after). */
 function OldPasswordTab(props: { bag: PasswordChangeBag }): ReactElement {
   const t = useT();
   const formatError = useFormatFlowError();
@@ -45,10 +48,30 @@ function OldPasswordTab(props: { bag: PasswordChangeBag }): ReactElement {
     >
       {err && <Alert type="error" showIcon style={{ marginBottom: 16 }} message={formatError(err)} />}
       <Form.Item name="oldPassword" label={t(AUTH_I18N_KEYS.secPasswordOldLabel)}>
-        <Input.Password autoFocus />
+        <Input.Password autoFocus autoComplete="current-password" />
       </Form.Item>
       <Form.Item name="newPassword" label={t(AUTH_I18N_KEYS.secPasswordNewLabel)}>
-        <Input.Password />
+        <Input.Password autoComplete="new-password" />
+      </Form.Item>
+      <Form.Item
+        name="confirmPassword"
+        label={t(AUTH_I18N_KEYS.secPasswordConfirmLabel)}
+        dependencies={["newPassword"]}
+        rules={[
+          ({ getFieldValue }) => ({
+            validator(_rule, value: string | undefined) {
+              // No `!value` shortcut — an EMPTY confirm field must also
+              // reject when a new password was entered, or a skipped
+              // confirmation would silently submit unconfirmed.
+              if (getFieldValue("newPassword") === value) {
+                return Promise.resolve();
+              }
+              return Promise.reject(new Error(t(AUTH_I18N_KEYS.secPasswordMismatch)));
+            },
+          }),
+        ]}
+      >
+        <Input.Password autoComplete="new-password" />
       </Form.Item>
       <Button type="primary" htmlType="submit" block loading={s.step === "changing"} data-analytics="flow">
         {t(AUTH_I18N_KEYS.secPasswordChangeCta)}
@@ -93,7 +116,25 @@ function OtpTab(props: { bag: PasswordChangeBag; channel: OtpChannel; target: st
           <Input.OTP length={otpLength} autoFocus />
         </Form.Item>
         <Form.Item name="newPassword" label={t(AUTH_I18N_KEYS.secPasswordNewLabel)}>
-          <Input.Password />
+          <Input.Password autoComplete="new-password" />
+        </Form.Item>
+        <Form.Item
+          name="confirmPassword"
+          label={t(AUTH_I18N_KEYS.secPasswordConfirmLabel)}
+          dependencies={["newPassword"]}
+          rules={[
+            ({ getFieldValue }) => ({
+              validator(_rule, value: string | undefined) {
+                // No `!value` shortcut — see the "password" tab's twin rule.
+                if (getFieldValue("newPassword") === value) {
+                  return Promise.resolve();
+                }
+                return Promise.reject(new Error(t(AUTH_I18N_KEYS.secPasswordMismatch)));
+              },
+            }),
+          ]}
+        >
+          <Input.Password autoComplete="new-password" />
         </Form.Item>
         <Button
           type="primary"

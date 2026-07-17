@@ -117,6 +117,8 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.sec.password.title": "Смена пароля",
   "auth.sec.password.old_label": "Текущий пароль",
   "auth.sec.password.new_label": "Новый пароль",
+  "auth.sec.password.confirm_label": "Подтвердите новый пароль",
+  "auth.sec.password.mismatch": "Пароли не совпадают.",
   "auth.sec.password.change_cta": "Сменить пароль",
   "auth.sec.password.via_otp_hint": "Мы отправим код на {target}",
   "auth.sec.password.success": "Пароль изменён.",
@@ -128,9 +130,9 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.sec.oauth.unlink_confirm_title": "Отвязать этот аккаунт?",
   "auth.sec.oauth.empty": "Провайдеры не настроены.",
   "auth.sec.oauth.unlink_unavailable":
-    "Отвязка пока недоступна — у этого бэкенда нет эндпоинта для отвязки.",
+    "Отвязка сейчас недоступна.",
   "auth.sec.oauth.link_unavailable":
-    "Для привязки нового провайдера нужна функция getAccessToken — см. документацию OAuthLinks.",
+    "Привязка нового аккаунта сейчас недоступна.",
 
   "auth.sec.qr.title": "Войти на другом устройстве",
   "auth.sec.qr.subtitle":
@@ -142,6 +144,7 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.sec.qr.fulfilled": "То устройство теперь вошло в систему.",
   "auth.sec.qr.rejected": "Вход был отклонён на другом устройстве.",
   "auth.sec.qr.retry": "Попробовать снова",
+  "auth.sec.qr.regenerating": "Этот код истёк — получаем новый…",
 };
 
 /**

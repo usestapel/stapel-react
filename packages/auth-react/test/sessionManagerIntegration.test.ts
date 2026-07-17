@@ -36,7 +36,7 @@ describe("SessionManager delegation (§43.1)", () => {
         return HttpResponse.json({ access: "acc_2", refresh: "ref_2" });
       })
     );
-    const runtime = createAuthRuntime({ baseUrl: BASE });
+    const runtime = createAuthRuntime({ baseUrl: BASE, cookieMode: false });
     runtime.session.adopt(authResponse("LOGGED_IN"));
 
     const [me, status] = await Promise.all([
@@ -63,7 +63,7 @@ describe("SessionManager delegation (§43.1)", () => {
       })
     );
     const reasons: string[] = [];
-    const runtime = createAuthRuntime({ baseUrl: BASE, onTeardown: (r) => reasons.push(r) });
+    const runtime = createAuthRuntime({ baseUrl: BASE, onTeardown: (r) => reasons.push(r), cookieMode: false });
     runtime.session.adopt(authResponse("LOGGED_IN"));
 
     await expect(runtime.client.get("/me/")).rejects.toBeTruthy();
@@ -96,7 +96,7 @@ describe("SessionManager delegation — logout-hook registry (§43.3)", () => {
         HttpResponse.json({ localizable_error: "error.401.refresh_revoked" }, { status: 401 })
       )
     );
-    const runtime = createAuthRuntime({ baseUrl: BASE });
+    const runtime = createAuthRuntime({ baseUrl: BASE, cookieMode: false });
     runtime.session.adopt(authResponse("LOGGED_IN"));
     expect(runtime.session.getSessionManager().getStatus()).toBe("authenticated");
 
@@ -138,7 +138,7 @@ describe("SessionManager delegation — host onSessionLost policy (§43.1)", () 
       )
     );
     const onSessionLost = vi.fn<(reason: SessionLostReason) => void>();
-    const runtime = createAuthRuntime({ baseUrl: BASE, onSessionLost });
+    const runtime = createAuthRuntime({ baseUrl: BASE, onSessionLost, cookieMode: false });
     runtime.session.adopt(authResponse("LOGGED_IN"));
 
     await expect(runtime.client.get("/me/")).rejects.toBeTruthy();

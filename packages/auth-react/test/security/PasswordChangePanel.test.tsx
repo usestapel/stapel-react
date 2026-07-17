@@ -67,6 +67,7 @@ describe("<PasswordChangePanel/>", () => {
     await waitFor(() => expect(screen.getByText("Current password")).toBeDefined());
     fireEvent.change(screen.getByLabelText("Current password"), { target: { value: "old1" } });
     fireEvent.change(screen.getByLabelText("New password"), { target: { value: "new1" } });
+    fireEvent.change(screen.getByLabelText("Confirm new password"), { target: { value: "new1" } });
     screen.getByRole("button", { name: "Change password" }).click();
     await screen.findByText("Password changed.");
   });
@@ -121,8 +122,32 @@ describe("<PasswordChangePanel/>", () => {
       fireEvent.input(screen.getByLabelText(`OTP Input ${i + 1}`), { target: { value: "123456"[i] } });
     }
     fireEvent.change(screen.getByLabelText("New password"), { target: { value: "new2" } });
+    fireEvent.change(screen.getByLabelText("Confirm new password"), { target: { value: "new2" } });
     screen.getByRole("button", { name: "Change password" }).click();
 
     await screen.findByText("Password changed.");
+  });
+
+  it("a mismatched confirmation blocks submission (owner UX audit point 7)", async () => {
+    let changeCalls = 0;
+    server.use(
+      http.get(`${BASE}/password/methods/`, () =>
+        HttpResponse.json({ methods: [{ method: "password" }], has_password: true })
+      ),
+      http.post(`${BASE}/password/change/`, () => {
+        changeCalls += 1;
+        return HttpResponse.json({ status: "ok" });
+      })
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PasswordChangePanel />));
+    await waitFor(() => expect(screen.getByText("Current password")).toBeDefined());
+    fireEvent.change(screen.getByLabelText("Current password"), { target: { value: "old1" } });
+    fireEvent.change(screen.getByLabelText("New password"), { target: { value: "new1" } });
+    fireEvent.change(screen.getByLabelText("Confirm new password"), { target: { value: "typo" } });
+    screen.getByRole("button", { name: "Change password" }).click();
+
+    await screen.findByText("Passwords don't match.");
+    expect(changeCalls).toBe(0); // the mismatch never reached the backend
   });
 });

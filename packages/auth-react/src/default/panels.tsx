@@ -357,6 +357,7 @@ export function QrPanel(): ReactElement {
           state={bag.state}
           onStart={() => bag.start("login_request", "/")}
           hint={t(AUTH_I18N_KEYS.uiQrHint)}
+          regeneratingHint={t(AUTH_I18N_KEYS.secQrRegenerating)}
         />
       )}
     </QrLogin>
@@ -367,6 +368,7 @@ function QrPanelBody(props: {
   state: QrLoginState;
   onStart: () => void;
   hint: string;
+  regeneratingHint: string;
 }): ReactElement {
   const { state, onStart } = props;
   const started = useRef(false);
@@ -375,6 +377,13 @@ function QrPanelBody(props: {
     started.current = true;
     onStart();
   }, [onStart]);
+  // Same latch as the settings-page QrDeviceLinkPanel (owner UX audit,
+  // ironmemo-frontend reference semantics): distinguishes the first
+  // generate from an auto-regenerate after the backend reports `expired`,
+  // so this surface says so instead of silently swapping the old code for a
+  // spinner with zero explanation.
+  const hadKeyRef = useRef(false);
+  if (state.step === "awaitingScan") hadKeyRef.current = true;
   const scanUrl = state.step === "awaitingScan" ? state.scanUrl : "-";
   return (
     <Flex vertical align="center" gap="middle">
@@ -384,7 +393,9 @@ function QrPanelBody(props: {
         onRefresh={onStart}
         size={200}
       />
-      <Typography.Text type="secondary">{props.hint}</Typography.Text>
+      <Typography.Text type="secondary">
+        {state.step === "generating" && hadKeyRef.current ? props.regeneratingHint : props.hint}
+      </Typography.Text>
     </Flex>
   );
 }

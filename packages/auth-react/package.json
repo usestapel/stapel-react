@@ -51,7 +51,7 @@
     {
       "name": "index — the ru locale must NOT be in the main bundle",
       "path": "dist/index.js",
-      "limit": "13.5 KB"
+      "limit": "14 KB"
     },
     {
       "name": "i18n/ru subpath (opt-in locale: en floor + generated ru + ru UI)",

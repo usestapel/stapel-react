@@ -103,6 +103,8 @@ export const AUTH_I18N_KEYS = {
   secPasswordTitle: "auth.sec.password.title",
   secPasswordOldLabel: "auth.sec.password.old_label",
   secPasswordNewLabel: "auth.sec.password.new_label",
+  secPasswordConfirmLabel: "auth.sec.password.confirm_label",
+  secPasswordMismatch: "auth.sec.password.mismatch",
   secPasswordChangeCta: "auth.sec.password.change_cta",
   secPasswordViaOtpHint: "auth.sec.password.via_otp_hint",
   secPasswordSuccess: "auth.sec.password.success",
@@ -129,6 +131,7 @@ export const AUTH_I18N_KEYS = {
   secQrFulfilled: "auth.sec.qr.fulfilled",
   secQrRejected: "auth.sec.qr.rejected",
   secQrRetry: "auth.sec.qr.retry",
+  secQrRegenerating: "auth.sec.qr.regenerating",
 } as const;
 
 export type AuthI18nKey =
@@ -245,6 +248,8 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.sec.password.title": "Change password",
   "auth.sec.password.old_label": "Current password",
   "auth.sec.password.new_label": "New password",
+  "auth.sec.password.confirm_label": "Confirm new password",
+  "auth.sec.password.mismatch": "Passwords don't match.",
   "auth.sec.password.change_cta": "Change password",
   "auth.sec.password.via_otp_hint": "We'll send a code to {target}",
   "auth.sec.password.success": "Password changed.",
@@ -256,9 +261,9 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.sec.oauth.unlink_confirm_title": "Disconnect this account?",
   "auth.sec.oauth.empty": "No providers configured.",
   "auth.sec.oauth.unlink_unavailable":
-    "Disconnect isn't available yet — this backend has no unlink endpoint.",
+    "Disconnecting isn't available right now.",
   "auth.sec.oauth.link_unavailable":
-    "Connecting a new provider needs a getAccessToken binding — see the OAuthLinks docs.",
+    "Connecting a new account isn't available right now.",
 
   // Backend error codes (auth-sa.md "Error reference")
   "error.401.invalid_credentials": "Incorrect email or password.",
@@ -308,6 +313,7 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.sec.qr.fulfilled": "That device is now signed in.",
   "auth.sec.qr.rejected": "Sign-in was declined on the other device.",
   "auth.sec.qr.retry": "Try again",
+  "auth.sec.qr.regenerating": "That code expired — getting you a new one…",
 };
 
 /**

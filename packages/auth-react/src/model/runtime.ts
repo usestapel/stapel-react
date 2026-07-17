@@ -39,12 +39,21 @@ export interface CreateAuthRuntimeOptions {
   readonly fetch?: typeof globalThis.fetch;
   readonly storage?: PersistStorage;
   readonly analytics?: Analytics | null;
-  /** Cookie mode (httponly JWT cookies) vs header/bearer. Default false. */
+  /**
+   * Cookie mode (httponly JWT cookies) vs header/bearer.
+   *
+   * **Default `true`** (owner canon, 2026-07-17 incident write-up) — see
+   * `model/session.ts`'s `AuthSessionOptions.cookieMode` doc for the full
+   * reasoning. Header/bearer is a NATIVE/mobile concern (no shared cookie
+   * jar); a web host that wants it opts in explicitly with
+   * `cookieMode: false`.
+   */
   readonly cookieMode?: boolean;
   /**
-   * Fetch `credentials` mode for the built client. Defaults to `"include"`
-   * in cookie mode (HTTP-only cookies must ride cross-origin requests) and
-   * to the browser default otherwise.
+   * Fetch `credentials` mode for the built client (this runtime's own refresh
+   * client AND the main client, so a bootstrap probe rides cookies too).
+   * Defaults to `"include"` in cookie mode (HTTP-only cookies must ride
+   * cross-origin requests) and to the browser default otherwise.
    */
   readonly credentials?: RequestCredentials;
   /** Called after a session teardown (revoked/expired/logout). */
@@ -80,9 +89,17 @@ export function createAuthRuntime(
     return holder.current;
   };
 
+  // Resolve cookieMode ONCE (default true) — both the credentials default
+  // AND the session's own cookieMode below must agree on the SAME resolved
+  // value, not each re-derive `options.cookieMode ?? <its own default>`
+  // independently (that divergence — credentials keyed off the raw
+  // `options.cookieMode === true` while the session defaulted `false` — is
+  // exactly how a cookie-mode-by-default session ended up with a client
+  // that never sent `credentials: "include"`, silently dropping the very
+  // cookies the session was supposed to run on).
+  const cookieMode = options.cookieMode ?? true;
   const credentials =
-    options.credentials ??
-    (options.cookieMode === true ? ("include" as const) : undefined);
+    options.credentials ?? (cookieMode ? ("include" as const) : undefined);
 
   // A SEPARATE client for the token-refresh call only — deliberately WITHOUT
   // `onAuthRefresh` (frontend-core-architecture-v2 §43.1). The refresh
@@ -104,7 +121,7 @@ export function createAuthRuntime(
     api: getApi,
     refreshApi,
     ...(options.storage !== undefined ? { storage: options.storage } : {}),
-    cookieMode: options.cookieMode ?? false,
+    cookieMode,
     ...(options.onTeardown !== undefined ? { onTeardown: options.onTeardown } : {}),
     ...(options.onSessionLost !== undefined
       ? { onSessionLost: options.onSessionLost }

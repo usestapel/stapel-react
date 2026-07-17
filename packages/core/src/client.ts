@@ -37,14 +37,26 @@ export interface StapelClientOptions {
     | undefined
     | Promise<string | null | undefined>;
   /**
-   * Refresh seam: called once per request on a 401. Return the new access
-   * token to retry the request with it; return null/undefined to give up
-   * (the 401 is then thrown as `StapelApiError`). Concurrent requests each
+   * Refresh seam: called once per request on a 401. Concurrent requests each
    * call this independently — wire it to `SessionManager.refresh()`
    * (frontend-core-architecture-v2 §43.1/§43.2), which coalesces them into
    * ONE actual refresh call and hands every caller the same result. This is
    * the ONE legal place a 401 gets handled (`stapel/no-adhoc-401`) — modules
    * do not write their own retry/redirect logic on 401.
+   *
+   * Three distinct outcomes, not two (owner-diagnosed live incident,
+   * 2026-07-17 — this used to collapse the last two into one and broke
+   * cookie-mode retries):
+   *  - a non-empty string — refresh succeeded AND handed back a new bearer
+   *    token (header/bearer mode): retry WITH that token attached.
+   *  - an EMPTY string `""` — refresh succeeded but there is no token to
+   *    attach (cookie mode: the refresh response's `Set-Cookie` already put
+   *    the new httponly cookie in the jar): retry with NO `Authorization`
+   *    header, relying on the cookie. Do not confuse this with failure —
+   *    `refreshed.length > 0` is the WRONG success check for a client that
+   *    supports cookie mode; `refreshed != null` is the right one.
+   *  - `null`/`undefined` — refresh genuinely failed: give up, the original
+   *    401 is thrown as `StapelApiError`.
    */
   readonly onAuthRefresh?: () => Promise<string | null | undefined>;
   /**
@@ -180,8 +192,12 @@ export function createStapelClient(options: StapelClientOptions): StapelClient {
       if (response.status === 401 && options.onAuthRefresh && !triedRefresh) {
         triedRefresh = true;
         const refreshed = await options.onAuthRefresh();
-        if (refreshed != null && refreshed.length > 0) {
-          overrideToken = refreshed;
+        // `!= null`, NOT `refreshed.length > 0` — an empty string is a
+        // legitimate SUCCESS in cookie mode (see the option's doc comment):
+        // there is no token to attach, but the retry must still happen so
+        // the new httponly cookie the refresh just set actually gets used.
+        if (refreshed != null) {
+          overrideToken = refreshed.length > 0 ? refreshed : undefined;
           continue;
         }
       }

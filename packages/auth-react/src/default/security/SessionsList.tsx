@@ -10,7 +10,7 @@
  * component is deprecated as of antd 6.5.
  */
 import { useState } from "react";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { Alert, Badge, Button, Divider, Empty, Flex, Popconfirm, Spin, Tag, Typography } from "antd";
 import { useT } from "@stapel/core";
 import type { AuthSession } from "../../api/types.js";
@@ -21,6 +21,7 @@ import {
 } from "../../model/mutations.js";
 import { useSessions } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
+import { SecurityEmptyIcon } from "./icons.js";
 
 function formatRelative(iso: string): string {
   const d = new Date(iso);
@@ -85,8 +86,14 @@ function SessionRow(props: {
   );
 }
 
+export interface SessionsListProps {
+  /** Override the empty-state glyph (canon default: a plain shield outline,
+   * matching the `icon_svg` auth-contract's aesthetic — see `./icons.tsx`). */
+  readonly emptyIcon?: ReactNode;
+}
+
 /** Full device-CRUD security screen: list, per-device revoke, revoke-others. */
-export function SessionsList(): ReactElement {
+export function SessionsList(props: SessionsListProps = {}): ReactElement {
   const t = useT();
   const sessions = useSessions();
   const revokeOne = useRevokeSession();
@@ -129,7 +136,10 @@ export function SessionsList(): ReactElement {
       ) : sessions.isError ? (
         <Alert type="error" showIcon message={sessions.error.message} />
       ) : list.length === 0 ? (
-        <Empty description={t(AUTH_I18N_KEYS.secSessionsEmpty)} />
+        <Empty
+          image={props.emptyIcon ?? <SecurityEmptyIcon />}
+          description={t(AUTH_I18N_KEYS.secSessionsEmpty)}
+        />
       ) : (
         <Flex vertical>
           {list.map((s, i) => (

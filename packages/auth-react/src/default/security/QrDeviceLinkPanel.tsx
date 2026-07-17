@@ -27,8 +27,8 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Button, Flex, QRCode, Typography } from "antd";
-import { useFormatFlowError, useT } from "@stapel/core";
+import { Alert, Button, Drawer, Flex, Modal, QRCode, Typography } from "antd";
+import { useBreakpoint, useFormatFlowError, useT } from "@stapel/core";
 import type { QrLoginBag } from "../../headless/QrLogin.js";
 import type { QrLoginState } from "../../flows/qrLoginFlow.js";
 import { QrLogin } from "../../headless/QrLogin.js";
@@ -114,6 +114,15 @@ function QrJourney(props: {
     bag.start(type, redirectUrl, allowUnauthenticatedScanner);
   }, [bag, type, redirectUrl, allowUnauthenticatedScanner]);
 
+  // Latches once a code has actually been shown — distinguishes the FIRST
+  // generate (a bare antd loading spinner is the right amount of ceremony)
+  // from an auto-REGENERATE after the backend reports `expired` (owner UX
+  // audit, ironmemo-frontend reference semantics reproduced: say so, rather
+  // than silently swapping the old code for a spinner with zero explanation —
+  // indistinguishable, without this line, from the panel just hanging).
+  const hadKeyRef = useRef(false);
+  if (s.step === "awaitingScan") hadKeyRef.current = true;
+
   const secondsLeft = useCountdown(s);
   const scanUrl = s.step === "awaitingScan" ? s.scanUrl : "-";
   const regenerate = (): void => bag.start(type, redirectUrl, allowUnauthenticatedScanner);
@@ -121,6 +130,10 @@ function QrJourney(props: {
   return (
     <Flex vertical align="center" gap="middle">
       <QRCode value={scanUrl} status={qrCodeStatus(s.step)} onRefresh={regenerate} size={200} />
+
+      {s.step === "generating" && hadKeyRef.current && (
+        <Typography.Text type="secondary">{t(AUTH_I18N_KEYS.secQrRegenerating)}</Typography.Text>
+      )}
 
       {s.step === "awaitingScan" && (
         <Typography.Text type="secondary">
@@ -179,56 +192,71 @@ export interface QrDeviceLinkPanelProps {
   readonly allowUnauthenticatedScanner?: boolean;
 }
 
-/** Device-handoff QR panel: a trigger that renders the code immediately (no
- * extra clicks — ПРАВИЛО 6), live TTL countdown, silent auto-refresh, and
- * fulfilled/rejected/error status. Not mounted (and not polling) until the
- * host renders it and the user clicks through — same idle-until-triggered
- * shape as `TotpManager`/`PasskeysManager`'s dialogs, just inline instead of
- * a `Modal` so the QR is visible without stacking a dialog on top of a
- * settings page (or a call page, its primary use case). */
+/** Device-handoff QR panel: a settings-list-style row (title/subtitle + a
+ * trigger) that opens the actual QR journey in a dialog — a `Modal` on
+ * tablet/desktop, a bottom `Drawer` ("sheet") on phone (`useBreakpoint`,
+ * same convention `AuthPanel`'s alt-method dialog follows), NOT inline
+ * below the row (owner UX audit 2026-07-17: an inline reveal read as "stuck
+ * in the settings list" and, on phone, pushed the rest of the security tab
+ * out of view — the mounting problem was this component itself, not
+ * whatever the host wrapped it in). Not mounted (and not polling) until the
+ * dialog is actually opened — same idle-until-triggered shape as
+ * `TotpManager`/`PasskeysManager`'s dialogs, which this now matches exactly. */
 export function QrDeviceLinkPanel(props: QrDeviceLinkPanelProps): ReactElement {
   const t = useT();
-  const [active, setActive] = useState(false);
+  const [open, setOpen] = useState(false);
+  const isPhone = useBreakpoint() === "phone";
   const redirectUrl = props.redirectUrl ?? "/";
   const allowUnauthenticatedScanner = props.allowUnauthenticatedScanner ?? true;
+  const title = props.title ?? t(AUTH_I18N_KEYS.secQrTitle);
+
+  const body = (
+    <QrLogin>
+      {(bag) => (
+        <QrJourney
+          bag={bag}
+          type="session_share"
+          redirectUrl={redirectUrl}
+          allowUnauthenticatedScanner={allowUnauthenticatedScanner}
+          onCancel={() => {
+            bag.cancel();
+            setOpen(false);
+          }}
+        />
+      )}
+    </QrLogin>
+  );
 
   return (
     <Flex vertical gap="middle" style={{ width: "100%" }} data-testid="qr-device-link-panel">
       <div>
         <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 4 }}>
-          {props.title ?? t(AUTH_I18N_KEYS.secQrTitle)}
+          {title}
         </Typography.Title>
         <Typography.Text type="secondary">
           {props.subtitle ?? t(AUTH_I18N_KEYS.secQrSubtitle)}
         </Typography.Text>
       </div>
 
-      {!active ? (
-        <Flex>
-          <Button
-            type="primary"
-            onClick={() => setActive(true)}
-            data-analytics="none"
-            data-analytics-reason="local-ui-reveal-qr-panel"
-          >
-            {t(AUTH_I18N_KEYS.secQrShowCta)}
-          </Button>
-        </Flex>
+      <Flex>
+        <Button
+          type="primary"
+          onClick={() => setOpen(true)}
+          data-analytics="none"
+          data-analytics-reason="local-ui-open-qr-dialog"
+        >
+          {t(AUTH_I18N_KEYS.secQrShowCta)}
+        </Button>
+      </Flex>
+
+      {isPhone ? (
+        <Drawer open={open} title={title} onClose={() => setOpen(false)} placement="bottom" size="large" destroyOnHidden>
+          {body}
+        </Drawer>
       ) : (
-        <QrLogin>
-          {(bag) => (
-            <QrJourney
-              bag={bag}
-              type="session_share"
-              redirectUrl={redirectUrl}
-              allowUnauthenticatedScanner={allowUnauthenticatedScanner}
-              onCancel={() => {
-                bag.cancel();
-                setActive(false);
-              }}
-            />
-          )}
-        </QrLogin>
+        <Modal open={open} title={title} onCancel={() => setOpen(false)} footer={null} destroyOnHidden>
+          {body}
+        </Modal>
       )}
     </Flex>
   );

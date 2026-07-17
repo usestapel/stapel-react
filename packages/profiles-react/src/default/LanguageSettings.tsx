@@ -3,26 +3,35 @@
  * (owner directive: language/locale is a settings surface in its own right,
  * split out from `<ProfileSettings/>` per the brief). Built on this pair's
  * EXISTING hooks (`useLanguages`, `useMyProfile`, `useUpdateMyProfile`) — no
- * new backend surface. UX (app-language picker + "use device language" +
- * understood-languages checklist) is informed by ironmemo's `ProfilePage`
- * language picker, not copied from it; reloading translations for the newly
- * picked language is the HOST's job (see `onSaved`), not this pair's — a
- * headless pair doesn't know which i18n loader (e.g. stapel-translate) the
- * host wired up.
+ * new backend surface.
+ *
+ * INTERACTION CANON (owner UX audit 2026-07-17, point 5 +
+ * `docs/pending/frontend-guidelines.md` §8): "Auto" is the FIRST item of the
+ * app-language picker itself (not a separate switch next to it) — picking
+ * it PATCHes `use_device_language: true`; picking an actual language PATCHes
+ * `app_language: <code>, use_device_language: false`. Every pick applies
+ * REACTIVELY (no "Save" button) — `useUpdateMyProfile` is itself optimistic
+ * and rolls back on failure. The "languages you understand" checklist is
+ * reactive the same way: each toggle PATCHes immediately. Reloading
+ * translations for the newly picked language is still the HOST's job (see
+ * `onSaved`), not this pair's.
  */
 import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Button, Card, Checkbox, Select, Spin, Switch, Typography } from "antd";
+import { Alert, Card, Checkbox, Select, Spin, Typography } from "antd";
 import { useT } from "@stapel/core";
 import { useMyProfile } from "../model/queries.js";
 import { useUpdateMyProfile } from "../model/mutations.js";
 import { useLanguages } from "../model/queries.js";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
 
+const AUTO = "auto";
+
 export interface LanguageSettingsProps {
-  /** Called after a successful save with the newly picked app language code —
-   * the hook the host uses to reload its i18n engine (e.g.
-   * `loadTranslations(code)`, stapel-translate-driven). Not called when the
+  /** Called after a successfully-applied pick with the newly picked app
+   * language code — the hook the host uses to reload its i18n engine (e.g.
+   * `loadTranslations(code)`, stapel-translate-driven). Not called when
+   * "Auto" was picked (there is no fixed code to reload with) or when the
    * app language didn't change. */
   onSaved?(appLanguageCode: string): void;
 }
@@ -45,20 +54,28 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
     setUnderstands(profile.understands ?? []);
   }, [profile]);
 
-  function handleSave(): void {
+  function pickAppLanguage(value: string): void {
     const previous = profile?.app_language?.code;
+    if (value === AUTO) {
+      setUseDeviceLanguage(true);
+      mutation.mutate({ use_device_language: true });
+      return;
+    }
+    setUseDeviceLanguage(false);
+    setAppLanguage(value);
     mutation.mutate(
-      {
-        app_language: appLanguage,
-        use_device_language: useDeviceLanguage,
-        understands,
-      },
+      { app_language: value, use_device_language: false },
       {
         onSuccess: () => {
-          if (appLanguage !== previous) props.onSaved?.(appLanguage);
+          if (value !== previous) props.onSaved?.(value);
         },
       }
     );
+  }
+
+  function toggleUnderstands(next: string[]): void {
+    setUnderstands(next);
+    mutation.mutate({ understands: next });
   }
 
   if (query.isLoading && !profile) {
@@ -66,6 +83,8 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
   }
 
   const options = languages.data ?? [];
+  const pickerValue = useDeviceLanguage ? AUTO : appLanguage;
+  const mutationErrorText = mutation.isError ? mutation.error.message : undefined;
 
   return (
     <Card data-testid="language-settings">
@@ -78,21 +97,16 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
         <div>
           <Typography.Text>{t(PROFILES_I18N_KEYS.fieldAppLanguage)}</Typography.Text>
           <Select<string>
-            value={appLanguage}
-            onChange={(v) => setAppLanguage(v)}
-            disabled={useDeviceLanguage}
+            value={pickerValue}
+            onChange={pickAppLanguage}
             style={{ width: "100%" }}
-            options={
-              options.length > 0
+            options={[
+              { value: AUTO, label: t(PROFILES_I18N_KEYS.languageAuto) },
+              ...(options.length > 0
                 ? options.map((l) => ({ value: l.code, label: `${l.name} (${l.code.toUpperCase()})` }))
-                : [{ value: appLanguage, label: appLanguage.toUpperCase() }]
-            }
+                : [{ value: appLanguage, label: appLanguage.toUpperCase() }]),
+            ]}
           />
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Switch checked={useDeviceLanguage} onChange={setUseDeviceLanguage} />
-          <Typography.Text>{t(PROFILES_I18N_KEYS.fieldUseDeviceLanguage)}</Typography.Text>
         </div>
 
         {options.length > 0 && (
@@ -101,7 +115,7 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
             <div>
               <Checkbox.Group
                 value={understands}
-                onChange={(v) => setUnderstands(v as string[])}
+                onChange={(v) => toggleUnderstands(v as string[])}
                 options={options.map((l) => ({ value: l.code, label: l.name }))}
               />
             </div>
@@ -109,20 +123,9 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
         )}
       </div>
 
-      {mutation.error && (
-        <Alert style={{ marginTop: 12 }} type="error" showIcon message={mutation.error.message} />
+      {mutationErrorText && (
+        <Alert style={{ marginTop: 12 }} type="error" showIcon message={mutationErrorText} />
       )}
-
-      <Button
-        type="primary"
-        style={{ marginTop: 16 }}
-        loading={mutation.isPending}
-        onClick={handleSave}
-        data-analytics="none"
-        data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-      >
-        {mutation.isPending ? t(PROFILES_I18N_KEYS.profileSaving) : t(PROFILES_I18N_KEYS.profileSave)}
-      </Button>
     </Card>
   );
 }

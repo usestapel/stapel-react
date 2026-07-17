@@ -61,6 +61,61 @@ describe("<QrDeviceLinkPanel/>", () => {
     expect(generateCalls).toBe(0);
   });
 
+  /**
+   * Owner UX audit 2026-07-17 (point 8): the trigger must open a DIALOG
+   * (Modal on desktop, bottom Drawer/"sheet" on phone) — same
+   * `useBreakpoint` convention `AuthPanel`'s own alt-method dialog follows —
+   * never reveal the QR journey inline below the settings row.
+   */
+  function setViewportWidth(width: number): void {
+    Object.defineProperty(window, "innerWidth", { value: width, writable: true });
+    window.dispatchEvent(new Event("resize"));
+  }
+
+  it("opens a centred Modal (not an inline reveal) at desktop width", async () => {
+    setViewportWidth(1440);
+    server.use(
+      http.post(`${BASE}/qr/generate/`, () =>
+        HttpResponse.json(
+          { key: "k1", type: "session_share", expires_in: 300, scan_url: "https://x/qr/k1/scan/" },
+          { status: 201 }
+        )
+      ),
+      http.get(`${BASE}/qr/k1/status/`, () => HttpResponse.json({ status: "pending" }))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <QrDeviceLinkPanel />));
+
+    expect(document.querySelector(".ant-modal")).toBeNull();
+    screen.getByText("Show QR code").click();
+
+    await waitFor(() => expect(document.querySelector(".ant-modal")).not.toBeNull());
+    expect(document.querySelector(".ant-drawer")).toBeNull();
+    await waitFor(() => expect(screen.getByText("Expires in 5:00")).toBeDefined());
+  });
+
+  it("opens a bottom Drawer ('sheet') at phone width — same content, different surface", async () => {
+    setViewportWidth(375);
+    server.use(
+      http.post(`${BASE}/qr/generate/`, () =>
+        HttpResponse.json(
+          { key: "k1", type: "session_share", expires_in: 300, scan_url: "https://x/qr/k1/scan/" },
+          { status: 201 }
+        )
+      ),
+      http.get(`${BASE}/qr/k1/status/`, () => HttpResponse.json({ status: "pending" }))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <QrDeviceLinkPanel />));
+
+    screen.getByText("Show QR code").click();
+
+    await waitFor(() => expect(document.querySelector(".ant-drawer")).not.toBeNull());
+    expect(document.querySelector(".ant-drawer")?.className).toContain("ant-drawer-bottom");
+    expect(document.querySelector(".ant-modal")).toBeNull();
+    setViewportWidth(1440); // restore for subsequent tests in this file
+  });
+
   it("clicking the trigger generates a QR immediately (no further click) and shows the countdown", async () => {
     server.use(
       http.post(`${BASE}/qr/generate/`, () =>
@@ -121,6 +176,42 @@ describe("<QrDeviceLinkPanel/>", () => {
     screen.getByText("Show QR code").click();
 
     await waitFor(() => expect(screen.getByText("That device is now signed in.")).toBeDefined());
+  });
+
+  /**
+   * Coordinator deepening (owner UX audit 2026-07-17): red on the pre-fix
+   * code (verified — reverting the `hadKeyRef` caption in QrDeviceLinkPanel.tsx
+   * makes the middle assertion fail, since nothing distinguishes this
+   * transition from the FIRST generate's bare spinner). Covers exactly the
+   * two reported symptoms: the backend's `expired` DOES get picked up
+   * (polling works) and the panel does NOT hang — a fresh, live QR renders
+   * right after, never stuck showing only a spinner.
+   */
+  it("on 'expired', silently regenerates and lands on a live NEW code — never stuck on the spinner", async () => {
+    let generateCalls = 0;
+    server.use(
+      http.post(`${BASE}/qr/generate/`, () => {
+        generateCalls += 1;
+        const key = `k${String(generateCalls)}`;
+        return HttpResponse.json(
+          { key, type: "session_share", expires_in: 300, scan_url: `https://x/qr/${key}/scan/` },
+          { status: 201 }
+        );
+      }),
+      http.get(`${BASE}/qr/k1/status/`, () => HttpResponse.json({ status: "expired" })),
+      http.get(`${BASE}/qr/k2/status/`, () => HttpResponse.json({ status: "pending" }))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <QrDeviceLinkPanel />));
+
+    screen.getByText("Show QR code").click();
+    await waitFor(() => expect(screen.getByText("Expires in 5:00")).toBeDefined());
+
+    // The first poll reports `expired` and the panel regenerates on its own —
+    // the new key lands: a live QR again, not a spinner stuck forever.
+    await waitFor(() => expect(generateCalls).toBe(2));
+    await waitFor(() => expect(screen.getByText("Expires in 5:00")).toBeDefined());
+    expect(screen.queryByText("That code expired — getting you a new one…")).toBeNull();
   });
 
   it("shows the rejected state with a retry that regenerates a new key", async () => {

@@ -21,17 +21,21 @@
  * them, not a claim that it works against today's released contract.
  */
 import { useState } from "react";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { Alert, Avatar, Button, Empty, Flex, Popconfirm, Tag, Tooltip, Typography } from "antd";
 import { useFormatFlowError, useT } from "@stapel/core";
 import { useLinkOAuth, useUnlinkOAuth } from "../../model/mutations.js";
 import { useCapabilities, useOAuthLinks } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
+import { SecurityEmptyIcon } from "./icons.js";
 
 export interface OAuthLinksProps {
   /** Runs the provider's OAuth SDK/popup and resolves the resulting
    * `access_token` — see the module doc. Omit to disable "Connect". */
   readonly getAccessToken?: (providerId: string) => Promise<string>;
+  /** Override the empty-state glyph (canon default: a plain shield outline,
+   * matching the `icon_svg` auth-contract's aesthetic — see `./icons.tsx`). */
+  readonly emptyIcon?: ReactNode;
 }
 
 /** Full connected-accounts screen: real read + unlink; link needs `getAccessToken`. */
@@ -68,7 +72,10 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
       </Typography.Title>
 
       {providers.length === 0 ? (
-        <Empty description={t(AUTH_I18N_KEYS.secOauthEmpty)} />
+        <Empty
+          image={props.emptyIcon ?? <SecurityEmptyIcon />}
+          description={t(AUTH_I18N_KEYS.secOauthEmpty)}
+        />
       ) : (
         <Flex vertical gap="middle">
           {providers.map((p) => {

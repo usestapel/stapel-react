@@ -122,3 +122,95 @@ describe("qr login: stale poll guard (key identity, not just step)", () => {
     expect(flow.machine.getState()).toBe(live); // untouched, still qr_2
   });
 });
+
+/**
+ * Live-verified 2026-07-17 (owner deepening of the settings-page QR audit):
+ * driving `createQrLoginFlow` directly against a real running stapel-auth
+ * 0.6.0 backend (docker-composed `meettoday` stack) through its full 300s
+ * TTL showed polling AND the expired→regenerate transition both complete
+ * correctly at the flow layer — `qrGenerate`'s response IS what unblocks the
+ * `"generating"` step, every time. That live run only exercised THIS flow
+ * layer, though (headless, no React), so it could not have caught a bug at
+ * the React/UI layer — these tests pin the flow-layer contract the reported
+ * "no polling" / "stuck loading forever" symptoms would need to violate if
+ * the bug were here, so a future regression here fails loudly instead of
+ * only ever showing up as a live "why is this QR panel stuck" report again.
+ */
+describe("qr login: expired → silent auto-regenerate (auth-sa.md §8)", () => {
+  it("polls on the configured cadence while pending (poll cadence contract)", async () => {
+    vi.useFakeTimers();
+    const { api, statusCalls, pending } = makeQrApi();
+    const flow = createQrLoginFlow({ api, pollIntervalMs: 1000 });
+
+    await flow.start("login_request", "/app");
+    expect(statusCalls).toHaveLength(0); // no poll before the first interval elapses
+
+    // Each poll's promise resolves "pending" before the next interval tick —
+    // schedulePoll only re-arms once the prior poll settles, so this proves
+    // the cadence keeps going call after call, not just once.
+    for (let i = 1; i <= 4; i += 1) {
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(statusCalls).toHaveLength(i);
+      pending.get("qr_1")?.[i - 1]?.resolve({ status: "pending" });
+      await tick();
+    }
+  });
+
+  it("on 'expired', regenerates a fresh key and IMMEDIATELY resumes polling it — never stalls on 'generating'", async () => {
+    vi.useFakeTimers();
+    const { api, statusCalls, pending } = makeQrApi();
+    const flow = createQrLoginFlow({ api, pollIntervalMs: 1000 });
+
+    await flow.start("login_request", "/app");
+    expect(flow.machine.getState()).toMatchObject({ step: "awaitingScan", key: "qr_1" });
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(statusCalls).toEqual(["qr_1"]);
+
+    // Backend reports the key expired — the flow must regenerate right away,
+    // land back in `awaitingScan` with the NEW key (never stuck in
+    // `generating`), and resume polling it on the same cadence.
+    pending.get("qr_1")?.[0]?.resolve({ status: "expired" });
+    await tick();
+
+    expect(flow.machine.getState()).toMatchObject({ step: "awaitingScan", key: "qr_2" });
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(statusCalls).toEqual(["qr_1", "qr_2"]);
+
+    pending.get("qr_2")?.[0]?.resolve({ status: "pending" });
+    await tick();
+    expect(flow.machine.getState()).toMatchObject({ step: "awaitingScan", key: "qr_2" });
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(statusCalls).toEqual(["qr_1", "qr_2", "qr_2"]);
+  });
+
+  it("pollNow() re-checks status immediately without waiting for the next scheduled tick", async () => {
+    vi.useFakeTimers();
+    const { api, statusCalls, pending } = makeQrApi();
+    const flow = createQrLoginFlow({ api, pollIntervalMs: 60_000 }); // a long cadence a foregrounded tab shouldn't have to wait out
+
+    await flow.start("login_request", "/app");
+    expect(statusCalls).toEqual([]); // nothing yet — first tick is 60s away
+
+    flow.pollNow();
+    await tick();
+    expect(statusCalls).toEqual(["qr_1"]); // checked immediately, not after 60s
+
+    pending.get("qr_1")?.[0]?.resolve({ status: "pending" });
+    await tick();
+    // still resumes the normal cadence afterwards
+    expect(flow.machine.getState()).toMatchObject({ step: "awaitingScan", key: "qr_1" });
+  });
+
+  it("pollNow() is a no-op outside awaitingScan (nothing to re-check yet/anymore)", async () => {
+    vi.useFakeTimers();
+    const { api, statusCalls } = makeQrApi();
+    const flow = createQrLoginFlow({ api, pollIntervalMs: 1000 });
+
+    flow.pollNow(); // idle — before start()
+    await tick();
+    expect(statusCalls).toEqual([]);
+  });
+});

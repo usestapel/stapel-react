@@ -11,7 +11,7 @@
  * hanging.
  */
 import { useEffect, useRef, useState } from "react";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { Alert, Button, Empty, Flex, Form, Input, Modal, Popconfirm, Spin, Typography } from "antd";
 import { useFormatFlowError, useT } from "@stapel/core";
 import type { Passkey } from "../../api/types.js";
@@ -20,6 +20,7 @@ import type { PasskeyRegistrationBag, WebauthnBinding } from "../../headless/Pas
 import { useRemovePasskey } from "../../model/mutations.js";
 import { usePasskeys } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
+import { SecurityEmptyIcon } from "./icons.js";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -107,6 +108,9 @@ export interface PasskeysManagerProps {
   /** Drives the `navigator.credentials.create()` ceremony automatically when
    * supplied (thin by design otherwise — see module doc). */
   readonly webauthnCreate?: WebauthnBinding;
+  /** Override the empty-state glyph (canon default: a plain shield outline,
+   * matching the `icon_svg` auth-contract's aesthetic — see `./icons.tsx`). */
+  readonly emptyIcon?: ReactNode;
 }
 
 /** Full passkey security screen: list, remove, add (name → begin → ceremony). */
@@ -143,7 +147,10 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
       {passkeys.isLoading ? (
         <Spin />
       ) : list.length === 0 ? (
-        <Empty description={t(AUTH_I18N_KEYS.secPasskeysEmpty)} />
+        <Empty
+          image={props.emptyIcon ?? <SecurityEmptyIcon />}
+          description={t(AUTH_I18N_KEYS.secPasskeysEmpty)}
+        />
       ) : (
         <Flex vertical gap="middle">
           {list.map((p) => (

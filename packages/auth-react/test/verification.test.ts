@@ -184,7 +184,7 @@ describe("runtime cookie mode (HTTP-only JWT cookies)", () => {
         headers: { "content-type": "application/json" },
       });
     };
-    const runtime = createAuthRuntime({ baseUrl: BASE, fetch: fetchSpy });
+    const runtime = createAuthRuntime({ baseUrl: BASE, fetch: fetchSpy, cookieMode: false });
     await runtime.client.get("/me/");
     expect(inits[0]?.credentials).toBeUndefined();
   });
