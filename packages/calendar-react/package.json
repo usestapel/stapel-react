@@ -1,6 +1,6 @@
 {
   "name": "@stapel/calendar-react",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Headless React flow pair for stapel-calendar: typed API client, TanStack Query hooks, flow machines, headless components, and i18n keys. Zero visual opinion.",
   "license": "MIT",
   "repository": {
