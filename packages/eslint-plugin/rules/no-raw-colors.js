@@ -70,7 +70,7 @@ export default {
       context.report({
         node,
         messageId: "rawColor",
-        data: { value: String(raw).slice(0, 40), suggest: "accent" },
+        data: { value: String(raw).slice(0, 40), suggest: "brand" },
       });
     }
 

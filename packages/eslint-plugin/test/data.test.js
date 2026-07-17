@@ -14,9 +14,9 @@ describe("data layer reads generated manifests dynamically", () => {
     expect(catalog.loaded).toBe(true);
     // Values that exist because they are in theme.default.json, proving the
     // catalog is read from the generated manifest, not baked into the rule.
-    expect(catalog.hasToken("accent")).toBe(true);
-    expect(catalog.hasToken("background-primary")).toBe(true);
-    expect(catalog.hasToken("button-primary-bg")).toBe(true);
+    expect(catalog.hasToken("brand")).toBe(true);
+    expect(catalog.hasToken("surface")).toBe(true);
+    expect(catalog.hasToken("text")).toBe(true);
     expect(catalog.hasRamp("gray")).toBe(true);
     expect(catalog.hasRamp("brand")).toBe(true);
     // A made-up token is absent.
@@ -28,7 +28,7 @@ describe("data layer reads generated manifests dynamically", () => {
       tokensManifest: { tokens: { core: ["only-this"] }, ramps: { names: ["z"] } },
     });
     expect(catalog.hasToken("only-this")).toBe(true);
-    expect(catalog.hasToken("accent")).toBe(false);
+    expect(catalog.hasToken("brand")).toBe(false);
     expect(catalog.hasRamp("z")).toBe(true);
   });
 
