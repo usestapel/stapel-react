@@ -56,7 +56,7 @@
     {
       "name": "i18n/ru subpath (opt-in locale: en floor + generated ru + ru UI)",
       "path": "dist/i18n/ru.js",
-      "limit": "8 KB"
+      "limit": "8.5 KB"
     }
   ],
   "peerDependencies": {

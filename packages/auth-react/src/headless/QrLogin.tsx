@@ -13,7 +13,10 @@ export interface QrLoginBag {
     redirectUrl: string,
     allowUnauthenticatedScanner?: boolean
   ): void;
+  /** Stop polling, no server call (existing behavior — modal close/unmount). */
   dispose(): void;
+  /** User-initiated cancel — best-effort `/reject/` then dispose. */
+  cancel(): void;
 }
 
 /**
@@ -48,5 +51,6 @@ export function QrLogin(props: {
       void flow.start(type, redirectUrl, allow);
     },
     dispose: flow.dispose,
+    cancel: flow.cancel,
   });
 }

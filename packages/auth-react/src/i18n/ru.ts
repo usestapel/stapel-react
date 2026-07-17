@@ -131,6 +131,17 @@ export const authI18nBundleRu: I18nDictionary = {
     "Отвязка пока недоступна — у этого бэкенда нет эндпоинта для отвязки.",
   "auth.sec.oauth.link_unavailable":
     "Для привязки нового провайдера нужна функция getAccessToken — см. документацию OAuthLinks.",
+
+  "auth.sec.qr.title": "Войти на другом устройстве",
+  "auth.sec.qr.subtitle":
+    "Отсканируйте этот код камерой устройства, на котором вы не вошли — оно войдёт под этим же аккаунтом.",
+  "auth.sec.qr.show_cta": "Показать QR-код",
+  "auth.sec.qr.cancel": "Отмена",
+  "auth.sec.qr.expires_in": "Истекает через {time}",
+  "auth.sec.qr.expiring": "Истекает…",
+  "auth.sec.qr.fulfilled": "То устройство теперь вошло в систему.",
+  "auth.sec.qr.rejected": "Вход был отклонён на другом устройстве.",
+  "auth.sec.qr.retry": "Попробовать снова",
 };
 
 /**

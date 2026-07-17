@@ -42,6 +42,14 @@ export interface QrLoginFlow {
   ): Promise<void>;
   /** Stop polling and reset to idle (call on modal close / unmount). */
   dispose(): void;
+  /**
+   * User-initiated cancel: best-effort tells the backend to invalidate the
+   * pending key (`POST /qr/{key}/reject/`) so a late scan doesn't silently
+   * fulfil after the generating device gave up, then disposes. A no-op
+   * network error is swallowed — the client-side dispose still happens, and
+   * the key expires on its own TTL regardless.
+   */
+  cancel(): void;
 }
 
 export interface QrLoginFlowDeps {
@@ -164,5 +172,15 @@ export function createQrLoginFlow(deps: QrLoginFlowDeps): QrLoginFlow {
     machine.to({ step: "idle" });
   }
 
-  return { machine, start, dispose };
+  function cancel(): void {
+    const s = machine.getState();
+    if (s.step === "awaitingScan") {
+      void deps.api.qrReject(s.key).catch(() => {
+        // Best-effort — the key still expires on its own TTL if this fails.
+      });
+    }
+    dispose();
+  }
+
+  return { machine, start, dispose, cancel };
 }

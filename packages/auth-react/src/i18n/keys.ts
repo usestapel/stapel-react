@@ -115,6 +115,20 @@ export const AUTH_I18N_KEYS = {
   secOauthEmpty: "auth.sec.oauth.empty",
   secOauthUnlinkUnavailable: "auth.sec.oauth.unlink_unavailable",
   secOauthLinkUnavailable: "auth.sec.oauth.link_unavailable",
+
+  // QR device-handoff (session_share) — auth-sa.md §8, owner directive point 5
+  // + the "call it from anywhere, not just settings" follow-up: title/subtitle
+  // are component props with these as English defaults, so a host embedding
+  // it on e.g. a meeting-room page can override the copy without a fork.
+  secQrTitle: "auth.sec.qr.title",
+  secQrSubtitle: "auth.sec.qr.subtitle",
+  secQrShowCta: "auth.sec.qr.show_cta",
+  secQrCancel: "auth.sec.qr.cancel",
+  secQrExpiresIn: "auth.sec.qr.expires_in",
+  secQrExpiring: "auth.sec.qr.expiring",
+  secQrFulfilled: "auth.sec.qr.fulfilled",
+  secQrRejected: "auth.sec.qr.rejected",
+  secQrRetry: "auth.sec.qr.retry",
 } as const;
 
 export type AuthI18nKey =
@@ -283,6 +297,17 @@ export const authI18nBundleEn: I18nDictionary = {
   "error.404.sso_org_not_found": "Organization not found.",
   "error.400.sso_not_configured": "SSO isn't configured for this organization.",
   "error.403.sso_required": "This account must sign in with SSO.",
+
+  "auth.sec.qr.title": "Sign in on another device",
+  "auth.sec.qr.subtitle":
+    "Scan this code with the camera on a device that isn't signed in — it'll be signed in with this account.",
+  "auth.sec.qr.show_cta": "Show QR code",
+  "auth.sec.qr.cancel": "Cancel",
+  "auth.sec.qr.expires_in": "Expires in {time}",
+  "auth.sec.qr.expiring": "Expiring…",
+  "auth.sec.qr.fulfilled": "That device is now signed in.",
+  "auth.sec.qr.rejected": "Sign-in was declined on the other device.",
+  "auth.sec.qr.retry": "Try again",
 };
 
 /**

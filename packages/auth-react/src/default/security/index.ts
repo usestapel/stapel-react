@@ -13,3 +13,5 @@ export type { PasskeysManagerProps } from "./PasskeysManager.js";
 export { PasswordChangePanel } from "./PasswordChangePanel.js";
 export { OAuthLinks } from "./OAuthLinks.js";
 export type { OAuthLinksProps } from "./OAuthLinks.js";
+export { QrDeviceLinkPanel } from "./QrDeviceLinkPanel.js";
+export type { QrDeviceLinkPanelProps } from "./QrDeviceLinkPanel.js";
