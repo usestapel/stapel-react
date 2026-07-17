@@ -63,6 +63,24 @@ export const OPERATION_SETTINGS = {
   },
 };
 
+// A reserved-backend-path catalog matching reserved-paths.json's flat
+// `reservedPathPrefixes` shape, so no-reserved-backend-route tests don't
+// depend on filesystem discovery. Bare module roots ("/calendar") are
+// deliberately ABSENT — only their sub-paths are reserved (canon: roots are
+// the frontend's).
+export const RESERVED_PATH_SETTINGS = {
+  stapel: {
+    reservedPaths: [
+      "/admin",
+      "/staticfiles",
+      "/media",
+      "/calendar/api",
+      "/calendar/swagger",
+      "/billing/api",
+    ],
+  },
+};
+
 // A known-event catalog matching the manifest.events projection shape, so
 // known-event tests don't depend on filesystem discovery. `defined` names are
 // exact; `flows[].event` bases match by prefix (flow.<id>.<step>).

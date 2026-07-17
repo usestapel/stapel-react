@@ -3,6 +3,7 @@ import {
   loadTokenCatalog,
   loadI18nRegistry,
   loadOperationCatalog,
+  loadReservedPathCatalog,
   __resetCaches,
 } from "../lib/data.js";
 
@@ -62,5 +63,26 @@ describe("data layer reads generated manifests dynamically", () => {
     expect(catalog.matches("/x/api/thing/")).toBe(true);
     expect(catalog.matches("/thing/")).toBe(true);
     expect(catalog.matches("/auth/api/me/")).toBe(false);
+  });
+
+  it("degrades to a no-op when reserved-paths.json is absent (never crashes)", () => {
+    __resetCaches();
+    // No reserved-paths.json exists at the workspace root yet (stapel-tools'
+    // generator emits it) — the catalog must come back empty, not throw.
+    const catalog = loadReservedPathCatalog();
+    expect(catalog.loaded).toBe(false);
+    expect(catalog.matches("/admin")).toBeNull();
+  });
+
+  it("honours a reserved-paths settings override without the filesystem", () => {
+    const catalog = loadReservedPathCatalog({
+      reservedPaths: ["/admin", "/calendar/api"],
+    });
+    expect(catalog.loaded).toBe(true);
+    // Bare module root is NOT reserved — only its sub-path is.
+    expect(catalog.matches("/calendar")).toBeNull();
+    expect(catalog.matches("/calendar/api")).toBe("/calendar/api");
+    expect(catalog.matches("/calendar/api/x")).toBe("/calendar/api");
+    expect(catalog.matches("/admin")).toBe("/admin");
   });
 });

@@ -38,6 +38,34 @@ The `recommended` preset:
 - **overrides** the content rules off in tests and fixtures (they exercise the
   anti-patterns on purpose).
 
+### `reserved-paths.json`
+
+`stapel/no-reserved-backend-route` reads a project-root `reserved-paths.json`
+(no fixed location config beyond `settings.stapel.reservedPathsFile` — see
+below), the same flat projection stapel-tools' project generator emits:
+
+```json
+{
+  "reservedPathPrefixes": [
+    "/admin",
+    "/staticfiles",
+    "/media",
+    "/calendar/api",
+    "/calendar/swagger"
+  ]
+}
+```
+
+`reservedPathPrefixes` is a flat array of path prefixes the backend owns. A
+route is flagged when it **equals** a prefix or continues **past a segment
+boundary** beneath one (`/calendar/api/x` matches `/calendar/api`;
+`/calendar-archive` does not). **Never** put a bare module root
+(`/calendar`) in this list — the generator only emits sub-path reservations,
+because a bare root belongs to the frontend SPA by convention. If the file is
+missing, the rule is a no-op — it never fails the lint run.
+
+
+
 ## Rules
 
 | Rule | Catches |
@@ -58,6 +86,7 @@ The `recommended` preset:
 | `stapel/demo-literal-meta` | `defineDemo()` with non-literal meta (dynamic `id`/`title`/`description`/`covers`) — breaks static extraction into `demos.json`/`manifest.demos` (§4.2) |
 | `stapel/no-raw-storage` | direct `localStorage`/`sessionStorage`/`indexedDB` (bare or via `window.`/`globalThis.`/`self.`) or importing `idb-keyval` outside `@stapel/core`'s repository layer — raw storage is neither wiped on logout nor encrypted; persist through `createRepository()` (frontend-core-architecture-v2 §43.4). Off in core's `storage.ts`/`repository.ts`/`query.ts` (the one legal home) and in tests. Extend the banned module list via `options.modules` or `settings.stapel.storageModules` |
 | `stapel/no-adhoc-401` | comparing a status to the literal `401` (`===`/`!==`/`case 401:`) or wiring an axios-style `*.interceptors` chain — ad hoc 401 handling bypasses the single-flight refresh + logout-hook registry; 401s are handled ONCE, in core's `createStapelClient` (`onAuthRefresh` seam) + `SessionManager` (§43.2). Off in core's `client.ts`/`session.ts` and in tests |
+| `stapel/no-reserved-backend-route` | an SPA route (`<Route path="…">`, a `createBrowserRouter`/`createHashRouter`/`createMemoryRouter` array literal, or any `{ path: "…", element/Component/children/index/errorElement/loader/action/lazy: … }` RouteObject) whose path falls INTO a reserved backend sub-path — `/<mod>/api/…`, `/<mod>/swagger…`, or the project-wide `/admin`, `/staticfiles`, `/media` (§57 nginx canon). A **bare module root** (`/calendar`) is legitimate and never flagged — roots belong to the frontend; only sub-paths collide. Data-driven: reads the flat `reservedPathPrefixes` array from `reserved-paths.json` (emitted by stapel-tools' project generator) at the workspace root, or `settings.stapel.reservedPathsFile`/`reservedPaths`. No catalog → no-op (never a crash) |
 
 ### Settings
 
@@ -73,6 +102,7 @@ settings: {
     storageModules: ["level"],  // extra banned storage-backend packages
     eventsManifests: [manifest],// or eventNames: ["pricing.plan.selected", …]
     operationsManifests: [manifest], // or operationPaths: ["/auth/api/v1/me/", …]
+    reservedPathsFile: "./reserved-paths.json", // or reservedPaths: ["/admin", …]
     httpVerbs: ["get","post"],   // client methods no-string-paths inspects
     queryHooks: ["useQuery"],    // extra react-query hooks to inspect for keys
     trackedWrappers: ["tracked"],

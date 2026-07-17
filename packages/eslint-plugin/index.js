@@ -20,6 +20,7 @@ import noDirectAnalyticsProvider from "./rules/no-direct-analytics-provider.js";
 import demoLiteralMeta from "./rules/demo-literal-meta.js";
 import noRawStorage from "./rules/no-raw-storage.js";
 import noAdhoc401 from "./rules/no-adhoc-401.js";
+import noReservedBackendRoute from "./rules/no-reserved-backend-route.js";
 
 const rules = {
   "no-raw-colors": noRawColors,
@@ -42,6 +43,9 @@ const rules = {
   // Session-substrate guardrails (frontend-core-architecture-v2 §43).
   "no-raw-storage": noRawStorage,
   "no-adhoc-401": noAdhoc401,
+  // Front/back path-collision guardrail (owner directive: SPA router must not
+  // claim a reserved backend sub-path).
+  "no-reserved-backend-route": noReservedBackendRoute,
 };
 
 const plugin = {
@@ -160,6 +164,10 @@ const recommended = [
       // + SessionManager.
       "stapel/no-raw-storage": "error",
       "stapel/no-adhoc-401": "error",
+      // Path-collision guardrail: the SPA router must not claim a reserved
+      // backend sub-path (/<mod>/api/…, /<mod>/swagger…, /admin, /staticfiles,
+      // /media — §57 nginx canon). No-op without reserved-paths.json.
+      "stapel/no-reserved-backend-route": "error",
     },
   },
   {
@@ -227,6 +235,9 @@ const recommended = [
       // contract test greps localStorage directly) and on 401 fixtures.
       "stapel/no-raw-storage": "off",
       "stapel/no-adhoc-401": "off",
+      // Route fixtures legitimately probe reserved-path collisions on purpose
+      // (that's what this rule's own tests do).
+      "stapel/no-reserved-backend-route": "off",
       // require-disable-description stays ON — disable hygiene applies everywhere.
     },
   },

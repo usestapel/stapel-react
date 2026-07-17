@@ -333,6 +333,78 @@ export function loadOperationCatalog(settings = {}) {
   return _operationCatalogDefault;
 }
 
+// ── reserved backend-path catalog (reserved-paths.json) ──────────────────────
+//
+// no-reserved-backend-route reads the SAME projection stapel-tools' project
+// generator emits at the workspace root: a flat array of path PREFIXES a
+// backend module reserves under its own slug (`/<mod>/api/…`,
+// `/<mod>/swagger…`), plus the project-wide infra prefixes nginx enforces
+// (`/admin`, `/staticfiles`, `/media` — §57 canon, compose_templates.NGINX_CONF).
+// Schema: `{ "reservedPathPrefixes": string[] }`. A bare module ROOT
+// (`/<mod>`) must never appear in the list — roots belong to the frontend SPA
+// by convention; only sub-path reservations are catalogued. A missing/
+// unreadable file degrades the rule to a no-op (empty catalog, never a
+// crash) — exactly like the token/i18n/events/operation loaders above (§2.1).
+
+function discoverReservedPathsFile(from) {
+  const root = workspaceRoot(from);
+  if (root) {
+    const p = join(root, "reserved-paths.json");
+    if (existsSync(p)) return p;
+  }
+  const local = join(from, "reserved-paths.json");
+  if (existsSync(local)) return local;
+  return null;
+}
+
+function buildReservedPathCatalog(prefixes) {
+  const list = (prefixes ?? []).filter(
+    (p) => typeof p === "string" && p.length > 0
+  );
+  return {
+    prefixes: list,
+    loaded: list.length > 0,
+    /**
+     * The reserved prefix a route path falls INTO — equal to it, or past a
+     * segment boundary beneath it — else null. A route that merely shares a
+     * prefix's leading segment (a bare module root, e.g. "/calendar" against
+     * reserved "/calendar/api") does NOT match: roots are the frontend's by
+     * canon, only sub-paths are reserved.
+     */
+    matches: (route) => {
+      if (typeof route !== "string" || !route.startsWith("/")) return null;
+      for (const p of list) {
+        const boundary = p.endsWith("/") ? p : `${p}/`;
+        if (route === p || route.startsWith(boundary)) return p;
+      }
+      return null;
+    },
+  };
+}
+
+let _reservedPathCatalogDefault;
+export function loadReservedPathCatalog(settings = {}) {
+  if (settings.reservedPaths) {
+    return buildReservedPathCatalog(settings.reservedPaths);
+  }
+  if (settings.reservedPathsFile) {
+    // Explicit override → never memoized (mirrors the other loaders: only the
+    // zero-config discovered default is cached).
+    return buildReservedPathCatalog(
+      readJson(settings.reservedPathsFile)?.reservedPathPrefixes
+    );
+  }
+  if (!_reservedPathCatalogDefault) {
+    const file = discoverReservedPathsFile(
+      process.cwd ? process.cwd() : HERE
+    );
+    _reservedPathCatalogDefault = buildReservedPathCatalog(
+      file ? readJson(file)?.reservedPathPrefixes : undefined
+    );
+  }
+  return _reservedPathCatalogDefault;
+}
+
 /** Read `context.settings.stapel` (flat config) with a stable empty default. */
 export function stapelSettings(context) {
   return (context.settings && context.settings.stapel) || {};
@@ -344,6 +416,7 @@ export function __resetCaches() {
   _i18nDefault = undefined;
   _eventsCatalogDefault = undefined;
   _operationCatalogDefault = undefined;
+  _reservedPathCatalogDefault = undefined;
 }
 
 export { resolve as _resolve };
