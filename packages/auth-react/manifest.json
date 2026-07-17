@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/auth-react",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "backend": {
     "module": "stapel-auth",
-    "contract": ">=0.6 <0.7"
+    "contract": ">=0.7 <0.8"
   },
   "layers": [
     "api",
@@ -817,13 +817,6 @@
       "tag": "auth",
       "request": null,
       "response": "TOTPSetupResponse"
-    },
-    "auth_api_v1_totp_step_up_create": {
-      "method": "POST",
-      "path": "/auth/api/v1/totp/step-up/",
-      "tag": "auth",
-      "request": "TOTPStepUp",
-      "response": "TOTPStepUpResponse"
     },
     "auth_api_v1_user_account_cancel_close_create": {
       "method": "POST",
@@ -1992,13 +1985,9 @@
     "auth.sec.oauth.unlink_confirm_title",
     "auth.sec.oauth.unlink_unavailable",
     "auth.sec.passkeys.add",
-    "auth.sec.passkeys.add_title",
     "auth.sec.passkeys.added_success",
     "auth.sec.passkeys.awaiting_ceremony",
-    "auth.sec.passkeys.begin_cta",
     "auth.sec.passkeys.empty",
-    "auth.sec.passkeys.name_label",
-    "auth.sec.passkeys.name_placeholder",
     "auth.sec.passkeys.remove",
     "auth.sec.passkeys.remove_confirm_title",
     "auth.sec.passkeys.title",

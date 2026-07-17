@@ -1,6 +1,6 @@
-# @stapel/profiles-react 0.5.0
+# @stapel/profiles-react 0.6.0
 
-Headless React flow pair for stapel-profiles (contract >=0.3 <0.4) — business + state, zero visual opinion.
+Headless React flow pair for stapel-profiles (contract >=0.5 <0.6) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -22,6 +22,7 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 Request/response schema names are in manifest.json + the generated types.
 - block_user: POST /profiles/api/v1/{user_id}/block
 - follow_user: POST /profiles/api/v1/{user_id}/follow
+- get_field_manifest: GET /profiles/api/v1/field-manifest
 - get_language: GET /profiles/api/v1/languages/{code}/
 - get_my_blocked: GET /profiles/api/v1/me/blocked
 - get_my_followers: GET /profiles/api/v1/me/followers
@@ -42,6 +43,7 @@ Request/response schema names are in manifest.json + the generated types.
 - useMyFollowing (query) → getMyFollowing
 - useMyProfile (query) → getMyProfile
 - useProfile (query) → getProfile
+- useProfileFieldManifest (query) → getFieldManifest
 - useRelationship (query) → getRelationship
 - useUpdateMyProfile (mutation) → updateMyProfile
 
