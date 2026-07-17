@@ -1,6 +1,6 @@
 {
   "name": "@stapel/tokens-antd",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Token bridge (frontend-guidelines §2.4, §38 T3): projects @stapel/tokens L2 core tokens onto an Ant Design ConfigProvider theme. `toAntdTheme(mode)` → theme.token; `toAntdThemeConfig(mode)` → the full ThemeConfig (algorithm + token). Pure functions, one mapping table shared with @stapel/tokens-mui. Not components.",
   "license": "MIT",
   "repository": {

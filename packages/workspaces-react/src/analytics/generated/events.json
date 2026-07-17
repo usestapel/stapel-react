@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-events.mjs — do not edit; drift-gated (pnpm gen:events:check)",
   "package": "@stapel/workspaces-react",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "defined": [],
   "flows": []
 }
