@@ -1,6 +1,6 @@
 {
   "name": "@stapel/tokens-mui",
-  "version": "0.3.0",
+  "version": "0.2.0",
   "description": "Token bridge (§68 neutral colour-role dictionary; frontend-guidelines §2.4, §38 T3): projects @stapel/tokens' roles (surface, brand, text-muted, success-bg, ...) onto a Material UI theme. `toMuiTheme(mode)` → a MUI Theme (createTheme). Pure function reading the same `colors` object as @stapel/tokens-antd, so they cannot diverge. Not components.",
   "license": "MIT",
   "repository": {

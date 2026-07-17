@@ -1,6 +1,6 @@
 {
   "name": "@stapel/tokens",
-  "version": "0.5.0",
+  "version": "0.4.0",
   "description": "Stapel design tokens (§68 neutral colour-role dictionary): a single JSON source of truth compiled to a version-independent CSS custom-property core plus addressable adapters (Tailwind v4 default, v3 legacy), typed names, typography, spacing, radii, elevation, and the three breakpoints. Ships its OWN generator as the `stapel-tokens` bin — no host vendors/forks it. Not components.",
   "license": "MIT",
   "repository": {

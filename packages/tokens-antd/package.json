@@ -1,6 +1,6 @@
 {
   "name": "@stapel/tokens-antd",
-  "version": "0.4.0",
+  "version": "0.3.0",
   "description": "Token bridge (§68 neutral colour-role dictionary; frontend-guidelines §2.4, §38 T3): projects @stapel/tokens' roles (surface, brand, text-muted, success-bg, ...) onto an Ant Design ConfigProvider theme. `toAntdTheme(mode)` → theme.token; `toAntdThemeConfig(mode)` → the full ThemeConfig (algorithm + token). Pure functions reading the same `colors` object as @stapel/tokens-mui, so they cannot diverge. Not components.",
   "license": "MIT",
   "repository": {
