@@ -35,7 +35,7 @@ function WalletBody(): ReactElement {
               step={isLoading ? "loading" : `${balance ?? "—"} ${currency ?? ""}`}
             />
             {isSaved ? (
-              <span style={{ color: cssVar("color-text-secondary") }}>
+              <span style={{ color: cssVar("text-muted") }}>
                 {t("billing.wallet.saved")}
               </span>
             ) : null}

@@ -36,8 +36,8 @@ function QrDemo(): ReactElement {
             {bag.state.step === "awaitingScan" ? (
               <code
                 style={{
-                  background: cssVar("color-background-secondary"),
-                  color: cssVar("color-text-secondary"),
+                  background: cssVar("surface-sunken"),
+                  color: cssVar("text-muted"),
                   borderRadius: radii.sm,
                   padding: spacing["2"],
                   wordBreak: "break-all",

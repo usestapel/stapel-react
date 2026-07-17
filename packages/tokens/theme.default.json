@@ -1,5 +1,5 @@
 {
-  "_comment": "Default Stapel theme (frontend-guardrails §1). SOURCE OF TRUTH — code (tokens.css/tokens.ts/tailwind.css) is generated from this file via `pnpm gen:tokens` and drift-gated by `pnpm gen:tokens:check`. A host copies this to `stapel.theme.json` and edits it; absence of a host file = this default. THREE LEVELS: (L1) `ramps` = custom raw ramps merged over the built-in standard ramps (ramps.standard.json) — hex is born here and NOWHERE else; (L2) `core` = semantic tokens, each EXACTLY a {light,dark} pair of `<ramp>.<step>` refs (unpaired or hex ⇒ build error); (L3) `component` = component tokens, each EXACTLY one core-token ref (emitted as a var() reference, so light/dark ends at L2 and a theme-dependent component token is syntactically impossible). `scales`/`elevation` are the non-colour tokens on the same source.",
+  "_comment": "Default Stapel theme (§68 — neutral colour-role dictionary; frontend-guardrails §1). SOURCE OF TRUTH — code (tokens.css/tokens.ts/tailwind*.css) is generated from this file via `stapel-tokens` (pnpm gen:tokens) and drift-gated by `pnpm gen:tokens:check`. A host copies this to `stapel.theme.json` and edits it; absence of a host file = this default. TWO LEVELS: (L1) `ramps` = custom raw ramps merged over the built-in standard ramps (ramps.standard.json) — hex is born here and NOWHERE else; (L2) `core` = neutral semantic ROLES (§68 dictionary — surface/text/border/brand/link families + success/warning/error/info types), each EXACTLY a {light,dark} pair of `<ramp>.<step>` refs (unpaired or hex ⇒ build error). There is no component (L3) tier — a role IS the CSS var (`--stapel-<role>`); design-system bridges (tokens-antd, tokens-mui) translate roles straight into their own theme fields. `scales`/`elevation` are the non-colour tokens on the same source.",
   "ramps": {
     "brand": {
       "100": "#eef0fd",
@@ -11,53 +11,47 @@
     }
   },
   "core": {
-    "background-primary": { "light": "gray.25", "dark": "gray.950" },
-    "background-secondary": { "light": "gray.100", "dark": "gray.900" },
-    "background-brand-subtle": { "light": "brand.100", "dark": "brand.900" },
-    "background-positive-subtle": { "light": "green.100", "dark": "green.900" },
-    "background-negative-subtle": { "light": "red.100", "dark": "red.900" },
-    "background-warning-subtle": { "light": "amber.100", "dark": "amber.900" },
-    "background-info-subtle": { "light": "blue.100", "dark": "blue.900" },
+    "surface": { "light": "gray.25", "dark": "gray.950" },
+    "surface-raised": { "light": "gray.25", "dark": "gray.850" },
+    "surface-sunken": { "light": "gray.100", "dark": "gray.900" },
+    "surface-overlay": { "light": "gray.25", "dark": "gray.850" },
 
-    "upperground-primary": { "light": "gray.25", "dark": "gray.850" },
-
-    "text-primary": { "light": "gray.900", "dark": "gray.100" },
-    "text-secondary": { "light": "gray.600", "dark": "gray.400" },
-    "text-brand": { "light": "brand.500", "dark": "brand.300" },
-    "text-positive": { "light": "green.500", "dark": "green.300" },
-    "text-negative": { "light": "red.500", "dark": "red.300" },
-    "text-warning": { "light": "amber.500", "dark": "amber.300" },
-    "text-info": { "light": "blue.500", "dark": "blue.300" },
+    "text": { "light": "gray.900", "dark": "gray.100" },
+    "text-muted": { "light": "gray.600", "dark": "gray.400" },
+    "text-subtle": { "light": "gray.500", "dark": "gray.500" },
     "text-on-accent": { "light": "gray.25", "dark": "gray.25" },
-    "text-invert": { "light": "gray.25", "dark": "gray.900" },
 
-    "icon-primary": { "light": "gray.900", "dark": "gray.100" },
-    "icon-secondary": { "light": "gray.600", "dark": "gray.400" },
-    "icon-brand": { "light": "brand.500", "dark": "brand.300" },
-
-    "border-primary": { "light": "gray.400", "dark": "gray.700" },
-    "border-secondary": { "light": "gray.300", "dark": "gray.800" },
-    "border-brand": { "light": "brand.500", "dark": "brand.300" },
-
-    "accent": { "light": "brand.500", "dark": "brand.300" },
-    "accent-hover": { "light": "brand.700", "dark": "brand.100" },
+    "border": { "light": "gray.400", "dark": "gray.700" },
+    "border-subtle": { "light": "gray.300", "dark": "gray.800" },
     "focus-ring": { "light": "brand.500", "dark": "brand.300" },
-    "overlay": { "light": "scrim.medium", "dark": "scrim.strong" }
-  },
-  "component": {
-    "button-primary-bg": "accent",
-    "button-primary-bg-hover": "accent-hover",
-    "button-primary-text": "text-on-accent",
-    "button-secondary-bg": "background-secondary",
-    "button-secondary-text": "text-primary",
-    "button-secondary-border": "border-primary",
-    "card-bg": "upperground-primary",
-    "card-border": "border-secondary",
-    "input-border": "border-primary",
-    "input-border-focus": "focus-ring",
-    "link-text": "text-brand",
-    "danger-bg": "background-negative-subtle",
-    "danger-text": "text-negative"
+
+    "brand": { "light": "brand.500", "dark": "brand.300" },
+    "brand-hover": { "light": "brand.700", "dark": "brand.100" },
+    "brand-active": { "light": "brand.900", "dark": "brand.100" },
+    "brand-subtle": { "light": "brand.100", "dark": "brand.900" },
+
+    "link": { "light": "brand.500", "dark": "brand.300" },
+    "link-hover": { "light": "brand.700", "dark": "brand.100" },
+
+    "success": { "light": "green.500", "dark": "green.300" },
+    "success-bg": { "light": "green.100", "dark": "green.900" },
+    "success-border": { "light": "green.300", "dark": "green.700" },
+    "success-on": { "light": "gray.25", "dark": "gray.25" },
+
+    "warning": { "light": "amber.500", "dark": "amber.300" },
+    "warning-bg": { "light": "amber.100", "dark": "amber.900" },
+    "warning-border": { "light": "amber.300", "dark": "amber.700" },
+    "warning-on": { "light": "gray.25", "dark": "gray.25" },
+
+    "error": { "light": "red.500", "dark": "red.300" },
+    "error-bg": { "light": "red.100", "dark": "red.900" },
+    "error-border": { "light": "red.300", "dark": "red.700" },
+    "error-on": { "light": "gray.25", "dark": "gray.25" },
+
+    "info": { "light": "blue.500", "dark": "blue.300" },
+    "info-bg": { "light": "blue.100", "dark": "blue.900" },
+    "info-border": { "light": "blue.300", "dark": "blue.700" },
+    "info-on": { "light": "gray.25", "dark": "gray.25" }
   },
   "scales": {
     "fontFamily": {

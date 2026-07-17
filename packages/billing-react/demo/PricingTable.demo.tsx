@@ -52,7 +52,7 @@ function PricingTableBody(): ReactElement {
               }
             />
             {checkoutUrl ? (
-              <span style={{ color: cssVar("color-text-secondary") }}>
+              <span style={{ color: cssVar("text-muted") }}>
                 {checkoutUrl}
               </span>
             ) : null}

@@ -54,7 +54,7 @@ function ComposerBody(): ReactElement {
       <RecordingComposer>
         {({ create, isCreating, recording, upload }) => (
           <>
-            <span style={{ color: cssVar("color-text-secondary") }}>
+            <span style={{ color: cssVar("text-muted") }}>
               {recording
                 ? t("recordings.composer.created")
                 : isCreating
@@ -62,7 +62,7 @@ function ComposerBody(): ReactElement {
                   : t("recordings.composer.create")}
             </span>
             {upload ? (
-              <code style={{ color: cssVar("color-text-brand") }}>
+              <code style={{ color: cssVar("link") }}>
                 {upload.storage_key}
               </code>
             ) : null}

@@ -25,7 +25,7 @@ function ConnectionListBody(): ReactElement {
         {({ ids, count, isLoading }) => (
           <>
             <StepBadge step={isLoading ? "loading" : String(count)} />
-            <span style={{ color: cssVar("color-text-secondary") }}>
+            <span style={{ color: cssVar("text-muted") }}>
               {t("profiles.list.followers")}
             </span>
             <ul>

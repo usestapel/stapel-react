@@ -5,7 +5,7 @@ import {
   contrastRatio,
   checkContrastPairs,
   // @ts-expect-error — .mjs has no type declarations; it's a build/gen tool.
-} from "../scripts/contrast.mjs";
+} from "../src/gen/contrast.mjs";
 
 describe("hexToRgb", () => {
   it("parses 6-digit and 3-digit hex", () => {
@@ -66,36 +66,36 @@ describe("contrastRatio", () => {
 describe("checkContrastPairs", () => {
   it("warns when an intentional pair falls below its WCAG threshold", () => {
     const resolvedCore = {
-      "text-primary": { light: "#d9dde3", dark: "#f4f5f7" }, // fails vs both backgrounds
-      "background-primary": { light: "#ffffff", dark: "#151a23" },
+      text: { light: "#d9dde3", dark: "#f4f5f7" }, // fails vs both surfaces
+      surface: { light: "#ffffff", dark: "#151a23" },
     };
     const warnings = checkContrastPairs(resolvedCore);
     expect(
-      warnings.some((w: string) => w.includes("text-primary на background-primary (light)"))
+      warnings.some((w: string) => w.includes("text на surface (light)"))
     ).toBe(true);
   });
 
   it("does not warn when the pair clears the threshold", () => {
     const resolvedCore = {
-      "text-primary": { light: "#151a23", dark: "#f4f5f7" },
-      "background-primary": { light: "#ffffff", dark: "#0b0e14" },
+      text: { light: "#151a23", dark: "#f4f5f7" },
+      surface: { light: "#ffffff", dark: "#0b0e14" },
     };
     const warnings = checkContrastPairs(resolvedCore);
     expect(warnings).toEqual([]);
   });
 
-  it("skips pairs where a token is absent from the theme (custom/host themes needn't define the whole grid)", () => {
-    const warnings = checkContrastPairs({ "text-primary": { light: "#fff", dark: "#000" } });
+  it("skips pairs where a role is absent from the theme (custom/host themes needn't define the whole dictionary)", () => {
+    const warnings = checkContrastPairs({ text: { light: "#fff", dark: "#000" } });
     expect(warnings).toEqual([]);
   });
 
-  it("skips non-hex resolved values (e.g. scrim rgba) instead of warning", () => {
+  it("skips non-hex resolved values (e.g. a custom host role resolved to rgba) instead of warning", () => {
     const resolvedCore = {
-      overlay: { light: "rgba(15, 18, 24, 0.45)", dark: "rgba(0, 0, 0, 0.6)" },
-      "background-primary": { light: "#ffffff", dark: "#151a23" },
+      "surface-overlay": { light: "rgba(15, 18, 24, 0.45)", dark: "rgba(0, 0, 0, 0.6)" },
+      surface: { light: "#ffffff", dark: "#151a23" },
     };
-    // "overlay" isn't in CONTRAST_PAIRS at all, but this also documents that a
-    // non-hex value would resolve to a null ratio (skipped), not a crash.
+    // "surface-overlay" isn't in CONTRAST_PAIRS at all, but this also documents
+    // that a non-hex value would resolve to a null ratio (skipped), not a crash.
     expect(() => checkContrastPairs(resolvedCore)).not.toThrow();
     expect(checkContrastPairs(resolvedCore)).toEqual([]);
   });

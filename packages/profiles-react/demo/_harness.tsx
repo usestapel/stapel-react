@@ -120,9 +120,9 @@ export function ProfilesDemoHarness(props: {
 // ── shared demo UI (token-driven; no raw colours, no literal prose) ───────────
 
 const cardStyle: CSSProperties = {
-  background: cssVar("card-bg"),
-  color: cssVar("color-text-primary"),
-  border: `1px solid ${cssVar("card-border")}`,
+  background: cssVar("surface-raised"),
+  color: cssVar("text"),
+  border: `1px solid ${cssVar("border-subtle")}`,
   borderRadius: radii.lg,
   padding: spacing["5"],
   display: "flex",
@@ -151,13 +151,13 @@ export function StepBadge(props: { step: string }): ReactElement {
   const t = useT();
   return (
     <div style={{ display: "flex", gap: spacing["2"], alignItems: "center" }}>
-      <span style={{ color: cssVar("color-text-secondary") }}>
+      <span style={{ color: cssVar("text-muted") }}>
         {t("demo.label.step")}
       </span>
       <code
         style={{
-          background: cssVar("color-background-secondary"),
-          color: cssVar("color-text-brand"),
+          background: cssVar("surface-sunken"),
+          color: cssVar("link"),
           borderRadius: radii.sm,
           // Size tokens are unitless numbers; React only auto-appends `px` to
           // single numeric values, so multi-value shorthands spell the unit.
@@ -171,8 +171,8 @@ export function StepBadge(props: { step: string }): ReactElement {
 }
 
 const buttonStyle: CSSProperties = {
-  background: cssVar("button-primary-bg"),
-  color: cssVar("button-primary-text"),
+  background: cssVar("brand"),
+  color: cssVar("text-on-accent"),
   border: "none",
   borderRadius: radii.md,
   // See StepBadge: unitless tokens need an explicit unit in shorthands.

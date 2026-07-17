@@ -36,7 +36,7 @@ function FinalizerBody(): ReactElement {
       <UploadFinalizer recordingId="rec-1">
         {({ finalize, isFinalizing, recording }) => (
           <>
-            <span style={{ color: cssVar("color-text-secondary") }}>
+            <span style={{ color: cssVar("text-muted") }}>
               {recording
                 ? t("recordings.finalize.done")
                 : isFinalizing

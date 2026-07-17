@@ -51,13 +51,13 @@ function RecordingRow(props: { recording: Recording }): ReactElement {
       style={{
         listStyle: "none",
         padding: `${spacing["2"]}px 0`,
-        borderTop: `1px solid ${cssVar("card-border")}`,
+        borderTop: `1px solid ${cssVar("border-subtle")}`,
       }}
     >
       <strong style={{ fontSize: fontSize.md.fontSize }}>
         {props.recording.title}
       </strong>
-      <div style={{ color: cssVar("color-text-secondary") }}>
+      <div style={{ color: cssVar("text-muted") }}>
         {props.recording.status}
       </div>
     </li>
@@ -73,14 +73,14 @@ function RecordingListBody(): ReactElement {
         {({ recordings, isLoading }) => {
           if (isLoading) {
             return (
-              <span style={{ color: cssVar("color-text-secondary") }}>
+              <span style={{ color: cssVar("text-muted") }}>
                 {t("recordings.list.loading")}
               </span>
             );
           }
           if (recordings.length === 0) {
             return (
-              <span style={{ color: cssVar("color-text-secondary") }}>
+              <span style={{ color: cssVar("text-muted") }}>
                 {t("recordings.list.empty")}
               </span>
             );

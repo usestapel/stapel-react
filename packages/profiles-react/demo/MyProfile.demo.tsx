@@ -60,7 +60,7 @@ function MyProfileBody(): ReactElement {
               }
             />
             {isSaved ? (
-              <span style={{ color: cssVar("color-text-secondary") }}>
+              <span style={{ color: cssVar("text-muted") }}>
                 {t("profiles.profile.saved")}
               </span>
             ) : null}

@@ -35,7 +35,7 @@ function RsvpBody(): ReactElement {
       <EventRsvp eventId={EVENT_ID}>
         {({ respond, isResponding, event }) => (
           <>
-            <span style={{ color: cssVar("color-text-secondary") }}>
+            <span style={{ color: cssVar("text-muted") }}>
               {isResponding
                 ? t("calendar.rsvp.responding")
                 : (event?.participants?.[0]?.rsvp ?? "")}

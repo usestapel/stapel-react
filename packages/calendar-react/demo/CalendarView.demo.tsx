@@ -46,13 +46,13 @@ function EventRow(props: { event: CalendarEvent }): ReactElement {
       style={{
         listStyle: "none",
         padding: `${spacing["2"]}px 0`,
-        borderTop: `1px solid ${cssVar("card-border")}`,
+        borderTop: `1px solid ${cssVar("border-subtle")}`,
       }}
     >
       <strong style={{ fontSize: fontSize.md.fontSize }}>
         {props.event.title}
       </strong>
-      <div style={{ color: cssVar("color-text-secondary") }}>
+      <div style={{ color: cssVar("text-muted") }}>
         {props.event.start}
       </div>
     </li>
@@ -68,14 +68,14 @@ function CalendarViewBody(): ReactElement {
         {({ events, isLoading }) => {
           if (isLoading) {
             return (
-              <span style={{ color: cssVar("color-text-secondary") }}>
+              <span style={{ color: cssVar("text-muted") }}>
                 {t("calendar.view.loading")}
               </span>
             );
           }
           if (events.length === 0) {
             return (
-              <span style={{ color: cssVar("color-text-secondary") }}>
+              <span style={{ color: cssVar("text-muted") }}>
                 {t("calendar.view.empty")}
               </span>
             );

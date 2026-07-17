@@ -1,17 +1,17 @@
 /**
- * @stapel/tokens — three-tier design tokens (frontend-guardrails §1).
- * The source of truth is `theme.default.json`; everything under
- * `src/generated/` is emitted by `pnpm gen:tokens` and drift-gated. This
- * barrel re-exports the generated surface plus the hand-written breakpoint
- * helpers. Raw ramps (L1) are intentionally NOT here — reach them via the
- * `@stapel/tokens/raw` subpath (theme-config + showcase only).
+ * @stapel/tokens — neutral colour-role design tokens (§68; frontend-guardrails
+ * §1). The source of truth is `theme.default.json`; everything under
+ * `src/generated/` is emitted by the package's own `stapel-tokens` bin
+ * (`pnpm gen:tokens`) and drift-gated. This barrel re-exports the generated
+ * surface plus the hand-written breakpoint helpers. Raw ramps (L1) are
+ * intentionally NOT here — reach them via the `@stapel/tokens/raw` subpath
+ * (theme-config + showcase only).
  */
 
-// ── L2 core / L3 component tokens + typed cssVar ─────────────────────────────
-export { cssVar, colors, componentTokens } from "./generated/tokens.js";
+// ── neutral colour roles (§68) + typed cssVar ────────────────────────────────
+export { cssVar, colors } from "./generated/tokens.js";
 export type {
   CoreTokenName,
-  ComponentTokenName,
   TokenName,
   StapelVar,
   ColorToken,
@@ -42,9 +42,4 @@ export {
 export type { Breakpoint } from "./breakpoints.js";
 
 // ── design-system theme bridge roles (hand-written; frontend-guidelines §2.4)─
-export {
-  bridgeColorRoles,
-  bridgeRadiusRole,
-  bridgeFontSizeRole,
-} from "./bridge.js";
-export type { BridgeColorRole } from "./bridge.js";
+export { bridgeRadiusRole, bridgeFontSizeRole } from "./bridge.js";

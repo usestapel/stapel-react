@@ -1,20 +1,21 @@
 /**
  * Token palette — the auto-demo of `@stapel/tokens` (frontend-guardrails §4,
- * task 6). It ENUMERATES the generated token surface (no hardcoded lists), so it
- * always reflects the current catalog: the L1 raw ramps (the one legal home of
- * hex — reached via `@stapel/tokens/raw`, showcase-whitelisted §2.2), the L2
- * core tokens (live `var()` refs that re-theme with data-theme), the L3
- * component tokens, and the non-colour scales. Swatch labels are token NAMES
+ * task 6; §68 neutral role dictionary). It ENUMERATES the generated token
+ * surface (no hardcoded lists), so it always reflects the current catalog:
+ * the L1 raw ramps (the one legal home of hex — reached via
+ * `@stapel/tokens/raw`, showcase-whitelisted §2.2), the neutral colour roles
+ * (live `var()` refs that re-theme with data-theme — no component tier;
+ * §68 dropped it), and the non-colour scales. Swatch labels are token NAMES
  * (dynamic, never prose literals — no-hardcoded-text stays satisfied).
  */
 import type { CSSProperties, ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
-import { colors, componentTokens, cssVar, radii, spacing, fontSize } from "../src/index.js";
+import { colors, cssVar, radii, spacing, fontSize } from "../src/index.js";
 import { ramps } from "../src/generated/raw.js";
 
 const frame: CSSProperties = {
-  background: cssVar("color-background-primary"),
-  color: cssVar("color-text-primary"),
+  background: cssVar("surface"),
+  color: cssVar("text"),
   padding: spacing["5"],
   display: "flex",
   flexDirection: "column",
@@ -32,7 +33,7 @@ function Swatch(props: { name: string; background: string }): ReactElement {
   return (
     <div
       style={{
-        border: `1px solid ${cssVar("card-border")}`,
+        border: `1px solid ${cssVar("border-subtle")}`,
         borderRadius: radii.md,
         overflow: "hidden",
       }}
@@ -42,7 +43,7 @@ function Swatch(props: { name: string; background: string }): ReactElement {
         style={{
           display: "block",
           padding: spacing["2"],
-          color: cssVar("color-text-secondary"),
+          color: cssVar("text-muted"),
           wordBreak: "break-all",
         }}
       >
@@ -75,16 +76,9 @@ function Palette(): ReactElement {
 
   return (
     <div style={frame} data-theme-surface>
-      <Section name={`L2 core · ${Object.keys(colors).length} tokens`}>
+      <Section name={`roles · ${Object.keys(colors).length} tokens`}>
         <div style={grid}>
           {Object.keys(colors).map((name) => (
-            <Swatch key={name} name={name} background={`var(--stapel-color-${name})`} />
-          ))}
-        </div>
-      </Section>
-      <Section name={`L3 component · ${Object.keys(componentTokens).length} tokens`}>
-        <div style={grid}>
-          {Object.keys(componentTokens).map((name) => (
             <Swatch key={name} name={name} background={`var(--stapel-${name})`} />
           ))}
         </div>
@@ -93,13 +87,13 @@ function Palette(): ReactElement {
       <Section name="scales">
         <div style={grid}>
           {Object.keys(spacing).map((s) => (
-            <Swatch key={`sp-${s}`} name={`spacing.${s}`} background={cssVar("color-background-secondary")} />
+            <Swatch key={`sp-${s}`} name={`spacing.${s}`} background={cssVar("surface-sunken")} />
           ))}
           {Object.keys(radii).map((r) => (
-            <Swatch key={`ra-${r}`} name={`radii.${r}`} background={cssVar("color-background-secondary")} />
+            <Swatch key={`ra-${r}`} name={`radii.${r}`} background={cssVar("surface-sunken")} />
           ))}
           {Object.keys(fontSize).map((f) => (
-            <Swatch key={`fs-${f}`} name={`fontSize.${f}`} background={cssVar("color-background-secondary")} />
+            <Swatch key={`fs-${f}`} name={`fontSize.${f}`} background={cssVar("surface-sunken")} />
           ))}
         </div>
       </Section>
@@ -111,9 +105,9 @@ export default defineDemo({
   id: "tokens.palette",
   title: "Token palette",
   description:
-    "Every design token by name — L1 raw ramps (hex), L2 core (live var refs, re-theme on data-theme), L3 component, and the spacing/radii/fontSize scales. Enumerated from the generated surface, so it never drifts.",
+    "Every design token by name — L1 raw ramps (hex), the §68 neutral colour roles (live var refs, re-theme on data-theme), and the spacing/radii/fontSize scales. Enumerated from the generated surface, so it never drifts.",
   component: Palette,
-  tokens: ["background-primary", "text-primary", "card-border"],
+  tokens: ["surface", "text", "border-subtle"],
   variants: {
     default: { render: () => <Palette /> },
   },

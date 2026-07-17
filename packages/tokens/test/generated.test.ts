@@ -4,7 +4,6 @@ import { dirname, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   colors,
-  componentTokens,
   cssVar,
   breakpoints,
   breakpointForWidth,
@@ -17,7 +16,7 @@ import {
 const here = dirname(fileURLToPath(import.meta.url));
 const read = (p: string) => readFileSync(resolve(here, "..", p), "utf8");
 
-describe("generated tokens.css (committed artifact)", () => {
+describe("generated tokens.css (committed artifact — the stable core, §68)", () => {
   const css = read("src/generated/tokens.css");
 
   it("has :root and [data-theme=\"dark\"] blocks", () => {
@@ -25,25 +24,27 @@ describe("generated tokens.css (committed artifact)", () => {
     expect(css).toContain('[data-theme="dark"] {');
   });
 
-  it("emits every core token in both themes as --stapel-color-*", () => {
+  it("emits every role in both themes as --stapel-<role>", () => {
     const [root = "", dark = ""] = css.split('[data-theme="dark"]');
     for (const [name, pair] of Object.entries(colors)) {
-      expect(root, name).toContain(`--stapel-color-${name}: ${pair.light};`);
-      expect(dark, name).toContain(`--stapel-color-${name}: ${pair.dark};`);
+      expect(root, name).toContain(`--stapel-${name}: ${pair.light};`);
+      expect(dark, name).toContain(`--stapel-${name}: ${pair.dark};`);
     }
   });
 
-  it("emits every component token as a theme-invariant var() ref in :root only", () => {
-    const [root = "", dark = ""] = css.split('[data-theme="dark"]');
-    for (const [name, ref] of Object.entries(componentTokens)) {
-      expect(root, name).toContain(`--stapel-${name}: var(--stapel-color-${ref});`);
-      expect(dark, name).not.toContain(`--stapel-${name}:`);
-    }
-  });
-
-  it("never exposes raw ramps as a CSS API (hex lives only inside L2 values)", () => {
+  it("never exposes raw ramps as a CSS API (hex lives only inside role values)", () => {
     expect(css).not.toContain("--stapel-raw-");
-    expect(css).not.toMatch(/--stapel-color-(gray|brand|blue|red|green|amber)-\d/);
+    expect(css).not.toMatch(/--stapel-(gray|brand|blue|red|green|amber)-\d/);
+  });
+
+  it("never emits an -rgb triplet (that's the tailwind@3 adapter's job, not the core)", () => {
+    expect(css).not.toMatch(/-rgb/);
+  });
+
+  it("never emits an old ad-hoc §68-superseded name", () => {
+    for (const stale of ["--stapel-color-accent", "--stapel-upperground", "background-primary"]) {
+      expect(css).not.toContain(stale);
+    }
   });
 
   it("is deterministic / has no unresolved artifacts", () => {
@@ -60,6 +61,38 @@ describe("generated tokens.css (committed artifact)", () => {
   });
 });
 
+describe("generated tailwind.css (tailwind@4 — default adapter)", () => {
+  const css = read("src/generated/tailwind.css");
+
+  it("is an @theme block with no RGB triplets (§68 Ф1 gate)", () => {
+    expect(css).toContain("@theme {");
+    expect(css).not.toMatch(/-rgb/);
+  });
+
+  it("maps every role to a --color-<role> var referencing the stable core", () => {
+    for (const name of Object.keys(colors)) {
+      expect(css, name).toContain(`--color-${name}: var(--stapel-${name});`);
+    }
+  });
+});
+
+describe("generated tailwind-v3.css / tailwind-v3.config.cjs (legacy adapter, owned in-bin)", () => {
+  const css = read("src/generated/tailwind-v3.css");
+  const config = read("src/generated/tailwind-v3.config.cjs");
+
+  it("carries RGB triplets — legitimate here, this is the v3 adapter", () => {
+    expect(css).toMatch(/-rgb/);
+    for (const name of Object.keys(colors)) {
+      expect(css, name).toContain(`--stapel-${name}-rgb:`);
+    }
+  });
+
+  it("the config snippet references the triplets via rgb(var(..)/<alpha>)", () => {
+    expect(config).toContain("module.exports");
+    expect(config).toContain("rgb(var(--stapel-brand-rgb) / <alpha-value>)");
+  });
+});
+
 describe("raw ramps are NOT in the main entry (subpath-only)", () => {
   it("dist barrel does not re-export ramps", async () => {
     const mod = await import("../src/index.js");
@@ -69,21 +102,14 @@ describe("raw ramps are NOT in the main entry (subpath-only)", () => {
 
 describe("typed public surface", () => {
   it("cssVar renders a var() reference", () => {
-    expect(cssVar("color-accent")).toBe("var(--stapel-color-accent)");
-    expect(cssVar("button-primary-bg")).toBe("var(--stapel-button-primary-bg)");
+    expect(cssVar("brand")).toBe("var(--stapel-brand)");
+    expect(cssVar("surface-raised")).toBe("var(--stapel-surface-raised)");
   });
 
   it("colors are {light,dark} pairs of resolved values", () => {
     for (const [name, pair] of Object.entries(colors)) {
       expect(pair.light, `${name}.light`).toBeTypeOf("string");
       expect(pair.dark, `${name}.dark`).toBeTypeOf("string");
-    }
-  });
-
-  it("component tokens each reference exactly one core token", () => {
-    for (const [name, ref] of Object.entries(componentTokens)) {
-      expect(name in colors, `${name} should not collide with core`).toBe(false);
-      expect(ref in colors, `${name} → ${ref}`).toBe(true);
     }
   });
 

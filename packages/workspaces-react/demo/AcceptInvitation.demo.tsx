@@ -33,7 +33,7 @@ function AcceptBody(): ReactElement {
           <>
             <StepBadge step={isAccepted ? "accepted" : "pending"} />
             {isAccepted ? (
-              <span style={{ color: cssVar("color-text-secondary") }}>
+              <span style={{ color: cssVar("text-muted") }}>
                 {t("workspaces.accept.accepted")}
               </span>
             ) : null}

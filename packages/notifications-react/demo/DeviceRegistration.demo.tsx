@@ -33,7 +33,7 @@ function DeviceBody(): ReactElement {
               }
             />
             {registered ? (
-              <span style={{ color: cssVar("color-text-secondary") }}>
+              <span style={{ color: cssVar("text-muted") }}>
                 {t("notifications.device.registered")}
               </span>
             ) : null}

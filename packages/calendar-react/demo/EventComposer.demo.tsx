@@ -41,7 +41,7 @@ function ComposerBody(): ReactElement {
       <EventComposer>
         {({ create, isCreating, created }) => (
           <>
-            <span style={{ color: cssVar("color-text-secondary") }}>
+            <span style={{ color: cssVar("text-muted") }}>
               {created
                 ? t("calendar.composer.created")
                 : isCreating

@@ -38,22 +38,22 @@ describe("Tailwind bridge — static utilities are JIT-visible", () => {
     const css = readFileSync(outFile, "utf8");
 
     // 1) Static utilities from markup.html are present…
-    expect(css).toContain(".bg-background-primary");
-    expect(css).toContain(".text-text-primary");
-    expect(css).toContain(".border-border-primary");
-    expect(css).toContain(".bg-button-primary-bg");
-    expect(css).toContain(".text-link-text");
-    expect(css).toContain(".bg-accent");
+    expect(css).toContain(".bg-surface");
+    expect(css).toContain(".text-text");
+    expect(css).toContain(".border-border");
+    expect(css).toContain(".bg-brand");
+    expect(css).toContain(".text-link");
+    expect(css).toContain(".bg-brand-subtle");
     // …and the static class from the .tsx source is picked up too.
-    expect(css).toContain(".bg-upperground-primary");
+    expect(css).toContain(".bg-surface-raised");
 
     // 2) …and they chain through our CSS custom properties (the bridge).
-    expect(css).toContain("var(--stapel-color-background-primary)");
-    expect(css).toContain("var(--stapel-button-primary-bg)");
+    expect(css).toContain("var(--stapel-surface)");
+    expect(css).toContain("var(--stapel-brand)");
 
     // 3) The interpolated anti-pattern is INVISIBLE: no utility resolves the
-    //    `bg-[${accent}]` source text to the accent var.
-    expect(css).not.toContain("${accent}");
+    //    `bg-[${brand}]` source text to the brand var.
+    expect(css).not.toContain("${brand}");
     expect(css).not.toMatch(/\.bg-\\?\[\\?\$/);
   }, 60_000); // spawns the tailwindcss CLI — slow under parallel full-CI load
 });

@@ -37,11 +37,11 @@ function SubscriptionBody(): ReactElement {
             <StepBadge
               step={isLoading ? "loading" : `${plan ?? "—"} · ${status ?? "—"}`}
             />
-            <span style={{ color: cssVar("color-text-secondary") }}>
+            <span style={{ color: cssVar("text-muted") }}>
               {t(isActive ? "billing.subscription.active" : "billing.subscription.inactive")}
             </span>
             {portalUrl ? (
-              <span style={{ color: cssVar("color-text-secondary") }}>
+              <span style={{ color: cssVar("text-muted") }}>
                 {portalUrl}
               </span>
             ) : null}

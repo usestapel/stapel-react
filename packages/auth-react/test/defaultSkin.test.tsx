@@ -13,7 +13,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConfigProvider, theme as antdTheme } from "antd";
 import type { ReactElement, ReactNode } from "react";
 import { I18nProvider, createI18n } from "@stapel/core";
-import { colors, bridgeColorRoles } from "@stapel/tokens";
+import { colors } from "@stapel/tokens";
 import { toAntdThemeConfig } from "@stapel/tokens-antd";
 import { createAuthRuntime } from "../src/model/runtime.js";
 import type { AuthRuntime } from "../src/model/runtime.js";
@@ -670,7 +670,7 @@ describe("toAntdThemeConfig drives antd's runtime token (AuthPanel's theme sourc
       </ConfigProvider>
     );
     expect(screen.getByTestId("bg").textContent).toBe(
-      colors[bridgeColorRoles.bgContainer].light
+      colors["surface-raised"].light
     );
   });
 
@@ -681,7 +681,7 @@ describe("toAntdThemeConfig drives antd's runtime token (AuthPanel's theme sourc
       </ConfigProvider>
     );
     expect(screen.getByTestId("bg").textContent).toBe(
-      colors[bridgeColorRoles.bgContainer].dark
+      colors["surface-raised"].dark
     );
   });
 });

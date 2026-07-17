@@ -45,13 +45,13 @@ function FeedRow(props: { item: FeedItem }): ReactElement {
       style={{
         listStyle: "none",
         padding: `${spacing["2"]}px 0`,
-        borderTop: `1px solid ${cssVar("card-border")}`,
+        borderTop: `1px solid ${cssVar("border-subtle")}`,
       }}
     >
       <strong style={{ fontSize: fontSize.md.fontSize }}>
         {props.item.title}
       </strong>
-      <div style={{ color: cssVar("color-text-secondary") }}>
+      <div style={{ color: cssVar("text-muted") }}>
         {props.item.body}
       </div>
     </li>
@@ -67,14 +67,14 @@ function FeedBody(): ReactElement {
         {({ items, isLoading, hasNextPage, fetchNextPage }) => {
           if (isLoading) {
             return (
-              <span style={{ color: cssVar("color-text-secondary") }}>
+              <span style={{ color: cssVar("text-muted") }}>
                 {t("notifications.feed.loading")}
               </span>
             );
           }
           if (items.length === 0) {
             return (
-              <span style={{ color: cssVar("color-text-secondary") }}>
+              <span style={{ color: cssVar("text-muted") }}>
                 {t("notifications.feed.empty")}
               </span>
             );
@@ -93,7 +93,7 @@ function FeedBody(): ReactElement {
                     labelKey="notifications.feed.load_more"
                   />
                 ) : (
-                  <span style={{ color: cssVar("color-text-secondary") }}>
+                  <span style={{ color: cssVar("text-muted") }}>
                     {t("notifications.feed.end")}
                   </span>
                 )}

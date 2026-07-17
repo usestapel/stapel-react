@@ -1,7 +1,7 @@
 {
   "name": "@stapel/tokens",
-  "version": "0.4.0",
-  "description": "Stapel design tokens: three-tier colour system (raw ramps → semantic core light/dark pairs → component tokens) generated from theme.json, plus typography, spacing, radii, elevation, and the three breakpoints. CSS custom properties + typed names + a vanilla-Tailwind bridge. Not components.",
+  "version": "0.5.0",
+  "description": "Stapel design tokens (§68 neutral colour-role dictionary): a single JSON source of truth compiled to a version-independent CSS custom-property core plus addressable adapters (Tailwind v4 default, v3 legacy), typed names, typography, spacing, radii, elevation, and the three breakpoints. Ships its OWN generator as the `stapel-tokens` bin — no host vendors/forks it. Not components.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -12,6 +12,9 @@
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "stapel-tokens": "./bin/stapel-tokens.mjs"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -23,6 +26,8 @@
     },
     "./tokens.css": "./src/generated/tokens.css",
     "./tailwind.css": "./src/generated/tailwind.css",
+    "./tailwind-v3.css": "./src/generated/tailwind-v3.css",
+    "./tailwind-v3.config.cjs": "./src/generated/tailwind-v3.config.cjs",
     "./theme.default.json": "./theme.default.json",
     "./manifest.json": "./manifest.json",
     "./llms.txt": "./llms.txt",
@@ -31,6 +36,7 @@
   "files": [
     "dist",
     "src",
+    "bin",
     "theme.default.json",
     "ramps.standard.json",
     "manifest.json",
