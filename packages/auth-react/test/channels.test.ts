@@ -1,9 +1,10 @@
 /**
  * Pure unit coverage for the default skin's zone math (owner directive
  * tuning §54's pilot, points 1/3/4; stapel-auth 0.6.0's `AuthCapabilities.
- * methods`): `computeZones`'s two paths (methods-driven vs the pre-0.6.0
- * fixed-table fallback) and `resolveInteraction`'s modal/redirect split. No
- * React, no antd — see `../src/default/channels.ts`.
+ * methods`): `computeZones`'s methods-driven placement, its hard error when
+ * `methods[]` is missing/empty on a non-empty channel list (alpha-canon: no
+ * supported older backend), and `resolveInteraction`'s modal/redirect split.
+ * No React, no antd — see `../src/default/channels.ts`.
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -60,41 +61,18 @@ describe("enabledChannels", () => {
   });
 });
 
-describe("computeZones — no methods[] (pre-0.6.0 fallback, fixed default table)", () => {
-  it("email/phone default to main; passkey/qr do NOT (owner directive defaults)", () => {
-    const zones = computeZones(["email", "phone", "passkey", "qr", "password"]);
-    expect(zones.main).toEqual(["email", "phone"]);
+describe("computeZones — missing methods[] is a hard config error (alpha-canon: no old backends)", () => {
+  it("throws when methods[] is entirely absent and there are enabled channels", () => {
+    expect(() => computeZones(["email", "phone"])).toThrow(/stapel-auth 0.6.0/);
   });
 
-  it("NEVER puts sso or oauth in main, even when they'd be first by priority", () => {
-    const zones = computeZones(["oauth", "sso", "email"]);
-    expect(zones.main).not.toContain("oauth");
-    expect(zones.main).not.toContain("sso");
-    expect(zones.main).toEqual(["email"]);
+  it("throws when methods[] is an empty array and there are enabled channels", () => {
+    expect(() => computeZones(["email"], [])).toThrow(/stapel-auth 0.6.0/);
   });
 
-  it("routes oauth/qr/passkey/sso to the bottom icon row", () => {
-    const zones = computeZones(["email", "phone", "passkey", "qr", "oauth", "sso"]);
-    expect(zones.main).toEqual(["email", "phone"]);
-    expect(zones.bottom.sort()).toEqual(["oauth", "passkey", "qr", "sso"].sort());
-    expect(zones.overflow).toEqual([]);
-  });
-
-  it("routes password/magic_link to overflow", () => {
-    const zones = computeZones(["email", "phone", "password", "magic_link"]);
-    expect(zones.overflow.sort()).toEqual(["magic_link", "password"].sort());
-  });
-
-  it("a single enabled channel is main with no bottom/overflow", () => {
-    const zones = computeZones(["email"]);
-    expect(zones).toEqual({ main: ["email"], bottom: [], overflow: [] });
-  });
-
-  it("matches DEFAULT_CHANNEL_PRIORITY's full list shape (regression anchor)", () => {
-    const zones = computeZones(DEFAULT_CHANNEL_PRIORITY);
-    expect(zones.main).toEqual(["email", "phone"]);
-    expect(zones.bottom.sort()).toEqual(["oauth", "passkey", "qr", "sso"].sort());
-    expect(zones.overflow.sort()).toEqual(["magic_link", "password"].sort());
+  it("does NOT throw when the channel list itself is empty (e.g. capabilities still loading)", () => {
+    expect(computeZones([])).toEqual({ main: [], bottom: [], overflow: [] });
+    expect(computeZones([], [])).toEqual({ main: [], bottom: [], overflow: [] });
   });
 });
 
@@ -120,9 +98,18 @@ describe("computeZones — methods-driven (stapel-auth ≥0.6.0)", () => {
     expect(zones.bottom).toContain("sso");
   });
 
-  it("falls back to the default placement for a channel missing from a partial methods[] list", () => {
+  it("does NOT clamp qr (or any channel other than oauth/sso) — an explicit main placement is honoured", () => {
+    const zones = computeZones(
+      ["email", "qr"],
+      [method("email", "main", 0), method("qr", "main", 1)]
+    );
+    expect(zones.main).toEqual(["email", "qr"]);
+    expect(zones.bottom).toEqual([]);
+  });
+
+  it("falls back to DEFAULT_PLACEMENT for a channel missing from a partial methods[] list", () => {
     const zones = computeZones(["email", "qr"], [method("email", "main", 0)]);
-    // qr absent from methods[] — defaults to bottom, same as the no-methods path.
+    // qr absent from methods[] — defaults to bottom (DEFAULT_PLACEMENT's fallback).
     expect(zones.bottom).toEqual(["qr"]);
   });
 
@@ -138,6 +125,24 @@ describe("computeZones — methods-driven (stapel-auth ≥0.6.0)", () => {
     );
     expect(zones.main).toHaveLength(3);
     expect(zones.overflow).toContain("magic_link");
+  });
+
+  it("matches DEFAULT_CHANNEL_PRIORITY's full list shape when methods[] mirrors DEFAULT_PLACEMENT (regression anchor)", () => {
+    const methods = DEFAULT_CHANNEL_PRIORITY.map((id, i) =>
+      method(
+        id,
+        id === "email" || id === "phone"
+          ? "main"
+          : id === "password" || id === "magic_link"
+            ? "overflow"
+            : "bottom",
+        i
+      )
+    );
+    const zones = computeZones(DEFAULT_CHANNEL_PRIORITY, methods);
+    expect(zones.main).toEqual(["email", "phone"]);
+    expect(zones.bottom.sort()).toEqual(["oauth", "passkey", "qr", "sso"].sort());
+    expect(zones.overflow.sort()).toEqual(["magic_link", "password"].sort());
   });
 });
 

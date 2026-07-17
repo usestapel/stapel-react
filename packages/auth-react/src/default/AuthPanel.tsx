@@ -31,10 +31,11 @@
  *
  * stapel-auth ≥0.6.0 drives all of this from the backend via
  * `capabilities.methods` (per-method `placement`/`order`/`interaction`/
- * `icon_svg` — see `api/types.ts`'s `AuthMethodInfo`). Older backends simply
- * omit `methods`, and `computeZones` falls back to a fixed default placement
- * table (email/phone → main, password/magic_link → overflow, the rest →
- * bottom) — no code change required on either side.
+ * `icon_svg` — see `api/types.ts`'s `AuthMethodInfo`). Alpha-canon (owner
+ * directive): there is no supported older backend — every real deployment is
+ * kept upgraded to the latest stapel-auth — so a missing/empty `methods[]`
+ * is a configuration error `computeZones` throws on loudly, rather than a
+ * signal to silently reproduce a fixed placement table.
  */
 import { useMemo, useState } from "react";
 import type { ReactElement, ReactNode } from "react";

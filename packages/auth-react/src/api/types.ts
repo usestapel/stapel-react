@@ -144,12 +144,12 @@ export type OtpMeta = Schemas["OtpMeta"];
 
 /**
  * `methods`/`otp` are REQUIRED on this (0.6.0+) generated shape — this
- * backend version always sends them. Callers still read them defensively
- * (`caps.methods ?? []`, optional chaining is legal on a non-optional field)
- * for the real-world case of THIS frontend pointed at an OLDER, pre-0.6.0
- * backend that structurally cannot send them despite the type here — see
- * `computeZones`'s back-compat fallback in `../default/channels.ts`. `methods`
- * is re-typed to correction (4)'s `AuthMethodInfo`, not the generated one.
+ * backend version always sends them. Alpha-canon (owner directive): there is
+ * no supported older backend — every real deployment is kept upgraded to the
+ * latest stapel-auth — so `computeZones` (`../default/channels.ts`) treats a
+ * missing/empty `methods[]` as a configuration error rather than a signal to
+ * fall back to a fixed placement table. `methods` is re-typed to correction
+ * (4)'s `AuthMethodInfo`, not the generated one.
  */
 export type Capabilities = Omit<Schemas["AuthCapabilities"], "methods"> & {
   readonly methods: readonly AuthMethodInfo[];

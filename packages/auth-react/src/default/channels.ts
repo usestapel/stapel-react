@@ -22,8 +22,8 @@ export type ChannelId =
  * Ratified default priority (domain-guidelines-auth ПРАВИЛО 2 + architect
  * decision 1): email-code first (most universal), password last (its axis is
  * off by default). A host overrides via `AuthPanel`'s `channelPriority` prop.
- * Also the WITHIN-ZONE ordering when the backend doesn't send `methods[]`
- * (pre-0.6.0) — `AuthMethodInfo.order` takes over once it does.
+ * Also the fallback WITHIN-ZONE ordering for a channel `AuthMethodInfo.order`
+ * is silent on (see `computeZones`).
  */
 export const DEFAULT_CHANNEL_PRIORITY: readonly ChannelId[] = [
   "email",
@@ -91,10 +91,10 @@ const NEVER_MAIN: ReadonlySet<ChannelId> = new Set(["oauth", "sso"]);
  * Default per-channel placement (stapel-auth's own backend defaults, per the
  * owner directive): email/phone are the only methods that default to a
  * `main` tab; social/QR/passkey/SSO default to the `bottom` icon row;
- * password/magic_link default to `overflow`. Used both as the ENTIRE
- * placement source when the backend sends no `methods[]` at all (pre-0.6.0),
- * and as the per-channel fallback for a method a partial `methods[]` is
- * silent on.
+ * password/magic_link default to `overflow`. Used as the per-channel
+ * fallback for a method a partial `methods[]` is silent on — NOT as a
+ * substitute for `methods[]` itself (there is no supported backend that
+ * omits it; see `computeZones`).
  */
 const DEFAULT_PLACEMENT: Record<ChannelId, ChannelPlacement> = {
   email: "main",
@@ -113,26 +113,6 @@ const DEFAULT_PLACEMENT: Record<ChannelId, ChannelPlacement> = {
  * through unchanged. */
 function clampNeverMain(id: ChannelId, placement: ChannelPlacement): ChannelPlacement {
   return placement === "main" && NEVER_MAIN.has(id) ? DEFAULT_PLACEMENT[id] : placement;
-}
-
-/**
- * Cut the priority-sorted list into zones when the backend sends NO
- * `methods[]` at all (pre-0.6.0 `Capabilities`): each channel gets its
- * `DEFAULT_PLACEMENT`, ordered within a zone by priority. Mechanical, not a
- * taste call — mirrors `computeZones`'s plan-driven path so the two only
- * differ in WHERE placement comes from.
- */
-function legacyZones(channels: readonly ChannelId[]): AuthZones {
-  const main: ChannelId[] = [];
-  const bottom: ChannelId[] = [];
-  const overflow: ChannelId[] = [];
-  for (const id of channels) {
-    const placement = clampNeverMain(id, DEFAULT_PLACEMENT[id]);
-    const bucket = placement === "main" ? main : placement === "bottom" ? bottom : overflow;
-    bucket.push(id);
-  }
-  if (main.length > 3) overflow.unshift(...main.splice(3));
-  return { main, bottom, overflow };
 }
 
 /** Resolve one channel's placement: explicit `methods[]` entry (clamped for
@@ -162,17 +142,30 @@ export function resolveInteraction(
 /**
  * Cut the enabled, priority-sorted channel list into zones (owner directive
  * §37/§54-tuning, points 1/3/4; stapel-auth 0.6.0's `AuthCapabilities.methods`):
- * when `methods` is present, each channel's placement/order come from its
- * `AuthMethodInfo` entry (`id` match); a channel `methods` is silent on falls
- * back to `DEFAULT_PLACEMENT`. When `methods` is entirely absent (older
- * backend), the whole list runs through `legacyZones`. Either way, `main` is
- * capped at 3 (ПРАВИЛО 4) as a skin-level guarantee — never a backend promise.
+ * each channel's placement/order come from its `AuthMethodInfo` entry (`id`
+ * match); a channel `methods` is silent on falls back to `DEFAULT_PLACEMENT`.
+ * `main` is capped at 3 (ПРАВИЛО 4) as a skin-level guarantee — never a
+ * backend promise.
+ *
+ * Alpha-canon (owner directive): there is no supported "old backend" — every
+ * real deployment (миттудей, айронмемо) is kept upgraded to the latest
+ * stapel-auth. A missing/empty `methods[]` on a NON-EMPTY channel list is
+ * therefore a configuration error, not a signal to fall back to a fixed
+ * placement table — it throws loudly instead of silently reproducing a
+ * layout the backend never actually asked for. (An empty `channels` list —
+ * e.g. capabilities still loading — is not an error: there is nothing to
+ * place yet.)
  */
 export function computeZones(
   channels: readonly ChannelId[],
   methods?: readonly AuthMethodInfo[]
 ): AuthZones {
-  if (!methods || methods.length === 0) return legacyZones(channels);
+  if (channels.length === 0) return { main: [], bottom: [], overflow: [] };
+  if (!methods || methods.length === 0) {
+    throw new Error(
+      "@stapel/auth-react: capabilities().methods is missing — backend older than stapel-auth 0.6.0 is not supported. Upgrade the backend to stapel-auth ≥0.6.0."
+    );
+  }
 
   const byId = new Map(methods.map((m) => [m.id, m] as const));
   const orderOf = new Map<ChannelId, number>();

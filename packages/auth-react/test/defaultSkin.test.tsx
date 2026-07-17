@@ -30,6 +30,16 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
+/** A minimal, complete `AuthMethodInfo` for a fixture's `methods[]` entry. */
+function method(
+  id: string,
+  placement: "main" | "bottom" | "overflow",
+  order: number,
+  interaction: "inline" | "modal" | "redirect" = placement === "main" ? "inline" : id === "oauth" ? "redirect" : "modal"
+) {
+  return { id, enabled: true, placement, order, interaction, icon_svg: "" };
+}
+
 const CAPABILITIES = {
   registration: {
     phone: false,
@@ -40,8 +50,8 @@ const CAPABILITIES = {
     anonymous: false,
   },
   login: {
-    // 5 channels enabled, no methods[] (pre-0.6.0 fallback): email/phone →
-    // main, qr/passkey → bottom, password → overflow (owner-directive defaults).
+    // 5 channels enabled: email/phone → main, qr/passkey → bottom, password →
+    // overflow (owner-directive defaults, driven here by methods[]).
     phone: true,
     email: true,
     password: true,
@@ -51,6 +61,13 @@ const CAPABILITIES = {
     passkey: true,
     magic_link: false,
   },
+  methods: [
+    method("email", "main", 0),
+    method("phone", "main", 1),
+    method("qr", "bottom", 0),
+    method("passkey", "bottom", 1),
+    method("password", "overflow", 0),
+  ],
 };
 
 function wrap(runtime: AuthRuntime, children: ReactNode): ReactElement {
@@ -143,7 +160,7 @@ describe("<AuthPanel/> — OTP auto-submit (owner directive point 3)", () => {
       magic_link: false,
     },
     mfa: { totp: false, passkey: false },
-    methods: [],
+    methods: [method("email", "main", 0)],
     ...(emailCodeLength !== undefined
       ? {
           otp: {
@@ -269,8 +286,8 @@ describe("<AuthPanel/> — alt-method dialog (owner directive: overflow/bottom n
       anonymous: false,
     },
     login: {
-      // 6 channels enabled, no methods[] (pre-0.6.0 fallback): email/phone →
-      // main, qr/passkey → bottom, password/magic_link → overflow.
+      // 6 channels enabled: email/phone → main, qr/passkey → bottom,
+      // password/magic_link → overflow (driven here by methods[]).
       phone: true,
       email: true,
       password: true,
@@ -280,6 +297,14 @@ describe("<AuthPanel/> — alt-method dialog (owner directive: overflow/bottom n
       passkey: true,
       magic_link: true,
     },
+    methods: [
+      method("email", "main", 0),
+      method("phone", "main", 1),
+      method("qr", "bottom", 0),
+      method("passkey", "bottom", 1),
+      method("password", "overflow", 0),
+      method("magic_link", "overflow", 1),
+    ],
   };
 
   it("picking a channel from the overflow menu opens it in a dialog — never a phantom tab", async () => {
@@ -348,6 +373,7 @@ describe("<AuthPanel/> — alt-method dialog (owner directive: overflow/bottom n
             passkey: false,
             magic_link: false,
           },
+          methods: [method("email", "main", 0), method("sso", "bottom", 0)],
         })
       )
     );
@@ -384,6 +410,7 @@ describe("<AuthPanel/> — alt-method dialog (owner directive: overflow/bottom n
             passkey: false,
             magic_link: false,
           },
+          methods: [method("email", "main", 0), method("oauth", "bottom", 0)],
         })
       )
     );
@@ -412,6 +439,68 @@ describe("<AuthPanel/> — alt-method dialog (owner directive: overflow/bottom n
 });
 
 /**
+ * ПРАВИЛО 6 (redefined per owner directive): QR renders INLINE the instant its
+ * tab is active — the code itself, no intermediate "Generate"/"Start" button
+ * — and a modal/drawer is used ONLY when QR is picked from `bottom`/`overflow`
+ * (already covered above: "the bottom icon row shows qr/passkey; picking qr
+ * opens the dialog with the QR panel"). This also proves `computeZones`'s
+ * never-a-tab clamp is scoped to oauth/sso only: a backend that places `qr`
+ * as `"main"` gets an honoured QR tab, not a silent clamp to `bottom`.
+ */
+describe("<AuthPanel/> — QR as a main tab renders inline, no buttons (ПРАВИЛО 6)", () => {
+  const QR_MAIN_CAPS = {
+    registration: {
+      phone: false,
+      email: true,
+      password: false,
+      oauth: [],
+      sso: false,
+      anonymous: false,
+    },
+    login: {
+      phone: false,
+      email: true,
+      password: false,
+      oauth: [],
+      sso: false,
+      qr: true,
+      passkey: false,
+      magic_link: false,
+    },
+    methods: [method("email", "main", 0), method("qr", "main", 1)],
+  };
+
+  it("qr is a real tab (not clamped to bottom) and shows the code immediately — no dialog, no extra button", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(QR_MAIN_CAPS)),
+      http.post(`${BASE}/qr/generate/`, () =>
+        HttpResponse.json({
+          key: "qr_1",
+          scan_url: "https://x.test/qr/qr_1/scan/",
+          expires_in: 300,
+        })
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+
+    await waitFor(() =>
+      expect(screen.getByRole("tab", { name: "QR code" })).toBeDefined()
+    );
+    // Not routed to the bottom icon row — the clamp is scoped to oauth/sso.
+    expect(screen.queryByTestId("auth-bottom-row")).toBeNull();
+
+    screen.getByRole("tab", { name: "QR code" }).click();
+
+    // The code itself renders the instant the tab is active — no button to
+    // press first, no dialog anywhere.
+    await waitFor(() => expect(document.querySelector("canvas")).not.toBeNull());
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByRole("button", { name: /generate|start/i })).toBeNull();
+  });
+});
+
+/**
  * Waylot UX reference (owner directive): the alt-method dialog should behave
  * like a bottom sheet on mobile, not a centred dialog — cheap here because
  * `@stapel/core`'s `useBreakpoint()` already exists; this is just an
@@ -428,7 +517,7 @@ describe("<AuthPanel/> — alt-method surface is responsive (Modal on desktop, b
       anonymous: false,
     },
     login: {
-      // 6 enabled → main=[email,phone,passkey], bottom=[qr], overflow=[password,magic_link].
+      // 6 enabled → main=[email,phone], bottom=[qr,passkey], overflow=[password,magic_link].
       phone: true,
       email: true,
       password: true,
@@ -438,6 +527,14 @@ describe("<AuthPanel/> — alt-method surface is responsive (Modal on desktop, b
       passkey: true,
       magic_link: true,
     },
+    methods: [
+      method("email", "main", 0),
+      method("phone", "main", 1),
+      method("qr", "bottom", 0),
+      method("passkey", "bottom", 1),
+      method("password", "overflow", 0),
+      method("magic_link", "overflow", 1),
+    ],
   };
 
   function setViewportWidth(width: number): void {
