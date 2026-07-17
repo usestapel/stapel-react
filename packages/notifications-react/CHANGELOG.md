@@ -1,5 +1,11 @@
 # @stapel/notifications-react
 
+## 0.4.0
+
+### Minor Changes
+
+- f15c6be: Add the pair's first `/default` settings skin: `PushNotificationToggle` (bind/unbind this device's push token — the module has no endpoint to list a caller's already-registered devices, so a persisted multi-device on/off state isn't representable yet) and `NotificationFeedList` (the paginated in-app notification history with load-more). Note: the category × channel notification _preference_ toggles ("email for messages", "push for system alerts") actually live on `Profile`/`ProfileUpdate` in `@stapel/profiles-react`, not on this module — see that pair's new `NotificationPreferences` default skin.
+
 ## 0.3.2
 
 ### Patch Changes
