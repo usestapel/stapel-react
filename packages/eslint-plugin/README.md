@@ -71,6 +71,7 @@ missing, the rule is a no-op — it never fails the lint run.
 | Rule | Catches |
 |---|---|
 | `stapel/no-raw-colors` | hex/rgb/hsl/named colours in style objects & CSS templates; Tailwind arbitrary colour values `bg-[#…]`; arbitrary values built by interpolation `bg-[${x}]` (JIT-invisible); bare raw-ramp refs `gray.500` |
+| `stapel/valid-token-name` | `cssVar("…")` / `var(--stapel-…)` naming a colour-token role absent from the live `@stapel/tokens` catalog (§68) — a renamed/removed legacy role (`accent`, `background-*-subtle`, the old L3 component tier, …) or a plain typo. Suggests the nearest catalog role when one is close. Non-colour scale suffixes (`radius-*`, `space-*`, `font-*`, `breakpoint-*`, `elevation-*`) are a different vocabulary and never flagged. Extend the recognised call names via `options.functions` or `settings.stapel.cssVarFunctions` (default `["cssVar"]`) |
 | `stapel/no-raw-token-import` | importing `@stapel/tokens/raw` outside theme-config / showcase |
 | `stapel/no-raw-fetch` | `fetch` / `globalThis.fetch` / `new XMLHttpRequest()` / `axios` / `ky` outside the codegen client |
 | `stapel/no-string-paths` | a hand-written API path — `client.get("/…")` on an http verb, or a bare literal/template that IS a catalogued operation path (`manifest.json §operations`) — outside the codegen api layer. Call the named operation instead. Off in `api/`, `*client.ts`, `generated/` |
@@ -103,6 +104,7 @@ settings: {
     eventsManifests: [manifest],// or eventNames: ["pricing.plan.selected", …]
     operationsManifests: [manifest], // or operationPaths: ["/auth/api/v1/me/", …]
     reservedPathsFile: "./reserved-paths.json", // or reservedPaths: ["/admin", …]
+    cssVarFunctions: ["cssVar"], // extra token-accessor calls valid-token-name inspects
     httpVerbs: ["get","post"],   // client methods no-string-paths inspects
     queryHooks: ["useQuery"],    // extra react-query hooks to inspect for keys
     trackedWrappers: ["tracked"],

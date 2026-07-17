@@ -48,10 +48,10 @@ export default {
     schema: [],
     messages: {
       rawColor:
-        'Raw colour "{{value}}". Use a token: in TS — cssVar("color-{{suggest}}"), in CSS — var(--stapel-color-{{suggest}}), in Tailwind — a token utility (e.g. bg-background-primary). Hex is born only in ramps. Catalog: ' +
+        'Raw colour "{{value}}". Use a token: in TS — cssVar("{{suggest}}"), in CSS — var(--stapel-{{suggest}}), in Tailwind — a token utility (e.g. bg-surface). Hex is born only in ramps. Catalog: ' +
         LLMS,
       arbitraryColor:
-        'Tailwind arbitrary colour "[{{value}}]". Use a token utility (e.g. bg-background-primary / text-text-primary) instead of a raw value in [...]. Catalog: ' +
+        'Tailwind arbitrary colour "[{{value}}]". Use a token utility (e.g. bg-surface / text-text) instead of a raw value in [...]. Catalog: ' +
         LLMS,
       arbitraryInterpolation:
         'Tailwind arbitrary value built by interpolation ("{{value}}"). The JIT scanner sees the literal source text, not the resolved value, so no utility is emitted — works in dev, breaks in prod. Use a static token utility. Catalog: ' +

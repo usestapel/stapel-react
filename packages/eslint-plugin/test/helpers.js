@@ -21,14 +21,15 @@ export function tsxTester() {
   });
 }
 
-// A small token catalog matching the real @stapel/tokens manifest shape, so
-// rule tests don't depend on filesystem discovery.
+// A small token catalog matching the real @stapel/tokens manifest shape (§68
+// neutral role dictionary — no ad-hoc names, no L3 component tier), so rule
+// tests don't depend on filesystem discovery.
 export const TOKEN_SETTINGS = {
   stapel: {
     tokensManifest: {
       tokens: {
-        core: ["accent", "background-primary", "text-primary"],
-        component: ["button-primary-bg", "card-bg"],
+        core: ["brand", "surface", "surface-raised", "text", "text-muted"],
+        component: [],
       },
       ramps: { names: ["gray", "brand", "blue", "red", "green", "amber", "scrim"] },
     },

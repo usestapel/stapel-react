@@ -24,7 +24,7 @@ export default {
     ],
     messages: {
       rawImport:
-        'Import from "{{source}}" is raw-ramp access (L1 hex). Only the theme config and the design-system showcase may import it — component code references tokens: cssVar("color-…") / var(--stapel-color-…). See @stapel/tokens/llms.txt §Never.',
+        'Import from "{{source}}" is raw-ramp access (L1 hex). Only the theme config and the design-system showcase may import it — component code references tokens: cssVar("brand") / var(--stapel-brand). See @stapel/tokens/llms.txt §Never.',
     },
   },
   create(context) {

@@ -13,7 +13,7 @@ describe("demo-literal-meta", () => {
         component: PasswordlessLogin,
         covers: ["AuthProvider"],
         flow: "auth.otp",
-        tokens: ["accent"],
+        tokens: ["brand"],
         variants: {
           default: { render: () => <Demo /> },
           locked: { description: "Rate-limited", render: () => <Demo /> },

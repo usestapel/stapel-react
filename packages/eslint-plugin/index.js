@@ -5,6 +5,7 @@
 // `recommended` preset; the stylelint preset lives at @stapel/eslint-plugin/
 // stylelint.
 import noRawColors from "./rules/no-raw-colors.js";
+import validTokenName from "./rules/valid-token-name.js";
 import noRawTokenImport from "./rules/no-raw-token-import.js";
 import noRawFetch from "./rules/no-raw-fetch.js";
 import noStringPaths from "./rules/no-string-paths.js";
@@ -24,6 +25,7 @@ import noReservedBackendRoute from "./rules/no-reserved-backend-route.js";
 
 const rules = {
   "no-raw-colors": noRawColors,
+  "valid-token-name": validTokenName,
   "no-raw-token-import": noRawTokenImport,
   "no-raw-fetch": noRawFetch,
   // Server-state guardrails (frontend-guardrails §2.2 / §2.6).
@@ -49,7 +51,7 @@ const rules = {
 };
 
 const plugin = {
-  meta: { name: "@stapel/eslint-plugin", version: "0.1.0" },
+  meta: { name: "@stapel/eslint-plugin", version: "0.5.0" },
   rules,
 };
 
@@ -141,6 +143,7 @@ const recommended = [
     files: TS_JS,
     rules: {
       "stapel/no-raw-colors": "error",
+      "stapel/valid-token-name": "error",
       "stapel/no-raw-token-import": "error",
       "stapel/no-raw-fetch": "error",
       // Server state: reach endpoints through named operations, keys through the
@@ -216,6 +219,7 @@ const recommended = [
     files: TEST_FILES,
     rules: {
       "stapel/no-raw-colors": "off",
+      "stapel/valid-token-name": "off",
       "stapel/no-hardcoded-text": "off",
       "stapel/i18n-key-exists": "off",
       "stapel/no-raw-fetch": "off",
