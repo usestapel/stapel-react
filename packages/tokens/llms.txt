@@ -1,4 +1,4 @@
-# @stapel/tokens 0.4.0
+# @stapel/tokens 0.5.0
 
 Neutral colour-role dictionary (§68; frontend-guardrails §1). Generated from
 theme.default.json (or a host's stapel.theme.json); code is never hand-edited.

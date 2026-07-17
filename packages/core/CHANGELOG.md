@@ -1,5 +1,12 @@
 # @stapel/core
 
+## 0.6.2
+
+### Patch Changes
+
+- Updated dependencies [a86ced9]
+  - @stapel/tokens@0.5.0
+
 ## 0.6.1
 
 ### Patch Changes
