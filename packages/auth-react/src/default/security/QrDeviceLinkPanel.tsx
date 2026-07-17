@@ -129,7 +129,27 @@ function QrJourney(props: {
 
   return (
     <Flex vertical align="center" gap="middle">
-      <QRCode value={scanUrl} status={qrCodeStatus(s.step)} onRefresh={regenerate} size={200} />
+      {/* Explicit white/black, never the app's ambient theme (owner UX audit
+          2026-07-17): a QR code IS the content, not decor — it needs real
+          light/dark contrast plus a light quiet-zone margin to be
+          camera-scannable. antd's `<QRCode>` defaults to a transparent
+          background, which over anything but a plain white page renders a
+          technically-valid but practically unscannable low-contrast
+          pattern — the same bug already fixed once for the in-room QR
+          modal (`components/room/QRModal.tsx` in the meettoday host app);
+          this is that same fix applied to the settings-tab surface. */}
+      {/* eslint-disable-next-line stapel/no-raw-colors -- deliberate, theme-INDEPENDENT pure white/black: a QR code's camera contrast is a functional requirement, not decor, and must not follow dark mode into low-contrast token colours */}
+      <div style={{ background: "#ffffff", padding: 16, borderRadius: 8 }}>
+        <QRCode
+          value={scanUrl}
+          status={qrCodeStatus(s.step)}
+          onRefresh={regenerate}
+          color="#000000"
+          bgColor="#ffffff"
+          bordered={false}
+          size={240}
+        />
+      </div>
 
       {s.step === "generating" && hadKeyRef.current && (
         <Typography.Text type="secondary">{t(AUTH_I18N_KEYS.secQrRegenerating)}</Typography.Text>

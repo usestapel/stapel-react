@@ -24,6 +24,16 @@ incident, fixed together:
   refresh — pairs with the `@stapel/core` client fix so a cookie-mode 401
   retry actually re-issues the request instead of throwing the original
   error (see that package's changeset).
+- **No more "your session expired" banner on a cold visit or after an
+  explicit logout.** A refresh failure now settles two different ways
+  depending on whether the session had ever left `"initializing"` BEFORE the
+  attempt: genuinely established (`authenticated`/`anonymous`) → real
+  teardown, `onTeardown`/`onSessionLost` fire (the host's banner policy).
+  Still `"initializing"` (a cold visit, or the bootstrap probe finding
+  nothing) → quiet `markUnauthenticated()`, no callback, no banner — there
+  was nothing to lose. One function (`settleRefreshFailure`) now covers
+  every path that can call `doRefresh` (the bootstrap probe AND a live 401
+  retry), so the wrong banner has nowhere left to sneak back in from.
 
 **Settings-tab UX audit**
 - `QrDeviceLinkPanel` ("sign in on another device") now opens its journey in
@@ -46,3 +56,32 @@ incident, fixed together:
 - Two developer-facing i18n strings fixed to read as user copy: OAuth
   link/unlink-unavailable hints no longer mention `getAccessToken` or
   "this backend has no unlink endpoint".
+- **Passkey = direct trigger, never a modal** (owner UX audit): clicking
+  "Add a passkey" in `PasskeysManager` now begins the WebAuthn ceremony
+  immediately — no name-entry dialog, no `Modal` wrapper (the browser's own
+  prompt IS the UI, matching the sign-in `PasskeyPanel`'s existing
+  behavior). A device name is inferred from the user agent.
+- **QR codes are now actually scannable.** `QrDeviceLinkPanel` and the
+  sign-in `QrPanel` render at 240px (was 200px) with explicit black-on-white
+  + a white quiet-zone padding, instead of antd's transparent default (which
+  renders unscannable low-contrast over anything but a plain white page —
+  the same bug already fixed once for the in-room QR modal in the meettoday
+  host app). A new live scan-decodability test
+  (`test/qrScannability.test.ts`) renders the same value/contrast/size with
+  a spec-compliant encoder and decodes it with a real QR reader (`jsqr`),
+  including a negative case proving low contrast fails to decode — not just
+  "the props look right".
+- **No more duplicate tab-label text** ("Email" tab + "Email" field label
+  reading as "Email Email"): a main-tab channel with its own field label
+  matching the tab (`OtpPanel`'s email/phone) now suppresses that label —
+  the placeholder still carries the affordance. A lone main channel (no
+  tab strip in view) keeps its label; only the overflow/bottom dialog and
+  the multi-tab case differ.
+- **Anonymous ("continue as guest") entry added to `AuthPanel`**: when the
+  backend's `capabilities.registration.anonymous` is `true`, a fixed
+  "Continue as guest" link now appears under the sign-in form
+  (ironmemo-frontend placement parity) — previously there was no way to
+  reach the existing headless `AnonymousSession` flow from the default
+  skin at all. Deliberately NOT modeled as a `methods[]`-tracked channel
+  (no placement/order/interaction) — a fixed skin element is enough for
+  what every real deployment treats as a single, unconditional entry point.

@@ -120,6 +120,90 @@ describe("<AuthPanel/> — the §54 default skin renders out of the box", () => 
       expect(screen.getByRole("tab", { name: "Email" })).toBeDefined()
     );
   });
+
+  /**
+   * Owner UX audit 2026-07-17: a main-tab channel must not repeat its own
+   * tab label as the panel's field label — "Email" tab + "Email" field
+   * label reads as "Email Email". Only ONE "Email" (the tab) should be on
+   * screen; the field keeps its placeholder for affordance.
+   */
+  it("does not repeat the tab label as the field label when email/phone are BOTH main tabs (no 'Email Email')", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(CAPABILITIES))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+
+    await waitFor(() => expect(screen.getByRole("tab", { name: "Email" })).toBeDefined());
+    expect(screen.getAllByText("Email")).toHaveLength(1); // the tab, nothing else
+    expect(screen.getByPlaceholderText("you@example.com")).toBeDefined(); // affordance kept
+
+    fireEvent.click(screen.getByRole("tab", { name: "Phone" }));
+    await waitFor(() => expect(screen.getByPlaceholderText("+1 555 000 0000")).toBeDefined());
+    expect(screen.getAllByText("Phone")).toHaveLength(1); // the tab, nothing else
+  });
+
+  /**
+   * Owner UX audit 2026-07-17: a lone main channel (no `<Tabs>` strip
+   * rendered at all) has no tab label to duplicate, so its own field label
+   * must stay — the only fix here is for the MULTI-tab case above.
+   */
+  it("keeps the field label when there is only ONE main channel (no tab strip to duplicate)", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () =>
+        HttpResponse.json({
+          ...CAPABILITIES,
+          login: { ...CAPABILITIES.login, phone: false, qr: false, passkey: false },
+          methods: [method("email", "main", 0)],
+        })
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+    await waitFor(() => expect(screen.getByPlaceholderText("you@example.com")).toBeDefined());
+    expect(screen.queryByRole("tab")).toBeNull(); // bare form, no tab strip
+    expect(screen.getByText("Email")).toBeDefined(); // the ONLY "Email" in view — must stay
+  });
+
+  /**
+   * Owner directive 2026-07-17: `registration.anonymous: true` gets a fixed
+   * "Continue as guest" entry (ironmemo-frontend parity) — not modeled as a
+   * `methods[]` channel, just a fixed skin element.
+   */
+  it("shows 'Continue as guest' when registration.anonymous is true, and it authenticates", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () =>
+        HttpResponse.json({
+          ...CAPABILITIES,
+          registration: { ...CAPABILITIES.registration, anonymous: true },
+        })
+      ),
+      http.post(`${BASE}/anonymous/`, () =>
+        HttpResponse.json({
+          status: "LOGGED_IN",
+          user: { id: "anon_1", is_anonymous: true },
+          tokens: { access: "acc", refresh: "ref" },
+        })
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+
+    await waitFor(() => expect(screen.getByText("Continue as guest")).toBeDefined());
+    fireEvent.click(screen.getByText("Continue as guest"));
+
+    await waitFor(() => expect(runtime.session.getState().status).toBe("authenticated"));
+  });
+
+  it("hides 'Continue as guest' when registration.anonymous is false", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(CAPABILITIES))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+    await waitFor(() => expect(screen.getByRole("tab", { name: "Email" })).toBeDefined());
+    expect(screen.queryByText("Continue as guest")).toBeNull();
+  });
 });
 
 /**

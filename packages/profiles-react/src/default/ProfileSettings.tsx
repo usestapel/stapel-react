@@ -23,7 +23,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, ReactElement, ReactNode } from "react";
-import { Alert, Avatar, Button, Card, Drawer, Flex, Input, Modal, Select, Spin, Typography } from "antd";
+import { Alert, Avatar, Button, Card, Drawer, Flex, Input, Modal, Segmented, Select, Spin, Typography } from "antd";
 import { useBreakpoint, useT } from "@stapel/core";
 import { useMyProfile } from "../model/queries.js";
 import { useUpdateMyProfile } from "../model/mutations.js";
@@ -63,6 +63,23 @@ type Units = "metric" | "imperial";
 type Theme = "light" | "dark" | "system";
 
 const CURRENCIES = ["USD", "EUR", "GBP", "RUB"] as const;
+
+/**
+ * One setting per row (owner UX audit 2026-07-17 — folded into
+ * `docs/pending/frontend-guidelines.md` §8): a subtitle-style label ABOVE
+ * its own picker, stacked top to bottom — never several pickers crammed
+ * side by side into one row. Every row in this screen uses this wrapper.
+ */
+function SettingRow(props: { label: string; children: ReactNode }): ReactElement {
+  return (
+    <div>
+      <Typography.Text type="secondary" style={{ display: "block", marginBottom: 6 }}>
+        {props.label}
+      </Typography.Text>
+      {props.children}
+    </div>
+  );
+}
 
 /**
  * A read-only text row with an edit affordance (owner UX audit 2026-07-17,
@@ -227,7 +244,7 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
         </div>
       </div>
 
-      <div style={{ display: "grid", gap: 16, maxWidth: 480 }}>
+      <Flex vertical gap={20} style={{ maxWidth: 480 }}>
         <EditableTextRow
           label={t(PROFILES_I18N_KEYS.fieldDisplayName)}
           value={profile?.display_name ?? ""}
@@ -237,60 +254,51 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
           onSave={(next) => mutation.mutate({ display_name: next })}
         />
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: props.showUnits ? "1fr 1fr 1fr" : "1fr 1fr",
-            gap: 8,
-          }}
-        >
-          <div>
-            <Typography.Text>{t(PROFILES_I18N_KEYS.fieldCurrency)}</Typography.Text>
-            <Select<string>
-              value={currencyCode}
+        <SettingRow label={t(PROFILES_I18N_KEYS.fieldCurrency)}>
+          <Select<string>
+            value={currencyCode}
+            onChange={(v) => {
+              setCurrencyCode(v);
+              mutation.mutate({ currency_code: v });
+            }}
+            style={{ width: "100%" }}
+            options={CURRENCIES.map((c) => ({ value: c, label: c }))}
+          />
+        </SettingRow>
+
+        {props.showUnits && (
+          <SettingRow label={t(PROFILES_I18N_KEYS.fieldUnits)}>
+            <Segmented<Units>
+              value={units}
               onChange={(v) => {
-                setCurrencyCode(v);
-                mutation.mutate({ currency_code: v });
+                setUnits(v);
+                mutation.mutate({ measurement_units: v });
               }}
-              style={{ width: "100%" }}
-              options={CURRENCIES.map((c) => ({ value: c, label: c }))}
-            />
-          </div>
-          {props.showUnits && (
-            <div>
-              <Typography.Text>{t(PROFILES_I18N_KEYS.fieldUnits)}</Typography.Text>
-              <Select<Units>
-                value={units}
-                onChange={(v) => {
-                  setUnits(v);
-                  mutation.mutate({ measurement_units: v });
-                }}
-                style={{ width: "100%" }}
-                options={[
-                  { value: "metric", label: t(PROFILES_I18N_KEYS.unitsMetric) },
-                  { value: "imperial", label: t(PROFILES_I18N_KEYS.unitsImperial) },
-                ]}
-              />
-            </div>
-          )}
-          <div>
-            <Typography.Text>{t(PROFILES_I18N_KEYS.fieldTheme)}</Typography.Text>
-            <Select<Theme>
-              value={theme}
-              onChange={(v) => {
-                setTheme(v);
-                mutation.mutate({ theme: v });
-              }}
-              style={{ width: "100%" }}
+              block
               options={[
-                { value: "light", label: t(PROFILES_I18N_KEYS.themeLight) },
-                { value: "dark", label: t(PROFILES_I18N_KEYS.themeDark) },
-                { value: "system", label: t(PROFILES_I18N_KEYS.themeSystem) },
+                { value: "metric", label: t(PROFILES_I18N_KEYS.unitsMetric) },
+                { value: "imperial", label: t(PROFILES_I18N_KEYS.unitsImperial) },
               ]}
             />
-          </div>
-        </div>
-      </div>
+          </SettingRow>
+        )}
+
+        <SettingRow label={t(PROFILES_I18N_KEYS.fieldTheme)}>
+          <Segmented<Theme>
+            value={theme}
+            onChange={(v) => {
+              setTheme(v);
+              mutation.mutate({ theme: v });
+            }}
+            block
+            options={[
+              { value: "light", label: t(PROFILES_I18N_KEYS.themeLight) },
+              { value: "dark", label: t(PROFILES_I18N_KEYS.themeDark) },
+              { value: "system", label: t(PROFILES_I18N_KEYS.themeSystem) },
+            ]}
+          />
+        </SettingRow>
+      </Flex>
 
       {mutationErrorText && (
         <Alert style={{ marginTop: 12 }} type="error" showIcon message={mutationErrorText} />

@@ -9,7 +9,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement, ReactNode } from "react";
 import { I18nProvider, createI18n } from "@stapel/core";
@@ -85,28 +85,35 @@ describe("<PasskeysManager/>", () => {
     await waitFor(() => expect(screen.getByText("No passkeys yet.")).toBeDefined());
   });
 
-  it("add flow (thin, no webauthnCreate): shows guidance instead of hanging on awaitingCredential", async () => {
+  /**
+   * Owner UX audit 2026-07-17 (interaction canon, frontend-guidelines.md
+   * §8): passkey = direct trigger, never a modal or a name-entry dialog —
+   * the browser's own WebAuthn prompt IS the UI. Clicking "Add a passkey"
+   * begins the ceremony immediately.
+   */
+  it("add flow (thin, no webauthnCreate): the button directly begins the ceremony — no dialog, no name prompt", async () => {
+    let beginCalls = 0;
     server.use(
       http.get(`${BASE}/passkey/`, () => HttpResponse.json({ passkeys: [] })),
-      http.post(`${BASE}/passkey/register/begin/`, () =>
-        HttpResponse.json({ options: { challenge: "c1" } })
-      )
+      http.post(`${BASE}/passkey/register/begin/`, () => {
+        beginCalls += 1;
+        return HttpResponse.json({ options: { challenge: "c1" } });
+      })
     );
     const runtime = createAuthRuntime({ baseUrl: BASE });
     render(wrap(runtime, <PasskeysManager />));
     await waitFor(() => expect(screen.getByRole("button", { name: "Add a passkey" })).toBeDefined());
     screen.getByRole("button", { name: "Add a passkey" }).click();
 
-    const nameInput = await screen.findByPlaceholderText("e.g. My laptop");
-    fireEvent.change(nameInput, { target: { value: "My laptop" } });
-    screen.getByRole("button", { name: "Continue" }).click();
-
+    // No name-entry dialog anywhere — straight to the ceremony.
+    expect(screen.queryByPlaceholderText("e.g. My laptop")).toBeNull();
     await screen.findByText(
       "Follow your browser or device's prompt to finish adding this passkey."
     );
+    expect(beginCalls).toBe(1);
   });
 
-  it("add flow (webauthnCreate supplied): auto-drives the ceremony end to end", async () => {
+  it("add flow (webauthnCreate supplied): auto-drives the ceremony end to end, direct-triggered", async () => {
     server.use(
       http.get(`${BASE}/passkey/`, () => HttpResponse.json({ passkeys: [] })),
       http.post(`${BASE}/passkey/register/begin/`, () =>
@@ -118,9 +125,6 @@ describe("<PasskeysManager/>", () => {
     const runtime = createAuthRuntime({ baseUrl: BASE });
     render(wrap(runtime, <PasskeysManager webauthnCreate={webauthnCreate} />));
     screen.getByRole("button", { name: "Add a passkey" }).click();
-    const nameInput = await screen.findByPlaceholderText("e.g. My laptop");
-    fireEvent.change(nameInput, { target: { value: "My laptop" } });
-    screen.getByRole("button", { name: "Continue" }).click();
 
     await waitFor(() => expect(webauthnCreate).toHaveBeenCalledWith({ challenge: "c1" }));
     await screen.findByText("Passkey added.");

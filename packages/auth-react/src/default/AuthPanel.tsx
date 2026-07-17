@@ -55,7 +55,7 @@ import {
 import type { TabsProps } from "antd";
 import { toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { useBreakpoint, useT } from "@stapel/core";
+import { useBreakpoint, useFormatFlowError, useT } from "@stapel/core";
 import { useCapabilities } from "../model/queries.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
 import type { AuthI18nKey } from "../i18n/keys.js";
@@ -78,6 +78,7 @@ import {
   QrPanel,
   SsoPanel,
 } from "./panels.js";
+import { AnonymousSession } from "../headless/misc.js";
 
 /** A system notice for zone A's single Alert slot (ПРАВИЛО 3). */
 export interface AuthPanelNotice {
@@ -130,6 +131,7 @@ const CHANNEL_LABEL: Record<ChannelId, AuthI18nKey> = {
 export function AuthPanel(props: AuthPanelProps): ReactElement {
   const { mode = "light", channelPriority = DEFAULT_CHANNEL_PRIORITY } = props;
   const t = useT();
+  const formatError = useFormatFlowError();
   const theme = useMemo(() => toAntdThemeConfig(mode), [mode]);
   const caps = useCapabilities();
   const [openChannel, setOpenChannel] = useState<ChannelId | null>(null);
@@ -151,12 +153,20 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
    * provider-button group and a domain-lookup form respectively) — they were
    * `null` in the §54 pilot, which silently dropped them whenever they landed
    * outside a tab. */
-  function channelPanel(id: ChannelId): ReactElement | null {
+  /**
+   * `asMainTab` (owner UX audit 2026-07-17): a main-tab panel must not
+   * repeat its own tab label as a field label ("Email" tab + "Email" field
+   * label reads as "Email Email") — only `OtpPanel` actually has a field
+   * label matching its own channel label, so it is the only one that reads
+   * the flag. The overflow/bottom dialog has no tab label in view, so it
+   * always gets the full (labelled) panel.
+   */
+  function channelPanel(id: ChannelId, opts?: { asMainTab?: boolean }): ReactElement | null {
     switch (id) {
       case "email":
-        return <OtpPanel channel="email" />;
+        return <OtpPanel channel="email" {...(opts?.asMainTab !== undefined ? { hideChannelLabel: opts.asMainTab } : {})} />;
       case "phone":
-        return <OtpPanel channel="phone" />;
+        return <OtpPanel channel="phone" {...(opts?.asMainTab !== undefined ? { hideChannelLabel: opts.asMainTab } : {})} />;
       case "password":
         return <PasswordPanel />;
       case "qr":
@@ -185,9 +195,15 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
   // Active tab: the user's pick if it is a main tab, else the first main one.
   const mainActive = active && zones.main.includes(active) ? active : zones.main[0];
 
+  // A lone main channel renders as a bare form (no `<Tabs>` strip at all —
+  // see the render below), so its own field label is the ONLY label in
+  // view and must stay. Only suppress it when a REAL tab strip renders
+  // (`zones.main.length > 1`), which is the only case with a tab label to
+  // actually duplicate.
+  const asMainTab = zones.main.length > 1;
   const tabs: TabsProps["items"] = zones.main
     .map((id) => {
-      const panel = channelPanel(id);
+      const panel = channelPanel(id, { asMainTab });
       return panel
         ? { key: id, label: t(CHANNEL_LABEL[id]), children: panel }
         : null;
@@ -280,6 +296,34 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
               </Flex>
             )}
           </Flex>
+        )}
+
+        {/* Guest entry (owner directive 2026-07-17): NOT a placement-tracked
+            channel — ironmemo-frontend parity, a fixed link under everything
+            else, shown whenever the backend allows anonymous registration.
+            Modeling it as a full `methods[]` channel (placement/order/
+            interaction) would be contract bloat for what is, in every real
+            deployment, a single fixed skin element. */}
+        {caps.data?.registration.anonymous && (
+          <AnonymousSession>
+            {(bag) => {
+              const err = bag.state.step === "error" ? bag.state.error : undefined;
+              return (
+                <Flex vertical align="center" gap={4}>
+                  <Typography.Link
+                    disabled={bag.state.step === "creating"}
+                    onClick={() => bag.create()}
+                    data-analytics="flow"
+                  >
+                    {bag.state.step === "creating"
+                      ? t(AUTH_I18N_KEYS.uiContinueAsGuestPending)
+                      : t(AUTH_I18N_KEYS.uiContinueAsGuest)}
+                  </Typography.Link>
+                  {err && <Typography.Text type="danger">{formatError(err)}</Typography.Text>}
+                </Flex>
+              );
+            }}
+          </AnonymousSession>
         )}
       </Flex>
 

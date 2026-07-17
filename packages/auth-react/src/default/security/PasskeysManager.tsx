@@ -4,6 +4,14 @@
  * pair's existing `usePasskeys`/`useRemovePasskey` hooks; adding one uses the
  * existing `PasskeyRegistration` headless flow. No new backend surface.
  *
+ * INTERACTION CANON — passkey = direct trigger, NEVER a modal (owner
+ * directive 2026-07-17, folded into frontend-guidelines.md §8): the
+ * browser's own WebAuthn prompt IS the UI. Clicking "Add a passkey" begins
+ * the ceremony immediately (no name-entry dialog gating it first) — the
+ * same rule the sign-in `PasskeyPanel` already follows
+ * (`bag.begin()` straight off the button click). A generic device name is
+ * inferred from the user agent; renaming is a follow-up, not a blocker.
+ *
  * THIN WebAuthn (MODULE.md "Thin-WebAuthn TODO", the same honest scope the
  * sign-in `PasskeyPanel` follows): the single `navigator.credentials.create()`
  * browser step is NOT performed here unless the host supplies `webauthnCreate`
@@ -12,7 +20,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Alert, Button, Empty, Flex, Form, Input, Modal, Popconfirm, Spin, Typography } from "antd";
+import { Alert, Button, Empty, Flex, Popconfirm, Spin, Typography } from "antd";
 import { useFormatFlowError, useT } from "@stapel/core";
 import type { Passkey } from "../../api/types.js";
 import { PasskeyRegistration } from "../../headless/Passkey.js";
@@ -21,6 +29,19 @@ import { useRemovePasskey } from "../../model/mutations.js";
 import { usePasskeys } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import { SecurityEmptyIcon } from "./icons.js";
+
+/** A generic device name inferred from the user agent — good enough for a
+ * first-pass label; the ceremony is never gated on the user typing one. */
+function inferDeviceName(): string {
+  if (typeof navigator === "undefined") return "Passkey";
+  const ua = navigator.userAgent;
+  if (/iPhone/.test(ua)) return "iPhone";
+  if (/iPad/.test(ua)) return "iPad";
+  if (/Android/.test(ua)) return "Android device";
+  if (/Macintosh/.test(ua)) return "Mac";
+  if (/Windows/.test(ua)) return "Windows PC";
+  return "Passkey";
+}
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -96,14 +117,6 @@ function AddJourney(props: {
   return <Typography.Text type="secondary">{t(AUTH_I18N_KEYS.secPasskeysAwaitingCeremony)}</Typography.Text>;
 }
 
-function AddDialogBody(props: { deviceName: string; onDone: () => void; webauthnCreate: WebauthnBinding | undefined }): ReactElement {
-  return (
-    <PasskeyRegistration {...(props.webauthnCreate !== undefined ? { webauthnCreate: props.webauthnCreate } : {})}>
-      {(bag) => <AddJourney bag={bag} deviceName={props.deviceName} onDone={props.onDone} />}
-    </PasskeyRegistration>
-  );
-}
-
 export interface PasskeysManagerProps {
   /** Drives the `navigator.credentials.create()` ceremony automatically when
    * supplied (thin by design otherwise — see module doc). */
@@ -113,20 +126,15 @@ export interface PasskeysManagerProps {
   readonly emptyIcon?: ReactNode;
 }
 
-/** Full passkey security screen: list, remove, add (name → begin → ceremony). */
+/** Full passkey security screen: list, remove, add (direct-trigger ceremony
+ * — no modal, no name prompt; see the module doc's interaction canon). */
 export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
   const t = useT();
   const passkeys = usePasskeys();
   const remove = useRemovePasskey();
-  const [addOpen, setAddOpen] = useState(false);
-  const [deviceName, setDeviceName] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
 
   const list = passkeys.data ?? [];
-
-  function closeAdd(): void {
-    setAddOpen(false);
-    setDeviceName(null);
-  }
 
   return (
     <Flex vertical gap="middle" style={{ width: "100%" }} data-testid="passkeys-manager">
@@ -136,9 +144,9 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
         </Typography.Title>
         <Button
           type="primary"
-          onClick={() => setAddOpen(true)}
-          data-analytics="none"
-          data-analytics-reason="local-ui-open-add-passkey-dialog"
+          disabled={adding}
+          onClick={() => setAdding(true)}
+          data-analytics="flow"
         >
           {t(AUTH_I18N_KEYS.secPasskeysAdd)}
         </Button>
@@ -146,7 +154,7 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
 
       {passkeys.isLoading ? (
         <Spin />
-      ) : list.length === 0 ? (
+      ) : list.length === 0 && !adding ? (
         <Empty
           image={props.emptyIcon ?? <SecurityEmptyIcon />}
           description={t(AUTH_I18N_KEYS.secPasskeysEmpty)}
@@ -164,30 +172,13 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
         </Flex>
       )}
 
-      <Modal
-        title={t(AUTH_I18N_KEYS.secPasskeysAddTitle)}
-        open={addOpen}
-        onCancel={closeAdd}
-        footer={null}
-        destroyOnHidden
-      >
-        {deviceName === null ? (
-          <Form layout="vertical" onFinish={(v: { name?: string }) => setDeviceName((v.name ?? "").trim())}>
-            <Form.Item name="name" label={t(AUTH_I18N_KEYS.secPasskeysNameLabel)}>
-              <Input autoFocus placeholder={t(AUTH_I18N_KEYS.secPasskeysNamePlaceholder)} />
-            </Form.Item>
-            <Button type="primary" htmlType="submit" block data-analytics="flow">
-              {t(AUTH_I18N_KEYS.secPasskeysBeginCta)}
-            </Button>
-          </Form>
-        ) : (
-          <AddDialogBody
-            deviceName={deviceName}
-            onDone={closeAdd}
-            webauthnCreate={props.webauthnCreate}
-          />
-        )}
-      </Modal>
+      {adding && (
+        <PasskeyRegistration {...(props.webauthnCreate !== undefined ? { webauthnCreate: props.webauthnCreate } : {})}>
+          {(bag) => (
+            <AddJourney bag={bag} deviceName={inferDeviceName()} onDone={() => setAdding(false)} />
+          )}
+        </PasskeyRegistration>
+      )}
     </Flex>
   );
 }

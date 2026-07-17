@@ -164,7 +164,18 @@ function OtpCodeStep(props: {
 }
 
 /** Email / phone one-time-code panel (ПРАВИЛА 8-9). */
-export function OtpPanel(props: { channel: OtpChannel }): ReactElement {
+export function OtpPanel(props: {
+  channel: OtpChannel;
+  /**
+   * Suppress the field's own "Email"/"Phone" label (owner UX audit
+   * 2026-07-17): when this panel IS a main tab, the tab strip already says
+   * "Email"/"Phone" — repeating it as the field label read as "Email
+   * Email" / "Phone Phone". The placeholder still carries the affordance.
+   * Only set by `AuthPanel` for `zones.main`; the overflow/bottom dialog
+   * (no tab label in view) keeps the label.
+   */
+  hideChannelLabel?: boolean;
+}): ReactElement {
   const t = useT();
   const fieldError = useFieldError();
   const caps = useCapabilities();
@@ -215,7 +226,11 @@ export function OtpPanel(props: { channel: OtpChannel }): ReactElement {
               bag.requestCode(channel, v.value ?? "")
             }
           >
-            <Form.Item name="value" label={t(labelKey)} {...fieldError(reqErr)}>
+            <Form.Item
+              name="value"
+              {...(props.hideChannelLabel ? {} : { label: t(labelKey) })}
+              {...fieldError(reqErr)}
+            >
               <Input
                 autoFocus
                 inputMode={channel === "email" ? "email" : "tel"}
@@ -387,12 +402,23 @@ function QrPanelBody(props: {
   const scanUrl = state.step === "awaitingScan" ? state.scanUrl : "-";
   return (
     <Flex vertical align="center" gap="middle">
-      <QRCode
-        value={scanUrl}
-        status={qrStatus(state.step)}
-        onRefresh={onStart}
-        size={200}
-      />
+      {/* Explicit white/black + a white padded quiet-zone (owner UX audit
+          2026-07-17 — same fix as the settings-tab QrDeviceLinkPanel):
+          antd's transparent default renders a technically-valid but
+          practically unscannable low-contrast code over anything but a
+          plain white page. */}
+      {/* eslint-disable-next-line stapel/no-raw-colors -- deliberate, theme-INDEPENDENT pure white/black: a QR code's camera contrast is a functional requirement, not decor, and must not follow dark mode into low-contrast token colours */}
+      <div style={{ background: "#ffffff", padding: 16, borderRadius: 8 }}>
+        <QRCode
+          value={scanUrl}
+          status={qrStatus(state.step)}
+          onRefresh={onStart}
+          color="#000000"
+          bgColor="#ffffff"
+          bordered={false}
+          size={240}
+        />
+      </div>
       <Typography.Text type="secondary">
         {state.step === "generating" && hadKeyRef.current ? props.regeneratingHint : props.hint}
       </Typography.Text>

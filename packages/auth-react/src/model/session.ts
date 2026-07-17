@@ -148,14 +148,37 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
     }
   }
 
+  /**
+   * A refresh failure settles two very different ways depending on whether
+   * the session was ever actually established (owner-diagnosed live
+   * incident, 2026-07-17 — the "session expired" banner rendering on a cold
+   * visit, or after an explicit logout, where no session ever existed to
+   * lose): `sessionLost(reason)` — teardown + `onTeardown`/`onSessionLost`,
+   * the host's "you were signed in, now you're not" banner policy — fires
+   * ONLY if the session had left `"initializing"` BEFORE this refresh
+   * attempt started (i.e. it was genuinely `authenticated`/`anonymous`).
+   * Still `"initializing"` means there was never a confirmed session to
+   * lose — settle quietly via `markUnauthenticated()`, no banner, no
+   * `onTeardown` call. ONE piece of logic for every path that can call
+   * `doRefresh` — the bootstrap probe on cold `restore()` and a live 401
+   * retry both go through this same function (`sessionManager.refresh()`),
+   * so there is nowhere left for the wrong banner to sneak back in from.
+   */
+  async function settleRefreshFailure(reason: TeardownReason): Promise<void> {
+    const wasEstablished = sessionManager.getStatus() !== "initializing";
+    if (!wasEstablished) {
+      sessionManager.markUnauthenticated();
+      return;
+    }
+    await sessionManager.sessionLost(reason === "revoked" ? "revoked" : "expired");
+    options.onTeardown?.(reason);
+  }
+
   const sessionManager = createSessionManager({
     doRefresh: async () => {
       const refreshToken = state.tokens?.refresh ?? null;
       if (!cookieMode && refreshToken === null) {
-        // Mechanical cleanup (the registered hook) runs BEFORE the host
-        // notification, same order as an explicit logout — see `logout()`.
-        await sessionManager.sessionLost("expired");
-        options.onTeardown?.("expired");
+        await settleRefreshFailure("expired");
         return null;
       }
       try {
@@ -167,8 +190,7 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
       } catch (error) {
         const code = error instanceof StapelApiError ? error.code : "";
         const reason: TeardownReason = code === REFRESH_REVOKED ? "revoked" : "expired";
-        await sessionManager.sessionLost(reason === "revoked" ? "revoked" : "expired");
-        options.onTeardown?.(reason);
+        await settleRefreshFailure(reason);
         return null;
       }
     },
@@ -249,12 +271,13 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
    * discover it is to actually attempt the refresh call and see whether the
    * browser's cookie jar carries a live refresh-token cookie.
    *
-   * Deliberately NOT routed through `sessionManager.refresh()`/`doRefresh` —
-   * those assume an EXISTING session is (maybe) ending, so a failure calls
-   * `sessionLost()`, which runs logout hooks and the host's `onSessionLost`
-   * policy (redirect-to-login, say). A probe that simply finds nothing is
-   * not a loss — there was never a session to lose — so a negative result
-   * here settles quietly via `markUnauthenticated()` instead.
+   * Routed through `sessionManager.refresh()` (single-flight `doRefresh`) —
+   * the SAME path a live 401 retry uses — rather than a bespoke bypass:
+   * `doRefresh`/`settleRefreshFailure` above already know a failure while
+   * still `"initializing"` (never confirmed authenticated) is NOT a loss
+   * (there was nothing to lose) and settle quietly via
+   * `markUnauthenticated()`, no `onTeardown`/`onSessionLost`, no "session
+   * expired" banner. One piece of logic for every path, not two.
    */
   async function bootstrapProbe(): Promise<void> {
     if (!cookieMode) {
@@ -264,12 +287,7 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
       sessionManager.markUnauthenticated();
       return;
     }
-    try {
-      const r = await resolveRefreshApi().tokenRefresh(undefined);
-      setTokens({ access: r.access, refresh: r.refresh });
-    } catch {
-      sessionManager.markUnauthenticated();
-    }
+    await sessionManager.refresh();
   }
 
   async function restore(): Promise<void> {

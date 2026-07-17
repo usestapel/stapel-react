@@ -108,6 +108,69 @@ describe("cookie-mode bootstrap (owner incident, 2026-07-17)", () => {
     expect(onTeardown).not.toHaveBeenCalled();
   });
 
+  /**
+   * Owner-diagnosed live incident, deepened 2026-07-17: a bright "your
+   * session expired" banner rendered even on a COLD visit (no session ever
+   * existed) or right after an explicit LOGOUT — "that's only fair to show
+   * if there WAS one". `sessionLost(reason)`/`onTeardown` (what a host wires
+   * its banner to) must fire ONLY when the session had genuinely left
+   * `"initializing"` (confirmed authenticated/anonymous) before the failure
+   * — one piece of logic (`settleRefreshFailure` in `model/session.ts`)
+   * covers every path that can call `doRefresh`, not just the bootstrap
+   * probe on `restore()`.
+   */
+  it("a live 401 retry that fails while STILL initializing (never established) settles quietly — no banner", async () => {
+    server.use(
+      http.get(`${BASE}/me/`, () =>
+        HttpResponse.json({ localizable_error: "auth.token.expired" }, { status: 401 })
+      ),
+      http.get(`${BASE}/token/refresh/`, () =>
+        HttpResponse.json({ localizable_error: "error.401.refresh_revoked" }, { status: 401 })
+      )
+    );
+    const onSessionLost = vi.fn();
+    const onTeardown = vi.fn();
+    const runtime = createAuthRuntime({ baseUrl: BASE, onSessionLost, onTeardown });
+
+    // A query fires immediately (no restore() awaited first) — the exact
+    // race the incident was about. The session was NEVER established.
+    await expect(runtime.client.get("/me/")).rejects.toBeTruthy();
+
+    expect(onSessionLost).not.toHaveBeenCalled();
+    expect(onTeardown).not.toHaveBeenCalled();
+    expect(runtime.session.getSessionManager().getStatus()).toBe("unauthenticated");
+  });
+
+  it("a real expiry — session WAS established, THEN the refresh fails — still fires the banner policy", async () => {
+    server.use(
+      http.get(`${BASE}/me/`, () =>
+        HttpResponse.json({ localizable_error: "auth.token.expired" }, { status: 401 })
+      ),
+      http.get(`${BASE}/token/refresh/`, () =>
+        HttpResponse.json({ localizable_error: "error.401.refresh_revoked" }, { status: 401 })
+      )
+    );
+    const onSessionLost = vi.fn();
+    const onTeardown = vi.fn();
+    const runtime = createAuthRuntime({ baseUrl: BASE, onSessionLost, onTeardown });
+
+    // A genuinely-established session first (cookie mode: adopt() alone is
+    // enough to mark the core SessionManager authenticated).
+    runtime.session.adopt({
+      status: "LOGGED_IN",
+      user: testUser(),
+      tokens: { access: "acc_1", refresh: "ref_1" },
+    });
+    expect(runtime.session.getSessionManager().getStatus()).toBe("authenticated");
+
+    await expect(runtime.client.get("/me/")).rejects.toBeTruthy();
+
+    // NOW it's a genuine loss — the banner policy is expected to fire.
+    expect(onSessionLost).toHaveBeenCalledWith("revoked");
+    expect(onTeardown).toHaveBeenCalledWith("revoked");
+    expect(runtime.session.getSessionManager().getStatus()).toBe("unauthenticated");
+  });
+
   it("credentials: 'include' rides both the main client AND the refresh-only client in (default) cookie mode", async () => {
     const inits: RequestInit[] = [];
     const fetchSpy: typeof globalThis.fetch = async (input, init) => {
