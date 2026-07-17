@@ -50,7 +50,14 @@ function MyProfileBody(): ReactElement {
         {({ profile, isLoading, isSaving, isSaved, save }) => (
           <>
             <StepBadge
-              step={isLoading ? "loading" : (profile?.display_name ?? "—")}
+              step={
+                isLoading
+                  ? "loading"
+                  : // `display_name` is a §66 manifest-driven field, not part of
+                    // this pair's OWN generated schema (open envelope,
+                    // api/types.ts) — read it defensively via `String()`.
+                    String(profile?.display_name ?? "—")
+              }
             />
             {isSaved ? (
               <span style={{ color: cssVar("color-text-secondary") }}>

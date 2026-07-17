@@ -48,16 +48,19 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
+// stapel-profiles 0.5.0 (§66 "Profile = constructor", docs/pending/
+// profile-fields.md): the hard core no longer carries display_name/theme/
+// currency_code/measurement_units — a project gets those back (if it wants
+// them) via its own STAPEL_PROFILES["FIELDS"] manifest, reflected here as
+// PLAIN EXTRA KEYS on the GET /me body (the "open envelope" this pair's
+// MyProfile/ProfileUpdate types allow — api/types.ts).
 const MY_PROFILE = {
   user_id: "b3f1c0de-0000-4000-8000-000000000001",
-  display_name: "Ada Lovelace",
+  avatar_source: "file",
   avatar: "avatar/ada",
   location_id: 0,
   location_display_name_narrow: "London",
   location_display_name_broad: "United Kingdom",
-  currency_code: "GBP",
-  measurement_units: "metric",
-  theme: "system",
   app_language: { code: "en", name: "English", flag: "/flags/en.svg" },
   understands: ["en"],
   use_device_language: false,
@@ -75,6 +78,73 @@ const MY_PROFILE = {
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-03-01T00:00:00Z",
 };
+
+/**
+ * `MY_PROFILE` plus a manifest-driven project's extra fields (a swapped
+ * Profile model's own columns — this pair's generated schema never declares
+ * these; the whole point of the open envelope). Values/examples mirror
+ * `stapel-profiles`' own `tests/test_field_manifest.py` +
+ * `field_defs.py`'s `STANDARD_FIELDS`.
+ */
+const MY_PROFILE_EXT = {
+  ...MY_PROFILE,
+  display_name: "Ada Lovelace",
+  theme: "system",
+  currency_code: "GBP",
+  default_camera_on: true,
+  geohash: "gbsuv7z",
+};
+
+/**
+ * A field-manifest fixture combining an identity preset field, a
+ * STANDARD_FIELDS enum + model_ref, and a custom bool + a standard geohash
+ * — one example of every `kind` the backend's `GET /field-manifest`
+ * documents (`docs/pending/profile-fields.md`, "Дополнение владельца" §1).
+ */
+const FIELD_MANIFEST = [
+  {
+    name: "display_name",
+    kind: "text",
+    docstring: "User's display name.",
+    required: false,
+    order: 0,
+    enum_values: null,
+  },
+  {
+    name: "theme",
+    kind: "enum",
+    docstring: "UI theme preference.",
+    required: false,
+    order: 1,
+    enum_values: ["light", "dark", "system"],
+  },
+  {
+    name: "currency_code",
+    kind: "model_ref",
+    docstring:
+      "Preferred display currency — references the live stapel-currencies catalog (rates/list are DB-backed, not a fixed enum; see stapel_currencies.models.Currency).",
+    required: false,
+    order: 2,
+    enum_values: null,
+  },
+  {
+    name: "default_camera_on",
+    kind: "bool",
+    docstring: "Turn the camera on by default when joining a call.",
+    required: false,
+    order: 3,
+    enum_values: null,
+  },
+  {
+    name: "geohash",
+    kind: "geohash",
+    docstring:
+      "Raw geohash of the user's last known point (stapel_geo.geohash.encode), for point-level proximity search — independent of location_id's city-level display cache.",
+    required: false,
+    order: 4,
+    enum_values: null,
+  },
+];
 
 function wrap(
   runtime: ProfilesRuntime,
@@ -197,69 +267,138 @@ describe("<HeadlessNotificationPreferences> (category × channel matrix)", () =>
   });
 });
 
-describe("<ProfileSettings/> (default skin) — reactive pickers, modal-edited text (frontend-guidelines.md §8)", () => {
-  it("shows the display name read-only; the pencil opens a dialog that saves on its own", async () => {
-    let lastPatch: Record<string, unknown> | null = null;
+describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/profile-fields.md)", () => {
+  function serveManifestAndProfile(
+    patchHandler?: (patch: Record<string, unknown>) => void
+  ): void {
     server.use(
-      http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE)),
+      http.get(`${BASE}/field-manifest`, () => HttpResponse.json(FIELD_MANIFEST)),
+      http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE_EXT)),
       http.patch(`${BASE}/me`, async ({ request }) => {
-        lastPatch = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ ...MY_PROFILE, ...lastPatch });
+        const patch = (await request.json()) as Record<string, unknown>;
+        patchHandler?.(patch);
+        return HttpResponse.json({ ...MY_PROFILE_EXT, ...patch });
       })
     );
+  }
+
+  it("renders one row per active field-manifest entry, no hardcoded field list", async () => {
+    serveManifestAndProfile();
     const runtime = createProfilesRuntime({ baseUrl: BASE });
     render(wrap(runtime, <ProfileSettings />));
 
-    await waitFor(() => expect(screen.getByTestId("profile-display-name-value").textContent).toBe("Ada Lovelace"));
+    // text (identity preset)
+    await waitFor(() =>
+      expect(screen.getByTestId("profile-field-display_name-value").textContent).toBe("Ada Lovelace")
+    );
+    // enum -> Segmented (<=4 choices): its own docstring is the row label.
+    expect(screen.getByText("UI theme preference.")).toBeDefined();
+    expect(screen.getByText("light")).toBeDefined();
+    expect(screen.getByText("dark")).toBeDefined();
+    expect(screen.getByText("system")).toBeDefined();
+    // model_ref -> Select, current value shown.
+    expect(screen.getByText("GBP")).toBeDefined();
+    // bool -> Switch.
+    expect(screen.getAllByRole("switch")).toHaveLength(1);
+    // geohash is hidden by default (not rendered as a row at all).
+    expect(screen.queryByText(/Raw geohash/)).toBeNull();
+  });
+
+  it("an empty manifest renders no field rows beyond the avatar block", async () => {
+    server.use(
+      http.get(`${BASE}/field-manifest`, () => HttpResponse.json([])),
+      http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE))
+    );
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <ProfileSettings />));
+    await waitFor(() => expect(screen.getByTestId("profile-settings")).toBeDefined());
+    expect(screen.queryAllByRole("switch")).toHaveLength(0);
+    expect(document.querySelectorAll('[data-testid^="profile-field-"]')).toHaveLength(0);
+  });
+
+  it("shows a text field read-only; the pencil opens a dialog that saves on its own", async () => {
+    let lastPatch: Record<string, unknown> | null = null;
+    serveManifestAndProfile((p) => {
+      lastPatch = p;
+    });
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <ProfileSettings />));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("profile-field-display_name-value").textContent).toBe("Ada Lovelace")
+    );
     // No inline input for the name pre-edit — read-only + a pencil trigger.
     expect(screen.queryByDisplayValue("Ada Lovelace")).toBeNull();
 
-    screen.getByRole("button", { name: "Display name" }).click();
+    screen.getByRole("button", { name: "User's display name." }).click();
     const dialogInput = await screen.findByDisplayValue("Ada Lovelace");
     fireEvent.change(dialogInput, { target: { value: "Ada C. Lovelace" } });
     screen.getByText("Save changes").click();
 
     await waitFor(() => expect(lastPatch).toMatchObject({ display_name: "Ada C. Lovelace" }));
     await waitFor(() =>
-      expect(screen.getByTestId("profile-display-name-value").textContent).toBe("Ada C. Lovelace")
+      expect(screen.getByTestId("profile-field-display_name-value").textContent).toBe("Ada C. Lovelace")
     );
   });
 
-  it("the currency picker PATCHes immediately on selection — no Save button anywhere on the screen", async () => {
+  it("an enum field (<=4 choices) renders as a Segmented that PATCHes immediately — no Save button anywhere", async () => {
     let lastPatch: Record<string, unknown> | null = null;
-    server.use(
-      http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE)),
-      http.patch(`${BASE}/me`, async ({ request }) => {
-        lastPatch = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ ...MY_PROFILE, ...lastPatch });
-      })
-    );
+    serveManifestAndProfile((p) => {
+      lastPatch = p;
+    });
     const runtime = createProfilesRuntime({ baseUrl: BASE });
     render(wrap(runtime, <ProfileSettings />));
-    await waitFor(() => expect(screen.getByTestId("profile-display-name-value")).toBeDefined());
+    await waitFor(() => expect(screen.getByText("dark")).toBeDefined());
 
     expect(screen.queryByText("Save changes")).toBeNull();
+    fireEvent.click(screen.getByText("dark"));
 
-    fireEvent.mouseDown(screen.getByText("GBP")); // MY_PROFILE's current currency, opens the Select
+    await waitFor(() => expect(lastPatch).toMatchObject({ theme: "dark" }));
+  });
+
+  it("a model_ref field (currency) renders as a Select that PATCHes immediately", async () => {
+    let lastPatch: Record<string, unknown> | null = null;
+    serveManifestAndProfile((p) => {
+      lastPatch = p;
+    });
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <ProfileSettings />));
+    await waitFor(() => expect(screen.getByText("GBP")).toBeDefined());
+
+    fireEvent.mouseDown(screen.getByText("GBP")); // MY_PROFILE_EXT's current currency, opens the Select
     await screen.findByTitle("USD");
     screen.getByTitle("USD").click();
 
     await waitFor(() => expect(lastPatch).toMatchObject({ currency_code: "USD" }));
   });
 
-  it("the units picker is NOT rendered by default (owner directive point 2 — catalog concern, not a profile field)", async () => {
-    server.use(http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE)));
+  it("a bool field renders as a Switch and toggles reactively", async () => {
+    let lastPatch: Record<string, unknown> | null = null;
+    serveManifestAndProfile((p) => {
+      lastPatch = p;
+    });
     const runtime = createProfilesRuntime({ baseUrl: BASE });
     render(wrap(runtime, <ProfileSettings />));
-    await waitFor(() => expect(screen.getByTestId("profile-display-name-value")).toBeDefined());
-    expect(screen.queryByText("Units")).toBeNull();
+    const toggle = await screen.findByRole("switch");
+    expect(toggle.getAttribute("aria-checked")).toBe("true"); // MY_PROFILE_EXT.default_camera_on
+
+    fireEvent.click(toggle);
+    await waitFor(() => expect(lastPatch).toMatchObject({ default_camera_on: false }));
   });
 
-  it("showUnits opts back in for a host that wants it here", async () => {
-    server.use(http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE)));
+  it("a geohash field is hidden by default; showGeohash opts it back in as an editable text row", async () => {
+    serveManifestAndProfile();
     const runtime = createProfilesRuntime({ baseUrl: BASE });
-    render(wrap(runtime, <ProfileSettings showUnits />));
-    await waitFor(() => expect(screen.getByText("Units")).toBeDefined());
+
+    const { unmount } = render(wrap(runtime, <ProfileSettings />));
+    await waitFor(() => expect(screen.getByText("GBP")).toBeDefined());
+    expect(screen.queryByTestId("profile-field-geohash-value")).toBeNull();
+    unmount();
+
+    render(wrap(runtime, <ProfileSettings showGeohash />));
+    await waitFor(() =>
+      expect(screen.getByTestId("profile-field-geohash-value").textContent).toBe("gbsuv7z")
+    );
   });
 });
 

@@ -8,6 +8,7 @@ import type {
   Following,
   Language,
   MyProfile,
+  ProfileFieldManifestEntry,
   PublicProfile,
   RelationshipInfo,
 } from "../api/types.js";
@@ -123,5 +124,26 @@ export function useLanguages(): UseQueryResult<
   return useQuery({
     queryKey: profilesQueryKeys.languages(),
     queryFn: () => api.listLanguages(),
+  });
+}
+
+/**
+ * The active profile field manifest (GET /field-manifest — §66 "Дополнение
+ * владельца" tier 1, `docs/pending/profile-fields.md`): identity preset +
+ * standard_fields + custom_fields, in declaration order. This is what
+ * `<ProfileSettings/>`'s default skin renders FROM instead of a hardcoded
+ * field list — a host's `STAPEL_PROFILES["FIELDS"]` selection changes the
+ * default skin with zero frontend code changes. Public like {@link
+ * useLanguages} — no session gate, a stable reference list independent of
+ * `me`.
+ */
+export function useProfileFieldManifest(): UseQueryResult<
+  readonly ProfileFieldManifestEntry[],
+  StapelApiError
+> {
+  const api = useProfilesApi();
+  return useQuery({
+    queryKey: profilesQueryKeys.fieldManifest(),
+    queryFn: () => api.getFieldManifest(),
   });
 }

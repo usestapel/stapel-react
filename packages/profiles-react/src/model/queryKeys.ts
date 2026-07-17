@@ -16,6 +16,7 @@ export const profilesQueryKeys: {
   following(): readonly ["profiles", "following"];
   blocked(): readonly ["profiles", "blocked"];
   languages(): readonly ["profiles", "languages"];
+  fieldManifest(): readonly ["profiles", "fieldManifest"];
 } = {
   all: [ROOT],
   me: () => [ROOT, "me"],
@@ -25,4 +26,5 @@ export const profilesQueryKeys: {
   following: () => [ROOT, "following"],
   blocked: () => [ROOT, "blocked"],
   languages: () => [ROOT, "languages"],
+  fieldManifest: () => [ROOT, "fieldManifest"],
 };

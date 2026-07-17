@@ -107,10 +107,6 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.sec.passkeys.add": "Добавить passkey",
   "auth.sec.passkeys.remove": "Удалить",
   "auth.sec.passkeys.empty": "Passkey пока не добавлены.",
-  "auth.sec.passkeys.add_title": "Добавить passkey",
-  "auth.sec.passkeys.name_label": "Название passkey",
-  "auth.sec.passkeys.name_placeholder": "например, Мой ноутбук",
-  "auth.sec.passkeys.begin_cta": "Продолжить",
   "auth.sec.passkeys.awaiting_ceremony":
     "Следуйте подсказке браузера или устройства, чтобы завершить добавление passkey.",
   "auth.sec.passkeys.remove_confirm_title": "Удалить этот passkey?",

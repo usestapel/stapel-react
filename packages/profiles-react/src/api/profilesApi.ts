@@ -5,6 +5,7 @@ import type {
   Following,
   Language,
   MyProfile,
+  ProfileFieldManifestEntry,
   ProfileUpdate,
   PublicProfile,
   RelationshipAction,
@@ -77,6 +78,13 @@ export interface ProfilesApi {
   getMyBlocked(): Promise<Blocked>;
   /** The supported UI languages (reference list). */
   listLanguages(): Promise<readonly Language[]>;
+  /**
+   * The active profile field manifest (§66 "Дополнение владельца" tier 1,
+   * data-driven default skin) — identity preset + standard_fields +
+   * custom_fields, in declaration order. Public (no auth required — the
+   * skin needs it before login too), like {@link listLanguages}.
+   */
+  getFieldManifest(): Promise<readonly ProfileFieldManifestEntry[]>;
 }
 
 export function createProfilesApi(client: StapelClient): ProfilesApi {
@@ -111,5 +119,7 @@ export function createProfilesApi(client: StapelClient): ProfilesApi {
     getMyBlocked: () => client.get("/me/blocked"),
 
     listLanguages: () => client.get("/languages/"),
+
+    getFieldManifest: () => client.get("/field-manifest"),
   };
 }

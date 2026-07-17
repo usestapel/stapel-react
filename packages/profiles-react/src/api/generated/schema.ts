@@ -134,6 +134,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/profiles/api/v1/field-manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get active profile field manifest
+         * @description List the profile fields the project's manifest activated (identity preset + standard_fields + custom_fields), in declaration order.
+         *
+         *     **Permissions:** `AllowAny`
+         */
+        get: operations["get_field_manifest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/profiles/api/v1/languages/": {
         parameters: {
             query?: never;
@@ -298,6 +320,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description * `file` - File
+         *     * `url` - URL
+         *     * `gravatar` - Gravatar
+         *     * `cdn` - CDN
+         * @enum {string}
+         */
+        AvatarSourceEnum: "file" | "url" | "gravatar" | "cdn";
         /** @description User's followers list. */
         FollowersResponse: {
             /**
@@ -349,12 +379,12 @@ export interface components {
         /** @description Update profile fields (PATCH, all optional). */
         PatchedProfileUpdateRequest: {
             /**
-             * @description New display name
-             * @example John Doe
+             * @description Where avatar points (file, url, gravatar, cdn)
+             * @example file
              */
-            display_name?: string | null;
+            avatar_source?: string | null;
             /**
-             * @description CDN avatar reference
+             * @description Avatar reference matching avatar_source
              * @example avatar/abc123
              */
             avatar?: string | null;
@@ -363,21 +393,6 @@ export interface components {
              * @example 42
              */
             location_id?: number | null;
-            /**
-             * @description ISO 4217 currency code
-             * @example EUR
-             */
-            currency_code?: string | null;
-            /**
-             * @description Measurement system (metric or imperial)
-             * @example metric
-             */
-            measurement_units?: string | null;
-            /**
-             * @description UI theme (light, dark, system)
-             * @example dark
-             */
-            theme?: string | null;
             /**
              * @description ISO 639-1 language code
              * @example en
@@ -429,6 +444,44 @@ export interface components {
              */
             initial_setup_passed?: boolean | null;
         };
+        /**
+         * @description One active profile field, as the frontend skin needs it to render
+         *     itself without hardcoding field names (docs/pending/profile-fields.md,
+         *     "Дополнение владельца" §1 — data-driven skin, tier 1 of the two-tier
+         *     front-pair answer). GET /profiles/api/v1/field-manifest/ returns a list
+         *     of these for whatever the project's STAPEL_PROFILES["FIELDS"] manifest
+         *     (identity preset + standard_fields + custom_fields) actually selected.
+         */
+        ProfileFieldManifestEntry: {
+            /**
+             * @description Field name
+             * @example theme
+             */
+            name: string;
+            /**
+             * @description Storage/presentation kind (text, bool, enum, model_ref, geohash)
+             * @example enum
+             */
+            kind: string;
+            /**
+             * @description Human-readable field description, feeds help text
+             * @example UI theme preference.
+             */
+            docstring: string;
+            /** @description Whether the field is required (not blank) */
+            required: boolean;
+            /** @description Manifest declaration order — identity first, then standard_fields in listed order, then custom_fields */
+            order: number;
+            /**
+             * @description Choice values, only present when kind is enum
+             * @example [
+             *       "light",
+             *       "dark",
+             *       "system"
+             *     ]
+             */
+            enum_values?: string[] | null;
+        };
         /** @description Compact serializer for viewing other user's profile. */
         ProfilePublic: {
             /**
@@ -436,9 +489,16 @@ export interface components {
              * @description User UUID from auth service
              */
             user_id: string;
-            /** @description User's display name */
-            display_name?: string;
-            /** @description CDN avatar image reference (avatar/hash) */
+            /**
+             * @description Where `avatar` points: uploaded file key, arbitrary URL, Gravatar email-hash, or a CDN ref. Defaults to file/url — cdn is opt-in, not the default.
+             *
+             *     * `file` - File
+             *     * `url` - URL
+             *     * `gravatar` - Gravatar
+             *     * `cdn` - CDN
+             */
+            avatar_source?: components["schemas"]["AvatarSourceEnum"];
+            /** @description Avatar reference matching avatar_source: CDN 'avatar/<hash>' ref, a Gravatar email-hash, a plain URL, or an uploaded file key. */
             avatar?: string | null;
             /**
              * Format: int64
@@ -465,12 +525,12 @@ export interface components {
              */
             user_id: string;
             /**
-             * @description Display name
-             * @example Jane Smith
+             * @description Where avatar points (file, url, gravatar, cdn)
+             * @example file
              */
-            display_name: string;
+            avatar_source: string;
             /**
-             * @description CDN avatar reference
+             * @description Avatar reference matching avatar_source
              * @example avatar/def456
              */
             avatar: string | null;
@@ -511,7 +571,15 @@ export interface components {
              */
             relationship_status: string | null;
         };
-        /** @description Full user profile (for /me endpoint). */
+        /**
+         * @description Full user profile (for /me endpoint).
+         *
+         *     §66 alpha-cut: only the hard core (docs/pending/profile-fields.md) is
+         *     listed here — display_name/currency_code/measurement_units/theme moved
+         *     to the standard-field registry (`field_defs.py`); a project that swapped
+         *     in an extended Profile model exposes those through its own DTO/presenter,
+         *     not this one.
+         */
         ProfileResponse: {
             /**
              * Format: uuid
@@ -520,12 +588,12 @@ export interface components {
              */
             user_id: string;
             /**
-             * @description Display name
-             * @example John Doe
+             * @description Where avatar points (file, url, gravatar, cdn)
+             * @example file
              */
-            display_name: string;
+            avatar_source: string;
             /**
-             * @description CDN avatar reference
+             * @description Avatar reference matching avatar_source
              * @example avatar/abc123
              */
             avatar: string | null;
@@ -544,21 +612,6 @@ export interface components {
              * @example LU - Differdange
              */
             location_display_name_broad: string;
-            /**
-             * @description ISO 4217 currency code
-             * @example EUR
-             */
-            currency_code: string;
-            /**
-             * @description Measurement system
-             * @example metric
-             */
-            measurement_units: string;
-            /**
-             * @description UI theme
-             * @example system
-             */
-            theme: string;
             /** @description Selected app language */
             app_language: components["schemas"]["LanguageResponse"] | null;
             /**
@@ -672,10 +725,7 @@ export interface components {
              * @example error.404.not_found
              */
             localizable_error: string;
-            /**
-             * @description Human-readable message in English
-             * @example Requested resource not found
-             */
+            /** @description Human-readable fallback/debug message — not reliably English, */
             error: string;
             /**
              * @description Context values for template placeholders
@@ -686,6 +736,8 @@ export interface components {
             params?: {
                 [key: string]: unknown;
             };
+            /** @description Active Django locale `error` was rendered in (e.g */
+            error_language?: string;
         };
     };
     responses: never;
@@ -906,6 +958,25 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    get_field_manifest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileFieldManifestEntry"][];
                 };
             };
         };

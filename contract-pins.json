@@ -10,8 +10,8 @@
       "note": "release v0.3.8 — v1 canon sweep §60: /notifications/api/v1/ paths"
     },
     "stapel-profiles": {
-      "ref": "66fae108fb4ad4f1564567b384675097593faf33",
-      "note": "release v0.3.13 — v1 canon sweep §60: /profiles/api/v1/ paths"
+      "ref": "3d79c037b0dc8d6a358354257b2a66cf59485224",
+      "note": "release v0.5.0 — §66 profile = field constructor: hard core shrinks (theme/currency_code/measurement_units/display_name leave), STANDARD_FIELDS/IDENTITY_PRESETS registry, GET /field-manifest (data-driven front-pair skin, docs/pending/profile-fields.md)"
     },
     "stapel-billing": {
       "ref": "16a94aaddae0332a3ca3a93a3379b36fa6813f7f",

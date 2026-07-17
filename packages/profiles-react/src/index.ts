@@ -55,6 +55,7 @@ export {
   useMyFollowing,
   useMyBlocked,
   useLanguages,
+  useProfileFieldManifest,
 } from "./model/queries.js";
 
 // ── model (write hooks) ──────────────────────────────────────────────────────
@@ -78,6 +79,8 @@ export type {
   Following,
   Blocked,
   Language,
+  ProfileFieldManifestEntry,
+  ProfileFieldKind,
 } from "./api/types.js";
 
 // ── headless (renderless components) ─────────────────────────────────────────
