@@ -622,6 +622,7 @@
     "profiles.list.empty",
     "profiles.list.followers",
     "profiles.list.following",
+    "profiles.nav.settings",
     "profiles.notif_prefs.category.messages",
     "profiles.notif_prefs.category.system",
     "profiles.notif_prefs.channel.email",

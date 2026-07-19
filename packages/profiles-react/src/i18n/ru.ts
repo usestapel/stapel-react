@@ -56,6 +56,7 @@ export const profilesI18nBundleRu: I18nDictionary = {
   "profiles.notif_prefs.category.system": "Системные",
   "profiles.notif_prefs.channel.email": "Email",
   "profiles.notif_prefs.channel.push": "Push",
+  "profiles.nav.settings": "Настройки",
 };
 
 /**

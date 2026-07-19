@@ -49,6 +49,9 @@ export const PROFILES_I18N_KEYS = {
   notifCategorySystem: "profiles.notif_prefs.category.system",
   notifChannelEmail: "profiles.notif_prefs.channel.email",
   notifChannelPush: "profiles.notif_prefs.channel.push",
+  // Nav-manifest label (`../nav/manifest.ts`) — read by a shell (e.g.
+  // `@stapel/shell-react`'s `AppShell`) via `t(entry.labelKey)`.
+  navSettings: "profiles.nav.settings",
 } as const;
 
 export type ProfilesI18nKey =
@@ -98,6 +101,7 @@ export const profilesI18nBundleEn: I18nDictionary = {
   "profiles.notif_prefs.category.system": "System",
   "profiles.notif_prefs.channel.email": "Email",
   "profiles.notif_prefs.channel.push": "Push",
+  "profiles.nav.settings": "Settings",
 };
 
 /**
