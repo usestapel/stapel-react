@@ -37,6 +37,7 @@ export const notificationsI18nBundleRu: I18nDictionary = {
   "notifications.settings.push.subtitle": "Включите push-уведомления на этом устройстве.",
   "notifications.settings.feed.title": "Недавние уведомления",
   "notifications.settings.feed.subtitle": "Что мы вам недавно отправляли.",
+  "notifications.nav.feed": "Уведомления",
 };
 
 /**

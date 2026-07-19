@@ -27,6 +27,9 @@ export const NOTIFICATIONS_I18N_KEYS = {
   pushSettingsSubtitle: "notifications.settings.push.subtitle",
   feedSettingsTitle: "notifications.settings.feed.title",
   feedSettingsSubtitle: "notifications.settings.feed.subtitle",
+  // Nav-manifest label (`../nav/manifest.ts`) — read by a shell (e.g.
+  // `@stapel/shell-react`'s `AppShell`) via `t(entry.labelKey)`.
+  navFeed: "notifications.nav.feed",
 } as const;
 
 export type NotificationsI18nKey =
@@ -57,6 +60,7 @@ export const notificationsI18nBundleEn: I18nDictionary = {
   "notifications.settings.push.subtitle": "Enable push notifications on this device.",
   "notifications.settings.feed.title": "Recent notifications",
   "notifications.settings.feed.subtitle": "What we've sent you lately.",
+  "notifications.nav.feed": "Notifications",
 };
 
 /**

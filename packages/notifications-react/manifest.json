@@ -409,6 +409,7 @@
     "notifications.feed.end",
     "notifications.feed.load_more",
     "notifications.feed.loading",
+    "notifications.nav.feed",
     "notifications.settings.feed.subtitle",
     "notifications.settings.feed.title",
     "notifications.settings.push.subtitle",
