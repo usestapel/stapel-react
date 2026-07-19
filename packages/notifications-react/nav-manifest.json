@@ -1,0 +1,24 @@
+{
+  "package": "@stapel/notifications-react",
+  "version": "0.5.0",
+  "entries": [
+    {
+      "id": "notifications.feed",
+      "labelKey": "notifications.nav.feed",
+      "icon": "BellOutlined",
+      "route": {
+        "path": "notifications"
+      },
+      "component": {
+        "export": "NotificationFeedList",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "order": 20
+    }
+  ]
+}

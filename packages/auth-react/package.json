@@ -27,6 +27,8 @@
     },
     "./manifest": "./manifest.json",
     "./manifest.json": "./manifest.json",
+    "./nav-manifest": "./nav-manifest.json",
+    "./nav-manifest.json": "./nav-manifest.json",
     "./llms.txt": "./llms.txt",
     "./package.json": "./package.json"
   },
@@ -38,6 +40,7 @@
     "MODULE.md",
     "CHANGELOG.md",
     "manifest.json",
+    "nav-manifest.json",
     "llms.txt"
   ],
   "scripts": {

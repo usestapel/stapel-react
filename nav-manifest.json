@@ -1,0 +1,96 @@
+{
+  "$generated": "by scripts/gen-nav-manifest.mjs — do not edit; drift-gated (pnpm gen:nav:check)",
+  "packages": [
+    {
+      "package": "@stapel/auth-react",
+      "version": "0.5.2",
+      "entries": [
+        {
+          "id": "auth.login",
+          "labelKey": "auth.nav.login",
+          "icon": "LoginOutlined",
+          "route": {
+            "path": "/login"
+          },
+          "component": {
+            "export": "AuthPanel",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": false,
+          "requiresAuth": false,
+          "order": 0
+        },
+        {
+          "id": "auth.security",
+          "labelKey": "auth.nav.security",
+          "icon": "SafetyCertificateOutlined",
+          "route": {
+            "path": "security"
+          },
+          "component": {
+            "export": "SecuritySettings",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "profiles.settings"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "order": 10
+        }
+      ]
+    },
+    {
+      "package": "@stapel/notifications-react",
+      "version": "0.5.0",
+      "entries": [
+        {
+          "id": "notifications.feed",
+          "labelKey": "notifications.nav.feed",
+          "icon": "BellOutlined",
+          "route": {
+            "path": "notifications"
+          },
+          "component": {
+            "export": "NotificationFeedList",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "order": 20
+        }
+      ]
+    },
+    {
+      "package": "@stapel/profiles-react",
+      "version": "0.6.0",
+      "entries": [
+        {
+          "id": "profiles.settings",
+          "labelKey": "profiles.nav.settings",
+          "icon": "UserOutlined",
+          "route": {
+            "path": "settings"
+          },
+          "component": {
+            "export": "ProfileSettings",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "order": 90
+        }
+      ]
+    }
+  ]
+}

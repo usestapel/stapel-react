@@ -1,0 +1,43 @@
+{
+  "package": "@stapel/auth-react",
+  "version": "0.5.2",
+  "entries": [
+    {
+      "id": "auth.login",
+      "labelKey": "auth.nav.login",
+      "icon": "LoginOutlined",
+      "route": {
+        "path": "/login"
+      },
+      "component": {
+        "export": "AuthPanel",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": false,
+      "order": 0
+    },
+    {
+      "id": "auth.security",
+      "labelKey": "auth.nav.security",
+      "icon": "SafetyCertificateOutlined",
+      "route": {
+        "path": "security"
+      },
+      "component": {
+        "export": "SecuritySettings",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "profiles.settings"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "order": 10
+    }
+  ]
+}

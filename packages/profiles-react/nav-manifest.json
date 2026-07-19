@@ -1,0 +1,24 @@
+{
+  "package": "@stapel/profiles-react",
+  "version": "0.6.0",
+  "entries": [
+    {
+      "id": "profiles.settings",
+      "labelKey": "profiles.nav.settings",
+      "icon": "UserOutlined",
+      "route": {
+        "path": "settings"
+      },
+      "component": {
+        "export": "ProfileSettings",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "order": 90
+    }
+  ]
+}
