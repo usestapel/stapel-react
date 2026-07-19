@@ -1,0 +1,18 @@
+{
+  "$generated": "hand-authored, not scripts/gen-manifest.mjs (that driver derives backend.contract from a sibling Django module's pyproject.toml — this package has none; see backend: null below)",
+  "package": "@stapel/shell-react",
+  "version": "0.1.0",
+  "backend": null,
+  "layers": ["headless", "default", "i18n"],
+  "exports": {
+    "runtime": ["resolveNav", "SHELL_I18N_KEYS", "registerShellI18n", "AppShell"],
+    "types": [
+      "ResolvedNavEntry",
+      "NavOverrideEntry",
+      "NavOverridesFile",
+      "ShellI18nKey",
+      "AppShellProps"
+    ]
+  },
+  "i18nKeys": ["shell.nav.open_menu"]
+}
