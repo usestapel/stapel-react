@@ -110,6 +110,52 @@ EVERY registered hook (auth-react's own state/storage cleanup is registered
 the same way); the refresh call itself rides a dedicated client without the
 `onAuthRefresh` seam, so a failing refresh can never re-enter itself.
 
+### The bootstrap probe & `bootstrapProbe` (bearer-mode hosts)
+
+Redirect-based logins — a `session_share` QR scan, a magic-link click, an SSO
+or OAuth callback — mint fresh httponly JWT cookies via a plain HTTP
+redirect, entirely outside this runtime. On a cold load with nothing
+persisted locally, the ONLY way to discover that session is to actually
+attempt the refresh call and see whether the browser's cookie jar carries a
+live refresh cookie — that attempt is the **bootstrap probe**.
+
+In `cookieMode: true` (the default) this always happens — there is no other
+way to bootstrap a cookie-mode session at all. In `cookieMode: false`
+(bearer/header mode — native/mobile apps, or a web host that opted out of
+cookies), it used to never happen: no local bearer token meant an immediate,
+silent "anonymous", even when a QR scan had just minted a perfectly valid
+cookie session moments earlier. `bootstrapProbe` controls this for bearer
+mode:
+
+```tsx
+const runtime = createAuthRuntime({
+  baseUrl: "/auth/api/v1",
+  cookieMode: false,
+  bootstrapProbe: "auto", // default — see below
+});
+```
+
+- **`"auto"`** (default): probes when `cookieMode` is `true`, OR — in bearer
+  mode — when the non-httponly `stapel_auth_hint` cookie is present (a plain
+  `document.cookie` check; `stapel-auth` sets this cookie alongside every
+  httponly refresh cookie it mints, specifically so a bearer host can tell
+  "a cookie session might exist" apart from "there was never one" without
+  paying a network round trip on every cold load).
+- **`"always"`**: probes bearer mode unconditionally, hint cookie or not —
+  for backends that don't set it.
+- **`"off"`**: never probes bearer mode (the historical behavior). Logs a
+  one-time `console.warn` so this coverage gap can't silently recur — set
+  this only if you're certain your host never touches a redirect-based
+  login flow.
+
+A successful probe adopts the discovered session through the same path a
+normal token refresh uses — `isAuthenticated` flips true, tokens are in
+memory (bearer mode still never persists them to storage; this is
+discovery-and-adopt, not a new persistence path). A failed probe (no cookie,
+expired, or a network error) settles quietly to anonymous — never a thrown
+exception, never a false "session expired" banner on a visitor who was never
+signed in.
+
 The `queryRuntime` / `i18n` props are escape hatches: this host needs
 `query.purgePersistedCache()` in `onTeardown` and registers the pair's i18n
 bundle at module scope, so it creates both and hands them in. A host that

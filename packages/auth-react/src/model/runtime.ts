@@ -50,12 +50,28 @@ export interface CreateAuthRuntimeOptions {
    */
   readonly cookieMode?: boolean;
   /**
-   * Fetch `credentials` mode for the built client (this runtime's own refresh
-   * client AND the main client, so a bootstrap probe rides cookies too).
-   * Defaults to `"include"` in cookie mode (HTTP-only cookies must ride
-   * cross-origin requests) and to the browser default otherwise.
+   * Fetch `credentials` mode for the MAIN client. Defaults to `"include"` in
+   * cookie mode (HTTP-only cookies must ride cross-origin requests) and to
+   * the browser default otherwise.
+   *
+   * The refresh client (this runtime's dedicated client for the token-refresh
+   * call only, see below) defaults to `"include"` REGARDLESS of cookie mode
+   * — that is what lets `bootstrapProbe`'s `"auto"`/`"always"` (see
+   * `model/session.ts`'s `AuthSessionOptions.bootstrapProbe`) discover a
+   * QR/magic-link/SSO-minted httponly cookie session even while this runtime
+   * is nominally running bearer mode (2026-07-19 incident: the refresh
+   * endpoint is the one call a bearer host can safely let ride cookies
+   * opportunistically without changing anything else). Passing this option
+   * explicitly overrides BOTH clients to the same value, as before — set it
+   * to `"omit"` if the refresh call must never carry cookies.
    */
   readonly credentials?: RequestCredentials;
+  /**
+   * Gates the bearer-mode cold-load refresh probe. See
+   * `model/session.ts`'s `AuthSessionOptions.bootstrapProbe` for the full
+   * `"auto"` (default) / `"always"` / `"off"` contract. Forwarded as-is.
+   */
+  readonly bootstrapProbe?: "auto" | "always" | "off";
   /** Called after a session teardown (revoked/expired/logout). */
   readonly onTeardown?: (reason: TeardownReason) => void;
   /**
@@ -100,6 +116,12 @@ export function createAuthRuntime(
   const cookieMode = options.cookieMode ?? true;
   const credentials =
     options.credentials ?? (cookieMode ? ("include" as const) : undefined);
+  // Refresh client's credentials default to "include" UNCONDITIONALLY (not
+  // gated on cookieMode like the main client) — see this option's doc above
+  // for why. An explicit `options.credentials` still overrides both clients
+  // identically, so a host that truly wants the refresh call cookie-free can
+  // still get that.
+  const refreshCredentials = options.credentials ?? ("include" as const);
 
   // A SEPARATE client for the token-refresh call only — deliberately WITHOUT
   // `onAuthRefresh` (frontend-core-architecture-v2 §43.1). The refresh
@@ -110,7 +132,7 @@ export function createAuthRuntime(
   const refreshClient = createStapelClient({
     baseUrl: options.baseUrl,
     ...(options.fetch !== undefined ? { fetch: options.fetch } : {}),
-    ...(credentials !== undefined ? { credentials } : {}),
+    credentials: refreshCredentials,
     ...(options.defaultHeaders !== undefined
       ? { defaultHeaders: options.defaultHeaders }
       : {}),
@@ -122,6 +144,9 @@ export function createAuthRuntime(
     refreshApi,
     ...(options.storage !== undefined ? { storage: options.storage } : {}),
     cookieMode,
+    ...(options.bootstrapProbe !== undefined
+      ? { bootstrapProbe: options.bootstrapProbe }
+      : {}),
     ...(options.onTeardown !== undefined ? { onTeardown: options.onTeardown } : {}),
     ...(options.onSessionLost !== undefined
       ? { onSessionLost: options.onSessionLost }

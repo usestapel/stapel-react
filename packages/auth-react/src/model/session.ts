@@ -89,6 +89,37 @@ export interface AuthSessionOptions {
    * actual refresh ATTEMPT over the cookie can discover them).
    */
   readonly cookieMode?: boolean;
+  /**
+   * Gates the cold-`restore()` refresh probe (see `bootstrapProbe()` below)
+   * — consumer-reported gap (meettoday migrators, 2026-07-19): a
+   * `session_share` QR scan mints fresh httponly JWT cookies via a plain
+   * HTTP redirect entirely outside this runtime, so a bearer-mode host
+   * (`cookieMode: false`) landing on ANY other page afterwards had no local
+   * token, never attempted the refresh call, and silently settled
+   * anonymous despite a valid server-side session — with no signal that
+   * coverage had been dropped.
+   *
+   * - `"auto"` (**default**): probe when `cookieMode` is `true`, OR — in
+   *   bearer mode — when the non-httponly hint cookie `stapel_auth_hint`
+   *   is present (a plain `document.cookie` check, SSR-safe: `false` when
+   *   there is no `document`). `stapel-auth` sets this cookie alongside
+   *   every httponly refresh cookie it mints (QR session-share, magic
+   *   link, SSO, OAuth callback) specifically so a bearer-mode host can
+   *   tell "a cookie session might exist" from "there was never one"
+   *   without paying a network round trip on every cold load.
+   * - `"always"`: probe unconditionally, bearer mode included, even with
+   *   no hint cookie — for backends that don't set the hint.
+   * - `"off"`: never probe in bearer mode (the historical behavior). Logs
+   *   a ONE-TIME `console.warn` so this gap can't silently recur the way
+   *   it did before the hint cookie existed — a bearer host that
+   *   deliberately wants no probe should still know cookie-minted
+   *   sessions (QR/magic-link/SSO) will never be discovered.
+   *
+   * Cookie mode (`cookieMode: true`) is unaffected by any of the three
+   * values except `"off"` combined with an explicit bearer override — the
+   * probe it already always ran stays unconditional.
+   */
+  readonly bootstrapProbe?: "auto" | "always" | "off";
   /** Notified after a teardown so the host can purge caches / redirect. */
   readonly onTeardown?: (reason: TeardownReason) => void;
   /**
@@ -104,9 +135,21 @@ export interface AuthSessionOptions {
 
 const REFRESH_REVOKED = "error.401.refresh_revoked";
 
+const HINT_COOKIE_NAME = "stapel_auth_hint";
+
+/** SSR-safe: `document` is undefined outside a browser — never a hint there. */
+function hasAuthHintCookie(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.cookie
+    .split(";")
+    .some((c) => c.trim().startsWith(`${HINT_COOKIE_NAME}=`));
+}
+
 export function createAuthSession(options: AuthSessionOptions): AuthSession {
   const persistKey = options.persistKey ?? "stapel-auth:session";
   const cookieMode = options.cookieMode ?? true;
+  const bootstrapProbeMode = options.bootstrapProbe ?? "auto";
+  let offDeclineWarned = false;
   const resolveApi = (): AuthApi =>
     typeof options.api === "function" ? options.api() : options.api;
   const resolveRefreshApi = (): AuthApi => {
@@ -114,6 +157,27 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
     if (refreshApi === undefined) return resolveApi();
     return typeof refreshApi === "function" ? refreshApi() : refreshApi;
   };
+
+  /**
+   * Whether `doRefresh`/`bootstrapProbe` should actually attempt the
+   * network refresh call — see `AuthSessionOptions.bootstrapProbe`'s doc
+   * for the full three-state contract. Cookie mode is unconditional
+   * (unchanged from before this option existed); bearer mode is gated.
+   */
+  function shouldRunBootstrapProbe(): boolean {
+    if (cookieMode) return true;
+    if (bootstrapProbeMode === "off") {
+      if (!offDeclineWarned) {
+        offDeclineWarned = true;
+        console.warn(
+          "bootstrapProbe off/declined in bearer mode — cookie-minted sessions (QR/magic-link) will not be discovered"
+        );
+      }
+      return false;
+    }
+    if (bootstrapProbeMode === "always") return true;
+    return hasAuthHintCookie(); // "auto"
+  }
 
   let state: AuthSessionState = {
     user: null,
@@ -189,7 +253,11 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
   const sessionManager = createSessionManager({
     doRefresh: async () => {
       const refreshToken = state.tokens?.refresh ?? null;
-      if (!cookieMode && refreshToken === null) {
+      if (!cookieMode && refreshToken === null && !shouldRunBootstrapProbe()) {
+        // Bearer mode, nothing stored locally, and policy says don't bother
+        // (see `AuthSessionOptions.bootstrapProbe`) — a stored refresh
+        // token is normally the only way to have a session in bearer mode;
+        // give up immediately without a network call.
         await settleRefreshFailure("expired");
         return null;
       }
@@ -201,6 +269,19 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
         return "authenticated";
       } catch (error) {
         const code = error instanceof StapelApiError ? error.code : "";
+        if (!(error instanceof StapelApiError)) {
+          // A genuine network/transport failure (fetch threw, CORS blocked
+          // it, DNS failed…) — NOT a structured API answer like a clean
+          // 401. Settling anonymous either way (never throw — see
+          // `bootstrapProbe`'s doc), but this is worth a developer noticing:
+          // it looks identical to "there was never a session" otherwise,
+          // which is exactly the silent-coverage-loss shape this whole
+          // option exists to prevent.
+          console.warn(
+            "stapel-auth: session refresh failed (network error), settling anonymous",
+            error
+          );
+        }
         const reason: TeardownReason = code === REFRESH_REVOKED ? "revoked" : "expired";
         await settleRefreshFailure(reason);
         return null;
@@ -296,13 +377,24 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
   }
 
   /**
-   * Cookie-mode bootstrap probe (owner-diagnosed live incident, 2026-07-17):
-   * a `session_share` QR scan sets fresh httponly JWT cookies via a plain
-   * HTTP redirect, entirely outside this JS runtime's `adopt()`/`restore()`
-   * — the freshly loaded SPA has nothing persisted locally to restore, yet a
-   * perfectly valid session already exists server-side. The ONLY way to
-   * discover it is to actually attempt the refresh call and see whether the
-   * browser's cookie jar carries a live refresh-token cookie.
+   * Bootstrap probe (owner-diagnosed live incident, 2026-07-17; gating
+   * fixed 2026-07-19 after a bearer-mode consumer report — meettoday
+   * migrators): a `session_share` QR scan (or magic link / SSO / OAuth
+   * callback) sets fresh httponly JWT cookies via a plain HTTP redirect,
+   * entirely outside this JS runtime's `adopt()`/`restore()` — the freshly
+   * loaded SPA has nothing persisted locally to restore, yet a perfectly
+   * valid session already exists server-side. The ONLY way to discover it
+   * is to actually attempt the refresh call and see whether the browser's
+   * cookie jar carries a live refresh-token cookie.
+   *
+   * Cookie mode always attempts this (unconditional, as before). Bearer
+   * mode is gated by `AuthSessionOptions.bootstrapProbe`
+   * (`shouldRunBootstrapProbe()` above) — see that option's doc for the
+   * full `"auto"`/`"always"`/`"off"` contract; in short, `"auto"` (the
+   * default) only probes bearer mode when the non-httponly
+   * `stapel_auth_hint` cookie signals a cookie-minted session might exist,
+   * so a bearer host that never touches cookie-minting flows pays ZERO
+   * extra network calls on a cold load.
    *
    * Routed through `sessionManager.refresh()` (single-flight `doRefresh`) —
    * the SAME path a live 401 retry uses — rather than a bespoke bypass:
@@ -310,16 +402,29 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
    * still `"initializing"` (never confirmed authenticated) is NOT a loss
    * (there was nothing to lose) and settle quietly via
    * `markUnauthenticated()`, no `onTeardown`/`onSessionLost`, no "session
-   * expired" banner. One piece of logic for every path, not two.
+   * expired" banner. A successful probe adopts the returned session via the
+   * SAME `setTokens()` call a normal refresh uses (`doRefresh`'s success
+   * branch) — no separate bearer-mode adoption path to keep in sync.
+   *
+   * This function itself never throws: `doRefresh` catches and settles on
+   * EVERY failure (401, revoked, a raw network/transport error) — a genuine
+   * network failure specifically also gets a one-off `console.warn` there
+   * (not just "no session"), since it is otherwise indistinguishable from a
+   * legitimate "there was never a session" answer.
    */
   async function bootstrapProbe(): Promise<void> {
-    if (!cookieMode) {
-      // Bearer mode has no cookie jar to probe — a stored refresh token IS
-      // the only way to have a session, and `restore()` already checked for
-      // one. Nothing further to try; settle definitively.
+    if (!shouldRunBootstrapProbe()) {
+      // Bearer mode, policy declines (see `shouldRunBootstrapProbe`) —
+      // nothing further to try; settle definitively, no network call.
       sessionManager.markUnauthenticated();
       return;
     }
+    // `sessionManager.refresh()` → `doRefresh` above NEVER throws — every
+    // failure path (401, revoked, a raw network/transport error) is caught
+    // there and settles via `settleRefreshFailure` (quiet
+    // `markUnauthenticated()` while still `"initializing"`, which is always
+    // true here). A network failure specifically also gets a `console.warn`
+    // from that same catch block — see its comment.
     await sessionManager.refresh();
   }
 
