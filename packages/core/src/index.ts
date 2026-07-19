@@ -134,6 +134,18 @@ export type {
 export { useBreakpoint } from "./useBreakpoint.js";
 export type { Breakpoint } from "@stapel/tokens";
 
+// navigation-manifest contract (scripted-fullstack navigation Ф1): the
+// shared shape a pair's `src/nav/manifest.ts` exports and `resolveNav`
+// (`@stapel/shell-react`) consumes. Pure data types — no React, no I/O.
+export type {
+  NavEntry,
+  NavRoute,
+  NavComponentRef,
+  NavPlacement,
+  NavPlacementLevel,
+  PackageNavManifest,
+} from "./nav.js";
+
 // flow-machine primitive (frontend-standard §2 — the shared state container
 // every `@stapel/<module>-react` pair builds its machines on; lives here, not
 // copied per pair — frontend-core-architecture §4b). `useFlow` ships from core
