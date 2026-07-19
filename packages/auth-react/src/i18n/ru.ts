@@ -143,6 +143,10 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.sec.qr.rejected": "Вход был отклонён на другом устройстве.",
   "auth.sec.qr.retry": "Попробовать снова",
   "auth.sec.qr.regenerating": "Этот код истёк — получаем новый…",
+
+  // Nav-manifest labels
+  "auth.nav.login": "Вход",
+  "auth.nav.security": "Безопасность",
 };
 
 /**

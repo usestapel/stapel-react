@@ -130,6 +130,12 @@ export const AUTH_I18N_KEYS = {
   secQrRejected: "auth.sec.qr.rejected",
   secQrRetry: "auth.sec.qr.retry",
   secQrRegenerating: "auth.sec.qr.regenerating",
+
+  // Nav-manifest labels (`../nav/manifest.ts`) — read by a shell (e.g.
+  // `@stapel/shell-react`'s `AppShell`) via `t(entry.labelKey)`, never by
+  // this pair's own components directly.
+  navLogin: "auth.nav.login",
+  navSecurity: "auth.nav.security",
 } as const;
 
 export type AuthI18nKey =
@@ -310,6 +316,10 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.sec.qr.rejected": "Sign-in was declined on the other device.",
   "auth.sec.qr.retry": "Try again",
   "auth.sec.qr.regenerating": "That code expired — getting you a new one…",
+
+  // Nav-manifest labels
+  "auth.nav.login": "Sign in",
+  "auth.nav.security": "Security",
 };
 
 /**

@@ -1966,6 +1966,8 @@
   ],
   "i18nKeys": [
     "auth.error.unknown",
+    "auth.nav.login",
+    "auth.nav.security",
     "auth.otp.enter_code",
     "auth.otp.resend",
     "auth.otp.sent_to",

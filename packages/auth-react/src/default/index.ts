@@ -11,6 +11,8 @@
  */
 export { AuthPanel } from "./AuthPanel.js";
 export type { AuthPanelProps, AuthPanelNotice } from "./AuthPanel.js";
+export { SecuritySettings } from "./SecuritySettings.js";
+export type { SecuritySettingsProps } from "./SecuritySettings.js";
 export {
   DEFAULT_CHANNEL_PRIORITY,
   computeZones,
