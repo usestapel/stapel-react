@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { createAuthRuntime } from "../src/model/runtime.js";
 import { createAuthSession } from "../src/model/session.js";
-import { BASE, makeApi } from "./helpers.js";
+import { BASE, makeApi, testUser } from "./helpers.js";
 
 /**
  * `AuthSessionOptions.bootstrapProbe` (consumer-reported gap, meettoday
@@ -30,13 +30,20 @@ function setHintCookie(): void {
 }
 
 describe("bootstrapProbe (bearer mode gating)", () => {
-  it('"auto" probes bearer mode when the stapel_auth_hint cookie is present', async () => {
+  it('"auto" probes bearer mode when the stapel_auth_hint cookie is present, and resolves the user (LAYER B) before settling authenticated', async () => {
     setHintCookie();
     let refreshCalls = 0;
     server.use(
       http.get(`${BASE}/token/refresh/`, () => {
         refreshCalls += 1;
         return HttpResponse.json({ access: "acc_1", refresh: "ref_1" });
+      }),
+      // `RefreshResponse`/`TokenPairResponse` is tokens-only — a bearer-mode
+      // bootstrap probe must resolve the user itself before settling
+      // "authenticated" (session.ts's `setTokens` LAYER B).
+      http.get(`${BASE}/me/`, ({ request }) => {
+        expect(request.headers.get("authorization")).toBe("Bearer acc_1");
+        return HttpResponse.json(testUser());
       })
     );
     const runtime = createAuthRuntime({ baseUrl: BASE, cookieMode: false });
@@ -44,6 +51,7 @@ describe("bootstrapProbe (bearer mode gating)", () => {
 
     expect(refreshCalls).toBe(1);
     expect(runtime.session.getState().status).toBe("authenticated");
+    expect(runtime.session.getState().user).toEqual(testUser());
     expect(runtime.session.getState().tokens).toEqual({
       access: "acc_1",
       refresh: "ref_1",
@@ -75,7 +83,8 @@ describe("bootstrapProbe (bearer mode gating)", () => {
       http.get(`${BASE}/token/refresh/`, () => {
         refreshCalls += 1;
         return HttpResponse.json({ access: "acc_2", refresh: "ref_2" });
-      })
+      }),
+      http.get(`${BASE}/me/`, () => HttpResponse.json(testUser()))
     );
     const runtime = createAuthRuntime({
       baseUrl: BASE,
@@ -86,6 +95,7 @@ describe("bootstrapProbe (bearer mode gating)", () => {
 
     expect(refreshCalls).toBe(1);
     expect(runtime.session.getState().status).toBe("authenticated");
+    expect(runtime.session.getState().user).toEqual(testUser());
   });
 
   it('"off" never probes bearer mode, even with a hint cookie present, and warns exactly once', async () => {
@@ -126,7 +136,8 @@ describe("bootstrapProbe (bearer mode gating)", () => {
       http.get(`${BASE}/token/refresh/`, () => {
         refreshCalls += 1;
         return HttpResponse.json({ access: "acc_3", refresh: "ref_3" });
-      })
+      }),
+      http.get(`${BASE}/me/`, () => HttpResponse.json(testUser()))
     );
     // cookieMode defaults true; no hint cookie set.
     const runtime = createAuthRuntime({ baseUrl: BASE });
@@ -134,6 +145,7 @@ describe("bootstrapProbe (bearer mode gating)", () => {
 
     expect(refreshCalls).toBe(1);
     expect(runtime.session.getState().status).toBe("authenticated");
+    expect(runtime.session.getState().user).toEqual(testUser());
   });
 
   it("a failed probe (401/no session) settles anonymous quietly — no throw, no onTeardown", async () => {

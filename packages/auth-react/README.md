@@ -110,6 +110,39 @@ EVERY registered hook (auth-react's own state/storage cleanup is registered
 the same way); the refresh call itself rides a dedicated client without the
 `onAuthRefresh` seam, so a failing refresh can never re-enter itself.
 
+### The `status`/`user` invariant
+
+`useAuthSessionState()` (and `session.getState()`) return `{ user, tokens,
+status }`. **`status === "authenticated"` is guaranteed unreachable while
+`user === null`** — a `ProtectedRoute` that checks BOTH (the correct check)
+can rely on them never disagreeing:
+
+```tsx
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { status, user } = useAuthSessionState();
+  if (status !== "authenticated" || !user) return <Redirect to="/login" />;
+  return children;
+}
+```
+
+This wasn't always true. A bare token pair (a QR `login_request` fulfilment,
+or a bearer-mode bootstrap probe discovering a cookie-minted session — see
+below) used to be able to settle `status: "authenticated"` before a `user`
+was ever resolved, because `setTokens()` hand-set `status` independently of
+whether it actually knew who the tokens belonged to. Two things fixed it,
+together (owner incident, 2026-07-20):
+
+1. **`status` is derived, never hand-set.** Every state transition computes
+   `status` from `user`/`tokens` — there is no code path left that can
+   construct `{ status: "authenticated", user: null }`.
+2. **A bare token pair resolves its user before settling.** `setTokens()`
+   calls `me()` (via the seam-free refresh client — safe to call from
+   inside a refresh) when it doesn't already know the user, and only then
+   marks the session authenticated. If that resolution fails (network error,
+   the tokens turned out to be dead), the tokens are cleared and the session
+   settles unauthenticated instead — never a dangling, unconfirmed
+   "authenticated" session.
+
 ### The bootstrap probe & `bootstrapProbe` (bearer-mode hosts)
 
 Redirect-based logins — a `session_share` QR scan, a magic-link click, an SSO

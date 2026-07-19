@@ -105,6 +105,16 @@ export function createAuthRuntime(
     return holder.current;
   };
 
+  // Same lazy-holder trick, one level up: the refresh client (below) needs
+  // a `getToken` so bearer-mode calls made THROUGH it (session.ts's LAYER B
+  // `me()` user-resolution, called from inside `doRefresh`/`setTokens`) ride
+  // the just-refreshed access token — but `session` itself is constructed
+  // AFTER `refreshClient`. `getToken` is a plain value read, never a call
+  // back into `onAuthRefresh`/`refresh()`, so wiring it here carries none of
+  // the reentrancy risk `refreshClient`'s missing `onAuthRefresh` seam
+  // exists to avoid.
+  const sessionHolder: { current: AuthSession | null } = { current: null };
+
   // Resolve cookieMode ONCE (default true) — both the credentials default
   // AND the session's own cookieMode below must agree on the SAME resolved
   // value, not each re-derive `options.cookieMode ?? <its own default>`
@@ -133,6 +143,8 @@ export function createAuthRuntime(
     baseUrl: options.baseUrl,
     ...(options.fetch !== undefined ? { fetch: options.fetch } : {}),
     credentials: refreshCredentials,
+    // See `sessionHolder`'s doc above — read-only, no refresh seam.
+    getToken: () => sessionHolder.current?.getAccessToken() ?? null,
     ...(options.defaultHeaders !== undefined
       ? { defaultHeaders: options.defaultHeaders }
       : {}),
@@ -152,6 +164,7 @@ export function createAuthRuntime(
       ? { onSessionLost: options.onSessionLost }
       : {}),
   });
+  sessionHolder.current = session;
 
   const verification = createVerificationController({
     api: getApi,

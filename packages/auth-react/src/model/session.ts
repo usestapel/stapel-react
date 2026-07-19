@@ -12,6 +12,16 @@ import type { AuthResponse, AuthTokens, StapelUser } from "../api/types.js";
  */
 export type TeardownReason = "revoked" | "expired" | "logout";
 
+/**
+ * INVARIANT (owner incident, 2026-07-20 — meettoday migrators, composing
+ * with the bearer-mode `bootstrapProbe` fix in 3747681): `status ===
+ * "authenticated"` is UNREACHABLE while `user === null`. `status` is not an
+ * independently settable field — every mutator below derives it from
+ * `user`/`tokens` via `computeStatus()`, so `{ status: "authenticated", user:
+ * null }` cannot be constructed through this module's public surface. A
+ * consumer that gates on BOTH (e.g. a `ProtectedRoute` redirecting on
+ * `!isAuthenticated || !user`) can rely on them never disagreeing.
+ */
 export interface AuthSessionState {
   readonly user: StapelUser | null;
   readonly tokens: AuthTokens | null;
@@ -27,8 +37,17 @@ export interface AuthSession {
   onAuthRefresh(): Promise<string | null>;
   /** Commit a session from any AuthResponse (login/register/merge/modify). */
   adopt(response: AuthResponse): void;
-  /** Store a bare token pair (e.g. QR `login_request` fulfilment). */
-  setTokens(tokens: AuthTokens): void;
+  /**
+   * Store a bare token pair (e.g. QR `login_request` fulfilment). Tokens
+   * alone never carry a user (`AuthTokens`/`TokenPairResponse` is
+   * access+refresh only) — if the session doesn't already know who's
+   * signed in, this resolves that via `me()` (using the seam-free refresh
+   * client, so it's safe to call from inside `doRefresh`) before settling
+   * `"authenticated"`; see the `AuthSessionState` invariant doc above. On a
+   * resolution failure, clears the tokens and settles unauthenticated
+   * rather than leave a dangling, unconfirmed session — never throws.
+   */
+  setTokens(tokens: AuthTokens): Promise<void>;
   /** Explicit logout: revoke server-side, then tear down locally. */
   logout(): Promise<void>;
   /** Load a persisted session (call once on mount). */
@@ -190,8 +209,27 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
     for (const listener of listeners) listener();
   }
 
-  function setState(next: AuthSessionState): void {
-    state = next;
+  /**
+   * The one place `status` is computed (`AuthSessionState`'s invariant doc
+   * above) — DERIVED from `user`/`tokens`, never hand-set. `user === null`
+   * is always `"anonymous"` regardless of mode. Bearer mode additionally
+   * requires `tokens !== null` (the token pair IS the session — there is no
+   * other channel); cookie mode does not (the httponly cookie carries the
+   * session invisibly to this JS runtime — see `restore()`'s "optimistic
+   * user cache" case, where a restored user legitimately has no in-memory
+   * tokens at all).
+   */
+  function computeStatus(
+    user: StapelUser | null,
+    tokens: AuthTokens | null
+  ): AuthSessionState["status"] {
+    if (user === null) return "anonymous";
+    if (!cookieMode && tokens === null) return "anonymous";
+    return "authenticated";
+  }
+
+  function setState(next: { user: StapelUser | null; tokens: AuthTokens | null }): void {
+    state = { user: next.user, tokens: next.tokens, status: computeStatus(next.user, next.tokens) };
     notify();
   }
 
@@ -265,8 +303,16 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
         const r = await resolveRefreshApi().tokenRefresh(
           cookieMode ? undefined : (refreshToken ?? undefined)
         );
-        setTokens({ access: r.access, refresh: r.refresh });
-        return "authenticated";
+        await setTokens({ access: r.access, refresh: r.refresh });
+        // `setTokens` above already resolved (LAYER B) — or, on a failed
+        // resolution, cleared — `state.user` and marked the core
+        // `SessionManager` itself; read back what it actually landed on
+        // rather than hardcoding `"authenticated"` (which used to
+        // unconditionally override a guest's `markAnonymous()`, and would
+        // now also override a failed user-resolution's
+        // `markUnauthenticated()`, moments later).
+        if (state.user === null) return null;
+        return state.user.is_anonymous ? "anonymous" : "authenticated";
       } catch (error) {
         const code = error instanceof StapelApiError ? error.code : "";
         if (!(error instanceof StapelApiError)) {
@@ -297,17 +343,13 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
   // registry every other `@stapel/*-react` pair uses, instead of a bespoke
   // inline call site. Runs on BOTH `logout()` and an involuntary `sessionLost()`.
   sessionManager.registerLogoutHook(() => {
-    setState({ user: null, tokens: null, status: "anonymous" });
+    setState({ user: null, tokens: null });
     const storage = options.storage;
     if (storage) void storage.del(persistKey);
   });
 
   function adopt(response: AuthResponse): void {
-    setState({
-      user: response.user,
-      tokens: response.tokens,
-      status: "authenticated",
-    });
+    setState({ user: response.user, tokens: response.tokens });
     persist();
     if (response.user.is_anonymous) {
       sessionManager.markAnonymous();
@@ -316,13 +358,75 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
     }
   }
 
-  function setTokens(tokens: AuthTokens): void {
-    setState({ ...state, tokens, status: "authenticated" });
-    persist();
-    if (state.user?.is_anonymous) {
-      sessionManager.markAnonymous();
-    } else {
-      sessionManager.markAuthenticated();
+  /**
+   * Resolves who a bare token pair belongs to (`setTokens`'s LAYER B below).
+   * Routed through `refreshApi` (no `onAuthRefresh` seam) for the SAME
+   * reentrancy reason `doRefresh`'s own refresh call is: this can run
+   * INSIDE the core `SessionManager`'s single-flight `refresh()` window
+   * (the `doRefresh` → `setTokens` path), and a 401 here through the
+   * seam-carrying main client would call back into the very `refresh()`
+   * promise this is nested inside and deadlock (`AuthSessionOptions
+   * .refreshApi`'s doc). Bearer mode auth still rides correctly: `state
+   * .tokens` is updated (below, BEFORE this is called) to the new pair
+   * first, and `createAuthRuntime`'s dedicated refresh client reads its
+   * bearer token from this same session's `getAccessToken()` — no manual
+   * header plumbing needed, and no `stapel/no-string-paths` bypass either.
+   */
+  async function resolveUserAfterTokens(): Promise<StapelUser> {
+    return resolveRefreshApi().me();
+  }
+
+  async function setTokens(tokens: AuthTokens): Promise<void> {
+    if (state.user !== null) {
+      // Known session already — ordinary token rotation (a live 401 retry,
+      // or any refresh where the user is already resolved). No need to
+      // re-resolve who they are.
+      setState({ user: state.user, tokens });
+      persist();
+      if (state.user.is_anonymous) {
+        sessionManager.markAnonymous();
+      } else {
+        sessionManager.markAuthenticated();
+      }
+      return;
+    }
+    // LAYER B (owner incident, 2026-07-20; composes with the bearer-mode
+    // `bootstrapProbe` fix in 3747681): tokens with NO known user. Two call
+    // sites land here — `doRefresh`'s bootstrap/refresh success branch
+    // (`RefreshResponse`/`TokenPairResponse`, api/types.ts, is access+
+    // refresh ONLY, never a user) and `QrLogin.tsx`'s `login_request`
+    // fulfilment (`onAuthenticated: (tokens) => session.setTokens(tokens)`
+    // — the QR `fulfilled` payload is token-only too). LAYER A's
+    // `computeStatus` already makes `authenticated && user==null`
+    // unrepresentable in `state` itself, but that alone would leave a
+    // perfectly good set of tokens stuck "anonymous" forever — this
+    // resolves who they belong to before the session can honestly call
+    // itself signed in, the same way `adopt()` always has.
+    setState({ user: null, tokens }); // held, not yet authenticated — see computeStatus
+    try {
+      const user = await resolveUserAfterTokens();
+      setState({ user, tokens });
+      persist();
+      if (user.is_anonymous) {
+        sessionManager.markAnonymous();
+      } else {
+        sessionManager.markAuthenticated();
+      }
+    } catch (error) {
+      // Couldn't resolve who these tokens belong to (me() 401/network
+      // failure) — the failure-handling half of the gate: never leave
+      // dangling tokens claiming a session that was never actually
+      // confirmed. `settleRefreshFailure` keeps the existing established-
+      // vs-never-established distinction, so this never fires a "session
+      // expired" banner for a session that hadn't actually started yet.
+      // Never throws.
+      console.warn(
+        "stapel-auth: token refresh succeeded but user resolution failed — clearing tokens, settling unauthenticated",
+        error
+      );
+      setState({ user: null, tokens: null });
+      persist();
+      await settleRefreshFailure("expired");
     }
   }
 
@@ -436,17 +540,15 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
           | undefined)
       : undefined;
     if (stored && (stored.tokens !== null || stored.user !== null)) {
-      // Bearer mode: tokens are the session. Cookie mode: tokens are never
-      // persisted (see `persist`), so a stored user IS the optimistic
-      // session — the HTTP-only cookies ride the next request, and a dead
-      // cookie pair tears the session down via the refresh seam.
-      const authenticated =
-        stored.tokens !== null || (cookieMode && stored.user !== null);
-      setState({
-        user: stored.user,
-        tokens: stored.tokens,
-        status: authenticated ? "authenticated" : "anonymous",
-      });
+      // Bearer mode: tokens are the session (and — `computeStatus`'s
+      // invariant — a user must ALSO be known; a stored token pair with no
+      // user is never trusted as authenticated, only ever produced by a
+      // pre-fix persisted state). Cookie mode: tokens are never persisted
+      // (see `persist`), so a stored user IS the optimistic session — the
+      // HTTP-only cookies ride the next request, and a dead cookie pair
+      // tears the session down via the refresh seam.
+      const authenticated = computeStatus(stored.user, stored.tokens) === "authenticated";
+      setState({ user: stored.user, tokens: stored.tokens });
       if (authenticated) {
         if (stored.user?.is_anonymous) {
           sessionManager.markAnonymous();

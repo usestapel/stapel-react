@@ -38,6 +38,13 @@ describe("cookie-mode bootstrap (owner incident, 2026-07-17)", () => {
     // Cookie mode never attaches a bearer header (the cookie jar IS the
     // auth) — a real "did the cookie-backed session kick in" retry signal
     // has to be call-order based, not header-based.
+    //
+    // Three `/me/` calls, not two (LAYER B, session.ts's `setTokens`): the
+    // ORIGINAL 401, then `setTokens`'s own user-resolution call (the session
+    // has no user yet — nothing was ever adopted here — so it must resolve
+    // one via `me()` BEFORE settling "authenticated", the fix for the
+    // `authenticated && user==null` bug), THEN the client's own retry of the
+    // original request.
     let meCalls = 0;
     server.use(
       http.get(`${BASE}/me/`, () => {
@@ -64,17 +71,19 @@ describe("cookie-mode bootstrap (owner incident, 2026-07-17)", () => {
     const result = await runtime.client.get("/me/");
 
     expect(result).toEqual(testUser());
-    expect(meCalls).toBe(2); // 401 once, succeeds on retry — never gave up
+    expect(meCalls).toBe(3);
     expect(onSessionLost).not.toHaveBeenCalled();
     expect(onTeardown).not.toHaveBeenCalled();
     expect(runtime.session.getState().status).toBe("authenticated");
+    expect(runtime.session.getState().user).toEqual(testUser());
   });
 
-  it("restore() with nothing persisted locally bootstraps via the cookie-backed refresh and reaches 'authenticated'", async () => {
+  it("restore() with nothing persisted locally bootstraps via the cookie-backed refresh, resolves the user (LAYER B), and reaches 'authenticated'", async () => {
     server.use(
       http.get(`${BASE}/token/refresh/`, () =>
         HttpResponse.json({ access: "acc_from_cookie", refresh: "ref_from_cookie" })
-      )
+      ),
+      http.get(`${BASE}/me/`, () => HttpResponse.json(testUser()))
     );
     const onSessionLost = vi.fn();
     const runtime = createAuthRuntime({ baseUrl: BASE, onSessionLost }); // cookieMode defaults true
@@ -84,6 +93,7 @@ describe("cookie-mode bootstrap (owner incident, 2026-07-17)", () => {
 
     expect(runtime.session.getSessionManager().isReady()).toBe(true);
     expect(runtime.session.getState().status).toBe("authenticated");
+    expect(runtime.session.getState().user).toEqual(testUser());
     expect(onSessionLost).not.toHaveBeenCalled(); // a successful bootstrap is not a "loss"
   });
 
