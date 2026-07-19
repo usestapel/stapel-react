@@ -132,6 +132,42 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.sec.oauth.link_unavailable":
     "Привязка нового аккаунта сейчас недоступна.",
 
+  "auth.sec.change.current_value": "Текущий {channel}: {value}",
+  "auth.sec.change.cta": "Изменить {channel}",
+  "auth.sec.change.instant_hint":
+    "Мы отправим код на ваш текущий {channel}, чтобы подтвердить, что это вы, а затем код на новый.",
+  "auth.sec.change.no_access_cta": "Нет доступа к старому {channel}?",
+  "auth.sec.change.old_code_hint": "Введите код, отправленный на {target}",
+  "auth.sec.change.new_value_label": "Новый {channel}",
+  "auth.sec.change.request_new_cta": "Отправить код на новый {channel}",
+  "auth.sec.change.new_code_hint": "Введите код, отправленный на {target}",
+  "auth.sec.change.confirm_cta": "Подтвердить",
+  "auth.sec.change.success": "Ваш {channel} изменён.",
+  "auth.sec.change.retry": "Попробовать снова",
+  "auth.sec.change.delayed_form_hint":
+    "Мы уведомим ваш СТАРЫЙ {channel} и подождём 14 дней перед применением изменения — код со старого {channel} не требуется. Введите новый {channel} ниже.",
+  "auth.sec.change.delayed_submit_cta": "Начать смену (14 дней)",
+  "auth.sec.change.delayed_started": "Смена запрошена. См. ожидающее изменение ниже.",
+  "auth.sec.change.pending_message": "Смена на {value} вступит в силу {date} (через {days} дн.).",
+  "auth.sec.change.pending_note": "Ваш старый {channel} уведомлён об этом изменении.",
+  "auth.sec.change.pending_cancel": "Отменить",
+  "auth.sec.change.cancel_confirm_title": "Отменить это ожидающее изменение?",
+
+  "auth.sec.audit.title": "Журнал безопасности",
+  "auth.sec.audit.empty": "Активности пока нет.",
+  "auth.sec.audit.ip": "IP {ip}",
+  "auth.sec.audit.load_more": "Показать ещё",
+
+  "auth.sec.page.title": "Безопасность",
+  "auth.sec.page.subtitle":
+    "Управляйте способами входа, подключёнными устройствами и активностью аккаунта.",
+  "auth.sec.group.contact": "Контактные данные",
+  "auth.sec.group.password": "Пароль",
+  "auth.sec.group.two_factor": "Двухфакторная аутентификация",
+  "auth.sec.group.devices": "Устройства и сессии",
+  "auth.sec.group.connected": "Подключённые аккаунты",
+  "auth.sec.group.audit": "Журнал безопасности",
+
   "auth.sec.qr.title": "Войти на другом устройстве",
   "auth.sec.qr.subtitle":
     "Отсканируйте этот код камерой устройства, на котором вы не вошли — оно войдёт под этим же аккаунтом.",

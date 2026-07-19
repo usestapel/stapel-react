@@ -11,7 +11,7 @@
  */
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Alert, Badge, Button, Divider, Empty, Flex, Popconfirm, Spin, Tag, Typography } from "antd";
+import { Alert, Badge, Button, Card, Divider, Empty, Flex, Popconfirm, Spin, Tag, Typography } from "antd";
 import { useT } from "@stapel/core";
 import type { AuthSession } from "../../api/types.js";
 import {
@@ -105,17 +105,12 @@ export function SessionsList(props: SessionsListProps = {}): ReactElement {
   const otherCount = list.filter((s) => !s.is_current).length;
 
   return (
-    <Flex vertical gap="middle" style={{ width: "100%" }} data-testid="sessions-list">
-      <Flex justify="space-between" align="flex-start" gap="middle">
-        <div>
-          <Typography.Title level={4} style={{ marginTop: 0 }}>
-            {t(AUTH_I18N_KEYS.secSessionsTitle)}
-          </Typography.Title>
-          <Typography.Text type="secondary">
-            {t(AUTH_I18N_KEYS.secSessionsSubtitle)}
-          </Typography.Text>
-        </div>
-        {otherCount > 0 && (
+    <Card
+      title={t(AUTH_I18N_KEYS.secSessionsTitle)}
+      data-testid="sessions-list"
+      style={{ width: "100%" }}
+      extra={
+        otherCount > 0 && (
           <Popconfirm
             title={t(AUTH_I18N_KEYS.secSessionsSignOutAllConfirmTitle)}
             open={pendingRevokeAll}
@@ -128,33 +123,39 @@ export function SessionsList(props: SessionsListProps = {}): ReactElement {
               {t(AUTH_I18N_KEYS.secSessionsSignOutAll)}
             </Button>
           </Popconfirm>
+        )
+      }
+    >
+      <Flex vertical gap="middle" style={{ width: "100%" }}>
+        <Typography.Text type="secondary">
+          {t(AUTH_I18N_KEYS.secSessionsSubtitle)}
+        </Typography.Text>
+
+        {sessions.isLoading ? (
+          <Spin />
+        ) : sessions.isError ? (
+          <Alert type="error" showIcon message={sessions.error.message} />
+        ) : list.length === 0 ? (
+          <Empty
+            image={props.emptyIcon ?? <SecurityEmptyIcon />}
+            description={t(AUTH_I18N_KEYS.secSessionsEmpty)}
+          />
+        ) : (
+          <Flex vertical>
+            {list.map((s, i) => (
+              <div key={s.id}>
+                {i > 0 && <Divider style={{ margin: "8px 0" }} />}
+                <SessionRow
+                  session={s}
+                  onConfirmMe={() => confirmMe.mutate(s.id)}
+                  onRevoke={() => revokeOne.mutate(s.id)}
+                  revoking={revokeOne.isPending && revokeOne.variables === s.id}
+                />
+              </div>
+            ))}
+          </Flex>
         )}
       </Flex>
-
-      {sessions.isLoading ? (
-        <Spin />
-      ) : sessions.isError ? (
-        <Alert type="error" showIcon message={sessions.error.message} />
-      ) : list.length === 0 ? (
-        <Empty
-          image={props.emptyIcon ?? <SecurityEmptyIcon />}
-          description={t(AUTH_I18N_KEYS.secSessionsEmpty)}
-        />
-      ) : (
-        <Flex vertical>
-          {list.map((s, i) => (
-            <div key={s.id}>
-              {i > 0 && <Divider style={{ margin: "8px 0" }} />}
-              <SessionRow
-                session={s}
-                onConfirmMe={() => confirmMe.mutate(s.id)}
-                onRevoke={() => revokeOne.mutate(s.id)}
-                revoking={revokeOne.isPending && revokeOne.variables === s.id}
-              />
-            </div>
-          ))}
-        </Flex>
-      )}
-    </Flex>
+    </Card>
   );
 }

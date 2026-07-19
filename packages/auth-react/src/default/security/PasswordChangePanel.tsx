@@ -10,7 +10,7 @@
  */
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Button, Flex, Form, Input, Result, Tabs, Typography } from "antd";
+import { Alert, Button, Card, Flex, Form, Input, Result, Tabs, Typography } from "antd";
 import { useFormatFlowError, useT } from "@stapel/core";
 import type { OtpChannel } from "../../api/types.js";
 import { PasswordChange } from "../../headless/PasswordChange.js";
@@ -182,16 +182,27 @@ export function PasswordChangePanel(): ReactElement {
     .filter((m): m is "password" | "email" | "phone" => m === "password" || m === "email" || m === "phone");
   const activeTab = active && tabIds.includes(active as (typeof tabIds)[number]) ? active : tabIds[0];
 
-  if (methods.isLoading) return <Flex justify="center"><Typography.Text type="secondary">…</Typography.Text></Flex>;
-  if (tabIds.length === 0) return <Typography.Text type="secondary">{t(AUTH_I18N_KEYS.secPasswordTitle)}</Typography.Text>;
+  if (methods.isLoading) {
+    return (
+      <Card title={t(AUTH_I18N_KEYS.secPasswordTitle)} style={{ width: "100%" }}>
+        <Flex justify="center">
+          <Typography.Text type="secondary">…</Typography.Text>
+        </Flex>
+      </Card>
+    );
+  }
+  if (tabIds.length === 0) {
+    return <Card title={t(AUTH_I18N_KEYS.secPasswordTitle)} style={{ width: "100%" }} />;
+  }
 
   return (
     <PasswordChange>
       {(bag) => (
-        <Flex vertical gap="middle" style={{ width: "100%" }} data-testid="password-change-panel">
-          <Typography.Title level={4} style={{ margin: 0 }}>
-            {t(AUTH_I18N_KEYS.secPasswordTitle)}
-          </Typography.Title>
+        <Card
+          title={t(AUTH_I18N_KEYS.secPasswordTitle)}
+          data-testid="password-change-panel"
+          style={{ width: "100%" }}
+        >
           {tabIds.length === 1 ? (
             tabIds[0] === "password" ? (
               <OldPasswordTab bag={bag} />
@@ -222,7 +233,7 @@ export function PasswordChangePanel(): ReactElement {
               }))}
             />
           )}
-        </Flex>
+        </Card>
       )}
     </PasswordChange>
   );

@@ -27,7 +27,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Button, Drawer, Flex, Modal, QRCode, Typography } from "antd";
+import { Alert, Button, Card, Drawer, Flex, Modal, QRCode, Typography } from "antd";
 import { useBreakpoint, useFormatFlowError, useT } from "@stapel/core";
 import type { QrLoginBag } from "../../headless/QrLogin.js";
 import type { QrLoginState } from "../../flows/qrLoginFlow.js";
@@ -248,25 +248,22 @@ export function QrDeviceLinkPanel(props: QrDeviceLinkPanelProps): ReactElement {
   );
 
   return (
-    <Flex vertical gap="middle" style={{ width: "100%" }} data-testid="qr-device-link-panel">
-      <div>
-        <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 4 }}>
-          {title}
-        </Typography.Title>
+    <Card title={title} data-testid="qr-device-link-panel" style={{ width: "100%" }}>
+      <Flex vertical gap="middle" style={{ width: "100%" }}>
         <Typography.Text type="secondary">
           {props.subtitle ?? t(AUTH_I18N_KEYS.secQrSubtitle)}
         </Typography.Text>
-      </div>
 
-      <Flex>
-        <Button
-          type="primary"
-          onClick={() => setOpen(true)}
-          data-analytics="none"
-          data-analytics-reason="local-ui-open-qr-dialog"
-        >
-          {t(AUTH_I18N_KEYS.secQrShowCta)}
-        </Button>
+        <Flex>
+          <Button
+            type="primary"
+            onClick={() => setOpen(true)}
+            data-analytics="none"
+            data-analytics-reason="local-ui-open-qr-dialog"
+          >
+            {t(AUTH_I18N_KEYS.secQrShowCta)}
+          </Button>
+        </Flex>
       </Flex>
 
       {isPhone ? (
@@ -278,6 +275,6 @@ export function QrDeviceLinkPanel(props: QrDeviceLinkPanelProps): ReactElement {
           {body}
         </Modal>
       )}
-    </Flex>
+    </Card>
   );
 }

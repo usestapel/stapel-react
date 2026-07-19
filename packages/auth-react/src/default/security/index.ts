@@ -15,3 +15,7 @@ export { OAuthLinks } from "./OAuthLinks.js";
 export type { OAuthLinksProps } from "./OAuthLinks.js";
 export { QrDeviceLinkPanel } from "./QrDeviceLinkPanel.js";
 export type { QrDeviceLinkPanelProps } from "./QrDeviceLinkPanel.js";
+export { AuthenticatorChangePanel } from "./AuthenticatorChangePanel.js";
+export { EmailChangePanel } from "./EmailChangePanel.js";
+export { PhoneChangePanel } from "./PhoneChangePanel.js";
+export { AuditLogPanel } from "./AuditLogPanel.js";

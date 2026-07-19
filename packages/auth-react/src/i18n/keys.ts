@@ -116,6 +116,48 @@ export const AUTH_I18N_KEYS = {
   secOauthUnlinkUnavailable: "auth.sec.oauth.unlink_unavailable",
   secOauthLinkUnavailable: "auth.sec.oauth.link_unavailable",
 
+  // Authenticator (email/phone) change — `AuthenticatorChangePanel` (the
+  // shared, channel-parametrized implementation behind `EmailChangePanel`/
+  // `PhoneChangePanel`), built on the EXISTING `<AuthenticatorChange>`
+  // headless flow (instant) + `useDelayedChangeStatus`/`useCancelDelayedChange`/
+  // `useInitiateDelayedChange` (delayed). `{channel}` params carry the
+  // already-translated channel word (`uiChannelEmail`/`uiChannelPhone`) so one
+  // key bundle serves both panels.
+  secChangeCurrentValue: "auth.sec.change.current_value",
+  secChangeCta: "auth.sec.change.cta",
+  secChangeInstantHint: "auth.sec.change.instant_hint",
+  secChangeNoAccessCta: "auth.sec.change.no_access_cta",
+  secChangeOldCodeHint: "auth.sec.change.old_code_hint",
+  secChangeNewValueLabel: "auth.sec.change.new_value_label",
+  secChangeRequestNewCta: "auth.sec.change.request_new_cta",
+  secChangeNewCodeHint: "auth.sec.change.new_code_hint",
+  secChangeConfirmCta: "auth.sec.change.confirm_cta",
+  secChangeSuccess: "auth.sec.change.success",
+  secChangeRetry: "auth.sec.change.retry",
+  secChangeDelayedFormHint: "auth.sec.change.delayed_form_hint",
+  secChangeDelayedSubmitCta: "auth.sec.change.delayed_submit_cta",
+  secChangeDelayedStarted: "auth.sec.change.delayed_started",
+  secChangePendingMessage: "auth.sec.change.pending_message",
+  secChangePendingNote: "auth.sec.change.pending_note",
+  secChangePendingCancel: "auth.sec.change.pending_cancel",
+  secChangeCancelConfirmTitle: "auth.sec.change.cancel_confirm_title",
+
+  // Security audit log — `AuditLogPanel` (`AuditLogViewSet`, auth-sa.md §16).
+  secAuditTitle: "auth.sec.audit.title",
+  secAuditEmpty: "auth.sec.audit.empty",
+  secAuditIp: "auth.sec.audit.ip",
+  secAuditLoadMore: "auth.sec.audit.load_more",
+
+  // `SecuritySettings` page chrome + its grouped section headings.
+  secPageTitle: "auth.sec.page.title",
+  secPageSubtitle: "auth.sec.page.subtitle",
+  secGroupContact: "auth.sec.group.contact",
+  secGroupPassword: "auth.sec.group.password",
+  secGroupTwoFactor: "auth.sec.group.two_factor",
+  secGroupDevices: "auth.sec.group.devices",
+  secGroupConnected: "auth.sec.group.connected",
+  secGroupAudit: "auth.sec.group.audit",
+
   // QR device-handoff (session_share) — auth-sa.md §8, owner directive point 5
   // + the "call it from anywhere, not just settings" follow-up: title/subtitle
   // are component props with these as English defaults, so a host embedding
@@ -266,6 +308,42 @@ export const authI18nBundleEn: I18nDictionary = {
     "Disconnecting isn't available right now.",
   "auth.sec.oauth.link_unavailable":
     "Connecting a new account isn't available right now.",
+
+  "auth.sec.change.current_value": "Current {channel}: {value}",
+  "auth.sec.change.cta": "Change {channel}",
+  "auth.sec.change.instant_hint":
+    "We'll send a code to your current {channel} to verify it's you, then a code to the new one.",
+  "auth.sec.change.no_access_cta": "No access to your old {channel}?",
+  "auth.sec.change.old_code_hint": "Enter the code sent to {target}",
+  "auth.sec.change.new_value_label": "New {channel}",
+  "auth.sec.change.request_new_cta": "Send code to new {channel}",
+  "auth.sec.change.new_code_hint": "Enter the code sent to {target}",
+  "auth.sec.change.confirm_cta": "Confirm",
+  "auth.sec.change.success": "Your {channel} has been changed.",
+  "auth.sec.change.retry": "Try again",
+  "auth.sec.change.delayed_form_hint":
+    "We'll notify your OLD {channel} and wait 14 days before applying the change — no code from the old {channel} required. Enter your new {channel} below.",
+  "auth.sec.change.delayed_submit_cta": "Start 14-day change",
+  "auth.sec.change.delayed_started": "Change requested. See the pending change below.",
+  "auth.sec.change.pending_message": "Changing to {value} on {date} (in {days} days).",
+  "auth.sec.change.pending_note": "Your old {channel} has been notified of this change.",
+  "auth.sec.change.pending_cancel": "Cancel",
+  "auth.sec.change.cancel_confirm_title": "Cancel this pending change?",
+
+  "auth.sec.audit.title": "Security log",
+  "auth.sec.audit.empty": "No recent activity.",
+  "auth.sec.audit.ip": "IP {ip}",
+  "auth.sec.audit.load_more": "Load more",
+
+  "auth.sec.page.title": "Security",
+  "auth.sec.page.subtitle":
+    "Manage your sign-in methods, connected devices, and account activity.",
+  "auth.sec.group.contact": "Contact details",
+  "auth.sec.group.password": "Password",
+  "auth.sec.group.two_factor": "Two-factor authentication",
+  "auth.sec.group.devices": "Devices & sessions",
+  "auth.sec.group.connected": "Connected accounts",
+  "auth.sec.group.audit": "Security log",
 
   // Backend error codes (auth-sa.md "Error reference")
   "error.401.invalid_credentials": "Incorrect email or password.",

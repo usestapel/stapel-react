@@ -22,7 +22,7 @@
  */
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Alert, Avatar, Button, Empty, Flex, Popconfirm, Tag, Tooltip, Typography } from "antd";
+import { Alert, Avatar, Button, Card, Empty, Flex, Popconfirm, Tag, Tooltip, Typography } from "antd";
 import { useFormatFlowError, useT } from "@stapel/core";
 import { useLinkOAuth, useUnlinkOAuth } from "../../model/mutations.js";
 import { useCapabilities, useOAuthLinks } from "../../model/queries.js";
@@ -66,11 +66,7 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
   }
 
   return (
-    <Flex vertical gap="middle" style={{ width: "100%" }} data-testid="oauth-links">
-      <Typography.Title level={4} style={{ margin: 0 }}>
-        {t(AUTH_I18N_KEYS.secOauthTitle)}
-      </Typography.Title>
-
+    <Card title={t(AUTH_I18N_KEYS.secOauthTitle)} data-testid="oauth-links" style={{ width: "100%" }}>
       {providers.length === 0 ? (
         <Empty
           image={props.emptyIcon ?? <SecurityEmptyIcon />}
@@ -138,6 +134,6 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
         message: unlink.error.message,
         language: unlink.error.language,
       })} />}
-    </Flex>
+    </Card>
   );
 }

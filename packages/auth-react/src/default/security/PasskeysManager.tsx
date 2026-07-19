@@ -20,7 +20,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Alert, Button, Empty, Flex, Popconfirm, Spin, Typography } from "antd";
+import { Alert, Button, Card, Empty, Flex, Popconfirm, Spin, Typography } from "antd";
 import { useFormatFlowError, useT } from "@stapel/core";
 import type { Passkey } from "../../api/types.js";
 import { PasskeyRegistration } from "../../headless/Passkey.js";
@@ -137,11 +137,11 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
   const list = passkeys.data ?? [];
 
   return (
-    <Flex vertical gap="middle" style={{ width: "100%" }} data-testid="passkeys-manager">
-      <Flex justify="space-between" align="center">
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          {t(AUTH_I18N_KEYS.secPasskeysTitle)}
-        </Typography.Title>
+    <Card
+      title={t(AUTH_I18N_KEYS.secPasskeysTitle)}
+      data-testid="passkeys-manager"
+      style={{ width: "100%" }}
+      extra={
         <Button
           type="primary"
           disabled={adding}
@@ -150,8 +150,8 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
         >
           {t(AUTH_I18N_KEYS.secPasskeysAdd)}
         </Button>
-      </Flex>
-
+      }
+    >
       {passkeys.isLoading ? (
         <Spin />
       ) : list.length === 0 && !adding ? (
@@ -179,6 +179,6 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
           )}
         </PasskeyRegistration>
       )}
-    </Flex>
+    </Card>
   );
 }

@@ -14,6 +14,7 @@ import {
   Alert,
   Badge,
   Button,
+  Card,
   Flex,
   Form,
   Input,
@@ -205,39 +206,38 @@ export function TotpManager(): ReactElement {
   }
 
   return (
-    <Flex vertical gap="middle" style={{ width: "100%" }} data-testid="totp-manager">
-      <Flex justify="space-between" align="center">
-        <div>
-          <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 4 }}>
-            {t(AUTH_I18N_KEYS.secTotpTitle)}
-          </Typography.Title>
-          {status.isLoading ? (
-            <Spin size="small" />
-          ) : (
-            <Flex gap="small" align="center">
-              <Typography.Text>
-                {t(enabled ? AUTH_I18N_KEYS.secTotpEnabled : AUTH_I18N_KEYS.secTotpDisabled)}
-              </Typography.Text>
-              {enabled && (
-                <Badge
-                  count={t(AUTH_I18N_KEYS.secTotpBackupRemaining, { n: backupRemaining })}
-                  color={lowBackup ? "orange" : "blue"}
-                />
-              )}
-            </Flex>
+    <Card
+      title={t(AUTH_I18N_KEYS.secTotpTitle)}
+      data-testid="totp-manager"
+      style={{ width: "100%" }}
+      extra={
+        !status.isLoading &&
+        (enabled ? (
+          <Button danger onClick={() => setDisableOpen(true)} data-analytics="none" data-analytics-reason="local-ui-open-disable-dialog">
+            {t(AUTH_I18N_KEYS.secTotpDisable)}
+          </Button>
+        ) : (
+          <Button type="primary" onClick={() => setSetupOpen(true)} data-analytics="none" data-analytics-reason="local-ui-open-setup-dialog">
+            {t(AUTH_I18N_KEYS.secTotpSetUp)}
+          </Button>
+        ))
+      }
+    >
+      {status.isLoading ? (
+        <Spin size="small" />
+      ) : (
+        <Flex gap="small" align="center">
+          <Typography.Text>
+            {t(enabled ? AUTH_I18N_KEYS.secTotpEnabled : AUTH_I18N_KEYS.secTotpDisabled)}
+          </Typography.Text>
+          {enabled && (
+            <Badge
+              count={t(AUTH_I18N_KEYS.secTotpBackupRemaining, { n: backupRemaining })}
+              color={lowBackup ? "orange" : "blue"}
+            />
           )}
-        </div>
-        {!status.isLoading &&
-          (enabled ? (
-            <Button danger onClick={() => setDisableOpen(true)} data-analytics="none" data-analytics-reason="local-ui-open-disable-dialog">
-              {t(AUTH_I18N_KEYS.secTotpDisable)}
-            </Button>
-          ) : (
-            <Button type="primary" onClick={() => setSetupOpen(true)} data-analytics="none" data-analytics-reason="local-ui-open-setup-dialog">
-              {t(AUTH_I18N_KEYS.secTotpSetUp)}
-            </Button>
-          ))}
-      </Flex>
+        </Flex>
+      )}
 
       <Modal
         title={t(AUTH_I18N_KEYS.secTotpSetupTitle)}
@@ -263,6 +263,6 @@ export function TotpManager(): ReactElement {
       >
         <DisableDialogBody onDisabled={() => setDisableOpen(false)} />
       </Modal>
-    </Flex>
+    </Card>
   );
 }

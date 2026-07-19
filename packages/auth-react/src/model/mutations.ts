@@ -5,6 +5,7 @@ import type {
 } from "@tanstack/react-query";
 import type { StapelApiError } from "@stapel/core";
 import type {
+  DelayedChangeInitiatedResponse,
   LinkedOAuthAccount,
   OtpChannel,
   StatusResponse,
@@ -174,6 +175,33 @@ export function useUnlinkOAuth(): UseMutationResult<void, StapelApiError, string
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: authQueryKeys.oauthLinks() });
       void queryClient.invalidateQueries({ queryKey: authQueryKeys.securityStatus() });
+    },
+  };
+  return useMutation(options);
+}
+
+/**
+ * Start a delayed (14-day) authenticator change — no proof of the OLD
+ * channel required, at the cost of a wait + old-channel notifications (auth-
+ * sa.md §9). Invalidates `delayedChange(channel)` on success so the
+ * pending-status query picks up the freshly-created request without a manual
+ * refetch.
+ */
+export function useInitiateDelayedChange(
+  channel: OtpChannel
+): UseMutationResult<DelayedChangeInitiatedResponse, StapelApiError, string> {
+  const api = useAuthApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    DelayedChangeInitiatedResponse,
+    StapelApiError,
+    string
+  > = {
+    mutationFn: (value) => api.changeDelayedInitiate(channel, value),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: authQueryKeys.delayedChange(channel),
+      });
     },
   };
   return useMutation(options);

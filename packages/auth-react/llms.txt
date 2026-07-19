@@ -153,6 +153,7 @@ Request/response schema names are in manifest.json + the generated types.
 - useConfirmSession (mutation) → confirmSession
 - useDelayedChangeStatus (query) → changeDelayedStatus
 - useDisableTotp (mutation) → totpDisable
+- useInitiateDelayedChange (mutation) → changeDelayedInitiate
 - useLinkOAuth (mutation) → oauthLink
 - useLogout (mutation) → logout
 - useMe (query) → me

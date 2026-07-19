@@ -1,28 +1,41 @@
 /**
- * `<SecuritySettings/>` — a single composed "Security" settings screen
- * stacking this pair's six standalone `default/security/*` widgets
- * (`SessionsList`, `TotpManager`, `PasskeysManager`, `PasswordChangePanel`,
- * `OAuthLinks`, `QrDeviceLinkPanel`). Each widget already owns its own data
- * fetching, title, and empty state — this component adds no new backend
- * surface, it only lays them out as one navigable page (the nav-manifest
- * `"auth.security"` entry's component).
+ * `<SecuritySettings/>` — a single composed "Security" settings page,
+ * grouping this pair's `default/security/*` widgets into named sections
+ * (SPEC point 4). Each widget self-wraps in its OWN `<Card title=…>` (see
+ * every widget's own module doc) — this component only supplies the page
+ * title/subtitle and the section grouping, it renders no settings UI itself
+ * and adds no new backend surface.
  *
- * Composed rather than left as six separate menu entries because a host
- * wiring `@stapel/shell-react`'s nav needs ONE component per menu item —
- * six ungrouped tabs would be a worse default than one scrollable settings
- * page with the pair's existing per-section titles standing in as headers.
- * A host that wants the pieces separately still can: every widget stays
+ * Grouping (owner spec, exact order):
+ *   (a) Контактные данные   — EmailChangePanel, PhoneChangePanel
+ *   (b) Пароль              — PasswordChangePanel
+ *   (c) Двухфакторная       — TotpManager, PasskeysManager
+ *   (d) Устройства и сессии — SessionsList, QrDeviceLinkPanel
+ *   (e) Подключённые        — OAuthLinks
+ *   (f) Журнал безопасности — AuditLogPanel
+ *
+ * Composed rather than left as ungrouped tabs because a host wiring
+ * `@stapel/shell-react`'s nav needs ONE component per menu item — this reads
+ * as one scrollable settings page with real section headings instead of a
+ * flat stack (the ironmemo-port failure mode this rebuild fixes: no page
+ * title, no per-section structure, a single `<Divider>`-separated blob). A
+ * host that wants the pieces separately still can: every widget stays
  * individually exported from `./security/index.js`.
  */
-import { Card, Divider, Flex } from "antd";
+import { Flex, Typography } from "antd";
 import type { ReactElement, ReactNode } from "react";
+import { useT } from "@stapel/core";
 import type { WebauthnBinding } from "../headless/Passkey.js";
-import { SessionsList } from "./security/SessionsList.js";
-import { TotpManager } from "./security/TotpManager.js";
+import { AUTH_I18N_KEYS } from "../i18n/keys.js";
+import { AuditLogPanel } from "./security/AuditLogPanel.js";
+import { EmailChangePanel } from "./security/EmailChangePanel.js";
+import { OAuthLinks } from "./security/OAuthLinks.js";
 import { PasskeysManager } from "./security/PasskeysManager.js";
 import { PasswordChangePanel } from "./security/PasswordChangePanel.js";
-import { OAuthLinks } from "./security/OAuthLinks.js";
+import { PhoneChangePanel } from "./security/PhoneChangePanel.js";
 import { QrDeviceLinkPanel } from "./security/QrDeviceLinkPanel.js";
+import { SessionsList } from "./security/SessionsList.js";
+import { TotpManager } from "./security/TotpManager.js";
 
 export interface SecuritySettingsProps {
   /** Drives the passkeys section's `navigator.credentials.create()` ceremony
@@ -40,34 +53,69 @@ export interface SecuritySettingsProps {
   readonly emptyIcon?: ReactNode;
 }
 
-/** Full security settings screen: sessions, TOTP, passkeys, password,
- * connected accounts, and QR device linking — one page. */
-export function SecuritySettings(props: SecuritySettingsProps = {}): ReactElement {
+/** One grouped section: a heading + its widgets, stacked with `gap="middle"`
+ * so each widget's own Card reads as a distinct block within the group. */
+function Section(props: { heading: string; children: ReactNode }): ReactElement {
   return (
-    <Card data-testid="security-settings">
-      <Flex vertical gap="large">
-        <SessionsList {...(props.emptyIcon !== undefined ? { emptyIcon: props.emptyIcon } : {})} />
-        <Divider style={{ margin: 0 }} />
+    <Flex vertical gap="middle" style={{ width: "100%" }}>
+      <Typography.Title level={4} style={{ margin: 0 }}>
+        {props.heading}
+      </Typography.Title>
+      {props.children}
+    </Flex>
+  );
+}
+
+/** Full security settings page: page title/subtitle, then the widgets in
+ * grouped, titled sections — sessions, TOTP, passkeys, password, email/phone
+ * change, connected accounts, QR device linking, and the audit log. */
+export function SecuritySettings(props: SecuritySettingsProps = {}): ReactElement {
+  const t = useT();
+  return (
+    <Flex vertical gap="large" style={{ width: "100%" }} data-testid="security-settings">
+      <div>
+        <Typography.Title level={2} style={{ margin: 0 }}>
+          {t(AUTH_I18N_KEYS.secPageTitle)}
+        </Typography.Title>
+        <Typography.Text type="secondary">{t(AUTH_I18N_KEYS.secPageSubtitle)}</Typography.Text>
+      </div>
+
+      <Section heading={t(AUTH_I18N_KEYS.secGroupContact)}>
+        <EmailChangePanel />
+        <PhoneChangePanel />
+      </Section>
+
+      <Section heading={t(AUTH_I18N_KEYS.secGroupPassword)}>
+        <PasswordChangePanel />
+      </Section>
+
+      <Section heading={t(AUTH_I18N_KEYS.secGroupTwoFactor)}>
         <TotpManager />
-        <Divider style={{ margin: 0 }} />
         <PasskeysManager
           {...(props.webauthnCreate !== undefined ? { webauthnCreate: props.webauthnCreate } : {})}
           {...(props.emptyIcon !== undefined ? { emptyIcon: props.emptyIcon } : {})}
         />
-        <Divider style={{ margin: 0 }} />
-        <PasswordChangePanel />
-        <Divider style={{ margin: 0 }} />
+      </Section>
+
+      <Section heading={t(AUTH_I18N_KEYS.secGroupDevices)}>
+        <SessionsList {...(props.emptyIcon !== undefined ? { emptyIcon: props.emptyIcon } : {})} />
+        <QrDeviceLinkPanel
+          {...(props.qrRedirectUrl !== undefined ? { redirectUrl: props.qrRedirectUrl } : {})}
+        />
+      </Section>
+
+      <Section heading={t(AUTH_I18N_KEYS.secGroupConnected)}>
         <OAuthLinks
           {...(props.getOAuthAccessToken !== undefined
             ? { getAccessToken: props.getOAuthAccessToken }
             : {})}
           {...(props.emptyIcon !== undefined ? { emptyIcon: props.emptyIcon } : {})}
         />
-        <Divider style={{ margin: 0 }} />
-        <QrDeviceLinkPanel
-          {...(props.qrRedirectUrl !== undefined ? { redirectUrl: props.qrRedirectUrl } : {})}
-        />
-      </Flex>
-    </Card>
+      </Section>
+
+      <Section heading={t(AUTH_I18N_KEYS.secGroupAudit)}>
+        <AuditLogPanel />
+      </Section>
+    </Flex>
   );
 }
