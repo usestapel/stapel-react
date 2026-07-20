@@ -312,10 +312,7 @@ export interface components {
              * @example error.404.not_found
              */
             localizable_error: string;
-            /**
-             * @description Human-readable message in English
-             * @example Requested resource not found
-             */
+            /** @description Human-readable fallback/debug message — not reliably English, */
             error: string;
             /**
              * @description Context values for template placeholders
@@ -326,6 +323,8 @@ export interface components {
             params?: {
                 [key: string]: unknown;
             };
+            /** @description Active Django locale `error` was rendered in (e.g */
+            error_language?: string;
         };
         /** @description SubscriptionResponse(plan: str, status: str, stripe_subscription_id: Optional[str], current_period_start: Optional[str], current_period_end: Optional[str], cancelled_at: Optional[str]) */
         SubscriptionResponse: {

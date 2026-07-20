@@ -870,7 +870,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Verify OTP and set new password (for authenticated users).
+         * @description Verify OTP and set new password (for authenticated users). Returns `SimpleStatusResponse` (status=password_changed) normally. If the caller was an anonymous guest session, a successful contact OTP verification here is itself an identity anchor — the same one email_verify/phone_verify promote on — so the account is promoted to registered and this instead returns a full `AuthResponse` (status=REGISTERED) with fresh tokens, since the promotion invalidated the session that was just revoked below.
          *
          *     **Permissions:** `AllowAny`
          */
@@ -1859,6 +1859,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/api/v1/totp/change/delayed/cancel/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Cancel a pending delayed TOTP removal.
+         *
+         *     **Permissions:** `IsServiceRequest, IsSuperUser`
+         */
+        post: operations["auth_api_v1_totp_change_delayed_cancel_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/api/v1/totp/change/delayed/initiate/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Request a delayed TOTP removal — for when the current device is LOST (no code or backup code available), so the instant `/totp/setup/` (replace) or `/totp/disable/` proof-gated paths can't be used. Requires a verified email or phone: it is notified on day 1/7/13 of the cooldown and can cancel the request at any point before it applies. No verified contact on the account -> 400 `no_verified_contact` (a support case, not a self-serve path).
+         *
+         *     **Permissions:** `IsServiceRequest, IsSuperUser`
+         */
+        post: operations["auth_api_v1_totp_change_delayed_initiate_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/api/v1/totp/change/delayed/status/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Status of a pending delayed TOTP removal, if any.
+         *
+         *     **Permissions:** `IsServiceRequest, IsSuperUser`
+         */
+        get: operations["auth_api_v1_totp_change_delayed_status_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/api/v1/totp/disable/": {
         parameters: {
             query?: never;
@@ -1911,7 +1974,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Start TOTP enrollment. Returns a secret and otpauth URI for QR display.
+         * @description Start TOTP enrollment. Returns a secret and otpauth URI for QR display. If TOTP is already enabled (replacing an existing device), `code` or `backup_code` proving the CURRENT device is required — otherwise this returns 400 `totp_proof_required`. Lost the current device entirely? Use `/totp/change/delayed/initiate/` instead.
          *
          *     **Permissions:** `IsServiceRequest, IsSuperUser`
          */
@@ -2294,7 +2357,7 @@ export interface components {
         AuthMethodInfo: {
             /** @description Method identifier — one of email, phone, password, passkey, qr, */
             id: string;
-            /** @description Whether this method is currently available (mirrors the */
+            /** @description Whether this method is currently available for LOGIN */
             enabled: boolean;
             /** @description Where the client renders this method's trigger. One of */
             placement: string;
@@ -2306,6 +2369,10 @@ export interface components {
             icon_svg: string;
             /** @description Whether this method's OTP delivery is mocked in this */
             mock?: boolean;
+            /** @description Whether this method can be used to sign in to an EXISTING */
+            can_login?: boolean;
+            /** @description Whether this method can be used to establish a NEW */
+            can_register?: boolean;
         };
         /** @description Authentication response with user data and tokens. */
         AuthResponse: {
@@ -2338,10 +2405,11 @@ export interface components {
          * @description * `email` - Email
          *     * `phone` - Phone
          *     * `oauth` - OAuth
+         *     * `sso` - SSO
          *     * `anonymous` - Anonymous
          * @enum {string}
          */
-        AuthTypeEnum: "email" | "phone" | "oauth" | "anonymous";
+        AuthTypeEnum: "email" | "phone" | "oauth" | "sso" | "anonymous";
         /** @description Status of an account closure request. */
         ClosureStatusDTO: {
             /**
@@ -2851,6 +2919,7 @@ export interface components {
              */
             has_password: boolean;
         };
+        PasswordOtpChangeResponse: components["schemas"]["AuthResponse"] | components["schemas"]["SimpleStatusResponse"];
         PasswordOtpRequest: {
             method: components["schemas"]["Method204Enum"];
         };
@@ -3259,10 +3328,10 @@ export interface components {
         /** @description Generic operation status acknowledgment. */
         SimpleStatusResponse: {
             /**
-             * @description Short status key describing the completed action
-             * @example ok
+             * @description Short status key describing the completed action (enum property replaced by openapi-typescript)
+             * @enum {string}
              */
-            status: string;
+            status: "None";
         };
         /**
          * @description Assign a staff role: target user UUID + a role name from the
@@ -3339,6 +3408,10 @@ export interface components {
             /** @description One-time backup code. */
             backup_code?: string;
         };
+        /** @description Initiate a delayed (14-day) TOTP removal — no old-device proof available. */
+        TOTPDelayedInitiate: {
+            device_id?: string;
+        };
         TOTPDisableRequest: components["schemas"]["_TOTPDisableByTOTP"] | components["schemas"]["_TOTPDisableByBackup"] | components["schemas"]["_TOTPDisableByOTP"];
         TOTPSetupConfirm: {
             /** @description 6-digit code from authenticator app. */
@@ -3354,6 +3427,19 @@ export interface components {
              *     ]
              */
             backup_codes: unknown[];
+        };
+        /**
+         * @description Optional proof for a *replace* (an active device already exists).
+         *
+         *     Both fields are optional because first-time enrollment (no active
+         *     device) needs neither — TOTPService.setup() only enforces one of them
+         *     when there is something to prove possession of.
+         */
+        TOTPSetupRequest: {
+            /** @description 6-digit code from the CURRENT authenticator app (required to replace an active device). */
+            code?: string;
+            /** @description A current backup code (alternative to code, to replace an active device). */
+            backup_code?: string;
         };
         /** @description TOTP enrollment data — pass to authenticator app. */
         TOTPSetupResponse: {
@@ -4749,12 +4835,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PasswordOtpChangeResponse"];
+                };
             };
             400: {
                 headers: {
@@ -6322,6 +6409,91 @@ export interface operations {
             };
         };
     };
+    auth_api_v1_totp_change_delayed_cancel_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DelayedChangeCancel"];
+                "application/x-www-form-urlencoded": components["schemas"]["DelayedChangeCancel"];
+                "multipart/form-data": components["schemas"]["DelayedChangeCancel"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DelayedCancelResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    auth_api_v1_totp_change_delayed_initiate_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["TOTPDelayedInitiate"];
+                "application/x-www-form-urlencoded": components["schemas"]["TOTPDelayedInitiate"];
+                "multipart/form-data": components["schemas"]["TOTPDelayedInitiate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DelayedInitiateResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    auth_api_v1_totp_change_delayed_status_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DelayedStatusResponse"];
+                };
+            };
+        };
+    };
     auth_api_v1_totp_disable_create: {
         parameters: {
             query?: never;
@@ -6387,7 +6559,13 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["TOTPSetupRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["TOTPSetupRequest"];
+                "multipart/form-data": components["schemas"]["TOTPSetupRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -6395,6 +6573,14 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TOTPSetupResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
         };

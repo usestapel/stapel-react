@@ -139,7 +139,7 @@ export interface components {
             language?: string | null;
             /** @default true */
             diarization_enabled: boolean;
-            filename?: string;
+            filename: string;
         };
         /** @description CreateRecordingResponse(recording: 'RecordingDTO', upload: 'UploadSessionDTO') */
         CreateRecordingResponse: {

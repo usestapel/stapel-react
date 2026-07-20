@@ -33,3 +33,14 @@ if (typeof globalThis.ResizeObserver === "undefined") {
     disconnect(): void {}
   } as unknown as typeof ResizeObserver;
 }
+
+// jsdom throws "Not implemented" when getComputedStyle is called with a
+// pseudo-element arg — Ant Design v6 (the bumped default skin) does exactly
+// that on some component mounts. This surfaced ONLY on the CI release runner
+// (a jsdom/env difference), failing the publish. Drop the second arg and
+// delegate to jsdom's real one-arg implementation.
+if (typeof window !== "undefined" && typeof window.getComputedStyle === "function") {
+  const realGetComputedStyle = window.getComputedStyle.bind(window);
+  window.getComputedStyle = ((elt: Element) =>
+    realGetComputedStyle(elt)) as typeof window.getComputedStyle;
+}
