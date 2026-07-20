@@ -35,11 +35,13 @@ export { StapelProvider } from "./provider.js";
 export type { StapelProviderProps } from "./provider.js";
 
 // query layer + persistence
-export { createStapelQueryClient } from "./query.js";
+export { createStapelQueryClient, createMeCachePersister } from "./query.js";
 export type {
   StapelQueryRuntime,
   StapelQueryClientOptions,
   PersistStorage,
+  MeCachePersister,
+  MeCachePersisterOptions,
 } from "./query.js";
 
 // i18n engine
