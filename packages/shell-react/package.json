@@ -1,6 +1,6 @@
 {
   "name": "@stapel/shell-react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Scripted-fullstack navigation shell (Ф1 lib-side core): resolveNav merges installed pairs' nav-manifests + a project's override file into a nav tree (pure, no React), and the /default AppShell renders it as a responsive antd Layout (Sider desktop, Drawer phone/tablet) around a react-router <Outlet/>.",
   "license": "MIT",
   "repository": {

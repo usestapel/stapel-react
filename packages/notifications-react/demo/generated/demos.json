@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/notifications-react",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "demos": [
     {
       "id": "notifications.device_registration",
