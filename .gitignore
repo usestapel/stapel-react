@@ -6,3 +6,7 @@ coverage/
 .DS_Store
 *.tsbuildinfo
 .eslintcache
+
+# build-time sibling checkouts (pnpm gen clones siblings here — never commit)
+.errors-source/
+.other-source/
