@@ -10,5 +10,13 @@ export default defineConfig({
     testTimeout: 30_000,
     hookTimeout: 30_000,
     setupFiles: ["./test/vitest.setup.ts"],
+    // auth-react is the largest jsdom suite; running its files across many
+    // parallel forks WHILE turbo runs every other package's suite at once
+    // pushed a jsdom worker to SIGSEGV (exit 139) on the release runner —
+    // all tests PASS, a worker just crashes on teardown, failing the publish.
+    // One forked process for this package: stable, fewer forks under the
+    // aggregate load, only marginally slower (tests already pass in seconds).
+    pool: "forks",
+    poolOptions: { forks: { singleFork: true } },
   },
 });
