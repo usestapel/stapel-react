@@ -1,5 +1,19 @@
 # @stapel/auth-react
 
+## 0.7.0
+
+### Minor Changes
+
+- 2a7dd6f: TOTP change UI for stapel-auth's ≥0.9.0 TOTP-change surface (`/totp/setup/` proof-gated replace + `/totp/change/delayed/*` removal) — the API client was regenerated against the new backend schema first (`pnpm gen:api`/`gen:errors`/`gen:manifest`), then the UI built against the resulting generated types.
+
+  - **`TotpSetup` headless flow / `TotpSetupBag.start()`** now accepts an optional `{ code?, backup_code? }` proof. Replacing an already-active device without proof surfaces the backend's 400 `totp_proof_required` as a new `"proofRequired"` step (rather than the generic `"startError"`) — `error` on that step is only set once a _supplied_ proof was rejected, so the first, un-proved attempt doesn't flash a spurious error.
+  - **New delayed-removal ("lost device") surface**: `useTotpDelayedChangeStatus` (query), `useInitiateTotpDelayedChange`/`useCancelTotpDelayedChange` (mutations) — plain CRUD hooks mirroring the existing email/phone `useDelayedChangeStatus`/`useInitiateDelayedChange`/`useCancelDelayedChange`, reusing the SAME `DelayedChangeInitiatedResponse`/`DelayedChangeStatus` response shapes (the backend runs the identical `AuthenticatorChangeRequest` machine — 14-day cooldown, day-1/7/13 notifications, cancel window — just ending in a TOTP disable instead of a contact swap).
+  - **`<TotpManager/>`** (default skin) now offers, when a device is active: a **Replace** action that opens straight on a proof-collection form (never fires a proof-less request the backend would just 400 on) and, from there, a **"Lost your authenticator?"** link into the delayed-removal flow — mirroring `AuthenticatorChangePanel`'s instant/delayed split and its "no access to old {channel}?" placement. A pending delayed removal short-circuits the whole card to a pending banner (scheduled date, days remaining, cancel) on mount, same rule `AuthenticatorChangePanel` already follows. `no_verified_contact` on initiate renders a dead-end `Result` (contact support), not another retry of the same form.
+  - New i18n keys (en + ru) for all of the above; no new headless component (the new UI reuses the existing `TotpSetup` headless export, now with a wider `start()` signature), so no new demo was needed — `gen:demos`'s completeness gate already passes.
+  - `dist/index.js`/`dist/i18n/ru.js` size-limit budgets bumped (15 KB→15.5 KB, 9.5 KB→10 KB) for the added surface.
+
+- cff85d2: `useMe` is now cache-first / stale-while-revalidate: `staleTime: 0` makes it unconditionally revalidate on every mount via TanStack Query's default `refetchOnMount`, regardless of how fresh a hydrated `/me` snapshot looks. Pair it with `@stapel/core`'s new `createMeCachePersister` — wire `<StapelProvider meCacheQueryKeys={[authQueryKeys.me()]}>` — and a cold load paints the last-known user instantly from `localStorage`, then updates once the network responds. No wiring, no persister: behavior is unchanged (a normal fetch-on-mount query).
+
 ## 0.6.0
 
 ### Minor Changes

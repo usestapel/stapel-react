@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/auth-react",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "backend": {
     "module": "stapel-auth",
-    "contract": ">=0.9 <0.10"
+    "contract": ">=0.7 <0.8"
   },
   "layers": [
     "api",
@@ -418,7 +418,7 @@
       "path": "/auth/api/v1/password/change/otp/verify/",
       "tag": "Password Auth",
       "request": "PasswordOtpVerify",
-      "response": "PasswordOtpChangeResponse"
+      "response": null
     },
     "auth_api_v1_password_login_create": {
       "method": "POST",
@@ -791,27 +791,6 @@
       "request": "TOTPChallengeVerify",
       "response": null
     },
-    "auth_api_v1_totp_change_delayed_cancel_create": {
-      "method": "POST",
-      "path": "/auth/api/v1/totp/change/delayed/cancel/",
-      "tag": "auth",
-      "request": "DelayedChangeCancel",
-      "response": "DelayedCancelResponse"
-    },
-    "auth_api_v1_totp_change_delayed_initiate_create": {
-      "method": "POST",
-      "path": "/auth/api/v1/totp/change/delayed/initiate/",
-      "tag": "auth",
-      "request": "TOTPDelayedInitiate",
-      "response": "DelayedInitiateResponse"
-    },
-    "auth_api_v1_totp_change_delayed_status_retrieve": {
-      "method": "GET",
-      "path": "/auth/api/v1/totp/change/delayed/status/",
-      "tag": "auth",
-      "request": null,
-      "response": "DelayedStatusResponse"
-    },
     "auth_api_v1_totp_disable_create": {
       "method": "POST",
       "path": "/auth/api/v1/totp/disable/",
@@ -837,7 +816,7 @@
       "method": "POST",
       "path": "/auth/api/v1/totp/setup/",
       "tag": "auth",
-      "request": "TOTPSetupRequest",
+      "request": null,
       "response": "TOTPSetupResponse"
     },
     "auth_api_v1_user_account_cancel_close_create": {
@@ -1461,20 +1440,10 @@
       "params": [],
       "remediation": "fix_input"
     },
-    "error.400.totp_not_enabled": {
-      "status": 400,
-      "params": [],
-      "remediation": "fix_input"
-    },
     "error.400.totp_not_pending": {
       "status": 400,
       "params": [],
       "remediation": "retry"
-    },
-    "error.400.totp_proof_required": {
-      "status": 400,
-      "params": [],
-      "remediation": "verify"
     },
     "error.400.unknown_staff_role": {
       "status": 400,
@@ -2261,9 +2230,7 @@
     "error.400.sso_not_configured",
     "error.400.staff_role_target_not_staff",
     "error.400.token_required",
-    "error.400.totp_not_enabled",
     "error.400.totp_not_pending",
-    "error.400.totp_proof_required",
     "error.400.unknown_staff_role",
     "error.400.validation_error",
     "error.400.verification_failed",
