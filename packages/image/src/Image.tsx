@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ImgHTMLAttributes, ReactElement } from "react";
 import { chooseVariant } from "./tiers.js";
-import type { Fit, RenderMetadata, VariantMeta } from "./tiers.js";
+import type { Fit, StapelImage, VariantMeta } from "./tiers.js";
 import { useImageSlot } from "./useImageSlot.js";
 
 export interface ImageProps
   extends Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "srcSet" | "alt"> {
-  meta: RenderMetadata;
+  /** A source-agnostic `StapelImage` (`stapel_core.media`). With a variant
+   * ladder → the right tier is picked from the measured slot; without one
+   * (a `"link"` / unprocessed file) → the single `url` is shown. */
+  meta: StapelImage;
   /** Default `"cover"` (chat/catalog/avatar — fill the slot). */
   fit?: Fit;
   /** Required, no default. */
@@ -48,10 +51,14 @@ export function Image({
   const displayedRef = useRef<VariantMeta | undefined>(undefined);
 
   const target = useMemo(() => {
-    if (size === undefined || size.width <= 0 || size.height <= 0) {
-      return undefined;
-    }
+    // No ladder (a "link" / unprocessed file): the single top-level url is all
+    // there is — show it immediately, no slot measurement needed.
     if (meta.variants.length === 0) {
+      return meta.url
+        ? ({ tier: "original", branch: null, url: meta.url, width: meta.width, height: meta.height } as VariantMeta)
+        : undefined;
+    }
+    if (size === undefined || size.width <= 0 || size.height <= 0) {
       return undefined;
     }
     const dpr = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
@@ -60,7 +67,7 @@ export function Image({
         slotWidthCss: size.width,
         slotHeightCss: size.height,
         dpr,
-        imgAspect: meta.aspect,
+        imgAspect: meta.aspect ?? 1,
         fit,
       },
       meta
@@ -74,7 +81,8 @@ export function Image({
     const current = displayedRef.current;
     // Upgrade only (§4): never replace an already-rendered variant with an
     // equal or smaller one (resize jitter, transient shrink).
-    if (current !== undefined && target.width * target.height <= current.width * current.height) {
+    const area = (v: VariantMeta): number => (v.width ?? 0) * (v.height ?? 0);
+    if (current !== undefined && area(target) <= area(current)) {
       return;
     }
     let cancelled = false;
@@ -115,13 +123,15 @@ export function Image({
   const containerStyle: CSSProperties = {
     position: "relative",
     overflow: "hidden",
-    aspectRatio: String(meta.aspect),
+    // Layout-shift protection from the snapshot — only when the aspect is
+    // actually known (a "link" image may not carry one).
+    ...(meta.aspect ? { aspectRatio: String(meta.aspect) } : {}),
     ...style,
   };
 
   return (
     <div ref={ref} className={className} style={containerStyle}>
-      {meta.preview_b64 !== undefined && (
+      {meta.preview_b64 != null && (
         <img
           src={meta.preview_b64}
           alt=""

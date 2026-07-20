@@ -77,14 +77,14 @@ const PREVIEW_TIERS = [160, 240, 480, 560, 720, 1080];
 
 function portraitMeta(): RenderMetadata {
   const variants: VariantMeta[] = [
-    { tier: 32, branch: null, url: "cdn://img/32.webp", width: 32, height: 43 },
-    { tier: 64, branch: null, url: "cdn://img/64.webp", width: 64, height: 85 },
-    { tier: 120, branch: null, url: "cdn://img/120.webp", width: 120, height: 160 },
+    { tier: "32", branch: null, url: "cdn://img/32.webp", width: 32, height: 43 },
+    { tier: "64", branch: null, url: "cdn://img/64.webp", width: 64, height: 85 },
+    { tier: "120", branch: null, url: "cdn://img/120.webp", width: 120, height: 160 },
   ];
   for (const tier of PREVIEW_TIERS) {
     variants.push(
-      { tier, branch: "w", url: `cdn://img/${tier}w.webp`, width: tier, height: Math.round(tier / 0.75) },
-      { tier, branch: "h", url: `cdn://img/${tier}h.webp`, width: Math.round(tier * 0.75), height: tier }
+      { tier: String(tier), branch: "w", url: `cdn://img/${tier}w.webp`, width: tier, height: Math.round(tier / 0.75) },
+      { tier: String(tier), branch: "h", url: `cdn://img/${tier}h.webp`, width: Math.round(tier * 0.75), height: tier }
     );
   }
   variants.push({
@@ -122,7 +122,7 @@ describe("chooseVariant — axis + DPR + ladder over metadata (§3.5, §4)", () 
       { slotWidthCss: 640, slotHeightCss: 360, dpr: 1, imgAspect: 0.75, fit: "cover" },
       portraitMeta()
     );
-    expect(v).toMatchObject({ tier: 720, branch: "w" }); // 640 > 560×1.1=616 → 720
+    expect(v).toMatchObject({ tier: "720", branch: "w" }); // 640 > 560×1.1=616 → 720
   });
 
   it("DPR is part of the budget: 400css × dpr2 = 800 → 1080 (720×1.1=792 < 800)", () => {
@@ -130,7 +130,7 @@ describe("chooseVariant — axis + DPR + ladder over metadata (§3.5, §4)", () 
       { slotWidthCss: 400, slotHeightCss: 225, dpr: 2, imgAspect: 0.75, fit: "cover" },
       portraitMeta()
     );
-    expect(v).toMatchObject({ tier: 1080, branch: "w" });
+    expect(v).toMatchObject({ tier: "1080", branch: "w" });
   });
 
   it("contain flips the axis: portrait in a wide slot → h-branch", () => {
@@ -139,7 +139,7 @@ describe("chooseVariant — axis + DPR + ladder over metadata (§3.5, §4)", () 
       portraitMeta()
     );
     // Ri < Rs, contain → h; needed 360 > 240×1.1=264 → 480.
-    expect(v).toMatchObject({ tier: 480, branch: "h" });
+    expect(v).toMatchObject({ tier: "480", branch: "h" });
   });
 
   it("needed past the whole ladder → original (no upscale, §2.2)", () => {
@@ -157,7 +157,7 @@ describe("chooseVariant — axis + DPR + ladder over metadata (§3.5, §4)", () 
       portraitMeta()
     );
     // Ri<Rs=1 → w, needed 64; min-side 64 variant guarantees both sides ≥ 64.
-    expect(v).toMatchObject({ tier: 64, branch: null });
+    expect(v).toMatchObject({ tier: "64", branch: null });
   });
 
   it("square=true makes branch irrelevant — the single stored branch is picked", () => {
@@ -169,8 +169,8 @@ describe("chooseVariant — axis + DPR + ladder over metadata (§3.5, §4)", () 
       aspect: 1,
       square: true,
       variants: [
-        { tier: 560, branch: "w", url: "cdn://sq/560w.webp", width: 560, height: 560 },
-        { tier: 720, branch: "w", url: "cdn://sq/720w.webp", width: 720, height: 720 },
+        { tier: "560", branch: "w", url: "cdn://sq/560w.webp", width: 560, height: 560 },
+        { tier: "720", branch: "w", url: "cdn://sq/720w.webp", width: 720, height: 720 },
         { tier: "original", branch: null, url: "cdn://sq/original.webp", width: 800, height: 800 },
       ],
     };
@@ -180,7 +180,7 @@ describe("chooseVariant — axis + DPR + ladder over metadata (§3.5, §4)", () 
       meta
     );
     // Ri=1 > Rs=0.5, cover → h; there is no h-branch, but square ⇒ w serves it.
-    expect(v).toMatchObject({ tier: 560, branch: "w" });
+    expect(v).toMatchObject({ tier: "560", branch: "w" });
   });
 
   it("falls back to original when there are no numeric variants", () => {

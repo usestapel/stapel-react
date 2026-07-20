@@ -2,10 +2,15 @@
 // (docs/pending/images-and-cdn.md §2-3, §5). No DOM, no React — unit-testable
 // against the owner's examples verbatim and reusable outside the component.
 
-/** One generated variant file of an image (images-and-cdn.md §5). */
+/** One generated variant file of an image (images-and-cdn.md §5).
+ *
+ * `tier` is a STRING on the wire: a numeric px value as its decimal string
+ * (`"320"`) or the literal `"original"`. The backend emits it stringified so a
+ * dataclass-declared contract (`stapel_core.media.dto`) stays one scalar type;
+ * the tier math here parses the numeric ones back (`numericTier`). */
 export interface VariantMeta {
-  /** Ladder tier (px along the branch axis) or the untouched original. */
-  tier: number | "original";
+  /** Ladder tier px as a decimal string (`"320"`), or `"original"`. */
+  tier: string;
   /**
    * `"w"` / `"h"` — preview-class branch (resize so that width/height == tier);
    * `null` — thumbnail-class (min-side resize) and `"original"`.
@@ -13,9 +18,37 @@ export interface VariantMeta {
   branch: "w" | "h" | null;
   url: string;
   /** Actual pixel width of the file (after the no-upscale cap on native). */
-  width: number;
+  width: number | null;
   /** Actual pixel height of the file (after the no-upscale cap on native). */
-  height: number;
+  height: number | null;
+}
+
+/** The numeric px value of a tier, or `null` for the `"original"` sentinel. */
+export function numericTier(tier: string): number | null {
+  if (tier === "original") return null;
+  const n = Number(tier);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * A SOURCE-AGNOSTIC image descriptor (`stapel_core.media.StapelImage`) — the
+ * single contract `<Image>` consumes for ANY image, CDN ladder or not. A
+ * superset of `RenderMetadata`: adds `source` + an always-present top-level
+ * `url`. `variants` is the ladder when present, or `[]` for a `"link"`
+ * (external URL) / unprocessed file, in which case `<Image>` degrades to the
+ * single `url` + `aspect` (layout) + `preview_b64` (blur-up, when available).
+ */
+export interface StapelImage {
+  source: "cdn" | "file" | "link";
+  /** Always present — the display URL when there is no ladder. */
+  url: string;
+  mime: string | null;
+  width: number | null;
+  height: number | null;
+  aspect: number | null;
+  square: boolean;
+  preview_b64: string | null;
+  variants: VariantMeta[];
 }
 
 /**
@@ -103,7 +136,10 @@ export interface ChooseVariantArgs {
  * Past the top of the ladder (needed > maxTier × 1.1) the "original" variant
  * is returned when present — no tier would avoid an upscale (§2.2).
  */
-export function chooseVariant(args: ChooseVariantArgs, meta: RenderMetadata): VariantMeta {
+export function chooseVariant(
+  args: ChooseVariantArgs,
+  meta: { variants: VariantMeta[]; square?: boolean }
+): VariantMeta {
   const { slotWidthCss, slotHeightCss, dpr, imgAspect, fit } = args;
   const slotAspect = slotWidthCss / slotHeightCss;
   const axis = limitingAxis(imgAspect, slotAspect, fit);
@@ -111,8 +147,9 @@ export function chooseVariant(args: ChooseVariantArgs, meta: RenderMetadata): Va
 
   const square = meta.square === true;
   const candidates = meta.variants.filter(
-    (v): v is VariantMeta & { tier: number } =>
-      typeof v.tier === "number" && (square || v.branch === null || v.branch === axis)
+    (v) =>
+      numericTier(v.tier) !== null &&
+      (square || v.branch === null || v.branch === axis)
   );
   const original = meta.variants.find((v) => v.tier === "original");
 
@@ -123,20 +160,20 @@ export function chooseVariant(args: ChooseVariantArgs, meta: RenderMetadata): Va
     throw new TypeError("chooseVariant: metadata has no usable variants");
   }
 
-  const tiers = [...new Set(candidates.map((v) => v.tier))];
+  const tiers = [...new Set(candidates.map((v) => numericTier(v.tier) as number))];
   const maxTier = Math.max(...tiers);
   if (neededPx > maxTier * 1.1 && original !== undefined) {
     return original;
   }
 
   const tier = pickTier(neededPx, tiers);
-  const exact = candidates.find((v) => v.tier === tier && v.branch === axis);
+  const exact = candidates.find((v) => numericTier(v.tier) === tier && v.branch === axis);
   if (exact !== undefined) {
     return exact;
   }
-  const minSide = candidates.find((v) => v.tier === tier && v.branch === null);
+  const minSide = candidates.find((v) => numericTier(v.tier) === tier && v.branch === null);
   if (minSide !== undefined) {
     return minSide;
   }
-  return candidates.find((v) => v.tier === tier) as VariantMeta;
+  return candidates.find((v) => numericTier(v.tier) === tier) as VariantMeta;
 }

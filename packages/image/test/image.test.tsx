@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Image } from "../src/Image.js";
-import type { RenderMetadata, VariantMeta } from "../src/tiers.js";
+import type { StapelImage, VariantMeta } from "../src/tiers.js";
 
 class MockResizeObserver {
   static instances: MockResizeObserver[] = [];
@@ -43,16 +43,16 @@ function lastObserver(): MockResizeObserver {
 
 const PREVIEW_TIERS = [160, 240, 480, 560, 720, 1080];
 
-function portraitMeta(): RenderMetadata {
+function portraitMeta(): StapelImage {
   const variants: VariantMeta[] = [
-    { tier: 32, branch: null, url: "cdn://img/32.webp", width: 32, height: 43 },
-    { tier: 64, branch: null, url: "cdn://img/64.webp", width: 64, height: 85 },
-    { tier: 120, branch: null, url: "cdn://img/120.webp", width: 120, height: 160 },
+    { tier: "32", branch: null, url: "cdn://img/32.webp", width: 32, height: 43 },
+    { tier: "64", branch: null, url: "cdn://img/64.webp", width: 64, height: 85 },
+    { tier: "120", branch: null, url: "cdn://img/120.webp", width: 120, height: 160 },
   ];
   for (const tier of PREVIEW_TIERS) {
     variants.push(
-      { tier, branch: "w", url: `cdn://img/${tier}w.webp`, width: tier, height: Math.round(tier / 0.75) },
-      { tier, branch: "h", url: `cdn://img/${tier}h.webp`, width: Math.round(tier * 0.75), height: tier }
+      { tier: String(tier), branch: "w", url: `cdn://img/${tier}w.webp`, width: tier, height: Math.round(tier / 0.75) },
+      { tier: String(tier), branch: "h", url: `cdn://img/${tier}h.webp`, width: Math.round(tier * 0.75), height: tier }
     );
   }
   variants.push({
@@ -63,14 +63,14 @@ function portraitMeta(): RenderMetadata {
     height: 4032,
   });
   return {
+    source: "cdn",
+    url: "cdn://img/original.webp",
     mime: "image/webp",
-    bytes: 234221,
     width: 3024,
     height: 4032,
     aspect: 0.75,
-    duration_ms: null,
-    preview_b64: "data:image/webp;base64,UklGRi4A",
     square: false,
+    preview_b64: "data:image/webp;base64,UklGRi4A",
     variants,
   };
 }
@@ -106,6 +106,28 @@ describe("<Image>", () => {
     expect(blur?.getAttribute("src")).toBe(meta.preview_b64);
     // The real image has not been chosen yet — no measurement happened.
     expect(screen.queryByAltText("photo")).toBeNull();
+  });
+
+  it("degrades to the single url when there is no ladder (a link / unprocessed file)", async () => {
+    const link: StapelImage = {
+      source: "link",
+      url: "https://cdn.example/oauth-avatar.png",
+      mime: null,
+      width: null,
+      height: null,
+      aspect: null,
+      square: false,
+      preview_b64: null,
+      variants: [],
+    };
+    const { container } = render(<Image meta={link} alt="avatar" />);
+    // No measurement needed — the single url shows immediately.
+    const img = await screen.findByAltText("avatar");
+    expect(img.getAttribute("src")).toBe("https://cdn.example/oauth-avatar.png");
+    // No aspect known → no aspect-ratio pinned, no blur-up layer.
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.style.aspectRatio).toBe("");
+    expect(container.querySelector("img[aria-hidden='true']")).toBeNull();
   });
 
   it("picks the branch/tier from the measured slot (owner's case: portrait in a wide slot → w)", async () => {
