@@ -14,12 +14,12 @@
 import { useMemo, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import type { QueryClient } from "@tanstack/react-query";
+import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { createStapelClient } from "./client.js";
 import type { StapelClient } from "./client.js";
 import { StapelConfigProvider } from "./config.js";
 import type { StapelConfig } from "./config.js";
-import { createStapelQueryClient } from "./query.js";
+import { createStapelQueryClient, createMeCachePersister } from "./query.js";
 import type { StapelQueryRuntime } from "./query.js";
 import { createI18n, I18nProvider } from "./i18n.js";
 import type { I18nEngine } from "./i18n.js";
@@ -59,6 +59,18 @@ export interface StapelProviderProps {
    */
   readonly queryRuntime?: StapelQueryRuntime;
   /**
+   * Query keys to hydrate/persist cache-first via
+   * {@link createMeCachePersister} — the "/me-class" queries (current user,
+   * current profile, …) that should render from localStorage INSTANTLY on a
+   * cold load, before the network has a chance to respond (e.g.
+   * `[authQueryKeys.me(), profilesQueryKeys.me()]`). Distinct from the
+   * per-user namespaces above: on a cold load the user id isn't known yet —
+   * that's what these queries are about to tell us — so this hydrates
+   * synchronously, before the tree below mounts. Omit to skip cache-first
+   * /me persistence entirely (default: off).
+   */
+  readonly meCacheQueryKeys?: readonly QueryKey[];
+  /**
    * Escape hatch: bring your own {@link I18nEngine} (from `createI18n`) when
    * you register pair bundles / locale loaders at module scope. Wins over
    * `locale`.
@@ -74,8 +86,16 @@ export interface StapelProviderProps {
  * `queryRuntime` / `i18n` if you need to control their lifecycle.
  */
 export function StapelProvider(props: StapelProviderProps): ReactElement {
-  const { baseUrl, client, queryRuntime, queryClient, cacheVersion, i18n, locale } =
-    props;
+  const {
+    baseUrl,
+    client,
+    queryRuntime,
+    queryClient,
+    cacheVersion,
+    i18n,
+    locale,
+    meCacheQueryKeys,
+  } = props;
   const [defaults] = useState(() => {
     const resolvedClient =
       client ?? (baseUrl !== undefined ? createStapelClient({ baseUrl }) : null);
@@ -90,6 +110,15 @@ export function StapelProvider(props: StapelProviderProps): ReactElement {
         ...(cacheVersion !== undefined ? { cacheVersion } : {}),
         ...(queryClient !== undefined ? { queryClient } : {}),
       });
+    // Synchronous — must run in THIS lazy initializer (not an effect) so the
+    // /me-class cache is hydrated before the tree below ever mounts, i.e.
+    // before the first render of any `useMe`/`useMyProfile`-style hook.
+    if (meCacheQueryKeys !== undefined && meCacheQueryKeys.length > 0) {
+      createMeCachePersister({
+        queryClient: resolvedQuery.queryClient,
+        queryKeys: meCacheQueryKeys,
+      });
+    }
     const resolvedI18n = i18n ?? createI18n({ locale: locale ?? "en" });
     return {
       client: resolvedClient,

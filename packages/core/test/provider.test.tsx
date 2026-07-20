@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { renderHook } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import { StapelProvider } from "../src/provider.js";
 import { useStapelClient } from "../src/config.js";
 import { createStapelClient } from "../src/client.js";
-import { createStapelQueryClient } from "../src/query.js";
+import { createStapelQueryClient, createMeCachePersister } from "../src/query.js";
 import { createI18n } from "../src/i18n.js";
 import { useI18n, useT } from "../src/i18n.js";
 import { useAnalytics } from "../src/analytics/context.js";
@@ -89,5 +89,39 @@ describe("<StapelProvider> — the one-provider setup (slim wave S4)", () => {
     expect(result.current.t("hi")).toBe("привет");
     expect(result.current.queryClient).toBe(query.queryClient);
     expect(result.current.analytics).toBe(analytics);
+  });
+
+  it("meCacheQueryKeys hydrates /me-class queries synchronously, before the tree below mounts", () => {
+    localStorage.clear();
+    // Simulate a previous session's persisted /me — the "cold load" fixture.
+    const writerClient = new QueryClient();
+    const writer = createMeCachePersister({
+      queryClient: writerClient,
+      queryKeys: [["auth", "me"]],
+    });
+    writerClient.setQueryData(["auth", "me"], { id: "u1", name: "Ada" });
+    writer.flushPersist();
+
+    const { result } = renderHook(
+      () => useQueryClient().getQueryData(["auth", "me"]),
+      {
+        wrapper: wrapperWith({
+          baseUrl: "/api",
+          meCacheQueryKeys: [["auth", "me"]],
+        }),
+      }
+    );
+
+    // No `waitFor`, no effect flush — the very first render already has it.
+    expect(result.current).toEqual({ id: "u1", name: "Ada" });
+    localStorage.clear();
+  });
+
+  it("omitting meCacheQueryKeys skips /me persistence entirely (default: off)", () => {
+    localStorage.clear();
+    renderHook(() => useQueryClient(), {
+      wrapper: wrapperWith({ baseUrl: "/api" }),
+    });
+    expect(localStorage.getItem("stapel-me-cache")).toBeNull();
   });
 });
