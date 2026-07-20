@@ -1,5 +1,11 @@
 # @stapel/profiles-react
 
+## 0.8.0
+
+### Minor Changes
+
+- cff85d2: `useMyProfile` is now cache-first / stale-while-revalidate: `staleTime: 0` makes it unconditionally revalidate on every mount via TanStack Query's default `refetchOnMount`, regardless of how fresh a hydrated snapshot looks. Pair it with `@stapel/core`'s new `createMeCachePersister` — wire `<StapelProvider meCacheQueryKeys={[profilesQueryKeys.me()]}>` — and a cold load paints the last-known profile instantly from `localStorage`, then updates once the network responds. No wiring, no persister: behavior is unchanged (a normal fetch-on-mount query).
+
 ## 0.7.0
 
 ### Minor Changes
