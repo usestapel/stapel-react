@@ -33,7 +33,20 @@ export function useCapabilities(): UseQueryResult<Capabilities, StapelApiError> 
   });
 }
 
-/** Current user (auth-sa.md §14). Enabled only when a session exists. */
+/**
+ * Current user (auth-sa.md §14). Enabled only when a session exists.
+ *
+ * Cache-first / stale-while-revalidate: `staleTime: 0` means this query is
+ * considered stale the instant it mounts — so when a host wires
+ * `<StapelProvider meCacheQueryKeys={[authQueryKeys.me()]}>`
+ * (`@stapel/core`'s `createMeCachePersister`), the QueryClient is already
+ * hydrated with the last-known user BEFORE this hook's first render (instant
+ * paint from localStorage), and `staleTime: 0` guarantees TanStack Query's
+ * default `refetchOnMount` fires a background revalidation UNCONDITIONALLY
+ * on every mount, not just when the persisted snapshot happens to be older
+ * than some staleness window. Without the persister wired, this is a normal
+ * fetch-on-mount query — the behavior degrades gracefully.
+ */
 export function useMe(
   enabled = true
 ): UseQueryResult<StapelUser, StapelApiError> {
@@ -42,6 +55,7 @@ export function useMe(
     queryKey: authQueryKeys.me(),
     queryFn: () => api.me(),
     enabled,
+    staleTime: 0,
   });
 }
 
