@@ -3,7 +3,7 @@
   "packages": [
     {
       "package": "@stapel/auth-react",
-      "version": "0.5.2",
+      "version": "0.6.0",
       "entries": [
         {
           "id": "auth.login",
@@ -46,7 +46,7 @@
     },
     {
       "package": "@stapel/notifications-react",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "entries": [
         {
           "id": "notifications.feed",
@@ -70,7 +70,7 @@
     },
     {
       "package": "@stapel/profiles-react",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "entries": [
         {
           "id": "profiles.settings",

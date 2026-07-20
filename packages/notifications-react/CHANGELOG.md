@@ -1,5 +1,11 @@
 # @stapel/notifications-react
 
+## 0.6.0
+
+### Minor Changes
+
+- 58ea7b5: Add this pair's nav-manifest entry (`src/nav/manifest.ts`, `notifications.feed`) for the scripted-fullstack navigation contract. New i18n key `notifications.nav.feed` (en + ru).
+
 ## 0.5.0
 
 ### Minor Changes

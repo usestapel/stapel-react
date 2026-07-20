@@ -1,6 +1,6 @@
 {
   "name": "@stapel/profiles-react",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Headless React flow pair for stapel-profiles: typed API client, TanStack Query hooks, flow machines, headless components, and i18n keys. Zero visual opinion.",
   "license": "MIT",
   "repository": {
