@@ -116,6 +116,23 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.sec.totp.disable_backup_label": "Резервный код",
   "auth.sec.totp.use_backup_toggle": "Использовать резервный код",
 
+  "auth.sec.totp.replace": "Заменить",
+  "auth.sec.totp.replace_title": "Замена приложения-аутентификатора",
+  "auth.sec.totp.replace_hint":
+    "Подтвердите текущий код аутентификатора или резервный код, затем настройте новое устройство.",
+  "auth.sec.totp.replace_continue_cta": "Продолжить",
+  "auth.sec.totp.lost_cta": "Потеряли аутентификатор?",
+  "auth.sec.totp.delayed_hint":
+    "Мы отключим двухфакторную аутентификацию через 14 дней и уведомим ваш подтверждённый email или телефон. Вы можете отменить запрос в любой момент до этого срока.",
+  "auth.sec.totp.delayed_cta": "Запросить отключение",
+  "auth.sec.totp.pending_message":
+    "Приложение-аутентификатор будет отключено {date} (через {days} дн.).",
+  "auth.sec.totp.pending_note":
+    "Мы уведомили ваш подтверждённый email или телефон об этом запросе.",
+  "auth.sec.totp.no_contact_title": "Нет контакта для восстановления",
+  "auth.sec.totp.no_contact_hint":
+    "Нельзя запланировать это действие без подтверждённого email или телефона на аккаунте. Обратитесь в поддержку.",
+
   "auth.sec.passkeys.title": "Passkey",
   "auth.sec.passkeys.add": "Добавить passkey",
   "auth.sec.passkeys.remove": "Удалить",

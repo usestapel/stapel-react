@@ -224,3 +224,51 @@ export function useCancelDelayedChange(
   };
   return useMutation(options);
 }
+
+/**
+ * Start a delayed (14-day) TOTP removal — "lost device", no current code or
+ * backup code available (stapel-auth ≥0.9.0). Same shape as
+ * {@link useInitiateDelayedChange}, scoped to TOTP; 400 `no_verified_contact`
+ * if the account has no verified email/phone to notify — that's a dead end
+ * (support case), not a retryable error.
+ */
+export function useInitiateTotpDelayedChange(): UseMutationResult<
+  DelayedChangeInitiatedResponse,
+  StapelApiError,
+  string | undefined
+> {
+  const api = useAuthApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    DelayedChangeInitiatedResponse,
+    StapelApiError,
+    string | undefined
+  > = {
+    mutationFn: (deviceId) => api.totpChangeDelayedInitiate(deviceId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: authQueryKeys.totpDelayedChange(),
+      });
+    },
+  };
+  return useMutation(options);
+}
+
+/** Cancel a pending delayed TOTP removal (stapel-auth ≥0.9.0). */
+export function useCancelTotpDelayedChange(): UseMutationResult<
+  StatusResponse,
+  StapelApiError,
+  string
+> {
+  const api = useAuthApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<StatusResponse, StapelApiError, string> = {
+    mutationFn: (changeRequestId) => api.totpChangeDelayedCancel(changeRequestId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: authQueryKeys.totpDelayedChange(),
+      });
+    },
+  };
+  return useMutation(options);
+}

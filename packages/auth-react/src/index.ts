@@ -44,6 +44,7 @@ export type {
   LinkedOAuthAccount,
   SessionDeviceType,
   AuthSession as AuthSessionRecord,
+  TotpSetupRequest,
   TotpSetupResponse,
   TotpSetupConfirmResponse,
   TotpDisableRequest,
@@ -190,6 +191,7 @@ export {
   useOAuthLinks,
   useAuditLog,
   useDelayedChangeStatus,
+  useTotpDelayedChangeStatus,
   useSsoLookup,
 } from "./model/queries.js";
 export {
@@ -203,6 +205,8 @@ export {
   useUnlinkOAuth,
   useCancelDelayedChange,
   useInitiateDelayedChange,
+  useCancelTotpDelayedChange,
+  useInitiateTotpDelayedChange,
 } from "./model/mutations.js";
 export {
   usePhoneCountryDefault,

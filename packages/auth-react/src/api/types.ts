@@ -239,6 +239,17 @@ export type AuthSession = Schemas["SessionResponse"];
 export type TotpSetupResponse = Schemas["TOTPSetupResponse"];
 
 /**
+ * Optional replace-proof body for `POST /totp/setup/` (stapel-auth ≥0.9.0):
+ * both fields are optional because first-time enrollment (no active device
+ * yet) needs neither, but if an active device already exists, one of `code`/
+ * `backup_code` must prove it — omitting both raises 400
+ * `totp_proof_required` (see `TotpSetupState`'s `"proofRequired"` step in
+ * `../flows/totpSetupFlow.js`). Lost the device entirely (neither proof
+ * available)? That's the delayed-removal flow below, not this request body.
+ */
+export type TotpSetupRequest = Schemas["TOTPSetupRequest"];
+
+/**
  * ADAPTER (2): the generated `backup_codes` is `unknown[]`; the endpoint
  * returns a list of string codes.
  */
@@ -322,6 +333,18 @@ export interface PasskeyAuthenticateBeginResponse {
 export type ChangeOldVerifiedResponse = Schemas["InstantVerifyOldResponse"];
 export type DelayedChangeInitiatedResponse = Schemas["DelayedInitiateResponse"];
 export type DelayedChangeStatus = Schemas["DelayedStatusResponse"];
+
+/**
+ * TOTP's delayed-removal ("lost device") flow (stapel-auth ≥0.9.0,
+ * `/totp/change/delayed/*`) is server-side the SAME `AuthenticatorChangeRequest`
+ * machine as email/phone delayed change — same cooldown, same day-1/7/13
+ * notifications, same cancel window — and reuses these exact response
+ * dataclasses; `new_value_masked` is always the literal `"authenticator app"`.
+ * The only difference is what applies at the end (a TOTP disable, not a
+ * contact swap), which is invisible to these response shapes. No separate
+ * alias needed — `DelayedChangeInitiatedResponse`/`DelayedChangeStatus` cover
+ * both.
+ */
 
 // ── SSO ──────────────────────────────────────────────────────────────────────
 

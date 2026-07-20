@@ -27,6 +27,7 @@ import type {
   StatusResponse,
   TotpDisableRequest,
   TotpSetupConfirmResponse,
+  TotpSetupRequest,
   TotpSetupResponse,
   VerificationCompleteResponse,
   VerificationEnvelope,
@@ -96,10 +97,25 @@ export interface AuthApi {
 
   // TOTP (auth-sa.md §11)
   totpChallengeVerify(challengeToken: string, proof: { code?: string; backup_code?: string }): Promise<AuthResponse>;
-  totpSetup(): Promise<TotpSetupResponse>;
+  /**
+   * Start TOTP enrollment. `proof` is REQUIRED when an active device already
+   * exists (a replace) — `code` or `backup_code` proving the current device —
+   * otherwise 400 `totp_proof_required` (stapel-auth ≥0.9.0). Omit entirely
+   * for first-time enrollment.
+   */
+  totpSetup(proof?: TotpSetupRequest): Promise<TotpSetupResponse>;
   totpSetupConfirm(code: string): Promise<TotpSetupConfirmResponse>;
   totpDisable(request: TotpDisableRequest): Promise<StatusResponse>;
   totpDisableOtpRequest(): Promise<OtpRequestResponse>;
+
+  // TOTP delayed removal ("lost device", stapel-auth ≥0.9.0) — mirrors the
+  // email/phone delayed-change endpoints (see `changeDelayed*` below), just
+  // scoped to a single factor with no `channel`/new-value axis: the only
+  // outcome is a scheduled disable. `no_verified_contact` if the account has
+  // no verified email/phone to notify.
+  totpChangeDelayedInitiate(deviceId?: string): Promise<DelayedChangeInitiatedResponse>;
+  totpChangeDelayedStatus(): Promise<DelayedChangeStatus>;
+  totpChangeDelayedCancel(changeRequestId: string): Promise<StatusResponse>;
 
   // Verification / step-up factor flow (auth-sa.md §11)
   verificationGet(challengeId: string): Promise<VerificationEnvelope>;
@@ -241,12 +257,26 @@ export function createAuthApi(client: StapelClient): AuthApi {
         { challenge_token: challengeToken, ...proof },
         mutating()
       ),
-    totpSetup: () => client.post("/totp/setup/", undefined, mutating()),
+    totpSetup: (proof) => client.post("/totp/setup/", proof, mutating()),
     totpSetupConfirm: (code) =>
       client.post("/totp/setup/confirm/", { code }, mutating()),
     totpDisable: (request) => client.post("/totp/disable/", request, mutating()),
     totpDisableOtpRequest: () =>
       client.post("/totp/disable-otp/request/", undefined, mutating()),
+
+    totpChangeDelayedInitiate: (deviceId) =>
+      client.post(
+        "/totp/change/delayed/initiate/",
+        deviceId === undefined ? {} : { device_id: deviceId },
+        mutating()
+      ),
+    totpChangeDelayedStatus: () => client.get("/totp/change/delayed/status/"),
+    totpChangeDelayedCancel: (changeRequestId) =>
+      client.post(
+        "/totp/change/delayed/cancel/",
+        { change_request_id: changeRequestId },
+        mutating()
+      ),
 
     verificationGet: (challengeId) =>
       client.get(`/verification/${challengeId}/`),

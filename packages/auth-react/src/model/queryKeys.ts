@@ -18,6 +18,7 @@ export const authQueryKeys: {
   oauthLinks(): readonly ["auth", "oauth", "links"];
   audit(page: number): readonly ["auth", "audit", number];
   delayedChange(channel: string): readonly ["auth", "change", "delayed", string];
+  totpDelayedChange(): readonly ["auth", "totp", "change", "delayed"];
   ssoLookup(domain: string): readonly ["auth", "sso", "lookup", string];
 } = {
   all: [ROOT],
@@ -30,5 +31,6 @@ export const authQueryKeys: {
   oauthLinks: () => [ROOT, "oauth", "links"],
   audit: (page) => [ROOT, "audit", page],
   delayedChange: (channel) => [ROOT, "change", "delayed", channel],
+  totpDelayedChange: () => [ROOT, "totp", "change", "delayed"],
   ssoLookup: (domain) => [ROOT, "sso", "lookup", domain],
 };

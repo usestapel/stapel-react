@@ -142,6 +142,19 @@ export function useDelayedChangeStatus(
   });
 }
 
+/** Pending delayed TOTP removal ("lost device", stapel-auth ≥0.9.0) — the
+ * same shape/semantics as {@link useDelayedChangeStatus}, scoped to TOTP. */
+export function useTotpDelayedChangeStatus(): UseQueryResult<
+  DelayedChangeStatus,
+  StapelApiError
+> {
+  const api = useAuthApi();
+  return useQuery({
+    queryKey: authQueryKeys.totpDelayedChange(),
+    queryFn: () => api.totpChangeDelayedStatus(),
+  });
+}
+
 /**
  * SSO domain lookup (auth-sa.md §18). Disabled until `domain` is a non-empty
  * value — call after the user finishes typing their email.

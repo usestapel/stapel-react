@@ -1,19 +1,35 @@
 import type { Analytics } from "@stapel/core";
 import type { AuthApi } from "../api/authApi.js";
+import type { TotpSetupRequest } from "../api/types.js";
 import { createFlowMachine } from "@stapel/core";
 import type { FlowMachine } from "@stapel/core";
-import { toFlowError } from "./errors.js";
+import { isErrorCode, toFlowError } from "./errors.js";
 import type { FlowError } from "./errors.js";
+
+/** Backend error code `TOTPService.setup()` raises when replacing an active
+ * device without a valid `code`/`backup_code` (stapel-auth ≥0.9.0). */
+const TOTP_PROOF_REQUIRED_CODE = "error.400.totp_proof_required";
 
 /**
  * TOTP enrollment on the security-settings screen (auth-sa.md §11 "TOTP
  * setup"). `start()` mints a pending secret + `otpauth://` URI (render as a
  * QR); `confirm(code)` proves the authenticator and returns the one-time
  * backup codes (shown ONCE — host must surface a copy/warn affordance).
+ *
+ * REPLACE (stapel-auth ≥0.9.0): if an active device already exists, `start()`
+ * needs a `proof` (current `code` or `backup_code`) — call it bare first (or
+ * whenever the caller doesn't yet know a device is active) and a 400
+ * `totp_proof_required` response lands in the `"proofRequired"` step instead
+ * of `"startError"`, so the host can render a proof-collection form and retry
+ * `start(proof)`. `error` is only set on `"proofRequired"` when a proof WAS
+ * supplied and was still rejected (wrong code) — absent on the first,
+ * un-proved attempt, so the host doesn't flash a spurious error on the very
+ * first render of that form.
  */
 export type TotpSetupState =
   | { readonly step: "idle" }
   | { readonly step: "starting" }
+  | { readonly step: "proofRequired"; readonly error?: FlowError }
   | {
       readonly step: "enrolling";
       readonly secret: string;
@@ -33,7 +49,7 @@ export type TotpSetupState =
 
 export interface TotpSetupFlow {
   readonly machine: FlowMachine<TotpSetupState>;
-  start(): Promise<void>;
+  start(proof?: TotpSetupRequest): Promise<void>;
   confirm(code: string): Promise<void>;
   reset(): void;
 }
@@ -50,18 +66,23 @@ export function createTotpSetupFlow(deps: TotpSetupFlowDeps): TotpSetupFlow {
     analytics: deps.analytics ?? null,
   });
 
-  async function start(): Promise<void> {
-    await machine.run({ step: "starting" }, () => deps.api.totpSetup(), {
+  async function start(proof?: TotpSetupRequest): Promise<void> {
+    await machine.run({ step: "starting" }, () => deps.api.totpSetup(proof), {
       resolve: (r): TotpSetupState => ({
         step: "enrolling",
         secret: r.secret,
         qrUri: r.qr_uri,
         expiresIn: r.expires_in,
       }),
-      reject: (error): TotpSetupState => ({
-        step: "startError",
-        error: toFlowError(error),
-      }),
+      reject: (error): TotpSetupState => {
+        const flowError = toFlowError(error);
+        if (isErrorCode(flowError, TOTP_PROOF_REQUIRED_CODE)) {
+          return proof
+            ? { step: "proofRequired", error: flowError }
+            : { step: "proofRequired" };
+        }
+        return { step: "startError", error: flowError };
+      },
     });
   }
 

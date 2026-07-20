@@ -108,6 +108,21 @@ export const AUTH_I18N_KEYS = {
   secTotpDisableBackupLabel: "auth.sec.totp.disable_backup_label",
   secTotpUseBackupToggle: "auth.sec.totp.use_backup_toggle",
 
+  // TOTP replace (instant, proof-gated) + delayed removal ("lost device") —
+  // stapel-auth ≥0.9.0. Mirrors `secChange*`'s instant/delayed split, just
+  // scoped to a single factor with no channel/new-value axis.
+  secTotpReplace: "auth.sec.totp.replace",
+  secTotpReplaceTitle: "auth.sec.totp.replace_title",
+  secTotpReplaceHint: "auth.sec.totp.replace_hint",
+  secTotpReplaceContinueCta: "auth.sec.totp.replace_continue_cta",
+  secTotpLostCta: "auth.sec.totp.lost_cta",
+  secTotpDelayedHint: "auth.sec.totp.delayed_hint",
+  secTotpDelayedCta: "auth.sec.totp.delayed_cta",
+  secTotpPendingMessage: "auth.sec.totp.pending_message",
+  secTotpPendingNote: "auth.sec.totp.pending_note",
+  secTotpNoContactTitle: "auth.sec.totp.no_contact_title",
+  secTotpNoContactHint: "auth.sec.totp.no_contact_hint",
+
   secPasskeysTitle: "auth.sec.passkeys.title",
   secPasskeysAdd: "auth.sec.passkeys.add",
   secPasskeysRemove: "auth.sec.passkeys.remove",
@@ -310,6 +325,23 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.sec.totp.disable_code_label": "Authenticator code",
   "auth.sec.totp.disable_backup_label": "Backup code",
   "auth.sec.totp.use_backup_toggle": "Use a backup code instead",
+
+  "auth.sec.totp.replace": "Replace",
+  "auth.sec.totp.replace_title": "Replace authenticator app",
+  "auth.sec.totp.replace_hint":
+    "Confirm your current authenticator code or a backup code, then set up the new device.",
+  "auth.sec.totp.replace_continue_cta": "Continue",
+  "auth.sec.totp.lost_cta": "Lost your authenticator?",
+  "auth.sec.totp.delayed_hint":
+    "We'll remove two-factor authentication after a 14-day wait and notify your verified email or phone. You can cancel any time before then.",
+  "auth.sec.totp.delayed_cta": "Request removal",
+  "auth.sec.totp.pending_message":
+    "Your authenticator app will be removed on {date} (in {days} days).",
+  "auth.sec.totp.pending_note":
+    "We've notified your verified email or phone about this request.",
+  "auth.sec.totp.no_contact_title": "No recovery contact on file",
+  "auth.sec.totp.no_contact_hint":
+    "We can't schedule this without a verified email or phone on your account. Contact support for help.",
 
   "auth.sec.passkeys.title": "Passkeys",
   "auth.sec.passkeys.add": "Add a passkey",
