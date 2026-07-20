@@ -59,6 +59,24 @@ export const AUTH_I18N_KEYS = {
   uiChannelQr: "auth.ui.channel_qr",
   uiChannelMagicLink: "auth.ui.channel_magic_link",
 
+  // Registration surface (§68 promote/orphan fix follow-up): a channel-
+  // filtered `AuthPanel mode="register"` — same zone machinery as the login
+  // panel, but only `can_register===true` channels, and the password channel
+  // renders a SET-password form (`PasswordRegisterPanel`), not the login one.
+  uiRegisterTitle: "auth.ui.register_title",
+  uiRegisterConfirmLabel: "auth.ui.register_confirm_label",
+  uiRegisterMismatch: "auth.ui.register_mismatch",
+  uiRegisterSubmit: "auth.ui.register_submit",
+
+  // Per-method capability labels (SecuritySettings widgets) — THE IDENTITY
+  // MODEL: a method can be login-only, registration-only, both, or — for
+  // password specifically, on an anonymous account — neither (it only makes
+  // the guest session portable to another device, see `secMethodCapPortableAnon`).
+  secMethodCapLogin: "auth.sec.method_cap.login",
+  secMethodCapRegister: "auth.sec.method_cap.register",
+  secMethodCapBoth: "auth.sec.method_cap.both",
+  secMethodCapPortableAnon: "auth.sec.method_cap.portable_anon",
+
   // Security-profile default-skin components (owner directive point 5):
   // SessionsList, TotpManager, PasskeysManager, PasswordChangePanel, OAuthLinks.
   secSessionsTitle: "auth.sec.sessions.title",
@@ -246,6 +264,19 @@ export const authI18nBundleEn: I18nDictionary = {
   // Owner directive: "Волшебная ссылка" reads as a gimmick — call it what it
   // is, a link sent to your email.
   "auth.ui.channel_magic_link": "Email link",
+
+  // Registration surface
+  "auth.ui.register_title": "Create account",
+  "auth.ui.register_confirm_label": "Confirm password",
+  "auth.ui.register_mismatch": "Passwords don't match.",
+  "auth.ui.register_submit": "Create account",
+
+  // Per-method capability labels
+  "auth.sec.method_cap.login": "For sign-in",
+  "auth.sec.method_cap.register": "For registration",
+  "auth.sec.method_cap.both": "Sign-in and registration",
+  "auth.sec.method_cap.portable_anon":
+    "Sign in to your guest account from another device",
 
   // Security-profile default-skin components (owner directive point 5)
   "auth.sec.sessions.title": "Active sessions",

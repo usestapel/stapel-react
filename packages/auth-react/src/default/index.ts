@@ -17,6 +17,8 @@ export {
   DEFAULT_CHANNEL_PRIORITY,
   computeZones,
   enabledChannels,
+  enabledRegistrationChannels,
+  methodCapabilityLabel,
   resolveInteraction,
 } from "./channels.js";
 export type { AuthZones, ChannelId } from "./channels.js";

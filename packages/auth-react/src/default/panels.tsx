@@ -29,6 +29,7 @@ import type { SsoState } from "../flows/ssoFlow.js";
 import { useCapabilities } from "../model/queries.js";
 import { PasswordlessLogin } from "../headless/PasswordlessLogin.js";
 import { PasswordLogin } from "../headless/PasswordLogin.js";
+import { PasswordRegister } from "../headless/PasswordRegister.js";
 import { QrLogin } from "../headless/QrLogin.js";
 import { PasskeyLogin } from "../headless/Passkey.js";
 import { MagicLink, SsoDiscovery } from "../headless/misc.js";
@@ -345,6 +346,76 @@ export function PasswordPanel(): ReactElement {
         );
       }}
     </PasswordLogin>
+  );
+}
+
+/**
+ * The `password` channel's REGISTRATION-surface panel (`AuthPanel
+ * mode="register"` — see `enabledRegistrationChannels`/`AuthPanel.tsx`'s
+ * module doc). A SET-password form, deliberately NOT `PasswordPanel` (which
+ * is the LOGIN form for an existing account): email is optional here (THE
+ * IDENTITY MODEL — omitting it on an anonymous session only makes the guest
+ * account portable, it does not register/promote; see
+ * `passwordRegisterFlow.ts`'s doc), password + confirm are required.
+ */
+export function PasswordRegisterPanel(): ReactElement {
+  const t = useT();
+  const errorText = useErrorText();
+  return (
+    <PasswordRegister>
+      {(bag) => {
+        const s = bag.state;
+        if (s.step === "registered") {
+          return <Result status="success" title={t(AUTH_I18N_KEYS.verificationSuccess)} />;
+        }
+        const err = s.step === "error" ? s.error : undefined;
+        return (
+          <Form
+            layout="vertical"
+            onFinish={(v: { email?: string; password?: string; confirmPassword?: string }) =>
+              bag.register({
+                ...(v.email ? { email: v.email } : {}),
+                password: v.password ?? "",
+              })
+            }
+          >
+            {err && <Alert type="error" showIcon style={{ marginBottom: 16 }} message={errorText(err)} />}
+            <Form.Item name="email" label={t(AUTH_I18N_KEYS.uiEmailLabel)}>
+              <Input autoFocus placeholder={t(AUTH_I18N_KEYS.uiEmailPlaceholder)} autoComplete="email" />
+            </Form.Item>
+            <Form.Item name="password" label={t(AUTH_I18N_KEYS.passwordLabel)}>
+              <Input.Password placeholder={t(AUTH_I18N_KEYS.uiPasswordPlaceholder)} autoComplete="new-password" />
+            </Form.Item>
+            <Form.Item
+              name="confirmPassword"
+              label={t(AUTH_I18N_KEYS.uiRegisterConfirmLabel)}
+              dependencies={["password"]}
+              rules={[
+                ({ getFieldValue }) => ({
+                  validator(_rule, value: string | undefined) {
+                    if (getFieldValue("password") === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error(t(AUTH_I18N_KEYS.uiRegisterMismatch)));
+                  },
+                }),
+              ]}
+            >
+              <Input.Password autoComplete="new-password" />
+            </Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              block
+              loading={s.step === "registering"}
+              data-analytics="flow"
+            >
+              {t(AUTH_I18N_KEYS.uiRegisterSubmit)}
+            </Button>
+          </Form>
+        );
+      }}
+    </PasswordRegister>
   );
 }
 

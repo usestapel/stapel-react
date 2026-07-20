@@ -870,7 +870,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Verify OTP and set new password (for authenticated users).
+         * @description Verify OTP and set new password (for authenticated users). Returns `SimpleStatusResponse` (status=password_changed) normally. If the caller was an anonymous guest session, a successful contact OTP verification here is itself an identity anchor — the same one email_verify/phone_verify promote on — so the account is promoted to registered and this instead returns a full `AuthResponse` (status=REGISTERED) with fresh tokens, since the promotion invalidated the session that was just revoked below.
          *
          *     **Permissions:** `AllowAny`
          */
@@ -2294,7 +2294,7 @@ export interface components {
         AuthMethodInfo: {
             /** @description Method identifier — one of email, phone, password, passkey, qr, */
             id: string;
-            /** @description Whether this method is currently available (mirrors the */
+            /** @description Whether this method is currently available for LOGIN */
             enabled: boolean;
             /** @description Where the client renders this method's trigger. One of */
             placement: string;
@@ -2306,6 +2306,10 @@ export interface components {
             icon_svg: string;
             /** @description Whether this method's OTP delivery is mocked in this */
             mock?: boolean;
+            /** @description Whether this method can be used to sign in to an EXISTING */
+            can_login?: boolean;
+            /** @description Whether this method can be used to establish a NEW */
+            can_register?: boolean;
         };
         /** @description Authentication response with user data and tokens. */
         AuthResponse: {
@@ -2338,10 +2342,11 @@ export interface components {
          * @description * `email` - Email
          *     * `phone` - Phone
          *     * `oauth` - OAuth
+         *     * `sso` - SSO
          *     * `anonymous` - Anonymous
          * @enum {string}
          */
-        AuthTypeEnum: "email" | "phone" | "oauth" | "anonymous";
+        AuthTypeEnum: "email" | "phone" | "oauth" | "sso" | "anonymous";
         /** @description Status of an account closure request. */
         ClosureStatusDTO: {
             /**
@@ -2851,6 +2856,7 @@ export interface components {
              */
             has_password: boolean;
         };
+        PasswordOtpChangeResponse: components["schemas"]["AuthResponse"] | components["schemas"]["SimpleStatusResponse"];
         PasswordOtpRequest: {
             method: components["schemas"]["Method204Enum"];
         };
@@ -3259,10 +3265,10 @@ export interface components {
         /** @description Generic operation status acknowledgment. */
         SimpleStatusResponse: {
             /**
-             * @description Short status key describing the completed action
-             * @example ok
+             * @description Short status key describing the completed action (enum property replaced by openapi-typescript)
+             * @enum {string}
              */
-            status: string;
+            status: "None";
         };
         /**
          * @description Assign a staff role: target user UUID + a role name from the
@@ -4749,12 +4755,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PasswordOtpChangeResponse"];
+                };
             };
             400: {
                 headers: {

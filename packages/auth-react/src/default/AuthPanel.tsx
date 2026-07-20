@@ -63,6 +63,7 @@ import {
   DEFAULT_CHANNEL_PRIORITY,
   computeZones,
   enabledChannels,
+  enabledRegistrationChannels,
   methodIconSvg,
   methodInteraction,
   resolveInteraction,
@@ -75,6 +76,7 @@ import {
   OtpPanel,
   PasskeyPanel,
   PasswordPanel,
+  PasswordRegisterPanel,
   QrPanel,
   SsoPanel,
 } from "./panels.js";
@@ -93,6 +95,17 @@ export interface AuthPanelProps {
    * `toAntdThemeConfig(mode)` — no manual token wiring. Default `"light"`.
    */
   readonly mode?: ThemeMode;
+  /**
+   * `"login"` (default) renders every enabled LOGIN channel, same as always.
+   * `"register"` renders a REGISTRATION surface instead (stapel-auth ≥0.7.0
+   * per-method `can_register` — see `enabledRegistrationChannels`): only
+   * channels that can establish a fresh identity anchor (THE IDENTITY
+   * MODEL — email/phone/oauth/sso, plus password as a SET-password form),
+   * never passkey/qr/magic_link (no registration axis exists for them —
+   * `can_register` is always `false`). Named `variant`, not `mode`, to avoid
+   * colliding with the light/dark `mode` prop above.
+   */
+  readonly variant?: "login" | "register";
   /** Override the channel order (ПРАВИЛО 2). Defaults to the ratified priority. */
   readonly channelPriority?: readonly ChannelId[];
   /** Optional zone-A system notice (session revoked, link expired, …). */
@@ -129,7 +142,7 @@ const CHANNEL_LABEL: Record<ChannelId, AuthI18nKey> = {
  * wiring; this component adds only the visual layer + theme.
  */
 export function AuthPanel(props: AuthPanelProps): ReactElement {
-  const { mode = "light", channelPriority = DEFAULT_CHANNEL_PRIORITY } = props;
+  const { mode = "light", variant = "login", channelPriority = DEFAULT_CHANNEL_PRIORITY } = props;
   const t = useT();
   const formatError = useFormatFlowError();
   const theme = useMemo(() => toAntdThemeConfig(mode), [mode]);
@@ -144,10 +157,16 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
   const isPhone = useBreakpoint() === "phone";
 
   const login = caps.data?.login;
+  const registration = caps.data?.registration;
   const methods = caps.data?.methods;
-  const channels = login ? enabledChannels(login, channelPriority) : [];
+  const channels =
+    variant === "register"
+      ? enabledRegistrationChannels(methods, channelPriority)
+      : login
+        ? enabledChannels(login, channelPriority)
+        : [];
   const zones = computeZones(channels, methods);
-  const oauthProviders = login?.oauth ?? [];
+  const oauthProviders = (variant === "register" ? registration?.oauth : login?.oauth) ?? [];
 
   /** Zone-B/dialog panel for a channel. OAuth/SSO get real panels now (a
    * provider-button group and a domain-lookup form respectively) — they were
@@ -168,7 +187,7 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
       case "phone":
         return <OtpPanel channel="phone" {...(opts?.asMainTab !== undefined ? { hideChannelLabel: opts.asMainTab } : {})} />;
       case "password":
-        return <PasswordPanel />;
+        return variant === "register" ? <PasswordRegisterPanel /> : <PasswordPanel />;
       case "qr":
         return <QrPanel />;
       case "passkey":
@@ -238,7 +257,7 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
       <Flex vertical gap="large" style={{ width: "100%" }} data-testid="auth-panel">
         {/* Zone A — title + the single system-notice slot */}
         <Typography.Title level={3}>
-          {t(AUTH_I18N_KEYS.uiLoginTitle)}
+          {t(variant === "register" ? AUTH_I18N_KEYS.uiRegisterTitle : AUTH_I18N_KEYS.uiLoginTitle)}
         </Typography.Title>
         {props.notice && (
           <Alert
@@ -303,8 +322,11 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
             else, shown whenever the backend allows anonymous registration.
             Modeling it as a full `methods[]` channel (placement/order/
             interaction) would be contract bloat for what is, in every real
-            deployment, a single fixed skin element. */}
-        {caps.data?.registration.anonymous && (
+            deployment, a single fixed skin element. LOGIN surface only: the
+            registration surface (`variant="register"`) is already the
+            "create an account" screen — repeating a guest-entry link there
+            would be a distraction, not an alternative worth offering. */}
+        {variant === "login" && caps.data?.registration.anonymous && (
           <AnonymousSession>
             {(bag) => {
               const err = bag.state.step === "error" ? bag.state.error : undefined;

@@ -13,8 +13,10 @@ import type { ReactElement } from "react";
 import { Alert, Button, Card, Flex, Form, Input, Result, Tabs, Typography } from "antd";
 import { useFormatFlowError, useT } from "@stapel/core";
 import type { OtpChannel } from "../../api/types.js";
+import { methodCapabilityLabel } from "../channels.js";
 import { PasswordChange } from "../../headless/PasswordChange.js";
 import type { PasswordChangeBag } from "../../headless/PasswordChange.js";
+import { useAuthSessionState } from "../../model/context.js";
 import { useCapabilities, usePasswordMethods } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import type { AuthI18nKey } from "../../i18n/keys.js";
@@ -174,7 +176,14 @@ function OtpTab(props: { bag: PasswordChangeBag; channel: OtpChannel; target: st
 export function PasswordChangePanel(): ReactElement {
   const t = useT();
   const methods = usePasswordMethods();
+  const caps = useCapabilities();
+  const session = useAuthSessionState();
   const [active, setActive] = useState<string | null>(null);
+  const capLabelKey = methodCapabilityLabel(
+    "password",
+    caps.data?.methods,
+    session.user?.is_anonymous ?? false
+  );
 
   const entries = methods.data?.methods ?? [];
   const tabIds = entries
@@ -203,6 +212,15 @@ export function PasswordChangePanel(): ReactElement {
           data-testid="password-change-panel"
           style={{ width: "100%" }}
         >
+          {capLabelKey && (
+            <Typography.Text
+              type="secondary"
+              data-testid="password-capability-label"
+              style={{ display: "block", marginBottom: 16 }}
+            >
+              {t(capLabelKey)}
+            </Typography.Text>
+          )}
           {tabIds.length === 1 ? (
             tabIds[0] === "password" ? (
               <OldPasswordTab bag={bag} />

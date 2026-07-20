@@ -662,6 +662,111 @@ describe("<AuthPanel/> — alt-method surface is responsive (Modal on desktop, b
   });
 });
 
+/**
+ * `<AuthPanel variant="register"/>` — the registration surface (§68
+ * promote/orphan fix follow-up). THE IDENTITY MODEL: only channels that can
+ * establish a fresh anchor (`can_register===true`) render — passkey/qr/
+ * magic_link never do (no registration axis exists for them) — and the
+ * `password` channel renders a SET-password form, not the login one.
+ */
+function registerMethod(
+  id: string,
+  placement: "main" | "bottom" | "overflow",
+  order: number,
+  opts: { can_login?: boolean; can_register?: boolean } = {}
+) {
+  return {
+    id,
+    enabled: opts.can_login ?? true,
+    placement,
+    order,
+    interaction: (placement === "main" ? "inline" : id === "oauth" ? "redirect" : "modal") as
+      | "inline"
+      | "modal"
+      | "redirect",
+    icon_svg: "",
+    can_login: opts.can_login ?? true,
+    can_register: opts.can_register ?? false,
+  };
+}
+
+const REGISTRATION_CAPABILITIES = {
+  registration: {
+    phone: true,
+    email: true,
+    password: true,
+    oauth: [],
+    sso: false,
+    anonymous: false,
+  },
+  login: {
+    phone: true,
+    email: true,
+    password: true,
+    oauth: [],
+    sso: false,
+    qr: true,
+    passkey: true,
+    magic_link: false,
+  },
+  methods: [
+    registerMethod("email", "main", 0, { can_register: true }),
+    registerMethod("phone", "main", 1, { can_register: true }),
+    registerMethod("qr", "bottom", 0, { can_register: false }),
+    registerMethod("passkey", "bottom", 1, { can_register: false }),
+    registerMethod("password", "overflow", 0, { can_register: true }),
+  ],
+};
+
+describe("<AuthPanel variant=\"register\"/> — the registration surface", () => {
+  it("shows the register title and excludes passkey/qr/magic_link (login-only, no registration axis)", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(REGISTRATION_CAPABILITIES))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" variant="register" />));
+
+    await waitFor(() => expect(screen.getByText("Create account")).toBeDefined());
+    await waitFor(() => expect(screen.getByRole("tab", { name: "Email" })).toBeDefined());
+    expect(screen.getByRole("tab", { name: "Phone" })).toBeDefined();
+    // passkey/qr never render at all — can_register is false for both.
+    expect(screen.queryByText("QR code")).toBeNull();
+    expect(screen.queryByText("Passkey")).toBeNull();
+  });
+
+  it("renders a SET-password form (email + password + confirm) for the password channel, not the login form", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(REGISTRATION_CAPABILITIES))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" variant="register" />));
+
+    await waitFor(() => expect(screen.getByText("More ways to sign in")).toBeDefined());
+    screen.getByText("More ways to sign in").click();
+    (await screen.findByText("Password")).click();
+    await screen.findByRole("dialog");
+    // The login PasswordPanel has no confirm-password field — its presence
+    // here is what distinguishes the SET-password registration form.
+    expect(await screen.findByText("Confirm password")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Create account" })).toBeDefined();
+  });
+
+  it("does not show the guest-entry link (that belongs to the login surface only)", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () =>
+        HttpResponse.json({
+          ...REGISTRATION_CAPABILITIES,
+          registration: { ...REGISTRATION_CAPABILITIES.registration, anonymous: true },
+        })
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" variant="register" />));
+    await waitFor(() => expect(screen.getByText("Create account")).toBeDefined());
+    expect(screen.queryByText("Continue as guest")).toBeNull();
+  });
+});
+
 describe("toAntdThemeConfig drives antd's runtime token (AuthPanel's theme source)", () => {
   it("light mode resolves to the tokens' light container colour", () => {
     render(

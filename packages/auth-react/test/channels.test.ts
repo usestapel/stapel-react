@@ -11,11 +11,14 @@ import {
   DEFAULT_CHANNEL_PRIORITY,
   computeZones,
   enabledChannels,
+  enabledRegistrationChannels,
+  methodCapabilityLabel,
   methodIconSvg,
   methodInteraction,
   resolveInteraction,
 } from "../src/default/channels.js";
 import type { ChannelId } from "../src/default/channels.js";
+import { AUTH_I18N_KEYS } from "../src/i18n/keys.js";
 import type { AuthMethodInfo, ChannelInteraction, ChannelPlacement, LoginCapabilities } from "../src/api/types.js";
 
 function caps(overrides: Partial<LoginCapabilities> = {}): LoginCapabilities {
@@ -36,9 +39,19 @@ function method(
   id: ChannelId,
   placement: ChannelPlacement,
   order: number,
-  interaction: ChannelInteraction = placement === "main" ? "inline" : id === "oauth" ? "redirect" : "modal"
+  interaction: ChannelInteraction = placement === "main" ? "inline" : id === "oauth" ? "redirect" : "modal",
+  opts: { can_login?: boolean; can_register?: boolean } = {}
 ): AuthMethodInfo {
-  return { id, enabled: true, placement, order, interaction, icon_svg: `<svg data-id="${id}"/>` };
+  return {
+    id,
+    enabled: true,
+    placement,
+    order,
+    interaction,
+    icon_svg: `<svg data-id="${id}"/>`,
+    can_login: opts.can_login ?? true,
+    can_register: opts.can_register ?? false,
+  };
 }
 
 describe("enabledChannels", () => {
@@ -179,5 +192,83 @@ describe("resolveInteraction", () => {
     expect(resolveInteraction("oauth", "overflow", "modal")).toBe("modal");
     expect(resolveInteraction("qr", "bottom", "redirect")).toBe("redirect");
     expect(resolveInteraction("qr", "bottom", "inline")).toBe("modal");
+  });
+});
+
+describe("enabledRegistrationChannels", () => {
+  it("keeps only can_register===true channels, in priority order", () => {
+    const methods = [
+      method("email", "main", 0, "inline", { can_register: true }),
+      method("phone", "main", 1, "inline", { can_register: true }),
+      method("password", "overflow", 7, "modal", { can_register: false }),
+      method("passkey", "bottom", 2, "modal", { can_register: false }),
+      method("qr", "bottom", 5, "modal", { can_register: false }),
+      method("magic_link", "overflow", 6, "modal", { can_register: false }),
+      method("oauth", "bottom", 3, "redirect", { can_register: true }),
+      method("sso", "bottom", 4, "redirect", { can_register: false }),
+    ];
+    expect(enabledRegistrationChannels(methods)).toEqual(["email", "phone", "oauth"]);
+  });
+
+  it("never includes passkey/qr/magic_link even if a method entry is missing (no can_register data at all)", () => {
+    expect(enabledRegistrationChannels(undefined)).toEqual([]);
+    expect(enabledRegistrationChannels([])).toEqual([]);
+  });
+
+  it("honours a custom priority override", () => {
+    const methods = [
+      method("email", "main", 0, "inline", { can_register: true }),
+      method("phone", "main", 1, "inline", { can_register: true }),
+    ];
+    expect(enabledRegistrationChannels(methods, ["phone", "email"])).toEqual(["phone", "email"]);
+  });
+
+  it("includes password when can_register is true (rendered as a SET-password form, not the login form)", () => {
+    const methods = [method("password", "overflow", 7, "modal", { can_register: true })];
+    expect(enabledRegistrationChannels(methods)).toEqual(["password"]);
+  });
+});
+
+describe("methodCapabilityLabel", () => {
+  it("returns undefined when the method isn't in methods[]", () => {
+    expect(methodCapabilityLabel("email", [], false)).toBeUndefined();
+    expect(methodCapabilityLabel("email", undefined, false)).toBeUndefined();
+  });
+
+  it("both login and register -> secMethodCapBoth", () => {
+    const methods = [method("email", "main", 0, "inline", { can_login: true, can_register: true })];
+    expect(methodCapabilityLabel("email", methods, false)).toBe(AUTH_I18N_KEYS.secMethodCapBoth);
+  });
+
+  it("register only -> secMethodCapRegister", () => {
+    const methods = [method("oauth", "bottom", 3, "redirect", { can_login: false, can_register: true })];
+    expect(methodCapabilityLabel("oauth", methods, false)).toBe(AUTH_I18N_KEYS.secMethodCapRegister);
+  });
+
+  it("login only, non-anonymous viewer -> secMethodCapLogin", () => {
+    const methods = [method("passkey", "bottom", 2, "modal", { can_login: true, can_register: false })];
+    expect(methodCapabilityLabel("passkey", methods, false)).toBe(AUTH_I18N_KEYS.secMethodCapLogin);
+  });
+
+  it("password + anonymous viewer -> secMethodCapPortableAnon, overriding the generic label", () => {
+    const methods = [method("password", "overflow", 7, "modal", { can_login: true, can_register: true })];
+    expect(methodCapabilityLabel("password", methods, true)).toBe(
+      AUTH_I18N_KEYS.secMethodCapPortableAnon
+    );
+  });
+
+  it("password + non-anonymous viewer gets the generic label, not the portable-anon framing", () => {
+    const methods = [method("password", "overflow", 7, "modal", { can_login: true, can_register: false })];
+    expect(methodCapabilityLabel("password", methods, false)).toBe(AUTH_I18N_KEYS.secMethodCapLogin);
+  });
+
+  it("a non-password channel + anonymous viewer is unaffected by the portable-anon special case", () => {
+    const methods = [method("email", "main", 0, "inline", { can_login: true, can_register: true })];
+    expect(methodCapabilityLabel("email", methods, true)).toBe(AUTH_I18N_KEYS.secMethodCapBoth);
+  });
+
+  it("neither login nor register -> undefined (nothing meaningful to show)", () => {
+    const methods = [method("qr", "bottom", 5, "modal", { can_login: false, can_register: false })];
+    expect(methodCapabilityLabel("qr", methods, false)).toBeUndefined();
   });
 });

@@ -1,6 +1,7 @@
 import type { Analytics } from "@stapel/core";
 import type { AuthApi } from "../api/authApi.js";
-import type { OtpChannel } from "../api/types.js";
+import type { AuthResponse, OtpChannel } from "../api/types.js";
+import { isAuthResponse } from "../api/types.js";
 import { createFlowMachine } from "@stapel/core";
 import type { FlowMachine } from "@stapel/core";
 import { toFlowError } from "./errors.js";
@@ -41,6 +42,14 @@ export interface PasswordChangeFlow {
 export interface PasswordChangeFlowDeps {
   readonly api: AuthApi;
   readonly analytics?: Analytics | null;
+  /**
+   * Called ONLY when `submitOtp` promoted an anonymous guest session (the
+   * OTP-verified contact turned out to be a fresh identity anchor — see
+   * `PasswordOtpChangeResponse`'s doc). The ordinary "already-registered
+   * user changes their password" case never calls this: the backend returns
+   * a bare `StatusResponse` there, with no session to adopt.
+   */
+  readonly onAuthenticated?: (result: AuthResponse) => void;
 }
 
 export function createPasswordChangeFlow(
@@ -95,7 +104,10 @@ export function createPasswordChangeFlow(
       { step: "verifyingOtp", method, target },
       () => deps.api.passwordChangeOtpVerify(method, code, newPassword),
       {
-        resolve: (): PasswordChangeState => ({ step: "changed" }),
+        resolve: (r): PasswordChangeState => {
+          if (isAuthResponse(r)) deps.onAuthenticated?.(r);
+          return { step: "changed" };
+        },
         reject: (error): PasswordChangeState => ({
           step: "otpError",
           method,

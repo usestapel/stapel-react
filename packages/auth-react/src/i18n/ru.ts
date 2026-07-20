@@ -69,6 +69,19 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.ui.channel_qr": "QR-код",
   "auth.ui.channel_magic_link": "Ссылка на почту",
 
+  // Регистрационная поверхность
+  "auth.ui.register_title": "Создать аккаунт",
+  "auth.ui.register_confirm_label": "Подтвердите пароль",
+  "auth.ui.register_mismatch": "Пароли не совпадают.",
+  "auth.ui.register_submit": "Создать аккаунт",
+
+  // Метки способности метода
+  "auth.sec.method_cap.login": "Для входа",
+  "auth.sec.method_cap.register": "Для регистрации",
+  "auth.sec.method_cap.both": "Вход и регистрация",
+  "auth.sec.method_cap.portable_anon":
+    "Вход в гостевой аккаунт с другого устройства",
+
   // Компоненты профиля безопасности (директива владельца, пункт 5)
   "auth.sec.sessions.title": "Активные сеансы",
   "auth.sec.sessions.subtitle":

@@ -4,7 +4,7 @@ import type { OtpChannel } from "../api/types.js";
 import { createPasswordChangeFlow } from "../flows/passwordChangeFlow.js";
 import type { PasswordChangeState } from "../flows/passwordChangeFlow.js";
 import { useFlow } from "@stapel/core";
-import { useAuthAnalytics, useAuthApi } from "../model/context.js";
+import { useAuthAnalytics, useAuthApi, useAuthSession } from "../model/context.js";
 
 export interface PasswordChangeBag {
   readonly state: PasswordChangeState;
@@ -25,9 +25,15 @@ export function PasswordChange(props: {
 }): ReactNode {
   const api = useAuthApi();
   const analytics = useAuthAnalytics();
+  const session = useAuthSession();
   const flow = useMemo(
-    () => createPasswordChangeFlow({ api, analytics }),
-    [api, analytics]
+    () =>
+      createPasswordChangeFlow({
+        api,
+        analytics,
+        onAuthenticated: (r) => session.adopt(r),
+      }),
+    [api, analytics, session]
   );
   const state = useFlow(flow.machine);
   return props.children({

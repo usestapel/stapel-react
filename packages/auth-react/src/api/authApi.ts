@@ -15,6 +15,8 @@ import type {
   PasskeyAuthenticateBeginResponse,
   PasskeyRegisterBeginResponse,
   PasswordMethods,
+  PasswordOtpChangeResponse,
+  PasswordRegisterRequest,
   QrGenerateResponse,
   QrStatusResponse,
   QrType,
@@ -73,9 +75,10 @@ export interface AuthApi {
   passwordMethods(): Promise<PasswordMethods>;
   passwordChange(oldPassword: string, newPassword: string): Promise<StatusResponse>;
   passwordChangeOtpRequest(method: OtpChannel): Promise<OtpRequestResponse>;
-  passwordChangeOtpVerify(method: OtpChannel, code: string, newPassword: string): Promise<StatusResponse>;
+  passwordChangeOtpVerify(method: OtpChannel, code: string, newPassword: string): Promise<PasswordOtpChangeResponse>;
   passwordResetRequest(channel: OtpChannel, value: string): Promise<OtpRequestResponse>;
   passwordResetVerify(channel: OtpChannel, value: string, code: string, newPassword: string): Promise<AuthResponse>;
+  passwordRegister(request: PasswordRegisterRequest): Promise<AuthResponse>;
 
   // Anonymous (auth-sa.md §6)
   anonymous(deviceId?: string): Promise<AuthResponse>;
@@ -201,6 +204,8 @@ export function createAuthApi(client: StapelClient): AuthApi {
         { [channel]: value, code, new_password: newPassword },
         mutating()
       ),
+    passwordRegister: (request) =>
+      client.post("/password/register/", request, mutating()),
 
     anonymous: (deviceId) =>
       client.post(

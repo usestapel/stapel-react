@@ -16,7 +16,7 @@ import type { AuthRuntime } from "../../src/model/runtime.js";
 import { AuthProvider } from "../../src/headless/AuthProvider.js";
 import { registerAuthI18n } from "../../src/i18n/keys.js";
 import { PasswordChangePanel } from "../../src/default/security/PasswordChangePanel.js";
-import { BASE } from "../helpers.js";
+import { BASE, testUser } from "../helpers.js";
 
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
@@ -149,5 +149,77 @@ describe("<PasswordChangePanel/>", () => {
 
     await screen.findByText("Passwords don't match.");
     expect(changeCalls).toBe(0); // the mismatch never reached the backend
+  });
+});
+
+/**
+ * Per-method capability caption (§68 promote/orphan fix follow-up, owner
+ * directive point 5): `methodCapabilityLabel("password", …)` — see
+ * `channels.test.ts` for the pure-logic coverage; these prove it's actually
+ * WIRED into the widget, including the anonymous "portable guest account"
+ * framing.
+ */
+describe("<PasswordChangePanel/> — capability caption", () => {
+  const CAPS_BOTH = {
+    methods: [
+      { id: "password", enabled: true, can_login: true, can_register: true, placement: "overflow", order: 7, interaction: "modal", icon_svg: "" },
+    ],
+  };
+
+  it("shows 'Sign-in and registration' for a non-anonymous viewer when password can do both", async () => {
+    server.use(
+      http.get(`${BASE}/password/methods/`, () =>
+        HttpResponse.json({ methods: [{ method: "password" }], has_password: true })
+      ),
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(CAPS_BOTH))
+    );
+    // cookieMode: false + no persisted hint cookie in jsdom -> AuthProvider's
+    // mount-time restore() bootstrap probe declines outright (no network
+    // call) instead of racing a real /token/refresh/ and tearing the
+    // explicitly adopted state back down to null (session.ts's
+    // shouldRunBootstrapProbe/bootstrapProbe doc has the full contract).
+    const runtime = createAuthRuntime({ baseUrl: BASE, cookieMode: false });
+    runtime.session.adopt({
+      status: "LOGGED_IN",
+      user: testUser({ is_anonymous: false }),
+      tokens: { access: "a", refresh: "r" },
+    });
+    render(wrap(runtime, <PasswordChangePanel />));
+    await screen.findByTestId("password-capability-label");
+    expect(screen.getByText("Sign-in and registration")).toBeDefined();
+  });
+
+  it("reframes password's login capability as guest-account portability for an ANONYMOUS viewer", async () => {
+    server.use(
+      http.get(`${BASE}/password/methods/`, () =>
+        HttpResponse.json({ methods: [{ method: "password" }], has_password: true })
+      ),
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(CAPS_BOTH))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE, cookieMode: false });
+    runtime.session.adopt({
+      status: "LOGGED_IN",
+      user: testUser({ is_anonymous: true }),
+      tokens: { access: "a", refresh: "r" },
+    });
+    render(wrap(runtime, <PasswordChangePanel />));
+    await screen.findByTestId("password-capability-label");
+    expect(
+      screen.getByText("Sign in to your guest account from another device")
+    ).toBeDefined();
+    expect(screen.queryByText("Sign-in and registration")).toBeNull();
+  });
+
+  it("renders no caption when capabilities haven't carried a password entry", async () => {
+    server.use(
+      http.get(`${BASE}/password/methods/`, () =>
+        HttpResponse.json({ methods: [{ method: "password" }], has_password: true })
+      ),
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json({ methods: [] }))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PasswordChangePanel />));
+    await waitFor(() => expect(screen.getByText("Current password")).toBeDefined());
+    expect(screen.queryByTestId("password-capability-label")).toBeNull();
   });
 });

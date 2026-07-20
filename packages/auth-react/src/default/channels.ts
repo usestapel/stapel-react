@@ -6,6 +6,8 @@
  * main/bottom/overflow) are unit-testable in isolation from the markup.
  */
 import type { AuthMethodInfo, ChannelInteraction, ChannelPlacement, LoginCapabilities } from "../api/types.js";
+import { AUTH_I18N_KEYS } from "../i18n/keys.js";
+import type { AuthI18nKey } from "../i18n/keys.js";
 
 /** Every sign-in channel the skin knows how to render. */
 export type ChannelId =
@@ -204,4 +206,50 @@ export function methodInteraction(
   methods: readonly AuthMethodInfo[] | undefined
 ): ChannelInteraction | undefined {
   return methods?.find((m) => m.id === id)?.interaction;
+}
+
+/** Enabled channels FOR REGISTRATION, in priority order — filters to
+ * `can_register === true` on the backend's per-method `methods[]` (stapel-auth
+ * ≥0.7.0). THE IDENTITY MODEL: passkey/qr/magic_link never appear here (their
+ * `can_register` is always `false` — no registration axis exists for them);
+ * a real anchor (email/phone/oauth/sso) or password (rendered as a
+ * SET-password form, see `PasswordRegisterPanel`) does. */
+export function enabledRegistrationChannels(
+  methods: readonly AuthMethodInfo[] | undefined,
+  priority: readonly ChannelId[] = DEFAULT_CHANNEL_PRIORITY
+): ChannelId[] {
+  if (!methods) return [];
+  const canRegister = new Set(methods.filter((m) => m.can_register).map((m) => m.id));
+  return priority.filter((id) => canRegister.has(id));
+}
+
+/**
+ * A method's display capability label (SecuritySettings widgets — owner
+ * directive point 5's per-method-capability follow-up): "For sign-in" / "For
+ * registration" / "Sign-in and registration", derived from `methods[]`'s
+ * `can_login`/`can_register`.
+ *
+ * `password` + an ANONYMOUS viewer is a special case (THE IDENTITY MODEL):
+ * password is a CREDENTIAL, never an anchor, so an anonymous account's
+ * password never means "registration" no matter what `can_register` says
+ * (that flag describes the deployment's `register()` capability, which
+ * still requires a real anchor alongside the password — see
+ * password/views.py `register()`). For that viewer, password's login
+ * capability is reframed as making their SAME guest account portable
+ * (loginable from another device) rather than a generic "For sign-in".
+ */
+export function methodCapabilityLabel(
+  id: ChannelId,
+  methods: readonly AuthMethodInfo[] | undefined,
+  isAnonymous: boolean
+): AuthI18nKey | undefined {
+  const info = methods?.find((m) => m.id === id);
+  if (!info) return undefined;
+  if (id === "password" && isAnonymous && info.can_login) {
+    return AUTH_I18N_KEYS.secMethodCapPortableAnon;
+  }
+  if (info.can_login && info.can_register) return AUTH_I18N_KEYS.secMethodCapBoth;
+  if (info.can_register) return AUTH_I18N_KEYS.secMethodCapRegister;
+  if (info.can_login) return AUTH_I18N_KEYS.secMethodCapLogin;
+  return undefined;
 }

@@ -15,7 +15,7 @@ export {
   safeScanRedirect,
 } from "./api/urls.js";
 export type { AuthUrls } from "./api/urls.js";
-export { isTotpChallenge } from "./api/types.js";
+export { isTotpChallenge, isAuthResponse } from "./api/types.js";
 export type {
   AuthStatus,
   StapelUser,
@@ -25,6 +25,8 @@ export type {
   LoginResponse,
   OtpRequestResponse,
   StatusResponse,
+  PasswordOtpChangeResponse,
+  PasswordRegisterRequest,
   OtpChannel,
   OAuthProviderInfo,
   RegistrationCapabilities,
@@ -99,6 +101,12 @@ export type {
   PasswordResetFlowDeps,
   PasswordResetState,
 } from "./flows/passwordResetFlow.js";
+export { createPasswordRegisterFlow } from "./flows/passwordRegisterFlow.js";
+export type {
+  PasswordRegisterFlow,
+  PasswordRegisterFlowDeps,
+  PasswordRegisterState,
+} from "./flows/passwordRegisterFlow.js";
 export { createVerificationController } from "./flows/verificationFlow.js";
 export type {
   VerificationController,
@@ -215,6 +223,8 @@ export { PasswordReset } from "./headless/PasswordReset.js";
 export type { PasswordResetBag } from "./headless/PasswordReset.js";
 export { PasswordChange } from "./headless/PasswordChange.js";
 export type { PasswordChangeBag } from "./headless/PasswordChange.js";
+export { PasswordRegister } from "./headless/PasswordRegister.js";
+export type { PasswordRegisterBag } from "./headless/PasswordRegister.js";
 export { VerificationChallenge } from "./headless/VerificationChallenge.js";
 export type { VerificationChallengeBag } from "./headless/VerificationChallenge.js";
 export { TotpSetup } from "./headless/TotpSetup.js";

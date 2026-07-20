@@ -86,6 +86,24 @@ export type OtpRequestResponse = Schemas["OtpSentResponse"];
 /** Simple `{ status }` envelope returned by several mutations. */
 export type StatusResponse = Schemas["SimpleStatusResponse"];
 
+/**
+ * `POST /password/change/otp/verify/`'s response (stapel-auth ≥0.7.0):
+ * ordinarily a bare `StatusResponse` (status=password_changed — no session
+ * change). If the caller was an anonymous guest session, a successful
+ * contact OTP verification there is itself an identity anchor (the same one
+ * email_verify/phone_verify promote on) — the account is promoted and this
+ * instead returns a full `AuthResponse` (status=REGISTERED, fresh tokens),
+ * since promoting invalidated the session that request itself was using.
+ * Narrow with {@link isAuthResponse}.
+ */
+export type PasswordOtpChangeResponse = AuthResponse | StatusResponse;
+
+/** Narrowing helper for {@link PasswordOtpChangeResponse} — only a real
+ * `AuthResponse` carries `user`, which is what `session.adopt()` needs. */
+export function isAuthResponse(r: PasswordOtpChangeResponse): r is AuthResponse {
+  return "user" in r;
+}
+
 /** `{ access, refresh }` from POST/GET /token/refresh/. */
 export type RefreshResponse = Schemas["TokenPairResponse"];
 
@@ -129,10 +147,22 @@ export type ChannelInteraction = "inline" | "modal" | "redirect";
  * `ChannelId` (`../default/channels.ts`) for every method the default skin
  * knows how to render. Correction (4): `placement`/`interaction` re-typed from
  * the generated surface's plain `string`.
+ *
+ * ADAPTER (5, stapel-auth ≥0.7.0): `can_login`/`can_register` are dataclass
+ * fields with a Python default (`False`), which drf-spectacular marks
+ * `?:` (optional) even though the backend always serializes both — re-typed
+ * required here so callers don't have to `?? false` everywhere. `can_login`
+ * mirrors `enabled` (kept for back-compat); `can_register` is `false` for
+ * passkey/qr/magic_link (THE IDENTITY MODEL: no registration axis for those).
  */
-export type AuthMethodInfo = Omit<Schemas["AuthMethodInfo"], "placement" | "interaction"> & {
+export type AuthMethodInfo = Omit<
+  Schemas["AuthMethodInfo"],
+  "placement" | "interaction" | "can_login" | "can_register"
+> & {
   readonly placement: ChannelPlacement;
   readonly interaction: ChannelInteraction;
+  readonly can_login: boolean;
+  readonly can_register: boolean;
 };
 
 /**
@@ -154,6 +184,16 @@ export type OtpMeta = Schemas["OtpMeta"];
 export type Capabilities = Omit<Schemas["AuthCapabilities"], "methods"> & {
   readonly methods: readonly AuthMethodInfo[];
 };
+
+/**
+ * `POST /password/register/` request body (auth-sa.md §5; gated by
+ * `RegistrationCapabilities.password` / `AUTH_PASSWORD_REGISTRATION`).
+ * `password` is the only required field — email/phone/username are each
+ * optional, but see `PasswordRegisterPanel`'s doc: calling this WITHOUT
+ * email or phone on an anonymous session only sets a password on the guest
+ * account (portable-anon — THE IDENTITY MODEL), it does not promote it.
+ */
+export type PasswordRegisterRequest = Schemas["PasswordRegister"];
 
 // ── Password change / reset methods ──────────────────────────────────────────
 
