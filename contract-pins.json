@@ -2,32 +2,32 @@
   "$comment": "Single source of truth for the immutable refs that ci.yml and release.yml pin each sibling backend checkout to (§17 pin B). Each pinned commit CONTAINS the committed contract artifacts the gen:* drivers regenerate from: docs/schema.json, docs/flows.json, docs/errors.json, docs/capabilities.json (+ pyproject.toml for the manifest backend-version pin). Bumping a pin is a deliberate PR after the backend releases a new contract — never float main. Procedure: CONTRIBUTING.md, section 'Contract pins'. 2026-07-16: bumped to the v1-canon-sweep release tags (§60, api-versioning.md) — auth v0.5.8, notifications v0.3.8, profiles v0.3.13, billing v0.4.11, workspaces v0.4.2, calendar v0.3.4, recordings v0.3.2; all contracts now carry /<mod>/api/v1/ paths; react gen:* artifacts regenerated against these refs in the same change.",
   "modules": {
     "stapel-auth": {
-      "ref": "288741dafeff1c4868f13e2bf9558d6891bffb85",
-      "note": "release v0.7.5 (tag v0.7.5) — v0.7.0 scrubbed the legacy X-Step-Up-Token surface (totp_step_up endpoint + back-compat shim modules) per the alpha no-migrations policy; v0.7.1-0.7.5 are dependency-ceiling/contract-regen/QR-echo fixes. Bumped from v0.6.0 straight to v0.7.5 (skipping the intermediate tags) — this pulls the totp_step_up removal out of react's generated schema.ts/errors.gen, closing the 'local sibling ahead of pin' drift trap from the previous release (d9a6ec2)"
+      "ref": "1149dffda3d10240eab33148f11b1074977ebc7f",
+      "note": "0.9.0 — TOTP change primitive (instant replace + delayed disable, TOTPSetupRequest/TOTPDelayedInitiate) + per-method capability, promotion, sso auth_type. Bumped from v0.7.5 to pull the 0.9.0 contract react's schema.ts is built against (closes the TOTPSetupRequest 'sibling ahead of pin' drift)."
     },
     "stapel-notifications": {
-      "ref": "50922e5ba84f6bda8537861d4f1f0e059899c237",
-      "note": "release v0.3.8 — v1 canon sweep §60: /notifications/api/v1/ paths"
+      "ref": "82373f5d528eb16d45e3c5bc1af1dc749468b09e",
+      "note": "current main — contract-regen catch-up"
     },
     "stapel-profiles": {
       "ref": "3d79c037b0dc8d6a358354257b2a66cf59485224",
       "note": "release v0.5.0 — §66 profile = field constructor: hard core shrinks (theme/currency_code/measurement_units/display_name leave), STANDARD_FIELDS/IDENTITY_PRESETS registry, GET /field-manifest (data-driven front-pair skin, docs/pending/profile-fields.md)"
     },
     "stapel-billing": {
-      "ref": "16a94aaddae0332a3ca3a93a3379b36fa6813f7f",
-      "note": "release v0.4.11 — v1 canon sweep §60: /billing/api/v1/ paths"
+      "ref": "abe9a31392af2146133fc06b9fd3ebc43b28cab3",
+      "note": "current main — contract-regen catch-up"
     },
     "stapel-workspaces": {
-      "ref": "869c1ee268d8ae5c494293dc9715ea8ed5e669a2",
-      "note": "release v0.4.2 — v1 canon sweep §60: /workspaces/api/v1/ paths"
+      "ref": "d243c6bec71cfdb98c033ef429639aefa67b7ce8",
+      "note": "current main — contract-regen catch-up"
     },
     "stapel-calendar": {
       "ref": "a8fa34c437b62c8b1234a9b92c5ceca4215bc2d0",
       "note": "release v0.3.4 — v1 canon sweep §60: /calendar/api/v1/ paths"
     },
     "stapel-recordings": {
-      "ref": "4c1810d29bbc804728722ada35e1034f8f31f401",
-      "note": "release v0.3.2 — v1 canon sweep §60: /recordings/api/v1/ paths"
+      "ref": "33481eee663a27c89dedf30c79e776f357c1ee04",
+      "note": "current main — contract-regen catch-up"
     }
   }
 }
