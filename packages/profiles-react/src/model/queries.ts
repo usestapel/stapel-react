@@ -36,6 +36,13 @@ export function useMyProfile(): UseQueryResult<MyProfile, StapelApiError> {
     queryKey: profilesQueryKeys.me(),
     queryFn: () => api.getMyProfile(),
     enabled: sessionReady,
+    // Cache-first / stale-while-revalidate — same contract as auth-react's
+    // `useMe`: with `<StapelProvider meCacheQueryKeys={[profilesQueryKeys.me()]}>`
+    // wired, the QueryClient is hydrated from localStorage before this
+    // hook's first render (instant paint of the last-known profile);
+    // `staleTime: 0` guarantees a background revalidation fires on every
+    // mount regardless of how fresh the persisted snapshot looks.
+    staleTime: 0,
   });
 }
 
