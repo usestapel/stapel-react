@@ -15,6 +15,7 @@ export { SecuritySettings } from "./SecuritySettings.js";
 export type { SecuritySettingsProps } from "./SecuritySettings.js";
 export {
   DEFAULT_CHANNEL_PRIORITY,
+  REGISTRATION_ANCHORS,
   computeZones,
   enabledChannels,
   enabledRegistrationChannels,

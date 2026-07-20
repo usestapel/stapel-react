@@ -223,9 +223,38 @@ describe("enabledRegistrationChannels", () => {
     expect(enabledRegistrationChannels(methods, ["phone", "email"])).toEqual(["phone", "email"]);
   });
 
-  it("includes password when can_register is true (rendered as a SET-password form, not the login form)", () => {
+  it("NEVER includes password even when the backend sends can_register:true (THE IDENTITY MODEL — password is a credential, not an anchor; it does not deanonymize)", () => {
     const methods = [method("password", "overflow", 7, "modal", { can_register: true })];
-    expect(enabledRegistrationChannels(methods)).toEqual(["password"]);
+    expect(enabledRegistrationChannels(methods)).toEqual([]);
+  });
+
+  it("keeps the anchor channels and drops a non-anchor even when both claim can_register", () => {
+    const methods = [
+      method("email", "main", 0, "inline", { can_register: true }),
+      method("password", "overflow", 7, "modal", { can_register: true }),
+      method("oauth", "bottom", 3, "redirect", { can_register: true }),
+    ];
+    expect(enabledRegistrationChannels(methods)).toEqual(["email", "oauth"]);
+  });
+
+  it("HONOURS a custom anchor set that opts password in (90s-style login/password deployment)", () => {
+    const methods = [
+      method("email", "main", 0, "inline", { can_register: true }),
+      method("password", "overflow", 7, "modal", { can_register: true }),
+    ];
+    // Deployment wires this from its app env + backend AUTH_PASSWORD_DEANONYMIZES.
+    expect(
+      enabledRegistrationChannels(methods, DEFAULT_CHANNEL_PRIORITY, ["email", "password"])
+    ).toEqual(["email", "password"]);
+    // Still gated by can_register: a custom anchor the backend hasn't enabled
+    // for registration does not appear.
+    expect(
+      enabledRegistrationChannels(
+        [method("password", "overflow", 7, "modal", { can_register: false })],
+        DEFAULT_CHANNEL_PRIORITY,
+        ["password"]
+      )
+    ).toEqual([]);
   });
 });
 

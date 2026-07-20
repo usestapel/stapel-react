@@ -208,18 +208,53 @@ export function methodInteraction(
   return methods?.find((m) => m.id === id)?.interaction;
 }
 
-/** Enabled channels FOR REGISTRATION, in priority order — filters to
- * `can_register === true` on the backend's per-method `methods[]` (stapel-auth
- * ≥0.7.0). THE IDENTITY MODEL: passkey/qr/magic_link never appear here (their
- * `can_register` is always `false` — no registration axis exists for them);
- * a real anchor (email/phone/oauth/sso) or password (rendered as a
- * SET-password form, see `PasswordRegisterPanel`) does. */
+/**
+ * THE IDENTITY MODEL — the channels that can DEANONYMIZE, i.e. establish a
+ * verified identity ANCHOR. Registration == deanonymization, so the
+ * registration surface is exactly these and only these. Everything else is a
+ * CREDENTIAL, not an anchor:
+ *
+ *  - `password` — setting a password on an anonymous session only makes that
+ *    SAME guest account portable (loginable from another device); it does not
+ *    create an identity and does not deanonymize. It is therefore NEVER a
+ *    registration channel, regardless of the backend's `can_register` flag
+ *    (that flag gates the deployment's `register()` primitive, which still
+ *    requires a real anchor alongside the password — see stapel-auth's
+ *    password/views.py `register()`). "Set a password" belongs on the login
+ *    surface / account settings, not on the "create an account" screen.
+ *  - `passkey`/`qr`/`magic_link` — login-only, no registration axis exists.
+ */
+export const REGISTRATION_ANCHORS: readonly ChannelId[] = [
+  "email",
+  "phone",
+  "oauth",
+  "sso",
+];
+
+/** Enabled channels FOR REGISTRATION, in priority order — the intersection of
+ * the anchor channels (`anchors`, defaulting to `REGISTRATION_ANCHORS` — THE
+ * IDENTITY MODEL) with the ones the backend marks `can_register === true` on
+ * its per-method `methods[]` (stapel-auth ≥0.7.0). By default a non-anchor
+ * channel (password/passkey/qr/magic_link) NEVER appears here even if a
+ * backend sends `can_register: true` for it — registration is deanonymization,
+ * and only an anchor deanonymizes.
+ *
+ * `anchors` is the CONFIGURABLE seam (owner directive 2026-07-20): a
+ * deployment that deliberately wants classic login/password accounts
+ * ("90s-style" — password IS the account and DOES deanonymize) passes its own
+ * set INCLUDING `"password"`, wired from its app env. It must pair this with
+ * the backend's `AUTH_PASSWORD_DEANONYMIZES=True` so the promote actually
+ * happens server-side — the two knobs together, one per side. */
 export function enabledRegistrationChannels(
   methods: readonly AuthMethodInfo[] | undefined,
-  priority: readonly ChannelId[] = DEFAULT_CHANNEL_PRIORITY
+  priority: readonly ChannelId[] = DEFAULT_CHANNEL_PRIORITY,
+  anchors: readonly ChannelId[] = REGISTRATION_ANCHORS
 ): ChannelId[] {
   if (!methods) return [];
-  const canRegister = new Set(methods.filter((m) => m.can_register).map((m) => m.id));
+  const anchorSet = new Set<string>(anchors);
+  const canRegister = new Set(
+    methods.filter((m) => m.can_register && anchorSet.has(m.id)).map((m) => m.id)
+  );
   return priority.filter((id) => canRegister.has(id));
 }
 

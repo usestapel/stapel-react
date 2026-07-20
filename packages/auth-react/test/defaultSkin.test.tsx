@@ -664,10 +664,12 @@ describe("<AuthPanel/> — alt-method surface is responsive (Modal on desktop, b
 
 /**
  * `<AuthPanel variant="register"/>` — the registration surface (§68
- * promote/orphan fix follow-up). THE IDENTITY MODEL: only channels that can
- * establish a fresh anchor (`can_register===true`) render — passkey/qr/
- * magic_link never do (no registration axis exists for them) — and the
- * `password` channel renders a SET-password form, not the login one.
+ * promote/orphan fix follow-up). THE IDENTITY MODEL: registration is
+ * DEANONYMIZATION, so ONLY channels that establish a verified identity anchor
+ * render — email/phone/oauth/sso, intersected with `can_register===true`.
+ * password/passkey/qr/magic_link NEVER render here: they are credentials, not
+ * anchors (a password only makes a guest account portable — it does not
+ * create an identity), so they have no place on a "create an account" screen.
  */
 function registerMethod(
   id: string,
@@ -734,21 +736,21 @@ describe("<AuthPanel variant=\"register\"/> — the registration surface", () =>
     expect(screen.queryByText("Passkey")).toBeNull();
   });
 
-  it("renders a SET-password form (email + password + confirm) for the password channel, not the login form", async () => {
+  it("NEVER surfaces password on the register surface even when the backend sends can_register:true (THE IDENTITY MODEL — password is a credential, not an anchor)", async () => {
+    // REGISTRATION_CAPABILITIES marks password can_register:true; the surface
+    // must still drop it. With only email/phone left as anchors there is no
+    // overflow channel at all, so the "More ways to sign in" menu that would
+    // have carried password never appears.
     server.use(
       http.get(`${BASE}/capabilities/`, () => HttpResponse.json(REGISTRATION_CAPABILITIES))
     );
     const runtime = createAuthRuntime({ baseUrl: BASE });
     render(wrap(runtime, <AuthPanel mode="light" variant="register" />));
 
-    await waitFor(() => expect(screen.getByText("More ways to sign in")).toBeDefined());
-    screen.getByText("More ways to sign in").click();
-    (await screen.findByText("Password")).click();
-    await screen.findByRole("dialog");
-    // The login PasswordPanel has no confirm-password field — its presence
-    // here is what distinguishes the SET-password registration form.
-    expect(await screen.findByText("Confirm password")).toBeDefined();
-    expect(screen.getByRole("button", { name: "Create account" })).toBeDefined();
+    await waitFor(() => expect(screen.getByRole("tab", { name: "Email" })).toBeDefined());
+    expect(screen.queryByText("More ways to sign in")).toBeNull();
+    expect(screen.queryByText("Password")).toBeNull();
+    expect(screen.queryByText("Confirm password")).toBeNull();
   });
 
   it("does not show the guest-entry link (that belongs to the login surface only)", async () => {

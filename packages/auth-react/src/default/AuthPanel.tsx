@@ -97,17 +97,29 @@ export interface AuthPanelProps {
   readonly mode?: ThemeMode;
   /**
    * `"login"` (default) renders every enabled LOGIN channel, same as always.
-   * `"register"` renders a REGISTRATION surface instead (stapel-auth ≥0.7.0
-   * per-method `can_register` — see `enabledRegistrationChannels`): only
-   * channels that can establish a fresh identity anchor (THE IDENTITY
-   * MODEL — email/phone/oauth/sso, plus password as a SET-password form),
-   * never passkey/qr/magic_link (no registration axis exists for them —
-   * `can_register` is always `false`). Named `variant`, not `mode`, to avoid
-   * colliding with the light/dark `mode` prop above.
+   * `"register"` renders a REGISTRATION surface instead — THE IDENTITY MODEL:
+   * ONLY the channels that DEANONYMIZE by establishing a verified identity
+   * anchor (email/phone/oauth/sso; see `enabledRegistrationChannels` +
+   * `REGISTRATION_ANCHORS`), intersected with the backend's per-method
+   * `can_register` (stapel-auth ≥0.7.0). Password/passkey/qr/magic_link NEVER
+   * appear here: they are credentials, not anchors — setting a password does
+   * not create an identity (it only makes a guest account portable), so it
+   * has no place on a "create an account" screen. Named `variant`, not
+   * `mode`, to avoid colliding with the light/dark `mode` prop above.
    */
   readonly variant?: "login" | "register";
   /** Override the channel order (ПРАВИЛО 2). Defaults to the ratified priority. */
   readonly channelPriority?: readonly ChannelId[];
+  /**
+   * Which channels count as REGISTRATION anchors on the `variant="register"`
+   * surface. Defaults to `REGISTRATION_ANCHORS` (email/phone/oauth/sso — THE
+   * IDENTITY MODEL, where registration == deanonymization). A deployment that
+   * deliberately wants classic login/password accounts ("90s-style" — password
+   * IS the account) passes its own set INCLUDING `"password"`, wired from its
+   * app env, and MUST pair it with the backend's `AUTH_PASSWORD_DEANONYMIZES=
+   * True` so the server actually promotes. Ignored on the login surface.
+   */
+  readonly registrationAnchors?: readonly ChannelId[];
   /** Optional zone-A system notice (session revoked, link expired, …). */
   readonly notice?: AuthPanelNotice;
   /**
@@ -161,7 +173,7 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
   const methods = caps.data?.methods;
   const channels =
     variant === "register"
-      ? enabledRegistrationChannels(methods, channelPriority)
+      ? enabledRegistrationChannels(methods, channelPriority, props.registrationAnchors)
       : login
         ? enabledChannels(login, channelPriority)
         : [];
@@ -187,6 +199,13 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
       case "phone":
         return <OtpPanel channel="phone" {...(opts?.asMainTab !== undefined ? { hideChannelLabel: opts.asMainTab } : {})} />;
       case "password":
+        // By default password is a credential, never a registration anchor,
+        // so `enabledRegistrationChannels` does not route it here on the
+        // register surface (THE IDENTITY MODEL). A deployment can opt password
+        // IN as an anchor via `registrationAnchors` (90s-style login/password
+        // accounts) — only THEN does `password` reach this branch on the
+        // register surface, and it must render the SET-password form
+        // (`PasswordRegisterPanel`), not the login one (`PasswordPanel`).
         return variant === "register" ? <PasswordRegisterPanel /> : <PasswordPanel />;
       case "qr":
         return <QrPanel />;
