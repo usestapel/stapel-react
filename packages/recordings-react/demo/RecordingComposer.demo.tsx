@@ -45,6 +45,7 @@ const DRAFT: CreateRecordingRequest = {
   title: "Team standup",
   source_type: "upload",
   diarization_enabled: true,
+  filename: "team-standup.mp4",
 };
 
 function ComposerBody(): ReactElement {
