@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/profiles-react",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "demos": [
     {
       "id": "profiles.connection_list",

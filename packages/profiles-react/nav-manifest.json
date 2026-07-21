@@ -1,6 +1,6 @@
 {
   "package": "@stapel/profiles-react",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "entries": [
     {
       "id": "profiles.settings",
