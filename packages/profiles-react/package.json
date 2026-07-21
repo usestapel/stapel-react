@@ -69,6 +69,7 @@
   ],
   "peerDependencies": {
     "@stapel/core": ">=0.3.0 <1.0.0",
+    "@stapel/image": ">=0.1.0 <1.0.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"
@@ -81,6 +82,7 @@
   "devDependencies": {
     "@size-limit/preset-small-lib": "^11.2.0",
     "@stapel/core": "workspace:^",
+    "@stapel/image": "workspace:^",
     "@stapel/showcase": "workspace:^",
     "@stapel/tokens": "workspace:^",
     "@tanstack/react-query": "^5.81.0",

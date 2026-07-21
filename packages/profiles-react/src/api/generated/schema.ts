@@ -500,6 +500,7 @@ export interface components {
             avatar_source?: components["schemas"]["AvatarSourceEnum"];
             /** @description Avatar reference matching avatar_source: CDN 'avatar/<hash>' ref, a Gravatar email-hash, a plain URL, or an uploaded file key. */
             avatar?: string | null;
+            readonly avatar_image: components["schemas"]["StapelImage"];
             /**
              * Format: int64
              * @description User's location ID from geo service
@@ -534,6 +535,7 @@ export interface components {
              * @example avatar/def456
              */
             avatar: string | null;
+            avatar_image: components["schemas"]["StapelImageDTO"] | null;
             /**
              * @description Geo service location ID
              * @example 42
@@ -597,6 +599,7 @@ export interface components {
              * @example avatar/abc123
              */
             avatar: string | null;
+            avatar_image: components["schemas"]["StapelImageDTO"] | null;
             /**
              * @description Geo service location ID
              * @example 42
@@ -738,6 +741,58 @@ export interface components {
             };
             /** @description Active Django locale `error` was rendered in (e.g */
             error_language?: string;
+        };
+        /**
+         * @description The source-agnostic image descriptor — mirrors ``StapelImage``.
+         *
+         *     ``variants`` is the CDN/PIL ladder, or ``[]`` for a ``"link"`` / unprocessed
+         *     file, in which case the renderer degrades to the single top-level ``url``.
+         */
+        StapelImage: {
+            source: string;
+            url: string;
+            mime: string | null;
+            width: number | null;
+            height: number | null;
+            /** Format: double */
+            aspect: number | null;
+            square: boolean;
+            preview_b64: string | null;
+            variants: components["schemas"]["VariantMeta"][];
+        };
+        /** @description Mirror of `types.StapelImage` — the source-agnostic image descriptor. */
+        StapelImageDTO: {
+            source: string;
+            url: string;
+            mime: string | null;
+            width: number | null;
+            height: number | null;
+            /** Format: double */
+            aspect: number | null;
+            square: boolean;
+            preview_b64: string | null;
+            variants?: components["schemas"]["VariantMetaDTO"][];
+        };
+        /** @description One generated variant file (or the original) — mirrors ``VariantMeta``. */
+        VariantMeta: {
+            tier: string;
+            branch: string | null;
+            url: string;
+            width: number | null;
+            height: number | null;
+        };
+        /**
+         * @description Mirror of `types.VariantMeta`. ``tier`` ON THE WIRE is always a string —
+         *     a numeric px value as its decimal string (``"320"``) or the literal
+         *     ``"original"`` — matching the runtime `_TierField` (`drf.py`). The
+         *     `@stapel/image` hand-mirror parses the numeric ones for its tier math.
+         */
+        VariantMetaDTO: {
+            tier: string;
+            branch: string | null;
+            url: string;
+            width: number | null;
+            height: number | null;
         };
     };
     responses: never;

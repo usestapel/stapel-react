@@ -63,6 +63,8 @@ import { useBreakpoint, useT } from "@stapel/core";
 import { useMyProfile, useProfileFieldManifest } from "../model/queries.js";
 import { useUpdateMyProfile } from "../model/mutations.js";
 import { useAvatarUpload } from "../headless/AvatarUpload.js";
+import { Image } from "@stapel/image";
+import type { StapelImage } from "@stapel/image";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
 import { EditPencilIcon } from "./icons.js";
 import type { MyProfile, ProfileFieldManifestEntry, ProfileUpdate } from "../api/types.js";
@@ -344,10 +346,18 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
     if (ref) mutation.mutate({ avatar: ref });
   }
 
-  const avatarSrc =
-    avatarUpload.previewUrl ??
-    avatarUpload.uploadedUrl ??
-    (profile?.avatar && props.avatarUrlFor ? props.avatarUrlFor(profile.avatar) : undefined);
+  // A fresh upload shows its local preview immediately; once /me refetches,
+  // the backend's `avatar_image` descriptor takes over.
+  const uploadPreview = avatarUpload.previewUrl ?? avatarUpload.uploadedUrl;
+  // Prefer the backend's source-agnostic descriptor — it renders the right
+  // ladder tier + blur-up via <Image> for a CDN/file/link avatar alike
+  // (stapel-profiles ≥0.6.0). The generated schema types `source` as a plain
+  // string; @stapel/image's StapelImage narrows it — a safe structural cast.
+  const avatarImage = (profile as { avatar_image?: unknown } | undefined)
+    ?.avatar_image as StapelImage | null | undefined;
+  // Deprecated fallback for hosts still wiring their own URL resolver.
+  const legacyAvatarSrc =
+    profile?.avatar && props.avatarUrlFor ? props.avatarUrlFor(profile.avatar) : undefined;
 
   const avatarInitials =
     typeof profile?.["display_name"] === "string" && profile["display_name"]
@@ -375,9 +385,22 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
       <Typography.Text type="secondary">{t(PROFILES_I18N_KEYS.settingsSubtitle)}</Typography.Text>
 
       <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "16px 0" }}>
-        <Avatar size={64} src={avatarSrc}>
-          {avatarInitials}
-        </Avatar>
+        {uploadPreview ? (
+          <Avatar size={64} src={uploadPreview}>
+            {avatarInitials}
+          </Avatar>
+        ) : avatarImage ? (
+          <Image
+            meta={avatarImage}
+            fit="cover"
+            alt=""
+            style={{ width: 64, height: 64, borderRadius: "50%" }}
+          />
+        ) : (
+          <Avatar size={64} src={legacyAvatarSrc}>
+            {avatarInitials}
+          </Avatar>
+        )}
         <div>
           <input
             ref={fileInputRef}

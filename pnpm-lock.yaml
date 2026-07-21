@@ -409,6 +409,9 @@ importers:
       '@stapel/core':
         specifier: workspace:^
         version: link:../core
+      '@stapel/image':
+        specifier: workspace:^
+        version: link:../image
       '@stapel/showcase':
         specifier: workspace:^
         version: link:../showcase

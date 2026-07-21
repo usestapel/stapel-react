@@ -10,8 +10,8 @@
       "note": "current main — contract-regen catch-up"
     },
     "stapel-profiles": {
-      "ref": "3d79c037b0dc8d6a358354257b2a66cf59485224",
-      "note": "release v0.5.0 — §66 profile = field constructor: hard core shrinks (theme/currency_code/measurement_units/display_name leave), STANDARD_FIELDS/IDENTITY_PRESETS registry, GET /field-manifest (data-driven front-pair skin, docs/pending/profile-fields.md)"
+      "ref": "5603e2c8ba8d2bc3c769483ba64ddfde61881359",
+      "note": "release v0.6.0 — avatar_image: /me + public profile carry a source-agnostic StapelImage (stapel_core.media, requires core>=0.13) denormalized next to the raw avatar ref, so <Image> renders the ladder without a second round-trip. Pin+regen bumped together."
     },
     "stapel-billing": {
       "ref": "abe9a31392af2146133fc06b9fd3ebc43b28cab3",
