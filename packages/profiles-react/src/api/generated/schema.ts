@@ -489,6 +489,8 @@ export interface components {
              * @description User UUID from auth service
              */
             user_id: string;
+            /** @description User's display name. */
+            display_name?: string;
             /**
              * @description Where `avatar` points: uploaded file key, arbitrary URL, Gravatar email-hash, or a CDN ref. Defaults to file/url — cdn is opt-in, not the default.
              *
@@ -525,6 +527,7 @@ export interface components {
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             user_id: string;
+            display_name: string;
             /**
              * @description Where avatar points (file, url, gravatar, cdn)
              * @example file
@@ -589,6 +592,8 @@ export interface components {
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             user_id: string;
+            display_name: string;
+            theme: string;
             /**
              * @description Where avatar points (file, url, gravatar, cdn)
              * @example file

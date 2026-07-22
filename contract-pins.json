@@ -10,8 +10,8 @@
       "note": "current main — contract-regen catch-up"
     },
     "stapel-profiles": {
-      "ref": "5603e2c8ba8d2bc3c769483ba64ddfde61881359",
-      "note": "release v0.6.0 — avatar_image: /me + public profile carry a source-agnostic StapelImage (stapel_core.media, requires core>=0.13) denormalized next to the raw avatar ref, so <Image> renders the ladder without a second round-trip. Pin+regen bumped together."
+      "ref": "75c9a246b7db34d2e03dde7f10f096e7a9fee73c",
+      "note": "release v0.7.0 — display_name + theme back in ProfileCore (§66 reversal, owner 2026-07-22): wire types carry them on /me + public profile, registry drops them from the field manifest. Pairs with @stapel/profiles-react 0.10.0's hard-core settings rows. Pin+regen bumped together."
     },
     "stapel-billing": {
       "ref": "abe9a31392af2146133fc06b9fd3ebc43b28cab3",

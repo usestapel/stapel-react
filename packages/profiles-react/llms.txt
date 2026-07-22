@@ -1,6 +1,6 @@
-# @stapel/profiles-react 0.9.0
+# @stapel/profiles-react 0.10.0
 
-Headless React flow pair for stapel-profiles (contract >=0.6 <0.7) — business + state, zero visual opinion.
+Headless React flow pair for stapel-profiles (contract >=0.7 <0.8) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
