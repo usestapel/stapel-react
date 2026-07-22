@@ -12,11 +12,15 @@
  * model to a core every project needs (avatar, language, notifications,
  * onboarding, consent) and moved identity/theme/currency/measurement_units
  * out into a per-project STANDARD_FIELDS/custom_fields manifest a host may
- * or may not select. This skin no longer hardcodes ANY of those fields — it
- * renders one row per `GET /field-manifest` entry, widget picked by
- * `entry.kind`, so a host's manifest selection is reflected here with zero
- * frontend code changes. The avatar block below stays hardcoded because
- * avatar IS part of the hard core (never absent, no manifest entry for it).
+ * or may not select. This skin renders one row per `GET /field-manifest`
+ * entry, widget picked by `entry.kind`, so a host's manifest selection is
+ * reflected here with zero frontend code changes. The avatar block stays
+ * hardcoded because avatar IS part of the hard core (never absent, no
+ * manifest entry for it) — and since stapel-profiles 0.7.0 (owner
+ * 2026-07-22) `display_name` + `theme` moved BACK into that hard core, so
+ * they render as fixed rows too, toggleable via `showDisplayName`/`showTheme`
+ * and replaceable via `displayNameRow`/`themeRow` (owner: "даже в дефолт
+ * скине должна быть возможность их кастомизировать или отключить").
  *
  * INTERACTION CANON (owner UX audit 2026-07-17; codified in
  * `docs/pending/frontend-guidelines.md` §8 "Интеракции настроек", extended
@@ -115,7 +119,37 @@ export interface ProfileSettingsProps {
    * opts in.
    */
   showGeohash?: boolean;
+  /**
+   * Render the hard-core `display_name` row (stapel-profiles ≥0.7.0 put
+   * display_name/theme back into the `ProfileCore` model — owner 2026-07-22 —
+   * so they never appear in the field manifest and this skin renders them
+   * itself, like the avatar block). Default `true`; a host whose product has
+   * no user-facing name turns the row off here instead of forking the skin.
+   */
+  showDisplayName?: boolean;
+  /** Render the hard-core `theme` row. Default `true` — see
+   * {@link ProfileSettingsProps.showDisplayName} for why it's core-rendered. */
+  showTheme?: boolean;
+  /**
+   * Replace the default `display_name` row with the host's own node (a
+   * custom widget still positioned in this screen's core-fields slot).
+   * Takes precedence over the default row; `showDisplayName: false` still
+   * hides the slot entirely.
+   */
+  displayNameRow?: ReactNode;
+  /** Replace the default `theme` row with the host's own node — same
+   * contract as {@link ProfileSettingsProps.displayNameRow}. */
+  themeRow?: ReactNode;
 }
+
+/**
+ * The `theme` column's value set — `stapel_profiles.field_defs.Theme` is a
+ * fixed `TextChoices` (light/dark/system), part of the hard core since
+ * profiles 0.7.0, so the skin may carry it as a constant the same way the
+ * backend model does. Labels resolve through the pair's own i18n keys (a
+ * hard-core field has no manifest docstring to borrow).
+ */
+const THEME_VALUES = ["light", "dark", "system"] as const;
 
 /**
  * One setting per row (owner UX audit 2026-07-17 — folded into
@@ -375,7 +409,26 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
   // a consumer of the raw manifest can re-sort defensively; sort by it here
   // too rather than trust array order blindly.
   const entries = [...(manifest.data ?? [])].sort((a, b) => a.order - b.order);
-  const visibleEntries = entries.filter((entry) => entry.kind !== "geohash" || props.showGeohash);
+  const showDisplayName = props.showDisplayName ?? true;
+  const showTheme = props.showTheme ?? true;
+  // Dedupe against a pre-0.7.0 backend whose registry still emits
+  // display_name/theme as manifest entries — when the core row renders, a
+  // manifest twin must not produce a second row for the same column.
+  const coreRendered = new Set<string>([
+    ...(showDisplayName ? ["display_name"] : []),
+    ...(showTheme ? ["theme"] : []),
+  ]);
+  const visibleEntries = entries.filter(
+    (entry) =>
+      (entry.kind !== "geohash" || props.showGeohash) && !coreRendered.has(entry.name)
+  );
+
+  const displayNameValue =
+    typeof profile?.["display_name"] === "string" ? (profile["display_name"] as string) : "";
+  const themeValue =
+    typeof profile?.["theme"] === "string" && (THEME_VALUES as readonly string[]).includes(profile["theme"] as string)
+      ? (profile["theme"] as string)
+      : "system";
 
   return (
     <Card data-testid="profile-settings">
@@ -432,6 +485,36 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
       </div>
 
       <Flex vertical gap={20} style={{ maxWidth: 480 }}>
+        {/* Hard-core rows first (display_name, theme) — model columns since
+            stapel-profiles 0.7.0, never in the manifest, so they render here
+            like the avatar block: hardcoded but host-toggleable/replaceable. */}
+        {showDisplayName &&
+          (props.displayNameRow ?? (
+            <EditableTextRow
+              label={t(PROFILES_I18N_KEYS.fieldDisplayName)}
+              value={displayNameValue}
+              saveCta={t(PROFILES_I18N_KEYS.profileSave)}
+              saving={mutation.isPending}
+              errorText={mutationErrorText}
+              valueTestId="profile-field-display_name-value"
+              onSave={(next) => mutation.mutate({ display_name: next } as ProfileUpdate)}
+            />
+          ))}
+        {showTheme &&
+          (props.themeRow ?? (
+            <SettingRow label={t(PROFILES_I18N_KEYS.fieldTheme)}>
+              <Segmented<string>
+                value={themeValue}
+                onChange={(v) => mutation.mutate({ theme: v } as ProfileUpdate)}
+                block
+                options={[
+                  { value: "light", label: t(PROFILES_I18N_KEYS.themeLight) },
+                  { value: "dark", label: t(PROFILES_I18N_KEYS.themeDark) },
+                  { value: "system", label: t(PROFILES_I18N_KEYS.themeSystem) },
+                ]}
+              />
+            </SettingRow>
+          ))}
         {visibleEntries.map((entry) => (
           <FieldRow
             key={entry.name}

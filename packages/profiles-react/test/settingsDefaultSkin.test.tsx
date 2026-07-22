@@ -48,16 +48,18 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
-// stapel-profiles 0.5.0 (§66 "Profile = constructor", docs/pending/
-// profile-fields.md): the hard core no longer carries display_name/theme/
-// currency_code/measurement_units — a project gets those back (if it wants
-// them) via its own STAPEL_PROFILES["FIELDS"] manifest, reflected here as
+// stapel-profiles 0.7.0 (§66 reversal, owner 2026-07-22): display_name and
+// theme are HARD-CORE model columns again — always on the GET /me body, never
+// field-manifest entries. currency_code/measurement_units stay registry
+// opt-ins a project selects via STAPEL_PROFILES["FIELDS"], reflected here as
 // PLAIN EXTRA KEYS on the GET /me body (the "open envelope" this pair's
 // MyProfile/ProfileUpdate types allow — api/types.ts).
 const MY_PROFILE = {
   user_id: "b3f1c0de-0000-4000-8000-000000000001",
   avatar_source: "file",
   avatar: "avatar/ada",
+  display_name: "Ada Lovelace",
+  theme: "system",
   location_id: 0,
   location_display_name_narrow: "London",
   location_display_name_broad: "United Kingdom",
@@ -88,8 +90,6 @@ const MY_PROFILE = {
  */
 const MY_PROFILE_EXT = {
   ...MY_PROFILE,
-  display_name: "Ada Lovelace",
-  theme: "system",
   currency_code: "GBP",
   default_camera_on: true,
   geohash: "gbsuv7z",
@@ -103,28 +103,12 @@ const MY_PROFILE_EXT = {
  */
 const FIELD_MANIFEST = [
   {
-    name: "display_name",
-    kind: "text",
-    docstring: "User's display name.",
-    required: false,
-    order: 0,
-    enum_values: null,
-  },
-  {
-    name: "theme",
-    kind: "enum",
-    docstring: "UI theme preference.",
-    required: false,
-    order: 1,
-    enum_values: ["light", "dark", "system"],
-  },
-  {
     name: "currency_code",
     kind: "model_ref",
     docstring:
       "Preferred display currency — references the live stapel-currencies catalog (rates/list are DB-backed, not a fixed enum; see stapel_currencies.models.Currency).",
     required: false,
-    order: 2,
+    order: 0,
     enum_values: null,
   },
   {
@@ -132,7 +116,7 @@ const FIELD_MANIFEST = [
     kind: "bool",
     docstring: "Turn the camera on by default when joining a call.",
     required: false,
-    order: 3,
+    order: 1,
     enum_values: null,
   },
   {
@@ -141,7 +125,7 @@ const FIELD_MANIFEST = [
     docstring:
       "Raw geohash of the user's last known point (stapel_geo.geohash.encode), for point-level proximity search — independent of location_id's city-level display cache.",
     required: false,
-    order: 4,
+    order: 2,
     enum_values: null,
   },
 ];
@@ -282,20 +266,22 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     );
   }
 
-  it("renders one row per active field-manifest entry, no hardcoded field list", async () => {
+  it("renders the hard-core rows (display_name, theme) plus one row per manifest entry", async () => {
     serveManifestAndProfile();
     const runtime = createProfilesRuntime({ baseUrl: BASE });
     render(wrap(runtime, <ProfileSettings />));
 
-    // text (identity preset)
+    // Hard-core display_name — rendered by the skin itself (no manifest
+    // entry), pair-owned i18n label, editable-text canon.
     await waitFor(() =>
       expect(screen.getByTestId("profile-field-display_name-value").textContent).toBe("Ada Lovelace")
     );
-    // enum -> Segmented (<=4 choices): its own docstring is the row label.
-    expect(screen.getByText("UI theme preference.")).toBeDefined();
-    expect(screen.getByText("light")).toBeDefined();
-    expect(screen.getByText("dark")).toBeDefined();
-    expect(screen.getByText("system")).toBeDefined();
+    expect(screen.getByText("Display name")).toBeDefined();
+    // Hard-core theme — Segmented with i18n'd labels (no backend docstring).
+    expect(screen.getByText("Theme")).toBeDefined();
+    expect(screen.getByText("Light")).toBeDefined();
+    expect(screen.getByText("Dark")).toBeDefined();
+    expect(screen.getByText("System")).toBeDefined();
     // model_ref -> Select, current value shown.
     expect(screen.getByText("GBP")).toBeDefined();
     // bool -> Switch.
@@ -304,16 +290,79 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     expect(screen.queryByText(/Raw geohash/)).toBeNull();
   });
 
-  it("an empty manifest renders no field rows beyond the avatar block", async () => {
+  it("an empty manifest still renders the hard-core rows; show* props turn them off", async () => {
     server.use(
       http.get(`${BASE}/field-manifest`, () => HttpResponse.json([])),
       http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE))
     );
     const runtime = createProfilesRuntime({ baseUrl: BASE });
-    render(wrap(runtime, <ProfileSettings />));
-    await waitFor(() => expect(screen.getByTestId("profile-settings")).toBeDefined());
+
+    // Default: core rows are there even with nothing manifest-selected.
+    const { unmount } = render(wrap(runtime, <ProfileSettings />));
+    await waitFor(() =>
+      expect(screen.getByTestId("profile-field-display_name-value")).toBeDefined()
+    );
+    expect(screen.getByText("Theme")).toBeDefined();
     expect(screen.queryAllByRole("switch")).toHaveLength(0);
+    unmount();
+
+    // Owner canon: "даже в дефолт скине должна быть возможность их …
+    // отключить" — both off leaves only the avatar block.
+    render(wrap(runtime, <ProfileSettings showDisplayName={false} showTheme={false} />));
+    await waitFor(() => expect(screen.getByTestId("profile-settings")).toBeDefined());
+    expect(screen.queryByText("Theme")).toBeNull();
     expect(document.querySelectorAll('[data-testid^="profile-field-"]')).toHaveLength(0);
+  });
+
+  it("displayNameRow/themeRow slots replace the default core rows (customization canon)", async () => {
+    serveManifestAndProfile();
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(
+      wrap(
+        runtime,
+        <ProfileSettings
+          displayNameRow={<div data-testid="custom-name-row">custom name UI</div>}
+          themeRow={<div data-testid="custom-theme-row">custom theme UI</div>}
+        />
+      )
+    );
+
+    await waitFor(() => expect(screen.getByTestId("custom-name-row")).toBeDefined());
+    expect(screen.getByTestId("custom-theme-row")).toBeDefined();
+    // Defaults are fully replaced, not duplicated.
+    expect(screen.queryByTestId("profile-field-display_name-value")).toBeNull();
+    expect(screen.queryByText("Theme")).toBeNull();
+  });
+
+  it("dedupes against a pre-0.7.0 backend whose manifest still lists display_name/theme", async () => {
+    // Old backend (profiles <0.7.0): registry still emits display_name/theme
+    // as manifest entries — the skin must not render each field twice.
+    const OLD_MANIFEST = [
+      {
+        name: "display_name", kind: "text", docstring: "User's display name.",
+        required: false, order: 0, enum_values: null,
+      },
+      {
+        name: "theme", kind: "enum", docstring: "UI theme preference.",
+        required: false, order: 1, enum_values: ["light", "dark", "system"],
+      },
+      ...FIELD_MANIFEST.map((e, i) => ({ ...e, order: i + 2 })),
+    ];
+    server.use(
+      http.get(`${BASE}/field-manifest`, () => HttpResponse.json(OLD_MANIFEST)),
+      http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE_EXT))
+    );
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <ProfileSettings />));
+
+    await waitFor(() =>
+      expect(screen.getAllByTestId("profile-field-display_name-value")).toHaveLength(1)
+    );
+    // One theme row (the core one, i18n'd labels) — the manifest twin with
+    // its raw lowercase labels/docstring is filtered out.
+    expect(screen.getAllByText("Light")).toHaveLength(1);
+    expect(screen.queryByText("UI theme preference.")).toBeNull();
+    expect(screen.queryByText("light")).toBeNull();
   });
 
   it("shows a text field read-only; the pencil opens a dialog that saves on its own", async () => {
@@ -330,7 +379,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     // No inline input for the name pre-edit — read-only + a pencil trigger.
     expect(screen.queryByDisplayValue("Ada Lovelace")).toBeNull();
 
-    screen.getByRole("button", { name: "User's display name." }).click();
+    screen.getByRole("button", { name: "Display name" }).click();
     const dialogInput = await screen.findByDisplayValue("Ada Lovelace");
     fireEvent.change(dialogInput, { target: { value: "Ada C. Lovelace" } });
     screen.getByText("Save changes").click();
@@ -341,17 +390,17 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     );
   });
 
-  it("an enum field (<=4 choices) renders as a Segmented that PATCHes immediately — no Save button anywhere", async () => {
+  it("the core theme row is a Segmented that PATCHes immediately — no Save button anywhere", async () => {
     let lastPatch: Record<string, unknown> | null = null;
     serveManifestAndProfile((p) => {
       lastPatch = p;
     });
     const runtime = createProfilesRuntime({ baseUrl: BASE });
     render(wrap(runtime, <ProfileSettings />));
-    await waitFor(() => expect(screen.getByText("dark")).toBeDefined());
+    await waitFor(() => expect(screen.getByText("Dark")).toBeDefined());
 
     expect(screen.queryByText("Save changes")).toBeNull();
-    fireEvent.click(screen.getByText("dark"));
+    fireEvent.click(screen.getByText("Dark"));
 
     await waitFor(() => expect(lastPatch).toMatchObject({ theme: "dark" }));
   });

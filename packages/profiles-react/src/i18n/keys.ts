@@ -36,6 +36,14 @@ export const PROFILES_I18N_KEYS = {
   avatarChange: "profiles.settings.avatar.change",
   avatarUploading: "profiles.settings.avatar.uploading",
   avatarUploadError: "profiles.settings.avatar.upload_error",
+  // Hard-core Profile fields (stapel-profiles ≥0.7.0 — display_name/theme are
+  // model columns again, never field-manifest entries, so their labels are
+  // pair-owned keys rather than backend docstrings).
+  fieldDisplayName: "profiles.settings.field.display_name",
+  fieldTheme: "profiles.settings.field.theme",
+  themeLight: "profiles.settings.theme.light",
+  themeDark: "profiles.settings.theme.dark",
+  themeSystem: "profiles.settings.theme.system",
   // Language settings (default skin — LanguageSettings)
   languageTitle: "profiles.language.title",
   languageSubtitle: "profiles.language.subtitle",
@@ -90,6 +98,11 @@ export const profilesI18nBundleEn: I18nDictionary = {
   "profiles.settings.avatar.change": "Change avatar",
   "profiles.settings.avatar.uploading": "Uploading…",
   "profiles.settings.avatar.upload_error": "Couldn't upload that image. Please try again.",
+  "profiles.settings.field.display_name": "Display name",
+  "profiles.settings.field.theme": "Theme",
+  "profiles.settings.theme.light": "Light",
+  "profiles.settings.theme.dark": "Dark",
+  "profiles.settings.theme.system": "System",
   "profiles.language.title": "Language",
   "profiles.language.subtitle": "Choose the language you'd like to see the app in.",
   "profiles.language.field.app_language": "App language",
