@@ -39,7 +39,13 @@ function wrap(runtime: AuthRuntime, children: ReactNode): ReactElement {
   );
 }
 
-function mockEverything(): void {
+/** `oauthProviders` defaults to one configured provider — the composed page's
+ * "Connected accounts" group only renders when the deployment has at least
+ * one (see the dedicated hide/show test below for the empty case). */
+function mockEverything(
+  options: { oauthProviders?: readonly { id: string; name: string }[] } = {}
+): void {
+  const oauth = options.oauthProviders ?? [{ id: "google", name: "Google" }];
   server.use(
     http.get(`${BASE}/me/`, () => HttpResponse.json(testUser({ email: "ada@example.com", phone: "+15551234567" }))),
     http.get(`${BASE}/sessions/`, () => HttpResponse.json([])),
@@ -52,8 +58,8 @@ function mockEverything(): void {
     http.get(`${BASE}/passkey/`, () => HttpResponse.json({ passkeys: [] })),
     http.get(`${BASE}/capabilities/`, () =>
       HttpResponse.json({
-        registration: { phone: false, email: true, password: false, oauth: [], sso: false, anonymous: false },
-        login: { phone: false, email: true, password: false, oauth: [], sso: false, qr: false, passkey: false, magic_link: false },
+        registration: { phone: false, email: true, password: false, oauth, sso: false, anonymous: false },
+        login: { phone: false, email: true, password: false, oauth, sso: false, qr: false, passkey: false, magic_link: false },
         methods: [],
       })
     ),
@@ -86,7 +92,12 @@ describe("<SecuritySettings/> — composed, grouped page", () => {
     expect(screen.getByRole("heading", { level: 4, name: "Contact details" })).toBeDefined();
     expect(screen.getByRole("heading", { level: 4, name: "Two-factor authentication" })).toBeDefined();
     expect(screen.getByRole("heading", { level: 4, name: "Devices & sessions" })).toBeDefined();
-    expect(screen.getByRole("heading", { level: 4, name: "Connected accounts" })).toBeDefined();
+    // Depends on `useCapabilities()` resolving (the group hides until then —
+    // see the dedicated hide/show test below), so it's the one heading
+    // worth an explicit wait rather than the others' synchronous assert.
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { level: 4, name: "Connected accounts" })).toBeDefined()
+    );
     expect(screen.getByRole("heading", { level: 4, name: "Security log" })).toBeDefined();
 
     // Each widget renders its own Card title straight from its hook.
@@ -103,5 +114,17 @@ describe("<SecuritySettings/> — composed, grouped page", () => {
     // The masked current-value line proves EmailChangePanel/PhoneChangePanel
     // read real `useMe()` data, not a placeholder.
     await waitFor(() => expect(screen.getByText(/a•••@example.com/)).toBeDefined());
+  });
+
+  it("hides the whole Connected-accounts group when no OAuth providers are configured", async () => {
+    mockEverything({ oauthProviders: [] });
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <SecuritySettings />));
+
+    // Wait for a section that's ALWAYS present to prove the page settled,
+    // then assert the OAuth group never appeared — not even its heading.
+    await waitFor(() => expect(screen.getByTestId("audit-log-panel")).toBeDefined());
+    expect(screen.queryByRole("heading", { level: 4, name: "Connected accounts" })).toBeNull();
+    expect(screen.queryByTestId("oauth-links")).toBeNull();
   });
 });

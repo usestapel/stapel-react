@@ -27,6 +27,7 @@ import type { ReactElement, ReactNode } from "react";
 import { useT } from "@stapel/core";
 import type { WebauthnBinding } from "../headless/Passkey.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
+import { useCapabilities } from "../model/queries.js";
 import { AuditLogPanel } from "./security/AuditLogPanel.js";
 import { EmailChangePanel } from "./security/EmailChangePanel.js";
 import { OAuthLinks } from "./security/OAuthLinks.js";
@@ -71,6 +72,14 @@ function Section(props: { heading: string; children: ReactNode }): ReactElement 
  * change, connected accounts, QR device linking, and the audit log. */
 export function SecuritySettings(props: SecuritySettingsProps = {}): ReactElement {
   const t = useT();
+  const caps = useCapabilities();
+  // Hide the whole "Connected accounts" group when this deployment has no
+  // OAuth providers configured at all — a heading over an empty-state card
+  // reading "no providers configured" is dead chrome for a real end user
+  // (owner: this section should disappear, not explain itself). Stays
+  // hidden while capabilities are still loading too, so the section never
+  // flashes in only to vanish once caps resolves.
+  const hasOAuthProviders = (caps.data?.registration.oauth.length ?? 0) > 0;
   return (
     <Flex vertical gap="large" style={{ width: "100%" }} data-testid="security-settings">
       <div>
@@ -104,14 +113,16 @@ export function SecuritySettings(props: SecuritySettingsProps = {}): ReactElemen
         />
       </Section>
 
-      <Section heading={t(AUTH_I18N_KEYS.secGroupConnected)}>
-        <OAuthLinks
-          {...(props.getOAuthAccessToken !== undefined
-            ? { getAccessToken: props.getOAuthAccessToken }
-            : {})}
-          {...(props.emptyIcon !== undefined ? { emptyIcon: props.emptyIcon } : {})}
-        />
-      </Section>
+      {hasOAuthProviders && (
+        <Section heading={t(AUTH_I18N_KEYS.secGroupConnected)}>
+          <OAuthLinks
+            {...(props.getOAuthAccessToken !== undefined
+              ? { getAccessToken: props.getOAuthAccessToken }
+              : {})}
+            {...(props.emptyIcon !== undefined ? { emptyIcon: props.emptyIcon } : {})}
+          />
+        </Section>
+      )}
 
       <Section heading={t(AUTH_I18N_KEYS.secGroupAudit)}>
         <AuditLogPanel />
