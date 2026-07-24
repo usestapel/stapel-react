@@ -15,3 +15,5 @@ export type { ProfileSettingsProps } from "./ProfileSettings.js";
 export { LanguageSettings } from "./LanguageSettings.js";
 export type { LanguageSettingsProps } from "./LanguageSettings.js";
 export { NotificationPreferences } from "./NotificationPreferences.js";
+export { InitialSetupModal } from "./InitialSetupModal.js";
+export type { InitialSetupModalProps } from "./InitialSetupModal.js";

@@ -84,6 +84,7 @@ const { tracked } = useTracked();
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - profiles.connection_list → <ConnectionList> [default]  demo/ConnectionList.demo.tsx
+- profiles.initial_setup_prompt → <InitialSetupPrompt> [default]  demo/InitialSetupPrompt.demo.tsx
 - profiles.my_profile → <MyProfile> [default]  demo/MyProfile.demo.tsx
 - profiles.notification_preferences → <NotificationPreferences> [default]  demo/NotificationPreferences.demo.tsx
 - profiles.provider → <ProfilesProvider> [default]  demo/Profiles.demo.tsx

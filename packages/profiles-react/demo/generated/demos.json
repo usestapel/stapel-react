@@ -24,6 +24,26 @@
       }
     },
     {
+      "id": "profiles.initial_setup_prompt",
+      "title": "Initial setup",
+      "description": "The headless InitialSetupPrompt wraps the first-run setup form (display name, theme, app language): drafts seeded from the profile, one submit() PATCH that also sets initial_setup_passed, and a skip() that records 'maybe later' without a PATCH. Pair it with useInitialSetupGate to decide when to show it.",
+      "component": "InitialSetupPrompt",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/InitialSetupPrompt.demo.tsx",
+        "line": 108
+      }
+    },
+    {
       "id": "profiles.my_profile",
       "title": "My profile",
       "description": "The headless MyProfile wraps the read + partial-update of the caller's own profile and exposes loading / saving / saved / error state. Bring your own form UI — the component is renderless.",

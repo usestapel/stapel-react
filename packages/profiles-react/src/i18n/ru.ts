@@ -50,6 +50,13 @@ export const profilesI18nBundleRu: I18nDictionary = {
   "profiles.settings.theme.light": "Светлая",
   "profiles.settings.theme.dark": "Тёмная",
   "profiles.settings.theme.system": "Системная",
+  "profiles.initialSetup.title": "Добро пожаловать — настроим ваш профиль",
+  "profiles.initialSetup.subtitle":
+    "Расскажите немного о себе. Это можно изменить позже в настройках профиля.",
+  "profiles.initialSetup.name_placeholder": "Ваше имя",
+  "profiles.initialSetup.save": "Продолжить",
+  "profiles.initialSetup.saving": "Сохранение…",
+  "profiles.initialSetup.skip": "Позже",
   "profiles.language.title": "Язык",
   "profiles.language.subtitle": "Выберите язык интерфейса приложения.",
   "profiles.language.field.app_language": "Язык интерфейса",

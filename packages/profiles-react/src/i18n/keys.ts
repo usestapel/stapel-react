@@ -44,6 +44,17 @@ export const PROFILES_I18N_KEYS = {
   themeLight: "profiles.settings.theme.light",
   themeDark: "profiles.settings.theme.dark",
   themeSystem: "profiles.settings.theme.system",
+  // Initial setup (InitialSetupPrompt headless / InitialSetupModal default
+  // skin — workspaces-org-program §B5, texts ported from ironmemo's
+  // onboarding-modal). Field labels reuse the settings-canon keys above
+  // (fieldDisplayName, fieldTheme + themes, fieldAppLanguage) so first-run
+  // and settings read identically.
+  initialSetupTitle: "profiles.initialSetup.title",
+  initialSetupSubtitle: "profiles.initialSetup.subtitle",
+  initialSetupNamePlaceholder: "profiles.initialSetup.name_placeholder",
+  initialSetupSave: "profiles.initialSetup.save",
+  initialSetupSaving: "profiles.initialSetup.saving",
+  initialSetupSkip: "profiles.initialSetup.skip",
   // Language settings (default skin — LanguageSettings)
   languageTitle: "profiles.language.title",
   languageSubtitle: "profiles.language.subtitle",
@@ -103,6 +114,13 @@ export const profilesI18nBundleEn: I18nDictionary = {
   "profiles.settings.theme.light": "Light",
   "profiles.settings.theme.dark": "Dark",
   "profiles.settings.theme.system": "System",
+  "profiles.initialSetup.title": "Welcome — let's set up your profile",
+  "profiles.initialSetup.subtitle":
+    "Tell us a bit about yourself. You can change these later in profile settings.",
+  "profiles.initialSetup.name_placeholder": "Your name",
+  "profiles.initialSetup.save": "Continue",
+  "profiles.initialSetup.saving": "Saving…",
+  "profiles.initialSetup.skip": "Maybe later",
   "profiles.language.title": "Language",
   "profiles.language.subtitle": "Choose the language you'd like to see the app in.",
   "profiles.language.field.app_language": "App language",

@@ -175,7 +175,12 @@ function flowsCatalog(flows) {
 /** i18n keys the pair owns: UI keys + flow keys + error keys, de-duplicated. */
 function i18nKeys(uiKeysSrc, flows, errors) {
   const keys = new Set();
-  const uiKeyRe = new RegExp(`"(${I18N_PREFIX}\\.[a-z0-9_.]+)"`, "g");
+  // Segments may be camelCase: the §B5 canon namespace is
+  // `profiles.initialSetup.*` (mirroring the storage canon key
+  // `stapel.profiles.initialSetup.lastPromptAt`), so the class must not be
+  // lowercase-only or those keys silently drop out of the registry the
+  // i18n-key-exists lint reads.
+  const uiKeyRe = new RegExp(`"(${I18N_PREFIX}\\.[a-zA-Z0-9_.]+)"`, "g");
   for (const m of uiKeysSrc.matchAll(uiKeyRe)) keys.add(m[1]);
   for (const f of flows) {
     keys.add(f.titleKey);

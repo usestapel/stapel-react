@@ -505,6 +505,20 @@
       "source": "demo/ConnectionList.demo.tsx"
     },
     {
+      "id": "profiles.initial_setup_prompt",
+      "title": "Initial setup",
+      "description": "The headless InitialSetupPrompt wraps the first-run setup form (display name, theme, app language): drafts seeded from the profile, one submit() PATCH that also sets initial_setup_passed, and a skip() that records 'maybe later' without a PATCH. Pair it with useInitialSetupGate to decide when to show it.",
+      "component": "InitialSetupPrompt",
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/InitialSetupPrompt.demo.tsx"
+    },
+    {
       "id": "profiles.my_profile",
       "title": "My profile",
       "description": "The headless MyProfile wraps the read + partial-update of the caller's own profile and exposes loading / saving / saved / error state. Bring your own form UI — the component is renderless.",
@@ -613,6 +627,12 @@
     "error.429.too_many_requests",
     "error.500.internal",
     "profiles.error.unknown",
+    "profiles.initialSetup.name_placeholder",
+    "profiles.initialSetup.save",
+    "profiles.initialSetup.saving",
+    "profiles.initialSetup.skip",
+    "profiles.initialSetup.subtitle",
+    "profiles.initialSetup.title",
     "profiles.language.field.app_language",
     "profiles.language.field.auto",
     "profiles.language.field.understands",
@@ -654,6 +674,7 @@
   "exports": {
     "runtime": [
       "ConnectionList",
+      "InitialSetupPrompt",
       "MyProfile",
       "NotificationPreferences",
       "PROFILES_ERRORS",
@@ -678,6 +699,7 @@
       "useBlock",
       "useFlow",
       "useFollow",
+      "useInitialSetupGate",
       "useLanguages",
       "useMyBlocked",
       "useMyFollowers",
@@ -706,6 +728,12 @@
       "FlowStateBase",
       "Followers",
       "Following",
+      "InitialSetupField",
+      "InitialSetupFieldName",
+      "InitialSetupGate",
+      "InitialSetupGateOptions",
+      "InitialSetupPromptBag",
+      "InitialSetupPromptProps",
       "Language",
       "MyProfileBag",
       "MyProfileData",

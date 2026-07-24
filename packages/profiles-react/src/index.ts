@@ -102,6 +102,18 @@ export type {
   NotificationCategory,
   NotificationChannel,
 } from "./headless/NotificationPreferences.js";
+export { InitialSetupPrompt } from "./headless/InitialSetupPrompt.js";
+export type {
+  InitialSetupPromptBag,
+  InitialSetupPromptProps,
+  InitialSetupField,
+  InitialSetupFieldName,
+} from "./headless/InitialSetupPrompt.js";
+export { useInitialSetupGate } from "./headless/useInitialSetupGate.js";
+export type {
+  InitialSetupGate,
+  InitialSetupGateOptions,
+} from "./headless/useInitialSetupGate.js";
 
 // ── i18n ─────────────────────────────────────────────────────────────────────
 export {
