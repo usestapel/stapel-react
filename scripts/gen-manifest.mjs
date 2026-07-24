@@ -263,8 +263,16 @@ function renderLlms(m, factories, eventsJson, demosJson) {
   L.push("");
   L.push("## Operations (typed; use the named op, never a path string)");
   L.push("Request/response schema names are in manifest.json + the generated types.");
+  // Token economy (§2.4): every operation lives under the module's one path
+  // prefix, so state it once here and render module-relative paths below —
+  // which is also exactly how the pair's own api layer spells them. The
+  // manifest.json catalog keeps the full absolute paths.
+  L.push(`Paths are relative to \`${PATH_PREFIX}\`.`);
   for (const [id, op] of Object.entries(m.operations)) {
-    L.push(`- ${id}: ${op.method} ${op.path}`);
+    const shownPath = op.path.startsWith(PATH_PREFIX)
+      ? op.path.slice(PATH_PREFIX.length - 1)
+      : op.path;
+    L.push(`- ${id}: ${op.method} ${shownPath}`);
   }
   L.push("");
   const hookLines = renderLlmsHooks(m.hooks);

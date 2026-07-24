@@ -1,6 +1,6 @@
 import type { Analytics } from "@stapel/core";
 import type { AuthApi } from "../api/authApi.js";
-import type { AuthResponse, Passkey } from "../api/types.js";
+import type { AuthResponse, PasskeyRegistered } from "../api/types.js";
 import { createFlowMachine } from "@stapel/core";
 import type { FlowMachine } from "@stapel/core";
 import { toFlowError } from "./errors.js";
@@ -22,7 +22,10 @@ export type PasskeyRegisterState =
   | { readonly step: "beginning" }
   | { readonly step: "awaitingCredential"; readonly options: Record<string, unknown> }
   | { readonly step: "completing" }
-  | { readonly step: "registered"; readonly passkey: Passkey }
+  // `passkey` carries the full complete-response: from a limited enroll-only
+  // session (org-program §C2) it includes the full-session `tokens` pair —
+  // `MfaEnrollGate` reads it to upgrade the session; null/absent elsewhere.
+  | { readonly step: "registered"; readonly passkey: PasskeyRegistered }
   | { readonly step: "error"; readonly error: FlowError };
 
 export interface PasskeyRegistrationFlow {

@@ -15,7 +15,7 @@ import { createWorkspacesRuntime } from "../src/model/runtime.js";
 import type { WorkspacesRuntime } from "../src/model/runtime.js";
 import { WorkspacesProvider } from "../src/headless/WorkspacesProvider.js";
 import { registerWorkspacesI18n } from "../src/i18n/keys.js";
-import { WorkspaceSettings, MembersManager } from "../src/default/index.js";
+import { WorkspaceSettings, MembersManager, InviteAcceptPage } from "../src/default/index.js";
 
 const BASE = "https://workspaces.stapel.test/workspaces/api/v1";
 const WS = "0192f000-0000-4000-8000-000000000001";
@@ -132,10 +132,22 @@ describe("<WorkspaceSettings/> (default skin)", () => {
   });
 });
 
+/** The effective role registry MembersManager's RoleSelect now reads
+ * (org-program §A2 — options come from GET /roles, not a hardcoded four). */
+const ROLES = {
+  roles: [
+    { role: "owner", rank: 400, capabilities: ["*"], builtin: true },
+    { role: "admin", rank: 300, capabilities: ["members.*"], builtin: true },
+    { role: "member", rank: 200, capabilities: ["workspace.view"], builtin: true },
+    { role: "viewer", rank: 100, capabilities: ["workspace.view"], builtin: true },
+  ],
+};
+
 describe("<MembersManager/> (default skin)", () => {
   it("renders the roster and invites a new member", async () => {
     let inviteBody: Record<string, unknown> | undefined;
     server.use(
+      http.get(`${BASE}/roles`, () => HttpResponse.json(ROLES)),
       http.get(`${BASE}/${WS}/members`, () =>
         HttpResponse.json({ items: [MEMBER], next_anchor: null, prev_anchor: null, has_next: false, has_prev: false, count: 1 })
       ),
@@ -157,8 +169,9 @@ describe("<MembersManager/> (default skin)", () => {
     await waitFor(() => expect(inviteBody).toEqual({ emails: ["new@example.com"], role: "member" }));
   });
 
-  it("renders a read-only roster with canManage=false", async () => {
+  it("renders a read-only roster with canManage=false (labels via workspaces.role.*)", async () => {
     server.use(
+      http.get(`${BASE}/roles`, () => HttpResponse.json(ROLES)),
       http.get(`${BASE}/${WS}/members`, () =>
         HttpResponse.json({ items: [MEMBER], next_anchor: null, prev_anchor: null, has_next: false, has_prev: false, count: 1 })
       )
@@ -167,7 +180,96 @@ describe("<MembersManager/> (default skin)", () => {
     render(wrap(runtime, <MembersManager workspaceId={WS} canManage={false} />));
 
     await waitFor(() => expect(screen.getByText("owner@example.com")).toBeDefined());
+    expect(screen.getByText("Owner")).toBeDefined();
     expect(screen.queryByText("Invite")).toBeNull();
     expect(screen.queryByText("Remove")).toBeNull();
+  });
+});
+
+describe("<InviteAcceptPage/> (default skin — §B4 route component)", () => {
+  const TOKEN = "tok-page-1";
+  const PREVIEW = {
+    workspace_name: "Acme Engineering",
+    role: "member",
+    email_masked: "i***@e***.com",
+    status: "pending",
+    email_registered: false,
+    expires_at: "2026-07-31T10:00:00Z",
+  };
+  const NEW_MEMBER = {
+    id: "0192b000-0000-4000-8000-000000000009",
+    workspace_id: WS,
+    user_id: "0192a000-0000-4000-8000-000000000009",
+    email: "invitee@example.com",
+    role: "member",
+    invited_at: "2026-06-01T10:00:00Z",
+    accepted_at: "2026-06-02T10:00:00Z",
+    last_accessed_at: null,
+  };
+
+  it("walks the whole new-user path: claim → grant seam → initial-setup slot → accept", async () => {
+    server.use(
+      http.get(`${BASE}/invitations/${TOKEN}`, () => HttpResponse.json(PREVIEW)),
+      http.post(`${BASE}/invitations/${TOKEN}/claim`, () =>
+        HttpResponse.json({ grant_token: "grant-page-1" })
+      ),
+      http.post(`${BASE}/invitations/accept`, () => HttpResponse.json(NEW_MEMBER))
+    );
+    const runtime = createWorkspacesRuntime({ baseUrl: BASE });
+    const granted: string[] = [];
+    render(
+      wrap(
+        runtime,
+        <InviteAcceptPage
+          token={TOKEN}
+          sessionEmail={null}
+          // THE SEAM: the host exchanges at auth-react; here we just record —
+          // the resolved promise advances the page automatically.
+          onLoginGrant={(grant) => {
+            granted.push(grant);
+          }}
+          renderInitialSetup={({ onDone }) => (
+            <button data-testid="setup-slot" onClick={onDone}>
+              setup-done
+            </button>
+          )}
+        />
+      )
+    );
+
+    // newUser: the deliberate create-account CTA.
+    await waitFor(() =>
+      expect(screen.getByText("Create account and continue")).toBeDefined()
+    );
+    fireEvent.click(screen.getByText("Create account and continue"));
+
+    // grant handed out → auto-advance to the basic-data (initial-setup) slot.
+    await waitFor(() => expect(granted).toEqual(["grant-page-1"]));
+    await waitFor(() => expect(screen.getByTestId("setup-slot")).toBeDefined());
+    fireEvent.click(screen.getByTestId("setup-slot"));
+
+    // accept prompt → join.
+    await waitFor(() =>
+      expect(screen.getByText("Join workspace")).toBeDefined()
+    );
+    fireEvent.click(screen.getByText("Join workspace"));
+    await waitFor(() =>
+      expect(screen.getByText("You've joined Acme Engineering.")).toBeDefined()
+    );
+  });
+
+  it("renders the terminal copy for a non-pending invitation", async () => {
+    server.use(
+      http.get(`${BASE}/invitations/${TOKEN}`, () =>
+        HttpResponse.json({ ...PREVIEW, status: "expired" })
+      )
+    );
+    const runtime = createWorkspacesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <InviteAcceptPage token={TOKEN} sessionEmail={null} />));
+    await waitFor(() =>
+      expect(
+        screen.getByText("This invitation has expired. Ask for a new one.")
+      ).toBeDefined()
+    );
   });
 });

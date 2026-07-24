@@ -1,5 +1,70 @@
 [
   {
+    "id": "auth.first_login",
+    "titleKey": "flow.auth.first_login.title",
+    "descriptionKey": "flow.auth.first_login.description",
+    "actors": [
+      "Org-provisioned user"
+    ],
+    "steps": [
+      {
+        "kind": "human",
+        "order": 0,
+        "noteKey": "flow.auth.first_login.step.0.note",
+        "ref": "",
+        "endpoints": []
+      },
+      {
+        "kind": "http",
+        "order": 1,
+        "noteKey": "flow.auth.first_login.step.1.note",
+        "ref": "stapel_auth.password.views.PasswordViewSet.login",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/auth/api/v1/password/login/"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 2,
+        "noteKey": "flow.auth.first_login.step.2.note",
+        "ref": "stapel_auth.password.views.PasswordViewSet.forced_change",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/auth/api/v1/password/forced-change/"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 3,
+        "noteKey": "flow.auth.first_login.step.3.note",
+        "ref": "stapel_auth.mfa.views.MfaEnrollViewSet.exchange",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/auth/api/v1/mfa/enroll/exchange/"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 4,
+        "noteKey": "flow.auth.first_login.step.4.note",
+        "ref": "stapel_auth.mfa.views.TOTPViewSet.confirm_setup",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/auth/api/v1/totp/setup/confirm/"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "auth.password_login",
     "titleKey": "flow.auth.password_login.title",
     "descriptionKey": "flow.auth.password_login.description",

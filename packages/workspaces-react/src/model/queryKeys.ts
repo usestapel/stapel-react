@@ -18,6 +18,10 @@ export const workspacesQueryKeys: {
     workspaceId: string,
     params: MembersParams
   ): readonly ["workspaces", "members", string, MembersParams];
+  roles(): readonly ["workspaces", "roles"];
+  invitationPreview(
+    token: string
+  ): readonly ["workspaces", "invitation-preview", string];
 } = {
   all: [ROOT],
   list: () => [ROOT, "list"],
@@ -26,4 +30,10 @@ export const workspacesQueryKeys: {
   // invalidating `members(workspaceId)` (mutations.ts) drops every page.
   members: (workspaceId) => [ROOT, "members", workspaceId],
   membersPage: (workspaceId, params) => [ROOT, "members", workspaceId, params],
+  roles: () => [ROOT, "roles"],
+  // NOTE: the key carries the invite TOKEN (a secret). Core's query persist
+  // scope is per-user and the preview response is already public-by-design
+  // (masked email only) — but hosts logging query keys should treat this one
+  // as sensitive.
+  invitationPreview: (token) => [ROOT, "invitation-preview", token],
 };

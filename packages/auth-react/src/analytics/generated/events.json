@@ -5,6 +5,51 @@
   "defined": [],
   "flows": [
     {
+      "flow": "auth.first_login",
+      "event": "flow.auth.first_login.<step>",
+      "titleKey": "flow.auth.first_login.title",
+      "descriptionKey": "flow.auth.first_login.description",
+      "props": {
+        "phase": {
+          "type": "string",
+          "description": "Transition phase of the funnel step",
+          "options": [
+            "started",
+            "completed",
+            "failed"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "order": 0,
+          "kind": "human",
+          "noteKey": "flow.auth.first_login.step.0.note"
+        },
+        {
+          "order": 1,
+          "kind": "http",
+          "noteKey": "flow.auth.first_login.step.1.note"
+        },
+        {
+          "order": 2,
+          "kind": "http",
+          "noteKey": "flow.auth.first_login.step.2.note"
+        },
+        {
+          "order": 3,
+          "kind": "http",
+          "noteKey": "flow.auth.first_login.step.3.note"
+        },
+        {
+          "order": 4,
+          "kind": "http",
+          "noteKey": "flow.auth.first_login.step.4.note"
+        }
+      ],
+      "source": "flows.json"
+    },
+    {
       "flow": "auth.password_login",
       "event": "flow.auth.password_login.<step>",
       "titleKey": "flow.auth.password_login.title",

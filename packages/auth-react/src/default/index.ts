@@ -11,6 +11,14 @@
  */
 export { AuthPanel } from "./AuthPanel.js";
 export type { AuthPanelProps, AuthPanelNotice } from "./AuthPanel.js";
+export {
+  ForcedPasswordChangeCard,
+  MfaEnrollPanel,
+} from "./FirstLoginPanels.js";
+export type {
+  ForcedPasswordChangeCardProps,
+  MfaEnrollPanelProps,
+} from "./FirstLoginPanels.js";
 export { SecuritySettings } from "./SecuritySettings.js";
 export type { SecuritySettingsProps } from "./SecuritySettings.js";
 export {

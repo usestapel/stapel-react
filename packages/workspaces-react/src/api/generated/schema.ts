@@ -181,6 +181,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/api/v1/{workspace_id}/members/provision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Provision an org-created (synthetic) member (org-program spec §C1).
+         *
+         *     The org mints its own login/password account: full username is
+         *     ``{workspace_slug}/{username_local}`` (namespaced — the slug is
+         *     globally unique, so orgs cannot collide), the account is created by
+         *     ``auth.provision_user`` with the workspace's first-login policy
+         *     (``settings.security.provisioned_user_policy``: forced password change
+         *     or mandatory MFA enrollment) and joins immediately
+         *     (``accepted_at=now``, ``provisioned=True``).
+         *
+         *     Gate stack, in order: HIGH step-up (``@requires_verification``, scope
+         *     ``sensitive`` — the same store as admin step-up) → capability
+         *     ``members.provision`` (403) → entitlement ``workspaces.provision_user``
+         *     (402; degrades to allow without billing) → optional per-user debit
+         *     (``STAPEL_WORKSPACES["PROVISION_USER_CREDITS"]`` > 0).
+         *
+         *     Credentials: a synthetic account normally has no email — when the
+         *     request omits ``email``, the server-generated password comes back in
+         *     the response (``generated_password``) exactly once and no letter is
+         *     sent. With ``email``, the ``workspace.provisioned_account`` letter
+         *     carries the credentials as well. Auth's structured failures pass
+         *     through keyed (``error.409.username_taken`` / auth's 400s); auth not
+         *     wired → honest 503, this seam never degrades to allow.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["workspaces_api_v1_members_provision_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/api/v1/internal/{workspace_id}/members/{user_id}": {
         parameters: {
             query?: never;
@@ -223,6 +266,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/api/v1/invitations/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Public invitation preview — what the /invite/{token} page renders.
+         *
+         *     AllowAny by design (org-program spec §B2): the invitee has no session
+         *     yet; the token in the URL is the bearer secret. The response leaks
+         *     nothing harvestable — the email is masked, and ``status`` /
+         *     ``email_registered`` are exactly what the frontend flow machine needs
+         *     to route (login vs claim vs terminal-state screen). Throttled as an
+         *     enumeration backstop. The token is never logged.
+         *
+         *     **Permissions:** `AllowAny`
+         */
+        get: operations["workspaces_api_v1_invitations_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/api/v1/invitations/{token}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Mint a login grant for a not-yet-registered invitee (spec §B2-B3).
+         *
+         *     AllowAny — the whole point is that no account exists yet. Only valid
+         *     for ``email_registered == false``: an existing account gets 409 and the
+         *     frontend switches to login. The grant comes from auth's
+         *     ``auth.issue_login_grant`` comm Function (``create_if_missing`` — the
+         *     verified account materializes on exchange); if that Function is not
+         *     wired, the answer is an honest 503 — an invite flow without auth is
+         *     meaningless, so this seam never degrades to allow. The invitation is
+         *     NOT consumed here: accept stays a separate, deliberate step after
+         *     setup. Neither the invite token nor the grant token is ever logged.
+         *
+         *     **Permissions:** `AllowAny`
+         */
+        post: operations["workspaces_api_v1_invitations_claim_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/api/v1/invitations/{token}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Decline an invitation — the invitee's terminal "no" (spec §B2).
+         *
+         *     Authenticated + email-match, exactly like accept: only the invited
+         *     account may resolve the invitation, in either direction. Decline ≠
+         *     revoke — both states stay distinguishable in the preview ``status``.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["workspaces_api_v1_invitations_decline_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/api/v1/invitations/accept": {
         parameters: {
             query?: never;
@@ -250,6 +377,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/api/v1/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The effective role registry — metadata for frontends (spec §A2).
+         *
+         *     Lets a RoleSelect stop hardcoding the builtin four: builtin roles plus
+         *     the deployment's ``STAPEL_WORKSPACES["ROLES"]`` overlay, capability
+         *     strings verbatim (wildcards included), ordered by descending rank.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        get: operations["workspaces_api_v1_roles_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -266,6 +418,41 @@ export interface components {
         InvitationAcceptRequest: {
             /** @description Invite token from the email link */
             token: string;
+        };
+        /** @description Login-grant mint for an unregistered invitee (claim step). */
+        InvitationClaimResponse: {
+            /** @description Single-use, short-lived login grant token — exchange it at auth's POST /grant/exchange/ for a session (creates the verified account). A credential: never log it */
+            grant_token: string;
+        };
+        /** @description Public (AllowAny) invitation preview — what the /invite/{token} page renders before any auth decision. */
+        InvitationPreviewResponse: {
+            /**
+             * @description Display name of the inviting workspace
+             * @example Acme Engineering
+             */
+            workspace_name: string;
+            /**
+             * @description Role granted on acceptance
+             * @example member
+             */
+            role: string;
+            /**
+             * @description Invited email, masked for the public page
+             * @example m***@e***.com
+             */
+            email_masked: string;
+            /**
+             * @description Invitation state. One of pending / expired / revoked / accepted / declined
+             * @example pending
+             */
+            status: string;
+            /** @description Whether an account already exists for the invited email — steers the frontend to login vs claim */
+            email_registered: boolean;
+            /**
+             * @description ISO 8601 expiry time
+             * @example 2026-07-31T10:00:00Z
+             */
+            expires_at: string;
         };
         /** @description InvitationResponse(id: uuid.UUID, workspace_id: uuid.UUID, email: str, role: str, expires_at: str, accepted_at: Optional[str], revoked_at: Optional[str], created_at: str) */
         InvitationResponse: {
@@ -330,6 +517,12 @@ export interface components {
             accepted_at: string | null;
             /** @description ISO 8601 last access; null if never accessed */
             last_accessed_at: string | null;
+            /** @description Whether this is an org-created (synthetic) member joined via members/provision */
+            provisioned?: boolean;
+            /** @description ISO 8601 suspension timestamp; null while active. Suspension is not removal — the role stays but access is closed */
+            suspended_at?: string | null;
+            /** @description Why the membership is suspended (canonical value no_mfa); null while active */
+            suspension_reason?: string | null;
         };
         PaginatedMemberResponseList: {
             items: components["schemas"]["MemberResponse"][];
@@ -355,6 +548,78 @@ export interface components {
             settings?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /** @description Provision an org-created (synthetic) member (org-program spec §C1). */
+        ProvisionMemberRequest: {
+            /**
+             * @description Local part of the login; the full username becomes "{workspace_slug}/{username_local}". Stock username alphabet, no slash
+             * @example jdoe
+             */
+            username_local: string;
+            /**
+             * @description Role to grant (effective registry; owner is not provisionable)
+             * @example member
+             */
+            role?: string;
+            /** @description Initial password chosen by the admin. Omitted: the server generates a crypto-strong one, returned once as generated_password */
+            password?: string | null;
+            /**
+             * @description Display-name hint forwarded to auth/profiles
+             * @example Jane Doe
+             */
+            display_name?: string | null;
+            /** @description Optional email anchor (stored UNVERIFIED by auth). When present, the provisioned-account email with the credentials is sent there. Normally omitted — synthetic accounts have no email */
+            email?: string | null;
+        };
+        /** @description Result of provisioning an org member. */
+        ProvisionMemberResponse: {
+            /**
+             * Format: uuid
+             * @description UUID of the created account
+             */
+            user_id: string;
+            /**
+             * @description Full namespaced login
+             * @example acme-eng/jdoe
+             */
+            username: string;
+            /**
+             * @description Granted role
+             * @example member
+             */
+            role: string;
+            /** @description Server-generated initial password — returned exactly ONCE, only when the request omitted password. Store it or hand it to the user now; it cannot be re-fetched. A credential: never log it */
+            generated_password?: string | null;
+        };
+        /** @description RoleListResponse(roles: List[stapel_workspaces.dto.RoleResponse] = <factory>) */
+        RoleListResponse: {
+            roles?: components["schemas"]["RoleResponse"][];
+        };
+        /** @description One role of the effective registry (builtin + STAPEL_WORKSPACES overlay). */
+        RoleResponse: {
+            /**
+             * @description Role key
+             * @example admin
+             */
+            role: string;
+            /**
+             * @description Ordering weight; higher = more powerful
+             * @example 300
+             */
+            rank: number;
+            /**
+             * @description Granted capability strings, verbatim (wildcards like * included)
+             * @example [
+             *       "workspace.view",
+             *       "members.invite"
+             *     ]
+             */
+            capabilities: string[];
+            /**
+             * @description Whether the role key is one of the builtin four
+             * @example true
+             */
+            builtin: boolean;
         };
         /** @description Structured error returned by all Stapel API endpoints. */
         StapelError: {
@@ -453,6 +718,14 @@ export interface components {
              * @example 2026-05-20T10:00:00Z
              */
             updated_at: string;
+            /**
+             * @description Granted capability strings of the requesting user's role, verbatim from the registry (wildcards like * included)
+             * @example [
+             *       "workspace.view",
+             *       "members.view"
+             *     ]
+             */
+            my_capabilities?: string[];
         };
     };
     responses: never;
@@ -681,6 +954,33 @@ export interface operations {
             };
         };
     };
+    workspaces_api_v1_members_provision_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProvisionMemberRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ProvisionMemberRequest"];
+                "multipart/form-data": components["schemas"]["ProvisionMemberRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProvisionMemberResponse"];
+                };
+            };
+        };
+    };
     workspaces_api_v1_internal_members_retrieve: {
         parameters: {
             query?: never;
@@ -732,6 +1032,68 @@ export interface operations {
             };
         };
     };
+    workspaces_api_v1_invitations_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationPreviewResponse"];
+                };
+            };
+        };
+    };
+    workspaces_api_v1_invitations_claim_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationClaimResponse"];
+                };
+            };
+        };
+    };
+    workspaces_api_v1_invitations_decline_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     workspaces_api_v1_invitations_accept_create: {
         parameters: {
             query?: never;
@@ -753,6 +1115,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemberResponse"];
+                };
+            };
+        };
+    };
+    workspaces_api_v1_roles_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleListResponse"];
                 };
             };
         };

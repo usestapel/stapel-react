@@ -9,9 +9,9 @@ import type {
   MemberInvite,
   MemberInviteResult,
   InvitationAccept,
+  InvitationClaim,
   Workspace,
   WorkspaceCreate,
-  WorkspaceRole,
   WorkspaceUpdate,
 } from "../api/types.js";
 import { useWorkspacesApi } from "./context.js";
@@ -123,10 +123,14 @@ export function useInviteMembers(
   return useMutation(options);
 }
 
-/** The variable for {@link useUpdateMemberRole}: which member, which new role. */
+/** The variable for {@link useUpdateMemberRole}: which member, which new role.
+ * `role` is an open string since stapel-workspaces 0.6.0 (org-program §A1):
+ * the effective registry is settings-extensible, so any key of GET /roles is
+ * valid — the backend validates against the registry. {@link WorkspaceRole}
+ * still names the builtin four for literals. */
 export interface MemberRoleChange {
   readonly userId: string;
-  readonly role: WorkspaceRole;
+  readonly role: string;
 }
 
 /**
@@ -186,9 +190,57 @@ export function useAcceptInvitation(): UseMutationResult<
   const queryClient = useQueryClient();
   const options: UseMutationOptions<Member, StapelApiError, InvitationAccept> = {
     mutationFn: (body) => api.acceptInvitation(body),
-    onSuccess: () => {
+    onSuccess: (_member, body) => {
       void queryClient.invalidateQueries({
         queryKey: workspacesQueryKeys.list(),
+      });
+      // The preview's `status` moved pending → accepted.
+      void queryClient.invalidateQueries({
+        queryKey: workspacesQueryKeys.invitationPreview(body.token),
+      });
+    },
+  };
+  return useMutation(options);
+}
+
+/**
+ * Mint a login grant for a NOT-yet-registered invitee (POST
+ * /invitations/{token}/claim, AllowAny — org-program §B2/§B3). The variable
+ * is the invite token; the result carries the single-use `grant_token` to
+ * exchange at AUTH's `POST /grant/exchange/` (the auth-react api — this pair
+ * deliberately does not call it; see `InviteAcceptFlow`'s `onLoginGrant`
+ * seam). 409 `email_already_registered` → switch to login. The invitation is
+ * NOT consumed here. The grant token is a credential: never log it.
+ */
+export function useClaimInvitation(): UseMutationResult<
+  InvitationClaim,
+  StapelApiError,
+  string
+> {
+  const api = useWorkspacesApi();
+  const options: UseMutationOptions<InvitationClaim, StapelApiError, string> = {
+    mutationFn: (token) => api.claimInvitation(token),
+  };
+  return useMutation(options);
+}
+
+/**
+ * Decline an invitation (POST /invitations/{token}/decline, authenticated +
+ * email-match — org-program §B2). The variable is the invite token. Decline ≠
+ * revoke — the preview's `status` becomes `declined`.
+ */
+export function useDeclineInvitation(): UseMutationResult<
+  void,
+  StapelApiError,
+  string
+> {
+  const api = useWorkspacesApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<void, StapelApiError, string> = {
+    mutationFn: (token) => api.declineInvitation(token),
+    onSuccess: (_result, token) => {
+      void queryClient.invalidateQueries({
+        queryKey: workspacesQueryKeys.invitationPreview(token),
       });
     },
   };

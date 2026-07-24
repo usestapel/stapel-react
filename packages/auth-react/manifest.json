@@ -4,7 +4,7 @@
   "version": "0.8.0",
   "backend": {
     "module": "stapel-auth",
-    "contract": ">=0.10 <0.11"
+    "contract": ">=0.12 <0.13"
   },
   "layers": [
     "api",
@@ -14,6 +14,56 @@
     "i18n"
   ],
   "flows": {
+    "auth.first_login": {
+      "titleKey": "flow.auth.first_login.title",
+      "descriptionKey": "flow.auth.first_login.description",
+      "steps": [
+        {
+          "kind": "human",
+          "order": 0,
+          "noteKey": "flow.auth.first_login.step.0.note",
+          "endpoints": []
+        },
+        {
+          "kind": "http",
+          "order": 1,
+          "noteKey": "flow.auth.first_login.step.1.note",
+          "endpoints": [
+            "POST /auth/api/v1/password/login/"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 2,
+          "noteKey": "flow.auth.first_login.step.2.note",
+          "endpoints": [
+            "POST /auth/api/v1/password/forced-change/"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 3,
+          "noteKey": "flow.auth.first_login.step.3.note",
+          "endpoints": [
+            "POST /auth/api/v1/mfa/enroll/exchange/"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 4,
+          "noteKey": "flow.auth.first_login.step.4.note",
+          "endpoints": [
+            "POST /auth/api/v1/totp/setup/confirm/"
+          ]
+        }
+      ],
+      "endpoints": [
+        "POST /auth/api/v1/password/login/",
+        "POST /auth/api/v1/password/forced-change/",
+        "POST /auth/api/v1/mfa/enroll/exchange/",
+        "POST /auth/api/v1/totp/setup/confirm/"
+      ]
+    },
     "auth.password_login": {
       "titleKey": "flow.auth.password_login.title",
       "descriptionKey": "flow.auth.password_login.description",
@@ -153,7 +203,9 @@
   "machines": [
     "createAnonymousFlow",
     "createAuthenticatorChangeFlow",
+    "createForcedPasswordChangeFlow",
     "createMagicLinkFlow",
+    "createMfaEnrollFlow",
     "createOAuthFlow",
     "createOtpFlow",
     "createPasskeyLoginFlow",
@@ -266,6 +318,13 @@
       "request": null,
       "response": null
     },
+    "auth_api_v1_grant_exchange_create": {
+      "method": "POST",
+      "path": "/auth/api/v1/grant/exchange/",
+      "tag": "Auth",
+      "request": "LoginGrantExchangeBody",
+      "response": "AuthResponse"
+    },
     "auth_api_v1_logout_create": {
       "method": "POST",
       "path": "/auth/api/v1/logout/",
@@ -300,6 +359,13 @@
       "tag": "User",
       "request": null,
       "response": "User"
+    },
+    "auth_api_v1_mfa_enroll_exchange_create": {
+      "method": "POST",
+      "path": "/auth/api/v1/mfa/enroll/exchange/",
+      "tag": "MFA Enroll",
+      "request": "MfaEnrollExchange",
+      "response": "MfaEnrollSessionResponse"
     },
     "auth_api_v1_oauth_authorize_retrieve": {
       "method": "GET",
@@ -390,7 +456,7 @@
       "path": "/auth/api/v1/passkey/register/complete/",
       "tag": "Passkeys",
       "request": "_PasskeyRegisterCompleteBody",
-      "response": "PasskeyItem"
+      "response": "PasskeyRegisterCompleteResponse"
     },
     "auth_api_v1_passkey_retrieve": {
       "method": "GET",
@@ -419,6 +485,13 @@
       "tag": "Password Auth",
       "request": "PasswordOtpVerify",
       "response": "PasswordOtpChangeResponse"
+    },
+    "auth_api_v1_password_forced_change_create": {
+      "method": "POST",
+      "path": "/auth/api/v1/password/forced-change/",
+      "tag": "Password Auth",
+      "request": "ForcedPasswordChange",
+      "response": "LoginResponse"
     },
     "auth_api_v1_password_login_create": {
       "method": "POST",
@@ -1314,6 +1387,16 @@
       ],
       "remediation": "fix_input"
     },
+    "error.400.first_login_challenge_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.400.grant_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.400.invalid_ad_id": {
       "status": 400,
       "params": [],
@@ -1481,6 +1564,11 @@
       "params": [],
       "remediation": "fix_input"
     },
+    "error.400.username_namespace_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
     "error.400.validation_error": {
       "status": 400,
       "params": [],
@@ -1561,6 +1649,11 @@
       "params": [],
       "remediation": "retry"
     },
+    "error.403.mfa_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
     "error.403.mock_otp_admin": {
       "status": 403,
       "params": [],
@@ -1570,6 +1663,11 @@
       "status": 403,
       "params": [],
       "remediation": "contact_support"
+    },
+    "error.403.password_change_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "reauthenticate"
     },
     "error.403.qr_device_mismatch": {
       "status": 403,
@@ -1822,6 +1920,11 @@
     "defined": [],
     "flows": [
       {
+        "flow": "auth.first_login",
+        "event": "flow.auth.first_login.<step>",
+        "steps": 5
+      },
+      {
         "flow": "auth.password_login",
         "event": "flow.auth.password_login.<step>",
         "steps": 3
@@ -1868,6 +1971,25 @@
         "default"
       ],
       "source": "demo/AuthenticatorChange.demo.tsx"
+    },
+    {
+      "id": "auth.first-login",
+      "title": "First login (forced change / MFA enroll)",
+      "description": "Headless first-login enforcement for org-provisioned accounts: ForcedPasswordChange submits the owed password change against the login intermediate's challenge token; MfaEnrollGate exchanges the mfa_enroll challenge for a limited enroll-only session, scopes the pair's TotpSetup/PasskeyRegistration to it, and commits the full session on completion.",
+      "component": "ForcedPasswordChange",
+      "covers": [
+        "MfaEnrollGate"
+      ],
+      "flow": "auth.first_login",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        "forcedChange",
+        "mfaEnroll"
+      ],
+      "source": "demo/FirstLogin.demo.tsx"
     },
     {
       "id": "auth.magic-link",
@@ -2059,6 +2181,22 @@
   ],
   "i18nKeys": [
     "auth.error.unknown",
+    "auth.forcedChange.confirm_label",
+    "auth.forcedChange.hint",
+    "auth.forcedChange.mismatch",
+    "auth.forcedChange.new_label",
+    "auth.forcedChange.submit",
+    "auth.forcedChange.success",
+    "auth.forcedChange.title",
+    "auth.mfaEnroll.backup_codes_ack",
+    "auth.mfaEnroll.error.no_tokens",
+    "auth.mfaEnroll.hint",
+    "auth.mfaEnroll.method_passkey",
+    "auth.mfaEnroll.method_totp",
+    "auth.mfaEnroll.preparing",
+    "auth.mfaEnroll.restart_hint",
+    "auth.mfaEnroll.success",
+    "auth.mfaEnroll.title",
     "auth.nav.login",
     "auth.nav.security",
     "auth.otp.enter_code",
@@ -2232,6 +2370,8 @@
     "error.400.field.null",
     "error.400.field.required",
     "error.400.field.unique",
+    "error.400.first_login_challenge_invalid",
+    "error.400.grant_invalid",
     "error.400.invalid_ad_id",
     "error.400.invalid_change_token",
     "error.400.invalid_code",
@@ -2265,6 +2405,7 @@
     "error.400.totp_not_pending",
     "error.400.totp_proof_required",
     "error.400.unknown_staff_role",
+    "error.400.username_namespace_invalid",
     "error.400.validation_error",
     "error.400.verification_failed",
     "error.400.verification_invalid_factor",
@@ -2281,8 +2422,10 @@
     "error.401.user_not_found",
     "error.402.payment_required",
     "error.403.forbidden",
+    "error.403.mfa_enrollment_required",
     "error.403.mock_otp_admin",
     "error.403.network_blocked",
+    "error.403.password_change_required",
     "error.403.qr_device_mismatch",
     "error.403.qr_unauth_scan",
     "error.403.sso_required",
@@ -2331,6 +2474,13 @@
     "error.429.too_many_requests",
     "error.500.internal",
     "error.500.send_failed",
+    "flow.auth.first_login.description",
+    "flow.auth.first_login.step.0.note",
+    "flow.auth.first_login.step.1.note",
+    "flow.auth.first_login.step.2.note",
+    "flow.auth.first_login.step.3.note",
+    "flow.auth.first_login.step.4.note",
+    "flow.auth.first_login.title",
     "flow.auth.password_login.description",
     "flow.auth.password_login.step.0.note",
     "flow.auth.password_login.step.1.note",
@@ -2362,7 +2512,9 @@
       "AuthRuntimeContext",
       "AuthenticatorChange",
       "DEFAULT_DIAL_CODES",
+      "ForcedPasswordChange",
       "MagicLink",
+      "MfaEnrollGate",
       "PasskeyLogin",
       "PasskeyRegistration",
       "PasswordChange",
@@ -2384,7 +2536,9 @@
       "createAuthSession",
       "createAuthenticatorChangeFlow",
       "createFlowMachine",
+      "createForcedPasswordChangeFlow",
       "createMagicLinkFlow",
+      "createMfaEnrollFlow",
       "createOAuthFlow",
       "createOtpFlow",
       "createPasskeyLoginFlow",
@@ -2400,6 +2554,7 @@
       "explainAuthError",
       "isAuthResponse",
       "isErrorCode",
+      "isFirstLoginChallenge",
       "isTotpChallenge",
       "registerAuthI18n",
       "safeNextPath",
@@ -2470,10 +2625,16 @@
       "CreateAuthRuntimeOptions",
       "DelayedChangeInitiatedResponse",
       "DelayedChangeStatus",
+      "FirstLoginChallengeResponse",
+      "FirstLoginRequires",
       "FlowError",
       "FlowMachine",
       "FlowMachineOptions",
       "FlowStateBase",
+      "ForcedPasswordChangeBag",
+      "ForcedPasswordChangeFlow",
+      "ForcedPasswordChangeFlowDeps",
+      "ForcedPasswordChangeState",
       "LinkedOAuthAccount",
       "LoginCapabilities",
       "LoginResponse",
@@ -2482,6 +2643,12 @@
       "MagicLinkFlow",
       "MagicLinkFlowDeps",
       "MagicLinkState",
+      "MfaEnrollFlow",
+      "MfaEnrollFlowDeps",
+      "MfaEnrollGateBag",
+      "MfaEnrollMethod",
+      "MfaEnrollSessionResponse",
+      "MfaEnrollState",
       "OAuthFlow",
       "OAuthFlowDeps",
       "OAuthProviderInfo",
@@ -2500,6 +2667,7 @@
       "PasskeyLoginState",
       "PasskeyRegisterBeginResponse",
       "PasskeyRegisterState",
+      "PasskeyRegistered",
       "PasskeyRegistrationBag",
       "PasskeyRegistrationFlow",
       "PasskeyRegistrationFlowDeps",

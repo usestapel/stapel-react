@@ -1,6 +1,6 @@
 # @stapel/auth-react 0.8.0
 
-Headless React flow pair for stapel-auth (contract >=0.10 <0.11) — business + state, zero visual opinion.
+Headless React flow pair for stapel-auth (contract >=0.12 <0.13) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -19,7 +19,9 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 ## Machines (createFlowMachine; analytics funnel flow.<id>.<step>)
 - createAnonymousFlow
 - createAuthenticatorChangeFlow
+- createForcedPasswordChangeFlow
 - createMagicLinkFlow
+- createMfaEnrollFlow
 - createOAuthFlow
 - createOtpFlow
 - createPasskeyLoginFlow
@@ -34,121 +36,126 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 - createVerificationController
 
 ## Documented flows (flows.json — canonical id, steps, endpoints)
+- auth.first_login: POST /auth/api/v1/password/login/, POST /auth/api/v1/password/forced-change/, POST /auth/api/v1/mfa/enroll/exchange/, POST /auth/api/v1/totp/setup/confirm/
 - auth.password_login: POST /auth/api/v1/password/login/, POST /auth/api/v1/totp/challenge/verify/
 - auth.passwordless_login: POST /auth/api/v1/email/request/, POST /auth/api/v1/email/verify/
 - auth.step_up_verification: GET /auth/api/v1/verification/<str:challenge_id>/, POST /auth/api/v1/verification/<str:challenge_id>/initiate/, POST /auth/api/v1/verification/<str:challenge_id>/complete/, GET /auth/api/v1/verification/preferences/, PUT /auth/api/v1/verification/preferences/
 
 ## Operations (typed; use the named op, never a path string)
 Request/response schema names are in manifest.json + the generated types.
-- auth_api_v1_admin_audit_retrieve: GET /auth/api/v1/admin/audit/
-- auth_api_v1_admin_users_create: POST /auth/api/v1/admin-users/
-- auth_api_v1_anonymous_create: POST /auth/api/v1/anonymous/
-- auth_api_v1_capabilities_retrieve: GET /auth/api/v1/capabilities/
-- auth_api_v1_email_change_delayed_cancel_create: POST /auth/api/v1/email/change/delayed/cancel/
-- auth_api_v1_email_change_delayed_initiate_create: POST /auth/api/v1/email/change/delayed/initiate/
-- auth_api_v1_email_change_delayed_status_retrieve: GET /auth/api/v1/email/change/delayed/status/
-- auth_api_v1_email_change_instant_request_new_create: POST /auth/api/v1/email/change/instant/request-new/
-- auth_api_v1_email_change_instant_request_old_create: POST /auth/api/v1/email/change/instant/request-old/
-- auth_api_v1_email_change_instant_verify_new_create: POST /auth/api/v1/email/change/instant/verify-new/
-- auth_api_v1_email_change_instant_verify_old_create: POST /auth/api/v1/email/change/instant/verify-old/
-- auth_api_v1_email_request_create: POST /auth/api/v1/email/request/
-- auth_api_v1_email_verify_create: POST /auth/api/v1/email/verify/
-- auth_api_v1_gdpr_schema_retrieve: GET /auth/api/v1/gdpr/schema/
-- auth_api_v1_logout_create: POST /auth/api/v1/logout/
-- auth_api_v1_logout_retrieve: GET /auth/api/v1/logout/
-- auth_api_v1_magic_request_create: POST /auth/api/v1/magic/request/
-- auth_api_v1_magic_verify_retrieve: GET /auth/api/v1/magic/verify/
-- auth_api_v1_me_retrieve: GET /auth/api/v1/me/
-- auth_api_v1_oauth_authorize_retrieve: GET /auth/api/v1/oauth/{provider}/authorize/
-- auth_api_v1_oauth_callback_retrieve: GET /auth/api/v1/oauth/{provider}/callback
-- auth_api_v1_oauth_callback_retrieve_2: GET /auth/api/v1/oauth/{provider}/callback/
-- auth_api_v1_oauth_links_create: POST /auth/api/v1/oauth/links/
-- auth_api_v1_oauth_links_destroy: DELETE /auth/api/v1/oauth/links/{provider}/
-- auth_api_v1_oauth_links_retrieve: GET /auth/api/v1/oauth/links/
-- auth_api_v1_oauth_login_create: POST /auth/api/v1/oauth/login/
-- auth_api_v1_oauth2_introspect_create: POST /auth/api/v1/oauth2/introspect/
-- auth_api_v1_passkey_authenticate_begin_create: POST /auth/api/v1/passkey/authenticate/begin/
-- auth_api_v1_passkey_authenticate_complete_create: POST /auth/api/v1/passkey/authenticate/complete/
-- auth_api_v1_passkey_destroy: DELETE /auth/api/v1/passkey/{id}/
-- auth_api_v1_passkey_register_begin_create: POST /auth/api/v1/passkey/register/begin/
-- auth_api_v1_passkey_register_complete_create: POST /auth/api/v1/passkey/register/complete/
-- auth_api_v1_passkey_retrieve: GET /auth/api/v1/passkey/
-- auth_api_v1_password_change_create: POST /auth/api/v1/password/change/
-- auth_api_v1_password_change_otp_request_create: POST /auth/api/v1/password/change/otp/request/
-- auth_api_v1_password_change_otp_verify_create: POST /auth/api/v1/password/change/otp/verify/
-- auth_api_v1_password_login_create: POST /auth/api/v1/password/login/
-- auth_api_v1_password_methods_retrieve: GET /auth/api/v1/password/methods/
-- auth_api_v1_password_register_create: POST /auth/api/v1/password/register/
-- auth_api_v1_password_reset_email_request_create: POST /auth/api/v1/password/reset/email/request/
-- auth_api_v1_password_reset_email_verify_create: POST /auth/api/v1/password/reset/email/verify/
-- auth_api_v1_password_reset_phone_request_create: POST /auth/api/v1/password/reset/phone/request/
-- auth_api_v1_password_reset_phone_verify_create: POST /auth/api/v1/password/reset/phone/verify/
-- auth_api_v1_phone_change_delayed_cancel_create: POST /auth/api/v1/phone/change/delayed/cancel/
-- auth_api_v1_phone_change_delayed_initiate_create: POST /auth/api/v1/phone/change/delayed/initiate/
-- auth_api_v1_phone_change_delayed_status_retrieve: GET /auth/api/v1/phone/change/delayed/status/
-- auth_api_v1_phone_change_instant_request_new_create: POST /auth/api/v1/phone/change/instant/request-new/
-- auth_api_v1_phone_change_instant_request_old_create: POST /auth/api/v1/phone/change/instant/request-old/
-- auth_api_v1_phone_change_instant_verify_new_create: POST /auth/api/v1/phone/change/instant/verify-new/
-- auth_api_v1_phone_change_instant_verify_old_create: POST /auth/api/v1/phone/change/instant/verify-old/
-- auth_api_v1_phone_request_create: POST /auth/api/v1/phone/request/
-- auth_api_v1_phone_verify_create: POST /auth/api/v1/phone/verify/
-- auth_api_v1_qr_confirm_create: POST /auth/api/v1/qr/{key}/confirm/
-- auth_api_v1_qr_generate_create: POST /auth/api/v1/qr/generate/
-- auth_api_v1_qr_reject_create: POST /auth/api/v1/qr/{key}/reject/
-- auth_api_v1_qr_scan_retrieve: GET /auth/api/v1/qr/{key}/scan/
-- auth_api_v1_qr_status_retrieve: GET /auth/api/v1/qr/{key}/status/
-- auth_api_v1_security_audit_retrieve: GET /auth/api/v1/security/audit/
-- auth_api_v1_security_revoke_suspicious_retrieve: GET /auth/api/v1/security/revoke-suspicious/
-- auth_api_v1_security_status_retrieve: GET /auth/api/v1/security/status/
-- auth_api_v1_service_keys_create: POST /auth/api/v1/service-keys
-- auth_api_v1_service_keys_destroy: DELETE /auth/api/v1/service-keys/{id}
-- auth_api_v1_service_keys_list: GET /auth/api/v1/service-keys
-- auth_api_v1_service_keys_partial_update: PATCH /auth/api/v1/service-keys/{id}
-- auth_api_v1_service_keys_retrieve: GET /auth/api/v1/service-keys/{id}
-- auth_api_v1_service_keys_update: PUT /auth/api/v1/service-keys/{id}
-- auth_api_v1_sessions_confirm_create: POST /auth/api/v1/sessions/{session_id}/confirm/
-- auth_api_v1_sessions_destroy: DELETE /auth/api/v1/sessions/
-- auth_api_v1_sessions_destroy_2: DELETE /auth/api/v1/sessions/{session_id}/
-- auth_api_v1_sessions_list: GET /auth/api/v1/sessions/
-- auth_api_v1_sso_login_retrieve: GET /auth/api/v1/sso/{slug}/login/
-- auth_api_v1_sso_lookup_retrieve: GET /auth/api/v1/sso/lookup/
-- auth_api_v1_sso_oidc_callback_retrieve: GET /auth/api/v1/sso/{slug}/oidc/callback/
-- auth_api_v1_sso_orgs_config_partial_update: PATCH /auth/api/v1/sso/orgs/{slug}/config/
-- auth_api_v1_sso_orgs_config_update: PUT /auth/api/v1/sso/orgs/{slug}/config/
-- auth_api_v1_sso_orgs_create: POST /auth/api/v1/sso/orgs/
-- auth_api_v1_sso_orgs_destroy: DELETE /auth/api/v1/sso/orgs/{slug}/
-- auth_api_v1_sso_orgs_list: GET /auth/api/v1/sso/orgs/
-- auth_api_v1_sso_orgs_partial_update: PATCH /auth/api/v1/sso/orgs/{slug}/
-- auth_api_v1_sso_orgs_retrieve: GET /auth/api/v1/sso/orgs/{slug}/
-- auth_api_v1_sso_saml_acs_create: POST /auth/api/v1/sso/{slug}/saml/acs/
-- auth_api_v1_sso_saml_metadata_retrieve: GET /auth/api/v1/sso/{slug}/saml/metadata/
-- auth_api_v1_staff_roles_create: POST /auth/api/v1/staff-roles/
-- auth_api_v1_staff_roles_destroy: DELETE /auth/api/v1/staff-roles/{assignment_id}/
-- auth_api_v1_staff_roles_list: GET /auth/api/v1/staff-roles/
-- auth_api_v1_token_create: POST /auth/api/v1/token/
-- auth_api_v1_token_refresh_create: POST /auth/api/v1/token/refresh/
-- auth_api_v1_token_refresh_retrieve: GET /auth/api/v1/token/refresh/
-- auth_api_v1_totp_challenge_verify_create: POST /auth/api/v1/totp/challenge/verify/
-- auth_api_v1_totp_change_delayed_cancel_create: POST /auth/api/v1/totp/change/delayed/cancel/
-- auth_api_v1_totp_change_delayed_initiate_create: POST /auth/api/v1/totp/change/delayed/initiate/
-- auth_api_v1_totp_change_delayed_status_retrieve: GET /auth/api/v1/totp/change/delayed/status/
-- auth_api_v1_totp_disable_create: POST /auth/api/v1/totp/disable/
-- auth_api_v1_totp_disable_otp_request_create: POST /auth/api/v1/totp/disable-otp/request/
-- auth_api_v1_totp_setup_confirm_create: POST /auth/api/v1/totp/setup/confirm/
-- auth_api_v1_totp_setup_create: POST /auth/api/v1/totp/setup/
-- auth_api_v1_user_account_cancel_close_create: POST /auth/api/v1/user/account/cancel-close
-- auth_api_v1_user_account_close_create: POST /auth/api/v1/user/account/close
-- auth_api_v1_user_account_close_status_retrieve: GET /auth/api/v1/user/account/close/status
-- auth_api_v1_user_data_export_download_create: POST /auth/api/v1/user/data-export/download
-- auth_api_v1_user_data_export_download_retrieve: GET /auth/api/v1/user/data-export/download
-- auth_api_v1_user_data_export_request_create: POST /auth/api/v1/user/data-export/request
-- auth_api_v1_user_data_export_status_retrieve: GET /auth/api/v1/user/data-export/status
-- auth_api_v1_verification_complete_create: POST /auth/api/v1/verification/{challenge_id}/complete/
-- auth_api_v1_verification_initiate_create: POST /auth/api/v1/verification/{challenge_id}/initiate/
-- auth_api_v1_verification_preferences_retrieve: GET /auth/api/v1/verification/preferences/
-- auth_api_v1_verification_preferences_update: PUT /auth/api/v1/verification/preferences/
-- auth_api_v1_verification_retrieve: GET /auth/api/v1/verification/{challenge_id}/
-- auth_api_v1_verify_create: POST /auth/api/v1/verify/
+Paths are relative to `/auth/api/v1/`.
+- auth_api_v1_admin_audit_retrieve: GET /admin/audit/
+- auth_api_v1_admin_users_create: POST /admin-users/
+- auth_api_v1_anonymous_create: POST /anonymous/
+- auth_api_v1_capabilities_retrieve: GET /capabilities/
+- auth_api_v1_email_change_delayed_cancel_create: POST /email/change/delayed/cancel/
+- auth_api_v1_email_change_delayed_initiate_create: POST /email/change/delayed/initiate/
+- auth_api_v1_email_change_delayed_status_retrieve: GET /email/change/delayed/status/
+- auth_api_v1_email_change_instant_request_new_create: POST /email/change/instant/request-new/
+- auth_api_v1_email_change_instant_request_old_create: POST /email/change/instant/request-old/
+- auth_api_v1_email_change_instant_verify_new_create: POST /email/change/instant/verify-new/
+- auth_api_v1_email_change_instant_verify_old_create: POST /email/change/instant/verify-old/
+- auth_api_v1_email_request_create: POST /email/request/
+- auth_api_v1_email_verify_create: POST /email/verify/
+- auth_api_v1_gdpr_schema_retrieve: GET /gdpr/schema/
+- auth_api_v1_grant_exchange_create: POST /grant/exchange/
+- auth_api_v1_logout_create: POST /logout/
+- auth_api_v1_logout_retrieve: GET /logout/
+- auth_api_v1_magic_request_create: POST /magic/request/
+- auth_api_v1_magic_verify_retrieve: GET /magic/verify/
+- auth_api_v1_me_retrieve: GET /me/
+- auth_api_v1_mfa_enroll_exchange_create: POST /mfa/enroll/exchange/
+- auth_api_v1_oauth_authorize_retrieve: GET /oauth/{provider}/authorize/
+- auth_api_v1_oauth_callback_retrieve: GET /oauth/{provider}/callback
+- auth_api_v1_oauth_callback_retrieve_2: GET /oauth/{provider}/callback/
+- auth_api_v1_oauth_links_create: POST /oauth/links/
+- auth_api_v1_oauth_links_destroy: DELETE /oauth/links/{provider}/
+- auth_api_v1_oauth_links_retrieve: GET /oauth/links/
+- auth_api_v1_oauth_login_create: POST /oauth/login/
+- auth_api_v1_oauth2_introspect_create: POST /oauth2/introspect/
+- auth_api_v1_passkey_authenticate_begin_create: POST /passkey/authenticate/begin/
+- auth_api_v1_passkey_authenticate_complete_create: POST /passkey/authenticate/complete/
+- auth_api_v1_passkey_destroy: DELETE /passkey/{id}/
+- auth_api_v1_passkey_register_begin_create: POST /passkey/register/begin/
+- auth_api_v1_passkey_register_complete_create: POST /passkey/register/complete/
+- auth_api_v1_passkey_retrieve: GET /passkey/
+- auth_api_v1_password_change_create: POST /password/change/
+- auth_api_v1_password_change_otp_request_create: POST /password/change/otp/request/
+- auth_api_v1_password_change_otp_verify_create: POST /password/change/otp/verify/
+- auth_api_v1_password_forced_change_create: POST /password/forced-change/
+- auth_api_v1_password_login_create: POST /password/login/
+- auth_api_v1_password_methods_retrieve: GET /password/methods/
+- auth_api_v1_password_register_create: POST /password/register/
+- auth_api_v1_password_reset_email_request_create: POST /password/reset/email/request/
+- auth_api_v1_password_reset_email_verify_create: POST /password/reset/email/verify/
+- auth_api_v1_password_reset_phone_request_create: POST /password/reset/phone/request/
+- auth_api_v1_password_reset_phone_verify_create: POST /password/reset/phone/verify/
+- auth_api_v1_phone_change_delayed_cancel_create: POST /phone/change/delayed/cancel/
+- auth_api_v1_phone_change_delayed_initiate_create: POST /phone/change/delayed/initiate/
+- auth_api_v1_phone_change_delayed_status_retrieve: GET /phone/change/delayed/status/
+- auth_api_v1_phone_change_instant_request_new_create: POST /phone/change/instant/request-new/
+- auth_api_v1_phone_change_instant_request_old_create: POST /phone/change/instant/request-old/
+- auth_api_v1_phone_change_instant_verify_new_create: POST /phone/change/instant/verify-new/
+- auth_api_v1_phone_change_instant_verify_old_create: POST /phone/change/instant/verify-old/
+- auth_api_v1_phone_request_create: POST /phone/request/
+- auth_api_v1_phone_verify_create: POST /phone/verify/
+- auth_api_v1_qr_confirm_create: POST /qr/{key}/confirm/
+- auth_api_v1_qr_generate_create: POST /qr/generate/
+- auth_api_v1_qr_reject_create: POST /qr/{key}/reject/
+- auth_api_v1_qr_scan_retrieve: GET /qr/{key}/scan/
+- auth_api_v1_qr_status_retrieve: GET /qr/{key}/status/
+- auth_api_v1_security_audit_retrieve: GET /security/audit/
+- auth_api_v1_security_revoke_suspicious_retrieve: GET /security/revoke-suspicious/
+- auth_api_v1_security_status_retrieve: GET /security/status/
+- auth_api_v1_service_keys_create: POST /service-keys
+- auth_api_v1_service_keys_destroy: DELETE /service-keys/{id}
+- auth_api_v1_service_keys_list: GET /service-keys
+- auth_api_v1_service_keys_partial_update: PATCH /service-keys/{id}
+- auth_api_v1_service_keys_retrieve: GET /service-keys/{id}
+- auth_api_v1_service_keys_update: PUT /service-keys/{id}
+- auth_api_v1_sessions_confirm_create: POST /sessions/{session_id}/confirm/
+- auth_api_v1_sessions_destroy: DELETE /sessions/
+- auth_api_v1_sessions_destroy_2: DELETE /sessions/{session_id}/
+- auth_api_v1_sessions_list: GET /sessions/
+- auth_api_v1_sso_login_retrieve: GET /sso/{slug}/login/
+- auth_api_v1_sso_lookup_retrieve: GET /sso/lookup/
+- auth_api_v1_sso_oidc_callback_retrieve: GET /sso/{slug}/oidc/callback/
+- auth_api_v1_sso_orgs_config_partial_update: PATCH /sso/orgs/{slug}/config/
+- auth_api_v1_sso_orgs_config_update: PUT /sso/orgs/{slug}/config/
+- auth_api_v1_sso_orgs_create: POST /sso/orgs/
+- auth_api_v1_sso_orgs_destroy: DELETE /sso/orgs/{slug}/
+- auth_api_v1_sso_orgs_list: GET /sso/orgs/
+- auth_api_v1_sso_orgs_partial_update: PATCH /sso/orgs/{slug}/
+- auth_api_v1_sso_orgs_retrieve: GET /sso/orgs/{slug}/
+- auth_api_v1_sso_saml_acs_create: POST /sso/{slug}/saml/acs/
+- auth_api_v1_sso_saml_metadata_retrieve: GET /sso/{slug}/saml/metadata/
+- auth_api_v1_staff_roles_create: POST /staff-roles/
+- auth_api_v1_staff_roles_destroy: DELETE /staff-roles/{assignment_id}/
+- auth_api_v1_staff_roles_list: GET /staff-roles/
+- auth_api_v1_token_create: POST /token/
+- auth_api_v1_token_refresh_create: POST /token/refresh/
+- auth_api_v1_token_refresh_retrieve: GET /token/refresh/
+- auth_api_v1_totp_challenge_verify_create: POST /totp/challenge/verify/
+- auth_api_v1_totp_change_delayed_cancel_create: POST /totp/change/delayed/cancel/
+- auth_api_v1_totp_change_delayed_initiate_create: POST /totp/change/delayed/initiate/
+- auth_api_v1_totp_change_delayed_status_retrieve: GET /totp/change/delayed/status/
+- auth_api_v1_totp_disable_create: POST /totp/disable/
+- auth_api_v1_totp_disable_otp_request_create: POST /totp/disable-otp/request/
+- auth_api_v1_totp_setup_confirm_create: POST /totp/setup/confirm/
+- auth_api_v1_totp_setup_create: POST /totp/setup/
+- auth_api_v1_user_account_cancel_close_create: POST /user/account/cancel-close
+- auth_api_v1_user_account_close_create: POST /user/account/close
+- auth_api_v1_user_account_close_status_retrieve: GET /user/account/close/status
+- auth_api_v1_user_data_export_download_create: POST /user/data-export/download
+- auth_api_v1_user_data_export_download_retrieve: GET /user/data-export/download
+- auth_api_v1_user_data_export_request_create: POST /user/data-export/request
+- auth_api_v1_user_data_export_status_retrieve: GET /user/data-export/status
+- auth_api_v1_verification_complete_create: POST /verification/{challenge_id}/complete/
+- auth_api_v1_verification_initiate_create: POST /verification/{challenge_id}/initiate/
+- auth_api_v1_verification_preferences_retrieve: GET /verification/preferences/
+- auth_api_v1_verification_preferences_update: PUT /verification/preferences/
+- auth_api_v1_verification_retrieve: GET /verification/{challenge_id}/
+- auth_api_v1_verify_create: POST /verify/
 
 ## Query hooks (server state; keys come only from the key factory)
 - useAuditLog (query) → auditLog
@@ -176,7 +183,7 @@ Request/response schema names are in manifest.json + the generated types.
 - useUnlinkOAuth (mutation) → oauthUnlink
 
 ## Errors (render t(code, params); UX from remediation)
-120 keys (full catalog: manifest.json §errors). By remediation: fix_input 57 · retry 31 · reauthenticate 12 · wait_and_retry 8 · verify 7 · contact_support 5.
+125 keys (full catalog: manifest.json §errors). By remediation: fix_input 58 · retry 32 · reauthenticate 14 · verify 8 · wait_and_retry 8 · contact_support 5.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -199,6 +206,7 @@ Param-bearing keys (interpolation slots matter):
   auto-instrumented flow funnels below)
 
 ## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+- flow.auth.first_login.<step> — 5 documented step(s)
 - flow.auth.password_login.<step> — 3 documented step(s)
 - flow.auth.passwordless_login.<step> — 4 documented step(s)
 - flow.auth.step_up_verification.<step> — 7 documented step(s)
@@ -219,6 +227,7 @@ const { tracked } = useTracked();
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - auth.anonymous-session → <AnonymousSession> [default]  demo/AnonymousSession.demo.tsx
 - auth.authenticator-change → <AuthenticatorChange> [default]  demo/AuthenticatorChange.demo.tsx
+- auth.first-login → <ForcedPasswordChange> [forcedChange|mfaEnroll]  demo/FirstLogin.demo.tsx
 - auth.magic-link → <MagicLink> [default]  demo/MagicLink.demo.tsx
 - auth.passkey-login → <PasskeyLogin> [default]  demo/PasskeyLogin.demo.tsx
 - auth.passkey-registration → <PasskeyRegistration> [default]  demo/PasskeyRegistration.demo.tsx

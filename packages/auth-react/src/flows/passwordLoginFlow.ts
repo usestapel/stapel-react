@@ -1,7 +1,7 @@
 import type { Analytics } from "@stapel/core";
 import type { AuthApi } from "../api/authApi.js";
-import type { AuthResponse } from "../api/types.js";
-import { isTotpChallenge } from "../api/types.js";
+import type { AuthResponse, FirstLoginRequires } from "../api/types.js";
+import { isFirstLoginChallenge, isTotpChallenge } from "../api/types.js";
 import { createFlowMachine } from "@stapel/core";
 import type { FlowMachine } from "@stapel/core";
 import { AUTH_FLOWS } from "./generated/flows.gen.js";
@@ -18,6 +18,21 @@ import type { FlowError } from "./errors.js";
  * A 423 during TOTP verify **invalidates the challenge** (auth-sa.md §11): the
  * machine goes to `totpLocked` and the user must log in again for a fresh
  * token — modelled as a terminal step (call `reset()` to return to `idle`).
+ *
+ * FIRST-LOGIN INTERMEDIATES (stapel-auth ≥0.12.0, org-program §C2): an
+ * org-provisioned account with a first-login policy flag answers
+ * `FIRST_LOGIN_REQUIRED {requires, challenge_token}` instead of a session —
+ * the same intermediate pattern as the TOTP challenge, routed by `requires`:
+ *
+ *  - `"password_change"` → the machine parks in `passwordChangeRequired`;
+ *    render the pair's `ForcedPasswordChange` headless (or the
+ *    `ForcedPasswordChangeCard` default skin) with the `challengeToken`.
+ *  - `"mfa_enroll"` → the machine parks in `mfaEnrollRequired`; render
+ *    `MfaEnrollGate` / `MfaEnrollPanel` with the `challengeToken`.
+ *
+ * Both are resting states for THIS machine: the forced-change / enroll
+ * journeys run their own machines against the challenge token and finish by
+ * adopting the session through the runtime — this flow's job ends at routing.
  */
 export type PasswordLoginState =
   | { readonly step: "idle" }
@@ -36,7 +51,19 @@ export type PasswordLoginState =
       readonly expiresIn: number;
       readonly error: FlowError;
     }
-  | { readonly step: "totpLocked"; readonly error: FlowError };
+  | { readonly step: "totpLocked"; readonly error: FlowError }
+  | {
+      readonly step: "passwordChangeRequired";
+      readonly requires: FirstLoginRequires; // always "password_change" here
+      readonly challengeToken: string;
+      readonly expiresIn: number;
+    }
+  | {
+      readonly step: "mfaEnrollRequired";
+      readonly requires: FirstLoginRequires; // always "mfa_enroll" here
+      readonly challengeToken: string;
+      readonly expiresIn: number;
+    };
 
 export interface TotpProof {
   readonly code?: string;
@@ -78,6 +105,17 @@ export function createPasswordLoginFlow(
           if (isTotpChallenge(r)) {
             return {
               step: "totpRequired",
+              challengeToken: r.challenge_token,
+              expiresIn: r.expires_in,
+            };
+          }
+          if (isFirstLoginChallenge(r)) {
+            return {
+              step:
+                r.requires === "password_change"
+                  ? "passwordChangeRequired"
+                  : "mfaEnrollRequired",
+              requires: r.requires,
               challengeToken: r.challenge_token,
               expiresIn: r.expires_in,
             };

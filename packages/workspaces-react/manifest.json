@@ -4,7 +4,7 @@
   "version": "0.6.0",
   "backend": {
     "module": "stapel-workspaces",
-    "contract": ">=0.5 <0.6"
+    "contract": ">=0.8 <0.9"
   },
   "layers": [
     "api",
@@ -14,7 +14,9 @@
     "i18n"
   ],
   "flows": {},
-  "machines": [],
+  "machines": [
+    "createInviteAcceptFlow"
+  ],
   "operations": {
     "workspaces_api_v1_create": {
       "method": "POST",
@@ -51,6 +53,27 @@
       "request": "InvitationAcceptRequest",
       "response": "MemberResponse"
     },
+    "workspaces_api_v1_invitations_claim_create": {
+      "method": "POST",
+      "path": "/workspaces/api/v1/invitations/{token}/claim",
+      "tag": "Members",
+      "request": null,
+      "response": "InvitationClaimResponse"
+    },
+    "workspaces_api_v1_invitations_decline_create": {
+      "method": "POST",
+      "path": "/workspaces/api/v1/invitations/{token}/decline",
+      "tag": "Members",
+      "request": null,
+      "response": null
+    },
+    "workspaces_api_v1_invitations_retrieve": {
+      "method": "GET",
+      "path": "/workspaces/api/v1/invitations/{token}",
+      "tag": "Members",
+      "request": null,
+      "response": "InvitationPreviewResponse"
+    },
     "workspaces_api_v1_members_destroy": {
       "method": "DELETE",
       "path": "/workspaces/api/v1/{workspace_id}/members/{user_id}",
@@ -79,6 +102,13 @@
       "request": "PatchedMemberUpdateRequest",
       "response": "MemberResponse"
     },
+    "workspaces_api_v1_members_provision_create": {
+      "method": "POST",
+      "path": "/workspaces/api/v1/{workspace_id}/members/provision",
+      "tag": "Members",
+      "request": "ProvisionMemberRequest",
+      "response": "ProvisionMemberResponse"
+    },
     "workspaces_api_v1_partial_update": {
       "method": "PATCH",
       "path": "/workspaces/api/v1/{workspace_id}",
@@ -99,6 +129,13 @@
       "tag": "Workspaces",
       "request": null,
       "response": "WorkspaceResponse"
+    },
+    "workspaces_api_v1_roles_retrieve": {
+      "method": "GET",
+      "path": "/workspaces/api/v1/roles",
+      "tag": "Workspaces",
+      "request": null,
+      "response": "RoleListResponse"
     }
   },
   "hooks": {
@@ -108,9 +145,18 @@
       "invalidates": [
         [
           "workspaces",
+          "invitation-preview",
+          "{token}"
+        ],
+        [
+          "workspaces",
           "list"
         ]
       ]
+    },
+    "useClaimInvitation": {
+      "kind": "mutation",
+      "operation": "claimInvitation"
     },
     "useCreateWorkspace": {
       "kind": "mutation",
@@ -119,6 +165,17 @@
         [
           "workspaces",
           "list"
+        ]
+      ]
+    },
+    "useDeclineInvitation": {
+      "kind": "mutation",
+      "operation": "declineInvitation",
+      "invalidates": [
+        [
+          "workspaces",
+          "invitation-preview",
+          "{token}"
         ]
       ]
     },
@@ -135,6 +192,15 @@
           "workspaces",
           "list"
         ]
+      ]
+    },
+    "useInvitationPreview": {
+      "kind": "query",
+      "operation": "getInvitationPreview",
+      "queryKey": [
+        "workspaces",
+        "invitation-preview",
+        "{token}"
       ]
     },
     "useInviteMembers": {
@@ -167,6 +233,14 @@
           "members",
           "{workspaceId}"
         ]
+      ]
+    },
+    "useRoles": {
+      "kind": "query",
+      "operation": "listRoles",
+      "queryKey": [
+        "workspaces",
+        "roles"
       ]
     },
     "useUpdateMemberRole": {
@@ -325,6 +399,11 @@
       "params": [],
       "remediation": "fix_input"
     },
+    "error.400.invalid_provision_username": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
     "error.400.invalid_role": {
       "status": 400,
       "params": [],
@@ -334,6 +413,11 @@
       "status": 400,
       "params": [],
       "remediation": "fix_input"
+    },
+    "error.400.invitation_declined": {
+      "status": 400,
+      "params": [],
+      "remediation": "contact_support"
     },
     "error.400.invitation_expired": {
       "status": 400,
@@ -370,6 +454,18 @@
       "params": [],
       "remediation": "reauthenticate"
     },
+    "error.402.entitlement_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.402.member_limit_reached": {
+      "status": 402,
+      "params": [
+        "limit"
+      ],
+      "remediation": "fix_input"
+    },
     "error.402.payment_required": {
       "status": 402,
       "params": [],
@@ -389,6 +485,20 @@
       "status": 403,
       "params": [],
       "remediation": "fix_input"
+    },
+    "error.403.membership_suspended": {
+      "status": 403,
+      "params": [
+        "reason"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.403.missing_capability": {
+      "status": 403,
+      "params": [
+        "capability"
+      ],
+      "remediation": "contact_support"
     },
     "error.403.network_blocked": {
       "status": 403,
@@ -455,6 +565,11 @@
       "params": [],
       "remediation": "fix_input"
     },
+    "error.409.email_already_registered": {
+      "status": 409,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
     "error.410.gone": {
       "status": 410,
       "params": [],
@@ -501,6 +616,11 @@
       "status": 500,
       "params": [],
       "remediation": "contact_support"
+    },
+    "error.503.auth_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "wait_and_retry"
     }
   },
   "events": {
@@ -521,6 +641,34 @@
         "default"
       ],
       "source": "demo/AcceptInvitation.demo.tsx"
+    },
+    {
+      "id": "workspaces.can",
+      "title": "Capability gate",
+      "description": "The headless Can gates UI on the caller's my_capabilities in a workspace, with the backend's wildcard matcher (* and prefix.*) ported client-side. Static children render only when allowed; the render-prop variant hands the verdict out for disabled-state UI. UI convenience only — the backend re-checks every operation.",
+      "component": "Can",
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/Can.demo.tsx"
+    },
+    {
+      "id": "workspaces.invite-accept",
+      "title": "Invite accept flow",
+      "description": "The headless InviteAcceptFlow drives the /invite/{token} journey: public preview routing (accept prompt / wrong account / login / claim), the grant_token hand-off seam to auth (onLoginGrant), the basic-data slot, and accept/decline. Every screen is the host's; InviteAcceptPage is the reference skin.",
+      "component": "InviteAcceptFlow",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/InviteAcceptFlow.demo.tsx"
     },
     {
       "id": "workspaces.list",
@@ -562,6 +710,20 @@
         "default"
       ],
       "source": "demo/Workspaces.demo.tsx"
+    },
+    {
+      "id": "workspaces.role-select",
+      "title": "Role select (registry)",
+      "description": "The headless RoleSelect reads the effective role registry (builtin four + the deployment's STAPEL_WORKSPACES[\"ROLES\"] overlay) from GET /roles and resolves labels via workspaces.role.<key> with a raw-name fallback — role UI stops hardcoding the builtin four.",
+      "component": "RoleSelect",
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/RoleSelect.demo.tsx"
     }
   ],
   "i18nKeys": [
@@ -582,8 +744,10 @@
     "error.400.field.required",
     "error.400.field.unique",
     "error.400.invalid_ad_id",
+    "error.400.invalid_provision_username",
     "error.400.invalid_role",
     "error.400.invitation_already_used",
+    "error.400.invitation_declined",
     "error.400.invitation_expired",
     "error.400.invitation_revoked",
     "error.400.validation_error",
@@ -591,10 +755,14 @@
     "error.400.verification_invalid_factor",
     "error.400.workspace_slug_taken",
     "error.401.unauthorized",
+    "error.402.entitlement_required",
+    "error.402.member_limit_reached",
     "error.402.payment_required",
     "error.403.forbidden",
     "error.403.forbidden_workspace",
     "error.403.last_owner_cannot_be_removed",
+    "error.403.membership_suspended",
+    "error.403.missing_capability",
     "error.403.network_blocked",
     "error.403.verification_enrollment_required",
     "error.403.verification_required",
@@ -608,6 +776,7 @@
     "error.406.not_acceptable",
     "error.408.request_timeout",
     "error.409.conflict",
+    "error.409.email_already_registered",
     "error.410.gone",
     "error.413.payload_too_large",
     "error.415.unsupported_media_type",
@@ -617,10 +786,35 @@
     "error.429.rate_limit",
     "error.429.too_many_requests",
     "error.500.internal",
+    "error.503.auth_unavailable",
     "workspaces.accept.accept",
     "workspaces.accept.accepted",
     "workspaces.accept.accepting",
     "workspaces.error.unknown",
+    "workspaces.invite.acceptTitle",
+    "workspaces.invite.accepted",
+    "workspaces.invite.basicDataContinueCta",
+    "workspaces.invite.basicDataTitle",
+    "workspaces.invite.claiming",
+    "workspaces.invite.createAccountCta",
+    "workspaces.invite.declineCta",
+    "workspaces.invite.declined",
+    "workspaces.invite.emailLine",
+    "workspaces.invite.exchangeFailed",
+    "workspaces.invite.exchanging",
+    "workspaces.invite.joinCta",
+    "workspaces.invite.loading",
+    "workspaces.invite.loginTitle",
+    "workspaces.invite.newUserHint",
+    "workspaces.invite.retryCta",
+    "workspaces.invite.roleLine",
+    "workspaces.invite.switchAccountCta",
+    "workspaces.invite.unavailable.accepted",
+    "workspaces.invite.unavailable.declined",
+    "workspaces.invite.unavailable.expired",
+    "workspaces.invite.unavailable.revoked",
+    "workspaces.invite.wrongAccount",
+    "workspaces.invite.wrongAccountHint",
     "workspaces.list.create",
     "workspaces.list.creating",
     "workspaces.list.empty",
@@ -641,6 +835,10 @@
     "workspaces.members.subtitle",
     "workspaces.members.title",
     "workspaces.members.update_role",
+    "workspaces.role.admin",
+    "workspaces.role.member",
+    "workspaces.role.owner",
+    "workspaces.role.viewer",
     "workspaces.settings.danger_zone.delete",
     "workspaces.settings.danger_zone.delete_confirm",
     "workspaces.settings.danger_zone.title",
@@ -655,7 +853,10 @@
   "exports": {
     "runtime": [
       "AcceptInvitation",
+      "Can",
+      "InviteAcceptFlow",
       "Members",
+      "RoleSelect",
       "WORKSPACES_ERRORS",
       "WORKSPACES_ERROR_CODES",
       "WORKSPACES_FLOWS",
@@ -663,21 +864,31 @@
       "WorkspaceList",
       "WorkspacesProvider",
       "WorkspacesRuntimeContext",
+      "capabilityMatches",
       "createFlowMachine",
+      "createInviteAcceptFlow",
       "createWorkspacesApi",
       "createWorkspacesRuntime",
+      "emailMatchesMask",
       "explainWorkspacesError",
       "flowEndpoints",
+      "hasCapability",
       "isErrorCode",
+      "maskEmail",
       "registerWorkspacesI18n",
       "toFlowError",
       "useAcceptInvitation",
+      "useCapabilities",
+      "useClaimInvitation",
       "useCreateWorkspace",
+      "useDeclineInvitation",
       "useDeleteWorkspace",
       "useFlow",
+      "useInvitationPreview",
       "useInviteMembers",
       "useMembers",
       "useRemoveMember",
+      "useRoles",
       "useUpdateMemberRole",
       "useUpdateWorkspace",
       "useWorkspace",
@@ -691,6 +902,8 @@
     ],
     "types": [
       "AcceptInvitationBag",
+      "CanBag",
+      "CapabilitiesResult",
       "CreateWorkspacesRuntimeOptions",
       "FlowEndpoint",
       "FlowError",
@@ -699,6 +912,12 @@
       "FlowStateBase",
       "Invitation",
       "InvitationAccept",
+      "InvitationClaim",
+      "InvitationPreview",
+      "InviteAcceptFlowBag",
+      "InviteAcceptFlowController",
+      "InviteAcceptFlowDeps",
+      "InviteAcceptState",
       "MemberData",
       "MemberInvite",
       "MemberInviteResult",
@@ -708,6 +927,9 @@
       "MembersBag",
       "MembersParams",
       "Remediation",
+      "RoleInfo",
+      "RoleList",
+      "RoleSelectBag",
       "Schemas",
       "WorkspaceCreate",
       "WorkspaceData",

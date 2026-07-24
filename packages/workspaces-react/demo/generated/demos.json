@@ -24,6 +24,46 @@
       }
     },
     {
+      "id": "workspaces.can",
+      "title": "Capability gate",
+      "description": "The headless Can gates UI on the caller's my_capabilities in a workspace, with the backend's wildcard matcher (* and prefix.*) ported client-side. Static children render only when allowed; the render-prop variant hands the verdict out for disabled-state UI. UI convenience only — the backend re-checks every operation.",
+      "component": "Can",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/Can.demo.tsx",
+        "line": 63
+      }
+    },
+    {
+      "id": "workspaces.invite-accept",
+      "title": "Invite accept flow",
+      "description": "The headless InviteAcceptFlow drives the /invite/{token} journey: public preview routing (accept prompt / wrong account / login / claim), the grant_token hand-off seam to auth (onLoginGrant), the basic-data slot, and accept/decline. Every screen is the host's; InviteAcceptPage is the reference skin.",
+      "component": "InviteAcceptFlow",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/InviteAcceptFlow.demo.tsx",
+        "line": 83
+      }
+    },
+    {
       "id": "workspaces.list",
       "title": "Workspace list",
       "description": "The headless WorkspaceList wraps the read of the caller's workspaces plus an owner-seeded create, exposing workspaces / loading / creating / error state. Bring your own UI — the component is renderless.",
@@ -80,6 +120,26 @@
       "source": {
         "file": "demo/Workspaces.demo.tsx",
         "line": 24
+      }
+    },
+    {
+      "id": "workspaces.role-select",
+      "title": "Role select (registry)",
+      "description": "The headless RoleSelect reads the effective role registry (builtin four + the deployment's STAPEL_WORKSPACES[\"ROLES\"] overlay) from GET /roles and resolves labels via workspaces.role.<key> with a raw-name fallback — role UI stops hardcoding the builtin four.",
+      "component": "RoleSelect",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/RoleSelect.demo.tsx",
+        "line": 71
       }
     }
   ]

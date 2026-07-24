@@ -70,15 +70,66 @@ export type TOTPChallengeResponse = Omit<
 };
 
 /**
- * The `oneOf` login union (discriminator: `status`). Narrow with
- * {@link isTotpChallenge}.
+ * Which first-login step an org-provisioned account still owes
+ * (org-program §C2): `"password_change"` → `POST /password/forced-change/`,
+ * `"mfa_enroll"` → `POST /mfa/enroll/exchange/` for a limited enroll session.
  */
-export type LoginResponse = AuthResponse | TOTPChallengeResponse;
+export type FirstLoginRequires = Schemas["RequiresEnum"];
+
+/**
+ * Returned instead of `AuthResponse` when an org-provisioned account's
+ * first-login policy flag is up (stapel-auth ≥0.12.0, org-program §C2):
+ * credentials were correct, but a first-login step (forced password change /
+ * MFA enrollment) must be completed before a session is issued.
+ *
+ * ADAPTER (1): re-attach the `"FIRST_LOGIN_REQUIRED"` discriminant so the
+ * login union narrows on it.
+ */
+export type FirstLoginChallengeResponse = Omit<
+  Schemas["FirstLoginChallengeResponse"],
+  "status"
+> & {
+  readonly status: Schemas["FirstLoginChallengeResponseStatusEnum"];
+};
+
+/**
+ * The `oneOf` login union (discriminator: `status`). Narrow with
+ * {@link isTotpChallenge} / {@link isFirstLoginChallenge}.
+ */
+export type LoginResponse =
+  | AuthResponse
+  | TOTPChallengeResponse
+  | FirstLoginChallengeResponse;
 
 /** Narrowing helper for the login union. */
 export function isTotpChallenge(r: LoginResponse): r is TOTPChallengeResponse {
   return r.status === "TOTP_REQUIRED";
 }
+
+/** Narrowing helper for the login union's first-login intermediate. */
+export function isFirstLoginChallenge(
+  r: LoginResponse
+): r is FirstLoginChallengeResponse {
+  return r.status === "FIRST_LOGIN_REQUIRED";
+}
+
+/**
+ * `POST /mfa/enroll/exchange/`'s 200 body (stapel-auth ≥0.12.0): a limited
+ * enroll-only session — access token ONLY (deliberately no refresh: a
+ * refresh would mint a claim-free full token, silently escalating the
+ * limited session). Only TOTP setup/confirm, passkey registration and
+ * logout are allowed until a strong factor is activated; activating one
+ * returns the full-session `tokens` pair from the confirm/complete endpoint
+ * itself.
+ *
+ * ADAPTER (1): re-attach the `"MFA_ENROLL_SESSION"` discriminant.
+ */
+export type MfaEnrollSessionResponse = Omit<
+  Schemas["MfaEnrollSessionResponse"],
+  "status"
+> & {
+  readonly status: Schemas["MfaEnrollSessionResponseStatusEnum"];
+};
 
 /** `{ message, target }` — target is the masked destination to display. */
 export type OtpRequestResponse = Schemas["OtpSentResponse"];
@@ -312,6 +363,16 @@ export type QrStatusResponse = Schemas["QRStatusResponse"];
 // ── Passkeys ─────────────────────────────────────────────────────────────────
 
 export type Passkey = Schemas["PasskeyItem"];
+
+/**
+ * `POST /passkey/register/complete/`'s 200 body (stapel-auth ≥0.12.0): the
+ * stored {@link Passkey}, plus a full-session `tokens` pair ONLY when the
+ * registration was made from a limited enroll-only session (first-login
+ * mfa_enroll policy, org-program §C2) — activating the strong factor
+ * upgrades the limited session. `tokens` is null/absent everywhere else
+ * (ordinary security-settings registration).
+ */
+export type PasskeyRegistered = Schemas["PasskeyRegisterCompleteResponse"];
 
 // NOT GENERATED: the WebAuthn `begin` endpoints return opaque
 // PublicKeyCredential*Options JSON with no named response serializer in the

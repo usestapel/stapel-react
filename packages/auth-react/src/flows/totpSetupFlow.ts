@@ -1,6 +1,6 @@
 import type { Analytics } from "@stapel/core";
 import type { AuthApi } from "../api/authApi.js";
-import type { TotpSetupRequest } from "../api/types.js";
+import type { AuthTokens, TotpSetupRequest } from "../api/types.js";
 import { createFlowMachine } from "@stapel/core";
 import type { FlowMachine } from "@stapel/core";
 import { isErrorCode, toFlowError } from "./errors.js";
@@ -37,7 +37,15 @@ export type TotpSetupState =
       readonly expiresIn: number;
     }
   | { readonly step: "confirming"; readonly secret: string; readonly qrUri: string; readonly expiresIn: number }
-  | { readonly step: "done"; readonly backupCodes: readonly string[] }
+  // `tokens` (stapel-auth ≥0.12.0): the full-session pair, present ONLY when
+  // the confirmation was made from a limited enroll-only session (first-login
+  // mfa_enroll policy, org-program §C2) — `MfaEnrollGate` reads it to upgrade
+  // the session. Null on an ordinary security-settings enrollment.
+  | {
+      readonly step: "done";
+      readonly backupCodes: readonly string[];
+      readonly tokens: AuthTokens | null;
+    }
   | { readonly step: "startError"; readonly error: FlowError }
   | {
       readonly step: "confirmError";
@@ -97,6 +105,7 @@ export function createTotpSetupFlow(deps: TotpSetupFlowDeps): TotpSetupFlow {
         resolve: (r): TotpSetupState => ({
           step: "done",
           backupCodes: r.backup_codes,
+          tokens: r.tokens ?? null,
         }),
         reject: (error): TotpSetupState => ({
           step: "confirmError",

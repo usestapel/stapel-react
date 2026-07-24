@@ -1,7 +1,7 @@
 import type { Analytics } from "@stapel/core";
 import type { AuthApi } from "../api/authApi.js";
 import type { AuthResponse } from "../api/types.js";
-import { isTotpChallenge } from "../api/types.js";
+import { isFirstLoginChallenge, isTotpChallenge } from "../api/types.js";
 import { createFlowMachine } from "@stapel/core";
 import type { FlowMachine } from "@stapel/core";
 import { toFlowError } from "./errors.js";
@@ -68,6 +68,12 @@ export function createOAuthFlow(deps: OAuthFlowDeps): OAuthFlow {
               challengeToken: r.challenge_token,
               expiresIn: r.expires_in,
             };
+          }
+          if (isFirstLoginChallenge(r)) {
+            // Not a contract branch of /oauth/login/: first-login enforcement
+            // (org-program §C2) applies to org-provisioned password accounts
+            // only. Fold defensively rather than crash the resolve mapper.
+            return { step: "error", provider, error: toFlowError(new Error(r.status)) };
           }
           deps.onAuthenticated?.(r);
           return { step: "authenticated", result: r };

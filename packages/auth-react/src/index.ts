@@ -15,13 +15,20 @@ export {
   safeScanRedirect,
 } from "./api/urls.js";
 export type { AuthUrls } from "./api/urls.js";
-export { isTotpChallenge, isAuthResponse } from "./api/types.js";
+export {
+  isTotpChallenge,
+  isAuthResponse,
+  isFirstLoginChallenge,
+} from "./api/types.js";
 export type {
   AuthStatus,
   StapelUser,
   AuthTokens,
   AuthResponse,
   TOTPChallengeResponse,
+  FirstLoginChallengeResponse,
+  FirstLoginRequires,
+  MfaEnrollSessionResponse,
   LoginResponse,
   OtpRequestResponse,
   StatusResponse,
@@ -57,6 +64,7 @@ export type {
   QrStatusValue,
   QrStatusResponse,
   Passkey,
+  PasskeyRegistered,
   PasskeyRegisterBeginResponse,
   PasskeyAuthenticateBeginResponse,
   ChangeOldVerifiedResponse,
@@ -120,6 +128,19 @@ export type {
   TotpSetupFlowDeps,
   TotpSetupState,
 } from "./flows/totpSetupFlow.js";
+export {
+  createForcedPasswordChangeFlow,
+  createMfaEnrollFlow,
+} from "./flows/firstLoginFlow.js";
+export type {
+  ForcedPasswordChangeFlow,
+  ForcedPasswordChangeFlowDeps,
+  ForcedPasswordChangeState,
+  MfaEnrollFlow,
+  MfaEnrollFlowDeps,
+  MfaEnrollMethod,
+  MfaEnrollState,
+} from "./flows/firstLoginFlow.js";
 export { createOAuthFlow } from "./flows/oauthFlow.js";
 export type { OAuthFlow, OAuthFlowDeps, OAuthState } from "./flows/oauthFlow.js";
 export { createQrLoginFlow } from "./flows/qrLoginFlow.js";
@@ -233,6 +254,11 @@ export { VerificationChallenge } from "./headless/VerificationChallenge.js";
 export type { VerificationChallengeBag } from "./headless/VerificationChallenge.js";
 export { TotpSetup } from "./headless/TotpSetup.js";
 export type { TotpSetupBag } from "./headless/TotpSetup.js";
+export { ForcedPasswordChange, MfaEnrollGate } from "./headless/FirstLogin.js";
+export type {
+  ForcedPasswordChangeBag,
+  MfaEnrollGateBag,
+} from "./headless/FirstLogin.js";
 export { QrLogin } from "./headless/QrLogin.js";
 export type { QrLoginBag } from "./headless/QrLogin.js";
 export { PasskeyRegistration, PasskeyLogin } from "./headless/Passkey.js";

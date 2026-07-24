@@ -46,6 +46,32 @@
       }
     },
     {
+      "id": "auth.first-login",
+      "title": "First login (forced change / MFA enroll)",
+      "description": "Headless first-login enforcement for org-provisioned accounts: ForcedPasswordChange submits the owed password change against the login intermediate's challenge token; MfaEnrollGate exchanges the mfa_enroll challenge for a limited enroll-only session, scopes the pair's TotpSetup/PasskeyRegistration to it, and commits the full session on completion.",
+      "component": "ForcedPasswordChange",
+      "covers": [
+        "MfaEnrollGate"
+      ],
+      "flow": "auth.first_login",
+      "tokens": [
+        "card-bg",
+        "button-primary-bg"
+      ],
+      "variants": [
+        {
+          "id": "forcedChange"
+        },
+        {
+          "id": "mfaEnroll"
+        }
+      ],
+      "source": {
+        "file": "demo/FirstLogin.demo.tsx",
+        "line": 96
+      }
+    },
+    {
       "id": "auth.magic-link",
       "title": "Magic link",
       "description": "Headless magic-link request: request(email, redirectUrl) sends a one-tap sign-in link; the redirect is open-redirect-guarded.",

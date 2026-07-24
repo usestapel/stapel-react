@@ -15,3 +15,5 @@ export { WorkspaceSettings } from "./WorkspaceSettings.js";
 export type { WorkspaceSettingsProps } from "./WorkspaceSettings.js";
 export { MembersManager } from "./MembersManager.js";
 export type { MembersManagerProps } from "./MembersManager.js";
+export { InviteAcceptPage } from "./InviteAcceptPage.js";
+export type { InviteAcceptPageProps } from "./InviteAcceptPage.js";

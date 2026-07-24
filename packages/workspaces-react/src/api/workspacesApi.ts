@@ -7,6 +7,9 @@ import type {
   MemberRoleUpdate,
   MembersParams,
   InvitationAccept,
+  InvitationClaim,
+  InvitationPreview,
+  RoleList,
   Workspace,
   WorkspaceCreate,
   WorkspaceList,
@@ -86,6 +89,34 @@ export interface WorkspacesApi {
 
   /** Accept an invitation by its token — returns the caller's new membership. */
   acceptInvitation(body: InvitationAccept): Promise<Member>;
+
+  // ── invite flow (org-program §B2, stapel-workspaces ≥0.7.0) ────────────────
+
+  /**
+   * Public (AllowAny) invitation preview — what the `/invite/{token}` page
+   * renders before any auth decision. The token in the URL is the bearer
+   * secret: a credential, never log it.
+   */
+  getInvitationPreview(token: string): Promise<InvitationPreview>;
+  /**
+   * Mint a login grant for a NOT-yet-registered invitee (AllowAny; only valid
+   * while `email_registered === false` — an existing account gets 409
+   * `email_already_registered` and the frontend switches to login). The
+   * invitation is NOT consumed: accept stays a separate, deliberate step.
+   * The returned `grant_token` is exchanged at AUTH's `POST /grant/exchange/`
+   * — deliberately not this pair's surface (pairs don't depend on each
+   * other); `InviteAcceptFlow` hands it outward via `onLoginGrant`.
+   */
+  claimInvitation(token: string): Promise<InvitationClaim>;
+  /** Decline an invitation (authenticated + email-match) — the invitee's
+   * terminal "no". Decline ≠ revoke; both stay distinguishable in `status`. */
+  declineInvitation(token: string): Promise<void>;
+
+  // ── role registry (org-program §A2, stapel-workspaces ≥0.6.0) ──────────────
+
+  /** The effective role registry (builtin + deployment overlay), for
+   * RoleSelect-class UI — capability strings verbatim, rank-descending. */
+  listRoles(): Promise<RoleList>;
 }
 
 export function createWorkspacesApi(client: StapelClient): WorkspacesApi {
@@ -147,5 +178,24 @@ export function createWorkspacesApi(client: StapelClient): WorkspacesApi {
         body satisfies InvitationAccept,
         mutating()
       ),
+
+    getInvitationPreview: (token) =>
+      client.get(`/invitations/${encodeURIComponent(token)}`),
+
+    claimInvitation: (token) =>
+      client.post(
+        `/invitations/${encodeURIComponent(token)}/claim`,
+        undefined,
+        mutating()
+      ),
+
+    declineInvitation: (token) =>
+      client.post(
+        `/invitations/${encodeURIComponent(token)}/decline`,
+        undefined,
+        mutating()
+      ),
+
+    listRoles: () => client.get("/roles"),
   };
 }

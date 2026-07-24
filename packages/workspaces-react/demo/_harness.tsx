@@ -76,7 +76,14 @@ const demoBundleEn: Record<string, string> = {
   "demo.action.start": "Start",
   "demo.action.submit": "Submit",
   "demo.action.reset": "Reset",
+  "demo.action.claim": "Create account",
+  "demo.action.exchange": "Grant exchanged",
+  "demo.action.continue": "Continue",
+  "demo.action.accept": "Accept",
+  "demo.action.decline": "Decline",
   "demo.label.step": "state.step",
+  "demo.label.allowed": "allowed",
+  "demo.label.denied": "denied",
 };
 
 /**

@@ -58,6 +58,40 @@ export const workspacesI18nBundleRu: I18nDictionary = {
   "workspaces.members.role.admin": "Администратор",
   "workspaces.members.role.member": "Участник",
   "workspaces.members.role.viewer": "Наблюдатель",
+
+  // Role registry labels (builtin four; clients merge their own roles)
+  "workspaces.role.owner": "Владелец",
+  "workspaces.role.admin": "Администратор",
+  "workspaces.role.member": "Участник",
+  "workspaces.role.viewer": "Наблюдатель",
+
+  // Invite accept flow (org-program §B4)
+  "workspaces.invite.loading": "Загрузка приглашения…",
+  "workspaces.invite.acceptTitle": "Присоединиться к {workspace}",
+  "workspaces.invite.roleLine": "Вас пригласили с ролью {role}.",
+  "workspaces.invite.emailLine": "Приглашение для {email}",
+  "workspaces.invite.joinCta": "Присоединиться",
+  "workspaces.invite.declineCta": "Отклонить",
+  "workspaces.invite.accepted": "Вы присоединились к {workspace}.",
+  "workspaces.invite.declined": "Приглашение отклонено.",
+  "workspaces.invite.unavailable.expired": "Срок приглашения истёк. Попросите новое.",
+  "workspaces.invite.unavailable.revoked": "Приглашение было отозвано.",
+  "workspaces.invite.unavailable.accepted": "Приглашение уже использовано.",
+  "workspaces.invite.unavailable.declined": "Приглашение было отклонено.",
+  "workspaces.invite.wrongAccount": "Приглашение для другого аккаунта",
+  "workspaces.invite.wrongAccountHint":
+    "Вы вошли как {email}, а приглашение отправлено на {invited}. Смените аккаунт, чтобы продолжить.",
+  "workspaces.invite.switchAccountCta": "Сменить аккаунт",
+  "workspaces.invite.loginTitle": "Войдите, чтобы принять приглашение",
+  "workspaces.invite.newUserHint":
+    "Мы создадим подтверждённый аккаунт для {email} — без пароля и подтверждения почты.",
+  "workspaces.invite.createAccountCta": "Создать аккаунт и продолжить",
+  "workspaces.invite.claiming": "Создаём ваш аккаунт…",
+  "workspaces.invite.exchanging": "Выполняем вход…",
+  "workspaces.invite.exchangeFailed": "Не удалось завершить вход.",
+  "workspaces.invite.retryCta": "Попробовать ещё раз",
+  "workspaces.invite.basicDataTitle": "Настройте профиль",
+  "workspaces.invite.basicDataContinueCta": "Продолжить",
 };
 
 /**

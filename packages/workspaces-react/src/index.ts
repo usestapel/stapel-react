@@ -25,6 +25,12 @@ export type {
   FlowError,
 } from "@stapel/core";
 export { toFlowError } from "./flows/errors.js";
+export { createInviteAcceptFlow } from "./flows/inviteAcceptFlow.js";
+export type {
+  InviteAcceptFlow as InviteAcceptFlowController,
+  InviteAcceptFlowDeps,
+  InviteAcceptState,
+} from "./flows/inviteAcceptFlow.js";
 export { WORKSPACES_FLOWS, flowEndpoints } from "./flows/registry.js";
 export type {
   WorkspacesFlowId,
@@ -51,7 +57,15 @@ export {
   useWorkspaces,
   useWorkspace,
   useMembers,
+  useRoles,
+  useInvitationPreview,
+  useCapabilities,
 } from "./model/queries.js";
+export type { CapabilitiesResult } from "./model/queries.js";
+
+// ── model (capability matcher + email-mask ports — backend-synced utils) ─────
+export { capabilityMatches, hasCapability } from "./model/capabilities.js";
+export { maskEmail, emailMatchesMask } from "./model/emailMask.js";
 
 // ── model (write hooks) ──────────────────────────────────────────────────────
 export {
@@ -62,6 +76,8 @@ export {
   useUpdateMemberRole,
   useRemoveMember,
   useAcceptInvitation,
+  useClaimInvitation,
+  useDeclineInvitation,
 } from "./model/mutations.js";
 export type { MemberRoleChange } from "./model/mutations.js";
 
@@ -79,6 +95,10 @@ export type {
   MemberRoleUpdate,
   Invitation,
   InvitationAccept,
+  InvitationPreview,
+  InvitationClaim,
+  RoleInfo,
+  RoleList,
   WorkspaceRole,
   WorkspaceKind,
 } from "./api/types.js";
@@ -91,6 +111,12 @@ export { Members } from "./headless/Members.js";
 export type { MembersBag } from "./headless/Members.js";
 export { AcceptInvitation } from "./headless/AcceptInvitation.js";
 export type { AcceptInvitationBag } from "./headless/AcceptInvitation.js";
+export { Can } from "./headless/Can.js";
+export type { CanBag } from "./headless/Can.js";
+export { RoleSelect } from "./headless/RoleSelect.js";
+export type { RoleSelectBag } from "./headless/RoleSelect.js";
+export { InviteAcceptFlow } from "./headless/InviteAcceptFlow.js";
+export type { InviteAcceptFlowBag } from "./headless/InviteAcceptFlow.js";
 
 // ── i18n ─────────────────────────────────────────────────────────────────────
 export {

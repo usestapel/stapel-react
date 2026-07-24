@@ -145,6 +145,13 @@
     "en": "Invalid advertisement ID"
   },
   {
+    "code": "error.400.invalid_provision_username",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "Invalid username for a provisioned account"
+  },
+  {
     "code": "error.400.invalid_role",
     "status": 400,
     "params": [],
@@ -157,6 +164,13 @@
     "params": [],
     "remediation": "fix_input",
     "en": "Invitation has already been used"
+  },
+  {
+    "code": "error.400.invitation_declined",
+    "status": 400,
+    "params": [],
+    "remediation": "contact_support",
+    "en": "Invitation has been declined"
   },
   {
     "code": "error.400.invitation_expired",
@@ -208,6 +222,22 @@
     "en": "Authentication required"
   },
   {
+    "code": "error.402.entitlement_required",
+    "status": 402,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "The workspace owner's plan does not include this feature"
+  },
+  {
+    "code": "error.402.member_limit_reached",
+    "status": 402,
+    "params": [
+      "limit"
+    ],
+    "remediation": "fix_input",
+    "en": "The workspace member limit ({limit}) has been reached"
+  },
+  {
     "code": "error.402.payment_required",
     "status": 402,
     "params": [],
@@ -234,6 +264,24 @@
     "params": [],
     "remediation": "fix_input",
     "en": "The last owner cannot be removed; transfer ownership first"
+  },
+  {
+    "code": "error.403.membership_suspended",
+    "status": 403,
+    "params": [
+      "reason"
+    ],
+    "remediation": "fix_input",
+    "en": "Your membership in this workspace is suspended ({reason})"
+  },
+  {
+    "code": "error.403.missing_capability",
+    "status": 403,
+    "params": [
+      "capability"
+    ],
+    "remediation": "contact_support",
+    "en": "Your role does not include the {capability} capability in this workspace"
   },
   {
     "code": "error.403.network_blocked",
@@ -327,6 +375,13 @@
     "en": "Resource already exists"
   },
   {
+    "code": "error.409.email_already_registered",
+    "status": 409,
+    "params": [],
+    "remediation": "reauthenticate",
+    "en": "An account with this email already exists — log in instead"
+  },
+  {
     "code": "error.410.gone",
     "status": 410,
     "params": [],
@@ -390,5 +445,12 @@
     "params": [],
     "remediation": "contact_support",
     "en": "Something went wrong"
+  },
+  {
+    "code": "error.503.auth_unavailable",
+    "status": 503,
+    "params": [],
+    "remediation": "wait_and_retry",
+    "en": "The authentication service is unavailable; try again later"
   }
 ]

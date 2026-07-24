@@ -20,16 +20,17 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 
 ## Operations (typed; use the named op, never a path string)
 Request/response schema names are in manifest.json + the generated types.
-- billing_api_v1_checkout_create: POST /billing/api/v1/checkout
-- billing_api_v1_internal_debit_create: POST /billing/api/v1/internal/debit
-- billing_api_v1_portal_retrieve: GET /billing/api/v1/portal
-- billing_api_v1_products_retrieve: GET /billing/api/v1/products
-- billing_api_v1_subscription_cancel_create: POST /billing/api/v1/subscription/cancel
-- billing_api_v1_subscription_retrieve: GET /billing/api/v1/subscription
-- billing_api_v1_wallet_partial_update: PATCH /billing/api/v1/wallet
-- billing_api_v1_wallet_retrieve: GET /billing/api/v1/wallet
-- billing_api_v1_wallet_transactions_retrieve: GET /billing/api/v1/wallet/transactions
-- billing_api_v1_webhooks_stripe_create: POST /billing/api/v1/webhooks/stripe
+Paths are relative to `/billing/api/v1/`.
+- billing_api_v1_checkout_create: POST /checkout
+- billing_api_v1_internal_debit_create: POST /internal/debit
+- billing_api_v1_portal_retrieve: GET /portal
+- billing_api_v1_products_retrieve: GET /products
+- billing_api_v1_subscription_cancel_create: POST /subscription/cancel
+- billing_api_v1_subscription_retrieve: GET /subscription
+- billing_api_v1_wallet_partial_update: PATCH /wallet
+- billing_api_v1_wallet_retrieve: GET /wallet
+- billing_api_v1_wallet_transactions_retrieve: GET /wallet/transactions
+- billing_api_v1_webhooks_stripe_create: POST /webhooks/stripe
 
 ## Query hooks (server state; keys come only from the key factory)
 - useCancelSubscription (mutation) → cancelSubscription

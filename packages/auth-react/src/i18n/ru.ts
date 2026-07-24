@@ -210,6 +210,28 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.sec.qr.retry": "Попробовать снова",
   "auth.sec.qr.regenerating": "Этот код истёк — получаем новый…",
 
+  // First-login enforcement (org-program §C2)
+  "auth.forcedChange.title": "Задайте собственный пароль",
+  "auth.forcedChange.hint":
+    "Организация выдала вам временный пароль. Придумайте свой, чтобы продолжить — дальше вы будете входить с ним.",
+  "auth.forcedChange.new_label": "Новый пароль",
+  "auth.forcedChange.confirm_label": "Повторите новый пароль",
+  "auth.forcedChange.mismatch": "Пароли не совпадают",
+  "auth.forcedChange.submit": "Задать пароль и продолжить",
+  "auth.forcedChange.success": "Пароль задан — вы вошли в систему.",
+
+  "auth.mfaEnroll.title": "Настройте двухфакторную аутентификацию",
+  "auth.mfaEnroll.hint":
+    "Организация требует второй фактор. Добавьте его сейчас, чтобы завершить вход.",
+  "auth.mfaEnroll.preparing": "Подготовка к настройке…",
+  "auth.mfaEnroll.method_totp": "Приложение-аутентификатор",
+  "auth.mfaEnroll.method_passkey": "Passkey",
+  "auth.mfaEnroll.backup_codes_ack": "Я сохранил резервные коды — завершить",
+  "auth.mfaEnroll.success": "Второй фактор включён — вы вошли в систему.",
+  "auth.mfaEnroll.restart_hint": "Срок этого шага истёк. Войдите ещё раз, чтобы повторить.",
+  "auth.mfaEnroll.error.no_tokens":
+    "Настройка завершена, но сессию оформить не удалось. Войдите ещё раз.",
+
   // Nav-manifest labels
   "auth.nav.login": "Вход",
   "auth.nav.security": "Безопасность",

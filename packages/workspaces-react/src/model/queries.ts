@@ -3,13 +3,16 @@ import type { UseQueryResult } from "@tanstack/react-query";
 import { useActiveSessionReady } from "@stapel/core";
 import type { StapelApiError } from "@stapel/core";
 import type {
+  InvitationPreview,
   MemberPage,
   MembersParams,
+  RoleInfo,
   Workspace,
   WorkspaceList,
 } from "../api/types.js";
 import { useWorkspacesApi } from "./context.js";
 import { workspacesQueryKeys } from "./queryKeys.js";
+import { hasCapability } from "./capabilities.js";
 
 /**
  * Read hooks over the workspaces API. Staleness follows core's query defaults;
@@ -76,4 +79,74 @@ export function useMembers(
     queryFn: () => api.listMembers(workspaceId as string, p),
     enabled: sessionReady && workspaceId !== null && workspaceId !== "",
   });
+}
+
+/**
+ * The effective role registry (GET /roles, org-program §A2): builtin four +
+ * the deployment's `STAPEL_WORKSPACES["ROLES"]` overlay, capability strings
+ * verbatim, rank-descending. Deployment-static data — role UI (RoleSelect)
+ * reads this instead of hardcoding the builtin four. Session-ready-gated like
+ * {@link useWorkspaces} (IsAuthenticated endpoint, mounts at screen top).
+ */
+export function useRoles(): UseQueryResult<
+  readonly RoleInfo[],
+  StapelApiError
+> {
+  const api = useWorkspacesApi();
+  const sessionReady = useActiveSessionReady();
+  return useQuery({
+    queryKey: workspacesQueryKeys.roles(),
+    queryFn: async () => (await api.listRoles()).roles ?? [],
+    enabled: sessionReady,
+  });
+}
+
+/**
+ * Public invitation preview (GET /invitations/{token}, AllowAny — org-program
+ * §B2): what the `/invite/{token}` page renders BEFORE any auth decision.
+ * Deliberately NOT session-gated — the whole point is that the invitee may
+ * have no session at all; the token in the URL is the bearer secret.
+ */
+export function useInvitationPreview(
+  token: string | null
+): UseQueryResult<InvitationPreview, StapelApiError> {
+  const api = useWorkspacesApi();
+  return useQuery({
+    queryKey: workspacesQueryKeys.invitationPreview(token ?? ""),
+    queryFn: () => api.getInvitationPreview(token as string),
+    enabled: token !== null && token !== "",
+  });
+}
+
+/** What {@link useCapabilities} returns: the caller's granted capability
+ * strings in one workspace plus the wildcard-aware `can()` check. */
+export interface CapabilitiesResult {
+  /** Verbatim registry strings of the caller's role (wildcards included);
+   * empty while loading or when the caller is not a member. */
+  readonly capabilities: readonly string[];
+  /** Wildcard-aware check (`*` / `prefix.*` — the backend matcher, ported).
+   * UI convenience only: the backend re-checks on every operation. */
+  can(capability: string): boolean;
+  readonly isLoading: boolean;
+  readonly isError: boolean;
+  readonly error: StapelApiError | null;
+}
+
+/**
+ * The caller's capabilities in one workspace (org-program §A2): reads
+ * `my_capabilities` off the workspace detail (`WorkspaceResponse`, additive
+ * field since stapel-workspaces 0.6.0) and exposes the ported wildcard
+ * matcher. Deny-by-default: `can()` is false while loading, on error, or when
+ * the backend predates the field.
+ */
+export function useCapabilities(workspaceId: string | null): CapabilitiesResult {
+  const query = useWorkspace(workspaceId);
+  const capabilities = query.data?.my_capabilities ?? [];
+  return {
+    capabilities,
+    can: (capability) => hasCapability(capabilities, capability),
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error ?? null,
+  };
 }

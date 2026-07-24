@@ -38,15 +38,30 @@ export type MemberRoleUpdate = Schemas["PatchedMemberUpdateRequest"];
 export type Invitation = Schemas["InvitationResponse"];
 /** POST /invitations/accept request body — the token from the email link. */
 export type InvitationAccept = Schemas["InvitationAcceptRequest"];
+/** GET /invitations/{token} 200 body — the public (AllowAny) preview the
+ * `/invite/{token}` page renders before any auth decision (org-program §B2). */
+export type InvitationPreview = Schemas["InvitationPreviewResponse"];
+/** POST /invitations/{token}/claim 200 body — the single-use login grant for a
+ * not-yet-registered invitee; exchange it at auth's POST /grant/exchange/. */
+export type InvitationClaim = Schemas["InvitationClaimResponse"];
+/** One role of the effective registry (builtin + `STAPEL_WORKSPACES["ROLES"]`
+ * overlay) — GET /roles (org-program §A2). Capability strings are verbatim,
+ * wildcards (`*`, `members.*`) included. */
+export type RoleInfo = Schemas["RoleResponse"];
+/** GET /roles 200 body — the effective role registry, rank-descending. */
+export type RoleList = Schemas["RoleListResponse"];
 
 // ── documented corrections (drf-spectacular under-describes) ──────────────────
 
 /**
- * A workspace membership role, ordered least→most privileged. The generated
- * schema types `MemberResponse.role` / the invite `role` as a bare `string`,
- * but the backend (`models.Role`, a Django `TextChoices`) constrains it to
- * exactly these values. Narrowing here gives call sites a checked union — a
- * documented correction of the same kind auth-react/billing-react apply.
+ * A BUILTIN workspace membership role, ordered least→most privileged. Since
+ * stapel-workspaces 0.6.0 (org-program §A1) the effective registry is
+ * settings-extensible — a deployment can add roles (`secretary`, …) via
+ * `STAPEL_WORKSPACES["ROLES"]`, so `MemberResponse.role` is genuinely an open
+ * `string` on the wire and the registry endpoint (GET /roles, {@link RoleInfo})
+ * is the source of truth for what exists. This union names the four builtin
+ * keys that are ALWAYS present (with `owner` system-protected); use it for
+ * literals, not to validate server data.
  */
 export type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
 

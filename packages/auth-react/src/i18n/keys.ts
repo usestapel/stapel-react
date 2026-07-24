@@ -206,6 +206,28 @@ export const AUTH_I18N_KEYS = {
   secQrRetry: "auth.sec.qr.retry",
   secQrRegenerating: "auth.sec.qr.regenerating",
 
+  // First-login enforcement (org-program §C2, stapel-auth ≥0.12.0) — the
+  // FIRST_LOGIN_REQUIRED intermediates: forced password change
+  // (`ForcedPasswordChange` headless / `ForcedPasswordChangeCard` skin) and
+  // MFA enrollment (`MfaEnrollGate` headless / `MfaEnrollPanel` skin).
+  forcedChangeTitle: "auth.forcedChange.title",
+  forcedChangeHint: "auth.forcedChange.hint",
+  forcedChangeNewLabel: "auth.forcedChange.new_label",
+  forcedChangeConfirmLabel: "auth.forcedChange.confirm_label",
+  forcedChangeMismatch: "auth.forcedChange.mismatch",
+  forcedChangeSubmit: "auth.forcedChange.submit",
+  forcedChangeSuccess: "auth.forcedChange.success",
+
+  mfaEnrollTitle: "auth.mfaEnroll.title",
+  mfaEnrollHint: "auth.mfaEnroll.hint",
+  mfaEnrollPreparing: "auth.mfaEnroll.preparing",
+  mfaEnrollMethodTotp: "auth.mfaEnroll.method_totp",
+  mfaEnrollMethodPasskey: "auth.mfaEnroll.method_passkey",
+  mfaEnrollBackupCodesAck: "auth.mfaEnroll.backup_codes_ack",
+  mfaEnrollSuccess: "auth.mfaEnroll.success",
+  mfaEnrollRestartHint: "auth.mfaEnroll.restart_hint",
+  mfaEnrollNoTokens: "auth.mfaEnroll.error.no_tokens",
+
   // Nav-manifest labels (`../nav/manifest.ts`) — read by a shell (e.g.
   // `@stapel/shell-react`'s `AppShell`) via `t(entry.labelKey)`, never by
   // this pair's own components directly.
@@ -457,6 +479,28 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.sec.qr.rejected": "Sign-in was declined on the other device.",
   "auth.sec.qr.retry": "Try again",
   "auth.sec.qr.regenerating": "That code expired — getting you a new one…",
+
+  // First-login enforcement (org-program §C2)
+  "auth.forcedChange.title": "Set your own password",
+  "auth.forcedChange.hint":
+    "Your organization issued a temporary password. Choose your own to continue — you'll use it from now on.",
+  "auth.forcedChange.new_label": "New password",
+  "auth.forcedChange.confirm_label": "Repeat new password",
+  "auth.forcedChange.mismatch": "Passwords don't match",
+  "auth.forcedChange.submit": "Set password and continue",
+  "auth.forcedChange.success": "Password set — you're signed in.",
+
+  "auth.mfaEnroll.title": "Set up two-factor authentication",
+  "auth.mfaEnroll.hint":
+    "Your organization requires a second factor. Add one now to finish signing in.",
+  "auth.mfaEnroll.preparing": "Preparing enrollment…",
+  "auth.mfaEnroll.method_totp": "Authenticator app",
+  "auth.mfaEnroll.method_passkey": "Passkey",
+  "auth.mfaEnroll.backup_codes_ack": "I saved my backup codes — finish",
+  "auth.mfaEnroll.success": "Two-factor enabled — you're signed in.",
+  "auth.mfaEnroll.restart_hint": "This step expired. Sign in again to retry.",
+  "auth.mfaEnroll.error.no_tokens":
+    "Enrollment finished but the session couldn't be completed. Sign in again.",
 
   // Nav-manifest labels
   "auth.nav.login": "Sign in",

@@ -50,6 +50,40 @@ export const WORKSPACES_I18N_KEYS = {
   roleAdmin: "workspaces.members.role.admin",
   roleMember: "workspaces.members.role.member",
   roleViewer: "workspaces.members.role.viewer",
+  // Role registry labels (org-program §A2) — the `workspaces.role.<key>`
+  // namespace RoleSelect resolves labels in: the pair ships the builtin four;
+  // a client bundle merges its own (`workspaces.role.secretary`, …) and
+  // RoleSelect falls back to the RAW role key when a label is missing.
+  roleLabelOwner: "workspaces.role.owner",
+  roleLabelAdmin: "workspaces.role.admin",
+  roleLabelMember: "workspaces.role.member",
+  roleLabelViewer: "workspaces.role.viewer",
+  // Invite accept flow (org-program §B4 — InviteAcceptFlow headless +
+  // InviteAcceptPage default skin), one key per flow screen.
+  inviteLoading: "workspaces.invite.loading",
+  inviteAcceptTitle: "workspaces.invite.acceptTitle",
+  inviteRoleLine: "workspaces.invite.roleLine",
+  inviteEmailLine: "workspaces.invite.emailLine",
+  inviteJoinCta: "workspaces.invite.joinCta",
+  inviteDeclineCta: "workspaces.invite.declineCta",
+  inviteAccepted: "workspaces.invite.accepted",
+  inviteDeclined: "workspaces.invite.declined",
+  inviteUnavailableExpired: "workspaces.invite.unavailable.expired",
+  inviteUnavailableRevoked: "workspaces.invite.unavailable.revoked",
+  inviteUnavailableAccepted: "workspaces.invite.unavailable.accepted",
+  inviteUnavailableDeclined: "workspaces.invite.unavailable.declined",
+  inviteWrongAccount: "workspaces.invite.wrongAccount",
+  inviteWrongAccountHint: "workspaces.invite.wrongAccountHint",
+  inviteSwitchAccountCta: "workspaces.invite.switchAccountCta",
+  inviteLoginTitle: "workspaces.invite.loginTitle",
+  inviteNewUserHint: "workspaces.invite.newUserHint",
+  inviteCreateAccountCta: "workspaces.invite.createAccountCta",
+  inviteClaiming: "workspaces.invite.claiming",
+  inviteExchanging: "workspaces.invite.exchanging",
+  inviteExchangeFailed: "workspaces.invite.exchangeFailed",
+  inviteRetryCta: "workspaces.invite.retryCta",
+  inviteBasicDataTitle: "workspaces.invite.basicDataTitle",
+  inviteBasicDataContinueCta: "workspaces.invite.basicDataContinueCta",
 } as const;
 
 export type WorkspacesI18nKey =
@@ -101,6 +135,40 @@ export const workspacesI18nBundleEn: I18nDictionary = {
   "workspaces.members.role.admin": "Admin",
   "workspaces.members.role.member": "Member",
   "workspaces.members.role.viewer": "Viewer",
+
+  // Role registry labels (builtin four; clients merge their own roles)
+  "workspaces.role.owner": "Owner",
+  "workspaces.role.admin": "Admin",
+  "workspaces.role.member": "Member",
+  "workspaces.role.viewer": "Viewer",
+
+  // Invite accept flow (org-program §B4)
+  "workspaces.invite.loading": "Loading invitation…",
+  "workspaces.invite.acceptTitle": "Join {workspace}",
+  "workspaces.invite.roleLine": "You've been invited as {role}.",
+  "workspaces.invite.emailLine": "Invitation for {email}",
+  "workspaces.invite.joinCta": "Join workspace",
+  "workspaces.invite.declineCta": "Decline",
+  "workspaces.invite.accepted": "You've joined {workspace}.",
+  "workspaces.invite.declined": "Invitation declined.",
+  "workspaces.invite.unavailable.expired": "This invitation has expired. Ask for a new one.",
+  "workspaces.invite.unavailable.revoked": "This invitation was revoked.",
+  "workspaces.invite.unavailable.accepted": "This invitation has already been used.",
+  "workspaces.invite.unavailable.declined": "This invitation was declined.",
+  "workspaces.invite.wrongAccount": "This invitation is for a different account",
+  "workspaces.invite.wrongAccountHint":
+    "You're signed in as {email}, but the invitation was sent to {invited}. Switch accounts to continue.",
+  "workspaces.invite.switchAccountCta": "Switch account",
+  "workspaces.invite.loginTitle": "Sign in to accept the invitation",
+  "workspaces.invite.newUserHint":
+    "We'll create a verified account for {email} — no password or email confirmation needed.",
+  "workspaces.invite.createAccountCta": "Create account and continue",
+  "workspaces.invite.claiming": "Creating your account…",
+  "workspaces.invite.exchanging": "Signing you in…",
+  "workspaces.invite.exchangeFailed": "Couldn't finish signing you in.",
+  "workspaces.invite.retryCta": "Try again",
+  "workspaces.invite.basicDataTitle": "Set up your profile",
+  "workspaces.invite.basicDataContinueCta": "Continue",
 };
 
 /**

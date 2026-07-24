@@ -9,9 +9,11 @@ import type {
   DelayedChangeStatus,
   LinkedOAuthAccount,
   LoginResponse,
+  MfaEnrollSessionResponse,
   OtpChannel,
   OtpRequestResponse,
   Passkey,
+  PasskeyRegistered,
   PasskeyAuthenticateBeginResponse,
   PasskeyRegisterBeginResponse,
   PasswordMethods,
@@ -84,6 +86,35 @@ export interface AuthApi {
   // Anonymous (auth-sa.md §6)
   anonymous(deviceId?: string): Promise<AuthResponse>;
 
+  // Login grant (stapel-auth ≥0.11.0, org-program §B3) — consume a single-use
+  // grant token minted service-side (e.g. the workspaces invitation claim
+  // flow hands one out via its `InvitationClaimResponse.grant_token`) for a
+  // full JWT session. When the grant was minted with `create_if_missing` and
+  // no account exists yet, the verified account materializes here
+  // (status=REGISTERED). The caller adopts the result through the runtime
+  // session (`session.adopt`) exactly like any other login.
+  exchangeLoginGrant(grantToken: string): Promise<AuthResponse>;
+
+  // First-login enforcement (stapel-auth ≥0.12.0, org-program §C2) — the
+  // password login's FIRST_LOGIN_REQUIRED intermediates.
+  /**
+   * Complete a forced first-login password change (requires=password_change).
+   * Returns a full `AuthResponse` — or, when the account ALSO has the
+   * mfa_enroll policy, the next `FirstLoginChallengeResponse`
+   * (requires=mfa_enroll) instead of a session. A rejected password does NOT
+   * consume the challenge; an invalid/expired token is 400
+   * `first_login_challenge_invalid`.
+   */
+  completeForcedPasswordChange(request: {
+    challengeToken: string;
+    newPassword: string;
+  }): Promise<LoginResponse>;
+  /**
+   * Exchange the first-login challenge_token (requires=mfa_enroll) for a
+   * limited enroll-only session (access token only — no refresh). Single-use.
+   */
+  mfaEnrollExchange(challengeToken: string): Promise<MfaEnrollSessionResponse>;
+
   // OAuth (auth-sa.md §7, option B)
   oauthLogin(provider: string, accessToken: string): Promise<LoginResponse>;
 
@@ -146,7 +177,12 @@ export interface AuthApi {
   // Passkeys (auth-sa.md §17)
   passkeys(): Promise<readonly Passkey[]>;
   passkeyRegisterBegin(): Promise<PasskeyRegisterBeginResponse>;
-  passkeyRegisterComplete(credential: unknown, deviceName?: string): Promise<Passkey>;
+  /**
+   * Verify the WebAuthn attestation and store the credential. From a limited
+   * enroll-only session (first-login mfa_enroll policy, stapel-auth ≥0.12.0)
+   * the response additionally carries the full-session `tokens` pair.
+   */
+  passkeyRegisterComplete(credential: unknown, deviceName?: string): Promise<PasskeyRegistered>;
   passkeyAuthenticateBegin(email?: string): Promise<PasskeyAuthenticateBeginResponse>;
   passkeyAuthenticateComplete(sessionKey: string, credential: unknown): Promise<AuthResponse>;
   passkeyRemove(id: string): Promise<void>;
@@ -227,6 +263,22 @@ export function createAuthApi(client: StapelClient): AuthApi {
       client.post(
         "/anonymous/",
         deviceId === undefined ? {} : { device_id: deviceId },
+        mutating()
+      ),
+
+    exchangeLoginGrant: (grantToken) =>
+      client.post("/grant/exchange/", { grant_token: grantToken }, mutating()),
+
+    completeForcedPasswordChange: ({ challengeToken, newPassword }) =>
+      client.post(
+        "/password/forced-change/",
+        { challenge_token: challengeToken, new_password: newPassword },
+        mutating()
+      ),
+    mfaEnrollExchange: (challengeToken) =>
+      client.post(
+        "/mfa/enroll/exchange/",
+        { challenge_token: challengeToken },
         mutating()
       ),
 

@@ -35,6 +35,7 @@ import { PasskeyLogin } from "../headless/Passkey.js";
 import { MagicLink, SsoDiscovery } from "../headless/misc.js";
 import { useAuthApi } from "../model/context.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
+import { ForcedPasswordChangeCard, MfaEnrollPanel } from "./FirstLoginPanels.js";
 
 /**
  * Fallback digit count when the backend doesn't send `otp` metadata
@@ -253,7 +254,11 @@ export function OtpPanel(props: {
   );
 }
 
-/** Password panel with the inline TOTP step-up branch (ПРАВИЛО 10). */
+/** Password panel with the inline TOTP step-up branch (ПРАВИЛО 10) and the
+ * first-login intermediates (org-program §C2, stapel-auth ≥0.12.0): an
+ * org-provisioned account parking the flow in `passwordChangeRequired` /
+ * `mfaEnrollRequired` renders the corresponding first-login skin inline —
+ * same pattern as the TOTP branch, the challenge replaces the form. */
 export function PasswordPanel(): ReactElement {
   const t = useT();
   const fieldError = useFieldError();
@@ -264,6 +269,12 @@ export function PasswordPanel(): ReactElement {
         const s = bag.state;
         if (s.step === "authenticated") {
           return <Result status="success" title={t(AUTH_I18N_KEYS.verificationSuccess)} />;
+        }
+        if (s.step === "passwordChangeRequired") {
+          return <ForcedPasswordChangeCard challengeToken={s.challengeToken} />;
+        }
+        if (s.step === "mfaEnrollRequired") {
+          return <MfaEnrollPanel challengeToken={s.challengeToken} />;
         }
         const totp =
           s.step === "totpRequired" ||

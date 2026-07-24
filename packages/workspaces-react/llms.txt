@@ -1,6 +1,6 @@
 # @stapel/workspaces-react 0.6.0
 
-Headless React flow pair for stapel-workspaces (contract >=0.5 <0.6) — business + state, zero visual opinion.
+Headless React flow pair for stapel-workspaces (contract >=0.8 <0.9) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -16,37 +16,50 @@ verification-403 interception, i18n engine, analytics facade, TanStack Query lay
 ## Layers
 api (typed client) · model (hooks, session) · flows (machines) · headless · i18n
 
+## Machines (createFlowMachine; analytics funnel flow.<id>.<step>)
+- createInviteAcceptFlow
+
 ## Documented flows (flows.json — canonical id, steps, endpoints)
 
 ## Operations (typed; use the named op, never a path string)
 Request/response schema names are in manifest.json + the generated types.
-- workspaces_api_v1_create: POST /workspaces/api/v1/
-- workspaces_api_v1_destroy: DELETE /workspaces/api/v1/{workspace_id}
-- workspaces_api_v1_internal_members_retrieve: GET /workspaces/api/v1/internal/{workspace_id}/members/{user_id}
-- workspaces_api_v1_internal_users_personal_create: POST /workspaces/api/v1/internal/users/{user_id}/personal
-- workspaces_api_v1_invitations_accept_create: POST /workspaces/api/v1/invitations/accept
-- workspaces_api_v1_members_destroy: DELETE /workspaces/api/v1/{workspace_id}/members/{user_id}
-- workspaces_api_v1_members_invite_create: POST /workspaces/api/v1/{workspace_id}/members/invite
-- workspaces_api_v1_members_list: GET /workspaces/api/v1/{workspace_id}/members
-- workspaces_api_v1_members_partial_update: PATCH /workspaces/api/v1/{workspace_id}/members/{user_id}
-- workspaces_api_v1_partial_update: PATCH /workspaces/api/v1/{workspace_id}
-- workspaces_api_v1_retrieve: GET /workspaces/api/v1/
-- workspaces_api_v1_retrieve_2: GET /workspaces/api/v1/{workspace_id}
+Paths are relative to `/workspaces/api/v1/`.
+- workspaces_api_v1_create: POST /
+- workspaces_api_v1_destroy: DELETE /{workspace_id}
+- workspaces_api_v1_internal_members_retrieve: GET /internal/{workspace_id}/members/{user_id}
+- workspaces_api_v1_internal_users_personal_create: POST /internal/users/{user_id}/personal
+- workspaces_api_v1_invitations_accept_create: POST /invitations/accept
+- workspaces_api_v1_invitations_claim_create: POST /invitations/{token}/claim
+- workspaces_api_v1_invitations_decline_create: POST /invitations/{token}/decline
+- workspaces_api_v1_invitations_retrieve: GET /invitations/{token}
+- workspaces_api_v1_members_destroy: DELETE /{workspace_id}/members/{user_id}
+- workspaces_api_v1_members_invite_create: POST /{workspace_id}/members/invite
+- workspaces_api_v1_members_list: GET /{workspace_id}/members
+- workspaces_api_v1_members_partial_update: PATCH /{workspace_id}/members/{user_id}
+- workspaces_api_v1_members_provision_create: POST /{workspace_id}/members/provision
+- workspaces_api_v1_partial_update: PATCH /{workspace_id}
+- workspaces_api_v1_retrieve: GET /
+- workspaces_api_v1_retrieve_2: GET /{workspace_id}
+- workspaces_api_v1_roles_retrieve: GET /roles
 
 ## Query hooks (server state; keys come only from the key factory)
 - useAcceptInvitation (mutation) → acceptInvitation
+- useClaimInvitation (mutation) → claimInvitation
 - useCreateWorkspace (mutation) → createWorkspace
+- useDeclineInvitation (mutation) → declineInvitation
 - useDeleteWorkspace (mutation) → deleteWorkspace
+- useInvitationPreview (query) → getInvitationPreview
 - useInviteMembers (mutation) → inviteMembers
 - useMembers (query) → listMembers
 - useRemoveMember (mutation) → removeMember
+- useRoles (query) → listRoles
 - useUpdateMemberRole (mutation) → updateMemberRole
 - useUpdateWorkspace (mutation) → updateWorkspace
 - useWorkspace (query) → getWorkspace
 - useWorkspaces (query) → listWorkspaces
 
 ## Errors (render t(code, params); UX from remediation)
-52 keys (full catalog: manifest.json §errors). By remediation: fix_input 24 · retry 12 · contact_support 5 · verify 5 · wait_and_retry 5 · reauthenticate 1.
+60 keys (full catalog: manifest.json §errors). By remediation: fix_input 28 · retry 12 · contact_support 7 · wait_and_retry 6 · verify 5 · reauthenticate 2.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -59,6 +72,9 @@ Param-bearing keys (interpolation slots matter):
 - error.400.field.null [400] → fix_input {field}
 - error.400.field.required [400] → fix_input {field}
 - error.400.field.unique [400] → fix_input {field}
+- error.402.member_limit_reached [402] → fix_input {limit}
+- error.403.membership_suspended [403] → fix_input {reason}
+- error.403.missing_capability [403] → contact_support {capability}
 - error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
 
 ## Analytics events (typed; defineEvent → events.json, drift-gated)
@@ -82,12 +98,21 @@ const { tracked } = useTracked();
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - workspaces.accept → <AcceptInvitation> [default]  demo/AcceptInvitation.demo.tsx
+- workspaces.can → <Can> [default]  demo/Can.demo.tsx
+- workspaces.invite-accept → <InviteAcceptFlow> [default]  demo/InviteAcceptFlow.demo.tsx
 - workspaces.list → <WorkspaceList> [default]  demo/WorkspaceList.demo.tsx
 - workspaces.members → <Members> [default]  demo/Members.demo.tsx
 - workspaces.provider → <WorkspacesProvider> [default]  demo/Workspaces.demo.tsx
+- workspaces.role-select → <RoleSelect> [default]  demo/RoleSelect.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets
+```tsx
+// A flow machine drives state; you render each step.
+const flow = createInviteAcceptFlow({ api: useWorkspacesApi() });
+const s = useFlow(flow.machine);
+if (s.step.endsWith('Error')) return <p>{t(s.error.code, s.error.params)}</p>;
+```
 ```tsx
 // Error rendering + remediation branch (one pattern for every pair).
 const r = explainWorkspacesError(err.code); // 'wait_and_retry' | 'verify' | ...

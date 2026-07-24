@@ -2,8 +2,8 @@
   "$comment": "Single source of truth for the immutable refs that ci.yml and release.yml pin each sibling backend checkout to (§17 pin B). Each pinned commit CONTAINS the committed contract artifacts the gen:* drivers regenerate from: docs/schema.json, docs/flows.json, docs/errors.json, docs/capabilities.json (+ pyproject.toml for the manifest backend-version pin). Bumping a pin is a deliberate PR after the backend releases a new contract — never float main. Procedure: CONTRIBUTING.md, section 'Contract pins'. 2026-07-16: bumped to the v1-canon-sweep release tags (§60, api-versioning.md) — auth v0.5.8, notifications v0.3.8, profiles v0.3.13, billing v0.4.11, workspaces v0.4.2, calendar v0.3.4, recordings v0.3.2; all contracts now carry /<mod>/api/v1/ paths; react gen:* artifacts regenerated against these refs in the same change.",
   "modules": {
     "stapel-auth": {
-      "ref": "92bcaf4ec3c450993598ae47b3d2ee49a5e0c5ad",
-      "note": "0.10.0 — configurable AUTH_PASSWORD_DEANONYMIZES (password-as-identity policy). Contract (schema/errors/flows/events) identical to 0.9.0; only the manifest backend-version range moves to >=0.10 <0.11. Pairs with @stapel/auth-react's registrationAnchors register-surface knob. Pin+regen bumped together (the discipline whose absence caused the earlier gen:check drift)."
+      "ref": "08caee526184899be8bd5a89c63b1857b2aa63ea",
+      "note": "release v0.12.0 — org-program security-harden primitives (W2+W3): login_grant (/grant/exchange/), first-login intermediates (FirstLoginChallengeResponse requires=password_change|mfa_enroll), /password/forced-change/, /mfa/enroll/exchange/ (enroll-only limited session), tokens on TOTP-confirm/passkey-complete for the enroll upgrade, auth.first_login flow. Pairs with @stapel/auth-react 0.9.0. Pin+regen bumped together (the discipline whose absence caused the earlier gen:check drift)."
     },
     "stapel-notifications": {
       "ref": "82373f5d528eb16d45e3c5bc1af1dc749468b09e",
@@ -18,8 +18,8 @@
       "note": "current main — contract-regen catch-up"
     },
     "stapel-workspaces": {
-      "ref": "d243c6bec71cfdb98c033ef429639aefa67b7ce8",
-      "note": "current main — contract-regen catch-up"
+      "ref": "df581358c27d4cf4509b747e57b3273aa4daa949",
+      "note": "release v0.8.0 — org-program W3 backend finale: members/provision + suspension + security-settings endpoints on top of 0.7.0's invite flow (roles endpoint, my_capabilities, AllowAny preview/claim/decline). @stapel/workspaces-react 0.7.0 ships the §E wave-1 surface (capabilities/roles/invite flow); the generated types already carry the 0.8 provision/suspension shapes — their model/headless/skins are the NEXT wave. Pin+regen bumped together."
     },
     "stapel-calendar": {
       "ref": "a8fa34c437b62c8b1234a9b92c5ceca4215bc2d0",
