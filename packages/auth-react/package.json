@@ -1,6 +1,6 @@
 {
   "name": "@stapel/auth-react",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Headless React flow pair for stapel-auth: typed API client, TanStack Query hooks, flow machines (OTP, password, OAuth, TOTP, sessions, passkeys, QR, magic links, SSO), and the step-up verification factor flow. Zero visual opinion.",
   "license": "MIT",
   "repository": {
