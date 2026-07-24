@@ -1,5 +1,12 @@
 # @stapel/showcase-viewer
 
+## 0.0.11
+
+### Patch Changes
+
+- Updated dependencies [b8e82c7]
+  - @stapel/auth-react@0.10.0
+
 ## 0.0.10
 
 ### Patch Changes
