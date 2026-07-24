@@ -26,8 +26,22 @@
  * settings screens' reactive pickers, this form commits ONCE via the bag's
  * `submit()` — the §B5 single PATCH carrying `initial_setup_passed: true`.
  */
+import { useMemo } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Alert, Button, Flex, Input, Modal, Segmented, Select, Spin, Typography } from "antd";
+import {
+  Alert,
+  Button,
+  ConfigProvider,
+  Flex,
+  Input,
+  Modal,
+  Segmented,
+  Select,
+  Spin,
+  Typography,
+} from "antd";
+import { toAntdThemeConfig } from "@stapel/tokens-antd";
+import type { ThemeMode } from "@stapel/tokens-antd";
 import { useT } from "@stapel/core";
 import { InitialSetupPrompt } from "../headless/InitialSetupPrompt.js";
 import type {
@@ -39,6 +53,12 @@ import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
 import type { MyProfile } from "../api/types.js";
 
 export interface InitialSetupModalProps {
+  /**
+   * Light or dark. The theme is derived from `@stapel/tokens` via
+   * `toAntdThemeConfig(mode)` — no manual token wiring, same self-theming
+   * contract as `AuthPanel`. Default `"light"`.
+   */
+  readonly mode?: ThemeMode;
   /** Show the modal — typically `useInitialSetupGate(...).shouldShow`. */
   readonly open: boolean;
   /**
@@ -174,38 +194,41 @@ function ModalBody(props: {
 export function InitialSetupModal(props: InitialSetupModalProps): ReactElement {
   const t = useT();
   const skippable = props.skippable ?? true;
+  const theme = useMemo(() => toAntdThemeConfig(props.mode ?? "light"), [props.mode]);
 
   return (
-    <InitialSetupPrompt
-      {...(props.fields !== undefined ? { fields: props.fields } : {})}
-      onSubmitted={(profile) => {
-        props.onSubmitted?.(profile);
-        props.onClose?.();
-      }}
-      onSkip={() => props.onClose?.()}
-    >
-      {(bag) => (
-        <Modal
-          open={props.open}
-          title={t(PROFILES_I18N_KEYS.initialSetupTitle)}
-          footer={null}
-          closable={skippable}
-          // antd 6 deprecates `maskClosable` for `mask={{ closable }}` — but
-          // the object form doesn't exist in antd 5 and this pair's peer
-          // range spans both (>=5.20 <7), so the still-functional legacy
-          // prop is the one spelling that behaves on every supported major.
-          maskClosable={skippable}
-          keyboard={skippable}
-          onCancel={() => {
-            // ✕ / Esc / mask — an implicit skip: record it like the button
-            // (only reachable when skippable).
-            bag.skip();
-          }}
-          destroyOnHidden
-        >
-          <ModalBody bag={bag} skippable={skippable} />
-        </Modal>
-      )}
-    </InitialSetupPrompt>
+    <ConfigProvider theme={theme}>
+      <InitialSetupPrompt
+        {...(props.fields !== undefined ? { fields: props.fields } : {})}
+        onSubmitted={(profile) => {
+          props.onSubmitted?.(profile);
+          props.onClose?.();
+        }}
+        onSkip={() => props.onClose?.()}
+      >
+        {(bag) => (
+          <Modal
+            open={props.open}
+            title={t(PROFILES_I18N_KEYS.initialSetupTitle)}
+            footer={null}
+            closable={skippable}
+            // antd 6 deprecates `maskClosable` for `mask={{ closable }}` — but
+            // the object form doesn't exist in antd 5 and this pair's peer
+            // range spans both (>=5.20 <7), so the still-functional legacy
+            // prop is the one spelling that behaves on every supported major.
+            maskClosable={skippable}
+            keyboard={skippable}
+            onCancel={() => {
+              // ✕ / Esc / mask — an implicit skip: record it like the button
+              // (only reachable when skippable).
+              bag.skip();
+            }}
+            destroyOnHidden
+          >
+            <ModalBody bag={bag} skippable={skippable} />
+          </Modal>
+        )}
+      </InitialSetupPrompt>
+    </ConfigProvider>
   );
 }

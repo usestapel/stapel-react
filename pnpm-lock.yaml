@@ -418,6 +418,9 @@ importers:
       '@stapel/tokens':
         specifier: workspace:^
         version: link:../tokens
+      '@stapel/tokens-antd':
+        specifier: workspace:^
+        version: link:../tokens-antd
       '@tanstack/react-query':
         specifier: ^5.81.0
         version: 5.101.2(react@19.2.7)

@@ -8,9 +8,12 @@
  * redesign, unlike ironmemo's flat checkbox list (`ProfilePage`'s "Email
  * notifications" block, 2 checkboxes with no row/column structure at all).
  */
+import { useMemo } from "react";
 import type { ReactElement } from "react";
-import { Alert, Card, Switch, Table, Typography } from "antd";
+import { Alert, Card, ConfigProvider, Switch, Table, Typography } from "antd";
 import type { TableProps } from "antd";
+import { toAntdThemeConfig } from "@stapel/tokens-antd";
+import type { ThemeMode } from "@stapel/tokens-antd";
 import { useT } from "@stapel/core";
 import {
   NotificationPreferences as HeadlessNotificationPreferences,
@@ -33,8 +36,18 @@ interface Row {
   readonly category: NotificationCategory;
 }
 
-export function NotificationPreferences(): ReactElement {
+export interface NotificationPreferencesProps {
+  /**
+   * Light or dark. The theme is derived from `@stapel/tokens` via
+   * `toAntdThemeConfig(mode)` — no manual token wiring, same self-theming
+   * contract as `AuthPanel`. Default `"light"`.
+   */
+  readonly mode?: ThemeMode;
+}
+
+export function NotificationPreferences(props: NotificationPreferencesProps = {}): ReactElement {
   const t = useT();
+  const theme = useMemo(() => toAntdThemeConfig(props.mode ?? "light"), [props.mode]);
 
   return (
     <HeadlessNotificationPreferences>
@@ -61,27 +74,29 @@ export function NotificationPreferences(): ReactElement {
         ];
 
         return (
-          <Card data-testid="notification-preferences">
-            <Typography.Title level={4} style={{ marginTop: 0 }}>
-              {t(PROFILES_I18N_KEYS.notifPrefsTitle)}
-            </Typography.Title>
-            <Typography.Text type="secondary">
-              {t(PROFILES_I18N_KEYS.notifPrefsSubtitle)}
-            </Typography.Text>
+          <ConfigProvider theme={theme}>
+            <Card data-testid="notification-preferences">
+              <Typography.Title level={4} style={{ marginTop: 0 }}>
+                {t(PROFILES_I18N_KEYS.notifPrefsTitle)}
+              </Typography.Title>
+              <Typography.Text type="secondary">
+                {t(PROFILES_I18N_KEYS.notifPrefsSubtitle)}
+              </Typography.Text>
 
-            {isError && error && (
-              <Alert style={{ marginTop: 12 }} type="error" showIcon message={error.message} />
-            )}
+              {isError && error && (
+                <Alert style={{ marginTop: 12 }} type="error" showIcon message={error.message} />
+              )}
 
-            <Table<Row>
-              style={{ marginTop: 16 }}
-              size="small"
-              loading={isLoading}
-              dataSource={rows}
-              columns={columns}
-              pagination={false}
-            />
-          </Card>
+              <Table<Row>
+                style={{ marginTop: 16 }}
+                size="small"
+                loading={isLoading}
+                dataSource={rows}
+                columns={columns}
+                pagination={false}
+              />
+            </Card>
+          </ConfigProvider>
         );
       }}
     </HeadlessNotificationPreferences>

@@ -46,13 +46,14 @@
  * back. There is no single "Save changes" button for this screen — every
  * field commits on its own.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, ReactElement, ReactNode } from "react";
 import {
   Alert,
   Avatar,
   Button,
   Card,
+  ConfigProvider,
   Drawer,
   Flex,
   Input,
@@ -63,6 +64,8 @@ import {
   Switch,
   Typography,
 } from "antd";
+import { toAntdThemeConfig } from "@stapel/tokens-antd";
+import type { ThemeMode } from "@stapel/tokens-antd";
 import { useBreakpoint, useT } from "@stapel/core";
 import { useMyProfile, useProfileFieldManifest } from "../model/queries.js";
 import { useUpdateMyProfile } from "../model/mutations.js";
@@ -103,6 +106,12 @@ const MODEL_REF_OPTIONS: Readonly<Record<string, readonly string[]>> = {
  * `@stapel/core` context and leaves `defineEvent`/`tracked()` wiring to the
  * HOST app, which already owns its own event catalog. */
 export interface ProfileSettingsProps {
+  /**
+   * Light or dark. The theme is derived from `@stapel/tokens` via
+   * `toAntdThemeConfig(mode)` — no manual token wiring, same self-theming
+   * contract as `AuthPanel`. Default `"light"`.
+   */
+  readonly mode?: ThemeMode;
   /**
    * Resolve a stored `avatar` CDN reference (`"<type>/<hash>"`) to a
    * displayable URL. The reference alone isn't a URL — the CDN host/base is
@@ -364,6 +373,7 @@ function FieldRow(props: {
 
 export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
   const t = useT();
+  const theme = useMemo(() => toAntdThemeConfig(props.mode ?? "light"), [props.mode]);
   const query = useMyProfile();
   const manifest = useProfileFieldManifest();
   const mutation = useUpdateMyProfile();
@@ -399,7 +409,11 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
       : "?";
 
   if (query.isLoading && !profile) {
-    return <Spin data-testid="profile-settings-loading" />;
+    return (
+      <ConfigProvider theme={theme}>
+        <Spin data-testid="profile-settings-loading" />
+      </ConfigProvider>
+    );
   }
 
   const mutationErrorText = mutation.isError ? mutation.error.message : undefined;
@@ -431,106 +445,108 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
       : "system";
 
   return (
-    <Card data-testid="profile-settings">
-      <Typography.Title level={4} style={{ marginTop: 0 }}>
-        {t(PROFILES_I18N_KEYS.settingsTitle)}
-      </Typography.Title>
-      <Typography.Text type="secondary">{t(PROFILES_I18N_KEYS.settingsSubtitle)}</Typography.Text>
+    <ConfigProvider theme={theme}>
+      <Card data-testid="profile-settings">
+        <Typography.Title level={4} style={{ marginTop: 0 }}>
+          {t(PROFILES_I18N_KEYS.settingsTitle)}
+        </Typography.Title>
+        <Typography.Text type="secondary">{t(PROFILES_I18N_KEYS.settingsSubtitle)}</Typography.Text>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "16px 0" }}>
-        {uploadPreview ? (
-          <Avatar size={64} src={uploadPreview}>
-            {avatarInitials}
-          </Avatar>
-        ) : avatarImage ? (
-          <Image
-            meta={avatarImage}
-            fit="cover"
-            alt=""
-            style={{ width: 64, height: 64, borderRadius: "50%" }}
-          />
-        ) : (
-          <Avatar size={64} src={legacyAvatarSrc}>
-            {avatarInitials}
-          </Avatar>
-        )}
-        <div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            style={{ display: "none" }}
-            onChange={(e) => {
-              void handleAvatarPick(e);
-            }}
-          />
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            loading={avatarUpload.isUploading}
-            data-analytics="none"
-            data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-          >
-            {avatarUpload.isUploading
-              ? t(PROFILES_I18N_KEYS.avatarUploading)
-              : t(PROFILES_I18N_KEYS.avatarChange)}
-          </Button>
-          {avatarUpload.isError && (
-            <div>
-              <Typography.Text type="danger">
-                {t(PROFILES_I18N_KEYS.avatarUploadError)}
-              </Typography.Text>
-            </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "16px 0" }}>
+          {uploadPreview ? (
+            <Avatar size={64} src={uploadPreview}>
+              {avatarInitials}
+            </Avatar>
+          ) : avatarImage ? (
+            <Image
+              meta={avatarImage}
+              fit="cover"
+              alt=""
+              style={{ width: 64, height: 64, borderRadius: "50%" }}
+            />
+          ) : (
+            <Avatar size={64} src={legacyAvatarSrc}>
+              {avatarInitials}
+            </Avatar>
           )}
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                void handleAvatarPick(e);
+              }}
+            />
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              loading={avatarUpload.isUploading}
+              data-analytics="none"
+              data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+            >
+              {avatarUpload.isUploading
+                ? t(PROFILES_I18N_KEYS.avatarUploading)
+                : t(PROFILES_I18N_KEYS.avatarChange)}
+            </Button>
+            {avatarUpload.isError && (
+              <div>
+                <Typography.Text type="danger">
+                  {t(PROFILES_I18N_KEYS.avatarUploadError)}
+                </Typography.Text>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      <Flex vertical gap={20} style={{ maxWidth: 480 }}>
-        {/* Hard-core rows first (display_name, theme) — model columns since
-            stapel-profiles 0.7.0, never in the manifest, so they render here
-            like the avatar block: hardcoded but host-toggleable/replaceable. */}
-        {showDisplayName &&
-          (props.displayNameRow ?? (
-            <EditableTextRow
-              label={t(PROFILES_I18N_KEYS.fieldDisplayName)}
-              value={displayNameValue}
+        <Flex vertical gap={20} style={{ maxWidth: 480 }}>
+          {/* Hard-core rows first (display_name, theme) — model columns since
+              stapel-profiles 0.7.0, never in the manifest, so they render here
+              like the avatar block: hardcoded but host-toggleable/replaceable. */}
+          {showDisplayName &&
+            (props.displayNameRow ?? (
+              <EditableTextRow
+                label={t(PROFILES_I18N_KEYS.fieldDisplayName)}
+                value={displayNameValue}
+                saveCta={t(PROFILES_I18N_KEYS.profileSave)}
+                saving={mutation.isPending}
+                errorText={mutationErrorText}
+                valueTestId="profile-field-display_name-value"
+                onSave={(next) => mutation.mutate({ display_name: next } as ProfileUpdate)}
+              />
+            ))}
+          {showTheme &&
+            (props.themeRow ?? (
+              <SettingRow label={t(PROFILES_I18N_KEYS.fieldTheme)}>
+                <Segmented<string>
+                  value={themeValue}
+                  onChange={(v) => mutation.mutate({ theme: v } as ProfileUpdate)}
+                  block
+                  options={[
+                    { value: "light", label: t(PROFILES_I18N_KEYS.themeLight) },
+                    { value: "dark", label: t(PROFILES_I18N_KEYS.themeDark) },
+                    { value: "system", label: t(PROFILES_I18N_KEYS.themeSystem) },
+                  ]}
+                />
+              </SettingRow>
+            ))}
+          {visibleEntries.map((entry) => (
+            <FieldRow
+              key={entry.name}
+              entry={entry}
+              profile={profile}
               saveCta={t(PROFILES_I18N_KEYS.profileSave)}
               saving={mutation.isPending}
               errorText={mutationErrorText}
-              valueTestId="profile-field-display_name-value"
-              onSave={(next) => mutation.mutate({ display_name: next } as ProfileUpdate)}
+              onPatch={(patch) => mutation.mutate(patch)}
             />
           ))}
-        {showTheme &&
-          (props.themeRow ?? (
-            <SettingRow label={t(PROFILES_I18N_KEYS.fieldTheme)}>
-              <Segmented<string>
-                value={themeValue}
-                onChange={(v) => mutation.mutate({ theme: v } as ProfileUpdate)}
-                block
-                options={[
-                  { value: "light", label: t(PROFILES_I18N_KEYS.themeLight) },
-                  { value: "dark", label: t(PROFILES_I18N_KEYS.themeDark) },
-                  { value: "system", label: t(PROFILES_I18N_KEYS.themeSystem) },
-                ]}
-              />
-            </SettingRow>
-          ))}
-        {visibleEntries.map((entry) => (
-          <FieldRow
-            key={entry.name}
-            entry={entry}
-            profile={profile}
-            saveCta={t(PROFILES_I18N_KEYS.profileSave)}
-            saving={mutation.isPending}
-            errorText={mutationErrorText}
-            onPatch={(patch) => mutation.mutate(patch)}
-          />
-        ))}
-      </Flex>
+        </Flex>
 
-      {mutationErrorText && (
-        <Alert style={{ marginTop: 12 }} type="error" showIcon message={mutationErrorText} />
-      )}
-    </Card>
+        {mutationErrorText && (
+          <Alert style={{ marginTop: 12 }} type="error" showIcon message={mutationErrorText} />
+        )}
+      </Card>
+    </ConfigProvider>
   );
 }
