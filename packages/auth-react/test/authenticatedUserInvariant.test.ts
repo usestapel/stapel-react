@@ -114,7 +114,7 @@ describe("the authenticated-without-user invariant", () => {
     expect(onTeardown).not.toHaveBeenCalled();
     expect(onSessionLost).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("user resolution failed"),
+      expect.stringContaining("user resolution was rejected"),
       expect.anything()
     );
     warnSpy.mockRestore();
@@ -131,7 +131,7 @@ describe("the authenticated-without-user invariant", () => {
 
     await expect(
       runtime.session.setTokens({ access: "acc_qr", refresh: "ref_qr" })
-    ).resolves.toBeUndefined();
+    ).resolves.toBeNull(); // the server ANSWERED 401 — a verdict, so tokens go
 
     const final = runtime.session.getState();
     expect(final.status).toBe("anonymous");

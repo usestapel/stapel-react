@@ -128,6 +128,14 @@ const STORAGE_ALLOWED = [
 const ADHOC_401_ALLOWED = [
   "**/core/src/client.{ts,js}",
   "**/core/src/session.{ts,js}",
+  // The authenticating module's `doRefresh` — the other half of the same
+  // seam, not a bypass of it. Somebody has to read the status code the
+  // refresh endpoint answered with and decide what it MEANS (revoked vs
+  // expired vs "the backend simply isn't there") before handing
+  // `SessionManager` an outcome, and this is the one file that does it.
+  // Forcing the classification out of here would push it into call sites,
+  // which is exactly what this rule exists to prevent.
+  "**/auth-react/src/model/session.{ts,js}",
 ];
 
 /**

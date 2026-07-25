@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createSessionManager } from "../src/session.js";
+import { createSessionManager, REFRESH_UNAVAILABLE } from "../src/session.js";
 import type { SessionLogoutReason, SessionStatus } from "../src/session.js";
 
 // NOTE on recursion: `doRefresh`'s own HTTP call must go through a client
@@ -308,5 +308,89 @@ describe("createSessionManager — initializing / ready-gate", () => {
     manager.markAuthenticated();
     // whenReady() is called well after the transition — must not hang.
     await expect(manager.whenReady()).resolves.toBeUndefined();
+  });
+});
+
+// An outage is not an authentication verdict (owner-reported live incident,
+// 2026-07-26): the ironmemo stand was mid-redeploy, the browser's refresh
+// call got a 502 out of nginx, and the app threw a signed-in user onto the
+// sign-in page. "Не получилось отрефрешиться, но это же не повод сессию
+// терминейтить, юзера не разлогинило, бэк прилёг."
+describe("createSessionManager — REFRESH_UNAVAILABLE (no verdict ≠ session lost)", () => {
+  it("keeps the session, fires no teardown and no host policy, on 'unavailable'", async () => {
+    const onSessionLost = vi.fn();
+    const hook = vi.fn();
+    const manager = createSessionManager({
+      initialStatus: "authenticated",
+      doRefresh: async () => REFRESH_UNAVAILABLE,
+      onSessionLost,
+    });
+    manager.registerLogoutHook(hook);
+    const lost = vi.fn();
+    manager.on("session:lost", lost);
+
+    await expect(manager.refresh()).resolves.toBe(false);
+
+    expect(manager.getStatus()).toBe("authenticated");
+    expect(onSessionLost).not.toHaveBeenCalled();
+    expect(hook).not.toHaveBeenCalled();
+    expect(lost).not.toHaveBeenCalled();
+  });
+
+  it("emits session:refresh-unavailable carrying the untouched status", async () => {
+    const seen: SessionStatus[] = [];
+    const manager = createSessionManager({
+      initialStatus: "authenticated",
+      doRefresh: async () => REFRESH_UNAVAILABLE,
+    });
+    manager.on("session:refresh-unavailable", ({ status }) => seen.push(status));
+
+    await manager.refresh();
+
+    expect(seen).toEqual(["authenticated"]);
+  });
+
+  it("a LATER refresh over a recovered backend still authenticates normally", async () => {
+    let up = false;
+    const manager = createSessionManager({
+      initialStatus: "authenticated",
+      doRefresh: async () => (up ? "authenticated" : REFRESH_UNAVAILABLE),
+    });
+
+    await manager.refresh();
+    expect(manager.getStatus()).toBe("authenticated");
+    up = true;
+    await expect(manager.refresh()).resolves.toBe(true);
+    expect(manager.getStatus()).toBe("authenticated");
+  });
+
+  it("null (the server ANSWERED that the credential is dead) still tears down", async () => {
+    const onSessionLost = vi.fn();
+    const manager = createSessionManager({
+      initialStatus: "authenticated",
+      doRefresh: async () => null,
+      onSessionLost,
+    });
+
+    await expect(manager.refresh()).resolves.toBe(false);
+
+    expect(manager.getStatus()).toBe("unauthenticated");
+    expect(onSessionLost).toHaveBeenCalledWith("unknown");
+  });
+
+  it("a doRefresh that THROWS is unavailable, not lost — a bug in the refresh path must not log the user out", async () => {
+    const onSessionLost = vi.fn();
+    const manager = createSessionManager({
+      initialStatus: "authenticated",
+      doRefresh: async () => {
+        throw new Error("boom");
+      },
+      onSessionLost,
+    });
+
+    await expect(manager.refresh()).resolves.toBe(false);
+
+    expect(manager.getStatus()).toBe("authenticated");
+    expect(onSessionLost).not.toHaveBeenCalled();
   });
 });

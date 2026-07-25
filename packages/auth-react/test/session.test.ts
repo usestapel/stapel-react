@@ -161,3 +161,137 @@ describe("session persistence (frontend-standard §4.6)", () => {
     expect(await storage.get("stapel-auth:session")).toBeUndefined();
   });
 });
+
+// Owner-reported live incident, 2026-07-26 (app.ironmemo.com mid-redeploy):
+// "сервак явно не отвечал, но фронт меня выкинул на sign-in page. Ну да, не
+// получилось отрефрешиться или auth/me вызвать, но это же не повод сессию
+// терминейтить, юзера не разлогинило, бэк прилёг."
+//
+// Only the auth service can retire a credential, and only by answering. A
+// 502 out of a restarting proxy, a timeout, a raw fetch failure — none of
+// those are verdicts, and the session must outlive them untouched.
+describe("an unreachable backend is not an authentication verdict", () => {
+  const cases: Array<[string, () => Response | Promise<Response>]> = [
+    ["502 from the proxy while the upstream restarts", () =>
+      new HttpResponse("<html>502 Bad Gateway</html>", { status: 502 })],
+    ["503 service unavailable", () => new HttpResponse(null, { status: 503 })],
+    ["504 gateway timeout", () => new HttpResponse(null, { status: 504 })],
+    ["500 from the service's own crash", () => new HttpResponse(null, { status: 500 })],
+    ["429 rate limit (a 'come back later', not a logout)", () =>
+      new HttpResponse(null, { status: 429 })],
+    ["a raw transport failure (fetch throws / DNS / TLS)", () => HttpResponse.error()],
+  ];
+
+  for (const [label, respond] of cases) {
+    it(`keeps the session on ${label}`, async () => {
+      server.use(http.get(`${BASE}/token/refresh/`, respond));
+      const teardown = vi.fn();
+      const sessionLost = vi.fn();
+      const session = createAuthSession({
+        api: () => makeApi(),
+        storage: memoryStorage(),
+        cookieMode: true,
+        onTeardown: teardown,
+        onSessionLost: sessionLost,
+      });
+      session.adopt(authResponse("LOGGED_IN"));
+
+      // What a live 401 retry does — the client's onAuthRefresh seam.
+      await expect(session.onAuthRefresh()).resolves.toBeNull();
+
+      expect(session.getState().status).toBe("authenticated");
+      expect(session.getState().user).toEqual(authResponse("LOGGED_IN").user);
+      expect(teardown).not.toHaveBeenCalled();
+      expect(sessionLost).not.toHaveBeenCalled();
+    });
+  }
+
+  it("still tears down on a real 401 — the server DID answer", async () => {
+    server.use(
+      http.get(`${BASE}/token/refresh/`, () =>
+        HttpResponse.json({ localizable_error: "auth.token.expired" }, { status: 401 })
+      )
+    );
+    const teardown = vi.fn();
+    const session = createAuthSession({
+      api: () => makeApi(),
+      storage: memoryStorage(),
+      cookieMode: true,
+      onTeardown: teardown,
+    });
+    session.adopt(authResponse("LOGGED_IN"));
+
+    await session.onAuthRefresh();
+
+    expect(session.getState().status).toBe("anonymous");
+    expect(teardown).toHaveBeenCalledWith("expired");
+  });
+
+  it("still tears down (revoked) on a replayed refresh token", async () => {
+    server.use(
+      http.get(`${BASE}/token/refresh/`, () =>
+        HttpResponse.json(
+          { localizable_error: "error.401.refresh_revoked" },
+          { status: 401 }
+        )
+      )
+    );
+    const teardown = vi.fn();
+    const session = createAuthSession({
+      api: () => makeApi(),
+      storage: memoryStorage(),
+      cookieMode: true,
+      onTeardown: teardown,
+    });
+    session.adopt(authResponse("LOGGED_IN"));
+
+    await session.onAuthRefresh();
+
+    expect(teardown).toHaveBeenCalledWith("revoked");
+  });
+
+  it("a refresh that succeeds but whose me() is unreachable KEEPS the tokens", async () => {
+    // The LAYER B path: bare tokens with no known user. Clearing them because
+    // me() got a 502 would end a live session over a transient outage.
+    server.use(
+      http.get(`${BASE}/token/refresh/`, () =>
+        HttpResponse.json({ access: "acc_9", refresh: "ref_9" })
+      ),
+      http.get(`${BASE}/me/`, () => new HttpResponse(null, { status: 502 }))
+    );
+    const teardown = vi.fn();
+    const session = createAuthSession({
+      api: () => makeApi(),
+      storage: memoryStorage(),
+      cookieMode: false,
+      bootstrapProbe: "always",
+      onTeardown: teardown,
+    });
+
+    await session.restore();
+
+    expect(session.getState().tokens?.access).toBe("acc_9");
+    expect(teardown).not.toHaveBeenCalled();
+  });
+
+  it("a cold start against a dead backend settles (never hangs whenReady) without a teardown", async () => {
+    server.use(http.get(`${BASE}/token/refresh/`, () => HttpResponse.error()));
+    const teardown = vi.fn();
+    const sessionLost = vi.fn();
+    const session = createAuthSession({
+      api: () => makeApi(),
+      storage: memoryStorage(),
+      cookieMode: true,
+      onTeardown: teardown,
+      onSessionLost: sessionLost,
+    });
+
+    await session.restore();
+
+    // Settled, so every query hook gated on whenReady() is released…
+    expect(session.getSessionManager().isReady()).toBe(true);
+    // …but nothing was "lost": there was no session to lose, and no banner.
+    expect(teardown).not.toHaveBeenCalled();
+    expect(sessionLost).not.toHaveBeenCalled();
+  });
+});

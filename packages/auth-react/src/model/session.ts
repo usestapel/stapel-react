@@ -1,5 +1,10 @@
-import { createSessionManager, StapelApiError } from "@stapel/core";
-import type { PersistStorage, SessionLostReason, SessionManager } from "@stapel/core";
+import { createSessionManager, REFRESH_UNAVAILABLE, StapelApiError } from "@stapel/core";
+import type {
+  PersistStorage,
+  RefreshOutcome,
+  SessionLostReason,
+  SessionManager,
+} from "@stapel/core";
 import type { AuthApi } from "../api/authApi.js";
 import type { AuthResponse, AuthTokens, StapelUser } from "../api/types.js";
 
@@ -43,11 +48,16 @@ export interface AuthSession {
    * access+refresh only) — if the session doesn't already know who's
    * signed in, this resolves that via `me()` (using the seam-free refresh
    * client, so it's safe to call from inside `doRefresh`) before settling
-   * `"authenticated"`; see the `AuthSessionState` invariant doc above. On a
-   * resolution failure, clears the tokens and settles unauthenticated
-   * rather than leave a dangling, unconfirmed session — never throws.
+   * `"authenticated"`; see the `AuthSessionState` invariant doc above.
+   *
+   * Never throws; reports what it settled on. A REJECTED resolution (the
+   * server answered 401/403) clears the tokens and settles unauthenticated
+   * rather than leave a dangling, unconfirmed session — `null`. A resolution
+   * that never reached the server at all (outage, 5xx, timeout) KEEPS the
+   * tokens and reports `"unavailable"`, because an unreachable backend is not
+   * evidence that a credential is dead (see core's `REFRESH_UNAVAILABLE`).
    */
-  setTokens(tokens: AuthTokens): Promise<void>;
+  setTokens(tokens: AuthTokens): Promise<RefreshOutcome>;
   /** Explicit logout: revoke server-side, then tear down locally. */
   logout(): Promise<void>;
   /** Load a persisted session (call once on mount). */
@@ -155,6 +165,29 @@ export interface AuthSessionOptions {
 const REFRESH_REVOKED = "error.401.refresh_revoked";
 
 const HINT_COOKIE_NAME = "stapel_auth_hint";
+
+/**
+ * Did this failure actually tell us the credential is dead? (owner-reported
+ * live incident, 2026-07-26: the stand was mid-redeploy, the browser got a
+ * 502 out of nginx, and the app threw a signed-in user onto the sign-in page
+ * — "не получилось отрефрешиться, но это же не повод сессию терминейтить".)
+ *
+ * Only the auth service itself can retire a credential, and only by
+ * answering. Everything else — fetch threw, DNS/TLS failed, the request timed
+ * out, a proxy replied 502/503/504 because the upstream was restarting, or a
+ * 5xx from the service's own crash — says nothing about whether the session is
+ * valid, so the session must survive it untouched (see
+ * `REFRESH_UNAVAILABLE`).
+ *
+ * 401/403 are the verdicts. 429 is NOT: being rate-limited is a "come back
+ * later", and logging the user out for it is exactly backwards.
+ */
+function isAuthVerdict(error: unknown): boolean {
+  if (!(error instanceof StapelApiError)) return false; // transport failure
+  const { status } = error;
+  if (status === 401 || status === 403) return true;
+  return status >= 400 && status < 500 && status !== 408 && status !== 429;
+}
 
 /** SSR-safe: `document` is undefined outside a browser — never a hint there. */
 function hasAuthHintCookie(): boolean {
@@ -303,31 +336,40 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
         const r = await resolveRefreshApi().tokenRefresh(
           cookieMode ? undefined : (refreshToken ?? undefined)
         );
-        await setTokens({ access: r.access, refresh: r.refresh });
-        // `setTokens` above already resolved (LAYER B) — or, on a failed
+        // `setTokens` (LAYER B) already resolved — or, on a failed
         // resolution, cleared — `state.user` and marked the core
-        // `SessionManager` itself; read back what it actually landed on
-        // rather than hardcoding `"authenticated"` (which used to
+        // `SessionManager` itself; it reports what it actually landed on
+        // rather than this hardcoding `"authenticated"` (which used to
         // unconditionally override a guest's `markAnonymous()`, and would
         // now also override a failed user-resolution's
-        // `markUnauthenticated()`, moments later).
-        if (state.user === null) return null;
-        return state.user.is_anonymous ? "anonymous" : "authenticated";
+        // `markUnauthenticated()`, moments later). Its `"unavailable"` rides
+        // straight through for the same reason it does below: a `me()` that
+        // never reached the server is not a verdict either.
+        return await setTokens({ access: r.access, refresh: r.refresh });
       } catch (error) {
-        const code = error instanceof StapelApiError ? error.code : "";
-        if (!(error instanceof StapelApiError)) {
-          // A genuine network/transport failure (fetch threw, CORS blocked
-          // it, DNS failed…) — NOT a structured API answer like a clean
-          // 401. Settling anonymous either way (never throw — see
-          // `bootstrapProbe`'s doc), but this is worth a developer noticing:
-          // it looks identical to "there was never a session" otherwise,
-          // which is exactly the silent-coverage-loss shape this whole
-          // option exists to prevent.
+        if (!isAuthVerdict(error)) {
+          // The backend never rendered a verdict — it was unreachable, or it
+          // answered 5xx/timeout/429. The credential may well still be good,
+          // so the session is left exactly as it is: no teardown, no
+          // `onTeardown`, no host redirect to /sign-in (see `isAuthVerdict`
+          // and core's `REFRESH_UNAVAILABLE`).
+          //
+          // The one case that still has to settle is a COLD start: the
+          // bootstrap probe below is what resolves `"initializing"`, and
+          // leaving it unresolved hangs every query hook gated on
+          // `whenReady()` forever. There we settle quietly
+          // (`markUnauthenticated()`, no banner) — the app renders signed-out
+          // and a reload once the backend is back finds the cookie session.
           console.warn(
-            "stapel-auth: session refresh failed (network error), settling anonymous",
+            "stapel-auth: session refresh could not reach a verdict (backend unreachable or 5xx) — keeping the session",
             error
           );
+          if (sessionManager.getStatus() === "initializing") {
+            sessionManager.markUnauthenticated();
+          }
+          return REFRESH_UNAVAILABLE;
         }
+        const code = error instanceof StapelApiError ? error.code : "";
         const reason: TeardownReason = code === REFRESH_REVOKED ? "revoked" : "expired";
         await settleRefreshFailure(reason);
         return null;
@@ -376,7 +418,7 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
     return resolveRefreshApi().me();
   }
 
-  async function setTokens(tokens: AuthTokens): Promise<void> {
+  async function setTokens(tokens: AuthTokens): Promise<RefreshOutcome> {
     if (state.user !== null) {
       // Known session already — ordinary token rotation (a live 401 retry,
       // or any refresh where the user is already resolved). No need to
@@ -385,10 +427,10 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
       persist();
       if (state.user.is_anonymous) {
         sessionManager.markAnonymous();
-      } else {
-        sessionManager.markAuthenticated();
+        return "anonymous";
       }
-      return;
+      sessionManager.markAuthenticated();
+      return "authenticated";
     }
     // LAYER B (owner incident, 2026-07-20; composes with the bearer-mode
     // `bootstrapProbe` fix in 3747681): tokens with NO known user. Two call
@@ -409,24 +451,41 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
       persist();
       if (user.is_anonymous) {
         sessionManager.markAnonymous();
-      } else {
-        sessionManager.markAuthenticated();
+        return "anonymous";
       }
+      sessionManager.markAuthenticated();
+      return "authenticated";
     } catch (error) {
-      // Couldn't resolve who these tokens belong to (me() 401/network
-      // failure) — the failure-handling half of the gate: never leave
-      // dangling tokens claiming a session that was never actually
-      // confirmed. `settleRefreshFailure` keeps the existing established-
-      // vs-never-established distinction, so this never fires a "session
-      // expired" banner for a session that hadn't actually started yet.
-      // Never throws.
+      if (!isAuthVerdict(error)) {
+        // `me()` never reached a verdict (backend down mid-redeploy, 5xx,
+        // timeout — see `isAuthVerdict`). The tokens we were just handed are
+        // almost certainly fine, so they are KEPT, not thrown away: clearing
+        // them here would end a live session over a transient outage, which
+        // is the same bug the refresh path above fixes. Reported as
+        // `"unavailable"` so the caller doesn't read it as a loss either.
+        console.warn(
+          "stapel-auth: token refresh succeeded but user resolution could not reach a verdict — keeping the tokens",
+          error
+        );
+        if (sessionManager.getStatus() === "initializing") {
+          sessionManager.markUnauthenticated();
+        }
+        return REFRESH_UNAVAILABLE;
+      }
+      // The server ANSWERED that these tokens are no good — the
+      // failure-handling half of the gate: never leave dangling tokens
+      // claiming a session that was never actually confirmed.
+      // `settleRefreshFailure` keeps the existing established-vs-never-
+      // established distinction, so this never fires a "session expired"
+      // banner for a session that hadn't actually started yet. Never throws.
       console.warn(
-        "stapel-auth: token refresh succeeded but user resolution failed — clearing tokens, settling unauthenticated",
+        "stapel-auth: token refresh succeeded but user resolution was rejected — clearing tokens, settling unauthenticated",
         error
       );
       setState({ user: null, tokens: null });
       persist();
       await settleRefreshFailure("expired");
+      return null;
     }
   }
 

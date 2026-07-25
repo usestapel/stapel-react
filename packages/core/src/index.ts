@@ -102,10 +102,12 @@ export {
 export {
   createSessionManager,
   getActiveSessionManager,
+  REFRESH_UNAVAILABLE,
 } from "./session.js";
 export type {
   SessionManager,
   SessionStatus,
+  RefreshOutcome,
   SessionLostReason,
   SessionLogoutReason,
   LogoutHook,

@@ -46,6 +46,36 @@ export type SessionStatus =
 /** Why a session was declared lost (refresh failed or was never possible). */
 export type SessionLostReason = "expired" | "revoked" | "unknown";
 
+/**
+ * `doRefresh`'s third answer: "the server did not tell us" (owner-reported
+ * live incident, 2026-07-26 — a stand mid-redeploy answered 502, and the app
+ * threw the user out to the sign-in page while their session was perfectly
+ * valid and the backend simply wasn't there).
+ *
+ * A refresh has THREE outcomes, not two, and conflating the last two is a
+ * bug with a very visible face:
+ *
+ *  - a {@link SessionStatus} — the server answered, the session lives;
+ *  - `null` — the server ANSWERED and the answer was "this credential is no
+ *    good" (a clean 401, a revoked refresh token). That is a verdict, and it
+ *    justifies tearing the session down;
+ *  - `"unavailable"` — no verdict was obtained: fetch threw, DNS failed, the
+ *    proxy returned 502/503/504, the request timed out. We know nothing new
+ *    about the credential, so the session is left EXACTLY as it was —
+ *    no teardown, no logout hooks, no host redirect. `refresh()` still
+ *    resolves `false` (the caller's request genuinely didn't get a token, and
+ *    should surface its own error), but the user stays signed in and the next
+ *    attempt, once the backend is back, simply succeeds.
+ *
+ * A `doRefresh` that THROWS is treated as `"unavailable"` too: an unexpected
+ * exception is not evidence that a credential is dead, and the old behavior
+ * (catch → tear the session down) turned any bug in the refresh path into a
+ * forced logout.
+ */
+export const REFRESH_UNAVAILABLE = "unavailable";
+
+export type RefreshOutcome = SessionStatus | typeof REFRESH_UNAVAILABLE | null;
+
 /** Why the logout-hook registry is being run. */
 export type SessionLogoutReason = "logout" | "lost";
 
@@ -61,6 +91,13 @@ export interface SessionManagerEventMap {
   "session:refreshed": { readonly status: SessionStatus };
   "session:lost": { readonly reason: SessionLostReason };
   "session:logout": { readonly reason: SessionLogoutReason };
+  /**
+   * A refresh could not reach a verdict (see {@link REFRESH_UNAVAILABLE}).
+   * The session is untouched. Hosts can use this to show an "offline /
+   * reconnecting" affordance — the one thing they must NOT do is treat it as
+   * a session loss.
+   */
+  "session:refresh-unavailable": { readonly status: SessionStatus };
 }
 
 export type SessionEventName = keyof SessionManagerEventMap;
@@ -70,10 +107,14 @@ export interface CreateSessionManagerOptions {
   /**
    * Perform the actual refresh (call the backend, store the new token —
    * that part stays the authenticating module's job). Resolve the resulting
-   * {@link SessionStatus} on success; resolve `null` (or throw) on failure.
-   * Called at most once per single-flight window — see `refresh()`.
+   * {@link SessionStatus} on success, `null` when the server ANSWERED that
+   * the credential is dead, or {@link REFRESH_UNAVAILABLE} when no answer was
+   * obtained at all (network/proxy/timeout) — see `RefreshOutcome` for why
+   * the last two must not be collapsed. Throwing is treated as
+   * `REFRESH_UNAVAILABLE`. Called at most once per single-flight window —
+   * see `refresh()`.
    */
-  readonly doRefresh: () => Promise<SessionStatus | null>;
+  readonly doRefresh: () => Promise<RefreshOutcome>;
   /**
    * Host policy for an involuntary session loss (§43.1): redirect to the
    * login form, or trigger an anonymous auto-login when the guest axis is
@@ -112,10 +153,13 @@ export interface SessionManager {
    * Single-flight guarded refresh (§43.1): concurrent callers (N requests
    * that each hit a 401) share the ONE in-flight `doRefresh()` call and all
    * resolve together, with the same outcome. Resolves `true` on success,
-   * `false` on failure (a failure `doRefresh` didn't already report via
-   * `sessionLost()` itself still tears the session down, with reason
-   * `"unknown"` — see `sessionLost`'s idempotency below). See the module doc
-   * comment above for `doRefresh`'s recursion contract.
+   * `false` otherwise — but "otherwise" is two different things, and only one
+   * of them ends the session: a `null` from `doRefresh` (the server said the
+   * credential is dead) tears it down, with reason `"unknown"` if `doRefresh`
+   * didn't already report a more specific one; {@link REFRESH_UNAVAILABLE}
+   * (no answer reached us at all) leaves the session untouched and only emits
+   * `session:refresh-unavailable`. See the module doc comment above for
+   * `doRefresh`'s recursion contract.
    */
   refresh(): Promise<boolean>;
 
@@ -317,11 +361,21 @@ export function createSessionManager(
   function refresh(): Promise<boolean> {
     if (inFlight) return inFlight;
     const p = (async () => {
-      let outcome: SessionStatus | null = null;
+      let outcome: RefreshOutcome = null;
       try {
         outcome = await options.doRefresh();
       } catch {
-        outcome = null;
+        // An exception is not a verdict about the credential — see
+        // REFRESH_UNAVAILABLE. Tearing the session down here turned any bug
+        // in the refresh path into a forced logout.
+        outcome = REFRESH_UNAVAILABLE;
+      }
+      if (outcome === REFRESH_UNAVAILABLE) {
+        // No verdict: leave the session EXACTLY as it was. `false` still goes
+        // back to the caller (its request really did not get a token), but
+        // nothing is torn down and the host's redirect policy never fires.
+        emit("session:refresh-unavailable", { status });
+        return false;
       }
       if (outcome !== null) {
         setStatus(outcome);
