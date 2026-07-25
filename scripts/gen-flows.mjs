@@ -36,6 +36,14 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 
+// Sibling backends live one directory up by default. `SIBLING_ROOT` re-points
+// that at a set of PINNED worktrees (`scripts/pin-siblings.mjs`) so a local
+// regen reads exactly what CI checks against, instead of whatever the sibling
+// checkouts happen to be sitting on — the drift that put commit 3a6211a in
+// this repo's history.
+const SIBLING_ROOT = process.env.SIBLING_ROOT ?? "..";
+
+
 const MODULE = process.env.FLOW_MODULE ?? "auth";
 const REGISTRY =
   process.env.FLOW_REGISTRY ?? `${MODULE.toUpperCase()}_FLOWS`;
@@ -48,7 +56,7 @@ const TYPE_PREFIX =
 // retired as a contract source.
 const FLOWS_PATH =
   process.env.FLOWS_JSON ??
-  resolve(ROOT, `../stapel-${MODULE}/docs/flows.json`);
+  resolve(ROOT, `${SIBLING_ROOT}/stapel-${MODULE}/docs/flows.json`);
 
 const OUT_DIR =
   process.env.FLOW_OUT ??

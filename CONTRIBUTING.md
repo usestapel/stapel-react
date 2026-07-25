@@ -47,6 +47,25 @@ contract:
    that they match).
 4. CI proves the pair regenerates cleanly from exactly the pinned contract.
 
+**Regenerating locally.** `pnpm gen` reads the sibling checkouts as they
+are — normally *ahead* of the pins, which silently bakes an unreleased
+contract into a committed projection. Commit 3a6211a exists for exactly that
+reason: a version bump regenerated `auth-react`'s manifest from an
+ahead-of-pin `pyproject.toml` and emitted `contract ">=0.13 <0.14"` where the
+pin said `>=0.12 <0.13`, and nothing noticed until CI failed the release. So
+use the pinned variants, which materialize each sibling at its pinned ref in
+a throwaway git worktree, run the generators against those, and clean up:
+
+```
+pnpm gen:pinned              # regenerate from the pins
+pnpm gen:pinned:check        # what CI will say, before you push
+pnpm run version-packages:local   # changeset version + pinned regen
+```
+
+Every generator resolves its sources under `${SIBLING_ROOT:-..}`, so nothing
+special happens in CI (the variable is unset there and the checked-out
+siblings *are* the pins).
+
 Transitional note: while a backend's contract commits exist only locally
 (not yet pushed/tagged), the pin records the sibling's local HEAD sha.
 GitHub-side CI can only resolve such a sha after the backend push wave

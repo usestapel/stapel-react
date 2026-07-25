@@ -32,6 +32,14 @@ import { parseKeyFactory, extractHooks, buildHooks, renderLlmsHooks } from "./ho
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 
+// Sibling backends live one directory up by default. `SIBLING_ROOT` re-points
+// that at a set of PINNED worktrees (`scripts/pin-siblings.mjs`) so a local
+// regen reads exactly what CI checks against, instead of whatever the sibling
+// checkouts happen to be sitting on — the drift that put commit 3a6211a in
+// this repo's history.
+const SIBLING_ROOT = process.env.SIBLING_ROOT ?? "..";
+
+
 const PKG_DIR = resolve(ROOT, process.env.MANIFEST_PKG_DIR ?? "packages/auth-react");
 const MODULE = process.env.MANIFEST_MODULE ?? "stapel-auth";
 const PATH_PREFIX = process.env.MANIFEST_TAGPREFIX ?? "/auth/api/v1/";
@@ -40,7 +48,7 @@ const PATH_PREFIX = process.env.MANIFEST_TAGPREFIX ?? "/auth/api/v1/";
 // auth defaults above). The monolith aggregate is retired as a contract source.
 const SCHEMA_PATH =
   process.env.API_SCHEMA ??
-  resolve(ROOT, `../${MODULE}/docs/schema.json`);
+  resolve(ROOT, `${SIBLING_ROOT}/${MODULE}/docs/schema.json`);
 // Backend version source → `backend.contract` (frontend-core-architecture
 // §2.4 / §3.4.2: drift must be ADDRESSABLE — the manifest states which backend
 // range this surface was generated against). Read from the backend module's
@@ -48,7 +56,7 @@ const SCHEMA_PATH =
 // like a schema change would. Same sibling convention as gen-errors.
 const BACKEND_PYPROJECT =
   process.env.MANIFEST_BACKEND_PYPROJECT ??
-  resolve(ROOT, `../${MODULE}/pyproject.toml`);
+  resolve(ROOT, `${SIBLING_ROOT}/${MODULE}/pyproject.toml`);
 
 // ── prose knobs (frontend-core-architecture §2.4) ────────────────────────────
 // The llms.txt narrative and the i18n-key scan name a pair's public entry
