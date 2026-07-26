@@ -295,3 +295,97 @@ describe("an unreachable backend is not an authentication verdict", () => {
     expect(sessionLost).not.toHaveBeenCalled();
   });
 });
+
+// Owner-reported live incident, 2026-07-26: "зашёл на айронмемо и получил
+// стробоскоп редиректов /app ↔ /sign-in по кругу" — 222 requests in a loop
+// before it settled.
+//
+// The server was internally inconsistent (GET /me answered 200 off a live
+// access cookie while GET /token/refresh/ answered 401 off a dead refresh
+// cookie), which is a legitimate state a client has to survive. What turned
+// it into a redirect storm was here: the logout hook started an async wipe of
+// the persisted user and returned `undefined`, so `runLogoutHooks` — which
+// DOES await its hooks — considered teardown finished while the delete was
+// still in flight. The host's onSessionLost then hard-navigated, the reloaded
+// page restored the very user that was meant to be gone, sign-in bounced it
+// back to /app, and round it went until a wipe happened to beat a navigation.
+describe("the persisted user is really gone before teardown reports done", () => {
+  function slowStorage(delayMs: number): PersistStorage & { deleted: boolean } {
+    const map = new Map<string, unknown>();
+    const storage = {
+      deleted: false,
+      get: (k: string) => Promise.resolve(map.get(k)),
+      set: (k: string, v: unknown) => {
+        map.set(k, v);
+        return Promise.resolve();
+      },
+      del: (k: string) =>
+        new Promise<void>((resolve) =>
+          setTimeout(() => {
+            map.delete(k);
+            storage.deleted = true;
+            resolve();
+          }, delayMs)
+        ),
+      keys: () => Promise.resolve([...map.keys()]),
+    };
+    return storage as PersistStorage & { deleted: boolean };
+  }
+
+  it("logout() does not resolve until the wipe has actually committed", async () => {
+    const storage = slowStorage(20);
+    const session = createAuthSession({ api: () => makeApi(), storage });
+    session.adopt(authResponse("LOGGED_IN"));
+    server.use(http.post(`${BASE}/logout/`, () => HttpResponse.json({})));
+
+    await session.logout();
+
+    expect(storage.deleted).toBe(true);
+    expect(await storage.get("stapel-auth:session")).toBeUndefined();
+  });
+
+  it("onSessionLost fires only AFTER the wipe — a hard redirect cannot outrun it", async () => {
+    const storage = slowStorage(20);
+    let wipedWhenNotified: boolean | null = null;
+    const session = createAuthSession({
+      api: () => makeApi(),
+      storage,
+      cookieMode: true,
+      // The host policy is where `window.location.href = "/sign-in"` lives.
+      onSessionLost: () => {
+        wipedWhenNotified = storage.deleted;
+      },
+    });
+    session.adopt(authResponse("LOGGED_IN"));
+    server.use(
+      http.get(`${BASE}/token/refresh/`, () =>
+        HttpResponse.json({ localizable_error: "auth.token.expired" }, { status: 401 })
+      )
+    );
+
+    await session.onAuthRefresh();
+
+    expect(wipedWhenNotified).toBe(true);
+    expect(await storage.get("stapel-auth:session")).toBeUndefined();
+  });
+
+  it("a fresh session on the same storage restores nothing afterwards", async () => {
+    // The loop's actual mechanism: the reloaded page rehydrating a user that
+    // the previous page had already been told to forget.
+    const storage = slowStorage(20);
+    const first = createAuthSession({ api: () => makeApi(), storage, cookieMode: true });
+    first.adopt(authResponse("LOGGED_IN"));
+    server.use(
+      http.get(`${BASE}/token/refresh/`, () =>
+        HttpResponse.json({ localizable_error: "auth.token.expired" }, { status: 401 })
+      )
+    );
+    await first.onAuthRefresh();
+
+    const reloaded = createAuthSession({ api: () => makeApi(), storage, cookieMode: true });
+    await reloaded.restore();
+
+    expect(reloaded.getState().user).toBeNull();
+    expect(reloaded.getState().status).toBe("anonymous");
+  });
+});

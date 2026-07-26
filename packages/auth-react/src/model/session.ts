@@ -387,7 +387,20 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
   sessionManager.registerLogoutHook(() => {
     setState({ user: null, tokens: null });
     const storage = options.storage;
-    if (storage) void storage.del(persistKey);
+    // RETURNED, not fire-and-forget (owner-reported live incident,
+    // 2026-07-26: "стробоскоп редиректов /app ↔ /sign-in по кругу").
+    //
+    // `runLogoutHooks` awaits every hook — so a hook that starts an async
+    // wipe and returns `undefined` tells the session manager the teardown is
+    // complete while the delete is still in flight. The host's
+    // `onSessionLost` policy then runs, and a hard `window.location.href`
+    // redirect tears the page down BEFORE IndexedDB commits the delete. The
+    // reloaded page restores the very user that was supposed to be gone, the
+    // sign-in screen sees a session and bounces to /app, /app's refresh 401s
+    // again — and the loop only stops if a wipe happens to win a race
+    // against a navigation. That is exactly what "it flickered and then
+    // settled" looks like from the outside.
+    if (storage) return storage.del(persistKey);
   });
 
   function adopt(response: AuthResponse): void {
