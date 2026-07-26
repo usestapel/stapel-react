@@ -389,3 +389,105 @@ describe("the persisted user is really gone before teardown reports done", () =>
     expect(reloaded.getState().status).toBe("anonymous");
   });
 });
+
+// The redirect strobe's SECOND and deeper cause (owner-reported, 2026-07-26).
+//
+// The ironmemo app keeps its own auth context, which calls GET /me/ through
+// the runtime client. On a server with a live access cookie and a dead
+// refresh cookie — a state it is entitled to be in — /me answers 200 and the
+// app marks the manager authenticated, while this library's restore(),
+// finding none of ITS OWN persisted state, runs the bootstrap probe. The
+// probe's 401 then read as a session LOSS (status was no longer
+// "initializing", because /me had won the race), tore the session down, and
+// fired the host's hard redirect to /sign-in. Reload → /me 200 → sign-in
+// bounces to /app → probe 401 again. 222 requests of that.
+//
+// A probe is a SEARCH for a session, not a check of one. Finding nothing is
+// never losing something.
+describe("a negative bootstrap probe is not a session loss", () => {
+  function memory(): PersistStorage {
+    const map = new Map<string, unknown>();
+    return {
+      get: (k) => Promise.resolve(map.get(k)),
+      set: (k, v) => {
+        map.set(k, v);
+        return Promise.resolve();
+      },
+      del: (k) => {
+        map.delete(k);
+        return Promise.resolve();
+      },
+      keys: () => Promise.resolve([...map.keys()]),
+    };
+  }
+
+  it("does not tear down a session another caller established mid-probe", async () => {
+    server.use(
+      http.get(`${BASE}/token/refresh/`, () =>
+        HttpResponse.json({ localizable_error: "auth.token.expired" }, { status: 401 })
+      )
+    );
+    const onTeardown = vi.fn();
+    const onSessionLost = vi.fn();
+    const session = createAuthSession({
+      api: () => makeApi(),
+      storage: memory(),
+      cookieMode: true,
+      onTeardown,
+      onSessionLost,
+    });
+    // Exactly what the host's own /me success does while restore() is in
+    // flight: it marks the manager authenticated out from under the probe.
+    session.getSessionManager().markAuthenticated();
+
+    await session.restore();
+
+    expect(onSessionLost).not.toHaveBeenCalled();
+    expect(onTeardown).not.toHaveBeenCalled();
+    expect(session.getSessionManager().getStatus()).toBe("authenticated");
+  });
+
+  it("still settles a cold start quietly when nothing else claimed a session", async () => {
+    server.use(
+      http.get(`${BASE}/token/refresh/`, () =>
+        HttpResponse.json({ localizable_error: "auth.token.expired" }, { status: 401 })
+      )
+    );
+    const onTeardown = vi.fn();
+    const session = createAuthSession({
+      api: () => makeApi(),
+      storage: memory(),
+      cookieMode: true,
+      onTeardown,
+    });
+
+    await session.restore();
+
+    expect(session.getSessionManager().getStatus()).toBe("unauthenticated");
+    expect(session.getSessionManager().isReady()).toBe(true);
+    expect(onTeardown).not.toHaveBeenCalled();
+  });
+
+  it("a LIVE 401 (not a probe) still tears the session down", async () => {
+    // The distinction has to survive: an expired credential on a real
+    // request is a loss, and must still redirect.
+    server.use(
+      http.get(`${BASE}/token/refresh/`, () =>
+        HttpResponse.json({ localizable_error: "auth.token.expired" }, { status: 401 })
+      )
+    );
+    const onTeardown = vi.fn();
+    const session = createAuthSession({
+      api: () => makeApi(),
+      storage: memory(),
+      cookieMode: true,
+      onTeardown,
+    });
+    session.adopt(authResponse("LOGGED_IN"));
+
+    await session.onAuthRefresh();
+
+    expect(onTeardown).toHaveBeenCalledWith("expired");
+    expect(session.getState().user).toBeNull();
+  });
+});

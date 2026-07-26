@@ -236,6 +236,10 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
     tokens: null,
     status: "anonymous",
   };
+  //: True only while `bootstrapProbe()` is in flight. A probe is a SEARCH
+  //: for a session, not a check of one — so its failure must never be
+  //: reported as a loss (see `settleRefreshFailure`).
+  let probing = false;
   const listeners = new Set<() => void>();
 
   function notify(): void {
@@ -310,6 +314,31 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
    * deliberately ended.
    */
   async function settleRefreshFailure(reason: TeardownReason): Promise<void> {
+    if (probing) {
+      // A BOOTSTRAP probe came back negative — "we looked for a session and
+      // found none", which is not the same fact as "the session you had just
+      // ended". You cannot lose what you never had, so this settles quietly
+      // and never runs a teardown.
+      //
+      // Owner-reported live incident, 2026-07-26 (the redirect strobe,
+      // second and deeper cause): the ironmemo app keeps its OWN auth
+      // context, which calls GET /me/ through the runtime client. With a
+      // live access cookie and a dead refresh cookie — a state the server is
+      // entitled to be in — /me answered 200 and the app marked the manager
+      // authenticated, while this library's `restore()`, finding none of ITS
+      // OWN persisted state, ran the probe. The probe's 401 then read as a
+      // loss (status was no longer "initializing", because /me had won the
+      // race moments earlier), tore the session down and fired the host's
+      // hard redirect to /sign-in. Reload, /me 200 again, sign-in bounces to
+      // /app, probe 401 again — 222 requests of it.
+      //
+      // The status check below cannot cover this on its own: it asks "was a
+      // session established?", and by then one WAS — just not by us.
+      if (sessionManager.getStatus() === "initializing") {
+        sessionManager.markUnauthenticated();
+      }
+      return;
+    }
     const wasEstablished = sessionManager.getStatus() !== "initializing";
     if (!wasEstablished) {
       sessionManager.markUnauthenticated();
@@ -371,7 +400,19 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
         }
         const code = error instanceof StapelApiError ? error.code : "";
         const reason: TeardownReason = code === REFRESH_REVOKED ? "revoked" : "expired";
+        const wasProbe = probing;
         await settleRefreshFailure(reason);
+        if (wasProbe) {
+          // `null` is core's "the credential is dead" signal, and core acts
+          // on it — `refresh()` calls `sessionLost()` itself as a fallback
+          // net. That net is right for a live 401 and wrong for a probe: a
+          // SEARCH that found nothing must not tear down a session someone
+          // else established (the /me-answered-200 race in the strobe
+          // incident). Reporting the status the probe settled on leaves
+          // core's `setStatus` a no-op and skips the net entirely.
+          const settled = sessionManager.getStatus();
+          return settled === "initializing" ? "unauthenticated" : settled;
+        }
         return null;
       }
     },
@@ -597,11 +638,17 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
     }
     // `sessionManager.refresh()` → `doRefresh` above NEVER throws — every
     // failure path (401, revoked, a raw network/transport error) is caught
-    // there and settles via `settleRefreshFailure` (quiet
-    // `markUnauthenticated()` while still `"initializing"`, which is always
-    // true here). A network failure specifically also gets a `console.warn`
-    // from that same catch block — see its comment.
-    await sessionManager.refresh();
+    // there and settles via `settleRefreshFailure`. The `probing` flag tells
+    // that function this was a SEARCH for a session rather than a check of
+    // one, so a negative answer settles quietly and never tears anything
+    // down — even if something else (a host's own /me call) marked the
+    // manager authenticated while the probe was in flight.
+    probing = true;
+    try {
+      await sessionManager.refresh();
+    } finally {
+      probing = false;
+    }
   }
 
   async function restore(): Promise<void> {
