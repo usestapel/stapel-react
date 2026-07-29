@@ -1,6 +1,6 @@
 {
   "name": "@stapel/auth-react",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "Headless React flow pair for stapel-auth: typed API client, TanStack Query hooks, flow machines (OTP, password, OAuth, TOTP, sessions, passkeys, QR, magic links, SSO), and the step-up verification factor flow. Zero visual opinion.",
   "license": "MIT",
   "repository": {
@@ -54,7 +54,7 @@
     {
       "name": "index — the ru locale must NOT be in the main bundle",
       "path": "dist/index.js",
-      "limit": "17.5 KB"
+      "limit": "18 KB"
     },
     {
       "name": "i18n/ru subpath (opt-in locale: en floor + generated ru + ru UI)",

@@ -279,4 +279,5 @@ and own it while keeping `api/`/`model/`/`flows/` as a dependency. Visual
 divergence never forks the package.
 
 See **[MODULE.md](./MODULE.md)** for the full flow/hook catalogue, extension
-points, and which journeys are full vs thin-WebAuthn.
+points, and the WebAuthn binding contract (passkeys work out of the box — the
+browser ceremony is built in; `webauthnCreate`/`webauthnGet` override it).

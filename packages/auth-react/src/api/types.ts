@@ -376,8 +376,9 @@ export type PasskeyRegistered = Schemas["PasskeyRegisterCompleteResponse"];
 
 // NOT GENERATED: the WebAuthn `begin` endpoints return opaque
 // PublicKeyCredential*Options JSON with no named response serializer in the
-// schema. Kept as thin `Record` carriers (the ceremony is host/injected — see
-// MODULE.md "Thin-WebAuthn").
+// schema. Kept as opaque `Record` carriers — `src/webauthn.ts` (the built-in
+// browser binding) is the one place that reads inside them; see MODULE.md
+// "WebAuthn binding".
 export interface PasskeyRegisterBeginResponse {
   /** PublicKeyCredentialCreationOptions (JSON form). */
   readonly options: Record<string, unknown>;

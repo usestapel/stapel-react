@@ -23,6 +23,8 @@ export const AUTH_I18N_KEYS = {
   sessionThisDevice: "auth.session.this_device",
   sessionSuspicious: "auth.session.suspicious",
   passkeyNoCredentials: "auth.passkey.no_credentials",
+  /** No `navigator.credentials` here at all (old browser, insecure context). */
+  passkeyUnsupported: "auth.passkey.unsupported",
   unknownError: "auth.error.unknown",
 
   // Default-skin UI keys (§54 AuthPanel). Rendered by @stapel/auth-react/default;
@@ -267,6 +269,8 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.session.suspicious": "Unrecognized sign-in",
   "auth.passkey.no_credentials":
     "Couldn't sign in with a passkey on this device. Add one in Security settings after signing in another way, or pick a different sign-in method below.",
+  "auth.passkey.unsupported":
+    "This browser can't use passkeys. Try another browser or device, or pick a different method.",
   "auth.error.unknown": "Something went wrong. Please try again.",
 
   // Default-skin UI (§54 AuthPanel)

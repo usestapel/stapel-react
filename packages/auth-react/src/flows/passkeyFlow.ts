@@ -5,14 +5,18 @@ import { createFlowMachine } from "@stapel/core";
 import type { FlowMachine } from "@stapel/core";
 import { toFlowError } from "./errors.js";
 import type { FlowError } from "./errors.js";
+import { resolveWebauthnCreate, resolveWebauthnGet } from "../webauthn.js";
 
 /**
- * Passkeys / WebAuthn (auth-sa.md §17). FLOW-COMPLETE, WEBAUTHN BINDING IS A
- * THIN TODO (see MODULE.md): both machines model the full begin→ceremony→
- * complete journey and surface the server `options`. The single browser step —
- * `navigator.credentials.create()/get()` — is either injected via
- * `webauthn*` deps (auto-driven) or performed by the host, which then calls
- * `submitCredential`. No heuristic "no credentials" probing (auth-sa.md §19.6).
+ * Passkeys / WebAuthn (auth-sa.md §17). Both machines model the full
+ * begin→ceremony→complete journey and surface the server `options`; the
+ * single browser step — `navigator.credentials.create()/get()` — runs on the
+ * **built-in default binding** (`../webauthn.ts`) wherever the browser API
+ * exists. An injected `webauthn*` dep still wins (native bridge, tests), and
+ * where no API exists (SSR, an old browser) the machine stops at
+ * `awaitingCredential`/`awaitingAssertion` exactly as it did before the
+ * default existed, for the host to drive via `submitCredential`. No heuristic
+ * "no credentials" probing (auth-sa.md §19.6).
  */
 
 // ── Registration (security settings, requires auth) ─────────────────────────
@@ -38,7 +42,10 @@ export interface PasskeyRegistrationFlow {
 export interface PasskeyRegistrationFlowDeps {
   readonly api: AuthApi;
   readonly analytics?: Analytics | null;
-  /** THIN WebAuthn binding: `navigator.credentials.create({ publicKey })`. */
+  /**
+   * Override the built-in `navigator.credentials.create({ publicKey })`
+   * binding (native bridge, tests). Omitted = the browser default.
+   */
   readonly webauthnCreate?: (
     options: Record<string, unknown>
   ) => Promise<unknown>;
@@ -84,9 +91,13 @@ export function createPasskeyRegistrationFlow(
       }),
     });
     const after = machine.getState();
-    if (after.step === "awaitingCredential" && deps.webauthnCreate) {
+    // Injected binding wins; otherwise the browser default — resolved at
+    // ceremony time, so an SSR-created flow still finds the API after
+    // hydration (and finds nothing, staying thin, where there is none).
+    const create = resolveWebauthnCreate(deps.webauthnCreate);
+    if (after.step === "awaitingCredential" && create) {
       try {
-        const credential = await deps.webauthnCreate(after.options);
+        const credential = await create(after.options);
         // Identity guard (same as the verification controller's, 52ae5ac):
         // the native prompt may settle after the machine moved on (reset,
         // re-begin). A stale credential must not be submitted against the
@@ -135,7 +146,10 @@ export interface PasskeyLoginFlowDeps {
   readonly api: AuthApi;
   readonly analytics?: Analytics | null;
   readonly onAuthenticated?: (result: AuthResponse) => void;
-  /** THIN WebAuthn binding: `navigator.credentials.get({ publicKey })`. */
+  /**
+   * Override the built-in `navigator.credentials.get({ publicKey })` binding
+   * (native bridge, tests). Omitted = the browser default.
+   */
   readonly webauthnGet?: (options: Record<string, unknown>) => Promise<unknown>;
 }
 
@@ -185,9 +199,12 @@ export function createPasskeyLoginFlow(
       }
     );
     const after = machine.getState();
-    if (after.step === "awaitingAssertion" && deps.webauthnGet) {
+    // Injected binding wins; otherwise the browser default (see `begin` on the
+    // registration flow above for why this resolves per ceremony).
+    const get = resolveWebauthnGet(deps.webauthnGet);
+    if (after.step === "awaitingAssertion" && get) {
       try {
-        const credential = await deps.webauthnGet(after.options);
+        const credential = await get(after.options);
         // Identity guard (same as the verification controller's, 52ae5ac): a
         // late-settling prompt must not submit a stale assertion against the
         // NEWER ceremony's session_key — `submitAssertion` only checks the step.

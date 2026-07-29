@@ -85,7 +85,12 @@ export interface CreateAuthRuntimeOptions {
   readonly onSessionLost?: (reason: SessionLostReason) => void | Promise<void>;
   /** Extra headers merged into every request (e.g. a captcha or tenant id). */
   readonly defaultHeaders?: Record<string, string>;
-  /** THIN WebAuthn binding for the passkey verification factor. */
+  /**
+   * Override the built-in browser WebAuthn binding used by the passkey
+   * verification factor. Omit it and the runtime drives
+   * `navigator.credentials.get()` itself (see `../webauthn.ts`); supply one
+   * for a native bridge, a test double, or a custom conditional-UI ceremony.
+   */
   readonly webauthnGet?: (options: Record<string, unknown>) => Promise<unknown>;
 }
 

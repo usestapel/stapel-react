@@ -35,6 +35,7 @@ import { PasskeyLogin } from "../headless/Passkey.js";
 import { MagicLink, SsoDiscovery } from "../headless/misc.js";
 import { useAuthApi } from "../model/context.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
+import { isWebauthnSupported } from "../webauthn.js";
 import { ForcedPasswordChangeCard, MfaEnrollPanel } from "./FirstLoginPanels.js";
 import { OtpField } from "./OtpField";
 
@@ -536,17 +537,29 @@ export function PasskeyPanel(): ReactElement {
       {(bag) => {
         const s = bag.state;
         const err = "error" in s ? (s.error as FlowError) : undefined;
+        // `navigator.credentials` missing (old browser, insecure context):
+        // the default binding cannot run, the flow parks on
+        // `awaitingAssertion` by design — so drop the spinner and say why,
+        // instead of a button that loads forever.
+        const stalled = s.step === "awaitingAssertion" && !isWebauthnSupported();
         return (
           <Flex vertical gap="middle">
             <Button
               type="primary"
               block
-              loading={s.step !== "idle" && !("error" in s)}
+              loading={s.step !== "idle" && !("error" in s) && !stalled}
               onClick={() => bag.begin()}
               data-analytics="flow"
             >
               {t(AUTH_I18N_KEYS.uiPasskeyCta)}
             </Button>
+            {stalled && (
+              <Alert
+                type="warning"
+                showIcon
+                message={t(AUTH_I18N_KEYS.passkeyUnsupported)}
+              />
+            )}
             {err && <Alert type="error" showIcon message={errorText(err)} />}
           </Flex>
         );

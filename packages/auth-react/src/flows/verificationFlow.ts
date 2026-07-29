@@ -14,6 +14,7 @@ import type { FlowMachine } from "@stapel/core";
 import { AUTH_FLOWS } from "./generated/flows.gen.js";
 import { toFlowError } from "./errors.js";
 import type { FlowError } from "./errors.js";
+import { resolveWebauthnGet } from "../webauthn.js";
 
 /**
  * THE FLAGSHIP CROSS-MODULE FLOW (frontend-standard §2).
@@ -43,11 +44,11 @@ import type { FlowError } from "./errors.js";
  * `initiate` fails recoverably returns to the picker so a different factor is
  * still choosable — only a 404 (challenge gone) ends the whole challenge.
  *
- * WebAuthn note: the `passkey` factor is **flow-complete but its browser
- * binding is a thin TODO** — the machine surfaces `session_key` + `options`
- * and accepts a finished credential via `submitPasskey`; calling
- * `navigator.credentials.get()` is the host's (or an injected `webauthnGet`)
- * responsibility. See MODULE.md.
+ * WebAuthn note: the `passkey` factor drives `navigator.credentials.get()`
+ * itself through the built-in default binding (`../webauthn.ts`); an injected
+ * `webauthnGet` overrides it, and where no browser API exists the machine
+ * simply parks on `awaitingPasskey` with `session_key` + `options` for the
+ * host to finish via `submitPasskey`. See MODULE.md.
  */
 export type VerificationState =
   | { readonly step: "idle" }
@@ -109,9 +110,10 @@ export interface VerificationControllerDeps {
   readonly api: AuthApi | (() => AuthApi);
   readonly analytics?: Analytics | null;
   /**
-   * Optional WebAuthn binding. When provided, choosing the `passkey` factor
-   * auto-calls it with the server `options` and submits the result — the host
-   * needs no passkey code. Thin by design; omit to drive it manually.
+   * Override the built-in browser WebAuthn binding. Choosing the `passkey`
+   * factor auto-calls it with the server `options` and submits the result;
+   * omitted, the same happens through `navigator.credentials.get()` (see
+   * `../webauthn.ts`) wherever that API exists.
    */
   readonly webauthnGet?: (
     options: Record<string, unknown>
@@ -261,11 +263,13 @@ export function createVerificationController(
       }
     );
 
-    // Auto-drive the passkey factor when a binding is injected (thin seam).
+    // Auto-drive the passkey factor: injected binding first, browser default
+    // otherwise, nothing (stay parked, host drives) where there is no API.
     const after = machine.getState();
-    if (after.step === "awaitingPasskey" && deps.webauthnGet) {
+    const webauthnGet = resolveWebauthnGet(deps.webauthnGet);
+    if (after.step === "awaitingPasskey" && webauthnGet) {
       try {
-        const credential = await deps.webauthnGet(after.options);
+        const credential = await webauthnGet(after.options);
         // Same identity guard as the catch below, for the SUCCESS path: the
         // prompt may resolve after the challenge moved on (cancel + a NEW
         // challenge reaching `awaitingPasskey`) — the stale credential must

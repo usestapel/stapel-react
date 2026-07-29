@@ -1,10 +1,12 @@
 /**
  * `<PasskeysManager/>` (owner directive point 5): list/remove use the
  * existing `usePasskeys`/`useRemovePasskey` hooks; adding uses the existing
- * `PasskeyRegistration` headless flow. THIN WebAuthn (MODULE.md): without a
- * `webauthnCreate` binding, `awaitingCredential` shows guidance copy instead
- * of silently hanging — covered here; the auto-driven path (binding
- * supplied) is covered too.
+ * `PasskeyRegistration` headless flow. WebAuthn (MODULE.md "WebAuthn
+ * binding"): the ceremony runs on the pair's built-in browser binding, an
+ * injected `webauthnCreate` overrides it, and in an environment with no
+ * WebAuthn API (jsdom here, an old browser in the wild) `awaitingCredential`
+ * shows the honest unsupported copy instead of silently hanging — all three
+ * covered here.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
@@ -91,7 +93,7 @@ describe("<PasskeysManager/>", () => {
    * the browser's own WebAuthn prompt IS the UI. Clicking "Add a passkey"
    * begins the ceremony immediately.
    */
-  it("add flow (thin, no webauthnCreate): the button directly begins the ceremony — no dialog, no name prompt", async () => {
+  it("add flow (no WebAuthn API here): the button directly begins the ceremony — no dialog, no name prompt", async () => {
     let beginCalls = 0;
     server.use(
       http.get(`${BASE}/passkey/`, () => HttpResponse.json({ passkeys: [] })),
@@ -107,10 +109,63 @@ describe("<PasskeysManager/>", () => {
 
     // No name-entry dialog anywhere — straight to the ceremony.
     expect(screen.queryByPlaceholderText("e.g. My laptop")).toBeNull();
+    // jsdom has no `navigator.credentials`: the default binding cannot run,
+    // so the panel says so rather than pointing at a prompt that will never
+    // appear (the begin call still happened — the flow is parked, not dead).
     await screen.findByText(
-      "Follow your browser or device's prompt to finish adding this passkey."
+      "This browser can't use passkeys. Try another browser or device, or pick a different method."
     );
     expect(beginCalls).toBe(1);
+  });
+
+  /**
+   * The ordinary browser: nothing injected, the pair's own binding drives
+   * `navigator.credentials.create()` and the ceremony finishes. This is the
+   * case that used to hang forever in every host that did not write a
+   * binding (the closed "Thin-WebAuthn TODO").
+   */
+  it("add flow (default binding): a real navigator.credentials completes it with nothing injected", async () => {
+    server.use(
+      http.get(`${BASE}/passkey/`, () => HttpResponse.json({ passkeys: [] })),
+      http.post(`${BASE}/passkey/register/begin/`, () =>
+        HttpResponse.json({
+          options: { challenge: "AQID", user: { id: "BAUG", name: "ada", displayName: "Ada" } },
+        })
+      ),
+      http.post(`${BASE}/passkey/register/complete/`, () => HttpResponse.json(passkey()))
+    );
+    const create = vi.fn().mockResolvedValue({
+      id: "cred-id",
+      rawId: new Uint8Array([1, 2, 3]).buffer,
+      type: "public-key",
+      response: {
+        clientDataJSON: new Uint8Array([4, 5]).buffer,
+        attestationObject: new Uint8Array([6, 7]).buffer,
+      },
+    });
+    Object.defineProperty(navigator, "credentials", {
+      value: { create, get: vi.fn() },
+      configurable: true,
+      writable: true,
+    });
+    (globalThis as Record<string, unknown>)["PublicKeyCredential"] = {
+      isUserVerifyingPlatformAuthenticatorAvailable: () => Promise.resolve(true),
+    };
+    try {
+      const runtime = createAuthRuntime({ baseUrl: BASE });
+      render(wrap(runtime, <PasskeysManager />));
+      screen.getByRole("button", { name: "Add a passkey" }).click();
+
+      await screen.findByText("Passkey added.");
+      const options = create.mock.calls[0]?.[0] as { publicKey: Record<string, unknown> };
+      // Decoded on the way in — the browser gets buffers, not base64url.
+      expect(new Uint8Array(options.publicKey["challenge"] as ArrayBuffer)).toEqual(
+        new Uint8Array([1, 2, 3])
+      );
+    } finally {
+      Reflect.deleteProperty(navigator, "credentials");
+      Reflect.deleteProperty(globalThis as Record<string, unknown>, "PublicKeyCredential");
+    }
   });
 
   it("add flow (webauthnCreate supplied): auto-drives the ceremony end to end, direct-triggered", async () => {

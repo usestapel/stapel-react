@@ -10,15 +10,16 @@ import type {
 } from "../flows/passkeyFlow.js";
 import { useFlow } from "@stapel/core";
 import { useAuthAnalytics, useAuthApi, useAuthSession } from "../model/context.js";
+import type { WebauthnBinding } from "../webauthn.js";
 
 /**
- * Optional WebAuthn binding injected into the passkey headless components.
- * THIN by design (auth-sa.md §17): when omitted, the host performs the
- * `navigator.credentials.*` ceremony and calls `submit*` with the result.
+ * Optional WebAuthn binding for the passkey headless components — an
+ * OVERRIDE of the built-in browser one (`../webauthn.ts`), which is what runs
+ * when this prop is omitted. Only environments with no
+ * `navigator.credentials` fall back to the thin contract (park on
+ * `awaiting*`, host calls `submit*` with a credential it obtained itself).
  */
-export type WebauthnBinding = (
-  options: Record<string, unknown>
-) => Promise<unknown>;
+export type { WebauthnBinding };
 
 export interface PasskeyRegistrationBag {
   readonly state: PasskeyRegisterState;

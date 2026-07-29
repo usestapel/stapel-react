@@ -79,7 +79,7 @@ annotates them.
 | Password login + TOTP branch §3/§11 **[flows.json: `auth.password_login`]** | `createPasswordLoginFlow` | `<PasswordLogin>` | **full** |
 | Password change §4 | `createPasswordChangeFlow` | `<PasswordChange>` | **full** |
 | Password reset §5 | `createPasswordResetFlow` | `<PasswordReset>` | **full** |
-| Step-up verification §11 **[flows.json: `auth.step_up_verification`]** | `createVerificationController` | `<VerificationChallenge>` | **full** (passkey factor thin) |
+| Step-up verification §11 **[flows.json: `auth.step_up_verification`]** | `createVerificationController` | `<VerificationChallenge>` | **full** |
 | TOTP setup §11 | `createTotpSetupFlow` | `<TotpSetup>` | **full** |
 | OAuth token exchange §7 | `createOAuthFlow` | — (+ `authUrls().oauthAuthorize`) | **full** |
 | Sessions §12 | model hooks/mutations | — | **full** |
@@ -89,21 +89,53 @@ annotates them.
 | Anonymous §6 | `createAnonymousFlow` | `<AnonymousSession>` | **full** |
 | Authenticator change (instant) §9 | `createAuthenticatorChangeFlow` | `<AuthenticatorChange>` | **full** (delayed = CRUD hooks) |
 | SSO discovery §18 | `createSsoFlow` | `<SsoDiscovery>` | **full** (redirect handoff) |
-| Passkeys §17 | `createPasskeyRegistrationFlow` / `createPasskeyLoginFlow` | `<PasskeyRegistration>` / `<PasskeyLogin>` | **flow complete, WebAuthn binding THIN** |
+| Passkeys §17 | `createPasskeyRegistrationFlow` / `createPasskeyLoginFlow` | `<PasskeyRegistration>` / `<PasskeyLogin>` | **full** (browser binding built in, host override wins) |
 
-### Thin-WebAuthn TODO (honest scope)
+### WebAuthn binding (default in the library; override still wins)
 
-Passkeys and the `passkey` verification factor model the full
-begin→ceremony→complete journey and surface the server `options` /
-`session_key`. The **single browser step** — `navigator.credentials.create()` /
-`.get()` — is **not** implemented here. Provide it one of two ways:
+The former "Thin-WebAuthn TODO" is **closed** (`src/webauthn.ts`). The single
+browser step — `navigator.credentials.create()` / `.get()` — used to be the
+host's job entirely, and every host that never wrote it got a passkey flow
+wedged forever in `awaitingCredential` / `awaitingAssertion`. It now ships
+here:
 
-1. **Inject a binding** — pass `webauthnCreate` / `webauthnGet` (to the flow,
-   the `<Passkey*>` components, or `createAuthRuntime({ webauthnGet })`); the
-   flow auto-drives the ceremony.
-2. **Drive it manually** — read the `awaitingCredential` / `awaitingAssertion`
-   state's `options`, run the ceremony yourself, call `submitCredential` /
-   `submitAssertion` / `submitPasskey`.
+1. **Default (nothing to do)** — `createPasskeyRegistrationFlow` /
+   `createPasskeyLoginFlow` / `createVerificationController` /
+   `createAuthRuntime` / `<Passkey*>` drive the ceremony through the built-in
+   binding wherever `navigator.credentials` exists. No host code, no
+   `@simplewebauthn` dependency: the base64url⇄`ArrayBuffer` conversion is
+   ~60 lines, hand-written, dependency-free.
+2. **Override (still supported, unchanged)** — pass `webauthnCreate` /
+   `webauthnGet` to the flow, the `<Passkey*>` components, or
+   `createAuthRuntime({ webauthnGet })`, and yours is used instead (native
+   bridge, react-native-passkeys, a conditional-UI ceremony, a test double).
+3. **Drive it manually (still supported)** — read the
+   `awaitingCredential` / `awaitingAssertion` state's `options`, run the
+   ceremony yourself, call `submitCredential` / `submitAssertion` /
+   `submitPasskey`.
+
+**Wire format.** stapel-auth speaks the JSON projection py_webauthn emits and
+parses (`mfa/services.py`: `_build_registration_credential` /
+`_build_authentication_credential`, `options_to_json`): every binary field is
+**unpadded base64url**. Decoded on the way in — `challenge`, `user.id`,
+`excludeCredentials[].id` / `allowCredentials[].id`; encoded on the way out —
+`rawId` and the `response.*` buffers (`clientDataJSON`, `attestationObject` /
+`authenticatorData`, `signature`, `userHandle`). Unknown members pass through
+untouched, and `{ publicKey: … }`-wrapped options are unwrapped.
+
+**No browser API (SSR, an old browser, an insecure context).** Support is
+probed **per ceremony** (`isWebauthnSupported()`), never memoized at import,
+so an SSR-rendered module graph still finds the API after hydration. Where
+there is none, the resolved binding is *nothing* and the pre-default thin
+behaviour is intact: the machine parks on `awaiting*` (no crash, no phantom
+`error`) and the /default skin swaps its "follow your browser's prompt" copy
+for the honest `auth.passkey.unsupported` one.
+
+Exported for hosts that want the same pieces: `defaultWebauthnCreate`,
+`defaultWebauthnGet`, `resolveWebauthnCreate`, `resolveWebauthnGet`,
+`isWebauthnSupported`, `toCreationOptions`, `toRequestOptions`,
+`encodeAttestation`, `encodeAssertion`, `base64UrlToArrayBuffer`,
+`arrayBufferToBase64Url`.
 
 No "no credentials" heuristics — per auth-sa.md §19.6 that leak works against
 the privacy property; show the single copy key `auth.passkey.no_credentials`.
@@ -212,9 +244,10 @@ auto-submit, the Waylot-referenced responsive alt-method sheet):
   (`useOAuthLinks`/`useLinkOAuth`/`useUnlinkOAuth`, `AuthApi.oauthLink*`) is
   the pair's newest real surface — `/oauth/links/` list/link/unlink, part of
   the same 0.6.0 contract. Its "Connect" action and `PasskeysManager`'s "Add"
-  both carry a THIN host binding (`getAccessToken`/`webauthnCreate`) for the
-  browser-side ceremony this pair cannot perform itself — same boundary as
-  the existing Thin-WebAuthn TODO below.
+  "Connect" action still carries a THIN host binding (`getAccessToken`) for a
+  browser-side step this pair cannot perform itself; `PasskeysManager`'s "Add"
+  no longer needs one — `webauthnCreate` is now an OVERRIDE over the built-in
+  browser binding (see "WebAuthn binding" above).
 
 ## Follow-up
 

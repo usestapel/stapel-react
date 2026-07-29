@@ -35,6 +35,8 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.session.suspicious": "Неопознанный вход",
   "auth.passkey.no_credentials":
     "Не удалось войти по passkey на этом устройстве. Добавьте его в настройках безопасности, войдя другим способом, или выберите другой способ входа ниже.",
+  "auth.passkey.unsupported":
+    "Этот браузер не умеет passkey. Попробуйте другой браузер или устройство либо выберите другой способ.",
   "auth.error.unknown": "Что-то пошло не так. Попробуйте ещё раз.",
 
   // Default-skin UI (§54 AuthPanel)

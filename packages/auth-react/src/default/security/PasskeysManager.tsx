@@ -12,11 +12,12 @@
  * (`bag.begin()` straight off the button click). A generic device name is
  * inferred from the user agent; renaming is a follow-up, not a blocker.
  *
- * THIN WebAuthn (MODULE.md "Thin-WebAuthn TODO", the same honest scope the
- * sign-in `PasskeyPanel` follows): the single `navigator.credentials.create()`
- * browser step is NOT performed here unless the host supplies `webauthnCreate`
- * — without it, `awaitingCredential` renders guidance copy instead of silently
- * hanging.
+ * WEBAUTHN (MODULE.md "WebAuthn binding", the same contract the sign-in
+ * `PasskeyPanel` follows): `navigator.credentials.create()` runs on the
+ * pair's built-in default binding, so the ceremony works with nothing
+ * injected; `webauthnCreate` overrides it. Where the browser has no WebAuthn
+ * API at all, `awaitingCredential` renders the honest "can't use passkeys
+ * here" copy instead of guidance for a prompt that will never appear.
  */
 import { useEffect, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
@@ -28,6 +29,7 @@ import type { PasskeyRegistrationBag, WebauthnBinding } from "../../headless/Pas
 import { useRemovePasskey } from "../../model/mutations.js";
 import { usePasskeys } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
+import { isWebauthnSupported } from "../../webauthn.js";
 import { SecurityEmptyIcon } from "./icons.js";
 
 /** A generic device name inferred from the user agent — good enough for a
@@ -112,9 +114,18 @@ function AddJourney(props: {
       </Flex>
     );
   }
-  // awaitingCredential: no webauthnCreate binding was supplied to drive the
-  // browser ceremony automatically — thin by design (see module doc).
-  return <Typography.Text type="secondary">{t(AUTH_I18N_KEYS.secPasskeysAwaitingCeremony)}</Typography.Text>;
+  // awaitingCredential: normally the browser prompt is already up (default
+  // binding) — guide the user to it. With no WebAuthn API in this browser
+  // nothing will ever appear, so say THAT instead of waiting on a ghost.
+  return (
+    <Typography.Text type="secondary">
+      {t(
+        isWebauthnSupported()
+          ? AUTH_I18N_KEYS.secPasskeysAwaitingCeremony
+          : AUTH_I18N_KEYS.passkeyUnsupported
+      )}
+    </Typography.Text>
+  );
 }
 
 export interface PasskeysManagerProps {

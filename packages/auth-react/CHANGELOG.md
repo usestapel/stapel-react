@@ -1,5 +1,26 @@
 # @stapel/auth-react
 
+## 0.12.1
+
+### Patch Changes
+
+- Passkeys work with no host code: the browser WebAuthn ceremony ships in the library
+
+  `navigator.credentials.create()/get()` used to be the host's job entirely
+  ("Thin-WebAuthn TODO") — and a host that never wrote it got a passkey flow
+  wedged forever in `awaitingCredential`/`awaitingAssertion`. The default
+  binding now lives in the pair (`src/webauthn.ts`, no new runtime dependency:
+  the base64url⇄ArrayBuffer conversion stapel-auth's wire format needs is
+  hand-written), so registration, passkey login and the `passkey` verification
+  factor drive themselves.
+
+  Backwards compatible: an injected `webauthnCreate`/`webauthnGet` (flow,
+  `<Passkey*>` prop, `createAuthRuntime`) still wins, and an environment with no
+  `navigator.credentials` (SSR, an old browser) keeps the previous thin
+  behaviour — the machine parks on `awaiting*` for the host to drive, and the
+  /default skin shows the new honest `auth.passkey.unsupported` copy instead of
+  pointing at a prompt that will never appear.
+
 ## 0.12.0
 
 ### Minor Changes

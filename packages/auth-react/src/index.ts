@@ -161,6 +161,22 @@ export type {
   PasskeyLoginFlowDeps,
   PasskeyLoginState,
 } from "./flows/passkeyFlow.js";
+// The browser WebAuthn binding the passkey flows drive by default — exported
+// so a host can call, wrap, or feature-detect the very same ceremony code it
+// gets for free (see `./webauthn.ts` and MODULE.md "WebAuthn binding").
+export {
+  base64UrlToArrayBuffer,
+  arrayBufferToBase64Url,
+  toCreationOptions,
+  toRequestOptions,
+  encodeAttestation,
+  encodeAssertion,
+  isWebauthnSupported,
+  defaultWebauthnCreate,
+  defaultWebauthnGet,
+  resolveWebauthnCreate,
+  resolveWebauthnGet,
+} from "./webauthn.js";
 export { createMagicLinkFlow } from "./flows/magicLinkFlow.js";
 export type {
   MagicLinkFlow,

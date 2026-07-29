@@ -54,8 +54,9 @@ export interface ForcedPasswordChangeCardProps {
   readonly challengeToken: string;
   /** Light or dark — theme from `@stapel/tokens` via `toAntdThemeConfig`. */
   readonly mode?: ThemeMode;
-  /** THIN WebAuthn binding, forwarded to the chained enroll panel's passkey
-   * journey (both-flags accounts chain password_change → mfa_enroll). */
+  /** WebAuthn binding OVERRIDE, forwarded to the chained enroll panel's
+   * passkey journey (both-flags accounts chain password_change → mfa_enroll).
+   * Omitted, the built-in browser binding drives the ceremony. */
   readonly webauthnCreate?: WebauthnBinding;
 }
 
@@ -171,10 +172,9 @@ export interface MfaEnrollPanelProps {
   readonly mode?: ThemeMode;
   /** Restrict/reorder the offered factors. Default `["totp", "passkey"]`. */
   readonly methods?: readonly MfaEnrollMethod[];
-  /** THIN WebAuthn binding for the passkey journey
-   * (`navigator.credentials.create` — host-injected, MODULE.md
-   * "Thin-WebAuthn"). Without it the passkey option still renders; the host
-   * must then drive the ceremony itself via the headless layer instead. */
+  /** WebAuthn binding OVERRIDE for the passkey journey (MODULE.md "WebAuthn
+   * binding"). Omitted, `navigator.credentials.create` runs on the pair's
+   * built-in binding; supply one for a native bridge or a custom ceremony. */
   readonly webauthnCreate?: WebauthnBinding;
   /** Total digits of a TOTP confirm code. Default 6. */
   readonly totpCodeLength?: number;
