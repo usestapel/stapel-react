@@ -1,5 +1,27 @@
 # @stapel/auth-react
 
+## 0.11.1
+
+### Patch Changes
+
+- OTP boxes stay square when they have to shrink.
+
+  0.11.0 diagnosed this backwards. I assumed the row was STRETCHING and capped
+  its width; `.ant-otp` is `inline-flex` with no width of its own, so it never
+  stretched. The boxes were being SQUEEZED: each inner input is a normal antd
+  Input at `width: 100%` with the default `flex-shrink: 1`, so when the row has
+  less inline space than the boxes need, flexbox takes the difference out of
+  their width while their height stays put — square becomes rectangle. The
+  0.11.0 fix therefore changed nothing on a phone, which is exactly what was
+  reported back.
+
+  The fix belongs on the boxes, not the row. Via antd v6's `input` slot each box
+  now gets `aspect-ratio: 1` with `height: auto` (so width and height shrink
+  together and a box that must get smaller stays square), `min-width: 0` (a flex
+  item will not shrink past its content width without it — the whole problem),
+  and `flex: 1 1 0` (all boxes shrink at the same rate instead of one collapsing
+  first). A caller passing the function form of `styles` keeps full control.
+
 ## 0.11.0
 
 ### Minor Changes
