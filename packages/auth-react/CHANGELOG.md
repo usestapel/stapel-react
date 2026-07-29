@@ -1,5 +1,28 @@
 # @stapel/auth-react
 
+## 0.12.0
+
+### Minor Changes
+
+- OTP boxes are rectangles, and the resend countdown is the server's number.
+
+  **Shape.** 1:1 made each box read as a button rather than a slot for one
+  character. They are now 3:4 — taller than wide, the shape every familiar OTP
+  field uses — and still shrink proportionally instead of flattening.
+
+  **Countdown.** The skin counted down a hardcoded 30 s while the backend
+  enforced `OTP_RESEND_COOLDOWN`, a setting. Two copies of one truth, and the
+  UI's copy is the one users obey: raise the setting and the button unlocks
+  early into a rate-limit error; lower it and people wait for nothing. The OTP
+  flow now carries `resendAfter` from the send response
+  (`resend_cooldown_seconds`) into `codeSent`, and the skin counts that. The 30 s
+  constant survives only as a floor for a backend too old to send the field.
+
+  Noted while wiring it: the generated API type for the OTP-request response
+  does not carry `resend_cooldown_seconds` even though the OpenAPI schema
+  declares it, so the value is read defensively rather than through a cast that
+  would claim more than the client type knows.
+
 ## 0.11.1
 
 ### Patch Changes

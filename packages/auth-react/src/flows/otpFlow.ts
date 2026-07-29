@@ -29,6 +29,12 @@ export type OtpState =
       readonly channel: OtpChannel;
       readonly value: string;
       readonly target: string;
+      /** Seconds the SERVER says to wait before resending. Carried through
+       *  because the skin used to count down its own hardcoded 30 while
+       *  the backend's `OTP_RESEND_COOLDOWN` was a setting — two copies of
+       *  one truth, and the UI's copy is the one users obey. Undefined
+       *  when a backend predates the field. */
+      readonly resendAfter?: number;
     }
   | { readonly step: "verifying"; readonly channel: OtpChannel; readonly value: string; readonly target: string }
   | { readonly step: "authenticated"; readonly result: AuthResponse }
@@ -97,6 +103,15 @@ export function createOtpFlow(deps: OtpFlowDeps): OtpFlow {
           channel,
           value,
           target: r.target,
+          // Read defensively rather than by the client's response type:
+          // the generated type for this endpoint does not carry the field
+          // even though the OpenAPI schema does, so a strict cast would
+          // be a lie in the other direction.
+          ...(() => {
+            const sent = (r as unknown as { resend_cooldown_seconds?: unknown })
+              .resend_cooldown_seconds;
+            return typeof sent === "number" ? { resendAfter: sent } : {};
+          })(),
         }),
         reject: (error): OtpState => {
           const flowError = toFlowError(error);

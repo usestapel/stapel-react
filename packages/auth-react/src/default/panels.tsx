@@ -44,7 +44,11 @@ import { OtpField } from "./OtpField";
  * ONE safe fallback, not a guess between arbitrary lengths.
  */
 const DEFAULT_OTP_LENGTH = 6;
-const RESEND_COOLDOWN_S = 30;
+/** Only a floor for a backend too old to send `resend_cooldown_seconds`.
+ *  The server's value wins whenever it is there — the countdown a user
+ *  obeys must be the same number the API enforces, not a second copy of
+ *  it that drifts the moment someone tunes OTP_RESEND_COOLDOWN. */
+const RESEND_COOLDOWN_FALLBACK_S = 30;
 
 /**
  * Inline error copy for a flow error (ПРАВИЛО 8) — routed through core's
@@ -74,9 +78,13 @@ function useFieldError(): (
  * bag exposes no `resendIn`, so the skin owns the timer locally — scoped to
  * this panel instance, so it cannot leak into another flow.
  */
-function ResendLink(props: { onResend: () => void }): ReactElement {
+function ResendLink(props: {
+  onResend: () => void;
+  cooldownSeconds?: number;
+}): ReactElement {
   const t = useT();
-  const [left, setLeft] = useState(RESEND_COOLDOWN_S);
+  const cooldown = props.cooldownSeconds ?? RESEND_COOLDOWN_FALLBACK_S;
+  const [left, setLeft] = useState(cooldown);
   useEffect(() => {
     if (left <= 0) return;
     const id = setInterval(() => setLeft((n) => (n > 0 ? n - 1 : 0)), 1000);
@@ -84,7 +92,7 @@ function ResendLink(props: { onResend: () => void }): ReactElement {
   }, [left]);
   const resend = (): void => {
     props.onResend();
-    setLeft(RESEND_COOLDOWN_S);
+    setLeft(cooldown);
   };
   return (
     <Button
@@ -115,6 +123,8 @@ function OtpCodeStep(props: {
   submitting: boolean;
   onSubmit: (code: string) => void;
   onResend: () => void;
+  /** What the server said to wait; undefined on an older backend. */
+  resendAfter?: number;
   /** Purely a static marker for `stapel/clickable-needs-event` — the actual
    * submit happens inside, on `Input.OTP`'s auto-fill (a flow action; the
    * machine auto-emits `flow.<id>.<step>`), not on a DOM click/submit here. */
@@ -161,7 +171,12 @@ function OtpCodeStep(props: {
           <Alert type="error" showIcon message={errorText(props.error)} />
         )}
       </Flex>
-      <ResendLink onResend={props.onResend} />
+      <ResendLink
+        onResend={props.onResend}
+        {...(props.resendAfter !== undefined
+          ? { cooldownSeconds: props.resendAfter }
+          : {})}
+      />
     </Flex>
   );
 }
@@ -216,6 +231,9 @@ export function OtpPanel(props: {
               submitting={s.step === "verifying"}
               onSubmit={(code) => bag.submitCode(code)}
               onResend={() => bag.resend()}
+              {...(s.step === "codeSent" && s.resendAfter !== undefined
+                ? { resendAfter: s.resendAfter }
+                : {})}
               data-analytics="flow"
             />
           );

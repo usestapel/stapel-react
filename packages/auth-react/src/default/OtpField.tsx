@@ -41,7 +41,10 @@ type OtpProps = ComponentProps<typeof Input.OTP>;
 type OtpRef = ElementRef<typeof Input.OTP>;
 
 const BOX: CSSProperties = {
-  aspectRatio: "1 / 1",
+  // Taller than wide, not a true square: a code box reads as a slot for one
+  // character, and at 1:1 it looks like a button. 3:4 is the shape every
+  // familiar OTP field uses, and it still shrinks proportionally.
+  aspectRatio: "3 / 4",
   height: "auto",
   minWidth: 0,
   flex: "1 1 0",
