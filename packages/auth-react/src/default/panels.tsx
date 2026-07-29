@@ -36,6 +36,7 @@ import { MagicLink, SsoDiscovery } from "../headless/misc.js";
 import { useAuthApi } from "../model/context.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
 import { ForcedPasswordChangeCard, MfaEnrollPanel } from "./FirstLoginPanels.js";
+import { OtpField } from "./OtpField";
 
 /**
  * Fallback digit count when the backend doesn't send `otp` metadata
@@ -123,7 +124,7 @@ function OtpCodeStep(props: {
   const errorText = useErrorText();
   const [code, setCode] = useState("");
   const submittedRef = useRef(false);
-  const otpRef = useRef<ElementRef<typeof Input.OTP>>(null);
+  const otpRef = useRef<ElementRef<typeof OtpField>>(null);
 
   useEffect(() => {
     if (!props.error) return;
@@ -147,7 +148,7 @@ function OtpCodeStep(props: {
       </Typography.Text>
       <Flex vertical gap="small">
         <Typography.Text>{t(AUTH_I18N_KEYS.otpEnterCode)}</Typography.Text>
-        <Input.OTP
+        <OtpField
           ref={otpRef}
           length={props.length}
           value={code}

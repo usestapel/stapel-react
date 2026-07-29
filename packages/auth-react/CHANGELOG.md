@@ -1,5 +1,29 @@
 # @stapel/auth-react
 
+## 0.11.0
+
+### Minor Changes
+
+- Guest entry is a button, and the OTP boxes keep their shape on mobile.
+
+  **Guest entry.** "Continue as guest" was a `Typography.Link` small enough to
+  miss, so every host that cared about it drew its own prominent CTA beside it —
+  and ended up with TWO guest entries on one screen (3571.meettoday.app,
+  2026-07-29). The canonical form is now a full-width `Button` with a hint line
+  underneath, which removes the reason to add a second one. It stays
+  `type="default"` rather than primary: guest entry is the alternative to signing
+  in, not the recommended action. New key `auth.ui.continue_as_guest_hint`
+  (en + ru).
+
+  **OTP shape.** antd's OTP boxes are flex children that grow to fill the row. In
+  a desktop form the row has a fixed width so nothing stretches; inside a
+  full-bleed mobile layout the same row is viewport-wide, and the boxes stretch
+  horizontally while keeping their height — squares become flattened rectangles.
+  All five OTP call sites now go through one `OtpField` wrapper that gives the
+  field its natural width and centres the BLOCK. Deliberately not fixed by
+  padding the container until it looks right: centring by squeezing is a
+  coincidence that breaks at the next breakpoint.
+
 ## 0.10.3
 
 ### Patch Changes

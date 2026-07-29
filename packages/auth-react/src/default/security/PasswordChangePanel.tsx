@@ -20,6 +20,7 @@ import { useAuthSessionState } from "../../model/context.js";
 import { useCapabilities, usePasswordMethods } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import type { AuthI18nKey } from "../../i18n/keys.js";
+import { OtpField } from "../OtpField";
 
 const CHANNEL_LABEL: Record<OtpChannel, AuthI18nKey> = {
   email: AUTH_I18N_KEYS.uiChannelEmail,
@@ -115,7 +116,7 @@ function OtpTab(props: { bag: PasswordChangeBag; channel: OtpChannel; target: st
           {t(AUTH_I18N_KEYS.secPasswordViaOtpHint, { target: s.target })}
         </Typography.Text>
         <Form.Item name="code" label={t(AUTH_I18N_KEYS.otpEnterCode)}>
-          <Input.OTP length={otpLength} autoFocus />
+          <OtpField length={otpLength} autoFocus />
         </Form.Item>
         <Form.Item name="newPassword" label={t(AUTH_I18N_KEYS.secPasswordNewLabel)}>
           <Input.Password autoComplete="new-password" />

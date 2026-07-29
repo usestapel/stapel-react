@@ -350,16 +350,30 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
             {(bag) => {
               const err = bag.state.step === "error" ? bag.state.error : undefined;
               return (
-                <Flex vertical align="center" gap={4}>
-                  <Typography.Link
-                    disabled={bag.state.step === "creating"}
+                <Flex vertical align="center" gap={4} style={{ width: "100%" }}>
+                  {/* A full-width button, not a text link. As a link this
+                      was small enough to miss, and every host that cared
+                      ended up drawing its own prominent CTA next to it —
+                      leaving TWO guest entries on the same screen
+                      (3571.meettoday.app, 2026-07-29). Making the visible
+                      form the canonical one removes the reason to add a
+                      second. It stays `type="default"` rather than
+                      primary: guest entry is the alternative to signing
+                      in, not the recommended action. */}
+                  <Button
+                    block
+                    size="large"
+                    loading={bag.state.step === "creating"}
                     onClick={() => bag.create()}
                     data-analytics="flow"
                   >
                     {bag.state.step === "creating"
                       ? t(AUTH_I18N_KEYS.uiContinueAsGuestPending)
                       : t(AUTH_I18N_KEYS.uiContinueAsGuest)}
-                  </Typography.Link>
+                  </Button>
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                    {t(AUTH_I18N_KEYS.uiContinueAsGuestHint)}
+                  </Typography.Text>
                   {err && <Typography.Text type="danger">{formatError(err)}</Typography.Text>}
                 </Flex>
               );

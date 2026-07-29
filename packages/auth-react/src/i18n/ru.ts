@@ -43,6 +43,7 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.ui.more_methods": "Другие способы входа",
   "auth.ui.continue_as_guest": "Продолжить как гость",
   "auth.ui.continue_as_guest_pending": "Входим…",
+  "auth.ui.continue_as_guest_hint": "Войти можно позже — данные сохранятся.",
   "auth.ui.resend_in": "Повторить через {s} с",
   "auth.ui.email_label": "Эл. почта",
   "auth.ui.email_placeholder": "you@example.com",

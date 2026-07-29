@@ -42,6 +42,7 @@ import type { TotpSetupBag } from "../headless/TotpSetup.js";
 import { PasskeyRegistration } from "../headless/Passkey.js";
 import type { WebauthnBinding } from "../headless/Passkey.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
+import { OtpField } from "./OtpField";
 
 /** Fallback when the backend omits `otp.totp_code_length` metadata. */
 const DEFAULT_TOTP_LENGTH = 6;
@@ -412,7 +413,7 @@ function EnrollTotpJourney(props: {
             ? { validateStatus: "error" as const, help: formatError(err) }
             : {})}
         >
-          <Input.OTP length={props.codeLength} autoFocus />
+          <OtpField length={props.codeLength} autoFocus />
         </Form.Item>
         <Button
           type="primary"

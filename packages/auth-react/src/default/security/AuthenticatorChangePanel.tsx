@@ -30,6 +30,7 @@ import { useCancelDelayedChange, useInitiateDelayedChange } from "../../model/mu
 import { useCapabilities, useDelayedChangeStatus, useMe } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import type { AuthI18nKey } from "../../i18n/keys.js";
+import { OtpField } from "../OtpField";
 
 const CHANNEL_LABEL: Record<OtpChannel, AuthI18nKey> = {
   email: AUTH_I18N_KEYS.uiChannelEmail,
@@ -248,7 +249,7 @@ function ChangeJourney(props: {
           })}
         </Typography.Text>
         <Form.Item name="code" label={t(AUTH_I18N_KEYS.otpEnterCode)} style={{ marginTop: 12 }}>
-          <Input.OTP length={otpLength} autoFocus />
+          <OtpField length={otpLength} autoFocus />
         </Form.Item>
         <Button
           type="primary"
@@ -291,7 +292,7 @@ function ChangeJourney(props: {
         })}
       </Typography.Text>
       <Form.Item name="code" label={t(AUTH_I18N_KEYS.otpEnterCode)} style={{ marginTop: 12 }}>
-        <Input.OTP length={otpLength} autoFocus />
+        <OtpField length={otpLength} autoFocus />
       </Form.Item>
       <Button
         type="primary"
