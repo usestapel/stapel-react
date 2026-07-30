@@ -22,6 +22,7 @@ import demoLiteralMeta from "./rules/demo-literal-meta.js";
 import noRawStorage from "./rules/no-raw-storage.js";
 import noAdhoc401 from "./rules/no-adhoc-401.js";
 import noReservedBackendRoute from "./rules/no-reserved-backend-route.js";
+import noRawErrorShape from "./rules/no-raw-error-shape.js";
 
 const rules = {
   "no-raw-colors": noRawColors,
@@ -48,10 +49,13 @@ const rules = {
   // Front/back path-collision guardrail (owner directive: SPA router must not
   // claim a reserved backend sub-path).
   "no-reserved-backend-route": noReservedBackendRoute,
+  // Error-dialect guardrail: a caught value is narrowed through the layer,
+  // never through a cast (@stapel/core errors.ts "One dialect").
+  "no-raw-error-shape": noRawErrorShape,
 };
 
 const plugin = {
-  meta: { name: "@stapel/eslint-plugin", version: "0.5.0" },
+  meta: { name: "@stapel/eslint-plugin", version: "0.6.0" },
   rules,
 };
 
@@ -138,6 +142,26 @@ const ADHOC_401_ALLOWED = [
   "**/auth-react/src/model/session.{ts,js}",
 ];
 
+// The transport / error layer — the ONE legal home of the raw error shape.
+// Somebody has to read `{localizable_error, …}` off the wire and fold it into
+// `StapelApiError` (`toStapelApiError`), and that somebody is this layer;
+// everywhere else a caught value is narrowed through core's guards. Mirrors
+// the FETCH_ALLOWED api-layer carve-out — and the scoping is the point: an
+// unscoped rule gets blanket-disabled, and then it guards nothing.
+const ERROR_LAYER_ALLOWED = [
+  "**/api/**",
+  "**/*client.{ts,js}",
+  "**/errors.{ts,tsx,js,mjs}",
+  "**/*Errors.{ts,tsx,js,mjs}",
+  "**/error-layer/**",
+  // Node-side CLI/build code: there `catch (e) { e.code === "ENOENT" }` is
+  // errno, not a Stapel envelope — a different universe of error, and the
+  // one this rule would otherwise flag falsely.
+  "**/scripts/**",
+  "**/bin/**",
+  "**/*.config.{js,mjs,cjs,ts}",
+];
+
 /**
  * Flat-config `recommended` preset. Consumers spread it AFTER their parser
  * config:
@@ -179,6 +203,10 @@ const recommended = [
       // backend sub-path (/<mod>/api/…, /<mod>/swagger…, /admin, /staticfiles,
       // /media — §57 nginx canon). No-op without reserved-paths.json.
       "stapel/no-reserved-backend-route": "error",
+      // Error dialect: a caught value is `StapelApiError` OR the raw
+      // envelope (no `.status`) — narrow through core's guards, never
+      // through a cast. Off in the error/transport layer below.
+      "stapel/no-raw-error-shape": "error",
     },
   },
   {
@@ -218,6 +246,12 @@ const recommended = [
     rules: { "stapel/no-adhoc-401": "off" },
   },
   {
+    // The transport/error layer — the one legal home of the raw envelope
+    // shape (it is the code that folds it into `StapelApiError`).
+    files: ERROR_LAYER_ALLOWED,
+    rules: { "stapel/no-raw-error-shape": "off" },
+  },
+  {
     // The facade's provider adapters — the ONE legal home of vendor SDK
     // imports (§2.2 override; mirrors the FETCH_ALLOWED api-layer carve-out).
     files: ["**/analytics/providers.{ts,js}", "**/analytics/src/providers.{ts,js}", "**/analytics/providers/**"],
@@ -247,6 +281,9 @@ const recommended = [
       // contract test greps localStorage directly) and on 401 fixtures.
       "stapel/no-raw-storage": "off",
       "stapel/no-adhoc-401": "off",
+      // Fixtures deliberately construct un-narrowed/raw error shapes — that
+      // is what an envelope-dialect test IS (including this rule's own).
+      "stapel/no-raw-error-shape": "off",
       // Route fixtures legitimately probe reserved-path collisions on purpose
       // (that's what this rule's own tests do).
       "stapel/no-reserved-backend-route": "off",

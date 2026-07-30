@@ -33,8 +33,10 @@ The `recommended` preset:
   `no-raw-fetch` and `no-string-paths` **off** in the codegen api layer
   (`**/api/**`, `*client.ts`, `generated/`), `query-keys-from-factory`
   **off** in the key-factory file (`**/queryKeys.*`), `no-raw-storage` **off**
-  in core's storage/repository internals, and `no-adhoc-401` **off** in core's
-  client/session (each rule's one legal home);
+  in core's storage/repository internals, `no-adhoc-401` **off** in core's
+  client/session, and `no-raw-error-shape` **off** in the transport/error layer
+  (`**/api/**`, `*client.ts`, `errors.ts`, plus Node-side `scripts/`/`bin/`,
+  where `e.code` is an errno) (each rule's one legal home);
 - **overrides** the content rules off in tests and fixtures (they exercise the
   anti-patterns on purpose).
 
@@ -87,6 +89,7 @@ missing, the rule is a no-op — it never fails the lint run.
 | `stapel/demo-literal-meta` | `defineDemo()` with non-literal meta (dynamic `id`/`title`/`description`/`covers`) — breaks static extraction into `demos.json`/`manifest.demos` (§4.2) |
 | `stapel/no-raw-storage` | direct `localStorage`/`sessionStorage`/`indexedDB` (bare or via `window.`/`globalThis.`/`self.`) or importing `idb-keyval` outside `@stapel/core`'s repository layer — raw storage is neither wiped on logout nor encrypted; persist through `createRepository()` (frontend-core-architecture-v2 §43.4). Off in core's `storage.ts`/`repository.ts`/`query.ts` (the one legal home) and in tests. Extend the banned module list via `options.modules` or `settings.stapel.storageModules` |
 | `stapel/no-adhoc-401` | comparing a status to the literal `401` (`===`/`!==`/`case 401:`) or wiring an axios-style `*.interceptors` chain — ad hoc 401 handling bypasses the single-flight refresh + logout-hook registry; 401s are handled ONCE, in core's `createStapelClient` (`onAuthRefresh` seam) + `SessionManager` (§43.2). Off in core's `client.ts`/`session.ts` and in tests |
+| `stapel/no-raw-error-shape` | `as`-casting a caught value, casting anything to a hand-written error shape (`{ status?: number }`, `{ localizable_error?: string }`, …), or reading `.status`/`.code`/`.localizable_error` off an un-narrowed caught value. A thrown value comes in TWO dialects — `StapelApiError` (has `.status`) and the RAW envelope `{localizable_error, error, params}` the parsed response body IS (has none) — so `(e as { status?: number })?.status === 404` is a branch that can never be true on the second one, and the cast silences the only check that would have caught it. Narrow with `isStapelApiError` / `hasErrorCode` / a named `errorCodePredicate(…)` from `@stapel/core`, or fold once at the transport with `toStapelApiError(body, response.status)`. Off in the transport/error layer (`**/api/**`, `*client.*`, `errors.*`, `scripts/`, `bin/`) and in tests. Tune via `options.properties` / `options.errorClasses` |
 | `stapel/no-reserved-backend-route` | an SPA route (`<Route path="…">`, a `createBrowserRouter`/`createHashRouter`/`createMemoryRouter` array literal, or any `{ path: "…", element/Component/children/index/errorElement/loader/action/lazy: … }` RouteObject) whose path falls INTO a reserved backend sub-path — `/<mod>/api/…`, `/<mod>/swagger…`, or the project-wide `/admin`, `/staticfiles`, `/media` (§57 nginx canon). A **bare module root** (`/calendar`) is legitimate and never flagged — roots belong to the frontend; only sub-paths collide. Data-driven: reads the flat `reservedPathPrefixes` array from `reserved-paths.json` (emitted by stapel-tools' project generator) at the workspace root, or `settings.stapel.reservedPathsFile`/`reservedPaths`. No catalog → no-op (never a crash) |
 
 ### Settings

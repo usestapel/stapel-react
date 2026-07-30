@@ -78,3 +78,41 @@ lands — a checkout failure before that is expected, not a regression.
   no index keys; user-facing strings are i18n keys, never literals.
 - Tokens, not values: no raw colors/px outside `@stapel/tokens`.
 - Tests: vitest + testing-library; API interactions mocked with MSW.
+
+## Mock the wire, not the module
+
+**A test that hand-shapes the value under test cannot disprove the assumption
+that produced the bug** — the author of the mock holds the same wrong belief as
+the author of the code, so the suite goes green against a shape production
+never sends. This is the frontend twin of the backend disease where tests walk
+paths that do not exist in prod.
+
+The class this rule comes from: a thrown value reaches a call site in one of
+two dialects — `StapelApiError` (`@stapel/core`'s client — has `.status`) or
+the RAW envelope `{localizable_error, error, params}` (the parsed response
+BODY, rethrown by any second transport — has NO `.status`). A component
+discriminated states with `(e as { status?: number })?.status === 404`, which
+on dialect 2 is a branch that can never be true; every unit test mocking
+`{ status: 404 }` passed, and users were told "the AI found nothing" about a
+meeting nobody had analysed.
+
+So, for anything that inspects an error, a response, or any other value that
+crosses the network boundary:
+
+- **Do** intercept at the HTTP layer (MSW, or a stubbed `fetch` returning a
+  real `Response`) with the **real body the backend sends**, and let the
+  **real transport** produce the value the code catches. See
+  `packages/core/test/query.test.ts` → "default retry predicate", which drives
+  a real 404 envelope through a second-transport `if (!response.ok) throw
+  body` and asserts the caught value has no `.status` at all.
+- **Don't** `vi.mock` the api module, and don't construct the caught value by
+  hand (`{ status: 404 }`, `new StapelApiError({…})`) as the *only* coverage of
+  a discrimination. A hand-built value is fine as an EXTRA case; it is never
+  the case that proves the branch fires in production.
+- Guard/fold helpers (`isStapelApiError`, `hasErrorCode`, `errorCodePredicate`,
+  `toStapelApiError` — `@stapel/core`, `errors.ts` "One dialect") may be
+  unit-tested against literal envelopes: there the envelope IS the input under
+  test, not a stand-in for the wire.
+
+`stapel/no-raw-error-shape` enforces the code side of this; the mocking
+discipline above is the part lint cannot see.
