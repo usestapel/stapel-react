@@ -42,7 +42,7 @@ import type { TotpSetupBag } from "../headless/TotpSetup.js";
 import { PasskeyRegistration } from "../headless/Passkey.js";
 import type { WebauthnBinding } from "../headless/Passkey.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
-import { OtpField } from "./OtpField";
+import { OtpField } from "./OtpField.js";
 
 /** Fallback when the backend omits `otp.totp_code_length` metadata. */
 const DEFAULT_TOTP_LENGTH = 6;

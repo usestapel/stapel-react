@@ -30,7 +30,7 @@ import { useCancelDelayedChange, useInitiateDelayedChange } from "../../model/mu
 import { useCapabilities, useDelayedChangeStatus, useMe } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import type { AuthI18nKey } from "../../i18n/keys.js";
-import { OtpField } from "../OtpField";
+import { OtpField } from "../OtpField.js";
 
 const CHANNEL_LABEL: Record<OtpChannel, AuthI18nKey> = {
   email: AUTH_I18N_KEYS.uiChannelEmail,

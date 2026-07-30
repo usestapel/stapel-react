@@ -37,7 +37,7 @@ import { useAuthApi } from "../model/context.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
 import { isWebauthnSupported } from "../webauthn.js";
 import { ForcedPasswordChangeCard, MfaEnrollPanel } from "./FirstLoginPanels.js";
-import { OtpField } from "./OtpField";
+import { OtpField } from "./OtpField.js";
 
 /**
  * Fallback digit count when the backend doesn't send `otp` metadata

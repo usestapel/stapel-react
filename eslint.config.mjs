@@ -39,6 +39,31 @@ export default tseslint.config(
       "react/no-array-index-key": "error",
       "react/jsx-key": "error",
       "@typescript-eslint/consistent-type-imports": "error",
+      // Every package here is `"type": "module"`, and tsc emits relative
+      // specifiers VERBATIM. A specifier written without `.js` therefore ships
+      // without it, and Node's own ESM resolver — unlike a bundler — refuses
+      // to guess: ERR_MODULE_NOT_FOUND at import time. It stays invisible in
+      // CI (source-path tests never touch the emitted specifier) and in any
+      // consumer that only bundles, then breaks the first consumer to load the
+      // package under plain Node — vitest with the dep externalized, SSR, a
+      // node script. `default/panels.js` + three siblings shipped exactly this
+      // in 0.11.0 through 0.12.1 (`import { OtpField } from "./OtpField"`),
+      // which is why no host could render a real /default component in a test.
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "ImportDeclaration[source.value=/^\\.{1,2}\\//]:not([source.value=/\\.(js|mjs|cjs|json|css|svg|png)$/])",
+          message:
+            "Relative import needs an explicit `.js` extension — tsc emits it verbatim and Node's ESM resolver will not infer it.",
+        },
+        {
+          selector:
+            ":matches(ExportNamedDeclaration, ExportAllDeclaration)[source.value=/^\\.{1,2}\\//]:not([source.value=/\\.(js|mjs|cjs|json|css|svg|png)$/])",
+          message:
+            "Relative re-export needs an explicit `.js` extension — tsc emits it verbatim and Node's ESM resolver will not infer it.",
+        },
+      ],
       "@typescript-eslint/no-unused-vars": [
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
