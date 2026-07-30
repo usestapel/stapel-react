@@ -8,6 +8,20 @@ export type {
 } from "./client.js";
 export { StapelApiError, parseErrorEnvelope } from "./errors.js";
 export type { StapelErrorEnvelope } from "./errors.js";
+// One dialect: narrow a caught value through these, never through a cast
+// (`stapel/no-raw-error-shape`). `toStapelApiError` is the wrap a second
+// transport applies at its single rethrow point so call sites only ever see
+// `StapelApiError`. See errors.ts "One dialect".
+export {
+  isStapelApiError,
+  isErrorEnvelope,
+  errorCode,
+  errorStatus,
+  hasErrorCode,
+  errorCodePredicate,
+  toStapelApiError,
+  TRANSPORT_ERROR_CODE,
+} from "./errors.js";
 
 // verification-403 interception seam
 export {

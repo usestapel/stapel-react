@@ -1,5 +1,6 @@
 import { QueryClient, dehydrate, hydrate } from "@tanstack/react-query";
 import type { DehydratedState, QueryKey } from "@tanstack/react-query";
+import { errorStatus } from "./errors.js";
 import { defaultPersistStorage } from "./storage.js";
 import type { PersistStorage } from "./storage.js";
 import { __registerWipeWhenActive } from "./session.js";
@@ -67,7 +68,16 @@ export function createStapelQueryClient(
           gcTime: 24 * 60 * 60 * 1000,
           retry: (failureCount, error) => {
             // Do not retry envelope errors the app must handle (4xx).
-            const status = (error as { status?: number }).status;
+            //
+            // Read through `errorStatus`, NOT `(error as {status?: number})`:
+            // a query whose transport rethrows the RAW envelope
+            // (`{localizable_error, error, params}` — no `.status` field)
+            // used to yield `undefined` here, so every doomed 4xx was
+            // retried twice. `errorStatus` also reads the status the code
+            // itself carries (`error.404.…`, `stapel.http.4xx`), which is
+            // the only signal a bare envelope has. See errors.ts,
+            // "One dialect".
+            const status = errorStatus(error);
             if (status !== undefined && status >= 400 && status < 500) {
               return false;
             }

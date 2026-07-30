@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { useStapelClient } from "@stapel/core";
+import { toStapelApiError, useStapelClient } from "@stapel/core";
 import type { StapelApiError } from "@stapel/core";
 import { createCdnAvatarApi } from "../api/cdnAvatarApi.js";
 
@@ -77,7 +77,13 @@ export function useAvatarUpload(): AvatarUploadBag {
         setUploadedUrl(res.image.variant_160_url);
         return res.image.prefix;
       } catch (e) {
-        setError(e as StapelApiError);
+        // `e as StapelApiError` was a lie whenever the CDN call failed
+        // without a Stapel envelope (network fault, an origin that answers
+        // HTML, a second transport rethrowing the raw envelope): the cast
+        // silences the compiler, and `error.code`/`error.status` read
+        // `undefined` at runtime. `toStapelApiError` folds every shape into
+        // the one dialect — see @stapel/core errors.ts "One dialect".
+        setError(toStapelApiError(e));
         return null;
       } finally {
         setIsUploading(false);
