@@ -38,6 +38,16 @@ export type ProfileUpdate = Schemas["PatchedProfileUpdateRequest"] &
   Record<string, unknown>;
 /** GET /{user_id} 200 body — another user's public profile projection. */
 export type PublicProfile = Schemas["ProfilePublicResponse"];
+/** POST /batch request body — the user ids to resolve (duplicates collapse). */
+export type ProfileBatchRequest = Schemas["ProfileBatchRequest"];
+/**
+ * POST /batch 200 body — `profiles` (in the order their ids were first
+ * requested) and `missing`. The split IS the endpoint: an id in `missing`
+ * was asked about and has no profile row — a NORMAL state, not a 404 — while
+ * an id in neither list was not part of the request. Never collapse the two
+ * (see {@link "../model/profileBatch.js".profileBatchEntry}).
+ */
+export type ProfileBatch = Schemas["ProfileBatchResponse"];
 /** GET /{user_id}/relationship 200 body — the caller↔target relationship. */
 export type RelationshipInfo = Schemas["RelationshipResponse"];
 /** 200 body of a follow/unfollow/block/unblock action — the new status. */

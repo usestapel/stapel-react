@@ -50,6 +50,7 @@ export { profilesQueryKeys } from "./model/queryKeys.js";
 export {
   useMyProfile,
   useProfile,
+  useProfilesBatch,
   useRelationship,
   useMyFollowers,
   useMyFollowing,
@@ -57,6 +58,14 @@ export {
   useLanguages,
   useProfileFieldManifest,
 } from "./model/queries.js";
+
+// ── model (batch lookup — the found / missing / not-asked distinction) ───────
+export {
+  profileBatchEntry,
+  profileBatchById,
+  PROFILE_BATCH_MAX_IDS_DEFAULT,
+} from "./model/profileBatch.js";
+export type { ProfileBatchEntry } from "./model/profileBatch.js";
 
 // ── model (write hooks) ──────────────────────────────────────────────────────
 export {
@@ -71,6 +80,8 @@ export {
 export type {
   MyProfile as MyProfileData,
   ProfileUpdate,
+  ProfileBatch,
+  ProfileBatchRequest,
   PublicProfile,
   RelationshipInfo,
   RelationshipAction,

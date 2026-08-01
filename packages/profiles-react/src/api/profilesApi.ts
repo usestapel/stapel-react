@@ -5,6 +5,8 @@ import type {
   Following,
   Language,
   MyProfile,
+  ProfileBatch,
+  ProfileBatchRequest,
   ProfileFieldManifestEntry,
   ProfileUpdate,
   PublicProfile,
@@ -60,6 +62,21 @@ export interface ProfilesApi {
   updateMyProfile(patch: ProfileUpdate): Promise<MyProfile>;
   /** Another user's public profile projection (includes relationship_status). */
   getProfile(userId: string): Promise<PublicProfile>;
+  /**
+   * Many public profiles in one request (stapel-profiles ≥0.8.0, #111) — the
+   * same projection {@link getProfile} returns, for up to
+   * `PROFILES_BATCH_MAX_IDS` (default 100) ids.
+   *
+   * POST is the transport, not the semantics: this is a safe, repeatable
+   * READ sent as a body because 100 UUIDs overflow the URL ceilings old
+   * proxies still enforce (and keep the roster of who is being looked at out
+   * of access logs).
+   *
+   * The reply splits `profiles` from `missing`; over the limit it is REFUSED
+   * with `error.400.too_many_ids` carrying both numbers, never silently
+   * truncated.
+   */
+  batchProfiles(userIds: readonly string[]): Promise<ProfileBatch>;
   /** The caller↔target relationship status. */
   getRelationship(userId: string): Promise<RelationshipInfo>;
   /** Follow a user — returns the new relationship status. */
@@ -97,6 +114,13 @@ export function createProfilesApi(client: StapelClient): ProfilesApi {
       client.patch("/me", patch satisfies ProfileUpdate, mutating()),
 
     getProfile: (userId) => client.get(`/${seg(userId)}`),
+
+    batchProfiles: (userIds) =>
+      client.post(
+        "/batch",
+        { user_ids: [...userIds] } satisfies ProfileBatchRequest,
+        mutating()
+      ),
 
     getRelationship: (userId) => client.get(`/${seg(userId)}/relationship`),
 

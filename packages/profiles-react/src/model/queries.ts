@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { useActiveSessionReady } from "@stapel/core";
 import type { StapelApiError } from "@stapel/core";
@@ -8,6 +8,7 @@ import type {
   Following,
   Language,
   MyProfile,
+  ProfileBatch,
   ProfileFieldManifestEntry,
   PublicProfile,
   RelationshipInfo,
@@ -61,6 +62,66 @@ export function useProfile(
     queryKey: profilesQueryKeys.profile(userId),
     queryFn: () => api.getProfile(userId),
     enabled: sessionReady && userId.length > 0,
+  });
+}
+
+/**
+ * Many public profiles in one request (POST /batch, #111) — what a contact
+ * grid, a member roster or a comment thread asks instead of firing one
+ * `GET /{user_id}` per tile.
+ *
+ * The answer keeps "asked about, has no profile row" (`missing`) apart from
+ * "was not part of this request" (in neither list). This hook does NOT
+ * flatten that into a nullable profile: read a single id with
+ * `profileBatchEntry` (./profileBatch.js), which answers `found` / `missing` /
+ * `not_requested` / `unknown`. Collapsing those is the exact defect the
+ * endpoint exists to remove — a missing profile is a placeholder, not a
+ * failure, and only the split can say so.
+ *
+ * Ids are de-duplicated and sorted for the query key, so the same roster in a
+ * different tile order is one cache entry rather than two. An empty list
+ * fetches nothing.
+ *
+ * Each found profile is ALSO seeded into its own {@link useProfile} cache
+ * entry: the batch returns the identical public projection (the backend
+ * guarantees parity — same serializer, same permission), so a detail view
+ * opened from a grid paints from what the grid already fetched instead of
+ * re-asking. Nothing is seeded for a `missing` id: this pair will not invent
+ * a placeholder profile and pass it off as server truth.
+ *
+ * Over `PROFILES_BATCH_MAX_IDS` (default 100 — see
+ * `PROFILE_BATCH_MAX_IDS_DEFAULT`) the request is REFUSED with
+ * `error.400.too_many_ids`, never silently truncated; the error's params
+ * carry both `requested` and the deployment's real `limit`, so a caller can
+ * chunk deterministically.
+ *
+ * Public (AllowAny) like {@link useProfile}'s endpoint, but session-gated for
+ * the same reason: `relationship_status` in the projection depends on WHO is
+ * asking, so a fetch that raced the session would cache a signed-out answer
+ * for a signed-in screen.
+ */
+export function useProfilesBatch(
+  userIds: readonly string[]
+): UseQueryResult<ProfileBatch, StapelApiError> {
+  const api = useProfilesApi();
+  const queryClient = useQueryClient();
+  const sessionReady = useActiveSessionReady();
+  const ids = [...new Set(userIds)].sort();
+  return useQuery({
+    queryKey: profilesQueryKeys.batch(ids),
+    queryFn: async () => {
+      const batch = await api.batchProfiles(ids);
+      for (const profile of batch.profiles ?? []) {
+        if (typeof profile.user_id === "string") {
+          queryClient.setQueryData(
+            profilesQueryKeys.profile(profile.user_id),
+            profile
+          );
+        }
+      }
+      return batch;
+    },
+    enabled: sessionReady && ids.length > 0,
   });
 }
 

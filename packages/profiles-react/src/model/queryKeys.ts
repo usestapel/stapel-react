@@ -11,6 +11,11 @@ export const profilesQueryKeys: {
   readonly all: readonly ["profiles"];
   me(): readonly ["profiles", "me"];
   profile(userId: string): readonly ["profiles", "profile", string];
+  batch(userIds: readonly string[]): readonly [
+    "profiles",
+    "batch",
+    readonly string[],
+  ];
   relationship(userId: string): readonly ["profiles", "relationship", string];
   followers(): readonly ["profiles", "followers"];
   following(): readonly ["profiles", "following"];
@@ -21,6 +26,10 @@ export const profilesQueryKeys: {
   all: [ROOT],
   me: () => [ROOT, "me"],
   profile: (userId) => [ROOT, "profile", userId],
+  // The id list IS the key: two different rosters are two different answers,
+  // and the same roster asked twice must hit one cache entry. De-duplicated
+  // and sorted by the hook, so tile order never forks the cache.
+  batch: (userIds) => [ROOT, "batch", userIds],
   relationship: (userId) => [ROOT, "relationship", userId],
   followers: () => [ROOT, "followers"],
   following: () => [ROOT, "following"],
