@@ -46,6 +46,7 @@ Paths are relative to `/profiles/api/v1/`.
 - useMyProfile (query) → getMyProfile
 - useProfile (query) → getProfile
 - useProfileFieldManifest (query) → getFieldManifest
+- useProfilesBatch (query) → batchProfiles
 - useRelationship (query) → getRelationship
 - useUpdateMyProfile (mutation) → updateMyProfile
 

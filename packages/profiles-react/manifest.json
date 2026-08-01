@@ -187,6 +187,15 @@
         "fieldManifest"
       ]
     },
+    "useProfilesBatch": {
+      "kind": "query",
+      "operation": "batchProfiles",
+      "queryKey": [
+        "profiles",
+        "batch",
+        "{userIds}"
+      ]
+    },
     "useRelationship": {
       "kind": "query",
       "operation": "getRelationship",
@@ -697,6 +706,7 @@
       "PROFILES_ERROR_CODES",
       "PROFILES_FLOWS",
       "PROFILES_I18N_KEYS",
+      "PROFILE_BATCH_MAX_IDS_DEFAULT",
       "ProfilesProvider",
       "ProfilesRuntimeContext",
       "Relationship",
@@ -706,6 +716,8 @@
       "explainProfilesError",
       "flowEndpoints",
       "isErrorCode",
+      "profileBatchById",
+      "profileBatchEntry",
       "profilesErrorBundleEn",
       "profilesI18nBundleEn",
       "profilesQueryKeys",
@@ -725,6 +737,7 @@
       "useProfileFieldManifest",
       "useProfilesAnalytics",
       "useProfilesApi",
+      "useProfilesBatch",
       "useProfilesRuntime",
       "useRelationship",
       "useUnblock",
@@ -756,6 +769,9 @@
       "NotificationCategory",
       "NotificationChannel",
       "NotificationPrefsBag",
+      "ProfileBatch",
+      "ProfileBatchEntry",
+      "ProfileBatchRequest",
       "ProfileFieldKind",
       "ProfileFieldManifestEntry",
       "ProfileUpdate",

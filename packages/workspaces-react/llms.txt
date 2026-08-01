@@ -53,11 +53,16 @@ Paths are relative to `/workspaces/api/v1/`.
 - useDeclineInvitation (mutation) → declineInvitation
 - useDeleteWorkspace (mutation) → deleteWorkspace
 - useInvitationPreview (query) → getInvitationPreview
+- useInvitations (query) → listInvitations
 - useInviteMembers (mutation) → inviteMembers
 - useMembers (query) → listMembers
 - useRemoveMember (mutation) → removeMember
+- useResendInvitation (mutation) → resendInvitation
+- useResetMemberPassword (mutation) → resetMemberPassword
+- useRevokeInvitation (mutation) → revokeInvitation
 - useRoles (query) → listRoles
 - useUpdateMemberRole (mutation) → updateMemberRole
+- useUpdateSecuritySettings (mutation) → getWorkspace+updateWorkspace
 - useUpdateWorkspace (mutation) → updateWorkspace
 - useWorkspace (query) → getWorkspace
 - useWorkspaces (query) → listWorkspaces

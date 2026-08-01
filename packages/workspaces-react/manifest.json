@@ -231,6 +231,16 @@
         "{token}"
       ]
     },
+    "useInvitations": {
+      "kind": "query",
+      "operation": "listInvitations",
+      "queryKey": [
+        "workspaces",
+        "invitations",
+        "{workspaceId}",
+        "{params}"
+      ]
+    },
     "useInviteMembers": {
       "kind": "mutation",
       "operation": "inviteMembers",
@@ -263,6 +273,44 @@
         ]
       ]
     },
+    "useResendInvitation": {
+      "kind": "mutation",
+      "operation": "resendInvitation",
+      "invalidates": [
+        [
+          "workspaces",
+          "invitations",
+          "{workspaceId}"
+        ]
+      ]
+    },
+    "useResetMemberPassword": {
+      "kind": "mutation",
+      "operation": "resetMemberPassword",
+      "invalidates": [
+        [
+          "workspaces",
+          "members",
+          "{workspaceId}"
+        ]
+      ]
+    },
+    "useRevokeInvitation": {
+      "kind": "mutation",
+      "operation": "revokeInvitation",
+      "invalidates": [
+        [
+          "workspaces",
+          "invitations",
+          "{workspaceId}"
+        ],
+        [
+          "workspaces",
+          "members",
+          "{workspaceId}"
+        ]
+      ]
+    },
     "useRoles": {
       "kind": "query",
       "operation": "listRoles",
@@ -275,6 +323,29 @@
       "kind": "mutation",
       "operation": "updateMemberRole",
       "invalidates": [
+        [
+          "workspaces",
+          "members",
+          "{workspaceId}"
+        ]
+      ]
+    },
+    "useUpdateSecuritySettings": {
+      "kind": "mutation",
+      "operations": [
+        "getWorkspace",
+        "updateWorkspace"
+      ],
+      "invalidates": [
+        [
+          "workspaces",
+          "detail",
+          "{workspaceId}"
+        ],
+        [
+          "workspaces",
+          "list"
+        ],
         [
           "workspaces",
           "members",
@@ -881,10 +952,12 @@
   "exports": {
     "runtime": [
       "AcceptInvitation",
+      "BUILTIN_CAPABILITY_LEVELS",
       "Can",
       "InviteAcceptFlow",
       "Members",
       "RoleSelect",
+      "SENSITIVE_SCOPE",
       "WORKSPACES_ERRORS",
       "WORKSPACES_ERROR_CODES",
       "WORKSPACES_FLOWS",
@@ -892,6 +965,7 @@
       "WorkspaceList",
       "WorkspacesProvider",
       "WorkspacesRuntimeContext",
+      "capabilityLevel",
       "capabilityMatches",
       "createFlowMachine",
       "createInviteAcceptFlow",
@@ -903,21 +977,29 @@
       "hasCapability",
       "isErrorCode",
       "maskEmail",
+      "readVerificationEnrollment",
       "registerWorkspacesI18n",
       "toFlowError",
       "useAcceptInvitation",
       "useCapabilities",
+      "useCapabilityGate",
       "useClaimInvitation",
       "useCreateWorkspace",
       "useDeclineInvitation",
       "useDeleteWorkspace",
       "useFlow",
+      "useInfiniteInvitations",
       "useInvitationPreview",
+      "useInvitations",
       "useInviteMembers",
       "useMembers",
       "useRemoveMember",
+      "useResendInvitation",
+      "useResetMemberPassword",
+      "useRevokeInvitation",
       "useRoles",
       "useUpdateMemberRole",
+      "useUpdateSecuritySettings",
       "useUpdateWorkspace",
       "useWorkspace",
       "useWorkspaces",
@@ -932,6 +1014,8 @@
       "AcceptInvitationBag",
       "CanBag",
       "CapabilitiesResult",
+      "CapabilityGate",
+      "CapabilityLevel",
       "CreateWorkspacesRuntimeOptions",
       "FlowEndpoint",
       "FlowError",
@@ -941,7 +1025,10 @@
       "Invitation",
       "InvitationAccept",
       "InvitationClaim",
+      "InvitationListData",
       "InvitationPreview",
+      "InvitationStatusFilter",
+      "InvitationsParams",
       "InviteAcceptFlowBag",
       "InviteAcceptFlowController",
       "InviteAcceptFlowDeps",
@@ -950,21 +1037,27 @@
       "MemberInvite",
       "MemberInviteResult",
       "MemberListData",
+      "MemberPasswordReset",
+      "MemberPasswordResetResult",
+      "MemberPasswordResetVars",
       "MemberRoleChange",
       "MemberRoleUpdate",
       "MembersBag",
       "MembersParams",
+      "ProvisionedUserPolicy",
       "Remediation",
       "RoleInfo",
       "RoleList",
       "RoleSelectBag",
       "Schemas",
+      "VerificationEnrollment",
       "WorkspaceCreate",
       "WorkspaceData",
       "WorkspaceKind",
       "WorkspaceListBag",
       "WorkspaceListData",
       "WorkspaceRole",
+      "WorkspaceSecuritySettings",
       "WorkspaceUpdate",
       "WorkspacesApi",
       "WorkspacesErrorCode",
