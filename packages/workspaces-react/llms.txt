@@ -1,6 +1,6 @@
 # @stapel/workspaces-react 0.7.0
 
-Headless React flow pair for stapel-workspaces (contract >=0.8 <0.9) — business + state, zero visual opinion.
+Headless React flow pair for stapel-workspaces (contract >=0.14 <0.15) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -31,11 +31,15 @@ Paths are relative to `/workspaces/api/v1/`.
 - workspaces_api_v1_invitations_accept_create: POST /invitations/accept
 - workspaces_api_v1_invitations_claim_create: POST /invitations/{token}/claim
 - workspaces_api_v1_invitations_decline_create: POST /invitations/{token}/decline
+- workspaces_api_v1_invitations_list: GET /{workspace_id}/invitations
+- workspaces_api_v1_invitations_resend_create: POST /{workspace_id}/invitations/{invitation_id}/resend
 - workspaces_api_v1_invitations_retrieve: GET /invitations/{token}
+- workspaces_api_v1_invitations_revoke_create: POST /{workspace_id}/invitations/{invitation_id}/revoke
 - workspaces_api_v1_members_destroy: DELETE /{workspace_id}/members/{user_id}
 - workspaces_api_v1_members_invite_create: POST /{workspace_id}/members/invite
 - workspaces_api_v1_members_list: GET /{workspace_id}/members
 - workspaces_api_v1_members_partial_update: PATCH /{workspace_id}/members/{user_id}
+- workspaces_api_v1_members_password_reset_create: POST /{workspace_id}/members/{user_id}/password/reset
 - workspaces_api_v1_members_provision_create: POST /{workspace_id}/members/provision
 - workspaces_api_v1_partial_update: PATCH /{workspace_id}
 - workspaces_api_v1_retrieve: GET /

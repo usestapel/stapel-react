@@ -10,16 +10,16 @@
       "note": "current main — contract-regen catch-up"
     },
     "stapel-profiles": {
-      "ref": "75c9a246b7db34d2e03dde7f10f096e7a9fee73c",
-      "note": "release v0.7.0 — display_name + theme back in ProfileCore (§66 reversal, owner 2026-07-22): wire types carry them on /me + public profile, registry drops them from the field manifest. Pairs with @stapel/profiles-react 0.10.0's hard-core settings rows. Pin+regen bumped together."
+      "ref": "46728f625667f8774eb0c7d92c60fba6f5938886",
+      "note": "release v0.9.0 — POST /batch (many public profiles in one request, #111): the answer splits `profiles` from `missing`, so \"no profile row\" stays a normal state instead of a per-id 404. Plus the guest-surface naming sweep (#168). Pairs with @stapel/profiles-react 0.14.0's useProfilesBatch. Pin+regen bumped together."
     },
     "stapel-billing": {
       "ref": "abe9a31392af2146133fc06b9fd3ebc43b28cab3",
       "note": "current main — contract-regen catch-up"
     },
     "stapel-workspaces": {
-      "ref": "df581358c27d4cf4509b747e57b3273aa4daa949",
-      "note": "release v0.8.0 — org-program W3 backend finale: members/provision + suspension + security-settings endpoints on top of 0.7.0's invite flow (roles endpoint, my_capabilities, AllowAny preview/claim/decline). @stapel/workspaces-react 0.7.0 ships the §E wave-1 surface (capabilities/roles/invite flow); the generated types already carry the 0.8 provision/suspension shapes — their model/headless/skins are the NEXT wave. Pin+regen bumped together."
+      "ref": "1f210c577872acb1c348f051e1f09f2ea4d75e84",
+      "note": "release v0.14.0 — invitation administration + administrative password reset: GET /{ws}/invitations (anchor-paginated, ?status=pending|never_accepted|all, ?search=), POST /{ws}/invitations/{id}/revoke, POST /{ws}/invitations/{id}/resend (rotates the token, restarts the TTL), POST /{ws}/members/{user}/password/reset (capability members.password.reset, declared `high` → requires_verification(scope=\"sensitive\"); `generated_password` is returned exactly once), and settings.security.provisioned_user_policies as an independent LIST (#90, was a single string pre-0.13). Pairs with @stapel/workspaces-react 0.8.0. Pin+regen bumped together."
     },
     "stapel-calendar": {
       "ref": "a8fa34c437b62c8b1234a9b92c5ceca4215bc2d0",

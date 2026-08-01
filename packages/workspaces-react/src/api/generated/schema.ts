@@ -89,6 +89,113 @@ export interface paths {
         patch: operations["workspaces_api_v1_partial_update"];
         trace?: never;
     };
+    "/workspaces/api/v1/{workspace_id}/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Who was invited and has not accepted (#109).
+         *
+         *     Before this endpoint an admin could send invitations and never see
+         *     them again: acceptance produced a member row, and everything else —
+         *     the unopened mail, the wrong address, the person who declined — was
+         *     invisible from the product. The roster answered "who is in"; nothing
+         *     answered "who is still out, and since when".
+         *
+         *     Gated on ``members.invite``: the mandate that creates invitations is
+         *     the mandate that sees and manages them. Reading the list is strictly
+         *     less than sending one, so no separate capability is minted — a role
+         *     that may invite but may not audit its own invitations would be a
+         *     distinction without a use.
+         *
+         *     The invite token is never in the response. It is a bearer credential;
+         *     a list endpoint that carried it would hand every admin a working login
+         *     link for every invited address.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        get: operations["workspaces_api_v1_invitations_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/api/v1/{workspace_id}/invitations/{invitation_id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Send the invitation email again (#109).
+         *
+         *     Accepts an **expired** invitation on purpose — a dead TTL is the most
+         *     common reason to resend — and refuses the three stored terminal states,
+         *     which are decisions rather than delivery failures. The token is
+         *     rotated and the TTL restarts, so the fresh letter carries a fresh link
+         *     and any stale copy of the old one stops working.
+         *
+         *     Reviving an expired invitation re-reserves a seat, so the plan ceiling
+         *     is re-checked here exactly as it is on invite: capability first ("may
+         *     YOU", 403), then the org's plan ("may the ORG", 402). An invitation
+         *     that is already pending costs no additional seat and is never blocked
+         *     by that check.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["workspaces_api_v1_invitations_resend_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/api/v1/{workspace_id}/invitations/{invitation_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Withdraw a live invitation (#109).
+         *
+         *     The workspace's terminal "no", the mirror of the invitee's decline —
+         *     the two stay distinguishable in ``status`` forever. The seat the
+         *     invitation reserved is freed on commit.
+         *
+         *     Only a **pending** invitation is revocable: an accepted one produced a
+         *     membership (remove the member instead), a declined or already-revoked
+         *     one is terminal, and an expired one is already harmless. Each of those
+         *     gets its own error key rather than a shrug.
+         *
+         *     The transition is a compare-and-set under a row lock, not a blind
+         *     write: an accept committing between this view's state check and the
+         *     lock wins, and the revocation then fails honestly with
+         *     ``error.400.invitation_already_used``. The reverse — a revocation
+         *     committing between an accept's check and its lock — is the race fixed
+         *     in 0.10.0, and it is the same predicate holding both ends.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["workspaces_api_v1_invitations_revoke_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/api/v1/{workspace_id}/members": {
         parameters: {
             query?: never;
@@ -152,6 +259,78 @@ export interface paths {
          *     **Permissions:** `IsAuthenticated`
          */
         patch: operations["workspaces_api_v1_members_partial_update"];
+        trace?: never;
+    };
+    "/workspaces/api/v1/{workspace_id}/members/{user_id}/password/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Reset a member's password on the organization's order (#110).
+         *
+         *     Five questions this endpoint has to answer out loud, because a
+         *     password reset is an account takeover performed on purpose and every
+         *     one of them is a way to get it wrong.
+         *
+         *     **Who may do it.** A mandate, not a session: capability
+         *     ``members.password.reset`` (builtin ``admin`` and ``owner``), declared
+         *     ``high``, so ``@requires_verification(scope="sensitive")`` demands a
+         *     fresh step-up on top — an ambient cookie is not enough to hand
+         *     somebody else's account over. Only an owner may reset an OWNER's
+         *     password, the same hardcoded owner protection role changes and
+         *     removals carry: otherwise an admin resets the owner and inherits the
+         *     organization. And auth refuses a staff/superuser target outright
+         *     (``error.403.privileged_account``) — org admin is a role inside one
+         *     workspace, deployment staff is a role above every workspace, and the
+         *     first must never be a route to the second.
+         *
+         *     **Whether the user finds out.** Always. A
+         *     ``workspace.member_password_reset`` letter names the workspace and the
+         *     admin who did it — a reset is indistinguishable from a takeover
+         *     unless the account holder is told which one it was. ``notified`` in
+         *     the response says honestly whether a channel existed; the letter
+         *     never carries the new password (see
+         *     :func:`~stapel_workspaces.services.reset_member_password`).
+         *
+         *     **Whether the new password is temporary.** Yes — auth raises the
+         *     workspace's ``provisioned_user_policies`` (#90), defaulting to
+         *     ``password_change``. A password the admin knows must stop working the
+         *     first time it is used, and since auth 0.15.0 that demand holds on all
+         *     19 session-issuance paths rather than only the password form. An org
+         *     may pass an explicit ``[]`` to suppress it, and that lands in auth's
+         *     audit row.
+         *
+         *     **Whether it is an existence oracle.** No: a target that is not a
+         *     resettable member of THIS workspace — an unknown UUID, a real account
+         *     that is not a member, a member of a different workspace, or the
+         *     caller's own id — all get one byte-identical 404. And the capability
+         *     check runs before any target lookup, so a caller without the mandate
+         *     learns nothing at all about anybody. ``tests/
+         *     test_api_member_password_reset.py`` compares those responses byte for
+         *     byte.
+         *
+         *     **Whether it is logged with the actor.** Twice, on purpose:
+         *     ``workspace.member_password_reset`` through the transactional outbox
+         *     (the org's activity log) and auth's own ``AuthAuditLog`` row carrying
+         *     ``actor_id`` and ``via=admin_reset`` (the deployment's security
+         *     journal). Neither carries credential material.
+         *
+         *     Own password: use auth's ``POST /password/change/``. This endpoint is
+         *     for acting on somebody else, and answers about yourself with the same
+         *     404 as about a stranger.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["workspaces_api_v1_members_password_reset_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/workspaces/api/v1/{workspace_id}/members/invite": {
@@ -454,18 +633,65 @@ export interface components {
              */
             expires_at: string;
         };
-        /** @description InvitationResponse(id: uuid.UUID, workspace_id: uuid.UUID, email: str, role: str, expires_at: str, accepted_at: Optional[str], revoked_at: Optional[str], created_at: str) */
+        /**
+         * @description One invitation row — the admin's "who has not accepted yet" table (#109).
+         *
+         *     ``status`` is the derived label (``WorkspaceInvitation.status``), not a
+         *     stored column: it is what the table renders and what the frontend
+         *     routes the revoke/resend affordances on. The raw timestamps travel
+         *     alongside it because "expires in 2 days" and "declined last Tuesday"
+         *     are different rows on the same screen; the label alone cannot say
+         *     when.
+         *
+         *     The invite token is deliberately absent — it is a bearer secret that
+         *     only ever leaves this service inside the invitation email.
+         */
         InvitationResponse: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Invitation UUID
+             * @example 0192f...
+             */
             id: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Workspace UUID
+             */
             workspace_id: string;
+            /**
+             * @description Invited email address (normalized lowercase)
+             * @example alice@example.com
+             */
             email: string;
+            /**
+             * @description Role granted on acceptance
+             * @example member
+             */
             role: string;
+            /**
+             * @description Derived state. One of pending / accepted / declined / revoked / expired
+             * @example pending
+             */
+            status: string;
+            /**
+             * @description ISO 8601 expiry time
+             * @example 2026-07-31T10:00:00Z
+             */
             expires_at: string;
+            /** @description ISO 8601 acceptance time; null unless accepted */
             accepted_at: string | null;
+            /** @description ISO 8601 decline time (the invitee said no); null unless declined */
+            declined_at: string | null;
+            /** @description ISO 8601 revocation time (the workspace withdrew it); null unless revoked */
             revoked_at: string | null;
+            /** @description ISO 8601 creation time */
             created_at: string;
+            /**
+             * Format: uuid
+             * @description UUID of the admin who sent it; null when that account is gone
+             * @example 0192a...
+             */
+            invited_by_id?: string | null;
         };
         /** @description Invite payload. */
         MemberInviteRequest: {
@@ -485,6 +711,50 @@ export interface components {
         /** @description MemberInviteResponse(invitations: List[ForwardRef('InvitationResponse')] = <factory>) */
         MemberInviteResponse: {
             invitations?: components["schemas"]["InvitationResponse"][];
+        };
+        /** @description Reset a member's password on the organization's order (#110). */
+        MemberPasswordResetRequest: {
+            /** @description New password chosen by the admin. Omitted: the server generates a crypto-strong one, returned once as generated_password */
+            password?: string | null;
+            /**
+             * @description First-login steps to demand of the member afterwards — any subset of password_change / mfa_enroll. Omitted: the workspace's own security policies, falling back to password_change. A password somebody else chose has to stop working at its first use, so an EMPTY list is a deliberate, auditable choice, not a shortcut
+             * @example [
+             *       "password_change"
+             *     ]
+             */
+            first_login_policies?: string[] | null;
+            /**
+             * @description Free-text note recorded on auth's audit row (e.g. the ticket the request came in on)
+             * @example SUP-42
+             */
+            reason?: string | null;
+        };
+        /** @description Result of an administrative password reset (#110). */
+        MemberPasswordResetResponse: {
+            /**
+             * Format: uuid
+             * @description UUID of the member whose password was reset
+             */
+            user_id: string;
+            /**
+             * @description How many live sessions the reset ended. A reset that left them standing would not recover the account
+             * @example 2
+             */
+            sessions_revoked?: number;
+            /** @description Server-generated password — returned exactly ONCE, only when the request omitted password. Hand it to the member out of band; it cannot be re-fetched. A credential: never log it */
+            generated_password?: string | null;
+            /**
+             * @description The steps now demanded of the member before their next session
+             * @example [
+             *       "password_change"
+             *     ]
+             */
+            first_login_policies_applied?: string[];
+            /**
+             * @description Whether the member was told their password was reset. False means the account has no contact channel — the admin is the only one who can tell them
+             * @example true
+             */
+            notified?: boolean;
         };
         /** @description Workspace member. */
         MemberResponse: {
@@ -523,6 +793,19 @@ export interface components {
             suspended_at?: string | null;
             /** @description Why the membership is suspended (canonical value no_mfa); null while active */
             suspension_reason?: string | null;
+        };
+        PaginatedInvitationResponseList: {
+            items: components["schemas"]["InvitationResponse"][];
+            /** @description Anchor value for next page */
+            next_anchor?: string | null;
+            /** @description Anchor value for previous page */
+            prev_anchor?: string | null;
+            /** @description Whether there are more items after this page */
+            has_next: boolean;
+            /** @description Whether there are items before this page */
+            has_prev: boolean;
+            /** @description Number of items in current page */
+            count: number;
         };
         PaginatedMemberResponseList: {
             items: components["schemas"]["MemberResponse"][];
@@ -848,6 +1131,82 @@ export interface operations {
             };
         };
     };
+    workspaces_api_v1_invitations_list: {
+        parameters: {
+            query?: {
+                /** @description Anchor value to paginate from (exclusive) */
+                anchor?: string;
+                /** @description Pagination direction */
+                direction?: "next" | "prev" | "center";
+                /** @description Number of items (default 100, max 500) */
+                limit?: number;
+                /** @description Case-insensitive substring filter on the invited email address. */
+                search?: string;
+                /** @description Which invitations to return. `pending` (default) — live, actionable, seat-reserving ones, i.e. who has not accepted yet. `never_accepted` — those plus the declined, revoked and expired ones. `all` — the full history, accepted rows included. */
+                status?: "all" | "never_accepted" | "pending";
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedInvitationResponseList"];
+                };
+            };
+        };
+    };
+    workspaces_api_v1_invitations_resend_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invitation_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationResponse"];
+                };
+            };
+        };
+    };
+    workspaces_api_v1_invitations_revoke_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invitation_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationResponse"];
+                };
+            };
+        };
+    };
     workspaces_api_v1_members_list: {
         parameters: {
             query?: {
@@ -923,6 +1282,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemberResponse"];
+                };
+            };
+        };
+    };
+    workspaces_api_v1_members_password_reset_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["MemberPasswordResetRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["MemberPasswordResetRequest"];
+                "multipart/form-data": components["schemas"]["MemberPasswordResetRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberPasswordResetResponse"];
                 };
             };
         };

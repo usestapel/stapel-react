@@ -37,7 +37,7 @@ export interface paths {
          * Block user
          * @description Block a user. Creates or updates relationship to "blocked" status.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         post: operations["block_user"];
         delete?: never;
@@ -59,7 +59,7 @@ export interface paths {
          * Follow user
          * @description Follow a user. Creates or updates relationship to "following" status.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         post: operations["follow_user"];
         delete?: never;
@@ -103,7 +103,7 @@ export interface paths {
          * Unblock user
          * @description Unblock a user. Sets relationship to "neutral" status.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         post: operations["unblock_user"];
         delete?: never;
@@ -125,9 +125,31 @@ export interface paths {
          * Unfollow user
          * @description Unfollow a user. Sets relationship to "neutral" status.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         post: operations["unfollow_user"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/api/v1/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get many user profiles at once
+         * @description Resolve up to PROFILES_BATCH_MAX_IDS (default 100) public profiles in one call. Ids with no profile row come back in `missing` — a normal state, never a 404. Ids in neither list were not part of the request. Over the limit the request is refused with `error.400.too_many_ids` carrying both numbers; the list is never silently truncated.
+         *
+         *     **Permissions:** `AllowAny`
+         */
+        post: operations["batch_profiles"];
         delete?: never;
         options?: never;
         head?: never;
@@ -379,6 +401,16 @@ export interface components {
         /** @description Update profile fields (PATCH, all optional). */
         PatchedProfileUpdateRequest: {
             /**
+             * @description User's display name
+             * @example Ada Lovelace
+             */
+            display_name?: string | null;
+            /**
+             * @description UI theme preference (light/dark/system)
+             * @example dark
+             */
+            theme?: string | null;
+            /**
              * @description Where avatar points (file, url, gravatar, cdn)
              * @example file
              */
@@ -445,6 +477,64 @@ export interface components {
             initial_setup_passed?: boolean | null;
         };
         /**
+         * @description Look up many public profiles in one request.
+         *
+         *     Sent as a POST body rather than a `?ids=` query string on purpose: a
+         *     people grid resolves 50-100 ids at once, which is 1.9-3.7 kB of UUIDs —
+         *     past the conservative 2 kB URL ceiling old proxies/WAFs still enforce,
+         *     and close to nginx's default 8 kB request-line+header budget once a JWT
+         *     cookie rides along. A 414 there would read to the user as "the profile
+         *     service is down", which is exactly the failure mode this endpoint exists
+         *     to remove. A body also keeps the roster of who is being looked at out of
+         *     access logs and Referer headers.
+         *
+         *     POST is the transport, not the semantics: this is a read, it changes
+         *     nothing and is safe to repeat. HTTP caching is given up in the trade —
+         *     acceptable, because the caller batches precisely because it keeps its
+         *     own per-id cache and only asks for the ids missing from it.
+         */
+        ProfileBatchRequest: {
+            /**
+             * @description User UUIDs to look up. Duplicates are collapsed; found profiles come back in the order first requested
+             * @example [
+             *       "550e8400-e29b-41d4-a716-446655440000"
+             *     ]
+             */
+            user_ids: string[];
+        };
+        /**
+         * @description Answer of the batch lookup: the profiles that exist + the ids with none.
+         *
+         *     The split is the whole point of the endpoint. "This user has no profile
+         *     row" is a NORMAL state — nobody has opened settings yet — not a failure,
+         *     so it must not arrive as a 404 per id: that is what turned a 16-tile
+         *     contact grid into 16 red console lines. Reading the answer:
+         *
+         *     * id in ``profiles`` — there is a profile, here it is;
+         *     * id in ``missing`` — asked, none exists: render the placeholder, cache
+         *     the negative, do not retry, nothing is broken;
+         *     * id in neither — it was not part of THIS request.
+         *
+         *     ``profiles`` and ``missing`` together always cover exactly the
+         *     deduplicated ids that were sent, so "absent" never has to be guessed at.
+         *     Nothing is invented for a missing id: an id in ``missing`` carries no
+         *     payload at all, because a filled-in placeholder would be this service
+         *     asserting a display name for a person who never chose one.
+         *
+         *     The status is 200 in every one of those cases, including "all missing".
+         */
+        ProfileBatchResponse: {
+            /** @description Profiles that exist, in the order their ids were first requested */
+            profiles: components["schemas"]["ProfilePublicResponse"][];
+            /**
+             * @description Requested ids with no profile row — a normal state, not an error
+             * @example [
+             *       "550e8400-e29b-41d4-a716-446655440000"
+             *     ]
+             */
+            missing: string[];
+        };
+        /**
          * @description One active profile field, as the frontend skin needs it to render
          *     itself without hardcoding field names (docs/pending/profile-fields.md,
          *     "Дополнение владельца" §1 — data-driven skin, tier 1 of the two-tier
@@ -482,7 +572,17 @@ export interface components {
              */
             enum_values?: string[] | null;
         };
-        /** @description Compact serializer for viewing other user's profile. */
+        /**
+         * @description Compact serializer for viewing other user's profile.
+         *
+         *     The three social fields (`followers_count`, `following_count`,
+         *     `relationship_status`) are per-row queries by default. A caller
+         *     serializing MANY profiles at once (POST .../batch) precomputes them for
+         *     the whole page and passes the maps through the serializer context (the
+         *     `CTX_*` keys above); the methods below prefer the map when it is there.
+         *     Without that, a 50-tile grid would trade 50 HTTP requests for 150 SQL
+         *     queries — a worse deal than the problem the batch endpoint solves.
+         */
         ProfilePublic: {
             /**
              * Format: uuid
@@ -1018,6 +1118,39 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    batch_profiles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileBatchRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ProfileBatchRequest"];
+                "multipart/form-data": components["schemas"]["ProfileBatchRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileBatchResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
         };

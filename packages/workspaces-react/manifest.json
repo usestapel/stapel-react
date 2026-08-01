@@ -4,7 +4,7 @@
   "version": "0.7.0",
   "backend": {
     "module": "stapel-workspaces",
-    "contract": ">=0.8 <0.9"
+    "contract": ">=0.14 <0.15"
   },
   "layers": [
     "api",
@@ -67,12 +67,33 @@
       "request": null,
       "response": null
     },
+    "workspaces_api_v1_invitations_list": {
+      "method": "GET",
+      "path": "/workspaces/api/v1/{workspace_id}/invitations",
+      "tag": "Members",
+      "request": null,
+      "response": "PaginatedInvitationResponseList"
+    },
+    "workspaces_api_v1_invitations_resend_create": {
+      "method": "POST",
+      "path": "/workspaces/api/v1/{workspace_id}/invitations/{invitation_id}/resend",
+      "tag": "Members",
+      "request": null,
+      "response": "InvitationResponse"
+    },
     "workspaces_api_v1_invitations_retrieve": {
       "method": "GET",
       "path": "/workspaces/api/v1/invitations/{token}",
       "tag": "Members",
       "request": null,
       "response": "InvitationPreviewResponse"
+    },
+    "workspaces_api_v1_invitations_revoke_create": {
+      "method": "POST",
+      "path": "/workspaces/api/v1/{workspace_id}/invitations/{invitation_id}/revoke",
+      "tag": "Members",
+      "request": null,
+      "response": "InvitationResponse"
     },
     "workspaces_api_v1_members_destroy": {
       "method": "DELETE",
@@ -101,6 +122,13 @@
       "tag": "Members",
       "request": "PatchedMemberUpdateRequest",
       "response": "MemberResponse"
+    },
+    "workspaces_api_v1_members_password_reset_create": {
+      "method": "POST",
+      "path": "/workspaces/api/v1/{workspace_id}/members/{user_id}/password/reset",
+      "tag": "Members",
+      "request": "MemberPasswordResetRequest",
+      "response": "MemberPasswordResetResponse"
     },
     "workspaces_api_v1_members_provision_create": {
       "method": "POST",

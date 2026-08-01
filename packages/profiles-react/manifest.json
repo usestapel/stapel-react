@@ -4,7 +4,7 @@
   "version": "0.13.0",
   "backend": {
     "module": "stapel-profiles",
-    "contract": ">=0.7 <0.8"
+    "contract": ">=0.9 <0.10"
   },
   "layers": [
     "api",
@@ -16,6 +16,13 @@
   "flows": {},
   "machines": [],
   "operations": {
+    "batch_profiles": {
+      "method": "POST",
+      "path": "/profiles/api/v1/batch",
+      "tag": "Profile",
+      "request": "ProfileBatchRequest",
+      "response": "ProfileBatchResponse"
+    },
     "block_user": {
       "method": "POST",
       "path": "/profiles/api/v1/{user_id}/block",
@@ -352,6 +359,14 @@
       "params": [],
       "remediation": "fix_input"
     },
+    "error.400.too_many_ids": {
+      "status": 400,
+      "params": [
+        "requested",
+        "limit"
+      ],
+      "remediation": "fix_input"
+    },
     "error.400.validation_error": {
       "status": 400,
       "params": [],
@@ -600,6 +615,7 @@
     "error.400.invalid_ad_id",
     "error.400.invalid_avatar_format",
     "error.400.invalid_currency",
+    "error.400.too_many_ids",
     "error.400.validation_error",
     "error.400.verification_failed",
     "error.400.verification_invalid_factor",

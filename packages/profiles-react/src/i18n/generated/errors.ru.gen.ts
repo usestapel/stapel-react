@@ -37,6 +37,7 @@ export const profilesErrorBundleRu: Record<ProfilesErrorCode, string> = {
   "error.400.invalid_ad_id": "Недопустимый идентификатор объявления",
   "error.400.invalid_avatar_format": "Неверный формат ссылки на аватар. Ожидается: avatar/<hash>",
   "error.400.invalid_currency": "Неверный код валюты",
+  "error.400.too_many_ids": "Слишком много идентификаторов: запрошено {requested}, максимум {limit} за один запрос",
   "error.400.validation_error": "Ошибка валидации",
   "error.400.verification_failed": "Проверка не пройдена",
   "error.400.verification_invalid_factor": "Этот способ подтверждения недоступен",
