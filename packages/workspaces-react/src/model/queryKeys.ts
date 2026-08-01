@@ -1,4 +1,4 @@
-import type { MembersParams } from "../api/types.js";
+import type { InvitationsParams, MembersParams } from "../api/types.js";
 
 /**
  * Namespaced TanStack Query keys (frontend-standard §2 — "ключи неймспейснуты").
@@ -18,6 +18,21 @@ export const workspacesQueryKeys: {
     workspaceId: string,
     params: MembersParams
   ): readonly ["workspaces", "members", string, MembersParams];
+  invitations(workspaceId: string): readonly ["workspaces", "invitations", string];
+  invitationsPage(
+    workspaceId: string,
+    params: InvitationsParams
+  ): readonly ["workspaces", "invitations", string, InvitationsParams];
+  invitationsInfinite(
+    workspaceId: string,
+    filters: InvitationsParams
+  ): readonly [
+    "workspaces",
+    "invitations",
+    string,
+    "infinite",
+    InvitationsParams,
+  ];
   roles(): readonly ["workspaces", "roles"];
   invitationPreview(
     token: string
@@ -30,6 +45,25 @@ export const workspacesQueryKeys: {
   // invalidating `members(workspaceId)` (mutations.ts) drops every page.
   members: (workspaceId) => [ROOT, "members", workspaceId],
   membersPage: (workspaceId, params) => [ROOT, "members", workspaceId, params],
+  // Same prefix trick as `members`: the bare 3-tuple invalidates every page
+  // (and the infinite list, which keys on it) after a revoke / resend.
+  invitations: (workspaceId) => [ROOT, "invitations", workspaceId],
+  invitationsPage: (workspaceId, params) => [
+    ROOT,
+    "invitations",
+    workspaceId,
+    params,
+  ],
+  // The infinite list carries its own marker segment: its cached value is an
+  // `InfiniteData` envelope, not a page, so it must never collide with a
+  // single-page key that happens to hold the same filters.
+  invitationsInfinite: (workspaceId, filters) => [
+    ROOT,
+    "invitations",
+    workspaceId,
+    "infinite",
+    filters,
+  ],
   roles: () => [ROOT, "roles"],
   // NOTE: the key carries the invite TOKEN (a secret). Core's query persist
   // scope is per-user and the preview response is already public-by-design

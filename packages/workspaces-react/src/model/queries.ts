@@ -1,9 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
-import type { UseQueryResult } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import type {
+  InfiniteData,
+  UseInfiniteQueryResult,
+  UseQueryResult,
+} from "@tanstack/react-query";
 import { useActiveSessionReady } from "@stapel/core";
 import type { StapelApiError } from "@stapel/core";
 import type {
+  InvitationPage,
   InvitationPreview,
+  InvitationsParams,
   MemberPage,
   MembersParams,
   RoleInfo,
@@ -13,6 +19,8 @@ import type {
 import { useWorkspacesApi } from "./context.js";
 import { workspacesQueryKeys } from "./queryKeys.js";
 import { hasCapability } from "./capabilities.js";
+import { SENSITIVE_SCOPE, capabilityLevel } from "./stepUp.js";
+import type { CapabilityLevel } from "./stepUp.js";
 
 /**
  * Read hooks over the workspaces API. Staleness follows core's query defaults;
@@ -77,6 +85,70 @@ export function useMembers(
   return useQuery({
     queryKey: workspacesQueryKeys.membersPage(workspaceId ?? "", p),
     queryFn: () => api.listMembers(workspaceId as string, p),
+    enabled: sessionReady && workspaceId !== null && workspaceId !== "",
+  });
+}
+
+/**
+ * One page of a workspace's invitations (GET /{id}/invitations, #109) — the
+ * admin's "who has not accepted yet" table. Disabled until a `workspaceId` is
+ * given (and the session is ready — see {@link useWorkspace}).
+ *
+ * ANCHOR pagination, exactly like {@link useMembers}: pass a page's
+ * `next_anchor` as `anchor` to walk forward. There is no page NUMBER — an
+ * offset would skew the moment an invitation is revoked or accepted while the
+ * admin is reading, which on this screen is the normal case, not the edge one.
+ * For scroll-to-load-more use {@link useInfiniteInvitations}.
+ *
+ * `status` defaults to the backend's `pending` (live, seat-reserving
+ * invitations); pass `never_accepted` to include declined/revoked/expired, or
+ * `all` for the full history.
+ */
+export function useInvitations(
+  workspaceId: string | null,
+  params?: InvitationsParams
+): UseQueryResult<InvitationPage, StapelApiError> {
+  const api = useWorkspacesApi();
+  const sessionReady = useActiveSessionReady();
+  const p = params ?? {};
+  return useQuery({
+    queryKey: workspacesQueryKeys.invitationsPage(workspaceId ?? "", p),
+    queryFn: () => api.listInvitations(workspaceId as string, p),
+    enabled: sessionReady && workspaceId !== null && workspaceId !== "",
+  });
+}
+
+/**
+ * A workspace's invitations as an infinite (load-more) list. Follows the
+ * backend's ANCHOR pagination and nothing else: the page param IS the
+ * previous page's `next_anchor`, and the walk stops when `has_next` goes
+ * false. `data.pages.flatMap(p => p.items)` is the flat row list.
+ *
+ * `filters` (`status` / `search` / `limit`) are part of the query key, so
+ * flipping the status tab starts a fresh anchor walk rather than appending
+ * rows of one filter to the pages of another.
+ */
+export function useInfiniteInvitations(
+  workspaceId: string | null,
+  filters?: Omit<InvitationsParams, "anchor" | "direction">
+): UseInfiniteQueryResult<
+  InfiniteData<InvitationPage, string | undefined>,
+  StapelApiError
+> {
+  const api = useWorkspacesApi();
+  const sessionReady = useActiveSessionReady();
+  const f = filters ?? {};
+  return useInfiniteQuery({
+    queryKey: workspacesQueryKeys.invitationsInfinite(workspaceId ?? "", f),
+    queryFn: ({ pageParam }) =>
+      api.listInvitations(workspaceId as string, {
+        ...f,
+        direction: "next",
+        ...(pageParam !== undefined ? { anchor: pageParam } : {}),
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) =>
+      last.has_next ? (last.next_anchor ?? undefined) : undefined,
     enabled: sessionReady && workspaceId !== null && workspaceId !== "",
   });
 }
@@ -148,5 +220,63 @@ export function useCapabilities(workspaceId: string | null): CapabilitiesResult 
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error ?? null,
+  };
+}
+
+/** What {@link useCapabilityGate} answers about ONE capability, BEFORE the
+ * operation is attempted. */
+export interface CapabilityGate {
+  /** The capability asked about, verbatim. */
+  readonly capability: string;
+  /** Does the caller's role carry it? Deny-by-default while loading. */
+  readonly allowed: boolean;
+  /** Its declared step-up level (ported registry — see `./stepUp.js`). */
+  readonly level: CapabilityLevel;
+  /** True when `level === "high"`: the backend ALSO demands a fresh
+   * verification (scope {@link SENSITIVE_SCOPE}) on top of the capability. */
+  readonly requiresStepUp: boolean;
+  /** The verification scope of that demand, or `null` at `standard`. */
+  readonly stepUpScope: string | null;
+  readonly isLoading: boolean;
+}
+
+/**
+ * Ask about one capability BEFORE offering the operation (org-program §A3).
+ *
+ * Two different answers, both needed in front of the button rather than
+ * behind it:
+ *
+ * * `allowed` — the caller's role carries the mandate. UI convenience only,
+ *   deny-by-default; the backend re-checks. This is what replaces guessing
+ *   access from the ROLE NAME: a deployment role like `secretary` can hold
+ *   `members.invite` and would still fail a `role === "admin"` test forever,
+ *   no matter what the registry says.
+ * * `requiresStepUp` — the operation is declared `high`, so a fresh step-up
+ *   verification is demanded on top. Knowing this up front is what lets a
+ *   screen say "you'll be asked to confirm" (or pre-drive enrollment)
+ *   instead of showing a button that answers 403.
+ *
+ * Example — the administrative password reset:
+ * ```tsx
+ * const gate = useCapabilityGate(workspaceId, "members.password.reset");
+ * // gate.allowed === false  → do not render the button at all
+ * // gate.requiresStepUp     → render it with the "we will ask you to
+ * //                           confirm" affordance, wired to the app's
+ * //                           verification controller
+ * ```
+ */
+export function useCapabilityGate(
+  workspaceId: string | null,
+  capability: string
+): CapabilityGate {
+  const { can, isLoading } = useCapabilities(workspaceId);
+  const level = capabilityLevel(capability);
+  return {
+    capability,
+    allowed: can(capability),
+    level,
+    requiresStepUp: level === "high",
+    stepUpScope: level === "high" ? SENSITIVE_SCOPE : null,
+    isLoading,
   };
 }

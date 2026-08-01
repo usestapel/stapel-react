@@ -5,13 +5,17 @@ import type {
 } from "@tanstack/react-query";
 import type { StapelApiError } from "@stapel/core";
 import type {
+  Invitation,
   Member,
   MemberInvite,
   MemberInviteResult,
+  MemberPasswordReset,
+  MemberPasswordResetResult,
   InvitationAccept,
   InvitationClaim,
   Workspace,
   WorkspaceCreate,
+  WorkspaceSecuritySettings,
   WorkspaceUpdate,
 } from "../api/types.js";
 import { useWorkspacesApi } from "./context.js";
@@ -167,6 +171,194 @@ export function useRemoveMember(
   const options: UseMutationOptions<void, StapelApiError, string> = {
     mutationFn: (userId) => api.removeMember(workspaceId, userId),
     onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: workspacesQueryKeys.members(workspaceId),
+      });
+    },
+  };
+  return useMutation(options);
+}
+
+/**
+ * Withdraw a live invitation (POST /{id}/invitations/{invitationId}/revoke,
+ * #109). The variable is the invitation id; the reply is the UPDATED row, so
+ * it is written straight into the page cache the table reads — a revoke is
+ * the mirror of the invitee's decline and both must stay distinguishable in
+ * `status`, which a blind refetch-and-hope would blur. Only a `pending`
+ * invitation is revocable: the backend answers
+ * `error.400.invitation_already_used` / `_revoked` / `_expired` otherwise
+ * (each its own key, not a shrug). Also refreshes the member list — the seat
+ * the invitation reserved is freed on commit.
+ */
+export function useRevokeInvitation(
+  workspaceId: string
+): UseMutationResult<Invitation, StapelApiError, string> {
+  const api = useWorkspacesApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<Invitation, StapelApiError, string> = {
+    mutationFn: (invitationId) =>
+      api.revokeInvitation(workspaceId, invitationId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: workspacesQueryKeys.invitations(workspaceId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: workspacesQueryKeys.members(workspaceId),
+      });
+    },
+  };
+  return useMutation(options);
+}
+
+/**
+ * Send the invitation email again (POST /{id}/invitations/{invitationId}/resend,
+ * #109). The variable is the invitation id.
+ *
+ * This is NOT an idempotent "poke": the backend rotates the token and
+ * restarts the TTL, so every earlier link — including the one already in the
+ * invitee's inbox — stops working, and the row's `expires_at` moves. Hence
+ * the invalidation: a table still showing the old expiry would be lying about
+ * a live credential. An EXPIRED invitation is accepted on purpose (a dead TTL
+ * is the commonest reason to resend); reviving it re-reserves a seat, so a
+ * plan ceiling can answer 402 here.
+ */
+export function useResendInvitation(
+  workspaceId: string
+): UseMutationResult<Invitation, StapelApiError, string> {
+  const api = useWorkspacesApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<Invitation, StapelApiError, string> = {
+    mutationFn: (invitationId) =>
+      api.resendInvitation(workspaceId, invitationId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: workspacesQueryKeys.invitations(workspaceId),
+      });
+    },
+  };
+  return useMutation(options);
+}
+
+/** The variable for {@link useResetMemberPassword}: whose password, and the
+ * (optional) body — omit `password` to have the server generate one. */
+export interface MemberPasswordResetVars {
+  readonly userId: string;
+  readonly body?: MemberPasswordReset;
+}
+
+/**
+ * Reset a member's password on the organization's order
+ * (POST /{id}/members/{userId}/password/reset, #110).
+ *
+ * **Step-up before the button.** Capability `members.password.reset` is
+ * declared `high`, so the backend wraps the endpoint in
+ * `requires_verification(scope="sensitive")`. Ask
+ * {@link "./queries.js".useCapabilityGate}(workspaceId,
+ * "members.password.reset") BEFORE offering the affordance: it answers both
+ * "may this caller" and "will a step-up be demanded". A step-up CHALLENGE is
+ * then driven by core's client and replayed transparently; the one case that
+ * is not transparent is the ENROLLMENT demand (the caller holds no factor to
+ * challenge) — read it off `error` with
+ * {@link "./stepUp.js".readVerificationEnrollment} and route to enrollment.
+ *
+ * **The one-shot credential.** `generated_password` comes back exactly once,
+ * only when the request omitted `password`, and can never be re-fetched. It
+ * is therefore deliberately kept OUT of the query cache: nothing here writes
+ * the response with `setQueryData`, and `gcTime: 0` drops the mutation result
+ * the moment the screen showing it unmounts. Writing it to a query would
+ * mean writing a live credential into every devtools panel AND into
+ * `localStorage`, because core's query runtime persists the whole per-user
+ * query cache (`createStapelQueryClient`). Hand it to the member out of band.
+ *
+ * Refreshes the member list (the reset moves the member's first-login state);
+ * a target that is not a resettable member of THIS workspace answers one
+ * byte-identical 404, never an existence oracle.
+ */
+export function useResetMemberPassword(
+  workspaceId: string
+): UseMutationResult<
+  MemberPasswordResetResult,
+  StapelApiError,
+  MemberPasswordResetVars
+> {
+  const api = useWorkspacesApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    MemberPasswordResetResult,
+    StapelApiError,
+    MemberPasswordResetVars
+  > = {
+    mutationFn: ({ userId, body }) =>
+      api.resetMemberPassword(workspaceId, userId, body),
+    // The result carries a live credential: never retained past the screen
+    // that displays it, and never persisted.
+    gcTime: 0,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: workspacesQueryKeys.members(workspaceId),
+      });
+    },
+  };
+  return useMutation(options);
+}
+
+/**
+ * Update a workspace's SECURITY settings (the `security` block of
+ * `PATCH /{id}`, org-program §C3) — `require_mfa` and the first-login
+ * `provisioned_user_policies`.
+ *
+ * Separate from {@link useUpdateWorkspace} because the backend treats this
+ * block as a different endpoint in all but the URL: an extra capability
+ * (`workspace.security.manage`, declared `high`) plus a step-up on the same
+ * `sensitive` scope as the password reset, and turning `require_mfa` on
+ * sweeps the current members. See {@link useResetMemberPassword} for how to
+ * wire that in front of the control.
+ *
+ * `provisioned_user_policies` is a LIST since stapel-workspaces 0.13.0 (#90)
+ * — independent checkboxes, not alternatives. An explicit `[]` is a
+ * deliberate, auditable choice ("demand nothing"), so it is sent as such and
+ * never dropped as "empty means unset".
+ *
+ * MERGES, because the backend does not: `PATCH` assigns `settings` wholesale
+ * (`ws.settings = data.settings`), so sending a bare `{security: …}` would
+ * silently drop every other key the workspace holds. The merge reads the
+ * workspace fresh rather than trusting the detail cache — a stale snapshot
+ * here would resurrect settings somebody else has since removed.
+ */
+export function useUpdateSecuritySettings(
+  workspaceId: string
+): UseMutationResult<Workspace, StapelApiError, WorkspaceSecuritySettings> {
+  const api = useWorkspacesApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    Workspace,
+    StapelApiError,
+    WorkspaceSecuritySettings
+  > = {
+    mutationFn: async (patch) => {
+      const current = await api.getWorkspace(workspaceId);
+      const settings = (current.settings ?? {}) as Record<string, unknown>;
+      const security = (settings["security"] ?? {}) as Record<string, unknown>;
+      // `policies_configured` is derived and read-only on the wire — never
+      // sent back, whatever a caller spread into the patch.
+      const { policies_configured: _derived, ...writable } = {
+        ...security,
+        ...patch,
+      };
+      return api.updateWorkspace(workspaceId, {
+        settings: { ...settings, security: writable },
+      });
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData(
+        workspacesQueryKeys.detail(workspaceId),
+        updated
+      );
+      void queryClient.invalidateQueries({
+        queryKey: workspacesQueryKeys.list(),
+      });
+      // require_mfa ON suspends members without a strong factor; OFF lifts
+      // those suspensions. Either way the roster just moved.
       void queryClient.invalidateQueries({
         queryKey: workspacesQueryKeys.members(workspaceId),
       });

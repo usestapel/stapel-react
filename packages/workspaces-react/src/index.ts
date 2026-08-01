@@ -57,14 +57,27 @@ export {
   useWorkspaces,
   useWorkspace,
   useMembers,
+  useInvitations,
+  useInfiniteInvitations,
   useRoles,
   useInvitationPreview,
   useCapabilities,
+  useCapabilityGate,
 } from "./model/queries.js";
-export type { CapabilitiesResult } from "./model/queries.js";
+export type { CapabilitiesResult, CapabilityGate } from "./model/queries.js";
 
 // ── model (capability matcher + email-mask ports — backend-synced utils) ─────
 export { capabilityMatches, hasCapability } from "./model/capabilities.js";
+export {
+  BUILTIN_CAPABILITY_LEVELS,
+  SENSITIVE_SCOPE,
+  capabilityLevel,
+  readVerificationEnrollment,
+} from "./model/stepUp.js";
+export type {
+  CapabilityLevel,
+  VerificationEnrollment,
+} from "./model/stepUp.js";
 export { maskEmail, emailMatchesMask } from "./model/emailMask.js";
 
 // ── model (write hooks) ──────────────────────────────────────────────────────
@@ -78,8 +91,15 @@ export {
   useAcceptInvitation,
   useClaimInvitation,
   useDeclineInvitation,
+  useRevokeInvitation,
+  useResendInvitation,
+  useResetMemberPassword,
+  useUpdateSecuritySettings,
 } from "./model/mutations.js";
-export type { MemberRoleChange } from "./model/mutations.js";
+export type {
+  MemberRoleChange,
+  MemberPasswordResetVars,
+} from "./model/mutations.js";
 
 // ── api (wire type aliases) ──────────────────────────────────────────────────
 export type {
@@ -94,9 +114,16 @@ export type {
   MemberInviteResult,
   MemberRoleUpdate,
   Invitation,
+  InvitationPage as InvitationListData,
+  InvitationsParams,
+  InvitationStatusFilter,
   InvitationAccept,
   InvitationPreview,
   InvitationClaim,
+  MemberPasswordReset,
+  MemberPasswordResetResult,
+  ProvisionedUserPolicy,
+  WorkspaceSecuritySettings,
   RoleInfo,
   RoleList,
   WorkspaceRole,

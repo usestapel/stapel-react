@@ -1,9 +1,14 @@
 import type { StapelClient, StapelRequestOptions } from "@stapel/core";
 import type {
+  Invitation,
+  InvitationPage,
+  InvitationsParams,
   Member,
   MemberInvite,
   MemberInviteResult,
   MemberPage,
+  MemberPasswordReset,
+  MemberPasswordResetResult,
   MemberRoleUpdate,
   MembersParams,
   InvitationAccept,
@@ -87,6 +92,55 @@ export interface WorkspacesApi {
   /** Remove a member from a workspace (admin+; the last owner is protected). */
   removeMember(workspaceId: string, userId: string): Promise<void>;
 
+  /**
+   * Reset a member's password on the organization's order (stapel-workspaces
+   * ≥0.14.0, #110). Capability `members.password.reset`, declared **high** —
+   * the backend wraps it in `requires_verification(scope="sensitive")`, so an
+   * ambient cookie is not enough and a step-up (or factor ENROLLMENT) 403 is
+   * the normal first answer. A missing/wrong target answers one
+   * byte-identical 404 (never an existence oracle).
+   *
+   * `generated_password` in the reply is a ONE-SHOT credential: present only
+   * when the request omitted `password`, never re-fetchable, never logged.
+   */
+  resetMemberPassword(
+    workspaceId: string,
+    userId: string,
+    body?: MemberPasswordReset
+  ): Promise<MemberPasswordResetResult>;
+
+  // ── invitation administration (#109, stapel-workspaces ≥0.12.0) ────────────
+
+  /**
+   * The workspace's invitations — the admin's "who has not accepted yet"
+   * table (capability `members.invite`). An ANCHOR-paginated page, filtered
+   * by `status` (default `pending`) and `search` (invited email). The invite
+   * token is never in the response.
+   */
+  listInvitations(
+    workspaceId: string,
+    params?: InvitationsParams
+  ): Promise<InvitationPage>;
+  /**
+   * Withdraw a live invitation — the workspace's terminal "no", the mirror of
+   * the invitee's decline (the two stay distinguishable in `status` forever).
+   * Only a `pending` one is revocable; the reply is the updated row.
+   */
+  revokeInvitation(
+    workspaceId: string,
+    invitationId: string
+  ): Promise<Invitation>;
+  /**
+   * Send the invitation email again. Accepts an EXPIRED invitation on purpose
+   * (a dead TTL is the commonest reason to resend) and refuses the three
+   * terminal states. Rotates the token and restarts the TTL — every earlier
+   * link stops working — so the reply is the updated row, not the old one.
+   */
+  resendInvitation(
+    workspaceId: string,
+    invitationId: string
+  ): Promise<Invitation>;
+
   /** Accept an invitation by its token — returns the caller's new membership. */
   acceptInvitation(body: InvitationAccept): Promise<Member>;
 
@@ -169,6 +223,39 @@ export function createWorkspacesApi(client: StapelClient): WorkspacesApi {
     removeMember: (workspaceId, userId) =>
       client.delete(
         `/${encodeURIComponent(workspaceId)}/members/${encodeURIComponent(userId)}`,
+        mutating()
+      ),
+
+    resetMemberPassword: (workspaceId, userId, body) =>
+      client.post(
+        `/${encodeURIComponent(workspaceId)}/members/${encodeURIComponent(userId)}/password/reset`,
+        (body ?? {}) satisfies MemberPasswordReset,
+        mutating()
+      ),
+
+    listInvitations: (workspaceId, params) => {
+      const query: Record<string, string | number> = {};
+      if (params?.anchor !== undefined) query.anchor = params.anchor;
+      if (params?.direction !== undefined) query.direction = params.direction;
+      if (params?.limit !== undefined) query.limit = params.limit;
+      if (params?.search !== undefined) query.search = params.search;
+      if (params?.status !== undefined) query.status = params.status;
+      return client.get(`/${encodeURIComponent(workspaceId)}/invitations`, {
+        query,
+      });
+    },
+
+    revokeInvitation: (workspaceId, invitationId) =>
+      client.post(
+        `/${encodeURIComponent(workspaceId)}/invitations/${encodeURIComponent(invitationId)}/revoke`,
+        undefined,
+        mutating()
+      ),
+
+    resendInvitation: (workspaceId, invitationId) =>
+      client.post(
+        `/${encodeURIComponent(workspaceId)}/invitations/${encodeURIComponent(invitationId)}/resend`,
+        undefined,
         mutating()
       ),
 
