@@ -1,5 +1,11 @@
 # @stapel/core
 
+## 0.10.0
+
+### Minor Changes
+
+- `@stapel/core` now self-describes: it ships a generated `manifest.json` and `llms.txt`, closing the gap where it was the only one of the 8 dependent pairs without a machine-readable description of its own surface. `scripts/gen-manifest.mjs` gained an explicit "no backend" mode (`MANIFEST_MODULE=""`) for packages, like core, that have no Django/DRF counterpart.
+
 ## 0.9.0
 
 ### Minor Changes
