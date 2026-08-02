@@ -1,9 +1,9 @@
 # stapel-react
 
-[![CI](https://github.com/usestapel/stapel-react/actions/workflows/ci.yml/badge.svg)](https://github.com/usestapel/stapel-react/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/%40stapel%2Fcore.svg?label=%40stapel%2Fcore)](https://www.npmjs.com/package/@stapel/core)
-[![npm](https://img.shields.io/npm/v/%40stapel%2Ftokens.svg?label=%40stapel%2Ftokens)](https://www.npmjs.com/package/@stapel/tokens)
-[![npm](https://img.shields.io/npm/v/%40stapel%2Fauth-react.svg?label=%40stapel%2Fauth-react)](https://www.npmjs.com/package/@stapel/auth-react)
+[![CI](https://img.shields.io/github/actions/workflow/status/usestapel/stapel-react/ci.yml?branch=main&logo=github&label=CI)](https://github.com/usestapel/stapel-react/actions/workflows/ci.yml?query=branch%3Amain)
+[![release](https://img.shields.io/github/actions/workflow/status/usestapel/stapel-react/release.yml?branch=main&logo=github&label=release)](https://github.com/usestapel/stapel-react/actions/workflows/release.yml?query=branch%3Amain)
+[![license](https://img.shields.io/github/license/usestapel/stapel-react)](https://github.com/usestapel/stapel-react/blob/main/LICENSE)
+[![llms.txt](https://img.shields.io/badge/llms.txt-blue)](https://github.com/usestapel/stapel-react/blob/main/llms.txt)
 
 React/TypeScript monorepo of the Stapel frontend pipeline. Every Stapel backend
 library with endpoints gets a paired React library that implements its flows
@@ -49,6 +49,36 @@ Dependency direction is strictly downward; L2 packages never import each other
 
 Each pair's version minor tracks its backend module's minor (scheme B); its
 `manifest.json` pins the backend contract range and is drift-gated.
+
+### Published packages (badge-canon §1.2 / §4)
+
+llms.txt is generated (`pnpm gen:manifest` / `pnpm gen:tokens`), drift-gated,
+and shipped in the tarball — a package gets the link only once the file
+actually exists (`@stapel/showcase-viewer` is `private: true`, never
+published, and is not listed).
+
+| Package | Version | Downloads | llms.txt |
+|---|---|---|---|
+| [`@stapel/analytics`](https://www.npmjs.com/package/@stapel/analytics) | ![npm](https://img.shields.io/npm/v/@stapel%2Fanalytics?logo=npm&logoColor=white&label=) | ![downloads](https://img.shields.io/npm/dm/@stapel%2Fanalytics?label=) | — |
+| [`@stapel/auth-react`](https://www.npmjs.com/package/@stapel/auth-react) | ![npm](https://img.shields.io/npm/v/@stapel%2Fauth-react?logo=npm&logoColor=white&label=) | ![downloads](https://img.shields.io/npm/dm/@stapel%2Fauth-react?label=) | [llms.txt](packages/auth-react/llms.txt) |
+| [`@stapel/billing-react`](https://www.npmjs.com/package/@stapel/billing-react) | ![npm](https://img.shields.io/npm/v/@stapel%2Fbilling-react?logo=npm&logoColor=white&label=) | ![downloads](https://img.shields.io/npm/dm/@stapel%2Fbilling-react?label=) | [llms.txt](packages/billing-react/llms.txt) |
+| [`@stapel/calendar-react`](https://www.npmjs.com/package/@stapel/calendar-react) | ![npm](https://img.shields.io/npm/v/@stapel%2Fcalendar-react?logo=npm&logoColor=white&label=) | ![downloads](https://img.shields.io/npm/dm/@stapel%2Fcalendar-react?label=) | [llms.txt](packages/calendar-react/llms.txt) |
+| [`@stapel/core`](https://www.npmjs.com/package/@stapel/core) | ![npm](https://img.shields.io/npm/v/@stapel%2Fcore?logo=npm&logoColor=white&label=) | ![downloads](https://img.shields.io/npm/dm/@stapel%2Fcore?label=) | [llms.txt](packages/core/llms.txt) |
+| [`@stapel/eslint-plugin`](https://www.npmjs.com/package/@stapel/eslint-plugin) | ![npm](https://img.shields.io/npm/v/@stapel%2Feslint-plugin?logo=npm&logoColor=white&label=) | ![downloads](https://img.shields.io/npm/dm/@stapel%2Feslint-plugin?label=) | — |
+| [`@stapel/image`](https://www.npmjs.com/package/@stapel/image) | ![npm](https://img.shields.io/npm/v/@stapel%2Fimage?logo=npm&logoColor=white&label=) | ![downloads](https://img.shields.io/npm/dm/@stapel%2Fimage?label=) | — |
+| [`@stapel/notifications-react`](https://www.npmjs.com/package/@stapel/notifications-react) | ![npm](https://img.shields.io/npm/v/@stapel%2Fnotifications-react?logo=npm&logoColor=white&label=) | ![downloads](https://img.shields.io/npm/dm/@stapel%2Fnotifications-react?label=) | [llms.txt](packages/notifications-react/llms.txt) |
+| [`@stapel/profiles-react`](https://www.npmjs.com/package/@stapel/profiles-react) | ![npm](https://img.shields.io/npm/v/@stapel%2Fprofiles-react?logo=npm&logoColor=white&label=) | ![downloads](https://img.shields.io/npm/dm/@stapel%2Fprofiles-react?label=) | [llms.txt](packages/profiles-react/llms.txt) |
+| [`@stapel/recordings-react`](https://www.npmjs.com/package/@stapel/recordings-react) | ![npm](https://img.shields.io/npm/v/@stapel%2Frecordings-react?logo=npm&logoColor=white&label=) | ![downloads](https://img.shields.io/npm/dm/@stapel%2Frecordings-react?label=) | [llms.txt](packages/recordings-react/llms.txt) |
+| [`@stapel/shell-react`](https://www.npmjs.com/package/@stapel/shell-react) | ![npm](https://img.shields.io/npm/v/@stapel%2Fshell-react?logo=npm&logoColor=white&label=) | ![downloads](https://img.shields.io/npm/dm/@stapel%2Fshell-react?label=) | — |
+| [`@stapel/showcase`](https://www.npmjs.com/package/@stapel/showcase) | ![npm](https://img.shields.io/npm/v/@stapel%2Fshowcase?logo=npm&logoColor=white&label=) | ![downloads](https://img.shields.io/npm/dm/@stapel%2Fshowcase?label=) | — |
+| [`@stapel/tokens`](https://www.npmjs.com/package/@stapel/tokens) | ![npm](https://img.shields.io/npm/v/@stapel%2Ftokens?logo=npm&logoColor=white&label=) | ![downloads](https://img.shields.io/npm/dm/@stapel%2Ftokens?label=) | [llms.txt](packages/tokens/llms.txt) |
+| [`@stapel/tokens-antd`](https://www.npmjs.com/package/@stapel/tokens-antd) | ![npm](https://img.shields.io/npm/v/@stapel%2Ftokens-antd?logo=npm&logoColor=white&label=) | ![downloads](https://img.shields.io/npm/dm/@stapel%2Ftokens-antd?label=) | — |
+| [`@stapel/tokens-mui`](https://www.npmjs.com/package/@stapel/tokens-mui) | ![npm](https://img.shields.io/npm/v/@stapel%2Ftokens-mui?logo=npm&logoColor=white&label=) | ![downloads](https://img.shields.io/npm/dm/@stapel%2Ftokens-mui?label=) | — |
+| [`@stapel/workspaces-react`](https://www.npmjs.com/package/@stapel/workspaces-react) | ![npm](https://img.shields.io/npm/v/@stapel%2Fworkspaces-react?logo=npm&logoColor=white&label=) | ![downloads](https://img.shields.io/npm/dm/@stapel%2Fworkspaces-react?label=) | [llms.txt](packages/workspaces-react/llms.txt) |
+
+Root [`llms.txt`](llms.txt) is the index over this table — one line per
+package, its `description` and a link — generated by
+`scripts/gen-root-llms.mjs` (`pnpm gen:root-llms`) and drift-gated the same way.
 
 ## Setup ceremony
 

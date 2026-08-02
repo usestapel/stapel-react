@@ -1,5 +1,7 @@
 # @stapel/core
 
+[![llms.txt](https://img.shields.io/badge/llms.txt-blue)](https://github.com/usestapel/stapel-react/blob/main/packages/core/llms.txt)
+
 The Stapel frontend runtime (L0, frontend-standard §1). Everything the
 `@stapel/<module>-react` pairs build on:
 

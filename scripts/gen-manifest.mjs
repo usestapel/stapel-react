@@ -42,6 +42,14 @@ const SIBLING_ROOT = process.env.SIBLING_ROOT ?? "..";
 
 const PKG_DIR = resolve(ROOT, process.env.MANIFEST_PKG_DIR ?? "packages/auth-react");
 const MODULE = process.env.MANIFEST_MODULE ?? "stapel-auth";
+// A package with NO backend Django module of its own (today: @stapel/core,
+// the frontend runtime substrate every `-react` pair builds on — it has no
+// DRF endpoints, no generated schema/flows/errors, see its src/index.ts
+// closing note) sets `MANIFEST_MODULE=""` explicitly. That is the ONLY
+// signal this script needs to switch its render from "backend pair" to
+// "generic runtime package" — same generator, same drift gate, no second
+// mechanism (badge-canon §3: chini generator, ne hand-author the artifact).
+const HAS_BACKEND = MODULE.trim().length > 0;
 const PATH_PREFIX = process.env.MANIFEST_TAGPREFIX ?? "/auth/api/v1/";
 // §17-native per-module contract: the schema source is the backend module's
 // own committed docs/schema.json (default: the auth pair, matching the other
@@ -338,9 +346,94 @@ function renderLlms(m, factories, eventsJson, demosJson) {
   return L.join("\n") + "\n";
 }
 
+/**
+ * llms.txt for a package with NO backend pairing (`backend: null` in the
+ * manifest) — the frontend RUNTIME substrate every `@stapel/<module>-react`
+ * pair is built on, not a pair itself. There is no operations/flows/errors
+ * catalog to render (no Django module produced one), so this narrates from
+ * what such a package DOES have: its own `provides`-equivalent
+ * (`package.json`'s description — the only honest source, see `main()`) and
+ * its real exports (`parseExports`, same mechanism every pair's render uses).
+ * Hooks/events/demos sections are shared verbatim with the pair renderer —
+ * one rendering library, not a forked one, even though the narrative differs.
+ */
+function renderLlmsGeneric(m, factories, eventsJson, demosJson) {
+  const L = [];
+  L.push(`# ${m.package} ${m.version}`);
+  L.push("");
+  L.push(m.description || `${m.package} — no provides one-liner in package.json yet.`);
+  L.push("");
+  L.push(
+    "No backend Django module of its own — this is the frontend RUNTIME every "
+  );
+  L.push(
+    "@stapel/<module>-react pair is built on top of: client + error envelope, "
+  );
+  L.push(
+    "session/refresh seam, TanStack Query layer, i18n engine, analytics seam, "
+  );
+  L.push("flow-machine primitive, encrypted repositories. A pair depends on this");
+  L.push("and never re-implements what is exported here.");
+  L.push("");
+  if (factories.length > 0) {
+    L.push("## Factories (createFlowMachine-style; analytics funnel flow.<id>.<step>)");
+    for (const f of factories) L.push(`- ${f}`);
+    L.push("");
+  }
+  L.push("## Exports (call these, never hand-roll the equivalent) — see full");
+  L.push("signatures/JSDoc in the package README and src/index.ts.");
+  L.push("### runtime");
+  for (const name of m.exports.runtime) L.push(`- ${name}`);
+  L.push("");
+  if (m.exports.types.length > 0) {
+    L.push("### types");
+    for (const name of m.exports.types) L.push(`- ${name}`);
+    L.push("");
+  }
+  const hookLines = renderLlmsHooks(m.hooks);
+  if (hookLines.length > 0) {
+    for (const line of hookLines) L.push(line);
+    L.push("");
+  }
+  for (const line of renderLlmsEvents(eventsJson)) L.push(line);
+  L.push("");
+  if (demosJson.demos.length > 0) {
+    for (const line of renderLlmsDemos(demosJson)) L.push(line);
+    L.push("");
+  }
+  L.push("## Snippets");
+  L.push("```tsx");
+  L.push("// One-provider setup (StapelConfigProvider + QueryClientProvider + I18nProvider).");
+  L.push("const client = createStapelClient({ baseUrl, getAccessToken });");
+  L.push("<StapelProvider client={client} queryClient={queryClient} i18n={i18n}>");
+  L.push("  <App />");
+  L.push("</StapelProvider>");
+  L.push("```");
+  L.push("```tsx");
+  L.push("// Error narrowing — never a cast (stapel/no-raw-error-shape).");
+  L.push("if (isStapelApiError(err)) return <Alert>{t(err.code, err.params)}</Alert>;");
+  L.push("```");
+  return L.join("\n") + "\n";
+}
+
+/** Read a JSON file that a package without a backend pairing simply never
+ * has (no codegen pipeline produced it) — ENOENT degrades to `fallback`,
+ * same discipline already applied to flows/events/demos above; any other
+ * failure (malformed JSON) still throws. */
+async function readJsonOptional(path, fallback) {
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch (e) {
+    if (e?.code === "ENOENT") return fallback;
+    throw e;
+  }
+}
+
 async function main() {
   const pkg = JSON.parse(await readFile(resolve(PKG_DIR, "package.json"), "utf8"));
-  const schema = JSON.parse(await readFile(SCHEMA_PATH, "utf8"));
+  // A backend-less package (@stapel/core today) has no OpenAPI schema to
+  // read at all — there is no sibling Django module to generate one from.
+  const schema = HAS_BACKEND ? JSON.parse(await readFile(SCHEMA_PATH, "utf8")) : { paths: {} };
   // Zero-flow pairs (slim wave §21/S3) carry no generated flows.json at all —
   // gen:flows skips emission for them; treat that as an empty flow list.
   let flows = [];
@@ -351,11 +444,16 @@ async function main() {
   } catch (e) {
     if (e?.code !== "ENOENT") throw e;
   }
-  const errors = JSON.parse(
-    await readFile(resolve(PKG_DIR, "src/i18n/generated/errors.json"), "utf8")
-  );
+  // errors.json/i18n keys are codegen'd FROM a backend's error catalog — a
+  // package with none (@stapel/core: it defines the error ENVELOPE mechanism,
+  // not a catalog of codes; those belong to whichever backend module a pair
+  // fronts) has neither file. ENOENT degrades honestly to empty, same as flows.
+  const errors = await readJsonOptional(resolve(PKG_DIR, "src/i18n/generated/errors.json"), []);
   const indexSrc = await readFile(resolve(PKG_DIR, "src/index.ts"), "utf8");
-  const uiKeysSrc = await readFile(resolve(PKG_DIR, "src/i18n/keys.ts"), "utf8");
+  const uiKeysSrc = await readFile(resolve(PKG_DIR, "src/i18n/keys.ts"), "utf8").catch((e) => {
+    if (e?.code === "ENOENT") return "";
+    throw e;
+  });
   // events.json is generated by gen-events (runs before gen-manifest); degrade
   // to an empty registry if a pair has none yet.
   const eventsJson = JSON.parse(
@@ -388,8 +486,17 @@ async function main() {
     $generated: "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
     package: pkg.name,
     version: pkg.version,
-    backend: { module: MODULE, contract: await backendContract() },
-    layers: ["api", "model", "flows", "headless", "i18n"],
+    backend: HAS_BACKEND ? { module: MODULE, contract: await backendContract() } : null,
+    // "layers" names a pair's fixed api/model/flows/headless/i18n shape — a
+    // backend-less runtime package has no such pairing, so the key is simply
+    // absent rather than a fabricated taxonomy (honest gap, not an invention).
+    ...(HAS_BACKEND ? { layers: ["api", "model", "flows", "headless", "i18n"] } : {}),
+    // `description` is the one-liner an agent reads FIRST — for a pair it is
+    // derived from backend.module in the render narrative below, but a
+    // backend-less package has no such narrative to derive it from, so its
+    // own (human-written, npm-facing) package.json description is the only
+    // honest source.
+    ...(HAS_BACKEND ? {} : { description: pkg.description ?? "" }),
     flows: flowsCatalog(flows),
     machines: factories,
     operations: operations(schema),
@@ -401,7 +508,9 @@ async function main() {
     exports: exportsCatalog,
   };
 
-  const llms = renderLlms(manifest, factories, eventsJson, demosJson);
+  const llms = HAS_BACKEND
+    ? renderLlms(manifest, factories, eventsJson, demosJson)
+    : renderLlmsGeneric(manifest, factories, eventsJson, demosJson);
   const approxTokens = Math.ceil(llms.length / 4);
   if (approxTokens > LLMS_TOKEN_BUDGET) {
     throw new Error(

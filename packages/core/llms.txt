@@ -1,0 +1,156 @@
+# @stapel/core 0.9.0
+
+Stapel frontend runtime (L0): typed fetch with the Stapel error envelope, auth token/refresh seams, verification-403 interception, TanStack Query layer with per-user persistence, i18n engine, config provider, breakpoints hook.
+
+No backend Django module of its own — this is the frontend RUNTIME every 
+@stapel/<module>-react pair is built on top of: client + error envelope, 
+session/refresh seam, TanStack Query layer, i18n engine, analytics seam, 
+flow-machine primitive, encrypted repositories. A pair depends on this
+and never re-implements what is exported here.
+
+## Exports (call these, never hand-roll the equivalent) — see full
+signatures/JSDoc in the package README and src/index.ts.
+### runtime
+- AnalyticsContext
+- I18nProvider
+- REFRESH_UNAVAILABLE
+- StapelApiError
+- StapelConfigProvider
+- StapelProvider
+- TRANSPORT_ERROR_CODE
+- VERIFICATION_TOKEN_HEADER
+- createFlowMachine
+- createI18n
+- createMeCachePersister
+- createModuleContext
+- createModuleRuntime
+- createRepository
+- createSessionManager
+- createStapelClient
+- createStapelQueryClient
+- defaultPersistStorage
+- errorCode
+- errorCodePredicate
+- errorStatus
+- extractVerificationChallenge
+- formatFlowError
+- getActiveSessionManager
+- hasErrorCode
+- idbStorage
+- interpolate
+- isErrorCode
+- isErrorEnvelope
+- isStapelApiError
+- localStorageAdapter
+- memoryStorage
+- parseErrorEnvelope
+- toFlowError
+- toStapelApiError
+- trackFlowStep
+- useActiveSessionReady
+- useAnalytics
+- useBreakpoint
+- useFlow
+- useFormatFlowError
+- useI18n
+- useSessionReady
+- useStapelClient
+- useStapelConfig
+- useT
+
+### types
+- Analytics
+- AnalyticsBatchOptions
+- AnalyticsEvent
+- AnalyticsEventKind
+- AnalyticsOptions
+- AnalyticsProvider
+- AnyEventDef
+- Breakpoint
+- ConsentState
+- CreateI18nOptions
+- CreateModuleRuntimeOptions
+- CreateSessionManagerOptions
+- EventDef
+- EventDefInput
+- EventProps
+- FlowError
+- FlowMachine
+- FlowMachineOptions
+- FlowStateBase
+- FlowStepPhase
+- FormatFlowErrorOptions
+- HttpMethod
+- I18nDictionary
+- I18nEngine
+- LocaleLoader
+- LogoutHook
+- MeCachePersister
+- MeCachePersisterOptions
+- ModuleContextKit
+- ModuleRuntime
+- NavComponentRef
+- NavEntry
+- NavPlacement
+- NavPlacementLevel
+- NavRoute
+- PackageNavManifest
+- PersistStorage
+- PiiGuardMode
+- PropSpec
+- PropType
+- PropsSchema
+- RefreshOutcome
+- Repository
+- RepositoryOptions
+- ResolveProps
+- SessionEventName
+- SessionLogoutReason
+- SessionLostReason
+- SessionManager
+- SessionManagerEventMap
+- SessionStatus
+- StapelClient
+- StapelClientOptions
+- StapelConfig
+- StapelErrorEnvelope
+- StapelProviderProps
+- StapelQueryClientOptions
+- StapelQueryRuntime
+- StapelRequestOptions
+- TranslateFn
+- VerificationChallenge
+- VerificationChallengeHandler
+- VerificationOutcome
+
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
+## Snippets
+```tsx
+// One-provider setup (StapelConfigProvider + QueryClientProvider + I18nProvider).
+const client = createStapelClient({ baseUrl, getAccessToken });
+<StapelProvider client={client} queryClient={queryClient} i18n={i18n}>
+  <App />
+</StapelProvider>
+```
+```tsx
+// Error narrowing — never a cast (stapel/no-raw-error-shape).
+if (isStapelApiError(err)) return <Alert>{t(err.code, err.params)}</Alert>;
+```
