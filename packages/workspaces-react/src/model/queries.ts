@@ -9,6 +9,7 @@ import type { StapelApiError } from "@stapel/core";
 import type {
   InvitationPage,
   InvitationPreview,
+  InstanceShape,
   InvitationsParams,
   MemberPage,
   MembersParams,
@@ -170,6 +171,34 @@ export function useRoles(): UseQueryResult<
     queryKey: workspacesQueryKeys.roles(),
     queryFn: async () => (await api.listRoles()).roles ?? [],
     enabled: sessionReady,
+  });
+}
+
+/**
+ * Форма развёртывания (GET /instance, без авторизации).
+ *
+ * Отвечает на вопрос, который экран обязан задать ДО того, как решит, что
+ * показать человеку без пространства: это закрытый контур (`landing:
+ * "none"` — своего пространства у человека нет и взяться неоткуда) или
+ * публичное облако (`"personal"` — есть, и туда можно вести).
+ *
+ * Зачем хук, а не поле в профиле: его читает ровно тот, у кого доступа уже
+ * НЕТ — выброшенный из Спейса или вышедший сам. Поэтому запрос намеренно
+ * НЕ ждёт сессии, в отличие от {@link useRoles}: ждать её значило бы
+ * никогда не ответить тому, ради кого хук и заведён.
+ *
+ * Данные статичны для развёртывания — меняются только вместе с ним,
+ * поэтому кэш живёт до перезагрузки страницы и не перепрашивается.
+ */
+export function useInstanceShape(): UseQueryResult<
+  InstanceShape,
+  StapelApiError
+> {
+  const api = useWorkspacesApi();
+  return useQuery({
+    queryKey: workspacesQueryKeys.instance(),
+    queryFn: () => api.getInstanceShape(),
+    staleTime: Infinity,
   });
 }
 

@@ -34,6 +34,7 @@ export const workspacesQueryKeys: {
     InvitationsParams,
   ];
   roles(): readonly ["workspaces", "roles"];
+  instance(): readonly ["workspaces", "instance"];
   invitationPreview(
     token: string
   ): readonly ["workspaces", "invitation-preview", string];
@@ -65,6 +66,7 @@ export const workspacesQueryKeys: {
     filters,
   ],
   roles: () => [ROOT, "roles"],
+  instance: () => [ROOT, "instance"],
   // NOTE: the key carries the invite TOKEN (a secret). Core's query persist
   // scope is per-user and the preview response is already public-by-design
   // (masked email only) — but hosts logging query keys should treat this one

@@ -60,6 +60,7 @@ export {
   useInvitations,
   useInfiniteInvitations,
   useRoles,
+  useInstanceShape,
   useInvitationPreview,
   useCapabilities,
   useCapabilityGate,

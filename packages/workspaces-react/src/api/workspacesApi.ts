@@ -14,6 +14,7 @@ import type {
   InvitationAccept,
   InvitationClaim,
   InvitationPreview,
+  InstanceShape,
   RoleList,
   Workspace,
   WorkspaceCreate,
@@ -171,6 +172,9 @@ export interface WorkspacesApi {
   /** The effective role registry (builtin + deployment overlay), for
    * RoleSelect-class UI — capability strings verbatim, rank-descending. */
   listRoles(): Promise<RoleList>;
+
+  /** Форма инстанса (GET /instance, без авторизации). */
+  getInstanceShape(): Promise<InstanceShape>;
 }
 
 export function createWorkspacesApi(client: StapelClient): WorkspacesApi {
@@ -284,5 +288,7 @@ export function createWorkspacesApi(client: StapelClient): WorkspacesApi {
       ),
 
     listRoles: () => client.get("/roles"),
+
+    getInstanceShape: () => client.get("/instance"),
   };
 }

@@ -68,6 +68,13 @@ export type RoleInfo = Schemas["RoleResponse"];
 /** GET /roles 200 body — the effective role registry, rank-descending. */
 export type RoleList = Schemas["RoleListResponse"];
 
+/**
+ * Форма развёртывания: с чем приземляется человек «с улицы» и открыта ли
+ * самостоятельная регистрация. Свойство ИНСТАНСА, не пространства — и не
+ * настройка, которую крутит заказчик: она выбирается при развёртывании.
+ */
+export type InstanceShape = Schemas["InstanceShapeResponse"];
+
 // ── documented corrections (drf-spectacular under-describes) ──────────────────
 
 /**

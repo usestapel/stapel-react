@@ -403,6 +403,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/api/v1/instance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Instance shape: how a street signup lands (personal | none) and whether self-serve registration is open. Public, unauthenticated — the screen a kicked/left member sees depends on it.
+         *
+         *     **Permissions:** `AllowAny`
+         */
+        get: operations["workspaces_api_v1_instance_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/api/v1/internal/{workspace_id}/members/{user_id}": {
         parameters: {
             query?: never;
@@ -585,6 +606,38 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description Как развёрнут ЭТОТ инстанс — то, что клиенту нужно знать ДО того, как
+         *     он решит, что показать человеку без пространства.
+         *
+         *     Ось ``landing`` (``STREET_LANDING_MODE``) существовала с 03.08.2026, но
+         *     жила только в окружении бэкенда: наружу не отдавалась ничем, и отличить
+         *     закрытый контур от публичного облака на клиенте было НЕЧЕМ.
+         *
+         *     Почему это не косметика. Экран, который видит человек, выброшенный из
+         *     Спейса (или вышедший сам), в этих двух мирах разный по существу:
+         *
+         *     * ``none`` — закрытый контур: своего пространства у человека нет и
+         *     взяться неоткуда. Честный экран говорит «вы не участник, попросите
+         *     приглашение» и никуда не зовёт;
+         *     * ``personal`` — публичное облако: у него есть собственное
+         *     пространство, и туда можно вести.
+         *
+         *     Показать «создайте встречу» тому, кому инстанс её создать не даст, —
+         *     это тупик, нарисованный кнопкой.
+         */
+        InstanceShapeResponse: {
+            /**
+             * @description С чем приземляется человек «с улицы»
+             * @example personal
+             */
+            landing: string;
+            /**
+             * @description Можно ли завести учётку самому
+             * @example True
+             */
+            registration_open: boolean;
+        };
         /** @description Get-or-create result for a user's personal workspace (service-to-service). */
         InternalPersonalWorkspaceResponse: {
             /**
@@ -692,9 +745,19 @@ export interface components {
              * @example 0192a...
              */
             invited_by_id?: string | null;
+            /**
+             * @description Name hint typed for this invitee at invite time, if any; null otherwise
+             * @example Ada Lovelace
+             */
+            display_name?: string | null;
         };
         /** @description Invite payload. */
         MemberInviteRequest: {
+            /**
+             * @description Name hint for the invitee (this invite's "Имя" field), applied to every email in this request. Optional — an invite without one behaves exactly as before. NOT written into stapel-profiles directly (that store is the invitee's own): held on the invitation, copied onto the member at accept time, and shown only until stapel-profiles has a real name for the person
+             * @example Ada Lovelace
+             */
+            display_name?: string | null;
             /**
              * @description One or more emails to invite
              * @example [
@@ -793,6 +856,11 @@ export interface components {
             suspended_at?: string | null;
             /** @description Why the membership is suspended (canonical value no_mfa); null while active */
             suspension_reason?: string | null;
+            /**
+             * @description Best-effort display name — a live lookup in stapel-profiles when it is installed and has one, else the name typed at invite/provision time (never both, never invented when neither exists). Null when nobody has one yet
+             * @example Ada Lovelace
+             */
+            display_name?: string | null;
         };
         PaginatedInvitationResponseList: {
             items: components["schemas"]["InvitationResponse"][];
@@ -874,9 +942,19 @@ export interface components {
             /** @description Server-generated initial password — returned exactly ONCE, only when the request omitted password. Store it or hand it to the user now; it cannot be re-fetched. A credential: never log it */
             generated_password?: string | null;
         };
-        /** @description RoleListResponse(roles: List[stapel_workspaces.dto.RoleResponse] = <factory>) */
+        /** @description The effective role registry (builtin four + STAPEL_WORKSPACES overlay). */
         RoleListResponse: {
+            /** @description One entry per effective role, descending rank */
             roles?: components["schemas"]["RoleResponse"][];
+            /**
+             * @description Step-up level per namespaced capability string, builtin ``members.provision`` / ``members.password.reset`` / ``workspace.security.manage`` plus the deployment's ``STAPEL_WORKSPACES["CAPABILITY_LEVELS"]`` overlay. A capability absent from this map is ``"standard"`` — the client-side default. Lets a frontend stop hardcoding its own copy of this registry
+             * @example {
+             *       "members.provision": "high"
+             *     }
+             */
+            capability_levels?: {
+                [key: string]: string;
+            };
         };
         /** @description One role of the effective registry (builtin + STAPEL_WORKSPACES overlay). */
         RoleResponse: {
@@ -943,9 +1021,17 @@ export interface components {
              */
             type?: string;
         };
-        /** @description WorkspaceListResponse(workspaces: List[stapel_workspaces.dto.WorkspaceResponse] = <factory>) */
+        /** @description The caller's own workspace list. */
         WorkspaceListResponse: {
+            /** @description The caller's active memberships (empty for a guest — see is_guest) */
             workspaces?: components["schemas"]["WorkspaceResponse"][];
+            /** @description True when the caller holds NO active mandate anywhere (permissions.is_guest) — the wire form of the mandate-model vardict's guest predicate (2026-08-03), so a frontend can render the "incomplete dashboard" without re-deriving it from workspaces == [] */
+            is_guest?: boolean;
+            /**
+             * @description Which workspace a client should open when the person has expressed no choice — the instance's STAPEL_WORKSPACES["DEFAULT_WORKSPACE_ID"], echoed back ONLY when the caller actually holds an active membership in it, else "". Exists because clients that had to guess guessed badly: meettoday took `workspaces[0]` off a list ordered by last access, so a person in two spaces landed wherever they happened to have been last (measured 2026-08-06 as "the owner cannot see his own invitations" — they were in the OTHER space). A default, not a cage: an explicit choice still wins
+             * @example a8bba7ae-5d2e-43e5-9911-0553e7df50b3
+             */
+            default_workspace_id?: string;
         };
         /** @description Workspace details. */
         WorkspaceResponse: {
@@ -1364,6 +1450,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProvisionMemberResponse"];
+                };
+            };
+        };
+    };
+    workspaces_api_v1_instance_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceShapeResponse"];
                 };
             };
         };
