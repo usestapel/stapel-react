@@ -1,6 +1,6 @@
 # @stapel/shell-react
 
-Scripted-fullstack navigation shell (Ф1 lib-side core, owner directive: from
+Scripted-fullstack navigation shell (Phase 1 lib-side core, owner directive: from
 OSS libs, one scripted command with **no LLM** produces a working navigated
 fullstack).
 

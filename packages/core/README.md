@@ -171,11 +171,11 @@ does NOT protect against XSS with code execution — a script running in your
 origin can call `repo.get()` like any other code. This is protection against
 a shared computer, residual data on disk, and casual access — not more.
 
-Verbatim from the governing doc (frontend-core-architecture-v2 §43.5):
+From the governing doc (frontend-core-architecture-v2 §43.5):
 
-> от XSS с исполняемым кодом фронт-шифрование НЕ защищает (это защита от
-> общего компьютера, остаточных данных и казуального доступа) — не продавать
-> как большее.
+> Frontend encryption does NOT protect against XSS with code execution —
+> it protects against a shared computer, residual data, and casual access —
+> and must not be sold as more than that.
 
 ## Notes
 
