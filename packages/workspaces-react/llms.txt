@@ -1,6 +1,6 @@
-# @stapel/workspaces-react 0.8.0
+# @stapel/workspaces-react 0.9.0
 
-Headless React flow pair for stapel-workspaces (contract >=0.14 <0.15) — business + state, zero visual opinion.
+Headless React flow pair for stapel-workspaces (contract >=0.18 <0.19) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -26,6 +26,7 @@ Request/response schema names are in manifest.json + the generated types.
 Paths are relative to `/workspaces/api/v1/`.
 - workspaces_api_v1_create: POST /
 - workspaces_api_v1_destroy: DELETE /{workspace_id}
+- workspaces_api_v1_instance_retrieve: GET /instance
 - workspaces_api_v1_internal_members_retrieve: GET /internal/{workspace_id}/members/{user_id}
 - workspaces_api_v1_internal_users_personal_create: POST /internal/users/{user_id}/personal
 - workspaces_api_v1_invitations_accept_create: POST /invitations/accept
@@ -52,6 +53,7 @@ Paths are relative to `/workspaces/api/v1/`.
 - useCreateWorkspace (mutation) → createWorkspace
 - useDeclineInvitation (mutation) → declineInvitation
 - useDeleteWorkspace (mutation) → deleteWorkspace
+- useInstanceShape (query) → getInstanceShape
 - useInvitationPreview (query) → getInvitationPreview
 - useInvitations (query) → listInvitations
 - useInviteMembers (mutation) → inviteMembers
@@ -68,7 +70,7 @@ Paths are relative to `/workspaces/api/v1/`.
 - useWorkspaces (query) → listWorkspaces
 
 ## Errors (render t(code, params); UX from remediation)
-60 keys (full catalog: manifest.json §errors). By remediation: fix_input 28 · retry 12 · contact_support 7 · wait_and_retry 6 · verify 5 · reauthenticate 2.
+61 keys (full catalog: manifest.json §errors). By remediation: fix_input 29 · retry 12 · contact_support 7 · wait_and_retry 6 · verify 5 · reauthenticate 2.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -84,6 +86,7 @@ Param-bearing keys (interpolation slots matter):
 - error.402.member_limit_reached [402] → fix_input {limit}
 - error.403.membership_suspended [403] → fix_input {reason}
 - error.403.missing_capability [403] → contact_support {capability}
+- error.403.role_exceeds_inviter_rank [403] → fix_input {role}
 - error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
 
 ## Analytics events (typed; defineEvent → events.json, drift-gated)

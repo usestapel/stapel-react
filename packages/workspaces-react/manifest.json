@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/workspaces-react",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "backend": {
     "module": "stapel-workspaces",
-    "contract": ">=0.14 <0.15"
+    "contract": ">=0.18 <0.19"
   },
   "layers": [
     "api",
@@ -31,6 +31,13 @@
       "tag": "Workspaces",
       "request": null,
       "response": null
+    },
+    "workspaces_api_v1_instance_retrieve": {
+      "method": "GET",
+      "path": "/workspaces/api/v1/instance",
+      "tag": "Workspaces",
+      "request": null,
+      "response": "InstanceShapeResponse"
     },
     "workspaces_api_v1_internal_members_retrieve": {
       "method": "GET",
@@ -220,6 +227,14 @@
           "workspaces",
           "list"
         ]
+      ]
+    },
+    "useInstanceShape": {
+      "kind": "query",
+      "operation": "getInstanceShape",
+      "queryKey": [
+        "workspaces",
+        "instance"
       ]
     },
     "useInvitationPreview": {
@@ -604,6 +619,13 @@
       "params": [],
       "remediation": "contact_support"
     },
+    "error.403.role_exceeds_inviter_rank": {
+      "status": 403,
+      "params": [
+        "role"
+      ],
+      "remediation": "fix_input"
+    },
     "error.403.verification_enrollment_required": {
       "status": 403,
       "params": [],
@@ -863,6 +885,7 @@
     "error.403.membership_suspended",
     "error.403.missing_capability",
     "error.403.network_blocked",
+    "error.403.role_exceeds_inviter_rank",
     "error.403.verification_enrollment_required",
     "error.403.verification_required",
     "error.404.ad_not_found",
@@ -989,6 +1012,7 @@
       "useDeleteWorkspace",
       "useFlow",
       "useInfiniteInvitations",
+      "useInstanceShape",
       "useInvitationPreview",
       "useInvitations",
       "useInviteMembers",
