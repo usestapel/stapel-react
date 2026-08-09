@@ -15,8 +15,8 @@ import { useAuthApi, useAuthSession } from "./context.js";
 import { authQueryKeys } from "./queryKeys.js";
 
 /**
- * Write hooks with cache invalidation (frontend-standard §2 — "мутации с
- * инвалидацией"). Each invalidates exactly the keys its effect touches so the
+ * Write hooks with cache invalidation (frontend-standard §2 — mutations
+ * invalidate on success). Each invalidates exactly the keys its effect touches so the
  * security screen / session list stay consistent without a manual refetch.
  *
  * Note: options are built as typed `UseMutationOptions` objects rather than

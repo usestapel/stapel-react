@@ -175,20 +175,21 @@ export function useRoles(): UseQueryResult<
 }
 
 /**
- * Форма развёртывания (GET /instance, без авторизации).
+ * Deployment shape (GET /instance, unauthenticated).
  *
- * Отвечает на вопрос, который экран обязан задать ДО того, как решит, что
- * показать человеку без пространства: это закрытый контур (`landing:
- * "none"` — своего пространства у человека нет и взяться неоткуда) или
- * публичное облако (`"personal"` — есть, и туда можно вести).
+ * Answers the question a screen must ask BEFORE deciding what to show
+ * someone with no workspace: is this a closed deployment (`landing:
+ * "none"` — no workspace exists and none can be created) or a public cloud
+ * (`"personal"` — one exists and the screen can lead there)?
  *
- * Зачем хук, а не поле в профиле: его читает ровно тот, у кого доступа уже
- * НЕТ — выброшенный из Спейса или вышедший сам. Поэтому запрос намеренно
- * НЕ ждёт сессии, в отличие от {@link useRoles}: ждать её значило бы
- * никогда не ответить тому, ради кого хук и заведён.
+ * Why a hook instead of a profile field: the reader is exactly the person
+ * who has no access — kicked out of their workspace, or having left it. So
+ * the request deliberately does NOT wait for a session, unlike {@link
+ * useRoles}: waiting would mean never answering the one person it exists for.
  *
- * Данные статичны для развёртывания — меняются только вместе с ним,
- * поэтому кэш живёт до перезагрузки страницы и не перепрашивается.
+ * The data is static per deployment — it only changes alongside the
+ * deployment itself, so the cache lives until page reload and is never
+ * refetched.
  */
 export function useInstanceShape(): UseQueryResult<
   InstanceShape,

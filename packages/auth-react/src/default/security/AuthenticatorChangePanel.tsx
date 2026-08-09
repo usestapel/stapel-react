@@ -307,7 +307,7 @@ function ChangeJourney(props: {
   );
 }
 
-/** Full email/phone change screen: masked current value + an "Изменить"
+/** Full email/phone change screen: masked current value + a "Change"
  * trigger that opens the instant flow (default) or, via a secondary link,
  * the delayed one — OR, if a delayed change is already pending, the pending
  * banner in place of all of the above. */

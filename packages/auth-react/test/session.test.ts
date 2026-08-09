@@ -163,9 +163,10 @@ describe("session persistence (frontend-standard §4.6)", () => {
 });
 
 // Owner-reported live incident, 2026-07-26 (app.ironmemo.com mid-redeploy):
-// "сервак явно не отвечал, но фронт меня выкинул на sign-in page. Ну да, не
-// получилось отрефрешиться или auth/me вызвать, но это же не повод сессию
-// терминейтить, юзера не разлогинило, бэк прилёг."
+// "the backend clearly wasn't responding, but the frontend still threw me
+// onto the sign-in page. Sure, the refresh or auth/me call failed, but
+// that's no reason to tear down the session — the user was never logged
+// out, the backend just hiccuped."
 //
 // Only the auth service can retire a credential, and only by answering. A
 // 502 out of a restarting proxy, a timeout, a raw fetch failure — none of
@@ -296,8 +297,8 @@ describe("an unreachable backend is not an authentication verdict", () => {
   });
 });
 
-// Owner-reported live incident, 2026-07-26: "зашёл на айронмемо и получил
-// стробоскоп редиректов /app ↔ /sign-in по кругу" — 222 requests in a loop
+// Owner-reported live incident, 2026-07-26: "opened ironmemo and got a
+// redirect stroboscope, /app ↔ /sign-in in a loop" — 222 requests in a loop
 // before it settled.
 //
 // The server was internally inconsistent (GET /me answered 200 off a live

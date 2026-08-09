@@ -8,7 +8,7 @@ import type { DeviceTokenResponse, Platform } from "../api/types.js";
 import { useNotificationsApi } from "./context.js";
 
 /**
- * Write hooks (frontend-standard §2 — "мутации с инвалидацией"). Device
+ * Write hooks (frontend-standard §2 — mutations invalidate on success). Device
  * (un)registration has NO server-state read on this pair to invalidate — the
  * pair exposes no device-list query, and the feed is unaffected by a token
  * binding — so these deliberately carry no `onSuccess` invalidation. When a host

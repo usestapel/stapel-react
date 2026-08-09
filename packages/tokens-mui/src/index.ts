@@ -4,8 +4,8 @@
  * neutral colour-role dictionary in `@stapel/tokens` (§68 — `surface`,
  * `brand`, `text-muted`, `success-bg`, …) straight into a MUI `Theme`: a role
  * name IS the MUI mapping's input, no separate role→role indirection table
- * (that table — `bridgeColorRoles` — is gone; §68 Ф1 "алиас-слой
- * совместимости не делать"). This file and `@stapel/tokens-antd` both read
+ * (that table — `bridgeColorRoles` — is gone; §68 Phase 1 decision: no
+ * compatibility alias layer). This file and `@stapel/tokens-antd` both read
  * the same `colors` object, so they cannot silently diverge on what a role
  * visually means.
  *

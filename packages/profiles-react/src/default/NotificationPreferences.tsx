@@ -3,7 +3,7 @@
  * {@link NotificationPreferences as HeadlessNotificationPreferences} category
  * × channel matrix (`../headless/NotificationPreferences.js`). Renders it as a
  * small table — categories as rows, channels as columns — per the brief
- * ("дефолт-скин может показывать упрощённо"): a plain grid of switches reads
+ * (the default skin may render a simplified view): a plain grid of switches reads
  * fine at today's 2×2 size and keeps scaling to more categories without a
  * redesign, unlike ironmemo's flat checkbox list (`ProfilePage`'s "Email
  * notifications" block, 2 checkboxes with no row/column structure at all).

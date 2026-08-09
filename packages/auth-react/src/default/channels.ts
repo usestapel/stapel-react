@@ -1,6 +1,6 @@
 /**
  * Channel discovery + zone-splitting for the default auth skin
- * (domain-guidelines-auth ПРАВИЛА 1-4, tuned per owner directive — see
+ * (domain-guidelines-auth RULES 1-4, tuned per owner directive — see
  * AuthPanel.tsx's module doc). PURE — no React, no antd — so the mechanics
  * (which channels render, and how the priority-sorted list is cut into
  * main/bottom/overflow) are unit-testable in isolation from the markup.
@@ -21,7 +21,7 @@ export type ChannelId =
   | "password";
 
 /**
- * Ratified default priority (domain-guidelines-auth ПРАВИЛО 2 + architect
+ * Ratified default priority (domain-guidelines-auth RULE 2 + architect
  * decision 1): email-code first (most universal), password last (its axis is
  * off by default). A host overrides via `AuthPanel`'s `channelPriority` prop.
  * Also the fallback WITHIN-ZONE ordering for a channel `AuthMethodInfo.order`
@@ -62,7 +62,7 @@ function isEnabled(id: ChannelId, caps: LoginCapabilities): boolean {
 }
 
 /**
- * The enabled channels, in priority order (ПРАВИЛО 1: a disabled axis yields
+ * The enabled channels, in priority order (RULE 1: a disabled axis yields
  * ZERO DOM — it simply never appears in this list).
  */
 export function enabledChannels(
@@ -84,7 +84,7 @@ export interface AuthZones {
 
 /** These two channels are NEVER a tab — a skin-level guarantee that holds
  * even if a backend plan explicitly claims `placement: "main"` for them
- * (owner directive: "SSO — тоже модалка из трёх точек, НЕ третий таб"; the
+ * (owner directive: SSO is also a three-dot-menu modal, NOT a third tab; the
  * same reasoning applies to OAuth, which is a *group* of provider buttons,
  * not a single form). */
 const NEVER_MAIN: ReadonlySet<ChannelId> = new Set(["oauth", "sso"]);
@@ -146,11 +146,11 @@ export function resolveInteraction(
  * §37/§54-tuning, points 1/3/4; stapel-auth 0.6.0's `AuthCapabilities.methods`):
  * each channel's placement/order come from its `AuthMethodInfo` entry (`id`
  * match); a channel `methods` is silent on falls back to `DEFAULT_PLACEMENT`.
- * `main` is capped at 3 (ПРАВИЛО 4) as a skin-level guarantee — never a
+ * `main` is capped at 3 (RULE 4) as a skin-level guarantee — never a
  * backend promise.
  *
  * Alpha-canon (owner directive): there is no supported "old backend" — every
- * real deployment (миттудей, айронмемо) is kept upgraded to the latest
+ * real deployment (meettoday, ironmemo) is kept upgraded to the latest
  * stapel-auth. A missing/empty `methods[]` on a NON-EMPTY channel list is
  * therefore a configuration error, not a signal to fall back to a fixed
  * placement table — it throws loudly instead of silently reproducing a

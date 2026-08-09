@@ -1,5 +1,5 @@
 #!/usr/bin/env -S node --experimental-strip-types
-// AUTO-GEN driver for the scripted-fullstack navigation contract (Ф1
+// AUTO-GEN driver for the scripted-fullstack navigation contract (Phase 1
 // lib-side core, mirrors scripts/gen-manifest.mjs's driver shape). A pair
 // that owns a navigable screen declares `NavEntry` values in its own
 // `src/nav/manifest.ts` (against `@stapel/core`'s `NavEntry`/
@@ -22,7 +22,7 @@
 //
 //   NAV_PKG_DIR   current target package dir (default packages/auth-react)
 //   NAV_PACKAGES  comma-separated list of every wired package dir, used to
-//                 rebuild the root aggregate (default: the 3 Ф1 pairs)
+//                 rebuild the root aggregate (default: the 3 Phase 1 pairs)
 //
 //   node --experimental-strip-types scripts/gen-nav-manifest.mjs   # generate
 //   pnpm gen:nav                                                   # generate (root script)

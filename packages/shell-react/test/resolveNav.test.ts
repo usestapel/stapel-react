@@ -1,6 +1,6 @@
 /**
  * `resolveNav` — pure function, unit-testable in isolation (no React, no
- * I/O). Covers the numeric gates from the Ф1 lib-side spec: top-vs-submenu
+ * I/O). Covers the numeric gates from the Phase 1 lib-side spec: top-vs-submenu
  * nesting, `menuVisibleDefault` respected, an override file flipping
  * `menuVisible`/`order`, and a submenu entry whose parent is absent
  * degrading gracefully (documented, not a crash).

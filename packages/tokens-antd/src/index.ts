@@ -5,7 +5,7 @@
  * `brand`, `text-muted`, `success-bg`, …) straight into Ant Design's flat
  * `ConfigProvider` theme token: a role name IS the antd mapping's input, no
  * separate role→role indirection table (that table — `bridgeColorRoles` —
- * is gone; §68 Ф1 "алиас-слой совместимости не делать"). The mapping table
+ * is gone; §68 Phase 1 decision: no compatibility alias layer). The mapping table
  * below (role → antd field) is the ONE place this decision lives; both this
  * file and `@stapel/tokens-mui` read the same `colors` object so they cannot
  * silently diverge on what a role visually means.

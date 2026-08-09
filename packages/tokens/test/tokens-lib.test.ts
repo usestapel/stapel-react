@@ -41,7 +41,7 @@ describe("validateTheme — role invariants", () => {
     const { errors } = validateTheme(theme, RAMPS);
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain('role "surface"');
-    expect(errors[0]).toContain('нет значения "dark"');
+    expect(errors[0]).toContain('missing value for "dark"');
   });
 
   it("errors when a role ref points at a non-existent ramp step", () => {
@@ -51,7 +51,7 @@ describe("validateTheme — role invariants", () => {
     const { errors } = validateTheme(theme, RAMPS);
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain('brand".light → "brand.550"');
-    expect(errors[0]).toContain("нет такой ступени в линейке");
+    expect(errors[0]).toContain("no such step in ramp");
     // teaching message lists the available steps
     expect(errors[0]).toContain("300, 500");
   });
@@ -61,7 +61,7 @@ describe("validateTheme — role invariants", () => {
       core: { error: { light: "#c93a3a", dark: "brand.300" } },
     });
     const { errors } = validateTheme(theme, RAMPS);
-    expect(errors.some((e: string) => e.includes("hex в core-секции запрещён"))).toBe(true);
+    expect(errors.some((e: string) => e.includes("raw hex is forbidden in the core section"))).toBe(true);
   });
 });
 
@@ -103,7 +103,7 @@ describe("resolve + render", () => {
   });
 });
 
-describe("validateTheme — contrast contract is a GATE (§68 Ф6, 2026-07-18)", () => {
+describe("validateTheme — contrast contract is a GATE (§68 Phase 6, 2026-07-18)", () => {
   it("errors (not just warns) on an intentionally-failing fg/bg pair — the build must fail", () => {
     // Deliberately low-contrast: a light-gray "text" on a near-white
     // "surface" — a real theme.json a host might author by mistake.
@@ -116,7 +116,7 @@ describe("validateTheme — contrast contract is a GATE (§68 Ф6, 2026-07-18)",
     });
     const { errors } = validateTheme(theme, RAMPS);
     expect(
-      errors.some((e: string) => e.includes("contrast: text на surface (light)"))
+      errors.some((e: string) => e.includes("contrast: text on surface (light)"))
     ).toBe(true);
   });
 
@@ -154,8 +154,8 @@ describe("validateTheme — contrast contract is a GATE (§68 Ф6, 2026-07-18)",
     expect(
       warnings.some(
         (w: string) =>
-          w.includes("contrast: text на surface (light)") &&
-          w.includes("задокументированное исключение") &&
+          w.includes("contrast: text on surface (light)") &&
+          w.includes("documented exception") &&
           w.includes("test fixture")
       )
     ).toBe(true);
@@ -171,7 +171,7 @@ describe("validateTheme — contrast contract is a GATE (§68 Ф6, 2026-07-18)",
       contrastExceptions: [{ fg: "text", bg: "surface", mode: "light" }],
     });
     const { errors } = validateTheme(theme, RAMPS);
-    expect(errors.some((e: string) => e.includes('нужно непустое поле "reason"'))).toBe(
+    expect(errors.some((e: string) => e.includes('requires a non-empty "reason" field'))).toBe(
       true
     );
   });
@@ -188,7 +188,7 @@ describe("validateTheme — contrast contract is a GATE (§68 Ф6, 2026-07-18)",
       ],
     });
     const { errors } = validateTheme(theme, RAMPS);
-    expect(errors.some((e: string) => e.includes("исключение больше не нужно"))).toBe(
+    expect(errors.some((e: string) => e.includes("the exception is stale"))).toBe(
       true
     );
   });

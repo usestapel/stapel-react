@@ -105,7 +105,7 @@ describe("<AuthPanel/> — the §54 default skin renders out of the box", () => 
     expect(screen.queryByRole("tab", { name: "Passkey" })).toBeNull();
     // The active email panel shows its primary submit — a real working form.
     expect(screen.getByRole("button", { name: "Send code" })).toBeDefined();
-    // Exactly one primary button on screen (ПРАВИЛО 5).
+    // Exactly one primary button on screen (RULE 5).
     const primaries = document.querySelectorAll(".ant-btn-primary");
     expect(primaries.length).toBe(1);
   });
@@ -401,7 +401,7 @@ describe("<AuthPanel/> — alt-method dialog (owner directive: overflow/bottom n
     await waitFor(() =>
       expect(screen.getByRole("tab", { name: "Email" })).toBeDefined()
     );
-    // Still exactly 2 main tabs — main never grows past ПРАВИЛО 4's cap.
+    // Still exactly 2 main tabs — main never grows past RULE 4's cap.
     expect(screen.getAllByRole("tab")).toHaveLength(2);
     expect(screen.queryByRole("tab", { name: "Password" })).toBeNull();
 
@@ -523,7 +523,7 @@ describe("<AuthPanel/> — alt-method dialog (owner directive: overflow/bottom n
 });
 
 /**
- * ПРАВИЛО 6 (redefined per owner directive): QR renders INLINE the instant its
+ * RULE 6 (redefined per owner directive): QR renders INLINE the instant its
  * tab is active — the code itself, no intermediate "Generate"/"Start" button
  * — and a modal/drawer is used ONLY when QR is picked from `bottom`/`overflow`
  * (already covered above: "the bottom icon row shows qr/passkey; picking qr
@@ -531,7 +531,7 @@ describe("<AuthPanel/> — alt-method dialog (owner directive: overflow/bottom n
  * never-a-tab clamp is scoped to oauth/sso only: a backend that places `qr`
  * as `"main"` gets an honoured QR tab, not a silent clamp to `bottom`.
  */
-describe("<AuthPanel/> — QR as a main tab renders inline, no buttons (ПРАВИЛО 6)", () => {
+describe("<AuthPanel/> — QR as a main tab renders inline, no buttons (RULE 6)", () => {
   const QR_MAIN_CAPS = {
     registration: {
       phone: false,

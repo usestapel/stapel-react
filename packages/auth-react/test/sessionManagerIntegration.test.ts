@@ -156,7 +156,7 @@ describe("SessionManager delegation — host onSessionLost policy (§43.1)", () 
   });
 });
 
-describe("SessionManager delegation — logout vs. a racing 401 (owner-diagnosed live incident, 2026-07-17, миттудей race)", () => {
+describe("SessionManager delegation — logout vs. a racing 401 (owner-diagnosed live incident, 2026-07-17, meettoday race)", () => {
   // Reproduces the exact finisher diagnosis: `logout()` used to await the
   // server revoke BEFORE any local teardown. In the window between the
   // server honoring that revoke and this session getting back around to

@@ -42,7 +42,7 @@ function formatCountdown(seconds: number): string {
 }
 
 /** Antd's `<QRCode status>` primitive expresses generating/expired visually
- * (ПРАВИЛО 6 — states are expressed by the primitive, not hand-drawn
+ * (RULE 6 — states are expressed by the primitive, not hand-drawn
  * overlays); the text countdown below it is the ironmemo-parity addition. */
 function qrCodeStatus(step: QrLoginState["step"]): "active" | "expired" | "loading" {
   switch (step) {

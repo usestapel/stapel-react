@@ -304,7 +304,7 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.ui.channel_oauth": "Social",
   "auth.ui.channel_sso": "SSO",
   "auth.ui.channel_qr": "QR code",
-  // Owner directive: "Волшебная ссылка" reads as a gimmick — call it what it
+  // Owner directive: "Magic link" reads as a gimmick — call it what it
   // is, a link sent to your email.
   "auth.ui.channel_magic_link": "Email link",
 

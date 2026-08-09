@@ -1,7 +1,7 @@
 import type { NotificationFeedParams } from "../api/types.js";
 
 /**
- * Namespaced TanStack Query keys (frontend-standard §2 — "ключи неймспейснуты").
+ * Namespaced TanStack Query keys (frontend-standard §2 — namespaced keys).
  * Everything under the `"notifications"` root so a host can invalidate the whole
  * module or match a single resource. Persist scope is per-user via core's query
  * runtime (`setPersistUser`). Explicit tuple return types satisfy

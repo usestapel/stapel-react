@@ -71,7 +71,7 @@ describe("checkContrastPairs", () => {
     };
     const failures = checkContrastPairs(resolvedCore);
     const hit = failures.find(
-      (f: { message: string }) => f.message.includes("text на surface (light)")
+      (f: { message: string }) => f.message.includes("text on surface (light)")
     );
     expect(hit).toBeDefined();
     expect(hit.fgName).toBe("text");
@@ -105,7 +105,7 @@ describe("checkContrastPairs", () => {
     expect(checkContrastPairs(resolvedCore)).toEqual([]);
   });
 
-  it("does not check border/border-subtle against surfaces (decorative role-category exemption, §68 Ф6)", () => {
+  it("does not check border/border-subtle against surfaces (decorative role-category exemption, §68 Phase 6)", () => {
     // A theme where the decorative border roles are badly low-contrast but
     // everything else (incl. focus-ring, which IS still gated) is fine.
     const resolvedCore = {

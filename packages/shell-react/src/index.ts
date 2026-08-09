@@ -1,5 +1,5 @@
 /**
- * `@stapel/shell-react` — the scripted-fullstack navigation shell (Ф1
+ * `@stapel/shell-react` — the scripted-fullstack navigation shell (Phase 1
  * lib-side core). The root export is `resolveNav`: pure, no React, no antd,
  * no react-router — safe to run at scaffold codegen time (Node, no DOM) as
  * well as at runtime inside the shipped app. The rendered chrome

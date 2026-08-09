@@ -12,7 +12,7 @@
 // so it is directly unit-testable and safely importable by the validator.
 // Lives under `src/` (not a repo-root `scripts/` dir) so it ships in the
 // published @stapel/tokens tarball and is reachable by the `stapel-tokens`
-// bin — no host ever needs to vendor/fork this file (§68 Ф1 gate).
+// bin — no host ever needs to vendor/fork this file (§68 Phase 1 gate).
 
 const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
@@ -73,13 +73,14 @@ export function contrastRatio(hexA, hexB) {
  *   "ui"   → large text / icon / meaningful graphical object / focus ring,
  *            3:1 (WCAG 1.4.11 non-text contrast + 1.4.3 large-text exception).
  *
- * ROLE-CATEGORY DECISION (2026-07-18, §68 Ф6): `border` and `border-subtle`
- * are DELIBERATELY ABSENT from this list. WCAG 1.4.11 itself only reaches UI
- * components/graphical objects that convey required information — it
- * explicitly carves out "a component that... is pure decoration, or has no
- * requirement of visibility" (and inactive/disabled chrome). By the §68
- * dictionary's own definitions `border` is "декоративная граница" and
- * `border-subtle` is "разделители" (a subtle divider, intentionally faint) —
+ * ROLE-CATEGORY DECISION (2026-07-18, §68 Phase 6): `border` and
+ * `border-subtle` are DELIBERATELY ABSENT from this list. WCAG 1.4.11 itself
+ * only reaches UI components/graphical objects that convey required
+ * information — it explicitly carves out "a component that... is pure
+ * decoration, or has no requirement of visibility" (and inactive/disabled
+ * chrome). By the §68 dictionary's own definitions `border` is a
+ * "decorative border" and `border-subtle` is a "divider" (a subtle divider,
+ * intentionally faint) —
  * neither conveys information on its own (no border-only affordance in this
  * system relies on hitting 3:1 to be perceivable; state is always carried by
  * a text/icon/fill change too). Gating them at 3:1 would be a false positive
@@ -155,7 +156,7 @@ export function checkContrastPairs(resolvedCore) {
           ratio,
           threshold,
           key: contrastExceptionKey(fgName, bgName, mode),
-          message: `contrast: ${fgName} на ${bgName} (${mode}) = ${ratio.toFixed(1)}:1 < ${threshold} (WCAG AA)`,
+          message: `contrast: ${fgName} on ${bgName} (${mode}) = ${ratio.toFixed(1)}:1 < ${threshold} (WCAG AA)`,
         });
       }
     }

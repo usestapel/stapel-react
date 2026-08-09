@@ -1,11 +1,11 @@
 /**
  * Zone-B channel panels for the default auth skin (domain-guidelines-auth).
  * Each panel is the pair's existing headless component (state + flow) dressed
- * in Ant Design per the guideline rules: one primary button (ПРАВИЛО 5),
- * inline errors at the source (ПРАВИЛО 8), OTP via `Input.OTP` (ПРАВИЛО 9),
- * inline TOTP step-up (ПРАВИЛО 10), QR as an inline panel — never a modal
- * (ПРАВИЛО 6). No colour/px literals: theming comes entirely from the
- * `ConfigProvider` fed by `toAntdThemeConfig` (ПРАВИЛО 12).
+ * in Ant Design per the guideline rules: one primary button (RULE 5),
+ * inline errors at the source (RULE 8), OTP via `Input.OTP` (RULE 9),
+ * inline TOTP step-up (RULE 10), QR as an inline panel — never a modal
+ * (RULE 6). No colour/px literals: theming comes entirely from the
+ * `ConfigProvider` fed by `toAntdThemeConfig` (RULE 12).
  */
 import { useEffect, useRef, useState } from "react";
 import type { ElementRef, ReactElement, ReactNode } from "react";
@@ -52,7 +52,7 @@ const DEFAULT_OTP_LENGTH = 6;
 const RESEND_COOLDOWN_FALLBACK_S = 30;
 
 /**
- * Inline error copy for a flow error (ПРАВИЛО 8) — routed through core's
+ * Inline error copy for a flow error (RULE 8) — routed through core's
  * `useFormatFlowError` (frontend-core-architecture gap fix): bundle template
  * → the backend's own locale-matched message → the raw code, instead of a
  * bare `t(code, params)` that shows an unformatted code whenever a bundle key
@@ -74,7 +74,7 @@ function useFieldError(): (
 }
 
 /**
- * A resend link with its OWN cooldown (ПРАВИЛО 9 / anti-pattern З-4: the
+ * A resend link with its OWN cooldown (RULE 9 / anti-pattern Z-4: the
  * countdown belongs to THIS channel's flow, never shared). The OTP headless
  * bag exposes no `resendIn`, so the skin owns the timer locally — scoped to
  * this panel instance, so it cannot leak into another flow.
@@ -182,7 +182,7 @@ function OtpCodeStep(props: {
   );
 }
 
-/** Email / phone one-time-code panel (ПРАВИЛА 8-9). */
+/** Email / phone one-time-code panel (RULES 8-9). */
 export function OtpPanel(props: {
   channel: OtpChannel;
   /**
@@ -274,7 +274,7 @@ export function OtpPanel(props: {
   );
 }
 
-/** Password panel with the inline TOTP step-up branch (ПРАВИЛО 10) and the
+/** Password panel with the inline TOTP step-up branch (RULE 10) and the
  * first-login intermediates (org-program §C2, stapel-auth ≥0.12.0): an
  * org-provisioned account parking the flow in `passwordChangeRequired` /
  * `mfaEnrollRequired` renders the corresponding first-login skin inline —
@@ -450,7 +450,7 @@ export function PasswordRegisterPanel(): ReactElement {
   );
 }
 
-/** Map the QR flow step to antd's `<QRCode status>` (ПРАВИЛО 6 — states are
+/** Map the QR flow step to antd's `<QRCode status>` (RULE 6 — states are
  * expressed by the primitive, not hand-drawn overlays). */
 function qrStatus(step: QrLoginState["step"]): "active" | "expired" | "loading" {
   switch (step) {
@@ -464,7 +464,7 @@ function qrStatus(step: QrLoginState["step"]): "active" | "expired" | "loading" 
   }
 }
 
-/** QR panel — inline, renders the code immediately (ПРАВИЛО 6). */
+/** QR panel — inline, renders the code immediately (RULE 6). */
 export function QrPanel(): ReactElement {
   const t = useT();
   return (
@@ -528,7 +528,7 @@ function QrPanelBody(props: {
   );
 }
 
-/** Passkey panel — a single primary trigger (ПРАВИЛО 5). */
+/** Passkey panel — a single primary trigger (RULE 5). */
 export function PasskeyPanel(): ReactElement {
   const t = useT();
   const errorText = useErrorText();
@@ -568,7 +568,7 @@ export function PasskeyPanel(): ReactElement {
   );
 }
 
-/** Magic-link panel — request form → "check your email" (ПРАВИЛО 11). */
+/** Magic-link panel — request form → "check your email" (RULE 11). */
 export function MagicLinkPanel(): ReactElement {
   const t = useT();
   const fieldError = useFieldError();

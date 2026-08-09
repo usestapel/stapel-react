@@ -15,7 +15,7 @@ import { useCalendarApi } from "./context.js";
 import { calendarQueryKeys } from "./queryKeys.js";
 
 /**
- * Write hooks (frontend-standard §2 — "мутации с инвалидацией"). Every calendar
+ * Write hooks (frontend-standard §2 — mutations invalidate on success). Every calendar
  * write can shift more than one cached read (a new event lands in the range
  * calendar AND the event list AND availability; an RSVP changes an event's
  * participants), so each mutation invalidates the module root

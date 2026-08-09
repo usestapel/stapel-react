@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Repo-root driver for @stapel/tokens' generator (frontend-guardrails §1) —
 // now a THIN WRAPPER over the package's own published `stapel-tokens` bin
-// (§68 Ф1: the generator ships inside @stapel/tokens; this script no longer
+// (§68 Phase 1: the generator ships inside @stapel/tokens; this script no longer
 // vendors the engine, it just shells out with this repo's paths/env knobs).
 //
 //   node scripts/gen-tokens.mjs        # generate (writes packages/tokens/src/generated/*)

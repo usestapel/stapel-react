@@ -5,7 +5,7 @@
  * (`--stapel-brand`) and the exact name `@stapel/tokens-antd` /
  * `@stapel/tokens-mui` read off `colors`, so there is no separate role→role
  * indirection table to keep in sync (the old `bridgeColorRoles` map is gone —
- * §68 Ф1: "алиас-слой совместимости не делать"). Each bridge package's own
+ * §68 Phase 1 decision: no compatibility alias layer). Each bridge package's own
  * `role()` helper does `colors[roleName][mode]` directly; only the
  * radius/font-size PICKS below still need a single shared decision so the
  * two bridges cannot silently diverge on which scale step they surface.

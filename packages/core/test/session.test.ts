@@ -116,7 +116,7 @@ describe("createSessionManager — events (§43.1)", () => {
   });
 });
 
-describe("createSessionManager — logout-in-progress guard (owner-diagnosed live incident, 2026-07-17, миттудей race)", () => {
+describe("createSessionManager — logout-in-progress guard (owner-diagnosed live incident, 2026-07-17, meettoday race)", () => {
   it("sessionLost() is a no-op (returns false, no event, no teardown) while logout() is mid-teardown, even before status has flipped", async () => {
     let releaseHook: () => void = () => {};
     const hookGate = new Promise<void>((resolve) => {
@@ -314,8 +314,8 @@ describe("createSessionManager — initializing / ready-gate", () => {
 // An outage is not an authentication verdict (owner-reported live incident,
 // 2026-07-26): the ironmemo stand was mid-redeploy, the browser's refresh
 // call got a 502 out of nginx, and the app threw a signed-in user onto the
-// sign-in page. "Не получилось отрефрешиться, но это же не повод сессию
-// терминейтить, юзера не разлогинило, бэк прилёг."
+// sign-in page. A failed refresh is not a reason to tear down the session —
+// the user was never logged out, the backend just hiccuped.
 describe("createSessionManager — REFRESH_UNAVAILABLE (no verdict ≠ session lost)", () => {
   it("keeps the session, fires no teardown and no host policy, on 'unavailable'", async () => {
     const onSessionLost = vi.fn();

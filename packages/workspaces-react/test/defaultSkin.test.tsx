@@ -1,6 +1,6 @@
 /**
  * Coverage for the settings surfaces added to this pair per the owner
- * directive ("настройки воркспейса (имя/участники/роли/инвайты)"): the
+ * directive (workspace settings: name/members/roles/invites): the
  * `<WorkspaceSettings/>` and `<MembersManager/>` default-skin components
  * built on this pair's existing headless hooks.
  */

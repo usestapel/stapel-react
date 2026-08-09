@@ -19,7 +19,7 @@ export type Schemas = components["schemas"];
 /**
  * GET /me 200 body — the caller's own, full profile (all settings visible).
  *
- * OPEN ENVELOPE (§66 "Дополнение владельца" tier 1, docs/pending/
+ * OPEN ENVELOPE (§66 "Owner Addendum" tier 1, docs/pending/
  * profile-fields.md): a project may swap `PROFILES_PROFILE_MODEL` to a
  * generated subclass carrying identity/standard/custom fields this pair's
  * OWN generated schema (built from the un-swapped default package) never
@@ -27,8 +27,8 @@ export type Schemas = components["schemas"];
  * DOES know (`user_id`, `avatar`, …) fully typed while letting the
  * data-driven skin (`<ProfileSettings/>`) read `profile[entry.name]` for a
  * manifest-supplied field name without a cast. Tier 2 (a project's own
- * regenerated typed client, `docs/pending/profile-fields.md` §"Дополнение
- * владельца" point 2) is how product code gets those fields BACK as real
+ * regenerated typed client, `docs/pending/profile-fields.md` §"Owner
+ * Addendum" point 2) is how product code gets those fields BACK as real
  * literal keys — this alias only has to not be IN THE WAY of tier 1.
  */
 export type MyProfile = Schemas["ProfileResponse"] & Record<string, unknown>;
@@ -60,7 +60,7 @@ export type Following = Schemas["FollowingResponse"];
 export type Language = Schemas["LanguageResponse"];
 /**
  * One entry of GET /field-manifest — the active field manifest driving the
- * data-driven default skin (§66 "Дополнение владельца" tier 1). `kind` is
+ * data-driven default skin (§66 "Owner Addendum" tier 1). `kind` is
  * narrowed below ({@link ProfileFieldKind}) the same way {@link
  * RelationshipStatus} narrows a generated bare `string`.
  */

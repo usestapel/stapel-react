@@ -1,6 +1,6 @@
 /**
  * Small inline glyphs for the default settings skins (owner UX audit
- * 2026-07-17, "Интеракции настроек" canon — frontend-guidelines.md §8): a
+ * 2026-07-17, "Settings Interactions" canon — frontend-guidelines.md §8): a
  * read-only text row's edit affordance. No `@ant-design/icons` dependency
  * (profiles-react carries none) — a plain, monochrome, `currentColor` SVG in
  * the same spirit as auth-react's `icon_svg` contract glyphs.

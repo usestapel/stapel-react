@@ -1,5 +1,5 @@
 /**
- * Navigation-manifest contract (scripted-fullstack navigation, Ф1 lib-side
+ * Navigation-manifest contract (scripted-fullstack navigation, Phase 1 lib-side
  * core): the shared shape every `@stapel/<module>-react` pair's
  * `src/nav/manifest.ts` exports, and the shape `@stapel/shell-react`'s
  * `resolveNav` consumes. Lives in `@stapel/core` because it is cross-package

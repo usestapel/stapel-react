@@ -4,7 +4,7 @@ import type { StapelApiError } from "@stapel/core";
 import { createCdnAvatarApi } from "../api/cdnAvatarApi.js";
 
 /**
- * Avatar upload — a DOCUMENTED STOPGAP (ironmemo-libgaps.md "Settings-инвентарь"
+ * Avatar upload — a DOCUMENTED STOPGAP (ironmemo-libgaps.md "settings inventory"
  * §avatar-upload), not a generated pair surface. stapel-profiles' own contract
  * only STORES the reference (`Profile.avatar`, a CDN `<type>/<hash>` string —
  * see `ProfileUpdate.avatar`); turning a picked `File` into that reference is a

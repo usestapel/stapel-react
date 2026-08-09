@@ -1,4 +1,4 @@
-// stapel/no-double-count — frontend-guardrails §3.2 + user decision Q12а
+// stapel/no-double-count — frontend-guardrails §3.2 + user decision Q12a
 // (hard ban; overrides open question §7). A flow machine is already
 // auto-instrumented — every transition emits flow.<id>.<step>. Wrapping a
 // handler that ALSO steps that machine in tracked()/trackedSubmit() double-
@@ -38,7 +38,7 @@ const STEP_METHODS = new Set(["run", "step"]);
 const STEP_PREFIX = "submit";
 
 const LESSON =
-  "the flow step already emits the funnel (flow.<id>.<step>) — remove the tracked() wrapper OR the flow marker, keep exactly one channel (Q12а). §3.2 stapel/no-double-count";
+  "the flow step already emits the funnel (flow.<id>.<step>) — remove the tracked() wrapper OR the flow marker, keep exactly one channel (Q12a). §3.2 stapel/no-double-count";
 
 function isWrapperCall(node, wrappers) {
   if (!node || node.type !== "CallExpression") return false;

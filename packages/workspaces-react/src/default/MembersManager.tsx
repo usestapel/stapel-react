@@ -1,7 +1,7 @@
 /**
  * `<MembersManager/>` — default skin for the "members & roles" settings
- * screen (owner directive: "настройки воркспейса (имя/участники/роли/
- * инвайты)"). Built entirely on this pair's EXISTING `Members` headless
+ * screen (owner directive: workspace settings — name/members/roles/
+ * invites). Built entirely on this pair's EXISTING `Members` headless
  * wrapper (`useMembers`/`useInviteMembers`/`useUpdateMemberRole`/
  * `useRemoveMember`) — no new backend surface.
  *

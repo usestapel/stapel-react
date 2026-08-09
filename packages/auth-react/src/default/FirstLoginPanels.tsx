@@ -62,7 +62,7 @@ export interface ForcedPasswordChangeCardProps {
 
 /**
  * The forced first-login password-change form (new password + confirm, one
- * primary action — ПРАВИЛО 5). On success the session is adopted through the
+ * primary action — RULE 5). On success the session is adopted through the
  * runtime; when the account also owes MFA enrollment the card chains straight
  * into {@link MfaEnrollPanel} with the fresh challenge.
  */

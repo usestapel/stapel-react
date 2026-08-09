@@ -8,7 +8,7 @@
  * `icon_svg` contract.
  *
  * KNOWN GAP (honest, not silently papered over): this registry only covers
- * the icon names the 3 Ф1-wired pairs actually declare today
+ * the icon names the 3 Phase 1-wired pairs actually declare today
  * (`LoginOutlined`, `SafetyCertificateOutlined`, `UserOutlined`,
  * `BellOutlined`). A pair declaring a new icon name renders the generic
  * `fallback` glyph until this registry grows a case for it — that is a

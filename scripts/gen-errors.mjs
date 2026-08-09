@@ -20,7 +20,7 @@
 // no longer parses Python sources or re-derives remediation/en heuristically:
 // the backend now declares all of it, so we consume the artifact verbatim.
 //
-// LOCALES (i18n-shipping.md §1, волна 1): the backend ships per-locale catalogs
+// LOCALES (i18n-shipping.md §1, wave 1): the backend ships per-locale catalogs
 // `translations/errors.<lang>.json` (flat `{code: text}`) BESIDE the canonical
 // `docs/errors.json`. For every discovered (or ERRORS_LOCALES-listed) locale
 // this driver ADDITIONALLY emits `errors.<lang>.gen.ts` — a per-locale bundle a

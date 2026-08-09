@@ -16,7 +16,7 @@ import { useBillingApi } from "./context.js";
 import { billingQueryKeys } from "./queryKeys.js";
 
 /**
- * Write hooks (frontend-standard §2 — "мутации с инвалидацией"). Each mutation
+ * Write hooks (frontend-standard §2 — mutations invalidate on success). Each mutation
  * invalidates exactly the server state it can move. Payments are server-truth,
  * so NONE of these are optimistic (frontend-core-architecture §2.6: optimistic
  * is for local-echo UX, never for flows with server truth like billing).

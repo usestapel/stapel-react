@@ -1,7 +1,7 @@
 /**
  * Coverage for the settings surfaces added to this pair per the owner
- * directive ("затащить в либу не только компоненты авторизации, но и
- * компоненты настроек"): the headless avatar-upload stopgap, the headless
+ * directive (pull not just the auth components but the settings components
+ * into the lib too): the headless avatar-upload stopgap, the headless
  * notification-preferences matrix, and the three default-skin components
  * built on top of this pair's existing hooks.
  */
@@ -99,7 +99,7 @@ const MY_PROFILE_EXT = {
  * A field-manifest fixture combining an identity preset field, a
  * STANDARD_FIELDS enum + model_ref, and a custom bool + a standard geohash
  * — one example of every `kind` the backend's `GET /field-manifest`
- * documents (`docs/pending/profile-fields.md`, "Дополнение владельца" §1).
+ * documents (`docs/pending/profile-fields.md`, "Owner Addendum" §1).
  */
 const FIELD_MANIFEST = [
   {
@@ -306,8 +306,8 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     expect(screen.queryAllByRole("switch")).toHaveLength(0);
     unmount();
 
-    // Owner canon: "даже в дефолт скине должна быть возможность их …
-    // отключить" — both off leaves only the avatar block.
+    // Owner canon: even the default skin must let a host customize or
+    // disable them — both off leaves only the avatar block.
     render(wrap(runtime, <ProfileSettings showDisplayName={false} showTheme={false} />));
     await waitFor(() => expect(screen.getByTestId("profile-settings")).toBeDefined());
     expect(screen.queryByText("Theme")).toBeNull();

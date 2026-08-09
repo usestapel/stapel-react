@@ -98,7 +98,7 @@ export function pickTier(neededPx: number, tiers: readonly number[]): number {
 }
 
 /**
- * Which axis of the slot limits the pixel budget (§3.5, mode Б):
+ * Which axis of the slot limits the pixel budget (§3.5, mode B):
  * `cover` scales by `max(slotW/imgW, slotH/imgH)` — the limiting side is the
  * one where the image is "narrower" relative to the slot; `contain` is the
  * exact opposite. Tie-break on aspect equality is "w" (branches equivalent).

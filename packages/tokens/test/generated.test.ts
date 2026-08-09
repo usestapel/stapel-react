@@ -64,7 +64,7 @@ describe("generated tokens.css (committed artifact — the stable core, §68)", 
 describe("generated tailwind.css (tailwind@4 — default adapter)", () => {
   const css = read("src/generated/tailwind.css");
 
-  it("is an @theme block with no RGB triplets (§68 Ф1 gate)", () => {
+  it("is an @theme block with no RGB triplets (§68 Phase 1 gate)", () => {
     expect(css).toContain("@theme {");
     expect(css).not.toMatch(/-rgb/);
   });

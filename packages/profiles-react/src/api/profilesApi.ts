@@ -96,7 +96,7 @@ export interface ProfilesApi {
   /** The supported UI languages (reference list). */
   listLanguages(): Promise<readonly Language[]>;
   /**
-   * The active profile field manifest (§66 "Дополнение владельца" tier 1,
+   * The active profile field manifest (§66 "Owner Addendum" tier 1,
    * data-driven default skin) — identity preset + standard_fields +
    * custom_fields, in declaration order. Public (no auth required — the
    * skin needs it before login too), like {@link listLanguages}.

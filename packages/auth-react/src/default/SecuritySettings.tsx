@@ -7,12 +7,12 @@
  * and adds no new backend surface.
  *
  * Grouping (owner spec, exact order):
- *   (a) Контактные данные   — EmailChangePanel, PhoneChangePanel
- *   (b) Пароль              — PasswordChangePanel
- *   (c) Двухфакторная       — TotpManager, PasskeysManager
- *   (d) Устройства и сессии — SessionsList, QrDeviceLinkPanel
- *   (e) Подключённые        — OAuthLinks
- *   (f) Журнал безопасности — AuditLogPanel
+ *   (a) Contact info  — EmailChangePanel, PhoneChangePanel
+ *   (b) Password       — PasswordChangePanel
+ *   (c) Two-factor      — TotpManager, PasskeysManager
+ *   (d) Devices & sessions — SessionsList, QrDeviceLinkPanel
+ *   (e) Connected      — OAuthLinks
+ *   (f) Security log — AuditLogPanel
  *
  * Composed rather than left as ungrouped tabs because a host wiring
  * `@stapel/shell-react`'s nav needs ONE component per menu item — this reads

@@ -4,7 +4,7 @@
 // package's own tests import THESE functions directly to assert validator
 // errors, so the dictionary invariants are unit-covered without shelling out.
 //
-// Lives under `src/gen/` — inside the PUBLISHED package (§68 Ф1 gate: "a host
+// Lives under `src/gen/` — inside the PUBLISHED package (§68 Phase 1 gate: "a host
 // does not need to vendor/fork the generator"). A host installs
 // `@stapel/tokens`, runs the `stapel-tokens` bin over its own
 // `stapel.theme.json`, and gets the same artifacts this repo commits for its
@@ -19,7 +19,7 @@
 // colour per role to the same CSS var. Hex is born ONLY in `ramps` (L1),
 // never in `core`.
 //
-// VERSIONING (§68 "Версионирование эмиттеров"): the stable core (`renderCss`)
+// VERSIONING (§68 "emitter versioning"): the stable core (`renderCss`)
 // is emitted unconditionally — a version-independent CSS substrate. Tailwind
 // gets two addressable, coexisting adapters on top of it: `tailwind@4`
 // (default; `@theme`, no RGB) and `tailwind@3` (legacy; RGB triplets + a JS
@@ -59,7 +59,7 @@ export function mergeRamps(standardRamps, themeRamps) {
 }
 
 /**
- * Deep-merge a host `stapel.theme.json` OVER `theme.default.json` (§68 Ф1
+ * Deep-merge a host `stapel.theme.json` OVER `theme.default.json` (§68 Phase 1
  * merge-contract): the host wins on every LEAF it defines; anything it
  * doesn't touch falls through to the default. Ramps are merged via
  * {@link mergeRamps} (same rule — host ramp names/steps win); every other
@@ -126,23 +126,23 @@ export function validateTheme(theme, ramps) {
       const ref = def?.[mode];
       if (ref === undefined || ref === null || ref === "") {
         errors.push(
-          `tokens: role "${name}" — нет значения "${mode}" (роль = строго ` +
-            `пара {light,dark})`
+          `tokens: role "${name}" — missing value for "${mode}" (a role must be a ` +
+            `{light,dark} pair)`
         );
         continue;
       }
       if (COLORish_RE.test(ref)) {
         errors.push(
-          `tokens: role "${name}".${mode} → "${ref}" — сырые ссылки только ` +
-            `вида <ramp>.<step>; hex в core-секции запрещён (добавь ступень в ` +
-            `линейку)`
+          `tokens: role "${name}".${mode} → "${ref}" — refs must be ` +
+            `<ramp>.<step>; raw hex is forbidden in the core section (add a step ` +
+            `to the ramp instead)`
         );
         continue;
       }
       if (!RAMP_STEP_RE.test(ref)) {
         errors.push(
-          `tokens: role "${name}".${mode} → "${ref}" — ожидалась ссылка вида ` +
-            `<ramp>.<step>`
+          `tokens: role "${name}".${mode} → "${ref}" — expected a <ramp>.<step> ` +
+            `reference`
         );
         continue;
       }
@@ -151,20 +151,20 @@ export function validateTheme(theme, ramps) {
       const step = ref.slice(dot + 1);
       if (!ramps[ramp]) {
         errors.push(
-          `tokens: role "${name}".${mode} → "${ref}" — нет линейки "${ramp}"`
+          `tokens: role "${name}".${mode} → "${ref}" — no such ramp "${ramp}"`
         );
         continue;
       }
       if (ramps[ramp][step] === undefined) {
         errors.push(
-          `tokens: role "${name}".${mode} → "${ref}" — нет такой ступени в ` +
-            `линейке "${ramp}" (есть: ${rampStepList(ramp)})`
+          `tokens: role "${name}".${mode} → "${ref}" — no such step in ramp ` +
+            `"${ramp}" (available: ${rampStepList(ramp)})`
         );
       }
     }
   }
 
-  // ── Contrast contract — a real GATE (§68 Ф6, 2026-07-18; supersedes the
+  // ── Contrast contract — a real GATE (§68 Phase 6, 2026-07-18; supersedes the
   // v1 "warning only" of user decision Q10a now that the palettes have
   // stabilised): a failing pair is a build ERROR, unless the theme carries a
   // documented exception for that exact pairing in `contrastExceptions`.
@@ -195,15 +195,15 @@ export function validateTheme(theme, ramps) {
     const { fg, bg, mode } = exc ?? {};
     if (!fg || !bg || !mode) {
       errors.push(
-        `tokens: contrastExceptions entry ${JSON.stringify(exc)} — нужны поля ` +
+        `tokens: contrastExceptions entry ${JSON.stringify(exc)} — requires ` +
           `"fg", "bg", "mode"`
       );
       continue;
     }
     if (typeof exc.reason !== "string" || exc.reason.trim() === "") {
       errors.push(
-        `tokens: contrastExceptions "${fg}:${bg}:${mode}" — нужно непустое поле ` +
-          `"reason" (документированное исключение, не молчаливое)`
+        `tokens: contrastExceptions "${fg}:${bg}:${mode}" — requires a non-empty ` +
+          `"reason" field (a documented exception, not a silent one)`
       );
       continue;
     }
@@ -216,7 +216,7 @@ export function validateTheme(theme, ramps) {
     const reason = exceptionByKey.get(failure.key);
     if (reason !== undefined) {
       usedExceptionKeys.add(failure.key);
-      warnings.push(`${failure.message} — задокументированное исключение: ${reason}`);
+      warnings.push(`${failure.message} — documented exception: ${reason}`);
     } else {
       errors.push(failure.message);
     }
@@ -226,8 +226,8 @@ export function validateTheme(theme, ramps) {
   for (const [key, reason] of exceptionByKey) {
     if (!usedExceptionKeys.has(key)) {
       errors.push(
-        `tokens: contrastExceptions "${key}" (reason: "${reason}") — эта пара ` +
-          `сейчас проходит контраст, исключение больше не нужно (удали)`
+        `tokens: contrastExceptions "${key}" (reason: "${reason}") — this pair ` +
+          `now passes contrast; the exception is stale (remove it)`
       );
     }
   }
@@ -284,7 +284,7 @@ function scaleLines(scales) {
 }
 
 /**
- * Render the STABLE CORE (§68 "Версионирование эмиттеров"): plain
+ * Render the STABLE CORE (§68 "emitter versioning"): plain
  * `--stapel-<role>` CSS custom properties (:root = light, [data-theme="dark"]
  * = dark) plus elevation + the non-colour scales. Version-independent —
  * works in any browser, any Tailwind version (or none at all) forever. This
@@ -371,7 +371,7 @@ export function renderTailwind4(resolved) {
 }
 
 /**
- * Render the `tailwind@3` adapter (legacy, §68 "Версионирование эмиттеров" —
+ * Render the `tailwind@3` adapter (legacy, §68 "emitter versioning" —
  * kept as an OWNED adapter in the central bin, never a host fork). Tailwind
  * v3's JIT can't alpha-blend a `var()` colour directly, so v3 configs
  * conventionally split each colour into an RGB triplet CSS var and reference

@@ -1,13 +1,13 @@
 /**
  * `<ProfileSettings/>` — default skin for the "profile" settings screen
- * (owner directive: "затащить в либу компоненты настроек", ironmemo
+ * (owner directive: pull the settings components into the lib, ironmemo
  * `pages/app/profile.tsx`'s Account+Preferences cards, minus the security
  * surfaces auth-react/default owns). Built entirely on this pair's EXISTING
  * hooks (`useMyProfile`, `useUpdateMyProfile`, `useAvatarUpload`) plus the
  * NEW {@link useProfileFieldManifest} — no new backend surface beyond the
  * field-manifest endpoint itself.
  *
- * DATA-DRIVEN (§66 "Дополнение владельца" tier 1, `docs/pending/
+ * DATA-DRIVEN (§66 "Owner Addendum" tier 1, `docs/pending/
  * profile-fields.md`): `stapel-profiles` 0.5.0 shrank the hard `Profile`
  * model to a core every project needs (avatar, language, notifications,
  * onboarding, consent) and moved identity/theme/currency/measurement_units
@@ -19,11 +19,11 @@
  * manifest entry for it) — and since stapel-profiles 0.7.0 (owner
  * 2026-07-22) `display_name` + `theme` moved BACK into that hard core, so
  * they render as fixed rows too, toggleable via `showDisplayName`/`showTheme`
- * and replaceable via `displayNameRow`/`themeRow` (owner: "даже в дефолт
- * скине должна быть возможность их кастомизировать или отключить").
+ * and replaceable via `displayNameRow`/`themeRow` (owner: even the default
+ * skin must let a host customize or disable them).
  *
  * INTERACTION CANON (owner UX audit 2026-07-17; codified in
- * `docs/pending/frontend-guidelines.md` §8 "Интеракции настроек", extended
+ * `docs/pending/frontend-guidelines.md` §8 "Settings Interactions", extended
  * to the data-driven skin by kind):
  *  - `bool` → a `Switch`, applies REACTIVELY (no "Save" button).
  *  - `enum` → a reactive `Segmented` when there are few choices (reads like
@@ -183,7 +183,7 @@ function SettingRow(props: { label: string; children: ReactNode }): ReactElement
 
 /**
  * A read-only text row with an edit affordance (owner UX audit 2026-07-17,
- * "Интеракции настроек" canon): click the pencil to open a `Modal`
+ * "Settings Interactions" canon): click the pencil to open a `Modal`
  * (desktop) / bottom `Drawer` (phone) with the value editable, instead of a
  * bare `Input` sitting inline in a batched form. Generic over any
  * manifest-supplied field name — `valueTestId` lets a caller give each row

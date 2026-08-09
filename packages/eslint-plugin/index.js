@@ -185,7 +185,7 @@ const recommended = [
       "stapel/i18n-key-exists": "error",
       "stapel/require-disable-description": "error",
       // Typed analytics (§3). Literal-meta keeps events statically extractable;
-      // double-count is a hard ban (Q12а); known-event is drift → warn (goes
+      // double-count is a hard ban (Q12a); known-event is drift → warn (goes
       // green after `pnpm gen:events`). These fire on .ts (defineEvent, track).
       "stapel/event-literal-meta": "error",
       "stapel/no-double-count": "error",

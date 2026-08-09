@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // `stapel-tokens` — the @stapel/tokens generator, published AS the package
-// (§68 Ф1 gate: "hosts don't vendor/fork the generator"; the pre-existing
+// (§68 Phase 1 gate: "hosts don't vendor/fork the generator"; the pre-existing
 // forked-generator failure mode this closes). Fans the neutral role
 // dictionary (theme.json, §68) out to the STABLE CORE CSS substrate (always,
 // version-independent) plus addressable Tailwind adapters — default

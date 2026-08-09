@@ -1,7 +1,7 @@
 /**
  * This pair's contribution to the scripted-fullstack nav contract
  * (`@stapel/core`'s `NavEntry`/`PackageNavManifest`, `frontend-core-
- * architecture` Ф1). `scripts/gen-nav-manifest.mjs` reads `navEntries`
+ * architecture` Phase 1). `scripts/gen-nav-manifest.mjs` reads `navEntries`
  * below, stamps `package`/`version` from THIS package's own `package.json`
  * (never hand-copied here — a version bump must not require touching this
  * file), and emits `packages/auth-react/nav-manifest.json` plus this

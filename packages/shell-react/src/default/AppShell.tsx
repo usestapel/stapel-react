@@ -1,5 +1,5 @@
 /**
- * `<AppShell/>` — the default skin for `@stapel/shell-react` (Ф1 lib-side
+ * `<AppShell/>` — the default skin for `@stapel/shell-react` (Phase 1 lib-side
  * core, owner directive: scripted-fullstack navigation with no LLM in the
  * loop). Renders the tree `resolveNav` (`../headless/resolveNav.js`)
  * already resolved — this component owns NO nav logic of its own, only

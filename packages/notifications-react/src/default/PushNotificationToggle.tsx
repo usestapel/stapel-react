@@ -4,7 +4,7 @@
  * `DeviceRegistration` headless wrapper (`useRegisterDevice` /
  * `useUnregisterDevice`) — no new backend surface. stapel-notifications has
  * NO endpoint to list a caller's already-registered devices (see
- * `ironmemo-libgaps.md` §Settings-инвентарь), so this skin can't render a
+ * `ironmemo-libgaps.md` §settings inventory), so this skin can't render a
  * persisted on/off state the way `<ProfileSettings/>` can — it models the
  * single real settings action the contract supports: bind (or unbind) THIS
  * device's push token. Getting a fresh token (VAPID/APNs/FCM) is a host

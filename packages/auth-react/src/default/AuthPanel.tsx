@@ -82,7 +82,7 @@ import {
 } from "./panels.js";
 import { AnonymousSession } from "../headless/misc.js";
 
-/** A system notice for zone A's single Alert slot (ПРАВИЛО 3). */
+/** A system notice for zone A's single Alert slot (RULE 3). */
 export interface AuthPanelNotice {
   readonly type: "error" | "warning" | "info" | "success";
   /** An i18n key resolved with `t()`. */
@@ -108,7 +108,7 @@ export interface AuthPanelProps {
    * `mode`, to avoid colliding with the light/dark `mode` prop above.
    */
   readonly variant?: "login" | "register";
-  /** Override the channel order (ПРАВИЛО 2). Defaults to the ratified priority. */
+  /** Override the channel order (RULE 2). Defaults to the ratified priority. */
   readonly channelPriority?: readonly ChannelId[];
   /**
    * Which channels count as REGISTRATION anchors on the `variant="register"`

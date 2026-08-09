@@ -19,8 +19,8 @@ export interface ImageSlot<T extends HTMLElement = HTMLElement> {
  *
  * High-water-mark per axis: the reported size only ever GROWS. A transient
  * shrink (splitter drag, viewport resize down, sidebar toggle) must not
- * re-pick a smaller, already-loaded tier — upgrades only (§4 "докачка только
- * вверх").
+ * re-pick a smaller, already-loaded tier — upgrades only (§4: fetch upward
+ * only, never back down).
  */
 export function useImageSlot<T extends HTMLElement = HTMLElement>(): ImageSlot<T> {
   const ref = useRef<T>(null);

@@ -13,7 +13,7 @@ import { useRecordingsApi } from "./context.js";
 import { recordingsQueryKeys } from "./queryKeys.js";
 
 /**
- * Write hooks (frontend-standard §2 — "мутации с инвалидацией"). A created
+ * Write hooks (frontend-standard §2 — mutations invalidate on success). A created
  * recording lands in the list, and a finalize flips a recording's status and
  * (eventually) fills its transcription outputs — both shift more than one cached
  * read, so each mutation invalidates the module root (`recordingsQueryKeys.all`)

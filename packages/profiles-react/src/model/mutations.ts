@@ -13,7 +13,7 @@ import { useProfilesApi } from "./context.js";
 import { profilesQueryKeys } from "./queryKeys.js";
 
 /**
- * Write hooks (frontend-standard §2 — "мутации с инвалидацией"). Each mutation
+ * Write hooks (frontend-standard §2 — mutations invalidate on success). Each mutation
  * invalidates exactly the server state it can move: a profile edit refreshes the
  * caller's own profile; a relationship action refreshes the caller↔target
  * relationship, the target's public projection (its `relationship_status` /
@@ -27,7 +27,7 @@ import { profilesQueryKeys } from "./queryKeys.js";
 /**
  * Apply a `ProfileUpdate` patch to a cached `MyProfile` the way the backend
  * would — used ONLY for the optimistic cache write in {@link useUpdateMyProfile}
- * (frontend-guidelines "Интеракции настроек": pickers apply reactively, so the
+ * (frontend-guidelines "settings interactions": pickers apply reactively, so the
  * cache must reflect the pick before the round trip lands). Every patch field
  * shares its shape with `MyProfile` except `app_language`, which the wire PATCHes
  * as a bare code (`string | null`) but the profile reads back as the full

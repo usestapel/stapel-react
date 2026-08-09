@@ -22,7 +22,7 @@ import { useWorkspacesApi } from "./context.js";
 import { workspacesQueryKeys } from "./queryKeys.js";
 
 /**
- * Write hooks (frontend-standard §2 — "мутации с инвалидацией"). Each mutation
+ * Write hooks (frontend-standard §2 — mutations invalidate on success). Each mutation
  * invalidates exactly the server state it can move. Membership and ownership are
  * server truth (roles gate access in other services via the membership cache),
  * so NONE of these are optimistic (frontend-core-architecture §2.6: optimistic

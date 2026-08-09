@@ -196,8 +196,8 @@ export function useLanguages(): UseQueryResult<
 }
 
 /**
- * The active profile field manifest (GET /field-manifest — §66 "Дополнение
- * владельца" tier 1, `docs/pending/profile-fields.md`): identity preset +
+ * The active profile field manifest (GET /field-manifest — §66 "Owner
+ * Addendum" tier 1, `docs/pending/profile-fields.md`): identity preset +
  * standard_fields + custom_fields, in declaration order. This is what
  * `<ProfileSettings/>`'s default skin renders FROM instead of a hardcoded
  * field list — a host's `STAPEL_PROFILES["FIELDS"]` selection changes the

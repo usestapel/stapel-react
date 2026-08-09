@@ -3,7 +3,7 @@
 // theme-config + the showcase may open it. Everywhere else raw ramps must not
 // be reachable (components reference tokens, not hex). The recommended preset
 // turns this rule OFF for theme-config/showcase/scripts via file overrides
-// (§2.2: "overrides-исключения"); the rule itself always flags.
+// (§2.2: overrides exceptions); the rule itself always flags.
 import { stapelSettings } from "../lib/data.js";
 
 const RAW = "@stapel/tokens/raw";

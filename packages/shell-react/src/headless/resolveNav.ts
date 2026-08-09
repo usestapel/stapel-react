@@ -1,6 +1,6 @@
 /**
  * `resolveNav` — the single source of nav truth (scripted-fullstack
- * navigation, Ф1 lib-side core, owner directive: one scripted command with
+ * navigation, Phase 1 lib-side core, owner directive: one scripted command with
  * NO LLM produces a working navigated fullstack). PURE: no React, no I/O, no
  * globals — takes the installed packages' nav manifests (`@stapel/core`'s
  * `PackageNavManifest[]`, e.g. the root `nav-manifest.json` a host's

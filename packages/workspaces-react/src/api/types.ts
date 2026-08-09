@@ -69,9 +69,10 @@ export type RoleInfo = Schemas["RoleResponse"];
 export type RoleList = Schemas["RoleListResponse"];
 
 /**
- * Форма развёртывания: с чем приземляется человек «с улицы» и открыта ли
- * самостоятельная регистрация. Свойство ИНСТАНСА, не пространства — и не
- * настройка, которую крутит заказчик: она выбирается при развёртывании.
+ * Deployment shape: what a person landing "off the street" gets, and
+ * whether self-serve signup is open. A property of the INSTANCE, not of a
+ * workspace — and not a setting the customer can toggle: it's fixed at
+ * deployment time.
  */
 export type InstanceShape = Schemas["InstanceShapeResponse"];
 

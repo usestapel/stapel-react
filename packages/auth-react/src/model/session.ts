@@ -170,7 +170,7 @@ const HINT_COOKIE_NAME = "stapel_auth_hint";
  * Did this failure actually tell us the credential is dead? (owner-reported
  * live incident, 2026-07-26: the stand was mid-redeploy, the browser got a
  * 502 out of nginx, and the app threw a signed-in user onto the sign-in page
- * — "не получилось отрефрешиться, но это же не повод сессию терминейтить".)
+ * — a failed refresh is not a reason to tear down the session.)
  *
  * Only the auth service itself can retire a credential, and only by
  * answering. Everything else — fetch threw, DNS/TLS failed, the request timed
@@ -305,7 +305,7 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
    *
    * `onTeardown(reason)` fires ONLY if `sessionManager.sessionLost()`
    * actually performed a teardown (owner-diagnosed live incident,
-   * 2026-07-17, miттудей race): a request racing in with a 401 while an
+   * 2026-07-17, meettoday race): a request racing in with a 401 while an
    * explicit `logout()` is already tearing this session down gets a `false`
    * back (core's `SessionManager` guards `sessionLost()` off for the
    * duration of `logout()`) — calling `onTeardown('expired'|'revoked')`
@@ -429,7 +429,7 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
     setState({ user: null, tokens: null });
     const storage = options.storage;
     // RETURNED, not fire-and-forget (owner-reported live incident,
-    // 2026-07-26: "стробоскоп редиректов /app ↔ /sign-in по кругу").
+    // 2026-07-26: "redirect stroboscope, /app ↔ /sign-in in a loop").
     //
     // `runLogoutHooks` awaits every hook — so a hook that starts an async
     // wipe and returns `undefined` tells the session manager the teardown is
@@ -560,7 +560,7 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
   }
 
   /**
-   * Explicit logout (owner-diagnosed live incident, 2026-07-17, миттудей
+   * Explicit logout (owner-diagnosed live incident, 2026-07-17, meettoday
    * race): local teardown runs FIRST, the server revoke is best-effort
    * AFTER. This used to await the network revoke before any local
    * teardown — in the window between the server honoring that revoke and

@@ -173,7 +173,7 @@ export interface WorkspacesApi {
    * RoleSelect-class UI — capability strings verbatim, rank-descending. */
   listRoles(): Promise<RoleList>;
 
-  /** Форма инстанса (GET /instance, без авторизации). */
+  /** Instance shape (GET /instance, unauthenticated). */
   getInstanceShape(): Promise<InstanceShape>;
 }
 
