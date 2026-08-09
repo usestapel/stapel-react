@@ -1,6 +1,6 @@
 # @stapel/workspaces-react 0.12.0
 
-Headless React flow pair for stapel-workspaces (contract >=0.20 <0.21) — business + state, zero visual opinion.
+Headless React flow pair for stapel-workspaces (contract >=0.22 <0.23) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -78,7 +78,7 @@ Paths are relative to `/workspaces/api/v1/`.
 - useWorkspaces (query) → listWorkspaces
 
 ## Errors (render t(code, params); UX from remediation)
-66 keys (full catalog: manifest.json §errors). By remediation: fix_input 33 · retry 12 · contact_support 7 · wait_and_retry 7 · verify 5 · reauthenticate 2.
+67 keys (full catalog: manifest.json §errors). By remediation: fix_input 33 · retry 12 · contact_support 8 · wait_and_retry 7 · verify 5 · reauthenticate 2.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}

@@ -100,6 +100,7 @@ export const WORKSPACES_ERRORS = {
   "error.429.too_many_requests": { status: 429, params: [], remediation: "wait_and_retry", en: "Too many requests. Please try again later." },
   "error.500.internal": { status: 500, params: [], remediation: "contact_support", en: "Something went wrong" },
   "error.503.auth_unavailable": { status: 503, params: [], remediation: "wait_and_retry", en: "The authentication service is unavailable; try again later" },
+  "error.503.profiles_not_configured": { status: 503, params: [], remediation: "contact_support", en: "This deployment has no profiles service configured, so a display name cannot be written here" },
   "error.503.profiles_unavailable": { status: 503, params: [], remediation: "wait_and_retry", en: "The profiles service is unavailable; try again later" },
 } as const;
 
@@ -172,6 +173,7 @@ export const WORKSPACES_ERROR_CODES: readonly WorkspacesErrorCode[] = [
   "error.429.too_many_requests",
   "error.500.internal",
   "error.503.auth_unavailable",
+  "error.503.profiles_not_configured",
   "error.503.profiles_unavailable",
 ];
 
@@ -246,5 +248,6 @@ export const workspacesErrorBundleEn: Record<WorkspacesErrorCode, string> = {
   "error.429.too_many_requests": "Too many requests. Please try again later.",
   "error.500.internal": "Something went wrong",
   "error.503.auth_unavailable": "The authentication service is unavailable; try again later",
+  "error.503.profiles_not_configured": "This deployment has no profiles service configured, so a display name cannot be written here",
   "error.503.profiles_unavailable": "The profiles service is unavailable; try again later",
 };

@@ -4,7 +4,7 @@
   "version": "0.13.0",
   "backend": {
     "module": "stapel-auth",
-    "contract": ">=0.12 <0.13"
+    "contract": ">=0.20 <0.21"
   },
   "layers": [
     "api",
@@ -1669,6 +1669,11 @@
       "params": [],
       "remediation": "reauthenticate"
     },
+    "error.403.privileged_account": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
     "error.403.qr_device_mismatch": {
       "status": 403,
       "params": [],
@@ -1678,6 +1683,11 @@
       "status": 403,
       "params": [],
       "remediation": "reauthenticate"
+    },
+    "error.403.registration_closed": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
     },
     "error.403.sso_required": {
       "status": 403,
@@ -2428,8 +2438,10 @@
     "error.403.mock_otp_admin",
     "error.403.network_blocked",
     "error.403.password_change_required",
+    "error.403.privileged_account",
     "error.403.qr_device_mismatch",
     "error.403.qr_unauth_scan",
+    "error.403.registration_closed",
     "error.403.sso_required",
     "error.403.verification_enrollment_required",
     "error.403.verification_required",

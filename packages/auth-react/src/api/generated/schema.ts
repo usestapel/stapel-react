@@ -3903,7 +3903,7 @@ export interface components {
              * @enum {string}
              */
             method: "null";
-            /** @description 4-digit code sent to phone via /totp/disable-otp/request/. */
+            /** @description 8-digit code sent to phone via /totp/disable-otp/request/. */
             otp_code: string;
         };
         /**

@@ -4,7 +4,7 @@
   "version": "0.12.0",
   "backend": {
     "module": "stapel-workspaces",
-    "contract": ">=0.20 <0.21"
+    "contract": ">=0.22 <0.23"
   },
   "layers": [
     "api",
@@ -832,6 +832,11 @@
       "params": [],
       "remediation": "wait_and_retry"
     },
+    "error.503.profiles_not_configured": {
+      "status": 503,
+      "params": [],
+      "remediation": "contact_support"
+    },
     "error.503.profiles_unavailable": {
       "status": 503,
       "params": [],
@@ -1007,6 +1012,7 @@
     "error.429.too_many_requests",
     "error.500.internal",
     "error.503.auth_unavailable",
+    "error.503.profiles_not_configured",
     "error.503.profiles_unavailable",
     "workspaces.accept.accept",
     "workspaces.accept.accepted",

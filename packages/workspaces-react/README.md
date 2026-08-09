@@ -100,6 +100,28 @@ Backend error texts are generated from stapel-workspaces's
 pair's UI keys carry hand-written ru copy. Register your own bundle AFTER the
 pair's to override any key — registration order is override priority.
 
+### Spanish locale (opt-in subpath — backend errors today, UI copy later)
+
+The `es` bundle ships as its own subpath on the same terms as `ru`, with one
+difference stated up front: **it translates the 67 backend error codes, not
+the pair's own UI copy.** `registerWorkspacesI18nEs` registers the en floor UNDER the
+Spanish texts, so a Spanish-speaking user reads Spanish error messages and
+English UI copy — never a raw key.
+
+```tsx
+import { registerWorkspacesI18nEs } from "@stapel/workspaces-react/i18n/es";
+
+registerWorkspacesI18n(i18n);      // en floor + polish
+registerWorkspacesI18nEs(i18n);    // es locale (generated from the backend catalog)
+await i18n.setLocale("es");    // live switch; untranslated UI keys read English
+```
+
+Error texts are generated from stapel-workspaces's `translations/errors.es.json`
+catalog (`pnpm gen:errors`, drift-gated) and are complete over the error
+registry by construction. The coverage boundary is asserted in
+`test/i18nEs.test.ts`; when hand-written Spanish UI copy lands, it lands
+additively — this subpath and `workspacesI18nBundleEs` keep their names.
+
 ## Guardrails
 
 Linted by the shared `@stapel/eslint-plugin` flat config (no raw colours, no raw

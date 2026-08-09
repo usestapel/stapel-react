@@ -15,7 +15,7 @@ export interface paths {
          * Register push token
          * @description Register a push notification token.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         post: operations["register_device_token"];
         delete?: never;
@@ -38,7 +38,7 @@ export interface paths {
          * Unregister push token
          * @description Unregister a push notification token.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         delete: operations["unregister_device_token"];
         options?: never;

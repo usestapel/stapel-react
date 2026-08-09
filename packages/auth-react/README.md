@@ -272,6 +272,28 @@ await i18n.setLocale("ru");  // live switch; a missing key degrades to English, 
 Register your own bundle AFTER the pair's to override any key — registration
 order is override priority (last registered wins per key).
 
+### Spanish locale (opt-in subpath — backend errors today, UI copy later)
+
+The `es` bundle ships as its own subpath on the same terms as `ru`, with one
+difference stated up front: **it translates the 127 backend error codes, not
+the pair's own UI copy.** `registerAuthI18nEs` registers the en floor UNDER the
+Spanish texts, so a Spanish-speaking user reads Spanish error messages and
+English UI copy — never a raw key.
+
+```tsx
+import { registerAuthI18nEs } from "@stapel/auth-react/i18n/es";
+
+registerAuthI18n(i18n);      // en floor + polish
+registerAuthI18nEs(i18n);    // es locale (generated from the backend catalog)
+await i18n.setLocale("es");    // live switch; untranslated UI keys read English
+```
+
+Error texts are generated from stapel-auth's `translations/errors.es.json`
+catalog (`pnpm gen:errors`, drift-gated) and are complete over the error
+registry by construction. The coverage boundary is asserted in
+`test/i18nEs.test.ts`; when hand-written Spanish UI copy lands, it lands
+additively — this subpath and `authI18nBundleEs` keep their names.
+
 ## Shadcn mode (frontend-standard §7)
 
 Every headless component is app-layer by definition — copy it into your repo

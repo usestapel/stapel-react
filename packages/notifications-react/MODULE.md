@@ -27,7 +27,11 @@ generated `llms.txt` (agent context) and `manifest.json` (machine catalog).
   hand-written ru UI copy; it registers the en floor UNDER ru so a missing key
   degrades to English, never a raw key) → host bundle last. The ru subpath is
   opt-in and stays out of the main entry (size-limit budget + module-graph
-  test in `test/i18nRu.test.ts`).
+  test in `test/i18nRu.test.ts`). The `es` subpath
+  (`@stapel/notifications-react/i18n/es`) is the same contour with a DECLARED partial
+  coverage: generated backend error texts only, no hand-written Spanish UI copy
+  yet, so pair-owned keys resolve through the en floor registered beneath it
+  (asserted in `test/i18nEs.test.ts`).
 - **analytics/** — `generated/events.json`, the typed-event registry projected
   from `defineEvent` call sites + flow funnels (`pnpm gen:events`). Read by the
   analytics lint and embedded into `manifest.json`; nothing to hand-edit.
