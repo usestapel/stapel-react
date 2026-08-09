@@ -175,12 +175,23 @@ export type {
   FlowStateBase,
 } from "./flows/flowMachine.js";
 export { useFlow } from "./flows/useFlow.js";
-export { toFlowError, isErrorCode, formatFlowError } from "./flows/flowError.js";
-export type { FlowError, FormatFlowErrorOptions } from "./flows/flowError.js";
-export { useFormatFlowError } from "./flows/useFormatFlowError.js";
-export { useErrorText } from "./flows/useErrorText.js";
+export {
+  toFlowError,
+  isErrorCode,
+  formatFlowError,
+  describeFlowError,
+} from "./flows/flowError.js";
+export type {
+  FlowError,
+  FlowErrorDisplay,
+  FormatFlowErrorOptions,
+} from "./flows/flowError.js";
+export { useFormatFlowError, useDescribeFlowError } from "./flows/useFormatFlowError.js";
+export { useErrorText, useErrorDisplay } from "./flows/useErrorText.js";
 export {
   CORE_ERROR_LOCALES,
+  DETAIL_ERROR_KEY,
+  codeCarriesTechnicalDetail,
   coreErrorBundle,
   coreErrorKeyCandidates,
 } from "./i18n/coreErrors.js";

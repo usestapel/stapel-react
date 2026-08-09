@@ -10,17 +10,18 @@
  */
 import { useMemo } from "react";
 import type { ReactElement } from "react";
-import { Alert, Card, ConfigProvider, Switch, Table, Typography } from "antd";
+import { Card, ConfigProvider, Switch, Table, Typography } from "antd";
 import type { TableProps } from "antd";
 import { resolveThemeMode, toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { useErrorText, useT } from "@stapel/core";
+import { useErrorDisplay, useT } from "@stapel/core";
 import {
   NotificationPreferences as HeadlessNotificationPreferences,
   type NotificationCategory,
   type NotificationChannel,
 } from "../headless/NotificationPreferences.js";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
+import { ErrorAlert } from "./ErrorAlert.js";
 
 const CATEGORY_KEY: Record<NotificationCategory, "notifCategoryMessages" | "notifCategorySystem"> = {
   messages: "notifCategoryMessages",
@@ -54,7 +55,7 @@ export interface NotificationPreferencesProps {
 
 export function NotificationPreferences(props: NotificationPreferencesProps = {}): ReactElement {
   const t = useT();
-  const errorText = useErrorText(PROFILES_I18N_KEYS.unknownError);
+  const errorDisplay = useErrorDisplay(PROFILES_I18N_KEYS.unknownError);
   const theme = useMemo(() => toAntdThemeConfig(props.mode ?? resolveThemeMode()), [props.mode]);
 
   return (
@@ -91,13 +92,8 @@ export function NotificationPreferences(props: NotificationPreferencesProps = {}
                 {t(PROFILES_I18N_KEYS.notifPrefsSubtitle)}
               </Typography.Text>
 
-              {isError && error && (
-                <Alert
-                  style={{ marginTop: 12 }}
-                  type="error"
-                  showIcon
-                  message={errorText(error)}
-                />
+              {isError && (
+                <ErrorAlert error={errorDisplay(error)} style={{ marginTop: 12 }} />
               )}
 
               <Table<Row>

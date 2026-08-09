@@ -49,7 +49,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, ReactElement, ReactNode } from "react";
 import {
-  Alert,
   Avatar,
   Button,
   Card,
@@ -66,13 +65,15 @@ import {
 } from "antd";
 import { resolveThemeMode, toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { useBreakpoint, useErrorText, useT } from "@stapel/core";
+import { useBreakpoint, useErrorDisplay, useT } from "@stapel/core";
+import type { FlowErrorDisplay } from "@stapel/core";
 import { useMyProfile, useProfileFieldManifest } from "../model/queries.js";
 import { useUpdateMyProfile } from "../model/mutations.js";
 import { useSetAvatar } from "../headless/AvatarUpload.js";
 import { Image } from "@stapel/image";
 import type { StapelImage } from "@stapel/image";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
+import { ErrorAlert } from "./ErrorAlert.js";
 import { EditPencilIcon } from "./icons.js";
 import type { MyProfile, ProfileFieldManifestEntry, ProfileUpdate } from "../api/types.js";
 
@@ -201,7 +202,7 @@ function EditableTextRow(props: {
   value: string;
   saveCta: string;
   saving: boolean;
-  errorText?: string | undefined;
+  error?: FlowErrorDisplay | undefined;
   valueTestId?: string | undefined;
   onSave: (next: string) => void;
 }): ReactElement {
@@ -221,7 +222,7 @@ function EditableTextRow(props: {
   // Close the dialog once a save actually lands (not on every keystroke —
   // only when the mutation stops being in flight AND didn't error).
   useEffect(() => {
-    if (open && !props.saving && !props.errorText && draft.trim() === props.value) {
+    if (open && !props.saving && !props.error && draft.trim() === props.value) {
       setOpen(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately re-runs only on `saving` edge (see comment above), not on every `draft`/`value` change
@@ -229,7 +230,7 @@ function EditableTextRow(props: {
 
   const body: ReactNode = (
     <Flex vertical gap="middle">
-      {props.errorText && <Alert type="error" showIcon message={props.errorText} />}
+      <ErrorAlert error={props.error} />
       <Input
         autoFocus
         value={draft}
@@ -287,7 +288,7 @@ function FieldRow(props: {
   profile: MyProfile | undefined;
   saveCta: string;
   saving: boolean;
-  errorText?: string | undefined;
+  error?: FlowErrorDisplay | undefined;
   onPatch: (patch: ProfileUpdate) => void;
 }): ReactElement {
   const { entry, profile } = props;
@@ -354,7 +355,7 @@ function FieldRow(props: {
           value={typeof rawValue === "string" ? rawValue : ""}
           saveCta={props.saveCta}
           saving={props.saving}
-          errorText={props.errorText}
+          error={props.error}
           valueTestId={`profile-field-${entry.name}-value`}
           onSave={(next) => props.onPatch({ [entry.name]: next } as ProfileUpdate)}
         />
@@ -370,7 +371,7 @@ function FieldRow(props: {
           value={typeof rawValue === "string" ? rawValue : ""}
           saveCta={props.saveCta}
           saving={props.saving}
-          errorText={props.errorText}
+          error={props.error}
           valueTestId={`profile-field-${entry.name}-value`}
           onSave={(next) => props.onPatch({ [entry.name]: next } as ProfileUpdate)}
         />
@@ -388,7 +389,7 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
   // any thrown value into the ONE dialect and resolves it through the i18n
   // engine, which since @stapel/core 0.x carries a floor for core's own
   // synthesized `stapel.http.*` codes.
-  const errorText = useErrorText(PROFILES_I18N_KEYS.unknownError);
+  const errorDisplay = useErrorDisplay(PROFILES_I18N_KEYS.unknownError);
   const theme = useMemo(() => toAntdThemeConfig(props.mode ?? resolveThemeMode()), [props.mode]);
   const query = useMyProfile();
   const manifest = useProfileFieldManifest();
@@ -435,7 +436,7 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
     );
   }
 
-  const mutationErrorText = errorText(mutation.error);
+  const mutationError = errorDisplay(mutation.error);
 
   // Declaration order from the backend (identity, then standard_fields, then
   // custom_fields) IS the order to render in — `order` is carried mainly so
@@ -529,7 +530,7 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
                 value={displayNameValue}
                 saveCta={t(PROFILES_I18N_KEYS.profileSave)}
                 saving={mutation.isPending}
-                errorText={mutationErrorText}
+                error={mutationError}
                 valueTestId="profile-field-display_name-value"
                 onSave={(next) => mutation.mutate({ display_name: next } as ProfileUpdate)}
               />
@@ -556,15 +557,13 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
               profile={profile}
               saveCta={t(PROFILES_I18N_KEYS.profileSave)}
               saving={mutation.isPending}
-              errorText={mutationErrorText}
+              error={mutationError}
               onPatch={(patch) => mutation.mutate(patch)}
             />
           ))}
         </Flex>
 
-        {mutationErrorText && (
-          <Alert style={{ marginTop: 12 }} type="error" showIcon message={mutationErrorText} />
-        )}
+        <ErrorAlert error={mutationError} style={{ marginTop: 12 }} />
       </Card>
     </ConfigProvider>
   );

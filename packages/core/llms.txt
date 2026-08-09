@@ -13,6 +13,7 @@ signatures/JSDoc in the package README and src/index.ts.
 ### runtime
 - AnalyticsContext
 - CORE_ERROR_LOCALES
+- DETAIL_ERROR_KEY
 - I18nProvider
 - REFRESH_UNAVAILABLE
 - StapelApiError
@@ -20,6 +21,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - StapelProvider
 - TRANSPORT_ERROR_CODE
 - VERIFICATION_TOKEN_HEADER
+- codeCarriesTechnicalDetail
 - coreErrorBundle
 - coreErrorKeyCandidates
 - createFlowMachine
@@ -32,6 +34,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - createStapelClient
 - createStapelQueryClient
 - defaultPersistStorage
+- describeFlowError
 - errorCode
 - errorCodePredicate
 - errorStatus
@@ -53,6 +56,8 @@ signatures/JSDoc in the package README and src/index.ts.
 - useActiveSessionReady
 - useAnalytics
 - useBreakpoint
+- useDescribeFlowError
+- useErrorDisplay
 - useErrorText
 - useFlow
 - useFormatFlowError
@@ -79,6 +84,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - EventDefInput
 - EventProps
 - FlowError
+- FlowErrorDisplay
 - FlowMachine
 - FlowMachineOptions
 - FlowStateBase

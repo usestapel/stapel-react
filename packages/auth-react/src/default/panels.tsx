@@ -20,7 +20,8 @@ import {
   Result,
   Typography,
 } from "antd";
-import { useFormatFlowError, useT } from "@stapel/core";
+import { useDescribeFlowError, useFormatFlowError, useT } from "@stapel/core";
+import type { FlowErrorDisplay } from "@stapel/core";
 import type { FlowError } from "../flows/errors.js";
 import type { OAuthProviderInfo, OtpChannel } from "../api/types.js";
 import { authUrls } from "../api/urls.js";
@@ -35,6 +36,7 @@ import { PasskeyLogin } from "../headless/Passkey.js";
 import { MagicLink, SsoDiscovery } from "../headless/misc.js";
 import { useAuthApi } from "../model/context.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
+import { ErrorAlert } from "./ErrorAlert.js";
 import { isWebauthnSupported } from "../webauthn.js";
 import { ForcedPasswordChangeCard, MfaEnrollPanel } from "./FirstLoginPanels.js";
 import { OtpField } from "./OtpField.js";
@@ -53,14 +55,15 @@ const RESEND_COOLDOWN_FALLBACK_S = 30;
 
 /**
  * Inline error copy for a flow error (RULE 8) — routed through core's
- * `useFormatFlowError` (frontend-core-architecture gap fix): bundle template
- * → the backend's own locale-matched message → the raw code, instead of a
- * bare `t(code, params)` that shows an unformatted code whenever a bundle key
- * is missing.
+ * `useDescribeFlowError`: bundle template → the backend's own locale-matched
+ * message → the raw code, instead of a bare `t(code, params)` that shows an
+ * unformatted code whenever a bundle key is missing. Returns the human
+ * sentence AND the technical detail that belongs beside it, never inside it
+ * (owner report 2026-08-09) — `ErrorAlert` renders the pair.
  */
-function useErrorText(): (e: FlowError | undefined) => string | undefined {
-  const format = useFormatFlowError();
-  return (e) => (e ? format(e) : undefined);
+function useErrorShown(): (e: FlowError | undefined) => FlowErrorDisplay | undefined {
+  const describe = useDescribeFlowError();
+  return (e) => (e ? describe(e) : undefined);
 }
 
 /** `Form.Item` error props for a flow error, spread so no `undefined` is
@@ -132,7 +135,7 @@ function OtpCodeStep(props: {
   "data-analytics"?: "flow";
 }): ReactElement {
   const t = useT();
-  const errorText = useErrorText();
+  const errorShown = useErrorShown();
   const [code, setCode] = useState("");
   const submittedRef = useRef(false);
   const otpRef = useRef<ElementRef<typeof OtpField>>(null);
@@ -168,9 +171,7 @@ function OtpCodeStep(props: {
           disabled={props.submitting}
           {...(props.error ? { status: "error" as const } : {})}
         />
-        {props.error && (
-          <Alert type="error" showIcon message={errorText(props.error)} />
-        )}
+        <ErrorAlert error={errorShown(props.error)} />
       </Flex>
       <ResendLink
         onResend={props.onResend}
@@ -391,7 +392,7 @@ export function PasswordPanel(): ReactElement {
  */
 export function PasswordRegisterPanel(): ReactElement {
   const t = useT();
-  const errorText = useErrorText();
+  const errorShown = useErrorShown();
   return (
     <PasswordRegister>
       {(bag) => {
@@ -410,7 +411,7 @@ export function PasswordRegisterPanel(): ReactElement {
               })
             }
           >
-            {err && <Alert type="error" showIcon style={{ marginBottom: 16 }} message={errorText(err)} />}
+            <ErrorAlert error={errorShown(err)} style={{ marginBottom: 16 }} />
             <Form.Item name="email" label={t(AUTH_I18N_KEYS.uiEmailLabel)}>
               <Input autoFocus placeholder={t(AUTH_I18N_KEYS.uiEmailPlaceholder)} autoComplete="email" />
             </Form.Item>
@@ -531,7 +532,7 @@ function QrPanelBody(props: {
 /** Passkey panel — a single primary trigger (RULE 5). */
 export function PasskeyPanel(): ReactElement {
   const t = useT();
-  const errorText = useErrorText();
+  const errorShown = useErrorShown();
   return (
     <PasskeyLogin>
       {(bag) => {
@@ -560,7 +561,7 @@ export function PasskeyPanel(): ReactElement {
                 message={t(AUTH_I18N_KEYS.passkeyUnsupported)}
               />
             )}
-            {err && <Alert type="error" showIcon message={errorText(err)} />}
+            <ErrorAlert error={errorShown(err)} />
           </Flex>
         );
       }}
@@ -658,7 +659,9 @@ export function OAuthPanel(props: {
  * a DIALOG from the overflow menu (owner directive point 3), never a tab. */
 export function SsoPanel(): ReactElement {
   const t = useT();
-  const errorText = useErrorText();
+  // A form field's `help` line is copy-only by design: a `HTTP 500` stamped
+  // under a domain input would be noise where an inline hint belongs.
+  const fieldError = useFieldError();
   return (
     <SsoDiscovery>
       {(bag) => {
@@ -674,7 +677,7 @@ export function SsoPanel(): ReactElement {
               <Form.Item
                 name="domain"
                 label={t(AUTH_I18N_KEYS.uiSsoDomainLabel)}
-                {...(err ? { validateStatus: "error" as const, help: errorText(err) } : {})}
+                {...fieldError(err)}
               >
                 <Input autoFocus placeholder={t(AUTH_I18N_KEYS.uiSsoDomainPlaceholder)} />
               </Form.Item>

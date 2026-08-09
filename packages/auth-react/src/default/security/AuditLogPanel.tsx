@@ -7,10 +7,11 @@
  */
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Card, Empty, List, Spin, Tag, Typography } from "antd";
-import { useErrorText, useT } from "@stapel/core";
+import { Card, Empty, List, Spin, Tag, Typography } from "antd";
+import { useErrorDisplay, useT } from "@stapel/core";
 import { useAuditLog } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
+import { ErrorAlert } from "../ErrorAlert.js";
 import { SecurityEmptyIcon } from "./icons.js";
 
 /** `"user.session_revoked"` → `"User session revoked"` — best-effort, since
@@ -34,7 +35,7 @@ export function AuditLogPanel(): ReactElement {
   // Never the raw `.message` — for a response with no error envelope that
   // is the transport's own "Request failed with status 500" (owner report
   // 2026-08-09). `useErrorText` folds any thrown value into the one dialect.
-  const errorText = useErrorText(AUTH_I18N_KEYS.unknownError);
+  const errorDisplay = useErrorDisplay(AUTH_I18N_KEYS.unknownError);
   const [page, setPage] = useState(1);
   const audit = useAuditLog(page);
   const results = audit.data?.results ?? [];
@@ -45,7 +46,7 @@ export function AuditLogPanel(): ReactElement {
       {audit.isLoading ? (
         <Spin />
       ) : audit.isError ? (
-        <Alert type="error" showIcon message={errorText(audit.error)} />
+        <ErrorAlert error={errorDisplay(audit.error)} />
       ) : results.length === 0 ? (
         <Empty image={<SecurityEmptyIcon />} description={t(AUTH_I18N_KEYS.secAuditEmpty)} />
       ) : (

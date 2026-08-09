@@ -26,17 +26,25 @@
  * So these strings are deliberately NOT specific. A 5xx tells the frontend
  * that the server broke and nothing else; inventing "could not save your
  * profile" would be a fabrication dressed as a diagnosis. They say what is
- * known (our side / your side / the network), they carry `{status}` so a user
- * can quote something back to support (see `formatFlowError`, which exposes
- * the error's HTTP status as an interpolation param for exactly this), and
- * they leave the rest to the logs.
+ * known (our side / your side / the network) and leave the rest to the logs.
  *
- * NOTE — `{status}` is a WEAK correlation handle: it identifies the class of
+ * NO SENTENCE CARRIES THE STATUS. It used to — every 5xx sentence ended in a
+ * bare `" (500)"` — and the owner rejected it on sight (2026-08-09): products
+ * write a human sentence, they do not read a protocol number out to a person.
+ * The status is still the only correlation handle that exists, so it did not
+ * get deleted; it moved OUT of the sentence and into
+ * {@link DETAIL_ERROR_KEY}, a separate, secondary, plainly-technical line a
+ * skin renders in muted small type beside the copy (`describeFlowError`).
+ * A caller that renders only the message still gets complete human copy —
+ * the detail is additive, never load-bearing.
+ *
+ * NOTE — the status is a WEAK correlation handle: it identifies the class of
  * failure, not the request. A real one (a request id echoed in a response
  * header, quotable into a support ticket and greppable in the backend logs)
  * needs the backend to emit one first; no Stapel backend does today
  * (grep-confirmed across the python fleet, 2026-08-09). When one lands, it
- * belongs on `StapelApiError` beside `status` and in `{request_id}` here.
+ * belongs on `StapelApiError` beside `status`, and it extends the DETAIL
+ * template (`"HTTP {status} · {request_id}"`) — not the sentence.
  *
  * Registered by {@link createI18n} itself, under every locale, BEFORE any
  * caller-supplied bundle — the floor, so a host or a pair overrides any of it
@@ -44,6 +52,23 @@
  * convention), and no host has to wire anything to stop seeing raw keys.
  */
 import type { I18nDictionary } from "../i18n.js";
+
+/**
+ * The TECHNICAL DETAIL template: what a support agent quotes, rendered beside
+ * the human sentence rather than inside it. Interpolated with the same params
+ * a message template gets, so it sees `{status}` (and `{request_id}`, once a
+ * backend emits one).
+ *
+ * It lives in the bundle rather than hardcoded in `describeFlowError` because
+ * every other user-visible string in this fleet is overridable by a host that
+ * registers the same key later; a hardcoded one would be the single string a
+ * host could not touch (a host that stamps a build id into it, say).
+ */
+export const DETAIL_ERROR_KEY = "stapel.error.detail";
+
+/** Hardcoded stand-in for {@link DETAIL_ERROR_KEY} when a caller passes a
+ * bundle core never floored (a hand-built bundle in a unit test). */
+export const DETAIL_ERROR_FALLBACK = "HTTP {status}";
 
 /**
  * Statuses worth their own sentence. Everything else in a class falls back to
@@ -55,8 +80,9 @@ const CORE_ERROR_BUNDLES: Readonly<Record<string, I18nDictionary>> = {
     "stapel.error.unknown": "Something went wrong. Please try again.",
     "stapel.transport.failed":
       "Could not reach the server. Check your connection and try again.",
-    "stapel.http.4xx": "That request could not be completed. ({status})",
-    "stapel.http.400": "That request could not be completed. ({status})",
+    [DETAIL_ERROR_KEY]: "HTTP {status}",
+    "stapel.http.4xx": "That request could not be completed.",
+    "stapel.http.400": "That request could not be completed.",
     "stapel.http.401": "Your session has expired. Please sign in again.",
     "stapel.http.403": "You do not have access to this.",
     "stapel.http.404": "This is no longer available.",
@@ -64,12 +90,9 @@ const CORE_ERROR_BUNDLES: Readonly<Record<string, I18nDictionary>> = {
     "stapel.http.409": "This changed while you were working. Please reload and try again.",
     "stapel.http.413": "That is too large to upload.",
     "stapel.http.429": "Too many requests. Please wait a moment and try again.",
-    "stapel.http.5xx":
-      "Something went wrong on our side. Please try again in a moment. ({status})",
-    "stapel.http.500":
-      "Something went wrong on our side. Please try again in a moment. ({status})",
-    "stapel.http.502":
-      "Something went wrong on our side. Please try again in a moment. ({status})",
+    "stapel.http.5xx": "Something went wrong on our side. Please try again in a moment.",
+    "stapel.http.500": "Something went wrong on our side. Please try again in a moment.",
+    "stapel.http.502": "Something went wrong on our side. Please try again in a moment.",
     "stapel.http.503": "The service is temporarily unavailable. Please try again shortly.",
     "stapel.http.504": "The server took too long to respond. Please try again.",
   },
@@ -77,8 +100,9 @@ const CORE_ERROR_BUNDLES: Readonly<Record<string, I18nDictionary>> = {
     "stapel.error.unknown": "Что-то пошло не так. Попробуйте ещё раз.",
     "stapel.transport.failed":
       "Не удалось связаться с сервером. Проверьте соединение и попробуйте ещё раз.",
-    "stapel.http.4xx": "Не удалось выполнить запрос. ({status})",
-    "stapel.http.400": "Не удалось выполнить запрос. ({status})",
+    [DETAIL_ERROR_KEY]: "HTTP {status}",
+    "stapel.http.4xx": "Не удалось выполнить запрос.",
+    "stapel.http.400": "Не удалось выполнить запрос.",
     "stapel.http.401": "Сессия истекла. Войдите снова.",
     "stapel.http.403": "У вас нет доступа к этому.",
     "stapel.http.404": "Это больше недоступно.",
@@ -86,12 +110,9 @@ const CORE_ERROR_BUNDLES: Readonly<Record<string, I18nDictionary>> = {
     "stapel.http.409": "Данные изменились, пока вы работали. Обновите страницу и повторите.",
     "stapel.http.413": "Слишком большой размер для загрузки.",
     "stapel.http.429": "Слишком много запросов. Подождите немного и попробуйте снова.",
-    "stapel.http.5xx":
-      "На нашей стороне произошла ошибка. Попробуйте ещё раз через минуту. ({status})",
-    "stapel.http.500":
-      "На нашей стороне произошла ошибка. Попробуйте ещё раз через минуту. ({status})",
-    "stapel.http.502":
-      "На нашей стороне произошла ошибка. Попробуйте ещё раз через минуту. ({status})",
+    "stapel.http.5xx": "На нашей стороне произошла ошибка. Попробуйте ещё раз через минуту.",
+    "stapel.http.500": "На нашей стороне произошла ошибка. Попробуйте ещё раз через минуту.",
+    "stapel.http.502": "На нашей стороне произошла ошибка. Попробуйте ещё раз через минуту.",
     "stapel.http.503": "Сервис временно недоступен. Попробуйте чуть позже.",
     "stapel.http.504": "Сервер слишком долго не отвечал. Попробуйте ещё раз.",
   },
@@ -128,4 +149,18 @@ export function coreErrorKeyCandidates(code: string): readonly string[] {
   const match = /^stapel\.http\.(\d)\d{2}$/.exec(code);
   if (match === null) return [code];
   return [code, `stapel.http.${match[1] ?? ""}xx`];
+}
+
+/**
+ * Does this code's copy need a technical detail beside it?
+ *
+ * Only for the codes core SYNTHESIZES (`stapel.*`), whose copy is
+ * deliberately generic — "something went wrong on our side" identifies
+ * nothing, so the status is the only thing a person could quote. A real
+ * backend code (`error.400.display_name_emoji`) already renders a sentence
+ * about the specific thing that happened; stamping `HTTP 400` under every
+ * validation message would be noise a product does not ship.
+ */
+export function codeCarriesTechnicalDetail(code: string): boolean {
+  return code.startsWith("stapel.");
 }

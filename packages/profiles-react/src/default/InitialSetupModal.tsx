@@ -29,7 +29,6 @@
 import { useMemo } from "react";
 import type { ReactElement, ReactNode } from "react";
 import {
-  Alert,
   Button,
   ConfigProvider,
   Flex,
@@ -42,7 +41,7 @@ import {
 } from "antd";
 import { resolveThemeMode, toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { useErrorText, useT } from "@stapel/core";
+import { useErrorDisplay, useT } from "@stapel/core";
 import { InitialSetupPrompt } from "../headless/InitialSetupPrompt.js";
 import type {
   InitialSetupFieldName,
@@ -50,6 +49,7 @@ import type {
 } from "../headless/InitialSetupPrompt.js";
 import { useLanguages } from "../model/queries.js";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
+import { ErrorAlert } from "./ErrorAlert.js";
 import type { MyProfile } from "../api/types.js";
 
 export interface InitialSetupModalProps {
@@ -107,7 +107,7 @@ function ModalBody(props: {
   skippable: boolean;
 }): ReactElement {
   const t = useT();
-  const errorText = useErrorText(PROFILES_I18N_KEYS.unknownError);
+  const errorDisplay = useErrorDisplay(PROFILES_I18N_KEYS.unknownError);
   const languages = useLanguages();
   const { bag } = props;
 
@@ -168,9 +168,7 @@ function ModalBody(props: {
         </SettingRow>
       )}
 
-      {bag.isError && bag.error && (
-        <Alert type="error" showIcon message={errorText(bag.error)} />
-      )}
+      {bag.isError && <ErrorAlert error={errorDisplay(bag.error)} />}
 
       <Flex gap={8} justify="flex-end">
         {props.skippable && (

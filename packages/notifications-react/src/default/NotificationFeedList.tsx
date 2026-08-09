@@ -9,11 +9,12 @@
  * backend surface.
  */
 import type { ReactElement } from "react";
-import { Alert, Button, Card, Empty, List, Spin, Typography } from "antd";
-import { useErrorText, useT } from "@stapel/core";
+import { Button, Card, Empty, List, Spin, Typography } from "antd";
+import { useErrorDisplay, useT } from "@stapel/core";
 import { NotificationFeed } from "../headless/NotificationFeed.js";
 import type { FeedItem } from "../api/types.js";
 import { NOTIFICATIONS_I18N_KEYS } from "../i18n/keys.js";
+import { ErrorAlert } from "./ErrorAlert.js";
 
 export interface NotificationFeedListProps {
   /** Page size passed straight to `useInfiniteNotificationFeed`. */
@@ -25,7 +26,7 @@ export function NotificationFeedList(props: NotificationFeedListProps = {}): Rea
   // Never the raw `.message` — for a response with no error envelope that
   // is the transport's own "Request failed with status 500" (owner report
   // 2026-08-09). `useErrorText` folds any thrown value into the one dialect.
-  const errorText = useErrorText(NOTIFICATIONS_I18N_KEYS.unknownError);
+  const errorDisplay = useErrorDisplay(NOTIFICATIONS_I18N_KEYS.unknownError);
 
   return (
     <NotificationFeed {...(props.limit !== undefined ? { limit: props.limit } : {})}>
@@ -38,9 +39,7 @@ export function NotificationFeedList(props: NotificationFeedListProps = {}): Rea
             {t(NOTIFICATIONS_I18N_KEYS.feedSettingsSubtitle)}
           </Typography.Text>
 
-          {isError && error && (
-            <Alert style={{ marginTop: 12 }} type="error" showIcon message={errorText(error)} />
-          )}
+          {isError && <ErrorAlert error={errorDisplay(error)} style={{ marginTop: 12 }} />}
 
           {isLoading ? (
             <Spin style={{ marginTop: 16 }} />

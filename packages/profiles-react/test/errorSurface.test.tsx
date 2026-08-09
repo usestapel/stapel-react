@@ -22,6 +22,15 @@
  *    `"Request failed with status 500"` — the HTTP client's own diagnostic,
  *    in English, on a Russian UI. The wire is mocked with exactly that: a
  *    bodiless 500, no `localizable_error` to map.
+ *
+ * 3. REGISTER. The copy that replaced it ended in a bare `" (500)"`, and the
+ *    owner rejected the parenthesis on sight: a product writes a human
+ *    sentence, it does not read a protocol number out to a person. The status is still the only
+ *    correlation handle the fleet has, so it did not get deleted — it moved
+ *    out of the sentence and into the Alert's DESCRIPTION, muted and small.
+ *    Both halves are asserted below at the level a person meets them: the
+ *    message must carry no digits at all, and the technical detail must still
+ *    be on screen.
  */
 // @vitest-environment jsdom
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -123,6 +132,18 @@ function luminance(hex: string): number {
   );
 }
 
+/**
+ * The half of the alert a PERSON reads — antd's `message` slot, i.e. the alert
+ * minus the muted technical detail. Asserting on `alert.textContent` would
+ * conflate the two and let `"…(500)"` back into the copy unnoticed.
+ */
+function sentenceOf(alert: HTMLElement): string {
+  // antd v6 names the slot `-title` once a description is present, v5 `-message`.
+  const message = alert.querySelector(".ant-alert-title, .ant-alert-message");
+  expect(message, "antd rendered no message slot").not.toBeNull();
+  return message?.textContent ?? "";
+}
+
 function contrastRatio(a: string, b: string): number {
   const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return ((light ?? 0) + 0.05) / ((dark ?? 0) + 0.05);
@@ -216,16 +237,68 @@ describe("ProfileSettings error surface — the alert a 500 puts on screen", () 
     // Not the raw i18n key either — core's own floor covers the codes core
     // itself mints (`stapel.http.500`), so no host wiring is required.
     expect(alert.textContent).not.toContain("stapel.http");
-    expect(alert.textContent).toContain("На нашей стороне произошла ошибка");
-    // The one honest handle a bodiless 5xx leaves a user to quote back.
-    expect(alert.textContent).toContain("500");
+    expect(sentenceOf(alert)).toContain("На нашей стороне произошла ошибка");
   });
 
   it("keeps English copy on an English UI", async () => {
     await renderAlertOnFailedSave("dark", "en");
 
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toContain("Something went wrong on our side");
+    expect(sentenceOf(alert)).toContain("Something went wrong on our side");
     expect(alert.textContent).not.toContain("Request failed with status");
   });
+
+  it.each(["ru", "en"] as const)(
+    "reads the %s sentence to a person with no protocol number in it",
+    async (locale) => {
+      await renderAlertOnFailedSave("dark", locale);
+
+      // The owner's rejection, at the level he met it: whatever the sentence
+      // says, it contains no digits — not `(500)`, not a bare `500`, not a
+      // leftover `{status}` placeholder.
+      const sentence = sentenceOf(await screen.findByRole("alert"));
+      expect(sentence, "the human sentence reads a protocol number to a user").not.toMatch(
+        /\d|\{status\}/
+      );
+    }
+  );
+
+  it.each(["ru", "en"] as const)(
+    "still puts the status on screen as a separate technical detail (%s)",
+    async (locale) => {
+      await renderAlertOnFailedSave("dark", locale);
+      const alert = await screen.findByRole("alert");
+
+      // Not deleted, just demoted: the ONLY correlation handle the fleet has
+      // (no Stapel backend emits a request id) is still quotable to support,
+      // in its own element rather than inside the copy.
+      const detail = alert.querySelector(".ant-alert-description");
+      expect(detail, "no secondary detail element rendered").not.toBeNull();
+      expect(detail?.textContent).toContain("HTTP 500");
+      // …and reachable by simply reading the alert, in either language.
+      expect(alert.textContent).toContain("500");
+    }
+  );
+
+  it.each(["dark", "light"] as const)(
+    "renders the technical detail muted but still legible on the %s theme",
+    async (mode) => {
+      await renderAlertOnFailedSave(mode, "ru");
+      const vars = antdCssVars();
+
+      // Muted: secondary, not the message's own colour.
+      const secondary = vars["--ant-color-text-secondary"];
+      const primary = vars["--ant-color-text"];
+      expect(secondary).toBeDefined();
+      expect(secondary).not.toBe(primary);
+
+      // Still legible: WCAG AA for small text against the alert's own
+      // background — "muted" must not become defect #1 in a second colour.
+      const ratio = contrastRatio(vars["--ant-color-error-bg"] ?? "", secondary ?? "");
+      expect(
+        ratio,
+        `detail ${String(secondary)} on ${String(vars["--ant-color-error-bg"])} is ${ratio.toFixed(2)}:1 in ${mode} mode`
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  );
 });

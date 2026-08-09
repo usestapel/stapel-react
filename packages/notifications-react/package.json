@@ -68,7 +68,7 @@
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.3.0 <1.0.0",
+    "@stapel/core": ">=0.12.0 <1.0.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"

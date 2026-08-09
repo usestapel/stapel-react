@@ -1,6 +1,6 @@
 import { useI18n } from "../i18n.js";
-import { formatFlowError } from "./flowError.js";
-import type { FlowError } from "./flowError.js";
+import { describeFlowError, formatFlowError } from "./flowError.js";
+import type { FlowError, FlowErrorDisplay } from "./flowError.js";
 
 /**
  * The reactive, wired form of `formatFlowError`: reads the CURRENT locale's
@@ -23,4 +23,23 @@ export function useFormatFlowError(): (error: FlowError) => string {
   const engine = useI18n();
   return (error) =>
     formatFlowError(error, engine.getBundle(), { locale: engine.locale });
+}
+
+/**
+ * `useFormatFlowError`, but returning the sentence AND the technical detail
+ * beside it (`describeFlowError`) — for a flow-driven skin that has somewhere
+ * to render muted secondary text, e.g. an `<Alert description>`.
+ *
+ * ```tsx
+ * const describeError = useDescribeFlowError();
+ * const shown = describeError(state.error);
+ * <Alert message={shown.message} description={shown.detail} />
+ * ```
+ *
+ * Re-render-safe on the same terms as {@link useFormatFlowError}.
+ */
+export function useDescribeFlowError(): (error: FlowError) => FlowErrorDisplay {
+  const engine = useI18n();
+  return (error) =>
+    describeFlowError(error, engine.getBundle(), { locale: engine.locale });
 }

@@ -22,13 +22,14 @@
 import { useState } from "react";
 import type { ReactElement } from "react";
 import { Alert, Button, Card, Flex, Form, Input, Popconfirm, Result, Spin, Typography } from "antd";
-import { useErrorText, useFormatFlowError, useT } from "@stapel/core";
+import { useErrorDisplay, useFormatFlowError, useT } from "@stapel/core";
 import type { AuthenticatorChangeBag } from "../../headless/misc.js";
 import { AuthenticatorChange } from "../../headless/misc.js";
 import type { DelayedChangeStatus, OtpChannel } from "../../api/types.js";
 import { useCancelDelayedChange, useInitiateDelayedChange } from "../../model/mutations.js";
 import { useCapabilities, useDelayedChangeStatus, useMe } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
+import { ErrorAlert } from "../ErrorAlert.js";
 import type { AuthI18nKey } from "../../i18n/keys.js";
 import { OtpField } from "../OtpField.js";
 
@@ -316,7 +317,7 @@ export function AuthenticatorChangePanel(props: { readonly channel: OtpChannel }
   // Never the raw `.message` — for a response with no error envelope that
   // is the transport's own "Request failed with status 500" (owner report
   // 2026-08-09). `useErrorText` folds any thrown value into the one dialect.
-  const errorText = useErrorText(AUTH_I18N_KEYS.unknownError);
+  const errorDisplay = useErrorDisplay(AUTH_I18N_KEYS.unknownError);
   const { channel } = props;
   const me = useMe();
   const delayedStatus = useDelayedChangeStatus(channel);
@@ -331,7 +332,7 @@ export function AuthenticatorChangePanel(props: { readonly channel: OtpChannel }
         {me.isLoading || delayedStatus.isLoading ? (
           <Spin size="small" />
         ) : delayedStatus.isError ? (
-          <Alert type="error" showIcon message={errorText(delayedStatus.error)} />
+          <ErrorAlert error={errorDisplay(delayedStatus.error)} />
         ) : delayedStatus.data?.has_pending_change ? (
           <PendingBanner channel={channel} status={delayedStatus.data} />
         ) : open ? (

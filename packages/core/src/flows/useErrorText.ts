@@ -1,5 +1,6 @@
 import { toFlowError } from "./flowError.js";
-import { useFormatFlowError } from "./useFormatFlowError.js";
+import { useDescribeFlowError, useFormatFlowError } from "./useFormatFlowError.js";
+import type { FlowErrorDisplay } from "./flowError.js";
 
 /**
  * ANY thrown value → the sentence a human should read. The one-call form of
@@ -42,5 +43,41 @@ export function useErrorText(
   return (error) => {
     if (error === undefined || error === null) return undefined;
     return formatFlowError(toFlowError(error, fallbackCode));
+  };
+}
+
+/**
+ * `useErrorText`, but returning the human sentence AND the technical detail
+ * that belongs beside it rather than inside it — `{message: "Something went
+ * wrong on our side. Please try again in a moment.", detail: "HTTP 500"}`.
+ *
+ * ```tsx
+ * const errorShown = useErrorDisplay();
+ * const shown = errorShown(mutation.error);
+ * {shown && (
+ *   <Alert
+ *     type="error"
+ *     message={shown.message}
+ *     description={shown.detail ? <Text type="secondary">{shown.detail}</Text> : undefined}
+ *   />
+ * )}
+ * ```
+ *
+ * A SEPARATE hook rather than a widened `useErrorText` return: the sentence
+ * is load-bearing and the detail is not, and the fleet's twenty-odd
+ * message-only skins must keep working untouched — see `describeFlowError`.
+ * `detail` is `undefined` for anything that leaves nothing worth quoting, so
+ * a skin renders it conditionally and never shows an empty muted line.
+ *
+ * `undefined` in, `undefined` out, and re-render-safe, same as
+ * {@link useErrorText}.
+ */
+export function useErrorDisplay(
+  fallbackCode = "stapel.error.unknown"
+): (error: unknown) => FlowErrorDisplay | undefined {
+  const describeFlowError = useDescribeFlowError();
+  return (error) => {
+    if (error === undefined || error === null) return undefined;
+    return describeFlowError(toFlowError(error, fallbackCode));
   };
 }

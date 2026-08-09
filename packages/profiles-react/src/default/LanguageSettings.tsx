@@ -18,14 +18,15 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Card, Checkbox, ConfigProvider, Select, Spin, Typography } from "antd";
+import { Card, Checkbox, ConfigProvider, Select, Spin, Typography } from "antd";
 import { resolveThemeMode, toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { useErrorText, useT } from "@stapel/core";
+import { useErrorDisplay, useT } from "@stapel/core";
 import { useMyProfile } from "../model/queries.js";
 import { useUpdateMyProfile } from "../model/mutations.js";
 import { useLanguages } from "../model/queries.js";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
+import { ErrorAlert } from "./ErrorAlert.js";
 
 const AUTO = "auto";
 
@@ -54,7 +55,7 @@ export interface LanguageSettingsProps {
 export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
   const t = useT();
   // See ProfileSettings: never the raw `.message` (owner report 2026-08-09).
-  const errorText = useErrorText(PROFILES_I18N_KEYS.unknownError);
+  const errorDisplay = useErrorDisplay(PROFILES_I18N_KEYS.unknownError);
   const theme = useMemo(() => toAntdThemeConfig(props.mode ?? resolveThemeMode()), [props.mode]);
   const query = useMyProfile();
   const languages = useLanguages();
@@ -106,7 +107,7 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
 
   const options = languages.data ?? [];
   const pickerValue = useDeviceLanguage ? AUTO : appLanguage;
-  const mutationErrorText = errorText(mutation.error);
+  const mutationError = errorDisplay(mutation.error);
 
   return (
     <ConfigProvider theme={theme}>
@@ -146,9 +147,7 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
           )}
         </div>
 
-        {mutationErrorText && (
-          <Alert style={{ marginTop: 12 }} type="error" showIcon message={mutationErrorText} />
-        )}
+        <ErrorAlert error={mutationError} style={{ marginTop: 12 }} />
       </Card>
     </ConfigProvider>
   );

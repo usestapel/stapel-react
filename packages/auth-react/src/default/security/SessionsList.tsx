@@ -11,8 +11,8 @@
  */
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Alert, Badge, Button, Card, Divider, Empty, Flex, Popconfirm, Spin, Tag, Typography } from "antd";
-import { useErrorText, useT } from "@stapel/core";
+import { Badge, Button, Card, Divider, Empty, Flex, Popconfirm, Spin, Tag, Typography } from "antd";
+import { useErrorDisplay, useT } from "@stapel/core";
 import type { AuthSession } from "../../api/types.js";
 import {
   useConfirmSession,
@@ -21,6 +21,7 @@ import {
 } from "../../model/mutations.js";
 import { useSessions } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
+import { ErrorAlert } from "../ErrorAlert.js";
 import { SecurityEmptyIcon } from "./icons.js";
 
 function formatRelative(iso: string): string {
@@ -98,7 +99,7 @@ export function SessionsList(props: SessionsListProps = {}): ReactElement {
   // Never the raw `.message` — for a response with no error envelope that
   // is the transport's own "Request failed with status 500" (owner report
   // 2026-08-09). `useErrorText` folds any thrown value into the one dialect.
-  const errorText = useErrorText(AUTH_I18N_KEYS.unknownError);
+  const errorDisplay = useErrorDisplay(AUTH_I18N_KEYS.unknownError);
   const sessions = useSessions();
   const revokeOne = useRevokeSession();
   const revokeOthers = useRevokeOtherSessions();
@@ -138,7 +139,7 @@ export function SessionsList(props: SessionsListProps = {}): ReactElement {
         {sessions.isLoading ? (
           <Spin />
         ) : sessions.isError ? (
-          <Alert type="error" showIcon message={errorText(sessions.error)} />
+          <ErrorAlert error={errorDisplay(sessions.error)} />
         ) : list.length === 0 ? (
           <Empty
             image={props.emptyIcon ?? <SecurityEmptyIcon />}

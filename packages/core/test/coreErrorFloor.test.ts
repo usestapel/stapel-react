@@ -10,20 +10,29 @@
  */
 import { describe, expect, it } from "vitest";
 import { createI18n } from "../src/i18n.js";
-import { formatFlowError, toFlowError } from "../src/flows/flowError.js";
-import { parseErrorEnvelope } from "../src/errors.js";
+import { describeFlowError, formatFlowError, toFlowError } from "../src/flows/flowError.js";
+import { parseErrorEnvelope, toStapelApiError } from "../src/errors.js";
 import type { StapelApiError } from "../src/errors.js";
-import { coreErrorBundle, coreErrorKeyCandidates } from "../src/i18n/coreErrors.js";
+import type { FlowErrorDisplay } from "../src/flows/flowError.js";
+import {
+  DETAIL_ERROR_KEY,
+  coreErrorBundle,
+  coreErrorKeyCandidates,
+} from "../src/i18n/coreErrors.js";
 
 /** What the wire actually delivers for a Django 500 under DEBUG=False. */
 const bodiless500 = (): StapelApiError =>
   parseErrorEnvelope(500, "<!doctype html><h1>Server Error (500)</h1>");
 
-function textFor(error: StapelApiError, locale: string): string {
+function shownFor(error: StapelApiError, locale: string): FlowErrorDisplay {
   const engine = createI18n({ locale });
-  return formatFlowError(toFlowError(error), engine.getBundle(), {
+  return describeFlowError(toFlowError(error), engine.getBundle(), {
     locale: engine.locale,
   });
+}
+
+function textFor(error: StapelApiError, locale: string): string {
+  return shownFor(error, locale).message;
 }
 
 describe("core's error floor", () => {
@@ -44,8 +53,76 @@ describe("core's error floor", () => {
     const text = textFor(error, "en");
     expect(text).not.toContain("Request failed with status");
     expect(text).toContain("on our side");
-    // `{status}` — the one handle a bodiless 5xx leaves a user to quote back.
-    expect(text).toContain("500");
+  });
+
+  it("keeps the protocol number OUT of every sentence a person reads", () => {
+    // The owner's rejection, pinned: a product writes "something went wrong",
+    // not "500". Sweeping the whole floor, not just the entries that had it —
+    // a new one must not reintroduce the pattern.
+    for (const locale of ["en", "ru"]) {
+      for (const [key, sentence] of Object.entries(coreErrorBundle(locale))) {
+        if (key === DETAIL_ERROR_KEY) continue;
+        expect(sentence, `${locale}/${key} reads a protocol number to a user`).not.toMatch(
+          /\d|\{status\}/
+        );
+      }
+    }
+  });
+
+  it("moves the status to a separate technical detail, so support keeps its handle", () => {
+    // The whole point of not simply deleting `{status}`: it is the ONLY
+    // correlation handle in the fleet today.
+    const shown = shownFor(bodiless500(), "en");
+    expect(shown.detail).toBe("HTTP 500");
+    expect(shown.message).not.toContain("500");
+
+    // Same handle on a Russian UI — the detail is technical, not prose.
+    expect(shownFor(bodiless500(), "ru").detail).toBe("HTTP 500");
+  });
+
+  it("shows no technical detail where there is nothing worth quoting", () => {
+    const engine = createI18n({ locale: "en" });
+    const bundle = engine.getBundle();
+
+    // A request that never reached a backend. `toStapelApiError` marks that
+    // with `status: 0`, so the guard is not "is status set" — quoting
+    // `HTTP 0` back at support would be a lie about what the server said.
+    const transportError = toStapelApiError(new TypeError("Failed to fetch"));
+    expect(transportError.status).toBe(0);
+    const transport = describeFlowError(toFlowError(transportError), bundle, {
+      locale: "en",
+    });
+    expect(transport.message).toContain("Could not reach the server");
+    expect(transport.detail).toBeUndefined();
+
+    // A fault that is not an API error at all: no status to begin with.
+    expect(
+      describeFlowError(toFlowError(new TypeError("boom")), bundle, { locale: "en" }).detail
+    ).toBeUndefined();
+
+    // A real backend code: the sentence already says what happened, so
+    // stamping `HTTP 400` under it would be noise.
+    engine.registerBundle("en", { "error.400.display_name_emoji": "No emoji, please." });
+    const specific = describeFlowError(
+      toFlowError(
+        parseErrorEnvelope(400, {
+          localizable_error: "error.400.display_name_emoji",
+          error: "no emoji",
+        })
+      ),
+      engine.getBundle(),
+      { locale: "en" }
+    );
+    expect(specific.message).toBe("No emoji, please.");
+    expect(specific.detail).toBeUndefined();
+  });
+
+  it("lets a host override the detail template like any other key", () => {
+    const engine = createI18n({ locale: "en" });
+    engine.registerBundle("en", { [DETAIL_ERROR_KEY]: "code {status} / build 42" });
+    expect(
+      describeFlowError(toFlowError(bodiless500()), engine.getBundle(), { locale: "en" }).detail
+    ).toBe("code 500 / build 42");
   });
 
   it("speaks the host's locale, not the transport's English", () => {

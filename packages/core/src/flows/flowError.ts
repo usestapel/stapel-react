@@ -1,6 +1,11 @@
 import { StapelApiError } from "../errors.js";
 import { interpolate } from "../i18n.js";
-import { coreErrorKeyCandidates } from "../i18n/coreErrors.js";
+import {
+  DETAIL_ERROR_FALLBACK,
+  DETAIL_ERROR_KEY,
+  codeCarriesTechnicalDetail,
+  coreErrorKeyCandidates,
+} from "../i18n/coreErrors.js";
 import type { I18nDictionary } from "../i18n.js";
 
 /**
@@ -92,15 +97,85 @@ export interface FormatFlowErrorOptions {
  *      translation", rather than silently swallowing the error).
  *
  * `{status}` is available to every template on top of `error.params` (a
- * backend param of the same name still wins). Core's own floor copy uses it
- * as the one honest handle a bodiless 5xx leaves a user to quote back.
+ * backend param of the same name still wins) — but NO core floor sentence
+ * spends it any more; see {@link describeFlowError} for where the status went
+ * and why. This function returns the human sentence and nothing else, which
+ * is why every existing call site stayed correct across that move.
  */
 export function formatFlowError(
   error: FlowError,
   bundle: I18nDictionary,
   opts: FormatFlowErrorOptions = {}
 ): string {
+  return describeFlowError(error, bundle, opts).message;
+}
+
+/**
+ * What an error surface puts on screen: a human sentence, and — separately —
+ * the technical detail a support agent needs.
+ */
+export interface FlowErrorDisplay {
+  /**
+   * The sentence a person reads. Complete on its own: a skin that renders
+   * only this is correct, just harder to support. Never carries a protocol
+   * number.
+   */
+  readonly message: string;
+  /**
+   * The secondary, plainly-technical line — `"HTTP 500"`. Render it in muted,
+   * small type beside {@link message}: something a person's eye skips and a
+   * support agent reads back. `undefined` whenever there is nothing worth
+   * quoting (no status, or a specific backend code whose sentence already
+   * says what happened).
+   */
+  readonly detail: string | undefined;
+}
+
+/**
+ * {@link formatFlowError}, plus the technical detail that used to be spliced
+ * into the sentence.
+ *
+ * Core's floor copy carried the status inline — every 5xx sentence ended in a
+ * bare `" (500)"` — and the owner rejected it (2026-08-09): a product writes a
+ * human sentence, it does not read a protocol number out to a person.
+ * Deleting the number instead would have silently thrown away the ONLY
+ * correlation handle the fleet has (no Stapel backend emits a request id yet
+ * — grep-confirmed across the python fleet that day), so it moved out of the
+ * copy and into this second field.
+ *
+ * The split is here, at the pure formatting layer, rather than at the hook:
+ * the status, the code's provenance and the interpolation the detail template
+ * needs are all already in scope here, and a non-React caller gets the same
+ * answer. The hook layer stayed additive on purpose — `useErrorText` still
+ * returns the sentence alone, so the ~20 fleet skins that render only a
+ * message kept compiling AND kept reading correctly; `useErrorDisplay` is the
+ * opt-in for a skin with somewhere to put the detail.
+ */
+export function describeFlowError(
+  error: FlowError,
+  bundle: I18nDictionary,
+  opts: FormatFlowErrorOptions = {}
+): FlowErrorDisplay {
   const params = { status: error.status, ...error.params };
+  // `status: 0` is `toStapelApiError`'s "never reached a backend" marker, not
+  // an HTTP outcome — quoting `HTTP 0` back at support would be a lie about
+  // what the server said.
+  const quotable =
+    error.status !== undefined && error.status > 0 && codeCarriesTechnicalDetail(error.code);
+  return {
+    message: flowErrorMessage(error, bundle, opts, params),
+    detail: quotable
+      ? interpolate(bundle[DETAIL_ERROR_KEY] ?? DETAIL_ERROR_FALLBACK, params)
+      : undefined,
+  };
+}
+
+function flowErrorMessage(
+  error: FlowError,
+  bundle: I18nDictionary,
+  opts: FormatFlowErrorOptions,
+  params: Record<string, unknown>
+): string {
   for (const key of coreErrorKeyCandidates(error.code)) {
     const template = bundle[key];
     if (template !== undefined) return interpolate(template, params);
