@@ -391,3 +391,43 @@ describe("host wiring", () => {
     );
   });
 });
+
+describe("value identity (#251)", () => {
+  // Consumers put `current` straight into useEffect dependency arrays. A bag
+  // that changes identity every render re-runs those effects every render, and
+  // when the effect also sets state that is an unbounded render loop whose only
+  // symptom is a spinner that never resolves, with nothing in the console.
+  it("keeps the bag and its fields stable across renders when nothing changed", async () => {
+    serveList();
+    const { result, rerender } = mount({ repository: memoryRepo() });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const before = result.current;
+    rerender();
+    rerender();
+
+    expect(result.current).toBe(before);
+    expect(result.current.workspaces).toBe(before.workspaces);
+    expect(result.current.current).toBe(before.current);
+    expect(result.current.refetch).toBe(before.refetch);
+    expect(result.current.switchTo).toBe(before.switchTo);
+  });
+
+  it("CHANGES identity when the workspace actually switches", async () => {
+    serveList();
+    server.use(
+      http.put(`${BASE}/me/preferred-workspace`, () =>
+        HttpResponse.json({ preferred_workspace_id: THIRD })
+      )
+    );
+    const { result } = mount({ repository: memoryRepo() });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const before = result.current;
+    act(() => {
+      result.current.switchTo(THIRD);
+    });
+    await waitFor(() => expect(result.current.current?.id).toBe(THIRD));
+    expect(result.current).not.toBe(before);
+  });
+});
+

@@ -182,7 +182,11 @@ export function WorkspaceSelectionProvider(
 ): ReactElement {
   const { urlWorkspaceId, onUrlWorkspaceChange, children } = props;
   const query = useWorkspaces();
-  const setPreferred = useSetPreferredWorkspace();
+  // Same rule as `query.refetch` below: TanStack's mutation result is a new
+  // object every render, so the stable `mutate` handle is what `switchTo`
+  // closes over — depending on the result object would restore the very
+  // instability the memoisation exists to remove.
+  const savePreferred = useSetPreferredWorkspace().mutate;
 
   // Built once. `createRepository` registers a logout wipe hook, so calling it
   // per render would register one per render.
@@ -317,18 +321,24 @@ export function WorkspaceSelectionProvider(
       if (repo) void repo.set(REPO_KEY, workspaceId).catch(() => undefined);
       // Fire-and-forget: the tab has already switched. A switch that blocks on
       // a flaky network is worse than a preference that lags one click.
-      setPreferred.mutate({ workspace_id: workspaceId });
+      savePreferred({ workspace_id: workspaceId });
       onUrlWorkspaceChange?.(workspaceId, {
         reason: "switch",
         history: "push",
       });
     },
-    [workspaces, repo, setPreferred, onUrlWorkspaceChange]
+    [workspaces, repo, savePreferred, onUrlWorkspaceChange]
   );
 
+  // `query.refetch`, NOT `query`: TanStack returns a NEW result object on every
+  // render, so depending on the whole query would make this callback — and
+  // therefore the memoised bag below — change identity every render, which is
+  // exactly the #251 render-loop this memoisation exists to prevent. The
+  // `refetch` handle itself is stable.
+  const refetchQuery = query.refetch;
   const refetch = useCallback(async () => {
-    await query.refetch();
-  }, [query]);
+    await refetchQuery();
+  }, [refetchQuery]);
 
   // Memoised, and that is load-bearing rather than a performance nicety
   // (ironmemo #251): consumers put `current` straight into `useEffect`
