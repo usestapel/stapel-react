@@ -38,7 +38,13 @@ The `recommended` preset:
   (`**/api/**`, `*client.ts`, `errors.ts`, plus Node-side `scripts/`/`bin/`,
   where `e.code` is an errno) (each rule's one legal home);
 - **overrides** the content rules off in tests and fixtures (they exercise the
-  anti-patterns on purpose).
+  anti-patterns on purpose);
+- `no-cyrillic-source` / `no-mixed-script-word` (owner ruling 2026-08-09,
+  English-only source fleet-wide) are **off only in tests** — their own test
+  fixtures are strings that deliberately contain Cyrillic/homoglyph words.
+  Everywhere else, including i18n catalog files, they stay on: Russian UI
+  *copy* (the string values) is exempt by design (see the rules table below),
+  but comments/identifiers/homoglyphs in those same files are not.
 
 ### `reserved-paths.json`
 
@@ -91,6 +97,8 @@ missing, the rule is a no-op — it never fails the lint run.
 | `stapel/no-adhoc-401` | comparing a status to the literal `401` (`===`/`!==`/`case 401:`) or wiring an axios-style `*.interceptors` chain — ad hoc 401 handling bypasses the single-flight refresh + logout-hook registry; 401s are handled ONCE, in core's `createStapelClient` (`onAuthRefresh` seam) + `SessionManager` (§43.2). Off in core's `client.ts`/`session.ts` and in tests |
 | `stapel/no-raw-error-shape` | `as`-casting a caught value, casting anything to a hand-written error shape (`{ status?: number }`, `{ localizable_error?: string }`, …), or reading `.status`/`.code`/`.localizable_error` off an un-narrowed caught value. A thrown value comes in TWO dialects — `StapelApiError` (has `.status`) and the RAW envelope `{localizable_error, error, params}` the parsed response body IS (has none) — so `(e as { status?: number })?.status === 404` is a branch that can never be true on the second one, and the cast silences the only check that would have caught it. Narrow with `isStapelApiError` / `hasErrorCode` / a named `errorCodePredicate(…)` from `@stapel/core`, or fold once at the transport with `toStapelApiError(body, response.status)`. Off in the transport/error layer (`**/api/**`, `*client.*`, `errors.*`, `scripts/`, `bin/`) and in tests. Tune via `options.properties` / `options.errorClasses` |
 | `stapel/no-reserved-backend-route` | an SPA route (`<Route path="…">`, a `createBrowserRouter`/`createHashRouter`/`createMemoryRouter` array literal, or any `{ path: "…", element/Component/children/index/errorElement/loader/action/lazy: … }` RouteObject) whose path falls INTO a reserved backend sub-path — `/<mod>/api/…`, `/<mod>/swagger…`, or the project-wide `/admin`, `/staticfiles`, `/media` (§57 nginx canon). A **bare module root** (`/calendar`) is legitimate and never flagged — roots belong to the frontend; only sub-paths collide. Data-driven: reads the flat `reservedPathPrefixes` array from `reserved-paths.json` (emitted by stapel-tools' project generator) at the workspace root, or `settings.stapel.reservedPathsFile`/`reservedPaths`. No catalog → no-op (never a crash) |
+| `stapel/no-cyrillic-source` | Cyrillic in a comment, a JSDoc block, or an identifier (variable/function/class/type/property name) — fleet source is English-only (owner ruling 2026-08-09). Reports on the exact line the Cyrillic sits on (never collapsed onto a block comment's opening line), so `eslint-disable-next-line`/`eslint-disable` land where they can actually suppress it. Plain string literals are **deliberately never scanned** — that is the whole design: Russian UI copy in i18n catalogs, fixtures, and sample content stays untouched, so the rule needs no path allowlist |
+| `stapel/no-mixed-script-word` | a single word inside a string or template literal that mixes Latin and Cyrillic letters — a homoglyph (`miттudei`, `Q12а`) that reads as one script and greps as neither. The literal-scanning counterpart to `no-cyrillic-source`: pure-Cyrillic text (real i18n copy) is untouched, only a word straddling both scripts fires. Scans the *parsed* string/template value (so a `\n` escape can't glue onto the following Cyrillic run) and skips regex literals outright (pattern syntax like `\b` or `[a-zА-Я]` is not prose); a 4-character floor keeps adjacent regex-range-boundary letters like `zА` silent |
 
 ### Settings
 

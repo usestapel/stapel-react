@@ -23,6 +23,8 @@ import noRawStorage from "./rules/no-raw-storage.js";
 import noAdhoc401 from "./rules/no-adhoc-401.js";
 import noReservedBackendRoute from "./rules/no-reserved-backend-route.js";
 import noRawErrorShape from "./rules/no-raw-error-shape.js";
+import noCyrillicSource from "./rules/no-cyrillic-source.js";
+import noMixedScriptWord from "./rules/no-mixed-script-word.js";
 
 const rules = {
   "no-raw-colors": noRawColors,
@@ -52,6 +54,14 @@ const rules = {
   // Error-dialect guardrail: a caught value is narrowed through the layer,
   // never through a cast (@stapel/core errors.ts "One dialect").
   "no-raw-error-shape": noRawErrorShape,
+  // English-only source canon (owner directive 2026-08-09): identifiers,
+  // comments, JSDoc, dev-facing strings are English fleet-wide; Russian UI
+  // copy in translation catalogs is unaffected. Two rules split the surface
+  // so neither needs a path allowlist — no-cyrillic-source deliberately
+  // never looks at string literals (i18n's legitimate home); the literal
+  // scan only fires on a homoglyph (one word straddling both scripts).
+  "no-cyrillic-source": noCyrillicSource,
+  "no-mixed-script-word": noMixedScriptWord,
 };
 
 const plugin = {
@@ -207,6 +217,13 @@ const recommended = [
       // envelope (no `.status`) — narrow through core's guards, never
       // through a cast. Off in the error/transport layer below.
       "stapel/no-raw-error-shape": "error",
+      // English-only source canon (owner directive 2026-08-09): no Cyrillic
+      // in comments/JSDoc/identifiers, and no single word straddling both
+      // Latin and Cyrillic scripts anywhere (including string literals —
+      // that IS the homoglyph attack). Russian UI copy in i18n catalogs is
+      // untouched by either rule (§ no-cyrillic-source docs).
+      "stapel/no-cyrillic-source": "error",
+      "stapel/no-mixed-script-word": "error",
     },
   },
   {
@@ -288,6 +305,12 @@ const recommended = [
       // (that's what this rule's own tests do).
       "stapel/no-reserved-backend-route": "off",
       // require-disable-description stays ON — disable hygiene applies everywhere.
+      // no-cyrillic-source / no-mixed-script-word's OWN test fixtures are
+      // strings that deliberately contain Cyrillic and homoglyph words —
+      // that's what a script-canon rule's test suite IS. Off in tests only;
+      // product source, comments, and identifiers stay covered everywhere.
+      "stapel/no-cyrillic-source": "off",
+      "stapel/no-mixed-script-word": "off",
     },
   },
 ];
