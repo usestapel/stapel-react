@@ -28,7 +28,8 @@ import {
 import { createProfilesRuntime } from "../src/model/runtime.js";
 import type { ProfilesRuntime } from "../src/model/runtime.js";
 import { ProfilesProvider } from "../src/headless/ProfilesProvider.js";
-import { useAvatarUpload } from "../src/headless/AvatarUpload.js";
+import { useAvatarUpload, useSetAvatar } from "../src/headless/AvatarUpload.js";
+import type { AvatarRef } from "../src/headless/AvatarUpload.js";
 import { NotificationPreferences as HeadlessNotificationPreferences } from "../src/headless/NotificationPreferences.js";
 import { registerProfilesI18n } from "../src/i18n/keys.js";
 import {
@@ -181,13 +182,48 @@ describe("useAvatarUpload (headless stopgap)", () => {
     });
 
     const file = new File(["x"], "avatar.png", { type: "image/png" });
-    let ref: string | null = null;
+    let ref: AvatarRef | null = null;
     await act(async () => {
       ref = await result.current.upload(file);
     });
-    expect(ref).toBe("avatar/newhash");
+    // The ref travels WITH its provenance: the upload endpoint is the one
+    // place that knows for certain this is a CDN ref, and resolving a bare
+    // string there is what let two live profiles store it tagged `file`.
+    expect(ref).toEqual({ ref: "avatar/newhash", source: "cdn" });
     expect(receivedContentType).toContain("multipart/form-data");
     await waitFor(() => expect(result.current.uploadedUrl).toBe("https://cdn.stapel.test/avatar/newhash-160.webp"));
+  });
+
+  it("useSetAvatar writes the ref AND the source in one PATCH", async () => {
+    // The mechanism, under test: there is no intermediate state in which a
+    // caller holds a ref and could forget its tag. `{avatar}` alone next to
+    // the model default `file` is precisely what 500'd the live stand.
+    let patched: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${CDN_BASE}/cdn/api/v1/upload/avatar/`, () =>
+        HttpResponse.json({
+          image: {
+            prefix: "avatar/paired",
+            variant_160_url: "https://cdn.stapel.test/avatar/paired-160.webp",
+          },
+        })
+      ),
+      http.patch(`${BASE}/me`, async ({ request }) => {
+        patched = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ user_id: "u1", ...patched });
+      })
+    );
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    const { result } = renderHook(() => useSetAvatar(), {
+      wrapper: ({ children }) => wrap(runtime, children, { withCdn: true }),
+    });
+
+    const file = new File(["x"], "avatar.png", { type: "image/png" });
+    await act(async () => {
+      await result.current.setAvatar(file);
+    });
+
+    expect(patched).toEqual({ avatar: "avatar/paired", avatar_source: "cdn" });
   });
 
   it("surfaces a StapelApiError and clears isUploading on a failed upload", async () => {

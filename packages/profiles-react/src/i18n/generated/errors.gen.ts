@@ -36,6 +36,7 @@ export interface ProfilesErrorSpec {
  */
 export const PROFILES_ERRORS = {
   "error.400.avatar_not_found": { status: 400, params: [], remediation: "fix_input", en: "Avatar not found on CDN" },
+  "error.400.avatar_source_mismatch": { status: 400, params: [], remediation: "fix_input", en: "Avatar reference is a CDN reference but avatar_source says otherwise — send avatar_source=\"cdn\" with it, or omit avatar_source and it will be derived from the reference" },
   "error.400.bad_request": { status: 400, params: [], remediation: "fix_input", en: "Bad request" },
   "error.400.cannot_block_self": { status: 400, params: [], remediation: "fix_input", en: "Cannot block yourself" },
   "error.400.cannot_follow_self": { status: 400, params: [], remediation: "fix_input", en: "Cannot follow yourself" },
@@ -94,6 +95,7 @@ export type ProfilesErrorCode = keyof typeof PROFILES_ERRORS;
 /** Every backend error code this module can surface, sorted. */
 export const PROFILES_ERROR_CODES: readonly ProfilesErrorCode[] = [
   "error.400.avatar_not_found",
+  "error.400.avatar_source_mismatch",
   "error.400.bad_request",
   "error.400.cannot_block_self",
   "error.400.cannot_follow_self",
@@ -154,6 +156,7 @@ export const PROFILES_ERROR_CODES: readonly ProfilesErrorCode[] = [
  */
 export const profilesErrorBundleEn: Record<ProfilesErrorCode, string> = {
   "error.400.avatar_not_found": "Avatar not found on CDN",
+  "error.400.avatar_source_mismatch": "Avatar reference is a CDN reference but avatar_source says otherwise — send avatar_source=\"cdn\" with it, or omit avatar_source and it will be derived from the reference",
   "error.400.bad_request": "Bad request",
   "error.400.cannot_block_self": "Cannot block yourself",
   "error.400.cannot_follow_self": "Cannot follow yourself",

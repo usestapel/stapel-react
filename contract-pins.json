@@ -10,8 +10,8 @@
       "note": "current main — contract-regen catch-up"
     },
     "stapel-profiles": {
-      "ref": "46728f625667f8774eb0c7d92c60fba6f5938886",
-      "note": "release v0.9.0 — POST /batch (many public profiles in one request, #111): the answer splits `profiles` from `missing`, so \"no profile row\" stays a normal state instead of a per-id 404. Plus the guest-surface naming sweep (#168). Pairs with @stapel/profiles-react 0.14.0's useProfilesBatch. Pin+regen bumped together."
+      "ref": "b90d981e1937f0787cc1e0acbeac3c6c81131fd1",
+      "note": "release v0.12.0 — the avatar/avatar_source pair invariant. A CDN reference stored with the model-default `file` tag routed to the PIL provider, which opened stapel-cdn's variant DIRECTORY as a plain file and 500'd GET /me and POST /batch; 2 of 2 profiles on the meettoday sandbox were stored that way, and the cascade (no display_name -> \"enter your name\" dialog at the meeting door -> its PATCH 500s on the same avatar) locked two people out of the product. The model now writes the source the reference implies, and a request that STATES a contradicting source is refused with the new error.400.avatar_source_mismatch. Also carries the Spanish error catalogue 0.11.0 tagged but never published (its contract gate failed). Pairs with @stapel/profiles-react's useSetAvatar, which transports the provenance instead of leaving the caller to remember it. Pin+regen bumped together."
     },
     "stapel-billing": {
       "ref": "abe9a31392af2146133fc06b9fd3ebc43b28cab3",

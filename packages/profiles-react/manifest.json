@@ -4,7 +4,7 @@
   "version": "0.14.0",
   "backend": {
     "module": "stapel-profiles",
-    "contract": ">=0.9 <0.10"
+    "contract": ">=0.12 <0.13"
   },
   "layers": [
     "api",
@@ -218,6 +218,11 @@
   },
   "errors": {
     "error.400.avatar_not_found": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.avatar_source_mismatch": {
       "status": 400,
       "params": [],
       "remediation": "fix_input"
@@ -600,6 +605,7 @@
   ],
   "i18nKeys": [
     "error.400.avatar_not_found",
+    "error.400.avatar_source_mismatch",
     "error.400.bad_request",
     "error.400.cannot_block_self",
     "error.400.cannot_follow_self",
@@ -740,11 +746,13 @@
       "useProfilesBatch",
       "useProfilesRuntime",
       "useRelationship",
+      "useSetAvatar",
       "useUnblock",
       "useUnfollow",
       "useUpdateMyProfile"
     ],
     "types": [
+      "AvatarRef",
       "AvatarUploadBag",
       "Blocked",
       "ConnectionKind",
@@ -788,7 +796,8 @@
       "RelationshipInfo",
       "RelationshipStatus",
       "Remediation",
-      "Schemas"
+      "Schemas",
+      "SetAvatarBag"
     ]
   }
 }

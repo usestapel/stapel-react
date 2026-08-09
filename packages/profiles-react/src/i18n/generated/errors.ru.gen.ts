@@ -13,6 +13,7 @@ import type { ProfilesErrorCode } from "./errors.gen.js";
  */
 export const profilesErrorBundleRu: Record<ProfilesErrorCode, string> = {
   "error.400.avatar_not_found": "Аватар не найден на CDN",
+  "error.400.avatar_source_mismatch": "Ссылка на аватар — это CDN-ссылка, но avatar_source говорит иное. Передайте avatar_source=\"cdn\" вместе с ней либо не передавайте avatar_source вовсе — источник будет выведен из самой ссылки",
   "error.400.bad_request": "Некорректный запрос",
   "error.400.cannot_block_self": "Нельзя заблокировать самого себя",
   "error.400.cannot_follow_self": "Нельзя подписаться на самого себя",
