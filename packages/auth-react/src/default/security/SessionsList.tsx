@@ -12,7 +12,7 @@
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Alert, Badge, Button, Card, Divider, Empty, Flex, Popconfirm, Spin, Tag, Typography } from "antd";
-import { useT } from "@stapel/core";
+import { useErrorText, useT } from "@stapel/core";
 import type { AuthSession } from "../../api/types.js";
 import {
   useConfirmSession,
@@ -95,6 +95,10 @@ export interface SessionsListProps {
 /** Full device-CRUD security screen: list, per-device revoke, revoke-others. */
 export function SessionsList(props: SessionsListProps = {}): ReactElement {
   const t = useT();
+  // Never the raw `.message` — for a response with no error envelope that
+  // is the transport's own "Request failed with status 500" (owner report
+  // 2026-08-09). `useErrorText` folds any thrown value into the one dialect.
+  const errorText = useErrorText(AUTH_I18N_KEYS.unknownError);
   const sessions = useSessions();
   const revokeOne = useRevokeSession();
   const revokeOthers = useRevokeOtherSessions();
@@ -134,7 +138,7 @@ export function SessionsList(props: SessionsListProps = {}): ReactElement {
         {sessions.isLoading ? (
           <Spin />
         ) : sessions.isError ? (
-          <Alert type="error" showIcon message={sessions.error.message} />
+          <Alert type="error" showIcon message={errorText(sessions.error)} />
         ) : list.length === 0 ? (
           <Empty
             image={props.emptyIcon ?? <SecurityEmptyIcon />}

@@ -1,5 +1,6 @@
 import { createContext, useContext, useSyncExternalStore } from "react";
 import type { ReactElement, ReactNode } from "react";
+import { CORE_ERROR_LOCALES, coreErrorBundle } from "./i18n/coreErrors.js";
 
 /** Flat key → string dictionary, e.g. `{"auth.otp.invalid": "Invalid code"}`. */
 export type I18nDictionary = Record<string, string>;
@@ -66,17 +67,41 @@ export interface CreateI18nOptions {
  * Minimal i18n engine: dictionaries per locale, `{param}` interpolation,
  * static bundles + async loader, missing-key fallback to the key itself
  * (frontend-standard §4.2 — user-facing strings are always keys).
+ *
+ * Seeds core's OWN error floor (`./i18n/coreErrors.ts` — `stapel.http.*`,
+ * `stapel.transport.failed`, `stapel.error.unknown`) under every locale
+ * before anything else, so the codes core itself mints for a response with no
+ * envelope have display copy without a single line of host wiring. It is a
+ * FLOOR in the fleet's usual sense: registered first, so any pair bundle or
+ * host override registered later wins on the same key.
  */
 export function createI18n(options: CreateI18nOptions): I18nEngine {
   const dictionaries = new Map<string, I18nDictionary>();
+  const flooredLocales = new Set<string>();
   const loadedLocales = new Set<string>();
   const listeners = new Set<() => void>();
   let locale = options.locale;
   let version = 0;
 
+  /** Put core's error floor UNDER whatever this locale already has. */
+  function floor(targetLocale: string): void {
+    if (flooredLocales.has(targetLocale)) return;
+    flooredLocales.add(targetLocale);
+    dictionaries.set(targetLocale, {
+      ...coreErrorBundle(targetLocale),
+      ...(dictionaries.get(targetLocale) ?? {}),
+    });
+  }
+
+  for (const seeded of [...CORE_ERROR_LOCALES, options.locale]) floor(seeded);
+
   if (options.bundles) {
     for (const [bundleLocale, bundle] of Object.entries(options.bundles)) {
-      dictionaries.set(bundleLocale, { ...bundle });
+      floor(bundleLocale);
+      dictionaries.set(bundleLocale, {
+        ...(dictionaries.get(bundleLocale) ?? {}),
+        ...bundle,
+      });
     }
   }
 
@@ -103,11 +128,13 @@ export function createI18n(options: CreateI18nOptions): I18nEngine {
       return interpolate(template, params);
     },
     setLocale: async (nextLocale) => {
+      floor(nextLocale);
       await ensureLoaded(nextLocale);
       locale = nextLocale;
       notify();
     },
     registerBundle: (bundleLocale, bundle) => {
+      floor(bundleLocale);
       const existing = dictionaries.get(bundleLocale) ?? {};
       dictionaries.set(bundleLocale, { ...existing, ...bundle });
       notify();

@@ -13,7 +13,7 @@
 import { useState } from "react";
 import type { ReactElement } from "react";
 import { Alert, Card, Switch, Typography } from "antd";
-import { useT } from "@stapel/core";
+import { useErrorText, useT } from "@stapel/core";
 import { DeviceRegistration } from "../headless/DeviceRegistration.js";
 import type { Platform } from "../api/types.js";
 import { NOTIFICATIONS_I18N_KEYS } from "../i18n/keys.js";
@@ -30,6 +30,10 @@ export interface PushNotificationToggleProps {
 
 export function PushNotificationToggle(props: PushNotificationToggleProps): ReactElement {
   const t = useT();
+  // Never the raw `.message` — for a response with no error envelope that
+  // is the transport's own "Request failed with status 500" (owner report
+  // 2026-08-09). `useErrorText` folds any thrown value into the one dialect.
+  const errorText = useErrorText(NOTIFICATIONS_I18N_KEYS.unknownError);
   const [enabled, setEnabled] = useState(false);
   const [token, setToken] = useState<string | null>(null);
 
@@ -73,7 +77,7 @@ export function PushNotificationToggle(props: PushNotificationToggleProps): Reac
             </div>
 
             {isError && error && (
-              <Alert style={{ marginTop: 12 }} type="error" showIcon message={error.message} />
+              <Alert style={{ marginTop: 12 }} type="error" showIcon message={errorText(error)} />
             )}
           </Card>
         );

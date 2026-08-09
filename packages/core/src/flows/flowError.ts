@@ -1,5 +1,6 @@
 import { StapelApiError } from "../errors.js";
 import { interpolate } from "../i18n.js";
+import { coreErrorKeyCandidates } from "../i18n/coreErrors.js";
 import type { I18nDictionary } from "../i18n.js";
 
 /**
@@ -73,23 +74,37 @@ export interface FormatFlowErrorOptions {
  * writing `bundle[code] ?? code`, so a missing key surfaced as a raw
  * "{field} must be at most {max_length} characters"-shaped code to the user).
  *
- * Three-step fallback chain, in order:
+ * Fallback chain, in order:
  *   1. `bundle[error.code]`, with `{param}` placeholders filled from
  *      `error.params` (the normal path — a real translated string).
+ *   1b. For core's OWN synthesized `stapel.http.<status>` codes only, the
+ *      class-wide entry (`stapel.http.5xx`) — see `coreErrorKeyCandidates`.
+ *      A real backend code is never widened: `error.404.a` and
+ *      `error.404.b` are two different states and must not collapse.
  *   2. The backend's own `error.message`, but ONLY when `error.language`
  *      is set AND matches `opts.locale` — the backend wrote it in the host's
  *      current language, so it's a strictly better fallback than the code.
+ *      NOT reached for a bodiless failure: there `message` is the transport's
+ *      own `"Request failed with status 500"` and `language` is `undefined`,
+ *      which is precisely why this guard exists.
  *   3. `error.code` itself — the last-resort raw key (frontend-standard
  *      §4.2: a raw key at least signals "someone forgot to add this
  *      translation", rather than silently swallowing the error).
+ *
+ * `{status}` is available to every template on top of `error.params` (a
+ * backend param of the same name still wins). Core's own floor copy uses it
+ * as the one honest handle a bodiless 5xx leaves a user to quote back.
  */
 export function formatFlowError(
   error: FlowError,
   bundle: I18nDictionary,
   opts: FormatFlowErrorOptions = {}
 ): string {
-  const template = bundle[error.code];
-  if (template !== undefined) return interpolate(template, error.params);
+  const params = { status: error.status, ...error.params };
+  for (const key of coreErrorKeyCandidates(error.code)) {
+    const template = bundle[key];
+    if (template !== undefined) return interpolate(template, params);
+  }
   if (
     error.message !== undefined &&
     error.language !== undefined &&

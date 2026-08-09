@@ -64,12 +64,12 @@ import {
   Switch,
   Typography,
 } from "antd";
-import { toAntdThemeConfig } from "@stapel/tokens-antd";
+import { resolveThemeMode, toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { useBreakpoint, useT } from "@stapel/core";
+import { useBreakpoint, useErrorText, useT } from "@stapel/core";
 import { useMyProfile, useProfileFieldManifest } from "../model/queries.js";
 import { useUpdateMyProfile } from "../model/mutations.js";
-import { useAvatarUpload } from "../headless/AvatarUpload.js";
+import { useSetAvatar } from "../headless/AvatarUpload.js";
 import { Image } from "@stapel/image";
 import type { StapelImage } from "@stapel/image";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
@@ -109,7 +109,14 @@ export interface ProfileSettingsProps {
   /**
    * Light or dark. The theme is derived from `@stapel/tokens` via
    * `toAntdThemeConfig(mode)` — no manual token wiring, same self-theming
-   * contract as `AuthPanel`. Default `"light"`.
+   * contract as `AuthPanel`. Defaults to the mode the HOST's document
+   * declares (`resolveThemeMode()` — the `data-theme` attribute
+   * `@stapel/tokens`' `tokens.css` keys its dark block on), not to a
+   * hardcoded `"light"`: a light default is a wrong answer on every dark
+   * deployment, and it rendered an unreadable error Alert on a live sandbox
+   * (owner report 2026-08-09 — antd's light algorithm derived a near-white
+   * `colorErrorBg` while `colorText` came live off the host's dark tokens).
+   * Pass it explicitly to pin a side.
    */
   readonly mode?: ThemeMode;
   /**
@@ -373,11 +380,24 @@ function FieldRow(props: {
 
 export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
   const t = useT();
-  const theme = useMemo(() => toAntdThemeConfig(props.mode ?? "light"), [props.mode]);
+  // Never `mutation.error.message` (owner report 2026-08-09): for a failure
+  // with no error envelope — a 500 rendered by the server as HTML, which is
+  // exactly what a live sandbox returned — that string is
+  // `parseErrorEnvelope`'s own diagnostic, `"Request failed with status
+  // 500"`. English, transport-shaped, on a Russian UI. `useErrorText` folds
+  // any thrown value into the ONE dialect and resolves it through the i18n
+  // engine, which since @stapel/core 0.x carries a floor for core's own
+  // synthesized `stapel.http.*` codes.
+  const errorText = useErrorText(PROFILES_I18N_KEYS.unknownError);
+  const theme = useMemo(() => toAntdThemeConfig(props.mode ?? resolveThemeMode()), [props.mode]);
   const query = useMyProfile();
   const manifest = useProfileFieldManifest();
   const mutation = useUpdateMyProfile();
-  const avatarUpload = useAvatarUpload();
+  // ONE operation: upload + store the ref WITH its source. The two-call
+  // shape this replaced (`upload()` then `mutate({avatar})`) is exactly how
+  // the meettoday stand ended up with CDN refs tagged `file` — see
+  // `useSetAvatar`'s module doc.
+  const avatarUpload = useSetAvatar();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const profile = query.data;
@@ -386,8 +406,7 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    const ref = await avatarUpload.upload(file);
-    if (ref) mutation.mutate({ avatar: ref });
+    await avatarUpload.setAvatar(file);
   }
 
   // A fresh upload shows its local preview immediately; once /me refetches,
@@ -416,7 +435,7 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
     );
   }
 
-  const mutationErrorText = mutation.isError ? mutation.error.message : undefined;
+  const mutationErrorText = errorText(mutation.error);
 
   // Declaration order from the backend (identity, then standard_fields, then
   // custom_fields) IS the order to render in — `order` is carried mainly so
@@ -481,11 +500,11 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
             />
             <Button
               onClick={() => fileInputRef.current?.click()}
-              loading={avatarUpload.isUploading}
+              loading={avatarUpload.isPending}
               data-analytics="none"
               data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
             >
-              {avatarUpload.isUploading
+              {avatarUpload.isPending
                 ? t(PROFILES_I18N_KEYS.avatarUploading)
                 : t(PROFILES_I18N_KEYS.avatarChange)}
             </Button>

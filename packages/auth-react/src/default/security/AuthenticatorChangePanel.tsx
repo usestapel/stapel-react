@@ -22,7 +22,7 @@
 import { useState } from "react";
 import type { ReactElement } from "react";
 import { Alert, Button, Card, Flex, Form, Input, Popconfirm, Result, Spin, Typography } from "antd";
-import { useFormatFlowError, useT } from "@stapel/core";
+import { useErrorText, useFormatFlowError, useT } from "@stapel/core";
 import type { AuthenticatorChangeBag } from "../../headless/misc.js";
 import { AuthenticatorChange } from "../../headless/misc.js";
 import type { DelayedChangeStatus, OtpChannel } from "../../api/types.js";
@@ -313,6 +313,10 @@ function ChangeJourney(props: {
  * banner in place of all of the above. */
 export function AuthenticatorChangePanel(props: { readonly channel: OtpChannel }): ReactElement {
   const t = useT();
+  // Never the raw `.message` — for a response with no error envelope that
+  // is the transport's own "Request failed with status 500" (owner report
+  // 2026-08-09). `useErrorText` folds any thrown value into the one dialect.
+  const errorText = useErrorText(AUTH_I18N_KEYS.unknownError);
   const { channel } = props;
   const me = useMe();
   const delayedStatus = useDelayedChangeStatus(channel);
@@ -327,7 +331,7 @@ export function AuthenticatorChangePanel(props: { readonly channel: OtpChannel }
         {me.isLoading || delayedStatus.isLoading ? (
           <Spin size="small" />
         ) : delayedStatus.isError ? (
-          <Alert type="error" showIcon message={delayedStatus.error.message} />
+          <Alert type="error" showIcon message={errorText(delayedStatus.error)} />
         ) : delayedStatus.data?.has_pending_change ? (
           <PendingBanner channel={channel} status={delayedStatus.data} />
         ) : open ? (

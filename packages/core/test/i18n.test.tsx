@@ -20,6 +20,13 @@ describe("interpolate", () => {
   });
 });
 
+/** A bundle minus the `stapel.*` floor `createI18n` seeds into every locale. */
+function withoutCoreFloor(bundle: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(bundle).filter(([key]) => !key.startsWith("stapel."))
+  );
+}
+
 describe("createI18n", () => {
   it("translates from static bundles with params", () => {
     const i18n = createI18n({
@@ -67,16 +74,19 @@ describe("createI18n", () => {
     expect(i18n.t("b")).toBe("B");
   });
 
+  // Every bundle a locale is touched for also carries core's own error floor
+  // (`./i18n/coreErrors.ts`, seeded by createI18n) — asserted on its own in
+  // `coreErrorFloor.test.ts`, and subtracted here so these stay about merging.
   it("getBundle returns the merged flat dictionary for a locale", () => {
     const i18n = createI18n({ locale: "en", bundles: { en: { a: "A" }, fr: { a: "Le A" } } });
     i18n.registerBundle("en", { b: "B" });
-    expect(i18n.getBundle("en")).toEqual({ a: "A", b: "B" });
-    expect(i18n.getBundle("fr")).toEqual({ a: "Le A" });
+    expect(withoutCoreFloor(i18n.getBundle("en"))).toEqual({ a: "A", b: "B" });
+    expect(withoutCoreFloor(i18n.getBundle("fr"))).toEqual({ a: "Le A" });
   });
 
   it("getBundle defaults to the current locale, and returns {} for one nothing registered", () => {
     const i18n = createI18n({ locale: "en", bundles: { en: { a: "A" } } });
-    expect(i18n.getBundle()).toEqual({ a: "A" });
+    expect(withoutCoreFloor(i18n.getBundle())).toEqual({ a: "A" });
     expect(i18n.getBundle("de")).toEqual({});
   });
 });

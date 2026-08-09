@@ -12,6 +12,7 @@ and never re-implements what is exported here.
 signatures/JSDoc in the package README and src/index.ts.
 ### runtime
 - AnalyticsContext
+- CORE_ERROR_LOCALES
 - I18nProvider
 - REFRESH_UNAVAILABLE
 - StapelApiError
@@ -19,6 +20,8 @@ signatures/JSDoc in the package README and src/index.ts.
 - StapelProvider
 - TRANSPORT_ERROR_CODE
 - VERIFICATION_TOKEN_HEADER
+- coreErrorBundle
+- coreErrorKeyCandidates
 - createFlowMachine
 - createI18n
 - createMeCachePersister
@@ -50,6 +53,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - useActiveSessionReady
 - useAnalytics
 - useBreakpoint
+- useErrorText
 - useFlow
 - useFormatFlowError
 - useI18n

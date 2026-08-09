@@ -17,7 +17,7 @@ import { useState } from "react";
 import type { ReactElement } from "react";
 import { Alert, Button, Card, Input, Modal, Popconfirm, Select, Table, Typography } from "antd";
 import type { TableProps } from "antd";
-import { useT } from "@stapel/core";
+import { useErrorText, useT } from "@stapel/core";
 import { Members } from "../headless/Members.js";
 import { RoleSelect } from "../headless/RoleSelect.js";
 import type { RoleSelectBag } from "../headless/RoleSelect.js";
@@ -40,6 +40,10 @@ const DEFAULT_INVITE_ROLE = "member";
 
 export function MembersManager(props: MembersManagerProps): ReactElement {
   const t = useT();
+  // Never the raw `.message` — for a response with no error envelope that
+  // is the transport's own "Request failed with status 500" (owner report
+  // 2026-08-09). `useErrorText` folds any thrown value into the one dialect.
+  const errorText = useErrorText(WORKSPACES_I18N_KEYS.unknownError);
   const canManage = props.canManage ?? true;
   const [inviteOpen, setInviteOpen] = useState(false);
   const [emailsText, setEmailsText] = useState("");
@@ -144,7 +148,7 @@ export function MembersManager(props: MembersManagerProps): ReactElement {
                 </div>
 
                 {isError && error && (
-                  <Alert style={{ marginTop: 12 }} type="error" showIcon message={error.message} />
+                  <Alert style={{ marginTop: 12 }} type="error" showIcon message={errorText(error)} />
                 )}
 
                 <Table<Member>

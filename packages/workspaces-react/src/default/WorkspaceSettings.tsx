@@ -9,7 +9,7 @@
 import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import { Alert, Badge, Button, Card, Input, Popconfirm, Spin, Typography } from "antd";
-import { useT } from "@stapel/core";
+import { useErrorText, useT } from "@stapel/core";
 import { useWorkspace } from "../model/queries.js";
 import { useUpdateWorkspace, useDeleteWorkspace } from "../model/mutations.js";
 import { WORKSPACES_I18N_KEYS } from "../i18n/keys.js";
@@ -23,6 +23,10 @@ export interface WorkspaceSettingsProps {
 
 export function WorkspaceSettings(props: WorkspaceSettingsProps): ReactElement {
   const t = useT();
+  // Never the raw `.message` — for a response with no error envelope that
+  // is the transport's own "Request failed with status 500" (owner report
+  // 2026-08-09). `useErrorText` folds any thrown value into the one dialect.
+  const errorText = useErrorText(WORKSPACES_I18N_KEYS.unknownError);
   const query = useWorkspace(props.workspaceId);
   const updateMutation = useUpdateWorkspace(props.workspaceId);
   const deleteMutation = useDeleteWorkspace();
@@ -53,7 +57,7 @@ export function WorkspaceSettings(props: WorkspaceSettingsProps): ReactElement {
         data-testid="workspace-settings-error"
         type="error"
         showIcon
-        message={query.error?.message ?? t(WORKSPACES_I18N_KEYS.unknownError)}
+        message={errorText(query.error) ?? t(WORKSPACES_I18N_KEYS.unknownError)}
       />
     );
   }
@@ -92,7 +96,7 @@ export function WorkspaceSettings(props: WorkspaceSettingsProps): ReactElement {
             style={{ marginTop: 12 }}
             type="error"
             showIcon
-            message={updateMutation.error.message}
+            message={errorText(updateMutation.error)}
           />
         )}
 

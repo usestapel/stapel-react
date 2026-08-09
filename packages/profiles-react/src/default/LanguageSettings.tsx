@@ -19,9 +19,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactElement } from "react";
 import { Alert, Card, Checkbox, ConfigProvider, Select, Spin, Typography } from "antd";
-import { toAntdThemeConfig } from "@stapel/tokens-antd";
+import { resolveThemeMode, toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { useT } from "@stapel/core";
+import { useErrorText, useT } from "@stapel/core";
 import { useMyProfile } from "../model/queries.js";
 import { useUpdateMyProfile } from "../model/mutations.js";
 import { useLanguages } from "../model/queries.js";
@@ -33,7 +33,14 @@ export interface LanguageSettingsProps {
   /**
    * Light or dark. The theme is derived from `@stapel/tokens` via
    * `toAntdThemeConfig(mode)` — no manual token wiring, same self-theming
-   * contract as `AuthPanel`. Default `"light"`.
+   * contract as `AuthPanel`. Defaults to the mode the HOST's document
+   * declares (`resolveThemeMode()` — the `data-theme` attribute
+   * `@stapel/tokens`' `tokens.css` keys its dark block on), not to a
+   * hardcoded `"light"`: a light default is a wrong answer on every dark
+   * deployment, and it rendered an unreadable error Alert on a live sandbox
+   * (owner report 2026-08-09 — antd's light algorithm derived a near-white
+   * `colorErrorBg` while `colorText` came live off the host's dark tokens).
+   * Pass it explicitly to pin a side.
    */
   readonly mode?: ThemeMode;
   /** Called after a successfully-applied pick with the newly picked app
@@ -46,7 +53,9 @@ export interface LanguageSettingsProps {
 
 export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
   const t = useT();
-  const theme = useMemo(() => toAntdThemeConfig(props.mode ?? "light"), [props.mode]);
+  // See ProfileSettings: never the raw `.message` (owner report 2026-08-09).
+  const errorText = useErrorText(PROFILES_I18N_KEYS.unknownError);
+  const theme = useMemo(() => toAntdThemeConfig(props.mode ?? resolveThemeMode()), [props.mode]);
   const query = useMyProfile();
   const languages = useLanguages();
   const mutation = useUpdateMyProfile();
@@ -97,7 +106,7 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
 
   const options = languages.data ?? [];
   const pickerValue = useDeviceLanguage ? AUTO : appLanguage;
-  const mutationErrorText = mutation.isError ? mutation.error.message : undefined;
+  const mutationErrorText = errorText(mutation.error);
 
   return (
     <ConfigProvider theme={theme}>

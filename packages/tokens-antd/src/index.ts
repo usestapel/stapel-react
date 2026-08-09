@@ -40,6 +40,46 @@ import type { CoreTokenName } from "@stapel/tokens";
 export type ThemeMode = "light" | "dark";
 
 /**
+ * The attribute `@stapel/tokens`' generated `tokens.css` keys its dark block
+ * on (`:root` = light, `[data-theme="dark"]` = dark — see that package's
+ * `gen/lib.mjs#renderCss`). It is the ONE switch a host flips to change
+ * theme, so it is also the ONE signal this bridge reads.
+ */
+const THEME_ATTRIBUTE = "data-theme";
+
+/**
+ * Which mode the host's document is ACTUALLY in, read from the same
+ * `data-theme` attribute `tokens.css` keys its dark block on.
+ *
+ * This exists because "default `mode` to `light`" is not a neutral default —
+ * it is a wrong answer on every dark deployment, and it produced an
+ * unreadable error Alert on a live sandbox (owner report 2026-08-09):
+ * `toAntdThemeConfig("light")` under `<html data-theme="dark">` emitted
+ * `--ant-color-error-bg: #fff2f0` (near-white, derived by antd's LIGHT
+ * algorithm) together with `--ant-color-text: #f4f5f7` (near-white, read
+ * LIVE off the host's dark `tokens.css`) — a 1.03:1 contrast ratio. A
+ * default skin calls this instead of hardcoding a side, so it self-themes
+ * with zero host wiring.
+ *
+ * Deliberately does NOT consult `prefers-color-scheme`: `tokens.css` ships
+ * no `@media (prefers-color-scheme)` block, so an OS-dark/host-light
+ * document would serve LIGHT custom properties while this returned `"dark"`
+ * — re-creating the exact mismatch above from the other side. The attribute
+ * is the only signal that cannot disagree with the stylesheet.
+ *
+ * Reads `document.documentElement` — the same element {@link readLiveCssVar}
+ * reads its custom properties from, so the mode and the values can never
+ * come from different scopes. `"light"` where there is no DOM (SSR, node
+ * tests), matching `tokens.css`' `:root` default.
+ */
+export function resolveThemeMode(): ThemeMode {
+  if (typeof document === "undefined") return "light";
+  return document.documentElement.getAttribute(THEME_ATTRIBUTE) === "dark"
+    ? "dark"
+    : "light";
+}
+
+/**
  * Resolve a neutral colour role to a real hex for `mode` (owner audit
  * 2026-07-17, §54 theme-bridge root cause): a host that customizes its OWN
  * brand colour does so exactly as `@stapel/tokens`' README prescribes — copy
@@ -62,9 +102,29 @@ export type ThemeMode = "light" | "dark";
  * `tokens.css`). This is the one change that makes "the skin takes its theme
  * from the bridge automatically" (the doc comment on every default skin)
  * literally true for a host's brand colour, not just its light/dark mode.
+ *
+ * ONLY when the document is in the mode being asked for, though (owner
+ * report 2026-08-09). The live custom properties resolve through whichever
+ * `data-theme` is active — they are the DOCUMENT's mode, not the caller's —
+ * so serving them for a different `mode` silently welds half a light theme
+ * to half a dark one. That is not hypothetical: `toAntdThemeConfig("light")`
+ * under `<html data-theme="dark">` handed antd a LIGHT algorithm (which
+ * derives `colorErrorBg` → `#fff2f0`, near-white) plus a LIVE DARK
+ * `colorText` (`#f4f5f7`, near-white) and rendered an error Alert at 1.03:1
+ * contrast — literally unreadable. On a mismatch the compiled-in default for
+ * the REQUESTED mode is used instead: the host's brand customization is lost
+ * for that call, which is a visual regression; a mode-blended theme is a
+ * legibility one. The way to keep both is to ask for the mode the document
+ * is in — see {@link resolveThemeMode}, which every default skin now
+ * defaults to.
  */
-function readLiveCssVar(name: CoreTokenName, fallback: string): string {
+function readLiveCssVar(
+  name: CoreTokenName,
+  mode: ThemeMode,
+  fallback: string
+): string {
   if (typeof document === "undefined") return fallback;
+  if (resolveThemeMode() !== mode) return fallback;
   // `getPropertyValue` wants the BARE custom-property name (`--stapel-x`);
   // `cssVar()` deliberately returns the `var(--stapel-x)` wrapper for
   // embedding in a CSS value, which `getPropertyValue` would never match —
@@ -79,7 +139,7 @@ function readLiveCssVar(name: CoreTokenName, fallback: string): string {
 /** Resolve a §68 colour role to its hex for `mode`, preferring the host's
  * live CSS custom property over the compiled-in default. */
 function role(name: CoreTokenName, mode: ThemeMode): string {
-  return readLiveCssVar(name, colors[name][mode]);
+  return readLiveCssVar(name, mode, colors[name][mode]);
 }
 
 /** The flat antd token map (`ThemeConfig["token"]`), never undefined. */
@@ -89,8 +149,12 @@ export type AntdThemeToken = NonNullable<ThemeConfig["token"]>;
  * `@stapel/tokens` §68 roles → antd `theme.token` (frontend-guidelines §2.4
  * table). Pure: same `mode` in, same object out; reads no globals besides the
  * live CSS custom properties documented on {@link readLiveCssVar}.
+ *
+ * `mode` defaults to {@link resolveThemeMode} — the mode the host's document
+ * declares — so `toAntdTheme()` follows the host's theme switch instead of
+ * pinning a side.
  */
-export function toAntdTheme(mode: ThemeMode): AntdThemeToken {
+export function toAntdTheme(mode: ThemeMode = resolveThemeMode()): AntdThemeToken {
   return {
     colorPrimary: role("brand", mode),
     colorLink: role("link", mode),
@@ -118,8 +182,13 @@ export function toAntdTheme(mode: ThemeMode): AntdThemeToken {
  * that recomputes antd's derived neutrals for the mode (so dark is actually
  * dark, not just dark seeds over a light surface). Pass straight to
  * `<ConfigProvider theme={toAntdThemeConfig(mode)}>`.
+ *
+ * `mode` defaults to {@link resolveThemeMode}, so `toAntdThemeConfig()` with
+ * no argument reads the host's `data-theme` — the algorithm and the token
+ * values then provably come from the same side (see {@link readLiveCssVar}
+ * for what happens when they don't).
  */
-export function toAntdThemeConfig(mode: ThemeMode): ThemeConfig {
+export function toAntdThemeConfig(mode: ThemeMode = resolveThemeMode()): ThemeConfig {
   return {
     algorithm:
       mode === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,

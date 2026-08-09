@@ -18,6 +18,7 @@
   "exports": {
     "runtime": [
       "AnalyticsContext",
+      "CORE_ERROR_LOCALES",
       "I18nProvider",
       "REFRESH_UNAVAILABLE",
       "StapelApiError",
@@ -25,6 +26,8 @@
       "StapelProvider",
       "TRANSPORT_ERROR_CODE",
       "VERIFICATION_TOKEN_HEADER",
+      "coreErrorBundle",
+      "coreErrorKeyCandidates",
       "createFlowMachine",
       "createI18n",
       "createMeCachePersister",
@@ -56,6 +59,7 @@
       "useActiveSessionReady",
       "useAnalytics",
       "useBreakpoint",
+      "useErrorText",
       "useFlow",
       "useFormatFlowError",
       "useI18n",

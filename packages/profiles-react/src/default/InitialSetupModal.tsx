@@ -40,9 +40,9 @@ import {
   Spin,
   Typography,
 } from "antd";
-import { toAntdThemeConfig } from "@stapel/tokens-antd";
+import { resolveThemeMode, toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { useT } from "@stapel/core";
+import { useErrorText, useT } from "@stapel/core";
 import { InitialSetupPrompt } from "../headless/InitialSetupPrompt.js";
 import type {
   InitialSetupFieldName,
@@ -56,7 +56,14 @@ export interface InitialSetupModalProps {
   /**
    * Light or dark. The theme is derived from `@stapel/tokens` via
    * `toAntdThemeConfig(mode)` — no manual token wiring, same self-theming
-   * contract as `AuthPanel`. Default `"light"`.
+   * contract as `AuthPanel`. Defaults to the mode the HOST's document
+   * declares (`resolveThemeMode()` — the `data-theme` attribute
+   * `@stapel/tokens`' `tokens.css` keys its dark block on), not to a
+   * hardcoded `"light"`: a light default is a wrong answer on every dark
+   * deployment, and it rendered an unreadable error Alert on a live sandbox
+   * (owner report 2026-08-09 — antd's light algorithm derived a near-white
+   * `colorErrorBg` while `colorText` came live off the host's dark tokens).
+   * Pass it explicitly to pin a side.
    */
   readonly mode?: ThemeMode;
   /** Show the modal — typically `useInitialSetupGate(...).shouldShow`. */
@@ -100,6 +107,7 @@ function ModalBody(props: {
   skippable: boolean;
 }): ReactElement {
   const t = useT();
+  const errorText = useErrorText(PROFILES_I18N_KEYS.unknownError);
   const languages = useLanguages();
   const { bag } = props;
 
@@ -161,7 +169,7 @@ function ModalBody(props: {
       )}
 
       {bag.isError && bag.error && (
-        <Alert type="error" showIcon message={bag.error.message} />
+        <Alert type="error" showIcon message={errorText(bag.error)} />
       )}
 
       <Flex gap={8} justify="flex-end">
@@ -194,7 +202,7 @@ function ModalBody(props: {
 export function InitialSetupModal(props: InitialSetupModalProps): ReactElement {
   const t = useT();
   const skippable = props.skippable ?? true;
-  const theme = useMemo(() => toAntdThemeConfig(props.mode ?? "light"), [props.mode]);
+  const theme = useMemo(() => toAntdThemeConfig(props.mode ?? resolveThemeMode()), [props.mode]);
 
   return (
     <ConfigProvider theme={theme}>
