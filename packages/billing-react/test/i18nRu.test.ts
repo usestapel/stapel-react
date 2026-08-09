@@ -17,9 +17,9 @@ import {
 } from "../src/i18n/ru.js";
 
 /**
- * The ru locale contour of the pair (i18n-shipping.md волна 2, following the
- * auth-react etalon волна 1): the generated `errors.ru.gen.ts` bundle covers
- * the whole backend registry with `{param}` slots intact, the `./i18n/ru`
+ * The ru locale contour of the pair (i18n-shipping.md wave 2, following the
+ * auth-react reference from wave 1): the generated `errors.ru.gen.ts` bundle
+ * covers the whole backend registry with `{param}` slots intact, the `./i18n/ru`
  * subpath layers per the merge-priority convention (en floor under ru —
  * degradation to English, never to a raw key), locale switching is live
  * through core's i18n engine, and the locale stays OUT of the main entry's

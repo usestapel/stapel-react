@@ -661,6 +661,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/api/v1/me/preferred-workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * @description ``PUT/DELETE me/preferred-workspace`` — the person states where home is.
+         *
+         *     ``STAPEL_WORKSPACES["DEFAULT_WORKSPACE_ID"]`` already describes itself as
+         *     "a DEFAULT, not a cage: a person still switches spaces, and their
+         *     explicit choice wins over it" — and until this endpoint there was nowhere
+         *     for that choice to be written down. Clients filled the hole by guessing,
+         *     and the guess (``workspaces[0]`` off a recency-ordered list) is #239.
+         *
+         *     The choice is stated, never inferred. ``last_accessed_at`` remains what
+         *     it has always been: telemetry written as a side effect of a GET, used to
+         *     sort the list and for nothing else.
+         *
+         *     Deliberately user-scoped rather than workspace-scoped
+         *     (``.../<workspace_id>/prefer``): there is exactly one answer per person,
+         *     and a route shaped per workspace would invite a second one.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        put: operations["workspaces_api_v1_me_preferred_workspace_update"];
+        post?: never;
+        /**
+         * @description Clear the choice — back to the instance default / the client's chain.
+         *
+         *     Answers 200 with an empty id rather than 204: the client's whole job
+         *     here is to re-resolve, and handing it the new state saves it from
+         *     guessing what "no content" left behind. Idempotent.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        delete: operations["workspaces_api_v1_me_preferred_workspace_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/api/v1/roles": {
         parameters: {
             query?: never;
@@ -1000,6 +1044,23 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** @description Which workspace the person is choosing as home. */
+        PreferredWorkspaceRequest: {
+            /**
+             * Format: uuid
+             * @description UUID of a workspace the caller actively belongs to
+             * @example a8bba7ae-5d2e-43e5-9911-0553e7df50b3
+             */
+            workspace_id: string;
+        };
+        /** @description The caller's stated home workspace after the write. */
+        PreferredWorkspaceResponse: {
+            /**
+             * @description The workspace now recorded as the caller's choice, or "" after a DELETE cleared it
+             * @example a8bba7ae-5d2e-43e5-9911-0553e7df50b3
+             */
+            preferred_workspace_id?: string;
+        };
         /** @description Provision an org-created (synthetic) member (org-program spec §C1). */
         ProvisionMemberRequest: {
             /**
@@ -1132,6 +1193,11 @@ export interface components {
              * @example a8bba7ae-5d2e-43e5-9911-0553e7df50b3
              */
             default_workspace_id?: string;
+            /**
+             * @description The person's OWN stated choice of home workspace (PUT me/preferred-workspace), echoed back ONLY while the membership carrying it is active, else "". This is the "explicit choice" default_workspace_id documents itself as yielding to, so a client resolves preferred first and the instance default only after it. Never inferred from behaviour — where somebody last clicked is last_accessed_at, which is telemetry, and reading it as a choice is what produced #239
+             * @example a8bba7ae-5d2e-43e5-9911-0553e7df50b3
+             */
+            preferred_workspace_id?: string;
         };
         /** @description Workspace details. */
         WorkspaceResponse: {
@@ -1763,6 +1829,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemberResponse"];
+                };
+            };
+        };
+    };
+    workspaces_api_v1_me_preferred_workspace_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreferredWorkspaceRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PreferredWorkspaceRequest"];
+                "multipart/form-data": components["schemas"]["PreferredWorkspaceRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferredWorkspaceResponse"];
+                };
+            };
+        };
+    };
+    workspaces_api_v1_me_preferred_workspace_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferredWorkspaceResponse"];
                 };
             };
         };

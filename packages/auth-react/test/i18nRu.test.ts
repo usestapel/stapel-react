@@ -13,7 +13,7 @@ import {
 } from "../src/i18n/ru.js";
 
 /**
- * The ru locale contour of the pair (i18n-shipping.md волна 1, reference for
+ * The ru locale contour of the pair (i18n-shipping.md wave 1, reference for
  * wave-2 sweeps): the generated `errors.ru.gen.ts` bundle covers the whole
  * backend registry with `{param}` slots intact, the `./i18n/ru` subpath layers
  * per the merge-priority convention (en floor under ru — degradation to

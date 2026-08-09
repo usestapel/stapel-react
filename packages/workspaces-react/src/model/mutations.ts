@@ -14,6 +14,8 @@ import type {
   MemberPasswordResetResult,
   InvitationAccept,
   InvitationClaim,
+  PreferredWorkspace,
+  PreferredWorkspaceResult,
   Workspace,
   WorkspaceCreate,
   WorkspaceSecuritySettings,
@@ -560,6 +562,63 @@ export function useDeclineInvitation(): UseMutationResult<
     onSuccess: (_result, token) => {
       void queryClient.invalidateQueries({
         queryKey: workspacesQueryKeys.invitationPreview(token),
+      });
+    },
+  };
+  return useMutation(options);
+}
+
+/**
+ * Record the caller's home workspace (PUT /me/preferred-workspace).
+ *
+ * Invalidates the workspace list, because the list response is where the
+ * choice is READ back from (`preferred_workspace_id`) — one round trip, and
+ * no window in which the list has arrived but the answer has not.
+ *
+ * Callers should treat this as fire-and-forget: {@link useWorkspaceSelection}
+ * switches the tab locally and never blocks on the round trip. A switch that
+ * hangs on a flaky network is worse than a preference that lags one click.
+ */
+export function useSetPreferredWorkspace(): UseMutationResult<
+  PreferredWorkspaceResult,
+  StapelApiError,
+  PreferredWorkspace
+> {
+  const api = useWorkspacesApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    PreferredWorkspaceResult,
+    StapelApiError,
+    PreferredWorkspace
+  > = {
+    mutationFn: (body) => api.setPreferredWorkspace(body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: workspacesQueryKeys.list(),
+      });
+    },
+  };
+  return useMutation(options);
+}
+
+/** Clear the caller's home workspace (DELETE /me/preferred-workspace) — back
+ * to the instance default and the rest of the resolution chain. Idempotent. */
+export function useClearPreferredWorkspace(): UseMutationResult<
+  PreferredWorkspaceResult,
+  StapelApiError,
+  void
+> {
+  const api = useWorkspacesApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    PreferredWorkspaceResult,
+    StapelApiError,
+    void
+  > = {
+    mutationFn: () => api.clearPreferredWorkspace(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: workspacesQueryKeys.list(),
       });
     },
   };

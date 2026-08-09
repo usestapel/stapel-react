@@ -2,6 +2,8 @@ import { describe } from "vitest";
 import rule from "../rules/no-mixed-script-word.js";
 import { tsxTester } from "./helpers.js";
 
+/* eslint-disable stapel/no-mixed-script-word, stapel/no-cyrillic-source -- every fixture below IS a mixed-script or Cyrillic specimen, and each explanatory comment has to name the specimen it describes; that is what this rule's test suite is. Deliberately a file-scoped disable in THIS file rather than a glob in the recommended preset: consumers' test files must stay covered, because test files are where the English-only canon leaks (see index.js TEST_FILES). The sibling suite, no-cyrillic-source.test.js, needs only a two-line disable, so it uses one. */
+
 describe("no-mixed-script-word", () => {
   tsxTester().run("stapel/no-mixed-script-word", rule, {
     valid: [

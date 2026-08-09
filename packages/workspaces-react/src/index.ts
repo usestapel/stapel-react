@@ -52,6 +52,18 @@ export {
 } from "./model/context.js";
 export { workspacesQueryKeys } from "./model/queryKeys.js";
 
+// ── model (active-workspace selection: URL > localStorage > backend) ─────────
+export {
+  WorkspaceSelectionProvider,
+  useWorkspaceSelection,
+} from "./model/selection.js";
+export type {
+  WorkspaceSelection,
+  WorkspaceSelectionProviderProps,
+  WorkspaceSelectionSource,
+  WorkspaceSelectionUrlBinding,
+} from "./model/selection.js";
+
 // ── model (read hooks) ───────────────────────────────────────────────────────
 export {
   useWorkspaces,
@@ -98,6 +110,8 @@ export {
   useResendInvitation,
   useResetMemberPassword,
   useUpdateSecuritySettings,
+  useSetPreferredWorkspace,
+  useClearPreferredWorkspace,
 } from "./model/mutations.js";
 export type {
   MemberRoleChange,
@@ -127,6 +141,8 @@ export type {
   InvitationClaim,
   MemberPasswordReset,
   MemberPasswordResetResult,
+  PreferredWorkspace,
+  PreferredWorkspaceResult,
   DisplayNameUpdate,
   DisplayNameResult,
   ProvisionedUserPolicy,

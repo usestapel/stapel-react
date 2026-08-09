@@ -24,6 +24,15 @@ export type Operations = operations;
 export type Workspace = Schemas["WorkspaceResponse"];
 /** GET / 200 body — the caller's workspaces (memberships). */
 export type WorkspaceList = Schemas["WorkspaceListResponse"];
+/** PUT /me/preferred-workspace request body — the workspace the person is
+ * choosing as home. Must be one they actively belong to; anything else
+ * (unknown, not a member, invitation still pending, membership suspended)
+ * answers ONE identical `error.404.workspace_not_found`, so the endpoint
+ * cannot be used to probe which workspace ids are real. */
+export type PreferredWorkspace = Schemas["PreferredWorkspaceRequest"];
+/** PUT/DELETE /me/preferred-workspace 200 body — the choice after the write
+ * (`""` after a DELETE cleared it). */
+export type PreferredWorkspaceResult = Schemas["PreferredWorkspaceResponse"];
 /** POST / request body — create a workspace (slug auto-generated when omitted). */
 export type WorkspaceCreate = Schemas["WorkspaceCreateRequest"];
 /** PATCH /{id} request body — a partial name / slug / settings update. */

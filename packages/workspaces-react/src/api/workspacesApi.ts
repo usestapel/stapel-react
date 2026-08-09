@@ -13,6 +13,8 @@ import type {
   MemberPasswordResetResult,
   MemberRoleUpdate,
   MembersParams,
+  PreferredWorkspace,
+  PreferredWorkspaceResult,
   InvitationAccept,
   InvitationClaim,
   InvitationPreview,
@@ -75,6 +77,15 @@ export interface WorkspacesApi {
   ): Promise<Workspace>;
   /** Soft-delete a workspace (owner only). */
   deleteWorkspace(workspaceId: string): Promise<void>;
+
+  /**
+   * Record the caller's home workspace — their EXPLICIT choice, which the
+   * instance's `default_workspace_id` documents itself as yielding to.
+   * Answers 404 for anything they cannot actively open.
+   */
+  setPreferredWorkspace(body: PreferredWorkspace): Promise<PreferredWorkspaceResult>;
+  /** Clear the caller's home workspace — back to the resolution chain. Idempotent. */
+  clearPreferredWorkspace(): Promise<PreferredWorkspaceResult>;
 
   /** A workspace's members (viewer+), an anchor-paginated page. */
   listMembers(
@@ -237,6 +248,16 @@ export function createWorkspacesApi(client: StapelClient): WorkspacesApi {
 
     deleteWorkspace: (workspaceId) =>
       client.delete(`/${encodeURIComponent(workspaceId)}`, mutating()),
+
+    setPreferredWorkspace: (body) =>
+      client.put(
+        "/me/preferred-workspace",
+        body satisfies PreferredWorkspace,
+        mutating()
+      ),
+
+    clearPreferredWorkspace: () =>
+      client.delete("/me/preferred-workspace", mutating()),
 
     listMembers: (workspaceId, params) => {
       const query: Record<string, string | number> = {};

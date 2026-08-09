@@ -4,7 +4,7 @@
   "version": "0.10.0",
   "backend": {
     "module": "stapel-workspaces",
-    "contract": ">=0.19 <0.20"
+    "contract": ">=0.20 <0.21"
   },
   "layers": [
     "api",
@@ -109,6 +109,20 @@
       "request": null,
       "response": "InvitationResponse"
     },
+    "workspaces_api_v1_me_preferred_workspace_destroy": {
+      "method": "DELETE",
+      "path": "/workspaces/api/v1/me/preferred-workspace",
+      "tag": "Workspaces",
+      "request": null,
+      "response": "PreferredWorkspaceResponse"
+    },
+    "workspaces_api_v1_me_preferred_workspace_update": {
+      "method": "PUT",
+      "path": "/workspaces/api/v1/me/preferred-workspace",
+      "tag": "Workspaces",
+      "request": "PreferredWorkspaceRequest",
+      "response": "PreferredWorkspaceResponse"
+    },
     "workspaces_api_v1_members_destroy": {
       "method": "DELETE",
       "path": "/workspaces/api/v1/{workspace_id}/members/{user_id}",
@@ -206,6 +220,16 @@
     "useClaimInvitation": {
       "kind": "mutation",
       "operation": "claimInvitation"
+    },
+    "useClearPreferredWorkspace": {
+      "kind": "mutation",
+      "operation": "clearPreferredWorkspace",
+      "invalidates": [
+        [
+          "workspaces",
+          "list"
+        ]
+      ]
     },
     "useCreateWorkspace": {
       "kind": "mutation",
@@ -367,6 +391,16 @@
       "queryKey": [
         "workspaces",
         "roles"
+      ]
+    },
+    "useSetPreferredWorkspace": {
+      "kind": "mutation",
+      "operation": "setPreferredWorkspace",
+      "invalidates": [
+        [
+          "workspaces",
+          "list"
+        ]
       ]
     },
     "useUpdateMemberRole": {
@@ -1051,6 +1085,7 @@
       "WORKSPACES_FLOWS",
       "WORKSPACES_I18N_KEYS",
       "WorkspaceList",
+      "WorkspaceSelectionProvider",
       "WorkspacesProvider",
       "WorkspacesRuntimeContext",
       "capabilityLevel",
@@ -1072,6 +1107,7 @@
       "useCapabilities",
       "useCapabilityGate",
       "useClaimInvitation",
+      "useClearPreferredWorkspace",
       "useCreateWorkspace",
       "useDeclineInvitation",
       "useDeleteWorkspace",
@@ -1089,10 +1125,12 @@
       "useResetMemberPassword",
       "useRevokeInvitation",
       "useRoles",
+      "useSetPreferredWorkspace",
       "useUpdateMemberRole",
       "useUpdateSecuritySettings",
       "useUpdateWorkspace",
       "useWorkspace",
+      "useWorkspaceSelection",
       "useWorkspaces",
       "useWorkspacesAnalytics",
       "useWorkspacesApi",
@@ -1139,6 +1177,8 @@
       "MemberRoleUpdate",
       "MembersBag",
       "MembersParams",
+      "PreferredWorkspace",
+      "PreferredWorkspaceResult",
       "ProvisionedUserPolicy",
       "Remediation",
       "RoleInfo",
@@ -1153,6 +1193,10 @@
       "WorkspaceListData",
       "WorkspaceRole",
       "WorkspaceSecuritySettings",
+      "WorkspaceSelection",
+      "WorkspaceSelectionProviderProps",
+      "WorkspaceSelectionSource",
+      "WorkspaceSelectionUrlBinding",
       "WorkspaceUpdate",
       "WorkspacesApi",
       "WorkspacesErrorCode",

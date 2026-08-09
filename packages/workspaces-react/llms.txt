@@ -1,6 +1,6 @@
 # @stapel/workspaces-react 0.10.0
 
-Headless React flow pair for stapel-workspaces (contract >=0.19 <0.20) — business + state, zero visual opinion.
+Headless React flow pair for stapel-workspaces (contract >=0.20 <0.21) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -37,6 +37,8 @@ Paths are relative to `/workspaces/api/v1/`.
 - workspaces_api_v1_invitations_resend_create: POST /{workspace_id}/invitations/{invitation_id}/resend
 - workspaces_api_v1_invitations_retrieve: GET /invitations/{token}
 - workspaces_api_v1_invitations_revoke_create: POST /{workspace_id}/invitations/{invitation_id}/revoke
+- workspaces_api_v1_me_preferred_workspace_destroy: DELETE /me/preferred-workspace
+- workspaces_api_v1_me_preferred_workspace_update: PUT /me/preferred-workspace
 - workspaces_api_v1_members_destroy: DELETE /{workspace_id}/members/{user_id}
 - workspaces_api_v1_members_invite_create: POST /{workspace_id}/members/invite
 - workspaces_api_v1_members_list: GET /{workspace_id}/members
@@ -52,6 +54,7 @@ Paths are relative to `/workspaces/api/v1/`.
 ## Query hooks (server state; keys come only from the key factory)
 - useAcceptInvitation (mutation) → acceptInvitation
 - useClaimInvitation (mutation) → claimInvitation
+- useClearPreferredWorkspace (mutation) → clearPreferredWorkspace
 - useCreateWorkspace (mutation) → createWorkspace
 - useDeclineInvitation (mutation) → declineInvitation
 - useDeleteWorkspace (mutation) → deleteWorkspace
@@ -67,6 +70,7 @@ Paths are relative to `/workspaces/api/v1/`.
 - useResetMemberPassword (mutation) → resetMemberPassword
 - useRevokeInvitation (mutation) → revokeInvitation
 - useRoles (query) → listRoles
+- useSetPreferredWorkspace (mutation) → setPreferredWorkspace
 - useUpdateMemberRole (mutation) → updateMemberRole
 - useUpdateSecuritySettings (mutation) → getWorkspace+updateWorkspace
 - useUpdateWorkspace (mutation) → updateWorkspace

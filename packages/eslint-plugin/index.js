@@ -65,7 +65,12 @@ const rules = {
 };
 
 const plugin = {
-  meta: { name: "@stapel/eslint-plugin", version: "0.6.0" },
+  // Kept in step with package.json by a test (recommended-preset.test.js) —
+  // it had already drifted two releases (0.6.0 on a 0.7.0 package), and this
+  // is the version ESLint prints for the plugin in `--debug` and in config
+  // inspector output, i.e. exactly what someone reads when asking "which
+  // version of this rule am I actually running?".
+  meta: { name: "@stapel/eslint-plugin", version: "0.8.0" },
   rules,
 };
 
@@ -76,6 +81,13 @@ const JSX = ["**/*.{tsx,jsx}"];
 // forbid — raw ramps as validator input, deliberately-unknown i18n keys,
 // throwaway JSX copy — so the guardrails are scoped off there. Product source,
 // demos (`demo/`), and the showcase stay covered.
+//
+// A rule belongs in this carve-out only when a test's job is to PRODUCE the
+// forbidden shape (a fixture IS a raw ramp / an unknown key / a raw envelope).
+// It does NOT belong here merely because tests are "not product code": the
+// script canon (no-cyrillic-source, no-mixed-script-word) applies to test
+// sources exactly as it applies to product sources, and is therefore not
+// listed below — see the note at the end of the block.
 const TEST_FILES = [
   "**/*.{test,spec}.{ts,tsx,mts,cts,js,jsx,mjs,cjs}",
   "**/test/**",
@@ -305,12 +317,23 @@ const recommended = [
       // (that's what this rule's own tests do).
       "stapel/no-reserved-backend-route": "off",
       // require-disable-description stays ON — disable hygiene applies everywhere.
-      // no-cyrillic-source / no-mixed-script-word's OWN test fixtures are
-      // strings that deliberately contain Cyrillic and homoglyph words —
-      // that's what a script-canon rule's test suite IS. Off in tests only;
-      // product source, comments, and identifiers stay covered everywhere.
-      "stapel/no-cyrillic-source": "off",
-      "stapel/no-mixed-script-word": "off",
+      //
+      // no-cyrillic-source / no-mixed-script-word are DELIBERATELY ABSENT
+      // from this block (owner ruling 2026-08-09, second pass). 0.7.0 turned
+      // both off here so this plugin's own fixtures — which must contain
+      // Cyrillic and homoglyph words, that being what a script-canon rule's
+      // test suite IS — would lint clean. The cost was a blanket exemption
+      // every consumer inherited on every test file, and test files are
+      // exactly where the canon leaks: meettoday's sweep reported 5603 → 0
+      // and still had 15 live hits in one `.test.ts` the gate was skipping.
+      // The Python half of the same canon (stapel-tools R010/R011) runs ON
+      // test files for precisely that reason — Russian identifiers were
+      // thickest there, and pytest prints those names. The two halves now
+      // agree. This plugin's own fixture problem is solved where it belongs,
+      // in the two fixture files themselves, with a scoped file-level
+      // `eslint-disable … -- reason` (see test/no-cyrillic-source.test.js
+      // and test/no-mixed-script-word.test.js) — a mechanism that costs
+      // consumers nothing.
     },
   },
 ];

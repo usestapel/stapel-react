@@ -90,6 +90,7 @@ describe("no-cyrillic-source", () => {
         code: `const тестИмя = "expected value";`,
         errors: [{ messageId: "cyrillicIdentifier", data: { name: "тестИмя" } }],
       },
+      /* eslint-disable stapel/no-cyrillic-source, stapel/no-mixed-script-word -- the next fixture and the comment naming it ARE the homoglyph specimen under test; scoped to these lines only, the rest of this file stays covered. */
       // A mixed-script identifier (miттudei) is ALSO caught here — it
       // contains Cyrillic, full stop; no-mixed-script-word is a narrower,
       // literal-only sibling, not a replacement.
@@ -97,6 +98,7 @@ describe("no-cyrillic-source", () => {
         code: `const miттudei = 1;`,
         errors: [{ messageId: "cyrillicIdentifier", data: { name: "miттudei" } }],
       },
+      /* eslint-enable stapel/no-cyrillic-source, stapel/no-mixed-script-word */
       // Destructured binding name.
       {
         code: `const { имяПоля } = obj;`,

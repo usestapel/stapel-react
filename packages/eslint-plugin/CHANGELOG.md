@@ -1,5 +1,33 @@
 # @stapel/eslint-plugin
 
+## 0.8.0
+
+### Minor Changes
+
+- `recommended`: `no-cyrillic-source` and `no-mixed-script-word` now run on test files
+
+  0.7.0 switched both rules off for every test-file glob (`*.test.*`, `*.spec.*`,
+  `test/`, `tests/`, `__tests__/`, `__mocks__/`, `fixtures/`, `*.fixture.*`) so
+  that this plugin's own rule fixtures — which must contain Cyrillic and
+  homoglyph words — would lint clean. The cost was a blanket exemption every
+  consumer inherited on exactly the files where the English-only canon leaks
+  hardest: one downstream sweep reported 5603 → 0 violations and still had 15
+  live hits sitting in a single `.test.ts` the gate was skipping. The Python half
+  of the same canon (`stapel-tools` R010/R011) deliberately runs ON test files
+  for that reason — Russian identifiers were thickest there, and pytest prints
+  those names. The two halves now agree.
+
+  The plugin's own fixture problem is solved locally instead, in the two files
+  that have it, with a scoped `eslint-disable … -- reason`. Nothing ships to
+  consumers.
+
+  **This can newly fail your lint.** Consumers' test files are now covered.
+  Expect Cyrillic comments, JSDoc, and identifiers in tests to report; string
+  literals remain exempt, so Russian i18n copy and fixture content still pass
+  untouched. If the burn-down is large, baseline it (a file-scoped
+  `eslint-disable` with a ticket in the reason) rather than reinstating a glob —
+  a glob is how this was missed the first time.
+
 ## 0.7.0
 
 ### Minor Changes
