@@ -14,6 +14,7 @@ export const workspacesQueryKeys: {
   list(): readonly ["workspaces", "list"];
   detail(workspaceId: string): readonly ["workspaces", "detail", string];
   members(workspaceId: string): readonly ["workspaces", "members", string];
+  membersAll(): readonly ["workspaces", "members"];
   membersPage(
     workspaceId: string,
     params: MembersParams
@@ -45,6 +46,13 @@ export const workspacesQueryKeys: {
   // The bare 3-tuple is a valid prefix of membersPage's 4-tuple, so
   // invalidating `members(workspaceId)` (mutations.ts) drops every page.
   members: (workspaceId) => [ROOT, "members", workspaceId],
+  // EVERY workspace's roster, not one. Not a read key — nothing fetches it —
+  // but the invalidation scope of a write that moves a name the whole fleet
+  // shares: `MemberResponse.display_name` is a live lookup in
+  // stapel-profiles, so a rename lands on the person's CANONICAL name and
+  // every roster that lists them is stale at once, not just the one the
+  // admin happened to be looking at.
+  membersAll: () => [ROOT, "members"],
   membersPage: (workspaceId, params) => [ROOT, "members", workspaceId, params],
   // Same prefix trick as `members`: the bare 3-tuple invalidates every page
   // (and the infinite list, which keys on it) after a revoke / resend.

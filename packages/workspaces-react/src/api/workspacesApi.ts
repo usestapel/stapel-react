@@ -1,5 +1,7 @@
 import type { StapelClient, StapelRequestOptions } from "@stapel/core";
 import type {
+  DisplayNameResult,
+  DisplayNameUpdate,
   Invitation,
   InvitationPage,
   InvitationsParams,
@@ -94,6 +96,24 @@ export interface WorkspacesApi {
   removeMember(workspaceId: string, userId: string): Promise<void>;
 
   /**
+   * Correct a member's display name (stapel-workspaces ≥0.19.0, capability
+   * `members.role.change`). Writes the CANONICAL name — stapel-profiles'
+   * `Profile.display_name` through this module's in-process profiles seam,
+   * which also publishes `profile.changed` — NOT the membership's
+   * `display_name_hint`, which is a pre-profile placeholder that goes dark the
+   * moment a real profile exists.
+   *
+   * Only an owner may rename an owner. Where stapel-profiles does not run in
+   * the deployment's process the answer is `error.503.profiles_unavailable`,
+   * never a 200 over a write that did not happen.
+   */
+  renameMember(
+    workspaceId: string,
+    userId: string,
+    body: DisplayNameUpdate
+  ): Promise<DisplayNameResult>;
+
+  /**
    * Reset a member's password on the organization's order (stapel-workspaces
    * ≥0.14.0, #110). Capability `members.password.reset`, declared **high** —
    * the backend wraps it in `requires_verification(scope="sensitive")`, so an
@@ -141,6 +161,25 @@ export interface WorkspacesApi {
     workspaceId: string,
     invitationId: string
   ): Promise<Invitation>;
+  /**
+   * Fix a still-PENDING invitation's name hint (stapel-workspaces ≥0.19.0,
+   * capability `members.role.change` — the same one as {@link renameMember},
+   * because this hint IS the member's name after acceptance and splitting the
+   * two would let a role fix a name that reverts).
+   *
+   * The same correction as {@link renameMember}, one step earlier: the invitee
+   * has not accepted, so there is no profile of theirs to write and the name
+   * lives on the invitation. Before it, the only fix for a typo in an
+   * invitee's name was revoke-and-re-invite, which re-mails the person. A
+   * terminal invitation refuses with the keyed answers revoke gives
+   * (`error.400.invitation_already_used` / `_revoked` / `_declined` /
+   * `_expired`).
+   */
+  renameInvitation(
+    workspaceId: string,
+    invitationId: string,
+    body: DisplayNameUpdate
+  ): Promise<DisplayNameResult>;
 
   /** Accept an invitation by its token — returns the caller's new membership. */
   acceptInvitation(body: InvitationAccept): Promise<Member>;
@@ -227,6 +266,20 @@ export function createWorkspacesApi(client: StapelClient): WorkspacesApi {
     removeMember: (workspaceId, userId) =>
       client.delete(
         `/${encodeURIComponent(workspaceId)}/members/${encodeURIComponent(userId)}`,
+        mutating()
+      ),
+
+    renameMember: (workspaceId, userId, body) =>
+      client.patch(
+        `/${encodeURIComponent(workspaceId)}/members/${encodeURIComponent(userId)}/name`,
+        body satisfies DisplayNameUpdate,
+        mutating()
+      ),
+
+    renameInvitation: (workspaceId, invitationId, body) =>
+      client.patch(
+        `/${encodeURIComponent(workspaceId)}/invitations/${encodeURIComponent(invitationId)}/name`,
+        body satisfies DisplayNameUpdate,
         mutating()
       ),
 

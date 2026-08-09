@@ -89,6 +89,8 @@ export {
   useInviteMembers,
   useUpdateMemberRole,
   useRemoveMember,
+  useRenameMember,
+  useRenameInvitation,
   useAcceptInvitation,
   useClaimInvitation,
   useDeclineInvitation,
@@ -99,6 +101,8 @@ export {
 } from "./model/mutations.js";
 export type {
   MemberRoleChange,
+  MemberRename,
+  InvitationRename,
   MemberPasswordResetVars,
 } from "./model/mutations.js";
 
@@ -123,6 +127,8 @@ export type {
   InvitationClaim,
   MemberPasswordReset,
   MemberPasswordResetResult,
+  DisplayNameUpdate,
+  DisplayNameResult,
   ProvisionedUserPolicy,
   WorkspaceSecuritySettings,
   RoleInfo,

@@ -53,6 +53,20 @@ export type MemberPasswordReset = Schemas["MemberPasswordResetRequest"];
  * — see {@link "../model/mutations.js".useResetMemberPassword}, which keeps it
  * out of the query cache. */
 export type MemberPasswordResetResult = Schemas["MemberPasswordResetResponse"];
+/**
+ * PATCH /{id}/members/{userId}/name and PATCH
+ * /{id}/invitations/{invitationId}/name request body — the ONE field both
+ * name-edit endpoints take (stapel-workspaces ≥0.19.0). Blank,
+ * whitespace-only, `null` and a missing key all mean the same thing to the
+ * backend: clear the name. The value is held to stapel-profiles'
+ * `validate_display_name` canon (35-char ceiling as the serializer's
+ * `max_length`) — this module declares no second, differently-strict rule.
+ */
+export type DisplayNameUpdate = Schemas["PatchedDisplayNameUpdateRequest"];
+/** PATCH …/name 200 body — what the name IS after the write (the stored,
+ * trimmed, canon-checked value; empty string when the name was cleared), not
+ * an echo of the request. */
+export type DisplayNameResult = Schemas["DisplayNameResponse"];
 /** POST /invitations/accept request body — the token from the email link. */
 export type InvitationAccept = Schemas["InvitationAcceptRequest"];
 /** GET /invitations/{token} 200 body — the public (AllowAny) preview the

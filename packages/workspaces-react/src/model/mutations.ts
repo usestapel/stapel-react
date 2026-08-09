@@ -5,6 +5,7 @@ import type {
 } from "@tanstack/react-query";
 import type { StapelApiError } from "@stapel/core";
 import type {
+  DisplayNameResult,
   Invitation,
   Member,
   MemberInvite,
@@ -173,6 +174,132 @@ export function useRemoveMember(
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: workspacesQueryKeys.members(workspaceId),
+      });
+    },
+  };
+  return useMutation(options);
+}
+
+/** The variable for {@link useRenameMember}: whose name, and the new one.
+ * `displayName` is nullable because clearing IS a supported outcome — blank,
+ * whitespace-only and `null` all mean "no name for this person" to the
+ * backend, which then answers with an empty string. */
+export interface MemberRename {
+  readonly userId: string;
+  readonly displayName: string | null;
+}
+
+/**
+ * Correct a co-member's display name (PATCH /{id}/members/{userId}/name,
+ * stapel-workspaces ≥0.19.0) — the roster-side fix an owner/admin applies
+ * without waiting for the person themselves.
+ *
+ * **Capability `members.role.change`**, not `members.invite`: ask
+ * {@link "./queries.js".useCapabilityGate}(workspaceId,
+ * "members.role.change") before offering the affordance. It is `standard`, so
+ * no step-up is demanded (contrast {@link useResetMemberPassword}). Anonymous
+ * callers are denied outright, and only an owner may rename an owner.
+ *
+ * **What the write moves, and hence what is invalidated.** The backend writes
+ * the CANONICAL name — stapel-profiles' `Profile.display_name` through the
+ * in-process profiles seam — not the membership's local
+ * `display_name_hint`, which goes dark the moment a real profile exists. So
+ * the stale set is not "the page this row was on": it is EVERY cached roster,
+ * in every workspace, because `MemberResponse.display_name` is a live lookup
+ * of that one canonical value. Hence
+ * {@link "./queryKeys.js".workspacesQueryKeys.membersAll}, the workspace-less
+ * prefix — invalidating `members(workspaceId)` would leave the same person
+ * showing their old name on every other roster the session has open. A
+ * rename can also move a row out of an active `search` filter, which the
+ * prefix covers too (every page, every filter).
+ *
+ * A host that ALSO renders `@stapel/profiles-react` data for this person owns
+ * the other half: this pair never reaches into another pair's query namespace
+ * (the same seam discipline as `InviteAcceptFlow`'s basic-data slot), so
+ * invalidate `profilesQueryKeys.profile(userId)` yourself there.
+ *
+ * **Errors** arrive in the single dialect, keyed: the four display-name rules
+ * borrowed verbatim from stapel-profiles
+ * (`error.400.display_name_too_short` / `_forbidden_chars` /
+ * `_invisible_chars` / `_emoji`), over-length as the fleet-standard
+ * `error.400.field.max_length` with `{field, max_length}` (no bespoke code),
+ * and `error.503.profiles_unavailable` where stapel-profiles does not run in
+ * the deployment's process — an honest refusal rather than a 200 over a write
+ * that did not happen. Render them with `explainWorkspacesError` / `t(code,
+ * params)` like every other key.
+ */
+export function useRenameMember(
+  workspaceId: string
+): UseMutationResult<DisplayNameResult, StapelApiError, MemberRename> {
+  const api = useWorkspacesApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    DisplayNameResult,
+    StapelApiError,
+    MemberRename
+  > = {
+    mutationFn: ({ userId, displayName }) =>
+      api.renameMember(workspaceId, userId, { display_name: displayName }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: workspacesQueryKeys.membersAll(),
+      });
+    },
+  };
+  return useMutation(options);
+}
+
+/** The variable for {@link useRenameInvitation}: which pending invitation, and
+ * the corrected name hint (nullable for the same reason as
+ * {@link MemberRename}). */
+export interface InvitationRename {
+  readonly invitationId: string;
+  readonly displayName: string | null;
+}
+
+/**
+ * Fix a pending invitation's name hint (PATCH
+ * /{id}/invitations/{invitationId}/name, stapel-workspaces ≥0.19.0) — the
+ * same correction as {@link useRenameMember}, one step earlier. The invitee
+ * has not accepted, so there is no profile of theirs to write and the name
+ * lives on the invitation; `accept_invitation` copies it onto the membership.
+ * Before this endpoint the only fix for a typo in an invitee's name was
+ * revoke-and-re-invite, which re-mails the person.
+ *
+ * **The same capability as the member rename** (`members.role.change`, not
+ * the invitation surface's `members.invite`) — the hint IS the member's name
+ * after acceptance, so splitting them would let a role fix a name that
+ * reverts.
+ *
+ * Only a PENDING invitation is editable; a terminal one refuses with the
+ * keyed answers revoke gives (`error.400.invitation_already_used` /
+ * `_revoked` / `_declined` / `_expired`), and an accepted invitation's name
+ * is the member's name now — use {@link useRenameMember}. Validation is the
+ * same stapel-profiles canon, so the same four display-name keys surface
+ * here.
+ *
+ * Invalidation is deliberately NARROWER than the member rename's: the hint is
+ * a workspace-local column on one invitation, not a shared canonical name, so
+ * only this workspace's invitation lists (every page and the infinite walk —
+ * the bare 3-tuple prefix) can be showing it.
+ */
+export function useRenameInvitation(
+  workspaceId: string
+): UseMutationResult<DisplayNameResult, StapelApiError, InvitationRename> {
+  const api = useWorkspacesApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    DisplayNameResult,
+    StapelApiError,
+    InvitationRename
+  > = {
+    mutationFn: ({ invitationId, displayName }) =>
+      api.renameInvitation(workspaceId, invitationId, {
+        display_name: displayName,
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: workspacesQueryKeys.invitations(workspaceId),
       });
     },
   };

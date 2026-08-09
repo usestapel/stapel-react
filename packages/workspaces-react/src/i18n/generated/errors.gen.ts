@@ -39,6 +39,10 @@ export const WORKSPACES_ERRORS = {
   "error.400.bad_request": { status: 400, params: [], remediation: "fix_input", en: "Bad request" },
   "error.400.captcha_invalid": { status: 400, params: [], remediation: "retry", en: "Captcha verification failed. Please try again." },
   "error.400.captcha_required": { status: 400, params: [], remediation: "retry", en: "Captcha token is required." },
+  "error.400.display_name_emoji": { status: 400, params: [], remediation: "fix_input", en: "Display name cannot contain emoji" },
+  "error.400.display_name_forbidden_chars": { status: 400, params: [], remediation: "fix_input", en: "Display name contains forbidden characters" },
+  "error.400.display_name_invisible_chars": { status: 400, params: [], remediation: "fix_input", en: "Display name contains invisible characters" },
+  "error.400.display_name_too_short": { status: 400, params: [], remediation: "fix_input", en: "Display name must be at least 2 characters" },
   "error.400.expected_list": { status: 400, params: [], remediation: "fix_input", en: "Expected a list of items" },
   "error.400.field.blank": { status: 400, params: ["field"], remediation: "fix_input", en: "{field} may not be blank" },
   "error.400.field.does_not_exist": { status: 400, params: ["field"], remediation: "fix_input", en: "{field} does not exist" },
@@ -96,6 +100,7 @@ export const WORKSPACES_ERRORS = {
   "error.429.too_many_requests": { status: 429, params: [], remediation: "wait_and_retry", en: "Too many requests. Please try again later." },
   "error.500.internal": { status: 500, params: [], remediation: "contact_support", en: "Something went wrong" },
   "error.503.auth_unavailable": { status: 503, params: [], remediation: "wait_and_retry", en: "The authentication service is unavailable; try again later" },
+  "error.503.profiles_unavailable": { status: 503, params: [], remediation: "wait_and_retry", en: "The profiles service is unavailable; try again later" },
 } as const;
 
 export type WorkspacesErrorCode = keyof typeof WORKSPACES_ERRORS;
@@ -106,6 +111,10 @@ export const WORKSPACES_ERROR_CODES: readonly WorkspacesErrorCode[] = [
   "error.400.bad_request",
   "error.400.captcha_invalid",
   "error.400.captcha_required",
+  "error.400.display_name_emoji",
+  "error.400.display_name_forbidden_chars",
+  "error.400.display_name_invisible_chars",
+  "error.400.display_name_too_short",
   "error.400.expected_list",
   "error.400.field.blank",
   "error.400.field.does_not_exist",
@@ -163,6 +172,7 @@ export const WORKSPACES_ERROR_CODES: readonly WorkspacesErrorCode[] = [
   "error.429.too_many_requests",
   "error.500.internal",
   "error.503.auth_unavailable",
+  "error.503.profiles_unavailable",
 ];
 
 /**
@@ -175,6 +185,10 @@ export const workspacesErrorBundleEn: Record<WorkspacesErrorCode, string> = {
   "error.400.bad_request": "Bad request",
   "error.400.captcha_invalid": "Captcha verification failed. Please try again.",
   "error.400.captcha_required": "Captcha token is required.",
+  "error.400.display_name_emoji": "Display name cannot contain emoji",
+  "error.400.display_name_forbidden_chars": "Display name contains forbidden characters",
+  "error.400.display_name_invisible_chars": "Display name contains invisible characters",
+  "error.400.display_name_too_short": "Display name must be at least 2 characters",
   "error.400.expected_list": "Expected a list of items",
   "error.400.field.blank": "{field} may not be blank",
   "error.400.field.does_not_exist": "{field} does not exist",
@@ -232,4 +246,5 @@ export const workspacesErrorBundleEn: Record<WorkspacesErrorCode, string> = {
   "error.429.too_many_requests": "Too many requests. Please try again later.",
   "error.500.internal": "Something went wrong",
   "error.503.auth_unavailable": "The authentication service is unavailable; try again later",
+  "error.503.profiles_unavailable": "The profiles service is unavailable; try again later",
 };

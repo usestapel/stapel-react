@@ -126,6 +126,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/api/v1/{workspace_id}/invitations/{invitation_id}/name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * @description ``PATCH <ws>/invitations/<id>/name`` — fix a pending invite's name hint.
+         *
+         *     The same correction as :class:`MemberNameView`, one step earlier: the
+         *     invitee has not accepted, so there is no profile of theirs to write and
+         *     the name lives on the invitation as ``display_name_hint`` — the invite
+         *     modal's "Name" field, which ``accept_invitation`` copies onto the
+         *     membership at acceptance. Editing it after the fact is why this endpoint
+         *     exists: before #109's invitation surface the only fix for a typo in an
+         *     invitee's name was to revoke and re-invite, which re-mails the person.
+         *
+         *     Only a **pending** invitation is editable, with the same keyed refusals
+         *     revoke gives for each terminal state (``invitation_revoked`` /
+         *     ``already_used`` / ``declined`` / ``expired``): an accepted invitation's
+         *     name is the member's name now — use the member endpoint — and a dead
+         *     invitation is not a thing to relabel. Unknown and cross-workspace ids
+         *     collapse into one identical 404 (inherited resolution).
+         *
+         *     The value is still held to stapel-profiles' name canon even though the
+         *     column being written is local: this hint becomes a displayed name, and
+         *     the two endpoints must not disagree about what a name may contain.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        patch: operations["workspaces_api_v1_invitations_name_partial_update"];
+        trace?: never;
+    };
     "/workspaces/api/v1/{workspace_id}/invitations/{invitation_id}/resend": {
         parameters: {
             query?: never;
@@ -259,6 +299,50 @@ export interface paths {
          *     **Permissions:** `IsAuthenticated`
          */
         patch: operations["workspaces_api_v1_members_partial_update"];
+        trace?: never;
+    };
+    "/workspaces/api/v1/{workspace_id}/members/{user_id}/name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * @description ``PATCH <ws>/members/<user_id>/name`` — correct a member's display name.
+         *
+         *     Writes the CANONICAL name: stapel-profiles' ``Profile.display_name``,
+         *     reached through this module's existing in-process profiles seam
+         *     (``services.set_profile_display_name``), which also publishes
+         *     ``profile.changed`` so every consumer of that name follows.
+         *
+         *     NOT ``WorkspaceMember.display_name_hint``: the hint is a pre-profile
+         *     placeholder, copied once at creation and dark from the moment a real
+         *     profile exists (see its docstring in ``models.py``). Writing it would
+         *     produce a correction the roster shows and nothing else in the product
+         *     ever does — including, eventually, the roster.
+         *
+         *     Where stapel-profiles does not run in this process there is nothing to
+         *     write and no remote operation to call for it (that module publishes no
+         *     write-somebody-else's-name endpoint and no comm Function), so the answer
+         *     is an honest ``error.503.profiles_unavailable`` — never a 200 over a
+         *     write that did not happen.
+         *
+         *     Only an owner may rename an owner — the same hardcoded owner protection
+         *     that role changes, removals and password resets carry. Renaming is not
+         *     escalation, but an admin relabelling the owner of the organization on
+         *     every screen in the product is close enough to the same act to answer
+         *     the same way.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        patch: operations["workspaces_api_v1_members_name_partial_update"];
         trace?: never;
     };
     "/workspaces/api/v1/{workspace_id}/members/{user_id}/password/reset": {
@@ -606,34 +690,42 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description What the name is after the write — the stored value, not the request. */
+        DisplayNameResponse: {
+            /**
+             * @description The stored name, trimmed and canon-checked. Empty string when the name was cleared
+             * @example Ada Lovelace
+             */
+            display_name: string;
+        };
         /**
-         * @description Как развёрнут ЭТОТ инстанс — то, что клиенту нужно знать ДО того, как
-         *     он решит, что показать человеку без пространства.
+         * @description How THIS instance is deployed — what the client needs to know before
+         *     deciding what to show a person with no workspace.
          *
-         *     Ось ``landing`` (``STREET_LANDING_MODE``) существовала с 03.08.2026, но
-         *     жила только в окружении бэкенда: наружу не отдавалась ничем, и отличить
-         *     закрытый контур от публичного облака на клиенте было НЕЧЕМ.
+         *     The ``landing`` axis (``STREET_LANDING_MODE``) has existed since
+         *     2026-08-03 but lived only in backend config, with nothing exposing it —
+         *     a client had no way to tell a closed deployment from a public cloud one.
          *
-         *     Почему это не косметика. Экран, который видит человек, выброшенный из
-         *     Спейса (или вышедший сам), в этих двух мирах разный по существу:
+         *     This matters because the screen shown to someone who is no longer (or
+         *     never was) a workspace member differs by deployment:
          *
-         *     * ``none`` — закрытый контур: своего пространства у человека нет и
-         *     взяться неоткуда. Честный экран говорит «вы не участник, попросите
-         *     приглашение» и никуда не зовёт;
-         *     * ``personal`` — публичное облако: у него есть собственное
-         *     пространство, и туда можно вести.
+         *     * ``none`` — closed deployment: the person has no workspace and none is
+         *     obtainable. An honest screen says "you're not a member, ask for an
+         *     invite" and offers no path forward;
+         *     * ``personal`` — public cloud: they have their own workspace, and the
+         *     client can route them there.
          *
-         *     Показать «создайте встречу» тому, кому инстанс её создать не даст, —
-         *     это тупик, нарисованный кнопкой.
+         *     Offering "create a workspace" to someone the instance will never let
+         *     create one is a dead end drawn as a button.
          */
         InstanceShapeResponse: {
             /**
-             * @description С чем приземляется человек «с улицы»
+             * @description What a "street" (no-invite) arrival lands on
              * @example personal
              */
             landing: string;
             /**
-             * @description Можно ли завести учётку самому
+             * @description Whether self-registration is available
              * @example True
              */
             registration_open: boolean;
@@ -754,7 +846,7 @@ export interface components {
         /** @description Invite payload. */
         MemberInviteRequest: {
             /**
-             * @description Name hint for the invitee (this invite's "Имя" field), applied to every email in this request. Optional — an invite without one behaves exactly as before. NOT written into stapel-profiles directly (that store is the invitee's own): held on the invitation, copied onto the member at accept time, and shown only until stapel-profiles has a real name for the person
+             * @description Name hint for the invitee (this invite's "Name" field), applied to every email in this request. Optional — an invite without one behaves exactly as before. NOT written into stapel-profiles directly (that store is the invitee's own): held on the invitation, copied onto the member at accept time, and shown only until stapel-profiles has a real name for the person
              * @example Ada Lovelace
              */
             display_name?: string | null;
@@ -887,6 +979,14 @@ export interface components {
             has_prev: boolean;
             /** @description Number of items in current page */
             count: number;
+        };
+        /** @description Roster-side name correction (one field, both name-edit endpoints). */
+        PatchedDisplayNameUpdateRequest: {
+            /**
+             * @description The name to show for this person. Held to stapel-profiles' display-name canon (validate_display_name) — this module never adds a second, differently-strict rule. Blank, whitespace-only, null and a missing key all mean the same thing: clear the name
+             * @example Ada Lovelace
+             */
+            display_name?: string | null;
         };
         /** @description MemberUpdateRequest(role: str) */
         PatchedMemberUpdateRequest: {
@@ -1249,6 +1349,34 @@ export interface operations {
             };
         };
     };
+    workspaces_api_v1_invitations_name_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invitation_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedDisplayNameUpdateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedDisplayNameUpdateRequest"];
+                "multipart/form-data": components["schemas"]["PatchedDisplayNameUpdateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisplayNameResponse"];
+                };
+            };
+        };
+    };
     workspaces_api_v1_invitations_resend_create: {
         parameters: {
             query?: never;
@@ -1368,6 +1496,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemberResponse"];
+                };
+            };
+        };
+    };
+    workspaces_api_v1_members_name_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedDisplayNameUpdateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedDisplayNameUpdateRequest"];
+                "multipart/form-data": components["schemas"]["PatchedDisplayNameUpdateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisplayNameResponse"];
                 };
             };
         };

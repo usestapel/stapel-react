@@ -1,6 +1,6 @@
 # @stapel/workspaces-react 0.9.0
 
-Headless React flow pair for stapel-workspaces (contract >=0.18 <0.19) — business + state, zero visual opinion.
+Headless React flow pair for stapel-workspaces (contract >=0.19 <0.20) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -33,12 +33,14 @@ Paths are relative to `/workspaces/api/v1/`.
 - workspaces_api_v1_invitations_claim_create: POST /invitations/{token}/claim
 - workspaces_api_v1_invitations_decline_create: POST /invitations/{token}/decline
 - workspaces_api_v1_invitations_list: GET /{workspace_id}/invitations
+- workspaces_api_v1_invitations_name_partial_update: PATCH /{workspace_id}/invitations/{invitation_id}/name
 - workspaces_api_v1_invitations_resend_create: POST /{workspace_id}/invitations/{invitation_id}/resend
 - workspaces_api_v1_invitations_retrieve: GET /invitations/{token}
 - workspaces_api_v1_invitations_revoke_create: POST /{workspace_id}/invitations/{invitation_id}/revoke
 - workspaces_api_v1_members_destroy: DELETE /{workspace_id}/members/{user_id}
 - workspaces_api_v1_members_invite_create: POST /{workspace_id}/members/invite
 - workspaces_api_v1_members_list: GET /{workspace_id}/members
+- workspaces_api_v1_members_name_partial_update: PATCH /{workspace_id}/members/{user_id}/name
 - workspaces_api_v1_members_partial_update: PATCH /{workspace_id}/members/{user_id}
 - workspaces_api_v1_members_password_reset_create: POST /{workspace_id}/members/{user_id}/password/reset
 - workspaces_api_v1_members_provision_create: POST /{workspace_id}/members/provision
@@ -59,6 +61,8 @@ Paths are relative to `/workspaces/api/v1/`.
 - useInviteMembers (mutation) → inviteMembers
 - useMembers (query) → listMembers
 - useRemoveMember (mutation) → removeMember
+- useRenameInvitation (mutation) → renameInvitation
+- useRenameMember (mutation) → renameMember
 - useResendInvitation (mutation) → resendInvitation
 - useResetMemberPassword (mutation) → resetMemberPassword
 - useRevokeInvitation (mutation) → revokeInvitation
@@ -70,7 +74,7 @@ Paths are relative to `/workspaces/api/v1/`.
 - useWorkspaces (query) → listWorkspaces
 
 ## Errors (render t(code, params); UX from remediation)
-61 keys (full catalog: manifest.json §errors). By remediation: fix_input 29 · retry 12 · contact_support 7 · wait_and_retry 6 · verify 5 · reauthenticate 2.
+66 keys (full catalog: manifest.json §errors). By remediation: fix_input 33 · retry 12 · contact_support 7 · wait_and_retry 7 · verify 5 · reauthenticate 2.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}

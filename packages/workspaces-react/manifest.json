@@ -4,7 +4,7 @@
   "version": "0.9.0",
   "backend": {
     "module": "stapel-workspaces",
-    "contract": ">=0.18 <0.19"
+    "contract": ">=0.19 <0.20"
   },
   "layers": [
     "api",
@@ -81,6 +81,13 @@
       "request": null,
       "response": "PaginatedInvitationResponseList"
     },
+    "workspaces_api_v1_invitations_name_partial_update": {
+      "method": "PATCH",
+      "path": "/workspaces/api/v1/{workspace_id}/invitations/{invitation_id}/name",
+      "tag": "Members",
+      "request": "PatchedDisplayNameUpdateRequest",
+      "response": "DisplayNameResponse"
+    },
     "workspaces_api_v1_invitations_resend_create": {
       "method": "POST",
       "path": "/workspaces/api/v1/{workspace_id}/invitations/{invitation_id}/resend",
@@ -122,6 +129,13 @@
       "tag": "Members",
       "request": null,
       "response": "PaginatedMemberResponseList"
+    },
+    "workspaces_api_v1_members_name_partial_update": {
+      "method": "PATCH",
+      "path": "/workspaces/api/v1/{workspace_id}/members/{user_id}/name",
+      "tag": "Members",
+      "request": "PatchedDisplayNameUpdateRequest",
+      "response": "DisplayNameResponse"
     },
     "workspaces_api_v1_members_partial_update": {
       "method": "PATCH",
@@ -288,6 +302,27 @@
         ]
       ]
     },
+    "useRenameInvitation": {
+      "kind": "mutation",
+      "operation": "renameInvitation",
+      "invalidates": [
+        [
+          "workspaces",
+          "invitations",
+          "{workspaceId}"
+        ]
+      ]
+    },
+    "useRenameMember": {
+      "kind": "mutation",
+      "operation": "renameMember",
+      "invalidates": [
+        [
+          "workspaces",
+          "members"
+        ]
+      ]
+    },
     "useResendInvitation": {
       "kind": "mutation",
       "operation": "resendInvitation",
@@ -421,6 +456,26 @@
       "status": 400,
       "params": [],
       "remediation": "retry"
+    },
+    "error.400.display_name_emoji": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.display_name_forbidden_chars": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.display_name_invisible_chars": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.display_name_too_short": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
     },
     "error.400.expected_list": {
       "status": 400,
@@ -742,6 +797,11 @@
       "status": 503,
       "params": [],
       "remediation": "wait_and_retry"
+    },
+    "error.503.profiles_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "wait_and_retry"
     }
   },
   "events": {
@@ -852,6 +912,10 @@
     "error.400.bad_request",
     "error.400.captcha_invalid",
     "error.400.captcha_required",
+    "error.400.display_name_emoji",
+    "error.400.display_name_forbidden_chars",
+    "error.400.display_name_invisible_chars",
+    "error.400.display_name_too_short",
     "error.400.expected_list",
     "error.400.field.blank",
     "error.400.field.does_not_exist",
@@ -909,6 +973,7 @@
     "error.429.too_many_requests",
     "error.500.internal",
     "error.503.auth_unavailable",
+    "error.503.profiles_unavailable",
     "workspaces.accept.accept",
     "workspaces.accept.accepted",
     "workspaces.accept.accepting",
@@ -1018,6 +1083,8 @@
       "useInviteMembers",
       "useMembers",
       "useRemoveMember",
+      "useRenameInvitation",
+      "useRenameMember",
       "useResendInvitation",
       "useResetMemberPassword",
       "useRevokeInvitation",
@@ -1041,6 +1108,8 @@
       "CapabilityGate",
       "CapabilityLevel",
       "CreateWorkspacesRuntimeOptions",
+      "DisplayNameResult",
+      "DisplayNameUpdate",
       "FlowEndpoint",
       "FlowError",
       "FlowMachine",
@@ -1051,6 +1120,7 @@
       "InvitationClaim",
       "InvitationListData",
       "InvitationPreview",
+      "InvitationRename",
       "InvitationStatusFilter",
       "InvitationsParams",
       "InviteAcceptFlowBag",
@@ -1064,6 +1134,7 @@
       "MemberPasswordReset",
       "MemberPasswordResetResult",
       "MemberPasswordResetVars",
+      "MemberRename",
       "MemberRoleChange",
       "MemberRoleUpdate",
       "MembersBag",
