@@ -1,6 +1,7 @@
 /** Pricing table — headless catalogue + Stripe Checkout redirect. */
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
+import { mapLoad, matchList, useT } from "@stapel/core";
 import { cssVar } from "@stapel/tokens";
 import { PricingTable } from "../src/index.js";
 import {
@@ -37,39 +38,57 @@ const DEMO_CHECKOUT = {
 };
 
 function PricingTableBody(): ReactElement {
+  const t = useT();
   return (
     <DemoCard heading="PricingTable">
       <PricingTable>
-        {({ packages, isLoading, isCheckingOut, checkoutUrl, checkout }) => (
-          <>
-            <StepBadge
-              step={
-                isLoading
-                  ? "loading"
-                  : checkoutUrl
-                    ? "redirect"
-                    : `${packages.length} packages`
-              }
-            />
-            {checkoutUrl ? (
-              <span style={{ color: cssVar("text-muted") }}>
-                {checkoutUrl}
-              </span>
-            ) : null}
-            <DemoActions>
-              <DemoButton
-                run={() => {
-                  checkout({ package: "pro" });
-                }}
-                labelKey={
-                  isCheckingOut
-                    ? "billing.pricing.checking_out"
-                    : "billing.pricing.buy"
-                }
-              />
-            </DemoActions>
-          </>
-        )}
+        {({ state, isCheckingOut, checkoutUrl, checkout, refetch }) =>
+          // One state, two lists: project the one this surface draws. Buying
+          // lives in the `ready` arm — a slug is only worth sending once the
+          // catalogue that names it actually answered.
+          matchList(
+            mapLoad(state, (catalog) => catalog.packages),
+            {
+              loading: () => <StepBadge step="loading" />,
+              // The only branch that may claim the shop sells nothing.
+              empty: () => <StepBadge step="0 packages" />,
+              failed: () => (
+                <>
+                  <span style={{ color: cssVar("error") }}>
+                    {t("billing.pricing.error")}
+                  </span>
+                  <DemoActions>
+                    <DemoButton run={refetch} labelKey="billing.pricing.retry" />
+                  </DemoActions>
+                </>
+              ),
+              ready: (packages) => (
+                <>
+                  <StepBadge
+                    step={checkoutUrl ? "redirect" : `${packages.length} packages`}
+                  />
+                  {checkoutUrl ? (
+                    <span style={{ color: cssVar("text-muted") }}>
+                      {checkoutUrl}
+                    </span>
+                  ) : null}
+                  <DemoActions>
+                    <DemoButton
+                      run={() => {
+                        checkout({ package: "pro" });
+                      }}
+                      labelKey={
+                        isCheckingOut
+                          ? "billing.pricing.checking_out"
+                          : "billing.pricing.buy"
+                      }
+                    />
+                  </DemoActions>
+                </>
+              ),
+            }
+          )
+        }
       </PricingTable>
     </DemoCard>
   );

@@ -1,9 +1,10 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { render, renderHook, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement, ReactNode } from "react";
+import { matchList } from "@stapel/core";
 import { createProfilesRuntime } from "../src/model/runtime.js";
 import type { ProfilesRuntime } from "../src/model/runtime.js";
 import { ProfilesProvider } from "../src/headless/ProfilesProvider.js";
@@ -18,7 +19,12 @@ const USER = "b3f1c0de-0000-4000-8000-0000000000aa";
 
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  // This suite renders several trees per describe; without an explicit
+  // unmount a previous render's testids answer the next test's queries.
+  cleanup();
+  server.resetHandlers();
+});
 afterAll(() => server.close());
 
 const MY_PROFILE = {
@@ -147,6 +153,30 @@ describe("<Relationship> (follow flips status)", () => {
 });
 
 describe("<ConnectionList> (followers)", () => {
+  /** Renders every arm of the bag's load state under its own testid, so a
+   * test can assert which ONE of the four the user is looking at. */
+  function renderFollowers(): ReturnType<typeof render> {
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    return render(
+      wrap(
+        runtime,
+        <ConnectionList kind="followers">
+          {({ state, count }) => (
+            <div>
+              <span data-testid="count">{count ?? "—"}</span>
+              {matchList(state, {
+                loading: () => <span data-testid="loading" />,
+                failed: () => <span data-testid="failed" />,
+                empty: () => <span data-testid="empty">Nobody here yet.</span>,
+                ready: (ids) => <span data-testid="ids">{ids.length}</span>,
+              })}
+            </div>
+          )}
+        </ConnectionList>
+      )
+    );
+  }
+
   it("renders the follower ids and count", async () => {
     server.use(
       http.get(`${BASE}/me/followers`, () =>
@@ -159,24 +189,37 @@ describe("<ConnectionList> (followers)", () => {
         })
       )
     );
-    const runtime = createProfilesRuntime({ baseUrl: BASE });
-    render(
-      wrap(
-        runtime,
-        <ConnectionList kind="followers">
-          {({ ids, count }) => (
-            <div>
-              <span data-testid="count">{count}</span>
-              <span data-testid="ids">{ids.length}</span>
-            </div>
-          )}
-        </ConnectionList>
+    const view = renderFollowers();
+    await waitFor(() =>
+      expect(view.getByTestId("count").textContent).toBe("2")
+    );
+    expect(view.getByTestId("ids").textContent).toBe("2");
+  });
+
+  it("a read that FAILED renders the failed arm — never the empty one, and no count", async () => {
+    server.use(
+      http.get(`${BASE}/me/followers`, () =>
+        HttpResponse.json({ detail: "nope" }, { status: 500 })
       )
     );
-    await waitFor(() =>
-      expect(screen.getByTestId("count").textContent).toBe("2")
+    const view = renderFollowers();
+    await waitFor(() => expect(view.getByTestId("failed")).toBeDefined());
+    expect(view.queryByTestId("empty")).toBeNull();
+    expect(view.queryByTestId("ids")).toBeNull();
+    // A `0` beside a failed read is the same lie in a smaller font.
+    expect(view.getByTestId("count").textContent).toBe("—");
+  });
+
+  it("a read that SUCCEEDED with no rows renders the empty arm", async () => {
+    server.use(
+      http.get(`${BASE}/me/followers`, () =>
+        HttpResponse.json({ followers: [], count: 0 })
+      )
     );
-    expect(screen.getByTestId("ids").textContent).toBe("2");
+    const view = renderFollowers();
+    await waitFor(() => expect(view.getByTestId("empty")).toBeDefined());
+    expect(view.queryByTestId("failed")).toBeNull();
+    expect(view.getByTestId("count").textContent).toBe("0");
   });
 });
 

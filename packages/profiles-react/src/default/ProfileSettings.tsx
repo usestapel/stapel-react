@@ -65,7 +65,14 @@ import {
 } from "antd";
 import { resolveThemeMode, toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { useBreakpoint, useErrorDisplay, useT } from "@stapel/core";
+import {
+  loadStateFromQuery,
+  mapLoad,
+  matchList,
+  useBreakpoint,
+  useErrorDisplay,
+  useT,
+} from "@stapel/core";
 import type { FlowErrorDisplay } from "@stapel/core";
 import { useMyProfile, useProfileFieldManifest } from "../model/queries.js";
 import { useUpdateMyProfile } from "../model/mutations.js";
@@ -438,11 +445,6 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
 
   const mutationError = errorDisplay(mutation.error);
 
-  // Declaration order from the backend (identity, then standard_fields, then
-  // custom_fields) IS the order to render in — `order` is carried mainly so
-  // a consumer of the raw manifest can re-sort defensively; sort by it here
-  // too rather than trust array order blindly.
-  const entries = [...(manifest.data ?? [])].sort((a, b) => a.order - b.order);
   const showDisplayName = props.showDisplayName ?? true;
   const showTheme = props.showTheme ?? true;
   // Dedupe against a pre-0.7.0 backend whose registry still emits
@@ -452,9 +454,19 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
     ...(showDisplayName ? ["display_name"] : []),
     ...(showTheme ? ["theme"] : []),
   ]);
-  const visibleEntries = entries.filter(
-    (entry) =>
-      (entry.kind !== "geohash" || props.showGeohash) && !coreRendered.has(entry.name)
+  // Declaration order from the backend (identity, then standard_fields, then
+  // custom_fields) IS the order to render in — `order` is carried mainly so
+  // a consumer of the raw manifest can re-sort defensively; sort by it here
+  // too rather than trust array order blindly. The sort/filter happens INSIDE
+  // the load state: a manifest that could not be read is not a manifest with
+  // no fields.
+  const visibleEntries = mapLoad(loadStateFromQuery(manifest), (entries) =>
+    [...entries]
+      .sort((a, b) => a.order - b.order)
+      .filter(
+        (entry) =>
+          (entry.kind !== "geohash" || props.showGeohash) && !coreRendered.has(entry.name)
+      )
   );
 
   const displayNameValue =
@@ -550,17 +562,43 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
                 />
               </SettingRow>
             ))}
-          {visibleEntries.map((entry) => (
-            <FieldRow
-              key={entry.name}
-              entry={entry}
-              profile={profile}
-              saveCta={t(PROFILES_I18N_KEYS.profileSave)}
-              saving={mutation.isPending}
-              error={mutationError}
-              onPatch={(patch) => mutation.mutate(patch)}
-            />
-          ))}
+          {matchList(visibleEntries, {
+            loading: () => <Spin data-testid="profile-fields-loading" />,
+            failed: (error) => (
+              <div data-testid="profile-fields-failed">
+                <ErrorAlert error={errorDisplay(error)} />
+                <Button
+                  onClick={() => {
+                    void manifest.refetch();
+                  }}
+                  style={{ marginTop: 8 }}
+                  data-analytics="none"
+                  data-analytics-reason="retry of a failed read (no flow machine) — pairs carry no @stapel/analytics runtime dependency; the host instruments at its own call site"
+                >
+                  {t(PROFILES_I18N_KEYS.actionRetry)}
+                </Button>
+              </div>
+            ),
+            // A manifest a project selected nothing into is a real answer:
+            // the hard-core rows above ARE the screen, so there is nothing to
+            // add and nothing to announce.
+            empty: () => null,
+            ready: (entries) => (
+              <>
+                {entries.map((entry) => (
+                  <FieldRow
+                    key={entry.name}
+                    entry={entry}
+                    profile={profile}
+                    saveCta={t(PROFILES_I18N_KEYS.profileSave)}
+                    saving={mutation.isPending}
+                    error={mutationError}
+                    onPatch={(patch) => mutation.mutate(patch)}
+                  />
+                ))}
+              </>
+            ),
+          })}
         </Flex>
 
         <ErrorAlert error={mutationError} style={{ marginTop: 12 }} />

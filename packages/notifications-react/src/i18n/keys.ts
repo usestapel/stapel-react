@@ -17,6 +17,7 @@ export const NOTIFICATIONS_I18N_KEYS = {
   feedLoading: "notifications.feed.loading",
   feedLoadMore: "notifications.feed.load_more",
   feedEnd: "notifications.feed.end",
+  feedRetry: "notifications.feed.retry",
   // Device registration (DeviceRegistration headless)
   deviceRegister: "notifications.device.register",
   deviceUnregister: "notifications.device.unregister",
@@ -52,6 +53,7 @@ export const notificationsI18nBundleEn: I18nDictionary = {
   "notifications.feed.loading": "Loading notifications…",
   "notifications.feed.load_more": "Load more",
   "notifications.feed.end": "You're all caught up.",
+  "notifications.feed.retry": "Try again",
   "notifications.device.register": "Enable push notifications",
   "notifications.device.unregister": "Disable push notifications",
   "notifications.device.registering": "Enabling…",

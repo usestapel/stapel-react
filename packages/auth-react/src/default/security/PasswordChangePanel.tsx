@@ -10,9 +10,17 @@
  */
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Button, Card, Flex, Form, Input, Result, Tabs, Typography } from "antd";
-import { useFormatFlowError, useT } from "@stapel/core";
-import type { OtpChannel } from "../../api/types.js";
+import { Alert, Button, Card, Empty, Flex, Form, Input, Result, Tabs, Typography } from "antd";
+import type { ReactNode } from "react";
+import {
+  loadStateFromQuery,
+  mapLoad,
+  matchList,
+  useErrorDisplay,
+  useFormatFlowError,
+  useT,
+} from "@stapel/core";
+import type { OtpChannel, PasswordMethodEntry } from "../../api/types.js";
 import { methodCapabilityLabel } from "../channels.js";
 import { PasswordChange } from "../../headless/PasswordChange.js";
 import type { PasswordChangeBag } from "../../headless/PasswordChange.js";
@@ -20,6 +28,7 @@ import { useAuthSessionState } from "../../model/context.js";
 import { useCapabilities, usePasswordMethods } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import type { AuthI18nKey } from "../../i18n/keys.js";
+import { ErrorAlert } from "../ErrorAlert.js";
 import { OtpField } from "../OtpField.js";
 
 const CHANNEL_LABEL: Record<OtpChannel, AuthI18nKey> = {
@@ -173,10 +182,54 @@ function OtpTab(props: { bag: PasswordChangeBag; channel: OtpChannel; target: st
   );
 }
 
+/** The panel's Card, worn by EVERY state — loading, failed, empty and loaded
+ * alike — so a read that failed is a stated failure inside the password panel
+ * rather than a titled blank rectangle. */
+function PanelCard(props: { children?: ReactNode }): ReactElement {
+  const t = useT();
+  return (
+    <Card
+      title={t(AUTH_I18N_KEYS.secPasswordTitle)}
+      data-testid="password-change-panel"
+      style={{ width: "100%" }}
+    >
+      {props.children}
+    </Card>
+  );
+}
+
 /** Full password-change screen: tabs from the backend's `usePasswordMethods()`. */
 export function PasswordChangePanel(): ReactElement {
   const t = useT();
+  const errorDisplay = useErrorDisplay(AUTH_I18N_KEYS.unknownError);
   const methods = usePasswordMethods();
+  const entries = mapLoad(loadStateFromQuery(methods), (m) => m.methods);
+
+  return matchList(entries, {
+    loading: () => (
+      <PanelCard>
+        <Flex justify="center">
+          <Typography.Text type="secondary">…</Typography.Text>
+        </Flex>
+      </PanelCard>
+    ),
+    failed: (error) => (
+      <PanelCard>
+        <ErrorAlert error={errorDisplay(error)} onRetry={() => void methods.refetch()} />
+      </PanelCard>
+    ),
+    empty: () => (
+      <PanelCard>
+        <Empty description={t(AUTH_I18N_KEYS.secPasswordNoMethods)} />
+      </PanelCard>
+    ),
+    ready: (rows) => <LoadedPanel entries={rows} />,
+  });
+}
+
+/** The loaded panel: one tab per method this skin can actually drive. */
+function LoadedPanel(props: { entries: readonly PasswordMethodEntry[] }): ReactElement {
+  const t = useT();
   const caps = useCapabilities();
   const session = useAuthSessionState();
   const [active, setActive] = useState<string | null>(null);
@@ -186,33 +239,26 @@ export function PasswordChangePanel(): ReactElement {
     session.user?.is_anonymous ?? false
   );
 
-  const entries = methods.data?.methods ?? [];
+  const { entries } = props;
   const tabIds = entries
     .map((m) => m.method)
     .filter((m): m is "password" | "email" | "phone" => m === "password" || m === "email" || m === "phone");
   const activeTab = active && tabIds.includes(active as (typeof tabIds)[number]) ? active : tabIds[0];
 
-  if (methods.isLoading) {
-    return (
-      <Card title={t(AUTH_I18N_KEYS.secPasswordTitle)} style={{ width: "100%" }}>
-        <Flex justify="center">
-          <Typography.Text type="secondary">…</Typography.Text>
-        </Flex>
-      </Card>
-    );
-  }
+  // The read succeeded and returned methods, but none of them is one this
+  // skin can drive (e.g. `totp` only) — genuinely nothing to offer.
   if (tabIds.length === 0) {
-    return <Card title={t(AUTH_I18N_KEYS.secPasswordTitle)} style={{ width: "100%" }} />;
+    return (
+      <PanelCard>
+        <Empty description={t(AUTH_I18N_KEYS.secPasswordNoMethods)} />
+      </PanelCard>
+    );
   }
 
   return (
     <PasswordChange>
       {(bag) => (
-        <Card
-          title={t(AUTH_I18N_KEYS.secPasswordTitle)}
-          data-testid="password-change-panel"
-          style={{ width: "100%" }}
-        >
+        <PanelCard>
           {capLabelKey && (
             <Typography.Text
               type="secondary"
@@ -252,7 +298,7 @@ export function PasswordChangePanel(): ReactElement {
               }))}
             />
           )}
-        </Card>
+        </PanelCard>
       )}
     </PasswordChange>
   );

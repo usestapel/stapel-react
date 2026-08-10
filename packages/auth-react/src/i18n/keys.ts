@@ -61,6 +61,8 @@ export const AUTH_I18N_KEYS = {
   uiChannelSso: "auth.ui.channel_sso",
   uiChannelQr: "auth.ui.channel_qr",
   uiChannelMagicLink: "auth.ui.channel_magic_link",
+  /** Re-run a read that failed — `ErrorAlert`'s action button. */
+  uiRetry: "auth.ui.retry",
 
   // Registration surface (§68 promote/orphan fix follow-up): a channel-
   // filtered `AuthPanel mode="register"` — same zone machinery as the login
@@ -142,6 +144,9 @@ export const AUTH_I18N_KEYS = {
   secPasswordChangeCta: "auth.sec.password.change_cta",
   secPasswordViaOtpHint: "auth.sec.password.via_otp_hint",
   secPasswordSuccess: "auth.sec.password.success",
+  /** The account genuinely has no way to change its password from here — the
+   * only sentence allowed on a SUCCESSFUL, empty `usePasswordMethods()`. */
+  secPasswordNoMethods: "auth.sec.password.no_methods",
 
   secOauthTitle: "auth.sec.oauth.title",
   secOauthLinked: "auth.sec.oauth.linked",
@@ -307,6 +312,7 @@ export const authI18nBundleEn: I18nDictionary = {
   // Owner directive: "Magic link" reads as a gimmick — call it what it
   // is, a link sent to your email.
   "auth.ui.channel_magic_link": "Email link",
+  "auth.ui.retry": "Try again",
 
   // Registration surface
   "auth.ui.register_title": "Create account",
@@ -388,6 +394,8 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.sec.password.change_cta": "Change password",
   "auth.sec.password.via_otp_hint": "We'll send a code to {target}",
   "auth.sec.password.success": "Password changed.",
+  "auth.sec.password.no_methods":
+    "This account has no way to change its password here.",
 
   "auth.sec.oauth.title": "Connected accounts",
   "auth.sec.oauth.linked": "Connected",

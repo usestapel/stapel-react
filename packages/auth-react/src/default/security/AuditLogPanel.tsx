@@ -8,7 +8,14 @@
 import { useState } from "react";
 import type { ReactElement } from "react";
 import { Card, Empty, List, Spin, Tag, Typography } from "antd";
-import { useErrorDisplay, useT } from "@stapel/core";
+import {
+  isLoadReady,
+  loadStateFromQuery,
+  mapLoad,
+  matchList,
+  useErrorDisplay,
+  useT,
+} from "@stapel/core";
 import { useAuditLog } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import { ErrorAlert } from "../ErrorAlert.js";
@@ -38,49 +45,55 @@ export function AuditLogPanel(): ReactElement {
   const errorDisplay = useErrorDisplay(AUTH_I18N_KEYS.unknownError);
   const [page, setPage] = useState(1);
   const audit = useAuditLog(page);
-  const results = audit.data?.results ?? [];
-  const nextPage = audit.data?.next ?? null;
+  const pageState = loadStateFromQuery(audit);
+  const entries = mapLoad(pageState, (p) => p.results);
+  // Only ever read inside the `ready` arm below, where the page IS loaded.
+  const nextPage = isLoadReady(pageState) ? pageState.data.next : null;
 
   return (
     <Card title={t(AUTH_I18N_KEYS.secAuditTitle)} data-testid="audit-log-panel" style={{ width: "100%" }}>
-      {audit.isLoading ? (
-        <Spin />
-      ) : audit.isError ? (
-        <ErrorAlert error={errorDisplay(audit.error)} />
-      ) : results.length === 0 ? (
-        <Empty image={<SecurityEmptyIcon />} description={t(AUTH_I18N_KEYS.secAuditEmpty)} />
-      ) : (
-        <List
-          dataSource={results}
-          renderItem={(entry) => (
-            <List.Item key={entry.id}>
-              <List.Item.Meta
-                title={humanizeEventType(entry.event_type)}
-                description={
-                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    {formatWhen(entry.created_at)}
-                    {entry.ip_address
-                      ? ` — ${t(AUTH_I18N_KEYS.secAuditIp, { ip: entry.ip_address })}`
-                      : ""}
-                  </Typography.Text>
-                }
-              />
-              {entry.event_type.includes("suspicious") && <Tag color="warning">!</Tag>}
-            </List.Item>
-          )}
-          loadMore={
-            nextPage != null && (
-              <Typography.Link
-                onClick={() => setPage(nextPage)}
-                data-analytics="none"
-                data-analytics-reason="local-ui-load-more-audit-page"
-              >
-                {t(AUTH_I18N_KEYS.secAuditLoadMore)}
-              </Typography.Link>
-            )
-          }
-        />
-      )}
+      {matchList(entries, {
+        loading: () => <Spin />,
+        failed: (error) => (
+          <ErrorAlert error={errorDisplay(error)} onRetry={() => void audit.refetch()} />
+        ),
+        empty: () => (
+          <Empty image={<SecurityEmptyIcon />} description={t(AUTH_I18N_KEYS.secAuditEmpty)} />
+        ),
+        ready: (results) => (
+          <List
+            // antd's `dataSource` is mutable-typed; the rows are readonly.
+            dataSource={[...results]}
+            renderItem={(entry) => (
+              <List.Item key={entry.id}>
+                <List.Item.Meta
+                  title={humanizeEventType(entry.event_type)}
+                  description={
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      {formatWhen(entry.created_at)}
+                      {entry.ip_address
+                        ? ` — ${t(AUTH_I18N_KEYS.secAuditIp, { ip: entry.ip_address })}`
+                        : ""}
+                    </Typography.Text>
+                  }
+                />
+                {entry.event_type.includes("suspicious") && <Tag color="warning">!</Tag>}
+              </List.Item>
+            )}
+            loadMore={
+              nextPage != null && (
+                <Typography.Link
+                  onClick={() => setPage(nextPage)}
+                  data-analytics="none"
+                  data-analytics-reason="local-ui-load-more-audit-page"
+                >
+                  {t(AUTH_I18N_KEYS.secAuditLoadMore)}
+                </Typography.Link>
+              )
+            }
+          />
+        ),
+      })}
     </Card>
   );
 }

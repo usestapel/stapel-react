@@ -406,6 +406,53 @@ describe("<InitialSetupModal/> (default skin)", () => {
     expect(patches).toHaveLength(0);
   });
 
+  it("a blank name switches Save off WITH a readable reason; typing one clears it", async () => {
+    // `canSubmit` folds "saving" and "the name is blank" into one bit. Only
+    // the second is something the person can act on, so only it speaks — as
+    // text, because a disabled button gets no pointer events and a tooltip on
+    // it is a reason nobody can read.
+    serveWithLanguages(profileFixture());
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <InitialSetupModal open />));
+
+    const nameInput = await screen.findByTestId("initial-setup-display-name");
+    expect(screen.getByTestId("initial-setup-submit-reason").textContent).toBe(
+      "Enter a display name to continue."
+    );
+    expect(screen.getByText("Continue").closest("button")?.disabled).toBe(true);
+
+    fireEvent.change(nameInput, { target: { value: "Ada" } });
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("initial-setup-submit-reason")).toBeNull()
+    );
+    expect(screen.getByText("Continue").closest("button")?.disabled).toBe(false);
+  });
+
+  it("a language catalogue that FAILED shows the failure instead of dropping the row silently", async () => {
+    const { patches } = serveProfile(profileFixture());
+    server.use(
+      http.get(`${BASE}/languages/`, () =>
+        HttpResponse.json({ localizable_error: "", error: "boom", params: {} }, { status: 500 })
+      )
+    );
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <InitialSetupModal open />));
+
+    const nameInput = await screen.findByTestId("initial-setup-display-name");
+    await waitFor(() =>
+      expect(screen.getByTestId("initial-setup-languages-failed")).toBeDefined()
+    );
+    expect(screen.queryByText("App language")).toBeNull();
+
+    // First run still completes — the language is optional, so a failed
+    // catalogue costs the row, not the flow.
+    fireEvent.change(nameInput, { target: { value: "Ada" } });
+    fireEvent.click(screen.getByText("Continue"));
+    await waitFor(() => expect(patches).toHaveLength(1));
+    expect(patches[0]).toMatchObject({ display_name: "Ada", initial_setup_passed: true });
+  });
+
   it("skippable={false} is the blocking mode: no Skip, no ✕", async () => {
     serveWithLanguages(profileFixture());
     const runtime = createProfilesRuntime({ baseUrl: BASE });

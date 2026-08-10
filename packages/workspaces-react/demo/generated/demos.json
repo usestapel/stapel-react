@@ -66,7 +66,7 @@
     {
       "id": "workspaces.list",
       "title": "Workspace list",
-      "description": "The headless WorkspaceList wraps the read of the caller's workspaces plus an owner-seeded create, exposing workspaces / loading / creating / error state. Bring your own UI — the component is renderless.",
+      "description": "The headless WorkspaceList wraps the read of the caller's workspaces plus an owner-seeded create. The read arrives as a LoadState the skin renders through matchList, so 'no workspaces yet' and 'we could not load them' stay two different screens. Bring your own UI — the component is renderless.",
       "component": "WorkspaceList",
       "covers": [],
       "tokens": [
@@ -80,7 +80,7 @@
       ],
       "source": {
         "file": "demo/WorkspaceList.demo.tsx",
-        "line": 74
+        "line": 80
       }
     },
     {
@@ -100,7 +100,7 @@
       ],
       "source": {
         "file": "demo/Members.demo.tsx",
-        "line": 83
+        "line": 101
       }
     },
     {
@@ -139,7 +139,7 @@
       ],
       "source": {
         "file": "demo/RoleSelect.demo.tsx",
-        "line": 71
+        "line": 79
       }
     }
   ]

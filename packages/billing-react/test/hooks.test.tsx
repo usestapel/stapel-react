@@ -1,8 +1,15 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { render, renderHook, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { mapLoad, matchList } from "@stapel/core";
 import type { ReactElement, ReactNode } from "react";
 import { createBillingRuntime } from "../src/model/runtime.js";
 import type { BillingRuntime } from "../src/model/runtime.js";
@@ -126,9 +133,19 @@ describe("<PricingTable> (checkout happy path — payment mutation)", () => {
       wrap(
         runtime,
         <PricingTable>
-          {({ packages, checkoutUrl, checkout }) => (
+          {({ state, checkoutUrl, checkout }) => (
             <div>
-              <span data-testid="count">{packages.length}</span>
+              <span data-testid="count">
+                {matchList(
+                  mapLoad(state, (catalog) => catalog.packages),
+                  {
+                    loading: () => "loading",
+                    empty: () => "0",
+                    failed: () => "failed",
+                    ready: (packages) => String(packages.length),
+                  }
+                )}
+              </span>
               <span data-testid="url">{checkoutUrl ?? "none"}</span>
               <button onClick={() => checkout({ package: "pro" })}>buy</button>
             </div>
@@ -203,5 +220,87 @@ describe("<Subscription> (status + cancel)", () => {
       expect(screen.getByTestId("status").textContent).toBe("cancelled")
     );
     expect(screen.getByTestId("active").textContent).toBe("false");
+  });
+});
+
+/**
+ * The three answers a catalogue read can give, kept apart — the regression the
+ * `LoadState` cutover exists for. Before it the bag handed skins
+ * `packages: []` for BOTH "the shop sells nothing" and "the pricing endpoint
+ * is down", so a failed read rendered as a shop that sells nothing. msw drives
+ * the real transport, so the failed case is produced by an actual 500 (mock
+ * the wire, not the module).
+ */
+const PRICING_LOADING = "loading pricing";
+const PRICING_EMPTY = "nothing on sale";
+const PRICING_FAILED = "pricing unavailable";
+
+function PricingSkin(): ReactElement {
+  return (
+    <PricingTable>
+      {({ state }) =>
+        matchList(
+          mapLoad(state, (catalog) => catalog.packages),
+          {
+            loading: () => <span>{PRICING_LOADING}</span>,
+            empty: () => <span>{PRICING_EMPTY}</span>,
+            failed: () => <span>{PRICING_FAILED}</span>,
+            ready: (packages) => (
+              <span data-testid="rows">{packages.length}</span>
+            ),
+          }
+        )
+      }
+    </PricingTable>
+  );
+}
+
+describe("<PricingTable> load states (loading / empty / failed)", () => {
+  // These three assert on ABSENCE as much as presence, so each case needs a
+  // DOM of its own (this package's setup registers no auto-cleanup).
+  afterEach(cleanup);
+
+  it("shows the loading copy while the catalogue is in flight", async () => {
+    server.use(http.get(`${BASE}/products`, () => HttpResponse.json(CATALOG)));
+    const runtime = createBillingRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PricingSkin />));
+    expect(screen.getByText(PRICING_LOADING)).toBeDefined();
+    expect(screen.queryByText(PRICING_EMPTY)).toBeNull();
+    await waitFor(() => expect(screen.getByTestId("rows")).toBeDefined());
+  });
+
+  it("says the shop is empty only when the read actually answered empty", async () => {
+    server.use(
+      http.get(`${BASE}/products`, () =>
+        HttpResponse.json({ packages: [], plans: [] })
+      )
+    );
+    const runtime = createBillingRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PricingSkin />));
+    await waitFor(() =>
+      expect(screen.getByText(PRICING_EMPTY)).toBeDefined()
+    );
+  });
+
+  it("shows the failure — and NEVER the empty copy — when the read fails", async () => {
+    server.use(
+      http.get(`${BASE}/products`, () =>
+        HttpResponse.json(
+          {
+            localizable_error: "error.500.internal",
+            error: "Pricing is down",
+            params: {},
+          },
+          { status: 500 }
+        )
+      )
+    );
+    const runtime = createBillingRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PricingSkin />));
+    await waitFor(() =>
+      expect(screen.getByText(PRICING_FAILED)).toBeDefined()
+    );
+    expect(screen.queryByText(PRICING_EMPTY)).toBeNull();
+    expect(screen.queryByTestId("rows")).toBeNull();
   });
 });

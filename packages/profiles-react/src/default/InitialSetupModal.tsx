@@ -41,7 +41,15 @@ import {
 } from "antd";
 import { resolveThemeMode, toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { useErrorDisplay, useT } from "@stapel/core";
+import {
+  actionAvailable,
+  actionBlocked,
+  loadStateFromQuery,
+  matchList,
+  useActionGate,
+  useErrorDisplay,
+  useT,
+} from "@stapel/core";
 import { InitialSetupPrompt } from "../headless/InitialSetupPrompt.js";
 import type {
   InitialSetupFieldName,
@@ -110,12 +118,19 @@ function ModalBody(props: {
   const errorDisplay = useErrorDisplay(PROFILES_I18N_KEYS.unknownError);
   const languages = useLanguages();
   const { bag } = props;
+  const catalogue = loadStateFromQuery(languages);
+  // The bag's `canSubmit` folds two unrelated situations into one bit. Only
+  // one of them is something the person can act on, so only that one states a
+  // reason; "a PATCH is in flight" keeps the spinner it always had.
+  const submitGate = useActionGate(
+    bag.displayName.enabled && bag.displayName.value.trim().length === 0
+      ? actionBlocked(PROFILES_I18N_KEYS.initialSetupNameRequired)
+      : actionAvailable()
+  );
 
   if (bag.isLoading) {
     return <Spin data-testid="initial-setup-loading" />;
   }
-
-  const languageOptions = languages.data ?? [];
 
   return (
     <Flex vertical gap={20}>
@@ -154,23 +169,48 @@ function ModalBody(props: {
         </SettingRow>
       )}
 
-      {bag.language.enabled && languageOptions.length > 0 && (
-        <SettingRow label={t(PROFILES_I18N_KEYS.fieldAppLanguage)}>
-          <Select<string>
-            value={bag.language.value.length > 0 ? bag.language.value : null}
-            onChange={(v) => bag.language.set(v)}
-            style={{ width: "100%" }}
-            options={languageOptions.map((l) => ({
-              value: l.code,
-              label: `${l.name} (${l.code.toUpperCase()})`,
-            }))}
-          />
-        </SettingRow>
-      )}
+      {bag.language.enabled &&
+        matchList(catalogue, {
+          loading: () => <Spin data-testid="initial-setup-languages-loading" />,
+          failed: (error) => (
+            <ErrorAlert
+              error={errorDisplay(error)}
+              testId="initial-setup-languages-failed"
+            />
+          ),
+          // Nothing to pick, and nothing broken — first run goes on without
+          // the row rather than showing an empty dropdown.
+          empty: () => null,
+          ready: (options) => (
+            <SettingRow label={t(PROFILES_I18N_KEYS.fieldAppLanguage)}>
+              <Select<string>
+                value={bag.language.value.length > 0 ? bag.language.value : null}
+                onChange={(v) => bag.language.set(v)}
+                style={{ width: "100%" }}
+                options={options.map((l) => ({
+                  value: l.code,
+                  label: `${l.name} (${l.code.toUpperCase()})`,
+                }))}
+              />
+            </SettingRow>
+          ),
+        })}
 
       {bag.isError && <ErrorAlert error={errorDisplay(bag.error)} />}
 
-      <Flex gap={8} justify="flex-end">
+      <Flex gap={8} justify="flex-end" align="center">
+        {/* A switched-off control must say why, as TEXT: a disabled button
+            gets no pointer events, so a tooltip on it is a reason nobody can
+            read (@stapel/core actionGate.ts). */}
+        {submitGate.reason && (
+          <Typography.Text
+            type="secondary"
+            data-testid="initial-setup-submit-reason"
+            style={{ marginRight: "auto" }}
+          >
+            {submitGate.reason}
+          </Typography.Text>
+        )}
         {props.skippable && (
           <Button
             onClick={bag.skip}
@@ -184,7 +224,7 @@ function ModalBody(props: {
           type="primary"
           onClick={() => bag.submit()}
           loading={bag.isSaving}
-          disabled={!bag.canSubmit}
+          disabled={submitGate.disabled || bag.isSaving}
           data-analytics="none"
           data-analytics-reason="business action (a plain PATCH, no flow machine) — pairs carry no @stapel/analytics runtime dependency; the host instruments at its own call site"
         >

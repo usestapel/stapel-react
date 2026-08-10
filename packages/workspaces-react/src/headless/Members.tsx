@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import type { StapelApiError } from "@stapel/core";
+import { loadStateFromQuery, mapLoad } from "@stapel/core";
+import type { LoadState, StapelApiError } from "@stapel/core";
 import type { Member, MemberInvite } from "../api/types.js";
 import { useMembers } from "../model/queries.js";
 import {
@@ -12,18 +13,19 @@ import type { MemberRoleChange } from "../model/mutations.js";
 /** Render-prop bag for {@link Members}. */
 export interface MembersBag {
   /**
-   * The workspace's members once loaded (empty before load). This is one page
-   * (default 100) — the roster's own {@link Member.email}/`search` narrows
-   * further; a full pager is out of scope for this renderless view (bring
-   * your own via `useMembers`' `params` for anchor pagination).
+   * The roster read, as a state a skin cannot flatten — render it with core's
+   * `matchList`. This is one page (default 100); a full pager is out of scope
+   * for this renderless view (bring your own via `useMembers`' `params` for
+   * anchor pagination).
+   *
+   * Separate from {@link writeError} on purpose: "the roster could not be
+   * loaded" and "your invite was rejected" are different sentences, and the
+   * old merged `isError` could only produce one of them.
    */
-  readonly members: readonly Member[];
-  /** The initial member-list load is in flight. */
-  readonly isLoading: boolean;
-  /** The read, an invite, a role change, or a removal failed. */
-  readonly isError: boolean;
-  /** The error, when `isError` (a localizable `StapelApiError`), else null. */
-  readonly error: StapelApiError | null;
+  readonly state: LoadState<readonly Member[]>;
+  /** An invite, a role change, or a removal failed. Never the read — that is
+   * {@link state}. */
+  readonly writeError: StapelApiError | null;
   /** Invite one or more emails at a role. */
   invite(body: MemberInvite): void;
   /** An invite call is in flight. */
@@ -49,7 +51,7 @@ export interface MembersBag {
  *
  * ```tsx
  * <Members workspaceId={id}>
- *   {({ members, invite, updateRole, remove }) => ( ... )}
+ *   {({ state, invite, updateRole, remove }) => ( ... )}
  * </Members>
  * ```
  */
@@ -62,19 +64,9 @@ export function Members(props: {
   const roleMutation = useUpdateMemberRole(props.workspaceId);
   const removeMutation = useRemoveMember(props.workspaceId);
   return props.children({
-    members: query.data?.items ?? [],
-    isLoading: query.isLoading,
-    isError:
-      query.isError ||
-      inviteMutation.isError ||
-      roleMutation.isError ||
-      removeMutation.isError,
-    error:
-      query.error ??
-      inviteMutation.error ??
-      roleMutation.error ??
-      removeMutation.error ??
-      null,
+    state: mapLoad(loadStateFromQuery(query), (page) => page.items),
+    writeError:
+      inviteMutation.error ?? roleMutation.error ?? removeMutation.error ?? null,
     invite: (body) => {
       inviteMutation.mutate(body);
     },

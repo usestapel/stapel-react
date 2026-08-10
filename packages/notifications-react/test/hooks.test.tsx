@@ -4,6 +4,7 @@ import { setupServer } from "msw/node";
 import { render, renderHook, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement, ReactNode } from "react";
+import { loadedRowsOrEmpty } from "@stapel/core";
 import { createNotificationsRuntime } from "../src/model/runtime.js";
 import type { NotificationsRuntime } from "../src/model/runtime.js";
 import { NotificationsProvider } from "../src/headless/NotificationsProvider.js";
@@ -80,9 +81,9 @@ describe("<NotificationFeed> (headless, load-more)", () => {
       wrap(
         runtime,
         <NotificationFeed>
-          {({ items, hasNextPage, fetchNextPage }) => (
+          {({ state, hasNextPage, fetchNextPage }) => (
             <div>
-              <span data-testid="count">{items.length}</span>
+              <span data-testid="count">{loadedRowsOrEmpty(state).length}</span>
               <span data-testid="has-next">{String(hasNextPage)}</span>
               <button onClick={fetchNextPage}>more</button>
             </div>

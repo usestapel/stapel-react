@@ -2,10 +2,10 @@
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
 import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
-import { useT } from "@stapel/core";
+import { mapLoad, matchList, useT } from "@stapel/core";
 import { CalendarView } from "../src/index.js";
 import type { CalendarEvent } from "../src/index.js";
-import { CalendarDemoHarness, DemoCard } from "./_harness.js";
+import { CalendarDemoHarness, DemoButton, DemoCard } from "./_harness.js";
 
 /** A canned calendar page — two concrete events, no series occurrences. */
 const CALENDAR_PAGE = {
@@ -65,29 +65,42 @@ function CalendarViewBody(): ReactElement {
   return (
     <DemoCard heading="CalendarView">
       <CalendarView>
-        {({ events, isLoading }) => {
-          if (isLoading) {
-            return (
-              <span style={{ color: cssVar("text-muted") }}>
-                {t("calendar.view.loading")}
-              </span>
-            );
-          }
-          if (events.length === 0) {
-            return (
-              <span style={{ color: cssVar("text-muted") }}>
-                {t("calendar.view.empty")}
-              </span>
-            );
-          }
-          return (
-            <ul style={{ margin: 0, padding: 0, borderRadius: radii.sm }}>
-              {events.map((event) => (
-                <EventRow key={event.id} event={event} />
-              ))}
-            </ul>
-          );
-        }}
+        {({ state, refetch }) =>
+          // One state, two lists: project the one this surface draws. The four
+          // arms are why "nothing scheduled" and "could not ask" cannot share
+          // a branch — an empty grid is the normal case here, so a failed read
+          // rendered as one would be invisible.
+          matchList(
+            mapLoad(state, (range) => range.events),
+            {
+              loading: () => (
+                <span style={{ color: cssVar("text-muted") }}>
+                  {t("calendar.view.loading")}
+                </span>
+              ),
+              empty: () => (
+                <span style={{ color: cssVar("text-muted") }}>
+                  {t("calendar.view.empty")}
+                </span>
+              ),
+              failed: () => (
+                <>
+                  <span style={{ color: cssVar("error") }}>
+                    {t("calendar.view.error")}
+                  </span>
+                  <DemoButton run={refetch} labelKey="calendar.view.retry" />
+                </>
+              ),
+              ready: (events) => (
+                <ul style={{ margin: 0, padding: 0, borderRadius: radii.sm }}>
+                  {events.map((event) => (
+                    <EventRow key={event.id} event={event} />
+                  ))}
+                </ul>
+              ),
+            }
+          )
+        }
       </CalendarView>
     </DemoCard>
   );

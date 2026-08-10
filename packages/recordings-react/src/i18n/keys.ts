@@ -15,6 +15,11 @@ export const RECORDINGS_I18N_KEYS = {
   // Recording list (RecordingList headless)
   listLoading: "recordings.list.loading",
   listEmpty: "recordings.list.empty",
+  // The sentence whose absence let a total outage render as a first-run
+  // screen. It is about US failing to load, never about the person having
+  // uploaded nothing.
+  listLoadFailed: "recordings.list.load_failed",
+  retry: "recordings.retry",
   listError: "recordings.list.error",
   listRetry: "recordings.list.retry",
   // Composer (RecordingComposer headless)
@@ -47,6 +52,9 @@ export const recordingsI18nBundleEn: I18nDictionary = {
   "recordings.error.unknown": "Something went wrong. Please try again.",
   "recordings.list.loading": "Loading your recordings…",
   "recordings.list.empty": "No recordings yet.",
+  "recordings.list.load_failed":
+    "We could not load your recordings. This is a problem on our side, not a sign that you have none.",
+  "recordings.retry": "Try again",
   "recordings.list.error": "Couldn't load your recordings.",
   "recordings.list.retry": "Try again",
   "recordings.composer.create": "New recording",

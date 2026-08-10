@@ -25,6 +25,8 @@ export const BILLING_I18N_KEYS = {
   pricingBuy: "billing.pricing.buy",
   pricingSubscribe: "billing.pricing.subscribe",
   pricingCheckingOut: "billing.pricing.checking_out",
+  pricingError: "billing.pricing.error",
+  pricingRetry: "billing.pricing.retry",
   // Subscription (Subscription headless)
   subActive: "billing.subscription.active",
   subInactive: "billing.subscription.inactive",
@@ -60,6 +62,8 @@ export const billingI18nBundleEn: I18nDictionary = {
   "billing.pricing.buy": "Buy",
   "billing.pricing.subscribe": "Subscribe",
   "billing.pricing.checking_out": "Redirecting to checkout…",
+  "billing.pricing.error": "Couldn't load pricing.",
+  "billing.pricing.retry": "Try again",
   "billing.subscription.active": "Active",
   "billing.subscription.inactive": "Inactive",
   "billing.subscription.cancel": "Cancel subscription",

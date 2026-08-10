@@ -85,6 +85,7 @@ export type { WalletBag } from "./headless/Wallet.js";
 export { PricingTable } from "./headless/PricingTable.js";
 export type {
   PricingTableBag,
+  PricingCatalog,
   CheckoutSelection,
 } from "./headless/PricingTable.js";
 export { Subscription } from "./headless/Subscription.js";

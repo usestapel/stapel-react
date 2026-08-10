@@ -14,7 +14,9 @@
  *    `access_token` obtained by running that provider's OAuth SDK/popup in
  *    the browser — a host-specific integration this pair cannot perform
  *    itself. Supply `getAccessToken(providerId)`; without it, "Connect" is
- *    disabled with an explanatory tooltip instead of silently doing nothing.
+ *    disabled and the reason is printed beside it (`useActionGate`) — a
+ *    disabled button receives no pointer events, so a tooltip on it is a
+ *    reason no keyboard or touch user can reach.
  *
  * All three calls will 404 against the currently-pinned stapel-auth release —
  * this component is ready for the day the pin bumps to a commit that has
@@ -22,11 +24,24 @@
  */
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Alert, Avatar, Button, Card, Empty, Flex, Popconfirm, Tag, Tooltip, Typography } from "antd";
-import { useFormatFlowError, useT } from "@stapel/core";
+import { Alert, Avatar, Button, Card, Empty, Flex, Popconfirm, Spin, Tag, Typography } from "antd";
+import {
+  actionAvailable,
+  actionBlocked,
+  bothLoaded,
+  loadStateFromQuery,
+  mapLoad,
+  matchList,
+  useActionGate,
+  useErrorDisplay,
+  useFormatFlowError,
+  useT,
+} from "@stapel/core";
+import type { Capabilities, LinkedOAuthAccount } from "../../api/types.js";
 import { useLinkOAuth, useUnlinkOAuth } from "../../model/mutations.js";
 import { useCapabilities, useOAuthLinks } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
+import { ErrorAlert } from "../ErrorAlert.js";
 import { SecurityEmptyIcon } from "./icons.js";
 
 export interface OAuthLinksProps {
@@ -38,18 +53,40 @@ export interface OAuthLinksProps {
   readonly emptyIcon?: ReactNode;
 }
 
+type OAuthProvider = Capabilities["registration"]["oauth"][number];
+
 /** Full connected-accounts screen: real read + unlink; link needs `getAccessToken`. */
 export function OAuthLinks(props: OAuthLinksProps): ReactElement {
   const t = useT();
   const formatError = useFormatFlowError();
+  const errorDisplay = useErrorDisplay(AUTH_I18N_KEYS.unknownError);
   const caps = useCapabilities();
   const links = useOAuthLinks();
   const link = useLinkOAuth();
   const unlink = useUnlinkOAuth();
   const [pending, setPending] = useState<string | null>(null);
 
-  const providers = caps.data?.registration.oauth ?? [];
-  const linkedByProvider = new Map((links.data ?? []).map((l) => [l.provider, l]));
+  // Both reads or nothing: a provider row rendered without its links answer
+  // would show "not connected" for an account that IS connected, which is the
+  // same lie as an empty list standing in for a failed one.
+  const rows = mapLoad(
+    bothLoaded(
+      mapLoad(loadStateFromQuery(caps), (c) => c.registration.oauth),
+      loadStateFromQuery(links)
+    ),
+    ([providers, linked]): readonly { provider: OAuthProvider; link: LinkedOAuthAccount | undefined }[] =>
+      providers.map((provider) => ({
+        provider,
+        link: linked.find((l) => l.provider === provider.id),
+      }))
+  );
+
+  // "Connect" needs a host-supplied token getter; when there is none the
+  // button is off AND says so in text next to it — a disabled button gets no
+  // pointer events, so a tooltip would be a reason nobody can read.
+  const connectGate = useActionGate(
+    props.getAccessToken ? actionAvailable() : actionBlocked(AUTH_I18N_KEYS.secOauthLinkUnavailable)
+  );
 
   async function handleConnect(providerId: string): Promise<void> {
     if (!props.getAccessToken) return;
@@ -67,26 +104,26 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
 
   return (
     <Card title={t(AUTH_I18N_KEYS.secOauthTitle)} data-testid="oauth-links" style={{ width: "100%" }}>
-      {providers.length === 0 ? (
-        <Empty
-          image={props.emptyIcon ?? <SecurityEmptyIcon />}
-          description={t(AUTH_I18N_KEYS.secOauthEmpty)}
-        />
-      ) : (
-        <Flex vertical gap="middle">
-          {providers.map((p) => {
-            const linked = linkedByProvider.get(p.id);
-            const connectButton = (
-              <Button
-                disabled={!props.getAccessToken}
-                loading={pending === p.id}
-                onClick={() => void handleConnect(p.id)}
-                data-analytics="flow"
-              >
-                {t(AUTH_I18N_KEYS.secOauthLink)}
-              </Button>
-            );
-            return (
+      {matchList(rows, {
+        loading: () => <Spin />,
+        failed: (error) => (
+          <ErrorAlert
+            error={errorDisplay(error)}
+            onRetry={() => {
+              void caps.refetch();
+              void links.refetch();
+            }}
+          />
+        ),
+        empty: () => (
+          <Empty
+            image={props.emptyIcon ?? <SecurityEmptyIcon />}
+            description={t(AUTH_I18N_KEYS.secOauthEmpty)}
+          />
+        ),
+        ready: (list) => (
+          <Flex vertical gap="middle">
+            {list.map(({ provider: p, link: linked }) => (
               <Flex key={p.id} justify="space-between" align="center">
                 <Flex gap="small" align="center">
                   <Avatar size="small">{p.name.slice(0, 1).toUpperCase()}</Avatar>
@@ -107,18 +144,28 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
                       {t(AUTH_I18N_KEYS.secOauthUnlink)}
                     </Button>
                   </Popconfirm>
-                ) : props.getAccessToken ? (
-                  connectButton
                 ) : (
-                  <Tooltip title={t(AUTH_I18N_KEYS.secOauthLinkUnavailable)}>
-                    <span>{connectButton}</span>
-                  </Tooltip>
+                  <Flex vertical align="flex-end" gap={4}>
+                    <Button
+                      disabled={connectGate.disabled}
+                      loading={pending === p.id}
+                      onClick={() => void handleConnect(p.id)}
+                      data-analytics="flow"
+                    >
+                      {t(AUTH_I18N_KEYS.secOauthLink)}
+                    </Button>
+                    {connectGate.reason && (
+                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        {connectGate.reason}
+                      </Typography.Text>
+                    )}
+                  </Flex>
                 )}
               </Flex>
-            );
-          })}
-        </Flex>
-      )}
+            ))}
+          </Flex>
+        ),
+      })}
 
       {link.isError && <Alert type="error" showIcon message={formatError({
         code: link.error.code,

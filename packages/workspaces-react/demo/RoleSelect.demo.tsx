@@ -2,8 +2,9 @@
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
 import { cssVar } from "@stapel/tokens";
+import { matchList } from "@stapel/core";
 import { RoleSelect } from "../src/index.js";
-import { WorkspacesDemoHarness, DemoCard } from "./_harness.js";
+import { WorkspacesDemoHarness, DemoCard, StepBadge } from "./_harness.js";
 
 /** The canned registry: the builtin four plus a deployment overlay role
  * (`secretary`) — which has NO `workspaces.role.*` translation, so its label
@@ -44,18 +45,25 @@ function RoleSelectDemo(): ReactElement {
     <WorkspacesDemoHarness handlers={{ "/roles": DEMO_ROLES }}>
       <DemoCard heading="RoleSelect">
         <RoleSelect>
-          {({ roles, labelFor }) => (
-            <ul style={{ margin: 0, paddingLeft: 20 }}>
-              {roles.map((r) => (
-                <li key={r.role}>
-                  <span>{labelFor(r.role)}</span>{" "}
-                  <code style={{ color: cssVar("text-muted") }}>
-                    {r.role} · {r.rank}
-                  </code>
-                </li>
-              ))}
-            </ul>
-          )}
+          {({ state, labelFor }) =>
+            matchList(state, {
+              loading: () => <StepBadge step="loading" />,
+              failed: () => <StepBadge step="could not load the role registry" />,
+              empty: () => <StepBadge step="no roles in this deployment" />,
+              ready: (roles) => (
+                <ul style={{ margin: 0, paddingLeft: 20 }}>
+                  {roles.map((r) => (
+                    <li key={r.role}>
+                      <span>{labelFor(r.role)}</span>{" "}
+                      <code style={{ color: cssVar("text-muted") }}>
+                        {r.role} · {r.rank}
+                      </code>
+                    </li>
+                  ))}
+                </ul>
+              ),
+            })
+          }
         </RoleSelect>
       </DemoCard>
     </WorkspacesDemoHarness>

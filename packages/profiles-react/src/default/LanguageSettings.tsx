@@ -18,10 +18,10 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import type { ReactElement } from "react";
-import { Card, Checkbox, ConfigProvider, Select, Spin, Typography } from "antd";
+import { Button, Card, Checkbox, ConfigProvider, Select, Spin, Typography } from "antd";
 import { resolveThemeMode, toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { useErrorDisplay, useT } from "@stapel/core";
+import { loadStateFromQuery, matchList, useErrorDisplay, useT } from "@stapel/core";
 import { useMyProfile } from "../model/queries.js";
 import { useUpdateMyProfile } from "../model/mutations.js";
 import { useLanguages } from "../model/queries.js";
@@ -105,7 +105,12 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
     );
   }
 
-  const options = languages.data ?? [];
+  // The catalogue is what BOTH rows are made of, so both live inside one
+  // `matchList`: a picker built out of a failed read used to look like a
+  // working control offering a single raw language code, and the
+  // "languages you understand" block simply vanished (owner ruling
+  // 2026-08-09 — the absence of a result is not a result).
+  const catalogue = loadStateFromQuery(languages);
   const pickerValue = useDeviceLanguage ? AUTO : appLanguage;
   const mutationError = errorDisplay(mutation.error);
 
@@ -118,33 +123,59 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
         <Typography.Text type="secondary">{t(PROFILES_I18N_KEYS.languageSubtitle)}</Typography.Text>
 
         <div style={{ display: "grid", gap: 12, maxWidth: 480, marginTop: 16 }}>
-          <div>
-            <Typography.Text>{t(PROFILES_I18N_KEYS.fieldAppLanguage)}</Typography.Text>
-            <Select<string>
-              value={pickerValue}
-              onChange={pickAppLanguage}
-              style={{ width: "100%" }}
-              options={[
-                { value: AUTO, label: t(PROFILES_I18N_KEYS.languageAuto) },
-                ...(options.length > 0
-                  ? options.map((l) => ({ value: l.code, label: `${l.name} (${l.code.toUpperCase()})` }))
-                  : [{ value: appLanguage, label: appLanguage.toUpperCase() }]),
-              ]}
-            />
-          </div>
-
-          {options.length > 0 && (
-            <div>
-              <Typography.Text>{t(PROFILES_I18N_KEYS.fieldUnderstands)}</Typography.Text>
-              <div>
-                <Checkbox.Group
-                  value={understands}
-                  onChange={(v) => toggleUnderstands(v as string[])}
-                  options={options.map((l) => ({ value: l.code, label: l.name }))}
-                />
+          {matchList(catalogue, {
+            loading: () => <Spin data-testid="language-catalogue-loading" />,
+            failed: (error) => (
+              <div data-testid="language-catalogue-failed">
+                <ErrorAlert error={errorDisplay(error)} />
+                <Button
+                  onClick={() => {
+                    void languages.refetch();
+                  }}
+                  style={{ marginTop: 8 }}
+                  data-analytics="none"
+                  data-analytics-reason="retry of a failed read (no flow machine) — pairs carry no @stapel/analytics runtime dependency; the host instruments at its own call site"
+                >
+                  {t(PROFILES_I18N_KEYS.actionRetry)}
+                </Button>
               </div>
-            </div>
-          )}
+            ),
+            empty: () => (
+              <Typography.Text type="secondary" data-testid="language-catalogue-empty">
+                {t(PROFILES_I18N_KEYS.languagesEmpty)}
+              </Typography.Text>
+            ),
+            ready: (options) => (
+              <>
+                <div>
+                  <Typography.Text>{t(PROFILES_I18N_KEYS.fieldAppLanguage)}</Typography.Text>
+                  <Select<string>
+                    value={pickerValue}
+                    onChange={pickAppLanguage}
+                    style={{ width: "100%" }}
+                    options={[
+                      { value: AUTO, label: t(PROFILES_I18N_KEYS.languageAuto) },
+                      ...options.map((l) => ({
+                        value: l.code,
+                        label: `${l.name} (${l.code.toUpperCase()})`,
+                      })),
+                    ]}
+                  />
+                </div>
+
+                <div>
+                  <Typography.Text>{t(PROFILES_I18N_KEYS.fieldUnderstands)}</Typography.Text>
+                  <div>
+                    <Checkbox.Group
+                      value={understands}
+                      onChange={(v) => toggleUnderstands(v as string[])}
+                      options={options.map((l) => ({ value: l.code, label: l.name }))}
+                    />
+                  </div>
+                </div>
+              </>
+            ),
+          })}
         </div>
 
         <ErrorAlert error={mutationError} style={{ marginTop: 12 }} />

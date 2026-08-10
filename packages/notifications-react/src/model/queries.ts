@@ -46,8 +46,9 @@ export function useNotificationFeed(
 /**
  * The notification feed as an infinite (load-more) list. Follows the backend's
  * anchor pagination: each page advances via its `next_anchor` while `has_next`
- * holds. `data.pages.flatMap(p => p.items)` is the flat item list. Gated on
- * session readiness — see {@link useNotificationFeed}.
+ * holds. Flatten the pages behind a `LoadState` (see `NotificationFeed`), not
+ * into a bare array. Gated on session readiness — see
+ * {@link useNotificationFeed}.
  */
 export function useInfiniteNotificationFeed(
   limit?: number

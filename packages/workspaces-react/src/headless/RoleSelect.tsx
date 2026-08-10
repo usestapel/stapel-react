@@ -1,14 +1,16 @@
 import type { ReactNode } from "react";
-import { useI18n } from "@stapel/core";
-import type { StapelApiError } from "@stapel/core";
+import { loadStateFromQuery, useI18n } from "@stapel/core";
+import type { LoadState } from "@stapel/core";
 import type { RoleInfo } from "../api/types.js";
 import { useRoles } from "../model/queries.js";
 
 /** Render-prop bag for {@link RoleSelect}. */
 export interface RoleSelectBag {
   /** The effective registry (GET /roles): builtin four + the deployment's
-   * overlay, rank-descending. Empty while loading. */
-  readonly roles: readonly RoleInfo[];
+   * overlay, rank-descending. A state rather than an array: a role picker
+   * built from `[]` because the registry read FAILED offers no roles at all
+   * and looks exactly like a deployment that defined none. */
+  readonly state: LoadState<readonly RoleInfo[]>;
   /**
    * Display label for a role key: the i18n key `workspaces.role.<key>` when
    * the current locale's merged bundle carries it (the pair ships the builtin
@@ -18,9 +20,6 @@ export interface RoleSelectBag {
    * never render as a dotted i18n key.
    */
   labelFor(role: string): string;
-  readonly isLoading: boolean;
-  readonly isError: boolean;
-  readonly error: StapelApiError | null;
 }
 
 /**
@@ -30,9 +29,16 @@ export interface RoleSelectBag {
  *
  * ```tsx
  * <RoleSelect>
- *   {({ roles, labelFor }) => (
- *     <Select options={roles.map((r) => ({ value: r.role, label: labelFor(r.role) }))} />
- *   )}
+ *   {({ state, labelFor }) =>
+ *     matchList(state, {
+ *       loading: () => <Select loading options={[]} />,
+ *       failed: (error) => <RoleLoadFailed error={error} />,
+ *       empty: () => <Select disabled options={[]} />,
+ *       ready: (roles) => (
+ *         <Select options={roles.map((r) => ({ value: r.role, label: labelFor(r.role) }))} />
+ *       ),
+ *     })
+ *   }
  * </RoleSelect>
  * ```
  *
@@ -49,10 +55,7 @@ export function RoleSelect(props: {
   // must show its raw name, not `workspaces.role.secretary`).
   const bundle = i18n.getBundle();
   return props.children({
-    roles: query.data ?? [],
+    state: loadStateFromQuery(query),
     labelFor: (role) => bundle[`workspaces.role.${role}`] ?? role,
-    isLoading: query.isLoading,
-    isError: query.isError,
-    error: query.error ?? null,
   });
 }

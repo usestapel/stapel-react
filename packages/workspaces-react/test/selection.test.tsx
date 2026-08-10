@@ -190,7 +190,7 @@ describe("the resolution chain", () => {
       preferred_workspace_id: "",
     });
     const { result } = mount({ repository: memoryRepo() });
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(result.current.state.status).not.toBe("loading"));
     expect(result.current.current).toBeNull();
     expect(result.current.source).toBeNull();
   });
@@ -268,7 +268,7 @@ describe("the write policy — context versus choice", () => {
     );
     const onUrlWorkspaceChange = vi.fn();
     const { result } = mount({ onUrlWorkspaceChange, repository: repo });
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(result.current.state.status).not.toBe("loading"));
 
     act(() => {
       result.current.switchTo(THIRD);
@@ -302,7 +302,7 @@ describe("the write policy — context versus choice", () => {
       )
     );
     const { result } = mount({ repository: memoryRepo() });
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(result.current.state.status).not.toBe("loading"));
     act(() => {
       result.current.switchTo(THIRD);
     });
@@ -313,7 +313,7 @@ describe("the write policy — context versus choice", () => {
     serveList();
     const repo = memoryRepo();
     const { result } = mount({ repository: repo });
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(result.current.state.status).not.toBe("loading"));
     const before = result.current.current?.id;
     act(() => {
       result.current.switchTo(STRANGER);
@@ -348,7 +348,7 @@ describe("multi-tab independence", () => {
     const tabB = mount({ urlWorkspaceId: ORG, repository: shared });
 
     await waitFor(() => expect(tabB.result.current.current?.id).toBe(ORG));
-    await waitFor(() => expect(tabA.result.current.loading).toBe(false));
+    await waitFor(() => expect(tabA.result.current.state.status).not.toBe("loading"));
 
     act(() => {
       tabA.result.current.switchTo(THIRD);
@@ -365,7 +365,7 @@ describe("multi-tab independence", () => {
     serveList();
     const spy = vi.spyOn(window, "addEventListener");
     const { result } = mount({ repository: memoryRepo() });
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(result.current.state.status).not.toBe("loading"));
     const storageListeners = spy.mock.calls.filter(([type]) => type === "storage");
     expect(storageListeners).toEqual([]);
     spy.mockRestore();
@@ -400,14 +400,14 @@ describe("value identity (#251)", () => {
   it("keeps the bag and its fields stable across renders when nothing changed", async () => {
     serveList();
     const { result, rerender } = mount({ repository: memoryRepo() });
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(result.current.state.status).not.toBe("loading"));
 
     const before = result.current;
     rerender();
     rerender();
 
     expect(result.current).toBe(before);
-    expect(result.current.workspaces).toBe(before.workspaces);
+    expect(result.current.state).toBe(before.state);
     expect(result.current.current).toBe(before.current);
     expect(result.current.refetch).toBe(before.refetch);
     expect(result.current.switchTo).toBe(before.switchTo);
@@ -421,7 +421,7 @@ describe("value identity (#251)", () => {
       )
     );
     const { result } = mount({ repository: memoryRepo() });
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(result.current.state.status).not.toBe("loading"));
     const before = result.current;
     act(() => {
       result.current.switchTo(THIRD);

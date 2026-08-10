@@ -23,6 +23,7 @@ import noRawStorage from "./rules/no-raw-storage.js";
 import noAdhoc401 from "./rules/no-adhoc-401.js";
 import noReservedBackendRoute from "./rules/no-reserved-backend-route.js";
 import noRawErrorShape from "./rules/no-raw-error-shape.js";
+import noFlattenedLoadState from "./rules/no-flattened-load-state.js";
 import noCyrillicSource from "./rules/no-cyrillic-source.js";
 import noMixedScriptWord from "./rules/no-mixed-script-word.js";
 
@@ -54,6 +55,9 @@ const rules = {
   // Error-dialect guardrail: a caught value is narrowed through the layer,
   // never through a cast (@stapel/core errors.ts "One dialect").
   "no-raw-error-shape": noRawErrorShape,
+  // Load-state guardrail: the absence of a result must not be spelled the
+  // same way as an empty result (@stapel/core loadState.ts).
+  "no-flattened-load-state": noFlattenedLoadState,
   // English-only source canon (owner directive 2026-08-09): identifiers,
   // comments, JSDoc, dev-facing strings are English fleet-wide; Russian UI
   // copy in translation catalogs is unaffected. Two rules split the surface
@@ -184,6 +188,19 @@ const ERROR_LAYER_ALLOWED = [
   "**/*.config.{js,mjs,cjs,ts}",
 ];
 
+// The api/transport layer + node-side scripts — the one legal home of a
+// defaulted `data` (see the rule header). Deliberately NOT extended to
+// `**/model/**` or `**/headless/**`: those are exactly where the flatten was
+// happening, and a carve-out there would switch the rule off in the only
+// place it has ever mattered.
+const LOAD_STATE_ALLOWED = [
+  "**/api/**",
+  "**/*client.{ts,js}",
+  "**/generated/**",
+  "**/scripts/**",
+  "**/bin/**",
+];
+
 /**
  * Flat-config `recommended` preset. Consumers spread it AFTER their parser
  * config:
@@ -229,6 +246,11 @@ const recommended = [
       // envelope (no `.status`) — narrow through core's guards, never
       // through a cast. Off in the error/transport layer below.
       "stapel/no-raw-error-shape": "error",
+      // Load state: `query.data ?? []` makes a failed load indistinguishable
+      // from an empty one, which is how a total outage rendered as "you have
+      // no workspaces" for hours. Off in the api/transport layer below, where
+      // `data` is openapi-fetch's raw half.
+      "stapel/no-flattened-load-state": "error",
       // English-only source canon (owner directive 2026-08-09): no Cyrillic
       // in comments/JSDoc/identifiers, and no single word straddling both
       // Latin and Cyrillic scripts anywhere (including string literals —
@@ -281,6 +303,14 @@ const recommended = [
     rules: { "stapel/no-raw-error-shape": "off" },
   },
   {
+    // The api/transport layer — where `const { data } = await client.GET(…)`
+    // is openapi-fetch's raw result half and defaulting it is part of folding
+    // the response, not a rendering decision. Same carve-out shape, and the
+    // same reason, as `no-raw-fetch`/`no-raw-error-shape`.
+    files: LOAD_STATE_ALLOWED,
+    rules: { "stapel/no-flattened-load-state": "off" },
+  },
+  {
     // The facade's provider adapters — the ONE legal home of vendor SDK
     // imports (§2.2 override; mirrors the FETCH_ALLOWED api-layer carve-out).
     files: ["**/analytics/providers.{ts,js}", "**/analytics/src/providers.{ts,js}", "**/analytics/providers/**"],
@@ -313,6 +343,8 @@ const recommended = [
       // Fixtures deliberately construct un-narrowed/raw error shapes — that
       // is what an envelope-dialect test IS (including this rule's own).
       "stapel/no-raw-error-shape": "off",
+      // A load-state fixture's job is to BE the flattened shape.
+      "stapel/no-flattened-load-state": "off",
       // Route fixtures legitimately probe reserved-path collisions on purpose
       // (that's what this rule's own tests do).
       "stapel/no-reserved-backend-route": "off",

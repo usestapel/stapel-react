@@ -11,6 +11,8 @@ and never re-implements what is exported here.
 ## Exports (call these, never hand-roll the equivalent) — see full
 signatures/JSDoc in the package README and src/index.ts.
 ### runtime
+- ACTION_BLOCKED_LOADING
+- ACTION_BLOCKED_LOAD_FAILED
 - AnalyticsContext
 - CORE_ERROR_LOCALES
 - DETAIL_ERROR_KEY
@@ -21,6 +23,10 @@ signatures/JSDoc in the package README and src/index.ts.
 - StapelProvider
 - TRANSPORT_ERROR_CODE
 - VERIFICATION_TOKEN_HEADER
+- actionAvailable
+- actionBlocked
+- actionBlockedByFailure
+- bothLoaded
 - codeCarriesTechnicalDetail
 - coreErrorBundle
 - coreErrorKeyCandidates
@@ -39,6 +45,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - errorCodePredicate
 - errorStatus
 - extractVerificationChallenge
+- firstBlock
 - formatFlowError
 - getActiveSessionManager
 - hasErrorCode
@@ -46,13 +53,26 @@ signatures/JSDoc in the package README and src/index.ts.
 - interpolate
 - isErrorCode
 - isErrorEnvelope
+- isLoadFailed
+- isLoadLoading
+- isLoadReady
 - isStapelApiError
+- loadFailed
+- loadLoading
+- loadReady
+- loadStateFromQuery
+- loadedRowsOrEmpty
 - localStorageAdapter
+- mapLoad
+- matchList
+- matchLoad
 - memoryStorage
 - parseErrorEnvelope
+- requireLoaded
 - toFlowError
 - toStapelApiError
 - trackFlowStep
+- useActionGate
 - useActiveSessionReady
 - useAnalytics
 - useBreakpoint
@@ -68,6 +88,9 @@ signatures/JSDoc in the package README and src/index.ts.
 - useT
 
 ### types
+- ActionAvailability
+- ActionBlock
+- ActionGateView
 - Analytics
 - AnalyticsBatchOptions
 - AnalyticsEvent
@@ -93,6 +116,10 @@ signatures/JSDoc in the package README and src/index.ts.
 - HttpMethod
 - I18nDictionary
 - I18nEngine
+- LoadFailed
+- LoadLoading
+- LoadReady
+- LoadState
 - LocaleLoader
 - LogoutHook
 - MeCachePersister
@@ -104,12 +131,14 @@ signatures/JSDoc in the package README and src/index.ts.
 - NavPlacement
 - NavPlacementLevel
 - NavRoute
+- NonEmptyArray
 - PackageNavManifest
 - PersistStorage
 - PiiGuardMode
 - PropSpec
 - PropType
 - PropsSchema
+- QueryLike
 - RefreshOutcome
 - Repository
 - RepositoryOptions

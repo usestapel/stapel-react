@@ -6,7 +6,7 @@
     {
       "id": "profiles.connection_list",
       "title": "Connection list",
-      "description": "The headless ConnectionList selects the followers / following / blocked read by `kind`, normalizes the three response shapes to { ids, count }, and exposes loading / error state. Bring your own list UI — the component is renderless.",
+      "description": "The headless ConnectionList selects the followers / following / blocked read by `kind` and normalizes the three response shapes to one LoadState of ids plus a count. Render it with matchList: loading, failed and empty stay three different answers. Bring your own list UI — the component is renderless.",
       "component": "ConnectionList",
       "covers": [],
       "tokens": [
@@ -20,7 +20,7 @@
       ],
       "source": {
         "file": "demo/ConnectionList.demo.tsx",
-        "line": 62
+        "line": 66
       }
     },
     {

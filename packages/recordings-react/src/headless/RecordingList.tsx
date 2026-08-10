@@ -1,18 +1,22 @@
 import type { ReactNode } from "react";
-import type { StapelApiError } from "@stapel/core";
+import { loadStateFromQuery } from "@stapel/core";
+import type { LoadState } from "@stapel/core";
 import type { Recording } from "../api/types.js";
 import { useRecordings } from "../model/queries.js";
 
 /** Render-prop bag for {@link RecordingList}. */
 export interface RecordingListBag {
-  /** The current user's recordings. */
-  readonly recordings: readonly Recording[];
-  /** The list read is loading (no data yet). */
-  readonly isLoading: boolean;
-  /** The query failed. */
-  readonly isError: boolean;
-  /** The error, when `isError` (a localizable `StapelApiError`), else null. */
-  readonly error: StapelApiError | null;
+  /**
+   * The read, as a state a skin cannot flatten — render it through core's
+   * `matchList`, whose four arms are all required.
+   *
+   * A recordings list is the surface where the flattened shape is most
+   * expensive: "you have not uploaded anything yet" is the normal first-run
+   * screen, so a failed read wearing that copy is indistinguishable from the
+   * expected one and nobody looks twice. That is how the 2026-08-09 workspace
+   * outage stayed invisible for hours on the sibling pair.
+   */
+  readonly state: LoadState<readonly Recording[]>;
   /** Re-read the list (e.g. to poll a processing recording to completion). */
   refetch(): void;
 }
@@ -26,7 +30,7 @@ export interface RecordingListBag {
  *
  * ```tsx
  * <RecordingList workspaceId="ws-1">
- *   {({ recordings }) => ( ... )}
+ *   {({ state }) => matchList(state, { loading, failed, empty, ready })}
  * </RecordingList>
  * ```
  */
@@ -39,10 +43,7 @@ export function RecordingList(props: {
     props.workspaceId !== undefined ? { workspaceId: props.workspaceId } : undefined
   );
   return props.children({
-    recordings: query.data ?? [],
-    isLoading: query.isLoading,
-    isError: query.isError,
-    error: query.error ?? null,
+    state: loadStateFromQuery(query),
     refetch: () => {
       void query.refetch();
     },

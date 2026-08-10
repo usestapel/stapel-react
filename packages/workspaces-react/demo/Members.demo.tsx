@@ -1,6 +1,7 @@
 /** Members — headless roster + invite / role / remove controls for a workspace. */
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
+import { matchList } from "@stapel/core";
 import { Members } from "../src/index.js";
 import {
   WorkspacesDemoHarness,
@@ -12,9 +13,16 @@ import {
 
 const DEMO_WS = "0192f000-0000-4000-8000-000000000001";
 
-/** The roster the canned GET /{id}/members handler returns. */
+/** The roster the canned GET /{id}/members handler returns.
+ *
+ * The key is `items`, which is what `PaginatedMemberResponseList` actually
+ * says. It used to be `members`, and the demo rendered "0 member(s)" for it
+ * without complaint — the bag's old `query.data?.items ?? []` turned the
+ * shape mismatch into an empty roster, which is the same defect this whole
+ * change is about, caught in our own fixture. `matchList` surfaced it the
+ * moment the `?? []` went away. */
 const DEMO_MEMBERS = {
-  members: [
+  items: [
     {
       id: "0192b000-0000-4000-8000-000000000001",
       workspace_id: DEMO_WS,
@@ -36,16 +44,26 @@ const DEMO_MEMBERS = {
       last_accessed_at: null,
     },
   ],
+  next_anchor: null,
+  prev_anchor: null,
+  has_next: false,
+  has_prev: false,
+  count: 2,
 };
 
 function MembersBody(): ReactElement {
   return (
     <DemoCard heading="Members">
       <Members workspaceId={DEMO_WS}>
-        {({ members, isLoading, isInviting, invite }) => (
+        {({ state, isInviting, invite }) => (
           <>
             <StepBadge
-              step={isLoading ? "loading" : `${members.length} member(s)`}
+              step={matchList(state, {
+                loading: () => "loading",
+                failed: () => "could not load the roster",
+                empty: () => "no members yet",
+                ready: (members) => `${members.length} member(s)`,
+              })}
             />
             <DemoActions>
               <DemoButton

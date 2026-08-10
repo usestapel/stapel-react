@@ -23,6 +23,52 @@ export {
   TRANSPORT_ERROR_CODE,
 } from "./errors.js";
 
+// load state: the absence of a result is not a result (loadState.ts). The
+// discriminated shape every read hook hands a skin, plus the exhaustive
+// `matchList` a skin renders it with — four required arms, so "empty" and
+// "failed" cannot share a branch. `stapel/no-flattened-load-state`
+// (@stapel/eslint-plugin) bans the `query.data ?? []` shape it replaces.
+export {
+  loadLoading,
+  loadReady,
+  loadFailed,
+  isLoadLoading,
+  isLoadReady,
+  isLoadFailed,
+  loadStateFromQuery,
+  mapLoad,
+  bothLoaded,
+  matchLoad,
+  matchList,
+  loadedRowsOrEmpty,
+} from "./loadState.js";
+export type {
+  LoadState,
+  LoadLoading,
+  LoadReady,
+  LoadFailed,
+  NonEmptyArray,
+  QueryLike,
+} from "./loadState.js";
+
+// action gate: a disabled control states its reason (actionGate.ts). There is
+// no way to spell "blocked, reason unknown" — the union has no such member.
+export {
+  actionAvailable,
+  actionBlocked,
+  actionBlockedByFailure,
+  requireLoaded,
+  firstBlock,
+  useActionGate,
+  ACTION_BLOCKED_LOADING,
+  ACTION_BLOCKED_LOAD_FAILED,
+} from "./actionGate.js";
+export type {
+  ActionAvailability,
+  ActionBlock,
+  ActionGateView,
+} from "./actionGate.js";
+
 // verification-403 interception seam
 export {
   extractVerificationChallenge,

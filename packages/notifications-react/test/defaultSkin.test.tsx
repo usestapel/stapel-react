@@ -164,5 +164,37 @@ describe("<NotificationFeedList/> (default skin)", () => {
     render(wrap(runtime, <NotificationFeedList />));
 
     await waitFor(() => expect(screen.getByText("No notifications yet.")).toBeDefined());
+    // Genuinely empty is the ONLY case allowed to say it — and it says it
+    // without an error beside it.
+    expect(screen.queryByTestId("notification-feed-error")).toBeNull();
+  });
+
+  it("says nothing about emptiness while the first page is still in flight", async () => {
+    // A never-settling read: the state stays `loading`, which is neither
+    // "you have none" nor "it broke".
+    server.use(http.get(`${BASE}/feed/`, () => new Promise(() => undefined)));
+    const runtime = createNotificationsRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <NotificationFeedList />));
+
+    await waitFor(() => expect(screen.getByTestId("notification-feed-list")).toBeDefined());
+    expect(screen.queryByText("No notifications yet.")).toBeNull();
+    expect(screen.queryByTestId("notification-feed-error")).toBeNull();
+  });
+
+  it("a FAILED read shows the error and NEVER the empty copy (the 2026-08-09 lie)", async () => {
+    server.use(
+      http.get(`${BASE}/feed/`, () => new HttpResponse(null, { status: 404 }))
+    );
+    const runtime = createNotificationsRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <NotificationFeedList />));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("notification-feed-error")).toBeDefined()
+    );
+    // The whole point: a 404 must not read as "you have no notifications".
+    expect(screen.queryByText("No notifications yet.")).toBeNull();
+    expect(screen.queryByTestId("notification-feed-empty")).toBeNull();
+    // …and there is a way back out.
+    expect(screen.getByText("Try again")).toBeDefined();
   });
 });

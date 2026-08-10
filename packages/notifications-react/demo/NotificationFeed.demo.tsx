@@ -2,7 +2,7 @@
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
 import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
-import { useT } from "@stapel/core";
+import { matchList, useErrorDisplay, useT } from "@stapel/core";
 import { NotificationFeed } from "../src/index.js";
 import type { FeedItem } from "../src/index.js";
 import {
@@ -61,46 +61,50 @@ function FeedRow(props: { item: FeedItem }): ReactElement {
 /** The feed body — mounted INSIDE the harness, so `useT`/hooks have providers. */
 function FeedBody(): ReactElement {
   const t = useT();
+  const errorDisplay = useErrorDisplay("notifications.error.unknown");
   return (
     <DemoCard heading="NotificationFeed">
       <NotificationFeed>
-        {({ items, isLoading, hasNextPage, fetchNextPage }) => {
-          if (isLoading) {
-            return (
+        {({ state, hasNextPage, fetchNextPage }) =>
+          matchList(state, {
+            loading: () => (
               <span style={{ color: cssVar("text-muted") }}>
                 {t("notifications.feed.loading")}
               </span>
-            );
-          }
-          if (items.length === 0) {
-            return (
+            ),
+            failed: (error) => (
+              <span style={{ color: cssVar("error") }}>
+                {errorDisplay(error)?.message}
+              </span>
+            ),
+            empty: () => (
               <span style={{ color: cssVar("text-muted") }}>
                 {t("notifications.feed.empty")}
               </span>
-            );
-          }
-          return (
-            <>
-              <ul style={{ margin: 0, padding: 0, borderRadius: radii.sm }}>
-                {items.map((item) => (
-                  <FeedRow key={item.id} item={item} />
-                ))}
-              </ul>
-              <DemoActions>
-                {hasNextPage ? (
-                  <DemoButton
-                    run={fetchNextPage}
-                    labelKey="notifications.feed.load_more"
-                  />
-                ) : (
-                  <span style={{ color: cssVar("text-muted") }}>
-                    {t("notifications.feed.end")}
-                  </span>
-                )}
-              </DemoActions>
-            </>
-          );
-        }}
+            ),
+            ready: (items) => (
+              <>
+                <ul style={{ margin: 0, padding: 0, borderRadius: radii.sm }}>
+                  {items.map((item) => (
+                    <FeedRow key={item.id} item={item} />
+                  ))}
+                </ul>
+                <DemoActions>
+                  {hasNextPage ? (
+                    <DemoButton
+                      run={fetchNextPage}
+                      labelKey="notifications.feed.load_more"
+                    />
+                  ) : (
+                    <span style={{ color: cssVar("text-muted") }}>
+                      {t("notifications.feed.end")}
+                    </span>
+                  )}
+                </DemoActions>
+              </>
+            ),
+          })
+        }
       </NotificationFeed>
     </DemoCard>
   );

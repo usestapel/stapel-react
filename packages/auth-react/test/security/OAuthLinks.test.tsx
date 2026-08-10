@@ -151,3 +151,82 @@ describe("<OAuthLinks/>", () => {
     await waitFor(() => expect(screen.queryByText("Connected")).toBeNull());
   });
 });
+
+describe("<OAuthLinks/> — the reads, and the reason a control is off", () => {
+  it("a failed capabilities read is stated — never 'No providers configured.'", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () =>
+        HttpResponse.json({ code: "error.500.internal", message: "boom" }, { status: 500 })
+      ),
+      http.get(`${BASE}/oauth/links/`, () => HttpResponse.json(linksResponse([])))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <OAuthLinks />));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toBeDefined());
+    expect(screen.queryByText("No providers configured.")).toBeNull();
+  });
+
+  it("a failed LINKS read does not render providers as 'not connected'", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(CAPS)),
+      http.get(`${BASE}/oauth/links/`, () =>
+        HttpResponse.json({ code: "error.500.internal", message: "boom" }, { status: 500 })
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <OAuthLinks />));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toBeDefined());
+    expect(screen.queryByRole("button", { name: "Connect" })).toBeNull();
+    expect(screen.queryByText("No providers configured.")).toBeNull();
+  });
+
+  it("a deployment with zero providers still gets the empty copy", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () =>
+        HttpResponse.json({
+          ...CAPS,
+          registration: { ...CAPS.registration, oauth: [] },
+        })
+      ),
+      http.get(`${BASE}/oauth/links/`, () => HttpResponse.json(linksResponse([])))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <OAuthLinks />));
+
+    await waitFor(() => expect(screen.getByText("No providers configured.")).toBeDefined());
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  /**
+   * A disabled button receives no pointer events, so the old tooltip on it
+   * was a reason no keyboard or touch user could reach. `useActionGate`
+   * prints the same i18n copy as text beside the control.
+   */
+  it("without getAccessToken the reason is VISIBLE text, not only a tooltip", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(CAPS)),
+      http.get(`${BASE}/oauth/links/`, () => HttpResponse.json(linksResponse([])))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <OAuthLinks />));
+
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Connect" })).toHaveLength(2));
+    expect(
+      screen.getAllByText("Connecting a new account isn't available right now.")
+    ).toHaveLength(2);
+  });
+
+  it("with getAccessToken supplied there is no blocked reason on screen", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(CAPS)),
+      http.get(`${BASE}/oauth/links/`, () => HttpResponse.json(linksResponse([])))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <OAuthLinks getAccessToken={vi.fn()} />));
+
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Connect" })).toHaveLength(2));
+    expect(screen.queryByText("Connecting a new account isn't available right now.")).toBeNull();
+  });
+});

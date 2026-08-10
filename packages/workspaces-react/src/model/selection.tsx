@@ -8,8 +8,15 @@ import {
   useState,
 } from "react";
 import type { Context, ReactElement, ReactNode } from "react";
-import { createRepository } from "@stapel/core";
-import type { Repository } from "@stapel/core";
+import {
+  bothLoaded,
+  createRepository,
+  loadLoading,
+  loadReady,
+  loadStateFromQuery,
+  mapLoad,
+} from "@stapel/core";
+import type { LoadState, Repository } from "@stapel/core";
 import type { Workspace } from "../api/types.js";
 import { useWorkspaces } from "./queries.js";
 import { useSetPreferredWorkspace } from "./mutations.js";
@@ -96,11 +103,26 @@ export interface WorkspaceSelectionUrlBinding {
 
 /** What {@link useWorkspaceSelection} hands back. */
 export interface WorkspaceSelection {
-  /** The caller's workspaces (empty before load, and for a guest). */
-  readonly workspaces: readonly Workspace[];
   /**
-   * The resolved workspace — `null` while loading, and for a person who
-   * belongs to none.
+   * The workspace list, as a state a host cannot flatten: `loading` / `ready`
+   * with the rows / `failed` with the error. Render it through core's
+   * `matchList`.
+   *
+   * THIS FIELD IS THE FIX FOR THE 2026-08-09 INCIDENT. What used to be here
+   * was `workspaces: readonly Workspace[]` beside `loading: boolean`, and NO
+   * error field at all — so when the list endpoint answered 404 (a route
+   * mounted one segment too deep), a host saw `loading: false`, `workspaces:
+   * []`, `current: null`, and had literally no way to tell that apart from a
+   * person who belongs to no workspace. Every screen in the product said "you
+   * have no workspaces" for hours. The distinction was not merely easy to
+   * miss; it was ABSENT from the type.
+   */
+  readonly state: LoadState<readonly Workspace[]>;
+  /**
+   * The resolved workspace, once the list is `ready` and the chain has picked
+   * one. `null` while loading, when the load FAILED, and for a person who
+   * belongs to none — which is exactly why a screen must branch on
+   * {@link state} and not on this being null.
    *
    * Downstream fetching must gate on THIS, never on a raw id: an id that has
    * not been checked against the fetched list is exactly how a client ends up
@@ -116,8 +138,6 @@ export interface WorkspaceSelection {
    * this. The person has already been landed somewhere sane.
    */
   readonly urlWorkspaceInvalid: boolean;
-  /** The workspace list is still loading. */
-  readonly loading: boolean;
   /**
    * An EXPLICIT choice by the person — the only entry point that persists.
    * Writes the URL (push), local storage, and the backend preference.
@@ -127,6 +147,10 @@ export interface WorkspaceSelection {
   /** Refetch the workspace list. */
   refetch: () => Promise<void>;
 }
+
+/** Stable identity for the no-rows case — a fresh `[]` per render would
+ * re-run every consumer effect that depends on the memoised bag (#251). */
+const EMPTY_WORKSPACES: readonly Workspace[] = [];
 
 const SelectionContext: Context<WorkspaceSelection | null> =
   createContext<WorkspaceSelection | null>(null);
@@ -227,11 +251,38 @@ export function WorkspaceSelectionProvider(
     };
   }, [repo]);
 
-  const workspaces = useMemo(
-    () => query.data?.workspaces ?? [],
-    [query.data]
+  // The list read and the local-storage read must BOTH land before the chain
+  // can answer, and a failure of either must not read as "still loading" —
+  // `bothLoaded` is exactly that rule, so it is not restated here.
+  // Memoised on the query's OWN fields, never on the query object: TanStack
+  // returns a new result object every render, so `[query]` here would hand
+  // every consumer a new `state` on every render — the #251 loop the bag
+  // memoisation below exists to prevent, reintroduced one level up.
+  const { status: queryStatus, data: queryData, error: queryError } = query;
+  const state = useMemo<LoadState<readonly Workspace[]>>(
+    () =>
+      mapLoad(
+        bothLoaded(
+          mapLoad(
+            loadStateFromQuery({
+              status: queryStatus,
+              data: queryData,
+              error: queryError,
+            }),
+            (list) => list.workspaces ?? []
+          ),
+          localRead ? loadReady(null) : loadLoading()
+        ),
+        ([rows]) => rows
+      ),
+    [queryStatus, queryData, queryError, localRead]
   );
-  const loading = query.isLoading || !localRead;
+
+  // The resolution chain below is a COMPUTATION over rows, not a rendering of
+  // them, so it reads the rows flat — and it runs only when the state is
+  // `ready`, which is what keeps a failed load from resolving to anything.
+  const workspaces = state.status === "ready" ? state.data : EMPTY_WORKSPACES;
+  const resolvable = state.status === "ready";
 
   const memberOf = useCallback(
     (id: string | null | undefined): Workspace | null =>
@@ -246,7 +297,7 @@ export function WorkspaceSelectionProvider(
     workspace: Workspace | null;
     source: WorkspaceSelectionSource | null;
   }>(() => {
-    if (loading || workspaces.length === 0) {
+    if (!resolvable || workspaces.length === 0) {
       return { workspace: null, source: null };
     }
     const explicit = memberOf(chosenId);
@@ -266,7 +317,7 @@ export function WorkspaceSelectionProvider(
     // Last resort only — see this module's header for why it is last and why
     // it is still here.
     return { workspace: workspaces[0] ?? null, source: "positional" };
-  }, [loading, workspaces, memberOf, chosenId, urlWorkspaceId, localId, query.data]);
+  }, [resolvable, workspaces, memberOf, chosenId, urlWorkspaceId, localId, query.data]);
 
   // The URL named something the person cannot open. Deliberately NOT an
   // error state that blanks the screen, and deliberately NOT a silent
@@ -274,7 +325,7 @@ export function WorkspaceSelectionProvider(
   // showing workspace Y's data is the same misattribution class as #239.
   // They land through the rest of the chain, and this flag drives the notice.
   const urlWorkspaceInvalid =
-    !loading &&
+    resolvable &&
     workspaces.length > 0 &&
     chosenId === null &&
     !!urlWorkspaceId &&
@@ -298,11 +349,14 @@ export function WorkspaceSelectionProvider(
   // later-corrected backend preference or instance default; deleting it just
   // stops the next boot retrying a dead id.
   useEffect(() => {
-    if (loading || !repo || localId === null) return;
+    // Only a SUCCESSFUL load proves a stored id is dead. Deleting it because
+    // the request failed would punish an outage by forgetting the person's
+    // workspace on every affected boot.
+    if (!resolvable || !repo || localId === null) return;
     if (memberOf(localId)) return;
     setLocalId(null);
     void repo.del(REPO_KEY).catch(() => undefined);
-  }, [loading, repo, localId, memberOf]);
+  }, [resolvable, repo, localId, memberOf]);
 
   /**
    * The only path that persists anything, and that is the whole write policy:
@@ -349,20 +403,18 @@ export function WorkspaceSelectionProvider(
   // spinner that never resolves, with nothing in the console.
   const value = useMemo<WorkspaceSelection>(
     () => ({
-      workspaces,
+      state,
       current: resolved.workspace,
       source: resolved.source,
       urlWorkspaceInvalid,
-      loading,
       switchTo,
       refetch,
     }),
     [
-      workspaces,
+      state,
       resolved.workspace,
       resolved.source,
       urlWorkspaceInvalid,
-      loading,
       switchTo,
       refetch,
     ]

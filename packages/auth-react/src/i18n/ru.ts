@@ -71,6 +71,7 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.ui.channel_sso": "SSO",
   "auth.ui.channel_qr": "QR-код",
   "auth.ui.channel_magic_link": "Ссылка на почту",
+  "auth.ui.retry": "Повторить",
 
   // Registration surface
   "auth.ui.register_title": "Создать аккаунт",
@@ -153,6 +154,8 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.sec.password.change_cta": "Сменить пароль",
   "auth.sec.password.via_otp_hint": "Мы отправим код на {target}",
   "auth.sec.password.success": "Пароль изменён.",
+  "auth.sec.password.no_methods":
+    "Для этого аккаунта здесь нет способов сменить пароль.",
 
   "auth.sec.oauth.title": "Привязанные аккаунты",
   "auth.sec.oauth.linked": "Привязан",

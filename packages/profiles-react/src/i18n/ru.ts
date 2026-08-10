@@ -25,6 +25,7 @@ export const profilesI18nBundleRu: I18nDictionary = {
 
   // profiles-react UI (hand-written ru mirror of the en copy in keys.ts)
   "profiles.error.unknown": "Что-то пошло не так. Попробуйте ещё раз.",
+  "profiles.action.retry": "Попробовать ещё раз",
   "profiles.profile.loading": "Загрузка профиля…",
   "profiles.profile.save": "Сохранить изменения",
   "profiles.profile.saving": "Сохранение…",
@@ -57,11 +58,14 @@ export const profilesI18nBundleRu: I18nDictionary = {
   "profiles.initialSetup.save": "Продолжить",
   "profiles.initialSetup.saving": "Сохранение…",
   "profiles.initialSetup.skip": "Позже",
+  "profiles.initialSetup.blocked.name_required":
+    "Введите отображаемое имя, чтобы продолжить.",
   "profiles.language.title": "Язык",
   "profiles.language.subtitle": "Выберите язык интерфейса приложения.",
   "profiles.language.field.app_language": "Язык интерфейса",
   "profiles.language.field.auto": "Авто",
   "profiles.language.field.understands": "Понимаемые языки",
+  "profiles.language.catalogue_empty": "Нет языков для выбора.",
   "profiles.notif_prefs.title": "Уведомления",
   "profiles.notif_prefs.subtitle": "Выберите, какие уведомления и по каким каналам вы получаете.",
   "profiles.notif_prefs.category.messages": "Сообщения",

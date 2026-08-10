@@ -153,7 +153,11 @@ export type { TrashBag } from "./headless/TrashBin.js";
 export { DocUploader } from "./headless/DocUploader.js";
 export type { UploadBag } from "./headless/DocUploader.js";
 export { MediaViewer } from "./headless/MediaViewer.js";
-export type { MediaViewerBag, MediaKind } from "./headless/MediaViewer.js";
+export type {
+  MediaViewerBag,
+  MediaKind,
+  MediaPresentation,
+} from "./headless/MediaViewer.js";
 
 // ── i18n ─────────────────────────────────────────────────────────────────────
 export {

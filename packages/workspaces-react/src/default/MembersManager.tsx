@@ -15,9 +15,9 @@
  */
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { Button, Card, Input, Modal, Popconfirm, Select, Table, Typography } from "antd";
+import { Button, Card, Empty, Input, Modal, Popconfirm, Select, Table, Typography } from "antd";
 import type { TableProps } from "antd";
-import { useErrorDisplay, useT } from "@stapel/core";
+import { loadedRowsOrEmpty, matchList, useErrorDisplay, useT } from "@stapel/core";
 import { Members } from "../headless/Members.js";
 import { RoleSelect } from "../headless/RoleSelect.js";
 import type { RoleSelectBag } from "../headless/RoleSelect.js";
@@ -54,9 +54,15 @@ export function MembersManager(props: MembersManagerProps): ReactElement {
     <RoleSelect>
       {(rolesBag: RoleSelectBag) => (
         <Members workspaceId={props.workspaceId}>
-          {({ members, isLoading, isError, error, invite, isInviting, updateRole, remove }) => {
+          {({ state, writeError, invite, isInviting, updateRole, remove, refetch }) => {
             const { labelFor } = rolesBag;
-            const roleOptions = rolesBag.roles.map((r) => ({
+            // The registry read is a SEPARATE load from the roster's, and it
+            // gets its own sentence below rather than silently producing an
+            // empty picker — a role menu with nothing in it and a role menu
+            // that could not be fetched look identical to a person.
+            const rolesFailed = rolesBag.state.status === "failed";
+            const rolesLoading = rolesBag.state.status === "loading";
+            const roleOptions = loadedRowsOrEmpty(rolesBag.state).map((r) => ({
               value: r.role,
               label: labelFor(r.role),
             }));
@@ -95,7 +101,7 @@ export function MembersManager(props: MembersManagerProps): ReactElement {
                     <Select<string>
                       value={member.role}
                       style={{ width: 160 }}
-                      loading={rolesBag.isLoading}
+                      loading={rolesLoading}
                       onChange={(next) => updateRole({ userId: member.user_id, role: next })}
                       // A member's CURRENT role may be missing from the
                       // registry options (a deployment removed an overlay
@@ -148,17 +154,64 @@ export function MembersManager(props: MembersManagerProps): ReactElement {
                   )}
                 </div>
 
-                {isError && <ErrorAlert error={errorDisplay(error)} style={{ marginTop: 12 }} />}
+                {/* A write that failed — the roster read has its own arm below. */}
+                {writeError !== null && (
+                  <ErrorAlert error={errorDisplay(writeError)} style={{ marginTop: 12 }} />
+                )}
+                {rolesFailed && (
+                  <ErrorAlert
+                    testId="members-roles-error"
+                    error={{ message: t(WORKSPACES_I18N_KEYS.rolesLoadFailed), detail: undefined }}
+                    style={{ marginTop: 12 }}
+                  />
+                )}
 
-                <Table<Member>
-                  style={{ marginTop: 16 }}
-                  size="small"
-                  loading={isLoading}
-                  rowKey={(member) => member.id}
-                  dataSource={members as Member[]}
-                  columns={columns}
-                  pagination={false}
-                />
+                {matchList(state, {
+                  loading: () => (
+                    <Table<Member>
+                      style={{ marginTop: 16 }}
+                      size="small"
+                      loading
+                      rowKey={(member) => member.id}
+                      dataSource={[]}
+                      columns={columns}
+                      pagination={false}
+                    />
+                  ),
+                  // An antd Table with no rows renders "No data". On a failed
+                  // read that is the empty-state lie with a built-in
+                  // illustration, so the table does not get rendered at all.
+                  failed: (error) => (
+                    <div style={{ marginTop: 16 }} data-testid="members-list-error">
+                      <ErrorAlert error={errorDisplay(error)} />
+                      <Button
+                        style={{ marginTop: 12 }}
+                        onClick={refetch}
+                        data-analytics="none"
+                        data-analytics-reason="local-ui-refetch-after-a-stated-read-failure"
+                      >
+                        {t(WORKSPACES_I18N_KEYS.retry)}
+                      </Button>
+                    </div>
+                  ),
+                  empty: () => (
+                    <Empty
+                      style={{ marginTop: 16 }}
+                      data-testid="members-list-empty"
+                      description={t(WORKSPACES_I18N_KEYS.membersEmpty)}
+                    />
+                  ),
+                  ready: (members) => (
+                    <Table<Member>
+                      style={{ marginTop: 16 }}
+                      size="small"
+                      rowKey={(member) => member.id}
+                      dataSource={[...members]}
+                      columns={columns}
+                      pagination={false}
+                    />
+                  ),
+                })}
 
                 <Modal
                   title={t(WORKSPACES_I18N_KEYS.membersInviteDialogTitle)}
@@ -182,7 +235,7 @@ export function MembersManager(props: MembersManagerProps): ReactElement {
                         value={inviteRole}
                         onChange={setInviteRole}
                         style={{ width: "100%" }}
-                        loading={rolesBag.isLoading}
+                        loading={rolesLoading}
                         options={inviteRoleOptions}
                       />
                     </div>

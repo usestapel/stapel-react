@@ -471,8 +471,10 @@
     "recordings.finalize.submit",
     "recordings.list.empty",
     "recordings.list.error",
+    "recordings.list.load_failed",
     "recordings.list.loading",
     "recordings.list.retry",
+    "recordings.retry",
     "recordings.upload.uploading"
   ],
   "exports": {

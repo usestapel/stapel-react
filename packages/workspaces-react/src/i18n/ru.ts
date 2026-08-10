@@ -25,11 +25,18 @@ export const workspacesI18nBundleRu: I18nDictionary = {
 
   // workspaces-react UI (hand-written ru mirror of the en copy in keys.ts)
   "workspaces.error.unknown": "Что-то пошло не так. Попробуйте ещё раз.",
+  "workspaces.retry": "Попробовать снова",
   "workspaces.list.loading": "Загрузка рабочих пространств…",
   "workspaces.list.empty": "Пока нет рабочих пространств.",
+  "workspaces.list.load_failed":
+    "Не удалось загрузить ваши рабочие пространства. Это сбой на нашей стороне, а не признак того, что их у вас нет.",
   "workspaces.list.create": "Создать рабочее пространство",
   "workspaces.list.creating": "Создание…",
   "workspaces.members.loading": "Загрузка участников…",
+  "workspaces.members.empty": "Пока нет участников.",
+  "workspaces.members.load_failed": "Не удалось загрузить список участников.",
+  "workspaces.roles.load_failed":
+    "Не удалось загрузить список ролей, поэтому выбор роли пуст. Это не рабочее пространство без ролей.",
   "workspaces.members.invite": "Пригласить",
   "workspaces.members.inviting": "Приглашение…",
   "workspaces.members.update_role": "Изменить роль",
@@ -43,6 +50,9 @@ export const workspacesI18nBundleRu: I18nDictionary = {
   "workspaces.settings.field.slug": "URL-идентификатор",
   "workspaces.settings.field.type": "Тип",
   "workspaces.settings.save": "Сохранить изменения",
+  "workspaces.settings.blocked.not_owner":
+    "Менять эти настройки может только владелец рабочего пространства.",
+  "workspaces.settings.blocked.name_required": "Введите название рабочего пространства.",
   "workspaces.settings.saving": "Сохранение…",
   "workspaces.settings.danger_zone.title": "Опасная зона",
   "workspaces.settings.danger_zone.delete": "Удалить рабочее пространство",

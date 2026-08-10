@@ -2,7 +2,7 @@
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
 import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
-import { useT } from "@stapel/core";
+import { matchList, useT } from "@stapel/core";
 import { RecordingList } from "../src/index.js";
 import type { Recording } from "../src/index.js";
 import { RecordingsDemoHarness, DemoCard } from "./_harness.js";
@@ -70,29 +70,34 @@ function RecordingListBody(): ReactElement {
   return (
     <DemoCard heading="RecordingList">
       <RecordingList>
-        {({ recordings, isLoading }) => {
-          if (isLoading) {
-            return (
+        {({ state }) =>
+          matchList(state, {
+            loading: () => (
               <span style={{ color: cssVar("text-muted") }}>
                 {t("recordings.list.loading")}
               </span>
-            );
-          }
-          if (recordings.length === 0) {
-            return (
+            ),
+            // The arm the old `isLoading ? … : length === 0 ? …` ladder did
+            // not have, and could not have: it had nowhere to put it.
+            failed: () => (
+              <span style={{ color: cssVar("text-muted") }}>
+                {t("recordings.list.load_failed")}
+              </span>
+            ),
+            empty: () => (
               <span style={{ color: cssVar("text-muted") }}>
                 {t("recordings.list.empty")}
               </span>
-            );
-          }
-          return (
-            <ul style={{ margin: 0, padding: 0, borderRadius: radii.sm }}>
-              {recordings.map((recording) => (
-                <RecordingRow key={recording.id} recording={recording} />
-              ))}
-            </ul>
-          );
-        }}
+            ),
+            ready: (recordings) => (
+              <ul style={{ margin: 0, padding: 0, borderRadius: radii.sm }}>
+                {recordings.map((recording) => (
+                  <RecordingRow key={recording.id} recording={recording} />
+                ))}
+              </ul>
+            ),
+          })
+        }
       </RecordingList>
     </DemoCard>
   );

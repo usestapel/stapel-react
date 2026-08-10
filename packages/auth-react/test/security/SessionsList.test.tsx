@@ -124,3 +124,20 @@ describe("<SessionsList/>", () => {
     expect(screen.queryByText("Sign out everyone else")).toBeNull();
   });
 });
+
+describe("<SessionsList/> — loading vs empty vs failed", () => {
+  it("a failed read states the failure and never says 'No active sessions.'", async () => {
+    server.use(
+      http.get(`${BASE}/sessions/`, () =>
+        HttpResponse.json({ code: "error.500.internal", message: "boom" }, { status: 500 })
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <SessionsList />));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toBeDefined());
+    expect(screen.queryByText("No active sessions.")).toBeNull();
+    // …and the bulk action is not offered over a list nobody could read.
+    expect(screen.queryByRole("button", { name: "Sign out everyone else" })).toBeNull();
+  });
+});

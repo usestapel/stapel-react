@@ -1,26 +1,36 @@
 import type { ReactNode } from "react";
-import type { StapelApiError } from "@stapel/core";
+import { loadStateFromQuery, mapLoad } from "@stapel/core";
+import type { LoadState } from "@stapel/core";
 import type { DocDocument } from "../api/types.js";
 import { useDocument, useDownloadUrl } from "../model/queries.js";
 
 /** How {@link MediaViewer} classifies a document for presentation. */
 export type MediaKind = "image" | "video" | "download";
 
-/** Render-prop bag for {@link MediaViewer}. */
-export interface MediaViewerBag {
-  /** The document head, once loaded. */
-  readonly document: DocDocument | null;
+/** A loaded document plus how it should be presented — what a ready
+ * {@link MediaViewerBag.state} carries. `kind` lives here rather than beside
+ * the state because it only means anything for a document that loaded. */
+export interface MediaPresentation {
+  readonly document: DocDocument;
   /** `"image"` / `"video"` by MIME prefix, else `"download"` (download-only
    * presentation — also the fallback for `resolveDocEditor(...) === null`). */
   readonly kind: MediaKind;
-  /** The opaque download URL to feed `<img src>` / `<video src>` / a
-   * download link, else null while resolving. */
-  readonly url: string | null;
+}
+
+/** Render-prop bag for {@link MediaViewer}. */
+export interface MediaViewerBag {
+  /** The document head as a state a skin cannot flatten (core's
+   * `LoadState`; `stapel/no-flattened-load-state`). */
+  readonly state: LoadState<MediaPresentation>;
+  /**
+   * The opaque download URL to feed `<img src>` / `<video src>` / a download
+   * link — a state, not a nullable string: `null` used to mean "still
+   * minting" and "the mint failed" at once, and the skins built on it greyed
+   * the download button out with no reason a person could read.
+   */
+  readonly urlState: LoadState<string>;
   /** The URL may expire — mint a fresh one. */
   refreshUrl(): void;
-  readonly isLoading: boolean;
-  readonly isError: boolean;
-  readonly error: StapelApiError | null;
 }
 
 function kindOf(mimeType: string | null): MediaKind {
@@ -40,7 +50,8 @@ function kindOf(mimeType: string | null): MediaKind {
  *
  * ```tsx
  * <MediaViewer documentId={doc.id}>
- *   {({ kind, url }) => (kind === "image" && url ? <img src={url} alt={doc.title} /> : ...)}
+ *   {({ state, urlState }) =>
+ *     matchLoad(state, { loading, failed, ready: ({ kind }) => … })}
  * </MediaViewer>
  * ```
  */
@@ -53,14 +64,16 @@ export function MediaViewer(props: {
     enabled: documentQuery.data !== undefined,
   });
   return props.children({
-    document: documentQuery.data ?? null,
-    kind: kindOf(documentQuery.data?.mime_type ?? null),
-    url: urlQuery.data?.url ?? null,
+    state: mapLoad(
+      loadStateFromQuery(documentQuery),
+      (doc): MediaPresentation => ({
+        document: doc,
+        kind: kindOf(doc.mime_type),
+      })
+    ),
+    urlState: mapLoad(loadStateFromQuery(urlQuery), (minted) => minted.url),
     refreshUrl: () => {
       void urlQuery.refetch();
     },
-    isLoading: documentQuery.isLoading || urlQuery.isLoading,
-    isError: documentQuery.isError || urlQuery.isError,
-    error: documentQuery.error ?? urlQuery.error ?? null,
   });
 }

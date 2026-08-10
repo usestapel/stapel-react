@@ -10,7 +10,7 @@
  */
 import type { ReactElement } from "react";
 import { Button, Card, Empty, List, Spin, Typography } from "antd";
-import { useErrorDisplay, useT } from "@stapel/core";
+import { matchList, useErrorDisplay, useT } from "@stapel/core";
 import { NotificationFeed } from "../headless/NotificationFeed.js";
 import type { FeedItem } from "../api/types.js";
 import { NOTIFICATIONS_I18N_KEYS } from "../i18n/keys.js";
@@ -30,7 +30,7 @@ export function NotificationFeedList(props: NotificationFeedListProps = {}): Rea
 
   return (
     <NotificationFeed {...(props.limit !== undefined ? { limit: props.limit } : {})}>
-      {({ items, isLoading, isError, error, hasNextPage, isFetchingNextPage, fetchNextPage }) => (
+      {({ state, hasNextPage, isFetchingNextPage, fetchNextPage, refetch }) => (
         <Card data-testid="notification-feed-list">
           <Typography.Title level={4} style={{ marginTop: 0 }}>
             {t(NOTIFICATIONS_I18N_KEYS.feedSettingsTitle)}
@@ -39,41 +39,63 @@ export function NotificationFeedList(props: NotificationFeedListProps = {}): Rea
             {t(NOTIFICATIONS_I18N_KEYS.feedSettingsSubtitle)}
           </Typography.Text>
 
-          {isError && <ErrorAlert error={errorDisplay(error)} style={{ marginTop: 12 }} />}
-
-          {isLoading ? (
-            <Spin style={{ marginTop: 16 }} />
-          ) : items.length === 0 ? (
-            <Empty style={{ marginTop: 16 }} description={t(NOTIFICATIONS_I18N_KEYS.feedEmpty)} />
-          ) : (
-            <List<FeedItem>
-              style={{ marginTop: 16 }}
-              dataSource={items as FeedItem[]}
-              rowKey={(item) => item.id}
-              renderItem={(item) => (
-                <List.Item>
-                  <List.Item.Meta title={item.title} description={item.body} />
-                </List.Item>
-              )}
-            />
-          )}
-
-          {hasNextPage && (
-            <Button
-              style={{ marginTop: 12 }}
-              loading={isFetchingNextPage}
-              onClick={() => fetchNextPage()}
-              data-analytics="none"
-              data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-            >
-              {t(NOTIFICATIONS_I18N_KEYS.feedLoadMore)}
-            </Button>
-          )}
-          {!hasNextPage && items.length > 0 && (
-            <Typography.Text type="secondary" style={{ display: "block", marginTop: 12 }}>
-              {t(NOTIFICATIONS_I18N_KEYS.feedEnd)}
-            </Typography.Text>
-          )}
+          {matchList(state, {
+            loading: () => <Spin style={{ marginTop: 16 }} />,
+            // The alert used to render ABOVE an <Empty> that kept saying "no
+            // notifications yet" on a read that never landed. One arm now
+            // owns the failure; the empty copy is unreachable from here.
+            failed: (error) => (
+              <div style={{ marginTop: 16 }} data-testid="notification-feed-error">
+                <ErrorAlert error={errorDisplay(error)} />
+                <Button
+                  style={{ marginTop: 12 }}
+                  onClick={refetch}
+                  data-analytics="none"
+                  data-analytics-reason="recovery affordance for a failed read — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+                >
+                  {t(NOTIFICATIONS_I18N_KEYS.feedRetry)}
+                </Button>
+              </div>
+            ),
+            empty: () => (
+              <Empty
+                style={{ marginTop: 16 }}
+                data-testid="notification-feed-empty"
+                description={t(NOTIFICATIONS_I18N_KEYS.feedEmpty)}
+              />
+            ),
+            ready: (items) => (
+              <>
+                <List<FeedItem>
+                  style={{ marginTop: 16 }}
+                  dataSource={[...items]}
+                  rowKey={(item) => item.id}
+                  renderItem={(item) => (
+                    <List.Item>
+                      <List.Item.Meta title={item.title} description={item.body} />
+                    </List.Item>
+                  )}
+                />
+                {hasNextPage ? (
+                  <Button
+                    style={{ marginTop: 12 }}
+                    loading={isFetchingNextPage}
+                    onClick={() => fetchNextPage()}
+                    data-analytics="none"
+                    data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+                  >
+                    {t(NOTIFICATIONS_I18N_KEYS.feedLoadMore)}
+                  </Button>
+                ) : (
+                  // "You're all caught up." is a claim about the whole feed,
+                  // so it belongs to the arm that actually read it.
+                  <Typography.Text type="secondary" style={{ display: "block", marginTop: 12 }}>
+                    {t(NOTIFICATIONS_I18N_KEYS.feedEnd)}
+                  </Typography.Text>
+                )}
+              </>
+            ),
+          })}
         </Card>
       )}
     </NotificationFeed>

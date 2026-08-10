@@ -85,7 +85,10 @@ export type {
 // ── headless (renderless components) ─────────────────────────────────────────
 export { CalendarProvider } from "./headless/CalendarProvider.js";
 export { CalendarView } from "./headless/CalendarView.js";
-export type { CalendarViewBag } from "./headless/CalendarView.js";
+export type {
+  CalendarViewBag,
+  CalendarRangeData,
+} from "./headless/CalendarView.js";
 export { EventComposer } from "./headless/EventComposer.js";
 export type { EventComposerBag } from "./headless/EventComposer.js";
 export { EventRsvp } from "./headless/EventRsvp.js";

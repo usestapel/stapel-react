@@ -4,8 +4,8 @@ import type {
   UseInfiniteQueryResult,
   UseQueryResult,
 } from "@tanstack/react-query";
-import { useActiveSessionReady } from "@stapel/core";
-import type { StapelApiError } from "@stapel/core";
+import { loadStateFromQuery, mapLoad, useActiveSessionReady } from "@stapel/core";
+import type { LoadState, StapelApiError } from "@stapel/core";
 import type {
   InvitationPage,
   InvitationPreview,
@@ -223,15 +223,21 @@ export function useInvitationPreview(
 /** What {@link useCapabilities} returns: the caller's granted capability
  * strings in one workspace plus the wildcard-aware `can()` check. */
 export interface CapabilitiesResult {
-  /** Verbatim registry strings of the caller's role (wildcards included);
-   * empty while loading or when the caller is not a member. */
-  readonly capabilities: readonly string[];
+  /**
+   * The capability read, as a state. `ready` with the verbatim registry
+   * strings of the caller's role (wildcards included; `[]` for a non-member,
+   * and for a backend older than 0.6.0 which does not send the field at all).
+   *
+   * A state and not an array, because "you may not do this" and "we could not
+   * find out whether you may" both end in a hidden button, and only one of
+   * them should end in silence. `can()` stays deny-by-default in both — that
+   * part is a security property and does not change — but a screen that wants
+   * to SAY why can now tell them apart.
+   */
+  readonly state: LoadState<readonly string[]>;
   /** Wildcard-aware check (`*` / `prefix.*` — the backend matcher, ported).
    * UI convenience only: the backend re-checks on every operation. */
   can(capability: string): boolean;
-  readonly isLoading: boolean;
-  readonly isError: boolean;
-  readonly error: StapelApiError | null;
 }
 
 /**
@@ -243,13 +249,17 @@ export interface CapabilitiesResult {
  */
 export function useCapabilities(workspaceId: string | null): CapabilitiesResult {
   const query = useWorkspace(workspaceId);
-  const capabilities = query.data?.my_capabilities ?? [];
+  // `my_capabilities` is additive since stapel-workspaces 0.6.0, so a
+  // SUCCESSFUL read against an older backend legitimately carries none. That
+  // is an empty grant, not a failed load, and the two must not merge.
+  const state = mapLoad(
+    loadStateFromQuery(query),
+    (workspace) => workspace.my_capabilities ?? []
+  );
   return {
-    capabilities,
-    can: (capability) => hasCapability(capabilities, capability),
-    isLoading: query.isLoading,
-    isError: query.isError,
-    error: query.error ?? null,
+    state,
+    can: (capability) =>
+      state.status === "ready" && hasCapability(state.data, capability),
   };
 }
 
@@ -299,7 +309,7 @@ export function useCapabilityGate(
   workspaceId: string | null,
   capability: string
 ): CapabilityGate {
-  const { can, isLoading } = useCapabilities(workspaceId);
+  const { can, state } = useCapabilities(workspaceId);
   const level = capabilityLevel(capability);
   return {
     capability,
@@ -307,6 +317,6 @@ export function useCapabilityGate(
     level,
     requiresStepUp: level === "high",
     stepUpScope: level === "high" ? SENSITIVE_SCOPE : null,
-    isLoading,
+    isLoading: state.status === "loading",
   };
 }

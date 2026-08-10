@@ -6,7 +6,7 @@
  * built on top of this pair's existing hooks.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import {
   act,
@@ -471,6 +471,24 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     await waitFor(() => expect(lastPatch).toMatchObject({ default_camera_on: false }));
   });
 
+  it("a field-manifest read that FAILED shows the failure — it does not pass as a project that selected no fields", async () => {
+    server.use(
+      http.get(`${BASE}/field-manifest`, () =>
+        HttpResponse.json({ localizable_error: "", error: "boom", params: {} }, { status: 500 })
+      ),
+      http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE))
+    );
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <ProfileSettings />));
+
+    await waitFor(() => expect(screen.getByTestId("profile-fields-failed")).toBeDefined());
+    expect(screen.getByText("Try again")).toBeDefined();
+    // The hard-core rows are the skin's own and keep rendering.
+    expect(screen.getByTestId("profile-field-display_name-value")).toBeDefined();
+    // ...but no manifest row is invented, and nothing claims there are none.
+    expect(screen.queryAllByRole("switch")).toHaveLength(0);
+  });
+
   it("a geohash field is hidden by default; showGeohash opts it back in as an editable text row", async () => {
     serveManifestAndProfile();
     const runtime = createProfilesRuntime({ baseUrl: BASE });
@@ -523,6 +541,76 @@ describe("<LanguageSettings/> (default skin) — Auto-first reactive picker", ()
     await waitFor(() =>
       expect(lastPatch).toMatchObject({ app_language: "ru", use_device_language: false })
     );
+  });
+
+  /**
+   * The three answers a language catalogue read can give, kept three on the
+   * screen (the 2026-08-09 incident class): a failed catalogue used to
+   * degrade the picker to a single raw language code and delete the
+   * "languages you understand" block outright — a working-looking control
+   * built out of nothing.
+   */
+  describe("the catalogue's three answers stay three", () => {
+    it("still loading: a spinner — no picker, no empty copy", async () => {
+      server.use(
+        http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE)),
+        http.get(`${BASE}/languages/`, async () => {
+          await delay("infinite");
+          return HttpResponse.json([]);
+        })
+      );
+      const runtime = createProfilesRuntime({ baseUrl: BASE });
+      render(wrap(runtime, <LanguageSettings />));
+
+      await waitFor(() => expect(screen.getByTestId("language-settings")).toBeDefined());
+      expect(screen.getByTestId("language-catalogue-loading")).toBeDefined();
+      expect(screen.queryByTestId("language-catalogue-empty")).toBeNull();
+      expect(screen.queryByText("Languages you understand")).toBeNull();
+    });
+
+    it("loaded and genuinely empty: the empty copy, and only there", async () => {
+      server.use(
+        http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE)),
+        http.get(`${BASE}/languages/`, () => HttpResponse.json([]))
+      );
+      const runtime = createProfilesRuntime({ baseUrl: BASE });
+      render(wrap(runtime, <LanguageSettings />));
+
+      await waitFor(() =>
+        expect(screen.getByText("No languages are available to choose from.")).toBeDefined()
+      );
+      expect(screen.queryByTestId("language-catalogue-failed")).toBeNull();
+      expect(screen.queryByText("Languages you understand")).toBeNull();
+    });
+
+    it("failed: the error + a retry — NOT the empty copy, and no fake picker", async () => {
+      let calls = 0;
+      server.use(
+        http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE)),
+        http.get(`${BASE}/languages/`, () => {
+          calls += 1;
+          return HttpResponse.json(
+            { localizable_error: "error.404.profile_not_found", error: "Not found", params: {} },
+            { status: 404 }
+          );
+        })
+      );
+      const runtime = createProfilesRuntime({ baseUrl: BASE });
+      render(wrap(runtime, <LanguageSettings />));
+
+      await waitFor(() => expect(screen.getByTestId("language-catalogue-failed")).toBeDefined());
+      // The whole point: a failed read must never speak the empty sentence.
+      expect(screen.queryByText("No languages are available to choose from.")).toBeNull();
+      // And it must not hand out a picker made of the one code it happens to
+      // hold — the working-looking control built out of nothing.
+      expect(screen.queryByText("Auto")).toBeNull();
+      expect(screen.queryByText("EN")).toBeNull();
+      expect(screen.queryByText("Languages you understand")).toBeNull();
+
+      expect(calls).toBe(1);
+      fireEvent.click(screen.getByText("Try again"));
+      await waitFor(() => expect(calls).toBe(2));
+    });
   });
 
   it("picking 'Auto' PATCHes use_device_language: true", async () => {

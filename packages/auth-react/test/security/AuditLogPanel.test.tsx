@@ -88,6 +88,9 @@ describe("<AuditLogPanel/>", () => {
     render(wrap(runtime, <AuditLogPanel />));
 
     await waitFor(() => expect(screen.getByRole("alert")).toBeDefined());
+    // A failed read is never the empty state's sentence.
+    expect(screen.queryByText("No recent activity.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeDefined();
   });
 
   it("'Load more' advances to the next page", async () => {

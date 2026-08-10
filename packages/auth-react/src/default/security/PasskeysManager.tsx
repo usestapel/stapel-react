@@ -22,7 +22,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Alert, Button, Card, Empty, Flex, Popconfirm, Spin, Typography } from "antd";
-import { useFormatFlowError, useT } from "@stapel/core";
+import {
+  loadStateFromQuery,
+  matchList,
+  useErrorDisplay,
+  useFormatFlowError,
+  useT,
+} from "@stapel/core";
 import type { Passkey } from "../../api/types.js";
 import { PasskeyRegistration } from "../../headless/Passkey.js";
 import type { PasskeyRegistrationBag, WebauthnBinding } from "../../headless/Passkey.js";
@@ -30,6 +36,7 @@ import { useRemovePasskey } from "../../model/mutations.js";
 import { usePasskeys } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import { isWebauthnSupported } from "../../webauthn.js";
+import { ErrorAlert } from "../ErrorAlert.js";
 import { SecurityEmptyIcon } from "./icons.js";
 
 /** A generic device name inferred from the user agent — good enough for a
@@ -141,11 +148,15 @@ export interface PasskeysManagerProps {
  * — no modal, no name prompt; see the module doc's interaction canon). */
 export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
   const t = useT();
+  // A failed passkey read must never read as "you have no passkeys" — on a
+  // security screen that sentence invites the user to add a passkey they
+  // already have, or to conclude their account is less protected than it is.
+  const errorDisplay = useErrorDisplay(AUTH_I18N_KEYS.unknownError);
   const passkeys = usePasskeys();
   const remove = useRemovePasskey();
   const [adding, setAdding] = useState(false);
 
-  const list = passkeys.data ?? [];
+  const state = loadStateFromQuery(passkeys);
 
   return (
     <Card
@@ -163,25 +174,32 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
         </Button>
       }
     >
-      {passkeys.isLoading ? (
-        <Spin />
-      ) : list.length === 0 && !adding ? (
-        <Empty
-          image={props.emptyIcon ?? <SecurityEmptyIcon />}
-          description={t(AUTH_I18N_KEYS.secPasskeysEmpty)}
-        />
-      ) : (
-        <Flex vertical gap="middle">
-          {list.map((p) => (
-            <PasskeyRow
-              key={p.id}
-              passkey={p}
-              onRemove={() => remove.mutate(p.id)}
-              removing={remove.isPending && remove.variables === p.id}
+      {matchList(state, {
+        loading: () => <Spin />,
+        failed: (error) => (
+          <ErrorAlert error={errorDisplay(error)} onRetry={() => void passkeys.refetch()} />
+        ),
+        // The add ceremony below replaces the empty state while it runs.
+        empty: () =>
+          adding ? null : (
+            <Empty
+              image={props.emptyIcon ?? <SecurityEmptyIcon />}
+              description={t(AUTH_I18N_KEYS.secPasskeysEmpty)}
             />
-          ))}
-        </Flex>
-      )}
+          ),
+        ready: (list) => (
+          <Flex vertical gap="middle">
+            {list.map((p) => (
+              <PasskeyRow
+                key={p.id}
+                passkey={p}
+                onRemove={() => remove.mutate(p.id)}
+                removing={remove.isPending && remove.variables === p.id}
+              />
+            ))}
+          </Flex>
+        ),
+      })}
 
       {adding && (
         <PasskeyRegistration {...(props.webauthnCreate !== undefined ? { webauthnCreate: props.webauthnCreate } : {})}>

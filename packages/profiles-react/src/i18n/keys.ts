@@ -12,6 +12,8 @@ import { profilesErrorBundleEn } from "./generated/errors.gen.js";
  */
 export const PROFILES_I18N_KEYS = {
   unknownError: "profiles.error.unknown",
+  /** Retry affordance beside a `failed` arm's alert (matchList/matchLoad). */
+  actionRetry: "profiles.action.retry",
   // My profile (MyProfile headless)
   profileLoading: "profiles.profile.loading",
   profileSave: "profiles.profile.save",
@@ -55,12 +57,17 @@ export const PROFILES_I18N_KEYS = {
   initialSetupSave: "profiles.initialSetup.save",
   initialSetupSaving: "profiles.initialSetup.saving",
   initialSetupSkip: "profiles.initialSetup.skip",
+  /** Why Save is off: the display name is still blank (an ActionBlock code). */
+  initialSetupNameRequired: "profiles.initialSetup.blocked.name_required",
   // Language settings (default skin — LanguageSettings)
   languageTitle: "profiles.language.title",
   languageSubtitle: "profiles.language.subtitle",
   fieldAppLanguage: "profiles.language.field.app_language",
   languageAuto: "profiles.language.field.auto",
   fieldUnderstands: "profiles.language.field.understands",
+  /** The catalogue loaded and is genuinely empty — the ONE place allowed to
+   * say there is nothing to pick. */
+  languagesEmpty: "profiles.language.catalogue_empty",
   // Notification preferences matrix (default skin — NotificationPreferences)
   notifPrefsTitle: "profiles.notif_prefs.title",
   notifPrefsSubtitle: "profiles.notif_prefs.subtitle",
@@ -89,6 +96,7 @@ export const profilesI18nBundleEn: I18nDictionary = {
 
   // profiles-react UI
   "profiles.error.unknown": "Something went wrong. Please try again.",
+  "profiles.action.retry": "Try again",
   "profiles.profile.loading": "Loading profile…",
   "profiles.profile.save": "Save changes",
   "profiles.profile.saving": "Saving…",
@@ -121,11 +129,13 @@ export const profilesI18nBundleEn: I18nDictionary = {
   "profiles.initialSetup.save": "Continue",
   "profiles.initialSetup.saving": "Saving…",
   "profiles.initialSetup.skip": "Maybe later",
+  "profiles.initialSetup.blocked.name_required": "Enter a display name to continue.",
   "profiles.language.title": "Language",
   "profiles.language.subtitle": "Choose the language you'd like to see the app in.",
   "profiles.language.field.app_language": "App language",
   "profiles.language.field.auto": "Auto",
   "profiles.language.field.understands": "Languages you understand",
+  "profiles.language.catalogue_empty": "No languages are available to choose from.",
   "profiles.notif_prefs.title": "Notifications",
   "profiles.notif_prefs.subtitle": "Choose which notifications reach you, and how.",
   "profiles.notif_prefs.category.messages": "Messages",

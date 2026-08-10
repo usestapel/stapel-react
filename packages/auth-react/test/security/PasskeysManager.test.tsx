@@ -9,7 +9,7 @@
  * covered here.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -183,5 +183,72 @@ describe("<PasskeysManager/>", () => {
 
     await waitFor(() => expect(webauthnCreate).toHaveBeenCalledWith({ challenge: "c1" }));
     await screen.findByText("Passkey added.");
+  });
+});
+
+/**
+ * THE INCIDENT, on the security screen (2026-08-09): a list read that failed
+ * used to flatten to `[]` and render "No passkeys yet." — telling a person
+ * their account has no second factor when the truth was that nobody could
+ * ask. The three states are now three distinct renders, and the failed one
+ * must never wear the empty one's sentence.
+ */
+describe("<PasskeysManager/> — loading vs empty vs failed", () => {
+  it("while the read is in flight: a spinner, and no empty copy", async () => {
+    server.use(
+      http.get(`${BASE}/passkey/`, async () => {
+        await delay("infinite");
+        return HttpResponse.json({ passkeys: [] });
+      })
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    const { container } = render(wrap(runtime, <PasskeysManager />));
+
+    await waitFor(() => expect(container.querySelector(".ant-spin")).not.toBeNull());
+    expect(screen.queryByText("No passkeys yet.")).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("loaded and genuinely empty: the empty copy, and no alert", async () => {
+    server.use(http.get(`${BASE}/passkey/`, () => HttpResponse.json({ passkeys: [] })));
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PasskeysManager />));
+
+    await waitFor(() => expect(screen.getByText("No passkeys yet.")).toBeDefined());
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("failed read: the failure is stated with a retry — NEVER 'No passkeys yet.'", async () => {
+    server.use(
+      http.get(`${BASE}/passkey/`, () =>
+        HttpResponse.json({ code: "error.500.internal", message: "boom" }, { status: 500 })
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PasskeysManager />));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toBeDefined());
+    expect(screen.queryByText("No passkeys yet.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeDefined();
+  });
+
+  it("retry re-asks, and the rows appear once the read succeeds", async () => {
+    let fail = true;
+    server.use(
+      http.get(`${BASE}/passkey/`, () =>
+        fail
+          ? HttpResponse.json({ code: "error.500.internal", message: "boom" }, { status: 500 })
+          : HttpResponse.json({ passkeys: [passkey()] })
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PasskeysManager />));
+    await waitFor(() => expect(screen.getByRole("alert")).toBeDefined());
+
+    fail = false;
+    screen.getByRole("button", { name: "Try again" }).click();
+
+    await waitFor(() => expect(screen.getByText("MacBook Touch ID")).toBeDefined());
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

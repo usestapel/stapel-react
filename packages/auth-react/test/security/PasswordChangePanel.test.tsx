@@ -223,3 +223,43 @@ describe("<PasswordChangePanel/> — capability caption", () => {
     expect(screen.queryByTestId("password-capability-label")).toBeNull();
   });
 });
+
+/**
+ * The panel used to render a TITLED BLANK CARD whenever the methods read did
+ * not produce usable tabs — including when it failed outright. A person saw a
+ * "Change password" heading over nothing at all and no way to know why.
+ */
+describe("<PasswordChangePanel/> — loading vs empty vs failed", () => {
+  it("a failed methods read states the failure inside the panel, with a retry", async () => {
+    server.use(
+      http.get(`${BASE}/password/methods/`, () =>
+        HttpResponse.json({ code: "error.500.internal", message: "boom" }, { status: 500 })
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PasswordChangePanel />));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toBeDefined());
+    expect(screen.getByTestId("password-change-panel")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeDefined();
+    // Not the empty sentence — the read never landed.
+    expect(
+      screen.queryByText("This account has no way to change its password here.")
+    ).toBeNull();
+  });
+
+  it("a successful read with no usable method says so, instead of a blank card", async () => {
+    server.use(
+      http.get(`${BASE}/password/methods/`, () =>
+        HttpResponse.json({ methods: [], has_password: false })
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PasswordChangePanel />));
+
+    await waitFor(() =>
+      expect(screen.getByText("This account has no way to change its password here.")).toBeDefined()
+    );
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+});

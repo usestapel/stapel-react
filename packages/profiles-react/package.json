@@ -63,7 +63,7 @@
     {
       "name": "i18n/ru subpath (opt-in locale: en floor + generated ru + ru UI)",
       "path": "dist/i18n/ru.js",
-      "limit": "3.5 KB"
+      "limit": "3.6 KB"
     },
     {
       "name": "i18n/es subpath (opt-in locale: en floor + generated es errors; no es UI copy yet)",

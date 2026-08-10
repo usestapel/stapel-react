@@ -231,7 +231,11 @@ export function createVerificationController(
         resolve: (r): VerificationState => {
           if (factor === "passkey") {
             const sessionKey = String(r.data["session_key"] ?? "");
-            const options = (r.data["options"] ?? {}) as Record<string, unknown>;
+            const rawOptions = r.data["options"];
+            const options: Record<string, unknown> =
+              typeof rawOptions === "object" && rawOptions !== null
+                ? (rawOptions as Record<string, unknown>)
+                : {};
             return {
               step: "awaitingPasskey",
               challenge,

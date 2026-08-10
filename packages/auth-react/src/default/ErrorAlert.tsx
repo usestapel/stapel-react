@@ -14,17 +14,26 @@
  * `undefined` in — including a `detail` that core left `undefined` because
  * there was nothing worth quoting — renders nothing rather than an empty
  * muted line.
+ *
+ * `onRetry` puts the way out next to the bad news: a read that failed is
+ * usually one button away from succeeding, and a screen that states a failure
+ * without offering the retry leaves the person with nothing to do.
  */
-import { Alert, Typography } from "antd";
+import { Alert, Button, Typography } from "antd";
 import type { CSSProperties, ReactElement } from "react";
 import type { FlowErrorDisplay } from "@stapel/core";
+import { useT } from "@stapel/core";
+import { AUTH_I18N_KEYS } from "../i18n/keys.js";
 
 export function ErrorAlert(props: {
   error: FlowErrorDisplay | undefined;
   style?: CSSProperties | undefined;
   testId?: string | undefined;
+  /** Re-run the failed read. Omit where there is nothing to re-run. */
+  onRetry?: (() => void) | undefined;
 }): ReactElement | null {
-  const { error } = props;
+  const t = useT();
+  const { error, onRetry } = props;
   if (!error) return null;
   return (
     <Alert
@@ -33,6 +42,15 @@ export function ErrorAlert(props: {
       {...(props.style ? { style: props.style } : {})}
       {...(props.testId ? { "data-testid": props.testId } : {})}
       message={error.message}
+      {...(onRetry
+        ? {
+            action: (
+              <Button size="small" onClick={onRetry} data-analytics="flow">
+                {t(AUTH_I18N_KEYS.uiRetry)}
+              </Button>
+            ),
+          }
+        : {})}
       {...(error.detail
         ? {
             description: (

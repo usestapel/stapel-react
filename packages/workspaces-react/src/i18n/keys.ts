@@ -12,13 +12,26 @@ import { workspacesErrorBundleEn } from "./generated/errors.gen.js";
  */
 export const WORKSPACES_I18N_KEYS = {
   unknownError: "workspaces.error.unknown",
+  // Retry affordance beside a stated failure — an error a person cannot act
+  // on is only half the message.
+  retry: "workspaces.retry",
   // Workspace list (WorkspaceList headless)
   listLoading: "workspaces.list.loading",
   listEmpty: "workspaces.list.empty",
+  /**
+   * "We could not load your workspaces" — the sentence whose ABSENCE was the
+   * 2026-08-09 incident. Deliberately about US failing to load, never about
+   * the person having none, and never a 404's "no longer available" (which
+   * asserts the thing does not exist — tracker #211).
+   */
+  listLoadFailed: "workspaces.list.load_failed",
   listCreate: "workspaces.list.create",
   listCreating: "workspaces.list.creating",
   // Members (Members headless)
   membersLoading: "workspaces.members.loading",
+  membersEmpty: "workspaces.members.empty",
+  membersLoadFailed: "workspaces.members.load_failed",
+  rolesLoadFailed: "workspaces.roles.load_failed",
   membersInvite: "workspaces.members.invite",
   membersInviting: "workspaces.members.inviting",
   membersUpdateRole: "workspaces.members.update_role",
@@ -34,6 +47,9 @@ export const WORKSPACES_I18N_KEYS = {
   fieldSlug: "workspaces.settings.field.slug",
   fieldType: "workspaces.settings.field.type",
   save: "workspaces.settings.save",
+  // Why a settings control is switched off (core's `useActionGate`).
+  blockedNotOwner: "workspaces.settings.blocked.not_owner",
+  blockedNameRequired: "workspaces.settings.blocked.name_required",
   saving: "workspaces.settings.saving",
   dangerZoneTitle: "workspaces.settings.danger_zone.title",
   deleteWorkspace: "workspaces.settings.danger_zone.delete",
@@ -102,11 +118,18 @@ export const workspacesI18nBundleEn: I18nDictionary = {
 
   // workspaces-react UI
   "workspaces.error.unknown": "Something went wrong. Please try again.",
+  "workspaces.retry": "Try again",
   "workspaces.list.loading": "Loading workspaces…",
   "workspaces.list.empty": "No workspaces yet.",
+  "workspaces.list.load_failed":
+    "We could not load your workspaces. This is a problem on our side, not a sign that you have none.",
   "workspaces.list.create": "Create workspace",
   "workspaces.list.creating": "Creating…",
   "workspaces.members.loading": "Loading members…",
+  "workspaces.members.empty": "No members yet.",
+  "workspaces.members.load_failed": "We could not load the member list.",
+  "workspaces.roles.load_failed":
+    "We could not load the role list, so the role picker is empty. It is not a workspace without roles.",
   "workspaces.members.invite": "Invite",
   "workspaces.members.inviting": "Inviting…",
   "workspaces.members.update_role": "Change role",
@@ -120,6 +143,9 @@ export const workspacesI18nBundleEn: I18nDictionary = {
   "workspaces.settings.field.slug": "URL slug",
   "workspaces.settings.field.type": "Type",
   "workspaces.settings.save": "Save changes",
+  "workspaces.settings.blocked.not_owner":
+    "Only the workspace owner can change these settings.",
+  "workspaces.settings.blocked.name_required": "Enter a workspace name.",
   "workspaces.settings.saving": "Saving…",
   "workspaces.settings.danger_zone.title": "Danger zone",
   "workspaces.settings.danger_zone.delete": "Delete workspace",

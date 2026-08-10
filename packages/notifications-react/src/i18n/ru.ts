@@ -29,6 +29,7 @@ export const notificationsI18nBundleRu: I18nDictionary = {
   "notifications.feed.loading": "Загрузка уведомлений…",
   "notifications.feed.load_more": "Загрузить ещё",
   "notifications.feed.end": "Вы всё просмотрели.",
+  "notifications.feed.retry": "Повторить",
   "notifications.device.register": "Включить push-уведомления",
   "notifications.device.unregister": "Отключить push-уведомления",
   "notifications.device.registering": "Включение…",

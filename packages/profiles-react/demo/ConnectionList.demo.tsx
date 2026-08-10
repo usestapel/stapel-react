@@ -2,7 +2,7 @@
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
 import { cssVar } from "@stapel/tokens";
-import { useT } from "@stapel/core";
+import { matchList, useT } from "@stapel/core";
 import { ConnectionList } from "../src/index.js";
 import { ProfilesDemoHarness, DemoCard, StepBadge } from "./_harness.js";
 
@@ -22,22 +22,26 @@ function ConnectionListBody(): ReactElement {
   return (
     <DemoCard heading="ConnectionList">
       <ConnectionList kind="followers">
-        {({ ids, count, isLoading }) => (
+        {({ state, count }) => (
           <>
-            <StepBadge step={isLoading ? "loading" : String(count)} />
+            <StepBadge step={count === undefined ? "loading" : String(count)} />
             <span style={{ color: cssVar("text-muted") }}>
               {t("profiles.list.followers")}
             </span>
-            <ul>
-              {ids.map((id) => (
-                <li key={id}>
-                  <code>{id.slice(0, 8)}</code>
-                </li>
-              ))}
-              {ids.length === 0 && !isLoading ? (
-                <li>{t("profiles.list.empty")}</li>
-              ) : null}
-            </ul>
+            {matchList(state, {
+              loading: () => <p>{t("profiles.profile.loading")}</p>,
+              failed: () => <p>{t("profiles.error.unknown")}</p>,
+              empty: () => <p>{t("profiles.list.empty")}</p>,
+              ready: (ids) => (
+                <ul>
+                  {ids.map((id) => (
+                    <li key={id}>
+                      <code>{id.slice(0, 8)}</code>
+                    </li>
+                  ))}
+                </ul>
+              ),
+            })}
           </>
         )}
       </ConnectionList>
@@ -63,7 +67,7 @@ export default defineDemo({
   id: "profiles.connection_list",
   title: "Connection list",
   description:
-    "The headless ConnectionList selects the followers / following / blocked read by `kind`, normalizes the three response shapes to { ids, count }, and exposes loading / error state. Bring your own list UI — the component is renderless.",
+    "The headless ConnectionList selects the followers / following / blocked read by `kind` and normalizes the three response shapes to one LoadState of ids plus a count. Render it with matchList: loading, failed and empty stay three different answers. Bring your own list UI — the component is renderless.",
   component: ConnectionList,
   tokens: ["card-bg", "card-border"],
   variants: {

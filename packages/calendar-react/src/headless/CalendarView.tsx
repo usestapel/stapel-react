@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import type { StapelApiError } from "@stapel/core";
+import { loadStateFromQuery, mapLoad } from "@stapel/core";
+import type { LoadState } from "@stapel/core";
 import type {
   CalendarEvent,
   CalendarRangeParams,
@@ -7,18 +8,33 @@ import type {
 } from "../api/types.js";
 import { useCalendar } from "../model/queries.js";
 
-/** Render-prop bag for {@link CalendarView}. */
-export interface CalendarViewBag {
+/**
+ * What a SUCCEEDED range read carries, normalized. The wire marks both arrays
+ * optional; inside a load that succeeded an absent key honestly means "nothing
+ * of that kind in this range" — which is the empty arm, not a failure.
+ */
+export interface CalendarRangeData {
   /** Concrete/standalone events overlapping the range. */
   readonly events: readonly CalendarEvent[];
   /** Expanded (virtual + materialized) occurrences of recurring series. */
   readonly occurrences: readonly Occurrence[];
-  /** The range read is loading (no data yet). */
-  readonly isLoading: boolean;
-  /** The query failed. */
-  readonly isError: boolean;
-  /** The error, when `isError` (a localizable `StapelApiError`), else null. */
-  readonly error: StapelApiError | null;
+}
+
+/** Render-prop bag for {@link CalendarView}. */
+export interface CalendarViewBag {
+  /**
+   * The range read. ONE state for BOTH lists, deliberately: events and
+   * occurrences come out of the same `GET /calendar` body, so two states could
+   * never hold different statuses — a grid would just render two spinners and
+   * two alerts for one request. Project the list you are drawing:
+   * `matchList(mapLoad(state, (r) => r.events), { … })`.
+   *
+   * An empty grid is the NORMAL case for a calendar, which is exactly what
+   * makes a failed read invisible when it renders as one. Only the `empty` arm
+   * of `matchList` may say "nothing scheduled", and it is reachable only from
+   * a read that answered.
+   */
+  readonly state: LoadState<CalendarRangeData>;
   /** Re-read the calendar for the current range. */
   refetch(): void;
 }
@@ -32,7 +48,7 @@ export interface CalendarViewBag {
  *
  * ```tsx
  * <CalendarView start={weekStart} end={weekEnd}>
- *   {({ events, occurrences }) => ( ... )}
+ *   {({ state }) => ( ... )}
  * </CalendarView>
  * ```
  */
@@ -46,12 +62,15 @@ export function CalendarView(props: {
     ...(props.end !== undefined ? { end: props.end } : {}),
   };
   const query = useCalendar(params);
+  const state = mapLoad(
+    loadStateFromQuery(query),
+    (range): CalendarRangeData => ({
+      events: range.events ?? [],
+      occurrences: range.occurrences ?? [],
+    })
+  );
   return props.children({
-    events: query.data?.events ?? [],
-    occurrences: query.data?.occurrences ?? [],
-    isLoading: query.isLoading,
-    isError: query.isError,
-    error: query.error ?? null,
+    state,
     refetch: () => {
       void query.refetch();
     },

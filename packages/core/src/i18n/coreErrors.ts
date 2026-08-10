@@ -81,6 +81,13 @@ const CORE_ERROR_BUNDLES: Readonly<Record<string, I18nDictionary>> = {
     "stapel.transport.failed":
       "Could not reach the server. Check your connection and try again.",
     [DETAIL_ERROR_KEY]: "HTTP {status}",
+    // Why a control is switched off (../actionGate.ts). The load-failure
+    // sentence is written to say that WE could not load something — it never
+    // implies the thing is absent (that would be the empty-state lie in a new
+    // costume) and never implies the person did anything wrong.
+    "stapel.action.blocked.loading": "Still loading. One moment.",
+    "stapel.action.blocked.load_failed":
+      "We could not load what this needs. Reload the page to try again.",
     "stapel.http.4xx": "That request could not be completed.",
     "stapel.http.400": "That request could not be completed.",
     "stapel.http.401": "Your session has expired. Please sign in again.",
@@ -101,6 +108,9 @@ const CORE_ERROR_BUNDLES: Readonly<Record<string, I18nDictionary>> = {
     "stapel.transport.failed":
       "Не удалось связаться с сервером. Проверьте соединение и попробуйте ещё раз.",
     [DETAIL_ERROR_KEY]: "HTTP {status}",
+    "stapel.action.blocked.loading": "Ещё загружаем. Один момент.",
+    "stapel.action.blocked.load_failed":
+      "Не удалось загрузить то, что нужно для этого действия. Обновите страницу и попробуйте ещё раз.",
     "stapel.http.4xx": "Не удалось выполнить запрос.",
     "stapel.http.400": "Не удалось выполнить запрос.",
     "stapel.http.401": "Сессия истекла. Войдите снова.",

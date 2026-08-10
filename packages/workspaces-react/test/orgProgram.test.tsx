@@ -177,9 +177,9 @@ describe("useRoles / RoleSelect", () => {
       wrap(
         runtime,
         <RoleSelect>
-          {({ roles, labelFor }) => (
+          {({ state, labelFor }) => (
             <ul>
-              {roles.map((r) => (
+              {(state.status === "ready" ? state.data : []).map((r) => (
                 <li key={r.role} data-testid={`role-${r.role}`}>
                   {labelFor(r.role)}
                 </li>
@@ -235,8 +235,10 @@ describe("<Can> / useCapabilities", () => {
     const { result } = renderHook(() => useCapabilities(WS), {
       wrapper: ({ children }) => wrap(runtime, children),
     });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.capabilities).toEqual(["workspace.view", "members.*"]);
+    await waitFor(() => expect(result.current.state.status).toBe("ready"));
+    expect(
+      result.current.state.status === "ready" ? result.current.state.data : null
+    ).toEqual(["workspace.view", "members.*"]);
     expect(result.current.can("members.invite")).toBe(true);
     expect(result.current.can("meetings.kick")).toBe(false);
   });

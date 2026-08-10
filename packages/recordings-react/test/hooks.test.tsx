@@ -4,6 +4,7 @@ import { setupServer } from "msw/node";
 import { render, renderHook, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement, ReactNode } from "react";
+import { matchList } from "@stapel/core";
 import { createRecordingsRuntime } from "../src/model/runtime.js";
 import type { RecordingsRuntime } from "../src/model/runtime.js";
 import { RecordingsProvider } from "../src/headless/RecordingsProvider.js";
@@ -120,8 +121,10 @@ describe("<RecordingList> (headless)", () => {
       wrap(
         runtime,
         <RecordingList>
-          {({ recordings }) => (
-            <span data-testid="count">{recordings.length}</span>
+          {({ state }) => (
+            <span data-testid="count">
+              {state.status === "ready" ? state.data.length : state.status}
+            </span>
           )}
         </RecordingList>
       )
@@ -144,8 +147,10 @@ describe("<RecordingList> (headless)", () => {
       wrap(
         runtime,
         <RecordingList workspaceId="ws-7">
-          {({ recordings }) => (
-            <span data-testid="ws-count">{recordings.length}</span>
+          {({ state }) => (
+            <span data-testid="ws-count">
+              {state.status === "ready" ? state.data.length : state.status}
+            </span>
           )}
         </RecordingList>
       )
@@ -260,5 +265,74 @@ describe("uploadRecordingBlob (single-PUT to the presigned URL)", () => {
   it("isUploadExpired compares expires_at against now", () => {
     expect(isUploadExpired(UPLOAD, new Date("2026-07-09T09:30:00Z"))).toBe(false);
     expect(isUploadExpired(UPLOAD, new Date("2026-07-09T10:30:00Z"))).toBe(true);
+  });
+});
+
+// ── the absence of a result is not a result (@stapel/core loadState.ts) ──────
+//
+// 2026-08-09: a sibling pair's list endpoint answered 404 and every screen
+// built on its flattened `?? []` bag said "you have nothing". A recordings
+// list is where that lie is cheapest to tell and hardest to notice — "no
+// recordings yet" is the expected first-run screen.
+describe("<RecordingList> — a failed read is not an empty list", () => {
+  it("reports `failed`, and never the empty rendering", async () => {
+    server.use(
+      http.get(`${BASE}/recordings`, () =>
+        // A real 404 through the real transport: what a mis-mounted route
+        // returns, not a hand-shaped `{status: 404}` the code already agrees
+        // with.
+        new HttpResponse("<h1>Not Found</h1>", {
+          status: 404,
+          headers: { "Content-Type": "text/html" },
+        })
+      )
+    );
+    const runtime = createRecordingsRuntime({ baseUrl: BASE });
+    render(
+      wrap(
+        runtime,
+        <RecordingList>
+          {({ state }) => (
+            <span data-testid="failed-count">
+              {matchList(state, {
+                loading: () => "loading",
+                failed: () => "could not load",
+                empty: () => "no recordings yet",
+                ready: (rows) => `${String(rows.length)} recording(s)`,
+              })}
+            </span>
+          )}
+        </RecordingList>
+      )
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("failed-count").textContent).toBe("could not load")
+    );
+    expect(screen.queryByText("no recordings yet")).toBeNull();
+  });
+
+  it("says 'no recordings yet' only for a read that succeeded", async () => {
+    server.use(http.get(`${BASE}/recordings`, () => HttpResponse.json([])));
+    const runtime = createRecordingsRuntime({ baseUrl: BASE });
+    render(
+      wrap(
+        runtime,
+        <RecordingList>
+          {({ state }) => (
+            <span data-testid="empty-count">
+              {matchList(state, {
+                loading: () => "loading",
+                failed: () => "could not load",
+                empty: () => "no recordings yet",
+                ready: (rows) => `${String(rows.length)} recording(s)`,
+              })}
+            </span>
+          )}
+        </RecordingList>
+      )
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("empty-count").textContent).toBe("no recordings yet")
+    );
   });
 });

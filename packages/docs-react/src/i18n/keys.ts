@@ -92,6 +92,9 @@ export const DOCS_I18N_KEYS = {
   trashEmptyConfirm: "docs.trash.emptyConfirm",
   trashKindFolder: "docs.trash.kindFolder",
   trashKindDocument: "docs.trash.kindDocument",
+  /** Why "Empty trash" is off when the trash loaded and holds nothing —
+   * core's floor covers the loading/failed reasons (`useActionGate`). */
+  trashEmptyBlocked: "docs.trash.emptyBlocked",
 } as const;
 
 export type DocsI18nKey = (typeof DOCS_I18N_KEYS)[keyof typeof DOCS_I18N_KEYS];
@@ -180,6 +183,7 @@ export const docsI18nBundleEn: I18nDictionary = {
     "Permanently delete everything in the trash? This cannot be undone.",
   "docs.trash.kindFolder": "Folder",
   "docs.trash.kindDocument": "Document",
+  "docs.trash.emptyBlocked": "There is nothing in the trash to delete.",
 };
 
 /**

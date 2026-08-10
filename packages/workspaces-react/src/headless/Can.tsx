@@ -8,6 +8,14 @@ export interface CanBag {
   /** The underlying read is still in flight (verdict is `false` meanwhile —
    * deny-by-default; render a skeleton off this if flicker matters). */
   readonly isLoading: boolean;
+  /**
+   * The read FAILED, so `allowed: false` means "we could not find out",
+   * not "you may not". Deny-by-default still holds — a capability check that
+   * opened up on an outage would be a security hole — but a skin with
+   * somewhere to put a sentence should say which of the two it is rather than
+   * silently withholding the control.
+   */
+  readonly isUnknown: boolean;
 }
 
 /**
@@ -43,7 +51,11 @@ export function Can(props: {
   const caps = useCapabilities(props.workspaceId);
   const allowed = caps.can(props.capability);
   if (typeof props.children === "function") {
-    return props.children({ allowed, isLoading: caps.isLoading });
+    return props.children({
+      allowed,
+      isLoading: caps.state.status === "loading",
+      isUnknown: caps.state.status === "failed",
+    });
   }
   return allowed ? props.children : (props.fallback ?? null);
 }

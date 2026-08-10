@@ -116,6 +116,38 @@ describe("<SecuritySettings/> — composed, grouped page", () => {
     await waitFor(() => expect(screen.getByText(/a•••@example.com/)).toBeDefined());
   });
 
+  /**
+   * A failed capabilities read is not an empty deployment: silently deleting
+   * a whole security section because a request 404'd is the ironmemo
+   * incident one level up from the list itself.
+   */
+  it("KEEPS the Connected-accounts group when the capabilities read FAILS, and states the failure", async () => {
+    let capabilityReads = 0;
+    mockEverything();
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => {
+        capabilityReads += 1;
+        return HttpResponse.json({ code: "error.404.not_found", message: "nope" }, { status: 404 });
+      })
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <SecuritySettings />));
+
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { level: 4, name: "Connected accounts" })).toBeDefined()
+    );
+    expect(screen.getByTestId("oauth-links")).toBeDefined();
+    await waitFor(() => expect(screen.getAllByRole("alert").length).toBeGreaterThan(0));
+    expect(screen.queryByText("No providers configured.")).toBeNull();
+
+    // The section is shown BECAUSE the read failed, and an errored query
+    // refetches when a new observer mounts — so the verdict must be latched,
+    // or the section would unmount/remount forever. A handful of reads at
+    // most, never a storm.
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(capabilityReads).toBeLessThan(5);
+  });
+
   it("hides the whole Connected-accounts group when no OAuth providers are configured", async () => {
     mockEverything({ oauthProviders: [] });
     const runtime = createAuthRuntime({ baseUrl: BASE });

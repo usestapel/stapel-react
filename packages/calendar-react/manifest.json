@@ -609,6 +609,7 @@
       "CalendarFlowId",
       "CalendarFlowSpec",
       "CalendarI18nKey",
+      "CalendarRangeData",
       "CalendarRangeParams",
       "CalendarResponse",
       "CalendarRuntime",

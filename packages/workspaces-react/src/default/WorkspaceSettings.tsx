@@ -9,7 +9,14 @@
 import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import { Badge, Button, Card, Input, Popconfirm, Spin, Typography } from "antd";
-import { useErrorDisplay, useT } from "@stapel/core";
+import {
+  actionAvailable,
+  actionBlocked,
+  firstBlock,
+  useActionGate,
+  useErrorDisplay,
+  useT,
+} from "@stapel/core";
 import { useWorkspace } from "../model/queries.js";
 import { useUpdateWorkspace, useDeleteWorkspace } from "../model/mutations.js";
 import { WORKSPACES_I18N_KEYS } from "../i18n/keys.js";
@@ -34,6 +41,17 @@ export function WorkspaceSettings(props: WorkspaceSettingsProps): ReactElement {
 
   const workspace = query.data;
   const [name, setName] = useState("");
+
+  // Two unrelated situations used to share one `disabled={!isOwner ||
+  // !name.trim()}` bit, and a person facing either of them saw the same dead
+  // button. `firstBlock` keeps them two, in the order you would explain them.
+  const isOwner = workspace?.my_role === "owner";
+  const saveGate = useActionGate(
+    firstBlock(
+      isOwner ? actionAvailable() : actionBlocked(WORKSPACES_I18N_KEYS.blockedNotOwner),
+      name.trim() ? actionAvailable() : actionBlocked(WORKSPACES_I18N_KEYS.blockedNameRequired)
+    )
+  );
 
   useEffect(() => {
     if (workspace) setName(workspace.name);
@@ -66,8 +84,6 @@ export function WorkspaceSettings(props: WorkspaceSettingsProps): ReactElement {
     );
   }
 
-  const isOwner = workspace.my_role === "owner";
-
   return (
     <div data-testid="workspace-settings" style={{ display: "grid", gap: 16 }}>
       <Card>
@@ -79,7 +95,18 @@ export function WorkspaceSettings(props: WorkspaceSettingsProps): ReactElement {
         <div style={{ display: "grid", gap: 12, maxWidth: 480, marginTop: 16 }}>
           <div>
             <Typography.Text>{t(WORKSPACES_I18N_KEYS.fieldName)}</Typography.Text>
-            <Input value={name} onChange={(e) => setName(e.target.value)} disabled={!isOwner} />
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={!isOwner}
+            />
+            {!isOwner && (
+              <div>
+                <Typography.Text type="secondary" data-testid="workspace-name-blocked">
+                  {t(WORKSPACES_I18N_KEYS.blockedNotOwner)}
+                </Typography.Text>
+              </div>
+            )}
           </div>
           <div>
             <Typography.Text>{t(WORKSPACES_I18N_KEYS.fieldSlug)}</Typography.Text>
@@ -101,13 +128,22 @@ export function WorkspaceSettings(props: WorkspaceSettingsProps): ReactElement {
           type="primary"
           style={{ marginTop: 16 }}
           loading={updateMutation.isPending}
-          disabled={!isOwner || !name.trim()}
+          disabled={saveGate.disabled}
           onClick={handleSave}
           data-analytics="none"
           data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
         >
           {updateMutation.isPending ? t(WORKSPACES_I18N_KEYS.saving) : t(WORKSPACES_I18N_KEYS.save)}
         </Button>
+        {/* Beside the control, as TEXT: a disabled button receives no pointer
+            events, so a tooltip on it is a reason nobody can read. */}
+        {saveGate.reason !== undefined && (
+          <div style={{ marginTop: 8 }}>
+            <Typography.Text type="secondary" data-testid="workspace-save-blocked">
+              {saveGate.reason}
+            </Typography.Text>
+          </div>
+        )}
       </Card>
 
       {isOwner && (

@@ -23,8 +23,9 @@
  * individually exported from `./security/index.js`.
  */
 import { Flex, Typography } from "antd";
+import { useRef } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { useT } from "@stapel/core";
+import { loadStateFromQuery, mapLoad, matchList, useT } from "@stapel/core";
 import type { WebauthnBinding } from "../headless/Passkey.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
 import { useCapabilities } from "../model/queries.js";
@@ -79,7 +80,28 @@ export function SecuritySettings(props: SecuritySettingsProps = {}): ReactElemen
   // (owner: this section should disappear, not explain itself). Stays
   // hidden while capabilities are still loading too, so the section never
   // flashes in only to vanish once caps resolves.
-  const hasOAuthProviders = (caps.data?.registration.oauth.length ?? 0) > 0;
+  //
+  // A FAILED capabilities read is not an empty deployment, so it keeps the
+  // section: silently deleting a security section because a request 404'd is
+  // exactly the ironmemo incident, one level up from the list itself.
+  // `<OAuthLinks/>` states the failure inside its own Card.
+  //
+  // The verdict is LATCHED because "loading" recurs: a query that errored
+  // refetches when a new observer mounts, and an unlatched rule would hide
+  // the section again on that refetch, unmount `<OAuthLinks/>`, and remount
+  // it when the refetch fails — a visible flicker and a request loop.
+  const verdict = matchList(
+    mapLoad(loadStateFromQuery(caps), (c) => c.registration.oauth),
+    {
+      loading: () => null,
+      failed: () => true,
+      empty: () => false,
+      ready: () => true,
+    }
+  );
+  const lastVerdict = useRef(false);
+  if (verdict !== null) lastVerdict.current = verdict;
+  const showConnected = lastVerdict.current;
   return (
     <Flex vertical gap="large" style={{ width: "100%" }} data-testid="security-settings">
       <div>
@@ -113,7 +135,7 @@ export function SecuritySettings(props: SecuritySettingsProps = {}): ReactElemen
         />
       </Section>
 
-      {hasOAuthProviders && (
+      {showConnected && (
         <Section heading={t(AUTH_I18N_KEYS.secGroupConnected)}>
           <OAuthLinks
             {...(props.getOAuthAccessToken !== undefined

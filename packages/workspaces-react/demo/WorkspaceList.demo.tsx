@@ -1,6 +1,7 @@
 /** WorkspaceList — headless list of the caller's workspaces + create control. */
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
+import { matchList } from "@stapel/core";
 import { WorkspaceList } from "../src/index.js";
 import {
   WorkspacesDemoHarness,
@@ -34,10 +35,15 @@ function WorkspaceListBody(): ReactElement {
   return (
     <DemoCard heading="WorkspaceList">
       <WorkspaceList>
-        {({ workspaces, isLoading, isCreating, create }) => (
+        {({ state, isCreating, create }) => (
           <>
             <StepBadge
-              step={isLoading ? "loading" : `${workspaces.length} workspace(s)`}
+              step={matchList(state, {
+                loading: () => "loading",
+                failed: () => "could not load your workspaces",
+                empty: () => "no workspaces yet",
+                ready: (workspaces) => `${workspaces.length} workspace(s)`,
+              })}
             />
             <DemoActions>
               <DemoButton
@@ -75,7 +81,7 @@ export default defineDemo({
   id: "workspaces.list",
   title: "Workspace list",
   description:
-    "The headless WorkspaceList wraps the read of the caller's workspaces plus an owner-seeded create, exposing workspaces / loading / creating / error state. Bring your own UI — the component is renderless.",
+    "The headless WorkspaceList wraps the read of the caller's workspaces plus an owner-seeded create. The read arrives as a LoadState the skin renders through matchList, so 'no workspaces yet' and 'we could not load them' stay two different screens. Bring your own UI — the component is renderless.",
   component: WorkspaceList,
   tokens: ["card-bg", "card-border"],
   variants: {

@@ -94,9 +94,11 @@ describe("<WorkspaceList> (list + create)", () => {
       wrap(
         runtime,
         <WorkspaceList>
-          {({ workspaces, created, create }) => (
+          {({ state, created, create }) => (
             <div>
-              <span data-testid="ws-count">{workspaces.length}</span>
+              <span data-testid="ws-count">
+                {state.status === "ready" ? state.data.length : state.status}
+              </span>
               <span data-testid="ws-created">{created?.name ?? "none"}</span>
               <button onClick={() => create({ name: "New workspace", type: "work" })}>
                 create
@@ -145,9 +147,11 @@ describe("<Members> (roster + invite)", () => {
       wrap(
         runtime,
         <Members workspaceId={WS}>
-          {({ members, isInviting, invite }) => (
+          {({ state, isInviting, invite }) => (
             <div>
-              <span data-testid="member-count">{members.length}</span>
+              <span data-testid="member-count">
+                {state.status === "ready" ? state.data.length : state.status}
+              </span>
               <span data-testid="inviting">{String(isInviting)}</span>
               <button
                 onClick={() => invite({ emails: ["new@example.com"], role: "member" })}

@@ -36,6 +36,8 @@ export const billingI18nBundleRu: I18nDictionary = {
   "billing.pricing.buy": "Купить",
   "billing.pricing.subscribe": "Оформить подписку",
   "billing.pricing.checking_out": "Переход к оплате…",
+  "billing.pricing.error": "Не удалось загрузить тарифы.",
+  "billing.pricing.retry": "Повторить",
   "billing.subscription.active": "Активна",
   "billing.subscription.inactive": "Неактивна",
   "billing.subscription.cancel": "Отменить подписку",

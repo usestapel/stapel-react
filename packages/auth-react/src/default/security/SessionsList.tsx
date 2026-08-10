@@ -12,7 +12,7 @@
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Badge, Button, Card, Divider, Empty, Flex, Popconfirm, Spin, Tag, Typography } from "antd";
-import { useErrorDisplay, useT } from "@stapel/core";
+import { loadStateFromQuery, matchList, matchLoad, useErrorDisplay, useT } from "@stapel/core";
 import type { AuthSession } from "../../api/types.js";
 import {
   useConfirmSession,
@@ -106,60 +106,70 @@ export function SessionsList(props: SessionsListProps = {}): ReactElement {
   const confirmMe = useConfirmSession();
   const [pendingRevokeAll, setPendingRevokeAll] = useState(false);
 
-  const list = sessions.data ?? [];
-  const otherCount = list.filter((s) => !s.is_current).length;
+  const state = loadStateFromQuery(sessions);
+  // The bulk action needs to know there IS another device, so it is decided
+  // per load state rather than off a count: on a failed read the card body
+  // states the failure, and offering "sign out everyone else" over a list
+  // nobody could read would be an action taken in the dark.
+  const signOutOthers = matchLoad(state, {
+    loading: () => null,
+    failed: () => null,
+    ready: (rows) =>
+      rows.some((s) => !s.is_current) ? (
+        <Popconfirm
+          title={t(AUTH_I18N_KEYS.secSessionsSignOutAllConfirmTitle)}
+          open={pendingRevokeAll}
+          onOpenChange={setPendingRevokeAll}
+          onConfirm={() => revokeOthers.mutate()}
+          okText={t(AUTH_I18N_KEYS.secSessionsSignOutAll)}
+          okButtonProps={{ danger: true, loading: revokeOthers.isPending }}
+        >
+          <Button danger data-analytics="flow">
+            {t(AUTH_I18N_KEYS.secSessionsSignOutAll)}
+          </Button>
+        </Popconfirm>
+      ) : null,
+  });
 
   return (
     <Card
       title={t(AUTH_I18N_KEYS.secSessionsTitle)}
       data-testid="sessions-list"
       style={{ width: "100%" }}
-      extra={
-        otherCount > 0 && (
-          <Popconfirm
-            title={t(AUTH_I18N_KEYS.secSessionsSignOutAllConfirmTitle)}
-            open={pendingRevokeAll}
-            onOpenChange={setPendingRevokeAll}
-            onConfirm={() => revokeOthers.mutate()}
-            okText={t(AUTH_I18N_KEYS.secSessionsSignOutAll)}
-            okButtonProps={{ danger: true, loading: revokeOthers.isPending }}
-          >
-            <Button danger data-analytics="flow">
-              {t(AUTH_I18N_KEYS.secSessionsSignOutAll)}
-            </Button>
-          </Popconfirm>
-        )
-      }
+      extra={signOutOthers}
     >
       <Flex vertical gap="middle" style={{ width: "100%" }}>
         <Typography.Text type="secondary">
           {t(AUTH_I18N_KEYS.secSessionsSubtitle)}
         </Typography.Text>
 
-        {sessions.isLoading ? (
-          <Spin />
-        ) : sessions.isError ? (
-          <ErrorAlert error={errorDisplay(sessions.error)} />
-        ) : list.length === 0 ? (
-          <Empty
-            image={props.emptyIcon ?? <SecurityEmptyIcon />}
-            description={t(AUTH_I18N_KEYS.secSessionsEmpty)}
-          />
-        ) : (
-          <Flex vertical>
-            {list.map((s, i) => (
-              <div key={s.id}>
-                {i > 0 && <Divider style={{ margin: "8px 0" }} />}
-                <SessionRow
-                  session={s}
-                  onConfirmMe={() => confirmMe.mutate(s.id)}
-                  onRevoke={() => revokeOne.mutate(s.id)}
-                  revoking={revokeOne.isPending && revokeOne.variables === s.id}
-                />
-              </div>
-            ))}
-          </Flex>
-        )}
+        {matchList(state, {
+          loading: () => <Spin />,
+          failed: (error) => (
+            <ErrorAlert error={errorDisplay(error)} onRetry={() => void sessions.refetch()} />
+          ),
+          empty: () => (
+            <Empty
+              image={props.emptyIcon ?? <SecurityEmptyIcon />}
+              description={t(AUTH_I18N_KEYS.secSessionsEmpty)}
+            />
+          ),
+          ready: (list) => (
+            <Flex vertical>
+              {list.map((s, i) => (
+                <div key={s.id}>
+                  {i > 0 && <Divider style={{ margin: "8px 0" }} />}
+                  <SessionRow
+                    session={s}
+                    onConfirmMe={() => confirmMe.mutate(s.id)}
+                    onRevoke={() => revokeOne.mutate(s.id)}
+                    revoking={revokeOne.isPending && revokeOne.variables === s.id}
+                  />
+                </div>
+              ))}
+            </Flex>
+          ),
+        })}
       </Flex>
     </Card>
   );
