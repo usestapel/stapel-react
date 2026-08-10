@@ -1,31 +1,40 @@
 import type { ReactNode } from "react";
-import type { StapelApiError } from "@stapel/core";
+import { loadStateFromQuery, mapLoad } from "@stapel/core";
+import type { LoadState } from "@stapel/core";
 import type { DocFolder } from "../api/types.js";
-import { useFolderTree, useFolders } from "../model/queries.js";
+import { useFolders } from "../model/queries.js";
+import { buildFolderTree } from "../model/folderTree.js";
 import type { FolderTreeNode } from "../model/folderTree.js";
+
+/** What a ready {@link FolderTreeBag.state} carries: the same wire read in
+ * both shapes (recursive `tree` for a tree view, flat `folders` for
+ * pickers). */
+export interface FolderTreeView {
+  readonly tree: readonly FolderTreeNode[];
+  readonly folders: readonly DocFolder[];
+}
 
 /** Render-prop bag for {@link FolderTree}. */
 export interface FolderTreeBag {
-  /** Root folders with resolved children (see `buildFolderTree`). */
-  readonly tree: readonly FolderTreeNode[];
-  /** The same folders, flat, as the backend lists them. */
-  readonly folders: readonly DocFolder[];
-  readonly isLoading: boolean;
-  readonly isError: boolean;
-  readonly error: StapelApiError | null;
+  /**
+   * The read as a state a skin cannot flatten (`loading` / `ready` /
+   * `failed` — core's `LoadState`; `stapel/no-flattened-load-state`). Render
+   * with `matchLoad`, so "no folders yet" is only ever said about a load
+   * that succeeded.
+   */
+  readonly state: LoadState<FolderTreeView>;
   refetch(): void;
 }
 
 /**
  * Headless folder tree — a renderless read of a workspace's folders,
- * assembled into a tree by `parent_id` (both shapes exposed: recursive
- * `tree` for a tree view, flat `folders` for pickers). Both hooks share ONE
- * cache entry — a single wire read. Bring your own tree UI. Zero visual
- * opinion (frontend-standard §2).
+ * assembled into a tree by `parent_id` (both shapes exposed on the ready
+ * arm). ONE wire read (the flat list), the tree derived from it. Bring your
+ * own tree UI. Zero visual opinion (frontend-standard §2).
  *
  * ```tsx
  * <FolderTree workspaceId="ws-1">
- *   {({ tree }) => ( ...recurse over node.children... )}
+ *   {({ state }) => matchLoad(state, { loading, failed, ready: ({ tree }) => … })}
  * </FolderTree>
  * ```
  */
@@ -33,16 +42,14 @@ export function FolderTree(props: {
   workspaceId: string;
   children: (bag: FolderTreeBag) => ReactNode;
 }): ReactNode {
-  const treeQuery = useFolderTree(props.workspaceId);
-  const flatQuery = useFolders(props.workspaceId);
+  const query = useFolders(props.workspaceId);
   return props.children({
-    tree: treeQuery.data ?? [],
-    folders: flatQuery.data ?? [],
-    isLoading: treeQuery.isLoading,
-    isError: treeQuery.isError,
-    error: treeQuery.error ?? null,
+    state: mapLoad(loadStateFromQuery(query), (folders) => ({
+      tree: buildFolderTree(folders),
+      folders,
+    })),
     refetch: () => {
-      void treeQuery.refetch();
+      void query.refetch();
     },
   });
 }

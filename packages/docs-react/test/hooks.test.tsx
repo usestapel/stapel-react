@@ -259,7 +259,9 @@ describe("useTrash + useTrashActions", () => {
   it("reads the workspace trash and empties selected ids", async () => {
     let emptied: unknown = null;
     server.use(
-      http.get(`${BASE}/trash`, () => HttpResponse.json([DOCUMENT])),
+      http.get(`${BASE}/trash`, () =>
+        HttpResponse.json({ folders: [FOLDER_CHILD], documents: [DOCUMENT] })
+      ),
       http.post(`${BASE}/trash/empty`, async ({ request }) => {
         emptied = await request.json();
         return new HttpResponse(null, { status: 204 });
@@ -271,7 +273,10 @@ describe("useTrash + useTrashActions", () => {
       { wrapper: hookWrapper(runtime) }
     );
     await waitFor(() => expect(result.current.trash.isSuccess).toBe(true));
-    expect(result.current.trash.data).toHaveLength(1);
+    // The REAL TrashView shape: folders and documents in their own arrays
+    // (the 0.1.0 fixture mocked a bare array — the exact drift 0.2.0 fixes).
+    expect(result.current.trash.data?.documents).toHaveLength(1);
+    expect(result.current.trash.data?.folders).toHaveLength(1);
 
     result.current.actions.emptyTrash.mutate({
       workspace_id: "ws-1",

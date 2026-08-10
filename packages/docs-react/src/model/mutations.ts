@@ -5,10 +5,14 @@ import type {
 } from "@tanstack/react-query";
 import { StapelApiError } from "@stapel/core";
 import type {
+  CreateDocumentRequest,
+  CreateFolderRequest,
   DocDocument,
   DocFolder,
   DocRevision,
   EmptyTrashRequest,
+  PatchDocumentRequest,
+  PatchFolderRequest,
   SaveContentResult,
 } from "../api/types.js";
 import { useDocsApi } from "./context.js";
@@ -31,6 +35,138 @@ function useInvalidateModule(): () => void {
   return () => {
     void queryClient.invalidateQueries({ queryKey: docsQueryKeys.all });
   };
+}
+
+/**
+ * Structural writes (create / rename / move / trash) for folders and
+ * documents — the operations a file-manager surface's context menus run.
+ * Rename and move are both a PATCH on the object (the backend's endpoint
+ * table has no separate move route: `parent_id` on a folder / `folder_id`
+ * on a document IS the move). Each invalidates the module root: a move
+ * shifts two folder scopes, the tree, and the breadcrumb trail at once.
+ */
+
+/** `POST /folders` — create a folder. */
+export function useCreateFolder(): UseMutationResult<
+  DocFolder,
+  StapelApiError,
+  CreateFolderRequest
+> {
+  const api = useDocsApi();
+  const invalidate = useInvalidateModule();
+  const options: UseMutationOptions<
+    DocFolder,
+    StapelApiError,
+    CreateFolderRequest
+  > = {
+    mutationFn: (body) => api.createFolder(body),
+    onSuccess: invalidate,
+  };
+  return useMutation(options);
+}
+
+/** Variables for {@link useUpdateFolder}. */
+export interface UpdateFolderVariables {
+  readonly folderId: string;
+  /** `name` renames; `parent_id` moves (`null` = to the workspace root). */
+  readonly patch: PatchFolderRequest;
+}
+
+/** `PATCH /folders/:id` — rename (`name`) and/or move (`parent_id`). */
+export function useUpdateFolder(): UseMutationResult<
+  DocFolder,
+  StapelApiError,
+  UpdateFolderVariables
+> {
+  const api = useDocsApi();
+  const invalidate = useInvalidateModule();
+  const options: UseMutationOptions<
+    DocFolder,
+    StapelApiError,
+    UpdateFolderVariables
+  > = {
+    mutationFn: (vars) => api.patchFolder(vars.folderId, vars.patch),
+    onSuccess: invalidate,
+  };
+  return useMutation(options);
+}
+
+/** `DELETE /folders/:id` — move the folder (and its live subtree, documents
+ * included) to the trash. Restore lives on {@link useTrashActions}. */
+export function useTrashFolder(): UseMutationResult<
+  void,
+  StapelApiError,
+  string
+> {
+  const api = useDocsApi();
+  const invalidate = useInvalidateModule();
+  const options: UseMutationOptions<void, StapelApiError, string> = {
+    mutationFn: (folderId) => api.deleteFolder(folderId),
+    onSuccess: invalidate,
+  };
+  return useMutation(options);
+}
+
+/** `POST /documents` — create a document (snapshot types may carry `body`). */
+export function useCreateDocument(): UseMutationResult<
+  DocDocument,
+  StapelApiError,
+  CreateDocumentRequest
+> {
+  const api = useDocsApi();
+  const invalidate = useInvalidateModule();
+  const options: UseMutationOptions<
+    DocDocument,
+    StapelApiError,
+    CreateDocumentRequest
+  > = {
+    mutationFn: (body) => api.createDocument(body),
+    onSuccess: invalidate,
+  };
+  return useMutation(options);
+}
+
+/** Variables for {@link useUpdateDocument}. */
+export interface UpdateDocumentVariables {
+  readonly documentId: string;
+  /** `title`/`metadata` edit; `folder_id` moves (`null` = to the root). */
+  readonly patch: PatchDocumentRequest;
+}
+
+/** `PATCH /documents/:id` — rename (`title`), edit `metadata`, and/or move
+ * (`folder_id`). */
+export function useUpdateDocument(): UseMutationResult<
+  DocDocument,
+  StapelApiError,
+  UpdateDocumentVariables
+> {
+  const api = useDocsApi();
+  const invalidate = useInvalidateModule();
+  const options: UseMutationOptions<
+    DocDocument,
+    StapelApiError,
+    UpdateDocumentVariables
+  > = {
+    mutationFn: (vars) => api.patchDocument(vars.documentId, vars.patch),
+    onSuccess: invalidate,
+  };
+  return useMutation(options);
+}
+
+/** `DELETE /documents/:id` — move the document to the trash. Restore lives
+ * on {@link useTrashActions}. */
+export function useTrashDocument(): UseMutationResult<
+  void,
+  StapelApiError,
+  string
+> {
+  const api = useDocsApi();
+  const invalidate = useInvalidateModule();
+  const options: UseMutationOptions<void, StapelApiError, string> = {
+    mutationFn: (documentId) => api.deleteDocument(documentId),
+    onSuccess: invalidate,
+  };
+  return useMutation(options);
 }
 
 /** Variables for {@link useSaveContent}. */

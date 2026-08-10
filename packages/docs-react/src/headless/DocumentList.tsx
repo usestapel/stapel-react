@@ -1,18 +1,19 @@
 import type { ReactNode } from "react";
-import type { StapelApiError } from "@stapel/core";
+import { loadStateFromQuery } from "@stapel/core";
+import type { LoadState } from "@stapel/core";
 import type { DocDocument } from "../api/types.js";
 import { useDocuments } from "../model/queries.js";
 
 /** Render-prop bag for {@link DocumentList}. */
 export interface DocumentListBag {
-  /** The matching documents, as the backend orders them. */
-  readonly documents: readonly DocDocument[];
-  /** The list read is loading (no data yet). */
-  readonly isLoading: boolean;
-  /** The query failed. */
-  readonly isError: boolean;
-  /** The error, when `isError` (a localizable `StapelApiError`), else null. */
-  readonly error: StapelApiError | null;
+  /**
+   * The read as a state a skin cannot flatten: `loading` / `ready` with the
+   * rows / `failed` with the error. Render with core's `matchList` — its
+   * four required arms are what keeps "no documents yet" a sentence that can
+   * only be said about a load that actually succeeded (the 2026-08-09
+   * flattened-list incident; `stapel/no-flattened-load-state`).
+   */
+  readonly state: LoadState<readonly DocDocument[]>;
   /** Re-read the list. */
   refetch(): void;
 }
@@ -21,12 +22,12 @@ export interface DocumentListBag {
  * Headless document list — a renderless read of a workspace's documents,
  * optionally scoped to a folder, a type, or a search query. Wires
  * {@link useDocuments} and hands a {@link DocumentListBag} to `children`;
- * bring your own list/table, skeleton, and empty UI. Zero visual opinion
- * (frontend-standard §2).
+ * bring your own list/table, skeleton, empty, and error UI. Zero visual
+ * opinion (frontend-standard §2).
  *
  * ```tsx
  * <DocumentList workspaceId="ws-1" folderId={folder?.id}>
- *   {({ documents }) => ( ... )}
+ *   {({ state }) => matchList(state, { loading, failed, empty, ready })}
  * </DocumentList>
  * ```
  */
@@ -47,10 +48,7 @@ export function DocumentList(props: {
     ...(props.q !== undefined ? { q: props.q } : {}),
   });
   return props.children({
-    documents: query.data ?? [],
-    isLoading: query.isLoading,
-    isError: query.isError,
-    error: query.error ?? null,
+    state: loadStateFromQuery(query),
     refetch: () => {
       void query.refetch();
     },

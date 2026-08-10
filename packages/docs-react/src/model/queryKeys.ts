@@ -22,6 +22,10 @@ export const docsQueryKeys: {
   document(documentId: string): readonly ["docs", "document", string];
   content(documentId: string): readonly ["docs", "content", string];
   revisions(documentId: string): readonly ["docs", "revisions", string];
+  revisionContent(
+    documentId: string,
+    revisionId: string
+  ): readonly ["docs", "revisionContent", string, string];
   downloadUrl(documentId: string): readonly ["docs", "downloadUrl", string];
   trash(workspaceId: string): readonly ["docs", "trash", string];
 } = {
@@ -34,6 +38,12 @@ export const docsQueryKeys: {
   document: (documentId) => [ROOT, "document", documentId],
   content: (documentId) => [ROOT, "content", documentId],
   revisions: (documentId) => [ROOT, "revisions", documentId],
+  revisionContent: (documentId, revisionId) => [
+    ROOT,
+    "revisionContent",
+    documentId,
+    revisionId,
+  ],
   downloadUrl: (documentId) => [ROOT, "downloadUrl", documentId],
   trash: (workspaceId) => [ROOT, "trash", workspaceId],
 };

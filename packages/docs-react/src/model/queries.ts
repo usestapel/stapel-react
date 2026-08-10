@@ -8,6 +8,7 @@ import type {
   DocRevision,
   DocumentListParams,
   DownloadUrl,
+  TrashListing,
 } from "../api/types.js";
 import { useDocsApi } from "./context.js";
 import { docsQueryKeys } from "./queryKeys.js";
@@ -129,10 +130,45 @@ export function useRevisions(
   });
 }
 
-/** The workspace's trashed documents. */
+/** What {@link useRevisionContent} resolves: the revision's snapshot decoded
+ * as text (revision previews — binary revisions belong to the revision
+ * download URL, not this hook). */
+export interface RevisionText {
+  readonly text: string;
+}
+
+/**
+ * One revision's content decoded as text — the read behind a revision
+ * PREVIEW surface (`GET /documents/:id/revisions/:rev/content`). Revisions
+ * are immutable, so the cache entry never goes stale on its own; it is
+ * dropped with the module root on content-affecting mutations.
+ */
+export function useRevisionContent(
+  documentId: string,
+  revisionId: string,
+  options?: { readonly enabled?: boolean }
+): UseQueryResult<RevisionText, StapelApiError> {
+  const api = useDocsApi();
+  const sessionReady = useActiveSessionReady();
+  return useQuery({
+    queryKey: docsQueryKeys.revisionContent(documentId, revisionId),
+    queryFn: async (): Promise<RevisionText> => {
+      const blob = await api.getRevisionContent(documentId, revisionId);
+      return { text: await blob.text() };
+    },
+    enabled:
+      sessionReady &&
+      documentId.length > 0 &&
+      revisionId.length > 0 &&
+      (options?.enabled ?? true),
+  });
+}
+
+/** Everything soft-deleted in the workspace — folders and documents in their
+ * own arrays (`GET /trash`; the backend's `TrashView` shape). */
 export function useTrash(
   workspaceId: string
-): UseQueryResult<DocDocument[], StapelApiError> {
+): UseQueryResult<TrashListing, StapelApiError> {
   const api = useDocsApi();
   const sessionReady = useActiveSessionReady();
   return useQuery({

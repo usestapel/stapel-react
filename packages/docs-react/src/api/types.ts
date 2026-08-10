@@ -130,6 +130,15 @@ export interface EmptyTrashRequest {
   readonly ids?: readonly string[];
 }
 
+/** `GET /trash` body — everything soft-deleted in the workspace, folders and
+ * documents in their own arrays (the 0.1.0 hand-typed `DocDocument[]` was a
+ * drift against the backend's `TrashView`; fixed against the real response
+ * shape 2026-08-10). */
+export interface TrashListing {
+  readonly folders: readonly DocFolder[];
+  readonly documents: readonly DocDocument[];
+}
+
 export interface PostUpdateRequest {
   /** Opaque encoded CRDT update payload. */
   readonly payload: string;

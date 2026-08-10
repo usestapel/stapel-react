@@ -25,6 +25,7 @@ import type {
   PatchFolderRequest,
   PostUpdateRequest,
   SaveContentResult,
+  TrashListing,
 } from "./types.js";
 
 /**
@@ -132,7 +133,7 @@ export interface DocsApi {
   restoreRevision(documentId: string, revisionId: string): Promise<DocDocument>;
 
   // ── trash ──────────────────────────────────────────────────────────────────
-  listTrash(workspaceId: string): Promise<DocDocument[]>;
+  listTrash(workspaceId: string): Promise<TrashListing>;
   emptyTrash(body: EmptyTrashRequest): Promise<void>;
 
   // ── uploads ────────────────────────────────────────────────────────────────

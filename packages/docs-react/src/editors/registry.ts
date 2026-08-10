@@ -69,6 +69,17 @@ export function resolveDocEditor(hint: string): DocEditorComponent | null {
   return registered.get(hint) ?? builtins.get(hint) ?? null;
 }
 
+/**
+ * The EXPLICIT registration for a hint, ignoring builtins — the probe the
+ * `/default` skin's `DocSurface` uses for its resolution ladder (explicit
+ * `registerDocEditor` > skin default > unstyled builtin > file card), so a
+ * host that swapped an editor through the registry seam wins over the skin
+ * without the skin ever shadowing the swap.
+ */
+export function explicitDocEditor(hint: string): DocEditorComponent | null {
+  return registered.get(hint) ?? null;
+}
+
 /** Every hint that currently resolves (explicit + builtin), sorted. */
 export function registeredDocEditorHints(): readonly string[] {
   return [...new Set([...registered.keys(), ...builtins.keys()])].sort();

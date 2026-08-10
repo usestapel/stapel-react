@@ -306,6 +306,12 @@ importers:
       '@stapel/core':
         specifier: workspace:^
         version: link:../core
+      '@stapel/tokens':
+        specifier: workspace:^
+        version: link:../tokens
+      '@stapel/tokens-antd':
+        specifier: workspace:^
+        version: link:../tokens-antd
       '@tanstack/react-query':
         specifier: ^5.81.0
         version: 5.101.2(react@19.2.7)
@@ -318,6 +324,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.1.0
         version: 19.2.3(@types/react@19.2.17)
+      antd:
+        specifier: ^6.5.0
+        version: 6.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       jsdom:
         specifier: ^26.1.0
         version: 26.1.0(supports-color@10.2.2)

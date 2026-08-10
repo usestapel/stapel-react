@@ -1,18 +1,24 @@
 import type { ReactNode } from "react";
-import type { StapelApiError } from "@stapel/core";
+import { loadStateFromQuery, mapLoad } from "@stapel/core";
+import type { LoadState } from "@stapel/core";
 import type { DocFolder } from "../api/types.js";
 import { useFolders } from "../model/queries.js";
 import { folderTrail } from "../model/folderTree.js";
 
-/** Render-prop bag for {@link Breadcrumbs}. */
-export interface BreadcrumbsBag {
+/** What a ready {@link BreadcrumbsBag.state} carries. */
+export interface BreadcrumbTrail {
   /** Root → … → the current folder. Empty at the workspace root. */
   readonly trail: readonly DocFolder[];
   /** The current folder (last trail entry), `null` at the workspace root. */
   readonly current: DocFolder | null;
-  readonly isLoading: boolean;
-  readonly isError: boolean;
-  readonly error: StapelApiError | null;
+}
+
+/** Render-prop bag for {@link Breadcrumbs}. */
+export interface BreadcrumbsBag {
+  /** The trail as a state a skin cannot flatten (core's `LoadState`;
+   * `stapel/no-flattened-load-state`) — an empty trail is only the workspace
+   * root when the folder read actually succeeded. */
+  readonly state: LoadState<BreadcrumbTrail>;
 }
 
 /**
@@ -23,7 +29,7 @@ export interface BreadcrumbsBag {
  *
  * ```tsx
  * <Breadcrumbs workspaceId="ws-1" folderId={folderId}>
- *   {({ trail }) => trail.map((f) => <a key={f.id}>{f.name}</a>)}
+ *   {({ state }) => matchLoad(state, { loading, failed, ready: ({ trail }) => … })}
  * </Breadcrumbs>
  * ```
  */
@@ -34,12 +40,13 @@ export function Breadcrumbs(props: {
   children: (bag: BreadcrumbsBag) => ReactNode;
 }): ReactNode {
   const query = useFolders(props.workspaceId);
-  const trail = folderTrail(query.data ?? [], props.folderId);
   return props.children({
-    trail,
-    current: trail.length > 0 ? (trail[trail.length - 1] ?? null) : null,
-    isLoading: query.isLoading,
-    isError: query.isError,
-    error: query.error ?? null,
+    state: mapLoad(loadStateFromQuery(query), (folders): BreadcrumbTrail => {
+      const trail = folderTrail(folders, props.folderId);
+      return {
+        trail,
+        current: trail.length > 0 ? (trail[trail.length - 1] ?? null) : null,
+      };
+    }),
   });
 }

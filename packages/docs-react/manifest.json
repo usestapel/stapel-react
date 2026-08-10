@@ -1,214 +1,493 @@
 {
-  "$note": "HAND-AUTHORED (typed to the stapel-docs endpoint table) — stapel-docs does not emit its contract artifacts (docs/schema.json / flows.json / errors.json) yet, so this pair is NOT enrolled in the root gen:* drivers and this file is not drift-gated. FOLLOW-UP: once the backend commits its contract, enroll the pair in package.json gen:api/gen:errors/gen:events/gen:manifest env-lists and let scripts/gen-manifest.mjs own this file.",
-  "package": "@stapel/docs-react",
-  "version": "0.1.0",
-  "backend": {
-    "module": "stapel-docs",
-    "contract": ">=0.1 <0.2"
+ "$note": "HAND-AUTHORED (typed to the stapel-docs endpoint table) — stapel-docs does not emit its contract artifacts (docs/schema.json / flows.json / errors.json) yet, so this pair is NOT enrolled in the root gen:* drivers and this file is not drift-gated. FOLLOW-UP: once the backend commits its contract, enroll the pair in package.json gen:api/gen:errors/gen:events/gen:manifest env-lists and let scripts/gen-manifest.mjs own this file.",
+ "package": "@stapel/docs-react",
+ "version": "0.2.0",
+ "backend": {
+  "module": "stapel-docs",
+  "contract": ">=0.1 <0.2"
+ },
+ "layers": [
+  "api",
+  "model",
+  "flows",
+  "headless",
+  "i18n"
+ ],
+ "flows": {},
+ "machines": [],
+ "operations": {
+  "docs_api_v1_folders_list": {
+   "method": "GET",
+   "path": "/docs/api/v1/folders",
+   "tag": "Folders",
+   "request": null,
+   "response": "DocFolder[]"
   },
-  "layers": ["api", "model", "flows", "headless", "i18n"],
-  "flows": {},
-  "machines": [],
-  "operations": {
-    "docs_api_v1_folders_list": { "method": "GET", "path": "/docs/api/v1/folders", "tag": "Folders", "request": null, "response": "DocFolder[]" },
-    "docs_api_v1_folders_create": { "method": "POST", "path": "/docs/api/v1/folders", "tag": "Folders", "request": "CreateFolderRequest", "response": "DocFolder" },
-    "docs_api_v1_folders_retrieve": { "method": "GET", "path": "/docs/api/v1/folders/{folder_id}", "tag": "Folders", "request": null, "response": "DocFolder" },
-    "docs_api_v1_folders_partial_update": { "method": "PATCH", "path": "/docs/api/v1/folders/{folder_id}", "tag": "Folders", "request": "PatchFolderRequest", "response": "DocFolder" },
-    "docs_api_v1_folders_destroy": { "method": "DELETE", "path": "/docs/api/v1/folders/{folder_id}", "tag": "Folders", "request": null, "response": null },
-    "docs_api_v1_folders_restore_create": { "method": "POST", "path": "/docs/api/v1/folders/{folder_id}/restore", "tag": "Folders", "request": null, "response": "DocFolder" },
-    "docs_api_v1_documents_list": { "method": "GET", "path": "/docs/api/v1/documents", "tag": "Documents", "request": null, "response": "DocDocument[]" },
-    "docs_api_v1_documents_create": { "method": "POST", "path": "/docs/api/v1/documents", "tag": "Documents", "request": "CreateDocumentRequest", "response": "DocDocument" },
-    "docs_api_v1_documents_retrieve": { "method": "GET", "path": "/docs/api/v1/documents/{document_id}", "tag": "Documents", "request": null, "response": "DocDocument" },
-    "docs_api_v1_documents_partial_update": { "method": "PATCH", "path": "/docs/api/v1/documents/{document_id}", "tag": "Documents", "request": "PatchDocumentRequest", "response": "DocDocument" },
-    "docs_api_v1_documents_destroy": { "method": "DELETE", "path": "/docs/api/v1/documents/{document_id}", "tag": "Documents", "request": null, "response": null },
-    "docs_api_v1_documents_restore_create": { "method": "POST", "path": "/docs/api/v1/documents/{document_id}/restore", "tag": "Documents", "request": null, "response": "DocDocument" },
-    "docs_api_v1_documents_content_retrieve": { "method": "GET", "path": "/docs/api/v1/documents/{document_id}/content", "tag": "Content", "request": null, "response": "raw bytes + X-Docs-Head-Seq/ETag headers" },
-    "docs_api_v1_documents_content_update": { "method": "PUT", "path": "/docs/api/v1/documents/{document_id}/content", "tag": "Content", "request": "raw body + If-Match: <head_seq>", "response": "SaveContentOk | 409 conflict body | 412" },
-    "docs_api_v1_documents_download_retrieve": { "method": "GET", "path": "/docs/api/v1/documents/{document_id}/download", "tag": "Content", "request": null, "response": "DownloadUrl" },
-    "docs_api_v1_documents_export_retrieve": { "method": "GET", "path": "/docs/api/v1/documents/{document_id}/export", "tag": "Content", "request": null, "response": "binary" },
-    "docs_api_v1_documents_updates_list": { "method": "GET", "path": "/docs/api/v1/documents/{document_id}/updates", "tag": "Updates", "request": null, "response": "DocUpdatesResponse" },
-    "docs_api_v1_documents_updates_create": { "method": "POST", "path": "/docs/api/v1/documents/{document_id}/updates", "tag": "Updates", "request": "PostUpdateRequest", "response": null },
-    "docs_api_v1_documents_revisions_list": { "method": "GET", "path": "/docs/api/v1/documents/{document_id}/revisions", "tag": "Revisions", "request": null, "response": "DocRevision[]" },
-    "docs_api_v1_documents_revisions_create": { "method": "POST", "path": "/docs/api/v1/documents/{document_id}/revisions", "tag": "Revisions", "request": "CreateRevisionRequest", "response": "DocRevision" },
-    "docs_api_v1_documents_revisions_content_retrieve": { "method": "GET", "path": "/docs/api/v1/documents/{document_id}/revisions/{revision_id}/content", "tag": "Revisions", "request": null, "response": "raw bytes" },
-    "docs_api_v1_documents_revisions_download_retrieve": { "method": "GET", "path": "/docs/api/v1/documents/{document_id}/revisions/{revision_id}/download", "tag": "Revisions", "request": null, "response": "DownloadUrl" },
-    "docs_api_v1_documents_revisions_restore_create": { "method": "POST", "path": "/docs/api/v1/documents/{document_id}/revisions/{revision_id}/restore", "tag": "Revisions", "request": null, "response": "DocDocument" },
-    "docs_api_v1_trash_list": { "method": "GET", "path": "/docs/api/v1/trash", "tag": "Trash", "request": null, "response": "DocDocument[]" },
-    "docs_api_v1_trash_empty_create": { "method": "POST", "path": "/docs/api/v1/trash/empty", "tag": "Trash", "request": "EmptyTrashRequest", "response": null },
-    "docs_api_v1_uploads_create": { "method": "POST", "path": "/docs/api/v1/uploads", "tag": "Uploads", "request": "CreateUploadRequest", "response": "CreateUploadResponse" },
-    "docs_api_v1_uploads_finalize_create": { "method": "POST", "path": "/docs/api/v1/uploads/{upload_id}/finalize", "tag": "Uploads", "request": null, "response": "DocDocument" }
+  "docs_api_v1_folders_create": {
+   "method": "POST",
+   "path": "/docs/api/v1/folders",
+   "tag": "Folders",
+   "request": "CreateFolderRequest",
+   "response": "DocFolder"
   },
-  "hooks": {
-    "useFolders": { "kind": "query", "operation": "listFolders", "queryKey": ["docs", "folders", "{workspaceId}"] },
-    "useFolderTree": { "kind": "query", "operation": "listFolders", "queryKey": ["docs", "folders", "{workspaceId}"] },
-    "useDocuments": { "kind": "query", "operation": "listDocuments", "queryKey": ["docs", "documents", "{params}"] },
-    "useDocument": { "kind": "query", "operation": "getDocument", "queryKey": ["docs", "document", "{documentId}"] },
-    "useDocumentContent": { "kind": "query", "operation": "getContent", "queryKey": ["docs", "content", "{documentId}"] },
-    "useRevisions": { "kind": "query", "operation": "listRevisions", "queryKey": ["docs", "revisions", "{documentId}"] },
-    "useTrash": { "kind": "query", "operation": "listTrash", "queryKey": ["docs", "trash", "{workspaceId}"] },
-    "useDownloadUrl": { "kind": "query", "operation": "getDownloadUrl", "queryKey": ["docs", "downloadUrl", "{documentId}"] },
-    "useSaveContent": { "kind": "mutation", "operation": "putContent", "invalidates": [["docs"]] },
-    "useCreateRevision": { "kind": "mutation", "operation": "createRevision", "invalidates": [["docs"]] },
-    "useRestoreRevision": { "kind": "mutation", "operation": "restoreRevision", "invalidates": [["docs"]] },
-    "useTrashActions": { "kind": "mutation", "operation": "restoreDocument|restoreFolder|emptyTrash", "invalidates": [["docs"]] },
-    "useUpload": { "kind": "mutation", "operation": "createUpload+uploadToPutUrl+finalizeUpload | createUpload+putContent", "invalidates": [["docs"]] },
-    "useExportUrl": { "kind": "mutation", "operation": "getDownloadUrl", "invalidates": [] }
+  "docs_api_v1_folders_retrieve": {
+   "method": "GET",
+   "path": "/docs/api/v1/folders/{folder_id}",
+   "tag": "Folders",
+   "request": null,
+   "response": "DocFolder"
   },
-  "errors": {},
-  "events": { "defined": [], "flows": [] },
-  "demos": [],
-  "i18nKeys": [
-    "docs.editor.conflict",
-    "docs.editor.downloadOnly",
-    "docs.editor.loading",
-    "docs.editor.override",
-    "docs.editor.save",
-    "docs.editor.saved",
-    "docs.editor.saving",
-    "docs.error.unknown",
-    "docs.list.empty",
-    "docs.list.error",
-    "docs.list.loading",
-    "docs.list.retry",
-    "docs.media.download",
-    "docs.revisions.create",
-    "docs.revisions.empty",
-    "docs.revisions.loading",
-    "docs.revisions.restore",
-    "docs.revisions.restoring",
-    "docs.trash.emptyAction",
-    "docs.trash.emptyState",
-    "docs.trash.emptying",
-    "docs.trash.restore",
-    "docs.tree.error",
-    "docs.tree.loading",
-    "docs.tree.root",
-    "docs.upload.action",
-    "docs.upload.done",
-    "docs.upload.failed",
-    "docs.upload.uploading"
-  ],
-  "exports": {
-    "runtime": [
-      "Breadcrumbs",
-      "CsvEditor",
-      "DOCS_ERRORS",
-      "DOCS_ERROR_CODES",
-      "DOCS_FLOWS",
-      "DOCS_HEAD_SEQ_HEADER",
-      "DOCS_I18N_KEYS",
-      "DocEditor",
-      "DocUploader",
-      "DocsProvider",
-      "DocsRuntimeContext",
-      "DocumentList",
-      "FolderTree",
-      "MarkdownEditor",
-      "MediaViewer",
-      "RevisionHistory",
-      "TextEditor",
-      "TrashBin",
-      "buildFolderTree",
-      "createDocsApi",
-      "createDocsRuntime",
-      "createFlowMachine",
-      "docsErrorBundleEn",
-      "docsI18nBundleEn",
-      "docsQueryKeys",
-      "explainDocsError",
-      "exportDocument",
-      "flowEndpoints",
-      "folderTrail",
-      "getDocumentContent",
-      "getRevisionContent",
-      "isErrorCode",
-      "parseCsv",
-      "putDocumentContent",
-      "registerDocEditor",
-      "registerDocsI18n",
-      "registeredDocEditorHints",
-      "resolveDocEditor",
-      "serializeCsv",
-      "toFlowError",
-      "unregisterDocEditor",
-      "uploadToPutUrl",
-      "useCreateRevision",
-      "useDocsAnalytics",
-      "useDocsApi",
-      "useDocsRuntime",
-      "useDocument",
-      "useDocumentContent",
-      "useDocuments",
-      "useDownloadUrl",
-      "useExportUrl",
-      "useFlow",
-      "useFolderTree",
-      "useFolders",
-      "useRestoreRevision",
-      "useRevisions",
-      "useSaveContent",
-      "useTrash",
-      "useTrashActions",
-      "useUpload"
-    ],
-    "types": [
-      "BreadcrumbsBag",
-      "CreateDocsRuntimeOptions",
-      "CreateDocumentRequest",
-      "CreateFolderRequest",
-      "CreateRevisionRequest",
-      "CreateRevisionVariables",
-      "CreateUploadRequest",
-      "CreateUploadResponse",
-      "DocDocument",
-      "DocEditorAdapterProps",
-      "DocEditorBag",
-      "DocEditorComponent",
-      "DocFolder",
-      "DocRevision",
-      "DocUpdate",
-      "DocUpdatesResponse",
-      "DocsApi",
-      "DocsApiOptions",
-      "DocsErrorCode",
-      "DocsErrorSpec",
-      "DocsFlowId",
-      "DocsFlowSpec",
-      "DocsI18nKey",
-      "DocsRawTransport",
-      "DocsRuntime",
-      "DocumentContent",
-      "DocumentListBag",
-      "DocumentListParams",
-      "DocumentText",
-      "DownloadUrl",
-      "EmptyTrashRequest",
-      "ExportUrlVariables",
-      "FlowEndpoint",
-      "FlowError",
-      "FlowMachine",
-      "FlowMachineOptions",
-      "FlowStateBase",
-      "FolderTreeBag",
-      "FolderTreeNode",
-      "MediaKind",
-      "MediaViewerBag",
-      "PatchDocumentRequest",
-      "PatchFolderRequest",
-      "PostUpdateRequest",
-      "PutContentOptions",
-      "Remediation",
-      "RestoreRevisionVariables",
-      "RevisionHistoryBag",
-      "SaveConflict",
-      "SaveContentOk",
-      "SaveContentResult",
-      "SaveContentVariables",
-      "TrashActions",
-      "TrashBag",
-      "UploadBag",
-      "UploadResult",
-      "UploadVariables"
-    ]
+  "docs_api_v1_folders_partial_update": {
+   "method": "PATCH",
+   "path": "/docs/api/v1/folders/{folder_id}",
+   "tag": "Folders",
+   "request": "PatchFolderRequest",
+   "response": "DocFolder"
+  },
+  "docs_api_v1_folders_destroy": {
+   "method": "DELETE",
+   "path": "/docs/api/v1/folders/{folder_id}",
+   "tag": "Folders",
+   "request": null,
+   "response": null
+  },
+  "docs_api_v1_folders_restore_create": {
+   "method": "POST",
+   "path": "/docs/api/v1/folders/{folder_id}/restore",
+   "tag": "Folders",
+   "request": null,
+   "response": "DocFolder"
+  },
+  "docs_api_v1_documents_list": {
+   "method": "GET",
+   "path": "/docs/api/v1/documents",
+   "tag": "Documents",
+   "request": null,
+   "response": "DocDocument[]"
+  },
+  "docs_api_v1_documents_create": {
+   "method": "POST",
+   "path": "/docs/api/v1/documents",
+   "tag": "Documents",
+   "request": "CreateDocumentRequest",
+   "response": "DocDocument"
+  },
+  "docs_api_v1_documents_retrieve": {
+   "method": "GET",
+   "path": "/docs/api/v1/documents/{document_id}",
+   "tag": "Documents",
+   "request": null,
+   "response": "DocDocument"
+  },
+  "docs_api_v1_documents_partial_update": {
+   "method": "PATCH",
+   "path": "/docs/api/v1/documents/{document_id}",
+   "tag": "Documents",
+   "request": "PatchDocumentRequest",
+   "response": "DocDocument"
+  },
+  "docs_api_v1_documents_destroy": {
+   "method": "DELETE",
+   "path": "/docs/api/v1/documents/{document_id}",
+   "tag": "Documents",
+   "request": null,
+   "response": null
+  },
+  "docs_api_v1_documents_restore_create": {
+   "method": "POST",
+   "path": "/docs/api/v1/documents/{document_id}/restore",
+   "tag": "Documents",
+   "request": null,
+   "response": "DocDocument"
+  },
+  "docs_api_v1_documents_content_retrieve": {
+   "method": "GET",
+   "path": "/docs/api/v1/documents/{document_id}/content",
+   "tag": "Content",
+   "request": null,
+   "response": "raw bytes + X-Docs-Head-Seq/ETag headers"
+  },
+  "docs_api_v1_documents_content_update": {
+   "method": "PUT",
+   "path": "/docs/api/v1/documents/{document_id}/content",
+   "tag": "Content",
+   "request": "raw body + If-Match: <head_seq>",
+   "response": "SaveContentOk | 409 conflict body | 412"
+  },
+  "docs_api_v1_documents_download_retrieve": {
+   "method": "GET",
+   "path": "/docs/api/v1/documents/{document_id}/download",
+   "tag": "Content",
+   "request": null,
+   "response": "DownloadUrl"
+  },
+  "docs_api_v1_documents_export_retrieve": {
+   "method": "GET",
+   "path": "/docs/api/v1/documents/{document_id}/export",
+   "tag": "Content",
+   "request": null,
+   "response": "binary"
+  },
+  "docs_api_v1_documents_updates_list": {
+   "method": "GET",
+   "path": "/docs/api/v1/documents/{document_id}/updates",
+   "tag": "Updates",
+   "request": null,
+   "response": "DocUpdatesResponse"
+  },
+  "docs_api_v1_documents_updates_create": {
+   "method": "POST",
+   "path": "/docs/api/v1/documents/{document_id}/updates",
+   "tag": "Updates",
+   "request": "PostUpdateRequest",
+   "response": null
+  },
+  "docs_api_v1_documents_revisions_list": {
+   "method": "GET",
+   "path": "/docs/api/v1/documents/{document_id}/revisions",
+   "tag": "Revisions",
+   "request": null,
+   "response": "DocRevision[]"
+  },
+  "docs_api_v1_documents_revisions_create": {
+   "method": "POST",
+   "path": "/docs/api/v1/documents/{document_id}/revisions",
+   "tag": "Revisions",
+   "request": "CreateRevisionRequest",
+   "response": "DocRevision"
+  },
+  "docs_api_v1_documents_revisions_content_retrieve": {
+   "method": "GET",
+   "path": "/docs/api/v1/documents/{document_id}/revisions/{revision_id}/content",
+   "tag": "Revisions",
+   "request": null,
+   "response": "raw bytes"
+  },
+  "docs_api_v1_documents_revisions_download_retrieve": {
+   "method": "GET",
+   "path": "/docs/api/v1/documents/{document_id}/revisions/{revision_id}/download",
+   "tag": "Revisions",
+   "request": null,
+   "response": "DownloadUrl"
+  },
+  "docs_api_v1_documents_revisions_restore_create": {
+   "method": "POST",
+   "path": "/docs/api/v1/documents/{document_id}/revisions/{revision_id}/restore",
+   "tag": "Revisions",
+   "request": null,
+   "response": "DocDocument"
+  },
+  "docs_api_v1_trash_list": {
+   "method": "GET",
+   "path": "/docs/api/v1/trash",
+   "tag": "Trash",
+   "request": null,
+   "response": "TrashListing"
+  },
+  "docs_api_v1_trash_empty_create": {
+   "method": "POST",
+   "path": "/docs/api/v1/trash/empty",
+   "tag": "Trash",
+   "request": "EmptyTrashRequest",
+   "response": null
+  },
+  "docs_api_v1_uploads_create": {
+   "method": "POST",
+   "path": "/docs/api/v1/uploads",
+   "tag": "Uploads",
+   "request": "CreateUploadRequest",
+   "response": "CreateUploadResponse"
+  },
+  "docs_api_v1_uploads_finalize_create": {
+   "method": "POST",
+   "path": "/docs/api/v1/uploads/{upload_id}/finalize",
+   "tag": "Uploads",
+   "request": null,
+   "response": "DocDocument"
   }
+ },
+ "hooks": {
+  "useFolders": {
+   "kind": "query",
+   "operation": "listFolders",
+   "queryKey": [
+    "docs",
+    "folders",
+    "{workspaceId}"
+   ]
+  },
+  "useFolderTree": {
+   "kind": "query",
+   "operation": "listFolders",
+   "queryKey": [
+    "docs",
+    "folders",
+    "{workspaceId}"
+   ]
+  },
+  "useDocuments": {
+   "kind": "query",
+   "operation": "listDocuments",
+   "queryKey": [
+    "docs",
+    "documents",
+    "{params}"
+   ]
+  },
+  "useDocument": {
+   "kind": "query",
+   "operation": "getDocument",
+   "queryKey": [
+    "docs",
+    "document",
+    "{documentId}"
+   ]
+  },
+  "useDocumentContent": {
+   "kind": "query",
+   "operation": "getContent",
+   "queryKey": [
+    "docs",
+    "content",
+    "{documentId}"
+   ]
+  },
+  "useRevisions": {
+   "kind": "query",
+   "operation": "listRevisions",
+   "queryKey": [
+    "docs",
+    "revisions",
+    "{documentId}"
+   ]
+  },
+  "useTrash": {
+   "kind": "query",
+   "operation": "listTrash",
+   "queryKey": [
+    "docs",
+    "trash",
+    "{workspaceId}"
+   ]
+  },
+  "useDownloadUrl": {
+   "kind": "query",
+   "operation": "getDownloadUrl",
+   "queryKey": [
+    "docs",
+    "downloadUrl",
+    "{documentId}"
+   ]
+  },
+  "useSaveContent": {
+   "kind": "mutation",
+   "operation": "putContent",
+   "invalidates": [
+    [
+     "docs"
+    ]
+   ]
+  },
+  "useCreateRevision": {
+   "kind": "mutation",
+   "operation": "createRevision",
+   "invalidates": [
+    [
+     "docs"
+    ]
+   ]
+  },
+  "useRestoreRevision": {
+   "kind": "mutation",
+   "operation": "restoreRevision",
+   "invalidates": [
+    [
+     "docs"
+    ]
+   ]
+  },
+  "useTrashActions": {
+   "kind": "mutation",
+   "operation": "restoreDocument|restoreFolder|emptyTrash",
+   "invalidates": [
+    [
+     "docs"
+    ]
+   ]
+  },
+  "useUpload": {
+   "kind": "mutation",
+   "operation": "createUpload+uploadToPutUrl+finalizeUpload | createUpload+putContent",
+   "invalidates": [
+    [
+     "docs"
+    ]
+   ]
+  },
+  "useExportUrl": {
+   "kind": "mutation",
+   "operation": "getDownloadUrl",
+   "invalidates": []
+  }
+ },
+ "errors": {},
+ "events": {
+  "defined": [],
+  "flows": []
+ },
+ "demos": [],
+ "i18nKeys": [
+  "docs.editor.conflict",
+  "docs.editor.downloadOnly",
+  "docs.editor.loading",
+  "docs.editor.override",
+  "docs.editor.save",
+  "docs.editor.saved",
+  "docs.editor.saving",
+  "docs.error.unknown",
+  "docs.list.empty",
+  "docs.list.error",
+  "docs.list.loading",
+  "docs.list.retry",
+  "docs.media.download",
+  "docs.revisions.create",
+  "docs.revisions.empty",
+  "docs.revisions.loading",
+  "docs.revisions.restore",
+  "docs.revisions.restoring",
+  "docs.trash.emptyAction",
+  "docs.trash.emptyState",
+  "docs.trash.emptying",
+  "docs.trash.restore",
+  "docs.tree.error",
+  "docs.tree.loading",
+  "docs.tree.root",
+  "docs.upload.action",
+  "docs.upload.done",
+  "docs.upload.failed",
+  "docs.upload.uploading"
+ ],
+ "exports": {
+  "runtime": [
+   "Breadcrumbs",
+   "CsvEditor",
+   "DOCS_ERRORS",
+   "DOCS_ERROR_CODES",
+   "DOCS_FLOWS",
+   "DOCS_HEAD_SEQ_HEADER",
+   "DOCS_I18N_KEYS",
+   "DocEditor",
+   "DocUploader",
+   "DocsProvider",
+   "DocsRuntimeContext",
+   "DocumentList",
+   "FolderTree",
+   "MarkdownEditor",
+   "MediaViewer",
+   "RevisionHistory",
+   "TextEditor",
+   "TrashBin",
+   "buildFolderTree",
+   "createDocsApi",
+   "createDocsRuntime",
+   "createFlowMachine",
+   "docsErrorBundleEn",
+   "docsI18nBundleEn",
+   "docsQueryKeys",
+   "explainDocsError",
+   "exportDocument",
+   "flowEndpoints",
+   "folderTrail",
+   "getDocumentContent",
+   "getRevisionContent",
+   "isErrorCode",
+   "parseCsv",
+   "putDocumentContent",
+   "registerDocEditor",
+   "registerDocsI18n",
+   "registeredDocEditorHints",
+   "resolveDocEditor",
+   "serializeCsv",
+   "toFlowError",
+   "unregisterDocEditor",
+   "uploadToPutUrl",
+   "useCreateRevision",
+   "useDocsAnalytics",
+   "useDocsApi",
+   "useDocsRuntime",
+   "useDocument",
+   "useDocumentContent",
+   "useDocuments",
+   "useDownloadUrl",
+   "useExportUrl",
+   "useFlow",
+   "useFolderTree",
+   "useFolders",
+   "useRestoreRevision",
+   "useRevisions",
+   "useSaveContent",
+   "useTrash",
+   "useTrashActions",
+   "useUpload"
+  ],
+  "types": [
+   "BreadcrumbsBag",
+   "CreateDocsRuntimeOptions",
+   "CreateDocumentRequest",
+   "CreateFolderRequest",
+   "CreateRevisionRequest",
+   "CreateRevisionVariables",
+   "CreateUploadRequest",
+   "CreateUploadResponse",
+   "DocDocument",
+   "DocEditorAdapterProps",
+   "DocEditorBag",
+   "DocEditorComponent",
+   "DocFolder",
+   "DocRevision",
+   "DocUpdate",
+   "DocUpdatesResponse",
+   "DocsApi",
+   "DocsApiOptions",
+   "DocsErrorCode",
+   "DocsErrorSpec",
+   "DocsFlowId",
+   "DocsFlowSpec",
+   "DocsI18nKey",
+   "DocsRawTransport",
+   "DocsRuntime",
+   "DocumentContent",
+   "DocumentListBag",
+   "DocumentListParams",
+   "DocumentText",
+   "DownloadUrl",
+   "EmptyTrashRequest",
+   "ExportUrlVariables",
+   "FlowEndpoint",
+   "FlowError",
+   "FlowMachine",
+   "FlowMachineOptions",
+   "FlowStateBase",
+   "FolderTreeBag",
+   "FolderTreeNode",
+   "MediaKind",
+   "MediaViewerBag",
+   "PatchDocumentRequest",
+   "PatchFolderRequest",
+   "PostUpdateRequest",
+   "PutContentOptions",
+   "Remediation",
+   "RestoreRevisionVariables",
+   "RevisionHistoryBag",
+   "SaveConflict",
+   "SaveContentOk",
+   "SaveContentResult",
+   "SaveContentVariables",
+   "TrashActions",
+   "TrashBag",
+   "UploadBag",
+   "UploadResult",
+   "UploadVariables"
+  ]
+ }
 }

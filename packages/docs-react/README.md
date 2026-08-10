@@ -67,6 +67,36 @@ Builtins ship for `"text"`, `"markdown"` (source editing, deliberately no
 preview dependency), and `"csv"` (hand-rolled parser, rows model with cell
 edit) — all snapshot editors, all unstyled DOM.
 
+## The default skin — `@stapel/docs-react/default` (opt-in)
+
+The main entry stays zero-visual-opinion; importing the `/default` subpath is
+the opt-in that brings `antd` (an optional peer, with `@stapel/tokens-antd`):
+
+```tsx
+import { FileManager, DocSurface } from "@stapel/docs-react/default";
+
+<FileManager workspaceId="ws-1" onOpenDocument={(d) => navigate(d.id)} />
+<DocSurface documentId={docId} />
+```
+
+- **`FileManager`** — folder tree + document list + breadcrumbs + trash view,
+  with right-click context menus wired 1:1 to the server's operations
+  (rename / move / move-to-trash / restore / download / version history —
+  there is no duplicate endpoint on stapel-docs, so no duplicate item).
+- **`RevisionsModal`** — history list, inline text preview, rollback (lands
+  as a new head; history keeps everything).
+- **`DocSurface`** + default editors — chrome-styled text, markdown-source,
+  and CSV-table editors on the same If-Match snapshot path; `FileCard` for
+  download-only documents (image/video preview by MIME).
+- **Self-themed** — every surface wraps its own `DocsSkinTheme`
+  (`@stapel/tokens` → `toAntdThemeConfig`; mode follows the host document's
+  `data-theme`, the `mode` prop pins a side). A default skin never inherits
+  an unthemed host.
+- **Replaceable without forking** — every part resolves through
+  `registerDocsSkinComponent("fileManager.listPane" | … , Component)` (same
+  seam shape as the editor registry), and `DocSurface` gives an explicit
+  `registerDocEditor` registration priority over the skin's own editors.
+
 ## Snapshot saves and conflicts
 
 `DocEditor` loads the content plus its `head_seq` (from the `X-Docs-Head-Seq`

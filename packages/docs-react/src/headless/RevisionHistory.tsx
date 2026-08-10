@@ -1,23 +1,27 @@
 import type { ReactNode } from "react";
-import type { StapelApiError } from "@stapel/core";
+import { loadStateFromQuery } from "@stapel/core";
+import type { LoadState, StapelApiError } from "@stapel/core";
 import type { DocRevision } from "../api/types.js";
 import { useRevisions } from "../model/queries.js";
 import { useCreateRevision, useRestoreRevision } from "../model/mutations.js";
 
 /** Render-prop bag for {@link RevisionHistory}. */
 export interface RevisionHistoryBag {
-  /** The document's revisions, as the backend orders them. */
-  readonly revisions: readonly DocRevision[];
+  /** The revision list as a state a skin cannot flatten (core's
+   * `LoadState`; render with `matchList` — "no revisions yet" only for a
+   * load that succeeded). */
+  readonly state: LoadState<readonly DocRevision[]>;
   /** Pin the current content as a named revision. */
   createRevision(name: string): void;
   readonly isCreating: boolean;
+  /** The PIN write's failure — a different question from {@link state}. */
+  readonly createError: StapelApiError | null;
   /** Restore the content to a revision (lands as a NEW head — history keeps
    * everything). */
   restore(revisionId: string): void;
   readonly isRestoring: boolean;
-  readonly isLoading: boolean;
-  readonly isError: boolean;
-  readonly error: StapelApiError | null;
+  /** The RESTORE write's failure. */
+  readonly restoreError: StapelApiError | null;
   refetch(): void;
 }
 
@@ -28,7 +32,7 @@ export interface RevisionHistoryBag {
  *
  * ```tsx
  * <RevisionHistory documentId={doc.id}>
- *   {({ revisions, restore }) => ( ... )}
+ *   {({ state, restore }) => matchList(state, { loading, failed, empty, ready })}
  * </RevisionHistory>
  * ```
  */
@@ -40,19 +44,17 @@ export function RevisionHistory(props: {
   const createMutation = useCreateRevision(props.documentId);
   const restoreMutation = useRestoreRevision(props.documentId);
   return props.children({
-    revisions: query.data ?? [],
+    state: loadStateFromQuery(query),
     createRevision: (name) => {
       createMutation.mutate({ name });
     },
     isCreating: createMutation.isPending,
+    createError: createMutation.error ?? null,
     restore: (revisionId) => {
       restoreMutation.mutate({ revisionId });
     },
     isRestoring: restoreMutation.isPending,
-    isLoading: query.isLoading,
-    isError: query.isError || createMutation.isError || restoreMutation.isError,
-    error:
-      query.error ?? createMutation.error ?? restoreMutation.error ?? null,
+    restoreError: restoreMutation.error ?? null,
     refetch: () => {
       void query.refetch();
     },

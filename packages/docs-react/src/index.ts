@@ -52,6 +52,7 @@ export type {
   SaveConflict,
   SaveContentResult,
   DocumentContent,
+  TrashListing,
 } from "./api/types.js";
 
 // ── flows ────────────────────────────────────────────────────────────────────
@@ -87,10 +88,11 @@ export {
   useDocument,
   useDocumentContent,
   useRevisions,
+  useRevisionContent,
   useTrash,
   useDownloadUrl,
 } from "./model/queries.js";
-export type { DocumentText } from "./model/queries.js";
+export type { DocumentText, RevisionText } from "./model/queries.js";
 export {
   useSaveContent,
   useCreateRevision,
@@ -98,6 +100,12 @@ export {
   useTrashActions,
   useUpload,
   useExportUrl,
+  useCreateFolder,
+  useUpdateFolder,
+  useTrashFolder,
+  useCreateDocument,
+  useUpdateDocument,
+  useTrashDocument,
 } from "./model/mutations.js";
 export type {
   SaveContentVariables,
@@ -107,6 +115,8 @@ export type {
   UploadVariables,
   UploadResult,
   ExportUrlVariables,
+  UpdateFolderVariables,
+  UpdateDocumentVariables,
 } from "./model/mutations.js";
 
 // ── editor registry (the customer seam) + builtin editors ────────────────────
@@ -114,6 +124,7 @@ export {
   registerDocEditor,
   unregisterDocEditor,
   resolveDocEditor,
+  explicitDocEditor,
   registeredDocEditorHints,
 } from "./editors/registry.js";
 export type {
@@ -130,9 +141,9 @@ export { DocsProvider } from "./headless/DocsProvider.js";
 export { DocumentList } from "./headless/DocumentList.js";
 export type { DocumentListBag } from "./headless/DocumentList.js";
 export { FolderTree } from "./headless/FolderTree.js";
-export type { FolderTreeBag } from "./headless/FolderTree.js";
+export type { FolderTreeBag, FolderTreeView } from "./headless/FolderTree.js";
 export { Breadcrumbs } from "./headless/Breadcrumbs.js";
-export type { BreadcrumbsBag } from "./headless/Breadcrumbs.js";
+export type { BreadcrumbsBag, BreadcrumbTrail } from "./headless/Breadcrumbs.js";
 export { DocEditor } from "./headless/DocEditor.js";
 export type { DocEditorBag } from "./headless/DocEditor.js";
 export { RevisionHistory } from "./headless/RevisionHistory.js";

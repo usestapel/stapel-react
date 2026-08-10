@@ -1,6 +1,9 @@
-# @stapel/docs-react 0.1.0
+# @stapel/docs-react 0.2.0
 
-Headless React flow pair for stapel-docs (contract >=0.1 <0.2) — business + state, zero visual opinion.
+Headless React flow pair for stapel-docs (contract >=0.1 <0.2) — business + state, zero
+visual opinion in the main entry; the opt-in `/default` subpath ships the self-themed antd
+skin (FileManager + context menus, RevisionsModal, DocSurface + default editors), every
+part swappable via registerDocsSkinComponent / registerDocEditor.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -33,22 +36,42 @@ Paths are relative to `/docs/api/v1/`. Full catalog: manifest.json §operations.
 - GET .../download → {url} (opaque) · GET .../export?format=pdf → binary
 - updates: GET .../updates?since= · POST .../updates (crdt types only; v1 builtins are all snapshot)
 - revisions: list · POST {name} · GET :rid/content · GET :rid/download · POST :rid/restore
-- trash: GET /trash?workspace_id · POST /trash/empty {workspace_id, ids?}
+- trash: GET /trash?workspace_id → {folders, documents} · POST /trash/empty {workspace_id, ids?} (ids may name folders and documents)
 - uploads: POST /uploads → {upload_id, document_id, key, put_url} · POST /uploads/:id/finalize
   (local-storage backend profile: put_url is NOT writable — use PUT .../content; useUpload exposes both via "put_url" | "content")
 
 ## Query hooks (docsQueryKeys — never string keys)
 - useFolders / useFolderTree (one cache entry, tree via select) — ["docs","folders",ws]
 - useDocuments(params) — ["docs","documents",params]
-- useDocument / useDocumentContent (text decode + headSeq) / useRevisions / useDownloadUrl — per-document keys
-- useTrash(ws) — ["docs","trash",ws]
+- useDocument / useDocumentContent (text decode + headSeq) / useRevisions /
+  useRevisionContent (revision preview text) / useDownloadUrl — per-document keys
+- useTrash(ws) — ["docs","trash",ws] → {folders, documents}
 - mutations: useSaveContent (If-Match; conflict = data), useCreateRevision,
-  useRestoreRevision, useTrashActions, useUpload (both delivery paths), useExportUrl
+  useRestoreRevision, useTrashActions, useUpload (both delivery paths), useExportUrl,
+  useCreateFolder/useUpdateFolder/useTrashFolder, useCreateDocument/useUpdateDocument/
+  useTrashDocument (rename + move are the SAME patch — no separate move endpoint)
 
 ## Headless bags (render-prop, bring your own UI)
 DocumentList · FolderTree · Breadcrumbs · DocEditor (value/setValue/save/dirty/
-conflict/overrideSave) · RevisionHistory · TrashBin · DocUploader · MediaViewer
-(kind by MIME prefix image/|video/ else "download")
+conflict/overrideSave) · RevisionHistory · TrashBin ({folders, documents}) ·
+DocUploader · MediaViewer (kind by MIME prefix image/|video/ else "download").
+List/tree/trash/revision READS are LoadState fields (core loadStateFromQuery;
+render with matchList/matchLoad — the absence of a result is not a result;
+stapel/no-flattened-load-state). Write errors ride separate fields.
+
+## /default — the opt-in skin subpath (antd stays out of the main bundle)
+- FileManager (tree + list + breadcrumbs + trash view; context menus wired 1:1 to the
+  server: rename/move = PATCH, trash = DELETE, restore, download, version history —
+  NO duplicate item, stapel-docs has no duplicate endpoint) · RevisionsModal (list +
+  preview + rollback-as-new-head) · DocSurface (ladder: registerDocEditor explicit >
+  skin editor slot > builtin > FileCard) · DefaultText/Markdown(source)/Csv editors ·
+  FileCard (image/video/download).
+- SELF-THEMED: every surface wraps DocsSkinTheme (@stapel/tokens → toAntdThemeConfig;
+  mode from the host document's data-theme, `mode` prop pins a side).
+- SWAPPABLE: registerDocsSkinComponent("fileManager.treePane" | "fileManager.listPane" |
+  "fileManager.breadcrumbs" | "fileManager.trashPane" | "revisionsModal" | "fileCard" |
+  "editor.text" | "editor.markdown" | "editor.csv", Component) — resolution explicit >
+  builtin, same seam shape as the editor registry.
 
 ## Errors (render t(code, params))
 stapel-docs has no committed error registry yet — DOCS_ERRORS is empty, core's
