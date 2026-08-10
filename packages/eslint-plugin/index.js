@@ -74,7 +74,7 @@ const plugin = {
   // is the version ESLint prints for the plugin in `--debug` and in config
   // inspector output, i.e. exactly what someone reads when asking "which
   // version of this rule am I actually running?".
-  meta: { name: "@stapel/eslint-plugin", version: "0.8.0" },
+  meta: { name: "@stapel/eslint-plugin", version: "0.9.0" },
   rules,
 };
 
