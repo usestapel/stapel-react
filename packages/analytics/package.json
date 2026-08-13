@@ -38,7 +38,7 @@
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.4.0 <1.0.0",
+    "@stapel/core": ">=0.5.0 <1.0.0",
     "react": ">=19"
   },
   "devDependencies": {

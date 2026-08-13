@@ -125,6 +125,13 @@ export function useInviteMembers(
       void queryClient.invalidateQueries({
         queryKey: workspacesQueryKeys.members(workspaceId),
       });
+      // The history beside the roster is a record OF this change: an admin
+      // who removes someone and looks down expects to see it. The audit key
+      // is its own root (queryKeys.ts), so the members invalidation above
+      // does not reach it.
+      void queryClient.invalidateQueries({
+        queryKey: workspacesQueryKeys.audit(workspaceId),
+      });
     },
   };
   return useMutation(options);
@@ -157,6 +164,13 @@ export function useUpdateMemberRole(
       void queryClient.invalidateQueries({
         queryKey: workspacesQueryKeys.members(workspaceId),
       });
+      // The history beside the roster is a record OF this change: an admin
+      // who removes someone and looks down expects to see it. The audit key
+      // is its own root (queryKeys.ts), so the members invalidation above
+      // does not reach it.
+      void queryClient.invalidateQueries({
+        queryKey: workspacesQueryKeys.audit(workspaceId),
+      });
     },
   };
   return useMutation(options);
@@ -176,6 +190,13 @@ export function useRemoveMember(
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: workspacesQueryKeys.members(workspaceId),
+      });
+      // The history beside the roster is a record OF this change: an admin
+      // who removes someone and looks down expects to see it. The audit key
+      // is its own root (queryKeys.ts), so the members invalidation above
+      // does not reach it.
+      void queryClient.invalidateQueries({
+        queryKey: workspacesQueryKeys.audit(workspaceId),
       });
     },
   };

@@ -145,6 +145,15 @@ jobs:
       - name: Install
         run: corepack pnpm install --frozen-lockfile
 
+      - name: Peer floors cover imported symbols
+        # A published floor is never exercised in here: every package builds
+        # against the workspace core, never against its own floor. Only a
+        # consumer installing at the floor finds it — after the release, which
+        # is exactly how workspaces-react 0.15.0 shipped >=0.12.0 while
+        # importing a type core added in 0.13.0. Gate the PUBLISHING path too,
+        # not just ci.yml. See scripts/check-peer-floors.mjs.
+        run: corepack pnpm check:peer-floors
+
       - name: Version PR or publish to npm
         uses: changesets/action@v1
         with:

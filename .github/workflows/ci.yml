@@ -116,6 +116,12 @@ jobs:
             ln -sf "$GITHUB_WORKSPACE/.other-source/$m" "$GITHUB_WORKSPACE/../$m"
           done
 
+      - name: Peer floors cover imported symbols
+        # A published floor is never exercised in here: every package builds
+        # against the workspace core. Only a consumer installing at the floor
+        # would find it — after the release. See scripts/check-peer-floors.mjs.
+        run: corepack pnpm check:peer-floors
+
       - name: Codegen drift gates (api / flows / errors / manifest)
         # Regenerates the committed projections from the pinned backend sources
         # and fails if any diverge — types, the flow registry, the backend-error
