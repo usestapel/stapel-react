@@ -164,20 +164,25 @@ async function resolveLocales() {
  * the module's own, module wins on a collision (a module may deliberately
  * reword a key it owns; it may not silently shadow one it does not).
  *
- * Core's catalog missing entirely is not fatal — a checkout without the
- * sibling still generates, it just carries whatever the module itself has,
- * which is exactly the pre-0.23 shape.
+ * Core's catalog missing entirely is not fatal BY ITSELF — a checkout without
+ * the sibling still generates, it just carries whatever the module itself has,
+ * which is exactly the pre-0.23 shape. It becomes fatal only if keys are then
+ * missing, and in that case the caller must say WHICH of the two causes it was:
+ * a stale backend catalog, or a sibling that was never checked out. The first
+ * cut of this merge swallowed the difference and CI blamed the module for
+ * pruning keys core had simply not been fetched to supply.
  */
 async function mergedCatalog(locale, moduleCatalog) {
+  const path = resolve(CORE_CATALOG_DIR, `errors.${locale}.json`);
   let core = {};
+  let coreFound = false;
   try {
-    core = JSON.parse(
-      await readFile(resolve(CORE_CATALOG_DIR, `errors.${locale}.json`), "utf8")
-    );
+    core = JSON.parse(await readFile(path, "utf8"));
+    coreFound = true;
   } catch {
     core = {};
   }
-  return { ...core, ...moduleCatalog };
+  return { catalog: { ...core, ...moduleCatalog }, coreFound, corePath: path };
 }
 
 /**
@@ -185,14 +190,22 @@ async function mergedCatalog(locale, moduleCatalog) {
  * Fails loudly on a missing code or a broken `{param}` slot — the frontend twin
  * of the backend's `check_translation_catalogs` gate.
  */
-function renderLocaleBundle(entries, locale, catalog) {
+function renderLocaleBundle(entries, locale, catalog, core = {}) {
   const missing = entries.filter((e) => !catalog[e.code]);
   if (missing.length)
     throw new Error(
       `errors.${locale}.json misses ${missing.length} registry code(s): ` +
         `${missing.slice(0, 8).map((e) => e.code).join(", ")}` +
         (missing.length > 8 ? ` (+${missing.length - 8})` : "") +
-        ` — regenerate the backend catalog (translate_catalogs --domain errors --lang ${locale})`
+        (core.coreFound === false
+          ? // The likely cause, stated instead of guessed at: most of these
+            // keys are core-owned, and core's catalog was not on disk to
+            // supply them. Blaming the module's file here sends whoever
+            // reads this to regenerate a catalog that is already correct.
+            ` — and stapel-core's catalog was NOT found at ${core.corePath}, ` +
+            `which is where the cross-cutting keys live since 0.23. Check out ` +
+            `the sibling (or set ERRORS_CORE_CATALOG_DIR) before blaming this module's file.`
+          : ` — regenerate the backend catalog (translate_catalogs --domain errors --lang ${locale})`)
     );
   for (const e of entries) {
     const got = paramsOf(catalog[e.code]).sort();
@@ -336,10 +349,12 @@ ${bundleLines}
     // `mergedCatalog`. Without this the generator still demanded every
     // registry code from the module's file, which stopped being true when
     // stapel-workspaces 0.23.0 pruned the copies core now owns.
+    const merged = await mergedCatalog(locale, catalog);
     const { body, file } = renderLocaleBundle(
       entries,
       locale,
-      await mergedCatalog(locale, catalog)
+      merged.catalog,
+      merged
     );
     await writeFile(resolve(OUT_DIR, file), body);
     console.error(`gen:errors: ${locale} locale bundle → ${resolve(OUT_DIR, file)}`);

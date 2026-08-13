@@ -62,6 +62,17 @@ jobs:
       # `../stapel-<module>` for every pair (package.json scripts).
       # actions/checkout refuses a path outside the workspace root, so these
       # land nested and get symlinked into place below.
+      - name: Check out stapel-core (cross-cutting error catalogue)
+        # NOT an API-contract source — core has no endpoints these pairs call.
+        # It owns the ~41 cross-cutting error keys that modules stopped copying
+        # in 0.23, and gen-errors.mjs merges its catalogue under each module's.
+        # Without it every locale bundle fails 41 keys short.
+        uses: actions/checkout@v4
+        with:
+          repository: usestapel/stapel-core
+          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-core'].ref }}
+          path: .other-source/stapel-core
+
       - name: Check out stapel-notifications (contract artifacts)
         uses: actions/checkout@v4
         with:
@@ -109,7 +120,7 @@ jobs:
         # inline from package.json, same as every other pair.
         run: |
           ln -sf "$GITHUB_WORKSPACE/.errors-source/stapel-auth" "$GITHUB_WORKSPACE/../stapel-auth"
-          for m in stapel-notifications stapel-profiles stapel-billing stapel-workspaces stapel-calendar stapel-recordings; do
+          for m in stapel-core stapel-notifications stapel-profiles stapel-billing stapel-workspaces stapel-calendar stapel-recordings; do
             ln -sf "$GITHUB_WORKSPACE/.other-source/$m" "$GITHUB_WORKSPACE/../$m"
           done
 
