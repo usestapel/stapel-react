@@ -89,6 +89,43 @@ export interface paths {
         patch: operations["workspaces_api_v1_partial_update"];
         trace?: never;
     };
+    "/workspaces/api/v1/{workspace_id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description ``GET <workspace_id>/audit`` — the workspace's membership history.
+         *
+         *     THE QUESTION THIS ANSWERS is "who let this person in, who took them out,
+         *     and when" — which nothing in this module could answer before. Half the
+         *     transitions the owner listed emit no comm event at all (an invitation
+         *     created, an invitation accepted, an account born from one), and the ones
+         *     that do emit are fire-and-forget notifications to other services: nothing
+         *     keeps them, so there was no record to ask.
+         *
+         *     GATED ON ``members.view``, not on a new capability of its own. An audit of
+         *     who is in the workspace is the same class of fact as the member list —
+         *     every role that may see who is in the room may see how they got there. A
+         *     separate mandate would mean a deployment could grant one without the
+         *     other, which describes no real product.
+         *
+         *     Read-only by construction: this view has no write method, and the model
+         *     has no update or delete path.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        get: operations["workspaces_api_v1_audit_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/api/v1/{workspace_id}/invitations": {
         parameters: {
             query?: never;
@@ -180,15 +217,26 @@ export interface paths {
          *
          *     Accepts an **expired** invitation on purpose — a dead TTL is the most
          *     common reason to resend — and refuses the three stored terminal states,
-         *     which are decisions rather than delivery failures. The token is
-         *     rotated and the TTL restarts, so the fresh letter carries a fresh link
-         *     and any stale copy of the old one stops working.
+         *     which are decisions rather than delivery failures. The TTL restarts, so
+         *     the invitee has the full window again from the letter that just went
+         *     out.
          *
          *     Reviving an expired invitation re-reserves a seat, so the plan ceiling
          *     is re-checked here exactly as it is on invite: capability first ("may
          *     YOU", 403), then the org's plan ("may the ORG", 402). An invitation
          *     that is already pending costs no additional seat and is never blocked
          *     by that check.
+         *
+         *     Then the cooldown ("may we mail this PERSON again yet", 429). It is
+         *     read here and enforced again inside the service's row lock, the same
+         *     two-level shape the state check already has: the view answers a number
+         *     the admin can read, the lock is what actually makes two simultaneous
+         *     presses send one letter.
+         *
+         *     The token is NOT rotated by default from 0.23 — the invitee's existing
+         *     link keeps working, because the resend goes to the same mailbox that
+         *     link is already sitting in. See
+         *     ``STAPEL_WORKSPACES["INVITATION_ROTATE_TOKEN_ON_RESEND"]``.
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -739,6 +787,54 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description One line of a workspace's membership history. */
+        AuditEventResponse: {
+            /**
+             * Format: uuid
+             * @description Audit event UUID
+             */
+            id: string;
+            /**
+             * @description What happened — a CLOSED vocabulary (models.AuditAction): invitation_created, invitation_accepted, invitation_revoked, invitation_declined, account_created_by_invitation, member_joined, member_provisioned, member_removed, member_role_changed, member_suspended, member_unsuspended
+             * @example member_removed
+             */
+            action: string;
+            /**
+             * Format: uuid
+             * @description Who performed it; null for a transition nobody performed (a policy sweep)
+             * @example 0192a...
+             */
+            actor_id: string | null;
+            /** @description Best-effort name of the actor, resolved like every other name in this module (stapel-profiles first); "" when unknown */
+            actor_display_name: string;
+            /**
+             * Format: uuid
+             * @description Whom it happened to; null for an invitation to an address with no account yet
+             * @example 0192b...
+             */
+            subject_id: string | null;
+            /** @description Best-effort name of the subject; "" when unknown */
+            subject_display_name: string;
+            /**
+             * @description The invited address, when the row is about an invitation
+             * @example new@acme.test
+             */
+            subject_email: string;
+            /**
+             * @description Role involved, when the action carries one
+             * @example member
+             */
+            role: string;
+            /** @description Action-specific extras — old_role/new_role for a role change, reason for a suspension */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /**
+             * @description ISO 8601 timestamp
+             * @example 2026-08-13T10:00:00Z
+             */
+            created_at: string;
+        };
         /** @description What the name is after the write — the stored value, not the request. */
         DisplayNameResponse: {
             /**
@@ -891,6 +987,17 @@ export interface components {
              * @example Ada Lovelace
              */
             display_name?: string | null;
+            /**
+             * Format: uuid
+             * @description UUID of the admin who withdrew it; null unless revoked, or when that account is gone
+             * @example 0192a...
+             */
+            revoked_by_id?: string | null;
+            /**
+             * @description ISO 8601 time the invitation was last emailed; null if no letter was ever sent
+             * @example 2026-07-24T10:00:00Z
+             */
+            last_sent_at?: string | null;
         };
         /** @description Invite payload. */
         MemberInviteRequest: {
@@ -1002,6 +1109,19 @@ export interface components {
              * @example Ada Lovelace
              */
             display_name?: string | null;
+        };
+        PaginatedAuditEventResponseList: {
+            items: components["schemas"]["AuditEventResponse"][];
+            /** @description Anchor value for next page */
+            next_anchor?: string | null;
+            /** @description Anchor value for previous page */
+            prev_anchor?: string | null;
+            /** @description Whether there are more items after this page */
+            has_next: boolean;
+            /** @description Whether there are items before this page */
+            has_prev: boolean;
+            /** @description Number of items in current page */
+            count: number;
         };
         PaginatedInvitationResponseList: {
             items: components["schemas"]["InvitationResponse"][];
@@ -1203,6 +1323,11 @@ export interface components {
              * @example a8bba7ae-5d2e-43e5-9911-0553e7df50b3
              */
             preferred_workspace_id?: string;
+            /**
+             * @description Whether THIS caller may found a new workspace on this instance (WORKSPACE_CREATE_POLICY, evaluated by services.can_create_workspace). The ANSWER, not the policy name: resolving "instance_owner" client-side would mean re-implementing the instance-owner lookup in every client, and a client that got it wrong would draw a button that 403s — or hide one that should be there. Rides the list because the workspace switcher is the surface that draws "+ New space", and it already fetches this
+             * @example true
+             */
+            can_create_workspace?: boolean;
         };
         /** @description Workspace details. */
         WorkspaceResponse: {
@@ -1266,6 +1391,11 @@ export interface components {
              *     ]
              */
             my_capabilities?: string[];
+            /**
+             * @description The owner's display name, best-effort from stapel-profiles (empty when it has none, is not installed, or is unreachable — never invented). Exists because a workspace NAME stopped identifying one: a person can belong to several spaces all called "Personal" — one per company that made them one — and ownership can be handed over, so "Personal" answers nothing on its own. Pickers draw it as the second line under the name. Resolved here rather than in each client, which would otherwise each need a profiles batch of its own for a caption
+             * @example Victor P.
+             */
+            owner_display_name?: string;
         };
     };
     responses: never;
@@ -1384,6 +1514,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceResponse"];
+                };
+            };
+        };
+    };
+    workspaces_api_v1_audit_list: {
+        parameters: {
+            query?: {
+                /** @description Narrow to one action (models.AuditAction). An unknown value matches nothing rather than being ignored — a filter that silently does not apply is worse than an empty page. */
+                action?: string;
+                /** @description Anchor value to paginate from (exclusive) */
+                anchor?: string;
+                /** @description Pagination direction */
+                direction?: "next" | "prev" | "center";
+                /** @description Number of items (default 100, max 500) */
+                limit?: number;
+                /** @description Narrow to one person's history (as the SUBJECT). */
+                user_id?: string;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAuditEventResponseList"];
                 };
             };
         };

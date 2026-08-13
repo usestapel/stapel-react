@@ -342,6 +342,13 @@
     "en": "Additional verification required"
   },
   {
+    "code": "error.403.workspace_creation_closed",
+    "status": 403,
+    "params": [],
+    "remediation": "contact_support",
+    "en": "This instance does not allow you to create workspaces"
+  },
+  {
     "code": "error.404.ad_not_found",
     "status": 404,
     "params": [],
@@ -459,6 +466,15 @@
     "params": [],
     "remediation": "wait_and_retry",
     "en": "Too many failed attempts — verification locked"
+  },
+  {
+    "code": "error.429.invitation_resend_cooldown",
+    "status": 429,
+    "params": [
+      "retry_after"
+    ],
+    "remediation": "wait_and_retry",
+    "en": "This invitation was emailed recently; you can send it again in {retry_after} seconds"
   },
   {
     "code": "error.429.rate_limit",

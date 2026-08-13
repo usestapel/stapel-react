@@ -1,4 +1,8 @@
-import type { InvitationsParams, MembersParams } from "../api/types.js";
+import type {
+  AuditParams,
+  InvitationsParams,
+  MembersParams,
+} from "../api/types.js";
 
 /**
  * Namespaced TanStack Query keys (frontend-standard §2 — namespaced keys).
@@ -19,6 +23,11 @@ export const workspacesQueryKeys: {
     workspaceId: string,
     params: MembersParams
   ): readonly ["workspaces", "members", string, MembersParams];
+  audit(workspaceId: string): readonly ["workspaces", "audit", string];
+  auditPage(
+    workspaceId: string,
+    params: AuditParams
+  ): readonly ["workspaces", "audit", string, AuditParams];
   invitations(workspaceId: string): readonly ["workspaces", "invitations", string];
   invitationsPage(
     workspaceId: string,
@@ -46,6 +55,12 @@ export const workspacesQueryKeys: {
   // The bare 3-tuple is a valid prefix of membersPage's 4-tuple, so
   // invalidating `members(workspaceId)` (mutations.ts) drops every page.
   members: (workspaceId) => [ROOT, "members", workspaceId],
+  /** The workspace's membership history (stapel-workspaces 0.24). Its own
+   * root, not a slice of `members`: history is append-only and a member
+   * mutation invalidates the ROSTER — the history it also appended to is
+   * invalidated deliberately, by naming this key, not as a side effect. */
+  audit: (workspaceId) => [ROOT, "audit", workspaceId],
+  auditPage: (workspaceId, params) => [ROOT, "audit", workspaceId, params],
   // EVERY workspace's roster, not one. Not a read key — nothing fetches it —
   // but the invalidation scope of a write that moves a name the whole fleet
   // shares: `MemberResponse.display_name` is a live lookup in

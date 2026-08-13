@@ -26,7 +26,7 @@ export interface paths {
          *     genuine nor surface a distinct error for a value the client only ever
          *     obtains from a prior server response.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         get: operations["recordings_api_v1_recordings_list"];
         put?: never;
@@ -47,7 +47,7 @@ export interface paths {
          *     genuine nor surface a distinct error for a value the client only ever
          *     obtains from a prior server response.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         post: operations["recordings_api_v1_recordings_create"];
         delete?: never;
@@ -66,7 +66,7 @@ export interface paths {
         /**
          * @description Fetch a single recording.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         get: operations["recordings_api_v1_recordings_retrieve"];
         put?: never;
@@ -89,7 +89,7 @@ export interface paths {
         /**
          * @description Finalize the upload and enqueue the pipeline.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         post: operations["recordings_api_v1_recordings_finalize_create"];
         delete?: never;
@@ -117,7 +117,7 @@ export interface paths {
          *     (``error.409.recording_invalid_state``). Owner-scoped, like every other
          *     per-recording verb; an unknown/foreign/deleted recording is ``404``.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         post: operations["recordings_api_v1_recordings_reprocess_create"];
         delete?: never;

@@ -81,7 +81,7 @@ export interface paths {
         /**
          * @description Retrieve/update/delete a single event (mutations owner-only).
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         get: operations["calendar_api_v1_events_retrieve"];
         put?: never;
@@ -89,7 +89,7 @@ export interface paths {
         /**
          * @description Retrieve/update/delete a single event (mutations owner-only).
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         delete: operations["calendar_api_v1_events_destroy"];
         options?: never;
@@ -97,7 +97,7 @@ export interface paths {
         /**
          * @description Retrieve/update/delete a single event (mutations owner-only).
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         patch: operations["calendar_api_v1_events_partial_update"];
         trace?: never;
@@ -112,7 +112,7 @@ export interface paths {
         /**
          * @description Export an event (series RRULE included) as an RFC 5545 .ics file.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         get: operations["calendar_api_v1_events_ics_retrieve"];
         put?: never;
@@ -134,7 +134,7 @@ export interface paths {
         /**
          * @description Replace an event's participant set (replace-set semantics, owner-only).
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         put: operations["calendar_api_v1_events_participants_update"];
         post?: never;
@@ -156,7 +156,7 @@ export interface paths {
         /**
          * @description Record the requesting user's RSVP to an event.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         post: operations["calendar_api_v1_events_respond_create"];
         delete?: never;

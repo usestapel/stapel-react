@@ -12,6 +12,8 @@ import type {
   MemberPasswordReset,
   MemberPasswordResetResult,
   MemberRoleUpdate,
+  AuditParams,
+  AuditPage,
   MembersParams,
   PreferredWorkspace,
   PreferredWorkspaceResult,
@@ -88,6 +90,14 @@ export interface WorkspacesApi {
   clearPreferredWorkspace(): Promise<PreferredWorkspaceResult>;
 
   /** A workspace's members (viewer+), an anchor-paginated page. */
+  /** The workspace's membership history, newest first — who let this person
+   * in, who took them out, and when (stapel-workspaces 0.24). Anchor-paginated
+   * like the member and invitation lists. */
+  listAudit(
+    workspaceId: string,
+    params?: AuditParams
+  ): Promise<AuditPage>;
+
   listMembers(
     workspaceId: string,
     params?: MembersParams
@@ -258,6 +268,18 @@ export function createWorkspacesApi(client: StapelClient): WorkspacesApi {
 
     clearPreferredWorkspace: () =>
       client.delete("/me/preferred-workspace", mutating()),
+
+    listAudit: (workspaceId, params) => {
+      const query: Record<string, string | number> = {};
+      if (params?.action !== undefined) query.action = params.action;
+      if (params?.user_id !== undefined) query.user_id = params.user_id;
+      if (params?.anchor !== undefined) query.anchor = params.anchor;
+      if (params?.direction !== undefined) query.direction = params.direction;
+      if (params?.limit !== undefined) query.limit = params.limit;
+      return client.get(`/${encodeURIComponent(workspaceId)}/audit`, {
+        query,
+      });
+    },
 
     listMembers: (workspaceId, params) => {
       const query: Record<string, string | number> = {};

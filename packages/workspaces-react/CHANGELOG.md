@@ -1,5 +1,34 @@
 # @stapel/workspaces-react
 
+## 0.15.0
+
+### Minor Changes
+
+- Catch up to stapel-workspaces 0.24.1: the membership audit, the workspace
+  creation policy, and who owns a space.
+
+  `useAudit(workspaceId, params?)` — the workspace's membership history
+  (`GET {id}/audit`), anchor-paginated like the member and invitation lists.
+  Nothing kept a record before: the comm events that module emits are
+  notifications nobody stores, and half the transitions emit nothing at all. Every
+  product that grew an admin screen therefore had the same unanswerable question,
+  and the first one to need it wrote a bespoke fetch through the runtime client —
+  the copy this hook exists to make unnecessary.
+
+  `useCanCreateWorkspace()` — the SERVER's answer for this caller
+  (`can_create_workspace`), not a rule re-derived from the deploy shape. Ask it
+  before drawing a "+ New space" control: the same helper answers the gate on
+  `POST /workspaces`, so a drawn button always opens. Fails closed while loading.
+
+  `Workspace.owner_display_name` now rides the generated types: a workspace name
+  stopped identifying a workspace once a person could hold several "Personal" ones
+  and ownership could change hands, so pickers draw the owner as a second line.
+
+  New wire types `AuditEvent` / `AuditPage` / `AuditParams`, and the generated
+  schema is regenerated against the corrected contract — 0.24.0 advertised a bare
+  array for the audit page while the endpoint sent the pagination envelope, fixed
+  in 0.24.1 before any consumer shipped against it.
+
 ## 0.14.0
 
 ### Minor Changes

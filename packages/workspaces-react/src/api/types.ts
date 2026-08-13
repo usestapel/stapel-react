@@ -33,6 +33,29 @@ export type PreferredWorkspace = Schemas["PreferredWorkspaceRequest"];
 /** PUT/DELETE /me/preferred-workspace 200 body — the choice after the write
  * (`""` after a DELETE cleared it). */
 export type PreferredWorkspaceResult = Schemas["PreferredWorkspaceResponse"];
+/** One line of a workspace's membership history (`GET {id}/audit`).
+ *
+ * The vocabulary of `action` is CLOSED on the server (stapel-workspaces
+ * `models.AuditAction`) — an audit whose action is a free string is a log:
+ * nobody can filter it, translate it, or notice that a new lifecycle
+ * transition shipped without a line.
+ */
+export type AuditEvent = Schemas["AuditEventResponse"];
+/** `GET {id}/audit` 200 body — one anchor-paginated page of history. */
+export type AuditPage = Schemas["PaginatedAuditEventResponseList"];
+/** Query parameters for the audit list (narrow by action or by subject). */
+export interface AuditParams {
+  /** One `AuditEvent["action"]`. An unknown value matches nothing rather than
+   * being ignored — a filter that silently does not apply is worse than an
+   * empty page. */
+  readonly action?: string;
+  /** One person's history, as the SUBJECT of the events. */
+  readonly user_id?: string;
+  readonly anchor?: string;
+  readonly direction?: "next" | "prev";
+  readonly limit?: number;
+}
+
 /** POST / request body — create a workspace (slug auto-generated when omitted). */
 export type WorkspaceCreate = Schemas["WorkspaceCreateRequest"];
 /** PATCH /{id} request body — a partial name / slug / settings update. */

@@ -1,5 +1,15 @@
 # @stapel/docs-react
 
+## 0.3.1
+
+### Patch Changes
+
+- 74c8c0d: Raise the `@stapel/core` peer floor to 0.13.0 — the 0.3.0 headless bags hand
+  out `LoadState` and are rendered through `matchList`/`matchLoad`, all of which
+  ship in core 0.13.0. A host on core 0.12 satisfied the declared peer range and
+  then failed at runtime on the missing imports; the floor now states what the
+  code already requires.
+
 ## 0.3.0
 
 ### Minor Changes

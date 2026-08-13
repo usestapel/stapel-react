@@ -12,6 +12,8 @@ import type {
   InstanceShape,
   InvitationsParams,
   MemberPage,
+  AuditPage,
+  AuditParams,
   MembersParams,
   RoleInfo,
   Workspace,
@@ -88,6 +90,55 @@ export function useMembers(
     queryFn: () => api.listMembers(workspaceId as string, p),
     enabled: sessionReady && workspaceId !== null && workspaceId !== "",
   });
+}
+
+/**
+ * One page of a workspace's membership history (GET /{id}/audit,
+ * stapel-workspaces 0.24) — who let this person in, who took them out, when.
+ *
+ * WHY THE PAIR CARRIES THIS AT ALL. Nothing kept a record before: the comm
+ * events this module emits are notifications to other services that nobody
+ * stores, and half the transitions emit nothing. Every product that grew an
+ * admin screen therefore had the same unanswerable question, and the first one
+ * to need it wrote a bespoke fetch through the runtime client — the copy this
+ * hook exists to make unnecessary.
+ *
+ * Gated on `members.view` server-side: every role that may see who is in the
+ * room may see how they got there. Disabled until a `workspaceId` is given
+ * (and the session is ready — see {@link useWorkspace}).
+ *
+ * ANCHOR pagination like {@link useMembers}. `action` narrows to one
+ * transition, `user_id` to one person's history AS THE SUBJECT — a value the
+ * server cannot parse matches nothing rather than being ignored.
+ */
+export function useAudit(
+  workspaceId: string | null,
+  params?: AuditParams
+): UseQueryResult<AuditPage, StapelApiError> {
+  const api = useWorkspacesApi();
+  const sessionReady = useActiveSessionReady();
+  const p = params ?? {};
+  return useQuery({
+    queryKey: workspacesQueryKeys.auditPage(workspaceId ?? "", p),
+    queryFn: () => api.listAudit(workspaceId as string, p),
+    enabled: sessionReady && workspaceId !== null && workspaceId !== "",
+  });
+}
+
+/**
+ * MAY THIS CALLER FOUND A WORKSPACE on this instance — the server's answer
+ * (`can_create_workspace`, stapel-workspaces 0.24's `WORKSPACE_CREATE_POLICY`),
+ * not a rule re-derived from the deploy shape.
+ *
+ * Ask this before drawing a "+ New space" control. The same helper answers the
+ * gate on `POST /workspaces`, so a drawn button always opens — a client that
+ * decided for itself would either draw one that 403s or hide one that should
+ * be there. FAILS CLOSED while the list is loading or failed: a hidden action
+ * for a second beats an action that refuses.
+ */
+export function useCanCreateWorkspace(): boolean {
+  const { data } = useWorkspaces();
+  return data?.can_create_workspace ?? false;
 }
 
 /**

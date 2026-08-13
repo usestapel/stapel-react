@@ -1,6 +1,6 @@
-# @stapel/workspaces-react 0.14.0
+# @stapel/workspaces-react 0.15.0
 
-Headless React flow pair for stapel-workspaces (contract >=0.22 <0.23) — business + state, zero visual opinion.
+Headless React flow pair for stapel-workspaces (contract >=0.24 <0.25) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -24,6 +24,7 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 ## Operations (typed; use the named op, never a path string)
 Request/response schema names are in manifest.json + the generated types.
 Paths are relative to `/workspaces/api/v1/`.
+- workspaces_api_v1_audit_list: GET /{workspace_id}/audit
 - workspaces_api_v1_create: POST /
 - workspaces_api_v1_destroy: DELETE /{workspace_id}
 - workspaces_api_v1_instance_retrieve: GET /instance
@@ -53,6 +54,7 @@ Paths are relative to `/workspaces/api/v1/`.
 
 ## Query hooks (server state; keys come only from the key factory)
 - useAcceptInvitation (mutation) → acceptInvitation
+- useAudit (query) → listAudit
 - useClaimInvitation (mutation) → claimInvitation
 - useClearPreferredWorkspace (mutation) → clearPreferredWorkspace
 - useCreateWorkspace (mutation) → createWorkspace
@@ -78,7 +80,7 @@ Paths are relative to `/workspaces/api/v1/`.
 - useWorkspaces (query) → listWorkspaces
 
 ## Errors (render t(code, params); UX from remediation)
-67 keys (full catalog: manifest.json §errors). By remediation: fix_input 33 · retry 12 · contact_support 8 · wait_and_retry 7 · verify 5 · reauthenticate 2.
+69 keys (full catalog: manifest.json §errors). By remediation: fix_input 33 · retry 12 · contact_support 9 · wait_and_retry 8 · verify 5 · reauthenticate 2.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -95,6 +97,7 @@ Param-bearing keys (interpolation slots matter):
 - error.403.membership_suspended [403] → fix_input {reason}
 - error.403.missing_capability [403] → contact_support {capability}
 - error.403.role_exceeds_inviter_rank [403] → fix_input {role}
+- error.429.invitation_resend_cooldown [429] → wait_and_retry {retry_after}
 - error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
 
 ## Analytics events (typed; defineEvent → events.json, drift-gated)
