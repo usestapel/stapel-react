@@ -1,4 +1,4 @@
-# @stapel/workspaces-react 0.15.0
+# @stapel/workspaces-react 0.15.1
 
 Headless React flow pair for stapel-workspaces (contract >=0.24 <0.25) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,

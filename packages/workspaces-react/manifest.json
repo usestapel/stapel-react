@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/workspaces-react",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "backend": {
     "module": "stapel-workspaces",
     "contract": ">=0.24 <0.25"
@@ -317,6 +317,11 @@
       "invalidates": [
         [
           "workspaces",
+          "audit",
+          "{workspaceId}"
+        ],
+        [
+          "workspaces",
           "members",
           "{workspaceId}"
         ]
@@ -336,6 +341,11 @@
       "kind": "mutation",
       "operation": "removeMember",
       "invalidates": [
+        [
+          "workspaces",
+          "audit",
+          "{workspaceId}"
+        ],
         [
           "workspaces",
           "members",
@@ -424,6 +434,11 @@
       "kind": "mutation",
       "operation": "updateMemberRole",
       "invalidates": [
+        [
+          "workspaces",
+          "audit",
+          "{workspaceId}"
+        ],
         [
           "workspaces",
           "members",
