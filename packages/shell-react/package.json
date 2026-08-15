@@ -21,6 +21,10 @@
       "types": "./dist/default/index.d.ts",
       "default": "./dist/default/index.js"
     },
+    "./theme": {
+      "types": "./dist/theme/index.d.ts",
+      "default": "./dist/theme/index.js"
+    },
     "./manifest": "./manifest.json",
     "./manifest.json": "./manifest.json",
     "./package.json": "./package.json"
@@ -49,6 +53,11 @@
       "name": "default — the antd + react-router chrome must stay out of the main bundle",
       "path": "dist/default/index.js",
       "limit": "12 KB"
+    },
+    {
+      "name": "theme — plain DOM + inline SVG: no antd, no react-router, no CSS file",
+      "path": "dist/theme/index.js",
+      "limit": "4 KB"
     }
   ],
   "peerDependencies": {

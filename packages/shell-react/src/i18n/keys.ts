@@ -11,12 +11,24 @@ import type { I18nDictionary, I18nEngine } from "@stapel/core";
  */
 export const SHELL_I18N_KEYS = {
   navOpenMenu: "shell.nav.open_menu",
+  // `<ThemeModeControl/>` takes its copy as a PROP rather than calling
+  // `useT()`, because core's `useT` throws outside an `<I18nProvider>` and
+  // the control has to render in hosts that translate elsewhere. These keys
+  // are here for the hosts that do use the engine.
+  themeGroup: "shell.theme.group",
+  themeLight: "shell.theme.light",
+  themeDark: "shell.theme.dark",
+  themeSystem: "shell.theme.system",
 } as const;
 
 export type ShellI18nKey = (typeof SHELL_I18N_KEYS)[keyof typeof SHELL_I18N_KEYS];
 
 export const shellI18nBundleEn: I18nDictionary = {
   "shell.nav.open_menu": "Open menu",
+  "shell.theme.group": "Appearance",
+  "shell.theme.light": "Light",
+  "shell.theme.dark": "Dark",
+  "shell.theme.system": "Match system",
 };
 
 /** Register the pair's `en` floor into a core i18n engine (call once at
