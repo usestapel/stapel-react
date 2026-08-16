@@ -19,6 +19,8 @@ export type {
   ForcedPasswordChangeCardProps,
   MfaEnrollPanelProps,
 } from "./FirstLoginPanels.js";
+export { QrConfirmPanel } from "./QrConfirmPanel.js";
+export type { QrConfirmPanelProps } from "./QrConfirmPanel.js";
 export { SecuritySettings } from "./SecuritySettings.js";
 export type { SecuritySettingsProps } from "./SecuritySettings.js";
 export {

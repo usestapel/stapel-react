@@ -244,6 +244,8 @@ export {
   useInitiateDelayedChange,
   useCancelTotpDelayedChange,
   useInitiateTotpDelayedChange,
+  useConfirmQrLogin,
+  useRejectQrLogin,
 } from "./model/mutations.js";
 export {
   usePhoneCountryDefault,

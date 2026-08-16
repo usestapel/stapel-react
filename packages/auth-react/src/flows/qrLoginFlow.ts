@@ -5,6 +5,18 @@ import { createFlowMachine } from "@stapel/core";
 import type { FlowMachine } from "@stapel/core";
 import { toFlowError } from "./errors.js";
 import type { FlowError } from "./errors.js";
+import type { RefreshOutcome } from "@stapel/core";
+
+/** The grant arrived and the session refused it (`AuthSession.setTokens`
+ *  answered `null` — the server rejected the delivered pair). Not a transport
+ *  fault, so it has no envelope to fold; it is stated as its own code. */
+const SESSION_NOT_ADOPTED: FlowError = {
+  code: "auth.qr.error.session_not_adopted",
+  params: {},
+  status: undefined,
+  message: undefined,
+  language: undefined,
+};
 
 /**
  * QR authentication with background polling (auth-sa.md §8). Serves both the
@@ -68,8 +80,19 @@ export interface QrLoginFlow {
 export interface QrLoginFlowDeps {
   readonly api: AuthApi;
   readonly analytics?: Analytics | null;
-  /** For `login_request` fulfilment — receives the delivered tokens. */
-  readonly onAuthenticated?: (tokens: AuthTokens) => void;
+  /**
+   * For `login_request` fulfilment — receives the delivered tokens.
+   *
+   * May report whether the session was actually adopted. `AuthSession
+   * .setTokens` answers `null` when the server REFUSED the delivered pair
+   * (its user-resolution 401'd), and that answer used to be thrown away: the
+   * flow announced `fulfilled`, the panel drew a success, and the person was
+   * not signed in — the exact silence this flow is most often blamed for.
+   * A `null` outcome now lands in `error` like any other failure.
+   */
+  readonly onAuthenticated?: (
+    tokens: AuthTokens
+  ) => Promise<RefreshOutcome> | undefined;
   /** Poll cadence; default 5000 ms (auth-sa.md §8). */
   readonly pollIntervalMs?: number;
 }
@@ -126,7 +149,15 @@ export function createQrLoginFlow(deps: QrLoginFlowDeps): QrLoginFlow {
             status.access_token != null && status.refresh_token != null
               ? { access: status.access_token, refresh: status.refresh_token }
               : null;
-          if (tokens) deps.onAuthenticated?.(tokens);
+          if (tokens) {
+            const outcome = await deps.onAuthenticated?.(tokens);
+            if (outcome === null) {
+              // The grant arrived and was refused on adoption — "signed in"
+              // would be a lie, and saying nothing was the old behaviour.
+              machine.to({ step: "error", error: SESSION_NOT_ADOPTED });
+              break;
+            }
+          }
           machine.to({ step: "fulfilled", tokens });
           break;
         }

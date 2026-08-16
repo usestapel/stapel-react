@@ -214,3 +214,61 @@ describe("qr login: expired → silent auto-regenerate (auth-sa.md §8)", () => 
     expect(statusCalls).toEqual([]);
   });
 });
+
+/**
+ * THE DESKTOP THAT WAS TOLD NOTHING.
+ *
+ * `login_request` fulfilment hands the polling device a bare token pair, and
+ * `AuthSession.setTokens` answers `null` when the server REFUSES that pair
+ * (its user-resolution 401s — the shape a cookie-mode front end hit when the
+ * backend delivered tokens in the body and no session cookie). The flow used
+ * to discard that answer: it announced `fulfilled`, the panel drew success,
+ * and the person was not signed in and was told nothing at all.
+ */
+describe("qr login: a delivered grant the session refuses is not a success", () => {
+  it("settles `error`, not `fulfilled`, when onAuthenticated reports null", async () => {
+    vi.useFakeTimers();
+    const { api, pending } = makeQrApi();
+    const flow = createQrLoginFlow({
+      api,
+      pollIntervalMs: 1000,
+      onAuthenticated: () => Promise.resolve(null),
+    });
+
+    await flow.start("login_request", "/app");
+    await vi.advanceTimersByTimeAsync(1000);
+    pending.get("qr_1")?.[0]?.resolve({
+      status: "fulfilled",
+      access_token: "acc",
+      refresh_token: "ref",
+    } as QrStatusResponse);
+    await tick();
+
+    const state = flow.machine.getState();
+    expect(state.step).toBe("error");
+    expect(state.step === "error" ? state.error.code : "").toBe(
+      "auth.qr.error.session_not_adopted"
+    );
+  });
+
+  it("still settles `fulfilled` when the session adopts the tokens", async () => {
+    vi.useFakeTimers();
+    const { api, pending } = makeQrApi();
+    const flow = createQrLoginFlow({
+      api,
+      pollIntervalMs: 1000,
+      onAuthenticated: () => Promise.resolve("authenticated" as const),
+    });
+
+    await flow.start("login_request", "/app");
+    await vi.advanceTimersByTimeAsync(1000);
+    pending.get("qr_1")?.[0]?.resolve({
+      status: "fulfilled",
+      access_token: "acc",
+      refresh_token: "ref",
+    } as QrStatusResponse);
+    await tick();
+
+    expect(flow.machine.getState().step).toBe("fulfilled");
+  });
+});

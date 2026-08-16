@@ -216,6 +216,20 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.sec.qr.retry": "Попробовать снова",
   "auth.sec.qr.regenerating": "Этот код истёк — получаем новый…",
 
+  // QR login_request confirmation
+  "auth.qr.confirm.title": "Войти на другом устройстве?",
+  "auth.qr.confirm.subtitle":
+    "Вы отсканировали код входа. Подтверждение выполнит вход на том устройстве под вашим аккаунтом. Если это сканировали не вы — отклоните.",
+  "auth.qr.confirm.approve": "Да, войти там",
+  "auth.qr.confirm.decline": "Нет, это не я",
+  "auth.qr.confirm.approved":
+    "То устройство вошло в систему. Это можно отложить.",
+  "auth.qr.confirm.declined": "Вход отклонён. Ничего не передано.",
+  "auth.qr.confirm.no_key":
+    "В этой ссылке нет кода входа. Отсканируйте QR-код ещё раз.",
+  "auth.qr.error.session_not_adopted":
+    "На другом устройстве вход подтвердили, но это устройство не смогло принять сессию. Попробуйте код ещё раз.",
+
   // First-login enforcement (org-program §C2)
   "auth.forcedChange.title": "Задайте собственный пароль",
   "auth.forcedChange.hint":
@@ -241,6 +255,7 @@ export const authI18nBundleRu: I18nDictionary = {
   // Nav-manifest labels
   "auth.nav.login": "Вход",
   "auth.nav.security": "Безопасность",
+  "auth.nav.qr_confirm": "Подтверждение входа",
 };
 
 /**

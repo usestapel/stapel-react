@@ -24,6 +24,25 @@
           "order": 0
         },
         {
+          "id": "auth.qr_confirm",
+          "labelKey": "auth.nav.qr_confirm",
+          "icon": "QrcodeOutlined",
+          "route": {
+            "path": "/qr-confirm"
+          },
+          "component": {
+            "export": "QrConfirmPanel",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": false,
+          "requiresAuth": true,
+          "surface": "public",
+          "order": 1
+        },
+        {
           "id": "auth.security",
           "labelKey": "auth.nav.security",
           "icon": "SafetyCertificateOutlined",

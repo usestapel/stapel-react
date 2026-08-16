@@ -272,3 +272,39 @@ export function useCancelTotpDelayedChange(): UseMutationResult<
   };
   return useMutation(options);
 }
+
+/**
+ * Approve a `login_request` QR: the scanning device tells the backend to mint
+ * a session for the device that is waiting on `/qr/{key}/status/`.
+ *
+ * Nothing is invalidated — the effect of this call lands on the OTHER device,
+ * not in this one's caches.
+ */
+export function useConfirmQrLogin(): UseMutationResult<
+  StatusResponse,
+  StapelApiError,
+  string
+> {
+  const api = useAuthApi();
+  const options: UseMutationOptions<StatusResponse, StapelApiError, string> = {
+    mutationFn: (key) => api.qrConfirm(key),
+  };
+  return useMutation(options);
+}
+
+/**
+ * Decline a `login_request` QR. Not merely "do nothing": the waiting device
+ * polls until the key's TTL runs out, so a refusal that is never sent leaves
+ * it staring at a code for five minutes with no answer.
+ */
+export function useRejectQrLogin(): UseMutationResult<
+  StatusResponse,
+  StapelApiError,
+  string
+> {
+  const api = useAuthApi();
+  const options: UseMutationOptions<StatusResponse, StapelApiError, string> = {
+    mutationFn: (key) => api.qrReject(key),
+  };
+  return useMutation(options);
+}

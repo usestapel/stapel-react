@@ -476,6 +476,7 @@ export function QrPanel(): ReactElement {
           onStart={() => bag.start("login_request", "/")}
           hint={t(AUTH_I18N_KEYS.uiQrHint)}
           regeneratingHint={t(AUTH_I18N_KEYS.secQrRegenerating)}
+          retryLabel={t(AUTH_I18N_KEYS.secQrRetry)}
         />
       )}
     </QrLogin>
@@ -487,8 +488,10 @@ function QrPanelBody(props: {
   onStart: () => void;
   hint: string;
   regeneratingHint: string;
+  retryLabel: string;
 }): ReactElement {
   const { state, onStart } = props;
+  const formatError = useFormatFlowError();
   const started = useRef(false);
   useEffect(() => {
     if (started.current) return;
@@ -522,9 +525,27 @@ function QrPanelBody(props: {
           size={240}
         />
       </div>
-      <Typography.Text type="secondary">
-        {state.step === "generating" && hadKeyRef.current ? props.regeneratingHint : props.hint}
-      </Typography.Text>
+      {/* A failed generate/poll used to land here as `status="expired"` on
+          the code above and NOTHING else — visually a slightly greyed square,
+          indistinguishable from a code that merely aged out, with no message,
+          no code and no console line. The sibling `QrDeviceLinkPanel` has
+          always stated its errors; the surface people actually sign in on
+          must too. `error.403.qr_device_mismatch` (polling a key this browser
+          did not mint) is the case that made this unmissable: nothing about
+          it is recoverable by waiting, and waiting was the only thing the
+          panel suggested. */}
+      {state.step === "error" ? (
+        <Flex vertical align="center" gap="small">
+          <Alert type="error" showIcon message={formatError(state.error)} />
+          <Button onClick={onStart} data-analytics="flow">
+            {props.retryLabel}
+          </Button>
+        </Flex>
+      ) : (
+        <Typography.Text type="secondary">
+          {state.step === "generating" && hadKeyRef.current ? props.regeneratingHint : props.hint}
+        </Typography.Text>
+      )}
     </Flex>
   );
 }

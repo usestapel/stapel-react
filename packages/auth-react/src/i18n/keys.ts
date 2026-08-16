@@ -214,6 +214,19 @@ export const AUTH_I18N_KEYS = {
   secQrRetry: "auth.sec.qr.retry",
   secQrRegenerating: "auth.sec.qr.regenerating",
 
+  // QR `login_request` confirmation (`<QrConfirmPanel/>`, nav `auth.qr_confirm`)
+  // — the screen stapel-auth's `/qr/{key}/scan/` redirects a signed-in scanner
+  // to. The copy addresses the person holding the PHONE about the OTHER
+  // device: they are approving a sign-in they cannot see.
+  qrConfirmTitle: "auth.qr.confirm.title",
+  qrConfirmSubtitle: "auth.qr.confirm.subtitle",
+  qrConfirmApprove: "auth.qr.confirm.approve",
+  qrConfirmDecline: "auth.qr.confirm.decline",
+  qrConfirmApproved: "auth.qr.confirm.approved",
+  qrConfirmDeclined: "auth.qr.confirm.declined",
+  qrConfirmNoKey: "auth.qr.confirm.no_key",
+  qrErrorSessionNotAdopted: "auth.qr.error.session_not_adopted",
+
   // First-login enforcement (org-program §C2, stapel-auth ≥0.12.0) — the
   // FIRST_LOGIN_REQUIRED intermediates: forced password change
   // (`ForcedPasswordChange` headless / `ForcedPasswordChangeCard` skin) and
@@ -241,6 +254,7 @@ export const AUTH_I18N_KEYS = {
   // this pair's own components directly.
   navLogin: "auth.nav.login",
   navSecurity: "auth.nav.security",
+  navQrConfirm: "auth.nav.qr_confirm",
 } as const;
 
 export type AuthI18nKey =
@@ -494,6 +508,20 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.sec.qr.retry": "Try again",
   "auth.sec.qr.regenerating": "That code expired — getting you a new one…",
 
+  // QR login_request confirmation
+  "auth.qr.confirm.title": "Sign in on the other device?",
+  "auth.qr.confirm.subtitle":
+    "You scanned a sign-in code. Approving signs that device in as you. If you didn't just scan it, decline.",
+  "auth.qr.confirm.approve": "Yes, sign me in there",
+  "auth.qr.confirm.decline": "No, that wasn't me",
+  "auth.qr.confirm.approved":
+    "That device is now signed in. You can put this one down.",
+  "auth.qr.confirm.declined": "Sign-in declined. Nothing was shared.",
+  "auth.qr.confirm.no_key":
+    "This link has no sign-in code in it. Scan the QR code again.",
+  "auth.qr.error.session_not_adopted":
+    "The other device approved the sign-in, but this one couldn't take the session. Try the code again.",
+
   // First-login enforcement (org-program §C2)
   "auth.forcedChange.title": "Set your own password",
   "auth.forcedChange.hint":
@@ -519,6 +547,7 @@ export const authI18nBundleEn: I18nDictionary = {
   // Nav-manifest labels
   "auth.nav.login": "Sign in",
   "auth.nav.security": "Security",
+  "auth.nav.qr_confirm": "Confirm sign-in",
 };
 
 /**
