@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/auth-react",
-  "version": "0.15.1",
+  "version": "0.16.0",
   "backend": {
     "module": "stapel-auth",
     "contract": ">=0.20 <0.21"
@@ -1047,6 +1047,10 @@
         "capabilities"
       ]
     },
+    "useConfirmQrLogin": {
+      "kind": "mutation",
+      "operation": "qrConfirm"
+    },
     "useConfirmSession": {
       "kind": "mutation",
       "operation": "confirmSession",
@@ -1160,6 +1164,10 @@
         "password",
         "methods"
       ]
+    },
+    "useRejectQrLogin": {
+      "kind": "mutation",
+      "operation": "qrReject"
     },
     "useRemovePasskey": {
       "kind": "mutation",
@@ -2208,6 +2216,7 @@
     "auth.mfaEnroll.success",
     "auth.mfaEnroll.title",
     "auth.nav.login",
+    "auth.nav.qr_confirm",
     "auth.nav.security",
     "auth.otp.enter_code",
     "auth.otp.resend",
@@ -2215,6 +2224,14 @@
     "auth.passkey.no_credentials",
     "auth.passkey.unsupported",
     "auth.password.label",
+    "auth.qr.confirm.approve",
+    "auth.qr.confirm.approved",
+    "auth.qr.confirm.decline",
+    "auth.qr.confirm.declined",
+    "auth.qr.confirm.no_key",
+    "auth.qr.confirm.subtitle",
+    "auth.qr.confirm.title",
+    "auth.qr.error.session_not_adopted",
     "auth.sec.audit.empty",
     "auth.sec.audit.ip",
     "auth.sec.audit.load_more",
@@ -2596,6 +2613,7 @@
       "useCancelDelayedChange",
       "useCancelTotpDelayedChange",
       "useCapabilities",
+      "useConfirmQrLogin",
       "useConfirmSession",
       "useDelayedChangeStatus",
       "useDisableTotp",
@@ -2609,6 +2627,7 @@
       "usePasskeys",
       "usePasswordMethods",
       "usePhoneCountryDefault",
+      "useRejectQrLogin",
       "useRemovePasskey",
       "useRevokeOtherSessions",
       "useRevokeSession",

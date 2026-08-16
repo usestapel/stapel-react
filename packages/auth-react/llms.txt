@@ -1,4 +1,4 @@
-# @stapel/auth-react 0.15.1
+# @stapel/auth-react 0.16.0
 
 Headless React flow pair for stapel-auth (contract >=0.20 <0.21) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
@@ -162,6 +162,7 @@ Paths are relative to `/auth/api/v1/`.
 - useCancelDelayedChange (mutation) → changeDelayedCancel
 - useCancelTotpDelayedChange (mutation) → totpChangeDelayedCancel
 - useCapabilities (query) → capabilities
+- useConfirmQrLogin (mutation) → qrConfirm
 - useConfirmSession (mutation) → confirmSession
 - useDelayedChangeStatus (query) → changeDelayedStatus
 - useDisableTotp (mutation) → totpDisable
@@ -173,6 +174,7 @@ Paths are relative to `/auth/api/v1/`.
 - useOAuthLinks (query) → oauthLinks
 - usePasskeys (query) → passkeys
 - usePasswordMethods (query) → passwordMethods
+- useRejectQrLogin (mutation) → qrReject
 - useRemovePasskey (mutation) → passkeyRemove
 - useRevokeOtherSessions (mutation) → revokeOtherSessions
 - useRevokeSession (mutation) → revokeSession
