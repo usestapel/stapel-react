@@ -175,7 +175,11 @@ export type {
   SessionManagerEventMap,
   SessionEventName,
 } from "./session.js";
-export { useSessionReady, useActiveSessionReady } from "./useSessionReady.js";
+export {
+  useSessionReady,
+  useActiveSessionReady,
+  useActiveSessionStatus,
+} from "./useSessionReady.js";
 
 // repositories (§43.4) — the one sanctioned client-side persistence
 // primitive. `scope: "user"` auto-wipes on logout (no opt-out) and is
@@ -201,14 +205,36 @@ export type { Breakpoint } from "@stapel/tokens";
 // navigation-manifest contract (scripted-fullstack navigation Phase 1): the
 // shared shape a pair's `src/nav/manifest.ts` exports and `resolveNav`
 // (`@stapel/shell-react`) consumes. Pure data types — no React, no I/O.
+export { navEntrySurface, navSurfaceVisibleTo } from "./nav.js";
 export type {
   NavEntry,
   NavRoute,
   NavComponentRef,
   NavPlacement,
   NavPlacementLevel,
+  NavSurface,
   PackageNavManifest,
 } from "./nav.js";
+
+// mandate axis (mandate.ts): anonymous / guest / member, plus the
+// `"unresolved"` outcome that is NOT a principal — "we could not ask" must
+// never render as "you may not". `matchMandate` takes five required arms so
+// a wait cannot fall into a refusal's branch by omission.
+export {
+  mandateResolved,
+  mandateAsking,
+  mandateUnavailable,
+  isMandateResolved,
+  matchMandate,
+} from "./mandate.js";
+export type {
+  MandatePrincipal,
+  MandateState,
+  MandateResolved,
+  MandateAsking,
+  MandateUnavailable,
+  MandateUnresolvedReason,
+} from "./mandate.js";
 
 // flow-machine primitive (frontend-standard §2 — the shared state container
 // every `@stapel/<module>-react` pair builds its machines on; lives here, not

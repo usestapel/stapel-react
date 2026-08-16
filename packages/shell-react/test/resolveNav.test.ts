@@ -174,3 +174,104 @@ describe("resolveNav — an orphaned submenu entry degrades gracefully", () => {
     expect(resolveNav(installed).map((e) => e.id)).toEqual(["notifications.feed"]);
   });
 });
+
+/**
+ * The surface axis. Before it, `requiresAuth` was a declared field nothing
+ * read: a signed-in guest with no mandate anywhere got every installed
+ * module's menu entry, walked into each screen, and collected a 403 per
+ * click. `resolveNav` is where the fleet's nav truth is computed once, so
+ * it is where the axis has to be consumed — not in each host's menu.
+ */
+describe("resolveNav — the surface axis", () => {
+  const installed = [
+    manifest("@stapel/auth", [
+      entry({ id: "auth.login", requiresAuth: false, order: 10 }),
+      entry({ id: "meet.room", requiresAuth: true, surface: "public", order: 20 }),
+    ]),
+    manifest("@stapel/profiles", [
+      entry({ id: "profiles.settings", requiresAuth: true, order: 30 }),
+    ]),
+  ];
+
+  it("resolves every entry's surface, declared or derived", () => {
+    const resolved = resolveNav(installed);
+    expect(resolved.map((e) => [e.id, e.surface])).toEqual([
+      ["auth.login", "public"],
+      ["meet.room", "public"],
+      ["profiles.settings", "member"],
+    ]);
+  });
+
+  it("returns the whole tree when no audience is given — the scaffold bakes every route", () => {
+    expect(resolveNav(installed).map((e) => e.id)).toEqual([
+      "auth.login",
+      "meet.room",
+      "profiles.settings",
+    ]);
+  });
+
+  it("keeps member screens for a member", () => {
+    const resolved = resolveNav(installed, undefined, { audience: "member" });
+    expect(resolved.map((e) => e.id)).toEqual(["auth.login", "meet.room", "profiles.settings"]);
+  });
+
+  it("drops member screens for a mandate-less guest, keeping the public ones", () => {
+    const resolved = resolveNav(installed, undefined, { audience: "guest" });
+    expect(resolved.map((e) => e.id)).toEqual(["auth.login", "meet.room"]);
+  });
+
+  it("treats an anonymous caller exactly as a guest on this axis", () => {
+    const guest = resolveNav(installed, undefined, { audience: "guest" });
+    const anon = resolveNav(installed, undefined, { audience: "anonymous" });
+    expect(anon.map((e) => e.id)).toEqual(guest.map((e) => e.id));
+  });
+
+  it("drops a member parent's whole subtree, public children included", () => {
+    const tree = [
+      manifest("@stapel/profiles", [entry({ id: "profiles.settings", requiresAuth: true })]),
+      manifest("@stapel/auth", [
+        entry({
+          id: "auth.security",
+          requiresAuth: true,
+          surface: "public",
+          placement: { level: "submenu", parentId: "profiles.settings" },
+        }),
+      ]),
+    ];
+    expect(resolveNav(tree, undefined, { audience: "guest" })).toEqual([]);
+    expect(resolveNav(tree, undefined, { audience: "member" })[0]?.children?.map((c) => c.id)).toEqual([
+      "auth.security",
+    ]);
+  });
+
+  it("drops a member child from a public parent's submenu", () => {
+    const tree = [
+      manifest("@stapel/a", [entry({ id: "a.top", requiresAuth: false })]),
+      manifest("@stapel/b", [
+        entry({
+          id: "b.public",
+          requiresAuth: false,
+          placement: { level: "submenu", parentId: "a.top" },
+          order: 1,
+        }),
+        entry({
+          id: "b.member",
+          requiresAuth: true,
+          placement: { level: "submenu", parentId: "a.top" },
+          order: 2,
+        }),
+      ]),
+    ];
+    const resolved = resolveNav(tree, undefined, { audience: "guest" });
+    expect(resolved[0]?.children?.map((c) => c.id)).toEqual(["b.public"]);
+  });
+
+  it("does not let an override file put a member screen back in front of a guest", () => {
+    const resolved = resolveNav(
+      installed,
+      { overrides: { "profiles.settings": { menuVisible: true, order: 1 } } },
+      { audience: "guest" }
+    );
+    expect(resolved.map((e) => e.id)).toEqual(["auth.login", "meet.room"]);
+  });
+});

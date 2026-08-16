@@ -81,6 +81,11 @@ export {
 } from "./model/queries.js";
 export type { CapabilitiesResult, CapabilityGate } from "./model/queries.js";
 
+// ── model (the mandate axis: anonymous / guest / member / unresolved) ────────
+// The one reader of the wire's `is_guest`. `unresolved` is a wait or an
+// explained error, never a hide — render it with core's `matchMandate`.
+export { useMandateState } from "./model/mandate.js";
+
 // ── model (capability matcher + email-mask ports — backend-synced utils) ─────
 export { capabilityMatches, hasCapability } from "./model/capabilities.js";
 export {

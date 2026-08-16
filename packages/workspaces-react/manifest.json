@@ -1178,6 +1178,7 @@
       "useInvitationPreview",
       "useInvitations",
       "useInviteMembers",
+      "useMandateState",
       "useMembers",
       "useRemoveMember",
       "useRenameInvitation",

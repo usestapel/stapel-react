@@ -21,9 +21,33 @@
  * that duality is why this type is a plain, serializable data contract with
  * no React and no I/O.
  */
+import type { MandatePrincipal } from "./mandate.js";
 
 /** Where a `NavEntry` renders in the shell's chrome. */
 export type NavPlacementLevel = "top" | "submenu";
+
+/**
+ * WHO a screen is for — the authorization axis of the nav contract.
+ *
+ * `requiresAuth` alone could only say "needs a session", and a session is not
+ * a mandate: a signed-in guest (`@stapel/core`'s {@link MandatePrincipal})
+ * satisfied it, was handed every module's menu entry, and every one of those
+ * screens answered 403. One bit cannot express three principals.
+ *
+ *  - `"public"` — reachable without a mandate: a sign-in screen, a landing, a
+ *    meeting joined by link. Note this is about the MANDATE, not the session:
+ *    a meeting route is public in this sense while still being entered by an
+ *    authenticated person.
+ *  - `"member"` — the app shell's own screens, which need a mandate.
+ *
+ * There is deliberately no third "authenticated but mandate-less" surface:
+ * the screen for that principal is the landing, which NAMES their position
+ * ("you are signed in as …, and you are not in a workspace") rather than
+ * being a hollowed-out shell. Hiding a control teaches nothing — so the axis
+ * exists to keep a person away from doors that would refuse them, while the
+ * explanation lives on the one surface they do reach.
+ */
+export type NavSurface = "public" | "member";
 
 /** The route this entry mounts at (react-router v7 shape: a path segment
  * relative to the shell's route tree, plus whether it is that segment's
@@ -76,11 +100,51 @@ export interface NavEntry {
    * `resolveNav`'s override file can still flip it on a per-project basis. */
   readonly menuVisibleDefault: boolean;
   /** Whether the shell's router should gate this route behind an
-   * authenticated session before mounting the component. */
+   * authenticated session before mounting the component.
+   *
+   * Kept, and still honoured: it is the ALIAS half of {@link surface}
+   * (`true` reads as `"member"`, `false` as `"public"`) so every manifest
+   * written before the axis existed keeps its meaning. Declare `surface`
+   * for anything this cannot say — chiefly a route an authenticated person
+   * reaches WITHOUT a mandate. */
   readonly requiresAuth: boolean;
+  /** Which principal this screen is for. Optional: omitted, it is derived
+   * from `requiresAuth` — see {@link navEntrySurface}, the one place the
+   * derivation lives. */
+  readonly surface?: NavSurface;
   /** Sort key within its placement level (ascending). Ties break on `id`
    * for a deterministic order. */
   readonly order: number;
+}
+
+/**
+ * An entry's effective surface: what it declares, else what `requiresAuth`
+ * implies. The single derivation — `resolveNav` and `scripts/
+ * gen-nav-manifest.mjs`'s validation both read the axis through here rather
+ * than each spelling the fallback out.
+ */
+export function navEntrySurface(
+  entry: Pick<NavEntry, "surface" | "requiresAuth">
+): NavSurface {
+  return entry.surface ?? (entry.requiresAuth ? "member" : "public");
+}
+
+/**
+ * May `principal` be shown a `surface`? The whole rule, in one place, for
+ * both call sites that need it (`resolveNav`'s menu/route filter, and a
+ * host's route guard).
+ *
+ * Takes a {@link MandatePrincipal} and NOT a `MandateState`, deliberately:
+ * `"unresolved"` is not assignable, so a caller holding an unsettled mandate
+ * cannot get an answer out of this function at all. They have to render the
+ * wait or the error first — which is the point, since the alternative is a
+ * menu that silently empties itself whenever the backend hiccups.
+ */
+export function navSurfaceVisibleTo(
+  surface: NavSurface,
+  principal: MandatePrincipal
+): boolean {
+  return surface === "public" || principal === "member";
 }
 
 /** A single package's contribution to the nav tree — what

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { getActiveSessionManager } from "./session.js";
-import type { SessionManager } from "./session.js";
+import type { SessionManager, SessionStatus } from "./session.js";
 
 /**
  * The framework-level session ready-gate (owner directive, 2026-07-17
@@ -57,5 +57,31 @@ export function useActiveSessionReady(): boolean {
     manager?.subscribe ?? (() => () => {}),
     () => manager?.isReady() ?? true,
     () => manager?.isReady() ?? true
+  );
+}
+
+/**
+ * The ACTIVE session's status, not just its readiness — `null` when no
+ * session-owning module has registered one.
+ *
+ * {@link useActiveSessionReady} answers "may a query fire yet", which is one
+ * bit and rightly so. The mandate axis (`mandate.ts`) needs the other three
+ * distinctions the same store already holds: `"initializing"` is a WAIT,
+ * `"anonymous"`/`"unauthenticated"` are a settled answer that no mandate can
+ * exist, and only `"authenticated"` makes the question worth asking a server.
+ * Deriving that from a boolean is impossible, and re-subscribing to the
+ * manager by hand in each pair is the copy this exists to prevent.
+ *
+ * `null` (no active manager — a host with no session-owning module) is
+ * deliberately not folded into `"unauthenticated"`: it means "nobody here
+ * tracks sessions", which is a different fact from "there is no session",
+ * and a caller that must not guess needs to see it.
+ */
+export function useActiveSessionStatus(): SessionStatus | null {
+  const manager = getActiveSessionManager();
+  return useSyncExternalStore(
+    manager?.subscribe ?? (() => () => {}),
+    () => manager?.getStatus() ?? null,
+    () => manager?.getStatus() ?? null
   );
 }

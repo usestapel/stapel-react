@@ -28,11 +28,19 @@
  *     same `(order, id)` — the `id` tiebreak keeps output deterministic
  *     when two entries share an `order`.
  *  5. Filter: drop any entry (top or child) whose resolved `menuVisible` is
- *     `false`. A top entry that resolves invisible drops its entire
- *     subtree — a child cannot render nested under a parent that isn't in
- *     the menu at all.
+ *     `false`, or whose `surface` is closed to the caller's `audience` (see
+ *     {@link ResolveNavOptions}). A top entry that drops takes its entire
+ *     subtree with it — a child cannot render nested under a parent that
+ *     isn't in the menu at all.
  */
-import type { NavComponentRef, NavRoute, PackageNavManifest } from "@stapel/core";
+import { navEntrySurface, navSurfaceVisibleTo } from "@stapel/core";
+import type {
+  MandatePrincipal,
+  NavComponentRef,
+  NavRoute,
+  NavSurface,
+  PackageNavManifest,
+} from "@stapel/core";
 
 /** One entry's override in a project's nav-override file. */
 export interface NavOverrideEntry {
@@ -50,6 +58,29 @@ export interface NavOverridesFile {
   readonly overrides?: Record<string, NavOverrideEntry>;
 }
 
+/**
+ * Who the tree is being resolved FOR.
+ *
+ * Omit `audience` and nothing is filtered by surface — the scaffold-codegen
+ * call site, which bakes every route a project could ever mount, and every
+ * existing runtime caller, which keeps its exact behaviour.
+ *
+ * Pass one and a screen whose `surface` is closed to that principal is
+ * dropped — menu entry AND, since the same resolved tree is what a host
+ * mounts routes from, the screen itself. That is the fix for the defect this
+ * axis exists for: a mandate-less person was handed every module's entry and
+ * every one of those screens answered 403.
+ *
+ * The type is a {@link MandatePrincipal}, so `"unresolved"` cannot be passed.
+ * A host whose mandate has not settled must render the wait or the outage
+ * (`matchMandate`) instead of resolving a nav for it — the alternative is a
+ * menu that quietly empties whenever the backend hiccups, which is "we could
+ * not ask" rendered as "you may not".
+ */
+export interface ResolveNavOptions {
+  readonly audience?: MandatePrincipal;
+}
+
 /** A `NavEntry` after override resolution and (for a top-level entry with
  * nested submenu children) tree assembly. */
 export interface ResolvedNavEntry {
@@ -59,6 +90,10 @@ export interface ResolvedNavEntry {
   readonly route: NavRoute;
   readonly component: NavComponentRef;
   readonly requiresAuth: boolean;
+  /** Resolved surface — declared, or derived from `requiresAuth`. Always
+   * present here even though `NavEntry.surface` is optional, so a renderer
+   * or a route guard reads the axis without repeating the derivation. */
+  readonly surface: NavSurface;
   /** Resolved order (override applied). */
   readonly order: number;
   /** Resolved visibility (override applied). Every entry `resolveNav`
@@ -87,6 +122,7 @@ function resolveOne(
     route: entry.route,
     component: entry.component,
     requiresAuth: entry.requiresAuth,
+    surface: navEntrySurface(entry),
     order: o?.order ?? entry.order,
     menuVisible: o?.menuVisible ?? entry.menuVisibleDefault,
   };
@@ -98,9 +134,17 @@ function byOrderThenId(a: { order: number; id: string }, b: { order: number; id:
 
 export function resolveNav(
   installed: readonly PackageNavManifest[],
-  overridesFile?: NavOverridesFile
+  overridesFile?: NavOverridesFile,
+  options?: ResolveNavOptions
 ): readonly ResolvedNavEntry[] {
   const overrides = overridesFile?.overrides ?? {};
+  const audience = options?.audience;
+  /** The surface gate. A project's override file can flip `menuVisible` and
+   * `order`; it deliberately cannot flip this — a per-project preference must
+   * not be able to put a screen that will refuse the caller back in front of
+   * them. */
+  const openToAudience = (e: ResolvedNavEntry): boolean =>
+    audience === undefined || navSurfaceVisibleTo(e.surface, audience);
   const all = installed.flatMap((m) => m.entries);
 
   const tops = new Map<string, ResolvedNavEntry>();
@@ -123,13 +167,15 @@ export function resolveNav(
 
   const result: ResolvedNavEntry[] = [];
   for (const top of [...tops.values()].sort(byOrderThenId)) {
-    if (!top.menuVisible) continue;
+    if (!top.menuVisible || !openToAudience(top)) continue;
     const kids = childrenByParent.get(top.id);
     if (kids === undefined) {
       result.push(top);
       continue;
     }
-    const visibleKids = kids.filter((k) => k.menuVisible).sort(byOrderThenId);
+    const visibleKids = kids
+      .filter((k) => k.menuVisible && openToAudience(k))
+      .sort(byOrderThenId);
     result.push({ ...top, children: visibleKids });
   }
 

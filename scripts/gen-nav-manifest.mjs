@@ -46,6 +46,9 @@ const NAV_PACKAGES = (
 const OUT_ROOT_MANIFEST = resolve(ROOT, "nav-manifest.json");
 
 const PLACEMENT_LEVELS = new Set(["top", "submenu"]);
+/** `@stapel/core`'s NavSurface — the authorization axis. Optional in a
+ * manifest: omitted, `resolveNav` derives it from `requiresAuth`. */
+const NAV_SURFACES = new Set(["public", "member"]);
 
 /** Structural validation against `@stapel/core`'s `NavEntry` contract — a
  * hand-rolled check (not a JSON-schema dependency) since the shape is small
@@ -93,6 +96,10 @@ function validateEntry(pkgName, entry, index) {
   }
   need(typeof entry.menuVisibleDefault === "boolean", "needs a boolean menuVisibleDefault");
   need(typeof entry.requiresAuth === "boolean", "needs a boolean requiresAuth");
+  need(
+    entry.surface === undefined || NAV_SURFACES.has(entry.surface),
+    `surface must be one of ${[...NAV_SURFACES].join("/")} when present (omit it to derive from requiresAuth)`
+  );
   need(typeof entry.order === "number" && Number.isFinite(entry.order), "needs a finite number order");
 }
 

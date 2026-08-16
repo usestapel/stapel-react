@@ -12,6 +12,7 @@ export type {
   ResolvedNavEntry,
   NavOverrideEntry,
   NavOverridesFile,
+  ResolveNavOptions,
 } from "./headless/resolveNav.js";
 
 // The shell's OWN chrome i18n (menu-item copy comes from each installed
