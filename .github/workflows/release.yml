@@ -31,6 +31,10 @@ jobs:
       id-token: write        # npm provenance attestation
     steps:
       - uses: actions/checkout@v4
+        with:
+          # check:peer-floors reads each peer's RELEASE TAGS; the default
+          # checkout fetches none and the gate would pass unchecked.
+          fetch-depth: 0
 
       # `pnpm run release` = `pnpm run ci && changeset publish` — the same
       # codegen drift gate as ci.yml runs, so a release can't ship generated

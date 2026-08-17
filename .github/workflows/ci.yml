@@ -14,6 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # check:peer-floors reads each peer's RELEASE TAGS to learn which
+          # version first exported a symbol. The default checkout fetches no
+          # tags, which made that gate pass every package unchecked.
+          fetch-depth: 0
 
       - name: Load contract pins (contract-pins.json)
         # §17 pin B: every sibling-backend checkout below is pinned to an

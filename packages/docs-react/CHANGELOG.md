@@ -1,5 +1,22 @@
 # @stapel/docs-react
 
+## 0.3.2
+
+### Patch Changes
+
+- Raise the peer floors that understated what these packages import.
+
+  `docs-react` and `profiles-react` both call `resolveThemeMode`, which
+  `@stapel/tokens-antd` did not export until 0.5.0, while declaring `>=0.2.0`;
+  `profiles-react` also imports `Image` and `StapelImage` from `@stapel/image`,
+  which first shipped them in 0.2.0, while declaring `>=0.1.0`. A consumer
+  installing at the declared floor got an unresolvable import.
+
+  `check:peer-floors` now checks every `@stapel/*` peer instead of only
+  `@stapel/core`, and refuses to run against a checkout with no tags — where it
+  previously answered "unknown" for every symbol and passed each package
+  unchecked.
+
 ## 0.3.1
 
 ### Patch Changes
