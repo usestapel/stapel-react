@@ -84,7 +84,11 @@ export type { CapabilitiesResult, CapabilityGate } from "./model/queries.js";
 // ── model (the mandate axis: anonymous / guest / member / unresolved) ────────
 // The one reader of the wire's `is_guest`. `unresolved` is a wait or an
 // explained error, never a hide — render it with core's `matchMandate`.
-export { useMandateState } from "./model/mandate.js";
+// `useMandateSource` is the same derivation in the shape core's
+// `<MandateProvider>` takes: a surface reads the axis through `useMandate()`
+// without importing this package, which is what lets a public storefront
+// have a mandate at all.
+export { useMandateState, useMandateSource } from "./model/mandate.js";
 
 // ── model (capability matcher + email-mask ports — backend-synced utils) ─────
 export { capabilityMatches, hasCapability } from "./model/capabilities.js";

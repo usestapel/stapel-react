@@ -28,7 +28,7 @@ import {
   mandateUnavailable,
   useActiveSessionStatus,
 } from "@stapel/core";
-import type { MandateState } from "@stapel/core";
+import type { MandateSource, MandateState } from "@stapel/core";
 import type { WorkspaceList } from "../api/types.js";
 import { useWorkspaces } from "./queries.js";
 
@@ -80,4 +80,29 @@ export function useMandateState(): MandateState {
         return mandateResolved(listSaysGuest(list.data) ? "guest" : "member");
     }
   }, [sessionStatus, list]);
+}
+
+/**
+ * This module's derivation, as core's {@link MandateSource} — what a tenant
+ * app hands `<MandateProvider>`.
+ *
+ * The seam exists so that reading the axis and deriving it stop being the
+ * same dependency: a public storefront has no workspace list to ask and must
+ * not import this package to render a header, while an app that DOES have
+ * one wires it here, once, at the root. Nothing about the derivation changes
+ * — this is `useMandateState()` in the shape the provider takes.
+ *
+ * The wrapper is deliberately not memoised: `useMandateState` recomputes from
+ * a query result that is a new object on every render, so a memo here would
+ * buy nothing. `MandateProvider` compares the answer itself before
+ * republishing, which is the guarantee that actually holds.
+ *
+ * ```tsx
+ * function Root({ children }: { children: ReactNode }) {
+ *   return <MandateProvider source={useMandateSource()}>{children}</MandateProvider>;
+ * }
+ * ```
+ */
+export function useMandateSource(): MandateSource {
+  return { state: useMandateState() };
 }
