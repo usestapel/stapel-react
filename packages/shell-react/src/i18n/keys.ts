@@ -11,6 +11,11 @@ import type { I18nDictionary, I18nEngine } from "@stapel/core";
  */
 export const SHELL_I18N_KEYS = {
   navOpenMenu: "shell.nav.open_menu",
+  /** `<PublicShell/>`'s default `accountSlot`. The public chrome renders a
+   * sign-in CTA when the host supplies no account slot at all, so this key is
+   * reachable on any storefront — a hidden entry point teaches nothing
+   * (private-space canon §6.3). */
+  publicSignIn: "shell.public.sign_in",
   // `<ThemeModeControl/>` takes its copy as a PROP rather than calling
   // `useT()`, because core's `useT` throws outside an `<I18nProvider>` and
   // the control has to render in hosts that translate elsewhere. These keys
@@ -25,6 +30,7 @@ export type ShellI18nKey = (typeof SHELL_I18N_KEYS)[keyof typeof SHELL_I18N_KEYS
 
 export const shellI18nBundleEn: I18nDictionary = {
   "shell.nav.open_menu": "Open menu",
+  "shell.public.sign_in": "Sign in",
   "shell.theme.group": "Appearance",
   "shell.theme.light": "Light",
   "shell.theme.dark": "Dark",

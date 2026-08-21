@@ -7,7 +7,11 @@
  */
 import { describe, expect, it } from "vitest";
 import type { NavEntry, PackageNavManifest } from "@stapel/core";
-import { resolveNav } from "../src/headless/resolveNav.js";
+import {
+  resolveMemberNav,
+  resolveNav,
+  resolvePublicNav,
+} from "../src/headless/resolveNav.js";
 
 function entry(overrides: Partial<NavEntry> & Pick<NavEntry, "id">): NavEntry {
   return {
@@ -273,5 +277,53 @@ describe("resolveNav — the surface axis", () => {
       { audience: "guest" }
     );
     expect(resolved.map((e) => e.id)).toEqual(["auth.login", "meet.room"]);
+  });
+});
+
+describe("resolvePublicNav / resolveMemberNav — the audience is in the name", () => {
+  const installed = [
+    manifest("@stapel/auth", [
+      entry({ id: "auth.login", requiresAuth: false, order: 10 }),
+      entry({ id: "auth.qr_confirm", requiresAuth: true, surface: "public", order: 20 }),
+    ]),
+    manifest("@stapel/listings", [
+      entry({ id: "listings.compose", requiresAuth: true, order: 30 }),
+    ]),
+  ];
+
+  it("resolvePublicNav drops every member screen", () => {
+    expect(resolvePublicNav(installed).map((e) => e.id)).toEqual([
+      "auth.login",
+      "auth.qr_confirm",
+    ]);
+  });
+
+  it("resolveMemberNav keeps them", () => {
+    expect(resolveMemberNav(installed).map((e) => e.id)).toEqual([
+      "auth.login",
+      "auth.qr_confirm",
+      "listings.compose",
+    ]);
+  });
+
+  it("each equals the explicit-audience call it stands for — one implementation, two names", () => {
+    expect(resolvePublicNav(installed)).toEqual(
+      resolveNav(installed, undefined, { audience: "anonymous" })
+    );
+    expect(resolveMemberNav(installed)).toEqual(
+      resolveNav(installed, undefined, { audience: "member" })
+    );
+  });
+
+  it("still honours an override file", () => {
+    const overrides = { overrides: { "auth.login": { menuVisible: false } } };
+    expect(resolvePublicNav(installed, overrides).map((e) => e.id)).toEqual([
+      "auth.qr_confirm",
+    ]);
+  });
+
+  it("differs from the audience-less default, which filters nothing — the trap these exist for", () => {
+    expect(resolveNav(installed).map((e) => e.id)).toContain("listings.compose");
+    expect(resolvePublicNav(installed).map((e) => e.id)).not.toContain("listings.compose");
   });
 });

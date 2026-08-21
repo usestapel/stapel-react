@@ -21,16 +21,15 @@
  * child `<Route>`s nested inside, same as any other react-router layout
  * route.
  */
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Button, ConfigProvider, Drawer, Layout, Menu } from "antd";
-import type { MenuProps } from "antd";
-import { Link, Outlet, useLocation, useNavigate } from "react-router";
+import { Button, ConfigProvider, Drawer, Layout } from "antd";
+import { Outlet } from "react-router";
 import { toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
 import { useBreakpoint, useT } from "@stapel/core";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
-import { resolveNavIcon } from "./icons.js";
+import { NavMenu } from "./navMenu.js";
 import { SHELL_I18N_KEYS } from "../i18n/keys.js";
 
 export interface AppShellProps {
@@ -45,85 +44,6 @@ export interface AppShellProps {
   /** Optional right-aligned header slot (e.g. a user/account menu the host
    * composes from its own auth state). */
   readonly headerExtra?: ReactNode;
-}
-
-/** Does `pathname` refer to `entry`'s route? `route.path` is either
- * absolute (`"/login"`) or a bare relative segment (`"settings"`,
- * `"security"`) per the nav-manifest contract (`@stapel/core`'s
- * `NavRoute`) — an absolute path matches exactly, a relative one matches
- * the pathname's last segment (the shell doesn't know the full mount
- * prefix a host nested its routes under). */
-function matchesLocation(entry: ResolvedNavEntry, pathname: string): boolean {
-  const path = entry.route.path;
-  if (path.startsWith("/")) return pathname === path;
-  const segments = pathname.split("/").filter(Boolean);
-  return segments[segments.length - 1] === path;
-}
-
-function flatten(nav: readonly ResolvedNavEntry[]): readonly ResolvedNavEntry[] {
-  return nav.flatMap((entry) => (entry.children ? [entry, ...entry.children] : [entry]));
-}
-
-function toMenuItems(
-  nav: readonly ResolvedNavEntry[],
-  t: (key: string) => string
-): NonNullable<MenuProps["items"]> {
-  return nav.map((entry) => {
-    const label = <Link to={entry.route.path}>{t(entry.labelKey)}</Link>;
-    const icon = resolveNavIcon(entry.icon);
-    if (entry.children && entry.children.length > 0) {
-      return {
-        key: entry.id,
-        icon,
-        label: t(entry.labelKey),
-        children: entry.children.map((child) => ({
-          key: child.id,
-          icon: resolveNavIcon(child.icon),
-          label: <Link to={child.route.path}>{t(child.labelKey)}</Link>,
-        })),
-      };
-    }
-    return { key: entry.id, icon, label };
-  });
-}
-
-/** The nav `<Menu/>` shared by the desktop `Sider` and the phone/tablet
- * `Drawer` — one build, two mount points. */
-function NavMenu({
-  nav,
-  onNavigate,
-}: {
-  readonly nav: readonly ResolvedNavEntry[];
-  readonly onNavigate?: () => void;
-}): ReactElement {
-  const t = useT();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const flat = useMemo(() => flatten(nav), [nav]);
-  const items = useMemo(() => toMenuItems(nav, t), [nav, t]);
-
-  const active = flat.find((entry) => matchesLocation(entry, location.pathname));
-  const selectedKeys = active ? [active.id] : [];
-  const openKeys = nav.filter((entry) => entry.children?.some((c) => c.id === active?.id)).map((e) => e.id);
-
-  const handleClick: MenuProps["onClick"] = ({ key }) => {
-    const entry = flat.find((e) => e.id === key);
-    if (entry) navigate(entry.route.path);
-    onNavigate?.();
-  };
-
-  return (
-    <Menu
-      mode="inline"
-      items={items}
-      selectedKeys={selectedKeys}
-      defaultOpenKeys={openKeys}
-      onClick={handleClick}
-      data-testid="app-shell-menu"
-      data-analytics="none"
-      data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-    />
-  );
 }
 
 /** Full app chrome: responsive `Sider`/`Drawer` nav + `<Outlet/>` content. */

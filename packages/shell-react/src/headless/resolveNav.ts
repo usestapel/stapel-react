@@ -181,3 +181,36 @@ export function resolveNav(
 
   return result;
 }
+
+/**
+ * `resolveNav` for an ANONYMOUS visitor — the public storefront's tree.
+ *
+ * This exists because `audience` is optional and its default does not
+ * protect: omit it and nothing is filtered, so a public container that forgot
+ * the option mounts every `member` screen and every one of them answers 403.
+ * The default has to stay permissive (the scaffold-codegen call site bakes
+ * every route a project could mount), which means the fix cannot be a changed
+ * default — it has to be a call you cannot make wrong. These two wrappers are
+ * that: the audience is in the NAME, so there is nothing to forget.
+ */
+export function resolvePublicNav(
+  installed: readonly PackageNavManifest[],
+  overridesFile?: NavOverridesFile
+): readonly ResolvedNavEntry[] {
+  return resolveNav(installed, overridesFile, { audience: "anonymous" });
+}
+
+/** `resolveNav` for a settled MEMBER mandate — the signed-in tree. See
+ * {@link resolvePublicNav} for why the audience is spelled in the name.
+ *
+ * There is deliberately no `resolveGuestNav`: `"guest"` is a principal a host
+ * may hold, and `navSurfaceVisibleTo` already answers for it — a caller with
+ * a guest mandate passes it to `resolveNav` explicitly, which is the honest
+ * spelling for the case where the answer is "the public tree, and here is
+ * why". */
+export function resolveMemberNav(
+  installed: readonly PackageNavManifest[],
+  overridesFile?: NavOverridesFile
+): readonly ResolvedNavEntry[] {
+  return resolveNav(installed, overridesFile, { audience: "member" });
+}

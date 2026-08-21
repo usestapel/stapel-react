@@ -21,6 +21,22 @@ time (baking a default `stapel.nav.json`) and at runtime in the shipped app
 (re-applying the project's live override file) — see the module doc in
 `src/headless/resolveNav.ts` for the exact algorithm.
 
+### `resolvePublicNav` / `resolveMemberNav` — the audience in the name
+
+```ts
+import { resolvePublicNav, resolveMemberNav } from "@stapel/shell-react";
+
+const publicNav = resolvePublicNav(navManifest.packages, projectOverrides);
+const memberNav = resolveMemberNav(navManifest.packages, projectOverrides);
+```
+
+`resolveNav`'s `audience` option is optional and its default does **not**
+protect: omit it and nothing is filtered by surface, so a public container
+that forgot the option mounts every `member` screen and every one of them
+answers 403. The default has to stay permissive (scaffold codegen bakes every
+route a project could mount), so the fix is not a changed default but a call
+you cannot make wrong — these two wrappers put the audience in the name.
+
 ## `<AppShell/>` (`/default` subpath — antd + react-router)
 
 ```tsx
@@ -37,6 +53,54 @@ from `toAntdThemeConfig(mode)` (`@stapel/tokens-antd`) — the same call
 `@stapel/auth-react`'s `AuthPanel` makes. The shell does not own the router:
 `nav` is already-resolved data, and the consumer wires its own route tree
 around `<AppShell/>`.
+
+## `<PublicShell/>` (`/default` subpath — the public storefront chrome)
+
+```tsx
+import { resolvePublicNav } from "@stapel/shell-react";
+import { PublicShell } from "@stapel/shell-react/default";
+
+<Route
+  element={
+    <PublicShell
+      nav={resolvePublicNav(navManifest.packages, projectOverrides)}
+      mode="light"
+      brand={<Link to="/"><Logo /></Link>}
+      searchSlot={<SearchField />}
+      categorySlot={<TopCategories />}
+      accountSlot={mandate === "member" ? <AccountMenu /> : undefined}
+      footer={<RankingDisclosureLink />}
+    />
+  }
+>
+  {/* public routes render into PublicShell's <Outlet/> */}
+</Route>;
+```
+
+A **sibling** of `<AppShell/>`, not a mode of it. `AppShell` reads no session
+and no workspace either — what separates a marketplace from an app cabinet is
+the shape of the chrome, and a `public` flag would branch the whole render
+tree. The two share everything genuinely shared (`resolveNav`, the icon table,
+the nav `Menu`, `toAntdThemeConfig`, `useBreakpoint`) and no geometry:
+
+| | `<AppShell/>` | `<PublicShell/>` |
+|---|---|---|
+| Nav chrome | `Layout.Sider` (desktop) / `Drawer` (phone) | top bar + browse bar (desktop) / `Drawer` (phone) |
+| Slots | `logo`, `headerExtra` | `brand`, `searchSlot`, `categorySlot`, `accountSlot`, `footer` |
+| Sign-in | host's business | **default CTA when `accountSlot` is omitted** |
+
+Three properties it is tested against rather than trusted on:
+
+1. **No `Sider`, ever.** On phone the browse bar (nav menu + category strip)
+   collapses into a `Drawer`; the header — brand, search, account — stays.
+2. **`accountSlot` is a CTA, never emptiness.** Omit it and a sign-in link to
+   `auth.login`'s own route (`/login`) renders anyway. A hidden control
+   teaches nothing: the missing sign-in button on a public storefront is not
+   "clean", it is a dead end for the one person the page exists to convert.
+3. **It reads no session.** The mandate belongs to the container
+   (`@stapel/core`'s `MandateProvider` + `matchMandate`), which is also what
+   picks `resolvePublicNav` vs `resolveMemberNav`. A shell that read it too
+   would be a second home for the access rule.
 
 ## `<ThemeModeControl/>` (`/theme` subpath — plain DOM, no antd, no CSS file)
 

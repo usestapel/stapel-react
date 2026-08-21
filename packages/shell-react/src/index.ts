@@ -7,7 +7,11 @@
  * so a host that renders its own chrome around `resolveNav`'s output never
  * pulls those in.
  */
-export { resolveNav } from "./headless/resolveNav.js";
+export {
+  resolveNav,
+  resolvePublicNav,
+  resolveMemberNav,
+} from "./headless/resolveNav.js";
 export type {
   ResolvedNavEntry,
   NavOverrideEntry,
