@@ -5,6 +5,7 @@ import {
   actionBlocked,
   isStapelApiError,
   loadStateFromQuery,
+  mapLoad,
   requireLoaded,
 } from "@stapel/core";
 import type {
@@ -13,25 +14,21 @@ import type {
   StapelApiError,
 } from "@stapel/core";
 import type {
+  ConfigFieldSpec,
+  FieldKind,
   FormFieldDef,
   FormRow,
   FormSchema,
   FormSchemaMeta,
   FormState,
 } from "../api/types.js";
-import { useForm } from "../model/queries.js";
+import { useFieldKinds, useForm } from "../model/queries.js";
 import {
   usePublishForm,
   useRotateLink,
   useSaveDraft,
   useSetFormState,
 } from "../model/mutations.js";
-import {
-  configFormFor,
-  defaultConfigFor,
-  isBuilderSupportedKind,
-} from "../widgets/configForms.js";
-import type { KindConfigForm } from "../widgets/configForms.js";
 import { FORMS_I18N_KEYS } from "../i18n/keys.js";
 
 /** One row of the builder's field list, with everything the UI needs to draw
@@ -39,18 +36,33 @@ import { FORMS_I18N_KEYS } from "../i18n/keys.js";
 export interface BuilderField {
   readonly field: FormFieldDef;
   /**
-   * The kind's config declaration, or `undefined` when it ships builder-less
-   * (`convertible_unit`, `hierarchical_select` — see `widgets/configForms.ts`).
-   * A builder-less field is still LISTED and still reorderable/removable; only
-   * its options are uneditable here, and it stays authorable through the draft
-   * PUT.
+   * The kind's entry in the server's catalogue, or `undefined` when the
+   * catalogue has not loaded yet or does not list this kind at all (a stored
+   * schema can outlive a host's `FIELD_KINDS` allowlist).
    */
-  readonly configForm: KindConfigForm | undefined;
-  /** True when this kind has no config form the builder can render. */
+  readonly kindInfo: FieldKind | undefined;
+  /** The kind's config declaration, straight from
+   * `stapel_attributes.config_form()` via `GET /field-kinds`. Empty for a
+   * builder-less kind. */
+  readonly configFields: readonly ConfigFieldSpec[];
+  /**
+   * True when this field's options cannot be edited here. TWO server signals
+   * feed it, and they are different facts:
+   *
+   *  - `registered: false` — the host allowlisted a kind the attributes
+   *    registry does not carry. The field is still listed, because a stored
+   *    schema may already use it and a builder that dropped the kind would
+   *    silently drop the field.
+   *  - `fields: []` — the kind is registered but declares no config form at
+   *    all (this is how `convertible_unit` arrives).
+   *
+   * Either way the field stays LISTED, reorderable and removable, and stays
+   * authorable through the draft PUT.
+   */
   readonly builderLess: boolean;
-  /** Config keys declared upstream that v1 has no widget for (e.g.
-   * `date.options`). Named so the UI can say which options it is not showing
-   * rather than presenting a partial form as a complete one. */
+  /** Config-widget kinds in this field's declaration that the SKIN has no
+   * editor for. Named so the UI can say which options it is not showing rather
+   * than presenting a partial form as a complete one. */
   readonly unsupportedConfigKeys: readonly string[];
 }
 
@@ -78,8 +90,16 @@ export interface FormBuilderBag {
   setFieldConfig(slug: string, key: string, value: unknown): void;
   setMeta(patch: Partial<FormSchemaMeta>): void;
 
-  /** The kinds the builder can add, in offer order. */
-  readonly availableKinds: readonly string[];
+  /**
+   * The kinds the builder may offer, from the server's catalogue: allowed by
+   * this deployment, carried by the attributes registry, and declaring a
+   * config form. `LoadState` rather than a bare array — a catalogue that
+   * failed to load must not read as "this deployment has no field kinds".
+   */
+  readonly availableKinds: LoadState<readonly FieldKind[]>;
+  /** The config-WIDGET vocabulary (`config_form.FIELD_KINDS`) and the params
+   * each widget understands, for a skin rendering the config rows. */
+  readonly configWidgets: Readonly<Record<string, readonly string[]>>;
 
   readonly save: ActionAvailability;
   doSave(): void;
@@ -96,6 +116,46 @@ export interface FormBuilderBag {
    * `params.slug`, `forms_invalid_schema` carries `params.key`, …). */
   readonly error: StapelApiError | null;
   refetch(): void;
+}
+
+/**
+ * The config-WIDGET kinds the `/default` skin can draw (`ConfigField`).
+ *
+ * Upstream's widget vocabulary is 13 entries; the skin implements 11. The two
+ * it does not — `hierarchical_options` (a tree editor) and `timestamp_array` —
+ * make the individual config ROW unrenderable, not the whole kind, so a field
+ * declaring one still gets its other options and the UI names what it is not
+ * showing. Kept here rather than imported from `/default` so the headless bag
+ * can report it without pulling antd into the main bundle.
+ */
+const SKIN_CONFIG_WIDGETS: ReadonlySet<string> = new Set([
+  "number",
+  "text",
+  "checkbox",
+  "translatable_text",
+  "number_options",
+  "string_options",
+  "color_options",
+  "select",
+  "select_options_with_default",
+  "max_selected_dropdown",
+  "timestamp",
+]);
+
+/**
+ * The config a freshly-added field starts with: every default the SERVER's
+ * declaration carries, and nothing else.
+ *
+ * Keys with no declared default stay ABSENT rather than written as `null` —
+ * the engine reads an absent key as "use my own default", and writing one
+ * changes stored behaviour.
+ */
+function defaultConfigFor(kind: FieldKind | undefined): Record<string, unknown> {
+  const config: Record<string, unknown> = {};
+  for (const spec of kind?.fields ?? []) {
+    if (spec.default !== undefined) config[spec.name] = spec.default;
+  }
+  return config;
 }
 
 /** A slug that does not collide with anything already in the draft. */
@@ -119,11 +179,12 @@ function initialSchema(row: FormRow | undefined): FormSchema {
  * Headless form builder — the authoring surface, renderless and DATA-DRIVEN.
  *
  * There is no per-kind hand-written form anywhere in this component or in the
- * skin that renders it: a field's options come from
- * `widgets/configForms.ts`, which mirrors `stapel_attributes.config_form`.
- * Adding a feature type upstream therefore adds a configurable kind here
- * without new UI, which is the whole point of the upstream declaring its
- * config form as data (spec §8).
+ * skin that renders it: a field's options come from `GET /field-kinds`, which
+ * serves `stapel_attributes.config_form()` verbatim. Until stapel-forms 0.2.0
+ * there was no such route and the pair had to mirror those declarations in
+ * TypeScript — a table that drifts silently. Reading the registry makes the
+ * declaration the single source of truth again: a type registered through
+ * `EXTRA_TYPES` shows up here with no client release at all (spec §8).
  */
 export function FormBuilder(props: {
   workspaceId: string;
@@ -133,6 +194,15 @@ export function FormBuilder(props: {
   const query = useForm(props.workspaceId, props.formId);
   const state = loadStateFromQuery(query);
   const row = state.status === "ready" ? state.data : undefined;
+
+  const kindsQuery = useFieldKinds(props.workspaceId);
+  const kindsState = loadStateFromQuery(kindsQuery);
+  const catalogue = kindsState.status === "ready" ? kindsState.data : undefined;
+  const kindsBySlug = useMemo(() => {
+    const map = new Map<string, FieldKind>();
+    for (const kind of catalogue?.kinds ?? []) map.set(kind.kind, kind);
+    return map;
+  }, [catalogue]);
 
   const saveMutation = useSaveDraft();
   const publishMutation = usePublishForm();
@@ -163,24 +233,33 @@ export function FormBuilder(props: {
   const fields = useMemo<readonly BuilderField[]>(
     () =>
       schema.fields.map((field) => {
-        const configForm = configFormFor(field.kind);
+        const kindInfo = kindsBySlug.get(field.kind);
+        const configFields = kindInfo?.fields ?? [];
         return {
           field,
-          configForm,
-          builderLess: configForm === undefined,
-          unsupportedConfigKeys: (configForm?.fields ?? [])
-            .filter((spec) => spec.unsupported === true)
+          kindInfo,
+          configFields,
+          // Both server signals collapse to one rendering decision here, but
+          // they are reported separately on `kindInfo` so a skin can word them
+          // differently: "this deployment does not know this kind" is not the
+          // same news as "this kind has no options".
+          builderLess:
+            kindInfo === undefined ||
+            kindInfo.registered === false ||
+            configFields.length === 0,
+          unsupportedConfigKeys: configFields
+            .filter((spec) => !SKIN_CONFIG_WIDGETS.has(spec.kind))
             .map((spec) => spec.name),
         };
       }),
-    [schema]
+    [schema, kindsBySlug]
   );
 
   const addField = useCallback(
     (kind: string): void => {
       setSchema((current) => {
         const taken = new Set(current.fields.map((f) => f.slug));
-        const config = defaultConfigFor(kind);
+        const config = defaultConfigFor(kindsBySlug.get(kind));
         const field: FormFieldDef = {
           slug: freeSlug(kind, taken),
           kind,
@@ -192,7 +271,7 @@ export function FormBuilder(props: {
       });
       setError(null);
     },
-    []
+    [kindsBySlug]
   );
 
   const removeField = useCallback((slug: string): void => {
@@ -329,21 +408,22 @@ export function FormBuilder(props: {
     void query.refetch();
   }, [query]);
 
-  const availableKinds = useMemo(
+  // Offer only what this deployment can actually build with: allowed by its
+  // FIELD_KINDS setting, carried by the attributes registry, and declaring a
+  // config form. A kind failing any of those is still RENDERABLE and still
+  // authorable through the draft PUT — it is just not something the builder
+  // can hand somebody a button for.
+  const availableKinds: LoadState<readonly FieldKind[]> = useMemo(
     () =>
-      (
-        [
-          "string",
-          "int",
-          "float",
-          "bool",
-          "select",
-          "date",
-          "header",
-          "hex_color",
-        ] as const
-      ).filter(isBuilderSupportedKind),
-    []
+      mapLoad(kindsState, (cat) =>
+        cat.kinds.filter(
+          (kind) =>
+            kind.allowed &&
+            kind.registered &&
+            (kind.fields?.length ?? 0) > 0
+        )
+      ),
+    [kindsState]
   );
 
   return props.children({
@@ -358,6 +438,7 @@ export function FormBuilder(props: {
     setFieldConfig,
     setMeta,
     availableKinds,
+    configWidgets: catalogue?.configWidgets ?? {},
     save,
     doSave,
     publish,

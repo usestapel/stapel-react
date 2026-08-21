@@ -1,6 +1,6 @@
 # @stapel/forms-react 0.1.0
 
-Headless React flow pair for stapel-forms (contract >=0.1 <0.2) — business + state, zero visual opinion.
+Headless React flow pair for stapel-forms (contract >=0.2 <0.3) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -21,6 +21,7 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 ## Operations (typed; use the named op, never a path string)
 Request/response schema names are in manifest.json + the generated types.
 Paths are relative to `/forms/api/v1/`.
+- forms_api_v1_field_kinds_retrieve: GET /field-kinds
 - forms_api_v1_forms_create: POST /forms
 - forms_api_v1_forms_destroy: DELETE /forms/{form_id}
 - forms_api_v1_forms_draft_update: PUT /forms/{form_id}/draft
@@ -43,6 +44,7 @@ Paths are relative to `/forms/api/v1/`.
 - useCreateForm (mutation) → createForm
 - useDeleteForm (mutation) → deleteForm
 - useDeleteSubmission (mutation) → deleteSubmission
+- useFieldKinds (query) → listFieldKinds
 - useForm (query) → getForm
 - useForms (query) → listForms
 - useFormVersions (query) → listVersions
@@ -58,8 +60,20 @@ Paths are relative to `/forms/api/v1/`.
 - useUpdateForm (mutation) → patchForm
 
 ## Errors (render t(code, params); UX from remediation)
-63 keys (full catalog: manifest.json §errors). By remediation: fix_input 29 · retry 14 · verify 7 · contact_support 6 · wait_and_retry 6 · reauthenticate 1.
+75 keys (full catalog: manifest.json §errors). By remediation: fix_input 41 · retry 14 · verify 7 · contact_support 6 · wait_and_retry 6 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
+- error.400.description_too_long [400] → fix_input {max_length}
+- error.400.description_too_short [400] → fix_input {min_length}
+- error.400.feature_above_maximum [400] → fix_input {feature}
+- error.400.feature_below_minimum [400] → fix_input {feature}
+- error.400.feature_invalid_config [400] → fix_input {feature}
+- error.400.feature_invalid_format [400] → fix_input {feature}
+- error.400.feature_invalid_type [400] → fix_input {feature}
+- error.400.feature_mandatory_missing [400] → fix_input {feature}
+- error.400.feature_not_allowed [400] → fix_input {feature}
+- error.400.feature_not_in_options [400] → fix_input {feature}
+- error.400.feature_unknown [400] → fix_input {feature}
+- error.400.feature_unknown_type [400] → fix_input {feature}
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
 - error.400.field.invalid [400] → fix_input {field}

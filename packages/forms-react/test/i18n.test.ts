@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   FEATURE_ERROR_KEYS,
   FORMS_ERROR_CODES,
+  formsErrorBundleEn,
   formsI18nBundleEn,
 } from "../src/index.js";
 import { formsI18nBundleRu } from "../src/i18n/ru.js";
@@ -58,12 +59,13 @@ describe("locale bundles cover the English key set", () => {
  */
 const IDENTICAL_BY_LANGUAGE = new Set(["forms.fill.bool_no"]);
 
-describe("the error.400.feature_* family the generated snapshot omits", () => {
-  it("is carried by the pair in all three locales", () => {
-    // stapel-forms' docs/errors.json holds 63 keys and not one feature_* among
-    // them, yet services.py:278 returns exactly these codes for a per-field
-    // submit refusal. The pair hand-carries them until the backend's registry
-    // snapshot includes the attributes catalogue (spec delta filed).
+describe("the stapel_attributes error family", () => {
+  it("has English from the registry and pair-authored ru/es", () => {
+    // Attributes ships English only — no translations/ directory — so its 12
+    // keys can appear in no locale catalog and gen:errors runs for this module
+    // with ERRORS_LOCALE_EXEMPT_OWNERS=stapel_attributes. English is
+    // authoritative from the artifact; ru/es stay pair-authored until upstream
+    // localizes them (stapel-forms MODULE.md §12.6).
     expect(FEATURE_ERROR_KEYS.length).toBe(10);
     for (const key of FEATURE_ERROR_KEYS) {
       expect(formsI18nBundleEn[key], `en ${key}`).toBeTruthy();
@@ -72,11 +74,19 @@ describe("the error.400.feature_* family the generated snapshot omits", () => {
     }
   });
 
-  it("is genuinely absent from the generated registry — the reason this exists", () => {
-    const generatedFeatureKeys = FORMS_ERROR_CODES.filter((code) =>
+  it("now comes FROM the registry — the hand-carried English is gone", () => {
+    // The inverse of the test this replaces. stapel-forms 0.1.0 omitted the
+    // stapel_attributes family from docs/errors.json while returning those
+    // codes, so the pair hand-carried the English; 0.2.0 put them in the
+    // contract (75 keys, 12 attributes-owned) and the workaround was deleted.
+    // This asserts the family is generated, so nobody re-adds a hand copy.
+    const generated = FORMS_ERROR_CODES.filter((code) =>
       code.startsWith("error.400.feature_")
     );
-    expect(generatedFeatureKeys).toEqual([]);
+    expect(generated.length).toBe(10);
+    for (const code of generated) {
+      expect(formsErrorBundleEn[code], code).toBeTruthy();
+    }
   });
 
   it("covers every code the client-side mirror can raise", () => {

@@ -14,7 +14,10 @@
  * What it catches that a unit test cannot: a path typo, a wrong verb, a
  * forgotten trailing slash on the two anonymous routes (`/public/<id>/` and
  * `/public/<id>/submissions/` both END in one — Django would 301 or 404 a
- * request without it), and a `workspace_id` dropped from an admin call.
+ * request without it), and a `workspace_id` dropped from an admin call. It also
+ * pins the shape of `/field-kinds` specifically: no `admin/` prefix and NO
+ * trailing slash, unlike the anonymous routes — three different conventions on
+ * one surface is exactly where a hand-written path goes wrong.
  */
 import { describe, expect, it } from "vitest";
 import { createStapelClient } from "@stapel/core";
@@ -28,6 +31,7 @@ const SUBMISSION_ID = "11111111-1111-4111-8111-111111111111";
 
 /** Every path the backend declares, as a matcher over a concrete URL path. */
 const DECLARED_PATHS: readonly string[] = [
+  "/forms/api/v1/field-kinds",
   "/forms/api/v1/forms",
   "/forms/api/v1/forms/{form_id}",
   "/forms/api/v1/forms/{form_id}/draft",
@@ -85,6 +89,7 @@ async function driveEveryOperation(): Promise<readonly WireCall[]> {
   const operations: readonly [string, () => Promise<unknown>][] = [
     ["getPublicForm", () => api.getPublicForm(PUBLIC_ID)],
     ["submit", () => api.submit(PUBLIC_ID, { answers: { a: 1 } })],
+    ["listFieldKinds", () => api.listFieldKinds(WORKSPACE_ID)],
     ["listForms", () => api.listForms(WORKSPACE_ID)],
     ["listForms(state)", () => api.listForms(WORKSPACE_ID, "open")],
     ["getForm", () => api.getForm(WORKSPACE_ID, FORM_ID)],
@@ -152,7 +157,7 @@ describe("every operation hits a path the backend declares", () => {
     expect(wrongVerb).toEqual([]);
   });
 
-  it("covers all 13 declared paths — nothing in the contract is unreachable", async () => {
+  it("covers all 14 declared paths — nothing in the contract is unreachable", async () => {
     const wire = await driveEveryOperation();
     const touched = new Set(
       wire.map((call) => matchDeclared(call.pathname)).filter(Boolean)
@@ -164,6 +169,7 @@ describe("every operation hits a path the backend declares", () => {
 
 /** Declared verbs per path — stapel-forms `docs/schema.json`. */
 const DECLARED_VERBS: Readonly<Record<string, readonly string[]>> = {
+  "/forms/api/v1/field-kinds": ["GET"],
   "/forms/api/v1/forms": ["GET", "POST"],
   "/forms/api/v1/forms/{form_id}": ["GET", "PATCH", "DELETE"],
   "/forms/api/v1/forms/{form_id}/draft": ["PUT"],
@@ -196,6 +202,23 @@ describe("the anonymous routes keep their trailing slash", () => {
     const api = createFormsApi(client, { fetch: server.fetch });
     await api.getPublicForm("a/../b");
     expect(server.calls[0]?.url).toContain("a%2F..%2Fb");
+  });
+});
+
+describe("the field-kinds route's own path shape", () => {
+  it("has no admin/ prefix and no trailing slash", async () => {
+    const wire = await driveEveryOperation();
+    const call = wire.find((c) => c.op === "listFieldKinds");
+    expect(call?.pathname).toBe("/forms/api/v1/field-kinds");
+    expect(call?.pathname.endsWith("/")).toBe(false);
+    expect(call?.pathname).not.toContain("/admin/");
+  });
+
+  it("is workspace-scoped by query, and a GET", async () => {
+    const wire = await driveEveryOperation();
+    const call = wire.find((c) => c.op === "listFieldKinds");
+    expect(call?.method).toBe("GET");
+    expect(call?.query.get("workspace_id")).toBe(WORKSPACE_ID);
   });
 });
 

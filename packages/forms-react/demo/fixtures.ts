@@ -113,3 +113,38 @@ export const DEMO_SUBMISSIONS = [
     erased_at: null,
   },
 ];
+
+/** `GET /field-kinds` — the builder's dictionary (stapel-forms 0.2.0). */
+export const DEMO_FIELD_KINDS = {
+  kinds: [
+    {
+      kind: "string",
+      label_key: "admin.attributes.type.string",
+      allowed: true,
+      registered: true,
+      fields: [
+        { name: "maxLength", kind: "number", label_key: "admin.attributes.form.string.maxLength", params: { step: 1 } },
+        { name: "multiline", kind: "checkbox", label_key: "admin.attributes.form.string.multiline", default: false },
+      ],
+    },
+    {
+      kind: "select",
+      label_key: "admin.attributes.type.select",
+      allowed: true,
+      registered: true,
+      fields: [
+        { name: "options", kind: "select_options_with_default", label_key: "admin.attributes.form.select.options" },
+        { name: "minSelected", kind: "number", label_key: "admin.attributes.form.select.minSelected", default: 0, params: { step: 1 } },
+      ],
+    },
+    // Declares no config form — one of the two builder-less signals.
+    {
+      kind: "convertible_unit",
+      label_key: "admin.attributes.type.convertible_unit",
+      allowed: true,
+      registered: true,
+      fields: [],
+    },
+  ],
+  config_widgets: { number: ["step"], checkbox: [], select_options_with_default: [] },
+};

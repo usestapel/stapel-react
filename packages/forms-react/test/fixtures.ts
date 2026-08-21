@@ -114,3 +114,81 @@ export function envelope(
 ): { localizable_error: string; error: string; params: Record<string, unknown> } {
   return { localizable_error: code, error: code, params };
 }
+
+/**
+ * `GET /field-kinds` — the shape stapel-forms 0.2.0 serves. `fields` is
+ * `stapel_attributes.config_form.FormField.to_dict()` verbatim, params and
+ * all, which is why `step`/`options`/`placeholder` sit UNDER `params`.
+ */
+export const FIELD_KINDS: unknown = {
+  kinds: [
+    {
+      kind: "string",
+      label_key: "admin.attributes.type.string",
+      allowed: true,
+      registered: true,
+      fields: [
+        { name: "minLength", kind: "number", label_key: "admin.attributes.form.string.minLength", params: { step: 1 } },
+        { name: "maxLength", kind: "number", label_key: "admin.attributes.form.string.maxLength", params: { step: 1 } },
+        { name: "multiline", kind: "checkbox", label_key: "admin.attributes.form.string.multiline", default: false },
+        { name: "pattern", kind: "text", label_key: "admin.attributes.form.string.pattern" },
+      ],
+    },
+    {
+      kind: "select",
+      label_key: "admin.attributes.type.select",
+      allowed: true,
+      registered: true,
+      fields: [
+        { name: "options", kind: "select_options_with_default", label_key: "admin.attributes.form.select.options" },
+        {
+          name: "uiStyle",
+          kind: "select",
+          label_key: "admin.attributes.form.select.uiStyle",
+          required: true,
+          default: "dropdown",
+          params: { options: [{ value: "dropdown", label: "Dropdown" }, { value: "chips", label: "Chips/Tags" }] },
+        },
+        { name: "minSelected", kind: "number", label_key: "admin.attributes.form.select.minSelected", default: 0, params: { step: 1 } },
+        { name: "maxSelected", kind: "max_selected_dropdown", label_key: "admin.attributes.form.select.maxSelected" },
+      ],
+    },
+    {
+      kind: "date",
+      label_key: "admin.attributes.type.date",
+      allowed: true,
+      registered: true,
+      fields: [
+        { name: "precision", kind: "select", label_key: "admin.attributes.form.date.precision", required: true, default: "date", params: { options: [{ value: "date", label: "Date" }] } },
+        // The one config widget this skin does not implement.
+        { name: "options", kind: "timestamp_array", label_key: "admin.attributes.form.date.options" },
+      ],
+    },
+    // Registered, allowed, but declares NO config form — builder-less signal 1.
+    {
+      kind: "convertible_unit",
+      label_key: "admin.attributes.type.convertible_unit",
+      allowed: true,
+      registered: true,
+      fields: [],
+    },
+    // Allowlisted by the host but absent from the attributes registry —
+    // builder-less signal 2. Still listed so a stored schema keeps its field.
+    {
+      kind: "signature",
+      label_key: "admin.attributes.type.signature",
+      allowed: true,
+      registered: false,
+      fields: [],
+    },
+  ],
+  config_widgets: {
+    number: ["step"],
+    text: ["placeholder"],
+    checkbox: [],
+    select: ["options"],
+    select_options_with_default: [],
+    max_selected_dropdown: [],
+    timestamp_array: ["placeholder"],
+  },
+};

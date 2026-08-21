@@ -219,3 +219,58 @@ export interface SubmissionListParams {
   /** Restrict to answers of one schema version. */
   readonly version?: number;
 }
+
+// ── the field-kind catalogue (the builder's dictionary) ──────────────────────
+
+/**
+ * One declared config-form field, passed through from stapel-attributes'
+ * `config_form.FormField.to_dict()` VERBATIM by the backend — so a kind gains
+ * config fields upstream with no release on either side of the wire.
+ *
+ * GENERATOR CORRECTION: `FieldKindDTO.fields` is declared
+ * `{[key: string]: unknown}[]` because drf-spectacular cannot see inside a
+ * pass-through. The shape is pinned by `FormField.to_dict()`, so naming it here
+ * is a correction rather than an invention; the `& Record<string, unknown>`
+ * tail keeps a host widget's own params reachable without a cast.
+ */
+export type ConfigFieldSpec = {
+  /** The config key this field edits. Order within a kind is significant. */
+  readonly name: string;
+  /** A key of {@link FieldKindCatalogue.configWidgets} — the WIDGET
+   * vocabulary, not the feature-type vocabulary. */
+  readonly kind: string;
+  /** Upstream i18n key, `admin.attributes.form.<type>.<field>`. */
+  readonly label_key: string;
+  /** Cosmetic `*` marker only — real validation is server-side. */
+  readonly required?: boolean;
+  /** Applied when the config key is absent. */
+  readonly default?: unknown;
+  /** Widget-specific params (`step`, `itemType`, inline `options`,
+   * `placeholder`, …). Only keys the widget understands are meaningful. */
+  readonly params?: Readonly<Record<string, unknown>>;
+} & Record<string, unknown>;
+
+/** One field kind the builder may offer. */
+export type FieldKind = Omit<Schemas["FieldKindDTO"], "fields"> & {
+  /**
+   * The kind's config-form declaration. **Empty means the kind declares no
+   * config form** (upstream `BUILTIN_FORMS` simply has no entry — this is how
+   * `convertible_unit` arrives), which is one of the two builder-less signals.
+   */
+  readonly fields: readonly ConfigFieldSpec[];
+};
+
+/**
+ * `GET /field-kinds` 200 — the whole catalogue behind the builder.
+ *
+ * `config_widgets` is upstream's `config_form.FIELD_KINDS`: the widget
+ * vocabulary a declaration's `kind` draws from, mapped to the params each
+ * widget understands. Named apart from `kinds` on purpose — forms' own
+ * `FIELD_KINDS` setting is the feature-TYPE allowlist, and two different things
+ * under one name is how a builder ends up drawing a `number` where a `string`
+ * belongs.
+ */
+export interface FieldKindCatalogue {
+  readonly kinds: readonly FieldKind[];
+  readonly configWidgets: Readonly<Record<string, readonly string[]>>;
+}

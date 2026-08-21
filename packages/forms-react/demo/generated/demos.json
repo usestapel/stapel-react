@@ -6,7 +6,7 @@
     {
       "id": "forms.builder",
       "title": "Form builder",
-      "description": "Headless authoring: a draft schema, per-kind config forms mirrored from stapel-attributes, and the save-before-publish gate.",
+      "description": "Headless authoring: a draft schema, per-kind config forms served by GET /field-kinds, and the save-before-publish gate.",
       "component": "FormBuilder",
       "covers": [],
       "tokens": [
@@ -19,7 +19,7 @@
       ],
       "source": {
         "file": "demo/FormBuilder.demo.tsx",
-        "line": 34
+        "line": 45
       }
     },
     {

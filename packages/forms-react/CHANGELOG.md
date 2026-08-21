@@ -43,6 +43,12 @@
   and threads `captcha_token` through. CSV export follows the
   `X-Forms-Next-Before` header cursor verbatim.
 
+  Built against stapel-forms 0.2.0: the builder reads its field-kind catalogue
+  from `GET /forms/api/v1/field-kinds` (no mirrored table in the client), and
+  the `error.400.feature_*` family comes from the backend's own error contract.
+  `stapel_attributes` ships English only, so the generated ru/es bundles are
+  `Partial` and the pair layers authored strings for those 12 keys over them.
+
   Enrollment note for consumers of other pairs: the `stapel-core` contract pin
   moves v0.23.1 → v0.32.0 to pick up `error.503.mandate_unavailable`. Verified a
   one-key delta — no already-enrolled pair's locale bundle changes.

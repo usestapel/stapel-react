@@ -163,12 +163,18 @@ Capability-gated over REST (`forms.view`, `forms.manage`,
 <ResponsesPane workspaceId={ws} formId={id} />
 ```
 
-`<FormBuilderPane>` is **data-driven**: a field's options come from the config
-declarations `stapel_attributes` publishes per type, not from a hand-written
-form per kind. Two kinds ship *builder-less* — `convertible_unit` (no upstream
-config form at all) and `hierarchical_select` (its only option is a tree editor)
-— and say so, rather than pretending to be configurable. Both still render and
-submit normally, and stay authorable through the draft API.
+`<FormBuilderPane>` is **data-driven**: a field's options come from
+`GET /field-kinds`, which serves the config declarations `stapel_attributes`
+publishes per type. There is no hand-written form per kind and no mirrored table
+— register a feature type upstream and it appears in the builder with no client
+release.
+
+A kind arrives *builder-less* for either of two reasons the server distinguishes:
+`registered: false` (this deployment allowlisted a type the attributes registry
+does not carry) or `fields: []` (registered, but it declares no config form —
+`convertible_unit`). Either way the field is still listed, still renders, still
+submits, and stays authorable through the draft API — a builder that dropped an
+unknown kind would silently drop the field from a stored schema.
 
 `<ResponsesPane>` draws **per-version columns** (a response records which schema
 it answered, so an old row shows the questions actually asked), keyset paging,

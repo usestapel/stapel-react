@@ -4,9 +4,19 @@ import { defineDemo } from "@stapel/showcase";
 import { FormBuilder } from "../src/index.js";
 import { FormsDemoHarness, DemoCard, StepBadge } from "./_harness.js";
 import type { DemoHandlers } from "./_harness.js";
-import { DEMO_FORM_ID, DEMO_FORM_ROW, DEMO_WORKSPACE_ID } from "./fixtures.js";
+import {
+  DEMO_FIELD_KINDS,
+  DEMO_FORM_ID,
+  DEMO_FORM_ROW,
+  DEMO_WORKSPACE_ID,
+} from "./fixtures.js";
 
-const HANDLERS: DemoHandlers = { [`/forms/${DEMO_FORM_ID}`]: DEMO_FORM_ROW };
+const HANDLERS: DemoHandlers = {
+  // Order matters: the harness matches the first substring hit, and
+  // "/field-kinds" must win before the broader form route.
+  "/field-kinds": DEMO_FIELD_KINDS,
+  [`/forms/${DEMO_FORM_ID}`]: DEMO_FORM_ROW,
+};
 
 function Builder(): ReactElement {
   return (
@@ -17,6 +27,7 @@ function Builder(): ReactElement {
             <>
               <StepBadge step={bag.state.status} />
               <StepBadge step={`fields: ${bag.fields.length}`} />
+              <StepBadge step={`kinds: ${bag.availableKinds.status}`} />
               <StepBadge step={bag.isDirty ? "dirty" : "clean"} />
               {/* Publishing is blocked until the draft is saved — the reason
                   is readable, not a grey rectangle. */}
@@ -35,7 +46,7 @@ export default defineDemo({
   id: "forms.builder",
   title: "Form builder",
   description:
-    "Headless authoring: a draft schema, per-kind config forms mirrored from stapel-attributes, and the save-before-publish gate.",
+    "Headless authoring: a draft schema, per-kind config forms served by GET /field-kinds, and the save-before-publish gate.",
   component: FormBuilder,
   tokens: ["surface-raised"],
   variants: { default: { render: () => <Builder /> } },

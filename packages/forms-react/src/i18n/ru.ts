@@ -13,16 +13,18 @@ export { formsErrorBundleRu } from "./generated/errors.ru.gen.js";
  * Composition mirrors `formsI18nBundleEn`: the GENERATED backend error texts
  * (from stapel-forms's `translations/errors.ru.json`, merged under
  * stapel-core's cross-cutting catalogue — `pnpm gen:errors`) are spread first
- * for coverage by construction; the `error.400.feature_*` family the generated
- * snapshot does not carry follows (see `keys.ts` for why the pair hand-carries
- * it); then the ru UI copy.
+ * for coverage by construction; the 12 `stapel_attributes`-owned keys the generated
+ * bundle cannot carry follow (attributes ships English only — no
+ * `translations/` directory — so `gen:errors` runs with
+ * `ERRORS_LOCALE_EXEMPT_OWNERS=stapel_attributes` and emits a `Partial`
+ * bundle; upstream localization is stapel-forms MODULE.md §12.6); then the ru UI copy.
  *
  * PROVENANCE, stated rather than implied: stapel-forms' ru/es catalogues ship
  * `origin=seed:authored` and are UNREVIEWED (backend delta note 10) — authored
  * rather than machine-translated, but approved by nobody. The pair-authored
  * strings below are the same grade. Neither is a claim of review.
  */
-const FEATURE_ERRORS_RU: Readonly<Record<string, string>> = {
+const ATTRIBUTES_ERRORS_RU: Readonly<Record<string, string>> = {
   "error.400.feature_below_minimum": "Значение меньше минимального для «{feature}»",
   "error.400.feature_above_maximum": "Значение больше максимального для «{feature}»",
   "error.400.feature_not_in_options":
@@ -34,11 +36,13 @@ const FEATURE_ERRORS_RU: Readonly<Record<string, string>> = {
   "error.400.feature_not_allowed": "Поле «{feature}» здесь недопустимо",
   "error.400.feature_unknown": "Неизвестное поле «{feature}»",
   "error.400.feature_invalid_config": "Неверная конфигурация поля «{feature}»",
+  "error.400.description_too_short": "Описание должно содержать не менее {min_length} символов",
+  "error.400.description_too_long": "Описание должно содержать не более {max_length} символов",
 };
 
 export const formsI18nBundleRu: I18nDictionary = {
   ...formsErrorBundleRu,
-  ...FEATURE_ERRORS_RU,
+  ...ATTRIBUTES_ERRORS_RU,
 
   "forms.error.unknown": "Что-то пошло не так. Попробуйте ещё раз.",
 
@@ -87,6 +91,12 @@ export const formsI18nBundleRu: I18nDictionary = {
     "Сначала сохраните черновик — иначе будет опубликована предыдущая сохранённая версия.",
   "forms.builder.builder_less":
     "У этого типа поля здесь нет редактируемых настроек. Его конфигурация задаётся через API черновика.",
+  "forms.builder.kind_unregistered":
+    "Эта установка не знает такой тип поля — его нельзя ни настроить, ни отобразить здесь. Поле сохранено, чтобы оно не исчезло из схемы незаметно.",
+  "forms.builder.kinds_failed":
+    "Не удалось загрузить список типов полей, поэтому сейчас нельзя добавить поле.",
+  "forms.builder.no_kinds":
+    "В этой установке нет доступных настраиваемых типов полей.",
   "forms.builder.unsupported_config":
     "Некоторые настройки этого поля ({keys}) пока нельзя изменить здесь.",
   "forms.builder.empty": "В этой форме пока нет полей.",

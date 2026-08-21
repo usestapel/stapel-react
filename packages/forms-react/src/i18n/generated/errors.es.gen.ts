@@ -6,12 +6,19 @@
 import type { FormsErrorCode } from "./errors.gen.js";
 
 /**
- * `es` texts for every backend error code — complete over the registry by
- * construction (the generator fails on a gap; the Record type fails compilation
- * on drift). Import from the pair's `./i18n/es` subpath, NOT the main
- * entry, so the locale stays out of hosts that don't ship it.
+ * `es` texts for the backend error codes this catalog carries.
+ *
+ * PARTIAL, and deliberately typed to say so: 12 key(s) owned by
+ * stapel_attributes are absent, because that owner ships no locale catalog
+ * (ERRORS_LOCALE_EXEMPT_OWNERS). English for them still comes from the registry
+ * artifact via the en bundle; the pair layers its own authored `es`
+ * strings over this one until upstream ships translations. `Partial` is what
+ * makes the gap visible to TypeScript instead of a silent English fallback.
+ *
+ * Import from the pair's `./i18n/es` subpath, NOT the main entry, so
+ * the locale stays out of hosts that don't ship it.
  */
-export const formsErrorBundleEs: Record<FormsErrorCode, string> = {
+export const formsErrorBundleEs: Partial<Record<FormsErrorCode, string>> = {
   "error.400.bad_request": "Solicitud incorrecta",
   "error.400.captcha_invalid": "La verificación del captcha ha fallado. Inténtalo de nuevo.",
   "error.400.captcha_required": "Se requiere el token del captcha.",

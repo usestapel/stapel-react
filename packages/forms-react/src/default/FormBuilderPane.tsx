@@ -30,13 +30,14 @@ import {
   Typography,
 } from "antd";
 import {
+  matchList,
   matchLoad,
   toFlowError,
   useActionGate,
   useDescribeFlowError,
   useT,
 } from "@stapel/core";
-import type { FormRow, FormState } from "../api/types.js";
+import type { ConfigFieldSpec, FormRow, FormState } from "../api/types.js";
 import { FormBuilder } from "../headless/FormBuilder.js";
 import type { BuilderField, FormBuilderBag } from "../headless/FormBuilder.js";
 import { ConfigField } from "./ConfigField.js";
@@ -147,7 +148,15 @@ function FieldEditor(props: BuilderFieldRowSlotProps): ReactElement {
             type="info"
             showIcon
             data-testid="forms-builder-less"
-            message={t(FORMS_I18N_KEYS.builderBuilderLess)}
+            // Two different facts, worded differently: the registry does not
+            // carry this kind at all, versus it carries it and it simply has
+            // no options. Collapsing them would tell an admin their schema is
+            // fine when the deployment cannot render the field.
+            message={t(
+              entry.kindInfo === undefined || entry.kindInfo.registered === false
+                ? FORMS_I18N_KEYS.builderKindUnregistered
+                : FORMS_I18N_KEYS.builderBuilderLess
+            )}
           />
         ) : (
           <Collapse
@@ -159,7 +168,7 @@ function FieldEditor(props: BuilderFieldRowSlotProps): ReactElement {
                 label: t(FORMS_I18N_KEYS.builderFieldKind),
                 children: (
                   <>
-                    {(entry.configForm?.fields ?? []).map((spec) => (
+                    {entry.configFields.map((spec: ConfigFieldSpec) => (
                       <Form.Item key={spec.name} label={spec.name}>
                         <ConfigField
                           spec={spec}
@@ -359,20 +368,42 @@ export function FormBuilderPane(props: FormBuilderPaneProps): ReactElement {
                   </Flex>
                 )}
 
-                <Flex gap={8} wrap>
-                  {bag.availableKinds.map((kind) => (
-                    <Button
-                      key={kind}
-                      size="small"
-                      data-analytics="none"
-                      data-analytics-reason="local draft edit; the save mutation is the tracked step"
-                      data-testid={`forms-builder-add-${kind}`}
-                      onClick={() => bag.addField(kind)}
-                    >
-                      {t(FORMS_I18N_KEYS.builderAddField)}: {kind}
-                    </Button>
-                  ))}
-                </Flex>
+                {/* The catalogue is a LoadState of its own: a builder whose
+                    dictionary failed to load must say so, not render zero
+                    buttons and imply this deployment has no field kinds. */}
+                {matchList(bag.availableKinds, {
+                  loading: () => <Spin size="small" data-testid="forms-kinds-loading" />,
+                  failed: (error) => (
+                    <ErrorAlert
+                      testId="forms-kinds-failed"
+                      error={{
+                        ...describe(toFlowError(error)),
+                        message: t(FORMS_I18N_KEYS.builderKindsFailed),
+                      }}
+                    />
+                  ),
+                  empty: () => (
+                    <Typography.Text type="secondary" data-testid="forms-kinds-empty">
+                      {t(FORMS_I18N_KEYS.builderNoKinds)}
+                    </Typography.Text>
+                  ),
+                  ready: (kinds) => (
+                    <Flex gap={8} wrap>
+                      {kinds.map((kind) => (
+                        <Button
+                          key={kind.kind}
+                          size="small"
+                          data-analytics="none"
+                          data-analytics-reason="local draft edit; the save mutation is the tracked step"
+                          data-testid={`forms-builder-add-${kind.kind}`}
+                          onClick={() => bag.addField(kind.kind)}
+                        >
+                          {t(FORMS_I18N_KEYS.builderAddField)}: {kind.kind}
+                        </Button>
+                      ))}
+                    </Flex>
+                  ),
+                })}
               </Flex>
             ),
           })

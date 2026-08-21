@@ -1,13 +1,14 @@
 import type { I18nDictionary, I18nEngine } from "@stapel/core";
-import { formsErrorBundleEn } from "./generated/errors.gen.js";
+import { FORMS_ERROR_CODES, formsErrorBundleEn } from "./generated/errors.gen.js";
 
 /**
  * forms-react's own translation KEYS (frontend-standard §4.2): headless
  * components never render literal strings — hosts resolve these via core's
  * i18n engine (`useT`). Backend error codes flow through the SAME contour: a
  * `StapelApiError.code` is already a key, so the default bundle below ships
- * English fallbacks for the backend error codes (generated) and the pair's
- * own UI keys. All UI keys live under the `forms.` namespace.
+ * English fallbacks for the backend error codes (generated — all 75 of them
+ * since stapel-forms 0.2.0, including the stapel_attributes family) and the
+ * pair's own UI keys. All UI keys live under the `forms.` namespace.
  *
  * ── What is NOT an i18n key here ───────────────────────────────────────────
  *
@@ -62,6 +63,9 @@ export const FORMS_I18N_KEYS = {
   builderEmptySchema: "forms.builder.blocked.empty_schema",
   builderUnsavedDraft: "forms.builder.blocked.unsaved_draft",
   builderBuilderLess: "forms.builder.builder_less",
+  builderKindUnregistered: "forms.builder.kind_unregistered",
+  builderKindsFailed: "forms.builder.kinds_failed",
+  builderNoKinds: "forms.builder.no_kinds",
   builderUnsupportedConfig: "forms.builder.unsupported_config",
   builderEmpty: "forms.builder.empty",
   builderMetaTitle: "forms.builder.meta_title",
@@ -112,46 +116,25 @@ export type FormsI18nKey =
   (typeof FORMS_I18N_KEYS)[keyof typeof FORMS_I18N_KEYS];
 
 /**
- * English copy for the `error.400.feature_*` family — the per-field refusals
- * `stapel_attributes` raises and stapel-forms forwards.
+ * The `error.400.feature_*` codes, read off the generated registry.
  *
- * WHY THESE ARE HAND-CARRIED AND NOT GENERATED. `stapel_attributes.errors`
- * registers this catalogue with core (`register_service_errors`), but
- * stapel-forms' published `docs/errors.json` does not contain it: the
- * codegen snapshot holds 63 keys, 42 core-owned and 21 forms-owned, and not
- * one `feature_*` among them — while `services.py:278` puts exactly one of
- * these codes at the top level of a per-field submit refusal. So the
- * generated bundle cannot cover the very errors a respondent is most likely
- * to see. Rather than let them render as raw keys, the pair ships the
- * upstream's own en strings verbatim (source:
- * `stapel_attributes/errors.py::ATTRIBUTES_ERRORS`) and the ru/es mirrors
- * beside them.
+ * stapel-forms 0.2.0 put the stapel_attributes family INTO its published
+ * contract (75 keys, 12 of them owned by `stapel_attributes`), so the English
+ * the pair used to hand-carry now arrives through `gen:errors` like every other
+ * backend code and has been deleted. This list stays only so the locale bundles
+ * can be checked against it — derived, never typed out, so it cannot fall
+ * behind the registry.
  *
- * This is a stopgap with a stated end: once stapel-forms' error registry
- * snapshot includes the attributes catalogue, these keys arrive through
- * `gen:errors` like every other backend code and this block is deleted. A
- * spec delta is filed. The mirrored client-side validation in
- * `widgets/validate.ts` deliberately raises the SAME codes, so both halves
- * render one sentence.
+ * The ru/es strings ARE still authored by the pair: attributes ships English
+ * only (it has no `translations/` directory), so those 12 keys can appear in no
+ * locale catalog until upstream localizes them — logged as stapel-forms
+ * MODULE.md §12.6. `gen:errors` runs for this module with
+ * `ERRORS_LOCALE_EXEMPT_OWNERS=stapel_attributes`, which is why the generated
+ * ru/es bundles are `Partial` and the authored strings below them are load-bearing.
  */
-const FEATURE_ERRORS_EN: Readonly<Record<string, string>> = {
-  "error.400.feature_below_minimum": "Value is below minimum for {feature}",
-  "error.400.feature_above_maximum": "Value is above maximum for {feature}",
-  "error.400.feature_not_in_options":
-    "Value is not in allowed options for {feature}",
-  "error.400.feature_invalid_type": "Invalid type for {feature}",
-  "error.400.feature_invalid_format": "Invalid format for {feature}",
-  "error.400.feature_mandatory_missing": "Mandatory feature {feature} is required",
-  "error.400.feature_unknown_type": "Unknown feature type for {feature}",
-  "error.400.feature_not_allowed": "Feature {feature} is not allowed here",
-  "error.400.feature_unknown": "Unknown feature {feature}",
-  "error.400.feature_invalid_config": "Invalid config for {feature}",
-};
-
-/** The `error.400.feature_*` codes this pair carries copy for. Exported so
- * the locale bundles can be checked complete over it. */
-export const FEATURE_ERROR_KEYS: readonly string[] =
-  Object.keys(FEATURE_ERRORS_EN).sort();
+export const FEATURE_ERROR_KEYS: readonly string[] = FORMS_ERROR_CODES.filter(
+  (code) => code.startsWith("error.400.feature_")
+);
 
 /**
  * English fallback bundle for forms-react UI keys + backend error codes.
@@ -161,10 +144,10 @@ export const FEATURE_ERROR_KEYS: readonly string[] =
  * attributes family follows, then the pair's own copy.
  */
 export const formsI18nBundleEn: I18nDictionary = {
-  // Backend error codes — generated en fallbacks (coverage by construction).
+  // Backend error codes — generated en fallbacks (coverage by construction,
+  // and since stapel-forms 0.2.0 that includes the error.400.feature_* family
+  // the pair used to hand-carry).
   ...formsErrorBundleEn,
-  // The per-field family the generated snapshot does not carry (see above).
-  ...FEATURE_ERRORS_EN,
 
   // forms-react UI
   "forms.error.unknown": "Something went wrong. Please try again.",
@@ -213,6 +196,12 @@ export const formsI18nBundleEn: I18nDictionary = {
     "Save the draft first — publishing would release the previously saved version.",
   "forms.builder.builder_less":
     "This field type has no editable options here. Its configuration is authored through the draft API.",
+  "forms.builder.kind_unregistered":
+    "This deployment does not recognise this field type, so it cannot be configured or rendered here. The field is kept so it is not silently dropped from the schema.",
+  "forms.builder.kinds_failed":
+    "We could not load the list of field types, so no fields can be added right now.",
+  "forms.builder.no_kinds":
+    "This deployment has no configurable field types available.",
   "forms.builder.unsupported_config":
     "Some options of this field ({keys}) cannot be edited here yet.",
   "forms.builder.empty": "This form has no fields yet.",

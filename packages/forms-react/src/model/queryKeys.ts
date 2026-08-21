@@ -19,6 +19,9 @@ export const formsQueryKeys: {
   /** The anonymous schema read, keyed by the public token — NOT by the row
    * id, which an anonymous respondent never learns. */
   publicForm(publicId: string): readonly ["forms", "public", string];
+  /** The builder's field-kind catalogue. Workspace-scoped because the
+   * endpoint is — a deployment's registered types are not global knowledge. */
+  fieldKinds(workspaceId: string): readonly ["forms", "field-kinds", string];
   forms(
     workspaceId: string,
     state?: string
@@ -38,6 +41,7 @@ export const formsQueryKeys: {
 } = {
   all: [ROOT],
   publicForm: (publicId) => [ROOT, "public", publicId],
+  fieldKinds: (workspaceId) => [ROOT, "field-kinds", workspaceId],
   // `state` is part of the key (a filtered list is a different read surface,
   // not the same list) and normalized to `null` so an absent filter and an
   // explicit `undefined` cannot cache twice.

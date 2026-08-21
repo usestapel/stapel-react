@@ -15,7 +15,7 @@ export { formsErrorBundleEs } from "./generated/errors.es.gen.js";
  * `origin=seed:authored` and is UNREVIEWED (backend delta note 10), and the
  * pair-authored strings below are the same grade.
  */
-const FEATURE_ERRORS_ES: Readonly<Record<string, string>> = {
+const ATTRIBUTES_ERRORS_ES: Readonly<Record<string, string>> = {
   "error.400.feature_below_minimum": "El valor es inferior al mínimo de «{feature}»",
   "error.400.feature_above_maximum": "El valor supera el máximo de «{feature}»",
   "error.400.feature_not_in_options":
@@ -27,11 +27,13 @@ const FEATURE_ERRORS_ES: Readonly<Record<string, string>> = {
   "error.400.feature_not_allowed": "El campo «{feature}» no se permite aquí",
   "error.400.feature_unknown": "Campo desconocido «{feature}»",
   "error.400.feature_invalid_config": "Configuración no válida para «{feature}»",
+  "error.400.description_too_short": "La descripción debe tener al menos {min_length} caracteres",
+  "error.400.description_too_long": "La descripción debe tener como máximo {max_length} caracteres",
 };
 
 export const formsI18nBundleEs: I18nDictionary = {
   ...formsErrorBundleEs,
-  ...FEATURE_ERRORS_ES,
+  ...ATTRIBUTES_ERRORS_ES,
 
   "forms.error.unknown": "Algo salió mal. Inténtalo de nuevo.",
 
@@ -79,6 +81,12 @@ export const formsI18nBundleEs: I18nDictionary = {
     "Guarda el borrador primero: publicar ahora lanzaría la versión guardada anteriormente.",
   "forms.builder.builder_less":
     "Este tipo de campo no tiene opciones editables aquí. Su configuración se define mediante la API de borradores.",
+  "forms.builder.kind_unregistered":
+    "Esta instalación no reconoce este tipo de campo, así que no se puede configurar ni mostrar aquí. El campo se conserva para que no desaparezca del esquema sin avisar.",
+  "forms.builder.kinds_failed":
+    "No pudimos cargar la lista de tipos de campo, así que ahora no se pueden añadir campos.",
+  "forms.builder.no_kinds":
+    "Esta instalación no tiene tipos de campo configurables disponibles.",
   "forms.builder.unsupported_config":
     "Algunas opciones de este campo ({keys}) aún no se pueden editar aquí.",
   "forms.builder.empty": "Este formulario aún no tiene campos.",

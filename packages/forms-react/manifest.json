@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "backend": {
     "module": "stapel-forms",
-    "contract": ">=0.1 <0.2"
+    "contract": ">=0.2 <0.3"
   },
   "layers": [
     "api",
@@ -16,6 +16,13 @@
   "flows": {},
   "machines": [],
   "operations": {
+    "forms_api_v1_field_kinds_retrieve": {
+      "method": "GET",
+      "path": "/forms/api/v1/field-kinds",
+      "tag": "Forms",
+      "request": null,
+      "response": "FieldKindsDTO"
+    },
     "forms_api_v1_forms_create": {
       "method": "POST",
       "path": "/forms/api/v1/forms",
@@ -149,6 +156,15 @@
       "kind": "mutation",
       "operation": "deleteSubmission"
     },
+    "useFieldKinds": {
+      "kind": "query",
+      "operation": "listFieldKinds",
+      "queryKey": [
+        "forms",
+        "field-kinds",
+        "{workspaceId}"
+      ]
+    },
     "useForm": {
       "kind": "query",
       "operation": "getForm",
@@ -252,9 +268,93 @@
       "params": [],
       "remediation": "retry"
     },
+    "error.400.description_too_long": {
+      "status": 400,
+      "params": [
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.description_too_short": {
+      "status": 400,
+      "params": [
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
     "error.400.expected_list": {
       "status": 400,
       "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_above_maximum": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_below_minimum": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_invalid_config": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_invalid_format": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_invalid_type": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_mandatory_missing": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_not_allowed": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_not_in_options": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_unknown": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_unknown_type": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
       "remediation": "fix_input"
     },
     "error.400.field.blank": {
@@ -593,7 +693,7 @@
     {
       "id": "forms.builder",
       "title": "Form builder",
-      "description": "Headless authoring: a draft schema, per-kind config forms mirrored from stapel-attributes, and the save-before-publish gate.",
+      "description": "Headless authoring: a draft schema, per-kind config forms served by GET /field-kinds, and the save-before-publish gate.",
       "component": "FormBuilder",
       "tokens": [
         "surface-raised"
@@ -663,7 +763,19 @@
     "error.400.bad_request",
     "error.400.captcha_invalid",
     "error.400.captcha_required",
+    "error.400.description_too_long",
+    "error.400.description_too_short",
     "error.400.expected_list",
+    "error.400.feature_above_maximum",
+    "error.400.feature_below_minimum",
+    "error.400.feature_invalid_config",
+    "error.400.feature_invalid_format",
+    "error.400.feature_invalid_type",
+    "error.400.feature_mandatory_missing",
+    "error.400.feature_not_allowed",
+    "error.400.feature_not_in_options",
+    "error.400.feature_unknown",
+    "error.400.feature_unknown_type",
     "error.400.field.blank",
     "error.400.field.does_not_exist",
     "error.400.field.invalid",
@@ -735,12 +847,15 @@
     "forms.builder.field_label",
     "forms.builder.field_required",
     "forms.builder.field_slug",
+    "forms.builder.kind_unregistered",
+    "forms.builder.kinds_failed",
     "forms.builder.meta_confirmation",
     "forms.builder.meta_description",
     "forms.builder.meta_submit_label",
     "forms.builder.meta_title",
     "forms.builder.move_down",
     "forms.builder.move_up",
+    "forms.builder.no_kinds",
     "forms.builder.public_link",
     "forms.builder.publish",
     "forms.builder.remove_field",
@@ -804,10 +919,8 @@
   "exports": {
     "runtime": [
       "ALLOWED_FIELD_KINDS",
-      "BUILDER_KINDS",
       "FEATURE_ERROR_CODES",
       "FEATURE_ERROR_KEYS",
-      "FIELD_KIND_CONFIG_FORMS",
       "FORMS_ERRORS",
       "FORMS_ERROR_CODES",
       "FORMS_FLOWS",
@@ -820,11 +933,9 @@
       "FormsRuntimeContext",
       "ResponsesTable",
       "concatCsvPages",
-      "configFormFor",
       "createFlowMachine",
       "createFormsApi",
       "createFormsRuntime",
-      "defaultConfigFor",
       "explainFormsError",
       "exportSubmissionsCsv",
       "flowEndpoints",
@@ -832,7 +943,6 @@
       "formsI18nBundleEn",
       "formsQueryKeys",
       "isBlank",
-      "isBuilderSupportedKind",
       "isErrorCode",
       "optionValues",
       "registerFormFieldWidget",
@@ -845,6 +955,7 @@
       "useCsvExport",
       "useDeleteForm",
       "useDeleteSubmission",
+      "useFieldKinds",
       "useFlow",
       "useForm",
       "useFormVersions",
@@ -868,12 +979,12 @@
     "types": [
       "BuilderField",
       "BuiltinFieldKind",
-      "ConfigFieldKind",
       "ConfigFieldSpec",
-      "ConfigSelectOption",
       "CreateFormsRuntimeOptions",
       "CsvExportBag",
       "CsvExportPage",
+      "FieldKind",
+      "FieldKindCatalogue",
       "FlowEndpoint",
       "FlowError",
       "FlowMachine",
@@ -903,7 +1014,6 @@
       "FormsI18nKey",
       "FormsRawTransport",
       "FormsRuntime",
-      "KindConfigForm",
       "PublicForm",
       "PublishResult",
       "Remediation",

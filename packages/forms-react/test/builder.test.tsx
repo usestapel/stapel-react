@@ -5,19 +5,18 @@
  */
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import {
-  BUILDER_KINDS,
-  FIELD_KIND_CONFIG_FORMS,
-  FormBuilder,
-  configFormFor,
-  defaultConfigFor,
-  isBuilderSupportedKind,
-} from "../src/index.js";
+import { FormBuilder } from "../src/index.js";
 import type { FormBuilderBag } from "../src/index.js";
 import { FormBuilderPane } from "../src/default/index.js";
 import { TestHarness, mockServer } from "./harness.js";
 import type { MockServer } from "./harness.js";
-import { FORM_ID, WORKSPACE_ID, envelope, formRow } from "./fixtures.js";
+import {
+  FIELD_KINDS,
+  FORM_ID,
+  WORKSPACE_ID,
+  envelope,
+  formRow,
+} from "./fixtures.js";
 
 function renderBuilder(routes: Parameters<typeof mockServer>[0]): {
   server: MockServer;
@@ -44,134 +43,81 @@ function renderBuilder(routes: Parameters<typeof mockServer>[0]): {
   };
 }
 
-const ROUTES = { [`GET /forms/${FORM_ID}`]: { body: formRow() } };
+const KINDS_ROUTE = { "GET /field-kinds": { body: FIELD_KINDS } };
+const ROUTES = {
+  ...KINDS_ROUTE,
+  [`GET /forms/${FORM_ID}`]: { body: formRow() },
+};
 
-describe("the config-form table is a faithful mirror of config_form.py", () => {
-  // Pinned against stapel_attributes/config_form.py::BUILTIN_FORMS. These
-  // assertions are the drift gate for a table that cannot be generated,
-  // because upstream serves the declarations onto a Django page and exposes
-  // NO endpoint for them (see widgets/configForms.ts).
-  it("declares a config form for the eight builder-supported kinds", () => {
-    expect(Object.keys(FIELD_KIND_CONFIG_FORMS).sort()).toEqual([
-      "bool",
-      "date",
-      "float",
-      "header",
-      "hex_color",
-      "int",
-      "select",
-      "string",
-    ]);
+describe("the builder reads the server's catalogue, not a mirrored table", () => {
+  it("offers only kinds that are allowed AND registered AND declare a config form", async () => {
+    const { bag } = renderBuilder(ROUTES);
+    await waitFor(() => expect(bag().availableKinds.status).toBe("ready"));
+    const offered =
+      bag().availableKinds.status === "ready"
+        ? (bag().availableKinds as { data: readonly { kind: string }[] }).data.map(
+            (k) => k.kind
+          )
+        : [];
+    // string/select/date qualify. convertible_unit declares no config form and
+    // signature is not in the attributes registry, so neither is offered —
+    // both are still renderable and still authorable via the draft PUT.
+    expect(offered).toEqual(["string", "select", "date"]);
   });
 
-  it("keeps hex_color's allowCustom default FALSE where int/float/string are TRUE (LN-B15)", () => {
-    const find = (kind: string) =>
-      configFormFor(kind)?.fields.find((f) => f.name === "allowCustom")?.default;
-    expect(find("hex_color")).toBe(false);
-    expect(find("int")).toBe(true);
-    expect(find("float")).toBe(true);
-    expect(find("string")).toBe(true);
+  it("a catalogue that FAILED to load is not 'this deployment has no kinds'", async () => {
+    const { bag } = renderBuilder({
+      [`GET /forms/${FORM_ID}`]: { body: formRow() },
+      "GET /field-kinds": { status: 503, body: envelope("stapel.http.503") },
+    });
+    await waitFor(() => expect(bag().availableKinds.status).toBe("failed"));
+    // The distinction the whole LoadState discipline exists for, applied to
+    // the builder's own dictionary.
+    expect(bag().availableKinds.status).not.toBe("ready");
   });
 
-  it("preserves header.style's upstream default 'h2', which matches NO option (LN-B01)", () => {
-    const style = configFormFor("header")?.fields[0];
-    expect(style?.default).toBe("h2");
-    expect(style?.options?.map((o) => o.value)).toEqual(["l", "m"]);
-  });
-
-  it("keeps select.uiStyle at the engine's dataclass default 'dropdown' (B2 canon)", () => {
-    const uiStyle = configFormFor("select")?.fields.find(
-      (f) => f.name === "uiStyle"
+  it("surfaces the config-widget vocabulary the server declares", async () => {
+    const { bag } = renderBuilder(ROUTES);
+    await waitFor(() => expect(bag().state.status).toBe("ready"));
+    await waitFor(() =>
+      expect(Object.keys(bag().configWidgets)).toContain("max_selected_dropdown")
     );
-    expect(uiStyle?.default).toBe("dropdown");
+    expect(bag().configWidgets["number"]).toEqual(["step"]);
   });
 
-  it("gives select.maxSelected NO default — absent means unlimited", () => {
-    const maxSelected = configFormFor("select")?.fields.find(
-      (f) => f.name === "maxSelected"
-    );
-    expect(maxSelected?.default).toBeUndefined();
-  });
-
-  it("marks date.options unsupported rather than hiding it", () => {
-    const options = configFormFor("date")?.fields.find((f) => f.name === "options");
-    expect(options?.kind).toBe("timestamp_array");
-    expect(options?.unsupported).toBe(true);
-  });
-
-  it("carries string.multiline (stapel-attributes 0.4.6), defaulting to false", () => {
-    const multiline = configFormFor("string")?.fields.find(
-      (f) => f.name === "multiline"
-    );
-    expect(multiline?.kind).toBe("checkbox");
-    expect(multiline?.default).toBe(false);
-  });
-
-  it("uses camelCase keys throughout — a snake_case typo is a cap that does not exist", () => {
-    const names = Object.values(FIELD_KIND_CONFIG_FORMS).flatMap((form) =>
-      form.fields.map((f) => f.name)
-    );
-    expect(names.filter((n) => n.includes("_"))).toEqual([]);
+  it("passes config declarations through verbatim, params and all", async () => {
+    const { bag } = renderBuilder(ROUTES);
+    await waitFor(() => expect(bag().fields.length).toBeGreaterThan(0));
+    const spec = bag().fields[0]?.configFields.find((f) => f.name === "maxLength");
+    // `step` lives UNDER params — the real FormField.to_dict() shape, which
+    // the deleted mirror had flattened.
+    expect(spec?.kind).toBe("number");
+    expect(spec?.params?.["step"]).toBe(1);
   });
 });
 
-describe("the §12 risk-5 builder-less rule", () => {
-  it("ships convertible_unit and hierarchical_select builder-less", () => {
-    // convertible_unit declares no config_form upstream at all;
-    // hierarchical_select's only field is an unrepresentable tree editor.
-    expect(isBuilderSupportedKind("convertible_unit")).toBe(false);
-    expect(isBuilderSupportedKind("hierarchical_select")).toBe(false);
-    expect(BUILDER_KINDS).not.toContain("convertible_unit");
-    expect(BUILDER_KINDS).not.toContain("hierarchical_select");
-  });
-
-  it("still LISTS a builder-less field, flagged, instead of dropping it", async () => {
-    const { bag } = renderBuilder({
-      [`GET /forms/${FORM_ID}`]: {
-        body: formRow({
-          draft_schema: {
-            fields: [{ slug: "len", kind: "convertible_unit", name: "Length" }],
-            meta: {},
-          },
-        }),
-      },
-    });
-    await waitFor(() => expect(bag().state.status).toBe("ready"));
-    expect(bag().fields).toHaveLength(1);
-    expect(bag().fields[0]?.builderLess).toBe(true);
-    expect(bag().fields[0]?.configForm).toBeUndefined();
-  });
-
-  it("names the config keys it cannot edit for a partially supported kind", async () => {
-    const { bag } = renderBuilder({
-      [`GET /forms/${FORM_ID}`]: {
-        body: formRow({
-          draft_schema: {
-            fields: [{ slug: "d", kind: "date", name: "When" }],
-            meta: {},
-          },
-        }),
-      },
-    });
-    await waitFor(() => expect(bag().state.status).toBe("ready"));
-    expect(bag().fields[0]?.builderLess).toBe(false);
-    expect(bag().fields[0]?.unsupportedConfigKeys).toEqual(["options"]);
-  });
-});
-
-describe("config defaults", () => {
-  it("writes ONLY the keys with a declared default — absent means engine default", () => {
-    // Writing `null` for an unset key would change behaviour: the engine
-    // reads an absent key as "use my own default".
-    expect(defaultConfigFor("select")).toEqual({
+describe("config defaults come from the served declaration", () => {
+  it("writes ONLY the keys with a declared default — absent means engine default", async () => {
+    const { bag } = renderBuilder(ROUTES);
+    await waitFor(() => expect(bag().availableKinds.status).toBe("ready"));
+    act(() => bag().addField("select"));
+    await waitFor(() => expect(bag().fields).toHaveLength(2));
+    // Writing `null` for an unset key would change behaviour: the engine reads
+    // an absent key as "use my own default". maxSelected has no declared
+    // default (absent = unlimited), so it must not be written.
+    expect(bag().fields[1]?.field.config).toEqual({
       uiStyle: "dropdown",
       minSelected: 0,
     });
-    expect("maxSelected" in defaultConfigFor("select")).toBe(false);
+    expect("maxSelected" in (bag().fields[1]?.field.config ?? {})).toBe(false);
   });
 
-  it("is empty for a builder-less kind", () => {
-    expect(defaultConfigFor("convertible_unit")).toEqual({});
+  it("is empty for a kind that declares no config form", async () => {
+    const { bag } = renderBuilder(ROUTES);
+    await waitFor(() => expect(bag().availableKinds.status).toBe("ready"));
+    act(() => bag().addField("convertible_unit"));
+    await waitFor(() => expect(bag().fields).toHaveLength(2));
+    expect(bag().fields[1]?.field.config).toBeUndefined();
   });
 });
 
@@ -179,6 +125,7 @@ describe("the draft", () => {
   it("adds a field with a non-colliding slug and the kind's declared defaults", async () => {
     const { bag } = renderBuilder(ROUTES);
     await waitFor(() => expect(bag().state.status).toBe("ready"));
+    await waitFor(() => expect(bag().availableKinds.status).toBe("ready"));
     act(() => bag().addField("select"));
     await waitFor(() => expect(bag().fields).toHaveLength(2));
     const added = bag().fields[1]?.field;
@@ -287,7 +234,7 @@ describe("<FormBuilderPane> — the default skin", () => {
     expect(await screen.findByTestId("forms-builder-failed")).toBeTruthy();
   });
 
-  it("renders one add-button per builder-supported kind, and none for the rest", async () => {
+  it("renders one add-button per offered kind, and none for the builder-less ones", async () => {
     const server = mockServer(ROUTES);
     render(
       <TestHarness server={server}>
@@ -295,10 +242,23 @@ describe("<FormBuilderPane> — the default skin", () => {
       </TestHarness>
     );
     await screen.findByTestId("forms-builder-add-string");
-    for (const kind of BUILDER_KINDS) {
-      expect(screen.getByTestId(`forms-builder-add-${kind}`)).toBeTruthy();
-    }
+    expect(screen.getByTestId("forms-builder-add-select")).toBeTruthy();
+    expect(screen.getByTestId("forms-builder-add-date")).toBeTruthy();
     expect(screen.queryByTestId("forms-builder-add-convertible_unit")).toBeNull();
-    expect(screen.queryByTestId("forms-builder-add-hierarchical_select")).toBeNull();
+    expect(screen.queryByTestId("forms-builder-add-signature")).toBeNull();
+  });
+
+  it("says the dictionary failed rather than showing zero buttons", async () => {
+    const server = mockServer({
+      [`GET /forms/${FORM_ID}`]: { body: formRow() },
+      "GET /field-kinds": { status: 503, body: envelope("stapel.http.503") },
+    });
+    render(
+      <TestHarness server={server}>
+        <FormBuilderPane workspaceId={WORKSPACE_ID} formId={FORM_ID} />
+      </TestHarness>
+    );
+    expect(await screen.findByTestId("forms-kinds-failed")).toBeTruthy();
+    expect(screen.queryByTestId("forms-builder-add-string")).toBeNull();
   });
 });

@@ -28,6 +28,9 @@ export type { FormsApi, FormsApiOptions } from "./api/formsApi.js";
 export type { Schemas } from "./api/types.js";
 export type {
   BuiltinFieldKind,
+  ConfigFieldSpec,
+  FieldKind,
+  FieldKindCatalogue,
   FormCreateRequest,
   FormFieldDef,
   FormPatchRequest,
@@ -90,6 +93,7 @@ export {
 export { formsQueryKeys } from "./model/queryKeys.js";
 
 export {
+  useFieldKinds,
   useForm,
   useForms,
   useFormVersions,
@@ -133,20 +137,6 @@ export type {
   FormFieldWidget,
   FormFieldWidgetProps,
 } from "./widgets/registry.js";
-
-export {
-  BUILDER_KINDS,
-  FIELD_KIND_CONFIG_FORMS,
-  configFormFor,
-  defaultConfigFor,
-  isBuilderSupportedKind,
-} from "./widgets/configForms.js";
-export type {
-  ConfigFieldKind,
-  ConfigFieldSpec,
-  ConfigSelectOption,
-  KindConfigForm,
-} from "./widgets/configForms.js";
 
 export {
   FEATURE_ERROR_CODES,

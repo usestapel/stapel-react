@@ -2,6 +2,40 @@
 // Source: the backend module's own docs/schema.json (§17-native per-module contract).
 // Regenerate: pnpm gen:api   ·   Drift gate: pnpm gen:api:check
 export interface paths {
+    "/forms/api/v1/field-kinds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The field kinds a form may be built from, with their config forms.
+         *
+         *     The builder is data-driven off stapel-attributes' ``config_form()``
+         *     declarations (spec §8) — before this route existed the only way to read
+         *     them was to mirror them in the client, which is a table that drifts
+         *     silently. Serving the registry makes the declaration the single source
+         *     of truth again: a type registered through ``EXTRA_TYPES`` shows up in
+         *     the builder with no client release.
+         *
+         *     Nothing here is per-form, but it is not public either: the catalogue
+         *     tells a reader which kinds a deployment registered, including host types
+         *     whose slugs are internal vocabulary. It carries the same capability as
+         *     form management (``forms.manage``) — a principal who cannot build a
+         *     form has no use for the builder's dictionary.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["forms_api_v1_field_kinds_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/forms/api/v1/forms": {
         parameters: {
             query?: never;
@@ -311,6 +345,45 @@ export interface components {
         Draft: {
             schema: unknown;
         };
+        /**
+         * @description One field kind the builder may offer, with its config form.
+         *
+         *     ``fields`` is stapel-attributes' own ``config_form()`` declaration,
+         *     passed through verbatim (``FormField.to_dict()`` shape: ``name``,
+         *     ``kind``, ``label_key``, optional ``required`` / ``default`` /
+         *     ``params``) — this module does not re-shape upstream's contract, so a
+         *     kind gains config fields upstream without a release here.
+         *
+         *     ``registered`` is FALSE for a kind the host allowlisted that the
+         *     attributes registry does not carry. It is still listed, because a
+         *     stored schema may already use it and a builder that silently drops the
+         *     kind would silently drop the field.
+         */
+        FieldKindDTO: {
+            kind: string;
+            label_key: string;
+            allowed: boolean;
+            registered: boolean;
+            fields?: {
+                [key: string]: unknown;
+            }[];
+        };
+        /**
+         * @description The whole field-kind catalogue behind the builder.
+         *
+         *     ``config_widgets`` is upstream's ``config_form.FIELD_KINDS``: the
+         *     *widget* vocabulary a declaration's ``kind`` draws from, mapped to the
+         *     params each widget understands. Named apart from ``kinds`` on purpose —
+         *     forms' own ``FIELD_KINDS`` setting is the feature-type allowlist, and
+         *     two different things called the same name is how a builder ends up
+         *     rendering a ``number`` where a ``string`` belongs.
+         */
+        FieldKindsDTO: {
+            kinds?: components["schemas"]["FieldKindDTO"][];
+            config_widgets?: {
+                [key: string]: string[];
+            };
+        };
         FormCreate: {
             /** Format: uuid */
             workspace_id: string;
@@ -468,6 +541,27 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    forms_api_v1_field_kinds_retrieve: {
+        parameters: {
+            query: {
+                workspace_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldKindsDTO"];
+                };
+            };
+        };
+    };
     forms_api_v1_forms_list: {
         parameters: {
             query: {

@@ -3,6 +3,7 @@ import type { UseQueryResult } from "@tanstack/react-query";
 import { useActiveSessionReady } from "@stapel/core";
 import type { StapelApiError } from "@stapel/core";
 import type {
+  FieldKindCatalogue,
   FormRow,
   FormState,
   FormVersion,
@@ -46,6 +47,27 @@ export function usePublicForm(
     queryFn: () => api.getPublicForm(publicId),
     enabled: publicId.length > 0,
     retry: false,
+  });
+}
+
+/**
+ * The field kinds a form may be built from, with their config forms.
+ * `forms.manage`.
+ *
+ * `staleTime: Infinity`: a deployment's registered feature types change when
+ * somebody deploys, not while an admin edits a form, so refetching this on
+ * every window focus would be pure noise behind the builder.
+ */
+export function useFieldKinds(
+  workspaceId: string
+): UseQueryResult<FieldKindCatalogue, StapelApiError> {
+  const api = useFormsApi();
+  const sessionReady = useActiveSessionReady();
+  return useQuery({
+    queryKey: formsQueryKeys.fieldKinds(workspaceId),
+    queryFn: () => api.listFieldKinds(workspaceId),
+    enabled: sessionReady && workspaceId.length > 0,
+    staleTime: Number.POSITIVE_INFINITY,
   });
 }
 

@@ -6,6 +6,8 @@ import type {
   FormsRawTransport,
 } from "./export.js";
 import type {
+  FieldKind,
+  FieldKindCatalogue,
   FormCreateRequest,
   FormPatchRequest,
   FormRow,
@@ -103,6 +105,21 @@ export interface FormsApi {
    * `error.400.feature_*` family whose `params.field` names the offending slug.
    */
   submit(publicId: string, body: SubmitRequest): Promise<SubmitResult>;
+
+  // ── admin: the builder's dictionary ────────────────────────────────────────
+
+  /**
+   * The field kinds a form may be built from, with their config forms.
+   * `forms.manage` — a principal who cannot build a form has no use for the
+   * builder's dictionary, and the catalogue names host types whose slugs are
+   * internal vocabulary.
+   *
+   * This is what replaced the pair's hand-mirrored copy of
+   * `stapel_attributes.config_form` (stapel-forms 0.2.0): the declaration is
+   * the single source of truth again, so a type registered through
+   * `EXTRA_TYPES` shows up in the builder with no client release.
+   */
+  listFieldKinds(workspaceId: string): Promise<FieldKindCatalogue>;
 
   // ── admin: forms ───────────────────────────────────────────────────────────
 
@@ -209,6 +226,23 @@ export function createFormsApi(
         body satisfies SubmitRequest,
         mutating()
       ),
+
+    // ── admin: the builder's dictionary ──────────────────────────────────────
+    // Note the path: no `admin/` prefix and no trailing slash, unlike the two
+    // anonymous routes. Both are load-bearing — Django resolves this exactly.
+    listFieldKinds: async (workspaceId) => {
+      const dto = await client.get<{
+        kinds?: readonly FieldKind[];
+        config_widgets?: Readonly<Record<string, readonly string[]>>;
+      }>("/field-kinds", { query: ws(workspaceId) });
+      // Both members are optional on the wire (dataclass defaults), and a
+      // builder that reads `.kinds.map` off `undefined` is a crash where an
+      // empty catalogue would do.
+      return {
+        kinds: dto.kinds ?? [],
+        configWidgets: dto.config_widgets ?? {},
+      };
+    },
 
     // ── admin: forms ─────────────────────────────────────────────────────────
     listForms: (workspaceId, state) =>
