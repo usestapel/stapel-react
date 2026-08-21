@@ -17,6 +17,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - CORE_ERROR_LOCALES
 - DETAIL_ERROR_KEY
 - I18nProvider
+- MandateProvider
 - REFRESH_UNAVAILABLE
 - StapelApiError
 - StapelConfigProvider
@@ -75,6 +76,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - navEntrySurface
 - navSurfaceVisibleTo
 - parseErrorEnvelope
+- putToForeignOrigin
 - requireLoaded
 - toFlowError
 - toStapelApiError
@@ -90,6 +92,9 @@ signatures/JSDoc in the package README and src/index.ts.
 - useFlow
 - useFormatFlowError
 - useI18n
+- useMandate
+- useMandatePrincipal
+- useObjectUrlPreview
 - useSessionReady
 - useStapelClient
 - useStapelConfig
@@ -133,6 +138,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - MandateAsking
 - MandatePrincipal
 - MandateResolved
+- MandateSource
 - MandateState
 - MandateUnavailable
 - MandateUnresolvedReason
@@ -153,6 +159,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - PropSpec
 - PropType
 - PropsSchema
+- PutToForeignOriginOptions
 - QueryLike
 - RefreshOutcome
 - Repository

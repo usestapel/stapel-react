@@ -236,6 +236,21 @@ export type {
   MandateUnresolvedReason,
 } from "./mandate.js";
 
+// mandate seam (mandateSource.tsx): the axis is PROVIDED, not computed here.
+// A public surface reads it without importing the module that derives it —
+// a storefront has no workspaces to ask, and pulling `workspaces-react` in
+// to answer one boolean would mount the multi-tenant metaphor inside an
+// anonymous marketplace.
+export { MandateProvider, useMandate, useMandatePrincipal } from "./mandateSource.js";
+export type { MandateSource } from "./mandateSource.js";
+
+// upload primitives — the bones shared by three DIFFERENT upload contracts
+// (cdn multipart / docs presign+finalize / recordings session+PUT+finalize).
+// Neither knows an endpoint; the contracts stay in their own pairs.
+export { putToForeignOrigin } from "./foreignOrigin.js";
+export type { PutToForeignOriginOptions } from "./foreignOrigin.js";
+export { useObjectUrlPreview } from "./useObjectUrlPreview.js";
+
 // flow-machine primitive (frontend-standard §2 — the shared state container
 // every `@stapel/<module>-react` pair builds its machines on; lives here, not
 // copied per pair — frontend-core-architecture §4b). `useFlow` ships from core
