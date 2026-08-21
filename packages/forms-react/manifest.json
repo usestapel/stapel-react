@@ -1,0 +1,928 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/forms-react",
+  "version": "0.0.0",
+  "backend": {
+    "module": "stapel-forms",
+    "contract": ">=0.1 <0.2"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "forms_api_v1_forms_create": {
+      "method": "POST",
+      "path": "/forms/api/v1/forms",
+      "tag": "Forms",
+      "request": "FormCreate",
+      "response": "FormPresenterDTO"
+    },
+    "forms_api_v1_forms_destroy": {
+      "method": "DELETE",
+      "path": "/forms/api/v1/forms/{form_id}",
+      "tag": "Forms",
+      "request": null,
+      "response": null
+    },
+    "forms_api_v1_forms_draft_update": {
+      "method": "PUT",
+      "path": "/forms/api/v1/forms/{form_id}/draft",
+      "tag": "Forms",
+      "request": "Draft",
+      "response": "FormPresenterDTO"
+    },
+    "forms_api_v1_forms_list": {
+      "method": "GET",
+      "path": "/forms/api/v1/forms",
+      "tag": "Forms",
+      "request": null,
+      "response": null
+    },
+    "forms_api_v1_forms_partial_update": {
+      "method": "PATCH",
+      "path": "/forms/api/v1/forms/{form_id}",
+      "tag": "Forms",
+      "request": "PatchedFormPatch",
+      "response": "FormPresenterDTO"
+    },
+    "forms_api_v1_forms_publish_create": {
+      "method": "POST",
+      "path": "/forms/api/v1/forms/{form_id}/publish",
+      "tag": "Forms",
+      "request": null,
+      "response": "PublishResultDTO"
+    },
+    "forms_api_v1_forms_retrieve": {
+      "method": "GET",
+      "path": "/forms/api/v1/forms/{form_id}",
+      "tag": "Forms",
+      "request": null,
+      "response": "FormPresenterDTO"
+    },
+    "forms_api_v1_forms_rotate_link_create": {
+      "method": "POST",
+      "path": "/forms/api/v1/forms/{form_id}/rotate-link",
+      "tag": "Forms",
+      "request": null,
+      "response": "FormPresenterDTO"
+    },
+    "forms_api_v1_forms_state_create": {
+      "method": "POST",
+      "path": "/forms/api/v1/forms/{form_id}/state",
+      "tag": "Forms",
+      "request": "State",
+      "response": "FormPresenterDTO"
+    },
+    "forms_api_v1_forms_submissions_export_retrieve": {
+      "method": "GET",
+      "path": "/forms/api/v1/forms/{form_id}/submissions/export",
+      "tag": "Forms / responses",
+      "request": null,
+      "response": null
+    },
+    "forms_api_v1_forms_submissions_list": {
+      "method": "GET",
+      "path": "/forms/api/v1/forms/{form_id}/submissions",
+      "tag": "Forms / responses",
+      "request": null,
+      "response": null
+    },
+    "forms_api_v1_forms_versions_list": {
+      "method": "GET",
+      "path": "/forms/api/v1/forms/{form_id}/versions",
+      "tag": "Forms",
+      "request": null,
+      "response": null
+    },
+    "forms_api_v1_public_retrieve": {
+      "method": "GET",
+      "path": "/forms/api/v1/public/{public_id}/",
+      "tag": "Forms / public",
+      "request": null,
+      "response": "PublicFormDTO"
+    },
+    "forms_api_v1_public_submissions_create": {
+      "method": "POST",
+      "path": "/forms/api/v1/public/{public_id}/submissions/",
+      "tag": "Forms / public",
+      "request": "Submit",
+      "response": "SubmitResultDTO"
+    },
+    "forms_api_v1_submissions_destroy": {
+      "method": "DELETE",
+      "path": "/forms/api/v1/submissions/{submission_id}",
+      "tag": "Forms / responses",
+      "request": null,
+      "response": null
+    },
+    "forms_api_v1_submissions_resend_create": {
+      "method": "POST",
+      "path": "/forms/api/v1/submissions/{submission_id}/resend",
+      "tag": "Forms / responses",
+      "request": "Resend",
+      "response": "ResendResultDTO"
+    },
+    "forms_api_v1_submissions_retrieve": {
+      "method": "GET",
+      "path": "/forms/api/v1/submissions/{submission_id}",
+      "tag": "Forms / responses",
+      "request": null,
+      "response": "SubmissionPresenterDTO"
+    }
+  },
+  "hooks": {
+    "useCreateForm": {
+      "kind": "mutation",
+      "operation": "createForm"
+    },
+    "useDeleteForm": {
+      "kind": "mutation",
+      "operation": "deleteForm"
+    },
+    "useDeleteSubmission": {
+      "kind": "mutation",
+      "operation": "deleteSubmission"
+    },
+    "useForm": {
+      "kind": "query",
+      "operation": "getForm",
+      "queryKey": [
+        "forms",
+        "form",
+        "{workspaceId}",
+        "{formId}"
+      ]
+    },
+    "useForms": {
+      "kind": "query",
+      "operation": "listForms",
+      "queryKey": [
+        "forms",
+        "list",
+        "{workspaceId}",
+        "{…}"
+      ]
+    },
+    "useFormVersions": {
+      "kind": "query",
+      "operation": "listVersions",
+      "queryKey": [
+        "forms",
+        "versions",
+        "{workspaceId}",
+        "{formId}"
+      ]
+    },
+    "usePublicForm": {
+      "kind": "query",
+      "operation": "getPublicForm",
+      "queryKey": [
+        "forms",
+        "public",
+        "{publicId}"
+      ]
+    },
+    "usePublishForm": {
+      "kind": "mutation",
+      "operation": "publish"
+    },
+    "useResendSubmission": {
+      "kind": "mutation",
+      "operation": "resendSubmission"
+    },
+    "useRotateLink": {
+      "kind": "mutation",
+      "operation": "rotateLink"
+    },
+    "useSaveDraft": {
+      "kind": "mutation",
+      "operation": "putDraft"
+    },
+    "useSetFormState": {
+      "kind": "mutation",
+      "operation": "setState"
+    },
+    "useSubmission": {
+      "kind": "query",
+      "operation": "getSubmission",
+      "queryKey": [
+        "forms",
+        "submission",
+        "{workspaceId}",
+        "{submissionId}"
+      ]
+    },
+    "useSubmissions": {
+      "kind": "query",
+      "operation": "listSubmissions",
+      "queryKey": [
+        "forms",
+        "submissions",
+        "{params}"
+      ]
+    },
+    "useSubmitForm": {
+      "kind": "mutation",
+      "operation": "submit"
+    },
+    "useUpdateForm": {
+      "kind": "mutation",
+      "operation": "patchForm"
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.forms_answers_not_object": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.forms_duplicate_slug": {
+      "status": 400,
+      "params": [
+        "slug"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.forms_empty_schema": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.forms_invalid_retention": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.forms_invalid_schema": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.forms_invalid_state": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.forms_kind_not_allowed": {
+      "status": 400,
+      "params": [
+        "kind"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.forms_no_draft": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.forms_no_recipients": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.forms_not_published": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.forms_too_many_fields": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.forms_too_many_open": {
+      "status": 400,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.400.forms_unknown_field": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forms_forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.forms_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.forms_submission_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.forms_submission_cap": {
+      "status": 409,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.409.forms_version_superseded": {
+      "status": 409,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.410.forms_closed": {
+      "status": 410,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.forms_body_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.forms_workspaces_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "forms.builder",
+      "title": "Form builder",
+      "description": "Headless authoring: a draft schema, per-kind config forms mirrored from stapel-attributes, and the save-before-publish gate.",
+      "component": "FormBuilder",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/FormBuilder.demo.tsx"
+    },
+    {
+      "id": "forms.fill",
+      "title": "Form fill",
+      "description": "Headless anonymous fill: the schema load as a three-state LoadState, the unsupported-kind guard, and the submit gate's reason.",
+      "component": "FormFill",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "closed",
+        "outage"
+      ],
+      "source": "demo/FormFill.demo.tsx"
+    },
+    {
+      "id": "forms.list",
+      "title": "Forms list",
+      "description": "Headless list of a workspace's forms, rendered through matchList so 'no forms yet' can only be said about a load that succeeded.",
+      "component": "FormList",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/FormList.demo.tsx"
+    },
+    {
+      "id": "forms.provider",
+      "title": "Forms provider",
+      "description": "The headless forms root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "FormsProvider",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/Forms.demo.tsx"
+    },
+    {
+      "id": "forms.responses",
+      "title": "Responses table",
+      "description": "Headless response review: columns taken from the version each response answered, keyset paging, resend and CSV export.",
+      "component": "ResponsesTable",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "empty"
+      ],
+      "source": "demo/ResponsesTable.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.forms_answers_not_object",
+    "error.400.forms_duplicate_slug",
+    "error.400.forms_empty_schema",
+    "error.400.forms_invalid_retention",
+    "error.400.forms_invalid_schema",
+    "error.400.forms_invalid_state",
+    "error.400.forms_kind_not_allowed",
+    "error.400.forms_no_draft",
+    "error.400.forms_no_recipients",
+    "error.400.forms_not_published",
+    "error.400.forms_too_many_fields",
+    "error.400.forms_too_many_open",
+    "error.400.forms_unknown_field",
+    "error.400.invalid_ad_id",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.forms_forbidden",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.forms_not_found",
+    "error.404.forms_submission_not_found",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.409.forms_submission_cap",
+    "error.409.forms_version_superseded",
+    "error.410.forms_closed",
+    "error.410.gone",
+    "error.413.forms_body_too_large",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.forms_workspaces_unavailable",
+    "error.503.mandate_unavailable",
+    "forms.builder.add_field",
+    "forms.builder.blocked.empty_schema",
+    "forms.builder.blocked.no_changes",
+    "forms.builder.blocked.publishing",
+    "forms.builder.blocked.saving",
+    "forms.builder.blocked.unsaved_draft",
+    "forms.builder.builder_less",
+    "forms.builder.empty",
+    "forms.builder.field_kind",
+    "forms.builder.field_label",
+    "forms.builder.field_required",
+    "forms.builder.field_slug",
+    "forms.builder.meta_confirmation",
+    "forms.builder.meta_description",
+    "forms.builder.meta_submit_label",
+    "forms.builder.meta_title",
+    "forms.builder.move_down",
+    "forms.builder.move_up",
+    "forms.builder.public_link",
+    "forms.builder.publish",
+    "forms.builder.remove_field",
+    "forms.builder.rotate_link",
+    "forms.builder.save",
+    "forms.builder.state_closed",
+    "forms.builder.state_draft",
+    "forms.builder.state_open",
+    "forms.builder.title",
+    "forms.builder.unsupported_config",
+    "forms.error.unknown",
+    "forms.fill.bool_no",
+    "forms.fill.bool_yes",
+    "forms.fill.closed",
+    "forms.fill.load_failed",
+    "forms.fill.loading",
+    "forms.fill.not_found",
+    "forms.fill.optional_hint",
+    "forms.fill.required",
+    "forms.fill.retry",
+    "forms.fill.select_placeholder",
+    "forms.fill.submit",
+    "forms.fill.submitting",
+    "forms.fill.superseded",
+    "forms.fill.thanks",
+    "forms.fill.unlimited",
+    "forms.fill.unsupported_field",
+    "forms.list.create",
+    "forms.list.empty",
+    "forms.list.load_failed",
+    "forms.list.new_title",
+    "forms.list.submission_count",
+    "forms.list.title",
+    "forms.responses.all_versions",
+    "forms.responses.anonymous",
+    "forms.responses.blocked.at_end",
+    "forms.responses.blocked.at_start",
+    "forms.responses.close",
+    "forms.responses.delete",
+    "forms.responses.delete_confirm",
+    "forms.responses.detail",
+    "forms.responses.empty",
+    "forms.responses.erased",
+    "forms.responses.export",
+    "forms.responses.exporting",
+    "forms.responses.load_failed",
+    "forms.responses.next",
+    "forms.responses.prev",
+    "forms.responses.resend",
+    "forms.responses.resend_override",
+    "forms.responses.resend_override_hint",
+    "forms.responses.resend_sent",
+    "forms.responses.respondent",
+    "forms.responses.submitted_at",
+    "forms.responses.title",
+    "forms.responses.version",
+    "forms.submit.blocked.done",
+    "forms.submit.blocked.in_flight",
+    "forms.submit.blocked.unsupported_kind"
+  ],
+  "exports": {
+    "runtime": [
+      "ALLOWED_FIELD_KINDS",
+      "BUILDER_KINDS",
+      "FEATURE_ERROR_CODES",
+      "FEATURE_ERROR_KEYS",
+      "FIELD_KIND_CONFIG_FORMS",
+      "FORMS_ERRORS",
+      "FORMS_ERROR_CODES",
+      "FORMS_FLOWS",
+      "FORMS_I18N_KEYS",
+      "FORMS_NEXT_BEFORE_HEADER",
+      "FormBuilder",
+      "FormFill",
+      "FormList",
+      "FormsProvider",
+      "FormsRuntimeContext",
+      "ResponsesTable",
+      "concatCsvPages",
+      "configFormFor",
+      "createFlowMachine",
+      "createFormsApi",
+      "createFormsRuntime",
+      "defaultConfigFor",
+      "explainFormsError",
+      "exportSubmissionsCsv",
+      "flowEndpoints",
+      "formsErrorBundleEn",
+      "formsI18nBundleEn",
+      "formsQueryKeys",
+      "isBlank",
+      "isBuilderSupportedKind",
+      "isErrorCode",
+      "optionValues",
+      "registerFormFieldWidget",
+      "registerFormsI18n",
+      "registeredFormFieldKinds",
+      "resolveFormFieldWidget",
+      "toFlowError",
+      "unregisterFormFieldWidget",
+      "useCreateForm",
+      "useCsvExport",
+      "useDeleteForm",
+      "useDeleteSubmission",
+      "useFlow",
+      "useForm",
+      "useFormVersions",
+      "useForms",
+      "useFormsAnalytics",
+      "useFormsApi",
+      "useFormsRuntime",
+      "usePublicForm",
+      "usePublishForm",
+      "useResendSubmission",
+      "useRotateLink",
+      "useSaveDraft",
+      "useSetFormState",
+      "useSubmission",
+      "useSubmissions",
+      "useSubmitForm",
+      "useUpdateForm",
+      "validateAnswers",
+      "validateFieldValue"
+    ],
+    "types": [
+      "BuilderField",
+      "BuiltinFieldKind",
+      "ConfigFieldKind",
+      "ConfigFieldSpec",
+      "ConfigSelectOption",
+      "CreateFormsRuntimeOptions",
+      "CsvExportBag",
+      "CsvExportPage",
+      "FlowEndpoint",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "FormBuilderBag",
+      "FormCreateRequest",
+      "FormFieldDef",
+      "FormFieldWidget",
+      "FormFieldWidgetProps",
+      "FormFillBag",
+      "FormListBag",
+      "FormPatchRequest",
+      "FormRef",
+      "FormRow",
+      "FormSchema",
+      "FormSchemaMeta",
+      "FormSettings",
+      "FormState",
+      "FormVersion",
+      "FormsApi",
+      "FormsApiOptions",
+      "FormsErrorCode",
+      "FormsErrorSpec",
+      "FormsFlowId",
+      "FormsFlowSpec",
+      "FormsI18nKey",
+      "FormsRawTransport",
+      "FormsRuntime",
+      "KindConfigForm",
+      "PublicForm",
+      "PublishResult",
+      "Remediation",
+      "ResendRequest",
+      "ResendResult",
+      "ResendVariables",
+      "ResponseColumn",
+      "ResponsesTableBag",
+      "ResponsesView",
+      "SaveDraftVariables",
+      "Schemas",
+      "SetFormStateVariables",
+      "Submission",
+      "SubmissionListParams",
+      "SubmissionRef",
+      "SubmitRequest",
+      "SubmitResult",
+      "SubmitVariables",
+      "UpdateFormVariables"
+    ]
+  }
+}

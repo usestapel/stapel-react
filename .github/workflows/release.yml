@@ -119,12 +119,19 @@ jobs:
           ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-recordings'].ref }}
           path: .other-source/stapel-recordings
 
+      - name: Check out stapel-forms (contract artifacts)
+        uses: actions/checkout@v4
+        with:
+          repository: usestapel/stapel-forms
+          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-forms'].ref }}
+          path: .other-source/stapel-forms
+
       - name: Symlink sibling repos to where the gen:* drivers expect them
         # stapel-auth included: gen:api/gen:flows read ../stapel-auth/docs/*
         # inline from package.json, same as every other pair.
         run: |
           ln -sf "$GITHUB_WORKSPACE/.errors-source/stapel-auth" "$GITHUB_WORKSPACE/../stapel-auth"
-          for m in stapel-core stapel-notifications stapel-profiles stapel-billing stapel-workspaces stapel-calendar stapel-recordings; do
+          for m in stapel-core stapel-notifications stapel-profiles stapel-billing stapel-workspaces stapel-calendar stapel-recordings stapel-forms; do
             ln -sf "$GITHUB_WORKSPACE/.other-source/$m" "$GITHUB_WORKSPACE/../$m"
           done
 

@@ -1,0 +1,110 @@
+# @stapel/forms-react 0.0.0
+
+Headless React flow pair for stapel-forms (contract >=0.1 <0.2) — business + state, zero visual opinion.
+Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
+verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
+
+## The one right way (do this, the rest is a review/lint smell)
+- No raw fetch/axios. The client is injected via <FormsProvider>/StapelConfigProvider;
+  every hook and flow already carries auth, refresh, and the error envelope.
+- Render errors, never try/catch them: a flow's state carries FlowError{code,params};
+  render `t(code, params)` and branch on `explainFormsError(code)` remediation.
+- Server state = the use* hooks (query layer); keys come only from formsQueryKeys.
+- User strings = i18n keys (registerFormsI18n); never string literals.
+- Sign-in UI = a headless flow component; copy it (shadcn-style) to restyle.
+
+## Layers
+api (typed client) · model (hooks, session) · flows (machines) · headless · i18n
+
+## Documented flows (flows.json — canonical id, steps, endpoints)
+
+## Operations (typed; use the named op, never a path string)
+Request/response schema names are in manifest.json + the generated types.
+Paths are relative to `/forms/api/v1/`.
+- forms_api_v1_forms_create: POST /forms
+- forms_api_v1_forms_destroy: DELETE /forms/{form_id}
+- forms_api_v1_forms_draft_update: PUT /forms/{form_id}/draft
+- forms_api_v1_forms_list: GET /forms
+- forms_api_v1_forms_partial_update: PATCH /forms/{form_id}
+- forms_api_v1_forms_publish_create: POST /forms/{form_id}/publish
+- forms_api_v1_forms_retrieve: GET /forms/{form_id}
+- forms_api_v1_forms_rotate_link_create: POST /forms/{form_id}/rotate-link
+- forms_api_v1_forms_state_create: POST /forms/{form_id}/state
+- forms_api_v1_forms_submissions_export_retrieve: GET /forms/{form_id}/submissions/export
+- forms_api_v1_forms_submissions_list: GET /forms/{form_id}/submissions
+- forms_api_v1_forms_versions_list: GET /forms/{form_id}/versions
+- forms_api_v1_public_retrieve: GET /public/{public_id}/
+- forms_api_v1_public_submissions_create: POST /public/{public_id}/submissions/
+- forms_api_v1_submissions_destroy: DELETE /submissions/{submission_id}
+- forms_api_v1_submissions_resend_create: POST /submissions/{submission_id}/resend
+- forms_api_v1_submissions_retrieve: GET /submissions/{submission_id}
+
+## Query hooks (server state; keys come only from the key factory)
+- useCreateForm (mutation) → createForm
+- useDeleteForm (mutation) → deleteForm
+- useDeleteSubmission (mutation) → deleteSubmission
+- useForm (query) → getForm
+- useForms (query) → listForms
+- useFormVersions (query) → listVersions
+- usePublicForm (query) → getPublicForm
+- usePublishForm (mutation) → publish
+- useResendSubmission (mutation) → resendSubmission
+- useRotateLink (mutation) → rotateLink
+- useSaveDraft (mutation) → putDraft
+- useSetFormState (mutation) → setState
+- useSubmission (query) → getSubmission
+- useSubmissions (query) → listSubmissions
+- useSubmitForm (mutation) → submit
+- useUpdateForm (mutation) → patchForm
+
+## Errors (render t(code, params); UX from remediation)
+63 keys (full catalog: manifest.json §errors). By remediation: fix_input 29 · retry 14 · verify 7 · contact_support 6 · wait_and_retry 6 · reauthenticate 1.
+Param-bearing keys (interpolation slots matter):
+- error.400.field.blank [400] → fix_input {field}
+- error.400.field.does_not_exist [400] → fix_input {field}
+- error.400.field.invalid [400] → fix_input {field}
+- error.400.field.invalid_choice [400] → fix_input {field}
+- error.400.field.max_length [400] → fix_input {field,max_length}
+- error.400.field.max_value [400] → fix_input {field,max_value}
+- error.400.field.min_length [400] → fix_input {field,min_length}
+- error.400.field.min_value [400] → fix_input {field,min_value}
+- error.400.field.null [400] → fix_input {field}
+- error.400.field.required [400] → fix_input {field}
+- error.400.field.unique [400] → fix_input {field}
+- error.400.forms_duplicate_slug [400] → fix_input {slug}
+- error.400.forms_kind_not_allowed [400] → fix_input {kind}
+- error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
+
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- forms.builder → <FormBuilder> [default]  demo/FormBuilder.demo.tsx
+- forms.fill → <FormFill> [default|closed|outage]  demo/FormFill.demo.tsx
+- forms.list → <FormList> [default]  demo/FormList.demo.tsx
+- forms.provider → <FormsProvider> [default]  demo/Forms.demo.tsx
+- forms.responses → <ResponsesTable> [default|empty]  demo/ResponsesTable.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
+
+## Snippets
+```tsx
+// Error rendering + remediation branch (one pattern for every pair).
+const r = explainFormsError(err.code); // 'wait_and_retry' | 'verify' | ...
+return <Alert action={r}>{t(err.code, err.params)}</Alert>;
+```
