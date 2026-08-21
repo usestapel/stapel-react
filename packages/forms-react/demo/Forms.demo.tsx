@@ -16,10 +16,10 @@ function FormsProviderDemo(): ReactElement {
 
 /**
  * The completeness gate (gen:demos) requires every exported headless component
- * to have ≥1 demo. This starter demo covers `FormsProvider` — the pair's only
- * headless export at scaffold time. Add one `<Name>.demo.tsx` per headless flow
- * component (with `defineDemo({ component: <X>, flow: "forms.<id>", … })`)
- * as you build them; each becomes a smoke test AND a Ladle story automatically.
+ * to have ≥1 demo. This one covers `FormsProvider`, which has nothing to show
+ * but the fact that it wires the runtime — the four components that DO have
+ * behaviour get their own demos (`FormFill`, `FormBuilder`, `ResponsesTable`,
+ * `FormList`), each a smoke test and a Ladle story.
  */
 export default defineDemo({
   id: "forms.provider",
