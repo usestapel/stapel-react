@@ -71,6 +71,39 @@ Transitional note: while a backend's contract commits exist only locally
 GitHub-side CI can only resolve such a sha after the backend push wave
 lands — a checkout failure before that is expected, not a regression.
 
+## Publishing a pair for the FIRST time
+
+Releases are tokenless: npm **OIDC trusted publishing**, configured per package
+against this repo + `release.yml`. A trusted publisher can only be configured
+for a package that already exists on the registry, and OIDC cannot create one —
+so the very first publish of a NEW package fails, every time, with:
+
+```
+error an error occurred while publishing @stapel/<name>: E404 undefined
+  "message": "404 Not Found - PUT https://registry.npmjs.org/@stapel%2f<name> - Not found"
+```
+
+That is the documented bootstrap case (see the header comment in
+`.github/workflows/release.yml`), not a broken pipeline: every already-published
+sibling in the same run reports "already published" and only the new package
+fails. Confirm with `curl -o /dev/null -w '%{http_code}' https://registry.npmjs.org/@stapel%2f<name>`
+— a 404 means the package has never existed.
+
+Closing it takes a person with npm write access on the `@stapel` org, once per
+package:
+
+1. `npm login` (the CI has no credentials that can create a package, by design).
+2. From the package directory, with the version already bumped and committed:
+   ```
+   pnpm -r --filter @stapel/<name> publish --access public
+   ```
+3. On npmjs.com, add a **trusted publisher** for the new package pointing at
+   `usestapel/stapel-react` + `release.yml`.
+4. Re-run the failed Release workflow, or let the next push to `main` publish
+   normally. Every subsequent release is tokenless.
+
+Until step 3 is done the package publishes only by hand, so do not skip it.
+
 ## Code rules (short version)
 
 - TS strict + `isolatedDeclarations`; no `any` in public API.
