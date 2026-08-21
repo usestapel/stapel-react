@@ -1,0 +1,107 @@
+{
+  "name": "@stapel/attributes-react",
+  "version": "0.1.0",
+  "description": "React value layer for stapel-attributes' dynamic feature types: a value-editor registry keyed on config.type (explicit registration > skin builtin > loud unsupported notice, with the submit blocked and the reason named), a client-side validation mirror that speaks the engine's own error.400.feature_* keys (pattern as fullmatch, string length in Unicode code points), DTO helpers for the {slug: {type, value}} wire shape, and display formatting. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd editors for all ten builtin types plus <FeatureFields> and <FeatureBadges>.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usestapel/stapel-react.git",
+    "directory": "packages/attributes-react"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./default": {
+      "types": "./dist/default/index.d.ts",
+      "default": "./dist/default/index.js"
+    },
+    "./i18n/ru": {
+      "types": "./dist/i18n/ru.d.ts",
+      "default": "./dist/i18n/ru.js"
+    },
+    "./i18n/es": {
+      "types": "./dist/i18n/es.d.ts",
+      "default": "./dist/i18n/es.js"
+    },
+    "./manifest": "./manifest.json",
+    "./manifest.json": "./manifest.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "tsconfig.json",
+    "README.md",
+    "manifest.json"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.test.json && vitest run",
+    "lint": "eslint .",
+    "size": "size-limit"
+  },
+  "size-limit": [
+    {
+      "name": "index — the registry + mirror + DTO helpers must stay React-only: no antd",
+      "path": "dist/index.js",
+      "limit": "8 KB"
+    },
+    {
+      "name": "default — the antd value editors must stay out of the main bundle",
+      "path": "dist/default/index.js",
+      "limit": "14 KB"
+    },
+    {
+      "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",
+      "path": "dist/i18n/ru.js",
+      "limit": "3 KB"
+    },
+    {
+      "name": "i18n/es — the Spanish bundle is opt-in, not carried by the main entry",
+      "path": "dist/i18n/es.js",
+      "limit": "3 KB"
+    }
+  ],
+  "peerDependencies": {
+    "@stapel/core": ">=0.14.0 <1.0.0",
+    "@stapel/tokens-antd": ">=0.5.0",
+    "antd": ">=5.20.0 <7",
+    "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "@stapel/tokens-antd": {
+      "optional": true
+    },
+    "antd": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@size-limit/preset-small-lib": "^11.2.0",
+    "@stapel/core": "workspace:^",
+    "@stapel/tokens": "workspace:^",
+    "@stapel/tokens-antd": "workspace:^",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "antd": "^6.5.0",
+    "jsdom": "^26.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "size-limit": "^11.2.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

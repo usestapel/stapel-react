@@ -24,6 +24,7 @@ side).
 | L0 | `@stapel/core` | Runtime: typed fetch, `StapelError` envelope, auth token/refresh seams, verification-403 interception, query layer (TanStack Query) + per-user persistence, i18n engine, config provider, `<StapelProvider>` one-provider setup, module-pair factories, analytics type seam |
 | L0 | `@stapel/tokens` | Design tokens: semantic colors (light/dark pairs), typography, spacing, radii, 3 breakpoints. CSS variables + TS types. NOT components |
 | L0 | `@stapel/analytics` | Analytics facade implementation behind core's type seam: consent gate, PII guard, offline queue, provider fan-out, typed `defineEvent`/`tracked`. Mandatory in stapel-studio apps; optional for OSS consumers |
+| L0 | `@stapel/attributes-react` | Value layer for `stapel-attributes`' dynamic feature types: a value-editor registry keyed on `config.type`, a client-side validation mirror speaking the engine's own error keys, DTO helpers, display formatting. No client — its backend counterpart is an L1 library with no HTTP surface |
 | L2 | `@stapel/<module>-react` (7 pairs) | Pair to a backend module: generated typed client, TanStack Query hooks, flow machines, headless components, i18n keys, self-describing `manifest.json`/`llms.txt` |
 | L3 | host applications | Visuals, composition, routing |
 
@@ -38,6 +39,7 @@ Dependency direction is strictly downward; L2 packages never import each other
 | [`@stapel/core`](./packages/core) | — (shared runtime) |
 | [`@stapel/analytics`](./packages/analytics) | — (facade impl over core's seam) |
 | [`@stapel/eslint-plugin`](./packages/eslint-plugin) | — (guardrails preset) |
+| [`@stapel/attributes-react`](./packages/attributes-react) | stapel-attributes (L1 library, no HTTP surface — value editors + validation mirror) |
 | [`@stapel/auth-react`](./packages/auth-react) | stapel-auth (flagship: session, factors, step-up verification) |
 | [`@stapel/profiles-react`](./packages/profiles-react) | stapel-profiles |
 | [`@stapel/notifications-react`](./packages/notifications-react) | stapel-notifications |

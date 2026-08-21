@@ -1,0 +1,34 @@
+{
+  "_source": "stapel-attributes: tests/golden/declarations.json (keys = the builtin feature-type registry) + tests/golden/error_codes.json (generated from the ValidationErrorCode enum). Both are drift-gated upstream by tests/test_golden.py and static_src/src/golden.test.ts.",
+  "_version": "0.4.6",
+  "_ref": "33ea1506793f6120bbcbd93eb450b789c1dc838f",
+  "types": [
+    "bool",
+    "convertible_unit",
+    "date",
+    "float",
+    "header",
+    "hex_color",
+    "hierarchical_select",
+    "int",
+    "select",
+    "string"
+  ],
+  "errorCodes": [
+    "above_maximum",
+    "below_minimum",
+    "description_too_long",
+    "description_too_short",
+    "duplicate_slug",
+    "empty_options",
+    "invalid_config",
+    "invalid_format",
+    "invalid_type",
+    "mandatory_missing",
+    "min_greater_than_max",
+    "not_allowed",
+    "not_in_options",
+    "unknown_feature",
+    "unknown_feature_type"
+  ]
+}
