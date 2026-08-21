@@ -1,5 +1,16 @@
 # @stapel/workspaces-react
 
+## 0.17.0
+
+### Minor Changes
+
+- ace82db: `useMandateSource()` — this module's derivation in the shape core's
+  `<MandateProvider>` takes. A screen reads the axis with `useMandate()` from
+  `@stapel/core` and no longer imports this package to do it, which is what
+  lets the same screen work on a public surface that has no workspace list at
+  all. `useMandateState()` and its behaviour are unchanged; the `@stapel/core`
+  floor rises to the release that carries the seam.
+
 ## 0.16.0
 
 ### Minor Changes
