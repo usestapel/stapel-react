@@ -1,0 +1,652 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/search-react",
+  "version": "0.1.0",
+  "backend": {
+    "module": "stapel-search",
+    "contract": ">=0.1 <0.2"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "search_api_v1_health_retrieve": {
+      "method": "GET",
+      "path": "/search/api/v1/health",
+      "tag": "search",
+      "request": null,
+      "response": "HealthResponse"
+    },
+    "search_api_v1_query_retrieve": {
+      "method": "GET",
+      "path": "/search/api/v1/query",
+      "tag": "search",
+      "request": null,
+      "response": "SearchResponse"
+    },
+    "search_api_v1_ranking_retrieve": {
+      "method": "GET",
+      "path": "/search/api/v1/ranking",
+      "tag": "search",
+      "request": null,
+      "response": "RankingResponse"
+    },
+    "search_api_v1_reindex_create": {
+      "method": "POST",
+      "path": "/search/api/v1/reindex",
+      "tag": "search",
+      "request": "ReindexRequest",
+      "response": "ReindexResponse"
+    },
+    "search_api_v1_suggest_retrieve": {
+      "method": "GET",
+      "path": "/search/api/v1/suggest",
+      "tag": "search",
+      "request": null,
+      "response": "SuggestResponse"
+    }
+  },
+  "hooks": {
+    "useRankingDisclosure": {
+      "kind": "query",
+      "operation": "ranking",
+      "queryKey": [
+        "search",
+        "ranking",
+        "{…}"
+      ]
+    },
+    "useSearchQuery": {
+      "kind": "query",
+      "operation": "query",
+      "queryKey": [
+        "search",
+        "query",
+        "{params}"
+      ]
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.search_bad_cursor": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.search_bad_geo": {
+      "status": 400,
+      "params": [
+        "reason"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.search_bad_range": {
+      "status": 400,
+      "params": [
+        "slug",
+        "reason"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.search_query_too_long": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.search_sort_needs_center": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.search_too_many_facets": {
+      "status": 400,
+      "params": [
+        "limit"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.search_too_many_ranges": {
+      "status": 400,
+      "params": [
+        "limit"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.search_unknown_doc_type": {
+      "status": 400,
+      "params": [
+        "doc_type"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.search_unknown_sort": {
+      "status": 400,
+      "params": [
+        "sort"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.search_window_exceeded": {
+      "status": 400,
+      "params": [
+        "window"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.search_forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.search_backend_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "search.facets",
+      "title": "Facet panel",
+      "description": "Counts are computed with each facet's own filter removed, so picking one value does not zero its siblings. Labels come from the category schema through @stapel/attributes-react; a slug the server skipped shows 'not counted', never 0.",
+      "component": "FacetPanel",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/FacetPanel.demo.tsx"
+    },
+    {
+      "id": "search.ranking",
+      "title": "Ranking disclosure",
+      "description": "Which parameters order the results and how much each weighs, straight from the scorer registry. Parameters the configured engine cannot evaluate are listed with their reason rather than filtered out.",
+      "component": "RankingDisclosure",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/RankingDisclosure.demo.tsx"
+    },
+    {
+      "id": "search.results",
+      "title": "Search results",
+      "description": "One keyset page, rendered through matchList so 'nothing found' can only be said about a search that actually ran. The count is marked as an estimate when the envelope says so, and degraded[] is surfaced rather than swallowed.",
+      "component": "SearchResults",
+      "covers": [
+        "SearchProvider",
+        "SearchStateProvider"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/SearchResults.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.search_bad_cursor",
+    "error.400.search_bad_geo",
+    "error.400.search_bad_range",
+    "error.400.search_query_too_long",
+    "error.400.search_sort_needs_center",
+    "error.400.search_too_many_facets",
+    "error.400.search_too_many_ranges",
+    "error.400.search_unknown_doc_type",
+    "error.400.search_unknown_sort",
+    "error.400.search_window_exceeded",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.search_forbidden",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.mandate_unavailable",
+    "error.503.search_backend_unavailable",
+    "search.degraded.category_rollup",
+    "search.degraded.exact_facet_counts",
+    "search.degraded.exact_total",
+    "search.degraded.phrase_synonyms",
+    "search.degraded.scorer",
+    "search.degraded.title",
+    "search.degraded.typo_tolerance",
+    "search.degraded.unknown",
+    "search.error.unknown",
+    "search.facets.approximate",
+    "search.facets.clear",
+    "search.facets.clear_all",
+    "search.facets.drill_down_hint",
+    "search.facets.empty",
+    "search.facets.load_failed",
+    "search.facets.loading",
+    "search.facets.not_counted",
+    "search.facets.range_apply",
+    "search.facets.range_from",
+    "search.facets.range_to",
+    "search.facets.skipped",
+    "search.facets.title",
+    "search.geo.box",
+    "search.geo.center",
+    "search.geo.clear",
+    "search.geo.radius_km",
+    "search.geo.title",
+    "search.ranking.applies_to",
+    "search.ranking.empty",
+    "search.ranking.inactive",
+    "search.ranking.intro",
+    "search.ranking.link",
+    "search.ranking.load_failed",
+    "search.ranking.loading",
+    "search.ranking.notes",
+    "search.ranking.parameter",
+    "search.ranking.title",
+    "search.ranking.weight",
+    "search.results.blocked.at_end",
+    "search.results.blocked.at_start",
+    "search.results.count_approximate",
+    "search.results.count_exact",
+    "search.results.distance_km",
+    "search.results.empty",
+    "search.results.load_failed",
+    "search.results.loading",
+    "search.results.next",
+    "search.results.open",
+    "search.results.prev",
+    "search.results.promoted",
+    "search.results.promoted_hint",
+    "search.results.retry",
+    "search.results.title",
+    "search.results.took_ms",
+    "search.results.untitled",
+    "search.results.window_exceeded",
+    "search.sort.distance",
+    "search.sort.label",
+    "search.sort.newest",
+    "search.sort.price_asc",
+    "search.sort.price_desc",
+    "search.sort.relevance",
+    "search.sort.server_chose",
+    "search.url.issue.bbox_malformed",
+    "search.url.issue.geo_incomplete",
+    "search.url.issue.not_a_number",
+    "search.url.issue.range_malformed",
+    "search.url.issues_title"
+  ],
+  "exports": {
+    "runtime": [
+      "FILTER_PREFIX",
+      "FacetPanel",
+      "RANGE_PREFIX",
+      "RankingDisclosure",
+      "SEARCH_BACKEND_UNAVAILABLE",
+      "SEARCH_ERRORS",
+      "SEARCH_ERROR_CODES",
+      "SEARCH_I18N_KEYS",
+      "SEARCH_PARAM",
+      "SEARCH_SORTS",
+      "SEARCH_WINDOW_EXCEEDED",
+      "SearchProvider",
+      "SearchResults",
+      "SearchRuntimeContext",
+      "SearchStateProvider",
+      "activeFilterCount",
+      "buildFacetGroups",
+      "clearFilters",
+      "countIsEstimate",
+      "createSearchApi",
+      "createSearchRuntime",
+      "degradationMessageKey",
+      "explainSearchError",
+      "facetOptionLabel",
+      "navEntries",
+      "ownsParam",
+      "parseDegradations",
+      "parseSearchState",
+      "patchSearchState",
+      "registerSearchI18n",
+      "searchErrorBundleEn",
+      "searchI18nBundleEn",
+      "searchQueryKeys",
+      "searchQueryParams",
+      "setFilterValues",
+      "setRangeValue",
+      "toggleFilterValue",
+      "useRankingDisclosure",
+      "useSearchAnalytics",
+      "useSearchApi",
+      "useSearchQuery",
+      "useSearchRuntime",
+      "useSearchState",
+      "writeSearchState"
+    ],
+    "types": [
+      "BuildFacetGroupsInput",
+      "CreateSearchRuntimeOptions",
+      "FacetGroup",
+      "FacetMeta",
+      "FacetOption",
+      "FacetPanelBag",
+      "FacetSelection",
+      "ParseSearchStateOptions",
+      "ParsedSearchState",
+      "RankingDisclosureBag",
+      "RankingResponse",
+      "Remediation",
+      "Schemas",
+      "Scorer",
+      "SearchApi",
+      "SearchDegradation",
+      "SearchDegradationKind",
+      "SearchErrorCode",
+      "SearchErrorSpec",
+      "SearchGeo",
+      "SearchGeoBox",
+      "SearchGeoCenter",
+      "SearchI18nKey",
+      "SearchItem",
+      "SearchPageInfo",
+      "SearchParamsAdapter",
+      "SearchQueryKeyParams",
+      "SearchQueryState",
+      "SearchRange",
+      "SearchResponse",
+      "SearchResultsBag",
+      "SearchRuntime",
+      "SearchStateBag",
+      "SearchStateIssue",
+      "SearchStateIssueCode",
+      "SearchStatePatch",
+      "SearchStateProviderProps",
+      "SuggestParams",
+      "SuggestResponse"
+    ]
+  }
+}

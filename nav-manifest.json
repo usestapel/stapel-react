@@ -110,6 +110,50 @@
           "order": 90
         }
       ]
+    },
+    {
+      "package": "@stapel/search-react",
+      "version": "0.1.0",
+      "entries": [
+        {
+          "id": "search.results",
+          "labelKey": "search.results.title",
+          "icon": "SearchOutlined",
+          "route": {
+            "path": "/s"
+          },
+          "component": {
+            "export": "SearchPage",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": false,
+          "requiresAuth": false,
+          "surface": "public",
+          "order": 10
+        },
+        {
+          "id": "search.ranking",
+          "labelKey": "search.ranking.title",
+          "icon": "OrderedListOutlined",
+          "route": {
+            "path": "/ranking-disclosure"
+          },
+          "component": {
+            "export": "RankingDisclosurePane",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": false,
+          "requiresAuth": false,
+          "surface": "public",
+          "order": 11
+        }
+      ]
     }
   ]
 }

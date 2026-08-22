@@ -12,8 +12,27 @@ export interface StapelRequestOptions {
   /** JSON-serialized unless it is a `BodyInit` (FormData, Blob, string…). */
   readonly body?: unknown;
   readonly headers?: Record<string, string>;
-  /** Appended to the URL; `undefined` values are skipped. */
-  readonly query?: Record<string, string | number | boolean | undefined>;
+  /**
+   * Appended to the URL; `undefined` values are skipped.
+   *
+   * An ARRAY value repeats the key — `{ "f.brand": ["a", "b"] }` becomes
+   * `?f.brand=a&f.brand=b`, in the given order. Repetition is a contract some
+   * backends actually specify (stapel-search reads a repeated `f.<slug>` as OR
+   * within a slug and different slugs as AND, `stapel-search/query.py`), and a
+   * pair that cannot express it would have to hand-build its own URL — a
+   * second query encoder next to this one, outside the client's escaping and
+   * outside `stapel/no-string-paths`. An empty array contributes nothing,
+   * exactly like `undefined`: "no filter" and "a filter with no values" must
+   * not produce different URLs.
+   */
+  readonly query?: Record<
+    string,
+    | string
+    | number
+    | boolean
+    | undefined
+    | readonly (string | number | boolean)[]
+  >;
   readonly signal?: AbortSignal;
 }
 
@@ -101,7 +120,15 @@ function buildUrl(
   if (query) {
     const search = new URLSearchParams();
     for (const [key, value] of Object.entries(query)) {
-      if (value !== undefined) search.set(key, String(value));
+      if (value === undefined) continue;
+      if (Array.isArray(value)) {
+        // `append`, not `set`: the repetition IS the meaning (see the
+        // `query` doc comment). Order is preserved so a cursor or a
+        // signature over the URL stays reproducible.
+        for (const item of value) search.append(key, String(item));
+        continue;
+      }
+      search.set(key, String(value));
     }
     const qs = search.toString();
     if (qs.length > 0) url += `?${qs}`;

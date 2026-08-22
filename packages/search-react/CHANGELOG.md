@@ -1,0 +1,1 @@
+# @stapel/search-react

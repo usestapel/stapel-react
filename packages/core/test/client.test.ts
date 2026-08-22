@@ -307,4 +307,29 @@ describe("createStapelClient", () => {
       query: { page: 2, archived: false, cursor: undefined },
     });
   });
+
+  it("repeats an array-valued query key, in order, and drops an empty one", async () => {
+    // The repetition is the meaning: stapel-search reads a repeated
+    // `f.<slug>` as OR within the slug. An empty array must look exactly
+    // like no filter at all, not like an empty-string value.
+    let seen: URL | null = null;
+    server.use(
+      http.get(`${BASE}/v1/query`, ({ request }) => {
+        seen = new URL(request.url);
+        return HttpResponse.json({});
+      })
+    );
+    const client = createStapelClient({ baseUrl: BASE });
+    await client.get("/v1/query", {
+      query: {
+        "f.brand": ["bosch", "makita"],
+        "f.state": [],
+        type: "listing",
+      },
+    });
+    const url = seen as unknown as URL;
+    expect(url.searchParams.getAll("f.brand")).toEqual(["bosch", "makita"]);
+    expect(url.searchParams.has("f.state")).toBe(false);
+    expect(url.searchParams.get("type")).toBe("listing");
+  });
 });

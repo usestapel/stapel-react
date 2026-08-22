@@ -1,0 +1,67 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/search-react",
+  "version": "0.1.0",
+  "demos": [
+    {
+      "id": "search.facets",
+      "title": "Facet panel",
+      "description": "Counts are computed with each facet's own filter removed, so picking one value does not zero its siblings. Labels come from the category schema through @stapel/attributes-react; a slug the server skipped shows 'not counted', never 0.",
+      "component": "FacetPanel",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/FacetPanel.demo.tsx",
+        "line": 38
+      }
+    },
+    {
+      "id": "search.ranking",
+      "title": "Ranking disclosure",
+      "description": "Which parameters order the results and how much each weighs, straight from the scorer registry. Parameters the configured engine cannot evaluate are listed with their reason rather than filtered out.",
+      "component": "RankingDisclosure",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/RankingDisclosure.demo.tsx",
+        "line": 35
+      }
+    },
+    {
+      "id": "search.results",
+      "title": "Search results",
+      "description": "One keyset page, rendered through matchList so 'nothing found' can only be said about a search that actually ran. The count is marked as an estimate when the envelope says so, and degraded[] is surfaced rather than swallowed.",
+      "component": "SearchResults",
+      "covers": [
+        "SearchProvider",
+        "SearchStateProvider"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/SearchResults.demo.tsx",
+        "line": 40
+      }
+    }
+  ]
+}
