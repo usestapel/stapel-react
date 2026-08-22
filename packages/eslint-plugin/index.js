@@ -4,6 +4,7 @@
 // codegen writes, so lint and code never drift. Ships a flat-config
 // `recommended` preset; the stylelint preset lives at @stapel/eslint-plugin/
 // stylelint.
+import { readFileSync } from "node:fs";
 import noRawColors from "./rules/no-raw-colors.js";
 import validTokenName from "./rules/valid-token-name.js";
 import noRawTokenImport from "./rules/no-raw-token-import.js";
@@ -68,13 +69,18 @@ const rules = {
   "no-mixed-script-word": noMixedScriptWord,
 };
 
+// Read from package.json rather than typed: this is the version ESLint prints
+// for the plugin in `--debug` and in config inspector output — exactly what
+// someone reads when asking "which version of this rule am I actually
+// running?" — and a literal drifted on three bumps running (0.6.0 on a 0.7.0
+// package; then the 0.10.0 version commit). The test in
+// recommended-preset.test.js still pins the equality so the read cannot rot.
+const { name: pkgName, version: pkgVersion } = JSON.parse(
+  readFileSync(new URL("./package.json", import.meta.url), "utf8"),
+);
+
 const plugin = {
-  // Kept in step with package.json by a test (recommended-preset.test.js) —
-  // it had already drifted two releases (0.6.0 on a 0.7.0 package), and this
-  // is the version ESLint prints for the plugin in `--debug` and in config
-  // inspector output, i.e. exactly what someone reads when asking "which
-  // version of this rule am I actually running?".
-  meta: { name: "@stapel/eslint-plugin", version: "0.9.0" },
+  meta: { name: pkgName, version: pkgVersion },
   rules,
 };
 
