@@ -51,6 +51,18 @@ function rendered(): number[] {
   return screen.queryAllByTestId("row").map((node) => Number(node.textContent));
 }
 
+/**
+ * The initial window is on screen. NOT `toEqual([1, 2, 3])`: with a 20 ms
+ * refresh the tail (seq 4) can land before `waitFor`'s first 50 ms look, so
+ * the exact intermediate state is a race the test must not depend on — it
+ * did, and lost on a slow CI runner three tests in a row. The initial three
+ * are the prefix either way; the tail is asserted separately where it
+ * matters.
+ */
+async function initialWindowOnScreen(): Promise<void> {
+  await waitFor(() => expect(rendered().slice(0, 3)).toEqual([1, 2, 3]));
+}
+
 function threadServer(): MockServer {
   let tailDelivered = false;
   return mockServer({
@@ -121,7 +133,7 @@ describe("the thread renders the same under either transport", () => {
 
   it("polling: no socket, same window, same tail-by-seq, same screen", async () => {
     const { server } = mount({ socket: false, intervalMs: 20 });
-    await waitFor(() => expect(rendered()).toEqual([1, 2, 3]));
+    await initialWindowOnScreen();
     expect(screen.getByTestId("transport").textContent).toBe("polling");
 
     await waitFor(() => expect(rendered()).toEqual([1, 2, 3, 4]));
@@ -133,7 +145,7 @@ describe("the thread renders the same under either transport", () => {
 describe("the socket's refusals hand over to polling", () => {
   it("4403 stops the socket for good and the thread keeps refreshing", async () => {
     const { server, transport } = mount({ socket: true, intervalMs: 20 });
-    await waitFor(() => expect(rendered()).toEqual([1, 2, 3]));
+    await initialWindowOnScreen();
     await waitFor(() => expect(transport?.sockets.length).toBe(1));
 
     act(() => transport?.last().serverClose(4403));
@@ -199,7 +211,10 @@ describe("polling is visibility-aware and backs off", () => {
         <Thread intervalMs={10} />
       </TestHarness>
     );
-    await waitFor(() => expect(rendered()).toEqual([1, 2, 3]));
+    // The first page has been served; whether the screen still shows it or
+    // already the failure arm (the tail 503s at once) is timing, not the
+    // subject — the subject is how many attempts the next 250 ms cost.
+    await waitFor(() => expect(server.calls.length).toBeGreaterThan(0));
     const start = server.calls.length;
     await new Promise((resolve) => setTimeout(resolve, 250));
     const attempts = server.calls.length - start;
