@@ -585,7 +585,7 @@ describe("<AuthPanel/> — QR as a main tab renders inline, no buttons (RULE 6)"
 });
 
 /**
- * Waylot UX reference (owner directive): the alt-method dialog should behave
+ * Legacy-marketplace UX reference (owner directive): the alt-method dialog should behave
  * like a bottom sheet on mobile, not a centred dialog — cheap here because
  * `@stapel/core`'s `useBreakpoint()` already exists; this is just an
  * additional render path on the SAME `openChannel` state.

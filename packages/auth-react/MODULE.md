@@ -233,7 +233,7 @@ cache persistence is per-user via core's `setPersistUser` — call
 `@stapel/auth-react/default` ships two families of Ant Design components over
 the SAME headless layer above — see each file's own doc comment for the
 owner-directive tuning history (channel placement/modal rework, OTP
-auto-submit, the Waylot-referenced responsive alt-method sheet):
+auto-submit, the reference responsive alt-method sheet):
 
 - **`<AuthPanel/>`** (`default/AuthPanel.tsx`) — the sign-in screen. Channel
   zones (`main`/`bottom`/`overflow`) come from `default/channels.ts`'s

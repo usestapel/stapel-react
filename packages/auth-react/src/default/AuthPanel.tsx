@@ -161,7 +161,7 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
   const caps = useCapabilities();
   const [openChannel, setOpenChannel] = useState<ChannelId | null>(null);
   const [active, setActive] = useState<ChannelId | null>(null);
-  // UX reference: Waylot's sign-in sheet keeps every alt method in ONE bottom
+  // UX reference: the legacy marketplace's sign-in sheet keeps every alt method in ONE bottom
   // sheet on mobile rather than a separate page. `useBreakpoint` (already in
   // `@stapel/core`) makes that cheap here too — same dialog content, just a
   // `Drawer` sliding up from the bottom on phones instead of a centred
