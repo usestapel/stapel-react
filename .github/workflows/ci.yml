@@ -42,90 +42,26 @@ jobs:
       - name: Install
         run: corepack pnpm install --frozen-lockfile
 
-      - name: Check out contract artifacts (stapel-auth)
-        # The generated backend-error map (gen:errors) now reads the backend's
-        # CANONICAL `errors.json` codegen artifact — emitted by stapel-auth
-        # alongside schema.json/flows.json (task `error-remediation`) and
-        # committed at `docs/errors.json`. No more Python-source parsing, so the
-        # stapel-core verification-registry checkout this step used to need is
-        # gone; only the stapel-auth artifact remains.
-        uses: actions/checkout@v4
-        with:
-          repository: usestapel/stapel-auth
-          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-auth'].ref }}
-          path: .errors-source/stapel-auth
-
-      # gen:api / gen:flows / gen:errors / gen:manifest hardcode
-      # `../stapel-<module>` for every pair (package.json scripts).
-      # actions/checkout refuses a path outside the workspace root, so these
-      # land nested and get symlinked into place below (same fix as release.yml).
-      - name: Check out stapel-core (cross-cutting error catalogue)
-        # NOT an API-contract source — core has no endpoints these pairs call.
-        # It owns the ~41 cross-cutting error keys that modules stopped copying
-        # in 0.23, and gen-errors.mjs merges its catalogue under each module's.
-        # Without it every locale bundle fails 41 keys short.
-        uses: actions/checkout@v4
-        with:
-          repository: usestapel/stapel-core
-          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-core'].ref }}
-          path: .other-source/stapel-core
-
-      - name: Check out stapel-notifications (contract artifacts)
-        uses: actions/checkout@v4
-        with:
-          repository: usestapel/stapel-notifications
-          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-notifications'].ref }}
-          path: .other-source/stapel-notifications
-
-      - name: Check out stapel-profiles (contract artifacts)
-        uses: actions/checkout@v4
-        with:
-          repository: usestapel/stapel-profiles
-          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-profiles'].ref }}
-          path: .other-source/stapel-profiles
-
-      - name: Check out stapel-billing (contract artifacts)
-        uses: actions/checkout@v4
-        with:
-          repository: usestapel/stapel-billing
-          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-billing'].ref }}
-          path: .other-source/stapel-billing
-
-      - name: Check out stapel-workspaces (contract artifacts)
-        uses: actions/checkout@v4
-        with:
-          repository: usestapel/stapel-workspaces
-          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-workspaces'].ref }}
-          path: .other-source/stapel-workspaces
-
-      - name: Check out stapel-calendar (contract artifacts)
-        uses: actions/checkout@v4
-        with:
-          repository: usestapel/stapel-calendar
-          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-calendar'].ref }}
-          path: .other-source/stapel-calendar
-
-      - name: Check out stapel-recordings (contract artifacts)
-        uses: actions/checkout@v4
-        with:
-          repository: usestapel/stapel-recordings
-          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-recordings'].ref }}
-          path: .other-source/stapel-recordings
-
-      - name: Check out stapel-forms (contract artifacts)
-        uses: actions/checkout@v4
-        with:
-          repository: usestapel/stapel-forms
-          ref: ${{ fromJSON(steps.pins.outputs.pins)['stapel-forms'].ref }}
-          path: .other-source/stapel-forms
-
-      - name: Symlink sibling repos to where the gen:* drivers expect them
-        # stapel-auth included: gen:api/gen:flows read ../stapel-auth/docs/*
-        # inline from package.json, same as every other pair.
+      - name: Check out every pinned sibling (contract-pins.json is the list)
+        # One loop over contract-pins.json instead of one hand-written
+        # checkout step per module: the hand-written list missed six pairs
+        # (chat/search/cdn/categories/listings/reviews) and release 0.2.0 of
+        # the storefront pairs failed on ENOENT ../stapel-chat/docs/schema.json.
+        # stapel-auth lands at .errors-source/ (the env below points there);
+        # everything else at .other-source/; all symlinked to ../<module>
+        # where the gen:* drivers look. Public repos, shallow clone at the
+        # pinned immutable ref — never a floating branch.
         run: |
-          ln -sf "$GITHUB_WORKSPACE/.errors-source/stapel-auth" "$GITHUB_WORKSPACE/../stapel-auth"
-          for m in stapel-core stapel-notifications stapel-profiles stapel-billing stapel-workspaces stapel-calendar stapel-recordings stapel-forms; do
-            ln -sf "$GITHUB_WORKSPACE/.other-source/$m" "$GITHUB_WORKSPACE/../$m"
+          set -eu
+          for m in $(jq -r '.modules | keys[]' contract-pins.json); do
+            ref=$(jq -r ".modules[\"$m\"].ref" contract-pins.json)
+            case "$m" in stapel-auth) dest=".errors-source/$m";; *) dest=".other-source/$m";; esac
+            git init -q "$dest"
+            git -C "$dest" remote add origin "https://github.com/usestapel/$m.git"
+            git -C "$dest" fetch -q --depth 1 origin "$ref"
+            git -C "$dest" checkout -q FETCH_HEAD
+            ln -sfn "$GITHUB_WORKSPACE/$dest" "$GITHUB_WORKSPACE/../$m"
+            echo "$m @ $ref"
           done
 
       - name: Peer floors cover imported symbols
