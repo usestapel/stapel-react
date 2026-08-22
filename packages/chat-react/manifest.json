@@ -1,0 +1,733 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/chat-react",
+  "version": "0.1.0",
+  "backend": {
+    "module": "stapel-chat",
+    "contract": ">=0.2 <0.3"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "chat_api_v1_conversations_create": {
+      "method": "POST",
+      "path": "/chat/api/v1/conversations",
+      "tag": "Chat",
+      "request": "CreateConversationRequest",
+      "response": "ConversationResponse"
+    },
+    "chat_api_v1_conversations_list": {
+      "method": "GET",
+      "path": "/chat/api/v1/conversations",
+      "tag": "Chat",
+      "request": null,
+      "response": "PaginatedConversationResponseList"
+    },
+    "chat_api_v1_conversations_messages_create": {
+      "method": "POST",
+      "path": "/chat/api/v1/conversations/{conversation_id}/messages",
+      "tag": "Chat",
+      "request": "SendMessageRequest",
+      "response": "MessageResponse"
+    },
+    "chat_api_v1_conversations_messages_list": {
+      "method": "GET",
+      "path": "/chat/api/v1/conversations/{conversation_id}/messages",
+      "tag": "Chat",
+      "request": null,
+      "response": "PaginatedMessageResponseList"
+    },
+    "chat_api_v1_conversations_read_create": {
+      "method": "POST",
+      "path": "/chat/api/v1/conversations/{conversation_id}/read",
+      "tag": "Chat",
+      "request": "MarkReadRequest",
+      "response": null
+    },
+    "chat_api_v1_conversations_retrieve": {
+      "method": "GET",
+      "path": "/chat/api/v1/conversations/{conversation_id}",
+      "tag": "Chat",
+      "request": null,
+      "response": "ConversationResponse"
+    },
+    "chat_api_v1_support_conversations_assign_create": {
+      "method": "POST",
+      "path": "/chat/api/v1/support/conversations/{conversation_id}/assign",
+      "tag": "Chat support",
+      "request": null,
+      "response": "ConversationResponse"
+    },
+    "chat_api_v1_support_conversations_reopen_create": {
+      "method": "POST",
+      "path": "/chat/api/v1/support/conversations/{conversation_id}/reopen",
+      "tag": "Chat support",
+      "request": null,
+      "response": "ConversationResponse"
+    },
+    "chat_api_v1_support_conversations_resolve_create": {
+      "method": "POST",
+      "path": "/chat/api/v1/support/conversations/{conversation_id}/resolve",
+      "tag": "Chat support",
+      "request": null,
+      "response": "ConversationResponse"
+    },
+    "chat_api_v1_support_queue_list": {
+      "method": "GET",
+      "path": "/chat/api/v1/support/queue",
+      "tag": "Chat support",
+      "request": null,
+      "response": "PaginatedConversationResponseList"
+    }
+  },
+  "hooks": {
+    "useConversation": {
+      "kind": "query",
+      "operation": "conversation",
+      "queryKey": [
+        "chat",
+        "conversation",
+        "{conversationId}"
+      ]
+    },
+    "useLoadOlderMessages": {
+      "kind": "mutation",
+      "operation": "messages",
+      "invalidates": [
+        [
+          "chat",
+          "thread",
+          "{conversationId}"
+        ]
+      ]
+    },
+    "useMarkRead": {
+      "kind": "mutation",
+      "operation": "markRead",
+      "invalidates": [
+        [
+          "chat",
+          "conversations"
+        ],
+        [
+          "chat",
+          "read-marker",
+          "{conversationId}"
+        ]
+      ]
+    },
+    "useSendMessage": {
+      "kind": "mutation",
+      "operation": "sendMessage",
+      "invalidates": [
+        [
+          "chat",
+          "conversations"
+        ]
+      ]
+    },
+    "useStartDirectChat": {
+      "kind": "mutation",
+      "operation": "createConversation",
+      "invalidates": [
+        [
+          "chat",
+          "conversation",
+          "{conversationId}"
+        ],
+        [
+          "chat",
+          "conversations"
+        ]
+      ]
+    },
+    "useThread": {
+      "kind": "query",
+      "operation": "messages"
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.chat_attachments_disabled": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.chat_body_too_long": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.chat_empty_message": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.chat_invalid_direct": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.chat_invalid_kind": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.chat_invalid_reply": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.chat_kind_disabled": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.chat_not_support": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.chat_not_operator": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.chat_not_participant": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.chat_conversation_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.chat_already_assigned": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "chat.conversations",
+      "title": "Conversation list",
+      "description": "The headless ConversationList renders the caller's threads with server-computed unread counts, behind a LoadState a skin cannot flatten. Covers the provider that wires the runtime.",
+      "component": "ConversationList",
+      "covers": [
+        "ChatProvider"
+      ],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/ConversationList.demo.tsx"
+    },
+    {
+      "id": "chat.start",
+      "title": "Message the seller",
+      "description": "The headless StartDirectChat opens the direct thread with a person — get-or-create, keyed by the participant pair, so pressing twice cannot fan out into two threads. Blocked states carry a readable reason instead of a grey button.",
+      "component": "StartDirectChat",
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        "default",
+        "no-seller",
+        "own-listing"
+      ],
+      "source": "demo/StartDirectChat.demo.tsx"
+    },
+    {
+      "id": "chat.thread",
+      "title": "Conversation thread",
+      "description": "The headless ConversationThread renders a contiguous, seq-ordered window over the message journal, and MessageComposer appends to it over REST with a stated reason whenever sending is blocked.",
+      "component": "ConversationThread",
+      "covers": [
+        "MessageComposer"
+      ],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/ConversationThread.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "chat.composer.blocked.empty",
+    "chat.composer.blocked.too_long",
+    "chat.composer.placeholder",
+    "chat.composer.send",
+    "chat.composer.sending",
+    "chat.error.unknown",
+    "chat.kind.direct",
+    "chat.kind.group",
+    "chat.kind.support",
+    "chat.list.empty",
+    "chat.list.end",
+    "chat.list.load_more",
+    "chat.list.loading",
+    "chat.list.open",
+    "chat.list.retry",
+    "chat.list.title",
+    "chat.list.unread",
+    "chat.nav.conversations",
+    "chat.start.blocked.self",
+    "chat.start.blocked.unknown_seller",
+    "chat.start.button",
+    "chat.start.starting",
+    "chat.thread.beginning",
+    "chat.thread.empty",
+    "chat.thread.load_older",
+    "chat.thread.loading",
+    "chat.thread.retry",
+    "chat.thread.system",
+    "chat.transport.idle",
+    "chat.transport.live",
+    "chat.transport.polling",
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.chat_attachments_disabled",
+    "error.400.chat_body_too_long",
+    "error.400.chat_empty_message",
+    "error.400.chat_invalid_direct",
+    "error.400.chat_invalid_kind",
+    "error.400.chat_invalid_reply",
+    "error.400.chat_kind_disabled",
+    "error.400.chat_not_support",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.chat_not_operator",
+    "error.403.chat_not_participant",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.chat_conversation_not_found",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.chat_already_assigned",
+    "error.409.conflict",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.mandate_unavailable"
+  ],
+  "exports": {
+    "runtime": [
+      "CHAT_DEFAULT_MAX_BODY_LENGTH",
+      "CHAT_ERRORS",
+      "CHAT_ERROR_CODES",
+      "CHAT_FLOWS",
+      "CHAT_I18N_KEYS",
+      "CHAT_WS_CLOSE_NOT_PARTICIPANT",
+      "CHAT_WS_CLOSE_UNAUTHENTICATED",
+      "CHAT_WS_REPLAY_LIMIT",
+      "CHAT_WS_RESYNC",
+      "CONVERSATION_LIST_INTERVAL_MS",
+      "ChatProvider",
+      "ChatRuntimeContext",
+      "ConversationList",
+      "ConversationThread",
+      "EMPTY_THREAD_WINDOW",
+      "MessageComposer",
+      "StartDirectChat",
+      "THREAD_INTERVAL_MS",
+      "THREAD_PAGE",
+      "browserWebSocketFactory",
+      "canOpenWebSocket",
+      "chatConversationStream",
+      "chatErrorBundleEn",
+      "chatI18nBundleEn",
+      "chatInboxStream",
+      "chatQueryKeys",
+      "chatSocketUrl",
+      "chatStreamId",
+      "createChatApi",
+      "createChatRuntime",
+      "createChatSocket",
+      "createFlowMachine",
+      "decodeServerFrame",
+      "deriveChatSocketBase",
+      "explainChatError",
+      "flowEndpoints",
+      "isErrorCode",
+      "mergeMessage",
+      "mergeNewerPage",
+      "mergeOlderPage",
+      "navEntries",
+      "nextReadMarker",
+      "parseServerFrame",
+      "registerChatI18n",
+      "threadFirstSeq",
+      "threadLastSeq",
+      "threadWindowFromPage",
+      "toFlowError",
+      "useChatAnalytics",
+      "useChatApi",
+      "useChatFreshness",
+      "useChatRuntime",
+      "useConversation",
+      "useConversations",
+      "useFlow",
+      "useLoadOlderMessages",
+      "useMarkRead",
+      "useSendMessage",
+      "useStartDirectChat",
+      "useThread"
+    ],
+    "types": [
+      "AnchorDirection",
+      "ChatAckFrame",
+      "ChatApi",
+      "ChatClientFrame",
+      "ChatConnectionState",
+      "ChatConversationStream",
+      "ChatErrorCode",
+      "ChatErrorFrame",
+      "ChatErrorSpec",
+      "ChatFlowId",
+      "ChatFlowSpec",
+      "ChatFreshness",
+      "ChatFreshnessOptions",
+      "ChatHelloFrame",
+      "ChatI18nKey",
+      "ChatInboxStream",
+      "ChatMessage",
+      "ChatMessageFrame",
+      "ChatPingFrame",
+      "ChatPongFrame",
+      "ChatRealtimeConfig",
+      "ChatRealtimeOptions",
+      "ChatReconnectOptions",
+      "ChatReplayDoneFrame",
+      "ChatRuntime",
+      "ChatSendFrame",
+      "ChatServerFrame",
+      "ChatSignal",
+      "ChatSignalKeyMap",
+      "ChatSocket",
+      "ChatSocketConnection",
+      "ChatSocketHandlers",
+      "ChatSocketOptions",
+      "ChatSocketRefusal",
+      "ChatSocketStatus",
+      "ChatStreamKey",
+      "ChatThreadWindow",
+      "ChatTransport",
+      "ChatWebSocketFactory",
+      "ChatWelcomeFrame",
+      "Conversation",
+      "ConversationKind",
+      "ConversationListBag",
+      "ConversationListParams",
+      "ConversationPage",
+      "ConversationThreadBag",
+      "CreateChatRuntimeOptions",
+      "CreateConversationRequest",
+      "FlowEndpoint",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "MarkReadRequest",
+      "MessageComposerBag",
+      "MessageHistoryParams",
+      "MessageKind",
+      "MessagePage",
+      "Participant",
+      "ParticipantRole",
+      "Remediation",
+      "Schemas",
+      "SendMessageRequest",
+      "SendMessageVariables",
+      "StartDirectChatBag",
+      "StartDirectChatVariables",
+      "SupportStatus",
+      "ThreadMergeResult"
+    ]
+  }
+}

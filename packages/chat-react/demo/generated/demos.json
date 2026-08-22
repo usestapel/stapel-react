@@ -1,0 +1,77 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/chat-react",
+  "version": "0.1.0",
+  "demos": [
+    {
+      "id": "chat.conversations",
+      "title": "Conversation list",
+      "description": "The headless ConversationList renders the caller's threads with server-computed unread counts, behind a LoadState a skin cannot flatten. Covers the provider that wires the runtime.",
+      "component": "ConversationList",
+      "covers": [
+        "ChatProvider"
+      ],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/ConversationList.demo.tsx",
+        "line": 97
+      }
+    },
+    {
+      "id": "chat.start",
+      "title": "Message the seller",
+      "description": "The headless StartDirectChat opens the direct thread with a person — get-or-create, keyed by the participant pair, so pressing twice cannot fan out into two threads. Blocked states carry a readable reason instead of a grey button.",
+      "component": "StartDirectChat",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        },
+        {
+          "id": "no-seller"
+        },
+        {
+          "id": "own-listing"
+        }
+      ],
+      "source": {
+        "file": "demo/StartDirectChat.demo.tsx",
+        "line": 76
+      }
+    },
+    {
+      "id": "chat.thread",
+      "title": "Conversation thread",
+      "description": "The headless ConversationThread renders a contiguous, seq-ordered window over the message journal, and MessageComposer appends to it over REST with a stated reason whenever sending is blocked.",
+      "component": "ConversationThread",
+      "covers": [
+        "MessageComposer"
+      ],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/ConversationThread.demo.tsx",
+        "line": 155
+      }
+    }
+  ]
+}

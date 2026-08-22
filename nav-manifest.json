@@ -64,6 +64,31 @@
       ]
     },
     {
+      "package": "@stapel/chat-react",
+      "version": "0.1.0",
+      "entries": [
+        {
+          "id": "chat.conversations",
+          "labelKey": "chat.nav.conversations",
+          "icon": "MessageOutlined",
+          "route": {
+            "path": "chat"
+          },
+          "component": {
+            "export": "ConversationListPanel",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 25
+        }
+      ]
+    },
+    {
       "package": "@stapel/notifications-react",
       "version": "0.9.1",
       "entries": [

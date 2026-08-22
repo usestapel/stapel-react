@@ -64,7 +64,7 @@ importers:
         version: 19.2.3(@types/react@19.2.17)
       jsdom:
         specifier: ^26.1.0
-        version: 26.1.0(supports-color@10.2.2)
+        version: 26.1.0
       msw:
         specifier: ^2.10.2
         version: 2.14.6(@types/node@26.1.0)(typescript@5.9.3)
@@ -82,7 +82,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/attributes-react:
     devDependencies:
@@ -112,7 +112,7 @@ importers:
         version: 6.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       jsdom:
         specifier: ^26.1.0
-        version: 26.1.0(supports-color@10.2.2)
+        version: 26.1.0
       react:
         specifier: ^19.1.0
         version: 19.2.7
@@ -127,7 +127,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/auth-react:
     devDependencies:
@@ -172,7 +172,7 @@ importers:
         version: 6.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       jsdom:
         specifier: ^26.1.0
-        version: 26.1.0(supports-color@10.2.2)
+        version: 26.1.0
       jsqr:
         specifier: ^1.4.0
         version: 1.4.0
@@ -199,7 +199,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/billing-react:
     devDependencies:
@@ -229,7 +229,7 @@ importers:
         version: 19.2.3(@types/react@19.2.17)
       jsdom:
         specifier: ^26.1.0
-        version: 26.1.0(supports-color@10.2.2)
+        version: 26.1.0
       msw:
         specifier: ^2.10.2
         version: 2.14.6(@types/node@26.1.0)(typescript@5.9.3)
@@ -247,7 +247,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/calendar-react:
     devDependencies:
@@ -277,7 +277,7 @@ importers:
         version: 19.2.3(@types/react@19.2.17)
       jsdom:
         specifier: ^26.1.0
-        version: 26.1.0(supports-color@10.2.2)
+        version: 26.1.0
       msw:
         specifier: ^2.10.2
         version: 2.14.6(@types/node@26.1.0)(typescript@5.9.3)
@@ -295,7 +295,58 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
+
+  packages/chat-react:
+    devDependencies:
+      '@size-limit/preset-small-lib':
+        specifier: ^11.2.0
+        version: 11.2.0(size-limit@11.2.0)
+      '@stapel/core':
+        specifier: workspace:^
+        version: link:../core
+      '@stapel/showcase':
+        specifier: workspace:^
+        version: link:../showcase
+      '@stapel/tokens':
+        specifier: workspace:^
+        version: link:../tokens
+      '@tanstack/react-query':
+        specifier: ^5.81.0
+        version: 5.101.2(react@19.2.7)
+      '@testing-library/react':
+        specifier: ^16.3.0
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@types/react':
+        specifier: ^19.1.0
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.1.0
+        version: 19.2.3(@types/react@19.2.17)
+      antd:
+        specifier: ^6.5.0
+        version: 6.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      jsdom:
+        specifier: ^26.1.0
+        version: 26.1.0
+      msw:
+        specifier: ^2.10.2
+        version: 2.14.6(@types/node@26.1.0)(typescript@5.9.3)
+      react:
+        specifier: ^19.1.0
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.1.0
+        version: 19.2.7(react@19.2.7)
+      size-limit:
+        specifier: ^11.2.0
+        version: 11.2.0
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/core:
     dependencies:
@@ -323,7 +374,7 @@ importers:
         version: 19.2.3(@types/react@19.2.17)
       jsdom:
         specifier: ^26.1.0
-        version: 26.1.0(supports-color@10.2.2)
+        version: 26.1.0
       msw:
         specifier: ^2.10.2
         version: 2.14.6(@types/node@26.1.0)(typescript@5.9.3)
@@ -341,7 +392,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/docs-react:
     devDependencies:
@@ -374,7 +425,7 @@ importers:
         version: 6.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       jsdom:
         specifier: ^26.1.0
-        version: 26.1.0(supports-color@10.2.2)
+        version: 26.1.0
       msw:
         specifier: ^2.10.2
         version: 2.14.6(@types/node@26.1.0)(typescript@5.9.3)
@@ -392,7 +443,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/eslint-plugin:
     dependencies:
@@ -411,7 +462,7 @@ importers:
         version: 16.26.1(supports-color@10.2.2)(typescript@5.9.3)
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/forms-react:
     devDependencies:
@@ -447,7 +498,7 @@ importers:
         version: 6.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       jsdom:
         specifier: ^26.1.0
-        version: 26.1.0(supports-color@10.2.2)
+        version: 26.1.0
       msw:
         specifier: ^2.10.2
         version: 2.14.6(@types/node@26.1.0)(typescript@5.9.3)
@@ -465,7 +516,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/image:
     devDependencies:
@@ -483,7 +534,7 @@ importers:
         version: 19.2.3(@types/react@19.2.17)
       jsdom:
         specifier: ^26.1.0
-        version: 26.1.0(supports-color@10.2.2)
+        version: 26.1.0
       react:
         specifier: ^19.1.0
         version: 19.2.7
@@ -498,7 +549,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/notifications-react:
     devDependencies:
@@ -531,7 +582,7 @@ importers:
         version: 6.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       jsdom:
         specifier: ^26.1.0
-        version: 26.1.0(supports-color@10.2.2)
+        version: 26.1.0
       msw:
         specifier: ^2.10.2
         version: 2.14.6(@types/node@26.1.0)(typescript@5.9.3)
@@ -549,7 +600,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/profiles-react:
     devDependencies:
@@ -588,7 +639,7 @@ importers:
         version: 6.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       jsdom:
         specifier: ^26.1.0
-        version: 26.1.0(supports-color@10.2.2)
+        version: 26.1.0
       msw:
         specifier: ^2.10.2
         version: 2.14.6(@types/node@26.1.0)(typescript@5.9.3)
@@ -606,7 +657,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/recordings-react:
     devDependencies:
@@ -636,7 +687,7 @@ importers:
         version: 19.2.3(@types/react@19.2.17)
       jsdom:
         specifier: ^26.1.0
-        version: 26.1.0(supports-color@10.2.2)
+        version: 26.1.0
       msw:
         specifier: ^2.10.2
         version: 2.14.6(@types/node@26.1.0)(typescript@5.9.3)
@@ -654,7 +705,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/search-react:
     devDependencies:
@@ -741,7 +792,7 @@ importers:
         version: 6.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       jsdom:
         specifier: ^26.1.0
-        version: 26.1.0(supports-color@10.2.2)
+        version: 26.1.0
       react:
         specifier: ^19.1.0
         version: 19.2.7
@@ -759,7 +810,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/showcase:
     devDependencies:
@@ -777,7 +828,7 @@ importers:
         version: 19.2.3(@types/react@19.2.17)
       jsdom:
         specifier: ^26.1.0
-        version: 26.1.0(supports-color@10.2.2)
+        version: 26.1.0
       react:
         specifier: ^19.1.0
         version: 19.2.7
@@ -792,7 +843,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/showcase-viewer:
     dependencies:
@@ -856,7 +907,7 @@ importers:
         version: 19.2.3(@types/react@19.2.17)
       jsdom:
         specifier: ^26.1.0
-        version: 26.1.0(supports-color@10.2.2)
+        version: 26.1.0
       react:
         specifier: ^19.1.0
         version: 19.2.7
@@ -874,7 +925,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/tokens-antd:
     dependencies:
@@ -902,7 +953,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/tokens-mui:
     dependencies:
@@ -936,7 +987,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
   packages/workspaces-react:
     devDependencies:
@@ -969,7 +1020,7 @@ importers:
         version: 6.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       jsdom:
         specifier: ^26.1.0
-        version: 26.1.0(supports-color@10.2.2)
+        version: 26.1.0
       msw:
         specifier: ^2.10.2
         version: 2.14.6(@types/node@26.1.0)(typescript@5.9.3)
@@ -987,7 +1038,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2)
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))
 
 packages:
 
@@ -8635,7 +8686,7 @@ snapshots:
       statuses: 1.5.0
       toidentifier: 1.0.1
 
-  http-proxy-agent@7.0.2(supports-color@10.2.2):
+  http-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.4
       debug: 4.4.3(supports-color@10.2.2)
@@ -8873,13 +8924,13 @@ snapshots:
     dependencies:
       argparse: 2.0.1
 
-  jsdom@26.1.0(supports-color@10.2.2):
+  jsdom@26.1.0:
     dependencies:
       cssstyle: 4.6.0
       data-urls: 5.0.0
       decimal.js: 10.6.0
       html-encoding-sniffer: 4.0.0
-      http-proxy-agent: 7.0.2(supports-color@10.2.2)
+      http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6(supports-color@10.2.2)
       is-potential-custom-element-name: 1.0.1
       nwsapi: 2.2.24
@@ -10611,7 +10662,7 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite-node@3.2.4(@types/node@26.1.0)(jiti@2.7.0)(lightningcss@1.32.0)(supports-color@10.2.2):
+  vite-node@3.2.4(@types/node@26.1.0)(jiti@2.7.0)(lightningcss@1.32.0):
     dependencies:
       cac: 6.7.14
       debug: 4.4.3(supports-color@10.2.2)
@@ -10657,7 +10708,7 @@ snapshots:
       jiti: 2.7.0
       lightningcss: 1.32.0
 
-  vitest@3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0(supports-color@10.2.2))(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3))(supports-color@10.2.2):
+  vitest@3.2.6(@types/debug@4.1.13)(@types/node@26.1.0)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.0)(typescript@5.9.3)):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.6
@@ -10680,12 +10731,12 @@ snapshots:
       tinypool: 1.1.1
       tinyrainbow: 2.0.0
       vite: 6.4.3(@types/node@26.1.0)(jiti@2.7.0)(lightningcss@1.32.0)
-      vite-node: 3.2.4(@types/node@26.1.0)(jiti@2.7.0)(lightningcss@1.32.0)(supports-color@10.2.2)
+      vite-node: 3.2.4(@types/node@26.1.0)(jiti@2.7.0)(lightningcss@1.32.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/debug': 4.1.13
       '@types/node': 26.1.0
-      jsdom: 26.1.0(supports-color@10.2.2)
+      jsdom: 26.1.0
     transitivePeerDependencies:
       - jiti
       - less

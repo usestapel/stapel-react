@@ -47,6 +47,7 @@ Dependency direction is strictly downward; L2 packages never import each other
 | [`@stapel/workspaces-react`](./packages/workspaces-react) | stapel-workspaces |
 | [`@stapel/calendar-react`](./packages/calendar-react) | stapel-calendar |
 | [`@stapel/recordings-react`](./packages/recordings-react) | stapel-recordings |
+| [`@stapel/chat-react`](./packages/chat-react) | stapel-chat (buyer↔seller messaging: one seam over the module's resumable WebSocket protocol AND seq-anchored polling, so the screens are the same either way) |
 | [`@stapel/search-react`](./packages/search-react) | stapel-search (storefront listings: URL-state search, drill-down facets, keyset paging, DSA `promoted` + P2B ranking disclosure) |
 | [`@stapel/showcase`](./packages/showcase) | — (demo harness: `defineDemo`) |
 
