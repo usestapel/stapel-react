@@ -39,7 +39,6 @@ export const reviewsI18nBundleEs: I18nDictionary = {
 
   "reviews.list.heading": "Reseñas",
   "reviews.list.empty": "Todavía no hay reseñas",
-  "reviews.list.sign_in_required": "Inicia sesión para leer las reseñas",
   "reviews.list.load_more": "Ver más",
   "reviews.list.refresh": "Actualizar",
   "reviews.list.more.blocked.end": "Eso es todo",
@@ -55,7 +54,6 @@ export const reviewsI18nBundleEs: I18nDictionary = {
   "reviews.rating.none": "Todavía no hay reseñas",
   "reviews.rating.value": "{avg} de {max}",
   "reviews.rating.count": "{count} reseñas",
-  "reviews.rating.sign_in_required": "Inicia sesión para ver la valoración",
   "reviews.rating.star_label": "{index} de {max}",
 
   "reviews.form.heading": "Valora esto",

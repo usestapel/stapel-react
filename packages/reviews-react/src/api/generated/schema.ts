@@ -13,15 +13,33 @@ export interface paths {
          * @description List a target's reviews (anchor-paginated, published-only for
          *     non-moderators), or create a review.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     ``GET`` is anonymously readable (storefront F5 verdict,
+         *     darom-storefront-design.md §13.8 note 2) — published-only filtering
+         *     already guarantees a guest sees nothing a moderator would need to hide.
+         *     ``POST`` still requires a real identity (there is an author to attribute
+         *     the review to), so the class gate is DRF's own
+         *     ``IsAuthenticatedOrReadOnly`` (mirrors ``ListingViewSet`` in
+         *     stapel-listings — the fleet's other read-open/write-authenticated view in
+         *     a single class) rather than a per-method override.
+         *
+         *     **Permissions:** `IsAuthenticatedOrReadOnly`
          */
-        get: operations["reviews_api_v1_reviews_list"];
+        get: operations["reviews_api_v1_reviews_retrieve"];
         put?: never;
         /**
          * @description List a target's reviews (anchor-paginated, published-only for
          *     non-moderators), or create a review.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     ``GET`` is anonymously readable (storefront F5 verdict,
+         *     darom-storefront-design.md §13.8 note 2) — published-only filtering
+         *     already guarantees a guest sees nothing a moderator would need to hide.
+         *     ``POST`` still requires a real identity (there is an author to attribute
+         *     the review to), so the class gate is DRF's own
+         *     ``IsAuthenticatedOrReadOnly`` (mirrors ``ListingViewSet`` in
+         *     stapel-listings — the fleet's other read-open/write-authenticated view in
+         *     a single class) rather than a per-method override.
+         *
+         *     **Permissions:** `IsAuthenticatedOrReadOnly`
          */
         post: operations["reviews_api_v1_reviews_create"];
         delete?: never;
@@ -85,7 +103,12 @@ export interface paths {
          * @description The module-owned rating aggregate (avg/count over published reviews)
          *     for a target.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     Anonymously readable for the same reason as the list's ``GET``
+         *     (storefront F5 verdict, darom-storefront-design.md §13.8 note 2): the
+         *     aggregate is computed over published reviews only, so a guest learns
+         *     nothing a moderator would need withheld.
+         *
+         *     **Permissions:** `AllowAny`
          */
         get: operations["reviews_api_v1_reviews_aggregate_retrieve"];
         put?: never;
@@ -149,6 +172,25 @@ export interface components {
             /** @description Optional review body */
             body?: string;
         };
+        /**
+         * @description The envelope ``GET /reviews`` actually returns — ``AnchorPagination``'s
+         *     keys (``stapel_core.django.api.pagination.AnchorPagination.
+         *     get_paginated_response``/``get_paginated_response_schema``) wrapping
+         *     ``items``. Schema-only: ``ReviewListCreateView`` is a bare ``APIView``
+         *     (views.py), so drf-spectacular's pagination auto-introspection — which
+         *     only fires for ``GenericAPIView.pagination_class`` — never sees
+         *     ``ReviewAnchorPagination``, and the envelope has to be declared by hand
+         *     or spectacular renders the response as a bare array
+         *     (darom-storefront-design.md §13.8 note 3).
+         */
+        ReviewPage: {
+            items: components["schemas"]["ReviewResponse"][];
+            next_anchor: string | null;
+            prev_anchor: string | null;
+            has_next: boolean;
+            has_prev: boolean;
+            count: number;
+        };
         /** @description A review of an opaque target. */
         ReviewResponse: {
             /** @description Review id (UUID) */
@@ -182,11 +224,17 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    reviews_api_v1_reviews_list: {
+    reviews_api_v1_reviews_retrieve: {
         parameters: {
             query: {
+                /** @description Opaque cursor: a `next_anchor`/`prev_anchor` from a previous page (the review's `created_at`). Omit for the first page. */
+                anchor?: string;
+                /** @description Which side of `anchor` to page toward. Default `next`. */
+                direction?: "center" | "next" | "prev";
                 /** @description Omit for published-only. `all` additionally asks for pending/hidden reviews, but is honored only for a moderator/owner of the target (the type's can_moderate callback) — a non-moderator asking for `all` is silently narrowed to published, never an error. */
                 include?: string;
+                /** @description Page size, default 20, max 100. */
+                limit?: number;
                 /** @description Opaque host-owned target identifier. */
                 target_key: string;
                 /** @description Host-registered target-type key (registry.py). */
@@ -203,7 +251,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReviewResponse"][];
+                    "application/json": components["schemas"]["ReviewPage"];
                 };
             };
         };

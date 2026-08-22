@@ -9,21 +9,13 @@ import { ReviewList, reviewsQueryKeys } from "../src/index.js";
 import type { ReviewListBag } from "../src/index.js";
 import { TestProviders, mockServer } from "./harness.js";
 import type { MockServer } from "./harness.js";
-import {
-  FIRST_PAGE,
-  SECOND_PAGE,
-  TARGET,
-  UNAUTHENTICATED_401,
-  page,
-  review,
-} from "./fixtures.js";
+import { FIRST_PAGE, SECOND_PAGE, TARGET, page, review } from "./fixtures.js";
 
 function Probe(props: { bag: ReviewListBag }): ReactElement {
   const { bag } = props;
   return (
     <div>
       <span data-testid="status">{bag.state.status}</span>
-      <span data-testid="sign-in">{String(bag.signInRequired)}</span>
       <span data-testid="more">
         {bag.more.available ? "available" : bag.more.block.code}
       </span>
@@ -98,25 +90,39 @@ describe("the 200 body is the pagination envelope, not the declared array", () =
   });
 });
 
-describe("a 401 is its own state", () => {
-  it("does not render as an empty list", async () => {
-    renderList(mockServer({ "/reviews": UNAUTHENTICATED_401 }));
+describe("the read is anonymous (stapel-reviews 0.3.0)", () => {
+  it("fires and renders rows with no session manager mounted at all", async () => {
+    // The harness registers none, which IS the storefront guest case:
+    // `useActiveSessionReady()` answers true when nobody tracks sessions, so
+    // a purely public page waits for nothing and the list loads.
+    const server = mockServer({ "/reviews": { body: FIRST_PAGE } });
+    renderList(server);
     await waitFor(() => {
-      expect(screen.getByTestId("status").textContent).toBe("failed");
+      expect(screen.getByTestId("status").textContent).toBe("ready");
     });
-    expect(screen.getByTestId("sign-in").textContent).toBe("true");
-    // The thing that must NOT have happened: a ready state with zero rows.
+    expect(screen.getByTestId("ids").textContent).toBe("r1,r2");
+    expect(server.calls).toHaveLength(1);
+  });
+
+  it("an empty page is a REACHABLE ready state, not a disguised refusal", async () => {
+    // Before 0.3.0 a guest could only ever get 401 here, so "ready and empty"
+    // was unreachable for them and the empty state was reserved for members.
+    // Now it means what it says to everyone: nobody has reviewed this target.
+    renderList(mockServer({ "/reviews": { body: page([]) } }));
+    await waitFor(() => {
+      expect(screen.getByTestId("status").textContent).toBe("ready");
+    });
     expect(screen.getByTestId("ids").textContent).toBe("");
   });
 
-  it("an outage is a failure but not a sign-in prompt", async () => {
+  it("an outage is still a failure, and the bag has no sign-in escape hatch", async () => {
     renderList(
       mockServer({ "/reviews": { status: 503, body: { localizable_error: "x" } } })
     );
     await waitFor(() => {
       expect(screen.getByTestId("status").textContent).toBe("failed");
     });
-    expect(screen.getByTestId("sign-in").textContent).toBe("false");
+    expect(screen.queryByTestId("sign-in")).toBeNull();
   });
 });
 

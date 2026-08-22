@@ -1,6 +1,6 @@
 # @stapel/reviews-react 0.1.0
 
-Headless React flow pair for stapel-reviews (contract >=0.2 <0.3) — business + state, zero visual opinion.
+Headless React flow pair for stapel-reviews (contract >=0.3 <0.4) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -23,9 +23,9 @@ Request/response schema names are in manifest.json + the generated types.
 Paths are relative to `/reviews/api/v1/`.
 - reviews_api_v1_reviews_aggregate_retrieve: GET /reviews/aggregate
 - reviews_api_v1_reviews_create: POST /reviews
-- reviews_api_v1_reviews_list: GET /reviews
 - reviews_api_v1_reviews_moderate_create: POST /reviews/{review_id}/moderate
 - reviews_api_v1_reviews_response_create: POST /reviews/{review_id}/response
+- reviews_api_v1_reviews_retrieve: GET /reviews
 
 ## Query hooks (server state; keys come only from the key factory)
 - useReviewAggregate (query) → aggregate
@@ -69,7 +69,7 @@ const { tracked } = useTracked();
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - reviews.aggregate → <ReviewAggregate> [rated|never rated|seller roll-up (supplied)]  demo/ReviewAggregate.demo.tsx
 - reviews.form → <ReviewForm> [post-moderation (published)|pre-moderation (pending)|already rated (400)]  demo/ReviewForm.demo.tsx
-- reviews.list → <ReviewList> [published|moderator (include=all)|signed out (401)]  demo/ReviewList.demo.tsx
+- reviews.list → <ReviewList> [published|moderator (include=all)|empty (reachable by a guest)]  demo/ReviewList.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

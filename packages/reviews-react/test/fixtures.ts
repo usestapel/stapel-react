@@ -22,13 +22,17 @@ export function review(overrides: Partial<Review> = {}): Review {
   };
 }
 
-/** Core's AnchorPagination envelope — NOT the array the schema declares. */
+/**
+ * Core's AnchorPagination envelope — `components/ReviewPage` since
+ * stapel-reviews 0.3.0, so this fixture is checked against a GENERATED type
+ * rather than against a copy this package maintained.
+ */
 export function page(
   items: readonly Review[],
   overrides: Partial<ReviewPage> = {}
 ): ReviewPage {
   return {
-    items,
+    items: [...items],
     next_anchor: null,
     prev_anchor: null,
     has_next: false,

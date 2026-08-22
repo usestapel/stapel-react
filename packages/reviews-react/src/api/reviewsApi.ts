@@ -34,17 +34,21 @@ function targetQuery(target: ReviewTarget): Record<string, string> {
  * {@link StapelClient} (the per-module override seam of frontend-standard
  * §7.2). Paths are relative to the runtime's `baseUrl` (`/reviews/api/v1`).
  *
- * ── EVERY endpoint here is `IsAuthenticated`, including the two reads ──────
+ * ── The two reads are ANONYMOUS; the write is not ─────────────────────────
  *
- * That is a fact about the module, not a choice of this pair: all four views
- * declare `permission_classes = [permissions.IsAuthenticated]`. A signed-out
- * visitor on a public listing page therefore gets 401 for the review list AND
- * for the aggregate. The pair does not paper over it — `model/queries.ts`
- * turns that refusal into a NAMED state ("sign in to see reviews") rather
- * than the empty list, which would tell a visitor that a well-reviewed seller
- * has no reviews. The upstream ask (make the two GETs `AllowAny`, or accept a
- * guest identity as the upload endpoints of stapel-cdn already do) is
- * recorded in the contract pin and in the README.
+ * Since stapel-reviews 0.3.0: `ReviewListCreateView` is
+ * `IsAuthenticatedOrReadOnly` (GET open, POST still needs a real identity —
+ * there is an author to attribute the review to) and `AggregateView` is
+ * `AllowAny`. Both declare `stapel_anonymous_access = ANONYMOUS_ALLOWED` and
+ * both are throttled from the module's own settings namespace
+ * (`LIST_THROTTLE` 120/min, `AGGREGATE_THROTTLE` 300/min), not the project's
+ * `DEFAULT_THROTTLE_RATES`.
+ *
+ * Nothing new became visible: both endpoints were already published-only for
+ * a non-moderator. What changed for this pair is that a guest on a public
+ * listing page now READS the reviews instead of being told to sign in — so
+ * `signInRequired` is gone from the two read bags and survives only on the
+ * write, where a 401 is still the honest answer.
  *
  * ── The two operations that are NOT here, and why ─────────────────────────
  *
@@ -68,10 +72,11 @@ export interface ReviewsApi {
   readonly client: StapelClient;
 
   /**
-   * A page of a target's reviews, newest first.
+   * A page of a target's reviews, newest first. Anonymous callers welcome.
    *
-   * Answers core's `AnchorPagination` envelope, NOT the array the schema
-   * declares (`api/types.ts` header). Anchors are `created_at` timestamps.
+   * Answers core's `AnchorPagination` envelope — declared as
+   * `components/ReviewPage` since 0.3.0, so the shape is generated rather
+   * than mirrored here. Anchors are `created_at` timestamps.
    */
   reviews(
     params: ReviewListParams,
@@ -80,7 +85,7 @@ export interface ReviewsApi {
 
   /**
    * The module-owned rating aggregate for ONE target — mean and count over
-   * published reviews.
+   * published reviews. `AllowAny`.
    *
    * There is no batch form on the HTTP surface: `reviews.aggregates_by_keys`
    * is a comm Function for server-side projections, not an endpoint. A
@@ -94,7 +99,8 @@ export interface ReviewsApi {
   ): Promise<ReviewAggregate>;
 
   /**
-   * Write a review of a target.
+   * Write a review of a target. The one operation here that needs a real
+   * identity (`IsAuthenticatedOrReadOnly` refuses an anonymous POST).
    *
    * Refusals worth knowing by name, because their STATUS is not what a reader
    * expects: "you have already reviewed this" is

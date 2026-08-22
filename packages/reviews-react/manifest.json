@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "backend": {
     "module": "stapel-reviews",
-    "contract": ">=0.2 <0.3"
+    "contract": ">=0.3 <0.4"
   },
   "layers": [
     "api",
@@ -30,13 +30,6 @@
       "request": "ReviewCreateRequest",
       "response": "ReviewResponse"
     },
-    "reviews_api_v1_reviews_list": {
-      "method": "GET",
-      "path": "/reviews/api/v1/reviews",
-      "tag": "Reviews",
-      "request": null,
-      "response": null
-    },
     "reviews_api_v1_reviews_moderate_create": {
       "method": "POST",
       "path": "/reviews/api/v1/reviews/{review_id}/moderate",
@@ -50,6 +43,13 @@
       "tag": "Reviews",
       "request": "RespondRequest",
       "response": "ReviewResponse"
+    },
+    "reviews_api_v1_reviews_retrieve": {
+      "method": "GET",
+      "path": "/reviews/api/v1/reviews",
+      "tag": "Reviews",
+      "request": null,
+      "response": "ReviewPage"
     }
   },
   "hooks": {
@@ -398,7 +398,7 @@
     {
       "id": "reviews.list",
       "title": "Review list",
-      "description": "GET /reviews answers core's AnchorPagination envelope, which the schema declares as a bare array — the pair types the shape that actually arrives. The published scope is what everyone reads; include=all is honoured only for a moderator of the target and narrowed silently for anyone else, so every non-published row names its state. A 401 is its own state: every endpoint of this module is IsAuthenticated, and rendering the empty list there would tell a signed-out visitor the seller has never been reviewed.",
+      "description": "GET /reviews answers core's AnchorPagination envelope — declared as components/ReviewPage since stapel-reviews 0.3.0, so the pair reads a generated shape instead of the copy it used to maintain. The published scope is what everyone reads, guests included (IsAuthenticatedOrReadOnly since the same release), so an empty list is a reachable state that means what it says. include=all is honoured only for a moderator of the target and narrowed silently for anyone else, which is why every non-published row names its state.",
       "component": "ReviewList",
       "covers": [
         "ReviewsProvider"
@@ -409,7 +409,7 @@
       "variants": [
         "published",
         "moderator (include=all)",
-        "signed out (401)"
+        "empty (reachable by a guest)"
       ],
       "source": "demo/ReviewList.demo.tsx"
     }
@@ -483,10 +483,8 @@
     "reviews.list.more.blocked.end",
     "reviews.list.more.blocked.pending",
     "reviews.list.refresh",
-    "reviews.list.sign_in_required",
     "reviews.rating.count",
     "reviews.rating.none",
-    "reviews.rating.sign_in_required",
     "reviews.rating.star_label",
     "reviews.rating.value",
     "reviews.review.author_fallback",

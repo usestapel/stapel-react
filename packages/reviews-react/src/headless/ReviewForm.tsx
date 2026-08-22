@@ -45,7 +45,16 @@ export interface ReviewFormBag {
    * `alreadyReviewed`.
    */
   readonly alreadyReviewed: boolean;
-  /** The write failed with 401 — the form is offered to a signed-out reader. */
+  /**
+   * The write failed with 401 — the form was offered to a signed-out reader.
+   *
+   * The LAST place this state survives. Since stapel-reviews 0.3.0 both reads
+   * are anonymous (`IsAuthenticatedOrReadOnly` on the list class, `AllowAny`
+   * on the aggregate), so a guest reads the reviews and only the POST refuses
+   * — there has to be an author to attribute the review to. That makes this a
+   * prompt to sign in at the moment it is actually true, rather than a wall in
+   * front of content.
+   */
   readonly signInRequired: boolean;
   /** The type's `can_review` callback refused this author for this target. */
   readonly forbidden: boolean;

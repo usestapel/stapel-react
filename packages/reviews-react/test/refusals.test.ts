@@ -47,7 +47,11 @@ describe("the duplicate refusal", () => {
   });
 });
 
-describe("the 401 every endpoint of this module can answer", () => {
+describe("the 401 only the WRITE can answer now", () => {
+  // stapel-reviews 0.3.0 opened both reads (IsAuthenticatedOrReadOnly /
+  // AllowAny), so this predicate serves the submit path alone — and it is
+  // still needed there, because a POST has to attribute the review to an
+  // author.
   it("is recognised by status, whatever key the body carried", () => {
     expect(isSignInRequired(apiError(401, "stapel.http.401"))).toBe(true);
     expect(isSignInRequired(apiError(401, "error.401.some_deployment_key"))).toBe(true);

@@ -10,5 +10,5 @@ export const Published = (): ReactElement => renderDemoVariant(demo, "published"
 Published.storyName = "published";
 export const ModeratorIncludeAll = (): ReactElement => renderDemoVariant(demo, "moderator (include=all)");
 ModeratorIncludeAll.storyName = "moderator (include=all)";
-export const SignedOut401 = (): ReactElement => renderDemoVariant(demo, "signed out (401)");
-SignedOut401.storyName = "signed out (401)";
+export const EmptyReachableByAGuest = (): ReactElement => renderDemoVariant(demo, "empty (reachable by a guest)");
+EmptyReachableByAGuest.storyName = "empty (reachable by a guest)";

@@ -43,7 +43,6 @@ export const reviewsI18nBundleRu: I18nDictionary = {
 
   "reviews.list.heading": "Отзывы",
   "reviews.list.empty": "Отзывов пока нет",
-  "reviews.list.sign_in_required": "Войдите, чтобы читать отзывы",
   "reviews.list.load_more": "Показать ещё",
   "reviews.list.refresh": "Обновить",
   "reviews.list.more.blocked.end": "Это все отзывы",
@@ -59,7 +58,6 @@ export const reviewsI18nBundleRu: I18nDictionary = {
   "reviews.rating.none": "Отзывов пока нет",
   "reviews.rating.value": "{avg} из {max}",
   "reviews.rating.count": "Отзывов: {count}",
-  "reviews.rating.sign_in_required": "Войдите, чтобы увидеть рейтинг",
   "reviews.rating.star_label": "{index} из {max}",
 
   "reviews.form.heading": "Оцените",

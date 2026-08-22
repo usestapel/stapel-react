@@ -13,7 +13,6 @@ import { REVIEWS_I18N_KEYS } from "../i18n/keys.js";
 import { reviewsFromPages } from "../model/list.js";
 import { useReviewList } from "../model/queries.js";
 import type { UseReviewListOptions } from "../model/queries.js";
-import { isSignInRequired } from "../model/refusals.js";
 
 /** What `<ReviewList>` hands its render prop. */
 export interface ReviewListBag {
@@ -24,15 +23,6 @@ export interface ReviewListBag {
    * "this target has no reviews".
    */
   readonly state: LoadState<readonly Review[]>;
-  /**
-   * The load failed because the caller is not signed in. Split out of
-   * `state.failed` because it is the ONE failure whose copy must not be an
-   * error banner: every stapel-reviews endpoint is `IsAuthenticated`, so this
-   * is what a visitor to a public listing page sees, and "sign in to read the
-   * reviews" is the true sentence. Rendering the empty state here would tell
-   * that visitor the seller has never been reviewed.
-   */
-  readonly signInRequired: boolean;
   /** Ask for the next (older) page. */
   readonly loadMore: () => void;
   /** Whether there is another page, and if not, why the control is off. */
@@ -56,7 +46,12 @@ export interface ReviewListProps extends UseReviewListOptions {
 
 /**
  * The headless review list: anchor-paginated, newest first, over one opaque
- * `(target_type, target_key)`.
+ * `(target_type, target_key)`, readable by anyone.
+ *
+ * There is no `signInRequired` here: since stapel-reviews 0.3.0 the list is
+ * `IsAuthenticatedOrReadOnly`, so a guest gets the published rows. An empty
+ * READY list therefore means what it says — nobody has reviewed this target —
+ * and it is a state a signed-out visitor can legitimately reach.
  *
  * No markup, no strings — a render prop and a bag (frontend-standard §2). The
  * antd rendering of the same bag is `@stapel/reviews-react/default`'s
@@ -93,8 +88,6 @@ export function ReviewList(props: ReviewListProps): ReactElement {
       {children({
         target,
         state,
-        signInRequired:
-          query.status === "error" && isSignInRequired(query.error),
         loadMore,
         more,
         loadingMore: query.isFetchingNextPage,

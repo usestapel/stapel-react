@@ -3,36 +3,31 @@
  * (`api/generated/schema.ts`, emitted by `pnpm gen:api` from stapel-reviews'
  * own `docs/schema.json`), never re-typed by hand.
  *
- * Four corrections are applied here rather than silently, because each one is
- * a place where the declared contract and the running view disagree and a
- * screen built on the declaration alone would break:
+ * **Two hand-written shapes lived here against the 0.2.2 pin and are gone.**
+ * `ReviewPage` and the list's `anchor`/`limit`/`direction` parameters were
+ * declared by this file because `ReviewListCreateView` is a bare `APIView`
+ * that instantiates its paginator inside `get()`: drf-spectacular's pagination
+ * introspection only fires for `GenericAPIView.pagination_class`, so the
+ * schema declared `200: ReviewResponse[]` and knew nothing of the three query
+ * parameters. **stapel-reviews 0.3.0 declares both** — `components/ReviewPage`
+ * and the parameters, `direction` with an enum — so the copies were deleted
+ * and everything below comes from codegen. The upstream ask that produced this
+ * is recorded in `contract-pins.json`.
  *
- * 1. **`GET /reviews` does not answer an array.** The schema says
- *    `200: ReviewResponse[]`, and the view returns
- *    `paginator.get_paginated_response(data)` — core's `AnchorPagination`
- *    envelope (`{items, next_anchor, prev_anchor, has_next, has_prev,
- *    count}`). drf-spectacular never learns about the paginator because
- *    `ReviewListCreateView` is a plain `APIView` that instantiates
- *    `ReviewAnchorPagination` inside `get()` instead of declaring a
- *    `pagination_class`. {@link ReviewPage} is the shape that actually
- *    arrives; an upstream ask is recorded in the contract pin.
- * 2. **Its `anchor` / `limit` / `direction` query parameters are undeclared
- *    for the same reason.** v0.2.2 declared `target_type`, `target_key` and
- *    `include`, which is what unblocked this pair; the paginator's own three
- *    are still invisible to the schema. {@link ReviewListParams} names them.
- *    The anchor is a `created_at` ISO timestamp (`anchor_field = "created_at"`,
- *    `ordering = "-created_at"`), not an id and not a `seq`.
- * 3. **`status` is a bare `string` on the wire** and a three-member lifecycle
+ * Two corrections remain, and both are widenings of what the wire can say
+ * rather than shapes the schema is missing:
+ *
+ * 1. **`status` is a bare `string` on the wire** and a three-member lifecycle
  *    in the model (`ReviewStatus`). {@link ReviewStatus} names the three
  *    WITHOUT narrowing a parsed value: a fourth state added upstream must
  *    render as an unknown state, not crash a switch.
- * 4. **`avg` is `0.0` when `count` is `0`.** The type cannot express that, so
+ * 2. **`avg` is `0.0` when `count` is `0`.** The type cannot express that, so
  *    {@link RatingAggregate} exists as the shape both this module's own
  *    aggregate endpoint AND the shop composite's `shop.listing_review_summary`
  *    projection answer with — and `model/rating.ts` is the one place allowed
  *    to decide what a zero means.
  */
-import type { components } from "./generated/schema.js";
+import type { components, operations } from "./generated/schema.js";
 
 /** Every component schema stapel-reviews declares. */
 export type Schemas = components["schemas"];
@@ -51,6 +46,21 @@ export type ReviewCreateRequest = Schemas["ReviewCreateRequest"];
  * target, carrying the target it is about.
  */
 export type ReviewAggregate = Schemas["AggregateResponse"];
+
+/**
+ * The 200 body of `GET /reviews` — core's `AnchorPagination` envelope,
+ * generated since 0.3.0 (see this module's header).
+ *
+ * `count` is the number of rows in THIS page, not the total; the total number
+ * of published reviews is the aggregate's `count`, which is a different number
+ * computed a different way.
+ */
+export type ReviewPage = Schemas["ReviewPage"];
+
+/** The generated query surface of `GET /reviews`. */
+type ReviewListQuery = NonNullable<
+  operations["reviews_api_v1_reviews_retrieve"]["parameters"]["query"]
+>;
 
 /**
  * A review's visibility, as `models.ReviewStatus` spells it.
@@ -102,46 +112,29 @@ export interface RatingAggregate {
 }
 
 /**
- * Anchor-pagination direction (core `AnchorPagination`). The review list is
- * ordered `-created_at`, so:
+ * Anchor-pagination direction — the enum the schema now carries. The review
+ * list is ordered `-created_at`, so:
  *
  * - `next` (default) — reviews OLDER than the anchor (the load-more direction),
  * - `prev` — reviews NEWER than the anchor,
  * - `center` — a window around the anchor.
  */
-export type ReviewAnchorDirection = "next" | "prev" | "center";
+export type ReviewAnchorDirection = NonNullable<ReviewListQuery["direction"]>;
 
 /**
- * Query for `GET /reviews`. `targetType`/`targetKey` are required by the view
- * (a missing one is `error.400.reviews_unknown_target_type`, not an empty
- * list); the rest are the paginator's, and none of the three appear in the
- * generated schema — see this module's header.
+ * Query for `GET /reviews`: the generated parameters, with only the target
+ * pair renamed to this package's camelCase {@link ReviewTarget}. Nothing here
+ * is hand-typed any more — `include`, `anchor`, `limit` and `direction` are
+ * exactly what the contract declares.
+ *
+ * `target_type`/`target_key` are required by the view (a missing one is
+ * `error.400.reviews_unknown_target_type`, not an empty list). `anchor` is a
+ * `created_at` ISO timestamp and exclusive. `include` is typed `string`
+ * because the schema declares no enum for it: the view acts on the literal
+ * `"all"` and treats anything else as published-only, silently — which is why
+ * the hook option that offers it (`UseReviewListOptions.include`) narrows to
+ * the one value the server actually reads.
  */
-export interface ReviewListParams extends ReviewTarget {
-  /**
-   * Ask for pending/hidden rows too. Honoured only for a moderator/owner of
-   * the target; anyone else is narrowed to published SILENTLY, so a UI must
-   * never promise "showing hidden reviews" on the strength of having asked.
-   */
-  readonly include?: "all";
-  /** A `created_at` ISO timestamp — exclusive, from a page's `next_anchor`. */
-  readonly anchor?: string;
-  readonly direction?: ReviewAnchorDirection;
-  readonly limit?: number;
-}
-
-/**
- * The 200 body of `GET /reviews` — core's `AnchorPagination` envelope, which
- * the schema does not declare (see this module's header). `count` is the
- * number of rows in THIS page, not the total; the total number of published
- * reviews is the aggregate's `count`, which is a different number computed a
- * different way.
- */
-export interface ReviewPage {
-  readonly items: readonly Review[];
-  readonly next_anchor: string | null;
-  readonly prev_anchor: string | null;
-  readonly has_next: boolean;
-  readonly has_prev: boolean;
-  readonly count: number;
-}
+export interface ReviewListParams
+  extends ReviewTarget,
+    Omit<ReviewListQuery, "target_type" | "target_key"> {}

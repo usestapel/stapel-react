@@ -14,7 +14,6 @@ export const REVIEWS_I18N_KEYS = {
   // The list
   listHeading: "reviews.list.heading",
   listEmpty: "reviews.list.empty",
-  listSignInRequired: "reviews.list.sign_in_required",
   listLoadMore: "reviews.list.load_more",
   listRefresh: "reviews.list.refresh",
   moreBlockedEnd: "reviews.list.more.blocked.end",
@@ -38,10 +37,12 @@ export const REVIEWS_I18N_KEYS = {
   ratingNone: "reviews.rating.none",
   ratingValue: "reviews.rating.value",
   ratingCount: "reviews.rating.count",
-  ratingSignInRequired: "reviews.rating.sign_in_required",
   ratingStarLabel: "reviews.rating.star_label",
 
-  // The form
+  // The form. `formSignInRequired` is the ONLY sign-in key left: since
+  // stapel-reviews 0.3.0 both reads are anonymous and only the POST refuses a
+  // guest, so "sign in" is copy for the write and never a wall in front of
+  // the content.
   formHeading: "reviews.form.heading",
   formRatingLabel: "reviews.form.rating_label",
   formBodyLabel: "reviews.form.body_label",
@@ -90,7 +91,6 @@ export const reviewsI18nBundleEn: I18nDictionary = {
 
   "reviews.list.heading": "Reviews",
   "reviews.list.empty": "No reviews yet",
-  "reviews.list.sign_in_required": "Sign in to read the reviews",
   "reviews.list.load_more": "Show more",
   "reviews.list.refresh": "Refresh",
   "reviews.list.more.blocked.end": "That is all of them",
@@ -106,7 +106,6 @@ export const reviewsI18nBundleEn: I18nDictionary = {
   "reviews.rating.none": "No reviews yet",
   "reviews.rating.value": "{avg} out of {max}",
   "reviews.rating.count": "{count} reviews",
-  "reviews.rating.sign_in_required": "Sign in to see the rating",
   "reviews.rating.star_label": "{index} out of {max}",
 
   "reviews.form.heading": "Rate this",

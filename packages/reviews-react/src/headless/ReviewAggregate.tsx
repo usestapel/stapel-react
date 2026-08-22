@@ -6,7 +6,6 @@ import { useReviewsRuntime } from "../model/context.js";
 import { useReviewAggregate } from "../model/queries.js";
 import { ratingSummary } from "../model/rating.js";
 import type { RatingSummary } from "../model/rating.js";
-import { isSignInRequired } from "../model/refusals.js";
 
 /** What `<ReviewAggregate>` hands its render prop. */
 export interface ReviewAggregateBag {
@@ -17,8 +16,6 @@ export interface ReviewAggregateBag {
   readonly state: LoadState<RatingSummary>;
   /** Where the number came from. */
   readonly source: "fetched" | "supplied";
-  /** The read failed with 401 — see `ReviewListBag.signInRequired`. */
-  readonly signInRequired: boolean;
   /** The deployment's rating ceiling, for a star row that draws `max` stars. */
   readonly max: number;
 }
@@ -41,7 +38,8 @@ export interface ReviewAggregateProps {
 
 /**
  * The headless rating display — the same bag whether the number came from
- * this module or from the composite.
+ * this module or from the composite. `AllowAny` upstream since 0.3.0, so a
+ * guest sees the rating and there is no "sign in" state here.
  *
  * ── Why `aggregate` is a prop, and not a second endpoint ───────────────────
  *
@@ -89,10 +87,6 @@ export function ReviewAggregate(props: ReviewAggregateProps): ReactElement {
       {props.children({
         state,
         source: supplied !== undefined ? "supplied" : "fetched",
-        signInRequired:
-          supplied === undefined &&
-          query.status === "error" &&
-          isSignInRequired(query.error),
         max: runtime.ratingBounds.max,
       })}
     </>

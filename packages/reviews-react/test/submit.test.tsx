@@ -9,7 +9,13 @@ import { ReviewForm } from "../src/index.js";
 import type { ReviewFormBag } from "../src/index.js";
 import { TestProviders, mockServer } from "./harness.js";
 import type { MockServer } from "./harness.js";
-import { ALREADY_RESPONDED_409, DUPLICATE_400, TARGET, review } from "./fixtures.js";
+import {
+  ALREADY_RESPONDED_409,
+  DUPLICATE_400,
+  TARGET,
+  UNAUTHENTICATED_401,
+  review,
+} from "./fixtures.js";
 
 function Probe(props: { bag: ReviewFormBag }): ReactElement {
   const { bag } = props;
@@ -21,6 +27,7 @@ function Probe(props: { bag: ReviewFormBag }): ReactElement {
       <span data-testid="duplicate">{String(bag.alreadyReviewed)}</span>
       <span data-testid="visibility">{bag.submittedVisibility ?? "none"}</span>
       <span data-testid="error">{bag.error?.code ?? "none"}</span>
+      <span data-testid="sign-in">{String(bag.signInRequired)}</span>
       <span data-testid="max">{bag.bounds.max}</span>
       <button type="button" data-testid="rate" onClick={() => bag.setRating(5)}>
         rate
@@ -133,6 +140,21 @@ describe("the duplicate refusal", () => {
         "error.409.reviews_already_responded"
       );
     });
+    expect(screen.getByTestId("duplicate").textContent).toBe("false");
+  });
+});
+
+describe("the write is the last place a 401 can happen", () => {
+  it("names it, and does not leave it in the generic error surface", async () => {
+    // Both reads are anonymous since 0.3.0; the POST still needs an identity
+    // because there has to be an author to attribute the review to.
+    renderForm(mockServer({ "POST /reviews": UNAUTHENTICATED_401 }));
+    fireEvent.click(screen.getByTestId("rate"));
+    fireEvent.click(screen.getByTestId("submit"));
+    await waitFor(() => {
+      expect(screen.getByTestId("sign-in").textContent).toBe("true");
+    });
+    expect(screen.getByTestId("error").textContent).toBe("none");
     expect(screen.getByTestId("duplicate").textContent).toBe("false");
   });
 });

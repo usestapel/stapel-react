@@ -36,20 +36,12 @@ export function RatingBadge(props: RatingBadgeProps): ReactElement {
               loading: () => (
                 <Skeleton.Button active data-testid="reviews-rating-loading" />
               ),
-              failed: (error) =>
-                bag.signInRequired ? (
-                  <Typography.Text
-                    type="secondary"
-                    data-testid="reviews-rating-sign-in"
-                  >
-                    {t(REVIEWS_I18N_KEYS.ratingSignInRequired)}
-                  </Typography.Text>
-                ) : (
-                  <ErrorAlert
-                    testId="reviews-rating-failed"
-                    error={describe(toFlowError(error))}
-                  />
-                ),
+              failed: (error) => (
+                <ErrorAlert
+                  testId="reviews-rating-failed"
+                  error={describe(toFlowError(error))}
+                />
+              ),
               ready: (summary) =>
                 summary.rated ? (
                   <>

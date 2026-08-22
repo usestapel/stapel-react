@@ -68,18 +68,16 @@ describe("<RatingBadge>", () => {
     expect(server.calls).toHaveLength(0);
   });
 
-  it("says 'sign in' rather than 'not rated' on a 401", async () => {
+  it("has no sign-in arm at all — the aggregate is AllowAny since 0.3.0", async () => {
     render(
-      <TestProviders
-        server={mockServer({ "/reviews/aggregate": UNAUTHENTICATED_401 })}
-      >
+      <TestProviders server={mockServer({ "/reviews/aggregate": { body: UNRATED } })}>
         <RatingBadge target={TARGET} />
       </TestProviders>
     );
     await waitFor(() => {
-      expect(screen.getByTestId("reviews-rating-sign-in")).toBeTruthy();
+      expect(screen.getByTestId("reviews-rating-none")).toBeTruthy();
     });
-    expect(screen.queryByTestId("reviews-rating-none")).toBeNull();
+    expect(screen.queryByTestId("reviews-rating-sign-in")).toBeNull();
   });
 });
 
@@ -146,17 +144,19 @@ describe("<ReviewListPanel>", () => {
     });
   });
 
-  it("shows 'sign in to read the reviews' on a 401, never the empty state", async () => {
+  it("shows a guest the rows, and never a sign-in wall", async () => {
+    // The harness mounts no session manager — the storefront guest case. The
+    // list is IsAuthenticatedOrReadOnly since 0.3.0, so the reviews are the
+    // content, not something behind a prompt.
     render(
-      <TestProviders server={mockServer({ "/reviews": UNAUTHENTICATED_401 })}>
+      <TestProviders server={mockServer({ "/reviews": { body: FIRST_PAGE } })}>
         <ReviewListPanel target={TARGET} />
       </TestProviders>
     );
     await waitFor(() => {
-      expect(screen.getByTestId("reviews-list-sign-in")).toBeTruthy();
+      expect(screen.getByTestId("reviews-list-rows")).toBeTruthy();
     });
-    expect(screen.queryByTestId("reviews-list-empty")).toBeNull();
-    expect(screen.queryByTestId("reviews-list-failed")).toBeNull();
+    expect(screen.queryByTestId("reviews-list-sign-in")).toBeNull();
   });
 
   it("renders a refusal with a retry on a real outage", async () => {
@@ -205,6 +205,27 @@ describe("<ReviewFormCard>", () => {
     );
     expect(screen.getByTestId("reviews-form-duplicate")).toBeTruthy();
     expect(screen.queryByTestId("reviews-form-submit")).toBeNull();
+  });
+
+  it("says 'sign in to leave a review' when the POST answers 401", async () => {
+    // The last home of that state: the reads are anonymous, the write is not
+    // (there has to be an author to attribute the review to).
+    render(
+      <TestProviders server={mockServer({ "POST /reviews": UNAUTHENTICATED_401 })}>
+        <ReviewFormCard target={TARGET} />
+      </TestProviders>
+    );
+    const stars = screen
+      .getByTestId("reviews-form-rate")
+      .querySelectorAll<HTMLElement>("div[role='radio']");
+    const star = stars[stars.length - 1];
+    expect(star).toBeTruthy();
+    if (star) fireEvent.click(star);
+    fireEvent.click(screen.getByTestId("reviews-form-submit"));
+    await waitFor(() => {
+      expect(screen.getByTestId("reviews-form-sign-in")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("reviews-form-failed")).toBeNull();
   });
 
   it("turns the 400 duplicate into the same note, not an error banner", async () => {

@@ -68,27 +68,33 @@ error.409.reviews_already_responded  ← the module's only 409, about the seller
 
 A form branching on `status === 409` misses the first and mishandles the
 second. `isDuplicateReview(error)` reads the code, and the form turns it into
-"you have already rated this" rather than a red banner.
+"you have already rated this" rather than a red banner. This one is still a
+live trap in 0.3.0 — it is a documented shape, not a defect the release fixed.
 
 The optimistic pre-check (`findOwnReview` over the loaded rows) exists, and its
 hole is documented rather than papered over: the list is published-only, so
 under pre-moderation the author's own pending review is invisible **to its
 author**, the form offers itself again, and the server is the one that says no.
 
-### 3. A 401 is not an empty list
+### 3. A guest reads the reviews; only the write asks them to sign in
 
-**Every** stapel-reviews endpoint is `IsAuthenticated`, including both reads.
-A signed-out visitor on a public listing page gets 401 for the review list and
-for the aggregate — and the empty state would tell exactly the people who have
-not signed up yet that a well-reviewed seller has never been reviewed. Both
-read bags carry `signInRequired` as a named state, and the skin says "sign in
-to read the reviews".
+Both reads are anonymous since **stapel-reviews 0.3.0**:
+`ReviewListCreateView` is `IsAuthenticatedOrReadOnly` (GET open, POST still
+needs an author to attribute the review to) and `AggregateView` is `AllowAny`,
+both throttled from the module's own settings (`LIST_THROTTLE` 120/min,
+`AGGREGATE_THROTTLE` 300/min). Nothing new became visible — both endpoints were
+already published-only for a non-moderator.
 
-> **Upstream ask.** Make `GET /reviews` and `GET /reviews/aggregate`
-> `AllowAny` (or `IsNotAnonymousUser`, as stapel-cdn's upload endpoints already
-> are) so a storefront can show its ratings to visitors. Recorded in
-> `contract-pins.json`; the pair does not work around it, because a client
-> cannot.
+So `signInRequired` exists on **one** bag, the form's, where a 401 is still the
+honest answer. The read bags have no such state, and an empty list now means
+what it says to everybody: nobody has reviewed this target.
+
+> Against the 0.2.2 contract this pair carried the opposite: every endpoint was
+> `IsAuthenticated`, a visitor got 401 for the list *and* the aggregate, and
+> both read bags had to name that so the empty state would not tell a
+> not-yet-registered visitor that a well-reviewed seller has never been
+> reviewed. The ask went upstream instead of being worked around, and 0.3.0
+> answered it.
 
 ### 4. A review that is not published says so
 
@@ -99,27 +105,29 @@ submit, the created row's status decides the sentence — a pre-moderating
 deployment tells the author their review will appear once checked, instead of
 leaving them to hunt for it.
 
-## The list body is not what the schema declares
+## The list body, and where its type comes from
 
-`GET /reviews` declares `200: ReviewResponse[]` and returns core's
-`AnchorPagination` envelope:
+`GET /reviews` answers core's `AnchorPagination` envelope:
 
 ```jsonc
 { "items": [...], "next_anchor": "2026-08-19T10:00:00Z", "prev_anchor": null,
   "has_next": true, "has_prev": false, "count": 20 }
 ```
 
-`ReviewListCreateView` is a plain `APIView` that instantiates its paginator
-inside `get()` instead of declaring a `pagination_class`, so drf-spectacular
-never learns about it — and for the same reason the `anchor` / `limit` /
-`direction` query parameters are undeclared too, while `target_type` /
-`target_key` / `include` (added in 0.2.2, the release that unblocked this pair)
-now are. `ReviewPage` and `ReviewListParams` in `src/api/types.ts` are the
-hand-declared shapes, with the upstream ask beside them.
+It always did — but `ReviewListCreateView` is a plain `APIView` that
+instantiates its paginator inside `get()` instead of declaring a
+`pagination_class`, so drf-spectacular's introspection never ran and the schema
+declared `200: ReviewResponse[]`; the `anchor` / `limit` / `direction`
+parameters were invisible for the same reason. **0.3.0 declares both**
+(`components/ReviewPage`, and `direction` with an enum), so the copies this
+package maintained in `src/api/types.ts` are **deleted** and `ReviewPage`,
+`ReviewListParams` and `ReviewAnchorDirection` are all projections of the
+generated schema.
 
 Anchors are `created_at` timestamps (`anchor_field = "created_at"`,
 `ordering = "-created_at"`), and paging stops on `has_next`, never on a
-cursor rebuilt from the last row.
+cursor rebuilt from the last row — the paginator leaves `next_anchor` `null`
+on the last page.
 
 ## The seller rating is a display, not a fetch
 
@@ -176,7 +184,9 @@ the server stays the authority (`error.400.reviews_invalid_rating`).
 
 ## i18n
 
-English ships inline. `./i18n/ru` and `./i18n/es` are opt-in subpaths. The 42
+English ships inline. `./i18n/ru` and `./i18n/es` are opt-in subpaths. There is
+exactly one sign-in string left (`reviews.form.sign_in_required`) — the two
+read-side ones went out with the 0.3.0 permission change. The 42
 cross-cutting error keys come from stapel-core's catalogue through the
 generated bundles; the **9 keys stapel-reviews owns are authored by this
 package**, because the module ships no `translations/` directory (the

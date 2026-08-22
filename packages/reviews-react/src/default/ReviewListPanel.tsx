@@ -1,17 +1,13 @@
 /**
  * `<ReviewListPanel>` — the antd rendering of the review list.
  *
- * Three things it says out loud that a naive list would swallow:
+ * Two things it says out loud that a naive list would swallow:
  *
- * 1. A 401 is "sign in to read the reviews", not an empty list. Every
- *    stapel-reviews endpoint is `IsAuthenticated`, so this is what a
- *    signed-out visitor sees on a public listing page — and the empty state
- *    would be a lie told to exactly the people who have not signed up yet.
- * 2. A row that is not `published` carries a badge naming its state. It is on
+ * 1. A row that is not `published` carries a badge naming its state. It is on
  *    screen only because a moderator asked for `include=all`, and a pending
  *    or hidden review that looked like an ordinary one would misrepresent
  *    what the public can see.
- * 3. The author is a SLOT. The wire carries `author_id` and nothing else — no
+ * 2. The author is a SLOT. The wire carries `author_id` and nothing else — no
  *    name, no avatar — so the skin renders a neutral label unless the host
  *    passes `renderAuthor`. Printing a raw user id would be both useless to a
  *    reader and a gratuitous disclosure.
@@ -160,30 +156,22 @@ export function ReviewListPanel(props: ReviewListPanelProps): ReactElement {
               loading: () => (
                 <Skeleton active data-testid="reviews-list-loading" />
               ),
-              failed: (error) =>
-                bag.signInRequired ? (
-                  <Typography.Text
-                    type="secondary"
-                    data-testid="reviews-list-sign-in"
-                  >
-                    {t(REVIEWS_I18N_KEYS.listSignInRequired)}
-                  </Typography.Text>
-                ) : (
-                  <ErrorAlert
-                    testId="reviews-list-failed"
-                    error={describe(toFlowError(error))}
-                    action={
-                      <Button
-                        size="small"
-                        onClick={bag.refresh}
-                        data-analytics="none"
-                        data-analytics-reason="recovery affordance for a failed read — host app wraps with its own tracked()"
-                      >
-                        {t(REVIEWS_I18N_KEYS.listRefresh)}
-                      </Button>
-                    }
-                  />
-                ),
+              failed: (error) => (
+                <ErrorAlert
+                  testId="reviews-list-failed"
+                  error={describe(toFlowError(error))}
+                  action={
+                    <Button
+                      size="small"
+                      onClick={bag.refresh}
+                      data-analytics="none"
+                      data-analytics-reason="recovery affordance for a failed read — host app wraps with its own tracked()"
+                    >
+                      {t(REVIEWS_I18N_KEYS.listRefresh)}
+                    </Button>
+                  }
+                />
+              ),
               ready: (reviews) =>
                 reviews.length === 0 ? (
                   <Empty

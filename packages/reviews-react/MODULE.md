@@ -1,6 +1,6 @@
 # @stapel/reviews-react — module guide
 
-Pairs with **stapel-reviews 0.2.2** (`>=0.2 <0.3`), 4 paths under
+Pairs with **stapel-reviews 0.3.0** (`>=0.3 <0.4`), 4 paths under
 `/reviews/api/v1/`. Contract sources: the module's own
 `docs/{schema,errors,flows}.json`, pinned in `contract-pins.json` and
 regenerated under `pnpm gen:check`.
@@ -10,7 +10,7 @@ regenerated under `pnpm gen:check`.
 ```
 src/api/          reviewsApi.ts   the three operations a browser may call;
                                   the one home of path strings
-                  types.ts        wire aliases + the four documented corrections
+                  types.ts        wire aliases + the two remaining corrections
                   generated/      openapi-typescript, drift-gated
 src/model/        runtime · context · queryKeys · queries · mutations
                   rating.ts       the aggregate, READ (the zero that is not a rating)
@@ -28,21 +28,34 @@ tested without a DOM, and what lets an SSR render call them directly.
 There is **no `flows/` layer** (`docs/flows.json` is `[]`, the module annotates
 no `@flow_step`) and **no `nav/` layer** (this pair owns no route — see below).
 
-## The four contract facts this package exists to absorb
+## What 0.3.0 changed here
 
-### 1. The list body is the pagination envelope, not the declared array
+This pair was built against 0.2.2 and carried two workarounds for it. **Both
+are deleted**, because the release answered both asks:
 
-`ReviewListCreateView` is a plain `APIView`. It instantiates
+| Was | Now |
+|---|---|
+| `ReviewPage`, `ReviewListParams`, `ReviewAnchorDirection` hand-declared in `api/types.ts` | projections of `components/ReviewPage` and the generated `reviews_api_v1_reviews_retrieve` query type |
+| `signInRequired` on the list bag, the aggregate bag and the form bag; two sign-in arms in the skin; `reviews.list.sign_in_required` + `reviews.rating.sign_in_required` | `signInRequired` on the **form bag only**; one sign-in key (`reviews.form.sign_in_required`) |
+
+The permission change is `IsAuthenticatedOrReadOnly` on the list class
+(mirroring stapel-listings' `ListingViewSet`: GET open, POST still needs an
+author) and `AllowAny` on the aggregate, both with
+`stapel_anonymous_access = ANONYMOUS_ALLOWED` and both throttled from
+`STAPEL_REVIEWS` (`LIST_THROTTLE` 120/min, `AGGREGATE_THROTTLE` 300/min) rather
+than the project's `DEFAULT_THROTTLE_RATES`. Nothing new became visible to a
+guest: both endpoints were already published-only for a non-moderator.
+
+## The three contract facts this package still absorbs
+
+### 1. The list body is the pagination envelope — now declared
+
+`ReviewListCreateView` is a plain `APIView` that instantiates
 `ReviewAnchorPagination` inside `get()` rather than declaring a
-`pagination_class`, so drf-spectacular describes the 200 as
-`ReviewResponse[]` while the wire carries
-`{items, next_anchor, prev_anchor, has_next, has_prev, count}`. Same cause,
-same effect for `anchor` / `limit` / `direction`: undeclared, though
-`target_type` / `target_key` / `include` were declared in 0.2.2.
-
-`ReviewPage` and `ReviewListParams` (`api/types.ts`) are the hand-declared
-shapes. Upstream ask: give the view a `pagination_class`, or declare the
-envelope with `@extend_schema`.
+`pagination_class`, so drf-spectacular's pagination introspection never runs.
+0.3.0 works around its own limitation the right way — a hand-written
+`ReviewPageSerializer` plus explicit `OpenApiParameter`s — so the CONTRACT now
+tells the truth and this package types the envelope from codegen.
 
 Two properties of the paging are load-bearing:
 
@@ -76,17 +89,18 @@ Note also that the duplicate only exists where the target type sets
 endpoint reports the policy, so the client cannot pre-compute the rule; it
 handles the answer.
 
-### 4. Every endpoint is `IsAuthenticated`, including the two reads
+### 4. The reads are anonymous — and the session gate matters MORE for it
 
-A signed-out visitor gets 401 from the review list and from the aggregate. The
-read hooks fire anyway — a client-side gate must not refuse what the server
-would allow, and whether an anonymous session means a 401 here is a deployment's
-business — but the refusal is surfaced as `signInRequired`, never as an empty
-list. Upstream ask in `contract-pins.json`.
-
-The hooks ARE gated on `useActiveSessionReady()`, which is a different
-question: a read that races a bootstrapping session would report the 401 for
-the length of the bootstrap.
+The hooks are still gated on `useActiveSessionReady()`, and the reason got
+stronger with the permission change rather than weaker. What the server returns
+depends on who is asking: a moderator of the target gets pending and hidden
+rows for `include=all`, everyone else is narrowed to published *silently*. A
+read that raced a bootstrapping session used to produce a visible 401; now it
+would SUCCEED as a guest and cache that answer under a key that does not
+mention identity. `useActiveSessionReady()` answers `true` the instant the
+session settles into any of authenticated / anonymous / unauthenticated, and
+immediately when no session-owning module is mounted — so a purely public
+storefront waits for nothing.
 
 ## The target is two strings, and the pair invents neither
 
@@ -127,10 +141,10 @@ later is additive.
 | File | What it pins |
 |---|---|
 | `rating.test.ts` | the zero that is not a rating, in every arm; the projection shape reads the same |
-| `refusals.test.ts` | 400 duplicate vs 409 already-responded; 401 vs 403; a non-API fault |
-| `list.test.tsx` | the envelope, the `created_at` cursor, no page past `has_next`, 401 ≠ empty |
-| `submit.test.tsx` | the request body, the duplicate as a named state, `pending` after submit, the bounds |
-| `skin.test.tsx` | no star row for an unrated target, the moderated badges, sign-in vs empty, one list request for the composed panel |
+| `refusals.test.ts` | 400 duplicate vs 409 already-responded; the write's 401 vs 403; a non-API fault |
+| `list.test.tsx` | the envelope, the `created_at` cursor, no page past `has_next`, the anonymous read and its reachable empty state |
+| `submit.test.tsx` | the request body, the duplicate as a named state, the 401 the write still answers, `pending` after submit, the bounds |
+| `skin.test.tsx` | no star row for an unrated target, the moderated badges, a guest seeing rows with no sign-in wall, "sign in to leave a review" on a 401 POST, one list request for the composed panel |
 | `i18n.test.ts` | every registry code and every UI key resolves in en/ru/es |
 | `pair.test.ts` | query keys, the surface's absences (moderate/respond/nav/target constants), the logout hook |
 | `demos.test.tsx` | every demo variant renders |

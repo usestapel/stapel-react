@@ -17,27 +17,25 @@ import { reviewsQueryKeys } from "./queryKeys.js";
 /**
  * Read hooks over the reviews API.
  *
- * ── Why they fire even for a visitor who will certainly get 401 ────────────
+ * ── Both reads are ANONYMOUS, and both still wait for the session ─────────
  *
- * `useActiveSessionStatus()` could tell us the session settled as anonymous,
- * and skipping the request would save a round trip per listing page. The
- * hooks do not do that, on the same rule cdn-react's limit mirror follows: a
- * client-side gate must not refuse what the server would have allowed. The
- * mapping from "anonymous session" to "401 from stapel-reviews" is a
- * deployment's business — a host can put a reverse proxy, a guest-token
- * exchange or a relaxed permission class in between — and a pair that decided
- * locally would make the reviews permanently invisible on the day that
- * changed, with nothing in the network tab to explain it.
+ * Since stapel-reviews 0.3.0 a guest reads the list (`IsAuthenticatedOrReadOnly`)
+ * and the aggregate (`AllowAny`), so a public listing page shows its reviews
+ * to a visitor who will never sign in. Neither hook carries a
+ * "sign in first" state any more — that is now only true of the write.
  *
- * What the pair does instead is refuse to MISREPRESENT the refusal:
- * `isSignInRequired(error)` (`model/refusals.ts`) is a named state the bags
- * carry, so the skin says "sign in to read the reviews" instead of "no
- * reviews yet".
- *
- * Both hooks are gated on {@link useActiveSessionReady}, which is a different
- * question: a read that races a still-bootstrapping session reports its
- * answer for the length of the bootstrap, and here that answer would be the
- * 401.
+ * They are still gated on {@link useActiveSessionReady}, and the reason got
+ * STRONGER rather than weaker with the permission change. What the server
+ * returns depends on who is asking: a moderator of the target gets pending
+ * and hidden rows for `include=all`, everyone else is silently narrowed to
+ * published. A read that races a still-bootstrapping session would therefore
+ * succeed — as a guest — and CACHE that answer under a key that does not
+ * mention identity. Before 0.3.0 the same race produced a 401, which was at
+ * least visible; a silently narrowed page is not. `useActiveSessionReady()`
+ * returns `true` the instant the session settles into any of
+ * authenticated / anonymous / unauthenticated, and immediately when no
+ * session-owning module is mounted at all — so a purely public storefront
+ * waits for nothing.
  */
 
 /** Default page size for the review list — one screenful. */
