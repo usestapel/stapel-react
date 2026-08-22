@@ -1,6 +1,6 @@
 {
   "name": "@stapel/categories-react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Headless React pair for stapel-categories: a typed client, a client-assembled category tree, and the revision-delta sync the module documents. The list endpoint returns FLAT rows with treenode ancestry as comma-joined pk strings — this package parses them, builds the tree, resolves a slug to a category (the server has no slug lookup), walks breadcrumbs, and keeps the whole catalogue in an app-scoped repository refreshed by `?min_revision=` deltas instead of refetching it on every page. Category and feature names are TRANSLATION KEYS on the wire, never resolved labels, and the pair says so in its types. A category's feature schema is served typed for @stapel/attributes-react to draw and for search facets to label. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin.",
   "license": "MIT",
   "repository": {
