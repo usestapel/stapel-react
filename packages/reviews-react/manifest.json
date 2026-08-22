@@ -1,0 +1,579 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/reviews-react",
+  "version": "0.1.0",
+  "backend": {
+    "module": "stapel-reviews",
+    "contract": ">=0.2 <0.3"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "reviews_api_v1_reviews_aggregate_retrieve": {
+      "method": "GET",
+      "path": "/reviews/api/v1/reviews/aggregate",
+      "tag": "Reviews",
+      "request": null,
+      "response": "AggregateResponse"
+    },
+    "reviews_api_v1_reviews_create": {
+      "method": "POST",
+      "path": "/reviews/api/v1/reviews",
+      "tag": "Reviews",
+      "request": "ReviewCreateRequest",
+      "response": "ReviewResponse"
+    },
+    "reviews_api_v1_reviews_list": {
+      "method": "GET",
+      "path": "/reviews/api/v1/reviews",
+      "tag": "Reviews",
+      "request": null,
+      "response": null
+    },
+    "reviews_api_v1_reviews_moderate_create": {
+      "method": "POST",
+      "path": "/reviews/api/v1/reviews/{review_id}/moderate",
+      "tag": "Reviews",
+      "request": "ModerateRequest",
+      "response": "ReviewResponse"
+    },
+    "reviews_api_v1_reviews_response_create": {
+      "method": "POST",
+      "path": "/reviews/api/v1/reviews/{review_id}/response",
+      "tag": "Reviews",
+      "request": "RespondRequest",
+      "response": "ReviewResponse"
+    }
+  },
+  "hooks": {
+    "useReviewAggregate": {
+      "kind": "query",
+      "operation": "aggregate",
+      "queryKey": [
+        "reviews",
+        "{…}",
+        "{…}",
+        "aggregate"
+      ]
+    },
+    "useSubmitReview": {
+      "kind": "mutation",
+      "operation": "createReview",
+      "invalidates": [
+        [
+          "reviews",
+          "{…}",
+          "{…}"
+        ]
+      ]
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.reviews_duplicate_review": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.reviews_invalid_moderation_action": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.reviews_invalid_rating": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.reviews_response_not_allowed": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.reviews_unknown_target_type": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.reviews_cannot_moderate": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.reviews_cannot_review": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.reviews_review_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.reviews_already_responded": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "reviews.aggregate",
+      "title": "Rating aggregate",
+      "description": "avg is 0.0 when count is 0 — the module says so in its own schema — so a naive renderer draws the worst possible score over a target nobody has rated. ratingSummary() answers rated:false there and the skin has nothing to draw a star row from. The third variant is the seller roll-up: stapel-reviews aggregates ONE (target_type, target_key) per call and cannot roll a seller's listings up, so the composite's projection computes {avg, count} — the same two field names, deliberately — and this component renders them without a request.",
+      "component": "ReviewAggregate",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "rated",
+        "never rated",
+        "seller roll-up (supplied)"
+      ],
+      "source": "demo/ReviewAggregate.demo.tsx"
+    },
+    {
+      "id": "reviews.form",
+      "title": "Write a review",
+      "description": "The duplicate refusal is read by CODE: `error.400.reviews_duplicate_review` arrives with status 400, while the module's only 409 says the owner's reply already exists — a form branching on the number would miss the first and mishandle the second. And a submitted review is not necessarily a visible one: under pre-moderation the created row comes back `pending`, so the author is told it will appear once checked instead of being left to hunt for it.",
+      "component": "ReviewForm",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "post-moderation (published)",
+        "pre-moderation (pending)",
+        "already rated (400)"
+      ],
+      "source": "demo/ReviewForm.demo.tsx"
+    },
+    {
+      "id": "reviews.list",
+      "title": "Review list",
+      "description": "GET /reviews answers core's AnchorPagination envelope, which the schema declares as a bare array — the pair types the shape that actually arrives. The published scope is what everyone reads; include=all is honoured only for a moderator of the target and narrowed silently for anyone else, so every non-published row names its state. A 401 is its own state: every endpoint of this module is IsAuthenticated, and rendering the empty list there would tell a signed-out visitor the seller has never been reviewed.",
+      "component": "ReviewList",
+      "covers": [
+        "ReviewsProvider"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "published",
+        "moderator (include=all)",
+        "signed out (401)"
+      ],
+      "source": "demo/ReviewList.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.reviews_duplicate_review",
+    "error.400.reviews_invalid_moderation_action",
+    "error.400.reviews_invalid_rating",
+    "error.400.reviews_response_not_allowed",
+    "error.400.reviews_unknown_target_type",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.reviews_cannot_moderate",
+    "error.403.reviews_cannot_review",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.not_found",
+    "error.404.reviews_review_not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.409.reviews_already_responded",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.mandate_unavailable",
+    "reviews.error.unknown",
+    "reviews.form.body_label",
+    "reviews.form.body_placeholder",
+    "reviews.form.heading",
+    "reviews.form.rating_label",
+    "reviews.form.sent.hidden",
+    "reviews.form.sent.pending",
+    "reviews.form.sent.published",
+    "reviews.form.sent.unknown",
+    "reviews.form.sign_in_required",
+    "reviews.form.submit",
+    "reviews.list.empty",
+    "reviews.list.heading",
+    "reviews.list.load_more",
+    "reviews.list.more.blocked.end",
+    "reviews.list.more.blocked.pending",
+    "reviews.list.refresh",
+    "reviews.list.sign_in_required",
+    "reviews.rating.count",
+    "reviews.rating.none",
+    "reviews.rating.sign_in_required",
+    "reviews.rating.star_label",
+    "reviews.rating.value",
+    "reviews.review.author_fallback",
+    "reviews.review.response_heading",
+    "reviews.status.hidden",
+    "reviews.status.pending",
+    "reviews.status.unknown",
+    "reviews.submit.blocked.duplicate",
+    "reviews.submit.blocked.forbidden",
+    "reviews.submit.blocked.no_rating",
+    "reviews.submit.blocked.pending",
+    "reviews.submit.blocked.submitted"
+  ],
+  "exports": {
+    "runtime": [
+      "DEFAULT_RATING_BOUNDS",
+      "REVIEWS_ERRORS",
+      "REVIEWS_ERROR_ALREADY_RESPONDED",
+      "REVIEWS_ERROR_CANNOT_MODERATE",
+      "REVIEWS_ERROR_CANNOT_REVIEW",
+      "REVIEWS_ERROR_CODES",
+      "REVIEWS_ERROR_DUPLICATE",
+      "REVIEWS_ERROR_INVALID_RATING",
+      "REVIEWS_ERROR_NOT_FOUND",
+      "REVIEWS_ERROR_RESPONSE_NOT_ALLOWED",
+      "REVIEWS_ERROR_UNKNOWN_TARGET_TYPE",
+      "REVIEWS_I18N_KEYS",
+      "REVIEWS_PAGE",
+      "ReviewAggregate",
+      "ReviewForm",
+      "ReviewList",
+      "ReviewsProvider",
+      "ReviewsRuntimeContext",
+      "createReviewsApi",
+      "createReviewsRuntime",
+      "explainReviewsError",
+      "findOwnReview",
+      "isDuplicateReview",
+      "isModeratedOut",
+      "isReviewingForbidden",
+      "isSignInRequired",
+      "isUnknownTargetType",
+      "ratingSummary",
+      "registerReviewsI18n",
+      "reviewVisibility",
+      "reviewsErrorBundleEn",
+      "reviewsFromPages",
+      "reviewsI18nBundleEn",
+      "reviewsQueryKeys",
+      "starBreakdown",
+      "toReviewsError",
+      "useReviewAggregate",
+      "useReviewList",
+      "useReviewsAnalytics",
+      "useReviewsApi",
+      "useReviewsRuntime",
+      "useSubmitReview"
+    ],
+    "types": [
+      "CreateReviewsRuntimeOptions",
+      "RatingAggregate",
+      "RatingSummary",
+      "Remediation",
+      "Review",
+      "ReviewAggregateBag",
+      "ReviewAggregateProps",
+      "ReviewAggregateResponse",
+      "ReviewAnchorDirection",
+      "ReviewCreateRequest",
+      "ReviewFormBag",
+      "ReviewFormProps",
+      "ReviewListBag",
+      "ReviewListParams",
+      "ReviewListProps",
+      "ReviewOwnerResponse",
+      "ReviewPage",
+      "ReviewRatingBounds",
+      "ReviewStatus",
+      "ReviewTarget",
+      "ReviewsApi",
+      "ReviewsErrorCode",
+      "ReviewsErrorSpec",
+      "ReviewsRuntime",
+      "Schemas",
+      "StarBreakdown",
+      "SubmitReviewVariables",
+      "UseReviewListOptions"
+    ]
+  }
+}

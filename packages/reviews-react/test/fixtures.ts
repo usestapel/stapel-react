@@ -1,0 +1,78 @@
+/**
+ * Response bodies exactly as stapel-reviews sends them — the envelope the
+ * schema does not declare, the zero that is not a rating, and the refusal
+ * envelopes core folds into `StapelApiError`.
+ */
+import type { Review, ReviewPage } from "../src/index.js";
+
+export const TARGET = { targetType: "listing", targetKey: "42" } as const;
+
+export function review(overrides: Partial<Review> = {}): Review {
+  return {
+    id: "r1",
+    target_type: TARGET.targetType,
+    target_key: TARGET.targetKey,
+    author_id: "author-1",
+    rating: 5,
+    body: "Great",
+    status: "published",
+    created_at: "2026-08-20T10:00:00Z",
+    response: null,
+    ...overrides,
+  };
+}
+
+/** Core's AnchorPagination envelope — NOT the array the schema declares. */
+export function page(
+  items: readonly Review[],
+  overrides: Partial<ReviewPage> = {}
+): ReviewPage {
+  return {
+    items,
+    next_anchor: null,
+    prev_anchor: null,
+    has_next: false,
+    has_prev: false,
+    count: items.length,
+    ...overrides,
+  };
+}
+
+export const FIRST_PAGE = page([review({ id: "r1" }), review({ id: "r2", rating: 4 })], {
+  has_next: true,
+  next_anchor: "2026-08-19T10:00:00Z",
+});
+
+export const SECOND_PAGE = page([review({ id: "r3", rating: 3 })]);
+
+/** A target nobody has rated: a real 200, and a zero that means nothing. */
+export const UNRATED = {
+  target_type: TARGET.targetType,
+  target_key: TARGET.targetKey,
+  avg: 0.0,
+  count: 0,
+};
+
+export const RATED = {
+  target_type: TARGET.targetType,
+  target_key: TARGET.targetKey,
+  avg: 4.25,
+  count: 12,
+};
+
+/** The duplicate refusal, at the status the module actually uses. */
+export const DUPLICATE_400 = {
+  status: 400,
+  body: { localizable_error: "error.400.reviews_duplicate_review" },
+};
+
+/** The module's ONLY 409 — and it is about the owner's reply, not a duplicate. */
+export const ALREADY_RESPONDED_409 = {
+  status: 409,
+  body: { localizable_error: "error.409.reviews_already_responded" },
+};
+
+export const UNAUTHENTICATED_401 = {
+  status: 401,
+  body: { localizable_error: "stapel.http.401" },
+};

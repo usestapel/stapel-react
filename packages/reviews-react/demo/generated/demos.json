@@ -1,0 +1,84 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/reviews-react",
+  "version": "0.1.0",
+  "demos": [
+    {
+      "id": "reviews.aggregate",
+      "title": "Rating aggregate",
+      "description": "avg is 0.0 when count is 0 — the module says so in its own schema — so a naive renderer draws the worst possible score over a target nobody has rated. ratingSummary() answers rated:false there and the skin has nothing to draw a star row from. The third variant is the seller roll-up: stapel-reviews aggregates ONE (target_type, target_key) per call and cannot roll a seller's listings up, so the composite's projection computes {avg, count} — the same two field names, deliberately — and this component renders them without a request.",
+      "component": "ReviewAggregate",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "rated"
+        },
+        {
+          "id": "never rated"
+        },
+        {
+          "id": "seller roll-up (supplied)"
+        }
+      ],
+      "source": {
+        "file": "demo/ReviewAggregate.demo.tsx",
+        "line": 50
+      }
+    },
+    {
+      "id": "reviews.form",
+      "title": "Write a review",
+      "description": "The duplicate refusal is read by CODE: `error.400.reviews_duplicate_review` arrives with status 400, while the module's only 409 says the owner's reply already exists — a form branching on the number would miss the first and mishandle the second. And a submitted review is not necessarily a visible one: under pre-moderation the created row comes back `pending`, so the author is told it will appear once checked instead of being left to hunt for it.",
+      "component": "ReviewForm",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "post-moderation (published)"
+        },
+        {
+          "id": "pre-moderation (pending)"
+        },
+        {
+          "id": "already rated (400)"
+        }
+      ],
+      "source": {
+        "file": "demo/ReviewForm.demo.tsx",
+        "line": 72
+      }
+    },
+    {
+      "id": "reviews.list",
+      "title": "Review list",
+      "description": "GET /reviews answers core's AnchorPagination envelope, which the schema declares as a bare array — the pair types the shape that actually arrives. The published scope is what everyone reads; include=all is honoured only for a moderator of the target and narrowed silently for anyone else, so every non-published row names its state. A 401 is its own state: every endpoint of this module is IsAuthenticated, and rendering the empty list there would tell a signed-out visitor the seller has never been reviewed.",
+      "component": "ReviewList",
+      "covers": [
+        "ReviewsProvider"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "published"
+        },
+        {
+          "id": "moderator (include=all)"
+        },
+        {
+          "id": "signed out (401)"
+        }
+      ],
+      "source": {
+        "file": "demo/ReviewList.demo.tsx",
+        "line": 45
+      }
+    }
+  ]
+}
