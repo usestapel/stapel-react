@@ -1,0 +1,918 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/categories-react",
+  "version": "0.1.0",
+  "backend": {
+    "module": "stapel-categories",
+    "contract": ">=0.6 <0.7"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "categories_api_v1_categories_bulk_add_create": {
+      "method": "POST",
+      "path": "/categories/api/v1/categories/bulk_add/",
+      "tag": "Categories",
+      "request": null,
+      "response": "BulkUpdateResponse"
+    },
+    "categories_api_v1_categories_bulk_commands_create": {
+      "method": "POST",
+      "path": "/categories/api/v1/categories/bulk-commands/",
+      "tag": "Categories",
+      "request": "CategoryBulkCommand",
+      "response": null
+    },
+    "categories_api_v1_categories_carousel_list": {
+      "method": "GET",
+      "path": "/categories/api/v1/categories/carousel/",
+      "tag": "Categories",
+      "request": null,
+      "response": null
+    },
+    "categories_api_v1_categories_children_list": {
+      "method": "GET",
+      "path": "/categories/api/v1/categories/{id}/children/",
+      "tag": "Categories",
+      "request": null,
+      "response": null
+    },
+    "categories_api_v1_categories_create": {
+      "method": "POST",
+      "path": "/categories/api/v1/categories/",
+      "tag": "Categories",
+      "request": "Category",
+      "response": "Category"
+    },
+    "categories_api_v1_categories_data.json_retrieve": {
+      "method": "GET",
+      "path": "/categories/api/v1/categories/data.json/",
+      "tag": "Categories",
+      "request": null,
+      "response": "Category"
+    },
+    "categories_api_v1_categories_deleted_children_list": {
+      "method": "GET",
+      "path": "/categories/api/v1/categories/{id}/deleted-children/",
+      "tag": "Categories",
+      "request": null,
+      "response": null
+    },
+    "categories_api_v1_categories_destroy": {
+      "method": "DELETE",
+      "path": "/categories/api/v1/categories/{id}/",
+      "tag": "Categories",
+      "request": null,
+      "response": null
+    },
+    "categories_api_v1_categories_feature_editor_apply_create": {
+      "method": "POST",
+      "path": "/categories/api/v1/categories/{id}/feature-editor/apply/",
+      "tag": "Feature Editor",
+      "request": "FeatureEditorApply",
+      "response": "FeatureEditorState"
+    },
+    "categories_api_v1_categories_feature_editor_draft_create": {
+      "method": "POST",
+      "path": "/categories/api/v1/categories/{id}/feature-editor/draft/",
+      "tag": "Feature Editor",
+      "request": "FeatureEditorDraft",
+      "response": "FeatureEditorDraftResponse"
+    },
+    "categories_api_v1_categories_feature_editor_retrieve": {
+      "method": "GET",
+      "path": "/categories/api/v1/categories/{id}/feature-editor/",
+      "tag": "Feature Editor",
+      "request": null,
+      "response": "FeatureEditorState"
+    },
+    "categories_api_v1_categories_features_list": {
+      "method": "GET",
+      "path": "/categories/api/v1/categories/{id}/features/",
+      "tag": "Categories",
+      "request": null,
+      "response": null
+    },
+    "categories_api_v1_categories_list": {
+      "method": "GET",
+      "path": "/categories/api/v1/categories/",
+      "tag": "Categories",
+      "request": null,
+      "response": "PaginatedCategoryList"
+    },
+    "categories_api_v1_categories_partial_update": {
+      "method": "PATCH",
+      "path": "/categories/api/v1/categories/{id}/",
+      "tag": "Categories",
+      "request": "PatchedCategory",
+      "response": "Category"
+    },
+    "categories_api_v1_categories_retrieve": {
+      "method": "GET",
+      "path": "/categories/api/v1/categories/{id}/",
+      "tag": "Categories",
+      "request": null,
+      "response": "Category"
+    },
+    "categories_api_v1_categories_revision_retrieve": {
+      "method": "GET",
+      "path": "/categories/api/v1/categories/revision/",
+      "tag": "Categories",
+      "request": null,
+      "response": "MaxRevision"
+    },
+    "categories_api_v1_categories_undelete_create": {
+      "method": "POST",
+      "path": "/categories/api/v1/categories/{id}/undelete/",
+      "tag": "Categories",
+      "request": "Category",
+      "response": "UndeleteResponse"
+    },
+    "categories_api_v1_categories_update": {
+      "method": "PUT",
+      "path": "/categories/api/v1/categories/{id}/",
+      "tag": "Categories",
+      "request": "Category",
+      "response": "Category"
+    },
+    "categories_api_v1_categories_validate_configs_retrieve": {
+      "method": "GET",
+      "path": "/categories/api/v1/categories/{id}/validate-configs/",
+      "tag": "Categories",
+      "request": null,
+      "response": "ValidationBatchResult"
+    },
+    "categories_api_v1_categories_validate_dto_create": {
+      "method": "POST",
+      "path": "/categories/api/v1/categories/{id}/validate-dto/",
+      "tag": "Categories",
+      "request": "ValidateDtoRequest",
+      "response": "ValidationBatchResult"
+    },
+    "categories_api_v1_features_bulk_add_create": {
+      "method": "POST",
+      "path": "/categories/api/v1/features/bulk_add/",
+      "tag": "Features",
+      "request": null,
+      "response": "BulkUpdateResponse"
+    },
+    "categories_api_v1_features_convert_type_create": {
+      "method": "POST",
+      "path": "/categories/api/v1/features/{id}/convert-type/",
+      "tag": "Features",
+      "request": "FeatureConvertType",
+      "response": "Feature"
+    },
+    "categories_api_v1_features_create": {
+      "method": "POST",
+      "path": "/categories/api/v1/features/",
+      "tag": "Features",
+      "request": "FeatureCreateUpdate",
+      "response": "Feature"
+    },
+    "categories_api_v1_features_data.json_retrieve": {
+      "method": "GET",
+      "path": "/categories/api/v1/features/data.json/",
+      "tag": "Features",
+      "request": null,
+      "response": "Feature"
+    },
+    "categories_api_v1_features_destroy": {
+      "method": "DELETE",
+      "path": "/categories/api/v1/features/{id}/",
+      "tag": "Features",
+      "request": null,
+      "response": null
+    },
+    "categories_api_v1_features_list": {
+      "method": "GET",
+      "path": "/categories/api/v1/features/",
+      "tag": "Features",
+      "request": null,
+      "response": "PaginatedFeatureCompactList"
+    },
+    "categories_api_v1_features_partial_update": {
+      "method": "PATCH",
+      "path": "/categories/api/v1/features/{id}/",
+      "tag": "Features",
+      "request": "PatchedFeatureCreateUpdate",
+      "response": "Feature"
+    },
+    "categories_api_v1_features_retrieve": {
+      "method": "GET",
+      "path": "/categories/api/v1/features/{id}/",
+      "tag": "Features",
+      "request": null,
+      "response": "Feature"
+    },
+    "categories_api_v1_features_revision_retrieve": {
+      "method": "GET",
+      "path": "/categories/api/v1/features/revision/",
+      "tag": "Features",
+      "request": null,
+      "response": "MaxRevision"
+    },
+    "categories_api_v1_features_update": {
+      "method": "PUT",
+      "path": "/categories/api/v1/features/{id}/",
+      "tag": "Features",
+      "request": "FeatureCreateUpdate",
+      "response": "Feature"
+    },
+    "collect_translation_keys": {
+      "method": "GET",
+      "path": "/categories/api/v1/categories/translation-keys/",
+      "tag": "Categories",
+      "request": null,
+      "response": null
+    }
+  },
+  "hooks": {
+    "useCategoriesRevision": {
+      "kind": "query",
+      "operation": "revision",
+      "queryKey": [
+        "categories",
+        "revision"
+      ]
+    },
+    "useCategoryCarousel": {
+      "kind": "query",
+      "operation": "carousel",
+      "queryKey": [
+        "categories",
+        "carousel"
+      ]
+    },
+    "useCategoryCatalog": {
+      "kind": "query",
+      "queryKey": [
+        "categories",
+        "catalog",
+        "{options}"
+      ]
+    },
+    "useCategoryChildren": {
+      "kind": "query",
+      "operation": "children",
+      "queryKey": [
+        "categories",
+        "children",
+        "{id}"
+      ]
+    },
+    "useCategoryFeatures": {
+      "kind": "query",
+      "operation": "features",
+      "queryKey": [
+        "categories",
+        "features",
+        "{id}"
+      ]
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.categories_config_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.categories_database_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.categories_duplicate_slug": {
+      "status": 400,
+      "params": [
+        "slug"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.categories_expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.categories_feature_editor_invalid": {
+      "status": 400,
+      "params": [
+        "reason"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.categories_invalid_conversion": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.categories_not_deleted": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.description_too_long": {
+      "status": 400,
+      "params": [
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.description_too_short": {
+      "status": 400,
+      "params": [
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_above_maximum": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_below_minimum": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_invalid_config": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_invalid_format": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_invalid_type": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_mandatory_missing": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_not_allowed": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_not_in_options": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_unknown": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_unknown_type": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.categories_feature_editor_conflict": {
+      "status": 409,
+      "params": [
+        "expected",
+        "actual"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "categories.carousel",
+      "title": "Carousel and breadcrumbs",
+      "description": "The carousel is the one endpoint that arrives ready to render — the server filters active + carousel_enabled and sends its own Cache-Control. Icon references stay opaque strings: the host resolves them, the library never guesses a CDN path. Each label reports whether it is a translation key or a literal.",
+      "component": "CategoryCarousel",
+      "covers": [
+        "CategoryBreadcrumbs"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/CategoryCarousel.demo.tsx"
+    },
+    {
+      "id": "categories.features",
+      "title": "Category feature schema",
+      "description": "GET /categories/{id}/features/ resolves inheritance and order server-side and sends config VERBATIM — no defaults filled in, so an absent key means the type's default and attributes-react owns those. Each row reports whether its name and its option labels are translation keys, and one fixture carries a type no builtin editor covers.",
+      "component": "CategoryFeatures",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/CategoryFeatures.demo.tsx"
+    },
+    {
+      "id": "categories.picker",
+      "title": "Category picker",
+      "description": "Drill-down over the already-synced tree — no request per level, and none per keystroke when searching. leavesOnly is on by default and the refusal says why: a listing filed one level too high inherits the wrong feature set, so the form then asks the wrong questions.",
+      "component": "CategoryPicker",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/CategoryPicker.demo.tsx"
+    },
+    {
+      "id": "categories.tree",
+      "title": "Category tree",
+      "description": "stapel-categories has no tree endpoint: the list returns flat rows ordered by revision, with ancestry as comma-joined pk strings. The client assembles the hierarchy, drops soft-deleted and inactive rows, and resolves /c/:slug against the result — the server has no slug lookup either.",
+      "component": "CategoryTree",
+      "covers": [
+        "CategoriesProvider"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "roots",
+        "one category"
+      ],
+      "source": "demo/CategoryTree.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "categories.breadcrumbs.label",
+    "categories.breadcrumbs.root",
+    "categories.carousel.empty",
+    "categories.carousel.load_failed",
+    "categories.carousel.loading",
+    "categories.carousel.title",
+    "categories.catalog.as_of",
+    "categories.catalog.empty",
+    "categories.catalog.load_failed",
+    "categories.catalog.loading",
+    "categories.catalog.refreshing",
+    "categories.catalog.retry",
+    "categories.catalog.title",
+    "categories.catalog.truncated",
+    "categories.category.no_subcategories",
+    "categories.category.open",
+    "categories.category.subcategories",
+    "categories.category.title",
+    "categories.category.unknown_slug",
+    "categories.error.unknown",
+    "categories.features.empty",
+    "categories.features.load_failed",
+    "categories.features.loading",
+    "categories.features.mandatory",
+    "categories.features.title",
+    "categories.features.type",
+    "categories.features.untyped",
+    "categories.picker.blocked.not_a_leaf",
+    "categories.picker.blocked.nothing_selected",
+    "categories.picker.load_failed",
+    "categories.picker.loading",
+    "categories.picker.no_matches",
+    "categories.picker.search",
+    "categories.picker.selected",
+    "categories.picker.title",
+    "categories.picker.up",
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.categories_config_required",
+    "error.400.categories_database_error",
+    "error.400.categories_duplicate_slug",
+    "error.400.categories_expected_list",
+    "error.400.categories_feature_editor_invalid",
+    "error.400.categories_invalid_conversion",
+    "error.400.categories_not_deleted",
+    "error.400.description_too_long",
+    "error.400.description_too_short",
+    "error.400.expected_list",
+    "error.400.feature_above_maximum",
+    "error.400.feature_below_minimum",
+    "error.400.feature_invalid_config",
+    "error.400.feature_invalid_format",
+    "error.400.feature_invalid_type",
+    "error.400.feature_mandatory_missing",
+    "error.400.feature_not_allowed",
+    "error.400.feature_not_in_options",
+    "error.400.feature_unknown",
+    "error.400.feature_unknown_type",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.categories_feature_editor_conflict",
+    "error.409.conflict",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.mandate_unavailable"
+  ],
+  "exports": {
+    "runtime": [
+      "CATALOG_KEY",
+      "CATALOG_NAMESPACE",
+      "CATEGORIES_ERRORS",
+      "CATEGORIES_ERROR_CODES",
+      "CATEGORIES_FEATURE_EDITOR_CONFLICT",
+      "CATEGORIES_I18N_KEYS",
+      "CategoriesProvider",
+      "CategoriesRuntimeContext",
+      "CategoryBreadcrumbs",
+      "CategoryCarousel",
+      "CategoryFeatures",
+      "CategoryPicker",
+      "CategoryTree",
+      "EMPTY_SNAPSHOT",
+      "MAX_SYNC_PAGES",
+      "applyCategoryPage",
+      "buildCategoryTree",
+      "catalogKeyOptions",
+      "categoriesErrorBundleEn",
+      "categoriesI18nBundleEn",
+      "categoriesQueryKeys",
+      "categoryAncestorIds",
+      "categoryBreadcrumbs",
+      "categoryChildIds",
+      "categoryLabel",
+      "categoryListParams",
+      "createCatalogStore",
+      "createCategoriesApi",
+      "createCategoriesRuntime",
+      "explainCategoriesError",
+      "featureLabel",
+      "featureOptionsAreKeys",
+      "firstPageRequest",
+      "flattenCategoryNodes",
+      "isEmptySnapshot",
+      "memoryCatalogStore",
+      "navEntries",
+      "nextPageRequest",
+      "parseSnapshot",
+      "parseTreenodePks",
+      "registerCategoriesI18n",
+      "renderCategoryLabel",
+      "resolveCategorySlug",
+      "syncCatalog",
+      "useCategoriesAnalytics",
+      "useCategoriesApi",
+      "useCategoriesRevision",
+      "useCategoriesRuntime",
+      "useCategoryCarousel",
+      "useCategoryCatalog",
+      "useCategoryChildren",
+      "useCategoryFeatures"
+    ],
+    "types": [
+      "BuildCategoryTreeOptions",
+      "CarouselEntry",
+      "CatalogKeyOptions",
+      "CatalogStore",
+      "CategoriesApi",
+      "CategoriesErrorCode",
+      "CategoriesErrorSpec",
+      "CategoriesI18nKey",
+      "CategoriesRuntime",
+      "Category",
+      "CategoryBreadcrumbsBag",
+      "CategoryBreadcrumbsProps",
+      "CategoryCarouselBag",
+      "CategoryCarouselProps",
+      "CategoryCatalog",
+      "CategoryCrumb",
+      "CategoryFeature",
+      "CategoryFeatureEntry",
+      "CategoryFeaturesBag",
+      "CategoryFeaturesProps",
+      "CategoryIndex",
+      "CategoryLabel",
+      "CategoryLabelKind",
+      "CategoryListPage",
+      "CategoryListParams",
+      "CategoryNode",
+      "CategoryOption",
+      "CategoryPickerBag",
+      "CategoryPickerBlockedReason",
+      "CategoryPickerProps",
+      "CategoryRevisions",
+      "CategorySnapshot",
+      "CategoryTreeBag",
+      "CategoryTreeProps",
+      "CreateCatalogStoreOptions",
+      "CreateCategoriesRuntimeOptions",
+      "FeatureConfig",
+      "MaxRevision",
+      "Remediation",
+      "Schemas",
+      "SyncCatalogOptions",
+      "SyncCatalogResult",
+      "UseCategoryCatalogOptions"
+    ]
+  }
+}

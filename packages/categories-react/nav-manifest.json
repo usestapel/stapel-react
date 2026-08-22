@@ -1,0 +1,44 @@
+{
+  "package": "@stapel/categories-react",
+  "version": "0.1.0",
+  "entries": [
+    {
+      "id": "categories.catalog",
+      "labelKey": "categories.catalog.title",
+      "icon": "AppstoreOutlined",
+      "route": {
+        "path": "/c"
+      },
+      "component": {
+        "export": "CatalogPage",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": false,
+      "surface": "public",
+      "order": 5
+    },
+    {
+      "id": "categories.category",
+      "labelKey": "categories.category.title",
+      "icon": "FolderOpenOutlined",
+      "route": {
+        "path": "/c/:slug"
+      },
+      "component": {
+        "export": "CategoryPage",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": false,
+      "surface": "public",
+      "order": 6
+    }
+  ]
+}

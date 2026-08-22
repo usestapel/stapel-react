@@ -1,0 +1,119 @@
+{
+  "name": "@stapel/categories-react",
+  "version": "0.1.0",
+  "description": "Headless React pair for stapel-categories: a typed client, a client-assembled category tree, and the revision-delta sync the module documents. The list endpoint returns FLAT rows with treenode ancestry as comma-joined pk strings — this package parses them, builds the tree, resolves a slug to a category (the server has no slug lookup), walks breadcrumbs, and keeps the whole catalogue in an app-scoped repository refreshed by `?min_revision=` deltas instead of refetching it on every page. Category and feature names are TRANSLATION KEYS on the wire, never resolved labels, and the pair says so in its types. A category's feature schema is served typed for @stapel/attributes-react to draw and for search facets to label. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usestapel/stapel-react.git",
+    "directory": "packages/categories-react"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./default": {
+      "types": "./dist/default/index.d.ts",
+      "default": "./dist/default/index.js"
+    },
+    "./i18n/ru": {
+      "types": "./dist/i18n/ru.d.ts",
+      "default": "./dist/i18n/ru.js"
+    },
+    "./i18n/es": {
+      "types": "./dist/i18n/es.d.ts",
+      "default": "./dist/i18n/es.js"
+    },
+    "./manifest": "./manifest.json",
+    "./manifest.json": "./manifest.json",
+    "./nav-manifest.json": "./nav-manifest.json",
+    "./llms.txt": "./llms.txt",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "tsconfig.json",
+    "README.md",
+    "MODULE.md",
+    "CHANGELOG.md",
+    "manifest.json",
+    "nav-manifest.json",
+    "llms.txt"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.test.json && vitest run --exclude test/prodBundlePurity.test.ts",
+    "lint": "eslint .",
+    "size": "size-limit",
+    "test:pack": "vitest run test/prodBundlePurity.test.ts"
+  },
+  "size-limit": [
+    {
+      "name": "index — the headless pair (client + tree assembly + delta sync + hooks): no antd",
+      "path": "dist/index.js",
+      "limit": "9 KB"
+    },
+    {
+      "name": "default — the antd skin (catalog, category page, carousel, picker, breadcrumbs) must stay out of the main bundle",
+      "path": "dist/default/index.js",
+      "limit": "13 KB"
+    },
+    {
+      "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",
+      "path": "dist/i18n/ru.js",
+      "limit": "4 KB"
+    },
+    {
+      "name": "i18n/es — the Spanish bundle is opt-in, not carried by the main entry",
+      "path": "dist/i18n/es.js",
+      "limit": "3.5 KB"
+    }
+  ],
+  "peerDependencies": {
+    "@stapel/attributes-react": ">=0.1.0",
+    "@stapel/core": ">=0.15.0 <1.0.0",
+    "@stapel/tokens-antd": ">=0.5.0",
+    "@tanstack/react-query": "^5.0.0",
+    "antd": ">=5.20.0 <7",
+    "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "@stapel/tokens-antd": {
+      "optional": true
+    },
+    "antd": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@size-limit/preset-small-lib": "^11.2.0",
+    "@stapel/attributes-react": "workspace:^",
+    "@stapel/core": "workspace:^",
+    "@stapel/showcase": "workspace:^",
+    "@stapel/tokens": "workspace:^",
+    "@stapel/tokens-antd": "workspace:^",
+    "@tanstack/react-query": "^5.81.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "antd": "^6.5.0",
+    "jsdom": "^26.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "size-limit": "^11.2.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

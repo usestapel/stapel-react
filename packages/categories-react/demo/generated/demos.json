@@ -1,0 +1,90 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/categories-react",
+  "version": "0.1.0",
+  "demos": [
+    {
+      "id": "categories.carousel",
+      "title": "Carousel and breadcrumbs",
+      "description": "The carousel is the one endpoint that arrives ready to render — the server filters active + carousel_enabled and sends its own Cache-Control. Icon references stay opaque strings: the host resolves them, the library never guesses a CDN path. Each label reports whether it is a translation key or a literal.",
+      "component": "CategoryCarousel",
+      "covers": [
+        "CategoryBreadcrumbs"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/CategoryCarousel.demo.tsx",
+        "line": 59
+      }
+    },
+    {
+      "id": "categories.features",
+      "title": "Category feature schema",
+      "description": "GET /categories/{id}/features/ resolves inheritance and order server-side and sends config VERBATIM — no defaults filled in, so an absent key means the type's default and attributes-react owns those. Each row reports whether its name and its option labels are translation keys, and one fixture carries a type no builtin editor covers.",
+      "component": "CategoryFeatures",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/CategoryFeatures.demo.tsx",
+        "line": 36
+      }
+    },
+    {
+      "id": "categories.picker",
+      "title": "Category picker",
+      "description": "Drill-down over the already-synced tree — no request per level, and none per keystroke when searching. leavesOnly is on by default and the refusal says why: a listing filed one level too high inherits the wrong feature set, so the form then asks the wrong questions.",
+      "component": "CategoryPicker",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/CategoryPicker.demo.tsx",
+        "line": 63
+      }
+    },
+    {
+      "id": "categories.tree",
+      "title": "Category tree",
+      "description": "stapel-categories has no tree endpoint: the list returns flat rows ordered by revision, with ancestry as comma-joined pk strings. The client assembles the hierarchy, drops soft-deleted and inactive rows, and resolves /c/:slug against the result — the server has no slug lookup either.",
+      "component": "CategoryTree",
+      "covers": [
+        "CategoriesProvider"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "roots"
+        },
+        {
+          "id": "one category"
+        }
+      ],
+      "source": {
+        "file": "demo/CategoryTree.demo.tsx",
+        "line": 45
+      }
+    }
+  ]
+}

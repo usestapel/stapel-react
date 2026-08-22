@@ -1,0 +1,125 @@
+# @stapel/categories-react 0.1.0
+
+Headless React flow pair for stapel-categories (contract >=0.6 <0.7) — business + state, zero visual opinion.
+Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
+verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
+
+## The one right way (do this, the rest is a review/lint smell)
+- No raw fetch/axios. The client is injected via <CategoriesProvider>/StapelConfigProvider;
+  every hook and flow already carries auth, refresh, and the error envelope.
+- Render errors, never try/catch them: a flow's state carries FlowError{code,params};
+  render `t(code, params)` and branch on `explainCategoriesError(code)` remediation.
+- Server state = the use* hooks (query layer); keys come only from categoriesQueryKeys.
+- User strings = i18n keys (registerCategoriesI18n); never string literals.
+- Sign-in UI = a headless flow component; copy it (shadcn-style) to restyle.
+
+## Layers
+api (typed client) · model (hooks, session) · flows (machines) · headless · i18n
+
+## Documented flows (flows.json — canonical id, steps, endpoints)
+
+## Operations (typed; use the named op, never a path string)
+Request/response schema names are in manifest.json + the generated types.
+Paths are relative to `/categories/api/v1/`.
+- categories_api_v1_categories_bulk_add_create: POST /categories/bulk_add/
+- categories_api_v1_categories_bulk_commands_create: POST /categories/bulk-commands/
+- categories_api_v1_categories_carousel_list: GET /categories/carousel/
+- categories_api_v1_categories_children_list: GET /categories/{id}/children/
+- categories_api_v1_categories_create: POST /categories/
+- categories_api_v1_categories_data.json_retrieve: GET /categories/data.json/
+- categories_api_v1_categories_deleted_children_list: GET /categories/{id}/deleted-children/
+- categories_api_v1_categories_destroy: DELETE /categories/{id}/
+- categories_api_v1_categories_feature_editor_apply_create: POST /categories/{id}/feature-editor/apply/
+- categories_api_v1_categories_feature_editor_draft_create: POST /categories/{id}/feature-editor/draft/
+- categories_api_v1_categories_feature_editor_retrieve: GET /categories/{id}/feature-editor/
+- categories_api_v1_categories_features_list: GET /categories/{id}/features/
+- categories_api_v1_categories_list: GET /categories/
+- categories_api_v1_categories_partial_update: PATCH /categories/{id}/
+- categories_api_v1_categories_retrieve: GET /categories/{id}/
+- categories_api_v1_categories_revision_retrieve: GET /categories/revision/
+- categories_api_v1_categories_undelete_create: POST /categories/{id}/undelete/
+- categories_api_v1_categories_update: PUT /categories/{id}/
+- categories_api_v1_categories_validate_configs_retrieve: GET /categories/{id}/validate-configs/
+- categories_api_v1_categories_validate_dto_create: POST /categories/{id}/validate-dto/
+- categories_api_v1_features_bulk_add_create: POST /features/bulk_add/
+- categories_api_v1_features_convert_type_create: POST /features/{id}/convert-type/
+- categories_api_v1_features_create: POST /features/
+- categories_api_v1_features_data.json_retrieve: GET /features/data.json/
+- categories_api_v1_features_destroy: DELETE /features/{id}/
+- categories_api_v1_features_list: GET /features/
+- categories_api_v1_features_partial_update: PATCH /features/{id}/
+- categories_api_v1_features_retrieve: GET /features/{id}/
+- categories_api_v1_features_revision_retrieve: GET /features/revision/
+- categories_api_v1_features_update: PUT /features/{id}/
+- collect_translation_keys: GET /categories/translation-keys/
+
+## Query hooks (server state; keys come only from the key factory)
+- useCategoriesRevision (query) → revision
+- useCategoryCarousel (query) → carousel
+- useCategoryCatalog (query) → —
+- useCategoryChildren (query) → children
+- useCategoryFeatures (query) → features
+
+## Errors (render t(code, params); UX from remediation)
+62 keys (full catalog: manifest.json §errors). By remediation: fix_input 36 · retry 13 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+Param-bearing keys (interpolation slots matter):
+- error.400.categories_duplicate_slug [400] → fix_input {slug}
+- error.400.categories_feature_editor_invalid [400] → fix_input {reason}
+- error.400.description_too_long [400] → fix_input {max_length}
+- error.400.description_too_short [400] → fix_input {min_length}
+- error.400.feature_above_maximum [400] → fix_input {feature}
+- error.400.feature_below_minimum [400] → fix_input {feature}
+- error.400.feature_invalid_config [400] → fix_input {feature}
+- error.400.feature_invalid_format [400] → fix_input {feature}
+- error.400.feature_invalid_type [400] → fix_input {feature}
+- error.400.feature_mandatory_missing [400] → fix_input {feature}
+- error.400.feature_not_allowed [400] → fix_input {feature}
+- error.400.feature_not_in_options [400] → fix_input {feature}
+- error.400.feature_unknown [400] → fix_input {feature}
+- error.400.feature_unknown_type [400] → fix_input {feature}
+- error.400.field.blank [400] → fix_input {field}
+- error.400.field.does_not_exist [400] → fix_input {field}
+- error.400.field.invalid [400] → fix_input {field}
+- error.400.field.invalid_choice [400] → fix_input {field}
+- error.400.field.max_length [400] → fix_input {field,max_length}
+- error.400.field.max_value [400] → fix_input {field,max_value}
+- error.400.field.min_length [400] → fix_input {field,min_length}
+- error.400.field.min_value [400] → fix_input {field,min_value}
+- error.400.field.null [400] → fix_input {field}
+- error.400.field.required [400] → fix_input {field}
+- error.400.field.unique [400] → fix_input {field}
+- error.409.categories_feature_editor_conflict [409] → fix_input {expected,actual}
+- error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
+
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- categories.carousel → <CategoryCarousel> [default]  demo/CategoryCarousel.demo.tsx
+- categories.features → <CategoryFeatures> [default]  demo/CategoryFeatures.demo.tsx
+- categories.picker → <CategoryPicker> [default]  demo/CategoryPicker.demo.tsx
+- categories.tree → <CategoryTree> [roots|one category]  demo/CategoryTree.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
+
+## Snippets
+```tsx
+// Error rendering + remediation branch (one pattern for every pair).
+const r = explainCategoriesError(err.code); // 'wait_and_retry' | 'verify' | ...
+return <Alert action={r}>{t(err.code, err.params)}</Alert>;
+```
