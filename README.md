@@ -49,6 +49,7 @@ Dependency direction is strictly downward; L2 packages never import each other
 | [`@stapel/recordings-react`](./packages/recordings-react) | stapel-recordings |
 | [`@stapel/chat-react`](./packages/chat-react) | stapel-chat (buyer↔seller messaging: one seam over the module's resumable WebSocket protocol AND seq-anchored polling, so the screens are the same either way) |
 | [`@stapel/search-react`](./packages/search-react) | stapel-search (storefront listings: URL-state search, drill-down facets, keyset paging, DSA `promoted` + P2B ranking disclosure) |
+| [`@stapel/cdn-react`](./packages/cdn-react) | stapel-cdn (media upload: dedup-first — hash, ask `file/exists/`, skip the POST when the CDN already holds the bytes — plus an ordered gallery queue and the opaque `<type>/<hash>` reference consuming modules store) |
 | [`@stapel/showcase`](./packages/showcase) | — (demo harness: `defineDemo`) |
 
 Each pair's version minor tracks its backend module's minor (scheme B); its

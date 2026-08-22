@@ -1,0 +1,58 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/cdn-react",
+  "version": "0.1.0",
+  "demos": [
+    {
+      "id": "cdn.gallery",
+      "title": "Photo gallery queue",
+      "description": "The headless MediaUploader bounds a gallery at max references and hands a composer the ordered <type>/<hash> list to store. canAdd and settled are ActionAvailability, so a full gallery and an unfinished upload are two different sentences rather than one grey button.",
+      "component": "MediaUploader",
+      "covers": [
+        "CdnProvider"
+      ],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        },
+        {
+          "id": "reopened-draft"
+        },
+        {
+          "id": "full"
+        }
+      ],
+      "source": {
+        "file": "demo/MediaUploader.demo.tsx",
+        "line": 77
+      }
+    },
+    {
+      "id": "cdn.single",
+      "title": "Single image slot",
+      "description": "The headless ImageUpload runs the dedup-first flow for one slot: validate against the deployment's own ceilings, hash, ask file/exists/, and only then POST. The bag reports the PHASE, never a fabricated percentage — fetch cannot observe request-body progress.",
+      "component": "ImageUpload",
+      "covers": [],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        },
+        {
+          "id": "already-stored"
+        }
+      ],
+      "source": {
+        "file": "demo/ImageUpload.demo.tsx",
+        "line": 60
+      }
+    }
+  ]
+}

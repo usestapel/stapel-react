@@ -1,0 +1,120 @@
+{
+  "name": "@stapel/cdn-react",
+  "version": "0.1.0",
+  "description": "Headless React pair for stapel-cdn: a typed media-upload client whose flow is dedup-first — SHA-256 the bytes, ask file/exists/, and skip the POST entirely when the CDN already holds them. A phase-shaped upload bag (validate → hash → check → upload → variants), an ordered queue with per-item cancel/retry/remove and a max, object-URL previews with the revoke built in (@stapel/core's useObjectUrlPreview), and the opaque `<type>/<hash>` reference every consuming module actually stores. Client-side limits mirror the backend's own declared ceilings and never refuse what the server would accept. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usestapel/stapel-react.git",
+    "directory": "packages/cdn-react"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./default": {
+      "types": "./dist/default/index.d.ts",
+      "default": "./dist/default/index.js"
+    },
+    "./i18n/ru": {
+      "types": "./dist/i18n/ru.d.ts",
+      "default": "./dist/i18n/ru.js"
+    },
+    "./i18n/es": {
+      "types": "./dist/i18n/es.d.ts",
+      "default": "./dist/i18n/es.js"
+    },
+    "./manifest": "./manifest.json",
+    "./manifest.json": "./manifest.json",
+    "./llms.txt": "./llms.txt",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "tsconfig.json",
+    "README.md",
+    "MODULE.md",
+    "CHANGELOG.md",
+    "manifest.json",
+    "llms.txt"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.demo.json && vitest run --exclude test/prodBundlePurity.test.ts",
+    "test:pack": "vitest run test/prodBundlePurity.test.ts",
+    "lint": "eslint .",
+    "size": "size-limit"
+  },
+  "size-limit": [
+    {
+      "name": "index — headless pair (client + dedup-first upload flow + queue), no antd",
+      "path": "dist/index.js",
+      "limit": "8 KB"
+    },
+    {
+      "name": "default — the antd upload skin must stay out of the main bundle",
+      "path": "dist/default/index.js",
+      "limit": "8 KB"
+    },
+    {
+      "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",
+      "path": "dist/i18n/ru.js",
+      "limit": "3 KB"
+    },
+    {
+      "name": "i18n/es — the Spanish bundle is opt-in, not carried by the main entry",
+      "path": "dist/i18n/es.js",
+      "limit": "2.5 KB"
+    }
+  ],
+  "peerDependencies": {
+    "@stapel/core": ">=0.15.0 <1.0.0",
+    "@stapel/image": ">=0.2.0",
+    "@stapel/tokens-antd": ">=0.5.0",
+    "@tanstack/react-query": "^5.0.0",
+    "antd": ">=5.20.0 <7",
+    "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "@stapel/image": {
+      "optional": true
+    },
+    "@stapel/tokens-antd": {
+      "optional": true
+    },
+    "antd": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@size-limit/preset-small-lib": "^11.2.0",
+    "@stapel/core": "workspace:^",
+    "@stapel/image": "workspace:^",
+    "@stapel/showcase": "workspace:^",
+    "@stapel/tokens": "workspace:^",
+    "@stapel/tokens-antd": "workspace:^",
+    "@tanstack/react-query": "^5.81.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "antd": "^6.5.0",
+    "jsdom": "^26.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "size-limit": "^11.2.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

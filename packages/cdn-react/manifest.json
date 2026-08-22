@@ -1,0 +1,601 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/cdn-react",
+  "version": "0.1.0",
+  "backend": {
+    "module": "stapel-cdn",
+    "contract": ">=0.12 <0.13"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "check_file_exists_get": {
+      "method": "GET",
+      "path": "/cdn/api/v1/file/exists/",
+      "tag": "Files",
+      "request": null,
+      "response": "FileExistsResponse"
+    },
+    "check_file_exists_post": {
+      "method": "POST",
+      "path": "/cdn/api/v1/file/exists/",
+      "tag": "Files",
+      "request": "FileExists",
+      "response": "FileExistsResponse"
+    },
+    "random_image": {
+      "method": "GET",
+      "path": "/cdn/api/v1/images/{image_type}/random/",
+      "tag": "Images",
+      "request": null,
+      "response": "Image"
+    },
+    "sync_refs": {
+      "method": "POST",
+      "path": "/cdn/api/v1/refs/sync/",
+      "tag": "Refs",
+      "request": "RefSyncRequest",
+      "response": "RefSyncResponse"
+    },
+    "upload_avatar": {
+      "method": "POST",
+      "path": "/cdn/api/v1/upload/avatar/",
+      "tag": "Images",
+      "request": null,
+      "response": "ImageUploadResponse"
+    },
+    "upload_file": {
+      "method": "POST",
+      "path": "/cdn/api/v1/upload/file/",
+      "tag": "Files",
+      "request": null,
+      "response": "FileUploadResponse"
+    },
+    "upload_image": {
+      "method": "POST",
+      "path": "/cdn/api/v1/upload/image/",
+      "tag": "Images",
+      "request": null,
+      "response": "ImageUploadResponse"
+    },
+    "upload_typed_image": {
+      "method": "POST",
+      "path": "/cdn/api/v1/images/{image_type}/upload/",
+      "tag": "Images",
+      "request": null,
+      "response": "ImageUploadResponse"
+    },
+    "upload_video": {
+      "method": "POST",
+      "path": "/cdn/api/v1/upload/video/",
+      "tag": "Videos",
+      "request": null,
+      "response": "VideoUploadResponse"
+    }
+  },
+  "hooks": {
+    "useCdnRef": {
+      "kind": "query",
+      "operation": "fileExists",
+      "queryKey": [
+        "cdn",
+        "exists",
+        "{fileHash}"
+      ]
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.file_hash_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.file_type_not_allowed": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_format": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_hash": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_image_type": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.missing_fields": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.no_file": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.storage_quota_exceeded": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.no_images": {
+      "status": 404,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.file_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.image_decoder_unavailable": {
+      "status": 503,
+      "params": [
+        "extension"
+      ],
+      "remediation": "contact_support"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "cdn.gallery",
+      "title": "Photo gallery queue",
+      "description": "The headless MediaUploader bounds a gallery at max references and hands a composer the ordered <type>/<hash> list to store. canAdd and settled are ActionAvailability, so a full gallery and an unfinished upload are two different sentences rather than one grey button.",
+      "component": "MediaUploader",
+      "covers": [
+        "CdnProvider"
+      ],
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        "default",
+        "reopened-draft",
+        "full"
+      ],
+      "source": "demo/MediaUploader.demo.tsx"
+    },
+    {
+      "id": "cdn.single",
+      "title": "Single image slot",
+      "description": "The headless ImageUpload runs the dedup-first flow for one slot: validate against the deployment's own ceilings, hash, ask file/exists/, and only then POST. The bag reports the PHASE, never a fabricated percentage — fetch cannot observe request-body progress.",
+      "component": "ImageUpload",
+      "tokens": [
+        "card-bg",
+        "card-border"
+      ],
+      "variants": [
+        "default",
+        "already-stored"
+      ],
+      "source": "demo/ImageUpload.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "cdn.error.unknown",
+    "cdn.gallery.count",
+    "cdn.gallery.empty",
+    "cdn.item.alt",
+    "cdn.item.cancel",
+    "cdn.item.cover",
+    "cdn.item.move_earlier",
+    "cdn.item.move_later",
+    "cdn.item.remove",
+    "cdn.item.retry",
+    "cdn.outcome.dedup_skipped.check_failed",
+    "cdn.outcome.dedup_skipped.no_crypto",
+    "cdn.outcome.dedup_skipped.unauthorized",
+    "cdn.outcome.deduped",
+    "cdn.outcome.variants_pending",
+    "cdn.phase.canceled",
+    "cdn.phase.checking",
+    "cdn.phase.done",
+    "cdn.phase.failed",
+    "cdn.phase.hashing",
+    "cdn.phase.processing",
+    "cdn.phase.queued",
+    "cdn.phase.uploading",
+    "cdn.pick.drop_hint",
+    "cdn.pick.hint",
+    "cdn.pick.image",
+    "cdn.pick.images",
+    "cdn.pick.replace",
+    "cdn.upload.blocked.failed",
+    "cdn.upload.blocked.full",
+    "cdn.upload.blocked.pending",
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.file_hash_required",
+    "error.400.file_type_not_allowed",
+    "error.400.invalid_ad_id",
+    "error.400.invalid_format",
+    "error.400.invalid_hash",
+    "error.400.invalid_image_type",
+    "error.400.missing_fields",
+    "error.400.no_file",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.storage_quota_exceeded",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.no_images",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.410.gone",
+    "error.413.file_too_large",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.image_decoder_unavailable",
+    "error.503.mandate_unavailable"
+  ],
+  "exports": {
+    "runtime": [
+      "CDN_DEFAULT_LIMITS",
+      "CDN_ERRORS",
+      "CDN_ERROR_CODES",
+      "CDN_FLOWS",
+      "CDN_I18N_KEYS",
+      "CdnProvider",
+      "CdnRuntimeContext",
+      "ERROR_FILE_TOO_LARGE",
+      "ERROR_INVALID_FORMAT",
+      "ERROR_NO_FILE",
+      "ImageUpload",
+      "MediaUploader",
+      "UploadCanceled",
+      "acceptAttribute",
+      "canHashLocally",
+      "cdnErrorBundleEn",
+      "cdnI18nBundleEn",
+      "cdnQueryKeys",
+      "createCdnApi",
+      "createCdnRuntime",
+      "explainCdnError",
+      "fileExtension",
+      "flowEndpoints",
+      "formatCdnRef",
+      "isUploadCanceled",
+      "parseCdnRef",
+      "refOf",
+      "registerCdnI18n",
+      "resolveCdnLimits",
+      "runUpload",
+      "sha256Hex",
+      "smallestVariantUrl",
+      "targetAssetType",
+      "toStapelImage",
+      "useCdnAnalytics",
+      "useCdnApi",
+      "useCdnRef",
+      "useCdnRuntime",
+      "useUploadImage",
+      "useUploadPreview",
+      "useUploadQueue",
+      "validateFile"
+    ],
+    "types": [
+      "CdnApi",
+      "CdnErrorCode",
+      "CdnErrorSpec",
+      "CdnFileExistsResponse",
+      "CdnFileKind",
+      "CdnFileModel",
+      "CdnFileUploadResponse",
+      "CdnFlowId",
+      "CdnFlowSpec",
+      "CdnImage",
+      "CdnImageUploadResponse",
+      "CdnIntakeLimits",
+      "CdnLimits",
+      "CdnLimitsOverride",
+      "CdnRef",
+      "CdnRefBag",
+      "CdnRuntime",
+      "CdnUploadTarget",
+      "CdnVariantMeta",
+      "CdnVariantWaitOptions",
+      "CdnVideo",
+      "CdnVideoUploadResponse",
+      "CreateCdnRuntimeOptions",
+      "DedupSkipReason",
+      "FlowEndpoint",
+      "ParsedCdnRef",
+      "Remediation",
+      "RunUploadOptions",
+      "Schemas",
+      "UploadImageBag",
+      "UploadItem",
+      "UploadOutcome",
+      "UploadPhase",
+      "UploadPreview",
+      "UploadQueueBag",
+      "UseUploadQueueOptions"
+    ]
+  }
+}
