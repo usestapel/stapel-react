@@ -24,7 +24,7 @@ Built against **stapel-search 0.1.0** (contract pin
 - **headless/** — `SearchProvider`, `SearchStateProvider`, `SearchResults`,
   `FacetPanel`, `RankingDisclosure`.
 - **i18n/** — the en floor + generated backend error bundles; `ru`/`es` as their
-  own subpaths. `ru` is the storefront's default language (darom verdict F1).
+  own subpaths. `ru` is the storefront's default language (storefront spec verdict F1).
 - **default/** — the antd skin, a separate entry point.
 - **router/** — the react-router binding, a third entry point (see below).
 - **nav/** — two public entries: `/s` and `/ranking-disclosure`.

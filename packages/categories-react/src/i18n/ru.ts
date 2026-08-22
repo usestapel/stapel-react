@@ -9,7 +9,7 @@ export { categoriesErrorBundleRu } from "./generated/errors.ru.gen.js";
  * register it never carry these strings (the main entry does not import this
  * module — gated by size-limit + the bundle-purity test).
  *
- * This is the storefront's DEFAULT language (darom-storefront verdict F1:
+ * This is the storefront's DEFAULT language (storefront spec verdict F1:
  * ru-first).
  *
  * ── What comes from where ──────────────────────────────────────────────────

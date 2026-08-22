@@ -4,11 +4,11 @@
  *
  * ── What changed since the spec ─────────────────────────────────────────────
  *
- * `tasks/darom-storefront-design.md` §3.6 ruled polling-by-seq for chat v1,
+ * The storefront spec §3.6 ruled polling-by-seq for chat v1,
  * and it was right about the fleet it surveyed: stapel-chat had the resumable
  * consumer but `routing.py` exported nothing, so no host could mount it.
  * stapel-chat 0.2.2 ships that mount (`ws/chat/<uuid:conversation_id>`) and
- * the darom fleet runs it. So the pair carries BOTH transports and picks at
+ * the client fleet runs it. So the pair carries BOTH transports and picks at
  * runtime — a deployment without sockets (WSGI, no channel layer, a
  * misconfigured proxy) is not a broken chat, it is a chat that refreshes on a
  * timer.

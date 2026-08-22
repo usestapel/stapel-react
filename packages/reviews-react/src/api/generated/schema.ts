@@ -14,7 +14,7 @@ export interface paths {
          *     non-moderators), or create a review.
          *
          *     ``GET`` is anonymously readable (storefront F5 verdict,
-         *     darom-storefront-design.md §13.8 note 2) — published-only filtering
+         *     the storefront spec §13.8 note 2) — published-only filtering
          *     already guarantees a guest sees nothing a moderator would need to hide.
          *     ``POST`` still requires a real identity (there is an author to attribute
          *     the review to), so the class gate is DRF's own
@@ -31,7 +31,7 @@ export interface paths {
          *     non-moderators), or create a review.
          *
          *     ``GET`` is anonymously readable (storefront F5 verdict,
-         *     darom-storefront-design.md §13.8 note 2) — published-only filtering
+         *     the storefront spec §13.8 note 2) — published-only filtering
          *     already guarantees a guest sees nothing a moderator would need to hide.
          *     ``POST`` still requires a real identity (there is an author to attribute
          *     the review to), so the class gate is DRF's own
@@ -104,7 +104,7 @@ export interface paths {
          *     for a target.
          *
          *     Anonymously readable for the same reason as the list's ``GET``
-         *     (storefront F5 verdict, darom-storefront-design.md §13.8 note 2): the
+         *     (storefront F5 verdict, the storefront spec §13.8 note 2): the
          *     aggregate is computed over published reviews only, so a guest learns
          *     nothing a moderator would need withheld.
          *
@@ -181,7 +181,7 @@ export interface components {
          *     only fires for ``GenericAPIView.pagination_class`` — never sees
          *     ``ReviewAnchorPagination``, and the envelope has to be declared by hand
          *     or spectacular renders the response as a bare array
-         *     (darom-storefront-design.md §13.8 note 3).
+         *     (the storefront spec §13.8 note 3).
          */
         ReviewPage: {
             items: components["schemas"]["ReviewResponse"][];

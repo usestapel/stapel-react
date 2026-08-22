@@ -17,8 +17,8 @@ describe("deriving the socket base from the REST base", () => {
   it("https becomes wss, at the host root — the module's canonical mount", () => {
     // stapel_chat.routing mounts `ws/chat/<uuid>` in the host's ASGI app, not
     // under the module's /chat/api prefix.
-    expect(deriveChatSocketBase("https://darom.example/chat/api/v1")).toBe(
-      "wss://darom.example/ws/chat/"
+    expect(deriveChatSocketBase("https://shop.example/chat/api/v1")).toBe(
+      "wss://shop.example/ws/chat/"
     );
   });
 
@@ -69,15 +69,15 @@ describe("stream keys", () => {
 describe("the runtime resolves the transport once", () => {
   it("derives from baseUrl by default", () => {
     const runtime = createChatRuntime({
-      baseUrl: "https://darom.example/chat/api/v1",
+      baseUrl: "https://shop.example/chat/api/v1",
       fetch: (() => Promise.reject(new Error("unused"))) as typeof globalThis.fetch,
     });
-    expect(runtime.realtime.socketBase).toBe("wss://darom.example/ws/chat/");
+    expect(runtime.realtime.socketBase).toBe("wss://shop.example/ws/chat/");
   });
 
   it("an explicit null turns the socket half OFF — what a WSGI host says", () => {
     const runtime = createChatRuntime({
-      baseUrl: "https://darom.example/chat/api/v1",
+      baseUrl: "https://shop.example/chat/api/v1",
       fetch: (() => Promise.reject(new Error("unused"))) as typeof globalThis.fetch,
       realtime: { socketUrl: null },
     });
@@ -86,10 +86,10 @@ describe("the runtime resolves the transport once", () => {
 
   it("an explicit URL wins — a separate ASGI host is a normal deployment", () => {
     const runtime = createChatRuntime({
-      baseUrl: "https://darom.example/chat/api/v1",
+      baseUrl: "https://shop.example/chat/api/v1",
       fetch: (() => Promise.reject(new Error("unused"))) as typeof globalThis.fetch,
-      realtime: { socketUrl: "wss://sockets.darom.example/ws/chat/" },
+      realtime: { socketUrl: "wss://sockets.shop.example/ws/chat/" },
     });
-    expect(runtime.realtime.socketBase).toBe("wss://sockets.darom.example/ws/chat/");
+    expect(runtime.realtime.socketBase).toBe("wss://sockets.shop.example/ws/chat/");
   });
 });

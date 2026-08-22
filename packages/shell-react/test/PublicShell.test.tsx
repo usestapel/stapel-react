@@ -77,7 +77,7 @@ function wrap(
 describe("<PublicShell/> — geometry: a top bar, and no Sider", () => {
   it("renders header + browse bar + Outlet content, and NEVER an AppShell Sider", async () => {
     setViewportWidth(1440);
-    render(wrap("/s", { brand: <span>Darom</span>, categorySlot: <span>Cars</span> }));
+    render(wrap("/s", { brand: <span>Acme</span>, categorySlot: <span>Cars</span> }));
 
     await waitFor(() => expect(screen.getByTestId("public-shell-header")).toBeDefined());
     expect(screen.getByTestId("public-shell-browse")).toBeDefined();

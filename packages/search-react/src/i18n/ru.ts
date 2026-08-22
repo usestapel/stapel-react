@@ -10,7 +10,7 @@ export { searchErrorBundleRu } from "./generated/errors.ru.gen.js";
  * entry does not import this module — gated by size-limit + the bundle-purity
  * test).
  *
- * This is the storefront's DEFAULT language (darom-storefront verdict F1:
+ * This is the storefront's DEFAULT language (storefront spec verdict F1:
  * ru-first), which is why it is the fullest of the three bundles and why the
  * wording is checked against what a marketplace visitor is actually being
  * told — "counts are approximate" has to sound like an explanation, not an

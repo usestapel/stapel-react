@@ -9,7 +9,7 @@ export { listingsErrorBundleRu } from "./generated/errors.ru.gen.js";
  * register it never carry these strings (the main entry does not import this
  * module — gated by size-limit + the bundle-purity test).
  *
- * This is the storefront's DEFAULT language (darom-storefront verdict F1:
+ * This is the storefront's DEFAULT language (storefront spec verdict F1:
  * ru-first), which is why the UI copy is here in full and not only the error
  * keys: a seller filling in a listing is the surface where a half-translated
  * form is most obvious.

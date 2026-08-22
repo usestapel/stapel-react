@@ -184,7 +184,7 @@ export interface ListingPageParams {
 /**
  * The currency a composer starts a new listing in.
  *
- * RUB by owner verdict F6 (`tasks/darom-storefront-design.md`, the owner's
+ * RUB by owner verdict F6 (storefront spec, the owner's
  * fork verdicts of 2026-08-22), and a default rather than a constant: `currency` is
  * a free `maxLength: 8` string on the wire (stapel-listings has no currency
  * enum — the vocabulary lives in stapel-currencies), so a deployment that

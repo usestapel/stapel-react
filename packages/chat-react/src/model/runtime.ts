@@ -18,7 +18,7 @@ import { deriveChatSocketBase } from "../realtime/streams.js";
 export interface ChatRealtimeOptions {
   /**
    * Where this deployment mounts `stapel_chat.routing.websocket_urlpatterns`,
-   * e.g. `wss://darom.example/ws/chat/`. Omit to derive it from `baseUrl`
+   * e.g. `wss://shop.example/ws/chat/`. Omit to derive it from `baseUrl`
    * (the canonical `/ws/chat/` at the API's own origin). Pass `null` to turn
    * the socket transport OFF explicitly — a host that knows its backend runs
    * under WSGI says so here instead of letting every tab fail a handshake
