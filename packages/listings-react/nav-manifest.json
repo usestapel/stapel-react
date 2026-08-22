@@ -1,0 +1,84 @@
+{
+  "package": "@stapel/listings-react",
+  "version": "0.1.0",
+  "entries": [
+    {
+      "id": "listings.detail",
+      "labelKey": "listings.nav.detail",
+      "icon": "TagOutlined",
+      "route": {
+        "path": "/l/:id"
+      },
+      "component": {
+        "export": "ListingDetailPane",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": false,
+      "surface": "public",
+      "order": 10
+    },
+    {
+      "id": "listings.compose",
+      "labelKey": "listings.nav.compose",
+      "icon": "PlusOutlined",
+      "route": {
+        "path": "/new"
+      },
+      "component": {
+        "export": "ListingComposerPage",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 20
+    },
+    {
+      "id": "listings.mine",
+      "labelKey": "listings.nav.mine",
+      "icon": "ProfileOutlined",
+      "route": {
+        "path": "listings"
+      },
+      "component": {
+        "export": "MyListingsPane",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "account.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 10
+    },
+    {
+      "id": "listings.favorites",
+      "labelKey": "listings.nav.favorites",
+      "icon": "HeartOutlined",
+      "route": {
+        "path": "favorites"
+      },
+      "component": {
+        "export": "FavoritesPane",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "account.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 20
+    }
+  ]
+}

@@ -1,0 +1,1044 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/listings-react",
+  "version": "0.1.0",
+  "backend": {
+    "module": "stapel-listings",
+    "contract": ">=0.6 <0.7"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "listings_api_v1_listings_archive_create": {
+      "method": "POST",
+      "path": "/listings/api/v1/listings/{id}/archive/",
+      "tag": "Listings",
+      "request": null,
+      "response": "ListingActionResponse"
+    },
+    "listings_api_v1_listings_complete_create": {
+      "method": "POST",
+      "path": "/listings/api/v1/listings/{id}/complete/",
+      "tag": "Listings",
+      "request": null,
+      "response": "ListingActionResponse"
+    },
+    "listings_api_v1_listings_create": {
+      "method": "POST",
+      "path": "/listings/api/v1/listings/",
+      "tag": "Listings",
+      "request": "ListingDraft",
+      "response": "ListingDraft"
+    },
+    "listings_api_v1_listings_destroy": {
+      "method": "DELETE",
+      "path": "/listings/api/v1/listings/{id}/",
+      "tag": "Listings",
+      "request": null,
+      "response": "DeleteResponse"
+    },
+    "listings_api_v1_listings_favorite_create": {
+      "method": "POST",
+      "path": "/listings/api/v1/listings/{id}/favorite/",
+      "tag": "Listings",
+      "request": null,
+      "response": "FavoriteToggleResponse"
+    },
+    "listings_api_v1_listings_list": {
+      "method": "GET",
+      "path": "/listings/api/v1/listings/",
+      "tag": "Listings",
+      "request": null,
+      "response": "PaginatedListingCardList"
+    },
+    "listings_api_v1_listings_my_counters_retrieve": {
+      "method": "GET",
+      "path": "/listings/api/v1/listings/my/counters/",
+      "tag": "Listings",
+      "request": null,
+      "response": "MyCountersResponse"
+    },
+    "listings_api_v1_listings_my_favorites_list": {
+      "method": "GET",
+      "path": "/listings/api/v1/listings/my/favorites/",
+      "tag": "Listings",
+      "request": null,
+      "response": "PaginatedListingCardList"
+    },
+    "listings_api_v1_listings_partial_update": {
+      "method": "PATCH",
+      "path": "/listings/api/v1/listings/{id}/",
+      "tag": "Listings",
+      "request": "PatchedListingDraft",
+      "response": "ListingDraft"
+    },
+    "listings_api_v1_listings_publish_create": {
+      "method": "POST",
+      "path": "/listings/api/v1/listings/{id}/publish/",
+      "tag": "Listings",
+      "request": null,
+      "response": "PublishResponse"
+    },
+    "listings_api_v1_listings_retrieve": {
+      "method": "GET",
+      "path": "/listings/api/v1/listings/{id}/",
+      "tag": "Listings",
+      "request": null,
+      "response": "ListingDetail"
+    },
+    "listings_api_v1_listings_save_draft_create": {
+      "method": "POST",
+      "path": "/listings/api/v1/listings/{id}/save-draft/",
+      "tag": "Listings",
+      "request": null,
+      "response": "ListingDraft"
+    },
+    "listings_api_v1_listings_status_retrieve": {
+      "method": "GET",
+      "path": "/listings/api/v1/listings/{id}/status/",
+      "tag": "Listings",
+      "request": null,
+      "response": "ListingStatus"
+    },
+    "listings_api_v1_listings_unfavorite_create": {
+      "method": "POST",
+      "path": "/listings/api/v1/listings/{id}/unfavorite/",
+      "tag": "Listings",
+      "request": null,
+      "response": "FavoriteToggleResponse"
+    },
+    "listings_api_v1_listings_update": {
+      "method": "PUT",
+      "path": "/listings/api/v1/listings/{id}/",
+      "tag": "Listings",
+      "request": "ListingDraft",
+      "response": "ListingDraft"
+    },
+    "listings_api_v1_listings_validate_draft_retrieve": {
+      "method": "GET",
+      "path": "/listings/api/v1/listings/{id}/validate-draft/",
+      "tag": "Listings",
+      "request": null,
+      "response": "ValidationBatchResult"
+    }
+  },
+  "hooks": {
+    "useArchiveListing": {
+      "kind": "mutation",
+      "operation": "archive"
+    },
+    "useCompleteListing": {
+      "kind": "mutation",
+      "operation": "complete"
+    },
+    "useCreateDraft": {
+      "kind": "mutation",
+      "operation": "createDraft",
+      "invalidates": [
+        [
+          "listings",
+          "my",
+          "counters"
+        ]
+      ]
+    },
+    "useDeleteListing": {
+      "kind": "mutation",
+      "operation": "remove",
+      "invalidates": [
+        [
+          "listings"
+        ]
+      ]
+    },
+    "useFavoriteListing": {
+      "kind": "mutation",
+      "operations": [
+        "favorite",
+        "unfavorite"
+      ],
+      "invalidates": [
+        [
+          "listings",
+          "my",
+          "favorites"
+        ],
+        [
+          "listings",
+          "list"
+        ],
+        [
+          "listings",
+          "detail",
+          "{id}"
+        ]
+      ]
+    },
+    "useListing": {
+      "kind": "query",
+      "operation": "retrieve",
+      "queryKey": [
+        "listings",
+        "detail",
+        "{id}"
+      ]
+    },
+    "useListingCards": {
+      "kind": "query",
+      "operation": "list",
+      "queryKey": [
+        "listings",
+        "list",
+        "{page}"
+      ]
+    },
+    "useListingStatus": {
+      "kind": "query",
+      "operation": "status",
+      "queryKey": [
+        "listings",
+        "status",
+        "{id}"
+      ]
+    },
+    "useMyCounters": {
+      "kind": "query",
+      "operation": "myCounters",
+      "queryKey": [
+        "listings",
+        "my",
+        "counters"
+      ]
+    },
+    "useMyFavorites": {
+      "kind": "query",
+      "operation": "myFavorites",
+      "queryKey": [
+        "listings",
+        "my",
+        "favorites",
+        "{page}"
+      ]
+    },
+    "usePublishListing": {
+      "kind": "mutation",
+      "operation": "publish"
+    },
+    "useSaveDraft": {
+      "kind": "mutation",
+      "operation": "saveDraft"
+    },
+    "useValidateDraft": {
+      "kind": "query",
+      "operation": "validateDraft",
+      "queryKey": [
+        "listings",
+        "validate-draft",
+        "{id}"
+      ]
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.category_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.description_too_long": {
+      "status": 400,
+      "params": [
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.description_too_short": {
+      "status": 400,
+      "params": [
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_above_maximum": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_below_minimum": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_invalid_config": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_invalid_format": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_invalid_type": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_mandatory_missing": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_not_allowed": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_not_in_options": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_unknown": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_unknown_type": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.image_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.listing_feature_not_allowed": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.publish_validation_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.listing_not_owner": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.listing_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.already_favorited": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.invalid_listing_transition": {
+      "status": 409,
+      "params": [
+        "from_status"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.409.listing_cannot_delete_active": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "listings.card",
+      "title": "Listing card",
+      "description": "The slot @stapel/search-react fills through the container — the two pairs never import each other. Badges come out of the stored DAO projection, which carries each type's display config beside its value, so a grid of forty cards costs one query and no category read. The heart is never hidden from a visitor: it is blocked, with the reason, and the container attaches the sign-in CTA.",
+      "component": "ListingCard",
+      "covers": [
+        "ListingsProvider"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "visitor"
+      ],
+      "source": "demo/ListingCard.demo.tsx"
+    },
+    {
+      "id": "listings.composer",
+      "title": "Listing composer",
+      "description": "The submission screen, where four contracts meet through three seams: the category schema arrives as FeatureDef[], the photos as @stapel/cdn-react's upload bag (its refs ARE images_draft, its settled gates the submit), and the value editors from @stapel/attributes-react. The variants show two of the six reasons the publish button can be off — photos in flight, and a value type this build has no editor for, which blocks the submit loudly rather than dropping a possibly-mandatory field.",
+      "component": "ListingComposerPage",
+      "covers": [
+        "ListingComposer"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "photos-in-flight",
+        "unsupported-type"
+      ],
+      "source": "demo/ListingComposer.demo.tsx"
+    },
+    {
+      "id": "listings.detail",
+      "title": "Listing detail",
+      "description": "The same listing, read by two people. A buyer sees a live page. The OWNER also sees the moderation axis — 'published, changes under review' — because since stapel-listings 0.5.0 an edit to a live listing keeps status=published and moves only moderation_status, and a dashboard that derived one field from the other would either hide the listing or hide the review.",
+      "component": "ListingDetailPane",
+      "covers": [
+        "ListingDetail"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "owner"
+      ],
+      "source": "demo/ListingDetail.demo.tsx"
+    },
+    {
+      "id": "listings.favorites",
+      "title": "Favourites",
+      "description": "The plainest place to see the load-state discipline: 'you have not saved anything yet' and 'we could not load your favourites' are two arms, not one. Merging them is the substitution that turned a 5xx into an empty result page on 2026-08-09. A visitor is told to sign in and no request is made at all.",
+      "component": "FavoritesPane",
+      "covers": [
+        "Favorites"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "empty",
+        "failed",
+        "visitor"
+      ],
+      "source": "demo/Favorites.demo.tsx"
+    },
+    {
+      "id": "listings.mine",
+      "title": "My listings",
+      "description": "stapel-listings 0.6.1 has no owner-scoped list endpoint: GET /listings/ answers published() and takes no owner parameter, so a seller's own drafts are unreachable by any call the contract offers. The counters ARE real and are shown; the rows come from an injected source, and with none the pane says so instead of drawing an empty grid that reads as 'you have no listings'.",
+      "component": "MyListingsPane",
+      "covers": [
+        "MyListings"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "no-source"
+      ],
+      "source": "demo/MyListings.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.category_required",
+    "error.400.description_too_long",
+    "error.400.description_too_short",
+    "error.400.expected_list",
+    "error.400.feature_above_maximum",
+    "error.400.feature_below_minimum",
+    "error.400.feature_invalid_config",
+    "error.400.feature_invalid_format",
+    "error.400.feature_invalid_type",
+    "error.400.feature_mandatory_missing",
+    "error.400.feature_not_allowed",
+    "error.400.feature_not_in_options",
+    "error.400.feature_unknown",
+    "error.400.feature_unknown_type",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.image_required",
+    "error.400.invalid_ad_id",
+    "error.400.listing_feature_not_allowed",
+    "error.400.publish_validation_failed",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.listing_not_owner",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.listing_not_found",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.already_favorited",
+    "error.409.conflict",
+    "error.409.invalid_listing_transition",
+    "error.409.listing_cannot_delete_active",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.mandate_unavailable",
+    "listings.blocked.delete_active",
+    "listings.blocked.guest",
+    "listings.blocked.in_flight",
+    "listings.blocked.mandate_unknown",
+    "listings.blocked.sign_in",
+    "listings.blocked.transition",
+    "listings.card.favorite_add",
+    "listings.card.favorite_remove",
+    "listings.card.no_photo",
+    "listings.card.open",
+    "listings.card.photo_unavailable",
+    "listings.card.price_absent",
+    "listings.compose.auto_republish",
+    "listings.compose.blocked.busy",
+    "listings.compose.blocked.details_unavailable",
+    "listings.compose.blocked.mirror",
+    "listings.compose.blocked.no_category",
+    "listings.compose.blocked.no_draft",
+    "listings.compose.blocked.photos_pending",
+    "listings.compose.blocked.unsupported_type",
+    "listings.compose.category",
+    "listings.compose.category_changed_dropped",
+    "listings.compose.category_help",
+    "listings.compose.category_required",
+    "listings.compose.countable",
+    "listings.compose.currency_label",
+    "listings.compose.description_label",
+    "listings.compose.details",
+    "listings.compose.details_empty",
+    "listings.compose.details_failed",
+    "listings.compose.details_loading",
+    "listings.compose.edit_title",
+    "listings.compose.geo_incomplete",
+    "listings.compose.invalid_summary",
+    "listings.compose.lat_label",
+    "listings.compose.location_label",
+    "listings.compose.lon_label",
+    "listings.compose.new_title",
+    "listings.compose.photos",
+    "listings.compose.price_invalid",
+    "listings.compose.price_label",
+    "listings.compose.publish",
+    "listings.compose.published_first",
+    "listings.compose.published_live",
+    "listings.compose.publishing",
+    "listings.compose.republish",
+    "listings.compose.save",
+    "listings.compose.saved",
+    "listings.compose.saving",
+    "listings.compose.stock",
+    "listings.compose.title_label",
+    "listings.compose.title_too_long",
+    "listings.compose.too_many_images",
+    "listings.detail.description",
+    "listings.detail.expires_at",
+    "listings.detail.load_failed",
+    "listings.detail.loading",
+    "listings.detail.no_specs",
+    "listings.detail.not_found",
+    "listings.detail.not_published",
+    "listings.detail.owner_only_view",
+    "listings.detail.photo_alt",
+    "listings.detail.photos_unavailable",
+    "listings.detail.published_at",
+    "listings.detail.removed",
+    "listings.detail.retry",
+    "listings.detail.specs",
+    "listings.detail.stock",
+    "listings.detail.unreadable_features",
+    "listings.error.unknown",
+    "listings.favorites.empty",
+    "listings.favorites.load_failed",
+    "listings.favorites.loading",
+    "listings.favorites.title",
+    "listings.mine.archive",
+    "listings.mine.complete",
+    "listings.mine.counters_failed",
+    "listings.mine.delete",
+    "listings.mine.edit",
+    "listings.mine.empty",
+    "listings.mine.live_under_review",
+    "listings.mine.load_failed",
+    "listings.mine.loading",
+    "listings.mine.retry",
+    "listings.mine.source_missing",
+    "listings.mine.tab.active",
+    "listings.mine.tab.archived",
+    "listings.mine.tab.drafts",
+    "listings.mine.title",
+    "listings.moderation.first_review",
+    "listings.moderation.live_edit_pending",
+    "listings.moderation.live_needs_review",
+    "listings.moderation.needs_review",
+    "listings.moderation.pending_offline",
+    "listings.moderation.rejected",
+    "listings.moderation.rejected_still_live",
+    "listings.nav.compose",
+    "listings.nav.detail",
+    "listings.nav.favorites",
+    "listings.nav.mine",
+    "listings.page.next",
+    "listings.page.prev",
+    "listings.status.archived",
+    "listings.status.blocked",
+    "listings.status.draft",
+    "listings.status.expired",
+    "listings.status.paused",
+    "listings.status.pending",
+    "listings.status.published",
+    "listings.status.rejected",
+    "listings.status.sold"
+  ],
+  "exports": {
+    "runtime": [
+      "ACCOUNT_ROOT_ID",
+      "CATEGORY_FIELD",
+      "DEFAULT_DRAFT_LIMITS",
+      "DEFAULT_LISTING_CURRENCY",
+      "DESCRIPTION_FIELD",
+      "EMPTY_LOCATION",
+      "Favorites",
+      "IMAGES_FIELD",
+      "LISTINGS_ERRORS",
+      "LISTINGS_ERROR_CODES",
+      "LISTINGS_FLOWS",
+      "LISTINGS_I18N_KEYS",
+      "LISTING_CANNOT_DELETE_ACTIVE",
+      "LISTING_INVALID_TRANSITION",
+      "LISTING_NOT_OWNER",
+      "LISTING_PUBLISH_VALIDATION_FAILED",
+      "LISTING_STATUSES",
+      "LISTING_TRANSITIONS",
+      "ListingComposer",
+      "ListingDetail",
+      "ListingsProvider",
+      "ListingsRuntimeContext",
+      "MODERATION_STATUSES",
+      "MY_LISTINGS_SOURCE_MISSING",
+      "MY_LISTINGS_TABS",
+      "MY_LISTINGS_TAB_STATUSES",
+      "MyListings",
+      "PRICE_FIELD",
+      "TITLE_FIELD",
+      "asFeatureDaoList",
+      "canDelete",
+      "canTransition",
+      "createDraftBody",
+      "createListingsApi",
+      "createListingsRuntime",
+      "draftPatchFromValues",
+      "draftValuesFromDetail",
+      "draftValuesFromWire",
+      "droppedFeatureSlugs",
+      "emptyDraftValues",
+      "explainListingsError",
+      "failedResults",
+      "featureFromDao",
+      "featuresDtoFromDaoList",
+      "featuresFromDaoList",
+      "flowEndpoints",
+      "isBatchValid",
+      "isPubliclyVisible",
+      "lifecycleCaption",
+      "listingFieldErrors",
+      "listingStatusView",
+      "listingsErrorBundleEn",
+      "listingsI18nBundleEn",
+      "listingsQueryKeys",
+      "mirrorDraft",
+      "mirrorListingFields",
+      "moderationNotice",
+      "navEntries",
+      "pageKey",
+      "publishRefusal",
+      "registerListingsI18n",
+      "retainKnownFeatureValues",
+      "tabOf",
+      "unreadableFeatureCount",
+      "useArchiveListing",
+      "useCompleteListing",
+      "useCreateDraft",
+      "useDeleteListing",
+      "useFavoriteListing",
+      "useFavoriteToggle",
+      "useFavorites",
+      "useListing",
+      "useListingActions",
+      "useListingCards",
+      "useListingComposer",
+      "useListingDetail",
+      "useListingStatus",
+      "useListingsAnalytics",
+      "useListingsApi",
+      "useListingsRuntime",
+      "useMandateGate",
+      "useMyCounters",
+      "useMyFavorites",
+      "useMyListings",
+      "usePublishListing",
+      "useSaveDraft",
+      "useValidateDraft"
+    ],
+    "types": [
+      "ComposeStage",
+      "CreateListingsRuntimeOptions",
+      "DeleteResponse",
+      "EmptyDraftOptions",
+      "FavoriteInput",
+      "FavoriteToggleBag",
+      "FavoriteToggleResponse",
+      "FavoritesBag",
+      "FeatureConfig",
+      "FeatureDef",
+      "FeatureValueDto",
+      "FlowEndpoint",
+      "LifecycleCaption",
+      "ListingActionResponse",
+      "ListingActionsBag",
+      "ListingCard",
+      "ListingComposerBag",
+      "ListingDetailBag",
+      "ListingDetailData",
+      "ListingDraft",
+      "ListingDraftLimits",
+      "ListingDraftPatch",
+      "ListingDraftValues",
+      "ListingFeatureDao",
+      "ListingFeatureDaoUnion",
+      "ListingFeatureType",
+      "ListingFeatureView",
+      "ListingImageResolver",
+      "ListingImagesBag",
+      "ListingLifecycleStatus",
+      "ListingLocation",
+      "ListingModerationStatus",
+      "ListingPageKey",
+      "ListingPageParams",
+      "ListingStatusInfo",
+      "ListingStatusTone",
+      "ListingStatusView",
+      "ListingsApi",
+      "ListingsErrorCode",
+      "ListingsErrorSpec",
+      "ListingsFlowId",
+      "ListingsFlowSpec",
+      "ListingsI18nKey",
+      "ListingsRuntime",
+      "ModerationNotice",
+      "MyCounters",
+      "MyListingsBag",
+      "MyListingsSource",
+      "MyListingsTab",
+      "PaginatedListingCards",
+      "PublishOutcome",
+      "PublishRefusal",
+      "PublishResponse",
+      "Remediation",
+      "SaveDraftInput",
+      "Schemas",
+      "UseFavoritesOptions",
+      "UseListingComposerOptions",
+      "UseListingDetailOptions",
+      "UseMyListingsOptions"
+    ]
+  }
+}

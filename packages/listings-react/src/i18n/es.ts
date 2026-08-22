@@ -1,0 +1,198 @@
+import type { I18nDictionary, I18nEngine } from "@stapel/core";
+import { listingsErrorBundleEs } from "./generated/errors.es.gen.js";
+
+export { listingsErrorBundleEs } from "./generated/errors.es.gen.js";
+
+/**
+ * Spanish bundle for listings-react — the `@stapel/listings-react/i18n/es`
+ * subpath (i18n-shipping.md §2), opt-in exactly like `./i18n/ru`.
+ *
+ * It carries the UI copy too, not only the nine module-owned error keys. The
+ * composer and the owner's dashboard are the surfaces a seller works in for
+ * minutes at a time; a half-translated form there is visible immediately, in
+ * the way a half-translated settings pane is not. Same call chat-react made
+ * for the buyer↔seller thread.
+ *
+ * Provenance and the owner split are as in `./ru.ts`: 42 cross-cutting codes
+ * generated from stapel-core's catalogue, 9 `stapel_listings` codes authored
+ * here until upstream ships `translations/`, and the 12 `stapel_attributes`
+ * codes deliberately left to `@stapel/attributes-react`.
+ */
+export const listingsI18nBundleEs: I18nDictionary = {
+  ...listingsErrorBundleEs,
+
+  // ── the 9 stapel_listings-owned codes, pair-authored ─────────────────────
+  "error.400.category_required": "Hay que elegir una categoría",
+  "error.400.image_required":
+    "Para publicar el anuncio hace falta al menos una foto",
+  "error.400.listing_feature_not_allowed":
+    "El detalle «{feature}» no pertenece a esta categoría",
+  "error.400.publish_validation_failed":
+    "El anuncio no pasó la revisión y no se publicó",
+  "error.403.listing_not_owner": "Este anuncio no es tuyo",
+  "error.404.listing_not_found": "No se encontró el anuncio",
+  "error.409.already_favorited": "El anuncio ya está en favoritos",
+  "error.409.invalid_listing_transition":
+    "Un anuncio en estado «{from_status}» no se puede mover así",
+  "error.409.listing_cannot_delete_active":
+    "Archívalo primero — un anuncio a la venta no se puede borrar",
+
+  "listings.error.unknown": "Algo salió mal con este anuncio",
+
+  "listings.status.draft": "Borrador",
+  "listings.status.pending": "En revisión",
+  "listings.status.published": "Publicado",
+  "listings.status.paused": "En pausa",
+  "listings.status.expired": "Caducado",
+  "listings.status.sold": "Vendido",
+  "listings.status.rejected": "Rechazado",
+  "listings.status.blocked": "Retirado",
+  "listings.status.archived": "Archivado",
+
+  "listings.moderation.first_review":
+    "Enviado a revisión. Saldrá a la venta cuando un moderador lo apruebe.",
+  "listings.moderation.live_edit_pending":
+    "Tu anuncio sigue publicado mientras revisamos los cambios — la gente lo ve ahora mismo.",
+  "listings.moderation.pending_offline":
+    "Se pidió una revisión, pero este anuncio ya no está a la venta.",
+  "listings.moderation.needs_review":
+    "Un moderador lo está mirando a mano.",
+  "listings.moderation.live_needs_review":
+    "Publicado, y un moderador está mirando los cambios a mano.",
+  "listings.moderation.rejected":
+    "Un moderador rechazó este anuncio. Edítalo y vuelve a enviarlo.",
+  "listings.moderation.rejected_still_live":
+    "Un moderador rechazó este anuncio; sigue visible mientras se aplica.",
+
+  "listings.card.no_photo": "Sin foto",
+  "listings.card.photo_unavailable": "Foto no disponible",
+  "listings.card.price_absent": "Precio a consultar",
+  "listings.card.favorite_add": "Guardar en favoritos",
+  "listings.card.favorite_remove": "Quitar de favoritos",
+  "listings.card.open": "Abrir",
+
+  "listings.detail.loading": "Cargando el anuncio…",
+  "listings.detail.load_failed": "No pudimos cargar este anuncio",
+  "listings.detail.retry": "Reintentar",
+  "listings.detail.not_found": "No hay ningún anuncio en esta dirección",
+  "listings.detail.removed": "Este anuncio fue eliminado",
+  "listings.detail.not_published":
+    "Este anuncio no está a la venta ahora, así que lo que ves puede estar desactualizado",
+  "listings.detail.owner_only_view":
+    "Solo tú ves esto — todavía no está publicado",
+  "listings.detail.description": "Descripción",
+  "listings.detail.specs": "Detalles",
+  "listings.detail.no_specs": "El vendedor no indicó más detalles",
+  "listings.detail.unreadable_features":
+    "Detalles que esta versión no pudo leer: {count}",
+  "listings.detail.photos_unavailable":
+    "Aquí no se pueden mostrar las fotos — la aplicación no sabe resolverlas",
+  "listings.detail.photo_alt": "Foto {index} de {total}",
+  "listings.detail.published_at": "Publicado el {date}",
+  "listings.detail.expires_at": "A la venta hasta el {date}",
+  "listings.detail.stock": "Disponibles: {count}",
+
+  "listings.compose.new_title": "Anuncio nuevo",
+  "listings.compose.edit_title": "Editar el anuncio",
+  "listings.compose.category": "Categoría",
+  "listings.compose.category_help":
+    "La categoría decide qué detalles se le piden al vendedor",
+  "listings.compose.category_required": "Elige una categoría primero",
+  "listings.compose.category_changed_dropped":
+    "Respuestas que no aplican a esta categoría y se han borrado: {count}",
+  "listings.compose.title_label": "Título",
+  "listings.compose.title_too_long":
+    "El título debe tener como mucho {max_length} caracteres",
+  "listings.compose.description_label": "Descripción",
+  "listings.compose.price_label": "Precio",
+  "listings.compose.price_invalid":
+    "Escribe el precio como un número, con dos decimales como mucho",
+  "listings.compose.currency_label": "Moneda",
+  "listings.compose.location_label": "Dónde está",
+  "listings.compose.lat_label": "Latitud",
+  "listings.compose.lon_label": "Longitud",
+  "listings.compose.geo_incomplete":
+    "Una latitud necesita su longitud al lado — media coordenada no apunta a ningún sitio",
+  "listings.compose.photos": "Fotos",
+  "listings.compose.too_many_images":
+    "Un anuncio admite como mucho {max} fotos",
+  "listings.compose.details": "Detalles",
+  "listings.compose.details_loading": "Cargando lo que pide esta categoría…",
+  "listings.compose.details_failed":
+    "No pudimos cargar lo que pide esta categoría",
+  "listings.compose.details_empty": "Esta categoría no pide más detalles",
+  "listings.compose.countable": "Vendo un artículo contable",
+  "listings.compose.stock": "Cuántas unidades",
+  "listings.compose.auto_republish": "Volver a publicar cuando caduque",
+  "listings.compose.save": "Guardar borrador",
+  "listings.compose.saving": "Guardando…",
+  "listings.compose.saved": "Borrador guardado",
+  "listings.compose.publish": "Publicar",
+  "listings.compose.republish": "Enviar los cambios",
+  "listings.compose.publishing": "Enviando…",
+  "listings.compose.published_first":
+    "Enviado a revisión. Saldrá a la venta cuando un moderador lo apruebe.",
+  "listings.compose.published_live":
+    "Cambios enviados. Tu anuncio sigue publicado mientras los revisamos.",
+  "listings.compose.invalid_summary":
+    "Antes de enviarlo, revisa estos detalles: {count}",
+
+  "listings.compose.blocked.no_category":
+    "Elige una categoría — el resto del formulario depende de ella",
+  "listings.compose.blocked.unsupported_type":
+    "Esta categoría pide un tipo de detalle que la aplicación todavía no sabe mostrar ({types}), así que aquí no se puede rellenar",
+  "listings.compose.blocked.photos_pending":
+    "Espera a que terminen de subirse las fotos",
+  "listings.compose.blocked.no_draft": "El borrador todavía no está creado",
+  "listings.compose.blocked.busy":
+    "Un momento — el último cambio se está guardando",
+  "listings.compose.blocked.mirror": "Corrige primero los campos marcados",
+  "listings.compose.blocked.details_unavailable":
+    "No pudimos cargar lo que pide esta categoría, así que no podemos revisar el formulario",
+
+  "listings.mine.title": "Mis anuncios",
+  "listings.mine.tab.active": "Activos",
+  "listings.mine.tab.drafts": "Borradores",
+  "listings.mine.tab.archived": "Archivo",
+  "listings.mine.loading": "Cargando tus anuncios…",
+  "listings.mine.load_failed": "No pudimos cargar tus anuncios",
+  "listings.mine.empty": "Aquí todavía no hay nada",
+  "listings.mine.retry": "Reintentar",
+  "listings.mine.counters_failed": "No pudimos contar tus anuncios",
+  "listings.mine.source_missing":
+    "Esta aplicación todavía no puede enumerar tus anuncios: el servicio de anuncios no tiene una lista limitada al propietario. Los contadores de abajo sí son reales.",
+  "listings.mine.live_under_review": "Publicado, cambios en revisión",
+  "listings.mine.edit": "Editar",
+  "listings.mine.archive": "Archivar",
+  "listings.mine.complete": "Marcar como vendido",
+  "listings.mine.delete": "Borrar",
+
+  "listings.favorites.title": "Favoritos",
+  "listings.favorites.loading": "Cargando tus favoritos…",
+  "listings.favorites.load_failed": "No pudimos cargar tus favoritos",
+  "listings.favorites.empty": "Todavía no has guardado nada",
+
+  "listings.blocked.sign_in": "Inicia sesión para hacer esto",
+  "listings.blocked.guest":
+    "Esta cuenta todavía no puede hacerlo — termina de configurarla primero",
+  "listings.blocked.mandate_unknown":
+    "No pudimos comprobar tu cuenta, así que no adivinamos si puedes hacerlo",
+  "listings.blocked.transition":
+    "Un anuncio en estado «{from_status}» no se puede mover así",
+  "listings.blocked.delete_active":
+    "Archívalo primero — un anuncio a la venta no se puede borrar",
+  "listings.blocked.in_flight": "Un momento — eso ya está en marcha",
+
+  "listings.page.prev": "Anterior",
+  "listings.page.next": "Siguiente",
+
+  "listings.nav.detail": "Anuncio",
+  "listings.nav.compose": "Poner un anuncio",
+  "listings.nav.mine": "Mis anuncios",
+  "listings.nav.favorites": "Favoritos",
+};
+
+/** Register the Spanish bundle into a core i18n engine. */
+export function registerListingsI18nEs(i18n: I18nEngine): void {
+  i18n.registerBundle("es", listingsI18nBundleEs);
+}

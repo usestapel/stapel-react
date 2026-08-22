@@ -1,0 +1,118 @@
+# @stapel/listings-react 0.1.0
+
+Headless React flow pair for stapel-listings (contract >=0.6 <0.7) — business + state, zero visual opinion.
+Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
+verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
+
+## The one right way (do this, the rest is a review/lint smell)
+- No raw fetch/axios. The client is injected via <ListingsProvider>/StapelConfigProvider;
+  every hook and flow already carries auth, refresh, and the error envelope.
+- Render errors, never try/catch them: a flow's state carries FlowError{code,params};
+  render `t(code, params)` and branch on `explainListingsError(code)` remediation.
+- Server state = the use* hooks (query layer); keys come only from listingsQueryKeys.
+- User strings = i18n keys (registerListingsI18n); never string literals.
+- Sign-in UI = a headless flow component; copy it (shadcn-style) to restyle.
+
+## Layers
+api (typed client) · model (hooks, session) · flows (machines) · headless · i18n
+
+## Documented flows (flows.json — canonical id, steps, endpoints)
+
+## Operations (typed; use the named op, never a path string)
+Request/response schema names are in manifest.json + the generated types.
+Paths are relative to `/listings/api/v1/`.
+- listings_api_v1_listings_archive_create: POST /listings/{id}/archive/
+- listings_api_v1_listings_complete_create: POST /listings/{id}/complete/
+- listings_api_v1_listings_create: POST /listings/
+- listings_api_v1_listings_destroy: DELETE /listings/{id}/
+- listings_api_v1_listings_favorite_create: POST /listings/{id}/favorite/
+- listings_api_v1_listings_list: GET /listings/
+- listings_api_v1_listings_my_counters_retrieve: GET /listings/my/counters/
+- listings_api_v1_listings_my_favorites_list: GET /listings/my/favorites/
+- listings_api_v1_listings_partial_update: PATCH /listings/{id}/
+- listings_api_v1_listings_publish_create: POST /listings/{id}/publish/
+- listings_api_v1_listings_retrieve: GET /listings/{id}/
+- listings_api_v1_listings_save_draft_create: POST /listings/{id}/save-draft/
+- listings_api_v1_listings_status_retrieve: GET /listings/{id}/status/
+- listings_api_v1_listings_unfavorite_create: POST /listings/{id}/unfavorite/
+- listings_api_v1_listings_update: PUT /listings/{id}/
+- listings_api_v1_listings_validate_draft_retrieve: GET /listings/{id}/validate-draft/
+
+## Query hooks (server state; keys come only from the key factory)
+- useArchiveListing (mutation) → archive
+- useCompleteListing (mutation) → complete
+- useCreateDraft (mutation) → createDraft
+- useDeleteListing (mutation) → remove
+- useFavoriteListing (mutation) → favorite+unfavorite
+- useListing (query) → retrieve
+- useListingCards (query) → list
+- useListingStatus (query) → status
+- useMyCounters (query) → myCounters
+- useMyFavorites (query) → myFavorites
+- usePublishListing (mutation) → publish
+- useSaveDraft (mutation) → saveDraft
+- useValidateDraft (query) → validateDraft
+
+## Errors (render t(code, params); UX from remediation)
+63 keys (full catalog: manifest.json §errors). By remediation: fix_input 35 · retry 15 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+Param-bearing keys (interpolation slots matter):
+- error.400.description_too_long [400] → fix_input {max_length}
+- error.400.description_too_short [400] → fix_input {min_length}
+- error.400.feature_above_maximum [400] → fix_input {feature}
+- error.400.feature_below_minimum [400] → fix_input {feature}
+- error.400.feature_invalid_config [400] → fix_input {feature}
+- error.400.feature_invalid_format [400] → fix_input {feature}
+- error.400.feature_invalid_type [400] → fix_input {feature}
+- error.400.feature_mandatory_missing [400] → fix_input {feature}
+- error.400.feature_not_allowed [400] → fix_input {feature}
+- error.400.feature_not_in_options [400] → fix_input {feature}
+- error.400.feature_unknown [400] → fix_input {feature}
+- error.400.feature_unknown_type [400] → fix_input {feature}
+- error.400.field.blank [400] → fix_input {field}
+- error.400.field.does_not_exist [400] → fix_input {field}
+- error.400.field.invalid [400] → fix_input {field}
+- error.400.field.invalid_choice [400] → fix_input {field}
+- error.400.field.max_length [400] → fix_input {field,max_length}
+- error.400.field.max_value [400] → fix_input {field,max_value}
+- error.400.field.min_length [400] → fix_input {field,min_length}
+- error.400.field.min_value [400] → fix_input {field,min_value}
+- error.400.field.null [400] → fix_input {field}
+- error.400.field.required [400] → fix_input {field}
+- error.400.field.unique [400] → fix_input {field}
+- error.400.listing_feature_not_allowed [400] → fix_input {feature}
+- error.409.invalid_listing_transition [409] → fix_input {from_status}
+- error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
+
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- listings.card → <ListingCard> [default|visitor]  demo/ListingCard.demo.tsx
+- listings.composer → <ListingComposerPage> [default|photos-in-flight|unsupported-type]  demo/ListingComposer.demo.tsx
+- listings.detail → <ListingDetailPane> [default|owner]  demo/ListingDetail.demo.tsx
+- listings.favorites → <FavoritesPane> [default|empty|failed|visitor]  demo/Favorites.demo.tsx
+- listings.mine → <MyListingsPane> [default|no-source]  demo/MyListings.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
+
+## Snippets
+```tsx
+// Error rendering + remediation branch (one pattern for every pair).
+const r = explainListingsError(err.code); // 'wait_and_retry' | 'verify' | ...
+return <Alert action={r}>{t(err.code, err.params)}</Alert>;
+```
