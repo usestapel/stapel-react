@@ -38,9 +38,10 @@
  *    a grey button and never a hidden one.
  * 4. **An absence is never rendered as a zero.** A soft-deleted listing says
  *    it was removed rather than 404-ing like a typo; a stored feature this
- *    build cannot read is counted rather than dropped; and the owner's own
- *    listings — which stapel-listings 0.6.1 has NO endpoint for — arrive as a
- *    named failure rather than an empty grid (`headless/MyListings.tsx`).
+ *    build cannot read is counted rather than dropped; an empty dashboard tab
+ *    says WHICH emptiness it is; and a moderation takedown — the one status
+ *    `my/counters` counts in no tab at all — is shown outside the tabs rather
+ *    than falling out of the screen (`headless/MyListings.tsx`).
  *
  * ── The seams, and why they are not imports ────────────────────────────────
  *
@@ -88,7 +89,10 @@ export type {
   ListingPageParams,
   ListingStatusInfo,
   MyCounters,
+  MyListingCard,
+  MyListingsParams,
   PaginatedListingCards,
+  PaginatedMyListingCards,
   PublishResponse,
   Schemas,
 } from "./api/types.js";
@@ -97,6 +101,7 @@ export type {
 export {
   MY_LISTINGS_TABS,
   MY_LISTINGS_TAB_STATUSES,
+  MY_LISTINGS_UNTABBED_STATUSES,
   isPubliclyVisible,
   lifecycleCaption,
   listingStatusView,
@@ -112,9 +117,15 @@ export type {
 } from "./model/status.js";
 export { LISTING_TRANSITIONS, canDelete, canTransition } from "./model/transitions.js";
 
-// ── model: the owner-list gap, named ─────────────────────────────────────────
-export { MY_LISTINGS_SOURCE_MISSING } from "./model/mineSource.js";
+// ── model: the owner's own rows ──────────────────────────────────────────────
+export { defaultMyListingsSource } from "./model/mineSource.js";
 export type { MyListingsSource } from "./model/mineSource.js";
+export {
+  myListingImages,
+  myListingPrice,
+  myListingTitle,
+  showsDraft,
+} from "./model/mine.js";
 
 // ── model: the draft twin ────────────────────────────────────────────────────
 export {

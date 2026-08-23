@@ -8,5 +8,5 @@ export default { title: "listings-react / My listings" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-export const NoSource = (): ReactElement => renderDemoVariant(demo, "no-source");
-NoSource.storyName = "no-source";
+export const TakenDown = (): ReactElement => renderDemoVariant(demo, "taken-down");
+TakenDown.storyName = "taken-down";

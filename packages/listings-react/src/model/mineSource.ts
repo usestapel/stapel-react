@@ -1,55 +1,60 @@
 /**
- * THE GAP: stapel-listings cannot list a person their own listings.
+ * THE GAP, AND THE ROUTE THAT CLOSED IT.
  *
- * This is the one place in the pair where a contract is missing rather than
- * awkward, so it gets its own module and its own name.
+ * This file used to open "stapel-listings cannot list a person their own
+ * listings", and that was the only place in the pair where a contract was
+ * missing rather than awkward. `GET /listings/` answers `qs.published()` and
+ * takes no owner parameter (`views.ListingViewSet.get_queryset`): it returns
+ * the whole marketplace's shop window and can be narrowed to nobody. The only
+ * owner-scoped reads were `my/counters` (three integers) and `my/favorites`,
+ * so a seller's own DRAFTS were unreachable by any call the contract offered
+ * — and drafts are not indexed either, so routing around it through
+ * `@stapel/search-react`'s `owner=` would have returned the published subset
+ * and quietly called it "everything". The dashboard shipped with a
+ * host-injected source and NAMED the absence on screen, because "we cannot
+ * ask" and "you have no listings" are different sentences.
  *
- * `GET /listings/` answers `qs.published()` and takes no owner parameter
- * (`views.ListingViewSet.get_queryset`): it returns the whole marketplace's
- * shop window and can be narrowed to nobody. The only owner-scoped reads in
- * the module are `my/counters` (three integers) and `my/favorites`. So a
- * seller's own DRAFTS are unreachable by any call this contract offers — and
- * drafts are not indexed either, so routing around it through
- * `@stapel/search-react`'s `owner=` would return the published subset and
- * quietly call it "everything".
+ * **stapel-listings 0.7.0 answers it**: `GET /listings/my/listings/`, the
+ * caller's own rows in every status, `?status=` for a tab's set, the same
+ * `IDAnchorPagination` envelope the other two owner reads use. So
+ * {@link defaultMyListingsSource} is what the dashboard runs on now, and
+ * there is no failure state left to name — the missing-source error and its
+ * i18n key are gone rather than kept as a comment about a thing that no
+ * longer happens.
  *
- * The storefront spec assumed `GET /listings/` was "for mine" (§4.1). It is
- * not, and this pair records the gap rather than papering over it.
- *
- * Two upstream asks, in preference order:
- *  1. an `?owner=me` filter (or a `my/listings` action) on the list endpoint,
- *     with the same `IDAnchorPagination` envelope the other two use;
- *  2. failing that, a `status` filter on it, so at least the published subset
- *     can be narrowed without a search module.
- *
- * Until then a host injects a {@link MyListingsSource} and the dashboard
- * works completely; without one it shows the real counters and NAMES the
- * absence, because "we cannot ask" and "you have no listings" are different
- * sentences.
+ * {@link MyListingsSource} stays, as a seam and not as a workaround: a
+ * deployment that keeps its sellers' rows somewhere else (a read model, a
+ * legacy table, a host that has already fetched the page) hands one in and
+ * the dashboard renders it unchanged. What it must return is one page of the
+ * owner card — including the `moderation_status` and the `*_draft` twins,
+ * which is why the type is {@link PaginatedMyListingCards} and not the public
+ * card envelope.
  */
-import { StapelApiError } from "@stapel/core";
-import type { ListingPageParams, PaginatedListingCards } from "../api/types.js";
+import type { ListingsApi } from "../api/listingsApi.js";
+import type { MyListingsParams, PaginatedMyListingCards } from "../api/types.js";
 import type { MyListingsTab } from "./status.js";
-import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
+import { MY_LISTINGS_TAB_STATUSES } from "./status.js";
 
-/** One page of the caller's own listings, however the host can get them. */
+/** One page of the caller's own listings, however the host gets them. */
 export type MyListingsSource = (args: {
   readonly tab: MyListingsTab;
-  readonly page: ListingPageParams;
+  readonly page: MyListingsParams;
   readonly signal?: AbortSignal;
-}) => Promise<PaginatedListingCards>;
+}) => Promise<PaginatedMyListingCards>;
 
 /**
- * The error a dashboard without a source reports.
+ * The source the dashboard uses unless a host replaces it: the contract's own
+ * route, narrowed to the tab's statuses.
  *
- * `status: 0` on purpose: this is a fact about the deployment's wiring, not
- * something a server said, and a client-side refusal must never be
- * indistinguishable from one that came over the wire.
+ * The tab → statuses table is `MY_LISTINGS_TAB_STATUSES`, which is a copy of
+ * the SERVER's grouping in `views.my_counters`. That is the whole point: the
+ * rows this fetches and the count on the tab beside them are the same set,
+ * asserted upstream (`tests/test_my_listings.py`) and here.
  */
-export const MY_LISTINGS_SOURCE_MISSING: StapelApiError = new StapelApiError({
-  code: LISTINGS_I18N_KEYS.mineSourceMissing,
-  message:
-    "No MyListingsSource was supplied, and stapel-listings has no " +
-    "owner-scoped list endpoint to fall back on.",
-  status: 0,
-});
+export function defaultMyListingsSource(api: ListingsApi): MyListingsSource {
+  return ({ tab, page, signal }) =>
+    api.myListings(
+      { ...page, status: MY_LISTINGS_TAB_STATUSES[tab] },
+      signal !== undefined ? { signal } : {}
+    );
+}

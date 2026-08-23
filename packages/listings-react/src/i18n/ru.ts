@@ -37,12 +37,14 @@ export { listingsErrorBundleRu } from "./generated/errors.ru.gen.js";
 export const listingsI18nBundleRu: I18nDictionary = {
   ...listingsErrorBundleRu,
 
-  // ── the 9 stapel_listings-owned codes, pair-authored ─────────────────────
+  // ── the 10 stapel_listings-owned codes, pair-authored ────────────────────
   "error.400.category_required": "Нужно выбрать категорию",
   "error.400.image_required":
     "Чтобы опубликовать объявление, добавьте хотя бы одно фото",
   "error.400.listing_feature_not_allowed":
     "Характеристика «{feature}» не относится к этой категории",
+  "error.400.listing_invalid_status_filter":
+    "Неизвестный статус объявления: «{status}»",
   "error.400.publish_validation_failed":
     "Объявление не прошло проверку и не опубликовано",
   "error.403.listing_not_owner": "Это не ваше объявление",
@@ -177,8 +179,13 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.mine.empty": "Здесь пока пусто",
   "listings.mine.retry": "Повторить",
   "listings.mine.counters_failed": "Не удалось посчитать ваши объявления",
-  "listings.mine.source_missing":
-    "Приложение пока не может перечислить ваши объявления: у сервиса объявлений нет списка, ограниченного владельцем. Счётчики ниже — настоящие.",
+  "listings.mine.empty.active": "Ни одно ваше объявление не опубликовано и не ждёт проверки",
+  "listings.mine.empty.drafts": "Черновиков нет — всё начатое появится здесь",
+  "listings.mine.empty.archived": "Пока ничего не в архиве, не снято, не истекло и не продано",
+  "listings.mine.blocked.title":
+    "Модерация сняла ваших объявлений: {count}",
+  "listings.mine.blocked.load_failed":
+    "Не удалось проверить, снимала ли модерация ваши объявления",
   "listings.mine.live_under_review": "Опубликовано, правки на проверке",
   "listings.mine.edit": "Редактировать",
   "listings.mine.archive": "В архив",

@@ -1,16 +1,29 @@
 /**
  * `<MyListingsPane>` — the seller's dashboard.
  *
- * Three counts that are real, and rows that may not be: stapel-listings 0.6.1
- * has no owner-scoped list endpoint (`headless/MyListings.tsx` argues it in
- * full), so the rows come from an injected source and the pane NAMES the gap
- * when there is none. The counters are shown either way, because they are the
- * one thing the contract can actually answer.
+ * Three counts and the rows behind them, both real since stapel-listings
+ * 0.7.0 gave the owner's own listings a route (`GET my/listings/`). Until
+ * then this pane showed the counts and NAMED the missing endpoint where the
+ * rows should be; `model/mineSource.ts` keeps that history and the seam it
+ * left behind.
  *
- * Each row carries both axes. "Published" and "changes under review" appear
- * beside each other, which is the entire reason `model/status.ts` exists: a
- * dashboard that derived one from the other would tell a seller their live
- * listing is offline, or never tell them their edit is being screened.
+ * Three things this pane refuses to smooth over:
+ *
+ * 1. **Both axes on every row.** "Published" and "changes under review" appear
+ *    beside each other, which is the entire reason `model/status.ts` exists: a
+ *    dashboard that derived one from the other would tell a seller their live
+ *    listing is offline, or never tell them their edit is being screened.
+ *    `moderation_status` is on the owner card, so the row reads the real
+ *    value rather than the `"approved"` stand-in it used before 0.7.0.
+ * 2. **Takedowns are not in a tab.** The three tabs are the SERVER's status
+ *    groupings and `blocked` is in none of them, because `my/counters` counts
+ *    it in none of them. Folding it into one would make a tab's rows and its
+ *    badge describe different sets; leaving it out entirely would hide the
+ *    one listing whose owner most needs to know. So it sits above the tabs,
+ *    where it cannot be missed.
+ * 3. **An empty tab says which emptiness it is.** "No drafts" and "nothing
+ *    sold yet" are different sentences and one generic "nothing here" is
+ *    neither.
  */
 import type { ReactElement } from "react";
 import {
@@ -28,10 +41,11 @@ import {
 } from "antd";
 import { matchList, matchLoad, useDescribeFlowError, useT } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
-import type { ListingCard as ListingCardData } from "../api/types.js";
+import type { MyListingCard } from "../api/types.js";
 import { useMyListings } from "../headless/MyListings.js";
 import type { MyListingsSource } from "../model/mineSource.js";
 import { useListingActions } from "../headless/ListingActions.js";
+import { myListingTitle, showsDraft } from "../model/mine.js";
 import { listingStatusView } from "../model/status.js";
 import type { MyListingsTab } from "../model/status.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
@@ -44,6 +58,13 @@ const TAB_LABEL: Readonly<Record<MyListingsTab, string>> = {
   active: LISTINGS_I18N_KEYS.mineTabActive,
   drafts: LISTINGS_I18N_KEYS.mineTabDrafts,
   archived: LISTINGS_I18N_KEYS.mineTabArchived,
+};
+
+/** One empty sentence per tab — see the header, point 3. */
+const TAB_EMPTY: Readonly<Record<MyListingsTab, string>> = {
+  active: LISTINGS_I18N_KEYS.mineEmptyActive,
+  drafts: LISTINGS_I18N_KEYS.mineEmptyDrafts,
+  archived: LISTINGS_I18N_KEYS.mineEmptyArchived,
 };
 
 /** A control plus the sentence that explains it when it is off. Written once
@@ -89,21 +110,24 @@ function GatedButton(props: {
 }
 
 function MyListingRow(props: {
-  listing: ListingCardData;
+  listing: MyListingCard;
   onEdit?: (id: number) => void;
 }): ReactElement {
   const t = useT();
   const describe = useDescribeFlowError();
   const actions = useListingActions(props.listing.id, props.listing.status);
-  // The card list carries `status` but NOT `moderation_status`
-  // (`ListingCardSerializer` omits it), so a row shows the moderation axis
-  // only through the one thing the projection does say. Pending is the
-  // honest default for the notice table's second argument here: it is the
-  // value that produces a note only when the lifecycle also implies one.
+  // Both axes, both real: `MyListingCardSerializer` puts `moderation_status`
+  // on the owner's card, so the row no longer has to pass "approved" as a
+  // stand-in and lose the one combination that matters — a LIVE listing whose
+  // edit is under review.
   const status =
     props.listing.status === undefined
       ? undefined
-      : listingStatusView(props.listing.status, "approved");
+      : listingStatusView(
+          props.listing.status,
+          props.listing.moderation_status ?? "approved"
+        );
+  const heading = myListingTitle(props.listing);
 
   return (
     <List.Item
@@ -152,7 +176,19 @@ function MyListingRow(props: {
       ]}
     >
       <List.Item.Meta
-        title={props.listing.title ?? String(props.listing.id)}
+        title={
+          <Space size={6}>
+            {heading ?? `#${String(props.listing.id)}`}
+            {/* A heading that came off the draft twin is something nobody
+                else can read yet. Saying so is the difference between a
+                dashboard and a shop window that happens to be yours. */}
+            {showsDraft(props.listing) ? (
+              <Typography.Text type="secondary" data-testid="listings-mine-draft-title">
+                {t(LISTINGS_I18N_KEYS.statusDraft)}
+              </Typography.Text>
+            ) : null}
+          </Space>
+        }
         description={
           <Flex vertical gap={4}>
             {status !== undefined ? <ListingStatusBlock status={status} /> : null}
@@ -176,8 +212,8 @@ function MyListingRow(props: {
 }
 
 export interface MyListingsPaneProps extends ThemeModeProp {
-  /** How the host gets the caller's own rows. Absent: the pane says the
-   * contract cannot answer, and still shows the counts. */
+  /** How the host gets the caller's own rows. Absent: the contract's own
+   * `GET my/listings/`, which is what a storefront wants. */
   readonly source?: MyListingsSource;
   readonly onEdit?: (id: number) => void;
 }
@@ -204,6 +240,46 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
             message={t(bag.gate.block.code, bag.gate.block.params)}
           />
         ) : null}
+
+        {/* The rows no tab folds in — see the header, point 2. Rendered
+            only when there are some: an empty takedown section is a scare,
+            and a failure to CHECK is not the same as "none", so it says so. */}
+        {matchList(bag.blockedRows, {
+          loading: () => null,
+          failed: () => (
+            <Typography.Text
+              type="secondary"
+              data-testid="listings-mine-takedowns-failed"
+            >
+              {t(LISTINGS_I18N_KEYS.mineBlockedLoadFailed)}
+            </Typography.Text>
+          ),
+          empty: () => null,
+          ready: (rows) => (
+            <Alert
+              type="error"
+              showIcon
+              data-testid="listings-mine-takedowns"
+              message={t(LISTINGS_I18N_KEYS.mineBlockedTitle, {
+                count: rows.length,
+              })}
+              description={
+                <List
+                  dataSource={[...rows]}
+                  rowKey={(row) => row.id}
+                  renderItem={(row) => (
+                    <MyListingRow
+                      listing={row}
+                      {...(props.onEdit !== undefined
+                        ? { onEdit: props.onEdit }
+                        : {})}
+                    />
+                  )}
+                />
+              }
+            />
+          ),
+        })}
 
         <Tabs
           activeKey={bag.tab}
@@ -275,7 +351,8 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
           empty: () => (
             <Empty
               data-testid="listings-mine-empty"
-              description={t(LISTINGS_I18N_KEYS.mineEmpty)}
+              data-empty-tab={bag.tab}
+              description={t(TAB_EMPTY[bag.tab])}
             />
           ),
           ready: (rows) => (
@@ -291,19 +368,6 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
             />
           ),
         })}
-
-        {/* The named gap. `matchList`'s `failed` arm above already renders
-            "we could not load"; this states WHY once, in the pane, because
-            the reason is a property of this deployment and not of this
-            request. */}
-        {props.source === undefined ? (
-          <Alert
-            type="warning"
-            showIcon
-            data-testid="listings-mine-source-missing"
-            message={t(LISTINGS_I18N_KEYS.mineSourceMissing)}
-          />
-        ) : null}
 
         <Space>
           <Button

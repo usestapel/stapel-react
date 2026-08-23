@@ -49,12 +49,17 @@ export const listingsQueryKeys: {
   myFavorites(
     page: ListingPageKey
   ): readonly ["listings", "my", "favorites", ListingPageKey];
-  /** The owner's own rows, per tab — see `headless/MyListings.tsx` for why
-   * this read goes through an injected source. */
+  /** The owner's own rows, per tab (`GET my/listings/?status=…`). */
   mine(
     tab: string,
     page: ListingPageKey
   ): readonly ["listings", "my", "listings", string, ListingPageKey];
+  /** The owner's rows no tab folds in — a takedown. A sibling of `mine` and
+   * not one of its tabs, because it answers a different question and must not
+   * be evicted when a tab pages. */
+  mineUntabbed(): readonly ["listings", "my", "listings", "untabbed"];
+  /** Every owner-row page, for an invalidation after a write. */
+  allMine(): readonly ["listings", "my", "listings"];
   /** `GET /{pk}/validate-draft/` — the dry run of a publish. */
   validateDraft(id: number): readonly ["listings", "validate-draft", number];
   /** Every favourites PAGE, for an invalidation after a toggle — the cursor
@@ -70,6 +75,8 @@ export const listingsQueryKeys: {
   myCounters: () => [ROOT, "my", "counters"],
   myFavorites: (page) => [ROOT, "my", "favorites", page],
   mine: (tab, page) => [ROOT, "my", "listings", tab, page],
+  mineUntabbed: () => [ROOT, "my", "listings", "untabbed"],
+  allMine: () => [ROOT, "my", "listings"],
   validateDraft: (id) => [ROOT, "validate-draft", id],
   allFavorites: () => [ROOT, "my", "favorites"],
   allLists: () => [ROOT, "list"],

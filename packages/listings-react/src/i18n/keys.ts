@@ -144,8 +144,15 @@ export const LISTINGS_I18N_KEYS = {
   mineEmpty: "listings.mine.empty",
   mineRetry: "listings.mine.retry",
   mineCountersFailed: "listings.mine.counters_failed",
-  /** The upstream gap, named on screen — see `headless/MyListings.tsx`. */
-  mineSourceMissing: "listings.mine.source_missing",
+  /** Per-tab empties: "no drafts" and "nothing sold yet" are different
+   * sentences, and one generic "nothing here" says neither. */
+  mineEmptyActive: "listings.mine.empty.active",
+  mineEmptyDrafts: "listings.mine.empty.drafts",
+  mineEmptyArchived: "listings.mine.empty.archived",
+  /** The takedowns — the rows no tab folds in (`my/counters` counts them in
+   * none), shown outside the tabs so they cannot be missed. */
+  mineBlockedTitle: "listings.mine.blocked.title",
+  mineBlockedLoadFailed: "listings.mine.blocked.load_failed",
   mineLiveUnderReview: "listings.mine.live_under_review",
   mineEdit: "listings.mine.edit",
   mineArchive: "listings.mine.archive",
@@ -313,8 +320,13 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.mine.empty": "Nothing here yet",
   "listings.mine.retry": "Try again",
   "listings.mine.counters_failed": "We could not count your listings",
-  "listings.mine.source_missing":
-    "This app cannot list your own listings yet: the listings service has no owner-scoped list endpoint. Your counts below are real.",
+  "listings.mine.empty.active": "Nothing of yours is live or awaiting review",
+  "listings.mine.empty.drafts": "No drafts — anything you start appears here",
+  "listings.mine.empty.archived": "Nothing archived, paused, expired or sold yet",
+  "listings.mine.blocked.title":
+    "{count} of your listings were taken down by moderation",
+  "listings.mine.blocked.load_failed":
+    "We could not check whether any of your listings were taken down",
   "listings.mine.live_under_review":
     "Published, changes under review",
   "listings.mine.edit": "Edit",

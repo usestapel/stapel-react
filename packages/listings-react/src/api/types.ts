@@ -72,8 +72,33 @@ export type FavoriteToggleResponse = Schemas["FavoriteToggleResponse"];
 /** `DELETE /{pk}/` 200. */
 export type DeleteResponse = Schemas["DeleteResponse"];
 
-/** The keyset envelope both card lists come back in (`IDAnchorPagination`). */
+/** The keyset envelope both public card lists come back in
+ * (`IDAnchorPagination`). */
 export type PaginatedListingCards = Schemas["PaginatedListingCardList"];
+
+/**
+ * One row of `GET /listings/my/listings/` — the OWNER's card.
+ *
+ * A superset of {@link ListingCard}, and the two additions are the two things
+ * only an owner is owed (stapel-listings 0.7.0, `MyListingCardSerializer`):
+ *
+ *  - `moderation_status`, the second axis. `model/status.ts` argues at length
+ *    that a dashboard cannot derive "your edit is being screened" from
+ *    `status` — a re-published LIVE listing keeps `status: "published"` and
+ *    moves only this field. The public card omits it, so before 0.7.0 the
+ *    dashboard row passed `"approved"` as an honest stand-in and simply could
+ *    not show the row that most needed showing.
+ *  - the `*_draft` twins. `title`/`price`/`images` are the PUBLISHED fields
+ *    and are empty on a listing that has never been published, so a drafts
+ *    tab keyed off them is a column of blank rows. `myListingTitle` /
+ *    `myListingPrice` (`model/mine.ts`) are the one place the fallback lives.
+ */
+export type MyListingCard = Schemas["MyListingCard"];
+
+/** The keyset envelope `GET /listings/my/listings/` comes back in — the same
+ * `IDAnchorPagination` shape as {@link PaginatedListingCards}, over the owner
+ * row. */
+export type PaginatedMyListingCards = Schemas["PaginatedMyListingCardList"];
 
 /**
  * The nine lifecycle states, as `models.ListingStatus` declares them.
@@ -173,12 +198,31 @@ export interface ListingFeatureView {
  * `@stapel/attributes-react` directly. */
 export type { FeatureConfig, FeatureDef, FeatureValueDto };
 
-/** Query parameters of both keyset-paginated card lists. */
+/** Query parameters of every keyset-paginated card list. */
 export interface ListingPageParams {
   /** Opaque cursor from a previous answer. */
   readonly anchor?: string;
   readonly direction?: "next" | "prev" | "center";
   readonly limit?: number;
+}
+
+/**
+ * `GET /listings/my/listings/` — a page, plus the statuses to narrow to.
+ *
+ * `status` is a SET because a dashboard tab is one (`active` is
+ * `published` + `pending`, `drafts` is `draft` + `rejected` — the groupings
+ * are the server's, copied in `model/status.ts` so a tab's rows and its count
+ * cannot describe different sets). An empty or absent array means every
+ * status, which is what the route answers with no parameter at all.
+ *
+ * On the wire it goes as one comma-separated value; stapel-listings accepts
+ * that and the repeated-parameter spelling interchangeably
+ * (`views.parse_status_filter`). An unknown value is a `400`
+ * `error.400.listing_invalid_status_filter`, not an empty page — so a status
+ * this pair does not know about cannot silently look like "you have none".
+ */
+export interface MyListingsParams extends ListingPageParams {
+  readonly status?: readonly ListingLifecycleStatus[];
 }
 
 /**

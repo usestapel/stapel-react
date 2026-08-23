@@ -4,9 +4,9 @@
  * that owns them.
  *
  * That last clause is the test's whole reason for existing. `stapel-listings`
- * ships no `translations/` directory, so 21 of the 63 registry codes have no
+ * ships no `translations/` directory, so 22 of the 64 registry codes have no
  * upstream catalogue; they split by OWNER, and this pair authors only its own
- * nine. If a future edit copied attributes' twelve in here "to make the test
+ * ten. If a future edit copied attributes' twelve in here "to make the test
  * pass", one refusal would have two sentences and they would drift. So the
  * assertion is over the UNION of the two bundles a host actually registers.
  */
@@ -23,12 +23,13 @@ import {
 import { listingsI18nBundleRu, registerListingsI18nRu } from "../src/i18n/ru.js";
 import { listingsI18nBundleEs, registerListingsI18nEs } from "../src/i18n/es.js";
 
-/** The nine codes `stapel_listings.errors` registers — everything under a
+/** The ten codes `stapel_listings.errors` registers — everything under a
  * listing-shaped slug, plus the two the module owns without the word. */
 const LISTINGS_OWNED = [
   "error.400.category_required",
   "error.400.image_required",
   "error.400.listing_feature_not_allowed",
+  "error.400.listing_invalid_status_filter",
   "error.400.publish_validation_failed",
   "error.403.listing_not_owner",
   "error.404.listing_not_found",
@@ -78,15 +79,15 @@ describe.each(["en", "ru", "es"] as const)("locale %s", (locale) => {
   });
 });
 
-describe("ownership of the twenty-one un-catalogued keys", () => {
-  it("the registry really does carry all nine module-owned codes", () => {
+describe("ownership of the twenty-two un-catalogued keys", () => {
+  it("the registry really does carry all ten module-owned codes", () => {
     for (const code of LISTINGS_OWNED) {
       expect(LISTINGS_ERROR_CODES, code).toContain(code);
     }
     expect(ATTRIBUTES_OWNED).toHaveLength(12);
   });
 
-  it("the pair authors its own nine in ru and es", () => {
+  it("the pair authors its own ten in ru and es", () => {
     for (const code of LISTINGS_OWNED) {
       expect(listingsI18nBundleRu[code], code).toBeTruthy();
       expect(listingsI18nBundleEs[code], code).toBeTruthy();

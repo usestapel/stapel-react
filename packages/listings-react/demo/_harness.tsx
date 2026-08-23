@@ -33,7 +33,13 @@ import {
 export const DEMO_BASE = "https://listings.demo.stapel.dev/listings/api/v1/";
 
 export type DemoResponse = unknown | readonly [number, unknown];
-export type DemoHandlers = Readonly<Record<string, DemoResponse>>;
+/** A handler may be a body, a `[status, body]` pair, or a function of the
+ * full URL — the last one because one PATH can answer two questions:
+ * `my/listings/?status=blocked` is the takedown check and `my/listings/` with
+ * a tab's statuses is the dashboard, and a demo that answered both with the
+ * same body would show a live listing as taken down. */
+export type DemoHandler = DemoResponse | ((url: string) => DemoResponse);
+export type DemoHandlers = Readonly<Record<string, DemoHandler>>;
 
 function statusAndBody(value: DemoResponse): [number, unknown] {
   if (Array.isArray(value) && value.length === 2 && typeof value[0] === "number") {
@@ -54,7 +60,11 @@ export function mockFetch(handlers: DemoHandlers): typeof globalThis.fetch {
     const found =
       routes.find(([suffix]) => pathname.endsWith(suffix)) ??
       routes.find(([suffix]) => url.includes(suffix));
-    const matched: DemoResponse = found?.[1] ?? {};
+    const handler: DemoHandler = found?.[1] ?? {};
+    const matched: DemoResponse =
+      typeof handler === "function"
+        ? (handler as (u: string) => DemoResponse)(url)
+        : handler;
     const [status, body] = statusAndBody(matched);
     return Promise.resolve(
       new Response(JSON.stringify(body), {

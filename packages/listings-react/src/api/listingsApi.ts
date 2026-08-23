@@ -9,7 +9,9 @@ import type {
   ListingPageParams,
   ListingStatusInfo,
   MyCounters,
+  MyListingsParams,
   PaginatedListingCards,
+  PaginatedMyListingCards,
   PublishResponse,
 } from "./types.js";
 import type { ValidationBatchResult } from "@stapel/attributes-react";
@@ -22,21 +24,16 @@ import type { ValidationBatchResult } from "@stapel/attributes-react";
  *
  * ── The two operations that are on the contract and NOT here ───────────────
  *
- * `PUT /{pk}/` and `PATCH /{pk}/` are absent, and this is the one place in
- * the pair where an absence is a safety decision rather than a scope one.
- * Every OWNER operation in this module routes through `views._get_own`, which
- * answers `error.403.listing_not_owner` when the caller is not the owner —
- * every one except these two. `update`/`partial_update` are the plain
- * `ModelViewSet` implementations under the viewset's default
- * `IsAuthenticatedOrReadOnly`, and `get_queryset` hands them
- * `Listing.objects.all()`: any authenticated caller can write any listing's
- * draft fields through them. `POST /{pk}/save-draft/` performs the SAME write
- * (the same `ListingDraftSerializer`, `partial=True`) with the ownership
- * check, so the pair uses it and nothing is lost. Both stay in the generated
- * schema and therefore in `manifest.json` — the contract is not hidden, this
- * pair simply declines to be the client that exercises it. Upstream ask,
- * recorded in MODULE.md: put `_get_own` in front of `update`/`partial_update`
- * (or drop them from the router).
+ * `PUT /{pk}/` and `PATCH /{pk}/` are absent. That began as a safety decision:
+ * until stapel-listings 0.6.2 both were the plain `ModelViewSet`
+ * implementations under `IsAuthenticatedOrReadOnly` over
+ * `Listing.objects.all()`, so any authenticated caller could write any
+ * listing's draft fields through them — this pair filed the ask and declined
+ * to be the client that exercised the hole. 0.6.2 put `views._get_own` in
+ * front of both, so the hole is closed and the absence is now a plain scope
+ * decision: `POST /{pk}/save-draft/` performs the SAME write (the same
+ * `ListingDraftSerializer`, `partial=True`) and one write path is enough.
+ * Both stay in the generated schema and therefore in `manifest.json`.
  *
  * These operations will be GENERATED from schema.json operationIds by gen-api
  * v2 (task `core-typed-ops`); until then they are hand-authored here (the ONE
@@ -70,12 +67,12 @@ export interface ListingsApi {
   /**
    * One listing in full.
    *
-   * `IsAuthenticatedOrReadOnly` + a queryset with no `published()` filter:
-   * this answers for a DRAFT and for a BLOCKED listing too, to anyone who
-   * knows the id. The pair does not pretend otherwise — `useListing` reports
-   * `publiclyVisible` off `status` so a skin can say "this listing is not
-   * published" instead of drawing a live-looking page (see `model/status.ts`,
-   * and MODULE.md's upstream note).
+   * Since 0.6.2 the queryset is `visible_to(user)` — the indexed statuses for
+   * everyone plus one's OWN rows in any status — so a stranger's draft 404s
+   * from the same code path an absent id does. The `publiclyVisible` report
+   * `useListing` derives from `status` (`model/status.ts`) stays, and is now
+   * addressed at the one reader who still reaches an unpublished listing
+   * here: its owner, who needs to be told it is not on the shelf.
    */
   retrieve(
     id: number,
@@ -99,6 +96,26 @@ export interface ListingsApi {
    * `drafts`). Server-side definitions, not the pair's: `active` folds
    * PENDING in with PUBLISHED, `drafts` folds REJECTED in with DRAFT. */
   myCounters(options?: { readonly signal?: AbortSignal }): Promise<MyCounters>;
+
+  /**
+   * One keyset page of the caller's OWN listings, in every status.
+   *
+   * The route `list` is not and cannot be made into: `list` answers
+   * `published()` and takes no owner parameter, so before stapel-listings
+   * 0.7.0 a seller's own DRAFTS were unreachable by any call this contract
+   * offered — the gap `model/mineSource.ts` used to name on screen. Owner
+   * scope is a property of the ROUTE (`owned_by(request.user)`), not of a
+   * parameter a caller supplies, so there is no way to point it at anyone
+   * else.
+   *
+   * `params.status` narrows to a set of lifecycle statuses; omit it for all
+   * nine. Rows are {@link MyListingCard} — the public card plus
+   * `moderation_status` and the `*_draft` twins.
+   */
+  myListings(
+    params?: MyListingsParams,
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<PaginatedMyListingCards>;
 
   /** One keyset page of the caller's favourites. */
   myFavorites(
@@ -182,6 +199,22 @@ function pageQuery(
   };
 }
 
+/**
+ * The `?status=` half of a `my/listings` query.
+ *
+ * One comma-separated value rather than a repeated parameter: both spellings
+ * are accepted upstream, and this one survives every `query` serializer a
+ * host's `StapelClient` might carry without depending on how it encodes an
+ * array. An empty set sends nothing at all — the route's own "every status".
+ */
+function statusQuery(
+  statuses: readonly string[] | undefined
+): Record<string, string> {
+  return statuses !== undefined && statuses.length > 0
+    ? { status: statuses.join(",") }
+    : {};
+}
+
 function signal(
   options: { readonly signal?: AbortSignal } | undefined
 ): { signal?: AbortSignal } {
@@ -208,6 +241,12 @@ export function createListingsApi(client: StapelClient): ListingsApi {
 
     myCounters: (options) =>
       client.get(`${COLLECTION}my/counters/`, signal(options)),
+
+    myListings: (params, options) =>
+      client.get(`${COLLECTION}my/listings/`, {
+        query: { ...pageQuery(params), ...statusQuery(params?.status) },
+        ...signal(options),
+      }),
 
     myFavorites: (params, options) =>
       client.get(`${COLLECTION}my/favorites/`, {

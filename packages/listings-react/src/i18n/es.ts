@@ -21,12 +21,14 @@ export { listingsErrorBundleEs } from "./generated/errors.es.gen.js";
 export const listingsI18nBundleEs: I18nDictionary = {
   ...listingsErrorBundleEs,
 
-  // ── the 9 stapel_listings-owned codes, pair-authored ─────────────────────
+  // ── the 10 stapel_listings-owned codes, pair-authored ────────────────────
   "error.400.category_required": "Hay que elegir una categoría",
   "error.400.image_required":
     "Para publicar el anuncio hace falta al menos una foto",
   "error.400.listing_feature_not_allowed":
     "El detalle «{feature}» no pertenece a esta categoría",
+  "error.400.listing_invalid_status_filter":
+    "Estado de anuncio desconocido: «{status}»",
   "error.400.publish_validation_failed":
     "El anuncio no pasó la revisión y no se publicó",
   "error.403.listing_not_owner": "Este anuncio no es tuyo",
@@ -160,8 +162,13 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.mine.empty": "Aquí todavía no hay nada",
   "listings.mine.retry": "Reintentar",
   "listings.mine.counters_failed": "No pudimos contar tus anuncios",
-  "listings.mine.source_missing":
-    "Esta aplicación todavía no puede enumerar tus anuncios: el servicio de anuncios no tiene una lista limitada al propietario. Los contadores de abajo sí son reales.",
+  "listings.mine.empty.active": "No tienes nada publicado ni en revisión",
+  "listings.mine.empty.drafts": "Sin borradores: lo que empieces aparecerá aquí",
+  "listings.mine.empty.archived": "Nada archivado, pausado, caducado ni vendido todavía",
+  "listings.mine.blocked.title":
+    "Moderación retiró {count} de tus anuncios",
+  "listings.mine.blocked.load_failed":
+    "No pudimos comprobar si alguno de tus anuncios fue retirado",
   "listings.mine.live_under_review": "Publicado, cambios en revisión",
   "listings.mine.edit": "Editar",
   "listings.mine.archive": "Archivar",

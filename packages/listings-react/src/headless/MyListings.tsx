@@ -11,28 +11,36 @@ import {
 } from "@stapel/core";
 import type { ActionAvailability, LoadState } from "@stapel/core";
 import type {
-  ListingCard,
-  ListingPageParams,
+  MyListingCard,
+  MyListingsParams,
   MyCounters,
 } from "../api/types.js";
-import { MY_LISTINGS_SOURCE_MISSING } from "../model/mineSource.js";
+import { defaultMyListingsSource } from "../model/mineSource.js";
 import type { MyListingsSource } from "../model/mineSource.js";
+import { useListingsApi } from "../model/context.js";
 import { useMyCounters } from "../model/queries.js";
 import { listingsQueryKeys, pageKey } from "../model/queryKeys.js";
-import { MY_LISTINGS_TABS } from "../model/status.js";
+import { MY_LISTINGS_TABS, MY_LISTINGS_UNTABBED_STATUSES } from "../model/status.js";
 import type { MyListingsTab } from "../model/status.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { useMandateGate } from "./useMandateGate.js";
 
 /**
- * The owner's dashboard — and the one screen in this pair whose rows the
- * backend cannot supply.
+ * The owner's dashboard.
  *
- * The counters are REAL and are shown. The rows come from an injected
- * `MyListingsSource`, and when there is none `rows` lands in the `failed` arm
- * carrying a NAMED reason rather than as an empty list. `model/mineSource.ts`
- * holds the whole argument and the upstream asks; this file is the bag over
- * it.
+ * Three counts and the rows behind them, both owner-scoped reads of
+ * stapel-listings: `my/counters` and — since 0.7.0 — `my/listings`. Until
+ * that release the rows had no route at all and this hook failed them with a
+ * named reason rather than rendering an empty grid; `model/mineSource.ts`
+ * keeps the argument and the seam that came out of it.
+ *
+ * TWO reads, not one, and the second one is the point of this file's shape:
+ * the three tabs are the SERVER's status groupings, and `blocked` — a
+ * moderation takedown — is in none of them, because `my/counters` counts it
+ * in none of them. A dashboard that only ever asked for a tab's statuses
+ * would hide exactly the listing whose owner most needs to know. So
+ * `blockedRows` is fetched beside them, off the same route, narrowed to
+ * whatever `MY_LISTINGS_UNTABBED_STATUSES` derives.
  */
 
 export interface MyListingsBag {
@@ -41,10 +49,16 @@ export interface MyListingsBag {
   setTab(tab: MyListingsTab): void;
   /** The three real counts. */
   readonly counters: LoadState<MyCounters>;
-  /** The rows for the current tab. `failed` with a named reason when no
-   * source is wired — never an empty list. */
-  readonly rows: LoadState<readonly ListingCard[]>;
-  readonly page: ListingPageParams;
+  /** The rows for the current tab. */
+  readonly rows: LoadState<readonly MyListingCard[]>;
+  /**
+   * The rows no tab folds in — a moderation takedown, today. Empty for
+   * almost every seller; when it is not, it is the most important thing on
+   * the screen. Never `failed` in a way that hides the tabs: this read is
+   * independent of `rows` and a skin renders it beside them.
+   */
+  readonly blockedRows: LoadState<readonly MyListingCard[]>;
+  readonly page: MyListingsParams;
   readonly nextPage: ActionAvailability;
   readonly prevPage: ActionAvailability;
   goNext(): void;
@@ -55,6 +69,8 @@ export interface MyListingsBag {
 }
 
 export interface UseMyListingsOptions {
+  /** Replace the contract's own `my/listings` read — a deployment that keeps
+   * its sellers' rows somewhere else. Absent: {@link defaultMyListingsSource}. */
   readonly source?: MyListingsSource;
   readonly initialTab?: MyListingsTab;
   readonly limit?: number;
@@ -68,27 +84,49 @@ export function useMyListings(
   const [tab, setTabState] = useState<MyListingsTab>(
     options.initialTab ?? "active"
   );
-  const [page, setPage] = useState<ListingPageParams>(
+  const [page, setPage] = useState<MyListingsParams>(
     options.limit !== undefined ? { limit: options.limit } : {}
   );
 
   const counters = useMyCounters();
-  const { source } = options;
+  const api = useListingsApi();
+  const injected = options.source;
+  const source = useMemo(
+    () => injected ?? defaultMyListingsSource(api),
+    [injected, api]
+  );
+  const ready = sessionReady && gate.available;
 
   const rowsQuery = useQuery({
     queryKey: listingsQueryKeys.mine(tab, pageKey(page)),
-    queryFn: ({ signal }) =>
-      (source as MyListingsSource)({ tab, page, signal }),
-    enabled: source !== undefined && sessionReady && gate.available,
+    queryFn: ({ signal }) => source({ tab, page, signal }),
+    enabled: ready,
     retry: false,
   });
 
-  const rows: LoadState<readonly ListingCard[]> = useMemo(() => {
-    if (source === undefined) return loadFailed(MY_LISTINGS_SOURCE_MISSING);
+  // The takedowns, off the same route and deliberately NOT paged: a seller
+  // with a page of blocked listings has a problem no "next" button improves,
+  // and this sits above a dashboard rather than being one.
+  const blockedQuery = useQuery({
+    queryKey: listingsQueryKeys.mineUntabbed(),
+    queryFn: ({ signal }) =>
+      api.myListings({ status: MY_LISTINGS_UNTABBED_STATUSES }, { signal }),
+    enabled: ready && MY_LISTINGS_UNTABBED_STATUSES.length > 0,
+    retry: false,
+  });
+
+  const rows: LoadState<readonly MyListingCard[]> = useMemo(() => {
     if (rowsQuery.status === "error") return loadFailed(rowsQuery.error);
     if (rowsQuery.data !== undefined) return loadReady(rowsQuery.data.items);
     return loadLoading();
-  }, [source, rowsQuery.status, rowsQuery.error, rowsQuery.data]);
+  }, [rowsQuery.status, rowsQuery.error, rowsQuery.data]);
+
+  const blockedRows: LoadState<readonly MyListingCard[]> = useMemo(() => {
+    if (MY_LISTINGS_UNTABBED_STATUSES.length === 0) return loadReady([]);
+    if (blockedQuery.status === "error") return loadFailed(blockedQuery.error);
+    if (blockedQuery.data !== undefined) return loadReady(blockedQuery.data.items);
+    return loadLoading();
+  }, [blockedQuery.status, blockedQuery.error, blockedQuery.data]);
 
   const envelope = rowsQuery.data;
 
@@ -110,6 +148,7 @@ export function useMyListings(
           ? loadReady(counters.data)
           : loadLoading(),
     rows,
+    blockedRows,
     page,
     nextPage:
       envelope?.has_next === true && envelope.next_anchor != null
@@ -133,6 +172,7 @@ export function useMyListings(
     refetch: () => {
       void counters.refetch();
       void rowsQuery.refetch();
+      void blockedQuery.refetch();
     },
   };
 }

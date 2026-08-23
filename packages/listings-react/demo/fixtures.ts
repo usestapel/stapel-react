@@ -11,7 +11,9 @@ import type {
   ListingCard,
   ListingDetailData,
   MyCounters,
+  MyListingCard,
   PaginatedListingCards,
+  PaginatedMyListingCards,
 } from "../src/index.js";
 
 const BADGES = [
@@ -67,6 +69,67 @@ export const DEMO_PAGE: PaginatedListingCards = {
   has_prev: false,
   count: 2,
 };
+
+/** The OWNER's card: the public one plus the moderation axis and the draft
+ * twins (`MyListingCardSerializer`, stapel-listings 0.7.0). */
+export function demoMyCard(
+  overrides: Partial<MyListingCard> = {}
+): MyListingCard {
+  return {
+    ...DEMO_CARD,
+    moderation_status: "approved",
+    title_draft: "",
+    price_draft: null,
+    images_draft: [],
+    created_at: "2026-08-01T09:00:00Z",
+    updated_at: "2026-08-20T12:00:00Z",
+    ...overrides,
+  };
+}
+
+function demoMyPage(
+  items: readonly MyListingCard[]
+): PaginatedMyListingCards {
+  return {
+    items: [...items],
+    next_anchor: null,
+    prev_anchor: null,
+    has_next: false,
+    has_prev: false,
+    count: items.length,
+  };
+}
+
+/** A tab's worth of rows: one live listing whose EDIT is under review (the
+ * combination `model/status.ts` exists for) and one never-published draft,
+ * which renders off `title_draft` because `title` is empty until a publish. */
+export const DEMO_MY_PAGE: PaginatedMyListingCards = demoMyPage([
+  demoMyCard({ moderation_status: "pending" }),
+  demoMyCard({
+    id: 8,
+    title: "",
+    price: "0.00",
+    status: "draft",
+    moderation_status: "pending",
+    title_draft: "Makita HR2470 — still writing this",
+    price_draft: "6900.00",
+    images_draft: ["image/aa11bb"],
+  }),
+]);
+
+/** No takedowns — what almost every seller sees. */
+export const DEMO_MY_NONE_BLOCKED: PaginatedMyListingCards = demoMyPage([]);
+
+/** One takedown. It is in NO tab (`my/counters` counts it in none), which is
+ * why the pane shows it above them. */
+export const DEMO_MY_BLOCKED: PaginatedMyListingCards = demoMyPage([
+  demoMyCard({
+    id: 9,
+    title: "Angle grinder, boxed",
+    status: "blocked",
+    moderation_status: "rejected",
+  }),
+]);
 
 export const DEMO_DETAIL: ListingDetailData = {
   id: 7,

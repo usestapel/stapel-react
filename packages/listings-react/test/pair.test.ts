@@ -39,7 +39,7 @@ describe("the API surface is this pair's SLICE of the contract", () => {
     createStapelClient({ baseUrl: BASE, fetch: mockServer({}).fetch })
   );
 
-  it("exposes the thirteen operations a storefront calls", () => {
+  it("exposes the fourteen operations a storefront calls", () => {
     const methods = Object.keys(api).filter((key) => key !== "client").sort();
     expect(methods).toEqual([
       "archive",
@@ -49,6 +49,7 @@ describe("the API surface is this pair's SLICE of the contract", () => {
       "list",
       "myCounters",
       "myFavorites",
+      "myListings",
       "publish",
       "remove",
       "retrieve",
@@ -144,7 +145,7 @@ describe("the runtime carries the deployment's knowledge", () => {
 
 describe("errors", () => {
   it("carries the whole registry with a remediation each", () => {
-    expect(LISTINGS_ERROR_CODES.length).toBe(63);
+    expect(LISTINGS_ERROR_CODES.length).toBe(64);
     for (const code of LISTINGS_ERROR_CODES) {
       expect(explainListingsError(code)).toBeTruthy();
     }

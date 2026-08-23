@@ -1,6 +1,6 @@
 # @stapel/listings-react 0.3.1
 
-Headless React flow pair for stapel-listings (contract >=0.6 <0.7) — business + state, zero visual opinion.
+Headless React flow pair for stapel-listings (contract >=0.7 <0.8) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -29,6 +29,7 @@ Paths are relative to `/listings/api/v1/`.
 - listings_api_v1_listings_list: GET /listings/
 - listings_api_v1_listings_my_counters_retrieve: GET /listings/my/counters/
 - listings_api_v1_listings_my_favorites_list: GET /listings/my/favorites/
+- listings_api_v1_listings_my_listings_list: GET /listings/my/listings/
 - listings_api_v1_listings_partial_update: PATCH /listings/{id}/
 - listings_api_v1_listings_publish_create: POST /listings/{id}/publish/
 - listings_api_v1_listings_retrieve: GET /listings/{id}/
@@ -54,7 +55,7 @@ Paths are relative to `/listings/api/v1/`.
 - useValidateDraft (query) → validateDraft
 
 ## Errors (render t(code, params); UX from remediation)
-63 keys (full catalog: manifest.json §errors). By remediation: fix_input 35 · retry 15 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+64 keys (full catalog: manifest.json §errors). By remediation: fix_input 36 · retry 15 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.description_too_long [400] → fix_input {max_length}
 - error.400.description_too_short [400] → fix_input {min_length}
@@ -80,6 +81,7 @@ Param-bearing keys (interpolation slots matter):
 - error.400.field.required [400] → fix_input {field}
 - error.400.field.unique [400] → fix_input {field}
 - error.400.listing_feature_not_allowed [400] → fix_input {feature}
+- error.400.listing_invalid_status_filter [400] → fix_input {status}
 - error.409.invalid_listing_transition [409] → fix_input {from_status}
 - error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
 
@@ -107,7 +109,7 @@ const { tracked } = useTracked();
 - listings.composer → <ListingComposerPage> [default|photos-in-flight|unsupported-type]  demo/ListingComposer.demo.tsx
 - listings.detail → <ListingDetailPane> [default|owner]  demo/ListingDetail.demo.tsx
 - listings.favorites → <FavoritesPane> [default|empty|failed|visitor]  demo/Favorites.demo.tsx
-- listings.mine → <MyListingsPane> [default|no-source]  demo/MyListings.demo.tsx
+- listings.mine → <MyListingsPane> [default|taken-down]  demo/MyListings.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

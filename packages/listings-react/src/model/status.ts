@@ -29,6 +29,7 @@
  * asserts the whole 9 × 4 table, so a state added upstream is a red test and
  * not a bare enum value on a page.
  */
+import { LISTING_STATUSES } from "../api/types.js";
 import type {
   ListingLifecycleStatus,
   ListingModerationStatus,
@@ -277,3 +278,17 @@ export function tabOf(
   }
   return undefined;
 }
+
+/**
+ * The statuses no tab folds in — `blocked`, and nothing else today.
+ *
+ * DERIVED, not written down a second time: a status added upstream and left
+ * out of the counter groupings lands here automatically and gets shown, which
+ * is the opposite of what a hardcoded `["blocked"]` would do the day it goes
+ * stale. The dashboard renders these rows OUTSIDE the tabs (see
+ * `default/MyListingsPane.tsx`) rather than folding them into one, because a
+ * tab's rows and its `my/counters` badge have to describe the same set — and
+ * `my/counters` counts a takedown in no tab at all.
+ */
+export const MY_LISTINGS_UNTABBED_STATUSES: readonly ListingLifecycleStatus[] =
+  LISTING_STATUSES.filter((status) => tabOf(status) === undefined);

@@ -15,7 +15,9 @@ import type {
   ListingDraft,
   ListingStatusInfo,
   MyCounters,
+  MyListingCard,
   PaginatedListingCards,
+  PaginatedMyListingCards,
 } from "../src/index.js";
 
 export const OWNER = "1f5b2b3c-0000-4000-8000-000000000001";
@@ -66,6 +68,48 @@ export const PAGE: PaginatedListingCards = {
   has_prev: false,
   count: 1,
 };
+
+/**
+ * The OWNER's card — what `GET my/listings/` sends (`MyListingCardSerializer`,
+ * stapel-listings 0.7.0): the public card plus `moderation_status` and the
+ * `*_draft` twins. Defaults describe a published, approved listing whose
+ * draft twins are empty, which is what a row looks like after a publish
+ * promotes them.
+ */
+export function myCard(overrides: Partial<MyListingCard> = {}): MyListingCard {
+  return {
+    ...CARD,
+    moderation_status: "approved",
+    title_draft: "",
+    price_draft: null,
+    images_draft: [],
+    created_at: "2026-07-30T09:00:00Z",
+    updated_at: "2026-08-20T12:00:00Z",
+    ...overrides,
+  };
+}
+
+export const MY_CARD: MyListingCard = myCard();
+
+export function myPage(
+  items: readonly MyListingCard[] = [MY_CARD],
+  overrides: Partial<PaginatedMyListingCards> = {}
+): PaginatedMyListingCards {
+  return {
+    items: [...items],
+    next_anchor: null,
+    prev_anchor: null,
+    has_next: false,
+    has_prev: false,
+    count: items.length,
+    ...overrides,
+  };
+}
+
+export const MY_PAGE: PaginatedMyListingCards = myPage();
+
+/** No takedowns — the answer to `?status=blocked` for almost every seller. */
+export const NO_BLOCKED: PaginatedMyListingCards = myPage([]);
 
 export function detail(
   overrides: Partial<ListingDetailData> = {}

@@ -42,7 +42,9 @@ export interface paths {
          */
         get: operations["listings_api_v1_listings_retrieve"];
         /**
-         * @description Listings CRUD plus owner lifecycle actions and favorites.
+         * @description Write the draft fields — the write ``save-draft`` also performs.
+         *
+         *     Owner only: 404 for an absent listing, 403 for someone else's.
          *
          *     **Permissions:** `IsAuthenticatedOrReadOnly`
          */
@@ -266,6 +268,37 @@ export interface paths {
          *     **Permissions:** `IsAuthenticated`
          */
         get: operations["listings_api_v1_listings_my_favorites_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/listings/api/v1/listings/my/listings/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The caller's OWN listings, in every status.
+         *
+         *     The counterpart of ``my/counters``: the same owner scope and the same
+         *     status grouping, but the rows behind the three numbers. ``list`` is
+         *     the shop window (``published()``, narrowable to nobody), so this is
+         *     the only route by which a person can be shown their own drafts.
+         *
+         *     Owner-scoped at the queryset via ``owned_by`` — a stranger's listing
+         *     cannot be reached from here at any status, and soft-deleted rows are
+         *     excluded by the default manager (a deleted listing is gone from the
+         *     owner's dashboard exactly as it is gone from everywhere else).
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        get: operations["listings_api_v1_listings_my_listings_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -673,10 +706,75 @@ export interface components {
             archived: number;
             drafts: number;
         };
+        /**
+         * @description The owner's own card — the public card plus what only an owner sees.
+         *
+         *     Same family as :class:`ListingCardSerializer` (one shape for every grid a
+         *     product renders), extended along two axes and no further:
+         *
+         *     - **the moderation axis** (``moderation_status``): visibility is decided
+         *       by ``status`` alone, but since 0.5.0 a *published* listing can be under
+         *       re-review, and its owner is the one person who has to be told. A
+         *       dashboard cannot derive that sentence from ``status``.
+         *     - **the draft twins** (``title_draft`` / ``price_draft`` /
+         *       ``images_draft``): the published fields are empty on a listing that has
+         *       never been published, so a drafts tab built on the public card would
+         *       render a column of blank rows. This is the list half of the pair's
+         *       upstream ask #2 — the detail read is unchanged and still serializes the
+         *       published fields only.
+         *
+         *     Owner-scoped by construction: this serializer is used by exactly one
+         *     route, ``my/listings``, whose queryset is ``owned_by(request.user)``.
+         */
+        MyListingCard: {
+            readonly id: number;
+            title?: string;
+            /** Format: decimal */
+            price?: string;
+            /** Format: decimal */
+            price_base?: string | null;
+            currency?: string;
+            readonly images: string[] | null;
+            readonly features_title: components["schemas"]["FeatureDao"][];
+            readonly features_badges: components["schemas"]["FeatureDao"][];
+            location_label?: string;
+            geohash?: string;
+            /** Format: decimal */
+            lat?: string | null;
+            /** Format: decimal */
+            lon?: string | null;
+            countable?: boolean;
+            /** Format: int64 */
+            stock_quantity?: number | null;
+            status?: components["schemas"]["StatusD41Enum"];
+            readonly is_favorited: boolean | null;
+            moderation_status?: components["schemas"]["ModerationStatusEnum"];
+            title_draft?: string;
+            /** Format: decimal */
+            price_draft?: string | null;
+            readonly images_draft: string[] | null;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
         /** @enum {unknown} */
         NullEnum: null;
         PaginatedListingCardList: {
             items: components["schemas"]["ListingCard"][];
+            /** @description Anchor value for next page */
+            next_anchor?: string | null;
+            /** @description Anchor value for previous page */
+            prev_anchor?: string | null;
+            /** @description Whether there are more items after this page */
+            has_next: boolean;
+            /** @description Whether there are items before this page */
+            has_prev: boolean;
+            /** @description Number of items in current page */
+            count: number;
+        };
+        PaginatedMyListingCardList: {
+            items: components["schemas"]["MyListingCard"][];
             /** @description Anchor value for next page */
             next_anchor?: string | null;
             /** @description Anchor value for previous page */
@@ -1248,6 +1346,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedListingCardList"];
+                };
+            };
+        };
+    };
+    listings_api_v1_listings_my_listings_list: {
+        parameters: {
+            query?: {
+                /** @description Anchor value to paginate from (exclusive) */
+                anchor?: string;
+                /** @description Pagination direction */
+                direction?: "next" | "prev" | "center";
+                /** @description Number of items (default 100, max 1000) */
+                limit?: number;
+                /** @description Lifecycle status to narrow to. Repeat the parameter or pass one comma-separated value for a set (`?status=draft,rejected`); omit it for every status. An unknown value is a 400, not an empty page. */
+                status?: ("archived" | "blocked" | "draft" | "expired" | "paused" | "pending" | "published" | "rejected" | "sold")[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedMyListingCardList"];
                 };
             };
         };

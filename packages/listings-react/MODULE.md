@@ -1,6 +1,6 @@
 # @stapel/listings-react — module guide
 
-Pairs with **stapel-listings 0.6.1** (`>=0.6 <0.7`), 12 paths under
+Pairs with **stapel-listings 0.7.0** (`>=0.7 <0.8`), 13 paths under
 `/listings/api/v1/`. Contract sources: the module's own
 `docs/{schema,errors,flows}.json`, pinned in `contract-pins.json` and
 regenerated under `pnpm gen:check`.
@@ -16,7 +16,8 @@ src/model/      status.ts        the two axes → one caption, 9 × 4, asserted
                 draft.ts         the *_draft twin ↔ the composer's values
                 features.ts      the stored DAO projection → what attributes-react formats
                 validation.ts    the mirror, and the split of the two publish 400s
-                mineSource.ts    THE GAP: no owner-scoped list endpoint exists
+                mineSource.ts    the owner-list source seam (and the gap 0.7.0 closed)
+                mine.ts          published half or draft twin — what an owner's row says
                 runtime · context · queryKeys · queries · mutations
 src/flows/      registry.ts      zero-flow shim (the module annotates no @flow_step)
 src/headless/   ListingsProvider · ListingDetail · ListingComposer · MyListings
@@ -121,12 +122,17 @@ own length refusal under. One routing table covers both.
 
 | # | Ask | Why it matters here |
 |---|---|---|
-| 1 | An owner-scoped list (`?owner=me`, or a `my/listings` action) | Without it a seller cannot be shown their own drafts by any call the contract offers. Today: an injected `MyListingsSource`, and a named failure when there is none. `src/model/mineSource.ts`. |
-| 2 | A read that returns the `*_draft` twin | `GET /{pk}/` serializes the PUBLISHED fields only, so a draft abandoned and reopened later comes back empty. Editing a live listing is unaffected. |
-| 3 | `_get_own` in front of `update` / `partial_update` | Both are the plain `ModelViewSet` implementations under `IsAuthenticatedOrReadOnly` over `Listing.objects.all()`: **any authenticated caller can write any listing's draft fields through `PUT`/`PATCH`.** Every other owner operation checks ownership. This pair declines both and uses `save-draft`, which performs the same write with the check — so nothing is lost, but the endpoints remain reachable by anything else that speaks the contract. |
-| 4 | A `published()` filter (or an owner check) on `retrieve` | The detail endpoint answers 200 for a draft, a rejected and a blocked listing to anyone holding the id. The pair reports `publiclyVisible` from `status` and says which situation the reader is in, but it cannot stop the read. |
 | 5 | A public read-by-reference for stored images | `Listing.images` is opaque `<type>/<hash>` and nothing in this fleet resolves a stranger's reference (stapel-cdn's `file/exists/` is owner-scoped). Today: a host-supplied `resolveImage`. |
 | 6 | `slug` declared on `FeatureDao` | See §2.2 — it is on the wire and absent from the schema. |
+| 2 (half) | A read that returns the `*_draft` twin **on the detail** | `GET /{pk}/` still serializes the PUBLISHED fields only, so a draft abandoned and reopened later comes back empty in the composer. The LIST half is closed: `my/listings` rows carry `title_draft` / `price_draft` / `images_draft` (0.7.0), and `model/mine.ts` is the one place the published-then-draft fallback lives. |
+
+### Closed
+
+| # | Ask | Closed by |
+|---|---|---|
+| 1 | An owner-scoped list | **stapel-listings 0.7.0** — `GET my/listings/`, the caller's own rows in every status, `?status=` for a set, the same `IDAnchorPagination` envelope. `defaultMyListingsSource` is what the dashboard runs on; `MyListingsSource` survives as a seam for a host that keeps its rows elsewhere, and the missing-source error is gone rather than kept as a comment about something that no longer happens. |
+| 3 | `_get_own` in front of `update` / `partial_update` | **stapel-listings 0.6.2.** This pair still writes through `save-draft` (one write path is enough), but the endpoints are no longer a hole anything else that speaks the contract can walk through. |
+| 4 | An owner check on `retrieve` | **stapel-listings 0.6.2** — `ListingQuerySet.visible_to(user)`: a stranger's draft now 404s from the same code path an absent id does. The pair's `publiclyVisible` report stays, addressed at the one reader who still reaches an unpublished listing there: its owner. |
 
 ## 4. The three seams, and why none of them is an import
 

@@ -27,10 +27,13 @@ import { listingsQueryKeys } from "./queryKeys.js";
  * ── The invalidation rule ──────────────────────────────────────────────────
  *
  * A write that can move `status` or `moderation_status` invalidates the
- * DETAIL, the STATUS probe and the COUNTERS — the counters because their
- * three tabs are defined by status sets (`views.my_counters`), so a publish
- * silently moves a row from "drafts" to "active" and a dashboard that did not
- * refetch would show the old number beside the new row.
+ * DETAIL, the STATUS probe, the COUNTERS and the owner's ROWS — the counters
+ * because their three tabs are defined by status sets (`views.my_counters`),
+ * so a publish silently moves a row from "drafts" to "active" and a dashboard
+ * that did not refetch would show the old number beside the new row; the rows
+ * for the same reason, since stapel-listings 0.7.0 gave them a route and they
+ * are narrowed by exactly those status sets. Invalidating one and not the
+ * other is the shape of the bug where the badge says 2 and the tab shows 3.
  *
  * Nothing here is optimistic except the favourite toggle, and that exception
  * is argued at its own hook.
@@ -46,6 +49,7 @@ function invalidateListing(queryClient: QueryClient, id: number): void {
   void queryClient.invalidateQueries({
     queryKey: listingsQueryKeys.validateDraft(id),
   });
+  void queryClient.invalidateQueries({ queryKey: listingsQueryKeys.allMine() });
 }
 
 /** Start a draft. The server forces `owner` and `status=draft`. */
@@ -62,6 +66,9 @@ export function useCreateDraft(): UseMutationResult<
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: listingsQueryKeys.myCounters(),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: listingsQueryKeys.allMine(),
       });
     },
   });

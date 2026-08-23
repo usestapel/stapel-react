@@ -177,27 +177,43 @@ which knows where its CDN serves from, and a pane without one says "photos
 cannot be shown here" instead of drawing a broken `<img>`. Inventing
 `${cdnBase}/${ref}` would be writing a contract nobody agreed to.
 
+## The seller's dashboard
+
+**Your own listings, in every status.** `GET my/listings/` (stapel-listings
+0.7.0) is the owner-scoped read `GET /listings/` cannot be: `list` answers
+`published()` and takes no owner parameter, so before 0.7.0 a seller's own
+drafts were unreachable by any call the contract offered and this pane named
+the absence instead of drawing an empty grid. Three tabs, each narrowed with
+`?status=` to the SERVER's own groupings, so a tab's rows and its
+`my/counters` badge always describe the same set. `MyListingsSource` is still
+a seam for a deployment that keeps its rows elsewhere.
+
+**The takedown is not in a tab.** `blocked` is counted by `my/counters` in no
+tab at all, so folding it into one would make a badge and its rows disagree,
+and leaving it out would hide the one listing whose owner most needs to know.
+It is fetched beside the tabs and rendered above them.
+
+**A draft renders off its twin.** `title` / `price` / `images` are the
+PUBLISHED fields and are empty until a publish promotes them, so the owner
+card carries `title_draft` / `price_draft` / `images_draft` too and
+`model/mine.ts` holds the one rule: the published value when there is one, the
+draft otherwise — and the row says which it is showing.
+
 ## What this pair cannot do, and why
 
-**List your own listings.** stapel-listings 0.6.1 has no owner-scoped list
-endpoint: `GET /listings/` answers `published()` and takes no owner parameter.
-The counters (`my/counters`) are real and are shown; the rows come from an
-injected `MyListingsSource`, and with none the dashboard reports a NAMED
-failure rather than an empty grid — "we cannot ask" and "you have no listings"
-are different sentences. See `src/model/mineSource.ts` for the upstream asks.
-
-**Reopen an abandoned draft.** No read returns the `*_draft` twin:
-`GET /{pk}/` serializes the published fields. Editing a LIVE listing works
-completely (the published half IS the listing); a draft reopened in a later
-session comes back empty and the composer says so.
+**Reopen an abandoned draft in the composer.** The DETAIL read still returns
+the published fields only, so a draft reopened in a later session comes back
+empty and the composer says so. Editing a LIVE listing works completely (the
+published half IS the listing), and the dashboard LIST is unaffected — its
+rows carry the twins.
 
 **Write through `PUT` / `PATCH`.** They are on the contract and absent from
-`ListingsApi`. Every other owner operation routes through `views._get_own`;
-these two are the plain `ModelViewSet` implementations under
-`IsAuthenticatedOrReadOnly` over `Listing.objects.all()`, so any authenticated
-caller can write any listing's draft fields through them.
-`POST /{pk}/save-draft/` performs the same write WITH the ownership check, so
-the pair uses that and nothing is lost.
+`ListingsApi`. That began as a safety decision — until 0.6.2 both were the
+plain `ModelViewSet` writes under `IsAuthenticatedOrReadOnly` over
+`Listing.objects.all()`, so any authenticated caller could write any listing's
+draft fields. 0.6.2 put `views._get_own` in front of both; the absence is now
+a plain scope decision, because `POST /{pk}/save-draft/` performs the same
+write and one write path is enough.
 
 ## Layers
 

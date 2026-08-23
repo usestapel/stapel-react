@@ -4,7 +4,7 @@
   "version": "0.3.1",
   "backend": {
     "module": "stapel-listings",
-    "contract": ">=0.6 <0.7"
+    "contract": ">=0.7 <0.8"
   },
   "layers": [
     "api",
@@ -71,6 +71,13 @@
       "tag": "Listings",
       "request": null,
       "response": "PaginatedListingCardList"
+    },
+    "listings_api_v1_listings_my_listings_list": {
+      "method": "GET",
+      "path": "/listings/api/v1/listings/my/listings/",
+      "tag": "Listings",
+      "request": null,
+      "response": "PaginatedMyListingCardList"
     },
     "listings_api_v1_listings_partial_update": {
       "method": "PATCH",
@@ -142,6 +149,11 @@
       "kind": "mutation",
       "operation": "createDraft",
       "invalidates": [
+        [
+          "listings",
+          "my",
+          "listings"
+        ],
         [
           "listings",
           "my",
@@ -453,6 +465,13 @@
       ],
       "remediation": "fix_input"
     },
+    "error.400.listing_invalid_status_filter": {
+      "status": 400,
+      "params": [
+        "status"
+      ],
+      "remediation": "fix_input"
+    },
     "error.400.publish_validation_failed": {
       "status": 400,
       "params": [],
@@ -697,7 +716,7 @@
     {
       "id": "listings.mine",
       "title": "My listings",
-      "description": "stapel-listings 0.6.1 has no owner-scoped list endpoint: GET /listings/ answers published() and takes no owner parameter, so a seller's own drafts are unreachable by any call the contract offers. The counters ARE real and are shown; the rows come from an injected source, and with none the pane says so instead of drawing an empty grid that reads as 'you have no listings'.",
+      "description": "stapel-listings 0.7.0 gave the owner's own listings a route (GET my/listings/, every status, ?status= for a tab's set), so the rows here are the contract's own. Three things the pane refuses to smooth over: both axes on every row (a LIVE listing whose edit is under review says so — status alone cannot); a row still in draft renders off title_draft, because the published title is empty until a publish, and is marked as such; and a moderation takedown, which my/counters counts in no tab at all, sits ABOVE the tabs where it cannot be missed.",
       "component": "MyListingsPane",
       "covers": [
         "MyListings"
@@ -707,7 +726,7 @@
       ],
       "variants": [
         "default",
-        "no-source"
+        "taken-down"
       ],
       "source": "demo/MyListings.demo.tsx"
     }
@@ -744,6 +763,7 @@
     "error.400.image_required",
     "error.400.invalid_ad_id",
     "error.400.listing_feature_not_allowed",
+    "error.400.listing_invalid_status_filter",
     "error.400.publish_validation_failed",
     "error.400.validation_error",
     "error.400.verification_failed",
@@ -852,16 +872,20 @@
     "listings.favorites.loading",
     "listings.favorites.title",
     "listings.mine.archive",
+    "listings.mine.blocked.load_failed",
+    "listings.mine.blocked.title",
     "listings.mine.complete",
     "listings.mine.counters_failed",
     "listings.mine.delete",
     "listings.mine.edit",
     "listings.mine.empty",
+    "listings.mine.empty.active",
+    "listings.mine.empty.archived",
+    "listings.mine.empty.drafts",
     "listings.mine.live_under_review",
     "listings.mine.load_failed",
     "listings.mine.loading",
     "listings.mine.retry",
-    "listings.mine.source_missing",
     "listings.mine.tab.active",
     "listings.mine.tab.archived",
     "listings.mine.tab.drafts",
@@ -914,9 +938,9 @@
       "ListingsProvider",
       "ListingsRuntimeContext",
       "MODERATION_STATUSES",
-      "MY_LISTINGS_SOURCE_MISSING",
       "MY_LISTINGS_TABS",
       "MY_LISTINGS_TAB_STATUSES",
+      "MY_LISTINGS_UNTABBED_STATUSES",
       "MyListings",
       "PRICE_FIELD",
       "TITLE_FIELD",
@@ -926,6 +950,7 @@
       "createDraftBody",
       "createListingsApi",
       "createListingsRuntime",
+      "defaultMyListingsSource",
       "draftPatchFromValues",
       "draftValuesFromDetail",
       "draftValuesFromWire",
@@ -948,11 +973,15 @@
       "mirrorDraft",
       "mirrorListingFields",
       "moderationNotice",
+      "myListingImages",
+      "myListingPrice",
+      "myListingTitle",
       "navEntries",
       "pageKey",
       "publishRefusal",
       "registerListingsI18n",
       "retainKnownFeatureValues",
+      "showsDraft",
       "tabOf",
       "unreadableFeatureCount",
       "useArchiveListing",
@@ -1026,10 +1055,13 @@
       "ListingsRuntime",
       "ModerationNotice",
       "MyCounters",
+      "MyListingCard",
       "MyListingsBag",
+      "MyListingsParams",
       "MyListingsSource",
       "MyListingsTab",
       "PaginatedListingCards",
+      "PaginatedMyListingCards",
       "PublishOutcome",
       "PublishRefusal",
       "PublishResponse",
