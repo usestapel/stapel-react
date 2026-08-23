@@ -475,6 +475,7 @@
     "reviews.form.sent.pending",
     "reviews.form.sent.published",
     "reviews.form.sent.unknown",
+    "reviews.form.sign_in",
     "reviews.form.sign_in_required",
     "reviews.form.submit",
     "reviews.list.empty",

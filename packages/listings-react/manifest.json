@@ -788,6 +788,7 @@
     "listings.card.open",
     "listings.card.photo_unavailable",
     "listings.card.price_absent",
+    "listings.card.sign_in",
     "listings.compose.auto_republish",
     "listings.compose.blocked.busy",
     "listings.compose.blocked.details_unavailable",

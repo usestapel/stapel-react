@@ -129,6 +129,8 @@ signatures/JSDoc in the package README and src/index.ts.
 - HttpMethod
 - I18nDictionary
 - I18nEngine
+- LinkComponent
+- LinkComponentProps
 - LoadFailed
 - LoadLoading
 - LoadReady
@@ -171,6 +173,8 @@ signatures/JSDoc in the package README and src/index.ts.
 - SessionManager
 - SessionManagerEventMap
 - SessionStatus
+- SignInCta
+- SignInCtaProp
 - StapelClient
 - StapelClientOptions
 - StapelConfig
