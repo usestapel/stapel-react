@@ -1,7 +1,7 @@
 {
   "name": "@stapel/billing-react",
   "version": "0.7.1",
-  "description": "Headless React flow pair for stapel-billing: typed API client, TanStack Query hooks, flow machines, headless components, and i18n keys. Zero visual opinion.",
+  "description": "Headless React flow pair for stapel-billing: typed API client, TanStack Query hooks, flow machines, headless components, and i18n keys. Since stapel-billing 0.8.0 a balance is a set of credit lots with expiry dates, so `useWallet` hands out `lots`, `holds` and the server's `expiringSoon` as LoadStates — a failed wallet read can never be drawn as a wallet with no credits, and neither the spend order nor the deadline is recomputed on the client. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin: <WalletPanel/> states the balance, when the expiring credits die, and the two ways to buy side by side with the price per credit under both.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -16,6 +16,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./default": {
+      "types": "./dist/default/index.d.ts",
+      "default": "./dist/default/index.js"
     },
     "./i18n/ru": {
       "types": "./dist/i18n/ru.d.ts",
@@ -54,6 +58,11 @@
       "limit": "12 KB"
     },
     {
+      "name": "default — the antd skin (the wallet panel and the two-column shop) must stay out of the main bundle",
+      "path": "dist/default/index.js",
+      "limit": "9 KB"
+    },
+    {
       "name": "i18n/ru subpath (opt-in locale: en floor + generated ru + ru UI)",
       "path": "dist/i18n/ru.js",
       "limit": "3.5 KB"
@@ -66,18 +75,30 @@
   ],
   "peerDependencies": {
     "@stapel/core": ">=0.13.0 <1.0.0",
+    "@stapel/tokens-antd": ">=0.5.0",
     "@tanstack/react-query": "^5.0.0",
+    "antd": ">=5.20.0 <7",
     "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "@stapel/tokens-antd": {
+      "optional": true
+    },
+    "antd": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@size-limit/preset-small-lib": "^11.2.0",
     "@stapel/core": "workspace:^",
     "@stapel/showcase": "workspace:^",
     "@stapel/tokens": "workspace:^",
+    "@stapel/tokens-antd": "workspace:^",
     "@tanstack/react-query": "^5.81.0",
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "antd": "^6.5.0",
     "jsdom": "^26.1.0",
     "msw": "^2.10.2",
     "react": "^19.1.0",

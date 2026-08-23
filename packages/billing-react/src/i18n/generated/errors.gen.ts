@@ -56,6 +56,7 @@ export const BILLING_ERRORS = {
   "error.400.invalid_plan": { status: 400, params: [], remediation: "fix_input", en: "Invalid subscription plan" },
   "error.400.invalid_stripe_signature": { status: 400, params: [], remediation: "contact_support", en: "Invalid Stripe webhook signature" },
   "error.400.invalid_webhook_payload": { status: 400, params: [], remediation: "contact_support", en: "Invalid Stripe webhook payload" },
+  "error.400.redirect_url_not_allowed": { status: 400, params: [], remediation: "contact_support", en: "Redirect URL origin is not allowlisted for this deployment" },
   "error.400.redirect_url_not_configured": { status: 400, params: [], remediation: "contact_support", en: "Redirect URL not provided and no fallback configured" },
   "error.400.validation_error": { status: 400, params: [], remediation: "fix_input", en: "Validation error" },
   "error.400.verification_failed": { status: 400, params: [], remediation: "verify", en: "Verification failed" },
@@ -88,6 +89,7 @@ export const BILLING_ERRORS = {
   "error.429.rate_limit": { status: 429, params: ["retry_after_minutes"], remediation: "wait_and_retry", en: "Too many attempts. Try again in {retry_after_minutes} minutes." },
   "error.429.too_many_requests": { status: 429, params: [], remediation: "wait_and_retry", en: "Too many requests. Please try again later." },
   "error.500.internal": { status: 500, params: [], remediation: "contact_support", en: "Something went wrong" },
+  "error.503.mandate_unavailable": { status: 503, params: [], remediation: "retry", en: "Cannot verify workspace mandate right now" },
 } as const;
 
 export type BillingErrorCode = keyof typeof BILLING_ERRORS;
@@ -115,6 +117,7 @@ export const BILLING_ERROR_CODES: readonly BillingErrorCode[] = [
   "error.400.invalid_plan",
   "error.400.invalid_stripe_signature",
   "error.400.invalid_webhook_payload",
+  "error.400.redirect_url_not_allowed",
   "error.400.redirect_url_not_configured",
   "error.400.validation_error",
   "error.400.verification_failed",
@@ -147,6 +150,7 @@ export const BILLING_ERROR_CODES: readonly BillingErrorCode[] = [
   "error.429.rate_limit",
   "error.429.too_many_requests",
   "error.500.internal",
+  "error.503.mandate_unavailable",
 ];
 
 /**
@@ -176,6 +180,7 @@ export const billingErrorBundleEn: Record<BillingErrorCode, string> = {
   "error.400.invalid_plan": "Invalid subscription plan",
   "error.400.invalid_stripe_signature": "Invalid Stripe webhook signature",
   "error.400.invalid_webhook_payload": "Invalid Stripe webhook payload",
+  "error.400.redirect_url_not_allowed": "Redirect URL origin is not allowlisted for this deployment",
   "error.400.redirect_url_not_configured": "Redirect URL not provided and no fallback configured",
   "error.400.validation_error": "Validation error",
   "error.400.verification_failed": "Verification failed",
@@ -208,4 +213,5 @@ export const billingErrorBundleEn: Record<BillingErrorCode, string> = {
   "error.429.rate_limit": "Too many attempts. Try again in {retry_after_minutes} minutes.",
   "error.429.too_many_requests": "Too many requests. Please try again later.",
   "error.500.internal": "Something went wrong",
+  "error.503.mandate_unavailable": "Cannot verify workspace mandate right now",
 };

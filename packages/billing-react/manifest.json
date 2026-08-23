@@ -4,7 +4,7 @@
   "version": "0.7.1",
   "backend": {
     "module": "stapel-billing",
-    "contract": ">=0.6 <0.7"
+    "contract": ">=0.8 <0.9"
   },
   "layers": [
     "api",
@@ -282,6 +282,11 @@
       "params": [],
       "remediation": "contact_support"
     },
+    "error.400.redirect_url_not_allowed": {
+      "status": 400,
+      "params": [],
+      "remediation": "contact_support"
+    },
     "error.400.redirect_url_not_configured": {
       "status": 400,
       "params": [],
@@ -443,6 +448,11 @@
       "status": 500,
       "params": [],
       "remediation": "contact_support"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
     }
   },
   "events": {
@@ -508,10 +518,17 @@
   ],
   "i18nKeys": [
     "billing.error.unknown",
+    "billing.pricing.best_value",
     "billing.pricing.buy",
     "billing.pricing.checking_out",
+    "billing.pricing.credits",
+    "billing.pricing.credits_monthly",
+    "billing.pricing.empty",
     "billing.pricing.error",
     "billing.pricing.packages",
+    "billing.pricing.per_credit",
+    "billing.pricing.per_month",
+    "billing.pricing.plan_saves",
     "billing.pricing.plans",
     "billing.pricing.retry",
     "billing.pricing.subscribe",
@@ -522,7 +539,12 @@
     "billing.subscription.manage",
     "billing.wallet.auto_recharge",
     "billing.wallet.balance",
+    "billing.wallet.buy_heading",
+    "billing.wallet.empty",
+    "billing.wallet.expiring",
+    "billing.wallet.held",
     "billing.wallet.loading",
+    "billing.wallet.retry",
     "billing.wallet.save",
     "billing.wallet.saved",
     "billing.wallet.saving",
@@ -547,6 +569,7 @@
     "error.400.invalid_plan",
     "error.400.invalid_stripe_signature",
     "error.400.invalid_webhook_payload",
+    "error.400.redirect_url_not_allowed",
     "error.400.redirect_url_not_configured",
     "error.400.validation_error",
     "error.400.verification_failed",
@@ -578,7 +601,8 @@
     "error.423.verification_locked",
     "error.429.rate_limit",
     "error.429.too_many_requests",
-    "error.500.internal"
+    "error.500.internal",
+    "error.503.mandate_unavailable"
   ],
   "exports": {
     "runtime": [
@@ -591,6 +615,7 @@
       "PricingTable",
       "Subscription",
       "Wallet",
+      "bestPerCredit",
       "billingErrorBundleEn",
       "billingI18nBundleEn",
       "billingQueryKeys",
@@ -599,7 +624,13 @@
       "createFlowMachine",
       "explainBillingError",
       "flowEndpoints",
+      "formatExpiryDate",
+      "formatMoney",
+      "formatPerCredit",
       "isErrorCode",
+      "packageOffer",
+      "perCreditSavingsPercent",
+      "planOffer",
       "registerBillingI18n",
       "toFlowError",
       "useBillingAnalytics",
@@ -628,13 +659,20 @@
       "CheckoutSelection",
       "CheckoutSession",
       "CreateBillingRuntimeOptions",
+      "CreditHold",
+      "CreditHoldStatus",
+      "CreditLot",
+      "CreditLotSource",
+      "CreditOffer",
       "CreditPackage",
       "CustomerPortal",
+      "ExpiringCredits",
       "FlowEndpoint",
       "FlowError",
       "FlowMachine",
       "FlowMachineOptions",
       "FlowStateBase",
+      "OfferKind",
       "Plan",
       "PricingCatalog",
       "PricingTableBag",
@@ -646,6 +684,7 @@
       "Transaction",
       "TransactionList",
       "WalletBag",
+      "WalletCredits",
       "WalletData",
       "WalletUpdate"
     ]

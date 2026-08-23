@@ -270,6 +270,55 @@ export interface components {
             /** @description Optional caller-supplied key; retries with the */
             idempotency_key?: string | null;
         };
+        /**
+         * @description A reservation: credits already out of the spendable balance.
+         *
+         *     A hold is a real withdrawal, not an overlay — its credits are gone from
+         *     ``balance`` from the moment it is created, and come back only if it is
+         *     released or expires.
+         */
+        CreditHoldResponse: {
+            /**
+             * Format: uuid
+             * @description Hold UUID; also the capture/release handle
+             */
+            id: string;
+            /** @description Credits reserved by this hold */
+            credits: number;
+            /** @description Transaction type the capture will be billed under */
+            type: string;
+            /** @description Caller-supplied label carried onto the capture, or null */
+            description: string | null;
+            /** @description held, captured, released or expired */
+            status: string;
+            /** @description ISO 8601 deadline expire_holds sweeps; null = never swept */
+            expires_at: string | null;
+            /** @description ISO 8601 */
+            created_at: string;
+        };
+        /**
+         * @description One live batch of credits — where it came from, when it dies.
+         *
+         *     A lot only ever shrinks, so ``credits_remaining`` against
+         *     ``credits_initial`` is how much of this batch is already gone.
+         */
+        CreditLotResponse: {
+            /**
+             * Format: uuid
+             * @description Lot UUID; the same id travels in transaction metadata
+             */
+            id: string;
+            /** @description Credits still unspent and unreserved */
+            credits_remaining: number;
+            /** @description Credits the lot was created with */
+            credits_initial: number;
+            /** @description purchase, subscription, grant, adjustment or hold_release */
+            source: string;
+            /** @description ISO 8601 deadline; null = these credits never expire */
+            expires_at: string | null;
+            /** @description ISO 8601 */
+            created_at: string;
+        };
         /** @description CreditOperationResponse(transaction_id: uuid.UUID, balance_after: int) */
         CreditOperationResponse: {
             /** Format: uuid */
@@ -279,6 +328,13 @@ export interface components {
         /** @description CustomerPortalResponse(portal_url: str) */
         CustomerPortalResponse: {
             portal_url: string;
+        };
+        /** @description The wallet's nearest credit deadline. */
+        ExpiringCreditsResponse: {
+            /** @description Credits in the earliest-expiring live lot */
+            credits: number;
+            /** @description ISO 8601 — when they die */
+            expires_at: string;
         };
         /** @description PackageResponse(slug: str, name: str, credits: int, price_cents: int, currency: str) */
         PackageResponse: {
@@ -362,7 +418,7 @@ export interface components {
              * @description Wallet owner UUID
              */
             user_id: string;
-            /** @description Integer credits */
+            /** @description Spendable integer credits — live reservations already out */
             balance: number;
             /** @description ISO 4217 currency code */
             currency: string;
@@ -376,6 +432,12 @@ export interface components {
             low_balance_alert: number;
             /** @description ISO 8601 */
             updated_at: string;
+            /** @description Live lots in spend order — expiring soonest, non-expiring last */
+            lots?: components["schemas"]["CreditLotResponse"][];
+            /** @description Open reservations (status=held); settled holds are history */
+            holds?: components["schemas"]["CreditHoldResponse"][];
+            /** @description The earliest-expiring live lot; null if none expires */
+            expiring_soon?: components["schemas"]["ExpiringCreditsResponse"] | null;
         };
     };
     responses: never;

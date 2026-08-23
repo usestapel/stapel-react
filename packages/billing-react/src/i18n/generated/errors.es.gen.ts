@@ -33,6 +33,7 @@ export const billingErrorBundleEs: Record<BillingErrorCode, string> = {
   "error.400.invalid_plan": "Plan de suscripción no válido",
   "error.400.invalid_stripe_signature": "Firma de webhook de Stripe no válida",
   "error.400.invalid_webhook_payload": "Contenido de webhook de Stripe no válido",
+  "error.400.redirect_url_not_allowed": "El origen de esta URL de redirección no está en la lista de permitidos de esta instalación.",
   "error.400.redirect_url_not_configured": "No se ha proporcionado la URL de redirección y no hay ninguna alternativa configurada.",
   "error.400.validation_error": "Error de validación",
   "error.400.verification_failed": "La verificación ha fallado",
@@ -65,4 +66,5 @@ export const billingErrorBundleEs: Record<BillingErrorCode, string> = {
   "error.429.rate_limit": "Demasiados intentos. Inténtalo de nuevo en {retry_after_minutes} minutos.",
   "error.429.too_many_requests": "Demasiadas solicitudes. Inténtalo de nuevo más tarde.",
   "error.500.internal": "Algo salió mal",
+  "error.503.mandate_unavailable": "No se puede verificar el mandato del espacio de trabajo",
 };

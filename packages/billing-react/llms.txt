@@ -1,6 +1,6 @@
 # @stapel/billing-react 0.7.1
 
-Headless React flow pair for stapel-billing (contract >=0.6 <0.7) — business + state, zero visual opinion.
+Headless React flow pair for stapel-billing (contract >=0.8 <0.9) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -43,7 +43,7 @@ Paths are relative to `/billing/api/v1/`.
 - useWallet (query) → getWallet
 
 ## Errors (render t(code, params); UX from remediation)
-53 keys (full catalog: manifest.json §errors). By remediation: fix_input 23 · retry 13 · contact_support 6 · verify 5 · wait_and_retry 5 · reauthenticate 1.
+55 keys (full catalog: manifest.json §errors). By remediation: fix_input 23 · retry 14 · contact_support 7 · verify 5 · wait_and_retry 5 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}

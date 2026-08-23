@@ -2,10 +2,11 @@ import type { ReactNode } from "react";
 import type { StapelApiError } from "@stapel/core";
 import type { Wallet as WalletData, WalletUpdate } from "../api/types.js";
 import { useWallet } from "../model/queries.js";
+import type { WalletCredits } from "../model/queries.js";
 import { useUpdateWallet } from "../model/mutations.js";
 
 /** Render-prop bag for {@link Wallet}. */
-export interface WalletBag {
+export interface WalletBag extends WalletCredits {
   /** The caller's wallet once loaded, else null. */
   readonly wallet: WalletData | null;
   /** Credit balance (integer credits), or null before load. */
@@ -50,6 +51,12 @@ export function Wallet(props: {
   const wallet = query.data ?? null;
   return props.children({
     wallet,
+    // The credit structure behind the balance, forwarded verbatim (they are
+    // LoadStates, so the empty arm can only be reached from a read that
+    // actually answered).
+    lots: query.lots,
+    holds: query.holds,
+    expiringSoon: query.expiringSoon,
     balance: wallet?.balance ?? null,
     currency: wallet?.currency ?? null,
     autoRechargeEnabled: wallet?.auto_recharge_enabled ?? false,

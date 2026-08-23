@@ -33,6 +33,7 @@ export const billingErrorBundleRu: Record<BillingErrorCode, string> = {
   "error.400.invalid_plan": "Недопустимый план подписки",
   "error.400.invalid_stripe_signature": "Недействительная подпись вебхука Stripe",
   "error.400.invalid_webhook_payload": "Недопустимые данные вебхука Stripe",
+  "error.400.redirect_url_not_allowed": "Origin этого URL перенаправления не входит в список разрешённых для данной установки.",
   "error.400.redirect_url_not_configured": "redirect_url не передан в запросе, а запасной URL не настроен.",
   "error.400.validation_error": "Ошибка валидации",
   "error.400.verification_failed": "Проверка не пройдена",
@@ -65,4 +66,5 @@ export const billingErrorBundleRu: Record<BillingErrorCode, string> = {
   "error.429.rate_limit": "Слишком много попыток. Повторите попытку через {retry_after_minutes} мин.",
   "error.429.too_many_requests": "Слишком много запросов. Пожалуйста, повторите попытку позже.",
   "error.500.internal": "Что-то пошло не так",
+  "error.503.mandate_unavailable": "Не удалось проверить доступ к рабочему пространству",
 };

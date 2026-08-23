@@ -1,9 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import type { UseQueryResult } from "@tanstack/react-query";
-import { useActiveSessionReady } from "@stapel/core";
-import type { StapelApiError } from "@stapel/core";
+import { loadStateFromQuery, mapLoad, useActiveSessionReady } from "@stapel/core";
+import type { LoadState, StapelApiError } from "@stapel/core";
 import type {
   Catalog,
+  CreditHold,
+  CreditLot,
+  ExpiringCredits,
   Subscription,
   TransactionList,
   Wallet,
@@ -18,21 +21,77 @@ import { billingQueryKeys } from "./queryKeys.js";
  */
 
 /**
- * The caller's wallet — balance, currency, auto-recharge settings (GET
- * /wallet). Gated on {@link useActiveSessionReady} (owner-diagnosed live
+ * The credit structure behind a wallet's balance (stapel-billing 0.8.0), as
+ * {@link LoadState}s — so "we could not read the wallet" can never be drawn
+ * as "you have no credits expiring".
+ *
+ * All three come from the SAME `GET /wallet` body, so they always share a
+ * status; they are separate fields only because a skin renders them in
+ * different places, never because they could disagree.
+ */
+export interface WalletCredits {
+  /**
+   * The live lots, in the server's SPEND order — expiring soonest first,
+   * non-expiring last. That order is `debit()`'s own (`expires_at ASC NULLS
+   * LAST`), so this pair does not re-sort it: any client-side ordering would
+   * be drawing a spend order the backend does not use.
+   */
+  readonly lots: LoadState<readonly CreditLot[]>;
+  /** The open reservations (`status=held`) — credits already out of `balance`. */
+  readonly holds: LoadState<readonly CreditHold[]>;
+  /**
+   * The nearest deadline, or `null` when nothing expires. The SERVER picks it
+   * (`WalletResponse.expiring_soon`) — the pair does not scan `lots` for a
+   * minimum, so a wallet whose lots are paginated or trimmed one day still
+   * shows the right date.
+   */
+  readonly expiringSoon: LoadState<ExpiringCredits | null>;
+}
+
+/**
+ * The caller's wallet — balance, currency, auto-recharge settings, and (since
+ * stapel-billing 0.8.0) the lots, holds and next expiry behind that balance
+ * (GET /wallet). Gated on {@link useActiveSessionReady} (owner-diagnosed live
  * incident, 2026-07-17): a top-level "the caller's own …" hook with no
  * natural `enabled` condition of its own is exactly the shape that raced a
  * still-bootstrapping session and read a live one as "expired" — zero
  * manual `enabled` wiring needed at the call site by design.
+ *
+ * The three {@link WalletCredits} fields are ADDED to the query result rather
+ * than replacing it, so every existing `useWallet().data` call site keeps
+ * working. `notifyOnChangeProps: "all"` is deliberate and load-bearing: with
+ * it unset, react-query hands back a tracked `Proxy`, and spreading a Proxy
+ * both marks every property tracked anyway AND trips its `promise` trap,
+ * which rejects an internal thenable unless `experimental_prefetchInRender`
+ * is on. Asking for "all" up front is the honest version of what flattening
+ * the result costs.
+ *
+ * The wire marks `lots` / `holds` / `expiring_soon` optional, so a host still
+ * pointed at a 0.7.x server reads empty lots inside a load that SUCCEEDED —
+ * "this server does not report lots" and "this wallet has none" are the same
+ * sentence to a screen, and neither is "the read failed".
  */
-export function useWallet(): UseQueryResult<Wallet, StapelApiError> {
+export function useWallet(): UseQueryResult<Wallet, StapelApiError> &
+  WalletCredits {
   const api = useBillingApi();
   const sessionReady = useActiveSessionReady();
-  return useQuery({
+  // The error generic is spelled out because the result is destructured below
+  // rather than returned straight: without a contextual return type to infer
+  // from, `useQuery` would default `TError` to `Error` and the spread would
+  // lose the localizable `StapelApiError` every call site reads.
+  const query = useQuery<Wallet, StapelApiError>({
     queryKey: billingQueryKeys.wallet(),
     queryFn: () => api.getWallet(),
     enabled: sessionReady,
+    notifyOnChangeProps: "all",
   });
+  const state = loadStateFromQuery(query);
+  return {
+    ...query,
+    lots: mapLoad(state, (wallet) => wallet.lots ?? []),
+    holds: mapLoad(state, (wallet) => wallet.holds ?? []),
+    expiringSoon: mapLoad(state, (wallet) => wallet.expiring_soon ?? null),
+  };
 }
 
 /**

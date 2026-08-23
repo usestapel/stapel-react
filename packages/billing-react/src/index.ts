@@ -53,6 +53,19 @@ export {
   useCatalog,
   useSubscription,
 } from "./model/queries.js";
+export type { WalletCredits } from "./model/queries.js";
+
+// ── model (the two ways to buy, made comparable) ─────────────────────────────
+export {
+  packageOffer,
+  planOffer,
+  bestPerCredit,
+  perCreditSavingsPercent,
+  formatMoney,
+  formatPerCredit,
+  formatExpiryDate,
+} from "./model/pricing.js";
+export type { CreditOffer, OfferKind } from "./model/pricing.js";
 
 // ── model (write hooks) ──────────────────────────────────────────────────────
 export {
@@ -66,6 +79,11 @@ export {
 export type {
   Wallet as WalletData,
   WalletUpdate,
+  CreditLot,
+  CreditHold,
+  CreditLotSource,
+  CreditHoldStatus,
+  ExpiringCredits,
   TransactionList,
   Transaction,
   Catalog,

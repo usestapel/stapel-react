@@ -173,6 +173,13 @@
     "en": "Invalid Stripe webhook payload"
   },
   {
+    "code": "error.400.redirect_url_not_allowed",
+    "status": 400,
+    "params": [],
+    "remediation": "contact_support",
+    "en": "Redirect URL origin is not allowlisted for this deployment"
+  },
+  {
     "code": "error.400.redirect_url_not_configured",
     "status": 400,
     "params": [],
@@ -397,5 +404,12 @@
     "params": [],
     "remediation": "contact_support",
     "en": "Something went wrong"
+  },
+  {
+    "code": "error.503.mandate_unavailable",
+    "status": 503,
+    "params": [],
+    "remediation": "retry",
+    "en": "Cannot verify workspace mandate right now"
   }
 ]

@@ -20,6 +20,25 @@ export type Schemas = components["schemas"];
 export type Wallet = Schemas["WalletResponse"];
 /** PATCH /wallet request body — a partial auto-recharge / alert settings update. */
 export type WalletUpdate = Schemas["PatchedWalletUpdateRequest"];
+/**
+ * One live batch of credits inside a {@link Wallet} (`WalletResponse.lots[]`,
+ * stapel-billing 0.8.0) — where the credits came from and when they die. The
+ * array arrives in the server's SPEND order (`expires_at ASC NULLS LAST`, the
+ * order `debit()` actually walks), so nothing downstream re-sorts it.
+ */
+export type CreditLot = Schemas["CreditLotResponse"];
+/**
+ * One open reservation on a {@link Wallet} (`WalletResponse.holds[]`). A hold
+ * is a real withdrawal, not an accounting overlay: its credits are already out
+ * of `balance` and come back only on release or expiry.
+ */
+export type CreditHold = Schemas["CreditHoldResponse"];
+/**
+ * The wallet's nearest credit deadline (`WalletResponse.expiring_soon`) —
+ * how many credits die and when. Computed by the server from the
+ * earliest-expiring live lot; `null` when nothing in the wallet expires.
+ */
+export type ExpiringCredits = Schemas["ExpiringCreditsResponse"];
 /** GET /wallet/transactions 200 body — a cursor page of ledger entries. */
 export type TransactionList = Schemas["TransactionListResponse"];
 /** One credit-ledger entry (a row of {@link TransactionList}). */
@@ -53,3 +72,25 @@ export type SubscriptionStatus =
   | "past_due"
   | "cancelled"
   | "incomplete";
+
+/**
+ * Where a {@link CreditLot} came from. `source` is a bare `string` in the
+ * generated schema; the backend (`models.CreditSource`) constrains it to these
+ * five. Narrowed here for a skin that wants to say "from your plan" — but the
+ * lot type itself is NOT re-declared with the union: an unknown sixth source
+ * from a newer backend must still render as a lot, not crash a wallet.
+ */
+export type CreditLotSource =
+  | "purchase"
+  | "subscription"
+  | "grant"
+  | "adjustment"
+  | "hold_release";
+
+/**
+ * The lifecycle of a {@link CreditHold} — same bare-`string` correction as
+ * {@link CreditLotSource}. `WalletResponse.holds[]` only ever carries `held`
+ * (settled holds are history); the other three exist for a host reading a
+ * hold it captured or released itself.
+ */
+export type CreditHoldStatus = "held" | "captured" | "released" | "expired";
