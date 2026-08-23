@@ -65,7 +65,7 @@
     },
     {
       "package": "@stapel/categories-react",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "entries": [
         {
           "id": "categories.catalog",
@@ -109,7 +109,7 @@
     },
     {
       "package": "@stapel/chat-react",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "entries": [
         {
           "id": "chat.conversations",
@@ -180,7 +180,7 @@
     },
     {
       "package": "@stapel/listings-react",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "entries": [
         {
           "id": "listings.detail",
@@ -312,7 +312,7 @@
     },
     {
       "package": "@stapel/search-react",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "entries": [
         {
           "id": "search.results",

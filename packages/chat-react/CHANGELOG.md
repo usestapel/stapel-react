@@ -1,5 +1,17 @@
 # @stapel/chat-react
 
+## 0.3.1
+
+### Patch Changes
+
+- The floor states what the imports already require: `@stapel/core >=0.16.0`
+
+  `SignInCta` and `SignInCtaProp` first shipped in `@stapel/core@0.16.0`, and
+  this package has imported them since. The declared peer floor still said
+  `>=0.15.0`, which npm would have honoured — installing a core with no such
+  exports, and failing the host's typecheck on symbols this package's own
+  `.d.ts` references.
+
 ## 0.3.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "@stapel/reviews-react",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Headless React pair for stapel-reviews: ratings and reviews addressed the way the module addresses them — by an opaque (target_type, target_key) pair, never by a foreign key. An anchor-paginated list a guest can read, an aggregate that renders `no reviews yet` instead of a zero-star rating when count is 0, a submit form that reads the duplicate refusal by CODE (the module answers 400, not 409) and asks for a sign-in only where the write actually needs one, and moderation states shown as they are rather than hidden. The seller-level rating is a display over the composite's projection, because reviews itself cannot roll one up. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin.",
   "license": "MIT",
   "repository": {
@@ -74,7 +74,7 @@
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.15.0 <1.0.0",
+    "@stapel/core": ">=0.16.0 <1.0.0",
     "@stapel/tokens-antd": ">=0.5.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",

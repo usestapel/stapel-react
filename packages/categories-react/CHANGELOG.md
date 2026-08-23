@@ -1,5 +1,18 @@
 # @stapel/categories-react
 
+## 0.3.1
+
+### Patch Changes
+
+- The floor states what the imports already require: `@stapel/core >=0.16.0`
+
+  `LinkComponent` first shipped in `@stapel/core@0.16.0`, and this package has
+  imported it since. The declared peer floor still said `>=0.15.0`, which npm
+  would have honoured — installing a core with no such export, and failing the
+  host's typecheck on a symbol this package's own `.d.ts` references. The
+  monorepo cannot see it: in here every package builds against the workspace
+  peer, never against its own floor.
+
 ## 0.3.0
 
 ### Minor Changes
