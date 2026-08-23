@@ -1,5 +1,134 @@
 # @stapel/listings-react
 
+## 0.3.0
+
+### Minor Changes
+
+- 88a8be4: The composer's category seam runs in both directions, so `/new` can be mounted
+
+  A seam that only goes one way is not a seam. `ListingComposerPage.categorySlot`
+  was a `ReactNode`, and the composer's category moves only through
+  `bag.setCategory` — which a node handed in from outside cannot reach. There was
+  no `onCategoryChange` either, so a container could neither set the category nor
+  learn it, and `features` — the schema OF the chosen category, the entire reason
+  the slot exists — was unreachable rather than withheld. The screen rendered and
+  could not be used; the storefront named it a gap instead of shipping it (Wave
+  D, G-1).
+
+  Two ways in, and `categorySlot` keeps rendering (deprecated, nothing breaks):
+
+  ```tsx
+  <ListingComposerPage
+    category={categoryId === null ? "" : String(categoryId)}
+    onCategoryChange={(id) => setCategoryId(id === "" ? null : Number(id))}
+    renderCategoryPicker={({ value, setCategory }) => (
+      <CategoryPickerField
+        value={value === "" ? null : Number(value)}
+        onChange={(id) => setCategory(id === null ? "" : String(id))}
+      />
+    )}
+    features={features.data ?? []}
+    featuresLoading={features.isPending}
+    featuresError={features.error ?? undefined}
+  />
+  ```
+
+  `renderCategoryPicker({ value, setCategory })` is the render-prop shape
+  `<CategoryPage renderListings>` already uses in the sibling pair. `category` /
+  `onCategoryChange` make the hook controlled on that one field, for the
+  container that holds the id anyway — it must, because
+  `useCategoryFeatures(id)` is keyed by it. `onCategoryChange` fires either way:
+  it is the wire the schema read is asked for on.
+
+  `useListingComposer` takes the same two options, so a host with its own skin
+  gets the same seam.
+
+  The README's example is now the wiring that works, and
+  `test/composerCategorySeam.test.tsx` gates it against the props declaration —
+  this pair documented `<MediaGalleryField bag={…}>` for a whole release while
+  the package had no such prop, and nothing in the suite could tell.
+
+- 9230f5f: `<ListingCard>`: one click, one navigation — and a `<Link>` it can be handed
+
+  `href` and `onOpen` were two optional props and the card rendered BOTH when
+  both were given: the handler ran, the container routed, and the browser then
+  followed the anchor still sitting on the button. Two navigations for one click.
+  The storefront's workaround was `onOpen` alone, which cost the most linkable
+  element in the app its anchor — no middle-click, no "open in new tab", nothing
+  for a crawler to follow (Wave D, G-2).
+
+  `ListingCardOpenProps` is now a union with three arms and no fourth:
+
+  ```tsx
+  <ListingCard listing={row} href={`/l/${row.id}`} />                       // an anchor
+  <ListingCard listing={row} href={`/l/${row.id}`} linkComponent={Link} />  // the host's <Link>
+  <ListingCard listing={row} onOpen={(id) => navigate(`/l/${id}`)} />       // a button
+  <ListingCard listing={row} />                                            // no open control
+  ```
+
+  Passing `href` and `onOpen` together no longer typechecks, and neither does a
+  `linkComponent` on the callback arm — `linkComponent` IS the link.
+
+  `linkComponent` is `@stapel/core`'s `LinkComponent`, a component taking a plain
+  `href`, so this pair stays router-agnostic and a container keeps a real anchor
+  while the click stays inside the SPA:
+
+  ```tsx
+  const RouterLink: LinkComponent = ({ href, children, ...rest }) => (
+    <Link to={href} {...rest}>
+      {children}
+    </Link>
+  );
+  ```
+
+  `<FavoritesPane>` takes the same union one level up (`hrefFor` / `onOpen` /
+  `linkComponent`), so a pane cannot re-introduce upstream what the card refuses.
+
+  Breaking only for a caller that passed both props — which is the defect this
+  release removes, and which had no correct behaviour to preserve.
+
+- 3e2e2a3: A blocked control now carries the door, not just the reason: `signIn`
+
+  `actionBlocked` ended the grey-rectangle incident by making every switched-off
+  control state its reason. It did not end the next one. "Sign in to save this",
+  "sign in to leave a review", "sign in to message the seller" are reasons whose
+  next action is a LINK, and no pair took one — so the storefront had to put its
+  own notice a screen away from each of the three controls it was about, and
+  named it a gap rather than shipping it (Wave D, G-3).
+
+  All three now take the same prop, core's `SignInCta`:
+
+  ```tsx
+  <ListingCard listing={row} signIn={{ href: `/login?next=${here}` }} />
+  <ReviewsPanel target={target} signIn={{ href: `/login?next=${here}` }} />
+  <StartChatButton sellerId={sellerId} signIn={{ onSignIn: () => openModal() }} />
+  ```
+
+  `{href}` **or** `{onSignIn}`, never both. Omit it and the reason renders alone,
+  with no trailing whitespace where the link is not — a host with no sign-in
+  route is a supported host.
+
+  Two more things each pair had to fix to make the door reachable:
+
+  - **listings**: the favourite's reason lived only in a `title` on a DISABLED
+    button, which receives no pointer events in any browser — core's own
+    `actionGate.ts` calls that "a reason nobody can read". It is now text beside
+    the heart (`listings-card-favorite-blocked`), with the link inside it. The
+    heart is still never hidden from a visitor.
+  - **chat**: `StartDirectChat` had no mandate gate at all, so a visitor could
+    press "message the seller" and collect a 401 — a refusal delivered at the one
+    moment it is useless. The axis is now the first arm of its `firstBlock`, read
+    through core's `MandateSource` seam. `member` may write; `guest`/`anonymous`
+    are told to sign in; `asking` says we are still asking. `unavailable` stays
+    AVAILABLE on purpose: that is what core answers outside a `<MandateProvider>`
+    too, and a host that never wired the axis must not lose its button — "we
+    could not ask" is not "you may not". This raises chat-react's `@stapel/core`
+    floor to `>=0.15.0`, where `useMandate`/`matchMandate` shipped.
+
+  The link's LABEL is each pair's own (`listings.card.sign_in`,
+  `reviews.form.sign_in`, `chat.start.sign_in`), in all three locales — core
+  floors `en` and `ru`, and these pairs also ship `es`.
+
 ## 0.2.0
 
 ### Minor Changes

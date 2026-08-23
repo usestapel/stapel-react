@@ -1,6 +1,6 @@
 {
   "name": "@stapel/gdpr-react",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Headless React pair for stapel-gdpr — the deletion lifecycle a person can see: account closure with its cancellable grace, the entity erasures a host opens after its own delete (`useRequestErasure`), the pending-deletion list with `due_at` and `fully_erased_by`, the data export, and the DSAR intake in both its app and anonymous-form variants. Three of the module's 404s mean three different things — \"nothing is being deleted\" is one of them — so every refusal is read by CODE and a 404 that means \"you are fine\" is never rendered as a failure. Staff get the DSAR queue and the owner-health table where a silent data owner is a warning row, not an absent one. Zero visual opinion in the main entry; opt-in `/default` and `/default/admin` subpaths ship the antd skins.",
   "license": "MIT",
   "repository": {

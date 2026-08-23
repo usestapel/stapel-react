@@ -1,6 +1,6 @@
 {
   "name": "@stapel/cdn-react",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Headless React pair for stapel-cdn: a typed media-upload client whose flow is dedup-first — SHA-256 the bytes, ask file/exists/, and skip the POST entirely when the CDN already holds them. A phase-shaped upload bag (validate → hash → check → upload → variants), an ordered queue with per-item cancel/retry/remove and a max, object-URL previews with the revoke built in (@stapel/core's useObjectUrlPreview), and the opaque `<type>/<hash>` reference every consuming module actually stores. Client-side limits mirror the backend's own declared ceilings and never refuse what the server would accept. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin.",
   "license": "MIT",
   "repository": {
