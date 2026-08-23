@@ -193,7 +193,8 @@ deprecated.
 
 ```tsx
 const [categoryId, setCategoryId] = useState<number | null>(null);
-const features = useCategoryFeatures(categoryId);   // @stapel/categories-react
+const query = useCategoryFeatures(categoryId);      // @stapel/categories-react
+const features = loadStateFromQuery(query);         // @stapel/core
 
 <ListingComposerPage
   category={categoryId === null ? "" : String(categoryId)}
@@ -204,11 +205,20 @@ const features = useCategoryFeatures(categoryId);   // @stapel/categories-react
       onChange={(id) => setCategory(id === null ? "" : String(id))}
     />
   )}
-  features={features.data ?? []}
-  featuresLoading={features.isPending}
-  featuresError={features.error ?? undefined}
+  features={loadedRowsOrEmpty(features)}
+  featuresLoading={isLoadLoading(features)}
+  featuresError={isLoadFailed(features) ? features.error : undefined}
 />
 ```
+
+`features={query.data ?? []}` is what this snippet used to say, and the fleet's
+own `stapel/no-flattened-load-state` forbids it: `?? []` collapses "still
+loading", "loaded and this category asks nothing" and "the schema read failed"
+into one empty array, and the publish gate downstream then cannot tell the
+three apart. `loadStateFromQuery` keeps the discriminant and
+`loadedRowsOrEmpty` is the sanctioned way to hand a non-discriminating
+consumer its rows, with the state — not a flattened array — answering the two
+flags beside it.
 
 `useCategoryFeatures` returns `UseQueryResult<readonly CategoryFeature[]>` and
 `CategoryFeature` IS `FeatureDef` (categories-react re-exports the L0 type
