@@ -186,7 +186,7 @@ describe("a hole is healed, never rendered", () => {
 describe("polling is visibility-aware and backs off", () => {
   it("stops while the tab is hidden and catches up when it returns", async () => {
     const { server } = mount({ socket: false, intervalMs: 20 });
-    await waitFor(() => expect(rendered()).toEqual([1, 2, 3]));
+    await initialWindowOnScreen();
 
     setVisibility("hidden");
     const afterHide = server.calls.length;
