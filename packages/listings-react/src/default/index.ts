@@ -19,7 +19,10 @@ export type { ListingCardProps } from "./ListingCard.js";
 export { ListingDetailPane } from "./ListingDetailPane.js";
 export type { ListingDetailPaneProps } from "./ListingDetailPane.js";
 export { ListingComposerPage } from "./ListingComposerPage.js";
-export type { ListingComposerPageProps } from "./ListingComposerPage.js";
+export type {
+  ListingComposerPageProps,
+  ComposerCategorySlot,
+} from "./ListingComposerPage.js";
 export { MyListingsPane } from "./MyListingsPane.js";
 export type { MyListingsPaneProps } from "./MyListingsPane.js";
 export { FavoritesPane } from "./FavoritesPane.js";

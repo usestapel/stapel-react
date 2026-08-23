@@ -11,4 +11,8 @@
 export { ImageUploadField } from "./ImageUploadField.js";
 export type { ImageUploadFieldProps } from "./ImageUploadField.js";
 export { MediaGalleryField } from "./MediaGalleryField.js";
-export type { MediaGalleryFieldProps } from "./MediaGalleryField.js";
+export type {
+  MediaGalleryFieldProps,
+  MediaGalleryFieldBagProps,
+  MediaGalleryFieldOwnProps,
+} from "./MediaGalleryField.js";

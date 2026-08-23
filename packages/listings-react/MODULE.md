@@ -137,12 +137,64 @@ never import each other (the monorepo README states the direction). So:
   by `useUploadQueue()`'s bag. `bag.refs` IS the value of `images_draft` (same
   order, first tile the cover) and `bag.settled` is the submit gate. That pair
   wrote its bag to this contract on purpose (its §13.6 note 9);
-- **the category schema** is a plain `readonly FeatureDef[]`, plus a
-  `categorySlot` for the chooser;
+- **the category schema** is a plain `readonly FeatureDef[]`, plus
+  `renderCategoryPicker` for the chooser (see below);
 - **a stored image reference** is resolved by a host-supplied
   `ListingImageResolver`.
 
 `@stapel/attributes-react` IS a dependency; it is L0, like `@stapel/image`.
+
+### 4.1 The category seam has to run in both directions
+
+A seam that only goes one way is not a seam. Until 0.3.0 the chooser arrived
+as `categorySlot: ReactNode` and the composer's category moved only through
+`bag.setCategory` — which a node handed in from outside cannot reach. There
+was no `onCategoryChange` either, so the container could neither set the
+category nor learn it, and `features` — the schema OF the chosen category,
+which is the entire reason the slot exists — was unreachable rather than
+withheld. The screen could not be mounted at all (storefront Wave D, G-1).
+
+Two ways in, both shipping in 0.3.0:
+
+- `renderCategoryPicker({ value, setCategory })` — the render-prop shape
+  `<CategoryPage renderListings>` already uses in the sibling pair;
+- `category` / `onCategoryChange` — controlled, for the container that holds
+  the id anyway.
+
+`categorySlot` still renders (nothing that passed it breaks) and is
+deprecated.
+
+**The features wiring, end to end, and it is the container's:**
+
+```tsx
+const [categoryId, setCategoryId] = useState<number | null>(null);
+const features = useCategoryFeatures(categoryId);   // @stapel/categories-react
+
+<ListingComposerPage
+  category={categoryId === null ? "" : String(categoryId)}
+  onCategoryChange={(id) => setCategoryId(id === "" ? null : Number(id))}
+  renderCategoryPicker={({ value, setCategory }) => (
+    <CategoryPickerField
+      value={value === "" ? null : Number(value)}
+      onChange={(id) => setCategory(id === null ? "" : String(id))}
+    />
+  )}
+  features={features.data ?? []}
+  featuresLoading={features.isPending}
+  featuresError={features.error ?? undefined}
+/>
+```
+
+`useCategoryFeatures` returns `UseQueryResult<readonly CategoryFeature[]>` and
+`CategoryFeature` IS `FeatureDef` (categories-react re-exports the L0 type
+rather than mirroring it), so nothing converts. The three props travel
+together on purpose: `features={[]}` alone would say "this category asks
+nothing", which during the read is a lie the publish gate must not repeat.
+
+Category ids cross this seam as STRINGS because that is what
+`Listing.category` carries on the wire; the picker speaks numbers, and the two
+lines above are the whole conversion — done once, in the container, where both
+halves are visible.
 
 ## 5. Gates and their reasons
 

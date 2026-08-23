@@ -48,6 +48,26 @@ The antd skin over the same bag is one import away:
 import { MediaGalleryField, ImageUploadField } from "@stapel/cdn-react/default";
 ```
 
+### Whose queue is it
+
+`<MediaGalleryField>` either owns its queue or draws yours, and the two are
+spelled as different prop sets so that "both" cannot be written:
+
+```tsx
+// standalone: the field owns the queue
+<MediaGalleryField max={10} onRefsChange={(refs) => form.set("images_draft", refs)} />
+
+// beside a composer: the CALLER owns it, and both halves see one queue
+const gallery = useUploadQueue({ max: 10 });
+<ListingComposerPage images={gallery} gallerySlot={<MediaGalleryField bag={gallery} />} … />
+```
+
+The second form is not a convenience. A composer reads `bag.refs` as
+`images_draft` and `bag.settled` as its publish gate; a field that built its
+own queue left the container with two — the composer's, permanently empty, and
+the one on screen — so the publish gate talked about photos it could not see
+and the listing was submitted with no images at all.
+
 ## One slot (avatar, cover)
 
 ```tsx

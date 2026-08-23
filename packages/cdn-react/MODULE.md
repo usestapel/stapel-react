@@ -98,6 +98,24 @@ off has to be able to say WHICH of the two reasons it is. `bag.refs` contains
 only settled references, so it is never a promise about bytes that are not
 there.
 
+### …and the gallery has to be drawing the same bag
+
+`<MediaGalleryField>` takes `bag` for exactly this reason. Its props are a
+UNION — `{ bag }` or `{ max, target, initialRefs, onRefsChange }` — so a caller
+cannot ask for both, and a composer's wiring is:
+
+```tsx
+const gallery = useUploadQueue({ max: 10 });
+<ListingComposerPage images={gallery} gallerySlot={<MediaGalleryField bag={gallery} />} … />
+```
+
+Until 0.2.0 the field always built its own queue, and the two gates above were
+then computed over a queue nobody was adding to: the composer's `settled` said
+"wait for the photos" about photos it could not see, and `images_draft` went
+out empty while ten tiles sat on screen. The prop was in this pair's README
+before it was in the package — `test/galleryBag.test.tsx` now gates the README
+against the props declaration so that cannot recur.
+
 ## Upstream notes (recorded, not worked around)
 
 - **No public read-by-reference.** `file/exists/` is owner-scoped, so nothing in

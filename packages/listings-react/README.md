@@ -80,16 +80,42 @@ than dependencies:
 | the value editors | `@stapel/attributes-react` | L0, so a direct dependency |
 
 ```tsx
+const [categoryId, setCategoryId] = useState<number | null>(null);
 const gallery = useUploadQueue({ max: 10 });        // @stapel/cdn-react
 const features = useCategoryFeatures(categoryId);   // @stapel/categories-react
 
 <ListingComposerPage
-  features={features}
+  features={features.data ?? []}
+  featuresLoading={features.isPending}
+  featuresError={features.error ?? undefined}
   images={gallery}
-  categorySlot={<CategoryPickerField value={categoryId} onChange={setCategoryId} />}
+  category={categoryId === null ? "" : String(categoryId)}
+  onCategoryChange={(id) => setCategoryId(id === "" ? null : Number(id))}
+  renderCategoryPicker={({ value, setCategory }) => (
+    <CategoryPickerField
+      value={value === "" ? null : Number(value)}
+      onChange={(id) => setCategory(id === null ? "" : String(id))}
+    />
+  )}
   gallerySlot={<MediaGalleryField bag={gallery} />}
 />
 ```
+
+The category is a **render prop**, not a node, because the composer's category
+moves only through `setCategory` — a node rendered into a slot cannot reach it,
+and a picker that cannot report what was chosen means `features` (the whole
+point of the slot) is never read. `category` / `onCategoryChange` are there
+because the container holds the id anyway: `useCategoryFeatures(id)` is keyed
+by it.
+
+The gallery is a node, but the BAG is the same object the composer got — that
+is what makes `bag.refs` the value of `images_draft` and `bag.settled` the
+publish gate. Two queues means the gate talks about photos it cannot see.
+
+The schema arrives as three props, not one, so an empty list is never mistaken
+for "this category asks nothing": `featuresLoading` and `featuresError` each
+block the publish with their own sentence, and only a settled, empty schema
+prints "no extra details for this category".
 
 The flow is `create draft → save into it → publish`. The composer always saves
 before it publishes, because `publish` promotes the STORED draft: publishing

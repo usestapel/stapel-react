@@ -5,11 +5,28 @@
  * the component can be read top to bottom without knowing any of the other
  * pairs:
  *
- *   category   `categorySlot`  — the container's `<CategoryPickerField>`
+ *   category   `renderCategoryPicker` — the container's `<CategoryPickerField>`,
+ *                                given `setCategory` to call
  *   details    `features`      — the schema, drawn by `<FeatureFields>` (L0)
- *   photos     `gallerySlot`   — the container's `<MediaGalleryField>`, whose
- *                                bag is handed to the composer as `images`
+ *   photos     `gallerySlot`   — the container's `<MediaGalleryField bag>`,
+ *                                whose bag is handed here as `images`
  *   the draft  this pair
+ *
+ * ── Why the category slot is a render prop and not a node ──────────────────
+ *
+ * It was a node (`categorySlot`), and a node cannot be mounted: the composer's
+ * category moves only through `bag.setCategory`, and a `ReactNode` handed in
+ * from outside has no way to reach it. There was no `onCategoryChange`either,
+ * so a container could neither set the category nor learn it — and `features`,
+ * the schema of the chosen category, was therefore unreachable rather than
+ * merely withheld. The screen could not be mounted at all (storefront Wave D,
+ * named gap G-1).
+ *
+ * `renderCategoryPicker({ value, setCategory })` is the shape
+ * `<CategoryPage renderListings>` already uses in the sibling pair, and the
+ * controlled pair `category` / `onCategoryChange` is there for the container
+ * that holds the id anyway — it must, because the schema read
+ * (`useCategoryFeatures(id)`) that fills `features` is keyed by it.
  *
  * ── Every blocked control says which of six reasons it is ──────────────────
  *
@@ -55,6 +72,19 @@ import { ErrorAlert } from "./ErrorAlert.js";
 import { ListingsSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
+/**
+ * What `renderCategoryPicker` is handed: the current category and the ONLY
+ * function that changes it. Same shape as any other bag in this monorepo — the
+ * value plus the setter, never a setter alone.
+ */
+export interface ComposerCategorySlot {
+  /** The category the draft currently carries. Empty string: none chosen. */
+  readonly value: string;
+  /** Choose a category. Prunes the answers the new schema does not ask for
+   * (one render later, once `features` arrives) and reports upwards. */
+  readonly setCategory: (categoryId: string) => void;
+}
+
 export interface ListingComposerPageProps extends ThemeModeProp {
   /** Editing an existing listing; absent for a new one. */
   readonly listingId?: number;
@@ -63,7 +93,33 @@ export interface ListingComposerPageProps extends ThemeModeProp {
   readonly features: readonly FeatureDef[];
   readonly featuresLoading?: boolean;
   readonly featuresError?: unknown;
-  /** The category chooser. A slot for the same reason. */
+  /**
+   * The category chooser, handed the value and the setter. This is the slot a
+   * container fills with `@stapel/categories-react`'s `<CategoryPickerField>`:
+   *
+   * ```tsx
+   * renderCategoryPicker={({ value, setCategory }) => (
+   *   <CategoryPickerField
+   *     value={value === "" ? null : Number(value)}
+   *     onChange={(id) => setCategory(id === null ? "" : String(id))}
+   *   />
+   * )}
+   * ```
+   */
+  readonly renderCategoryPicker?: (slot: ComposerCategorySlot) => ReactNode;
+  /**
+   * The chosen category, when the container owns that state — the usual case,
+   * since the same id keys the `features` read.
+   */
+  readonly category?: string;
+  /** Called whenever the category changes, controlled or not. */
+  readonly onCategoryChange?: (categoryId: string) => void;
+  /**
+   * @deprecated A node cannot reach `setCategory`, so a picker rendered into
+   * this slot could never tell the composer what was chosen. Use
+   * `renderCategoryPicker` (or the controlled `category` /
+   * `onCategoryChange` pair). Still rendered, so nothing that passed it breaks.
+   */
   readonly categorySlot?: ReactNode;
   /** The photo grid. Its bag is what `images` carries. */
   readonly gallerySlot?: ReactNode;
@@ -89,6 +145,10 @@ export function ListingComposerPage(
       : {}),
     editorTypes: BUILTIN_VALUE_EDITOR_TYPES,
     ...(props.images !== undefined ? { images: props.images } : {}),
+    ...(props.category !== undefined ? { category: props.category } : {}),
+    ...(props.onCategoryChange !== undefined
+      ? { onCategoryChange: props.onCategoryChange }
+      : {}),
     ...(props.onPublished !== undefined
       ? {
           // `listing_id` comes back in the response, so the callback never
@@ -160,16 +220,21 @@ export function ListingComposerPage(
             extra={t(LISTINGS_I18N_KEYS.composeCategoryHelp)}
             {...errorOf(CATEGORY_FIELD)}
           >
-            {props.categorySlot ?? (
-              <Input
-                value={bag.values.categoryId}
-                aria-label={t(LISTINGS_I18N_KEYS.composeCategory)}
-                data-testid="listings-composer-category"
-                onChange={(event) => {
-                  bag.setCategory(event.target.value);
-                }}
-              />
-            )}
+            {props.renderCategoryPicker !== undefined
+              ? props.renderCategoryPicker({
+                  value: bag.values.categoryId,
+                  setCategory: bag.setCategory,
+                })
+              : (props.categorySlot ?? (
+                  <Input
+                    value={bag.values.categoryId}
+                    aria-label={t(LISTINGS_I18N_KEYS.composeCategory)}
+                    data-testid="listings-composer-category"
+                    onChange={(event) => {
+                      bag.setCategory(event.target.value);
+                    }}
+                  />
+                ))}
           </Form.Item>
 
           {bag.droppedOnCategoryChange.length > 0 ? (

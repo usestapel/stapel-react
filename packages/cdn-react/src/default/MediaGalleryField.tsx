@@ -11,6 +11,13 @@
  * The first tile is labelled as the cover, because the order IS the meaning:
  * `Listing.images_draft` is stored in this order and the first reference is
  * what a search result card shows.
+ *
+ * ── Whose queue is it ──────────────────────────────────────────────────────
+ *
+ * Either the caller's (`bag`) or this field's (`max`). A composer consumes
+ * `bag.refs` as `images_draft` and `bag.settled` as its publish gate, so when
+ * a composer is on the page the bag it holds and the bag drawn here must be
+ * ONE object — see {@link MediaGalleryFieldBagProps}.
  */
 import { useRef, useState } from "react";
 import type { ChangeEvent, ReactElement } from "react";
@@ -25,7 +32,29 @@ import { CDN_I18N_KEYS } from "../i18n/keys.js";
 import { ErrorAlert } from "./ErrorAlert.js";
 import { PHASE_KEYS, PREVIEW_BOX } from "./phase.js";
 
-export interface MediaGalleryFieldProps {
+/**
+ * The gallery over a queue the CALLER owns.
+ *
+ * This is the shape a composer needs and the one the field did not have. A
+ * listing composer takes `bag.refs` as `images_draft` and `bag.settled` as its
+ * publish gate, so the bag it was handed and the bag the gallery draws MUST be
+ * the same object. When the field built its own, the container had two queues:
+ * the composer's (empty, because nothing was ever added to it) and the one on
+ * screen — so the publish gate said "wait for the photos" about photos it
+ * could not see, and `images_draft` went out empty.
+ */
+export interface MediaGalleryFieldBagProps {
+  /** The queue to draw. Hand it the same bag the composer got. */
+  bag: UploadQueueBag;
+  max?: undefined;
+  target?: undefined;
+  initialRefs?: undefined;
+  onRefsChange?: undefined;
+}
+
+/** The gallery that owns its own queue — a field standing alone. */
+export interface MediaGalleryFieldOwnProps {
+  bag?: undefined;
   /** How many photos this gallery holds. The storefront's composer: 10. */
   max: number;
   target?: CdnUploadTarget;
@@ -34,6 +63,16 @@ export interface MediaGalleryFieldProps {
   /** The list to store, in display order, on every change. */
   onRefsChange?: (refs: readonly CdnRef[]) => void;
 }
+
+/**
+ * Either the caller owns the queue (`bag`) or this field does (`max` and the
+ * options that configure one). Spelled as a union rather than as optional
+ * props so that passing both — two queues, one screen, the defect above — is a
+ * type error rather than a decision this component has to make at runtime.
+ */
+export type MediaGalleryFieldProps =
+  | MediaGalleryFieldBagProps
+  | MediaGalleryFieldOwnProps;
 
 function Tile(props: {
   item: UploadItem;
@@ -218,6 +257,9 @@ function GalleryBody(props: { bag: UploadQueueBag }): ReactElement {
 }
 
 export function MediaGalleryField(props: MediaGalleryFieldProps): ReactElement {
+  // A queue handed in is drawn directly: no `MediaUploader`, because mounting
+  // one would create the SECOND queue this prop exists to prevent.
+  if (props.bag !== undefined) return <GalleryBody bag={props.bag} />;
   return (
     <MediaUploader
       max={props.max}

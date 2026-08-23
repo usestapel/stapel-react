@@ -125,6 +125,23 @@ export interface UseListingComposerOptions {
   /** The upload queue. Absent: no gallery, and `images` is set through
    * `setValue` by whatever the host uses instead. */
   readonly images?: ListingImagesBag;
+  /**
+   * The chosen category, when the CONTAINER owns that state.
+   *
+   * The category is the one value the composer cannot own alone: the picker
+   * lives in `@stapel/categories-react` and the schema read
+   * (`useCategoryFeatures(id)`) that fills `features` is keyed by it, so the
+   * container holds it either way. Passing it here makes this hook controlled
+   * on that field — `values.categoryId` mirrors it, and `setCategory` reports
+   * upwards instead of writing local state that would then disagree with the
+   * schema on screen.
+   *
+   * Absent: uncontrolled, exactly as before.
+   */
+  readonly category?: string;
+  /** Called by `setCategory`, whether or not `category` is controlled. This is
+   * how a container learns which category to read the schema for. */
+  readonly onCategoryChange?: (categoryId: string) => void;
   /** Seed for a brand-new draft (a category preselected from the URL, say). */
   readonly initialValues?: Partial<ListingDraftValues>;
   onDraftCreated?: (draft: ListingDraft) => void;
@@ -245,9 +262,19 @@ export function useListingComposer(
   // The gallery is the upload bag's, whenever there is one: two sources of
   // truth for the same list is how a publish sends photos the person removed.
   const images = options.images?.refs ?? values.images;
+  // Same rule for the category when the container holds it: the schema on
+  // screen is read for the container's id, so a local copy that drifted from
+  // it would ask one category's questions and file the listing under another.
+  const controlledCategory = options.category;
   const effectiveValues: ListingDraftValues = useMemo(
-    () => ({ ...values, images }),
-    [values, images]
+    () => ({
+      ...values,
+      images,
+      ...(controlledCategory !== undefined
+        ? { categoryId: controlledCategory }
+        : {}),
+    }),
+    [values, images, controlledCategory]
   );
 
   const featuresDto = useMemo(
@@ -435,14 +462,20 @@ export function useListingComposer(
     },
     setCategory: (categoryId) => {
       setSaved(false);
-      setValues((current) => {
-        if (current.categoryId === categoryId) return current;
-        // The features of the NEW category are not known yet (the container's
-        // schema read has not run), so nothing is pruned here — pruning
-        // happens in the effect below, once they arrive. Recording the
-        // intent, not guessing the outcome.
-        return { ...current, categoryId };
-      });
+      // Told upwards FIRST and unconditionally: the container's schema read is
+      // keyed by this id, and it must be asked for even when the composer is
+      // uncontrolled — that is the wire `features` arrives on.
+      options.onCategoryChange?.(categoryId);
+      if (controlledCategory === undefined) {
+        setValues((current) => {
+          if (current.categoryId === categoryId) return current;
+          // The features of the NEW category are not known yet (the
+          // container's schema read has not run), so nothing is pruned here —
+          // pruning happens in the effect below, once they arrive. Recording
+          // the intent, not guessing the outcome.
+          return { ...current, categoryId };
+        });
+      }
       setDropped([]);
       setRefusal(undefined);
     },
