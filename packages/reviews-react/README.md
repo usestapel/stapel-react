@@ -36,6 +36,14 @@ export function ListingReviews({ listingId, me }) {
 }
 ```
 
+`<ReviewsPanel signIn={{ href: `/login?next=${here}` }}>` (and
+`<ReviewFormCard>` directly) puts the door beside "sign in to leave a review":
+the reads are anonymous, the POST is not, so the sentence is true at exactly
+the moment it appears — and until 0.4.0 it dead-ended, because no pair took a
+sign-in href. `signIn` is core's `SignInCta`, `{href}` **or** `{onSignIn}`,
+the same prop `@stapel/chat-react` and `@stapel/listings-react` take. Omit it
+and the sentence renders alone.
+
 `"listing"` is **your** registry key, not this library's. stapel-reviews ships
 an empty `TARGET_TYPES` registry and knows nothing about listings; the shop
 composite registers that name in `stapel_shop/preset.py`. This package

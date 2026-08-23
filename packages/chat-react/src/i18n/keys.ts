@@ -48,6 +48,12 @@ export const CHAT_I18N_KEYS = {
   startStarting: "chat.start.starting",
   startBlockedSelf: "chat.start.blocked.self",
   startBlockedUnknownSeller: "chat.start.blocked.unknown_seller",
+  /** A visitor: the POST is `IsAuthenticated`, so say so before the click. */
+  startBlockedSignIn: "chat.start.blocked.sign_in",
+  /** We have not finished asking who this is. Not "you may not". */
+  startBlockedMandateUnknown: "chat.start.blocked.mandate_unknown",
+  /** The door beside a blocked "message the seller": the container says WHERE. */
+  startSignIn: "chat.start.sign_in",
 
   // Transport (the seam is invisible to the UI's BEHAVIOUR, but a person may
   // still be told whether the thread is live or on a timer)
@@ -126,6 +132,9 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.start.starting": "Opening…",
   "chat.start.blocked.self": "This is your own listing.",
   "chat.start.blocked.unknown_seller": "This listing has no seller to write to.",
+  "chat.start.blocked.sign_in": "Sign in to message the seller.",
+  "chat.start.blocked.mandate_unknown": "Checking your session…",
+  "chat.start.sign_in": "Sign in",
 
   "chat.transport.live": "Live",
   "chat.transport.polling": "Refreshing every few seconds",

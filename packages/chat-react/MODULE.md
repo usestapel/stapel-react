@@ -92,6 +92,38 @@ Unlike notifications-react, the `es` subpath here carries hand-written UI copy
 too: a marketplace's buyer-to-seller chat is the surface where a half-translated
 screen shows most.
 
+## The gate before the click, and the door beside the reason
+
+`POST /conversations/` is `IsAuthenticated`. Until 0.3.0 `StartDirectChat`
+blocked only on the two seller-shaped reasons (no seller on the listing; the
+listing is your own), so a visitor pressed the button and got a 401 — a
+refusal delivered at the one moment it is useless.
+
+The mandate axis is now the FIRST arm of that `firstBlock`, read through core's
+`MandateSource` seam and never derived here (a storefront's derivation is "is
+there a session?", a tenant app's is `@stapel/workspaces-react`'s). Four of the
+five `matchMandate` arms behave as expected; the fifth is a deliberate
+exception:
+
+| arm | outcome |
+|---|---|
+| `member` | available |
+| `guest`, `anonymous` | blocked — `chat.start.blocked.sign_in` |
+| `asking` | blocked — `chat.start.blocked.mandate_unknown` ("still asking", not "you may not") |
+| `unavailable` | **available** |
+
+`unavailable` is what core answers outside a `<MandateProvider>` too, so
+refusing there would take the button away from every host that never wired the
+axis — and "we could not ask" is not "you may not" (the storefront spec's own
+§7.4 negative leg). If the guess is wrong, the module answers 401 exactly as it
+did before.
+
+`<StartChatButton signIn={…}>` renders the way out next to that sentence.
+`SignInCta` is core's (`{href}` or `{onSignIn}`, never both) so the prop is
+spelled identically in `@stapel/reviews-react` and `@stapel/listings-react`;
+the LABEL is this pair's (`chat.start.sign_in`, in all three locales), because
+core floors only `en` and `ru`.
+
 ## Extension seams (frontend-standard §7)
 
 - The client is injected via `<ChatProvider>` / core's `StapelConfigProvider`

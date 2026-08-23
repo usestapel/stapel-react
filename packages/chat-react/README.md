@@ -100,6 +100,27 @@ Get-or-create: a direct thread is keyed by the participant pair under a unique
 constraint, so pressing twice — or writing to the same seller about a second
 listing — lands in the same conversation.
 
+### Who may press it, and where a visitor goes
+
+`POST /conversations/` is `IsAuthenticated`, so the first gate is the mandate
+axis, read through core's `MandateSource` seam. A visitor is told to sign in
+BEFORE the click instead of collecting a 401 after it — and the sentence comes
+with the door:
+
+```tsx
+<StartChatButton sellerId={sellerId} signIn={{ href: `/login?next=${here}` }} />
+<StartChatButton sellerId={sellerId} signIn={{ onSignIn: () => openModal() }} />
+```
+
+`signIn` is core's `SignInCta` — `{href}` **or** `{onSignIn}`, never both — and
+it is the same prop `@stapel/reviews-react` and `@stapel/listings-react` take.
+Omit it and the reason still renders, alone, which is what a host with no
+sign-in route wants.
+
+Outside a `<MandateProvider>` core answers `unresolved/unavailable`, and that
+arm stays **available**: a host that never wired the axis keeps its button, and
+"we could not ask" is not "you may not".
+
 ## The antd skin (opt-in)
 
 ```tsx

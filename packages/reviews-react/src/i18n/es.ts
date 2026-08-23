@@ -67,6 +67,7 @@ export const reviewsI18nBundleEs: I18nDictionary = {
   "reviews.form.sent.hidden": "Tu reseña se ha guardado, pero no se muestra",
   "reviews.form.sent.unknown": "Tu reseña se ha guardado",
   "reviews.form.sign_in_required": "Inicia sesión para dejar una reseña",
+  "reviews.form.sign_in": "Iniciar sesión",
 
   "reviews.submit.blocked.no_rating": "Elige primero una valoración",
   "reviews.submit.blocked.pending": "Enviando…",

@@ -86,6 +86,7 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.card.favorite_add": "В избранное",
   "listings.card.favorite_remove": "Убрать из избранного",
   "listings.card.open": "Открыть",
+  "listings.card.sign_in": "Войти",
 
   "listings.detail.loading": "Загружаем объявление…",
   "listings.detail.load_failed": "Не удалось загрузить объявление",

@@ -221,6 +221,23 @@ Category ids cross this seam as STRINGS because that is what
 lines above are the whole conversion — done once, in the container, where both
 halves are visible.
 
+### 4.2 A stated reason needs a next action
+
+`actionBlocked` ended the grey-rectangle incident: every switched-off control
+states its reason. It did not end the next one. "Sign in to save this" is a
+reason whose next action is a LINK, and no pair took one — so the storefront
+put its own notice a screen away from the three controls it was about (Wave D,
+G-3), and the card's reason lived only in a `title` on a disabled button, which
+receives no pointer events in any browser.
+
+Both halves are closed here: the reason renders as text beside the heart, and
+`signIn` — core's `SignInCta`, `{href}` or `{onSignIn}` and never both — is
+rendered inside the same element. `<StartChatButton>` and `<ReviewFormCard>`
+take the identical prop, so a container writes the destination once.
+
+The LABEL is this pair's (`listings.card.sign_in`, all three locales) rather
+than core's: core floors `en` and `ru`, and this pair also ships `es`.
+
 ## 5. Gates and their reasons
 
 Every write in the pair is behind an `ActionAvailability`. The mandate axis is

@@ -46,6 +46,22 @@ author) and `AllowAny` on the aggregate, both with
 than the project's `DEFAULT_THROTTLE_RATES`. Nothing new became visible to a
 guest: both endpoints were already published-only for a non-moderator.
 
+## The sentence and the door
+
+`signInRequired` is true at exactly the right moment — the reads are anonymous
+and the POST is not, so the author learns it when there is something to attach
+to a name. What it did not have was a next action: the skin printed "sign in to
+leave a review" and stopped, and the storefront had to put its own notice a
+screen away from the control it was about (Wave D, G-3).
+
+`<ReviewFormCard signIn={…}>` (and `<ReviewsPanel signIn={…}>`, which passes it
+down) renders the link INSIDE the element that carries the sentence.
+`SignInCta` is core's — `{href}` or `{onSignIn}`, never both — so the prop is
+spelled identically in `@stapel/chat-react` and `@stapel/listings-react`; the
+LABEL is this pair's (`reviews.form.sign_in`, all three locales), because core
+floors only `en` and `ru`. Omitted, the sentence renders alone and carries no
+trailing whitespace where the link is not.
+
 ## The three contract facts this package still absorbs
 
 ### 1. The list body is the pagination envelope — now declared

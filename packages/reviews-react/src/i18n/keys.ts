@@ -53,6 +53,8 @@ export const REVIEWS_I18N_KEYS = {
   formSentHidden: "reviews.form.sent.hidden",
   formSentUnknown: "reviews.form.sent.unknown",
   formSignInRequired: "reviews.form.sign_in_required",
+  /** The door beside that sentence — the container supplies WHERE it leads. */
+  formSignIn: "reviews.form.sign_in",
 
   // Blocked controls — every one of these is the `code` of an
   // ActionAvailability, so a switched-off button always has a sentence.
@@ -119,6 +121,7 @@ export const reviewsI18nBundleEn: I18nDictionary = {
   "reviews.form.sent.hidden": "Your review was saved but is not shown",
   "reviews.form.sent.unknown": "Your review was saved",
   "reviews.form.sign_in_required": "Sign in to leave a review",
+  "reviews.form.sign_in": "Sign in",
 
   "reviews.submit.blocked.no_rating": "Choose a rating first",
   "reviews.submit.blocked.pending": "Sending…",

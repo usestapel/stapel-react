@@ -40,6 +40,8 @@ export type { ListingStatusProps } from "./StatusTags.js";
 export { ListingPhoto } from "./ListingPhoto.js";
 export type { ListingPhotoProps } from "./ListingPhoto.js";
 export { ErrorAlert } from "./ErrorAlert.js";
+export { SignInLink } from "./SignInLink.js";
+export type { SignInLinkProps } from "./SignInLink.js";
 export { ListingsSkinTheme } from "./theme.js";
 export type { ListingsSkinThemeProps } from "./theme.js";
 export type { ThemeModeProp } from "./types.js";

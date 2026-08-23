@@ -16,15 +16,17 @@
 import type { ReactElement } from "react";
 import { Alert, Button, Card, Flex, Input, Rate, Typography } from "antd";
 import { useActionGate, useDescribeFlowError, useT } from "@stapel/core";
+import type { SignInCta, SignInCtaProp } from "@stapel/core";
 import type { ReviewTarget } from "../api/types.js";
 import { ReviewForm } from "../headless/ReviewForm.js";
 import type { ReviewFormBag } from "../headless/ReviewForm.js";
 import { REVIEWS_I18N_KEYS } from "../i18n/keys.js";
 import { ErrorAlert } from "./ErrorAlert.js";
+import { SignInLink } from "./SignInLink.js";
 import { ReviewsSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
-export interface ReviewFormCardProps extends ThemeModeProp {
+export interface ReviewFormCardProps extends ThemeModeProp, SignInCtaProp {
   readonly target: ReviewTarget;
   /** The host already knows this author has reviewed the target (optimistic). */
   readonly alreadyReviewed?: boolean;
@@ -44,7 +46,10 @@ function sentKey(bag: ReviewFormBag): string {
   }
 }
 
-function FormBody(props: { bag: ReviewFormBag }): ReactElement {
+function FormBody(props: {
+  bag: ReviewFormBag;
+  signIn: SignInCta | undefined;
+}): ReactElement {
   const t = useT();
   const describe = useDescribeFlowError();
   const { bag } = props;
@@ -73,6 +78,7 @@ function FormBody(props: { bag: ReviewFormBag }): ReactElement {
     return (
       <Typography.Text type="secondary" data-testid="reviews-form-sign-in">
         {t(REVIEWS_I18N_KEYS.formSignInRequired)}
+        <SignInLink cta={props.signIn} testId="reviews-form-sign-in-cta" />
       </Typography.Text>
     );
   }
@@ -121,7 +127,9 @@ function FormBody(props: { bag: ReviewFormBag }): ReactElement {
 
 export function ReviewFormCard(props: ReviewFormCardProps): ReactElement {
   const t = useT();
-  const { mode, ...formProps } = props;
+  // `signIn` is this card's, not the headless form's: the form knows THAT the
+  // author must sign in, the container knows WHERE.
+  const { mode, signIn, ...formProps } = props;
   return (
     <ReviewsSkinTheme {...(mode !== undefined ? { mode } : {})}>
       <Card size="small" data-testid="reviews-form">
@@ -130,7 +138,7 @@ export function ReviewFormCard(props: ReviewFormCardProps): ReactElement {
             {t(REVIEWS_I18N_KEYS.formHeading)}
           </Typography.Title>
           <ReviewForm {...formProps}>
-            {(bag) => <FormBody bag={bag} />}
+            {(bag) => <FormBody bag={bag} signIn={signIn} />}
           </ReviewForm>
         </Flex>
       </Card>

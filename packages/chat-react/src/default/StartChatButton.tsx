@@ -2,19 +2,23 @@
  * `<StartChatButton/>` — "message the seller" on a listing card, skinned.
  *
  * The control is either pressable or switched off WITH a sentence beside it
- * (no seller on the listing; the listing is your own). It never renders as a
- * grey rectangle with no explanation.
+ * (no seller on the listing; the listing is your own; you are not signed in).
+ * It never renders as a grey rectangle with no explanation — and when the host
+ * supplies `signIn`, the sentence comes with the door: a stated reason whose
+ * next action is a link the visitor cannot find on their own is only half an
+ * answer (storefront Wave D, G-3).
  */
 import type { ReactElement } from "react";
 import { Button, Space, Typography } from "antd";
 import { useActionGate, useErrorDisplay, useT } from "@stapel/core";
-import type { ActionAvailability } from "@stapel/core";
+import type { ActionAvailability, SignInCta, SignInCtaProp } from "@stapel/core";
 import type { Conversation } from "../api/types.js";
 import { StartDirectChat } from "../headless/StartDirectChat.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ErrorAlert } from "./ErrorAlert.js";
+import { SignInLink } from "./SignInLink.js";
 
-export interface StartChatButtonProps {
+export interface StartChatButtonProps extends SignInCtaProp {
   sellerId: string | null | undefined;
   viewerId?: string | null;
   onOpened?: (conversation: Conversation) => void;
@@ -27,6 +31,7 @@ function StartChatBody(props: {
   error: unknown;
   start: () => void;
   block: boolean | undefined;
+  signIn: SignInCta | undefined;
 }): ReactElement {
   const t = useT();
   const gate = useActionGate(props.availability);
@@ -50,6 +55,7 @@ function StartChatBody(props: {
       {gate.reason ? (
         <Typography.Text type="secondary" data-testid="chat-start-blocked">
           {gate.reason}
+          <SignInLink cta={props.signIn} testId="chat-start-sign-in" />
         </Typography.Text>
       ) : null}
       <ErrorAlert error={errorDisplay(props.error)} />
@@ -71,6 +77,7 @@ export function StartChatButton(props: StartChatButtonProps): ReactElement {
           error={error}
           start={start}
           block={props.block}
+          signIn={props.signIn}
         />
       )}
     </StartDirectChat>

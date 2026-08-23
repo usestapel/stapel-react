@@ -15,6 +15,7 @@
  */
 import type { ReactElement, ReactNode } from "react";
 import { Flex } from "antd";
+import type { SignInCtaProp } from "@stapel/core";
 import type { Review, ReviewTarget } from "../api/types.js";
 import { ReviewList } from "../headless/ReviewList.js";
 import { findOwnReview } from "../model/list.js";
@@ -24,7 +25,7 @@ import { ReviewListPanel } from "./ReviewListPanel.js";
 import { ReviewsSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
-export interface ReviewsPanelProps extends ThemeModeProp {
+export interface ReviewsPanelProps extends ThemeModeProp, SignInCtaProp {
   readonly target: ReviewTarget;
   /**
    * The reader's user id — the value the backend puts in `author_id`, NOT a
@@ -39,7 +40,7 @@ export interface ReviewsPanelProps extends ThemeModeProp {
 }
 
 export function ReviewsPanel(props: ReviewsPanelProps): ReactElement {
-  const { mode, target, viewerId, canReview = true, ...rows } = props;
+  const { mode, target, viewerId, canReview = true, signIn, ...rows } = props;
   return (
     <ReviewsSkinTheme {...(mode !== undefined ? { mode } : {})}>
       <Flex vertical gap={16} data-testid="reviews-panel">
@@ -58,6 +59,7 @@ export function ReviewsPanel(props: ReviewsPanelProps): ReactElement {
               <ReviewFormCard
                 target={target}
                 {...(mode !== undefined ? { mode } : {})}
+                {...(signIn !== undefined ? { signIn } : {})}
                 alreadyReviewed={
                   findOwnReview(
                     bag.state.status === "ready" ? bag.state.data : undefined,

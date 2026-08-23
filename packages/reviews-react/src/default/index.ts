@@ -28,3 +28,5 @@ export { ReviewsSkinTheme } from "./theme.js";
 export type { ReviewsSkinThemeProps } from "./theme.js";
 export { ErrorAlert } from "./ErrorAlert.js";
 export type { ThemeModeProp } from "./types.js";
+export { SignInLink } from "./SignInLink.js";
+export type { SignInLinkProps } from "./SignInLink.js";

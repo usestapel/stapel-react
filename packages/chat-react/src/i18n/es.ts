@@ -75,6 +75,9 @@ export const chatI18nBundleEs: I18nDictionary = {
   "chat.start.starting": "Abriendo…",
   "chat.start.blocked.self": "Este anuncio es tuyo.",
   "chat.start.blocked.unknown_seller": "Este anuncio no tiene vendedor a quien escribir.",
+  "chat.start.blocked.sign_in": "Inicia sesión para escribir al vendedor.",
+  "chat.start.blocked.mandate_unknown": "Comprobando tu sesión…",
+  "chat.start.sign_in": "Iniciar sesión",
 
   "chat.transport.live": "En directo",
   "chat.transport.polling": "Actualizando cada pocos segundos",

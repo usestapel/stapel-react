@@ -95,6 +95,18 @@ const RouterLink: LinkComponent = ({ href, children, ...rest }) => (
 `<FavoritesPane>` takes the same union (`hrefFor` / `onOpen` / `linkComponent`),
 so a pane cannot re-introduce upstream what the card no longer allows.
 
+### The heart a visitor can see, read, and act on
+
+```tsx
+<ListingCard listing={row} href={`/l/${row.id}`} signIn={{ href: `/login?next=${here}` }} />
+```
+
+The favourite control is never hidden from a visitor — it is switched off, the
+reason is printed as TEXT beside it (a tooltip on a disabled button is a reason
+nobody can read), and `signIn` is the door. `SignInCta` is core's, `{href}`
+**or** `{onSignIn}`, the same prop `@stapel/chat-react` and
+`@stapel/reviews-react` take. Omit it and the reason renders alone.
+
 ## Submitting a listing
 
 Four contracts meet on the composer, and three of them arrive as seams rather

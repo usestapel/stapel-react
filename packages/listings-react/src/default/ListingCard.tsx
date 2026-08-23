@@ -24,14 +24,17 @@
  *
  * ── The heart is never hidden ──────────────────────────────────────────────
  *
- * A visitor sees it, blocked, with the reason and the sign-in CTA the
- * container attaches (`?next=`). Hiding it would teach nobody that
- * favourites exist (private-space canon §6.3, spec §6.2 item 6).
+ * A visitor sees it, blocked, with the reason IN WORDS beside it and the
+ * sign-in link the container supplies (`signIn`, typically `?next=<current>`).
+ * Hiding it would teach nobody that favourites exist (private-space canon
+ * §6.3, spec §6.2 item 6) — and until 0.3.0 the reason lived only in a tooltip
+ * on a disabled button, which receives no pointer events in any browser: a
+ * reason nobody could read, and no door to walk through.
  */
 import type { ReactElement, ReactNode } from "react";
 import { Button, Card, Flex, Tooltip, Typography } from "antd";
-import { useT } from "@stapel/core";
-import type { LinkComponent } from "@stapel/core";
+import { useActionGate, useT } from "@stapel/core";
+import type { LinkComponent, SignInCtaProp } from "@stapel/core";
 import { FeatureBadges } from "@stapel/attributes-react/default";
 import type { ListingCard as ListingCardData } from "../api/types.js";
 import { asFeatureDaoList, featuresDtoFromDaoList, featuresFromDaoList } from "../model/features.js";
@@ -39,6 +42,7 @@ import { lifecycleCaption } from "../model/status.js";
 import { useFavoriteToggle } from "../headless/Favorites.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { HeartIcon } from "./icons.js";
+import { SignInLink } from "./SignInLink.js";
 import { ListingPhoto } from "./ListingPhoto.js";
 import { ListingsSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
@@ -83,7 +87,7 @@ export type ListingCardOpenProps =
       readonly linkComponent?: undefined;
     };
 
-export interface ListingCardBaseProps extends ThemeModeProp {
+export interface ListingCardBaseProps extends ThemeModeProp, SignInCtaProp {
   readonly listing: ListingCardData;
   /** Extra chrome the container adds (a `promoted` tag from search, say —
    * DSA Art. 26 marking belongs to the pair that receives it). */
@@ -176,6 +180,8 @@ export function ListingCard(props: ListingCardProps): ReactElement {
       ? `${listing.price} ${listing.currency ?? ""}`.trim()
       : t(LISTINGS_I18N_KEYS.cardPriceAbsent);
 
+  const favoriteGate = useActionGate(favorite.gate);
+
   const favoriteLabel = t(
     favorite.favorited
       ? LISTINGS_I18N_KEYS.cardFavoriteRemove
@@ -267,6 +273,21 @@ export function ListingCard(props: ListingCardProps): ReactElement {
               </Tooltip>
             )}
           </Flex>
+
+          {/* The reason IN WORDS, plus the door. A tooltip on a disabled
+              button is a reason nobody can read (core's actionGate.ts says so
+              in as many words), and a reason with no next action leaves the
+              visitor hunting for the header — which is what the storefront
+              had to write a paragraph about instead of shipping the screen. */}
+          {props.showFavorite === false || favoriteGate.reason === undefined ? null : (
+            <Typography.Text
+              type="secondary"
+              data-testid="listings-card-favorite-blocked"
+            >
+              {favoriteGate.reason}
+              <SignInLink cta={props.signIn} testId="listings-card-sign-in" />
+            </Typography.Text>
+          )}
         </Flex>
       </Card>
     </ListingsSkinTheme>

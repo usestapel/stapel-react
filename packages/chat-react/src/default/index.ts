@@ -18,3 +18,5 @@ export { ConversationThreadPanel } from "./ConversationThreadPanel.js";
 export type { ConversationThreadPanelProps } from "./ConversationThreadPanel.js";
 export { StartChatButton } from "./StartChatButton.js";
 export type { StartChatButtonProps } from "./StartChatButton.js";
+export { SignInLink } from "./SignInLink.js";
+export type { SignInLinkProps } from "./SignInLink.js";

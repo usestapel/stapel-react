@@ -71,6 +71,7 @@ export const reviewsI18nBundleRu: I18nDictionary = {
   "reviews.form.sent.hidden": "Отзыв сохранён, но не показывается",
   "reviews.form.sent.unknown": "Отзыв сохранён",
   "reviews.form.sign_in_required": "Войдите, чтобы оставить отзыв",
+  "reviews.form.sign_in": "Войти",
 
   "reviews.submit.blocked.no_rating": "Сначала выберите оценку",
   "reviews.submit.blocked.pending": "Отправляем…",

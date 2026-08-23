@@ -70,6 +70,7 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.card.favorite_add": "Guardar en favoritos",
   "listings.card.favorite_remove": "Quitar de favoritos",
   "listings.card.open": "Abrir",
+  "listings.card.sign_in": "Iniciar sesión",
 
   "listings.detail.loading": "Cargando el anuncio…",
   "listings.detail.load_failed": "No pudimos cargar este anuncio",

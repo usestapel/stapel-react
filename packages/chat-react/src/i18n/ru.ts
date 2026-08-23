@@ -77,6 +77,9 @@ export const chatI18nBundleRu: I18nDictionary = {
   "chat.start.starting": "Открываем…",
   "chat.start.blocked.self": "Это ваше собственное объявление.",
   "chat.start.blocked.unknown_seller": "У этого объявления не указан продавец.",
+  "chat.start.blocked.sign_in": "Войдите, чтобы написать продавцу.",
+  "chat.start.blocked.mandate_unknown": "Проверяем вашу сессию…",
+  "chat.start.sign_in": "Войти",
 
   "chat.transport.live": "На связи",
   "chat.transport.polling": "Обновляется каждые несколько секунд",

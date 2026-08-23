@@ -63,6 +63,8 @@ export const LISTINGS_I18N_KEYS = {
   cardFavoriteAdd: "listings.card.favorite_add",
   cardFavoriteRemove: "listings.card.favorite_remove",
   cardOpen: "listings.card.open",
+  /** The door beside a blocked favourite: the container supplies WHERE. */
+  cardSignIn: "listings.card.sign_in",
 
   // ── detail ───────────────────────────────────────────────────────────────
   detailLoading: "listings.detail.loading",
@@ -218,6 +220,7 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.card.favorite_add": "Save to favourites",
   "listings.card.favorite_remove": "Remove from favourites",
   "listings.card.open": "Open",
+  "listings.card.sign_in": "Sign in",
 
   "listings.detail.loading": "Loading the listing…",
   "listings.detail.load_failed": "We could not load this listing",
