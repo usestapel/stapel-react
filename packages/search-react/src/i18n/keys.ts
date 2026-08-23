@@ -28,9 +28,10 @@ export const SEARCH_I18N_KEYS = {
   resultsLoadFailed: "search.results.load_failed",
   resultsEmpty: "search.results.empty",
   resultsRetry: "search.results.retry",
-  /** "About N results" — the sentence for an ESTIMATED count. */
+  /** "About N results" — the sentence for an ESTIMATED count. A PLURAL
+   * FAMILY: render with `tPlural`, never `t` (see SEARCH_I18N_PLURAL_KEYS). */
   resultsCountApproximate: "search.results.count_approximate",
-  /** "N results" — only when `exact_total` is true. */
+  /** "N results" — only when `exact_total` is true. A PLURAL FAMILY. */
   resultsCountExact: "search.results.count_exact",
   resultsTookMs: "search.results.took_ms",
   resultsNext: "search.results.next",
@@ -112,6 +113,26 @@ export type SearchI18nKey =
   (typeof SEARCH_I18N_KEYS)[keyof typeof SEARCH_I18N_KEYS];
 
 /**
+ * The keys above that are PLURAL FAMILIES rather than single messages.
+ *
+ * A family is catalogued as one flat key per CLDR category
+ * (`<family>.one`, `…few`, `…many`, `…other`) and rendered with core's
+ * `tPlural(family, { count })`, which asks `Intl.PluralRules` for the current
+ * locale's category. Which categories a bundle carries is a fact about the
+ * language — `en` needs two, `ru` needs four — so the pair's parity test asks
+ * `Intl.PluralRules` which forms each locale can select and demands exactly
+ * those, rather than checking a list somebody typed.
+ *
+ * The live defect this closes: the Russian estimate sentence was ONE string
+ * doing the work of four, correct only for 5-20 and wrong for every 1, 2, 3
+ * and 4 a result page actually shows.
+ */
+export const SEARCH_I18N_PLURAL_KEYS: readonly SearchI18nKey[] = [
+  SEARCH_I18N_KEYS.resultsCountApproximate,
+  SEARCH_I18N_KEYS.resultsCountExact,
+];
+
+/**
  * English fallback bundle for search-react UI keys + backend error codes.
  * The generated backend texts are spread FIRST so coverage of the error
  * registry is by construction; the pair's own copy follows.
@@ -126,8 +147,10 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.results.load_failed": "We could not run this search",
   "search.results.empty": "Nothing matches this search",
   "search.results.retry": "Try again",
-  "search.results.count_approximate": "About {count} results",
-  "search.results.count_exact": "{count} results",
+  "search.results.count_approximate.one": "About {count} result",
+  "search.results.count_approximate.other": "About {count} results",
+  "search.results.count_exact.one": "{count} result",
+  "search.results.count_exact.other": "{count} results",
   "search.results.took_ms": "{ms} ms",
   "search.results.next": "Next page",
   "search.results.prev": "Previous page",

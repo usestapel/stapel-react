@@ -35,8 +35,16 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.results.load_failed": "Не удалось выполнить поиск.",
   "search.results.empty": "По этому запросу ничего не нашлось.",
   "search.results.retry": "Повторить",
-  "search.results.count_approximate": "Примерно {count} объявлений",
-  "search.results.count_exact": "{count} объявлений",
+  // Four forms, because Russian has four (1 / 2-4 / 5-20 / fractions). One
+  // string here is wrong on most pages the storefront serves.
+  "search.results.count_approximate.one": "Примерно {count} объявление",
+  "search.results.count_approximate.few": "Примерно {count} объявления",
+  "search.results.count_approximate.many": "Примерно {count} объявлений",
+  "search.results.count_approximate.other": "Примерно {count} объявления",
+  "search.results.count_exact.one": "{count} объявление",
+  "search.results.count_exact.few": "{count} объявления",
+  "search.results.count_exact.many": "{count} объявлений",
+  "search.results.count_exact.other": "{count} объявления",
   "search.results.took_ms": "{ms} мс",
   "search.results.next": "Следующая страница",
   "search.results.prev": "Предыдущая страница",

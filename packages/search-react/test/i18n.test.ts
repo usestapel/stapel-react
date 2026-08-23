@@ -3,6 +3,7 @@ import { createI18n } from "@stapel/core";
 import {
   SEARCH_ERROR_CODES,
   SEARCH_I18N_KEYS,
+  SEARCH_I18N_PLURAL_KEYS,
   explainSearchError,
   registerSearchI18n,
   searchI18nBundleEn,
@@ -10,7 +11,27 @@ import {
 import { registerSearchI18nRu, searchI18nBundleRu } from "../src/i18n/ru.js";
 import { registerSearchI18nEs, searchI18nBundleEs } from "../src/i18n/es.js";
 
-const UI_KEYS = Object.values(SEARCH_I18N_KEYS);
+const PLURAL_KEYS = new Set<string>(SEARCH_I18N_PLURAL_KEYS);
+const UI_KEYS = Object.values(SEARCH_I18N_KEYS).filter(
+  (key) => !PLURAL_KEYS.has(key)
+);
+
+/**
+ * The categories a locale can actually SELECT — asked of `Intl.PluralRules`
+ * rather than listed here, because "how many forms does this language have"
+ * is a fact about the language. A bundle is complete when it carries a
+ * message for every form its locale can land on.
+ */
+function selectableCategories(locale: string): readonly string[] {
+  const rules = new Intl.PluralRules(locale);
+  const seen = new Set<string>();
+  // 0..200 covers every cardinal rule these locales use (ru's `many` needs
+  // teens; `other` is reached by a fraction, which is why 0.5 is in here).
+  for (const n of [0.5, ...Array.from({ length: 201 }, (_, i) => i)]) {
+    seen.add(rules.select(n));
+  }
+  return [...seen];
+}
 
 describe("every key the pair renders has copy in every locale it ships", () => {
   it("en covers the UI keys", () => {
@@ -24,6 +45,25 @@ describe("every key the pair renders has copy in every locale it ships", () => {
   it("es covers the UI keys", () => {
     for (const key of UI_KEYS) expect(searchI18nBundleEs[key]).toBeTruthy();
   });
+});
+
+describe("a plural family carries every form its locale can select", () => {
+  for (const [locale, bundle] of [
+    ["en", searchI18nBundleEn],
+    ["ru", searchI18nBundleRu],
+    ["es", searchI18nBundleEs],
+  ] as const) {
+    it(`${locale} covers each category of each family`, () => {
+      for (const family of SEARCH_I18N_PLURAL_KEYS) {
+        // The flat family key is GONE on purpose: it is the shape the live
+        // page rendered as one Russian ending for every number.
+        expect(bundle[family]).toBeUndefined();
+        for (const category of selectableCategories(locale)) {
+          expect(bundle[`${family}.${category}`]).toBeTruthy();
+        }
+      }
+    });
+  }
 });
 
 describe("the backend error registry reaches every locale", () => {
@@ -78,6 +118,30 @@ describe("the engine resolves what the pair registers", () => {
     expect(
       engine.t(SEARCH_I18N_KEYS.degradedScorer, { scorer: "geo_decay" })
     ).toContain("geo_decay");
+  });
+
+  it("counts in Russian with the form the number takes, not one ending for all", () => {
+    const engine = createI18n({ locale: "ru" });
+    registerSearchI18n(engine);
+    registerSearchI18nRu(engine);
+    const family = SEARCH_I18N_KEYS.resultsCountExact;
+    expect(engine.tPlural(family, { count: 1 })).toBe("1 объявление");
+    expect(engine.tPlural(family, { count: 3 })).toBe("3 объявления");
+    expect(engine.tPlural(family, { count: 17 })).toBe("17 объявлений");
+    expect(engine.tPlural(SEARCH_I18N_KEYS.resultsCountApproximate, { count: 21 })).toBe(
+      "Примерно 21 объявление"
+    );
+  });
+
+  it("counts in English through the same call", () => {
+    const engine = createI18n({ locale: "en" });
+    registerSearchI18n(engine);
+    expect(engine.tPlural(SEARCH_I18N_KEYS.resultsCountExact, { count: 1 })).toBe(
+      "1 result"
+    );
+    expect(engine.tPlural(SEARCH_I18N_KEYS.resultsCountExact, { count: 4 })).toBe(
+      "4 results"
+    );
   });
 
   it("layers es the same way", () => {

@@ -117,11 +117,21 @@ export type {
 } from "./query.js";
 
 // i18n engine
-export { createI18n, interpolate, I18nProvider, useI18n, useT } from "./i18n.js";
+export {
+  createI18n,
+  interpolate,
+  pluralCategory,
+  I18nProvider,
+  useI18n,
+  useT,
+  useTPlural,
+} from "./i18n.js";
 export type {
   I18nEngine,
   I18nDictionary,
   LocaleLoader,
+  PluralCategory,
+  PluralTranslateFn,
   TranslateFn,
   CreateI18nOptions,
 } from "./i18n.js";

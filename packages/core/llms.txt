@@ -76,6 +76,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - navEntrySurface
 - navSurfaceVisibleTo
 - parseErrorEnvelope
+- pluralCategory
 - putToForeignOrigin
 - requireLoaded
 - toFlowError
@@ -99,6 +100,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - useStapelClient
 - useStapelConfig
 - useT
+- useTPlural
 
 ### types
 - ActionAvailability
@@ -158,6 +160,8 @@ signatures/JSDoc in the package README and src/index.ts.
 - PackageNavManifest
 - PersistStorage
 - PiiGuardMode
+- PluralCategory
+- PluralTranslateFn
 - PropSpec
 - PropType
 - PropsSchema

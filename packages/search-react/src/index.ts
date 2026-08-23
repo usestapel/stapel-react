@@ -133,6 +133,7 @@ export { navEntries } from "./nav/manifest.js";
 // ── i18n ─────────────────────────────────────────────────────────────────────
 export {
   SEARCH_I18N_KEYS,
+  SEARCH_I18N_PLURAL_KEYS,
   searchI18nBundleEn,
   registerSearchI18n,
 } from "./i18n/keys.js";

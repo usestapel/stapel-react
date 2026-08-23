@@ -17,11 +17,36 @@ export type TranslateFn = (
   params?: Record<string, unknown>
 ) => string;
 
+/**
+ * The CLDR plural categories. Which of them a language actually uses is a fact
+ * about the language, not a choice a catalogue makes: `en` has `one`/`other`,
+ * `ru` has `one`/`few`/`many`/`other`, `ja` has `other` alone. Only `other` is
+ * defined everywhere, which is why it is the fallback and the only form a
+ * static gate may demand.
+ */
+export type PluralCategory = "zero" | "one" | "two" | "few" | "many" | "other";
+
+/**
+ * Translate a plural FAMILY. `params.count` selects the form; it is also
+ * interpolated, so `{count}` in the message works without repeating it.
+ */
+export type PluralTranslateFn = (
+  key: string,
+  params: { count: number } & Record<string, unknown>
+) => string;
+
 export interface I18nEngine {
   /** Current locale. */
   readonly locale: string;
   /** Translate a key; missing keys fall back to the key itself. */
   t: TranslateFn;
+  /**
+   * Translate a plural family: `tPlural("search.results.count_exact",
+   * { count })` looks up `<key>.<category>` for the current locale's CLDR
+   * category, then `<key>.other`, then `<key>` itself (a family that is still
+   * one flat string), then the key. See {@link pluralCategory}.
+   */
+  tPlural: PluralTranslateFn;
   /** Switch locale; loads it via `loadLocale` when not already registered. */
   setLocale(locale: string): Promise<void>;
   /** Register a static bundle (packages register their keys this way). */
@@ -54,6 +79,32 @@ export function interpolate(
   );
 }
 
+/**
+ * `Intl.PluralRules` is not free to construct and a page asks for the same
+ * locale on every render, so one instance per locale is kept.
+ */
+const pluralRules = new Map<string, Intl.PluralRules>();
+
+/**
+ * The CLDR cardinal category `count` takes in `locale` — `Intl.PluralRules`,
+ * never a hand-rolled `n === 1 ? … : …`, which is right in English and wrong
+ * in the next language the product ships. An unknown locale tag degrades to
+ * English rather than throwing: a plural is copy, and copy must not be able to
+ * crash a render.
+ */
+export function pluralCategory(locale: string, count: number): PluralCategory {
+  let rules = pluralRules.get(locale);
+  if (rules === undefined) {
+    try {
+      rules = new Intl.PluralRules(locale);
+    } catch {
+      rules = new Intl.PluralRules("en");
+    }
+    pluralRules.set(locale, rules);
+  }
+  return rules.select(count) as PluralCategory;
+}
+
 export interface CreateI18nOptions {
   /** Initial locale. */
   readonly locale: string;
@@ -65,8 +116,26 @@ export interface CreateI18nOptions {
 
 /**
  * Minimal i18n engine: dictionaries per locale, `{param}` interpolation,
- * static bundles + async loader, missing-key fallback to the key itself
- * (frontend-standard §4.2 — user-facing strings are always keys).
+ * CLDR plurals through `tPlural`, static bundles + async loader, missing-key
+ * fallback to the key itself (frontend-standard §4.2 — user-facing strings are
+ * always keys).
+ *
+ * ── Plurals: ONE mechanism, and it is the lint's ───────────────────────────
+ *
+ * A plural message is catalogued as one FLAT key per CLDR category —
+ * `search.results.count_exact.one`, `…few`, `…many`, `…other` — and rendered
+ * with `tPlural("search.results.count_exact", { count })`. The dictionary
+ * stays `Record<string, string>` (every bundle, every generated catalogue and
+ * `getBundle` are unchanged), and the registry `stapel/i18n-key-exists` reads
+ * catalogues the categories automatically, because it scans the pair's key
+ * module for `"<ns>.…"` literals and the bundle lives there.
+ *
+ * The alternative — an object message `{one, few, many, other}` — was not
+ * taken: it widens `I18nDictionary` for every consumer, and the lint would
+ * still have to be taught the shape, so the two halves could drift. Which
+ * categories a language HAS is `Intl.PluralRules`' answer, not the
+ * catalogue's; a bundle that ships only `other` is complete for `ja` and
+ * degrades honestly for `ru`.
  *
  * Seeds core's OWN error floor (`./i18n/coreErrors.ts` — `stapel.http.*`,
  * `stapel.transport.failed`, `stapel.error.unknown`) under every locale
@@ -127,6 +196,21 @@ export function createI18n(options: CreateI18nOptions): I18nEngine {
       if (template === undefined) return key;
       return interpolate(template, params);
     },
+    tPlural: (key, params) => {
+      const dictionary = dictionaries.get(locale);
+      const category = pluralCategory(locale, params.count);
+      const template =
+        dictionary?.[`${key}.${category}`] ??
+        // `other` is the form every locale defines; a bundle that ships only
+        // it (or a language that needs only it) resolves here.
+        dictionary?.[`${key}.other`] ??
+        // A family still catalogued as ONE flat string — every host bundle
+        // written before plurals existed. It reads worse than a real plural
+        // and better than a raw key on the page.
+        dictionary?.[key];
+      if (template === undefined) return key;
+      return interpolate(template, params);
+    },
     setLocale: async (nextLocale) => {
       floor(nextLocale);
       await ensureLoaded(nextLocale);
@@ -181,4 +265,24 @@ export function useT(): TranslateFn {
   const engine = useI18n();
   useSyncExternalStore(engine.subscribe, engine.getVersion, engine.getVersion);
   return engine.t;
+}
+
+/**
+ * Reactive plural translate function — the counted half of `useT`.
+ *
+ * ```tsx
+ * const tPlural = useTPlural();
+ * <span>{tPlural("search.results.count_exact", { count })}</span>
+ * ```
+ *
+ * The name is the CONTRACT, not a preference: `stapel/i18n-key-exists` treats
+ * a `tPlural(…)` call's first argument as a family and demands `<key>.other`
+ * in the generated registry, where a `t(…)` call demands the key verbatim. A
+ * plural rendered through `t` would therefore be gated as a key that does not
+ * exist — one mechanism, spelled the same way in the runtime and in the lint.
+ */
+export function useTPlural(): PluralTranslateFn {
+  const engine = useI18n();
+  useSyncExternalStore(engine.subscribe, engine.getVersion, engine.getVersion);
+  return engine.tPlural;
 }

@@ -21,6 +21,7 @@ import {
   toFlowError,
   useDescribeFlowError,
   useT,
+  useTPlural,
 } from "@stapel/core";
 import type { SearchItem } from "../api/types.js";
 import { SearchResults } from "../headless/SearchResults.js";
@@ -48,14 +49,19 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
 }
 
 function Count(props: { bag: SearchResultsBag }): ReactElement | null {
-  const t = useT();
+  // A COUNTED sentence: `tPlural` asks Intl.PluralRules for the locale's
+  // category, so Russian gets three different endings for 1, 3 and 17 instead
+  // of the single one that was right for 5-20 and wrong everywhere else.
+  const tPlural = useTPlural();
   const page = props.bag.page;
   if (page === null) return null;
   return (
     <Typography.Text type="secondary" data-testid="search-count">
       {page.countIsEstimate
-        ? t(SEARCH_I18N_KEYS.resultsCountApproximate, { count: page.count })
-        : t(SEARCH_I18N_KEYS.resultsCountExact, { count: page.count })}
+        ? tPlural(SEARCH_I18N_KEYS.resultsCountApproximate, {
+            count: page.count,
+          })
+        : tPlural(SEARCH_I18N_KEYS.resultsCountExact, { count: page.count })}
     </Typography.Text>
   );
 }

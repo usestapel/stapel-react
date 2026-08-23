@@ -82,6 +82,7 @@
       "navEntrySurface",
       "navSurfaceVisibleTo",
       "parseErrorEnvelope",
+      "pluralCategory",
       "putToForeignOrigin",
       "requireLoaded",
       "toFlowError",
@@ -104,7 +105,8 @@
       "useSessionReady",
       "useStapelClient",
       "useStapelConfig",
-      "useT"
+      "useT",
+      "useTPlural"
     ],
     "types": [
       "ActionAvailability",
@@ -164,6 +166,8 @@
       "PackageNavManifest",
       "PersistStorage",
       "PiiGuardMode",
+      "PluralCategory",
+      "PluralTranslateFn",
       "PropSpec",
       "PropType",
       "PropsSchema",
