@@ -15,4 +15,4 @@ export type { ImageSlot, ImageSlotSize } from "./useImageSlot.js";
 
 // Blur-up component over the ladder.
 export { Image } from "./Image.js";
-export type { ImageProps } from "./Image.js";
+export type { ImageErrorInfo, ImageProps } from "./Image.js";

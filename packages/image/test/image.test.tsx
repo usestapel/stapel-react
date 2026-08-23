@@ -188,3 +188,122 @@ describe("<Image>", () => {
     expect(img.getAttribute("src")).toBe("cdn://img/480h.webp");
   });
 });
+
+/**
+ * P-3 from the live storefront walk: `loader.onerror = commit` treated a load
+ * that never arrived as a load that did, so a dead CDN url rendered as an
+ * `<img>` the browser had already refused — the torn-page glyph, sized to the
+ * slot, with nothing the caller could say instead.
+ */
+describe("<Image> when the variant will not load", () => {
+  beforeEach(() => {
+    MockResizeObserver.instances = [];
+    vi.stubGlobal("ResizeObserver", MockResizeObserver);
+    vi.stubGlobal("devicePixelRatio", 1);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /** jsdom fetches nothing: a rejected `decode()` IS the failure a browser
+   * reports for a url that does not resolve. */
+  function stubDecode(result: "resolve" | "reject"): void {
+    Object.defineProperty(window.HTMLImageElement.prototype, "decode", {
+      configurable: true,
+      writable: true,
+      value:
+        result === "resolve"
+          ? vi.fn().mockResolvedValue(undefined)
+          : vi.fn().mockRejectedValue(new DOMException("boom", "EncodingError")),
+    });
+  }
+
+  it("renders the neutral placeholder with the alt text, not a broken img", async () => {
+    stubDecode("reject");
+    const { container } = render(<Image meta={portraitMeta()} alt="Bosch drill" />);
+    act(() => {
+      lastObserver().trigger(640, 360);
+    });
+    const placeholder = await screen.findByTestId("stapel-image-error");
+    expect(placeholder.textContent).toContain("Bosch drill");
+    expect(placeholder.querySelector("svg")).not.toBeNull();
+    // No <img> pointed at the url that failed, and no blur-up standing in for
+    // an image that is not coming.
+    expect(screen.queryByAltText("Bosch drill")).toBeNull();
+    expect(container.querySelector("img")).toBeNull();
+    // It is announced as an image with the description the caller wrote.
+    expect(placeholder.getAttribute("role")).toBe("img");
+    expect(placeholder.getAttribute("aria-label")).toBe("Bosch drill");
+  });
+
+  it("hands `renderError` the alt, the meta and the url that failed", async () => {
+    stubDecode("reject");
+    const meta = portraitMeta();
+    render(
+      <Image
+        meta={meta}
+        alt="Bosch drill"
+        renderError={({ alt, meta: got, url }) => (
+          <div data-testid="own-error">
+            {alt}|{String(got === meta)}|{url}
+          </div>
+        )}
+      />
+    );
+    act(() => {
+      lastObserver().trigger(640, 360);
+    });
+    const own = await screen.findByTestId("own-error");
+    expect(own.textContent).toBe("Bosch drill|true|cdn://img/720w.webp");
+    expect(screen.queryByTestId("stapel-image-error")).toBeNull();
+  });
+
+  it("a failed UPGRADE leaves the tier already on screen alone", async () => {
+    stubDecode("resolve");
+    render(<Image meta={portraitMeta()} alt="photo" />);
+    const ro = lastObserver();
+    act(() => {
+      ro.trigger(300, 200);
+    });
+    await waitFor(() => {
+      expect(screen.getByAltText("photo").getAttribute("src")).toBe(
+        "cdn://img/480w.webp"
+      );
+    });
+
+    stubDecode("reject");
+    act(() => {
+      ro.trigger(700, 400);
+    });
+    await waitFor(() => {
+      expect(screen.queryByAltText("photo")).not.toBeNull();
+    });
+    // The bigger tier never arrived; the person keeps looking at the one that did.
+    expect(screen.getByAltText("photo").getAttribute("src")).toBe(
+      "cdn://img/480w.webp"
+    );
+    expect(screen.queryByTestId("stapel-image-error")).toBeNull();
+  });
+
+  it("a later successful tier clears the error", async () => {
+    stubDecode("reject");
+    render(<Image meta={portraitMeta()} alt="photo" />);
+    const ro = lastObserver();
+    act(() => {
+      ro.trigger(300, 200);
+    });
+    await screen.findByTestId("stapel-image-error");
+
+    stubDecode("resolve");
+    act(() => {
+      ro.trigger(700, 400);
+    });
+    await waitFor(() => {
+      expect(screen.getByAltText("photo").getAttribute("src")).toBe(
+        "cdn://img/720w.webp"
+      );
+    });
+    expect(screen.queryByTestId("stapel-image-error")).toBeNull();
+  });
+});

@@ -62,3 +62,24 @@ import { Image } from "@stapel/image";
    visual downgrade.
 
 `fit` defaults to `"cover"`; `alt` is required.
+
+### When the variant will not load
+
+A dead CDN url, a pruned variant, an expired signature — the load fails, and
+that is not a load. `<Image>` renders a neutral placeholder instead: a sunken
+box (token roles, so it follows the host's theme), a broken-image glyph and the
+`alt` text, announced as `role="img"` with `aria-label={alt}`. Never a broken
+`<img>`, whose native rendering is the browser's own torn-page icon, and never
+an empty slot, which reads as "there is nothing here" for something that IS
+there and could not be fetched.
+
+```tsx
+<Image
+  meta={attachment.render_meta}
+  alt={attachment.name}
+  renderError={({ alt, url }) => <MissingPhoto label={alt} src={url} />}
+/>
+```
+
+A failed UPGRADE is not an error state: the tier already on screen stays, and
+the next successful pick clears the placeholder.
