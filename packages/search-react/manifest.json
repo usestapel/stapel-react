@@ -604,6 +604,7 @@
       "setFilterValues",
       "setRangeValue",
       "toggleFilterValue",
+      "useAppliedSort",
       "useRankingDisclosure",
       "useSearchAnalytics",
       "useSearchApi",

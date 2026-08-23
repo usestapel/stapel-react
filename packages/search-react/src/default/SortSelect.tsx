@@ -17,6 +17,7 @@ import type { ReactElement } from "react";
 import { Flex, Select, Typography } from "antd";
 import { useT } from "@stapel/core";
 import { SEARCH_SORTS } from "../api/types.js";
+import { useAppliedSort } from "../headless/useAppliedSort.js";
 import { useSearchState } from "../headless/SearchStateProvider.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 
@@ -29,19 +30,28 @@ const SORT_LABEL_KEY: Readonly<Record<string, string>> = {
 };
 
 export interface SortSelectProps {
-  /** The sort the SERVER applied, shown when the URL names none. */
+  /** The sort the SERVER applied, shown when the URL names none. Omitted, it
+   * is read from the page already in cache — see {@link useAppliedSort}. */
   readonly appliedSort?: string | undefined;
 }
 
 export function SortSelect(props: SortSelectProps): ReactElement {
   const t = useT();
   const { state, setSort } = useSearchState();
+  // What the control SAYS must be what the results are ordered by. With no
+  // `sort` in the URL the select used to fall through to its placeholder and
+  // show nothing at all, while the server had already sorted the page and
+  // said so in the envelope.
+  const applied = useAppliedSort();
 
+  // What the page is ACTUALLY ordered by: the URL's sort, else the one the
+  // container states, else the one the server reported for the page in cache.
+  const active = state.sort ?? props.appliedSort ?? applied;
   const hasCentre = state.geo !== undefined;
   const known = new Set(SEARCH_SORTS);
   const values =
-    state.sort !== undefined && !known.has(state.sort)
-      ? [...SEARCH_SORTS, state.sort]
+    active !== undefined && !known.has(active)
+      ? [...SEARCH_SORTS, active]
       : SEARCH_SORTS;
 
   return (
@@ -52,8 +62,7 @@ export function SortSelect(props: SortSelectProps): ReactElement {
       <Select<string>
         data-testid="search-sort"
         style={{ minWidth: 180 }}
-        value={state.sort ?? props.appliedSort ?? null}
-        placeholder={t(SEARCH_I18N_KEYS.sortLabel)}
+        value={active ?? null}
         onChange={(next) => {
           setSort(next);
         }}

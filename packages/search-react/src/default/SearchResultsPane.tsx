@@ -74,6 +74,12 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
    * when the container's arrangement is not "cards in a grid".
    */
   readonly renderResults?: SearchResultsRenderer;
+  /**
+   * Rendered beside the count in the heading row — the sort control, a view
+   * switch. The pane owns the heading, so a screen that composes it hands its
+   * toolbar in here instead of printing a second caption above the pane.
+   */
+  readonly toolbar?: ReactNode;
   /** Rendered under the pager — where the container puts the ranking link. */
   readonly footer?: ReactNode;
   readonly enabled?: boolean;
@@ -140,7 +146,10 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
               <Typography.Title level={4} style={{ margin: 0 }}>
                 {t(SEARCH_I18N_KEYS.resultsTitle)}
               </Typography.Title>
-              <Count bag={bag} />
+              <Flex align="center" wrap gap={12}>
+                <Count bag={bag} />
+                {props.toolbar}
+              </Flex>
             </Flex>
 
             <DegradationNotice degradations={bag.degradations} />

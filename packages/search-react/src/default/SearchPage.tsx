@@ -15,13 +15,11 @@
  * optional behaviour in disguise — every one has a working default.
  */
 import type { ReactElement, ReactNode } from "react";
-import { Col, Flex, Row, Typography } from "antd";
-import { useT } from "@stapel/core";
+import { Col, Flex, Row } from "antd";
 import type { FeatureDef } from "@stapel/attributes-react";
 import { SearchStateProvider } from "../headless/SearchStateProvider.js";
 import type { SearchParamsAdapter } from "../headless/SearchStateProvider.js";
 import type { ParseSearchStateOptions } from "../state/urlState.js";
-import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { FacetPanelPane } from "./FacetPanelPane.js";
 import { SearchResultsPane } from "./SearchResultsPane.js";
 import { SortSelect } from "./SortSelect.js";
@@ -42,7 +40,6 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
 }
 
 export function SearchPage(props: SearchPageProps): ReactElement {
-  const t = useT();
   const {
     adapter,
     renderCard,
@@ -66,18 +63,16 @@ export function SearchPage(props: SearchPageProps): ReactElement {
               />
             </Col>
             <Col xs={24} md={17}>
-              <Flex vertical gap={12}>
-                <Flex justify="space-between" align="center" wrap gap={8}>
-                  <Typography.Text type="secondary">
-                    {t(SEARCH_I18N_KEYS.resultsTitle)}
-                  </Typography.Text>
-                  <SortSelect />
-                </Flex>
-                <SearchResultsPane
-                  {...(renderCard !== undefined ? { renderCard } : {})}
-                  {...(footer !== undefined ? { footer } : {})}
-                />
-              </Flex>
+              {/* ONE heading and ONE sort control. The page used to caption
+                  the toolbar "Results" and then mount a pane whose own heading
+                  says "Results" again — the live /s page printed both, one
+                  above the other. The pane owns the heading row; the page puts
+                  the sort control INTO it. */}
+              <SearchResultsPane
+                toolbar={<SortSelect />}
+                {...(renderCard !== undefined ? { renderCard } : {})}
+                {...(footer !== undefined ? { footer } : {})}
+              />
             </Col>
           </Row>
         </Flex>

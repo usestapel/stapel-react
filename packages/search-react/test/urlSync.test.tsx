@@ -201,3 +201,86 @@ describe("a link whose parameters cannot be read says so", () => {
     expect(text).toContain("r.price");
   });
 });
+
+/**
+ * P-6 from the live storefront walk: /s printed the results heading twice (the
+ * page's toolbar caption above the pane's own heading) and the sort label
+ * twice (the control's label and, inside the box, its placeholder) — with no
+ * value selected, over results the server had plainly sorted.
+ */
+describe("one heading, one sort control, and it says what the page is sorted by", () => {
+  function Page(props: { search?: string }): ReactElement {
+    const adapter = useTestParams(props.search ?? "type=listing");
+    return <SearchPage adapter={adapter} defaultType="listing" />;
+  }
+
+  function occurrences(haystack: string, needle: string): number {
+    return haystack.split(needle).length - 1;
+  }
+
+  it("says each of them exactly once", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    const { container } = render(
+      <TestProviders server={server} locale="ru">
+        <Page />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-results")).toBeTruthy();
+    });
+    const text = container.textContent ?? "";
+    expect(occurrences(text, "Результаты")).toBe(1);
+    expect(occurrences(text, "Сортировка")).toBe(1);
+  });
+
+  it("shows the sort the SERVER applied when the URL names none", async () => {
+    const server = mockServer({
+      "/query": { body: searchResponse({ sort: "newest" }) },
+    });
+    render(
+      <TestProviders server={server}>
+        <Page />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-results")).toBeTruthy();
+    });
+    // antd renders the selected option's label in the selector.
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("search-sort").textContent ?? ""
+      ).toContain("Newest first");
+    });
+  });
+
+  it("the URL's own sort wins over the server's", async () => {
+    const server = mockServer({
+      "/query": { body: searchResponse({ sort: "newest" }) },
+    });
+    render(
+      <TestProviders server={server}>
+        <Page search="type=listing&sort=price_asc" />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("search-sort").textContent ?? ""
+      ).toContain("Price: low to high");
+    });
+  });
+
+  it("the sort control issues no request of its own", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestProviders server={server}>
+        <Page />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-results")).toBeTruthy();
+    });
+    // One page of results, one query: `useAppliedSort` reads the cache the
+    // pane filled (`enabled: false`), it does not search again.
+    expect(server.calls.filter((c) => c.url.includes("/query")).length).toBe(1);
+  });
+});

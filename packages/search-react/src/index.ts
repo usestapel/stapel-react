@@ -124,6 +124,7 @@ export { SearchResults } from "./headless/SearchResults.js";
 export type { SearchPageInfo, SearchResultsBag } from "./headless/SearchResults.js";
 export { FacetPanel } from "./headless/FacetPanel.js";
 export type { FacetPanelBag } from "./headless/FacetPanel.js";
+export { useAppliedSort } from "./headless/useAppliedSort.js";
 export { RankingDisclosure } from "./headless/RankingDisclosure.js";
 export type { RankingDisclosureBag } from "./headless/RankingDisclosure.js";
 
