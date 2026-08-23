@@ -240,3 +240,39 @@ describe("<PublicShell/> — the browse bar gives the menu real width", () => {
     expect(screen.getByText("Post an ad")).toBeDefined();
   });
 });
+
+/**
+ * P-7: `Layout.Content` was `padding: 16` and nothing else, so a detail page's
+ * prose ran the full width of whatever monitor it was opened on.
+ */
+describe("<PublicShell/> — the content has a measure", () => {
+  it("centres the routed content at 1280 by default", async () => {
+    setViewportWidth(1440);
+    render(wrap("/s"));
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-content")).toBeDefined());
+    const content = screen.getByTestId("public-shell-content");
+    expect(content.style.maxWidth).toBe("1280px");
+    expect(content.style.marginInline).toBe("auto");
+    expect(screen.getByText("Search Page")).toBeDefined();
+  });
+
+  it("takes a host's own measure", async () => {
+    setViewportWidth(1440);
+    render(wrap("/s", { contentMaxWidth: 960 }));
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-content")).toBeDefined());
+    expect(screen.getByTestId("public-shell-content").style.maxWidth).toBe("960px");
+  });
+
+  it("goes edge to edge for `false`, and still renders the outlet", async () => {
+    setViewportWidth(1440);
+    render(wrap("/s", { contentMaxWidth: false }));
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-content")).toBeDefined());
+    const content = screen.getByTestId("public-shell-content");
+    expect(content.style.maxWidth).toBe("");
+    expect(content.style.marginInline).toBe("");
+    expect(screen.getByText("Search Page")).toBeDefined();
+  });
+});

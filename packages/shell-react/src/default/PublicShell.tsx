@@ -73,6 +73,13 @@ import { SHELL_I18N_KEYS } from "../i18n/keys.js";
  */
 const SIGN_IN_PATH = "/login";
 
+/**
+ * The default measure for the routed content. 1280px is the fleet's widest
+ * comfortable content column: a 12-column catalogue grid at ~280px cards plus
+ * gutters, and prose that stays inside a readable line length on any monitor
+ * bigger than the layout.
+ */
+const DEFAULT_CONTENT_MAX_WIDTH = 1280;
 
 export interface PublicShellProps {
   /** Already-resolved nav — the output of `resolvePublicNav` /
@@ -95,6 +102,18 @@ export interface PublicShellProps {
    * sign-in link renders anyway — see rule 2 in this module's header. */
   readonly accountSlot?: ReactNode;
   readonly footer?: ReactNode;
+  /**
+   * How wide the routed content is allowed to get, in px, centred in the
+   * viewport. Default 1280; `false` is edge-to-edge for a page that draws its
+   * own full-bleed sections (a landing page, a map).
+   *
+   * `Layout.Content` had a hardcoded `padding: 16` and nothing else, so a
+   * detail page's prose ran the full width of a 2560px monitor — a line
+   * length nobody reads. The chrome above it stays full-bleed on purpose: a
+   * top bar that stops short of the window edges reads as a broken page, not
+   * as a measure.
+   */
+  readonly contentMaxWidth?: number | false;
 }
 
 /** The default `accountSlot`: the entry point that must never be absent. */
@@ -110,6 +129,7 @@ function SignInCta(): ReactElement {
 /** Public storefront chrome: top bar + optional browse bar + `<Outlet/>`. */
 export function PublicShell(props: PublicShellProps): ReactElement {
   const t = useT();
+  const contentMaxWidth = props.contentMaxWidth ?? DEFAULT_CONTENT_MAX_WIDTH;
   const breakpoint = useBreakpoint();
   const isDesktop = breakpoint === "desktop";
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -211,7 +231,17 @@ export function PublicShell(props: PublicShellProps): ReactElement {
         )}
 
         <Layout.Content style={{ padding: 16 }}>
-          <Outlet />
+          <div
+            style={{
+              width: "100%",
+              ...(contentMaxWidth === false
+                ? {}
+                : { maxWidth: contentMaxWidth, marginInline: "auto" }),
+            }}
+            data-testid="public-shell-content"
+          >
+            <Outlet />
+          </div>
         </Layout.Content>
 
         {props.footer !== undefined && (

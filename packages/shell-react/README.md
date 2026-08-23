@@ -88,6 +88,7 @@ the nav `Menu`, `toAntdThemeConfig`, `useBreakpoint`) and no geometry:
 | Nav chrome | `Layout.Sider` (desktop) / `Drawer` (phone) | top bar + browse bar (desktop) / `Drawer` (phone) |
 | Slots | `logo`, `headerExtra` | `brand`, `searchSlot`, `categorySlot`, `accountSlot`, `footer` |
 | Sign-in | host's business | **default CTA when `accountSlot` is omitted** |
+| Content width | full width of the content column | `contentMaxWidth` (default **1280**, centred; `false` = edge to edge) |
 
 Three properties it is tested against rather than trusted on:
 
@@ -101,6 +102,22 @@ Three properties it is tested against rather than trusted on:
    (`@stapel/core`'s `MandateProvider` + `matchMandate`), which is also what
    picks `resolvePublicNav` vs `resolveMemberNav`. A shell that read it too
    would be a second home for the access rule.
+
+### `contentMaxWidth`
+
+The routed content is centred at **1280px** by default — a 12-column catalogue
+grid of ~280px cards plus gutters, and prose that keeps a readable line length
+on a monitor wider than the layout. A page that draws its own full-bleed
+sections (a landing page, a map) passes `contentMaxWidth={false}`; a text-heavy
+storefront passes its own number.
+
+```tsx
+<PublicShell nav={nav} mode="light" contentMaxWidth={960} />
+<PublicShell nav={nav} mode="light" contentMaxWidth={false} />
+```
+
+The chrome above it stays full-bleed on purpose: a top bar that stops short of
+the window edges reads as a broken page, not as a measure.
 
 ## `<ThemeModeControl/>` (`/theme` subpath — plain DOM, no antd, no CSS file)
 
