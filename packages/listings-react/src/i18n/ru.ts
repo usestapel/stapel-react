@@ -107,7 +107,7 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.detail.photo_alt": "Фото {index} из {total}",
   "listings.detail.published_at": "Опубликовано {date}",
   "listings.detail.expires_at": "В продаже до {date}",
-  "listings.detail.stock": "В наличии: {count}",
+  "listings.detail.stock": "В наличии",
 
   "listings.compose.new_title": "Новое объявление",
   "listings.compose.edit_title": "Редактирование объявления",

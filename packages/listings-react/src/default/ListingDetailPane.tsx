@@ -246,9 +246,14 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
               ) : null}
 
               <Descriptions size="small" column={1}>
+                {/* Label cell and value cell, which is what a `<Descriptions>`
+                    row IS: the label key carries no `{count}` (it did, and the
+                    page printed the placeholder), the quantity is the value. */}
                 {listing.stock_quantity != null ? (
                   <Descriptions.Item label={t(LISTINGS_I18N_KEYS.detailStock)}>
-                    {listing.stock_quantity}
+                    <span data-testid="listings-detail-stock">
+                      {listing.stock_quantity}
+                    </span>
                   </Descriptions.Item>
                 ) : null}
                 {listing.location_label !== undefined &&

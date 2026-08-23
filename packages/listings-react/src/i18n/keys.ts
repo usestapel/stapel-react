@@ -84,6 +84,9 @@ export const LISTINGS_I18N_KEYS = {
   detailPhotoAlt: "listings.detail.photo_alt",
   detailPublishedAt: "listings.detail.published_at",
   detailExpiresAt: "listings.detail.expires_at",
+  /** The stock ROW'S LABEL. antd's `<Descriptions>` renders the colon and the
+   * quantity in the value cell, so this key carries no `{count}` — it used to,
+   * and the live page printed the placeholder. */
   detailStock: "listings.detail.stock",
 
   // ── composer ─────────────────────────────────────────────────────────────
@@ -241,7 +244,7 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.detail.photo_alt": "Photo {index} of {total}",
   "listings.detail.published_at": "Published {date}",
   "listings.detail.expires_at": "Listed until {date}",
-  "listings.detail.stock": "{count} available",
+  "listings.detail.stock": "In stock",
 
   "listings.compose.new_title": "New listing",
   "listings.compose.edit_title": "Edit listing",

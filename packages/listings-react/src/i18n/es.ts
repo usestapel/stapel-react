@@ -91,7 +91,7 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.detail.photo_alt": "Foto {index} de {total}",
   "listings.detail.published_at": "Publicado el {date}",
   "listings.detail.expires_at": "A la venta hasta el {date}",
-  "listings.detail.stock": "Disponibles: {count}",
+  "listings.detail.stock": "Disponibles",
 
   "listings.compose.new_title": "Anuncio nuevo",
   "listings.compose.edit_title": "Editar el anuncio",

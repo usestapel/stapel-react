@@ -273,3 +273,40 @@ describe("the favourite control is blocked, never hidden", () => {
     expect(srv.matching("/listings/7/unfavorite/")).toHaveLength(0);
   });
 });
+
+describe("the stock row is a label and a value, not a sentence in the label cell", () => {
+  it("renders the quantity in the value cell and no placeholder anywhere", async () => {
+    const srv = mockServer({
+      "/listings/7/status/": { body: statusInfo() },
+      "/listings/7/": { body: detail({ stock_quantity: 3 }) },
+    });
+    const { container } = render(
+      <TestProviders server={srv} locale="ru">
+        <ListingDetailPane id={7} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-detail-stock").textContent).toBe("3");
+    });
+    // The live defect: the whole sentence sat in the label cell, so the page
+    // printed the placeholder next to a value cell holding the number.
+    expect(container.textContent ?? "").not.toContain("{count}");
+    expect(container.textContent ?? "").toContain("В наличии");
+  });
+
+  it("omits the row when the backend sends no quantity", async () => {
+    const srv = mockServer({
+      "/listings/7/status/": { body: statusInfo() },
+      "/listings/7/": { body: detail({ stock_quantity: null }) },
+    });
+    render(
+      <TestProviders server={srv}>
+        <ListingDetailPane id={7} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-detail-title")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("listings-detail-stock")).toBeNull();
+  });
+});
