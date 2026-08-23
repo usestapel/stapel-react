@@ -1,0 +1,21 @@
+import { toFlowError as coreToFlowError } from "@stapel/core";
+import type { FlowError } from "@stapel/core";
+
+export type { FlowError } from "@stapel/core";
+export { isErrorCode } from "@stapel/core";
+
+/**
+ * Fold any thrown value into a {@link FlowError} using this pair's own
+ * module-scoped fallback key (`gdpr.error.unknown`, an en string in
+ * {@link gdprI18nBundleEn}) so a non-`StapelApiError` fault still renders real
+ * copy rather than a raw key. The primitive lives in `@stapel/core`
+ * (frontend-core-architecture §4b); this wrapper only pins the fallback.
+ *
+ * `model/refusals.ts` folds through the same helper before every predicate,
+ * which is why `isLegalHold(err)` works on whatever a caller caught — a
+ * `StapelApiError`, a `FlowError` already folded once, or a `TypeError` from a
+ * dropped connection (which is none of the module's refusals, and says so).
+ */
+export function toFlowError(error: unknown): FlowError {
+  return coreToFlowError(error, "gdpr.error.unknown");
+}

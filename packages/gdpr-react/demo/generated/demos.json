@@ -1,0 +1,32 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/gdpr-react",
+  "version": "0.0.0",
+  "demos": [
+    {
+      "id": "gdpr.closure",
+      "title": "Account closure",
+      "description": "GET /gdpr/api/v1/user/account/close/status — is this account being deleted? The module answers 404 error.404.gdpr.no_active_closure for the state almost every account is in, so useAccountClosure folds that ONE code (never the status) into a null answer: the ready arm has two shapes and the failed arm keeps meaning 'we could not ask'. The grace variant shows the date the sweep task will act on, straight off the wire, and the pending erasure beside it carries BOTH clocks — due_at is when our systems are done, fully_erased_by is when the last subprocessor's window closes.",
+      "component": "GdprProvider",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        },
+        {
+          "id": "grace"
+        },
+        {
+          "id": "erasing"
+        }
+      ],
+      "source": {
+        "file": "demo/Gdpr.demo.tsx",
+        "line": 90
+      }
+    }
+  ]
+}

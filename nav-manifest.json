@@ -133,6 +133,52 @@
       ]
     },
     {
+      "package": "@stapel/gdpr-react",
+      "version": "0.0.0",
+      "entries": [
+        {
+          "id": "account.privacy",
+          "labelKey": "gdpr.privacy.heading",
+          "icon": "SafetyCertificateOutlined",
+          "route": {
+            "path": "privacy"
+          },
+          "component": {
+            "export": "PrivacyPane",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "account.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 90
+        },
+        {
+          "id": "admin.privacy",
+          "labelKey": "gdpr.admin.heading",
+          "icon": "AuditOutlined",
+          "route": {
+            "path": "privacy"
+          },
+          "component": {
+            "export": "PrivacyAdminPane",
+            "subpath": "default/admin"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "admin.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 40
+        }
+      ]
+    },
+    {
       "package": "@stapel/listings-react",
       "version": "0.2.0",
       "entries": [

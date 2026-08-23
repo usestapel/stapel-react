@@ -1,0 +1,852 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/gdpr-react",
+  "version": "0.0.0",
+  "backend": {
+    "module": "stapel-gdpr",
+    "contract": ">=0.5 <0.6"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "gdpr_api_v1_dsar_create": {
+      "method": "POST",
+      "path": "/gdpr/api/v1/dsar",
+      "tag": "GDPR",
+      "request": "GDPRDsarRequest",
+      "response": "DsarStatusDTO"
+    },
+    "gdpr_api_v1_dsar_list": {
+      "method": "GET",
+      "path": "/gdpr/api/v1/dsar",
+      "tag": "GDPR",
+      "request": null,
+      "response": null
+    },
+    "gdpr_api_v1_dsar_partial_update": {
+      "method": "PATCH",
+      "path": "/gdpr/api/v1/dsar/{dsar_id}",
+      "tag": "GDPR",
+      "request": "PatchedGDPRDsarPatch",
+      "response": "DsarStatusDTO"
+    },
+    "gdpr_api_v1_dsar_retrieve": {
+      "method": "GET",
+      "path": "/gdpr/api/v1/dsar/{dsar_id}",
+      "tag": "GDPR",
+      "request": null,
+      "response": "DsarStatusDTO"
+    },
+    "gdpr_api_v1_erasures_create": {
+      "method": "POST",
+      "path": "/gdpr/api/v1/erasures",
+      "tag": "GDPR",
+      "request": "GDPRErasureRequest",
+      "response": "ErasureStatusDTO"
+    },
+    "gdpr_api_v1_erasures_retrieve": {
+      "method": "GET",
+      "path": "/gdpr/api/v1/erasures/{request_id}",
+      "tag": "GDPR",
+      "request": null,
+      "response": "ErasureStatusDTO"
+    },
+    "gdpr_api_v1_internal_export_part_ready_create": {
+      "method": "POST",
+      "path": "/gdpr/api/v1/internal/export/{request_id}/part-ready",
+      "tag": "GDPR",
+      "request": "GDPRExportPartReadyRequest",
+      "response": null
+    },
+    "gdpr_api_v1_me_erasures_list": {
+      "method": "GET",
+      "path": "/gdpr/api/v1/me/erasures",
+      "tag": "GDPR",
+      "request": null,
+      "response": null
+    },
+    "gdpr_api_v1_owners_health_list": {
+      "method": "GET",
+      "path": "/gdpr/api/v1/owners/health",
+      "tag": "GDPR",
+      "request": null,
+      "response": null
+    },
+    "gdpr_api_v1_user_account_cancel_close_create": {
+      "method": "POST",
+      "path": "/gdpr/api/v1/user/account/cancel-close",
+      "tag": "GDPR",
+      "request": null,
+      "response": "ClosureStatusDTO"
+    },
+    "gdpr_api_v1_user_account_close_create": {
+      "method": "POST",
+      "path": "/gdpr/api/v1/user/account/close",
+      "tag": "GDPR",
+      "request": null,
+      "response": "ClosureStatusDTO"
+    },
+    "gdpr_api_v1_user_account_close_status_retrieve": {
+      "method": "GET",
+      "path": "/gdpr/api/v1/user/account/close/status",
+      "tag": "GDPR",
+      "request": null,
+      "response": "ClosureStatusDTO"
+    },
+    "gdpr_api_v1_user_data_export_download_create": {
+      "method": "POST",
+      "path": "/gdpr/api/v1/user/data-export/download",
+      "tag": "GDPR",
+      "request": "GDPRDownloadTokenRequest",
+      "response": null
+    },
+    "gdpr_api_v1_user_data_export_request_create": {
+      "method": "POST",
+      "path": "/gdpr/api/v1/user/data-export/request",
+      "tag": "GDPR",
+      "request": null,
+      "response": "ExportRequestDTO"
+    },
+    "gdpr_api_v1_user_data_export_status_retrieve": {
+      "method": "GET",
+      "path": "/gdpr/api/v1/user/data-export/status",
+      "tag": "GDPR",
+      "request": null,
+      "response": "ExportStatusDTO"
+    }
+  },
+  "hooks": {
+    "useAccountClosure": {
+      "kind": "mutation",
+      "operations": [
+        "cancelClosure",
+        "closureStatus",
+        "initiateClosure"
+      ],
+      "invalidates": [
+        [
+          "gdpr"
+        ],
+        [
+          "gdpr",
+          "closure"
+        ]
+      ]
+    },
+    "useDataExport": {
+      "kind": "mutation",
+      "operations": [
+        "downloadExport",
+        "exportStatus",
+        "requestExport"
+      ],
+      "invalidates": [
+        [
+          "gdpr",
+          "export",
+          "status"
+        ]
+      ]
+    },
+    "useDsar": {
+      "kind": "mutation",
+      "operation": "submitDsar",
+      "invalidates": [
+        [
+          "gdpr"
+        ]
+      ]
+    },
+    "useDsarQueue": {
+      "kind": "query",
+      "operation": "dsarQueue",
+      "queryKey": [
+        "gdpr",
+        "dsar",
+        "queue"
+      ]
+    },
+    "useErasure": {
+      "kind": "query",
+      "operation": "erasure",
+      "queryKey": [
+        "gdpr",
+        "erasures",
+        "one",
+        "{requestId}"
+      ]
+    },
+    "useMyErasures": {
+      "kind": "query",
+      "operation": "myErasures",
+      "queryKey": [
+        "gdpr",
+        "erasures",
+        "mine"
+      ]
+    },
+    "useOwnersHealth": {
+      "kind": "query",
+      "operation": "ownersHealth",
+      "queryKey": [
+        "gdpr",
+        "owners",
+        "health"
+      ]
+    },
+    "useRequestErasure": {
+      "kind": "mutation",
+      "operation": "requestErasure",
+      "invalidates": [
+        [
+          "gdpr",
+          "erasures",
+          "one",
+          "{requestId}"
+        ],
+        [
+          "gdpr",
+          "erasures"
+        ]
+      ]
+    },
+    "useUpdateDsar": {
+      "kind": "mutation",
+      "operation": "updateDsar",
+      "invalidates": [
+        [
+          "gdpr"
+        ],
+        [
+          "gdpr",
+          "dsar",
+          "one",
+          "{dsarId}"
+        ]
+      ]
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.gdpr.unknown_dsar_kind": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.gdpr.unknown_subject_type": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.gdpr.account_closed": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.gdpr.erasure_forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.gdpr.dsar_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.gdpr.erasure_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.gdpr.export_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.gdpr.no_active_closure": {
+      "status": 404,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.gdpr.closure_already_pending": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.gdpr.export_cooldown": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.gdpr.legal_hold": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gdpr.download_consumed": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.410.gdpr.download_expired": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.425.gdpr.export_not_ready": {
+      "status": 425,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.gdpr.closure_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "gdpr.closure",
+      "title": "Account closure",
+      "description": "GET /gdpr/api/v1/user/account/close/status — is this account being deleted? The module answers 404 error.404.gdpr.no_active_closure for the state almost every account is in, so useAccountClosure folds that ONE code (never the status) into a null answer: the ready arm has two shapes and the failed arm keeps meaning 'we could not ask'. The grace variant shows the date the sweep task will act on, straight off the wire, and the pending erasure beside it carries BOTH clocks — due_at is when our systems are done, fully_erased_by is when the last subprocessor's window closes.",
+      "component": "GdprProvider",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "grace",
+        "erasing"
+      ],
+      "source": "demo/Gdpr.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.gdpr.unknown_dsar_kind",
+    "error.400.gdpr.unknown_subject_type",
+    "error.400.invalid_ad_id",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.gdpr.account_closed",
+    "error.403.gdpr.erasure_forbidden",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.gdpr.dsar_not_found",
+    "error.404.gdpr.erasure_not_found",
+    "error.404.gdpr.export_not_found",
+    "error.404.gdpr.no_active_closure",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.409.gdpr.closure_already_pending",
+    "error.409.gdpr.export_cooldown",
+    "error.409.gdpr.legal_hold",
+    "error.410.gdpr.download_consumed",
+    "error.410.gdpr.download_expired",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.425.gdpr.export_not_ready",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.gdpr.closure_unavailable",
+    "error.503.mandate_unavailable",
+    "gdpr.action.retry",
+    "gdpr.admin.heading",
+    "gdpr.admin.staff_only",
+    "gdpr.closure.cancel",
+    "gdpr.closure.cancelled",
+    "gdpr.closure.confirm_body",
+    "gdpr.closure.confirm_cancel",
+    "gdpr.closure.confirm_ok",
+    "gdpr.closure.confirm_title",
+    "gdpr.closure.deleted",
+    "gdpr.closure.deleting",
+    "gdpr.closure.explain",
+    "gdpr.closure.heading",
+    "gdpr.closure.initiate",
+    "gdpr.closure.loading",
+    "gdpr.closure.none",
+    "gdpr.closure.scheduled",
+    "gdpr.deletions.column.due",
+    "gdpr.deletions.column.fully_erased",
+    "gdpr.deletions.column.state",
+    "gdpr.deletions.column.subject",
+    "gdpr.deletions.empty",
+    "gdpr.deletions.fully_erased_hint",
+    "gdpr.deletions.heading",
+    "gdpr.deletions.loading",
+    "gdpr.deletions.state.deleted",
+    "gdpr.deletions.state.erasing",
+    "gdpr.deletions.state.queued",
+    "gdpr.deletions.state.timeout",
+    "gdpr.deletions.timeout_hint",
+    "gdpr.deletions.waiting_on",
+    "gdpr.dsar.ack_by",
+    "gdpr.dsar.email_label",
+    "gdpr.dsar.email_required",
+    "gdpr.dsar.explain",
+    "gdpr.dsar.heading",
+    "gdpr.dsar.kind.access",
+    "gdpr.dsar.kind.erasure",
+    "gdpr.dsar.kind.portability",
+    "gdpr.dsar.kind.rectification",
+    "gdpr.dsar.kind_label",
+    "gdpr.dsar.note_label",
+    "gdpr.dsar.reference",
+    "gdpr.dsar.resolve_by",
+    "gdpr.dsar.submit",
+    "gdpr.dsar.submitted",
+    "gdpr.error.unknown",
+    "gdpr.export.download",
+    "gdpr.export.expires",
+    "gdpr.export.explain",
+    "gdpr.export.heading",
+    "gdpr.export.loading",
+    "gdpr.export.none",
+    "gdpr.export.partial",
+    "gdpr.export.progress",
+    "gdpr.export.request",
+    "gdpr.export.requested",
+    "gdpr.export.state.expired",
+    "gdpr.export.state.failed",
+    "gdpr.export.state.pending",
+    "gdpr.export.state.processing",
+    "gdpr.export.state.ready",
+    "gdpr.export.token_hint",
+    "gdpr.owners.alive",
+    "gdpr.owners.column.last_alive",
+    "gdpr.owners.column.owner",
+    "gdpr.owners.column.state",
+    "gdpr.owners.column.subjects",
+    "gdpr.owners.empty",
+    "gdpr.owners.explain",
+    "gdpr.owners.heading",
+    "gdpr.owners.loading",
+    "gdpr.owners.never_answered",
+    "gdpr.owners.silent",
+    "gdpr.owners.silent_count",
+    "gdpr.owners.subject_mismatch",
+    "gdpr.privacy.heading",
+    "gdpr.queue.ack_missing",
+    "gdpr.queue.ack_sent",
+    "gdpr.queue.channel.app",
+    "gdpr.queue.channel.email",
+    "gdpr.queue.channel.form",
+    "gdpr.queue.column.ack_due",
+    "gdpr.queue.column.channel",
+    "gdpr.queue.column.kind",
+    "gdpr.queue.column.reference",
+    "gdpr.queue.column.resolve_due",
+    "gdpr.queue.column.state",
+    "gdpr.queue.column.subject",
+    "gdpr.queue.empty",
+    "gdpr.queue.heading",
+    "gdpr.queue.loading",
+    "gdpr.queue.overdue",
+    "gdpr.queue.save_note",
+    "gdpr.queue.state.acknowledged",
+    "gdpr.queue.state.in_progress",
+    "gdpr.queue.state.received",
+    "gdpr.queue.state.rejected",
+    "gdpr.queue.state.resolved",
+    "gdpr.subject.account",
+    "gdpr.subject.document",
+    "gdpr.subject.file",
+    "gdpr.subject.meeting",
+    "gdpr.subject.recording",
+    "gdpr.subject.workspace"
+  ],
+  "exports": {
+    "runtime": [
+      "ACCOUNT_ROOT_ID",
+      "ADMIN_ROOT_ID",
+      "GDPR_ERRORS",
+      "GDPR_ERROR_ACCOUNT_CLOSED",
+      "GDPR_ERROR_CAPTCHA_INVALID",
+      "GDPR_ERROR_CAPTCHA_REQUIRED",
+      "GDPR_ERROR_CLOSURE_ALREADY_PENDING",
+      "GDPR_ERROR_CLOSURE_UNAVAILABLE",
+      "GDPR_ERROR_CODES",
+      "GDPR_ERROR_DOWNLOAD_CONSUMED",
+      "GDPR_ERROR_DOWNLOAD_EXPIRED",
+      "GDPR_ERROR_DSAR_NOT_FOUND",
+      "GDPR_ERROR_ERASURE_FORBIDDEN",
+      "GDPR_ERROR_ERASURE_NOT_FOUND",
+      "GDPR_ERROR_EXPORT_COOLDOWN",
+      "GDPR_ERROR_EXPORT_NOT_FOUND",
+      "GDPR_ERROR_EXPORT_NOT_READY",
+      "GDPR_ERROR_FORBIDDEN",
+      "GDPR_ERROR_LEGAL_HOLD",
+      "GDPR_ERROR_NO_ACTIVE_CLOSURE",
+      "GDPR_ERROR_UNKNOWN_DSAR_KIND",
+      "GDPR_ERROR_UNKNOWN_SUBJECT_TYPE",
+      "GDPR_FLOWS",
+      "GDPR_I18N_KEYS",
+      "GdprProvider",
+      "GdprRuntimeContext",
+      "createFlowMachine",
+      "createGdprApi",
+      "createGdprRuntime",
+      "downloadExportArchive",
+      "explainGdprError",
+      "flowEndpoints",
+      "formatDeletionDate",
+      "formatInstant",
+      "gdprErrorBundleEn",
+      "gdprI18nBundleEn",
+      "gdprQueryKeys",
+      "isAccountClosed",
+      "isCaptchaRefusal",
+      "isClosureAlreadyPending",
+      "isClosureUnavailable",
+      "isDownloadConsumed",
+      "isDownloadExpired",
+      "isDsarNotFound",
+      "isErasureForbidden",
+      "isErasureNotFound",
+      "isErrorCode",
+      "isExportCooldown",
+      "isExportNotFound",
+      "isExportNotReady",
+      "isLegalHold",
+      "isNoActiveClosure",
+      "isStaffOnly",
+      "isUnknownDsarKind",
+      "isUnknownSubjectType",
+      "navEntries",
+      "registerGdprI18n",
+      "toFlowError",
+      "toGdprError",
+      "useAccountClosure",
+      "useDataExport",
+      "useDsar",
+      "useDsarQueue",
+      "useErasure",
+      "useFlow",
+      "useGdprAnalytics",
+      "useGdprApi",
+      "useGdprRuntime",
+      "useMyErasures",
+      "useOwnersHealth",
+      "useRequestErasure",
+      "useUpdateDsar"
+    ],
+    "types": [
+      "AccountClosure",
+      "AccountClosureBag",
+      "CreateGdprRuntimeOptions",
+      "DataExportBag",
+      "DataOwnerHealth",
+      "DsarBag",
+      "DsarKind",
+      "DsarPatch",
+      "DsarQueueBag",
+      "DsarState",
+      "DsarStatus",
+      "DsarSubmission",
+      "ErasurePart",
+      "ErasureStatus",
+      "ExportArchive",
+      "ExportRequest",
+      "ExportStatus",
+      "FlowEndpoint",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "GdprApi",
+      "GdprApiOptions",
+      "GdprErrorCode",
+      "GdprErrorSpec",
+      "GdprFlowId",
+      "GdprFlowSpec",
+      "GdprI18nKey",
+      "GdprRawTransport",
+      "GdprRuntime",
+      "MyErasuresBag",
+      "OwnersHealthBag",
+      "Remediation",
+      "RequestErasureBody",
+      "Schemas",
+      "SubprocessorObligation",
+      "UpdateDsarVariables"
+    ]
+  }
+}

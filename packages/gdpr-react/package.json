@@ -1,0 +1,118 @@
+{
+  "name": "@stapel/gdpr-react",
+  "version": "0.0.0",
+  "description": "Headless React pair for stapel-gdpr — the deletion lifecycle a person can see: account closure with its cancellable grace, the entity erasures a host opens after its own delete (`useRequestErasure`), the pending-deletion list with `due_at` and `fully_erased_by`, the data export, and the DSAR intake in both its app and anonymous-form variants. Three of the module's 404s mean three different things — \"nothing is being deleted\" is one of them — so every refusal is read by CODE and a 404 that means \"you are fine\" is never rendered as a failure. Staff get the DSAR queue and the owner-health table where a silent data owner is a warning row, not an absent one. Zero visual opinion in the main entry; opt-in `/default` and `/default/admin` subpaths ship the antd skins.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usestapel/stapel-react.git",
+    "directory": "packages/gdpr-react"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./default": {
+      "types": "./dist/default/index.d.ts",
+      "default": "./dist/default/index.js"
+    },
+    "./default/admin": {
+      "types": "./dist/default/admin/index.d.ts",
+      "default": "./dist/default/admin/index.js"
+    },
+    "./i18n/ru": {
+      "types": "./dist/i18n/ru.d.ts",
+      "default": "./dist/i18n/ru.js"
+    },
+    "./manifest": "./manifest.json",
+    "./manifest.json": "./manifest.json",
+    "./nav-manifest.json": "./nav-manifest.json",
+    "./llms.txt": "./llms.txt",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "tsconfig.json",
+    "README.md",
+    "MODULE.md",
+    "CHANGELOG.md",
+    "manifest.json",
+    "nav-manifest.json",
+    "llms.txt"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.test.json && vitest run --exclude test/prodBundlePurity.test.ts",
+    "test:pack": "vitest run test/prodBundlePurity.test.ts",
+    "lint": "eslint .",
+    "size": "size-limit"
+  },
+  "size-limit": [
+    {
+      "name": "index — the headless pair (client + the five reads + the six writes): no antd",
+      "path": "dist/index.js",
+      "limit": "12 KB"
+    },
+    {
+      "name": "default — the member-facing antd skin (closure, pending deletions, export, DSAR form)",
+      "path": "dist/default/index.js",
+      "limit": "16 KB"
+    },
+    {
+      "name": "default/admin — the staff screens must not ride in a member's bundle",
+      "path": "dist/default/admin/index.js",
+      "limit": "12 KB"
+    },
+    {
+      "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",
+      "path": "dist/i18n/ru.js",
+      "limit": "6 KB"
+    }
+  ],
+  "peerDependencies": {
+    "@stapel/core": ">=0.15.0 <1.0.0",
+    "@stapel/tokens-antd": ">=0.5.0",
+    "@tanstack/react-query": "^5.0.0",
+    "antd": ">=5.20.0 <7",
+    "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "@stapel/tokens-antd": {
+      "optional": true
+    },
+    "antd": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@size-limit/preset-small-lib": "^11.2.0",
+    "@stapel/core": "workspace:^",
+    "@stapel/showcase": "workspace:^",
+    "@stapel/tokens": "workspace:^",
+    "@stapel/tokens-antd": "workspace:^",
+    "@tanstack/react-query": "^5.81.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "antd": "^6.5.0",
+    "jsdom": "^26.1.0",
+    "msw": "^2.10.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "size-limit": "^11.2.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
