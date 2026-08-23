@@ -131,6 +131,12 @@ describe("the engine resolves what the pair registers", () => {
     expect(engine.tPlural(SEARCH_I18N_KEYS.resultsCountApproximate, { count: 21 })).toBe(
       "Примерно 21 объявление"
     );
+    // A LOWER BOUND takes the same endings — the "+" is not a word, so the
+    // many-form must not come back in the one-form.
+    const atLeast = SEARCH_I18N_KEYS.resultsCountAtLeast;
+    expect(engine.tPlural(atLeast, { count: 1 })).toBe("1+ объявление");
+    expect(engine.tPlural(atLeast, { count: 3 })).toBe("3+ объявления");
+    expect(engine.tPlural(atLeast, { count: 1000 })).toBe("1000+ объявлений");
   });
 
   it("counts in English through the same call", () => {
@@ -142,6 +148,9 @@ describe("the engine resolves what the pair registers", () => {
     expect(engine.tPlural(SEARCH_I18N_KEYS.resultsCountExact, { count: 4 })).toBe(
       "4 results"
     );
+    expect(
+      engine.tPlural(SEARCH_I18N_KEYS.resultsCountAtLeast, { count: 1200 })
+    ).toBe("1200+ results");
   });
 
   it("layers es the same way", () => {

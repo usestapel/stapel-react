@@ -213,7 +213,11 @@ export interface components {
             prev_anchor: string | null;
             has_next: boolean;
             has_prev: boolean;
-            count: number;
+            /** @description How many documents match. NEVER 0 beside a non-empty items[] — the answer may not claim fewer matches than the page shows. `null` means the engine cannot say, and is rendered as no count at all. */
+            count: number | null;
+            /** @description True when `count` is a floor: at least this many match, possibly more (a capped count, a window-truncated engine answer). Render 'N+', never 'N'. */
+            count_is_lower_bound: boolean;
+            /** @description True when `count` is exact for THIS answer — equivalent to `count is not null and not count_is_lower_bound`. Per answer, not per engine: an engine without a guaranteed exact total still counts a small candidate set exactly. */
             exact_total: boolean;
             /** @description What the configured engine could not do for this query. */
             degraded: string[];

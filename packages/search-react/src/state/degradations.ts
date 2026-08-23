@@ -66,10 +66,70 @@ export function parseDegradations(
  * the envelope's own `exact_total: false`, and the `"exact_total"`
  * degradation. They agree in practice; treating either as decisive is what
  * keeps "≈1 200" from ever being rendered as "1 200".
+ *
+ * @deprecated Since stapel-search 0.2.0 the envelope answers this directly
+ * with `count_is_lower_bound`, and "not exact" now means a FLOOR rather than
+ * a fuzzy number. Use {@link countKind}, which reads the wire field and also
+ * handles `count: null`.
  */
 export function countIsEstimate(
   exactTotal: boolean,
   degradations: readonly SearchDegradation[]
 ): boolean {
   return !exactTotal || degradations.some((d) => d.kind === "exact_total");
+}
+
+/**
+ * How a count may be spoken: as a number, as a floor, or not at all.
+ *
+ * The three states stapel-search 0.2.0 made explicit, because the version
+ * before it had only two and used `0` for both "none match" and "we do not
+ * know" — which is how a storefront came to print "About 0 listings" over
+ * four visible cards.
+ */
+export type SearchCountKind = "exact" | "at_least" | "unknown";
+
+/**
+ * Read the envelope's three count fields as one decision.
+ *
+ * `null` is UNKNOWN and renders as no count line — never as `0`, and never
+ * as "about 0". Anything the server declines to call exact is rendered as a
+ * floor ("N+"), including the defensive case of an `exact_total: false` from
+ * a server that predates `count_is_lower_bound`: claiming "at least N" over
+ * a page that shows N rows is the one reading that cannot be contradicted by
+ * what the reader can see.
+ */
+export function countKind(
+  count: number | null | undefined,
+  isLowerBound: boolean | undefined,
+  exactTotal: boolean,
+  degradations: readonly SearchDegradation[]
+): SearchCountKind {
+  if (count === null || count === undefined) return "unknown";
+  if (isLowerBound === true) return "at_least";
+  return countIsEstimate(exactTotal, degradations) ? "at_least" : "exact";
+}
+
+/**
+ * Is `exact_total` the ONLY thing the engine could not do?
+ *
+ * It is a count NUANCE, not a failed search: the answer is complete, the
+ * rows are the right rows, and the single consequence — that the total is a
+ * floor — is already spoken by the count itself as "N+". Raising a warning
+ * banner over it teaches a reader that a perfectly good result page is
+ * broken, and a banner that cries wolf on every landing page is a banner
+ * nobody reads on the day `category_rollup` shows up in it.
+ *
+ * Every other degradation changes what the page MEANS ("typos were not
+ * corrected", "subcategories may be missing", "counts are approximate") and
+ * still renders. So does `exact_total` when it arrives BESIDE one of them —
+ * the list is then a description of a genuinely degraded answer.
+ */
+export function isCountNuanceOnly(
+  degradations: readonly SearchDegradation[]
+): boolean {
+  return (
+    degradations.length > 0 &&
+    degradations.every((degradation) => degradation.kind === "exact_total")
+  );
 }

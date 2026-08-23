@@ -28,9 +28,18 @@ export const SEARCH_I18N_KEYS = {
   resultsLoadFailed: "search.results.load_failed",
   resultsEmpty: "search.results.empty",
   resultsRetry: "search.results.retry",
-  /** "About N results" — the sentence for an ESTIMATED count. A PLURAL
-   * FAMILY: render with `tPlural`, never `t` (see SEARCH_I18N_PLURAL_KEYS). */
+  /**
+   * "About N results" — the sentence for an ESTIMATED count. A PLURAL
+   * FAMILY: render with `tPlural`, never `t` (see SEARCH_I18N_PLURAL_KEYS).
+   *
+   * @deprecated stapel-search 0.2.0 stopped producing estimates: a count is
+   * exact, a FLOOR (`resultsCountAtLeast`), or absent. Kept so a host that
+   * translated it keeps a working key, and no longer rendered by the skin.
+   */
   resultsCountApproximate: "search.results.count_approximate",
+  /** "N+ results" — a LOWER BOUND: at least this many match, possibly more.
+   * A PLURAL FAMILY. Never render a floor as a plain number. */
+  resultsCountAtLeast: "search.results.count_at_least",
   /** "N results" — only when `exact_total` is true. A PLURAL FAMILY. */
   resultsCountExact: "search.results.count_exact",
   resultsTookMs: "search.results.took_ms",
@@ -129,6 +138,7 @@ export type SearchI18nKey =
  */
 export const SEARCH_I18N_PLURAL_KEYS: readonly SearchI18nKey[] = [
   SEARCH_I18N_KEYS.resultsCountApproximate,
+  SEARCH_I18N_KEYS.resultsCountAtLeast,
   SEARCH_I18N_KEYS.resultsCountExact,
 ];
 
@@ -149,6 +159,8 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.results.retry": "Try again",
   "search.results.count_approximate.one": "About {count} result",
   "search.results.count_approximate.other": "About {count} results",
+  "search.results.count_at_least.one": "{count}+ result",
+  "search.results.count_at_least.other": "{count}+ results",
   "search.results.count_exact.one": "{count} result",
   "search.results.count_exact.other": "{count} results",
   "search.results.took_ms": "{ms} ms",

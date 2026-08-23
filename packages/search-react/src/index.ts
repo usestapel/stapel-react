@@ -86,7 +86,14 @@ export type {
   SearchStatePatch,
 } from "./state/urlState.js";
 
-export { countIsEstimate, degradationMessageKey, parseDegradations } from "./state/degradations.js";
+export {
+  countIsEstimate,
+  countKind,
+  degradationMessageKey,
+  isCountNuanceOnly,
+  parseDegradations,
+} from "./state/degradations.js";
+export type { SearchCountKind } from "./state/degradations.js";
 
 export { buildFacetGroups, facetOptionLabel } from "./state/facets.js";
 export type {

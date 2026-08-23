@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import { countIsEstimate, parseDegradations } from "../src/index.js";
+import {
+  countIsEstimate,
+  countKind,
+  isCountNuanceOnly,
+  parseDegradations,
+} from "../src/index.js";
 import { SearchResultsPane } from "../src/default/index.js";
 import { searchResponse } from "./fixtures.js";
 import { TestHarness, mockServer } from "./harness.js";
@@ -51,6 +56,26 @@ describe("degraded[] is parsed, not glanced at", () => {
     expect(countIsEstimate(true, parseDegradations(["exact_total"]))).toBe(true);
     expect(countIsEstimate(true, [])).toBe(false);
   });
+
+  it("reads the envelope's three count states as one decision", () => {
+    expect(countKind(25, false, true, [])).toBe("exact");
+    expect(countKind(1200, true, false, parseDegradations(["exact_total"]))).toBe(
+      "at_least"
+    );
+    // No `count_is_lower_bound` from a server that predates it: still a floor.
+    expect(countKind(42, false, false, [])).toBe("at_least");
+    expect(countKind(null, false, false, [])).toBe("unknown");
+    // The state that produced the live defect: unknown is never zero.
+    expect(countKind(0, false, true, [])).toBe("exact");
+  });
+
+  it("knows an exact_total-only degradation is a count nuance", () => {
+    expect(isCountNuanceOnly(parseDegradations(["exact_total"]))).toBe(true);
+    expect(isCountNuanceOnly(parseDegradations([]))).toBe(false);
+    expect(
+      isCountNuanceOnly(parseDegradations(["exact_total", "typo_tolerance"]))
+    ).toBe(false);
+  });
 });
 
 describe("the banner says what the engine could not do", () => {
@@ -90,6 +115,91 @@ describe("the banner says what the engine could not do", () => {
         "vector_rerank"
       );
     });
+  });
+
+  it("does NOT raise a banner when exact_total is the only degradation", async () => {
+    // A count nuance, not a failed search: the rows are right and the count
+    // already says "N+". A warning box here teaches the reader that a good
+    // page is broken — and a banner that cries wolf on every landing page is
+    // one nobody reads on the day `category_rollup` shows up in it.
+    const server = mockServer({
+      "/query": {
+        body: searchResponse({
+          degraded: ["exact_total"],
+          count: 1200,
+          count_is_lower_bound: true,
+          exact_total: false,
+        }),
+      },
+    });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-results")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("search-degraded")).toBeNull();
+    // …and the nuance is still SAID, by the count itself.
+    expect(screen.getByTestId("search-count").textContent).toBe("1200+ results");
+  });
+
+  it("raises it again when exact_total arrives beside a real degradation", async () => {
+    const server = mockServer({
+      "/query": {
+        body: searchResponse({
+          degraded: ["exact_total", "typo_tolerance"],
+          count_is_lower_bound: true,
+          exact_total: false,
+        }),
+      },
+    });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-degraded")).toBeTruthy();
+    });
+    expect(screen.getByTestId("search-degraded").textContent).toContain(
+      "Typos were not corrected"
+    );
+  });
+
+  it("renders nothing when the container passes degradationNotice='off'", async () => {
+    const server = mockServer({
+      "/query": {
+        body: searchResponse({ degraded: ["typo_tolerance", "category_rollup"] }),
+      },
+    });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane degradationNotice="off" />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-results")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("search-degraded")).toBeNull();
+  });
+
+  it("says the same sentences quietly under degradationNotice='inline'", async () => {
+    const server = mockServer({
+      "/query": { body: searchResponse({ degraded: ["typo_tolerance"] }) },
+    });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane degradationNotice="inline" />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-degraded")).toBeTruthy();
+    });
+    const notice = screen.getByTestId("search-degraded");
+    expect(notice.getAttribute("data-variant")).toBe("inline");
+    expect(notice.textContent).toContain("Typos were not corrected");
   });
 
   it("shows no banner at all when the engine did everything asked of it", async () => {

@@ -96,9 +96,16 @@ describe("the refusals a result page must tell apart", () => {
 });
 
 describe("the count is never stated more precisely than the server can", () => {
-  it("says 'about N' when exact_total is false", async () => {
+  it("says 'N+' when the server calls the count a lower bound", async () => {
     const server = mockServer({
-      "/query": { body: searchResponse({ exact_total: false, count: 1200 }) },
+      "/query": {
+        body: searchResponse({
+          count: 1200,
+          count_is_lower_bound: true,
+          exact_total: false,
+          degraded: ["exact_total"],
+        }),
+      },
     });
     render(
       <TestHarness server={server}>
@@ -106,8 +113,11 @@ describe("the count is never stated more precisely than the server can", () => {
       </TestHarness>
     );
     await waitFor(() => {
-      expect(screen.getByTestId("search-count").textContent).toBe("About 1200 results");
+      expect(screen.getByTestId("search-count").textContent).toBe("1200+ results");
     });
+    expect(
+      screen.getByTestId("search-count").getAttribute("data-count-kind")
+    ).toBe("at_least");
   });
 
   it("says 'N' when it is exact", async () => {
@@ -121,6 +131,50 @@ describe("the count is never stated more precisely than the server can", () => {
     );
     await waitFor(() => {
       expect(screen.getByTestId("search-count").textContent).toBe("25 results");
+    });
+  });
+
+  it("prints NO count line when the server cannot say", async () => {
+    // `count: null` is "we do not know", and the state before it — `0` — was
+    // printed over visible cards as "About 0 listings". No number is the only
+    // honest rendering of an unknown total.
+    const server = mockServer({
+      "/query": {
+        body: searchResponse({
+          count: null,
+          count_is_lower_bound: false,
+          exact_total: false,
+          degraded: ["exact_total"],
+        }),
+      },
+    });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-results")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("search-count")).toBeNull();
+  });
+
+  it("treats a bare exact_total: false as a floor, never as a total", async () => {
+    // Defensive: a server that predates `count_is_lower_bound` still says
+    // "this is not exact", and "at least N" is the reading the page cannot
+    // contradict.
+    const server = mockServer({
+      "/query": {
+        body: searchResponse({ count: 42, exact_total: false }),
+      },
+    });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-count").textContent).toBe("42+ results");
     });
   });
 });

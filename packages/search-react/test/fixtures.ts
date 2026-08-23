@@ -40,6 +40,7 @@ export function searchResponse(
     has_next: true,
     has_prev: false,
     count: 25,
+    count_is_lower_bound: false,
     exact_total: true,
     degraded: [],
     backend: "postgres",

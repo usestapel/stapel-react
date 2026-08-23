@@ -29,6 +29,7 @@ import type { SearchResultsBag } from "../headless/SearchResults.js";
 import { SEARCH_WINDOW_EXCEEDED } from "../i18n/errorsMap.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { DegradationNotice } from "./DegradationNotice.js";
+import type { DegradationNoticeVariant } from "./DegradationNotice.js";
 import { ErrorAlert } from "./ErrorAlert.js";
 import { SearchResultCard } from "./SearchResultCard.js";
 import type { SearchCardRenderer } from "./SearchResultCard.js";
@@ -82,6 +83,17 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
   readonly toolbar?: ReactNode;
   /** Rendered under the pager — where the container puts the ranking link. */
   readonly footer?: ReactNode;
+  /**
+   * How this surface says what the engine could not do (default `"banner"`).
+   *
+   * A catalogue page wants the warning box. A landing page showing six cards
+   * under a hero has no room for one and passes `"inline"` or `"off"` — a
+   * decision about THIS surface, not about whether the degradation matters.
+   * Note that an `exact_total`-only degradation never raises a banner under
+   * any variant: it is a count nuance the count itself already speaks as
+   * "N+", not a failed search.
+   */
+  readonly degradationNotice?: DegradationNoticeVariant;
   readonly enabled?: boolean;
 }
 
@@ -92,12 +104,18 @@ function Count(props: { bag: SearchResultsBag }): ReactElement | null {
   const tPlural = useTPlural();
   const page = props.bag.page;
   if (page === null) return null;
+  // No count line at all when the server cannot say. The alternative — some
+  // number — is how "About 0 listings" ended up printed over four visible
+  // cards: an unknown total rendered as a claim about the catalogue.
+  if (page.countKind === "unknown" || page.count === null) return null;
   return (
-    <Typography.Text type="secondary" data-testid="search-count">
-      {page.countIsEstimate
-        ? tPlural(SEARCH_I18N_KEYS.resultsCountApproximate, {
-            count: page.count,
-          })
+    <Typography.Text
+      type="secondary"
+      data-testid="search-count"
+      data-count-kind={page.countKind}
+    >
+      {page.countKind === "at_least"
+        ? tPlural(SEARCH_I18N_KEYS.resultsCountAtLeast, { count: page.count })
         : tPlural(SEARCH_I18N_KEYS.resultsCountExact, { count: page.count })}
     </Typography.Text>
   );
@@ -152,7 +170,10 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
               </Flex>
             </Flex>
 
-            <DegradationNotice degradations={bag.degradations} />
+            <DegradationNotice
+              degradations={bag.degradations}
+              variant={props.degradationNotice ?? "banner"}
+            />
 
             {matchList(bag.state, {
               loading: () => (

@@ -132,7 +132,7 @@ Four independent signals, all surfaced:
 
 | Signal | Where it comes from | What must not happen |
 |---|---|---|
-| `exact_total` | envelope | rendering an estimate as an exact count |
+| `count` / `count_is_lower_bound` / `exact_total` | envelope | rendering a floor, or an unknown, as a total |
 | `facet_meta.approximate` | candidate set over `FACET_CANDIDATE_CAP` | a precise-looking number |
 | `facet_meta.skipped` | plan slugs dropped at `MAX_FACET_FIELDS` | a `0` where nothing was counted |
 | `degraded[]` | `_degradations` + backend + facet counter | silence |
@@ -141,6 +141,44 @@ Four independent signals, all surfaced:
 contributions without de-duplicating them (`services.py`) and the same literal
 can arrive twice. An unrecognised literal is kept with `kind: "unknown"` and
 shown with its raw text — a build that predates a new limitation should say so.
+
+### The count has three states, and one of them prints nothing
+
+stapel-search 0.2.0 replaced "a number, possibly approximate" with three
+distinct answers, because the two-state version had to spell "we do not know"
+as `0` — and the live storefront printed «Примерно 0 объявлений» over four
+visible cards.
+
+| envelope | `page.countKind` | rendered |
+|---|---|---|
+| `count: 25`, `count_is_lower_bound: false` | `"exact"` | «25 объявлений» |
+| `count: 1200`, `count_is_lower_bound: true` | `"at_least"` | «1200+ объявлений» |
+| `count: null` | `"unknown"` | nothing at all |
+
+`countKind()` is the whole decision in one call, and it is deliberately
+conservative: a bare `exact_total: false` (a server that predates
+`count_is_lower_bound`) reads as a floor, never as a total, because "at least
+N" is the one claim the visible page cannot contradict. `page.countIsEstimate`
+survives as a deprecated alias; it cannot see `count: null`.
+
+### An `exact_total`-only degradation raises no banner
+
+The rule, and the reasoning, live in `isCountNuanceOnly()` and
+`<DegradationNotice>`: `exact_total` is a count NUANCE, not a failed search.
+The rows are the right rows, and its single consequence — the total is a floor
+— is already spoken by the count as "N+". A warning box over an otherwise
+perfect page teaches the reader that the page is broken, and a banner that
+cries wolf on every landing page is a banner nobody reads on the day
+`category_rollup` appears in it. Beside ANY other degradation it renders
+normally, because the list is then describing an answer that really is
+degraded.
+
+Volume is the container's choice, not the library's: `<SearchResultsPane>` (and
+`<SearchPage>`) take `degradationNotice?: "banner" | "inline" | "off"`,
+defaulting to `"banner"`. A catalogue keeps the box; a landing page with six
+cards under a hero passes `"inline"` (the same sentences, quiet secondary text)
+or `"off"`. Nothing about `"off"` silences a degradation for other surfaces —
+it is one surface saying "not here".
 
 ## Where the refusals go
 
@@ -189,12 +227,13 @@ nothing here".
   their declared order, a skipped slug says "not counted", labels resolve
   through the category schema.
 - `results.test.tsx` — the four load outcomes, the window refusal as its own
-  sentence, the estimated-vs-exact count, and `promoted` under every one of the
-  five sorts.
+  sentence, the three count states (`N`, `N+`, and no line at all), and
+  `promoted` under every one of the five sorts.
 - `pagination.test.tsx` — cursor forward and back with `direction`, both
   controls blocked WITH a reason, and the panel not blanking between clicks.
 - `degraded.test.tsx` — every literal parsed, duplicates collapsed, unknown
-  kept.
+  kept, an `exact_total`-only degradation raising no banner (and raising one
+  again beside a real degradation), and the `off`/`inline` variants.
 - `contract.test.ts` — every operation lands on a path the backend declares,
   every query parameter is one it declares, and `f.<slug>` is repeated rather
   than comma-joined.

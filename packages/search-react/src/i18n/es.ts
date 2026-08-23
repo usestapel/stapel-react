@@ -22,6 +22,8 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.results.retry": "Reintentar",
   "search.results.count_approximate.one": "Aproximadamente {count} resultado",
   "search.results.count_approximate.other": "Unos {count} resultados",
+  "search.results.count_at_least.one": "{count}+ resultado",
+  "search.results.count_at_least.other": "{count}+ resultados",
   "search.results.count_exact.one": "{count} resultado",
   "search.results.count_exact.other": "{count} resultados",
   "search.results.took_ms": "{ms} ms",

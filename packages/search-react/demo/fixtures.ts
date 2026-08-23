@@ -46,7 +46,10 @@ export const DEMO_SEARCH_RESPONSE: SearchResponse = {
   prev_anchor: null,
   has_next: true,
   has_prev: false,
+  // A capped count: the engine counted to its cap and stopped, so the number
+  // is a FLOOR and the demo renders "25+" rather than "25".
   count: 25,
+  count_is_lower_bound: true,
   exact_total: false,
   degraded: ["typo_tolerance", "exact_facet_counts", "scorer:geo_decay"],
   backend: "postgres",

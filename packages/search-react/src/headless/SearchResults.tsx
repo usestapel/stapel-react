@@ -15,15 +15,36 @@ import type {
 } from "../api/types.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { useSearchQuery } from "../model/queries.js";
-import { countIsEstimate, parseDegradations } from "../state/degradations.js";
+import {
+  countIsEstimate,
+  countKind,
+  parseDegradations,
+} from "../state/degradations.js";
+import type { SearchCountKind } from "../state/degradations.js";
 import { useSearchState } from "./SearchStateProvider.js";
 
 /** What the envelope says about this page, beside the rows. */
 export interface SearchPageInfo {
-  /** Total matches — an ESTIMATE unless {@link SearchPageInfo.exactTotal}. */
-  readonly count: number;
+  /**
+   * Total matches, or `null` when the engine cannot say — which is a real
+   * state and NOT zero. Read it together with {@link SearchPageInfo.countKind}:
+   * a `count` under `"at_least"` is a floor, not a total.
+   */
+  readonly count: number | null;
   readonly exactTotal: boolean;
-  /** `true` when `count` must be rendered as approximate ("≈", "about"). */
+  /** The server's own word: `count` is a floor ("at least N"), not a total. */
+  readonly countIsLowerBound: boolean;
+  /**
+   * The one value a skin needs to choose a sentence: `"exact"` → "N",
+   * `"at_least"` → "N+", `"unknown"` → no count at all.
+   */
+  readonly countKind: SearchCountKind;
+  /**
+   * `true` when `count` must not be rendered as a plain number.
+   *
+   * @deprecated Equivalent to `countKind !== "exact"` and blind to
+   * `count: null`. Use {@link SearchPageInfo.countKind}.
+   */
   readonly countIsEstimate: boolean;
   readonly hasNext: boolean;
   readonly hasPrev: boolean;
@@ -102,6 +123,13 @@ export function SearchResults(props: {
       : {
           count: data.count,
           exactTotal: data.exact_total,
+          countIsLowerBound: data.count_is_lower_bound === true,
+          countKind: countKind(
+            data.count,
+            data.count_is_lower_bound,
+            data.exact_total,
+            degradations
+          ),
           countIsEstimate: countIsEstimate(data.exact_total, degradations),
           hasNext: data.has_next,
           hasPrev: data.has_prev,

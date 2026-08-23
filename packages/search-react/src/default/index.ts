@@ -41,7 +41,10 @@ export type { RankingDisclosurePaneProps } from "./RankingDisclosurePane.js";
 export { SearchResultCard, GENERIC_CARD_FIELDS } from "./SearchResultCard.js";
 export type { SearchCardProps, SearchCardRenderer } from "./SearchResultCard.js";
 export { DegradationNotice } from "./DegradationNotice.js";
-export type { DegradationNoticeProps } from "./DegradationNotice.js";
+export type {
+  DegradationNoticeProps,
+  DegradationNoticeVariant,
+} from "./DegradationNotice.js";
 export { UrlIssueNotice } from "./UrlIssueNotice.js";
 export { SortSelect } from "./SortSelect.js";
 export type { SortSelectProps } from "./SortSelect.js";

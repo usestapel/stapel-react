@@ -23,6 +23,7 @@ import type { ParseSearchStateOptions } from "../state/urlState.js";
 import { FacetPanelPane } from "./FacetPanelPane.js";
 import { SearchResultsPane } from "./SearchResultsPane.js";
 import { SortSelect } from "./SortSelect.js";
+import type { DegradationNoticeVariant } from "./DegradationNotice.js";
 import type { SearchCardRenderer } from "./SearchResultCard.js";
 import { SearchSkinTheme } from "./theme.js";
 import { UrlIssueNotice } from "./UrlIssueNotice.js";
@@ -37,6 +38,9 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
   readonly locale?: string;
   /** Container chrome under the results — e.g. the ranking-disclosure link. */
   readonly footer?: ReactNode;
+  /** How the results surface says what the engine could not do (default
+   * `"banner"`). Handed straight to `<SearchResultsPane>`. */
+  readonly degradationNotice?: DegradationNoticeVariant;
 }
 
 export function SearchPage(props: SearchPageProps): ReactElement {
@@ -46,6 +50,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     categoryFeatures,
     locale,
     footer,
+    degradationNotice,
     mode,
     ...parseOptions
   } = props;
@@ -72,6 +77,9 @@ export function SearchPage(props: SearchPageProps): ReactElement {
                 toolbar={<SortSelect />}
                 {...(renderCard !== undefined ? { renderCard } : {})}
                 {...(footer !== undefined ? { footer } : {})}
+                {...(degradationNotice !== undefined
+                  ? { degradationNotice }
+                  : {})}
               />
             </Col>
           </Row>
