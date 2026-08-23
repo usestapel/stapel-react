@@ -206,3 +206,37 @@ describe("<PublicShell/> — reads no session", () => {
     expect(screen.getByText("Search Page")).toBeDefined();
   });
 });
+
+/**
+ * P-5 from the live storefront walk. The horizontal `<Menu>` sat as a bare
+ * child of the browse row's `<Flex>`, so rc-overflow measured it at ~0 and
+ * collapsed EVERY tab behind a "…" on a 1440px window whose row was otherwise
+ * empty. jsdom lays nothing out, so what is asserted here is the contract the
+ * browser needs: the menu's box is the one that takes the leftover width, and
+ * it is allowed to shrink below its content (`minWidth: 0`) instead of pushing
+ * the row wider than the screen.
+ */
+describe("<PublicShell/> — the browse bar gives the menu real width", () => {
+  it("wraps the menu in a `flex: 1 1 auto` / `minWidth: 0` box", async () => {
+    setViewportWidth(1440);
+    render(wrap("/s", { categorySlot: <span>Cars</span> }));
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-browse")).toBeDefined());
+    const box = screen.getByTestId("public-shell-nav");
+    expect(box.style.flex).toBe("1 1 auto");
+    expect(box.style.minWidth).toBe("0");
+    // The menu is inside that box, not a bare flex child beside it.
+    expect(box.querySelector("[data-testid='public-shell-menu']")).not.toBeNull();
+    // And the category strip does not take width from it.
+    expect(screen.getByTestId("public-shell-categories").style.flex).toBe("0 0 auto");
+  });
+
+  it("renders every menu entry, not a single overflow trigger", async () => {
+    setViewportWidth(1440);
+    render(wrap("/s"));
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-menu")).toBeDefined());
+    expect(screen.getByText("Search")).toBeDefined();
+    expect(screen.getByText("Post an ad")).toBeDefined();
+  });
+});

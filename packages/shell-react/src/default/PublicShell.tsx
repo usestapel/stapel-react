@@ -73,6 +73,7 @@ import { SHELL_I18N_KEYS } from "../i18n/keys.js";
  */
 const SIGN_IN_PATH = "/login";
 
+
 export interface PublicShellProps {
   /** Already-resolved nav — the output of `resolvePublicNav` /
    * `resolveMemberNav` (or `resolveNav` with an explicit `audience`).
@@ -172,9 +173,21 @@ export function PublicShell(props: PublicShellProps): ReactElement {
             style={{ padding: "0 16px" }}
             data-testid="public-shell-browse"
           >
-            {navMenu}
+            {/* The menu gets the row's leftover width — `flex: 1 1 auto`
+                with `minWidth: 0`. As a bare flex child the horizontal
+                `<Menu>` was measured at ~0 by rc-overflow, which is the
+                measurement it collapses on: every tab hid behind a "…" on a
+                1440px storefront while the row it sat in was empty. */}
+            <div
+              style={{ flex: "1 1 auto", minWidth: 0 }}
+              data-testid="public-shell-nav"
+            >
+              {navMenu}
+            </div>
             {props.categorySlot !== undefined && (
-              <div data-testid="public-shell-categories">{props.categorySlot}</div>
+              <div style={{ flex: "0 0 auto" }} data-testid="public-shell-categories">
+                {props.categorySlot}
+              </div>
             )}
           </Flex>
         )}
