@@ -4,7 +4,15 @@
  * `@stapel/search-react` takes a `renderCard` slot and the container fills it
  * with this (spec §3.7 / §6.2 item 1). The two pairs never import each other;
  * the CONTAINER is the seam, which is why this component takes a plain card
- * row and a plain `href`/`onOpen` rather than reaching for a router.
+ * row and a plain `href` rather than reaching for a router.
+ *
+ * ── One click, one navigation ──────────────────────────────────────────────
+ *
+ * `href` and `onOpen` used to be two optional props, and a card given both
+ * navigated TWICE: the handler ran, and the browser then followed the anchor
+ * that was still on the button. They are now three arms of a union — link,
+ * button, or neither — and `linkComponent` rides on the link arm so a
+ * container can hand in its router's `<Link>` and keep the anchor.
  *
  * ── What it renders without asking the server anything else ────────────────
  *
@@ -23,6 +31,7 @@
 import type { ReactElement, ReactNode } from "react";
 import { Button, Card, Flex, Tooltip, Typography } from "antd";
 import { useT } from "@stapel/core";
+import type { LinkComponent } from "@stapel/core";
 import { FeatureBadges } from "@stapel/attributes-react/default";
 import type { ListingCard as ListingCardData } from "../api/types.js";
 import { asFeatureDaoList, featuresDtoFromDaoList, featuresFromDaoList } from "../model/features.js";
@@ -34,20 +43,121 @@ import { ListingPhoto } from "./ListingPhoto.js";
 import { ListingsSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
-export interface ListingCardProps extends ThemeModeProp {
+/**
+ * How the card opens — ONE of three, and the type says so.
+ *
+ * It used to be two optional props, and a caller that passed both got two
+ * navigations for one click: the handler ran and the browser then followed the
+ * anchor anyway. The storefront worked around it by passing `onOpen` only,
+ * which cost it a real anchor (no middle-click, no "open in new tab", nothing
+ * for a crawler to follow) on the most linkable element in the app.
+ *
+ * So the union has three arms and no fourth: a link, a button, or neither.
+ * `linkComponent` belongs to the link arm because it IS the link — handing a
+ * `<Link>` to a card that navigates by callback would be two answers to one
+ * question again.
+ */
+export type ListingCardOpenProps =
+  | {
+      /** Where the card leads. A plain path — the pair never calls
+       * `window.location` and never builds a router descriptor. */
+      readonly href: string;
+      /** The host's `<Link>`, so the click stays inside the SPA. Absent: an
+       * antd link-button carrying the `href`, which reloads the page in a
+       * router app — correct, just not fast. */
+      readonly linkComponent?: LinkComponent;
+      readonly onOpen?: undefined;
+    }
+  | {
+      /** The card opens by callback: rendered as a button, with no `href` for
+       * the browser to follow after the handler has already navigated. */
+      readonly onOpen: (id: number) => void;
+      readonly href?: undefined;
+      readonly linkComponent?: undefined;
+    }
+  | {
+      /** No open control at all — a card inside a screen that is already the
+       * listing. */
+      readonly href?: undefined;
+      readonly onOpen?: undefined;
+      readonly linkComponent?: undefined;
+    };
+
+export interface ListingCardBaseProps extends ThemeModeProp {
   readonly listing: ListingCardData;
-  /** Where the card leads. The container owns routing, so this is a plain
-   * href a `<Link>` or an `<a>` can carry — the pair never calls
-   * `window.location`. */
-  readonly href?: string;
-  /** Called instead of following `href`, for a host with its own navigation. */
-  readonly onOpen?: (id: number) => void;
   /** Extra chrome the container adds (a `promoted` tag from search, say —
    * DSA Art. 26 marking belongs to the pair that receives it). */
   readonly badge?: ReactNode;
   /** Hide the favourite control entirely — for a context where it makes no
    * sense (the owner's own dashboard). NOT a way to hide it from visitors. */
   readonly showFavorite?: boolean;
+}
+
+export type ListingCardProps = ListingCardBaseProps & ListingCardOpenProps;
+
+/**
+ * The one control that opens the card: an anchor, a button, or nothing.
+ *
+ * Exactly one of the three renders, so exactly one navigation happens per
+ * click. That is the whole fix — the branch below has no arm in which both a
+ * handler and an `href` reach the DOM.
+ */
+function OpenControl(
+  props: ListingCardOpenProps & { readonly listingId: number }
+): ReactElement | null {
+  const t = useT();
+  const label = t(LISTINGS_I18N_KEYS.cardOpen);
+
+  if (props.href !== undefined) {
+    const Link = props.linkComponent;
+    // The host's component is rendered as it comes: this pair has no CSS and
+    // no way to hand antd's button styling to a foreign element, and a wrapper
+    // element around a link is a click target that is not the link. A host
+    // that wants the antd look styles its own `<Link>` — it is one component,
+    // written once, and it is already the thing that knows the design system.
+    return Link !== undefined ? (
+      <Link
+        href={props.href}
+        aria-label={label}
+        data-testid="listings-card-open"
+        data-analytics="none"
+        data-analytics-reason="business action — host app wraps with its own tracked()"
+      >
+        {label}
+      </Link>
+    ) : (
+      <Button
+        size="small"
+        type="link"
+        href={props.href}
+        data-testid="listings-card-open"
+        data-analytics="none"
+        data-analytics-reason="business action — host app wraps with its own tracked()"
+      >
+        {label}
+      </Button>
+    );
+  }
+
+  if (props.onOpen !== undefined) {
+    const onOpen = props.onOpen;
+    return (
+      <Button
+        size="small"
+        type="link"
+        data-testid="listings-card-open"
+        data-analytics="none"
+        data-analytics-reason="business action — host app wraps with its own tracked()"
+        onClick={() => {
+          onOpen(props.listingId);
+        }}
+      >
+        {label}
+      </Button>
+    );
+  }
+
+  return null;
 }
 
 export function ListingCard(props: ListingCardProps): ReactElement {
@@ -127,21 +237,7 @@ export function ListingCard(props: ListingCardProps): ReactElement {
           ) : null}
 
           <Flex gap={8} align="center">
-            {props.href !== undefined || props.onOpen !== undefined ? (
-              <Button
-                size="small"
-                type="link"
-                {...(props.href !== undefined ? { href: props.href } : {})}
-                data-testid="listings-card-open"
-                data-analytics="none"
-                data-analytics-reason="business action — host app wraps with its own tracked()"
-                onClick={() => {
-                  props.onOpen?.(listing.id);
-                }}
-              >
-                {t(LISTINGS_I18N_KEYS.cardOpen)}
-              </Button>
-            ) : null}
+            <OpenControl {...props} listingId={listing.id} />
 
             {props.showFavorite === false ? null : (
               <Tooltip

@@ -68,6 +68,33 @@ container is the seam:
 that carries each type's display config beside its value. A grid of forty
 cards therefore costs one query and **no category read**.
 
+### How a card opens: one of three, never two
+
+```tsx
+<ListingCard listing={row} href={`/l/${row.id}`} />                       // an anchor
+<ListingCard listing={row} href={`/l/${row.id}`} linkComponent={Link} />  // the host's <Link>
+<ListingCard listing={row} onOpen={(id) => navigate(`/l/${id}`)} />       // a button
+<ListingCard listing={row} />                                            // no open control
+```
+
+`href` and `onOpen` are arms of a union, not two optional props, because a card
+that had both navigated **twice** for one click — the handler ran and the
+browser then followed the anchor. Passing both is now a type error.
+
+`linkComponent` is `@stapel/core`'s `LinkComponent`: a component taking a plain
+`href`, so the pair stays router-agnostic and a container keeps a real anchor
+(middle-click, "open in new tab", a crawler) while the click stays inside the
+SPA:
+
+```tsx
+const RouterLink: LinkComponent = ({ href, children, ...rest }) => (
+  <Link to={href} {...rest}>{children}</Link>
+);
+```
+
+`<FavoritesPane>` takes the same union (`hrefFor` / `onOpen` / `linkComponent`),
+so a pane cannot re-introduce upstream what the card no longer allows.
+
 ## Submitting a listing
 
 Four contracts meet on the composer, and three of them arrive as seams rather

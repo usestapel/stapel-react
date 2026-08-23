@@ -10,17 +10,52 @@
 import type { ReactElement } from "react";
 import { Alert, Button, Empty, Flex, Space, Spin, Typography } from "antd";
 import { matchList, useDescribeFlowError, useT } from "@stapel/core";
+import type { LinkComponent } from "@stapel/core";
 import { useFavorites } from "../headless/Favorites.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { ErrorAlert } from "./ErrorAlert.js";
 import { ListingCard } from "./ListingCard.js";
+import type { ListingCardOpenProps } from "./ListingCard.js";
 import { ListingsSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
-export interface FavoritesPaneProps extends ThemeModeProp {
-  /** Where a card leads. The container owns routing. */
-  readonly hrefFor?: (id: number) => string;
-  readonly onOpen?: (id: number) => void;
+/** How a card in this grid opens — the same one-contract union `<ListingCard>`
+ * takes, one level up, so a pane cannot re-introduce the double navigation the
+ * card no longer allows. */
+export type FavoritesPaneOpenProps =
+  | {
+      /** Where a card leads. The container owns routing. */
+      readonly hrefFor: (id: number) => string;
+      /** The host's `<Link>`, so a click stays inside the SPA. */
+      readonly linkComponent?: LinkComponent;
+      readonly onOpen?: undefined;
+    }
+  | {
+      readonly onOpen: (id: number) => void;
+      readonly hrefFor?: undefined;
+      readonly linkComponent?: undefined;
+    }
+  | {
+      readonly hrefFor?: undefined;
+      readonly onOpen?: undefined;
+      readonly linkComponent?: undefined;
+    };
+
+export type FavoritesPaneProps = ThemeModeProp & FavoritesPaneOpenProps;
+
+/** The card's own open props for one row. One arm, never two. */
+function cardOpenProps(
+  props: FavoritesPaneOpenProps,
+  id: number
+): ListingCardOpenProps {
+  if (props.hrefFor !== undefined) {
+    const href = props.hrefFor(id);
+    return props.linkComponent !== undefined
+      ? { href, linkComponent: props.linkComponent }
+      : { href };
+  }
+  if (props.onOpen !== undefined) return { onOpen: props.onOpen };
+  return {};
 }
 
 export function FavoritesPane(props: FavoritesPaneProps): ReactElement {
@@ -82,13 +117,7 @@ export function FavoritesPane(props: FavoritesPaneProps): ReactElement {
             <Flex wrap gap={16} data-testid="listings-favorites-grid">
               {rows.map((row) => (
                 <div key={row.id} style={{ width: 240 }}>
-                  <ListingCard
-                    listing={row}
-                    {...(props.hrefFor !== undefined
-                      ? { href: props.hrefFor(row.id) }
-                      : {})}
-                    {...(props.onOpen !== undefined ? { onOpen: props.onOpen } : {})}
-                  />
+                  <ListingCard listing={row} {...cardOpenProps(props, row.id)} />
                 </div>
               ))}
             </Flex>

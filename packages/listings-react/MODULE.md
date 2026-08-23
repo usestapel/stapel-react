@@ -140,9 +140,34 @@ never import each other (the monorepo README states the direction). So:
 - **the category schema** is a plain `readonly FeatureDef[]`, plus
   `renderCategoryPicker` for the chooser (see below);
 - **a stored image reference** is resolved by a host-supplied
-  `ListingImageResolver`.
+  `ListingImageResolver`;
+- **navigation** is core's `LinkComponent` — a component taking a plain `href`.
+  Not react-router: there are several routers and a library that picks one
+  picks it for every host.
 
 `@stapel/attributes-react` IS a dependency; it is L0, like `@stapel/image`.
+
+### 4.0 How a card opens is one contract, and the type enforces it
+
+`href` and `onOpen` were two optional props, and a card given both navigated
+TWICE for one click: the handler ran, the container routed, and the browser
+then followed the anchor still sitting on the button. The storefront worked
+around it by passing `onOpen` alone — which cost the most linkable element in
+the app its anchor (no middle-click, no "open in new tab", nothing for a
+crawler) and was named as gap G-2 rather than shipped as a preference.
+
+`ListingCardOpenProps` is now a three-armed union — `{href, linkComponent?}`,
+`{onOpen}`, or neither — so exactly one navigation mechanism reaches the DOM
+and "both" does not typecheck. `linkComponent` rides on the link arm because
+it IS the link; handing one to a callback card would be two answers to one
+question again. `<FavoritesPane>` takes the same union one level up
+(`hrefFor` / `onOpen` / `linkComponent`), so a pane cannot re-introduce
+upstream what the card refuses.
+
+`test/cardNavigation.test.tsx` asserts on the DOM, not on the props: an anchor
+and no handler, a button and no `href`, a `linkComponent` and no `<a href>` at
+all, plus two `@ts-expect-error` cases for the combinations that used to
+compile.
 
 ### 4.1 The category seam has to run in both directions
 

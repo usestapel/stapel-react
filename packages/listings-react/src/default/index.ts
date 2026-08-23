@@ -15,7 +15,11 @@
  * ```
  */
 export { ListingCard } from "./ListingCard.js";
-export type { ListingCardProps } from "./ListingCard.js";
+export type {
+  ListingCardProps,
+  ListingCardBaseProps,
+  ListingCardOpenProps,
+} from "./ListingCard.js";
 export { ListingDetailPane } from "./ListingDetailPane.js";
 export type { ListingDetailPaneProps } from "./ListingDetailPane.js";
 export { ListingComposerPage } from "./ListingComposerPage.js";
@@ -26,7 +30,10 @@ export type {
 export { MyListingsPane } from "./MyListingsPane.js";
 export type { MyListingsPaneProps } from "./MyListingsPane.js";
 export { FavoritesPane } from "./FavoritesPane.js";
-export type { FavoritesPaneProps } from "./FavoritesPane.js";
+export type {
+  FavoritesPaneProps,
+  FavoritesPaneOpenProps,
+} from "./FavoritesPane.js";
 
 export { LifecycleTag, ListingStatusBlock, ModerationNote } from "./StatusTags.js";
 export type { ListingStatusProps } from "./StatusTags.js";
