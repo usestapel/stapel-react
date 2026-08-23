@@ -13,7 +13,7 @@
  * with an empty body, which is precisely how it would otherwise render as an
  * empty page.
  */
-import type { ReactElement, ReactNode } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Button, Empty, Flex, Spin, Typography } from "antd";
 import {
   errorCode,
@@ -35,6 +35,32 @@ import type { SearchCardRenderer } from "./SearchResultCard.js";
 import { SearchSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
+/**
+ * The whole result LAYOUT, for a container that wants its own — a map beside
+ * the list, a masonry wall, a table. It receives the loaded rows; the pane
+ * still owns the four load arms around it, so "nothing found" and "we could
+ * not run this search" stay the pane's sentences rather than the slot's
+ * problem.
+ */
+export type SearchResultsRenderer = (
+  items: readonly SearchItem[]
+) => ReactNode;
+
+/**
+ * The results grid. `auto-fill` + `minmax(280px, 1fr)`: as many columns as fit,
+ * each at least a readable card and never wider than its share — a catalogue
+ * on a 1400px desktop is four columns, not four full-bleed rows, and the same
+ * declaration collapses to one column on a phone with no breakpoint to
+ * maintain. 280px is the width below which the default card's title, price and
+ * location stop fitting on their own lines.
+ */
+const RESULTS_GRID: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+  gap: 12,
+  alignItems: "stretch",
+};
+
 export interface SearchResultsPaneProps extends ThemeModeProp {
   /**
    * The card slot (spec §6.2 item 1). A storefront passes
@@ -43,6 +69,11 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
    * default honours it.
    */
   readonly renderCard?: SearchCardRenderer;
+  /**
+   * The layout slot: replaces the grid entirely, `renderCard` and all. Use it
+   * when the container's arrangement is not "cards in a grid".
+   */
+  readonly renderResults?: SearchResultsRenderer;
   /** Rendered under the pager — where the container puts the ranking link. */
   readonly footer?: ReactNode;
   readonly enabled?: boolean;
@@ -98,7 +129,7 @@ function Pager(props: { bag: SearchResultsBag }): ReactElement {
 export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
   const t = useT();
   const describe = useDescribeFlowError();
-  const renderCard = props.renderCard;
+  const { renderCard, renderResults } = props;
 
   return (
     <SearchSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
@@ -155,17 +186,23 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                 />
               ),
               ready: (items) => (
-                <Flex vertical gap={12} data-testid="search-results">
-                  {items.map((item: SearchItem) => (
-                    <div key={item.key}>
-                      {renderCard !== undefined ? (
-                        renderCard(item)
-                      ) : (
-                        <SearchResultCard item={item} />
-                      )}
+                <div data-testid="search-results">
+                  {renderResults !== undefined ? (
+                    renderResults(items)
+                  ) : (
+                    <div style={RESULTS_GRID} data-testid="search-results-grid">
+                      {items.map((item: SearchItem) => (
+                        <div key={item.key}>
+                          {renderCard !== undefined ? (
+                            renderCard(item)
+                          ) : (
+                            <SearchResultCard item={item} />
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </Flex>
+                  )}
+                </div>
               ),
             })}
 

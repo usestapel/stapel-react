@@ -11,6 +11,8 @@
  *  1. **`renderCard`** — the card slot. A storefront passes
  *     `<ListingCard>` from `@stapel/listings-react/default`; the generic card
  *     here is the documented default, not the intended end state (spec §3.7).
+ *     `renderResults` is the level above it: the whole layout, for a container
+ *     whose arrangement is not "cards in a grid".
  *  2. **`categoryFeatures`** — the facet-label slot. The server sends
  *     `{value: count}` and no labels; the schema that names them lives in
  *     categories, and the container hands it in (spec §6.2 item 2).
@@ -24,7 +26,10 @@ export { SearchPage } from "./SearchPage.js";
 export type { SearchPageProps } from "./SearchPage.js";
 
 export { SearchResultsPane } from "./SearchResultsPane.js";
-export type { SearchResultsPaneProps } from "./SearchResultsPane.js";
+export type {
+  SearchResultsPaneProps,
+  SearchResultsRenderer,
+} from "./SearchResultsPane.js";
 
 export { FacetPanelPane } from "./FacetPanelPane.js";
 export type { FacetPanelPaneProps } from "./FacetPanelPane.js";

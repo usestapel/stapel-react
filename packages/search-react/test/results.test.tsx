@@ -175,3 +175,81 @@ describe("promoted (DSA Art. 26) is present under EVERY sort", () => {
     expect(screen.queryByTestId("search-result-card")).toBeNull();
   });
 });
+
+/**
+ * P-4 from the live storefront walk: the rows were a `<Flex vertical>`, so a
+ * 1400px catalogue drew two full-bleed cards and a lot of white.
+ */
+describe("the results are a grid, and a container can bring its own", () => {
+  it("lays the cards out in an auto-fill grid with a card-width floor", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane />
+      </TestHarness>
+    );
+    const grid = await screen.findByTestId("search-results-grid");
+    expect(grid.style.display).toBe("grid");
+    // As many columns as fit, each at least a readable card: the whole point
+    // is that the column count is the container's width, not a breakpoint.
+    expect(grid.style.gridTemplateColumns).toContain("auto-fill");
+    expect(grid.style.gridTemplateColumns).toContain("280px");
+    expect(grid.childElementCount).toBe(2);
+  });
+
+  it("renders one cell per row, through `renderCard` when given", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane
+          renderCard={(item) => <div data-testid="own-card">{item.key}</div>}
+        />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getAllByTestId("own-card")).toHaveLength(2);
+    });
+    expect(screen.getByTestId("search-results-grid").childElementCount).toBe(2);
+  });
+
+  it("`renderResults` replaces the layout entirely — grid and all", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane
+          renderResults={(items) => (
+            <table data-testid="own-layout">
+              <tbody>
+                {items.map((item) => (
+                  <tr key={item.key}>
+                    <td>{item.key}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        />
+      </TestHarness>
+    );
+    const own = await screen.findByTestId("own-layout");
+    expect(own.querySelectorAll("tr")).toHaveLength(2);
+    expect(screen.queryByTestId("search-results-grid")).toBeNull();
+  });
+
+  it("the slot does not take over the load arms: an empty page is still the pane's sentence", async () => {
+    const server = mockServer({
+      "/query": {
+        body: searchResponse({ items: [], count: 0, has_next: false, next_anchor: null }),
+      },
+    });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane renderResults={() => <div data-testid="own-layout" />} />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-empty")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("own-layout")).toBeNull();
+  });
+});
