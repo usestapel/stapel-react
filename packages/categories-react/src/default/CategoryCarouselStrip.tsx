@@ -16,11 +16,15 @@ import { renderCategoryLabel } from "../catalog/labels.js";
 import { CategoryCarousel } from "../headless/CategoryCarousel.js";
 import type { CarouselEntry } from "../headless/CategoryCarousel.js";
 import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
+import { CategoryLink } from "./CategoryLink.js";
+import type { LinkComponentProp } from "./CategoryLink.js";
 import { ErrorAlert } from "./ErrorAlert.js";
 import { CategoriesSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
-export interface CategoryCarouselStripProps extends ThemeModeProp {
+export interface CategoryCarouselStripProps
+  extends ThemeModeProp,
+    LinkComponentProp {
   readonly basePath?: string;
   /** Turn an opaque icon reference into something renderable. Absent means no
    * icon is drawn — see this file's header. */
@@ -81,14 +85,19 @@ export function CategoryCarouselStrip(
                       hoverable
                       data-category-slug={entry.category.slug}
                     >
-                      <Typography.Link href={entry.href}>
+                      <CategoryLink
+                        {...(props.linkComponent !== undefined
+                          ? { linkComponent: props.linkComponent }
+                          : {})}
+                        href={entry.href}
+                      >
                         <Flex align="center" gap={8}>
                           {entry.icon !== null && props.renderIcon !== undefined
                             ? props.renderIcon(entry.icon, entry)
                             : null}
                           <span>{renderCategoryLabel(entry.label, t)}</span>
                         </Flex>
-                      </Typography.Link>
+                      </CategoryLink>
                     </Card>
                   ))}
                 </Flex>

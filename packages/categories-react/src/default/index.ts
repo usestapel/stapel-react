@@ -33,4 +33,6 @@ export type { CategoryFeatureListProps } from "./CategoryFeatureList.js";
 export { CategoriesSkinTheme } from "./theme.js";
 export type { CategoriesSkinThemeProps } from "./theme.js";
 export { ErrorAlert } from "./ErrorAlert.js";
+export { CategoryLink } from "./CategoryLink.js";
+export type { CategoryLinkProps, LinkComponentProp } from "./CategoryLink.js";
 export type { ThemeModeProp } from "./types.js";

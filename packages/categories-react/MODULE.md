@@ -144,6 +144,28 @@ a key, whether the options are keys, and which rows are `show_as_badge` /
 `show_at_title` projections. Value semantics — defaults, validation, formatting
 — stay with the package that owns them.
 
+## Navigation is a seam, not a dependency
+
+Three of this pair's five skins exist to be clicked, and all three rendered
+plain `<a href>`. In a SPA that is a full page load per click — and the
+catalogue those links move between is already in memory, synced by delta into
+an app-scoped repository, which is what most of this file is about. The
+storefront could not use the chrome at all and said so (Wave D, G-4).
+
+The fix is core's `LinkComponent`: a component over a plain `href`, so the pair
+picks no router for its hosts. `src/default/CategoryLink.tsx` is the one place
+that decides between the host's component and an anchor, and
+`LinkComponentProp` is the prop every skin extends, so the spelling cannot
+drift between three components.
+
+One detail is load-bearing: antd's `<Breadcrumb items>` renders its OWN anchor
+when an item carries `href`, which would bypass the seam from inside the
+component it lives in. So a crumb's link is its **title**, and the item carries
+no `href`. `test/linkComponent.test.tsx` asserts the consequence rather than the
+prop — with a `linkComponent`, `container.querySelectorAll("a[href]")` is empty
+on every one of these screens — and also that the CURRENT crumb stays a label,
+because a link to the page under your feet is not navigation.
+
 ## Notes on the contract, recorded rather than worked around
 
 1. **`FeatureConfig`'s discriminator is malformed, and the generated types are

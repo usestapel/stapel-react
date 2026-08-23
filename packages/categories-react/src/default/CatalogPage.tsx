@@ -11,18 +11,24 @@ import type { ReactElement } from "react";
 import { Flex, Typography } from "antd";
 import { useT } from "@stapel/core";
 import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
+import type { LinkComponentProp } from "./CategoryLink.js";
 import { CategoryCarouselStrip } from "./CategoryCarouselStrip.js";
 import { CategoryTreePane } from "./CategoryTreePane.js";
 import { CategoriesSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
-export interface CatalogPageProps extends ThemeModeProp {
+export interface CatalogPageProps extends ThemeModeProp, LinkComponentProp {
   readonly basePath?: string;
 }
 
 export function CatalogPage(props: CatalogPageProps): ReactElement {
   const t = useT();
   const base = props.basePath ?? "/c";
+  // Spread once: every link on this screen belongs to the same host router.
+  const link =
+    props.linkComponent !== undefined
+      ? { linkComponent: props.linkComponent }
+      : {};
 
   return (
     <CategoriesSkinTheme
@@ -32,8 +38,8 @@ export function CatalogPage(props: CatalogPageProps): ReactElement {
         <Typography.Title level={3} style={{ margin: 0 }}>
           {t(CATEGORIES_I18N_KEYS.catalogTitle)}
         </Typography.Title>
-        <CategoryCarouselStrip basePath={base} />
-        <CategoryTreePane basePath={base} />
+        <CategoryCarouselStrip basePath={base} {...link} />
+        <CategoryTreePane basePath={base} {...link} />
       </Flex>
     </CategoriesSkinTheme>
   );

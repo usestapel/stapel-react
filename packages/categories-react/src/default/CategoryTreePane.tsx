@@ -19,11 +19,13 @@ import { categoryLabel, renderCategoryLabel } from "../catalog/labels.js";
 import type { CategoryNode } from "../catalog/tree.js";
 import { CategoryTree } from "../headless/CategoryTree.js";
 import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
+import { CategoryLink } from "./CategoryLink.js";
+import type { LinkComponentProp } from "./CategoryLink.js";
 import { ErrorAlert } from "./ErrorAlert.js";
 import { CategoriesSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
-export interface CategoryTreePaneProps extends ThemeModeProp {
+export interface CategoryTreePaneProps extends ThemeModeProp, LinkComponentProp {
   /** Render this category's children. Omitted renders the roots. */
   readonly parentId?: number | null;
   /** Render the children of the category at this slug (the `/c/:slug` page). */
@@ -102,15 +104,18 @@ export function CategoryTreePane(props: CategoryTreePaneProps): ReactElement {
                         gap={8}
                         style={{ width: "100%" }}
                       >
-                        <Typography.Link
+                        <CategoryLink
+                          {...(props.linkComponent !== undefined
+                            ? { linkComponent: props.linkComponent }
+                            : {})}
                           href={`${base}/${node.category.slug}`}
-                          data-category-slug={node.category.slug}
+                          slug={node.category.slug}
                         >
                           {renderCategoryLabel(
                             categoryLabel(node.category),
                             t
                           )}
-                        </Typography.Link>
+                        </CategoryLink>
                         {node.children.length > 0 ? (
                           <Badge
                             count={node.children.length}

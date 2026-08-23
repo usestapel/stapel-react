@@ -8,17 +8,21 @@
  * the stored string for an untranslatable category twice-wrapped, and one that
  * never called it would show `category.electronics` at a visitor.
  */
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { Breadcrumb, Skeleton, Typography } from "antd";
 import { matchLoad, toFlowError, useDescribeFlowError, useT } from "@stapel/core";
 import { renderCategoryLabel } from "../catalog/labels.js";
 import { CategoryBreadcrumbs } from "../headless/CategoryBreadcrumbs.js";
 import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
+import { CategoryLink } from "./CategoryLink.js";
+import type { LinkComponentProp } from "./CategoryLink.js";
 import { ErrorAlert } from "./ErrorAlert.js";
 import { CategoriesSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
-export interface CategoryBreadcrumbsBarProps extends ThemeModeProp {
+export interface CategoryBreadcrumbsBarProps
+  extends ThemeModeProp,
+    LinkComponentProp {
   readonly slug?: string;
   readonly categoryId?: number | null;
   /** Path prefix for a crumb's link. Default `/c`. */
@@ -31,6 +35,25 @@ export function CategoryBreadcrumbsBar(
   const t = useT();
   const describe = useDescribeFlowError();
   const base = props.basePath ?? "/c";
+
+  /** A crumb's title: `href` on the ITEM would make antd render its own
+   * anchor, which is exactly the full page load this seam removes. So the
+   * link is the title. */
+  const crumbLink = (
+    href: string,
+    label: ReactNode,
+    slug?: string
+  ): ReactElement => (
+    <CategoryLink
+      {...(props.linkComponent !== undefined
+        ? { linkComponent: props.linkComponent }
+        : {})}
+      href={href}
+      {...(slug !== undefined ? { slug } : {})}
+    >
+      {label}
+    </CategoryLink>
+  );
 
   return (
     <CategoriesSkinTheme
@@ -72,15 +95,18 @@ export function CategoryBreadcrumbsBar(
                 <Breadcrumb
                   data-testid="categories-breadcrumbs"
                   items={[
-                    {
-                      title: t(CATEGORIES_I18N_KEYS.breadcrumbsRoot),
-                      href: base,
-                    },
+                    { title: crumbLink(base, t(CATEGORIES_I18N_KEYS.breadcrumbsRoot)) },
                     ...crumbs.map((crumb) => ({
-                      title: renderCategoryLabel(crumb.label, t),
-                      ...(crumb.isCurrent
-                        ? {}
-                        : { href: `${base}/${crumb.node.category.slug}` }),
+                      // The CURRENT crumb is where you already are: a label,
+                      // never a link — the one item antd would happily render
+                      // as a link to the page under your feet.
+                      title: crumb.isCurrent
+                        ? renderCategoryLabel(crumb.label, t)
+                        : crumbLink(
+                            `${base}/${crumb.node.category.slug}`,
+                            renderCategoryLabel(crumb.label, t),
+                            crumb.node.category.slug
+                          ),
                     })),
                   ]}
                 />

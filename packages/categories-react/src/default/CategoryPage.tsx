@@ -35,11 +35,12 @@ import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
 import { CategoryBreadcrumbsBar } from "./CategoryBreadcrumbsBar.js";
 import { CategoryFeatureList } from "./CategoryFeatureList.js";
 import { CategoryTreePane } from "./CategoryTreePane.js";
+import type { LinkComponentProp } from "./CategoryLink.js";
 import { ErrorAlert } from "./ErrorAlert.js";
 import { CategoriesSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
-export interface CategoryPageProps extends ThemeModeProp {
+export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
   /** The `:slug` segment of `/c/:slug`. */
   readonly slug: string;
   readonly basePath?: string;
@@ -55,6 +56,10 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
   const t = useT();
   const describe = useDescribeFlowError();
   const base = props.basePath ?? "/c";
+  const link =
+    props.linkComponent !== undefined
+      ? { linkComponent: props.linkComponent }
+      : {};
 
   return (
     <CategoriesSkinTheme
@@ -63,7 +68,7 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
       <CategoryTree slug={props.slug}>
         {(bag) => (
           <Flex vertical gap={16} data-testid="categories-category-page">
-            <CategoryBreadcrumbsBar slug={props.slug} basePath={base} />
+            <CategoryBreadcrumbsBar slug={props.slug} basePath={base} {...link} />
 
             {bag.catalog.status === "loading" ? (
               <Flex justify="center" style={{ padding: 16 }}>
@@ -96,6 +101,7 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
                     slug={props.slug}
                     basePath={base}
                     titleKey={CATEGORIES_I18N_KEYS.categorySubcategories}
+                    {...link}
                   />
                 ) : null}
 

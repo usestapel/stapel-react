@@ -169,6 +169,35 @@ composes it.
 `/c/:slug` belongs to another pair, handed in rather than imported across the
 L2 layer.
 
+## Category chrome inside a SPA: `linkComponent`
+
+Breadcrumbs, the tree and the carousel are nothing but links, and by default
+they are anchors — which in a router app means a full page load per click: the
+whole application thrown away and rebuilt to move between two categories whose
+rows are already in memory, which is the entire point of the delta-synced
+catalogue above.
+
+This pair still carries no router (there are several, and a library that picks
+one picks it for every host). It takes core's `LinkComponent` instead — a
+component over a plain `href` — and every skin here spells the prop the same:
+
+```tsx
+const RouterLink: LinkComponent = ({ href, children, ...rest }) => (
+  <Link to={href} {...rest}>{children}</Link>
+);
+
+<CatalogPage linkComponent={RouterLink} />
+<CategoryPage slug={slug} linkComponent={RouterLink} renderListings={…} />
+<CategoryTreePane linkComponent={RouterLink} />
+<CategoryBreadcrumbsBar slug={slug} linkComponent={RouterLink} />
+<CategoryCarouselStrip linkComponent={RouterLink} />
+```
+
+`<CatalogPage>` and `<CategoryPage>` pass it down to everything they compose.
+Omit it and anchors render exactly as before: a host with no router keeps
+working, and it is the same prop `@stapel/listings-react`'s `<ListingCard>`
+takes.
+
 ## Not in this version
 
 The catalogue **admin** — create/update/delete, `bulk_add`, `bulk-commands`,
