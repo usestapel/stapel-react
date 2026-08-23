@@ -69,6 +69,18 @@ export type {
   ActionGateView,
 } from "./actionGate.js";
 
+// host seams a skin needs but a library must not choose (ui.ts): the host's
+// `<Link>` (so category chrome and a listing card navigate inside the SPA
+// instead of reloading it) and the sign-in door a blocked control points at
+// (so `actionBlocked`'s reason comes with its next action). Types only — no
+// runtime, no router, no antd.
+export type {
+  LinkComponent,
+  LinkComponentProps,
+  SignInCta,
+  SignInCtaProp,
+} from "./ui.js";
+
 // verification-403 interception seam
 export {
   extractVerificationChallenge,

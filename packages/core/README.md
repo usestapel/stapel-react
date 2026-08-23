@@ -30,6 +30,40 @@ The Stapel frontend runtime (L0, frontend-standard §1). Everything the
   SSR-safe (`undefined` until mounted).
 - **Analytics seam** — the `Analytics` type + context plumbing; the facade
   implementation lives in `@stapel/analytics` (see below).
+- **Host seams** (`LinkComponent`, `SignInCta`) — the two things a skin needs
+  from its container and a library must not choose for it (see below).
+
+## Host seams: the router and the sign-in door
+
+A pair renders screens; the CONTAINER owns navigation and owns the session.
+Both used to be papered over with a plain `<a href>`, and both produced the
+same class of defect on the storefront's first real mount: a full page reload
+inside a SPA, and a blocked control whose stated reason had no next action.
+
+```tsx
+// One adapter, written once by the container, taken by every pair.
+const RouterLink: LinkComponent = ({ href, children, ...rest }) => (
+  <Link to={href} {...rest}>{children}</Link>
+);
+
+<CategoryTreePane linkComponent={RouterLink} />
+<ListingCard listing={row} href={`/l/${row.id}`} linkComponent={RouterLink} />
+<StartChatButton sellerId={sellerId} signIn={{ href: `/login?next=${here}` }} />
+```
+
+`LinkComponent` takes a plain `href` — a pair never builds a router
+descriptor, because it does not know which router it is inside. A skin that
+takes one renders every navigation through it and falls back to an anchor when
+it is absent, so "works with no wiring" stays the default.
+
+`SignInCta` is `{ href }` **or** `{ onSignIn }`, never both: a control that
+navigates *and* calls back is the same two-navigations-for-one-click defect in
+a different hat. It is rendered BESIDE `actionBlocked`'s reason, never instead
+of it — hiding a control from a visitor teaches nobody the feature exists.
+
+Both are types only: no runtime, no router, no antd. The link's LABEL is not
+here either — each pair ships that in its own bundle, because core floors `en`
+and `ru` while those pairs also ship `es`.
 
 ## Analytics seam
 
