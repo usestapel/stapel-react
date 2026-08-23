@@ -53,6 +53,7 @@ Dependency direction is strictly downward; L2 packages never import each other
 | [`@stapel/categories-react`](./packages/categories-react) | stapel-categories (the catalogue: flat rows assembled into a tree client-side, revision-delta sync into an app-scoped repository, slug→category resolved locally because the server cannot, and names carried honestly as translation keys) |
 | [`@stapel/listings-react`](./packages/listings-react) | stapel-listings (the listing page, the submission flow and the seller's dashboard: two independent state axes rendered as two — a live edit stays visible and says "changes under review" — plus per-field publish refusals routed by slug) |
 | [`@stapel/reviews-react`](./packages/reviews-react) | stapel-reviews (ratings on an opaque `(target_type, target_key)`: an anchor-paginated list a guest can read, an aggregate that says "no reviews yet" instead of drawing zero stars, and the duplicate refusal read by code — it is a 400, while the module's only 409 is about the seller's reply) |
+| [`@stapel/video-react`](./packages/video-react) | stapel-video (the workspace admin's "who talked how much": one month-bucketed usage read per partition, whose 404 is uniform over "no such scope", "no calls" and "you may not look" — so it renders as an explained refusal and never as an empty table, and whose rows carry user ids the host resolves to names) |
 | [`@stapel/showcase`](./packages/showcase) | — (demo harness: `defineDemo`) |
 
 Each pair's version minor tracks its backend module's minor (scheme B); its

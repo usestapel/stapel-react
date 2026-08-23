@@ -1,0 +1,109 @@
+{
+  "name": "@stapel/video-react",
+  "version": "0.0.0",
+  "description": "Headless React pair for stapel-video's scope usage read: who in one partition talked how much, per calendar month. `useScopeUsage` runs the window read that feeds the month selector and the single-month read that feeds the rows, both over `GET /video/api/v1/scopes/{scope_key}/usage/`. The wire carries user IDs and never names, so the display resolves them through a host-supplied `nameFor` and falls back to the id rather than to a blank cell. The 404 that means \"you may not read this scope\", \"this scope does not exist\" and \"this scope has no calls\" all at once is rendered as an explained refusal, never as an empty table. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin and the workspace-admin screen its nav entry mounts.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usestapel/stapel-react.git",
+    "directory": "packages/video-react"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./default": {
+      "types": "./dist/default/index.d.ts",
+      "default": "./dist/default/index.js"
+    },
+    "./i18n/ru": {
+      "types": "./dist/i18n/ru.d.ts",
+      "default": "./dist/i18n/ru.js"
+    },
+    "./manifest": "./manifest.json",
+    "./manifest.json": "./manifest.json",
+    "./nav-manifest.json": "./nav-manifest.json",
+    "./llms.txt": "./llms.txt",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "tsconfig.json",
+    "README.md",
+    "MODULE.md",
+    "CHANGELOG.md",
+    "manifest.json",
+    "nav-manifest.json",
+    "llms.txt"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.test.json && vitest run --exclude test/prodBundlePurity.test.ts",
+    "test:pack": "vitest run test/prodBundlePurity.test.ts",
+    "lint": "eslint .",
+    "size": "size-limit"
+  },
+  "size-limit": [
+    {
+      "name": "index — the headless pair (client + usage query + month arithmetic): no antd",
+      "path": "dist/index.js",
+      "limit": "8 KB"
+    },
+    {
+      "name": "default — the antd skin (the usage table and its month selector) must stay out of the main bundle",
+      "path": "dist/default/index.js",
+      "limit": "9 KB"
+    },
+    {
+      "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",
+      "path": "dist/i18n/ru.js",
+      "limit": "3 KB"
+    }
+  ],
+  "peerDependencies": {
+    "@stapel/core": ">=0.15.0 <1.0.0",
+    "@stapel/tokens-antd": ">=0.5.0",
+    "@tanstack/react-query": "^5.0.0",
+    "antd": ">=5.20.0 <7",
+    "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "@stapel/tokens-antd": {
+      "optional": true
+    },
+    "antd": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@size-limit/preset-small-lib": "^11.2.0",
+    "@stapel/core": "workspace:^",
+    "@stapel/showcase": "workspace:^",
+    "@stapel/tokens": "workspace:^",
+    "@stapel/tokens-antd": "workspace:^",
+    "@tanstack/react-query": "^5.81.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "antd": "^6.5.0",
+    "jsdom": "^26.1.0",
+    "msw": "^2.10.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "size-limit": "^11.2.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

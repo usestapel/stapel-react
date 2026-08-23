@@ -1,0 +1,80 @@
+# @stapel/video-react 0.0.0
+
+Headless React flow pair for stapel-video (contract >=0.7 <0.8) — business + state, zero visual opinion.
+Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
+verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
+
+## The one right way (do this, the rest is a review/lint smell)
+- No raw fetch/axios. The client is injected via <VideoProvider>/StapelConfigProvider;
+  every hook and flow already carries auth, refresh, and the error envelope.
+- Render errors, never try/catch them: a flow's state carries FlowError{code,params};
+  render `t(code, params)` and branch on `explainVideoError(code)` remediation.
+- Server state = the use* hooks (query layer); keys come only from videoQueryKeys.
+- User strings = i18n keys (registerVideoI18n); never string literals.
+- Sign-in UI = a headless flow component; copy it (shadcn-style) to restyle.
+
+## Layers
+api (typed client) · model (hooks, session) · flows (machines) · headless · i18n
+
+## Documented flows (flows.json — canonical id, steps, endpoints)
+
+## Operations (typed; use the named op, never a path string)
+Request/response schema names are in manifest.json + the generated types.
+Paths are relative to `/video/api/v1/`.
+- video_api_v1_rooms_create: POST /rooms
+- video_api_v1_rooms_join_create: POST /rooms/{join_code}/join
+- video_api_v1_rooms_lobby_admit_create: POST /rooms/{join_code}/lobby/admit
+- video_api_v1_rooms_lobby_deny_create: POST /rooms/{join_code}/lobby/deny
+- video_api_v1_rooms_participants_retrieve: GET /rooms/{join_code}/participants
+- video_api_v1_rooms_retrieve: GET /rooms/{join_code}
+- video_api_v1_scopes_usage_retrieve: GET /scopes/{scope_key}/usage/
+- video_api_v1_webhook_create: POST /webhook
+
+## Query hooks (server state; keys come only from the key factory)
+- useScopeUsage (query) → scopeUsage
+
+## Errors (render t(code, params); UX from remediation)
+51 keys (full catalog: manifest.json §errors). By remediation: fix_input 19 · retry 19 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+Param-bearing keys (interpolation slots matter):
+- error.400.field.blank [400] → fix_input {field}
+- error.400.field.does_not_exist [400] → fix_input {field}
+- error.400.field.invalid [400] → fix_input {field}
+- error.400.field.invalid_choice [400] → fix_input {field}
+- error.400.field.max_length [400] → fix_input {field,max_length}
+- error.400.field.max_value [400] → fix_input {field,max_value}
+- error.400.field.min_length [400] → fix_input {field,min_length}
+- error.400.field.min_value [400] → fix_input {field,min_value}
+- error.400.field.null [400] → fix_input {field}
+- error.400.field.required [400] → fix_input {field}
+- error.400.field.unique [400] → fix_input {field}
+- error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
+
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- video.usage → <VideoProvider> [default|nobody|unavailable]  demo/Video.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
+
+## Snippets
+```tsx
+// Error rendering + remediation branch (one pattern for every pair).
+const r = explainVideoError(err.code); // 'wait_and_retry' | 'verify' | ...
+return <Alert action={r}>{t(err.code, err.params)}</Alert>;
+```

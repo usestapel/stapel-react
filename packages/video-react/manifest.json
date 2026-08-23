@@ -1,0 +1,522 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/video-react",
+  "version": "0.0.0",
+  "backend": {
+    "module": "stapel-video",
+    "contract": ">=0.7 <0.8"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "video_api_v1_rooms_create": {
+      "method": "POST",
+      "path": "/video/api/v1/rooms",
+      "tag": "Video",
+      "request": "RoomCreateRequest",
+      "response": "JoinResponse"
+    },
+    "video_api_v1_rooms_join_create": {
+      "method": "POST",
+      "path": "/video/api/v1/rooms/{join_code}/join",
+      "tag": "Video",
+      "request": "JoinRequest",
+      "response": "JoinResponse"
+    },
+    "video_api_v1_rooms_lobby_admit_create": {
+      "method": "POST",
+      "path": "/video/api/v1/rooms/{join_code}/lobby/admit",
+      "tag": "Video",
+      "request": "LobbyActionRequest",
+      "response": "AdmitResponse"
+    },
+    "video_api_v1_rooms_lobby_deny_create": {
+      "method": "POST",
+      "path": "/video/api/v1/rooms/{join_code}/lobby/deny",
+      "tag": "Video",
+      "request": "LobbyActionRequest",
+      "response": "LobbyActionRequest"
+    },
+    "video_api_v1_rooms_participants_retrieve": {
+      "method": "GET",
+      "path": "/video/api/v1/rooms/{join_code}/participants",
+      "tag": "Video",
+      "request": null,
+      "response": "ParticipantListResponse"
+    },
+    "video_api_v1_rooms_retrieve": {
+      "method": "GET",
+      "path": "/video/api/v1/rooms/{join_code}",
+      "tag": "Video",
+      "request": null,
+      "response": "RoomResponse"
+    },
+    "video_api_v1_scopes_usage_retrieve": {
+      "method": "GET",
+      "path": "/video/api/v1/scopes/{scope_key}/usage/",
+      "tag": "Video",
+      "request": null,
+      "response": "ScopeUsageResponse"
+    },
+    "video_api_v1_webhook_create": {
+      "method": "POST",
+      "path": "/video/api/v1/webhook",
+      "tag": "Video",
+      "request": null,
+      "response": null
+    }
+  },
+  "hooks": {
+    "useScopeUsage": {
+      "kind": "query",
+      "operation": "scopeUsage"
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.video_invalid_access_level": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.video_invalid_usage_period": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.video_invalid_webhook": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.video_join_denied": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.video_not_room_host": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.video_not_room_participant": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.video_participant_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.video_room_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.video_scope_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "video.usage",
+      "title": "Scope usage",
+      "description": "GET /video/api/v1/scopes/{scope_key}/usage/ — who inside one partition talked how much, per calendar month. Three states, and the point of the pair is that none of them collapses into another: rows, a month that succeeded and holds nobody, and the uniform error.404.video_scope_not_found that covers a missing scope, a scope with no calls and a reader holding no USAGE_MANDATE all at once (a 403 would confirm that a guessed tenant id is real). The wire carries user ids and never names; the host resolves them through nameFor.",
+      "component": "VideoProvider",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "nobody",
+        "unavailable"
+      ],
+      "source": "demo/Video.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.400.video_invalid_access_level",
+    "error.400.video_invalid_usage_period",
+    "error.400.video_invalid_webhook",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.403.video_join_denied",
+    "error.403.video_not_room_host",
+    "error.403.video_not_room_participant",
+    "error.404.ad_not_found",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.404.video_participant_not_found",
+    "error.404.video_room_not_found",
+    "error.404.video_scope_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.mandate_unavailable",
+    "video.error.unknown",
+    "video.usage.column.calls",
+    "video.usage.column.connections",
+    "video.usage.column.person",
+    "video.usage.column.talk_time",
+    "video.usage.empty",
+    "video.usage.heading",
+    "video.usage.loading",
+    "video.usage.month_label",
+    "video.usage.no_scope",
+    "video.usage.refresh",
+    "video.usage.total.attendances",
+    "video.usage.total.attendances_hint",
+    "video.usage.total.label",
+    "video.usage.total.people",
+    "video.usage.unavailable"
+  ],
+  "exports": {
+    "runtime": [
+      "ADMIN_ROOT_ID",
+      "DEFAULT_USAGE_MONTHS",
+      "DEFAULT_USAGE_TZ",
+      "MAX_USAGE_MONTHS",
+      "VIDEO_ERRORS",
+      "VIDEO_ERROR_CODES",
+      "VIDEO_FLOWS",
+      "VIDEO_I18N_KEYS",
+      "VideoProvider",
+      "VideoRuntimeContext",
+      "createFlowMachine",
+      "createVideoApi",
+      "createVideoRuntime",
+      "explainVideoError",
+      "flowEndpoints",
+      "formatPresence",
+      "isErrorCode",
+      "isInvalidUsagePeriod",
+      "isScopeUnavailable",
+      "navEntries",
+      "normalizeScopeUsage",
+      "registerVideoI18n",
+      "toFlowError",
+      "usageMonth",
+      "usageMonthLabels",
+      "usageQueryKeys",
+      "usageTotals",
+      "useFlow",
+      "useScopeUsage",
+      "useVideoAnalytics",
+      "useVideoApi",
+      "useVideoRuntime",
+      "videoErrorBundleEn",
+      "videoI18nBundleEn",
+      "videoQueryKeys"
+    ],
+    "types": [
+      "CreateVideoRuntimeOptions",
+      "FlowEndpoint",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "Remediation",
+      "Schemas",
+      "ScopeUsageAnswer",
+      "ScopeUsageBag",
+      "ScopeUsageMonth",
+      "ScopeUsageRequest",
+      "ScopeUsageResponse",
+      "ScopeUsageRow",
+      "UsageMonth",
+      "UsageTotals",
+      "UseScopeUsageOptions",
+      "VideoApi",
+      "VideoErrorCode",
+      "VideoErrorSpec",
+      "VideoFlowId",
+      "VideoFlowSpec",
+      "VideoI18nKey",
+      "VideoRuntime"
+    ]
+  }
+}

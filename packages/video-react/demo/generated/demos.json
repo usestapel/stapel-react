@@ -1,0 +1,32 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/video-react",
+  "version": "0.0.0",
+  "demos": [
+    {
+      "id": "video.usage",
+      "title": "Scope usage",
+      "description": "GET /video/api/v1/scopes/{scope_key}/usage/ — who inside one partition talked how much, per calendar month. Three states, and the point of the pair is that none of them collapses into another: rows, a month that succeeded and holds nobody, and the uniform error.404.video_scope_not_found that covers a missing scope, a scope with no calls and a reader holding no USAGE_MANDATE all at once (a 403 would confirm that a guessed tenant id is real). The wire carries user ids and never names; the host resolves them through nameFor.",
+      "component": "VideoProvider",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        },
+        {
+          "id": "nobody"
+        },
+        {
+          "id": "unavailable"
+        }
+      ],
+      "source": {
+        "file": "demo/Video.demo.tsx",
+        "line": 101
+      }
+    }
+  ]
+}

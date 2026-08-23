@@ -307,6 +307,32 @@
           "order": 11
         }
       ]
+    },
+    {
+      "package": "@stapel/video-react",
+      "version": "0.0.0",
+      "entries": [
+        {
+          "id": "admin.usage",
+          "labelKey": "video.usage.heading",
+          "icon": "ClockCircleOutlined",
+          "route": {
+            "path": "usage"
+          },
+          "component": {
+            "export": "ScopeUsagePane",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "admin.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 30
+        }
+      ]
     }
   ]
 }
