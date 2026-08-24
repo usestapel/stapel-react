@@ -28,6 +28,8 @@ Paths are relative to `/reviews/api/v1/`.
 - reviews_api_v1_reviews_retrieve: GET /reviews
 
 ## Query hooks (server state; keys come only from the key factory)
+- useModerateReview (mutation) → moderate
+- useRespondToReview (mutation) → respond
 - useReviewAggregate (query) → aggregate
 - useSubmitReview (mutation) → createReview
 
@@ -67,9 +69,13 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
-- reviews.aggregate → <ReviewAggregate> [rated|never rated|seller roll-up (supplied)]  demo/ReviewAggregate.demo.tsx
-- reviews.form → <ReviewForm> [post-moderation (published)|pre-moderation (pending)|already rated (400)]  demo/ReviewForm.demo.tsx
-- reviews.list → <ReviewList> [published|moderator (include=all)|empty (reachable by a guest)]  demo/ReviewList.demo.tsx
+- reviews.form → <ReviewFormCard> [idle|already rated|a 1..10 deployment]  demo/ReviewFormCard.demo.tsx
+- reviews.list → <ReviewListPanel> [published|end of the run|narrowed scope|empty|failed]  demo/ReviewListPanel.demo.tsx
+- reviews.moderation → <ReviewModerationPanel> [granted, six rows|not a moderator|nothing written yet]  demo/ReviewModerationPanel.demo.tsx
+- reviews.panel → <ReviewsPanel> [a buyer|nothing rated yet|the seller, moderating]  demo/ReviewsPanel.demo.tsx
+- reviews.rating → <RatingBadge> [rated|one review|never rated|seller roll-up (supplied)]  demo/RatingBadge.demo.tsx
+- reviews.response → <ReviewResponseComposer> [the owner, nothing written yet|already answered|not the owner]  demo/ReviewResponseComposer.demo.tsx
+- reviews.sign-in-link → <SignInLink> [a route (href)|no door at all|a handler (onSignIn)]  demo/SignInLink.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

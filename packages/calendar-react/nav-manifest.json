@@ -1,0 +1,45 @@
+{
+  "package": "@stapel/calendar-react",
+  "version": "0.6.1",
+  "entries": [
+    {
+      "id": "calendar.month",
+      "labelKey": "calendar.view.heading",
+      "icon": "ClockCircleOutlined",
+      "route": {
+        "path": "calendar"
+      },
+      "component": {
+        "export": "Calendar",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 40
+    },
+    {
+      "id": "calendar.availability",
+      "labelKey": "calendar.availability.heading",
+      "icon": "OrderedListOutlined",
+      "route": {
+        "path": "availability"
+      },
+      "component": {
+        "export": "AvailabilityPane",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "calendar.month"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 10
+    }
+  ]
+}

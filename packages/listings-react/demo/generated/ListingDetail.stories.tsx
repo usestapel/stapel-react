@@ -8,5 +8,13 @@ export default { title: "listings-react / Listing detail" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
+Default.parameters = { stapel: {"viewport":"phone","step":"buyer_contact_wired"} };
+export const ContactUnwired = (): ReactElement => renderDemoVariant(demo, "contact-unwired");
+ContactUnwired.storyName = "contact-unwired";
+ContactUnwired.parameters = { stapel: {"viewport":"phone","step":"buyer_slot_unfilled"} };
 export const Owner = (): ReactElement => renderDemoVariant(demo, "owner");
 Owner.storyName = "owner";
+Owner.parameters = { stapel: {"viewport":"phone","step":"owner_live_edit_under_review"} };
+export const NotFound = (): ReactElement => renderDemoVariant(demo, "not-found");
+NotFound.storyName = "not-found";
+NotFound.parameters = { stapel: {"viewport":"desktop","step":"not_found"} };

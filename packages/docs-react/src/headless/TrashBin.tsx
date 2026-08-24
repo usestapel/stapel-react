@@ -62,7 +62,7 @@ export function TrashBin(props: {
     emptyTrash: (ids) => {
       actions.emptyTrash.mutate({
         workspace_id: props.workspaceId,
-        ...(ids !== undefined ? { ids } : {}),
+        ...(ids !== undefined ? { ids: [...ids] } : {}),
       });
     },
     isEmptying: actions.emptyTrash.isPending,

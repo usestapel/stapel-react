@@ -14,12 +14,12 @@
  * `PasskeyRegistration` headless journeys — the exact enrollment surface the
  * limited session allows — inside `MfaEnrollGate`'s enroll-scoped runtime.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactElement } from "react";
+import { radii, spacing } from "@stapel/tokens";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties, ReactElement } from "react";
 import {
   Alert,
   Button,
-  ConfigProvider,
   Flex,
   Form,
   Input,
@@ -29,8 +29,8 @@ import {
   Spin,
   Typography,
 } from "antd";
-import { toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
+import { SkinTheme } from "@stapel/tokens-antd/skin";
 import { useFormatFlowError, useT } from "@stapel/core";
 import type { FlowError } from "../flows/errors.js";
 import type { AuthTokens } from "../api/types.js";
@@ -46,6 +46,23 @@ import { OtpField } from "./OtpField.js";
 
 /** Fallback when the backend omits `otp.totp_code_length` metadata. */
 const DEFAULT_TOTP_LENGTH = 6;
+
+/**
+ * Both first-login gates paint their own surface. They are full-screen
+ * interstitials a person cannot navigate away from, so inheriting the host
+ * page's background is the one thing they must not do: under
+ * `<html data-theme="dark">` that produced light-theme text on a near-black
+ * page and the heading disappeared (visual pass CF-1). Element-relative width
+ * so the card is the column on a phone and a readable measure on a desktop.
+ */
+const FIRST_LOGIN_CARD_STYLE: CSSProperties = {
+  width: "100%",
+  maxWidth: "26rem",
+  margin: "0 auto",
+  padding: spacing[6],
+  borderRadius: radii.lg,
+  boxSizing: "border-box",
+};
 
 // ── ForcedPasswordChangeCard ────────────────────────────────────────────────
 
@@ -69,14 +86,17 @@ export interface ForcedPasswordChangeCardProps {
 export function ForcedPasswordChangeCard(
   props: ForcedPasswordChangeCardProps
 ): ReactElement {
-  const { mode = "light" } = props;
   const t = useT();
   const formatError = useFormatFlowError();
-  const theme = useMemo(() => toAntdThemeConfig(mode), [mode]);
   const [mismatch, setMismatch] = useState(false);
 
   return (
-    <ConfigProvider theme={theme}>
+    <SkinTheme
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+      surface="raised"
+      style={FIRST_LOGIN_CARD_STYLE}
+      data-testid="forced-password-change-surface"
+    >
       <ForcedPasswordChange challengeToken={props.challengeToken}>
         {(bag) => {
           const s = bag.state;
@@ -92,7 +112,7 @@ export function ForcedPasswordChangeCard(
             return (
               <MfaEnrollPanel
                 challengeToken={s.challengeToken}
-                mode={mode}
+                {...(props.mode !== undefined ? { mode: props.mode } : {})}
                 {...(props.webauthnCreate !== undefined
                   ? { webauthnCreate: props.webauthnCreate }
                   : {})}
@@ -159,7 +179,7 @@ export function ForcedPasswordChangeCard(
           );
         }}
       </ForcedPasswordChange>
-    </ConfigProvider>
+    </SkinTheme>
   );
 }
 
@@ -187,11 +207,13 @@ export interface MfaEnrollPanelProps {
  * the full session through the runtime (`session.setTokens`).
  */
 export function MfaEnrollPanel(props: MfaEnrollPanelProps): ReactElement {
-  const { mode = "light" } = props;
-  const theme = useMemo(() => toAntdThemeConfig(mode), [mode]);
-
   return (
-    <ConfigProvider theme={theme}>
+    <SkinTheme
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+      surface="raised"
+      style={FIRST_LOGIN_CARD_STYLE}
+      data-testid="mfa-enroll-surface"
+    >
       <MfaEnrollGate
         challengeToken={props.challengeToken}
         {...(props.methods !== undefined ? { methods: props.methods } : {})}
@@ -206,7 +228,7 @@ export function MfaEnrollPanel(props: MfaEnrollPanelProps): ReactElement {
           />
         )}
       </MfaEnrollGate>
-    </ConfigProvider>
+    </SkinTheme>
   );
 }
 
@@ -374,7 +396,7 @@ function EnrollTotpJourney(props: {
         <Typography.Text type="secondary">
           {t(AUTH_I18N_KEYS.secTotpBackupCodesHint)}
         </Typography.Text>
-        <Flex vertical gap={4}>
+        <Flex vertical gap={spacing[1]}>
           {s.backupCodes.map((c) => (
             <Typography.Text code key={c}>
               {c}

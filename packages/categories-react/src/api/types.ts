@@ -1,35 +1,24 @@
 /**
- * The wire shapes of `stapel-categories`, taken from the generated schema
- * wherever the generated schema is TRUE, and hand-mirrored — with the reason
- * written down — in the one place it is not.
+ * The wire shapes of `stapel-categories`, taken from the generated schema.
  *
- * ── The one place the generated types are wrong: `config.type` ─────────────
+ * The discriminator this pair once had to route around is FIXED upstream.
+ * `FeatureConfig`'s `discriminator.mapping` used to carry a single bogus
+ * `"null"` entry instead of the ten type slugs, so openapi-typescript re-added
+ * a synthetic discriminant per member (`type: "IntConfig"` where the wire
+ * sends `type: "int"`). The pair filed it; stapel-attributes 0.4.7 fixed the
+ * `PolymorphicProxySerializer`, stapel-categories 0.6.1 regenerated, and
+ * `{@link CategoryFeatureConfig}` below is now the real slug-keyed union —
+ * asserted by `test/contract.test.ts`, which fails if a slug ever goes back to
+ * being a class name.
  *
- * `FeatureCompact.config` is `{"allOf": [{"$ref": "FeatureConfig"}]}`, and
- * `FeatureConfig` is a `oneOf` over ten config schemas carrying
- * `discriminator: {propertyName: "type", mapping: {"null": ConvertibleUnitConfig}}`
- * (stapel-categories `docs/schema.json`). That mapping is malformed — it has
- * ONE entry, keyed `"null"`, instead of the ten type slugs — so
- * openapi-typescript does two things to the generated surface:
- *
- *   1. it strips the discriminator from every use site, emitting
- *      `Omit<components["schemas"]["FeatureConfig"], "type">`; and
- *   2. it re-adds a SYNTHETIC discriminant on each member, so the generated
- *      `IntConfig` declares `type: "IntConfig"` where the wire sends
- *      `type: "int"` (see `generated/schema.ts`, "discriminator enum property
- *      added by openapi-typescript").
- *
- * A pair that typed features off the generated union would therefore hand
- * `@stapel/attributes-react` a `config` with no `type` at all, and any
- * narrowing written against it would compare the value to a string the server
- * never sends. So the features surface is typed through attributes-react's
- * hand-mirrored `FeatureDef` / `FeatureConfig` (`attributes-react/src/types.ts`,
- * itself checked against the engine's generated golden corpus) — the same
- * shapes the value editors, the mirror and the formatter already switch on.
- * Everything else here comes from the generated schema untouched.
- *
- * The upstream ask is recorded rather than worked around twice: emit the ten
- * `type` slugs in `discriminator.mapping`, and both of the above disappear.
+ * `CategoryFeature` still names `@stapel/attributes-react`'s `FeatureDef`, and
+ * that is a SEAM, not a workaround: attributes-react owns the feature axis (it
+ * draws the editors, mirrors the validation and formats the values), the
+ * features endpoint serializes `config` VERBATIM rather than through
+ * `get_config_with_defaults()`, so a malformed row can arrive with no `type`
+ * at all, and `FeatureDef`'s open config is what tolerates that loudly instead
+ * of crashing. The generated union is what a WELL-FORMED row narrows to, and
+ * the two are checked against each other rather than trusted.
  */
 import type { FeatureConfig, FeatureDef } from "@stapel/attributes-react";
 import type { components } from "./generated/schema.js";
@@ -70,9 +59,11 @@ export type MaxRevision = Schemas["MaxRevision"];
  * One resolved feature of a category (own + inherited, deduplicated by slug,
  * in the category's own order first).
  *
- * Structurally `FeatureCompact`, but typed as attributes-react's `FeatureDef`
- * for the discriminator reason at the top of this file. The two agree field
- * for field; only `config` differs, and only in the direction of the truth.
+ * Structurally `Schemas["FeatureCompact"]`, named as attributes-react's
+ * `FeatureDef` because that package owns the feature axis (see this file's
+ * header). The two agree field for field; `config` is open here and the
+ * generated {@link CategoryFeatureConfig} below is what a well-formed one
+ * narrows to.
  *
  * `config` arrives **verbatim**, NOT through `get_config_with_defaults()`
  * (`FeatureCompactSerializer.get_config`) — an absent key means "the type's
@@ -82,6 +73,25 @@ export type MaxRevision = Schemas["MaxRevision"];
 export type CategoryFeature = FeatureDef;
 
 export type { FeatureConfig };
+
+/**
+ * The wire's feature-config union, straight from the generated schema: ten
+ * members discriminated on `type` by the value type's SLUG (`"int"`,
+ * `"bool"`, `"convertible_unit"`, …).
+ *
+ * Narrowing on it is the point — `config.type === "select"` gives you
+ * `options`, and TypeScript refuses a member the server does not send. Use it
+ * for a config a row is known to carry; use {@link FeatureConfig} (open) for
+ * one straight off the wire, which may be missing `type` entirely.
+ */
+export type CategoryFeatureConfig = Schemas["FeatureConfig"];
+
+/**
+ * Every value-type slug `config.type` can carry — the discriminants of
+ * {@link CategoryFeatureConfig}, derived rather than restated. Pinned to the
+ * ten registered types by `test/contract.test.ts`.
+ */
+export type CategoryFeatureType = CategoryFeatureConfig["type"];
 
 /** Query parameters of `GET /categories/api/v1/categories/`. */
 export interface CategoryListParams {

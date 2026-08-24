@@ -11,6 +11,16 @@ import type { I18nDictionary, I18nEngine } from "@stapel/core";
  */
 export const SHELL_I18N_KEYS = {
   navOpenMenu: "shell.nav.open_menu",
+  /** Label of the synthetic admin section (`resolveNav`'s
+   * {@link ADMIN_ROOT_ENTRY}). Owned here, not by a module, because no module
+   * owns "the admin section" — and it is the same key the generated container
+   * declares for its own admin root, so a scaffolded host and a hand-wired
+   * one read one string. */
+  navAdmin: "shell.nav.admin",
+  /** The reason beside the admin section for a person without the staff
+   * capability. It is a REASON, not a hidden entry: the section stays listed
+   * so that asking for access is possible at all. */
+  navAdminStaffOnly: "shell.nav.admin_staff_only",
   /** `<PublicShell/>`'s default `accountSlot`. The public chrome renders a
    * sign-in CTA when the host supplies no account slot at all, so this key is
    * reachable on any storefront — a hidden entry point teaches nothing
@@ -30,6 +40,8 @@ export type ShellI18nKey = (typeof SHELL_I18N_KEYS)[keyof typeof SHELL_I18N_KEYS
 
 export const shellI18nBundleEn: I18nDictionary = {
   "shell.nav.open_menu": "Open menu",
+  "shell.nav.admin": "Admin",
+  "shell.nav.admin_staff_only": "For the people who operate this product",
   "shell.public.sign_in": "Sign in",
   "shell.theme.group": "Appearance",
   "shell.theme.light": "Light",

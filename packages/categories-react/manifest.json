@@ -655,52 +655,127 @@
   },
   "demos": [
     {
-      "id": "categories.carousel",
-      "title": "Carousel and breadcrumbs",
-      "description": "The carousel is the one endpoint that arrives ready to render — the server filters active + carousel_enabled and sends its own Cache-Control. Icon references stay opaque strings: the host resolves them, the library never guesses a CDN path. Each label reports whether it is a translation key or a literal.",
-      "component": "CategoryCarousel",
+      "id": "categories.breadcrumbs",
+      "title": "Category breadcrumbs",
+      "description": "Every caption goes through renderCategoryLabel, the one place this skin decides between 'translate this' and 'print this': a name is a translation KEY unless the row says otherwise. The CURRENT crumb is a label, never a link to the page under your feet.",
+      "component": "CategoryBreadcrumbsBar",
       "covers": [
-        "CategoryBreadcrumbs"
+        "CategoryBreadcrumbs",
+        "CategoryLink"
       ],
       "tokens": [
         "surface-raised"
       ],
       "variants": [
-        "default"
+        "deep",
+        "in a router",
+        "the link itself",
+        "stale link"
       ],
-      "source": "demo/CategoryCarousel.demo.tsx"
+      "source": "demo/CategoryBreadcrumbsBar.demo.tsx"
+    },
+    {
+      "id": "categories.carousel",
+      "title": "Category carousel",
+      "description": "The one endpoint that arrives ready to render — the server filters active + carousel_enabled, orders by priority and sends its own Cache-Control. Labels still say whether they are translation keys or literals, because the catalogue's names belong to the deployment, not to the library.",
+      "component": "CategoryCarouselStrip",
+      "covers": [
+        "CategoryCarousel"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "tiles",
+        "text only",
+        "nothing featured",
+        "outage"
+      ],
+      "source": "demo/CategoryCarouselStrip.demo.tsx"
+    },
+    {
+      "id": "categories.catalog",
+      "title": "Catalogue page",
+      "description": "The /c route: the carousel of featured categories over the top-level tree. Category names arrive from the wire as TRANSLATION KEYS, so the host's bundle supplies the copy — and icon references stay opaque strings the host resolves, because a library that guessed a CDN path would ship a broken image on every deployment that guessed differently.",
+      "component": "CatalogPage",
+      "covers": [
+        "CategoriesProvider"
+      ],
+      "tokens": [
+        "surface-base",
+        "surface-raised"
+      ],
+      "variants": [
+        "browse",
+        "no icons",
+        "empty catalogue",
+        "outage"
+      ],
+      "source": "demo/CatalogPage.demo.tsx"
+    },
+    {
+      "id": "categories.category",
+      "title": "Category page",
+      "description": "The /c/:slug route. The slug is resolved against the CLIENT-BUILT tree because the server has no slug lookup, and 'there is no category here' is shown only once the sync has succeeded — a slow network must never render a 404 for a page that exists.",
+      "component": "CategoryPage",
+      "covers": [
+        "CategoryTree"
+      ],
+      "tokens": [
+        "surface-base"
+      ],
+      "variants": [
+        "composed",
+        "unfilled slot",
+        "leaf with its schema",
+        "no such category",
+        "outage"
+      ],
+      "source": "demo/CategoryPage.demo.tsx"
     },
     {
       "id": "categories.features",
       "title": "Category feature schema",
-      "description": "GET /categories/{id}/features/ resolves inheritance and order server-side and sends config VERBATIM — no defaults filled in, so an absent key means the type's default and attributes-react owns those. Each row reports whether its name and its option labels are translation keys, and one fixture carries a type no builtin editor covers.",
-      "component": "CategoryFeatures",
+      "description": "GET /categories/{id}/features/ resolves inheritance and order server-side and returns config VERBATIM — no defaults filled in, so an absent key means 'the type's default', never 'off'. attributes-react owns those defaults; this pair does not restate them.",
+      "component": "CategoryFeatureList",
+      "covers": [
+        "CategoryFeatures"
+      ],
       "tokens": [
         "surface-raised"
       ],
       "variants": [
-        "default"
+        "schema",
+        "no extra details",
+        "outage"
       ],
-      "source": "demo/CategoryFeatures.demo.tsx"
+      "source": "demo/CategoryFeatureList.demo.tsx"
     },
     {
       "id": "categories.picker",
       "title": "Category picker",
-      "description": "Drill-down over the already-synced tree — no request per level, and none per keystroke when searching. leavesOnly is on by default and the refusal says why: a listing filed one level too high inherits the wrong feature set, so the form then asks the wrong questions.",
-      "component": "CategoryPicker",
+      "description": "Drill down or search; either way the options come out of the tree already in memory, so typing issues no request per keystroke and the control works offline once the catalogue has synced. A non-leaf selection is refused WITH ITS REASON: a listing filed under 'Electronics' instead of 'Electronics › Phones' inherits a different feature set, so the form then asks the wrong questions.",
+      "component": "CategoryPickerField",
+      "covers": [
+        "CategoryPicker"
+      ],
       "tokens": [
         "surface-raised"
       ],
       "variants": [
-        "default"
+        "on a phone",
+        "inline",
+        "too general",
+        "chosen",
+        "outage"
       ],
-      "source": "demo/CategoryPicker.demo.tsx"
+      "source": "demo/CategoryPickerField.demo.tsx"
     },
     {
       "id": "categories.tree",
-      "title": "Category tree",
-      "description": "stapel-categories has no tree endpoint: the list returns flat rows ordered by revision, with ancestry as comma-joined pk strings. The client assembles the hierarchy, drops soft-deleted and inactive rows, and resolves /c/:slug against the result — the server has no slug lookup either.",
-      "component": "CategoryTree",
+      "title": "Category tree pane",
+      "description": "stapel-categories has no tree endpoint: the list returns FLAT rows ordered by revision, with ancestry as comma-joined pk strings. The client assembles the hierarchy, drops soft-deleted and inactive rows for DIFFERENT reasons, and resolves /c/:slug against the result — the server has no slug lookup either.",
+      "component": "CategoryTreePane",
       "covers": [
         "CategoriesProvider"
       ],
@@ -709,9 +784,12 @@
       ],
       "variants": [
         "roots",
-        "one category"
+        "one level down",
+        "leaf",
+        "partial catalogue",
+        "outage"
       ],
-      "source": "demo/CategoryTree.demo.tsx"
+      "source": "demo/CategoryTreePane.demo.tsx"
     }
   ],
   "i18nKeys": [
@@ -732,8 +810,12 @@
     "categories.category.no_subcategories",
     "categories.category.open",
     "categories.category.subcategories",
+    "categories.category.subcategories_count",
+    "categories.category.subcategories_count.one",
+    "categories.category.subcategories_count.other",
     "categories.category.title",
     "categories.category.unknown_slug",
+    "categories.category.unknown_slug_hint",
     "categories.error.unknown",
     "categories.features.empty",
     "categories.features.load_failed",
@@ -744,6 +826,8 @@
     "categories.features.untyped",
     "categories.picker.blocked.not_a_leaf",
     "categories.picker.blocked.nothing_selected",
+    "categories.picker.choose",
+    "categories.picker.done",
     "categories.picker.load_failed",
     "categories.picker.loading",
     "categories.picker.no_matches",
@@ -822,6 +906,7 @@
       "CATEGORIES_ERROR_CODES",
       "CATEGORIES_FEATURE_EDITOR_CONFLICT",
       "CATEGORIES_I18N_KEYS",
+      "CATEGORIES_I18N_PLURAL_KEYS",
       "CategoriesProvider",
       "CategoriesRuntimeContext",
       "CategoryBreadcrumbs",
@@ -831,6 +916,7 @@
       "CategoryTree",
       "EMPTY_SNAPSHOT",
       "MAX_SYNC_PAGES",
+      "UNPERSISTED_WARNING",
       "applyCategoryPage",
       "buildCategoryTree",
       "catalogKeyOptions",
@@ -846,6 +932,7 @@
       "createCategoriesApi",
       "createCategoriesRuntime",
       "explainCategoriesError",
+      "featureCommentLabel",
       "featureLabel",
       "featureOptionsAreKeys",
       "firstPageRequest",
@@ -887,7 +974,9 @@
       "CategoryCatalog",
       "CategoryCrumb",
       "CategoryFeature",
+      "CategoryFeatureConfig",
       "CategoryFeatureEntry",
+      "CategoryFeatureType",
       "CategoryFeaturesBag",
       "CategoryFeaturesProps",
       "CategoryIndex",

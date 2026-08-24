@@ -23,6 +23,8 @@ import { I18nProvider, createI18n, useT } from "@stapel/core";
 import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
 import { createNotificationsRuntime } from "../src/index.js";
 import { NotificationsProvider, registerNotificationsI18n } from "../src/index.js";
+import { notificationsQueryKeys } from "../src/index.js";
+import type { DeviceListItem, NotificationFeedPage } from "../src/index.js";
 
 /** The base every mock handler mounts on (mirrors stapel-notifications `/notifications/api/`). */
 export const DEMO_BASE = "https://notifications.demo.stapel.dev/notifications/api/";
@@ -82,14 +84,32 @@ const demoBundleEn: Record<string, string> = {
 };
 
 /**
+ * Server state a variant starts with, written straight into the query cache.
+ *
+ * A demo whose data arrives asynchronously renders its LOADING arm on the
+ * first paint, which is the frame a static screenshot and the variant-
+ * distinctness guard both see — so four variants of a data-backed screen come
+ * out as four photographs of the same skeleton. Seeding the cache makes the
+ * first paint the state the variant is named after, which is the whole point
+ * of declaring one.
+ */
+export interface DemoSeed {
+  /** Pages of `GET /feed/`, newest first — one entry is the common case. */
+  readonly feed?: readonly NotificationFeedPage[];
+  /** The `GET /devices/` answer. */
+  readonly devices?: readonly DeviceListItem[];
+}
+
+/**
  * Provider frame every notifications demo variant renders inside. Builds a fresh mock
  * runtime + query client per mount so variants stay isolated.
  */
 export function NotificationsDemoHarness(props: {
   handlers?: DemoHandlers;
+  seed?: DemoSeed;
   children: ReactNode;
 }): ReactElement {
-  const { handlers } = props;
+  const { handlers, seed } = props;
   const { runtime, queryClient, i18n } = useMemo(() => {
     const rt = createNotificationsRuntime({
       baseUrl: DEMO_BASE,
@@ -98,14 +118,23 @@ export function NotificationsDemoHarness(props: {
     const engine = createI18n({ locale: "en" });
     registerNotificationsI18n(engine);
     engine.registerBundle("en", demoBundleEn);
-    return {
-      runtime: rt,
-      queryClient: new QueryClient({
-        defaultOptions: { queries: { retry: false } },
-      }),
-      i18n: engine,
-    };
-  }, [handlers]);
+    const client = new QueryClient({
+      // `staleTime: Infinity` so the seeded state is what stays on screen: a
+      // background refetch against the canned fetch would replace a named
+      // variant's fixture with the harness's generic one.
+      defaultOptions: { queries: { retry: false, staleTime: Number.POSITIVE_INFINITY } },
+    });
+    if (seed?.feed !== undefined) {
+      client.setQueryData(notificationsQueryKeys.feed(), {
+        pages: [...seed.feed],
+        pageParams: seed.feed.map(() => undefined),
+      });
+    }
+    if (seed?.devices !== undefined) {
+      client.setQueryData(notificationsQueryKeys.devices(), [...seed.devices]);
+    }
+    return { runtime: rt, queryClient: client, i18n: engine };
+  }, [handlers, seed]);
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>

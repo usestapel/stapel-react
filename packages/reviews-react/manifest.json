@@ -53,6 +53,28 @@
     }
   },
   "hooks": {
+    "useModerateReview": {
+      "kind": "mutation",
+      "operation": "moderate",
+      "invalidates": [
+        [
+          "reviews",
+          "{…}",
+          "{…}"
+        ]
+      ]
+    },
+    "useRespondToReview": {
+      "kind": "mutation",
+      "operation": "respond",
+      "invalidates": [
+        [
+          "reviews",
+          "{…}",
+          "{…}"
+        ]
+      ]
+    },
     "useReviewAggregate": {
       "kind": "query",
       "operation": "aggregate",
@@ -366,52 +388,133 @@
   },
   "demos": [
     {
-      "id": "reviews.aggregate",
-      "title": "Rating aggregate",
-      "description": "avg is 0.0 when count is 0 — the module says so in its own schema — so a naive renderer draws the worst possible score over a target nobody has rated. ratingSummary() answers rated:false there and the skin has nothing to draw a star row from. The third variant is the seller roll-up: stapel-reviews aggregates ONE (target_type, target_key) per call and cannot roll a seller's listings up, so the composite's projection computes {avg, count} — the same two field names, deliberately — and this component renders them without a request.",
-      "component": "ReviewAggregate",
-      "tokens": [
-        "surface-raised"
-      ],
-      "variants": [
-        "rated",
-        "never rated",
-        "seller roll-up (supplied)"
-      ],
-      "source": "demo/ReviewAggregate.demo.tsx"
-    },
-    {
       "id": "reviews.form",
       "title": "Write a review",
-      "description": "The duplicate refusal is read by CODE: `error.400.reviews_duplicate_review` arrives with status 400, while the module's only 409 says the owner's reply already exists — a form branching on the number would miss the first and mishandle the second. And a submitted review is not necessarily a visible one: under pre-moderation the created row comes back `pending`, so the author is told it will appear once checked instead of being left to hunt for it.",
-      "component": "ReviewForm",
+      "description": "The submit button is switched off until a rating is chosen, and it says so beside itself rather than in a tooltip a disabled button can never fire. 'Already rated' is not an error banner: it is the same sentence whether the host knew up front (the own-review pre-check over the loaded rows) or the server answered error.400.reviews_duplicate_review — a 400, while the module's only 409 says the owner's REPLY already exists, so a form branching on the number would miss the first and mishandle the second. The star row draws the DEPLOYMENT's bounds: RATING_MIN/RATING_MAX are settings, and a client that hardwired five would refuse a rating a 1..10 deployment accepts.",
+      "component": "ReviewFormCard",
+      "covers": [
+        "ReviewForm"
+      ],
       "tokens": [
         "surface-raised"
       ],
       "variants": [
-        "post-moderation (published)",
-        "pre-moderation (pending)",
-        "already rated (400)"
+        "idle",
+        "already rated",
+        "a 1..10 deployment"
       ],
-      "source": "demo/ReviewForm.demo.tsx"
+      "source": "demo/ReviewFormCard.demo.tsx"
     },
     {
       "id": "reviews.list",
       "title": "Review list",
-      "description": "GET /reviews answers core's AnchorPagination envelope — declared as components/ReviewPage since stapel-reviews 0.3.0, so the pair reads a generated shape instead of the copy it used to maintain. The published scope is what everyone reads, guests included (IsAuthenticatedOrReadOnly since the same release), so an empty list is a reachable state that means what it says. include=all is honoured only for a moderator of the target and narrowed silently for anyone else, which is why every non-published row names its state.",
-      "component": "ReviewList",
+      "description": "GET /reviews answers core's AnchorPagination envelope, declared as components/ReviewPage since stapel-reviews 0.3.0. Guests read it (IsAuthenticatedOrReadOnly), so an EMPTY list is a reachable state that means what it says — which is why it is a designed empty state and not a spinner that never stops. The 'narrowed scope' variant is the one worth reading twice: include=all is honoured only for a moderator of the target and silently narrowed to published for everyone else, with no error and no marker in the body, so a host that passed the prop to the wrong viewer used to get a quietly incomplete list. The pane now says so.",
+      "component": "ReviewListPanel",
       "covers": [
-        "ReviewsProvider"
+        "ReviewList",
+        "ReviewResponseComposer"
       ],
       "tokens": [
         "surface-raised"
       ],
       "variants": [
         "published",
-        "moderator (include=all)",
-        "empty (reachable by a guest)"
+        "end of the run",
+        "narrowed scope",
+        "empty",
+        "failed"
       ],
-      "source": "demo/ReviewList.demo.tsx"
+      "source": "demo/ReviewListPanel.demo.tsx"
+    },
+    {
+      "id": "reviews.moderation",
+      "title": "Moderation queue",
+      "description": "POST {id}/moderate has existed since stapel-reviews 0.1 and could be reached from no screen in the fleet. This is that screen. Every verdict is state-gated on the row it acts on: re-applying the state a review is already in is an upstream no-op that answers 200, so 'Already hidden' is said before the click instead of a button that appears to do nothing. Hiding is confirmed, because it removes the review from every page AND from the rating — a bottom sheet on a phone, a small modal above it. The second variant is the one to look at: the server narrows include=all for a non-moderator without an error, so a pane that trusted the request would show a short list as if it were the whole queue.",
+      "component": "ReviewModerationPanel",
+      "covers": [
+        "ReviewModeration"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "granted, six rows",
+        "not a moderator",
+        "nothing written yet"
+      ],
+      "source": "demo/ReviewModerationPanel.demo.tsx"
+    },
+    {
+      "id": "reviews.panel",
+      "title": "Reviews block",
+      "description": "The composed block: the rating line, the list, the form for a reader who has not rated yet, and — for whoever the host says moderates the item — the queue below it. Two of those are worth watching. First, a target nobody has rated shows 'No rating yet' above 'No reviews yet': two different absences, two different sentences, because the storefront once printed the identical words twice forty pixels apart and it read as a rendering bug. Second, the moderator variant is TWO panes on purpose: 'what does the public see' and 'what is there' are different questions against different cache keys, and folding them into one switch would make the public view unreachable for the one person who most needs to check it.",
+      "component": "ReviewsPanel",
+      "covers": [
+        "ReviewsProvider",
+        "ReviewList"
+      ],
+      "tokens": [
+        "surface-base"
+      ],
+      "variants": [
+        "a buyer",
+        "nothing rated yet",
+        "the seller, moderating"
+      ],
+      "source": "demo/ReviewsPanel.demo.tsx"
+    },
+    {
+      "id": "reviews.rating",
+      "title": "Rating badge",
+      "description": "avg is 0.0 when count is 0 — the module says so in its own schema — so a naive renderer draws the worst possible score over a target nobody has rated. ratingSummary() answers rated:false there and this skin never reaches <Rate> in that arm: no star row at all, one sentence instead. The count is a plural through core's tPlural, so a single review does not read '1 reviews' (and Russian agrees with its own numeral instead of dodging into 'Отзывов: 1'). The last variant is the seller roll-up: stapel-reviews aggregates ONE (target_type, target_key) per call and cannot roll a seller's listings up, so the composite's projection computes {avg, count} — the same two field names, deliberately — and this component renders them without a request.",
+      "component": "RatingBadge",
+      "covers": [
+        "ReviewAggregate",
+        "ReviewsProvider"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "rated",
+        "one review",
+        "never rated",
+        "seller roll-up (supplied)"
+      ],
+      "source": "demo/RatingBadge.demo.tsx"
+    },
+    {
+      "id": "reviews.response",
+      "title": "Seller's reply",
+      "description": "POST {id}/response was displayed by this pair from the first release and could never be written by it. The composer and the reply are deliberately the SAME component, because on the page they are one thing: no reply and you may write it → the box, with the one-shot rule stated beside it; no reply and you may not → the reason beside a switched-off control; a reply exists → the reply, and no box at all. The one-shot line matters: the module stores at most one Response per review and ships no endpoint to edit or delete it, so a composer that discovered that afterwards would be a text box that silently turns out to have been the last word. The empty-body block is the pair's own rule, not the contract's — RespondRequest.body defaults to \"\", so the server would store a blank reply and then refuse forever to replace it.",
+      "component": "ReviewResponseComposer",
+      "covers": [
+        "ReviewResponseForm"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "the owner, nothing written yet",
+        "already answered",
+        "not the owner"
+      ],
+      "source": "demo/ReviewResponseComposer.demo.tsx"
+    },
+    {
+      "id": "reviews.sign-in-link",
+      "title": "Sign-in door",
+      "description": "actionBlocked ended the grey-rectangle incident by making every switched-off control state its reason. It did not end the next problem: 'sign in to leave a review' is a reason whose next action is a LINK, and this pair used to render the sentence and stop there, leaving the visitor to find the header themselves. WHERE the link goes is the container's business, never the pair's — the shape is core's SignInCta, {href} or {onSignIn} and never both — so the href arm renders a plain anchor (arriving at a sign-in page is one of the few navigations a full load costs nothing) and the handler arm renders a control a router can intercept. A host with no sign-in route at all passes nothing and gets the reason alone, with no trailing space where the link would have been.",
+      "component": "SignInLink",
+      "tokens": [
+        "brand"
+      ],
+      "variants": [
+        "a route (href)",
+        "no door at all",
+        "a handler (onSignIn)"
+      ],
+      "source": "demo/SignInLink.demo.tsx"
     }
   ],
   "i18nKeys": [
@@ -479,15 +582,58 @@
     "reviews.form.sign_in_required",
     "reviews.form.submit",
     "reviews.list.empty",
+    "reviews.list.empty_hint",
     "reviews.list.heading",
     "reviews.list.load_more",
     "reviews.list.more.blocked.end",
     "reviews.list.more.blocked.pending",
     "reviews.list.refresh",
+    "reviews.list.scope.narrowed",
+    "reviews.moderate.blocked.already_hidden",
+    "reviews.moderate.blocked.already_published",
+    "reviews.moderate.blocked.forbidden",
+    "reviews.moderate.blocked.gone",
+    "reviews.moderate.blocked.not_moderator",
+    "reviews.moderate.blocked.pending",
+    "reviews.moderate.blocked.sign_in",
+    "reviews.moderation.confirm_hide",
+    "reviews.moderation.confirm_hide_body",
+    "reviews.moderation.done.hidden",
+    "reviews.moderation.done.published",
+    "reviews.moderation.done.unknown",
+    "reviews.moderation.empty",
+    "reviews.moderation.empty_filtered",
+    "reviews.moderation.empty_hint",
+    "reviews.moderation.filter.all",
+    "reviews.moderation.filter.hidden",
+    "reviews.moderation.filter.label",
+    "reviews.moderation.filter.pending",
+    "reviews.moderation.heading",
+    "reviews.moderation.hide",
+    "reviews.moderation.hint",
+    "reviews.moderation.publish",
+    "reviews.moderation.reason_hint",
+    "reviews.moderation.reason_label",
+    "reviews.moderation.reason_placeholder",
     "reviews.rating.count",
+    "reviews.rating.count.one",
+    "reviews.rating.count.other",
     "reviews.rating.none",
     "reviews.rating.star_label",
     "reviews.rating.value",
+    "reviews.respond.blocked.already",
+    "reviews.respond.blocked.empty",
+    "reviews.respond.blocked.forbidden",
+    "reviews.respond.blocked.gone",
+    "reviews.respond.blocked.not_allowed",
+    "reviews.respond.blocked.not_owner",
+    "reviews.respond.blocked.pending",
+    "reviews.respond.blocked.sign_in",
+    "reviews.response.compose_label",
+    "reviews.response.only_one",
+    "reviews.response.placeholder",
+    "reviews.response.sent",
+    "reviews.response.submit",
     "reviews.review.author_fallback",
     "reviews.review.response_heading",
     "reviews.status.hidden",
@@ -508,23 +654,33 @@
       "REVIEWS_ERROR_CANNOT_REVIEW",
       "REVIEWS_ERROR_CODES",
       "REVIEWS_ERROR_DUPLICATE",
+      "REVIEWS_ERROR_INVALID_MODERATION_ACTION",
       "REVIEWS_ERROR_INVALID_RATING",
       "REVIEWS_ERROR_NOT_FOUND",
       "REVIEWS_ERROR_RESPONSE_NOT_ALLOWED",
       "REVIEWS_ERROR_UNKNOWN_TARGET_TYPE",
       "REVIEWS_I18N_KEYS",
+      "REVIEWS_I18N_PLURALS",
       "REVIEWS_PAGE",
       "ReviewAggregate",
       "ReviewForm",
       "ReviewList",
+      "ReviewModeration",
+      "ReviewResponseForm",
       "ReviewsProvider",
       "ReviewsRuntimeContext",
       "createReviewsApi",
       "createReviewsRuntime",
       "explainReviewsError",
       "findOwnReview",
+      "formatReviewDate",
+      "isAlreadyResponded",
       "isDuplicateReview",
+      "isInvalidModerationAction",
       "isModeratedOut",
+      "isModerationForbidden",
+      "isResponseNotAllowed",
+      "isReviewGone",
       "isReviewingForbidden",
       "isSignInRequired",
       "isUnknownTargetType",
@@ -537,7 +693,10 @@
       "reviewsQueryKeys",
       "starBreakdown",
       "toReviewsError",
+      "useModerateReview",
+      "useRespondToReview",
       "useReviewAggregate",
+      "useReviewDateFormat",
       "useReviewList",
       "useReviewsAnalytics",
       "useReviewsApi",
@@ -546,9 +705,11 @@
     ],
     "types": [
       "CreateReviewsRuntimeOptions",
+      "ModerateReviewVariables",
       "RatingAggregate",
       "RatingSummary",
       "Remediation",
+      "RespondToReviewVariables",
       "Review",
       "ReviewAggregateBag",
       "ReviewAggregateProps",
@@ -560,9 +721,17 @@
       "ReviewListBag",
       "ReviewListParams",
       "ReviewListProps",
+      "ReviewListScope",
+      "ReviewModerateRequest",
+      "ReviewModerationAction",
+      "ReviewModerationBag",
+      "ReviewModerationProps",
       "ReviewOwnerResponse",
       "ReviewPage",
       "ReviewRatingBounds",
+      "ReviewRespondRequest",
+      "ReviewResponseBag",
+      "ReviewResponseFormProps",
       "ReviewStatus",
       "ReviewTarget",
       "ReviewsApi",

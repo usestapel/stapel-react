@@ -40,18 +40,19 @@ export const gdprI18nBundleRu: I18nDictionary = {
 
   // UI copy.
   "gdpr.error.unknown": "Что-то пошло не так. Попробуйте ещё раз.",
-  "gdpr.action.retry": "Повторить",
   "gdpr.action.close": "Закрыть",
   "gdpr.admin.staff_only":
     "Этот раздел — для сотрудников. Вы вошли под аккаунтом без доступа к нему.",
 
   "gdpr.privacy.heading": "Приватность и ваши данные",
   "gdpr.admin.heading": "Приватность: операции",
+  "gdpr.public.heading": "Обращения по защите данных",
+  "gdpr.public.explain":
+    "Аккаунт не нужен. Спросите, что мы о вас храним, попросите исправить или удалить — мы ответим на указанный вами адрес.",
 
   "gdpr.closure.heading": "Удаление аккаунта",
   "gdpr.closure.explain":
     "Удаление аккаунта запускает 30-дневный период ожидания. Мы сразу завершим все ваши сессии, но до конца этого периода решение можно отменить.",
-  "gdpr.closure.loading": "Проверяем аккаунт…",
   "gdpr.closure.none": "Аккаунт не запланирован к удалению",
   "gdpr.closure.initiate": "Удалить аккаунт",
   "gdpr.closure.confirm_title": "Удалить этот аккаунт?",
@@ -66,7 +67,6 @@ export const gdprI18nBundleRu: I18nDictionary = {
   "gdpr.closure.deleted": "Этот аккаунт удалён",
 
   "gdpr.deletions.heading": "Ожидает удаления",
-  "gdpr.deletions.loading": "Загружаем список удаляемого…",
   "gdpr.deletions.empty": "Ничего из ваших данных не ожидает удаления",
   "gdpr.deletions.column.subject": "Объект",
   "gdpr.deletions.column.state": "Состояние",
@@ -81,6 +81,15 @@ export const gdprI18nBundleRu: I18nDictionary = {
   "gdpr.deletions.state.timeout": "Просрочено",
   "gdpr.deletions.timeout_hint":
     "Одна из систем, где хранится часть этих данных, не подтвердила удаление. Поддержка уже уведомлена; объект не потерян из виду.",
+  "gdpr.deletions.expand": "Показать, какие системы подтвердили",
+  "gdpr.deletions.parts_heading": "Системы, где это хранится",
+  "gdpr.deletions.parts_empty": "Ни одна система пока не заявила права на этот объект",
+  "gdpr.deletions.part.done": "Подтвердила",
+  "gdpr.deletions.part.pending": "Ожидаем",
+  "gdpr.deletions.part.timeout": "Нет ответа",
+  "gdpr.deletions.part.receipt": "Подтверждено {date}",
+  "gdpr.deletions.obligations_heading": "Обработчики, у которых это тоже есть",
+  "gdpr.deletions.obligation": "{provider} — их срок истекает {date}",
 
   "gdpr.subject.account": "Аккаунт",
   "gdpr.subject.workspace": "Пространство",
@@ -92,7 +101,6 @@ export const gdprI18nBundleRu: I18nDictionary = {
   "gdpr.export.heading": "Скачать свои данные",
   "gdpr.export.explain":
     "Мы соберём архив со всем, что храним о вас. Он готовится до 48 часов; запрашивать можно раз в 30 дней.",
-  "gdpr.export.loading": "Проверяем ваш архив…",
   "gdpr.export.none": "Вы ещё не запрашивали копию своих данных",
   "gdpr.export.request": "Запросить мои данные",
   "gdpr.export.requested":
@@ -129,7 +137,6 @@ export const gdprI18nBundleRu: I18nDictionary = {
   "gdpr.dsar.resolve_by": "Ответ — до {date}",
 
   "gdpr.queue.heading": "Обращения по защите данных",
-  "gdpr.queue.loading": "Загружаем обращения…",
   "gdpr.queue.empty": "Обращений нет",
   "gdpr.queue.column.reference": "№",
   "gdpr.queue.column.kind": "Запрос",
@@ -142,6 +149,7 @@ export const gdprI18nBundleRu: I18nDictionary = {
   "gdpr.queue.ack_sent": "Подтверждено {date}",
   "gdpr.queue.ack_missing": "Подтверждение не отправлено",
   "gdpr.queue.save_note": "Сохранить заметку",
+  "gdpr.queue.note_unchanged": "Сохранять нечего",
   "gdpr.queue.state.received": "Получено",
   "gdpr.queue.state.acknowledged": "Подтверждено",
   "gdpr.queue.state.in_progress": "В работе",
@@ -154,7 +162,6 @@ export const gdprI18nBundleRu: I18nDictionary = {
   "gdpr.owners.heading": "Владельцы данных",
   "gdpr.owners.explain":
     "Каждая система, где лежат персональные данные, отвечает на ежедневный опрос из того же подписчика, который выполняет удаление. Система, переставшая отвечать, — это система, чьи удаления никто не подтверждает.",
-  "gdpr.owners.loading": "Загружаем владельцев данных…",
   "gdpr.owners.empty":
     "Ни один владелец данных не объявлен — удаление некому исполнять",
   "gdpr.owners.column.owner": "Система",

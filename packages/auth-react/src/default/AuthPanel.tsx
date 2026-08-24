@@ -49,12 +49,12 @@
  * is a configuration error `computeZones` throws on loudly, rather than a
  * signal to silently reproduce a fixed placement table.
  */
-import { useEffect, useMemo, useState } from "react";
-import type { ReactElement, ReactNode } from "react";
+import { spacing, fontSize, radii } from "@stapel/tokens";
+import { useEffect, useState } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import {
   Alert,
   Button,
-  ConfigProvider,
   Divider,
   Dropdown,
   Flex,
@@ -63,10 +63,9 @@ import {
   Typography,
 } from "antd";
 import type { TabsProps } from "antd";
-import { toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { SkinDialog } from "@stapel/tokens-antd/skin";
-import { useFormatFlowError, useT } from "@stapel/core";
+import { SkinDialog, SkinTheme } from "@stapel/tokens-antd/skin";
+import { SlotPlaceholder, useFormatFlowError, useT } from "@stapel/core";
 import { usePasskeyLogin } from "../headless/Passkey.js";
 import { passkeyFailureOf } from "../flows/errors.js";
 import { isWebauthnSupported } from "../webauthn.js";
@@ -106,10 +105,26 @@ export interface AuthPanelNotice {
 
 export interface AuthPanelProps {
   /**
-   * Light or dark. The theme is derived from `@stapel/tokens` via
-   * `toAntdThemeConfig(mode)` — no manual token wiring. Default `"light"`.
+   * Light or dark. DEFAULTS TO THE DOCUMENT'S LIVE MODE (`SkinTheme` →
+   * `useThemeMode`), not to a side. It used to default to `"light"`, which
+   * rendered light inputs and a black heading on a dark page — the `Create
+   * account` title was effectively invisible under `<html data-theme="dark">`
+   * (visual pass CF-1). Pass this only to PIN a side, e.g. a demo showing both.
    */
   readonly mode?: ThemeMode;
+  /**
+   * A wordmark, logo or product name above the form. Left out, a dev build
+   * shows a slot placeholder and a production build shows nothing — the
+   * sign-in screen is the one surface where a host's identity belongs, and an
+   * unfilled slot should be visible to the person wiring it, not to the user.
+   */
+  readonly brand?: ReactNode;
+  /**
+   * The legal footer (terms, privacy). Same slot semantics as {@link brand}:
+   * this pair cannot write a host's terms link, and inventing one would be
+   * worse than saying it is missing.
+   */
+  readonly legal?: ReactNode;
   /**
    * `"login"` (default) renders every enabled LOGIN channel, same as always.
    * `"register"` renders a REGISTRATION surface instead — THE IDENTITY MODEL:
@@ -150,7 +165,48 @@ export interface AuthPanelProps {
   readonly oauthIconOverrides?: Readonly<Record<string, ReactNode>>;
   /** Where an OAuth provider redirects back to. Default `location.href`. */
   readonly oauthRedirectUri?: string;
+  /**
+   * Suppress the sign-in ↔ create-account switch in the footer. The switch is
+   * ON by default and flips this component's own surface — the register
+   * variant used to be a dead end (one field, one button, no way back) and the
+   * sign-in variant offered no way to register at all, so every host wired two
+   * routes by hand to get the pair of doors every account system has.
+   * A deployment that genuinely has no self-service registration passes
+   * `false`; the switch also hides itself when the backend reports no
+   * registration channel, so it is never a control that leads nowhere.
+   */
+  readonly showVariantSwitch?: boolean;
 }
+
+/**
+ * The page ground the card floats on. `minHeight: 100%` (not `100vh`) keeps
+ * the geometry ELEMENT-relative: the panel fills whatever box the host gives
+ * it — a route outlet, a demo frame, a phone viewport — instead of measuring
+ * the window and overflowing every container that is not the window.
+ */
+const PAGE_STYLE: CSSProperties = {
+  minHeight: "100%",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
+  padding: spacing[4],
+  boxSizing: "border-box",
+};
+
+/**
+ * The card. `maxWidth` in `rem` rather than px so it scales with the root
+ * type size, and `width: 100%` so on a phone it is the column — the form's
+ * element width, which every control inside then inherits (the visual pass
+ * found two centred pills breaking an otherwise strictly full-width column).
+ */
+const CARD_STYLE: CSSProperties = {
+  width: "100%",
+  maxWidth: "26rem",
+  padding: spacing[6],
+  borderRadius: radii.lg,
+  boxSizing: "border-box",
+};
 
 const CHANNEL_LABEL: Record<ChannelId, AuthI18nKey> = {
   email: AUTH_I18N_KEYS.uiChannelEmail,
@@ -169,13 +225,17 @@ const CHANNEL_LABEL: Record<ChannelId, AuthI18nKey> = {
  * wiring; this component adds only the visual layer + theme.
  */
 export function AuthPanel(props: AuthPanelProps): ReactElement {
-  const { mode = "light", variant = "login", channelPriority = DEFAULT_CHANNEL_PRIORITY } = props;
+  const { channelPriority = DEFAULT_CHANNEL_PRIORITY } = props;
   const t = useT();
   const formatError = useFormatFlowError();
-  const theme = useMemo(() => toAntdThemeConfig(mode), [mode]);
   const caps = useCapabilities();
   const [openChannel, setOpenChannel] = useState<ChannelId | null>(null);
   const [active, setActive] = useState<ChannelId | null>(null);
+  // The surface the person is on RIGHT NOW. `props.variant` seeds it (a host
+  // routing `/register` still lands on the register surface) and the footer
+  // switch moves between them without a second route.
+  const [picked, setPicked] = useState<"login" | "register" | null>(null);
+  const variant = picked ?? props.variant ?? "login";
 
   // ── Passkey: the system prompt IS the first screen ──────────────────────
   //
@@ -323,117 +383,183 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
     setOpenChannel(id);
   }
 
+  const canRegister =
+    (caps.data !== undefined &&
+      enabledRegistrationChannels(methods, channelPriority, props.registrationAnchors)
+        .length > 0) ||
+    (caps.data?.registration.anonymous ?? false);
+  // The switch is a real door or it is not there. It renders only when the
+  // other side actually has something on it: no registration channel means no
+  // "Create an account" link that leads to an empty screen.
+  const showSwitch =
+    (props.showVariantSwitch ?? true) && (variant === "register" || canRegister);
+
   return (
-    <ConfigProvider theme={theme}>
-      <Flex vertical gap="large" style={{ width: "100%" }} data-testid="auth-panel">
-        {/* Zone A — title + the single system-notice slot */}
-        <Typography.Title level={3}>
-          {t(variant === "register" ? AUTH_I18N_KEYS.uiRegisterTitle : AUTH_I18N_KEYS.uiLoginTitle)}
-        </Typography.Title>
-        {props.notice && (
-          <Alert
-            type={props.notice.type}
-            message={t(props.notice.key)}
-            showIcon
-          />
-        )}
-
-        {/* Zone B — main channels as tabs (or a lone form) */}
-        {caps.isLoading ? (
-          <Flex justify="center">
-            <Spin />
+    <SkinTheme
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+      surface="base"
+      style={PAGE_STYLE}
+      data-testid="auth-panel-page"
+    >
+      {/* The CARD. Before this, the panel painted no surface of its own: the
+          form floated on the host page, which is why dark mode produced
+          light-theme text on a near-black background (visual pass CF-1/C10)
+          and why a desktop sign-in was a bare 656px column of controls with
+          no anchor. One raised surface fixes the legibility, gives the brand
+          and legal slots somewhere to live, and makes "the form's width" a
+          real measurement every control inside can inherit. */}
+      <SkinTheme surface="raised" style={CARD_STYLE}>
+        <Flex vertical gap="large" style={{ width: "100%" }} data-testid="auth-panel">
+          {/* Zone A — brand, title, and the single system-notice slot */}
+          <Flex vertical gap="small">
+            {props.brand ?? <SlotPlaceholder name="brand" />}
+            <Typography.Title level={3} style={{ margin: 0 }}>
+              {t(
+                variant === "register"
+                  ? AUTH_I18N_KEYS.uiRegisterTitle
+                  : AUTH_I18N_KEYS.uiLoginTitle
+              )}
+            </Typography.Title>
           </Flex>
-        ) : tabs.length <= 1 ? (
-          tabs[0]?.children
-        ) : (
-          <Tabs
-            {...(mainActive ? { activeKey: mainActive } : {})}
-            onChange={(k) => setActive(k as ChannelId)}
-            items={tabs}
-          />
-        )}
+          {props.notice && (
+            <Alert
+              type={props.notice.type}
+              message={t(props.notice.key)}
+              showIcon
+            />
+          )}
 
-        {/* Zone C — the bottom icon row (social + qr/passkey by default) and
-            the "More ways to sign in" overflow menu. */}
-        {(zones.bottom.length > 0 || overflowItems.length > 0) && (
-          <Flex vertical gap="small" style={{ width: "100%" }}>
-            <Divider plain>{t(AUTH_I18N_KEYS.uiOr)}</Divider>
-            {zones.bottom.length > 0 && (
-              <BottomRow
-                ids={zones.bottom}
-                oauthProviders={oauthProviders}
-                onPick={pick}
-                busyId={passkeyBusy ? "passkey" : null}
-                labelFor={(id) => t(CHANNEL_LABEL[id])}
-                {...(methods !== undefined ? { methods } : {})}
-                {...(props.iconOverrides !== undefined
-                  ? { iconOverrides: props.iconOverrides }
-                  : {})}
-                {...(props.oauthRedirectUri !== undefined
-                  ? { oauthRedirectUri: props.oauthRedirectUri }
-                  : {})}
-                {...(props.oauthIconOverrides !== undefined
-                  ? { oauthIconOverrides: props.oauthIconOverrides }
-                  : {})}
-              />
-            )}
-            {overflowItems.length > 0 && (
-              <Flex justify="center">
+          {/* Zone B — main channels as tabs (or a lone form) */}
+          {caps.isLoading ? (
+            <Flex justify="center" role="status" aria-busy="true">
+              <Spin />
+            </Flex>
+          ) : tabs.length <= 1 ? (
+            tabs[0]?.children
+          ) : (
+            <Tabs
+              {...(mainActive ? { activeKey: mainActive } : {})}
+              onChange={(k) => setActive(k as ChannelId)}
+              items={tabs}
+            />
+          )}
+
+          {/* Zone C — the alternative methods and the overflow menu. Each one
+              is a FULL-WIDTH row in the same column geometry as the form above
+              it: they used to be narrow centred pills inside an otherwise
+              strictly full-width, left-aligned form, which read as a caption
+              rather than as peer actions (visual pass C8). */}
+          {(zones.bottom.length > 0 || overflowItems.length > 0) && (
+            <Flex vertical gap="small" style={{ width: "100%" }}>
+              <Divider plain>{t(AUTH_I18N_KEYS.uiOr)}</Divider>
+              {zones.bottom.length > 0 && (
+                <BottomRow
+                  ids={zones.bottom}
+                  oauthProviders={oauthProviders}
+                  onPick={pick}
+                  busyId={passkeyBusy ? "passkey" : null}
+                  labelFor={(id) => t(CHANNEL_LABEL[id])}
+                  {...(methods !== undefined ? { methods } : {})}
+                  {...(props.iconOverrides !== undefined
+                    ? { iconOverrides: props.iconOverrides }
+                    : {})}
+                  {...(props.oauthRedirectUri !== undefined
+                    ? { oauthRedirectUri: props.oauthRedirectUri }
+                    : {})}
+                  {...(props.oauthIconOverrides !== undefined
+                    ? { oauthIconOverrides: props.oauthIconOverrides }
+                    : {})}
+                />
+              )}
+              {overflowItems.length > 0 && (
                 <Dropdown menu={{ items: overflowItems }} trigger={["click"]}>
-                  <Typography.Link data-analytics="none" data-analytics-reason="local-ui-open-overflow-menu">
-                    {t(AUTH_I18N_KEYS.uiMoreMethods)}
-                  </Typography.Link>
-                </Dropdown>
-              </Flex>
-            )}
-          </Flex>
-        )}
-
-        {/* Guest entry (owner directive 2026-07-17): NOT a placement-tracked
-            channel — ironmemo-frontend parity, a fixed link under everything
-            else, shown whenever the backend allows anonymous registration.
-            Modeling it as a full `methods[]` channel (placement/order/
-            interaction) would be contract bloat for what is, in every real
-            deployment, a single fixed skin element. LOGIN surface only: the
-            registration surface (`variant="register"`) is already the
-            "create an account" screen — repeating a guest-entry link there
-            would be a distraction, not an alternative worth offering. */}
-        {variant === "login" && caps.data?.registration.anonymous && (
-          <AnonymousSession>
-            {(bag) => {
-              const err = bag.state.step === "error" ? bag.state.error : undefined;
-              return (
-                <Flex vertical align="center" gap={4} style={{ width: "100%" }}>
-                  {/* A full-width button, not a text link. As a link this
-                      was small enough to miss, and every host that cared
-                      ended up drawing its own prominent CTA next to it —
-                      leaving TWO guest entries on the same screen
-                      (3571.meettoday.app, 2026-07-29). Making the visible
-                      form the canonical one removes the reason to add a
-                      second. It stays `type="default"` rather than
-                      primary: guest entry is the alternative to signing
-                      in, not the recommended action. */}
                   <Button
                     block
-                    size="large"
-                    loading={bag.state.step === "creating"}
-                    onClick={() => bag.create()}
-                    data-analytics="flow"
+                    type="text"
+                    data-analytics="none"
+                    data-analytics-reason="local-ui-open-overflow-menu"
                   >
-                    {bag.state.step === "creating"
-                      ? t(AUTH_I18N_KEYS.uiContinueAsGuestPending)
-                      : t(AUTH_I18N_KEYS.uiContinueAsGuest)}
+                    {t(AUTH_I18N_KEYS.uiMoreMethods)}
                   </Button>
-                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    {t(AUTH_I18N_KEYS.uiContinueAsGuestHint)}
-                  </Typography.Text>
-                  {err && <Typography.Text type="danger">{formatError(err)}</Typography.Text>}
-                </Flex>
-              );
-            }}
-          </AnonymousSession>
-        )}
-      </Flex>
+                </Dropdown>
+              )}
+            </Flex>
+          )}
+
+          {/* The FOOTER — where the escape hatches belong. Guest entry and the
+              sign-in ↔ register switch used to sit in the primary column at
+              the same width and weight as the primary action, so "Continue as
+              guest" read as loud as "Send code" (visual pass C2). */}
+          {(showSwitch ||
+            (variant === "login" && (caps.data?.registration.anonymous ?? false)) ||
+            props.legal !== undefined) && (
+            <Flex vertical gap="small" style={{ width: "100%" }}>
+              <Divider style={{ margin: 0 }} />
+              {/* Guest entry (owner directive 2026-07-17): NOT a
+                  placement-tracked channel — a fixed skin element shown
+                  whenever the backend allows anonymous registration. LOGIN
+                  surface only: the registration surface is already the
+                  "create an account" screen. */}
+              {variant === "login" && caps.data?.registration.anonymous && (
+                <AnonymousSession>
+                  {(bag) => {
+                    const err =
+                      bag.state.step === "error" ? bag.state.error : undefined;
+                    return (
+                      <Flex vertical gap={spacing[1]} style={{ width: "100%" }}>
+                        <Button
+                          block
+                          type="text"
+                          loading={bag.state.step === "creating"}
+                          onClick={() => bag.create()}
+                          data-analytics="flow"
+                        >
+                          {bag.state.step === "creating"
+                            ? t(AUTH_I18N_KEYS.uiContinueAsGuestPending)
+                            : t(AUTH_I18N_KEYS.uiContinueAsGuest)}
+                        </Button>
+                        <Typography.Text
+                          type="secondary"
+                          style={{
+                            fontSize: fontSize.xs.fontSize,
+                            textAlign: "center",
+                          }}
+                        >
+                          {t(AUTH_I18N_KEYS.uiContinueAsGuestHint)}
+                        </Typography.Text>
+                        {err && (
+                          <Typography.Text type="danger">
+                            {formatError(err)}
+                          </Typography.Text>
+                        )}
+                      </Flex>
+                    );
+                  }}
+                </AnonymousSession>
+              )}
+              {showSwitch && (
+                <Button
+                  block
+                  type="link"
+                  onClick={() =>
+                    setPicked(variant === "register" ? "login" : "register")
+                  }
+                  data-testid="auth-variant-switch"
+                  data-analytics="none"
+                  data-analytics-reason="local-ui-switch-auth-surface"
+                >
+                  {t(
+                    variant === "register"
+                      ? AUTH_I18N_KEYS.uiSwitchToLogin
+                      : AUTH_I18N_KEYS.uiSwitchToRegister
+                  )}
+                </Button>
+              )}
+              {props.legal ?? <SlotPlaceholder name="legal" />}
+            </Flex>
+          )}
+        </Flex>
+      </SkinTheme>
 
       {/* The alt-method dialog (owner directive point 1): picking anything
           from the bottom row or the overflow menu (other than a direct OAuth
@@ -477,8 +603,7 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
           }}
         />
       </SkinDialog>
-
-    </ConfigProvider>
+    </SkinTheme>
   );
 }
 
@@ -557,7 +682,8 @@ function ChannelIcon(props: { override?: ReactNode; svg?: string | undefined }):
   if (props.svg) {
     return (
       <span
-        style={{ display: "inline-flex", width: 16, height: 16 }}
+        aria-hidden="true"
+        style={{ display: "inline-flex", width: spacing[4], height: spacing[4] }}
         dangerouslySetInnerHTML={{ __html: props.svg }}
       />
     );
@@ -585,7 +711,7 @@ function BottomRow(props: {
   oauthIconOverrides?: Readonly<Record<string, ReactNode>>;
 }): ReactElement {
   return (
-    <Flex wrap gap="small" justify="center" data-testid="auth-bottom-row">
+    <Flex vertical gap="small" style={{ width: "100%" }} data-testid="auth-bottom-row">
       {props.ids.map((id) =>
         id === "oauth" ? (
           <OAuthPanel
@@ -601,6 +727,7 @@ function BottomRow(props: {
         ) : (
           <Button
             key={id}
+            block
             loading={props.busyId === id}
             icon={
               <ChannelIcon

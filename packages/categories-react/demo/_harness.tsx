@@ -2,8 +2,14 @@
  * Shared harness for the categories-react demos (frontend-guardrails §4.2).
  * Demos are first-class code — compiled, linted with the PRODUCT ruleset,
  * smoke-rendered — so this file obeys the same guardrails as `src/`: no raw
- * colours (tokens via `cssVar()`) and no hardcoded prose (every label is a
- * key).
+ * colours and no hardcoded prose (every label is a key).
+ *
+ * It carries NO chrome of its own any more. It used to export a `DemoCard`
+ * (a class name as a heading) and a `StepBadge` (a monospace status chip), and
+ * every story in this package rendered those instead of the antd skin on disk
+ * — which is how a pair shipped two screens the visual pass could not find a
+ * single picture of. A demo's job is to render the PRODUCT; this file's job is
+ * to supply the runtime, the translator and the seeded cache it needs.
  *
  * The catalogue store is an IN-MEMORY one, deliberately. A demo must not write
  * into the viewer's `localStorage` and then serve a stale catalogue to the
@@ -11,17 +17,19 @@
  * host opts out of persistence, so the demo shows the seam while using it.
  */
 import { useMemo } from "react";
-import type { CSSProperties, ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider, createI18n } from "@stapel/core";
-import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
 import {
   CategoriesProvider,
+  buildCategoryTree,
+  catalogKeyOptions,
+  categoriesQueryKeys,
   createCategoriesRuntime,
   memoryCatalogStore,
   registerCategoriesI18n,
 } from "../src/index.js";
-import type { CatalogStore } from "../src/index.js";
+import type { CatalogStore, Category, CategoryFeature } from "../src/index.js";
 
 /** The base every mock handler mounts on (mirrors `/categories/api/v1/`). */
 export const DEMO_BASE = "https://categories.demo.stapel.dev/categories/api/v1/";
@@ -76,19 +84,63 @@ const demoBundleEn: Record<string, string> = {
   "demo.category.retired": "Retired (inactive)",
   "demo.category.gone": "Gone (deleted)",
   "demo.feature.brand": "Brand",
+  "demo.feature.brand.comment": "As printed on the label, not the box",
   "demo.feature.power": "Power",
   "demo.feature.holo": "Holographic signature",
   "demo.brand.bosch": "Bosch",
   "demo.brand.makita": "Makita",
   "demo.unit.watt": "W",
+  "demo.listings.title": "Listings in {category}",
+  "demo.link.plain": "Phones (plain anchor)",
+  "demo.link.router": "Phones (host router)",
 };
+
+/**
+ * What a variant is SEEDED with.
+ *
+ * A demo whose data arrives from a mocked `fetch` renders its loading arm on
+ * the first frame, so a static shot photographs a skeleton however the variant
+ * is named — the C-SAMESHOT defect, and the reason
+ * `assertVariantsRenderDistinctly` exists. Seeding writes the answer straight
+ * into the query cache, so the variant OPENS in the state it documents and the
+ * shot runner has something to photograph. `handlers` stays for the arms that
+ * can only be reached from the wire (a refusal, a slow load).
+ */
+export interface DemoSeed {
+  /** Rows the catalogue tree is built from (`GET /categories/`). */
+  readonly rows?: readonly Category[];
+  /** Tiles the carousel shows (`GET /categories/carousel/`). */
+  readonly carousel?: readonly Category[];
+  /** A category's resolved feature schema, by category id. */
+  readonly features?: Readonly<Record<number, readonly CategoryFeature[]>>;
+  /** The sync walk hit its page budget — the tree on screen is PARTIAL. */
+  readonly truncated?: boolean;
+}
+
+function seedQueryClient(client: QueryClient, seed: DemoSeed): void {
+  if (seed.rows !== undefined) {
+    client.setQueryData(categoriesQueryKeys.catalog(catalogKeyOptions()), {
+      index: buildCategoryTree(seed.rows),
+      snapshot: { version: 1 as const, cursor: 100, rows: [...seed.rows] },
+      truncated: seed.truncated === true,
+      wasFullSync: true,
+    });
+  }
+  if (seed.carousel !== undefined) {
+    client.setQueryData(categoriesQueryKeys.carousel, [...seed.carousel]);
+  }
+  for (const [id, features] of Object.entries(seed.features ?? {})) {
+    client.setQueryData(categoriesQueryKeys.features(Number(id)), [...features]);
+  }
+}
 
 /** Provider frame every categories demo variant renders inside. */
 export function CategoriesDemoHarness(props: {
   handlers?: DemoHandlers;
+  seed?: DemoSeed;
   children: ReactNode;
 }): ReactElement {
-  const { handlers } = props;
+  const { handlers, seed } = props;
   const { runtime, queryClient, i18n } = useMemo(() => {
     const rt = createCategoriesRuntime({
       baseUrl: DEMO_BASE,
@@ -97,12 +149,12 @@ export function CategoriesDemoHarness(props: {
     const engine = createI18n({ locale: "en" });
     registerCategoriesI18n(engine);
     engine.registerBundle("en", demoBundleEn);
-    return {
-      runtime: rt,
-      queryClient: new QueryClient({ defaultOptions: { queries: { retry: false } } }),
-      i18n: engine,
-    };
-  }, [handlers]);
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    if (seed !== undefined) seedQueryClient(client, seed);
+    return { runtime: rt, queryClient: client, i18n: engine };
+  }, [handlers, seed]);
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
@@ -115,45 +167,4 @@ export function CategoriesDemoHarness(props: {
 /** One in-memory store per demo render — see this file's header. */
 export function useDemoStore(): CatalogStore {
   return useMemo(() => memoryCatalogStore(), []);
-}
-
-const cardStyle: CSSProperties = {
-  background: cssVar("surface-raised"),
-  color: cssVar("text"),
-  border: `1px solid ${cssVar("border")}`,
-  borderRadius: radii.lg,
-  padding: spacing["5"],
-  display: "flex",
-  flexDirection: "column",
-  gap: spacing["3"],
-  fontSize: fontSize.md.fontSize,
-};
-
-/** A titled card wrapper for a demo body. */
-export function DemoCard(props: {
-  heading: ReactNode;
-  children: ReactNode;
-}): ReactElement {
-  return (
-    <div style={cardStyle} data-theme-surface>
-      <strong style={{ fontSize: fontSize.lg.fontSize }}>{props.heading}</strong>
-      {props.children}
-    </div>
-  );
-}
-
-/** Renders a technical token (a load status, a count), never user prose. */
-export function StepBadge(props: { step: string }): ReactElement {
-  return (
-    <code
-      style={{
-        background: cssVar("surface-sunken"),
-        color: cssVar("brand"),
-        borderRadius: radii.sm,
-        padding: `${spacing["1"]}px ${spacing["2"]}px`,
-      }}
-    >
-      {props.step}
-    </code>
-  );
 }

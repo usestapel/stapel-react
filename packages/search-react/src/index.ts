@@ -102,6 +102,24 @@ export type {
   FacetOption,
 } from "./state/facets.js";
 
+export {
+  RANGE_FEATURE_TYPES,
+  buildRangeGroups,
+  isRangeFeature,
+  isRangeUsable,
+} from "./state/ranges.js";
+export type { BuildRangeGroupsInput, RangeGroup } from "./state/ranges.js";
+
+export {
+  SEARCH_BOX_DEBOUNCE_MS,
+  SEARCH_BOX_SUGGEST_DEBOUNCE_MS,
+  SEARCH_DEFAULT_PAGE_SIZE,
+  SEARCH_MAX_PAGE_SIZE,
+  SEARCH_QUERY_MAX_CHARS,
+  SUGGEST_MAX_LIMIT,
+  SUGGEST_MIN_CHARS,
+} from "./state/limits.js";
+
 // ── model (runtime wiring, query keys, context, hooks) ───────────────────────
 export { createSearchRuntime } from "./model/runtime.js";
 export type {
@@ -117,7 +135,7 @@ export {
 export { searchQueryKeys } from "./model/queryKeys.js";
 export type { SearchQueryKeyParams } from "./model/queryKeys.js";
 
-export { useRankingDisclosure, useSearchQuery } from "./model/queries.js";
+export { useRankingDisclosure, useSearchQuery, useSuggest } from "./model/queries.js";
 
 // ── headless (renderless components) ─────────────────────────────────────────
 export { SearchProvider } from "./headless/SearchProvider.js";
@@ -132,6 +150,8 @@ export type { SearchPageInfo, SearchResultsBag } from "./headless/SearchResults.
 export { FacetPanel, useFacetPanel } from "./headless/FacetPanel.js";
 export type { FacetPanelBag } from "./headless/FacetPanel.js";
 export { useAppliedSort } from "./headless/useAppliedSort.js";
+export { useSearchBox } from "./headless/useSearchBox.js";
+export type { SearchBoxBag, UseSearchBoxOptions } from "./headless/useSearchBox.js";
 export { RankingDisclosure } from "./headless/RankingDisclosure.js";
 export type { RankingDisclosureBag } from "./headless/RankingDisclosure.js";
 

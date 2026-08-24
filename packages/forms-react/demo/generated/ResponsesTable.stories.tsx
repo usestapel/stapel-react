@@ -8,5 +8,4 @@ export default { title: "forms-react / Responses table" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-export const Empty = (): ReactElement => renderDemoVariant(demo, "empty");
-Empty.storyName = "empty";
+Default.parameters = { stapel: {"step":"ready"} };

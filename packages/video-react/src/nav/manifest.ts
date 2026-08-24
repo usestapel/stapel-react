@@ -51,6 +51,24 @@ export const ADMIN_ROOT_ID = "admin.root";
 
 export const navEntries: readonly NavEntry[] = [
   {
+    // The meeting client, TOP LEVEL — the one screen in this pair an ordinary
+    // person opens. It hangs off no container-owned parent for exactly the
+    // reason `admin.usage` does hang off one: a meeting is not an
+    // administration task, and a top-level entry is the only placement whose
+    // door cannot be dropped by `resolveNav` for want of a parent nobody
+    // declares.
+    id: "video.rooms",
+    labelKey: "video.rooms.heading",
+    icon: "MessageOutlined",
+    route: { path: "meetings" },
+    component: { export: "RoomsPane", subpath: "default" },
+    placement: { level: "top" },
+    menuVisibleDefault: true,
+    requiresAuth: true,
+    surface: "member",
+    order: 40,
+  },
+  {
     id: "admin.usage",
     labelKey: "video.usage.heading",
     icon: "ClockCircleOutlined",

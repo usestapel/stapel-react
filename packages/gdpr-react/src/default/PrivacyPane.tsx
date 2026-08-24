@@ -21,11 +21,12 @@
  */
 import type { ReactElement } from "react";
 import { Flex } from "antd";
+import { spacing } from "@stapel/tokens";
+import { SkinTheme } from "@stapel/tokens-antd/skin";
 import { AccountClosurePanel } from "./AccountClosurePanel.js";
 import { DataExportPanel } from "./DataExportPanel.js";
 import { DsarForm } from "./DsarForm.js";
 import { PendingDeletions } from "./PendingDeletions.js";
-import { GdprSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
 export interface PrivacyPaneProps extends ThemeModeProp {
@@ -41,8 +42,8 @@ export function PrivacyPane(props: PrivacyPaneProps): ReactElement {
   const { mode, labelFor, token, onClosureStarted } = props;
   const modeProp = mode !== undefined ? { mode } : {};
   return (
-    <GdprSkinTheme {...modeProp}>
-      <Flex vertical gap={16} data-testid="gdpr-privacy">
+    <SkinTheme {...modeProp} surface="base">
+      <Flex vertical gap={spacing[4]} data-testid="gdpr-privacy">
         <PendingDeletions
           {...modeProp}
           {...(labelFor !== undefined ? { labelFor } : {})}
@@ -57,6 +58,6 @@ export function PrivacyPane(props: PrivacyPaneProps): ReactElement {
           {...(onClosureStarted !== undefined ? { onClosureStarted } : {})}
         />
       </Flex>
-    </GdprSkinTheme>
+    </SkinTheme>
   );
 }

@@ -1,0 +1,575 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/translate-react",
+  "version": "0.0.0",
+  "backend": {
+    "module": "stapel-translate",
+    "contract": ">=0.7 <0.8"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "translate_api_v1_dashboard_languages_list": {
+      "method": "GET",
+      "path": "/translate/api/v1/dashboard/languages/{lang}/",
+      "tag": "Translator Dashboard",
+      "request": null,
+      "response": null
+    },
+    "translate_api_v1_dashboard_llm_help_create": {
+      "method": "POST",
+      "path": "/translate/api/v1/dashboard/llm-help/",
+      "tag": "Translator Dashboard",
+      "request": "LLMHelpRequest",
+      "response": "LLMSingleTranslationResponse"
+    },
+    "translate_api_v1_dashboard_stats_retrieve": {
+      "method": "GET",
+      "path": "/translate/api/v1/dashboard/stats/",
+      "tag": "Translator Dashboard",
+      "request": null,
+      "response": "DashboardStatsResponse"
+    },
+    "translate_api_v1_dashboard_translations_comment_partial_update": {
+      "method": "PATCH",
+      "path": "/translate/api/v1/dashboard/translations/{id}/comment/",
+      "tag": "Translator Dashboard",
+      "request": "PatchedTranslatorComment",
+      "response": "TranslationDetail"
+    },
+    "translate_api_v1_dashboard_translations_destroy": {
+      "method": "DELETE",
+      "path": "/translate/api/v1/dashboard/translations/{id}/",
+      "tag": "Translator Dashboard",
+      "request": null,
+      "response": null
+    },
+    "translate_api_v1_dashboard_translations_navigation_retrieve": {
+      "method": "GET",
+      "path": "/translate/api/v1/dashboard/translations/{id}/navigation/",
+      "tag": "Translator Dashboard",
+      "request": null,
+      "response": "NavigationResponse"
+    },
+    "translate_api_v1_dashboard_translations_partial_update": {
+      "method": "PATCH",
+      "path": "/translate/api/v1/dashboard/translations/{id}/",
+      "tag": "Translator Dashboard",
+      "request": "PatchedTranslationUpdate",
+      "response": "TranslationDetail"
+    },
+    "translate_api_v1_dashboard_translations_retrieve": {
+      "method": "GET",
+      "path": "/translate/api/v1/dashboard/translations/{id}/",
+      "tag": "Translator Dashboard",
+      "request": null,
+      "response": "TranslationDetail"
+    },
+    "translate_api_v1_dashboard_translations_verify_create": {
+      "method": "POST",
+      "path": "/translate/api/v1/dashboard/translations/{id}/verify/",
+      "tag": "Translator Dashboard",
+      "request": "TranslationVerify",
+      "response": "TranslationDetail"
+    },
+    "translate_api_v1_figma_auth_retrieve": {
+      "method": "GET",
+      "path": "/translate/api/v1/figma/auth/",
+      "tag": "Figma Plugin",
+      "request": null,
+      "response": null
+    },
+    "translate_api_v1_figma_translations_create": {
+      "method": "POST",
+      "path": "/translate/api/v1/figma/translations/",
+      "tag": "Figma Plugin",
+      "request": "FigmaTranslationUpsertRequest",
+      "response": "FigmaTranslationUpsertResponse"
+    },
+    "translate_api_v1_figma_translations_remove_ref_create": {
+      "method": "POST",
+      "path": "/translate/api/v1/figma/translations/remove-ref/",
+      "tag": "Figma Plugin",
+      "request": "FigmaRemoveRefRequest",
+      "response": "FigmaRemoveRefResponse"
+    },
+    "translate_api_v1_figma_translations_retrieve": {
+      "method": "GET",
+      "path": "/translate/api/v1/figma/translations/",
+      "tag": "Figma Plugin",
+      "request": null,
+      "response": null
+    },
+    "translate_api_v1_figma_translations_retrieve_2": {
+      "method": "GET",
+      "path": "/translate/api/v1/figma/translations/{key}/",
+      "tag": "Figma Plugin",
+      "request": null,
+      "response": null
+    },
+    "translate_api_v1_figma_translations_screenshot_create": {
+      "method": "POST",
+      "path": "/translate/api/v1/figma/translations/screenshot/",
+      "tag": "Figma Plugin",
+      "request": "FigmaScreenshotUploadRequest",
+      "response": "FigmaScreenshotUploadResponse"
+    },
+    "translate_api_v1_figma_translations_search_create": {
+      "method": "POST",
+      "path": "/translate/api/v1/figma/translations/search/",
+      "tag": "Figma Plugin",
+      "request": "FigmaSearchRequest",
+      "response": "FigmaSearchResponse"
+    },
+    "translate_api_v1_figma_translations_sync_create": {
+      "method": "POST",
+      "path": "/translate/api/v1/figma/translations/sync/",
+      "tag": "Figma Plugin",
+      "request": "FigmaSyncRequest",
+      "response": "FigmaSyncResponse"
+    },
+    "translate_api_v1_languages_data_retrieve": {
+      "method": "GET",
+      "path": "/translate/api/v1/languages/{lang}/data/",
+      "tag": "Translations",
+      "request": null,
+      "response": null
+    },
+    "translate_api_v1_languages_revision_retrieve": {
+      "method": "GET",
+      "path": "/translate/api/v1/languages/revision/",
+      "tag": "Translations",
+      "request": null,
+      "response": "LanguageRevisionResponse"
+    },
+    "translate_api_v1_text_create": {
+      "method": "POST",
+      "path": "/translate/api/v1/text/",
+      "tag": "Translations",
+      "request": "TextTranslationRequest",
+      "response": "TextTranslationResult"
+    },
+    "translate_api_v1_translations_bulk_update_create": {
+      "method": "POST",
+      "path": "/translate/api/v1/translations/bulk_update/",
+      "tag": "Translations",
+      "request": null,
+      "response": "BulkUpdateResponse"
+    },
+    "translate_api_v1_translations_data.json_list": {
+      "method": "GET",
+      "path": "/translate/api/v1/translations/data.json/",
+      "tag": "Translations",
+      "request": null,
+      "response": null
+    },
+    "translate_api_v1_translations_list": {
+      "method": "GET",
+      "path": "/translate/api/v1/translations/",
+      "tag": "Translations",
+      "request": null,
+      "response": "PaginatedTranslationEntryPublicList"
+    },
+    "translate_api_v1_translations_retrieve": {
+      "method": "GET",
+      "path": "/translate/api/v1/translations/{id}/",
+      "tag": "Translations",
+      "request": null,
+      "response": "TranslationEntryPublic"
+    },
+    "translate_api_v1_translations_revision_retrieve": {
+      "method": "GET",
+      "path": "/translate/api/v1/translations/revision/",
+      "tag": "Translations",
+      "request": null,
+      "response": "MaxRevision"
+    }
+  },
+  "hooks": {},
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.translate.batch_too_large": {
+      "status": 400,
+      "params": [
+        "max_items"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.translate.batch_too_long": {
+      "status": 400,
+      "params": [
+        "max_chars"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.translate.text_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.translate.text_too_long": {
+      "status": 400,
+      "params": [
+        "max_chars"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.translate.unsupported_language": {
+      "status": 400,
+      "params": [
+        "language"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.502.translate.provider_unavailable": {
+      "status": 502,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [],
+  "i18nKeys": [
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.translate.batch_too_large",
+    "error.400.translate.batch_too_long",
+    "error.400.translate.text_required",
+    "error.400.translate.text_too_long",
+    "error.400.translate.unsupported_language",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.502.translate.provider_unavailable",
+    "error.503.mandate_unavailable",
+    "translate.error.unknown",
+    "translate.nav.overview",
+    "translate.panel.empty",
+    "translate.panel.loading"
+  ],
+  "exports": {
+    "runtime": [
+      "TRANSLATE_ERRORS",
+      "TRANSLATE_ERROR_CODES",
+      "TRANSLATE_FLOWS",
+      "TRANSLATE_I18N_KEYS",
+      "TranslateProvider",
+      "TranslateRuntimeContext",
+      "createFlowMachine",
+      "createTranslateApi",
+      "createTranslateRuntime",
+      "explainTranslateError",
+      "flowEndpoints",
+      "isErrorCode",
+      "registerTranslateI18n",
+      "toFlowError",
+      "translateErrorBundleEn",
+      "translateI18nBundleEn",
+      "translateQueryKeys",
+      "useFlow",
+      "useTranslateAnalytics",
+      "useTranslateApi",
+      "useTranslateRuntime"
+    ],
+    "types": [
+      "CreateTranslateRuntimeOptions",
+      "FlowEndpoint",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "Remediation",
+      "Schemas",
+      "TranslateApi",
+      "TranslateErrorCode",
+      "TranslateErrorSpec",
+      "TranslateFlowId",
+      "TranslateFlowSpec",
+      "TranslateI18nKey",
+      "TranslateRuntime"
+    ]
+  }
+}

@@ -1,0 +1,154 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/currencies-react",
+  "version": "0.0.0",
+  "demos": [
+    {
+      "id": "currencies.field",
+      "title": "Currency field (default skin)",
+      "description": "A price input the Money layer can actually convert: validity is checked with the same decimal parser the converter uses, so anything this field accepts is a value the rest of the package understands.",
+      "component": "CurrencyField",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A valid amount at 390px, with the picker sharing the control group.",
+          "viewport": "phone"
+        },
+        {
+          "id": "invalid",
+          "description": "An amount the converter cannot read. The message says what a good one looks like instead of the word 'invalid'.",
+          "viewport": "desktop"
+        }
+      ],
+      "source": {
+        "file": "demo/CurrencyField.demo.tsx",
+        "line": 34
+      }
+    },
+    {
+      "id": "currencies.money",
+      "title": "Money (render prop)",
+      "description": "The headless price bag: the original always present, the converted estimate optional, and the state that says which of the three situations the catalogue is in.",
+      "component": "Money",
+      "covers": [
+        "CurrenciesProvider"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A euro price shown to a viewer whose display currency is USD.",
+          "viewport": "phone"
+        },
+        {
+          "id": "same",
+          "description": "Same currency on both sides: there is nothing to convert, and no estimate is invented.",
+          "viewport": "desktop"
+        }
+      ],
+      "source": {
+        "file": "demo/Money.demo.tsx",
+        "line": 34
+      }
+    },
+    {
+      "id": "currencies.picker",
+      "title": "Currency picker (default skin)",
+      "description": "Choose the currency prices are shown in. A searchable Select on tablet and desktop; a bottom sheet with a real list on a phone. Loading disables the control WITH its reason beside it; an unconfigured catalogue says so; only a failed read is drawn as a failure.",
+      "component": "CurrencyPicker",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Desktop: a searchable Select — symbol, code and the translated name.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "phone",
+          "description": "390px: the same picker as a sheet trigger. Tap it in the viewer to see the sheet.",
+          "viewport": "phone"
+        },
+        {
+          "id": "empty",
+          "description": "The deployment configured no currencies. That is a fact about the site, stated plainly — not an error.",
+          "viewport": "phone"
+        },
+        {
+          "id": "failed",
+          "description": "The catalogue read failed: the shared error surface, with a retry.",
+          "viewport": "phone"
+        }
+      ],
+      "source": {
+        "file": "demo/CurrencyPicker.demo.tsx",
+        "line": 41
+      }
+    },
+    {
+      "id": "currencies.price",
+      "title": "Price (default skin)",
+      "description": "A price in the currency it is quoted in, with an optional estimate under it. The estimate is never shown alone: the catalogue serves no rate timestamp, so the seller's own number stays the number on screen.",
+      "component": "Price",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Converted: EUR price, USD viewer. The estimate is marked as one.",
+          "viewport": "phone"
+        },
+        {
+          "id": "same",
+          "description": "The display currency IS the price's currency — no second line, no conversion.",
+          "viewport": "phone"
+        },
+        {
+          "id": "rate",
+          "description": "showRate: the rate as VISIBLE text, not a tooltip. A hover explanation does not exist on the device most prices are read on.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "unavailable",
+          "description": "The catalogue is configured with nothing, so no rate exists. The price still renders; the estimate says it is unavailable rather than showing a blank.",
+          "viewport": "phone"
+        }
+      ],
+      "source": {
+        "file": "demo/Price.demo.tsx",
+        "line": 39
+      }
+    },
+    {
+      "id": "currencies.rate-table",
+      "title": "Rate table (default skin)",
+      "description": "Code, translated name, rate against the base and symbol, with the honest note about what the catalogue does and does not know.",
+      "component": "RateTable",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The seeded catalogue at 390px — the table scrolls, the page does not.",
+          "viewport": "phone"
+        },
+        {
+          "id": "empty",
+          "description": "No currencies configured: the shared empty state, not an empty grid.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "failed",
+          "description": "The read failed: the shared error surface with its retry.",
+          "viewport": "desktop"
+        }
+      ],
+      "source": {
+        "file": "demo/RateTable.demo.tsx",
+        "line": 36
+      }
+    }
+  ]
+}

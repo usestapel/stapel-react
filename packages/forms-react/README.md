@@ -158,10 +158,17 @@ Capability-gated over REST (`forms.view`, `forms.manage`,
 `forms.responses.view`, `forms.responses.manage`):
 
 ```tsx
-<FormsListPane workspaceId={ws} onOpen={(form) => navigate(form.id)} />
-<FormBuilderPane workspaceId={ws} formId={id} />
-<ResponsesPane workspaceId={ws} formId={id} />
+<FormsListPane onOpen={(form) => navigate(form.id)} />
+<FormBuilderPane formId={id} />
+<ResponsesPane formId={id} />
+<FormSettingsPane formId={id} />
 ```
+
+`workspaceId` is **optional** on all four: declare it once on the runtime
+(`createFormsRuntime({ baseUrl, workspaceId })`) and a routed screen — which
+has only the address — finds it. Passing the prop still wins, so a host driving
+two workspaces on one page keeps working. With neither declared, the screen says
+so rather than rendering an empty list.
 
 `<FormBuilderPane>` is **data-driven**: a field's options come from
 `GET /field-kinds`, which serves the config declarations `stapel_attributes`
@@ -179,6 +186,29 @@ unknown kind would silently drop the field from a stored schema.
 `<ResponsesPane>` draws **per-version columns** (a response records which schema
 it answered, so an old row shows the questions actually asked), keyset paging,
 resend, and CSV export.
+
+### Who gets told about a response
+
+`<FormSettingsPane>` is the only writer of `Form.settings` — the form's
+notification destinations (`notify_emails`, `notify_telegram_chat_ids`) and its
+`retention_days` override. Without it a form collects responses that reach
+nobody, so the pane says exactly that when nothing is configured.
+
+It patches the settings bag WHOLE, keeping keys this pair does not own (the
+backend replaces the bag, so a partial patch deletes them). It does not refuse
+a destination the server would have accepted — an address that does not look
+like one is a notice, not a gate. And it does not guess the retention ceiling:
+`>= 1` is checked here, the deployment's maximum comes back as
+`error.400.forms_invalid_retention`.
+
+### Responses do not arrive on their own
+
+`<ResponsesPane>` is refetch-only and says so on screen, with a visible control.
+stapel-forms ships no realtime consumer — its MODULE.md reserves
+`forms:ws:<workspace_id>` for one that does not exist — so there is nothing for
+`@stapel/realtime` to subscribe to, and opening a socket here would mean
+inventing a protocol the backend does not speak. There is no background timer
+on purpose: a table that reorders under a reviewer mid-read loses their place.
 
 ### Resend overrides REPLACE
 
@@ -199,6 +229,13 @@ Registration order is override priority — a host bundle registered last wins.
 **Field labels are not i18n keys.** They are admin-authored content carried in
 the schema and render verbatim in whatever language the admin typed. Translating
 form *content* is a separate problem from translating the pair's chrome.
+
+## Navigation
+
+The three admin surfaces publish `nav-manifest.json` (`forms.list`,
+`forms.builder`, `forms.responses`) under the container-owned `account.root`.
+The anonymous `<StapelForm>` deliberately has no entry — it is embedded by a
+host at an address the shell cannot enumerate.
 
 ## Docs
 

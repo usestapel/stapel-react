@@ -53,7 +53,11 @@ export const categoriesI18nBundleEs: I18nDictionary = {
 
   "categories.category.title": "Categoría",
   "categories.category.unknown_slug": "No hay ninguna categoría en esta dirección.",
+  "categories.category.unknown_slug_hint":
+    "Puede que el enlace esté obsoleto. Empieza por el catálogo.",
   "categories.category.subcategories": "Subcategorías",
+  "categories.category.subcategories_count.one": "{count} subcategoría",
+  "categories.category.subcategories_count.other": "{count} subcategorías",
   "categories.category.no_subcategories": "Esta categoría no tiene subcategorías.",
   "categories.category.open": "Abrir",
 
@@ -72,6 +76,8 @@ export const categoriesI18nBundleEs: I18nDictionary = {
   "categories.picker.no_matches": "Ninguna categoría coincide.",
   "categories.picker.up": "Subir un nivel",
   "categories.picker.selected": "Seleccionada: {category}",
+  "categories.picker.choose": "Elige una categoría",
+  "categories.picker.done": "Listo",
   "categories.picker.blocked.nothing_selected": "Elige primero una categoría.",
   "categories.picker.blocked.not_a_leaf":
     "Elige una categoría más concreta: esta tiene subcategorías, y de ellas dependen los datos que se piden.",

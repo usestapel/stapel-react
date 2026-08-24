@@ -39,6 +39,13 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.results.distance_km": "a {km} km",
   "search.results.untitled": "Sin título",
   "search.results.open": "Abrir",
+  "search.results.image_alt": "Foto de {title}",
+
+  "search.box.label": "Buscar",
+  "search.box.placeholder": "¿Qué estás buscando?",
+  "search.box.submit": "Buscar",
+  "search.box.clear": "Borrar la búsqueda",
+  "search.box.suggestions": "Sugerencias",
 
   "search.sort.label": "Orden",
   "search.sort.relevance": "Más relevantes",
@@ -64,9 +71,29 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.facets.range_from": "Desde",
   "search.facets.range_to": "Hasta",
   "search.facets.range_apply": "Aplicar",
+  "search.facets.range_clear": "Quitar",
+  "search.facets.range_from_aria": "{feature}, desde",
+  "search.facets.range_to_aria": "{feature}, hasta",
+  "search.facets.range_invalid":
+    "«Desde» es mayor que «hasta», así que nada podría coincidir. Intercámbialos para aplicar el rango.",
+
+  "search.filters.open": "Filtros ({count})",
+  "search.filters.apply": "Ver resultados",
+  "search.filters.dismiss": "Cerrar los filtros",
+
+  "search.category.title": "Categoría",
+  "search.category.clear": "Buscar en todo el catálogo",
+  "search.category.current": "Buscando dentro de {path}",
+
+  "search.language.label": "Idioma de la consulta",
+  "search.language.any": "Cualquier idioma",
+
+  "search.limit.label": "Por página",
+  "search.limit.option": "{count} por página",
 
   "search.geo.title": "Ubicación",
   "search.geo.radius_km": "A menos de {km} km",
+  "search.geo.radius_label": "Radio, km",
   "search.geo.clear": "En cualquier lugar",
   "search.geo.box": "Dentro del área mostrada",
   "search.geo.center": "Cerca de {lat}, {lon}",

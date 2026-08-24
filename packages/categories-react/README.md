@@ -156,7 +156,7 @@ The same `bag.features` is what `@stapel/search-react`'s facet panel takes as
 | `useCategoryChildren` / `useCategoryCarousel` / `useCategoryFeatures` / `useCategoriesRevision` | the four direct reads |
 | `buildCategoryTree` / `resolveCategorySlug` / `categoryBreadcrumbs` / `parseTreenodePks` | pure tree assembly |
 | `applyCategoryPage` / `firstPageRequest` / `nextPageRequest` / `syncCatalog` | the delta protocol, testable without React |
-| `categoryLabel` / `featureLabel` / `renderCategoryLabel` | the translation-key answer |
+| `categoryLabel` / `featureLabel` / `featureCommentLabel` / `renderCategoryLabel` | the translation-key answer |
 | `<CategoryTree>` `<CategoryBreadcrumbs>` `<CategoryCarousel>` `<CategoryPicker>` `<CategoryFeatures>` | headless bags |
 | `/default`: `CatalogPage` `CategoryPage` `CategoryTreePane` `CategoryBreadcrumbsBar` `CategoryCarouselStrip` `CategoryPickerField` `CategoryFeatureList` | the antd skin |
 
@@ -167,7 +167,28 @@ composes it.
 
 `<CategoryPage>` takes `renderListings` for the same reason: the results half of
 `/c/:slug` belongs to another pair, handed in rather than imported across the
-L2 layer.
+L2 layer. Leave it out and the page renders a NAMED placeholder in a
+development build (`SlotPlaceholder`, `@stapel/core`) and nothing in
+production — an unfilled composition slot that looks like a finished page is
+the one defect nobody reports.
+
+`<CatalogPage>` takes `renderIcon` and forwards it to the carousel. Carousel
+icon references are opaque strings the backend refuses to resolve, so without
+a resolver the tiles are text — by construction, not by accident, and never a
+guessed CDN path that 404s on somebody else's deployment.
+
+Theming is the shared substrate's: every surface wraps itself in `SkinTheme`
+from `@stapel/tokens-antd/skin`, which reads the document's live `data-theme`,
+paints its own background, and raises antd's `controlHeight` to 44px below the
+tablet breakpoint. This package no longer exports a `CategoriesSkinTheme` or
+its own `ErrorAlert` — import `SkinTheme` / `ErrorAlert` from
+`@stapel/tokens-antd/skin` instead.
+
+Below the tablet breakpoint `<CategoryPickerField>` is a trigger plus a bottom
+sheet rather than an inline list: a drill-down is a journey, and a journey
+rendered inline in a long compose form moves every field under it. Pass
+`surface="inline" | "sheet"` to pin the shape for a host that is not the
+viewport.
 
 ## Category chrome inside a SPA: `linkComponent`
 
@@ -197,6 +218,28 @@ const RouterLink: LinkComponent = ({ href, children, ...rest }) => (
 Omit it and anchors render exactly as before: a host with no router keeps
 working, and it is the same prop `@stapel/listings-react`'s `<ListingCard>`
 takes.
+
+## Registering the locales
+
+```tsx
+import { registerCategoriesI18nRu } from "@stapel/categories-react/i18n/ru";
+import { registerAttributesI18nRu } from "@stapel/attributes-react/i18n/ru";
+
+registerCategoriesI18nRu(i18n);
+registerAttributesI18nRu(i18n);   // ← not optional if you render features
+```
+
+**A ru/es host must register `@stapel/attributes-react/i18n/{ru,es}` as well.**
+`stapel-categories` embeds `stapel_attributes`, which owns twelve of the
+sixty-two error codes in the registry (`error.400.feature_below_minimum`,
+`…feature_mandatory_missing`, `…description_too_long`, …) and ships no
+`translations/` directory upstream, so those sentences live in the pair that
+draws and validates those values. This package deliberately does **not** carry
+them: two pairs giving one refusal two sentences is exactly what that rule
+exists to prevent. Skip the attributes bundle and twelve feature-validation
+refusals render in English in the middle of a translated form.
+`test/i18n.test.ts` asserts over the union of the two bundles, not over this
+one, so the arrangement cannot silently rot.
 
 ## Not in this version
 

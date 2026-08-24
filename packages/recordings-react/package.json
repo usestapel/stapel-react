@@ -1,7 +1,7 @@
 {
   "name": "@stapel/recordings-react",
   "version": "0.5.1",
-  "description": "Headless React flow pair for stapel-recordings: typed API client, TanStack Query hooks, headless components (list / compose / upload-finalize), and i18n keys. Zero visual opinion.",
+  "description": "React pair for stapel-recordings: typed API client, TanStack Query hooks with payload-driven polling, headless components (list / detail / uploader / player / transcript / re-summarize / reprocess / public share) and i18n in en+ru+es. The main entry is headless; the opt-in /default subpath ships the antd skin — the recordings screen, the recording screen with its player and speaker-attributed transcript, the create->upload->finalize uploader, and the anonymous share page with its passcode gate.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -17,8 +17,21 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./default": {
+      "types": "./dist/default/index.d.ts",
+      "default": "./dist/default/index.js"
+    },
+    "./i18n/ru": {
+      "types": "./dist/i18n/ru.d.ts",
+      "default": "./dist/i18n/ru.js"
+    },
+    "./i18n/es": {
+      "types": "./dist/i18n/es.d.ts",
+      "default": "./dist/i18n/es.js"
+    },
     "./manifest": "./manifest.json",
     "./manifest.json": "./manifest.json",
+    "./nav-manifest.json": "./nav-manifest.json",
     "./llms.txt": "./llms.txt",
     "./package.json": "./package.json"
   },
@@ -30,6 +43,7 @@
     "MODULE.md",
     "CHANGELOG.md",
     "manifest.json",
+    "nav-manifest.json",
     "llms.txt"
   ],
   "scripts": {
@@ -41,14 +55,21 @@
   },
   "size-limit": [
     {
-      "name": "index — headless recordings pair (client + hooks + headless + i18n)",
+      "name": "index — the headless pair (client + hooks + headless + i18n): no antd",
       "path": "dist/index.js",
-      "limit": "12 KB"
+      "limit": "16 KB"
+    },
+    {
+      "name": "default — the antd skin (screens, player, transcript, share) must stay out of the main bundle",
+      "path": "dist/default/index.js",
+      "limit": "40 KB"
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.13.0 <1.0.0",
+    "@stapel/core": ">=0.18.0 <1.0.0",
+    "@stapel/tokens-antd": ">=0.6.0",
     "@tanstack/react-query": "^5.0.0",
+    "antd": ">=5.20.0 <7",
     "react": ">=19"
   },
   "devDependencies": {
@@ -56,10 +77,12 @@
     "@stapel/core": "workspace:^",
     "@stapel/showcase": "workspace:^",
     "@stapel/tokens": "workspace:^",
+    "@stapel/tokens-antd": "workspace:^",
     "@tanstack/react-query": "^5.81.0",
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "antd": "^6.5.0",
     "jsdom": "^26.1.0",
     "msw": "^2.10.2",
     "react": "^19.1.0",

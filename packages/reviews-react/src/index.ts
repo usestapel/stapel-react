@@ -43,14 +43,17 @@
  *    status, so a pre-moderating deployment tells the author their review is
  *    waiting instead of leaving them to look for it.
  *
- * ── What this pair does NOT do ─────────────────────────────────────────────
+ * 5. **Every capability the module has is reachable.** `POST {id}/moderate`
+ *    and `POST {id}/response` used to be declared out of scope here, and the
+ *    consequence was that stapel-reviews' moderation queue and the seller's
+ *    single reply existed on no screen in the fleet. Both are wired now,
+ *    behind an explicit `canModerate` / `canRespond` capability the host
+ *    declares and the server decides (the `can_moderate` callback is
+ *    fail-closed, so a mis-offered control costs a 403, not a leak) — and a
+ *    control the host has not armed renders switched off WITH its reason, not
+ *    removed.
  *
- * No moderation and no owner reply. `POST {id}/moderate` and
- * `POST {id}/response` are both gated on the target type's fail-closed
- * `can_moderate` callback and belong to consoles this pair does not ship
- * (storefront spec §4.4: the reply is DISPLAYED, and the button to write one
- * does not exist rather than existing switched off). Both stay in
- * `manifest.json`, which lists the whole contract.
+ * ── What this pair does NOT do ─────────────────────────────────────────────
  *
  * No seller-wide rating fetch. The product model (spec fork F5) reviews the
  * SELLER for a specific listing, so a seller's rating is a roll-up across
@@ -81,8 +84,11 @@ export type {
   ReviewAnchorDirection,
   ReviewCreateRequest,
   ReviewListParams,
+  ReviewModerateRequest,
+  ReviewModerationAction,
   ReviewOwnerResponse,
   ReviewPage,
+  ReviewRespondRequest,
   ReviewStatus,
   ReviewTarget,
   Schemas,
@@ -104,8 +110,17 @@ export {
 export { reviewsQueryKeys } from "./model/queryKeys.js";
 export { REVIEWS_PAGE, useReviewAggregate, useReviewList } from "./model/queries.js";
 export type { UseReviewListOptions } from "./model/queries.js";
-export { useSubmitReview } from "./model/mutations.js";
-export type { SubmitReviewVariables } from "./model/mutations.js";
+export {
+  useModerateReview,
+  useRespondToReview,
+  useSubmitReview,
+} from "./model/mutations.js";
+export type {
+  ModerateReviewVariables,
+  RespondToReviewVariables,
+  SubmitReviewVariables,
+} from "./model/mutations.js";
+export { formatReviewDate, useReviewDateFormat } from "./model/dates.js";
 export { ratingSummary, starBreakdown } from "./model/rating.js";
 export type { RatingSummary, StarBreakdown } from "./model/rating.js";
 export {
@@ -115,7 +130,12 @@ export {
   reviewVisibility,
 } from "./model/list.js";
 export {
+  isAlreadyResponded,
   isDuplicateReview,
+  isInvalidModerationAction,
+  isModerationForbidden,
+  isResponseNotAllowed,
+  isReviewGone,
   isReviewingForbidden,
   isSignInRequired,
   isUnknownTargetType,
@@ -123,6 +143,7 @@ export {
   REVIEWS_ERROR_CANNOT_MODERATE,
   REVIEWS_ERROR_CANNOT_REVIEW,
   REVIEWS_ERROR_DUPLICATE,
+  REVIEWS_ERROR_INVALID_MODERATION_ACTION,
   REVIEWS_ERROR_INVALID_RATING,
   REVIEWS_ERROR_NOT_FOUND,
   REVIEWS_ERROR_RESPONSE_NOT_ALLOWED,
@@ -133,7 +154,21 @@ export {
 // ── headless ─────────────────────────────────────────────────────────────────
 export { ReviewsProvider } from "./headless/ReviewsProvider.js";
 export { ReviewList } from "./headless/ReviewList.js";
-export type { ReviewListBag, ReviewListProps } from "./headless/ReviewList.js";
+export type {
+  ReviewListBag,
+  ReviewListProps,
+  ReviewListScope,
+} from "./headless/ReviewList.js";
+export { ReviewModeration } from "./headless/ReviewModeration.js";
+export type {
+  ReviewModerationBag,
+  ReviewModerationProps,
+} from "./headless/ReviewModeration.js";
+export { ReviewResponseForm } from "./headless/ReviewResponseForm.js";
+export type {
+  ReviewResponseBag,
+  ReviewResponseFormProps,
+} from "./headless/ReviewResponseForm.js";
 export { ReviewAggregate } from "./headless/ReviewAggregate.js";
 export type {
   ReviewAggregateBag,
@@ -145,6 +180,7 @@ export type { ReviewFormBag, ReviewFormProps } from "./headless/ReviewForm.js";
 // ── i18n ─────────────────────────────────────────────────────────────────────
 export {
   REVIEWS_I18N_KEYS,
+  REVIEWS_I18N_PLURALS,
   registerReviewsI18n,
   reviewsI18nBundleEn,
 } from "./i18n/keys.js";

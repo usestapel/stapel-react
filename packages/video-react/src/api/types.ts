@@ -38,3 +38,48 @@ export type ScopeUsageMonth = Schemas["ScopeUsageMonth"];
  * `<ScopeUsageTable>`.
  */
 export type ScopeUsageRow = Schemas["ScopeUsageRow"];
+
+// ── The meeting half of the contract ────────────────────────────────────────
+//
+// Six browser-callable operations the usage read has nothing to do with, and
+// the DTOs they answer with. They are aliased here for the same reason the
+// usage shapes are: the generated table is the source of truth, and a parallel
+// hand-written body would drift the first time the backend adds a field.
+
+/** A room. `scope_key` is `""` for a caller who only holds the join code —
+ * the backend blanks it (`views.room_to_dto(reveal_scope=False)`) so a
+ * stranger learns the room exists without learning whose it is. */
+export type RoomResponse = Schemas["RoomResponse"];
+
+/** `POST /rooms` — the axes a host may set when opening a room. Both are
+ * optional and both have a deployment-level default, so omitting them is a
+ * real choice ("whatever this deployment does") and not a gap. */
+export type RoomCreateRequest = Schemas["RoomCreateRequest"];
+
+/** `POST /rooms/{join_code}/join`. */
+export type JoinRequest = Schemas["JoinRequest"];
+
+/**
+ * The outcome of asking to join: `admitted` / `waiting` / `denied`, plus the
+ * provider `token` — non-null ONLY when admitted.
+ *
+ * This is the seam a vendor SDK cannot produce: the token is minted by
+ * stapel-video's provider (`providers/livekit.py`) out of the join grant, and
+ * the lobby that gates it is a stapel concept the SDK has never heard of.
+ */
+export type JoinResponse = Schemas["JoinResponse"];
+
+/** One participant row. `status` is waiting/admitted/denied/left and `role` is
+ * host/guest — both open strings on the wire, mapped to copy in `model/`. */
+export type ParticipantResponse = Schemas["ParticipantResponse"];
+
+/** An anchor-paginated page of participants, FIFO by `joined_at`. */
+export type ParticipantListResponse = Schemas["ParticipantListResponse"];
+
+/** `POST …/lobby/admit` and `…/lobby/deny` — the host's verdict, by
+ * participant id. */
+export type LobbyActionRequest = Schemas["LobbyActionRequest"];
+
+/** `POST …/lobby/admit` — the admitted participant and the token minted for
+ * them. */
+export type AdmitResponse = Schemas["AdmitResponse"];

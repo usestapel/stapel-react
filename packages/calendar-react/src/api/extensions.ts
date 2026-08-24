@@ -23,8 +23,16 @@ export function eventIcsUrl(baseUrl: string, eventId: string): string {
   return `${base}/events/${encodeURIComponent(eventId)}/ics`;
 }
 
-/** The RSVP states a user may submit (excludes the server-set `"invited"`). */
-const SUBMITTABLE_RSVP: readonly Rsvp[] = ["accepted", "tentative", "declined"];
+/**
+ * The RSVP states a user may submit, in the order a screen offers them —
+ * accept first, because accepting is what an invitation asks for. Excludes the
+ * server-set `"invited"`.
+ */
+export const SUBMITTABLE_RSVPS: readonly Rsvp[] = [
+  "accepted",
+  "tentative",
+  "declined",
+];
 
 /**
  * Type-guard: is a raw participant RSVP one a USER can submit? Useful for
@@ -32,5 +40,5 @@ const SUBMITTABLE_RSVP: readonly Rsvp[] = ["accepted", "tentative", "declined"];
  * user choice). Narrows `ParticipantRsvp` to {@link Rsvp}.
  */
 export function isSubmittableRsvp(rsvp: ParticipantRsvp): rsvp is Rsvp {
-  return (SUBMITTABLE_RSVP as readonly string[]).includes(rsvp);
+  return (SUBMITTABLE_RSVPS as readonly string[]).includes(rsvp);
 }

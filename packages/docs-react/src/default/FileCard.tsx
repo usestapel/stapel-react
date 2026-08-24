@@ -5,28 +5,21 @@
  * Rides the `MediaViewer` headless bag: `image/*` previews inline, `video/*`
  * plays inline, everything else is a download button on the opaque URL.
  *
- * The download button is gated through core's `useActionGate`, so a URL that
- * could not be minted greys it out WITH the sentence saying so — the button
- * used to go dead on a bare `url === null`, which is also what "still
- * minting" looks like.
+ * The download is a `<GatedButton>`, so a URL that could not be minted greys
+ * it out WITH the sentence saying so — the button used to go dead on a bare
+ * `url === null`, which is also what "still minting" looks like.
  *
  * Replaceable without a fork:
  * `registerDocsSkinComponent("fileCard", …)`.
  */
 import type { ReactElement } from "react";
-import { Button, Card, Flex, Spin, Typography } from "antd";
-import {
-  actionAvailable,
-  matchLoad,
-  requireLoaded,
-  useActionGate,
-  useErrorDisplay,
-  useT,
-} from "@stapel/core";
+import { Card, Flex, Typography } from "antd";
+import { ErrorAlert, GatedButton, LoadBoundary } from "@stapel/tokens-antd/skin";
+import { actionAvailable, requireLoaded, useI18n, useT } from "@stapel/core";
 import { MediaViewer } from "../headless/MediaViewer.js";
 import type { MediaViewerBag } from "../headless/MediaViewer.js";
+import { formatBytes } from "../model/format.js";
 import { DOCS_I18N_KEYS } from "../i18n/keys.js";
-import { ErrorAlert } from "./ErrorAlert.js";
 
 export interface FileCardProps {
   readonly documentId: string;
@@ -40,71 +33,65 @@ export function FileCard(props: FileCardProps): ReactElement {
   );
 }
 
-/** The card itself — a component, not a closure, so the gate hook runs at a
+/** The card itself — a component, not a closure, so the hooks run at a
  * component's top level rather than inside the render prop. */
 function FileCardBody(props: { readonly bag: MediaViewerBag }): ReactElement {
   const t = useT();
-  const errorDisplay = useErrorDisplay(DOCS_I18N_KEYS.unknownError);
+  const { locale } = useI18n();
   const { bag } = props;
-  const download = useActionGate(
-    requireLoaded(bag.urlState, () => actionAvailable())
-  );
+  // Three reasons the download can be off, and the person is told which:
+  // the URL is still being minted, the mint failed, or it is available.
+  const download = requireLoaded(bag.urlState, () => actionAvailable());
 
   function downloadButton(url: string | null): ReactElement {
     return (
-      <Flex vertical gap="small" align="flex-start">
-        <Button
-          size="small"
-          disabled={download.disabled}
-          onClick={() => {
-            if (url !== null) window.open(url, "_blank", "noopener");
-          }}
-          data-analytics="none"
-          data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-        >
-          {t(DOCS_I18N_KEYS.mediaDownload)}
-        </Button>
-        {/* Beside the control, not in a `title`: a disabled button gets no
-            pointer events, so a tooltip is a reason nobody can read. */}
-        {download.reason !== undefined && (
-          <Typography.Text
-            type="secondary"
-            style={{ fontSize: 12 }}
-            data-testid="docs-file-download-reason"
-          >
-            {download.reason}
-            {download.detail !== undefined ? ` · ${download.detail}` : ""}
-          </Typography.Text>
-        )}
-      </Flex>
+      <GatedButton
+        gate={download}
+        onClick={() => {
+          if (url !== null) window.open(url, "_blank", "noopener");
+        }}
+        testId="docs-file-download"
+        data-analytics="none"
+        data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+      >
+        {t(DOCS_I18N_KEYS.mediaDownload)}
+      </GatedButton>
     );
   }
 
   return (
     <Card data-testid="docs-file-card" size="small">
       <Flex vertical gap="small">
-        {matchLoad(bag.state, {
-          loading: () => <Spin />,
-          failed: (error) => (
-            <ErrorAlert error={errorDisplay(error)} testId="docs-file-error" />
-          ),
-          ready: ({ document: doc, kind }) => (
-            <>
+        <LoadBoundary
+          state={bag.state}
+          onRetry={bag.refreshUrl}
+          testId="docs-file"
+        >
+          {({ document: doc, kind }) => (
+            <Flex vertical gap="small">
               <Typography.Text strong>{doc.title}</Typography.Text>
-              {matchLoad(bag.urlState, {
-                loading: () => <Spin />,
+              <Typography.Text type="secondary">
+                {formatBytes(doc.size_bytes, locale)}
+              </Typography.Text>
+              <LoadBoundary
+                state={bag.urlState}
+                onRetry={bag.refreshUrl}
+                testId="docs-file-url"
                 // The URL failed on its own — the document is fine, so the
-                // title stays and only the download is blocked, with why.
-                failed: (error) => (
+                // title stays, the failure is stated, and only the download
+                // is blocked, with the gate's own reason beside it.
+                failed={(error) => (
                   <Flex vertical gap="small" align="flex-start">
                     <ErrorAlert
-                      error={errorDisplay(error)}
+                      thrown={error}
+                      onRetry={bag.refreshUrl}
                       testId="docs-file-url-error"
                     />
                     {downloadButton(null)}
                   </Flex>
-                ),
-                ready: (url) =>
+                )}
+              >
+                {(url) =>
                   kind === "image" ? (
                     <img src={url} alt={doc.title} style={{ maxWidth: "100%" }} />
                   ) : kind === "video" ? (
@@ -116,11 +103,12 @@ function FileCardBody(props: { readonly bag: MediaViewerBag }): ReactElement {
                       </Typography.Text>
                       {downloadButton(url)}
                     </Flex>
-                  ),
-              })}
-            </>
-          ),
-        })}
+                  )
+                }
+              </LoadBoundary>
+            </Flex>
+          )}
+        </LoadBoundary>
       </Flex>
     </Card>
   );

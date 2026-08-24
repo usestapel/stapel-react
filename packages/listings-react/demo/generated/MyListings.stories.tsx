@@ -8,5 +8,16 @@ export default { title: "listings-react / My listings" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
+Default.parameters = { stapel: {"viewport":"phone","step":"active_tab_with_editor"} };
+export const NoEditor = (): ReactElement => renderDemoVariant(demo, "no-editor");
+NoEditor.storyName = "no-editor";
+NoEditor.parameters = { stapel: {"viewport":"phone","step":"active_tab_edit_blocked"} };
 export const TakenDown = (): ReactElement => renderDemoVariant(demo, "taken-down");
 TakenDown.storyName = "taken-down";
+TakenDown.parameters = { stapel: {"viewport":"phone","step":"takedown_above_tabs"} };
+export const Visitor = (): ReactElement => renderDemoVariant(demo, "visitor");
+Visitor.storyName = "visitor";
+Visitor.parameters = { stapel: {"viewport":"phone","step":"no_mandate"} };
+export const Failed = (): ReactElement => renderDemoVariant(demo, "failed");
+Failed.storyName = "failed";
+Failed.parameters = { stapel: {"viewport":"desktop","step":"rows_failed"} };

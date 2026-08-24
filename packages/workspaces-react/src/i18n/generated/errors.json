@@ -426,6 +426,20 @@
     "en": "An account with this email already exists — log in instead"
   },
   {
+    "code": "error.409.workspace_is_instance_default",
+    "status": 409,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "This is the instance's default workspace and cannot be deleted; point the instance at another workspace first"
+  },
+  {
+    "code": "error.409.workspace_is_personal",
+    "status": 409,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "A personal workspace cannot be deleted on this instance — it is recreated the next time you sign in"
+  },
+  {
     "code": "error.410.gone",
     "status": 410,
     "params": [],
@@ -468,6 +482,15 @@
     "en": "Too many failed attempts — verification locked"
   },
   {
+    "code": "error.429.invitation_grant_pending",
+    "status": 429,
+    "params": [
+      "retry_after"
+    ],
+    "remediation": "wait_and_retry",
+    "en": "A sign-in link for this invitation is still valid; you can request another one in {retry_after} seconds"
+  },
+  {
     "code": "error.429.invitation_resend_cooldown",
     "status": 429,
     "params": [
@@ -505,6 +528,20 @@
     "params": [],
     "remediation": "wait_and_retry",
     "en": "The authentication service is unavailable; try again later"
+  },
+  {
+    "code": "error.503.billing_unavailable",
+    "status": 503,
+    "params": [],
+    "remediation": "wait_and_retry",
+    "en": "The billing service is unavailable; try again later"
+  },
+  {
+    "code": "error.503.mandate_unavailable",
+    "status": 503,
+    "params": [],
+    "remediation": "retry",
+    "en": "Cannot verify workspace mandate right now"
   },
   {
     "code": "error.503.profiles_not_configured",

@@ -136,8 +136,12 @@ describe("rung 3 — loud, and never a skipped field", () => {
       )
     );
     const notice = screen.getByTestId("attributes-unsupported-type");
-    expect(notice.textContent).toContain("size_grid");
+    // The FEATURE is named; the type slug is not rendered at all (C-DEVCOPY —
+    // `size_grid` is an identifier out of a Python registry, and a seller can
+    // do nothing with it). Support reads it off the DOM instead.
     expect(notice.textContent).toContain("size grid"); // the feature's own name
+    expect(notice.textContent).not.toContain("size_grid");
+    expect(notice.getAttribute("data-attributes-type")).toBe("size_grid");
   });
 
   it("names the OTHER absence differently — a row with no type at all", () => {
@@ -151,7 +155,8 @@ describe("rung 3 — loud, and never a skipped field", () => {
       )
     );
     const notice = screen.getByTestId("attributes-unsupported-type");
-    expect(notice.textContent).toContain("declares no type");
+    expect(notice.textContent).toContain("misconfigured");
+    expect(notice.getAttribute("data-attributes-type")).toBe("(none)");
   });
 
   it("says it in the viewer's language, not in English", () => {
@@ -165,9 +170,9 @@ describe("rung 3 — loud, and never a skipped field", () => {
         "ru"
       )
     );
-    expect(screen.getByTestId("attributes-unsupported-type").textContent).toContain(
-      "size_grid"
-    );
+    const notice = screen.getByTestId("attributes-unsupported-type");
+    expect(notice.textContent).toContain("нельзя заполнить");
+    expect(notice.getAttribute("data-attributes-type")).toBe("size_grid");
   });
 });
 
@@ -204,14 +209,16 @@ describe("unsupportedTypeGate — blocked WITH the reason named", () => {
     expect(gate.available).toBe(true);
   });
 
-  it("blocks with a key and the offending types in its params — never a bare disabled", () => {
+  it("blocks with a key and the offending FEATURES in its params — never a bare disabled", () => {
     const gate = unsupportedTypeGate(
       [STRING_FEATURE, UNKNOWN_TYPE_FEATURE],
       BUILTIN_VALUE_EDITOR_TYPES
     );
     expect(gate.available).toBe(false);
     expect(gate.block?.code).toBe("attributes.submit.blocked.unsupported_type");
-    expect(gate.block?.params["types"]).toBe("size_grid");
+    // FEATURE names, not type slugs: the reason is read by the person whose
+    // submit is blocked. `unsupportedTypes` still carries the slug for a log.
+    expect(gate.block?.params["features"]).toBe("size grid");
   });
 
   it("unblocks once the host registers the missing editor", () => {

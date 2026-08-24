@@ -1,7 +1,7 @@
 /**
  * `<PendingDeletions>` — everything of this person's that is on its way out.
  *
- * FOUR arms from `matchList`, and the empty one is the point: "nothing of
+ * FOUR arms from the substrate's `LoadList`, and the empty one is the point: "nothing of
  * yours is waiting to be deleted" is only sayable from a load that actually
  * succeeded. A table that drew zero rows on a failed read would tell somebody
  * their deletion request never existed.
@@ -28,15 +28,19 @@
  * still waiting on, are printed under the tag for the same reason as above.
  */
 import type { ReactElement } from "react";
-import { Alert, Card, Empty, Flex, Skeleton, Table, Tag, Typography } from "antd";
-import { matchList, useDescribeFlowError, useI18n, useT } from "@stapel/core";
-import type { ErasureStatus } from "../api/types.js";
-import { toFlowError } from "../flows/errors.js";
+import { Alert, Card, Flex, Table, Tag, Typography } from "antd";
+import { fontSize, spacing } from "@stapel/tokens";
+import {
+  EmptyState,
+  LoadBoundary,
+  LoadList,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
+import { useI18n, useT } from "@stapel/core";
+import type { ErasurePart, ErasureStatus, SubprocessorObligation } from "../api/types.js";
 import { GDPR_I18N_KEYS } from "../i18n/keys.js";
-import { formatDeletionDate } from "../model/dates.js";
-import { useMyErasures } from "../model/erasures.js";
-import { ErrorAlert } from "./ErrorAlert.js";
-import { GdprSkinTheme } from "./theme.js";
+import { formatDeletionDate, formatInstant } from "../model/dates.js";
+import { useErasure, useMyErasures } from "../model/erasures.js";
 import type { ThemeModeProp } from "./types.js";
 
 export interface PendingDeletionsProps extends ThemeModeProp {
@@ -104,7 +108,6 @@ function stateColor(state: string): string | undefined {
 export function PendingDeletions(props: PendingDeletionsProps): ReactElement {
   const t = useT();
   const { locale } = useI18n();
-  const describe = useDescribeFlowError();
   const bag = useMyErasures();
   const { labelFor } = props;
 
@@ -119,7 +122,7 @@ export function PendingDeletions(props: PendingDeletionsProps): ReactElement {
             <Typography.Text>
               {labelFor?.(row.subject_type, row.subject_key) ?? row.subject_key}
             </Typography.Text>
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
               {typeKey !== undefined ? t(typeKey) : row.subject_type}
             </Typography.Text>
           </Flex>
@@ -143,14 +146,14 @@ export function PendingDeletions(props: PendingDeletionsProps): ReactElement {
               ? t(GDPR_I18N_KEYS.deletionsWaitingOn, { owners: waiting.join(", ") })
               : undefined;
         return (
-          <Flex vertical gap={2}>
+          <Flex vertical gap={spacing[1]}>
             <Tag {...(color !== undefined ? { color } : {})}>
               {t(stateKeyFor(row.state))}
             </Tag>
             {hint !== undefined ? (
               <Typography.Text
                 type="secondary"
-                style={{ fontSize: 12 }}
+                style={{ fontSize: fontSize.xs.fontSize }}
                 data-testid="gdpr-deletions-state-hint"
               >
                 {hint}
@@ -177,32 +180,26 @@ export function PendingDeletions(props: PendingDeletionsProps): ReactElement {
   ];
 
   return (
-    <GdprSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
+    <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
       <Card
         data-testid="gdpr-deletions"
         title={t(GDPR_I18N_KEYS.deletionsHeading)}
         size="small"
       >
-        {matchList(bag.rows, {
-          loading: () => (
-            <div data-testid="gdpr-deletions-loading">
-              <Skeleton active paragraph={{ rows: 2 }} />
-            </div>
-          ),
-          failed: (error) => (
-            <ErrorAlert
-              testId="gdpr-deletions-failed"
-              error={describe(toFlowError(error))}
+        <LoadList
+          state={bag.rows}
+          testId="gdpr-deletions"
+          skeletonRows={2}
+          onRetry={bag.refetch}
+          empty={
+            <EmptyState
+              testId="gdpr-deletions-empty"
+              title={t(GDPR_I18N_KEYS.deletionsEmpty)}
             />
-          ),
-          empty: () => (
-            <Empty
-              data-testid="gdpr-deletions-empty"
-              description={t(GDPR_I18N_KEYS.deletionsEmpty)}
-            />
-          ),
-          ready: (rows) => (
-            <Flex vertical gap={8}>
+          }
+        >
+          {(rows) => (
+            <Flex vertical gap={spacing[2]}>
               {bag.overdue.length > 0 ? (
                 <Alert
                   type="warning"
@@ -221,18 +218,153 @@ export function PendingDeletions(props: PendingDeletionsProps): ReactElement {
                 // Four columns of dates do not fit a phone. Without this the
                 // last two are simply unreachable there.
                 scroll={{ x: true }}
+                // Opening a row is what answers "why is this STILL here?" —
+                // the per-owner receipts and the processor windows that push
+                // the second date out. The detail read (`GET /erasures/{id}`)
+                // is issued only for the row a person actually opened.
+                expandable={{
+                  expandedRowRender: (row: ErasureStatus) => (
+                    <ErasureDetail requestId={row.request_id} />
+                  ),
+                  expandRowByClick: false,
+                  columnTitle: t(GDPR_I18N_KEYS.deletionsExpand),
+                }}
               />
               <Typography.Text
                 type="secondary"
-                style={{ fontSize: 12 }}
+                style={{ fontSize: fontSize.xs.fontSize }}
                 data-testid="gdpr-deletions-fully-erased-hint"
               >
                 {t(GDPR_I18N_KEYS.deletionsFullyErasedHint)}
               </Typography.Text>
             </Flex>
-          ),
-        })}
+          )}
+        </LoadList>
       </Card>
-    </GdprSkinTheme>
+    </SkinTheme>
+  );
+}
+
+/**
+ * An `ErasurePart`'s tag colour — antd's semantic PRESET names, resolved by
+ * the theme algorithm, which is why the mapping lives beside the label mapping
+ * (as `stateColor` does for the row) instead of inline in the cell: a state's
+ * label and its colour are one decision and change together.
+ */
+function partStateColor(state: string): string | undefined {
+  switch (state) {
+    case "done":
+      return "green";
+    case "timeout":
+      return "red";
+    default:
+      return undefined;
+  }
+}
+
+/** The i18n key for an `ErasurePart`'s own state. */
+function partStateKeyFor(state: string): string {
+  switch (state) {
+    case "done":
+      return GDPR_I18N_KEYS.deletionsPartDone;
+    case "timeout":
+      return GDPR_I18N_KEYS.deletionsPartTimeout;
+    default:
+      return GDPR_I18N_KEYS.deletionsPartPending;
+  }
+}
+
+/** One part's state as a tag — the colour comes from {@link partStateColor}. */
+function PartStateTag(props: { state: string }): ReactElement {
+  const t = useT();
+  const color = partStateColor(props.state);
+  return (
+    <Tag {...(color !== undefined ? { color } : {})}>
+      {t(partStateKeyFor(props.state))}
+    </Tag>
+  );
+}
+
+/**
+ * One erasure, opened: which system has confirmed, and which processor window
+ * is still open.
+ *
+ * This is the only screen in the pair that reads a SINGLE erasure
+ * (`GET /erasures/{id}`), and it exists because the row above it cannot answer
+ * the question the row provokes. "Being erased, ours by 23 September,
+ * everywhere by 18 October" is true and says nothing about WHO is holding it
+ * up — the receipts do, and a person entitled to the deletion is entitled to
+ * the receipts. It is mounted only when the row is expanded, so the read is
+ * one request per opened row rather than one per listed row.
+ */
+function ErasureDetail(props: { requestId: number }): ReactElement {
+  const t = useT();
+  const { locale } = useI18n();
+  const bag = useErasure(props.requestId);
+  return (
+    <LoadBoundary
+      state={bag.state}
+      testId="gdpr-deletions-detail"
+      skeletonRows={2}
+      onRetry={bag.refetch}
+    >
+      {(erasure) => {
+        // Both are optional on the wire: an erasure opened this second has no
+        // part rows yet, and a subject nobody passed to a processor has no
+        // obligations at all. Neither absence is an error, and neither is the
+        // same thing as "nothing holds it".
+        const parts = erasure.parts ?? [];
+        const obligations = erasure.obligations ?? [];
+        return (
+        <Flex vertical gap={spacing[2]} data-testid="gdpr-deletions-detail">
+          <Typography.Text strong>
+            {t(GDPR_I18N_KEYS.deletionsPartsHeading)}
+          </Typography.Text>
+          {parts.length === 0 ? (
+            <Typography.Text type="secondary">
+              {t(GDPR_I18N_KEYS.deletionsPartsEmpty)}
+            </Typography.Text>
+          ) : (
+            parts.map((part: ErasurePart) => (
+              <Flex key={part.owner} gap={spacing[2]} align="baseline" wrap>
+                <Typography.Text>{part.owner}</Typography.Text>
+                <PartStateTag state={part.state} />
+                {/* A receipt without its instant is unauditable — it is the
+                    proof a person is being handed. */}
+                {part.receipt_at != null ? (
+                  <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
+                    {t(GDPR_I18N_KEYS.deletionsPartReceipt, {
+                      date: formatInstant(part.receipt_at, locale),
+                    })}
+                  </Typography.Text>
+                ) : null}
+              </Flex>
+            ))
+          )}
+          {/* The processors are WHY the second clock is later than the first,
+              named one by one rather than left as a difference of dates. */}
+          {obligations.length > 0 ? (
+            <>
+              <Typography.Text strong>
+                {t(GDPR_I18N_KEYS.deletionsObligationsHeading)}
+              </Typography.Text>
+              {obligations.map((duty: SubprocessorObligation) => (
+                <Typography.Text
+                  key={duty.provider}
+                  type="secondary"
+                  data-testid="gdpr-deletions-obligation"
+                >
+                  {t(GDPR_I18N_KEYS.deletionsObligation, {
+                    provider: duty.provider,
+                    date: formatDeletionDate(duty.due_at, locale),
+                  })}
+                </Typography.Text>
+              ))}
+            </>
+          ) : null}
+        </Flex>
+        );
+      }}
+    </LoadBoundary>
   );
 }

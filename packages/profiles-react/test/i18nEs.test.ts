@@ -18,13 +18,12 @@ import {
 } from "../src/i18n/es.js";
 
 /**
- * The es locale contour of the pair (i18n-shipping.md §2/§3). Mirrors the ru
- * contour with ONE deliberate inversion: Spanish covers the backend error
- * registry completely but the pair-owned UI keys only PARTIALLY, so the
- * UI-coverage suite asserts both halves key by key — a key the es bundle
- * carries resolves to its Spanish text, a key it does not resolves to its
- * ENGLISH text (never to a raw key). Partial coverage as a declared, tested
- * state rather than an accident.
+ * The es locale contour of the pair (i18n-shipping.md §2/§3), now a straight
+ * mirror of the ru contour: Spanish covers the backend error registry AND
+ * every pair-owned UI key. The suite used to assert partial coverage as a
+ * declared state — a Spanish error sentence inside an English screen — which
+ * wave B closed; what is asserted here now is that a Spanish host reads no
+ * English at all from this pair.
  */
 
 const PKG_DIR = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
@@ -95,19 +94,60 @@ describe("declared coverage: Spanish errors, partly-Spanish UI (no raw keys)", (
     expect(i18n.t(code)).toBe(profilesErrorBundleEs[code]);
   });
 
-  it("a pair-owned UI key resolves to its SPANISH text where the bundle has one, to ENGLISH where it does not — never to a raw key", async () => {
-    // The inversion of the ru suite: Spanish UI copy is partial, so the en
-    // floor under the locale is what a host reads for every key the es bundle
-    // does not carry. Both halves are asserted, so adding es copy for a key is
-    // a one-line change here and forgetting the en floor is still a failure.
+
+/**
+ * CLDR categories a plural FAMILY is spelled with. A family key (the value in
+ * `PROFILES_I18N_KEYS`, e.g. `profiles.list.count.followers`) is never itself
+ * a bundle entry: the bundle carries `<family>.<category>`, and WHICH
+ * categories a language uses is a fact about the language — English has
+ * one/other, Russian also has few/many. So a family must match across locales
+ * and its categories must not.
+ */
+const PLURAL_CATEGORIES = ["zero", "one", "two", "few", "many", "other"] as const;
+
+function familyCategories(bundle: Record<string, string>, family: string): string[] {
+  return PLURAL_CATEGORIES.filter((c) => `${family}.${c}` in bundle);
+}
+
+function isPluralFamily(bundle: Record<string, string>, family: string): boolean {
+  return familyCategories(bundle, family).length > 0;
+}
+
+  it("EVERY pair-owned UI key resolves to its own Spanish text — no English left in a Spanish screen", async () => {
+    // Wave B closed the gap this suite used to DECLARE: the es bundle carried
+    // the generated backend error texts and fell through to English for all
+    // pair-owned UI copy, which reads as a half-finished product rather than
+    // as a missing translation. Coverage is now total, and asserted key by
+    // key so losing one is a failure rather than a silent fallback.
     const i18n = createI18n({ locale: "en" });
     registerProfilesI18n(i18n);
     registerProfilesI18nEs(i18n);
     await i18n.setLocale("es");
     for (const key of Object.values(PROFILES_I18N_KEYS)) {
-      const expected = profilesI18nBundleEs[key] ?? profilesI18nBundleEn[key] ?? "";
-      expect(i18n.t(key), key).toBe(expected);
+      if (isPluralFamily(profilesI18nBundleEs, key)) {
+        // A family is read through `tPlural`, which picks the category.
+        // `tPlural` selects the category AND interpolates `{count}`, so the
+        // expectation is the Spanish form with the number already in it.
+        expect(i18n.tPlural(key, { count: 1 }), key).toBe(
+          (profilesI18nBundleEs[`${key}.one`] ?? "").replace("{count}", "1")
+        );
+        expect(i18n.tPlural(key, { count: 7 }), key).toBe(
+          (profilesI18nBundleEs[`${key}.other`] ?? "").replace("{count}", "7")
+        );
+        expect(i18n.tPlural(key, { count: 1 }), key).not.toBe(key);
+        continue;
+      }
+      expect(i18n.t(key), key).toBe(profilesI18nBundleEs[key]);
       expect(i18n.t(key), key).not.toBe(key);
+      // A long English SENTENCE that survived byte-identical into es is a
+      // copy-paste placeholder, not a translation — the same test
+      // `stapel/i18n-locale-parity` applies (16 chars and a space). Short
+      // terms are left alone: "Push" and "Email" really are the Spanish for
+      // "Push" and "Email".
+      const en = profilesI18nBundleEn[key] ?? "";
+      if (en.length >= 16 && /\s/.test(en)) {
+        expect(i18n.t(key), key).not.toBe(en);
+      }
     }
   });
 
@@ -116,17 +156,23 @@ describe("declared coverage: Spanish errors, partly-Spanish UI (no raw keys)", (
     const codes = new Set<string>(PROFILES_ERROR_CODES);
     // Nothing in the bundle that is neither a registry code nor a key this
     // pair owns — a typo'd key would otherwise sit there translating nothing.
-    const stray = Object.keys(profilesI18nBundleEs).filter(
-      (k) => !codes.has(k) && !uiKeys.has(k)
-    );
+    const stray = Object.keys(profilesI18nBundleEs).filter((k) => {
+      if (codes.has(k) || uiKeys.has(k)) return false;
+      // …and not a CLDR category of a family this pair declares.
+      const dot = k.lastIndexOf(".");
+      return !(dot > 0 && uiKeys.has(k.slice(0, dot)));
+    });
     expect(stray).toEqual([]);
     // The error registry is still covered completely.
     const carriedCodes = Object.keys(profilesI18nBundleEs).filter((k) => codes.has(k));
     expect(carriedCodes.sort()).toEqual([...PROFILES_ERROR_CODES].sort());
-    // The UI keys that DO have Spanish copy today — an explicit inventory, so
-    // adding or losing one is a deliberate edit rather than silent drift.
-    const carriedUi = Object.keys(profilesI18nBundleEs).filter((k) => uiKeys.has(k));
-    expect(carriedUi.sort()).toEqual([PROFILES_I18N_KEYS.actionClose]);
+    // …and every UI key this pair owns is carried, plural families through
+    // their own categories. The old inventory-of-one is gone: partial Spanish
+    // was a declared state, and wave B ended it.
+    const missingUi = Object.values(PROFILES_I18N_KEYS).filter(
+      (key) => !(key in profilesI18nBundleEs) && !isPluralFamily(profilesI18nBundleEs, key)
+    );
+    expect(missingUi).toEqual([]);
   });
 });
 

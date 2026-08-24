@@ -170,7 +170,7 @@ describe("useRoles / RoleSelect", () => {
     ]);
   });
 
-  it("labels builtin roles via workspaces.role.* (client merge wins) and falls back to the raw name", async () => {
+  it("labels builtin roles via workspaces.role.* (client merge wins) and title-cases an unlabelled one", async () => {
     server.use(http.get(`${BASE}/roles`, () => HttpResponse.json(ROLES)));
     const runtime = createWorkspacesRuntime({ baseUrl: BASE });
     render(
@@ -194,8 +194,10 @@ describe("useRoles / RoleSelect", () => {
     );
     // Client-bundle merge overrode the pair's default label.
     expect(screen.getByTestId("role-admin").textContent).toBe("Administrator");
-    // No workspaces.role.secretary anywhere → the RAW key, never a dotted key.
-    expect(screen.getByTestId("role-secretary").textContent).toBe("secretary");
+    // No workspaces.role.secretary anywhere → the key as a WORD, never a
+    // dotted i18n key and (since the 2026-08-24 visual pass) never the raw
+    // lowercase token beside title-cased builtin roles.
+    expect(screen.getByTestId("role-secretary").textContent).toBe("Secretary");
   });
 });
 

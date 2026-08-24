@@ -149,7 +149,11 @@ export async function putDocumentContent(
   );
   if (response.ok) {
     const ok = (await parseJsonBody(response)) as SaveContentOk;
-    return { status: "saved", headSeq: ok.head_seq, revisionId: ok.revision_id };
+    return {
+      status: "saved",
+      headSeq: ok.head_seq,
+      revisionId: ok.revision_id ?? null,
+    };
   }
   if (response.status === 409) {
     const conflictBody = (await parseJsonBody(response)) as {

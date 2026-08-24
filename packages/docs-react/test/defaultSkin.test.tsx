@@ -59,7 +59,7 @@ const DOCUMENT = {
   mime_type: "text/markdown",
   metadata: {},
   editor_hint: "markdown",
-  collab: false,
+  collab: "snapshot",
   diffable: true,
   created_at: "2026-08-01T09:00:00Z",
   updated_at: "2026-08-02T09:00:00Z",
@@ -76,9 +76,12 @@ const DOC_ROOT = {
 
 const REVISION = {
   id: "rev-1",
+  document_id: "d-1",
+  kind: "named",
   name: "before rewrite",
   seq: 3,
-  author_id: "u-1",
+  size_bytes: 11,
+  created_by: "u-1",
   created_at: "2026-08-02T08:00:00Z",
 };
 
@@ -132,7 +135,7 @@ function toRgbTriplet(value: string): string {
 }
 
 function skinRootComputed(): { color: string; background: string } {
-  const root = document.querySelector("[data-docs-skin-root]");
+  const root = document.querySelector("[data-stapel-skin-root]");
   if (!(root instanceof HTMLElement)) throw new Error("skin root not rendered");
   const computed = getComputedStyle(root);
   return {
@@ -141,7 +144,7 @@ function skinRootComputed(): { color: string; background: string } {
   };
 }
 
-describe("DocsSkinTheme — self-theming with computed colors (tracker #26)", () => {
+describe("SkinTheme — self-theming with computed colors (tracker #26)", () => {
   it("light mode: text and background come from @stapel/tokens and are NOT equal", async () => {
     useManagerHandlers();
     const runtime = createDocsRuntime({ baseUrl: BASE });
@@ -393,9 +396,9 @@ describe("<RevisionsModal/> — history list, preview, rollback", () => {
     );
 
     await waitFor(() => expect(screen.getByText("before rewrite")).toBeDefined());
-    fireEvent.click(screen.getByText("Restore"));
-    // Popconfirm's OK confirms the informed rollback.
-    fireEvent.click(await screen.findByText("OK"));
+    fireEvent.click(screen.getByTestId("docs-revision-rollback"));
+    // SkinConfirm's affirmative names the action it takes.
+    fireEvent.click(await screen.findByTestId("stapel-confirm-ok"));
 
     await waitFor(() => expect(rolledBack).toBe(true));
   });

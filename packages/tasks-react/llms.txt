@@ -1,0 +1,87 @@
+# @stapel/tasks-react 0.0.0
+
+Headless React flow pair for stapel-tasks (contract >=0.3 <0.4) — business + state, zero visual opinion.
+Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
+verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
+
+## The one right way (do this, the rest is a review/lint smell)
+- No raw fetch/axios. The client is injected via <TasksProvider>/StapelConfigProvider;
+  every hook and flow already carries auth, refresh, and the error envelope.
+- Render errors, never try/catch them: a flow's state carries FlowError{code,params};
+  render `t(code, params)` and branch on `explainTasksError(code)` remediation.
+- Server state = the use* hooks (query layer); keys come only from tasksQueryKeys.
+- User strings = i18n keys (registerTasksI18n); never string literals.
+- Sign-in UI = a headless flow component; copy it (shadcn-style) to restyle.
+
+## Layers
+api (typed client) · model (hooks, session) · flows (machines) · headless · i18n
+
+## Documented flows (flows.json — canonical id, steps, endpoints)
+
+## Operations (typed; use the named op, never a path string)
+Request/response schema names are in manifest.json + the generated types.
+Paths are relative to `/tasks/api/v1/`.
+- tasks_api_v1_boards_cards_retrieve: GET /boards/{board_id}/cards
+- tasks_api_v1_boards_columns_create: POST /boards/{board_id}/columns
+- tasks_api_v1_boards_columns_list: GET /boards/{board_id}/columns
+- tasks_api_v1_boards_columns_reorder_create: POST /boards/{board_id}/columns/reorder
+- tasks_api_v1_boards_create: POST /boards
+- tasks_api_v1_boards_destroy: DELETE /boards/{board_id}
+- tasks_api_v1_boards_list: GET /boards
+- tasks_api_v1_boards_partial_update: PATCH /boards/{board_id}
+- tasks_api_v1_boards_presets_retrieve: GET /boards/presets
+- tasks_api_v1_boards_retrieve: GET /boards/{board_id}
+- tasks_api_v1_boards_tasks_create: POST /boards/{board_id}/tasks
+- tasks_api_v1_boards_tasks_retrieve: GET /boards/{board_id}/tasks
+- tasks_api_v1_tasks_assign_create: POST /tasks/{task_id}/assign
+- tasks_api_v1_tasks_checklist_create: POST /tasks/{task_id}/checklist
+- tasks_api_v1_tasks_checklist_list: GET /tasks/{task_id}/checklist
+- tasks_api_v1_tasks_checklist_state_create: POST /tasks/{task_id}/checklist/{item_id}/state
+- tasks_api_v1_tasks_comments_create: POST /tasks/{task_id}/comments
+- tasks_api_v1_tasks_comments_list: GET /tasks/{task_id}/comments
+- tasks_api_v1_tasks_destroy: DELETE /tasks/{task_id}
+- tasks_api_v1_tasks_move_create: POST /tasks/{task_id}/move
+- tasks_api_v1_tasks_partial_update: PATCH /tasks/{task_id}
+- tasks_api_v1_tasks_retrieve: GET /tasks/{task_id}
+
+## Errors (render t(code, params); UX from remediation)
+57 keys (full catalog: manifest.json §errors). By remediation: fix_input 24 · retry 20 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+Param-bearing keys (interpolation slots matter):
+- error.400.field.blank [400] → fix_input {field}
+- error.400.field.does_not_exist [400] → fix_input {field}
+- error.400.field.invalid [400] → fix_input {field}
+- error.400.field.invalid_choice [400] → fix_input {field}
+- error.400.field.max_length [400] → fix_input {field,max_length}
+- error.400.field.max_value [400] → fix_input {field,max_value}
+- error.400.field.min_length [400] → fix_input {field,min_length}
+- error.400.field.min_value [400] → fix_input {field,min_value}
+- error.400.field.null [400] → fix_input {field}
+- error.400.field.required [400] → fix_input {field}
+- error.400.field.unique [400] → fix_input {field}
+- error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
+
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
+## Snippets
+```tsx
+// Error rendering + remediation branch (one pattern for every pair).
+const r = explainTasksError(err.code); // 'wait_and_retry' | 'verify' | ...
+return <Alert action={r}>{t(err.code, err.params)}</Alert>;
+```

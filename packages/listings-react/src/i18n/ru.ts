@@ -1,4 +1,5 @@
 import type { I18nDictionary, I18nEngine } from "@stapel/core";
+import { registerAttributesI18nRu } from "@stapel/attributes-react/i18n/ru";
 import { listingsErrorBundleRu } from "./generated/errors.ru.gen.js";
 
 export { listingsErrorBundleRu } from "./generated/errors.ru.gen.js";
@@ -110,6 +111,8 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.detail.published_at": "Опубликовано {date}",
   "listings.detail.expires_at": "В продаже до {date}",
   "listings.detail.stock": "В наличии",
+  "listings.detail.edit": "Редактировать объявление",
+  "listings.detail.take_down": "Снять с публикации",
 
   "listings.compose.new_title": "Новое объявление",
   "listings.compose.edit_title": "Редактирование объявления",
@@ -128,8 +131,8 @@ export const listingsI18nBundleRu: I18nDictionary = {
     "Введите цену числом, не более двух знаков после запятой",
   "listings.compose.currency_label": "Валюта",
   "listings.compose.location_label": "Где находится",
-  "listings.compose.lat_label": "Широта",
-  "listings.compose.lon_label": "Долгота",
+  "listings.compose.location_help":
+    "Покупатели ищут по расстоянию — объявление без места они просто не найдут",
   "listings.compose.geo_incomplete":
     "Рядом с широтой нужна долгота — половина координаты никуда не указывает",
   "listings.compose.photos": "Фотографии",
@@ -191,11 +194,18 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.mine.archive": "В архив",
   "listings.mine.complete": "Отметить проданным",
   "listings.mine.delete": "Удалить",
+  "listings.mine.delete_confirm_title": "Удалить объявление?",
+  "listings.mine.delete_confirm_body":
+    "Оно исчезнет из кабинета, и вернуть его будет нельзя. Архив сохраняет его.",
 
   "listings.favorites.title": "Избранное",
   "listings.favorites.loading": "Загружаем избранное…",
   "listings.favorites.load_failed": "Не удалось загрузить избранное",
   "listings.favorites.empty": "Вы ещё ничего не сохранили",
+  "listings.favorites.empty_hint":
+    "Нажмите на сердечко в любом объявлении — оно будет ждать здесь.",
+  "listings.favorites.sign_in_hint":
+    "Избранное хранится в аккаунте, поэтому переходит с вами на другие устройства.",
 
   "listings.blocked.sign_in": "Войдите, чтобы сделать это",
   "listings.blocked.guest":
@@ -207,6 +217,8 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.blocked.delete_active":
     "Сначала уберите в архив — объявление в продаже удалить нельзя",
   "listings.blocked.in_flight": "Секунду — это уже выполняется",
+  "listings.blocked.no_editor":
+    "В этом приложении пока нет экрана редактирования объявления",
 
   "listings.page.prev": "Назад",
   "listings.page.next": "Дальше",
@@ -217,7 +229,23 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.nav.favorites": "Избранное",
 };
 
-/** Register the Russian bundle into a core i18n engine. */
+/**
+ * Register the Russian bundle into a core i18n engine — AND the twelve
+ * `stapel_attributes` sentences this pair deliberately does not author.
+ *
+ * The split of ownership is right and stays: two packages must not give one
+ * refusal two sentences. What was wrong was leaving the JOIN to a README. A
+ * host that registered only this bundle got twelve of the composer's most
+ * common refusals ("this value is below the minimum", "the description is too
+ * long") in English on a Russian page, and nothing failed anywhere to say so.
+ *
+ * `@stapel/attributes-react` is a peer of this pair and its editors are what
+ * RAISE those twelve, so a listings-ru host is an attributes-ru host by
+ * construction; chaining the registration states that instead of asking. It is
+ * idempotent — a host that also registers the bundle itself simply writes the
+ * same keys twice.
+ */
 export function registerListingsI18nRu(i18n: I18nEngine): void {
+  registerAttributesI18nRu(i18n);
   i18n.registerBundle("ru", listingsI18nBundleRu);
 }

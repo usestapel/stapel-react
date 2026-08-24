@@ -65,7 +65,9 @@ describe("renderCategoryPicker", () => {
     // Nothing chosen: the publish button says so rather than going grey.
     expect(screen.getByTestId("picker").getAttribute("data-value")).toBe("");
     expect(
-      screen.getByTestId("listings-composer-publish-blocked").textContent
+      screen
+        .getByTestId("listings-composer-publish-gate")
+        .querySelector("[data-stapel-gated-reason]")?.textContent
     ).toBeTruthy();
 
     fireEvent.click(screen.getByTestId("picker"));
@@ -89,7 +91,7 @@ describe("renderCategoryPicker", () => {
     });
   });
 
-  it("replaces the built-in field rather than rendering beside it", () => {
+  it("replaces the placeholder rather than rendering beside it", () => {
     render(
       <TestProviders server={server()}>
         <ListingComposerPage
@@ -99,7 +101,15 @@ describe("renderCategoryPicker", () => {
         />
       </TestProviders>
     );
-    expect(screen.queryByTestId("listings-composer-category")).toBeNull();
+    // The slot's own region is still there — it is the seam — but the named
+    // placeholder that stands in for an unfilled slot is gone, and there is no
+    // text box asking anyone to type a category id.
+    expect(
+      document.querySelector('[data-stapel-slot="renderCategoryPicker"]')
+    ).toBeNull();
+    expect(
+      screen.getByTestId("listings-composer-category").querySelector("input")
+    ).toBeNull();
   });
 });
 

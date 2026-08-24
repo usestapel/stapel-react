@@ -22,19 +22,24 @@
  * card. That property is the whole reason the projection exists, and it is
  * what makes a grid of forty cards cost one query.
  *
- * ── The heart is never hidden ──────────────────────────────────────────────
+ * ── The heart is never hidden, and never explained by hover ────────────────
  *
  * A visitor sees it, blocked, with the reason IN WORDS beside it and the
  * sign-in link the container supplies (`signIn`, typically `?next=<current>`).
  * Hiding it would teach nobody that favourites exist (private-space canon
- * §6.3, spec §6.2 item 6) — and until 0.3.0 the reason lived only in a tooltip
- * on a disabled button, which receives no pointer events in any browser: a
- * reason nobody could read, and no door to walk through.
+ * §6.3, spec §6.2 item 6). The reason itself goes through the shared
+ * `<GatedControl>`, which renders it as text linked by `aria-describedby` —
+ * a disabled antd button receives no pointer events and is not focusable, so
+ * the `Tooltip` this component used to offer as a "quieter" volume was a
+ * reason nobody could read on any device. That arm is gone; `blockedReason`
+ * is now "text" (reason + door) or "line" (reason alone, for a grid).
  */
 import type { ReactElement, ReactNode } from "react";
-import { Button, Card, Flex, Tooltip, Typography } from "antd";
+import { Button, Card, Flex, Typography } from "antd";
+import { GatedControl, SkinTheme } from "@stapel/tokens-antd/skin";
 import { useActionGate, useT } from "@stapel/core";
 import type { LinkComponent, SignInCtaProp } from "@stapel/core";
+import { spacing } from "@stapel/tokens";
 import { FeatureBadges } from "@stapel/attributes-react/default";
 import type { ListingCard as ListingCardData } from "../api/types.js";
 import { asFeatureDaoList, featuresDtoFromDaoList, featuresFromDaoList } from "../model/features.js";
@@ -44,7 +49,6 @@ import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { HeartIcon } from "./icons.js";
 import { SignInLink } from "./SignInLink.js";
 import { ListingPhoto } from "./ListingPhoto.js";
-import { ListingsSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
 /**
@@ -98,16 +102,11 @@ export type ListingCardOpenProps =
  * help, it is the loudest thing on the page, and every one of those doors
  * leads where the header's own sign-in button already leads.
  *
- * `"tooltip"` moves the reason onto the control it is about. Not the pre-0.3.0
- * defect it resembles: the disabled button still sits inside the `<span>`
- * wrapper that makes the tooltip reachable by pointer AND by keyboard, so the
- * reason is readable — it is simply not printed forty times.
- *
- * Which one is a decision about the SURFACE, not about whether the reason
- * matters, and the surface is the container's to make (the same argument as
- * `<SearchResultsPane degradationNotice>`).
+ * There is no third setting. The reason is on screen in both, because the only
+ * way to make it quieter than a line of text is to hide it behind hover, and
+ * hover does not exist on the device most of these cards are read on.
  */
-export type ListingCardBlockedReason = "text" | "line" | "tooltip";
+export type ListingCardBlockedReason = "text" | "line";
 
 export interface ListingCardBaseProps extends ThemeModeProp, SignInCtaProp {
   readonly listing: ListingCardData;
@@ -129,6 +128,11 @@ export type ListingCardProps = ListingCardBaseProps & ListingCardOpenProps;
  * Exactly one of the three renders, so exactly one navigation happens per
  * click. That is the whole fix — the branch below has no arm in which both a
  * handler and an `href` reach the DOM.
+ *
+ * It is the card's PRIMARY action and is drawn as one: a full-width button,
+ * which on a phone is 44px tall because `SkinTheme` sets antd's
+ * `controlHeight` there. It was a bare text link beside a 40px icon button,
+ * with no hierarchy between them and neither one a real touch target.
  */
 function OpenControl(
   props: ListingCardOpenProps & { readonly listingId: number }
@@ -155,8 +159,8 @@ function OpenControl(
       </Link>
     ) : (
       <Button
-        size="small"
-        type="link"
+        type="primary"
+        block
         href={props.href}
         data-testid="listings-card-open"
         data-analytics="none"
@@ -171,8 +175,8 @@ function OpenControl(
     const onOpen = props.onOpen;
     return (
       <Button
-        size="small"
-        type="link"
+        type="primary"
+        block
         data-testid="listings-card-open"
         data-analytics="none"
         data-analytics-reason="business action — host app wraps with its own tracked()"
@@ -214,7 +218,10 @@ export function ListingCard(props: ListingCardProps): ReactElement {
   );
 
   return (
-    <ListingsSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
       <Card
         size="small"
         data-testid="listings-card"
@@ -222,15 +229,15 @@ export function ListingCard(props: ListingCardProps): ReactElement {
         {...(status !== undefined
           ? { "data-listing-status": status.status }
           : {})}
+        styles={{ body: { minWidth: 0 } }}
         cover={
           <ListingPhoto
             imageRef={listing.images?.[0]}
             alt={listing.title ?? String(listing.id)}
-            style={{ aspectRatio: "4 / 3" }}
           />
         }
       >
-        <Flex vertical gap={4}>
+        <Flex vertical gap={spacing[1]} style={{ minWidth: 0 }}>
           {props.badge}
 
           <Typography.Text strong data-testid="listings-card-price">
@@ -267,24 +274,32 @@ export function ListingCard(props: ListingCardProps): ReactElement {
             </Typography.Text>
           ) : null}
 
-          <Flex gap={8} align="center">
+          {/* The action row is wrapped in ONE `GatedControl`, so the reason a
+              blocked heart carries lands full width UNDER both controls
+              rather than in the two-centimetre column beside the icon. */}
+          {props.showFavorite === false ? (
             <OpenControl {...props} listingId={listing.id} />
-
-            {props.showFavorite === false ? null : (
-              <Tooltip
-                title={
-                  favorite.gate.available
-                    ? favoriteLabel
-                    : t(favorite.gate.block.code, favorite.gate.block.params)
-                }
-              >
-                {/* A disabled antd Button swallows pointer events, so the
-                    tooltip needs the wrapper to hear them — which is also
-                    what makes the REASON reachable by keyboard. */}
-                <span data-testid="listings-card-favorite-wrap">
+          ) : (
+            <GatedControl
+              gate={favorite.gate}
+              testId="listings-card-actions"
+              style={{ width: "100%" }}
+            >
+              {(bind) => (
+                <Flex
+                  gap={spacing[2]}
+                  align="center"
+                  style={{ width: "100%", minWidth: 0 }}
+                >
+                  <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+                    <OpenControl {...props} listingId={listing.id} />
+                  </div>
                   <Button
-                    size="small"
-                    disabled={!favorite.gate.available}
+                    disabled={bind.disabled}
+                    data-disabled-reason="the enclosing <GatedControl> renders the gate's reason beside this button"
+                    {...(bind["aria-describedby"] !== undefined
+                      ? { "aria-describedby": bind["aria-describedby"] }
+                      : {})}
                     aria-label={favoriteLabel}
                     aria-pressed={favorite.favorited}
                     data-testid="listings-card-favorite"
@@ -294,37 +309,29 @@ export function ListingCard(props: ListingCardProps): ReactElement {
                     onClick={favorite.toggle}
                     icon={<HeartIcon filled={favorite.favorited} />}
                   />
-                </span>
-              </Tooltip>
-            )}
-          </Flex>
+                </Flex>
+              )}
+            </GatedControl>
+          )}
 
-          {/* The reason IN WORDS, plus the door. A tooltip on a disabled
-              button is a reason nobody can read (core's actionGate.ts says so
-              in as many words), and a reason with no next action leaves the
-              visitor hunting for the header — which is what the storefront
-              had to write a paragraph about instead of shipping the screen.
-
-              `blockedReason` is the volume knob, and only the volume: the
-              reason is on the screen under all three settings — printed here,
-              or on the control itself through the tooltip above, which the
-              `<span>` wrapper keeps reachable. See the type's own docstring
-              for why a grid gets a quieter one than a single card. */}
+          {/* The door. `GatedControl` above already prints the reason and
+              wires `aria-describedby` to it; what it cannot know is WHERE a
+              visitor signs in, which is the container's business and arrives
+              as `signIn`. On a grid `blockedReason="line"` drops the door and
+              keeps the sentence — twenty-four doors to one place is not
+              twenty-four pieces of help. */}
           {props.showFavorite === false ||
           favoriteGate.reason === undefined ||
-          blockedReason === "tooltip" ? null : (
+          blockedReason === "line" ? null : (
             <Typography.Text
               type="secondary"
               data-testid="listings-card-favorite-blocked"
             >
-              {favoriteGate.reason}
-              {blockedReason === "line" ? null : (
-                <SignInLink cta={props.signIn} testId="listings-card-sign-in" />
-              )}
+              <SignInLink cta={props.signIn} testId="listings-card-sign-in" />
             </Typography.Text>
           )}
         </Flex>
       </Card>
-    </ListingsSkinTheme>
+    </SkinTheme>
   );
 }

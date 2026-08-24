@@ -34,6 +34,15 @@ export type CreditLot = Schemas["CreditLotResponse"];
  */
 export type CreditHold = Schemas["CreditHoldResponse"];
 /**
+ * Credits a {@link Wallet} OWES (`WalletResponse.debts[]`, stapel-billing
+ * 0.11.0) — service served without cover (`reason: "partial_debit"`) or money
+ * taken back after the credits were spent (`"clawback"`). A debt is not a
+ * negative balance: the balance still counts the credits that exist. The
+ * array arrives oldest-first, which is the order the server collects them in
+ * from the next credits to arrive.
+ */
+export type CreditDebt = Schemas["CreditDebtResponse"];
+/**
  * The wallet's nearest credit deadline (`WalletResponse.expiring_soon`) —
  * how many credits die and when. Computed by the server from the
  * earliest-expiring live lot; `null` when nothing in the wallet expires.
@@ -94,3 +103,29 @@ export type CreditLotSource =
  * hold it captured or released itself.
  */
 export type CreditHoldStatus = "held" | "captured" | "released" | "expired";
+
+/**
+ * Why a {@link CreditDebt} exists — same bare-`string` correction as
+ * {@link CreditLotSource}, against the backend's `models.DebtReason`. The two
+ * are opposite in time (work served before it was paid for; payment taken
+ * back after the credits were spent), and a support answer to "why does this
+ * wallet owe 40" has to tell them apart, so the skin captions them
+ * separately. An unknown third reason from a newer backend must still render
+ * as a debt, so the debt type itself is not re-declared with this union.
+ */
+export type CreditDebtReason = "partial_debit" | "clawback";
+
+/**
+ * The kind of a ledger entry (`TransactionResponse.type`), against the
+ * backend's `models.TransactionType`. Same bare-`string` correction, same
+ * refusal to re-declare the row type with it: a newer backend's seventh type
+ * renders as a row with its description, never as a crash or a blank.
+ */
+export type TransactionType =
+  | "credit_purchase"
+  | "transcription_charge"
+  | "ai_charge"
+  | "subscription_bonus"
+  | "refund"
+  | "adjustment"
+  | "expiration";

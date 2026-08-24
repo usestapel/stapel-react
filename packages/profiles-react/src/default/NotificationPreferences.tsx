@@ -1,35 +1,52 @@
 /**
  * `<NotificationPreferences/>` — default skin for the headless
  * {@link NotificationPreferences as HeadlessNotificationPreferences} category
- * × channel matrix (`../headless/NotificationPreferences.js`). Renders it as a
- * small table — categories as rows, channels as columns — per the brief
- * (the default skin may render a simplified view): a plain grid of switches reads
- * fine at today's 2×2 size and keeps scaling to more categories without a
- * redesign, unlike ironmemo's flat checkbox list (`ProfilePage`'s "Email
- * notifications" block, 2 checkboxes with no row/column structure at all).
+ * × channel matrix (`../headless/NotificationPreferences.js`).
  *
- * THE MATRIX IS RENDERED ONLY OUT OF A READ THAT LANDED (`bag.state`, via
- * `matchLoad`). It used to render out of whatever `isEnabled` returned, which
- * is `false` for every cell when there is no profile — so a failed read drew
- * a full grid of live switches, each showing a default rather than the user's
- * real setting, and flipping one PATCHed a preference derived from a state
- * nobody could read. That is the 2026-08-09 incident class exactly (@stapel/
- * core `loadState.ts`): the absence of a result rendered as a result.
+ * THE MATRIX IS RENDERED ONLY OUT OF A READ THAT LANDED (`bag.state`, through
+ * the shared substrate's `LoadBoundary`). It used to render out of whatever
+ * `isEnabled` returned, which is `false` for every cell when there is no
+ * profile — so a failed read drew a full grid of live switches, each showing a
+ * default rather than the user's real setting, and flipping one PATCHed a
+ * preference derived from a state nobody could read. That is the 2026-08-09
+ * incident class exactly (@stapel/core `loadState.ts`): the absence of a
+ * result rendered as a result.
+ *
+ * ── WHY THIS IS A GRID AND NO LONGER AN `antd` TABLE ────────────────────────
+ *
+ * A `<Table>` cannot reflow: at 390px its three columns were three cramped
+ * columns, and at 1280px the same 640px block sat at the left edge with the
+ * right half dead (visual pass classes VC-A3). The rows here are a
+ * `repeat(auto-fit, minmax(…))` grid, so the channels sit side by side when
+ * the ELEMENT is wide and stack into full-width "Email ——— [switch]" lines
+ * when it is narrow. No breakpoint hook, no viewport read: the container's own
+ * width decides.
+ *
+ * ── EVERY SWITCH SAYS WHAT IT IS ────────────────────────────────────────────
+ *
+ * A `Switch` whose label lives in a sibling cell announces "switch, off" with
+ * no subject. Each one carries `aria-label` = "<category> notifications via
+ * <channel>" (`profiles.notif_prefs.toggle_label`), which is also the whole
+ * reason the key takes two parameters instead of being assembled from
+ * fragments a translator cannot reorder.
  */
-import { useMemo } from "react";
 import type { ReactElement } from "react";
-import { Button, Card, ConfigProvider, Switch, Table, Typography } from "antd";
-import type { TableProps } from "antd";
-import { resolveThemeMode, toAntdThemeConfig } from "@stapel/tokens-antd";
+import { Card, Flex, Switch, Typography } from "antd";
+import { ErrorAlert, LoadBoundary, SkinTheme } from "@stapel/tokens-antd/skin";
+import type { SkinSurface } from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { matchLoad, useErrorDisplay, useT } from "@stapel/core";
+import { useT } from "@stapel/core";
+import { spacing } from "@stapel/tokens";
 import {
   NotificationPreferences as HeadlessNotificationPreferences,
   type NotificationCategory,
   type NotificationChannel,
 } from "../headless/NotificationPreferences.js";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
-import { ErrorAlert } from "./ErrorAlert.js";
+
+/** The narrowest a "<channel> [switch]" line may get before the grid drops a
+ * column. A length, named rather than inlined (see `no-raw-dimensions`). */
+export const NOTIFICATION_CHANNEL_MIN_WIDTH = "10rem";
 
 const CATEGORY_KEY: Record<NotificationCategory, "notifCategoryMessages" | "notifCategorySystem"> = {
   messages: "notifCategoryMessages",
@@ -40,115 +57,104 @@ const CHANNEL_KEY: Record<NotificationChannel, "notifChannelEmail" | "notifChann
   push: "notifChannelPush",
 };
 
-interface Row {
-  readonly key: NotificationCategory;
-  readonly category: NotificationCategory;
-}
-
 export interface NotificationPreferencesProps {
   /**
-   * Light or dark. The theme is derived from `@stapel/tokens` via
-   * `toAntdThemeConfig(mode)` — no manual token wiring, same self-theming
-   * contract as `AuthPanel`. Defaults to the mode the HOST's document
-   * declares (`resolveThemeMode()` — the `data-theme` attribute
-   * `@stapel/tokens`' `tokens.css` keys its dark block on), not to a
-   * hardcoded `"light"`: a light default is a wrong answer on every dark
-   * deployment, and it rendered an unreadable error Alert on a live sandbox
-   * (owner report 2026-08-09 — antd's light algorithm derived a near-white
-   * `colorErrorBg` while `colorText` came live off the host's dark tokens).
+   * Light or dark. Omitted — the normal case — the skin follows the mode the
+   * host's document declares LIVE, through `SkinTheme`/`useThemeMode`: a
+   * hardcoded `"light"` default is a wrong answer on every dark deployment,
+   * and sampling the mode once per render (`resolveThemeMode()`) leaves the
+   * component on the old side when a host flips `data-theme` at runtime.
    * Pass it explicitly to pin a side.
    */
   readonly mode?: ThemeMode;
+  /**
+   * What the theme root paints. Default `"bare"`: this component draws its
+   * own antd `Card`, so painting a second surface behind it would only put a
+   * container colour under a container. `"base"` when it is mounted as a
+   * whole page of its own (the `profiles.notifications` route).
+   */
+  readonly surface?: SkinSurface;
 }
 
-export function NotificationPreferences(props: NotificationPreferencesProps = {}): ReactElement {
+export function NotificationPreferences(
+  props: NotificationPreferencesProps = {}
+): ReactElement {
   const t = useT();
-  const errorDisplay = useErrorDisplay(PROFILES_I18N_KEYS.unknownError);
-  const theme = useMemo(() => toAntdThemeConfig(props.mode ?? resolveThemeMode()), [props.mode]);
 
   return (
     <HeadlessNotificationPreferences>
-      {({ categories, channels, isEnabled, toggle, state, refetch, isError, error }) => {
-        const rows: Row[] = categories.map((category) => ({ key: category, category }));
-        const columns: TableProps<Row>["columns"] = [
-          {
-            title: "",
-            dataIndex: "category",
-            key: "category",
-            render: (category: NotificationCategory) => t(PROFILES_I18N_KEYS[CATEGORY_KEY[category]]),
-          },
-          ...channels.map((channel) => ({
-            title: t(PROFILES_I18N_KEYS[CHANNEL_KEY[channel]]),
-            key: channel,
-            align: "center" as const,
-            render: (_: unknown, row: Row) => (
-              <Switch
-                checked={isEnabled(row.category, channel)}
-                onChange={() => toggle(row.category, channel)}
-              />
-            ),
-          })),
-        ];
+      {({ categories, channels, isEnabled, toggle, state, refetch, isError, error }) => (
+        <SkinTheme
+          surface={props.surface ?? "bare"}
+          {...(props.mode !== undefined ? { mode: props.mode } : {})}
+        >
+          <Card data-testid="notification-preferences" style={{ width: "100%" }}>
+            <Typography.Title level={4} style={{ marginTop: 0 }}>
+              {t(PROFILES_I18N_KEYS.notifPrefsTitle)}
+            </Typography.Title>
+            <Typography.Text type="secondary">
+              {t(PROFILES_I18N_KEYS.notifPrefsSubtitle)}
+            </Typography.Text>
 
-        return (
-          <ConfigProvider theme={theme}>
-            <Card data-testid="notification-preferences">
-              <Typography.Title level={4} style={{ marginTop: 0 }}>
-                {t(PROFILES_I18N_KEYS.notifPrefsTitle)}
-              </Typography.Title>
-              <Typography.Text type="secondary">
-                {t(PROFILES_I18N_KEYS.notifPrefsSubtitle)}
-              </Typography.Text>
-
-              {matchLoad(state, {
-                // No rows to hand out yet — the table's own spinner, over an
-                // empty body, rather than a grid of switches at their defaults.
-                loading: () => (
-                  <Table<Row>
-                    style={{ marginTop: 16 }}
-                    size="small"
-                    loading
-                    dataSource={[]}
-                    columns={columns}
-                    pagination={false}
-                  />
-                ),
-                // A read that could not be made is not a set of preferences.
-                failed: (readError) => (
-                  <div data-testid="notification-prefs-failed" style={{ marginTop: 12 }}>
-                    <ErrorAlert error={errorDisplay(readError)} />
-                    <Button
-                      onClick={refetch}
-                      style={{ marginTop: 8 }}
-                      data-analytics="none"
-                      data-analytics-reason="retry of a failed read (no flow machine) — pairs carry no @stapel/analytics runtime dependency; the host instruments at its own call site"
-                    >
-                      {t(PROFILES_I18N_KEYS.actionRetry)}
-                    </Button>
-                  </div>
-                ),
-                ready: () => (
-                  <>
+            <div style={{ marginTop: spacing[4] }}>
+              <LoadBoundary
+                state={state}
+                onRetry={refetch}
+                skeletonRows={categories.length}
+                testId="notification-prefs"
+              >
+                {() => (
+                  <Flex vertical gap={spacing[5]}>
                     {/* Inside this arm the READ succeeded, so what `isError`
                         still reports is a failed toggle — an alert above a
                         matrix that stays usable (the write rolls itself back). */}
-                    {isError && (
-                      <ErrorAlert error={errorDisplay(error)} style={{ marginTop: 12 }} />
-                    )}
-                    <Table<Row>
-                      style={{ marginTop: 16 }}
-                      size="small"
-                      dataSource={rows}
-                      columns={columns}
-                      pagination={false}
+                    <ErrorAlert
+                      thrown={isError ? error : undefined}
+                      testId="notification-prefs-write-error"
                     />
-                  </>
-                ),
-              })}
-            </Card>
-          </ConfigProvider>
-        );
-      }}
+                    {categories.map((category) => (
+                      <Flex vertical gap={spacing[2]} key={category}>
+                        <Typography.Text strong>
+                          {t(PROFILES_I18N_KEYS[CATEGORY_KEY[category]])}
+                        </Typography.Text>
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: `repeat(auto-fit, minmax(${NOTIFICATION_CHANNEL_MIN_WIDTH}, 1fr))`,
+                            gap: spacing[3],
+                          }}
+                        >
+                          {channels.map((channel) => (
+                            <Flex
+                              key={channel}
+                              align="center"
+                              justify="space-between"
+                              gap={spacing[2]}
+                            >
+                              <Typography.Text type="secondary">
+                                {t(PROFILES_I18N_KEYS[CHANNEL_KEY[channel]])}
+                              </Typography.Text>
+                              <Switch
+                                checked={isEnabled(category, channel)}
+                                onChange={() => toggle(category, channel)}
+                                aria-label={t(PROFILES_I18N_KEYS.notifToggleLabel, {
+                                  category: t(PROFILES_I18N_KEYS[CATEGORY_KEY[category]]),
+                                  channel: t(PROFILES_I18N_KEYS[CHANNEL_KEY[channel]]),
+                                })}
+                                data-testid={`notif-toggle-${category}-${channel}`}
+                              />
+                            </Flex>
+                          ))}
+                        </div>
+                      </Flex>
+                    ))}
+                  </Flex>
+                )}
+              </LoadBoundary>
+            </div>
+          </Card>
+        </SkinTheme>
+      )}
     </HeadlessNotificationPreferences>
   );
 }

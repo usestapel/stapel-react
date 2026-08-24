@@ -1,0 +1,110 @@
+# @stapel/moderation-react 0.0.0
+
+Headless React flow pair for stapel-moderation (contract >=0.3 <0.4) — business + state, zero visual opinion.
+Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
+verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
+
+## The one right way (do this, the rest is a review/lint smell)
+- No raw fetch/axios. The client is injected via <ModerationProvider>/StapelConfigProvider;
+  every hook and flow already carries auth, refresh, and the error envelope.
+- Render errors, never try/catch them: a flow's state carries FlowError{code,params};
+  render `t(code, params)` and branch on `explainModerationError(code)` remediation.
+- Server state = the use* hooks (query layer); keys come only from moderationQueryKeys.
+- User strings = i18n keys (registerModerationI18n); never string literals.
+- Sign-in UI = a headless flow component; copy it (shadcn-style) to restyle.
+
+## Layers
+api (typed client) · model (hooks, session) · flows (machines) · headless · i18n
+
+## Machines (createFlowMachine; analytics funnel flow.<id>.<step>)
+- createAppealFlow
+- createReportFlow
+- createTriageFlow
+
+## Documented flows (flows.json — canonical id, steps, endpoints)
+
+## Operations (typed; use the named op, never a path string)
+Request/response schema names are in manifest.json + the generated types.
+Paths are relative to `/moderation/api/v1/`.
+- moderation_api_v1_appeals_create: POST /appeals/
+- moderation_api_v1_appeals_list: GET /appeals/
+- moderation_api_v1_appeals_queue_list: GET /appeals/queue
+- moderation_api_v1_appeals_resolve_create: POST /appeals/{appeal_id}/resolve
+- moderation_api_v1_cases_claim_create: POST /cases/{case_id}/claim
+- moderation_api_v1_cases_events_list: GET /cases/{case_id}/events
+- moderation_api_v1_cases_list: GET /cases
+- moderation_api_v1_cases_release_create: POST /cases/{case_id}/release
+- moderation_api_v1_cases_rescan_create: POST /cases/{case_id}/rescan
+- moderation_api_v1_cases_retrieve: GET /cases/{case_id}
+- moderation_api_v1_cases_verdict_create: POST /cases/{case_id}/verdict
+- moderation_api_v1_policy_retrieve: GET /policy
+- moderation_api_v1_reports_create: POST /reports/
+- moderation_api_v1_reports_list: GET /reports/
+- moderation_api_v1_sanctions_create: POST /sanctions
+- moderation_api_v1_sanctions_lift_create: POST /sanctions/{sanction_id}/lift
+- moderation_api_v1_sanctions_list: GET /sanctions
+- moderation_api_v1_stats_retrieve: GET /stats
+
+## Query hooks (server state; keys come only from the key factory)
+- useCaseDetailQuery (query) → caseDetail
+- useCaseEventsQuery (query) → caseEvents
+- useClaimCase (mutation) → claim
+- useIssueSanction (mutation) → issueSanction
+- useLiftSanction (mutation) → liftSanction
+- usePolicy (query) → policy
+- useReleaseCase (mutation) → release
+- useRescanCase (mutation) → rescan
+- useResolveAppeal (mutation) → resolveAppeal
+- useSanctionsQuery (query) → sanctions
+- useStatsQuery (query) → stats
+- useSubmitAppeal (mutation) → submitAppeal
+- useSubmitReport (mutation) → submitReport
+- useSubmitVerdict (mutation) → verdict
+
+## Errors (render t(code, params); UX from remediation)
+70 keys (full catalog: manifest.json §errors). By remediation: fix_input 25 · verify 18 · retry 13 · wait_and_retry 7 · contact_support 6 · reauthenticate 1.
+Param-bearing keys (interpolation slots matter):
+- error.400.field.blank [400] → fix_input {field}
+- error.400.field.does_not_exist [400] → fix_input {field}
+- error.400.field.invalid [400] → fix_input {field}
+- error.400.field.invalid_choice [400] → fix_input {field}
+- error.400.field.max_length [400] → fix_input {field,max_length}
+- error.400.field.max_value [400] → fix_input {field,max_value}
+- error.400.field.min_length [400] → fix_input {field,min_length}
+- error.400.field.min_value [400] → fix_input {field,min_value}
+- error.400.field.null [400] → fix_input {field}
+- error.400.field.required [400] → fix_input {field}
+- error.400.field.unique [400] → fix_input {field}
+- error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
+
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
+## Snippets
+```tsx
+// A flow machine drives state; you render each step.
+const flow = createAppealFlow({ api: useModerationApi() });
+const s = useFlow(flow.machine);
+if (s.step.endsWith('Error')) return <p>{t(s.error.code, s.error.params)}</p>;
+```
+```tsx
+// Error rendering + remediation branch (one pattern for every pair).
+const r = explainModerationError(err.code); // 'wait_and_retry' | 'verify' | ...
+return <Alert action={r}>{t(err.code, err.params)}</Alert>;
+```

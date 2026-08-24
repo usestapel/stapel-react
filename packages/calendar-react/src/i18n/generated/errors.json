@@ -362,5 +362,12 @@
     "params": [],
     "remediation": "contact_support",
     "en": "Something went wrong"
+  },
+  {
+    "code": "error.503.mandate_unavailable",
+    "status": 503,
+    "params": [],
+    "remediation": "retry",
+    "en": "Cannot verify workspace mandate right now"
   }
 ]

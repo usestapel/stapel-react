@@ -13,6 +13,7 @@ import { RecordingComposer } from "../src/headless/RecordingComposer.js";
 import { UploadFinalizer } from "../src/headless/UploadFinalizer.js";
 import { useRecordings } from "../src/model/queries.js";
 import {
+  UploadPreflightError,
   isUploadExpired,
   uploadRecordingBlob,
 } from "../src/api/extensions.js";
@@ -256,10 +257,17 @@ describe("uploadRecordingBlob (single-PUT to the presigned URL)", () => {
     expect(res.ok).toBe(true);
     expect(seenMethod).toBe("PUT");
 
+    // The local size guard now throws the pair's own preflight error rather
+    // than a bare RangeError: the caller has to tell "over the ceiling" from
+    // "the session window closed" to say the right sentence, and a message
+    // string is not something a UI should parse.
     const tooBig = new Blob([new Uint8Array(UPLOAD.max_size_bytes + 1)]);
     await expect(uploadRecordingBlob(UPLOAD, tooBig)).rejects.toBeInstanceOf(
-      RangeError
+      UploadPreflightError
     );
+    await expect(uploadRecordingBlob(UPLOAD, tooBig)).rejects.toMatchObject({
+      reason: "too_large",
+    });
   });
 
   it("isUploadExpired compares expires_at against now", () => {

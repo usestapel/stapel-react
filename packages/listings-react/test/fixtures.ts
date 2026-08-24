@@ -166,6 +166,10 @@ export const DRAFT: ListingDraft = {
   id: 42,
   category_id: "tools/power",
   currency: "RUB",
+  // Server-computed since 0.7.1 and `readOnly` in the schema, so it is present
+  // on every response and absent from every request body. Empty here: this
+  // draft carries no coordinates for `geo.geohash_encode` to bucket.
+  geohash_draft: "",
   status: "draft",
   moderation_status: "pending",
   created_at: "2026-08-22T09:00:00Z",

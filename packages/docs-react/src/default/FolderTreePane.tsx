@@ -1,21 +1,25 @@
 /**
  * `<FolderTreePane/>` — the default skin's folder tree: the `FolderTree`
- * headless bag rendered as an antd `Tree` through core's `matchLoad` (the
- * four-way load discipline: "no folders yet" is only said about a read that
- * succeeded), with a right-click context menu per folder (rename / move /
- * new subfolder / move to trash — exactly the operations stapel-docs
- * exposes; there is no duplicate endpoint, so no duplicate item) and a
- * "New folder" header button. Selection is controlled by the composing
- * surface (`FileManager` keeps the current folder).
+ * headless bag rendered as an antd `Tree` through the shared `<LoadBoundary>`
+ * (loading and failed arms designed once; "no folders yet" said only about a
+ * read that succeeded), with the operations stapel-docs exposes per folder —
+ * rename / move / new subfolder / move to trash — and a "New folder" header
+ * button. Selection is controlled by the composing surface (`FileManager`
+ * keeps the current folder).
+ *
+ * Like the document list, every folder carries a visible, focusable actions
+ * trigger as well as the right-click menu: a menu reachable only by
+ * right-click is a menu no keyboard and no phone can open.
  *
  * Replaceable without a fork: `FileManager` resolves this pane through the
  * skin slot registry (`registerDocsSkinComponent("fileManager.treePane", …)`).
  */
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Button, Dropdown, Empty, Flex, Spin, Tree, Typography } from "antd";
+import { Button, Dropdown, Flex, Tree, Typography } from "antd";
 import type { TreeDataNode } from "antd";
-import { matchLoad, useErrorDisplay, useT } from "@stapel/core";
+import { EmptyState, ErrorAlert, LoadBoundary } from "@stapel/tokens-antd/skin";
+import { useT } from "@stapel/core";
 import { FolderTree } from "../headless/FolderTree.js";
 import type { FolderTreeView } from "../headless/FolderTree.js";
 import type { FolderTreeNode } from "../model/folderTree.js";
@@ -26,7 +30,6 @@ import {
 } from "../model/mutations.js";
 import type { DocFolder } from "../api/types.js";
 import { DOCS_I18N_KEYS } from "../i18n/keys.js";
-import { ErrorAlert } from "./ErrorAlert.js";
 import { MoveDialog, NameDialog } from "./dialogs.js";
 
 export interface FolderTreePaneProps {
@@ -62,7 +65,6 @@ function findNode(
 
 export function FolderTreePane(props: FolderTreePaneProps): ReactElement {
   const t = useT();
-  const errorDisplay = useErrorDisplay(DOCS_I18N_KEYS.unknownError);
   const [dialog, setDialog] = useState<DialogState>(null);
   const createFolder = useCreateFolder();
   const updateFolder = useUpdateFolder();
@@ -73,44 +75,60 @@ export function FolderTreePane(props: FolderTreePaneProps): ReactElement {
   const mutationError =
     createFolder.error ?? updateFolder.error ?? trashFolder.error ?? null;
 
+  function onMenuClick(folder: DocFolder, key: string): void {
+    if (key === "rename") setDialog({ kind: "rename", folder });
+    else if (key === "move") setDialog({ kind: "move", folder });
+    else if (key === "newSubfolder")
+      setDialog({ kind: "newFolder", parentId: folder.id });
+    else if (key === "trash") trashFolder.mutate(folder.id);
+  }
+
   function nodeTitle(folder: DocFolder): ReactNode {
+    const menu = {
+      items: [
+        { key: "rename", label: t(DOCS_I18N_KEYS.menuRename) },
+        { key: "move", label: t(DOCS_I18N_KEYS.menuMove) },
+        { key: "newSubfolder", label: t(DOCS_I18N_KEYS.menuNewSubfolder) },
+        { type: "divider" as const, key: "sep" },
+        {
+          key: "trash",
+          label: t(DOCS_I18N_KEYS.menuMoveToTrash),
+          danger: true,
+        },
+      ],
+      onClick: ({ key }: { key: string }) => {
+        onMenuClick(folder, key);
+      },
+    };
     return (
-      <Typography.Text data-docs-folder={folder.id}>
-        {folder.name}
-      </Typography.Text>
+      <Dropdown trigger={["contextMenu"]} menu={menu}>
+        <Flex align="center" justify="space-between" gap="small">
+          <Typography.Text data-docs-folder={folder.id}>
+            {folder.name}
+          </Typography.Text>
+          <Dropdown trigger={["click"]} menu={menu}>
+            <Typography.Link
+              aria-label={t(DOCS_I18N_KEYS.menuActions)}
+              data-docs-folder-actions={folder.id}
+              onClick={(event) => {
+                // Selecting the folder and opening its menu are two things.
+                event.stopPropagation();
+              }}
+              data-analytics="none"
+              data-analytics-reason="opens a menu — the chosen item carries the tracked action"
+            >
+              {t(DOCS_I18N_KEYS.menuActions)}
+            </Typography.Link>
+          </Dropdown>
+        </Flex>
+      </Dropdown>
     );
   }
 
   function toTreeData(nodes: readonly FolderTreeNode[]): TreeDataNode[] {
     return nodes.map((node) => ({
       key: node.folder.id,
-      title: (
-        <Dropdown
-          trigger={["contextMenu"]}
-          menu={{
-            items: [
-              { key: "rename", label: t(DOCS_I18N_KEYS.menuRename) },
-              { key: "move", label: t(DOCS_I18N_KEYS.menuMove) },
-              { key: "newSubfolder", label: t(DOCS_I18N_KEYS.menuNewSubfolder) },
-              { type: "divider" },
-              {
-                key: "trash",
-                label: t(DOCS_I18N_KEYS.menuMoveToTrash),
-                danger: true,
-              },
-            ],
-            onClick: ({ key }) => {
-              if (key === "rename") setDialog({ kind: "rename", folder: node.folder });
-              else if (key === "move") setDialog({ kind: "move", folder: node.folder });
-              else if (key === "newSubfolder")
-                setDialog({ kind: "newFolder", parentId: node.folder.id });
-              else if (key === "trash") trashFolder.mutate(node.folder.id);
-            },
-          }}
-        >
-          {nodeTitle(node.folder)}
-        </Dropdown>
-      ),
+      title: nodeTitle(node.folder),
       children: toTreeData(node.children),
     }));
   }
@@ -118,9 +136,10 @@ export function FolderTreePane(props: FolderTreePaneProps): ReactElement {
   function renderTree(view: FolderTreeView): ReactElement {
     if (view.tree.length === 0) {
       return (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={t(DOCS_I18N_KEYS.managerFoldersEmpty)}
+        <EmptyState
+          compact
+          title={t(DOCS_I18N_KEYS.managerFoldersEmpty)}
+          testId="docs-tree-empty"
         />
       );
     }
@@ -142,7 +161,7 @@ export function FolderTreePane(props: FolderTreePaneProps): ReactElement {
 
   return (
     <FolderTree workspaceId={props.workspaceId}>
-      {({ state }) => {
+      {({ state, refetch }) => {
         // The dialogs need the flat list / tree for the destination picker
         // and the cycle exclusion. They only OPEN from a rendered node, i.e.
         // from the ready arm — outside it, empty inputs are honest.
@@ -151,7 +170,7 @@ export function FolderTreePane(props: FolderTreePaneProps): ReactElement {
         return (
           <Flex vertical gap="small" data-testid="docs-folder-tree-pane">
             <Button
-              size="small"
+              block
               onClick={() => {
                 setDialog({ kind: "newFolder", parentId: null });
               }}
@@ -161,23 +180,15 @@ export function FolderTreePane(props: FolderTreePaneProps): ReactElement {
               {t(DOCS_I18N_KEYS.managerNewFolder)}
             </Button>
 
-            {mutationError !== null && (
-              <ErrorAlert
-                error={errorDisplay(mutationError)}
-                testId="docs-tree-error"
-              />
-            )}
+            <ErrorAlert thrown={mutationError} testId="docs-tree-error" />
 
-            {matchLoad(state, {
-              loading: () => <Spin />,
-              failed: (error) => (
-                <ErrorAlert
-                  error={errorDisplay(error)}
-                  testId="docs-tree-load-error"
-                />
-              ),
-              ready: renderTree,
-            })}
+            <LoadBoundary
+              state={state}
+              onRetry={refetch}
+              testId="docs-tree"
+            >
+              {renderTree}
+            </LoadBoundary>
 
             <NameDialog
               open={dialog?.kind === "rename" || dialog?.kind === "newFolder"}
@@ -222,7 +233,7 @@ export function FolderTreePane(props: FolderTreePaneProps): ReactElement {
                   : new Set<string>()
               }
               currentParentId={
-                dialog?.kind === "move" ? dialog.folder.parent_id : null
+                dialog?.kind === "move" ? dialog.folder.parent_id ?? null : null
               }
               busy={busy}
               onConfirm={(destinationId) => {

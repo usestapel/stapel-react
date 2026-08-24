@@ -11,6 +11,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement, ReactNode } from "react";
 import { I18nProvider, createI18n } from "@stapel/core";
+import { CONFIRM_OK_TESTID } from "@stapel/tokens-antd/skin";
 import { createAuthRuntime } from "../../src/model/runtime.js";
 import type { AuthRuntime } from "../../src/model/runtime.js";
 import { AuthProvider } from "../../src/headless/AuthProvider.js";
@@ -105,8 +106,12 @@ describe("<SessionsList/>", () => {
     await waitFor(() => expect(screen.getByText("Someone's Phone")).toBeDefined());
 
     screen.getByText("Sign out").click();
-    const confirmButtons = await screen.findAllByRole("button", { name: "Sign out" });
-    confirmButtons[confirmButtons.length - 1]?.click();
+    // The confirmation is a `SkinConfirm` (a bottom sheet on a phone, a modal
+    // above the tablet breakpoint), not a `Popconfirm` anchored to the row —
+    // so the affirmative is addressed by the substrate's stable test id
+    // rather than by "the last button that happens to share the label".
+    const ok = await screen.findByTestId(CONFIRM_OK_TESTID);
+    ok.click();
 
     await waitFor(() => expect(revoked).toBe("other"));
     await waitFor(() => expect(screen.getByText("No active sessions.")).toBeDefined());

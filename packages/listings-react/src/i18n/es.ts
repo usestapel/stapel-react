@@ -1,4 +1,5 @@
 import type { I18nDictionary, I18nEngine } from "@stapel/core";
+import { registerAttributesI18nEs } from "@stapel/attributes-react/i18n/es";
 import { listingsErrorBundleEs } from "./generated/errors.es.gen.js";
 
 export { listingsErrorBundleEs } from "./generated/errors.es.gen.js";
@@ -94,6 +95,8 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.detail.published_at": "Publicado el {date}",
   "listings.detail.expires_at": "A la venta hasta el {date}",
   "listings.detail.stock": "Disponibles",
+  "listings.detail.edit": "Editar el anuncio",
+  "listings.detail.take_down": "Retirarlo",
 
   "listings.compose.new_title": "Anuncio nuevo",
   "listings.compose.edit_title": "Editar el anuncio",
@@ -112,8 +115,8 @@ export const listingsI18nBundleEs: I18nDictionary = {
     "Escribe el precio como un número, con dos decimales como mucho",
   "listings.compose.currency_label": "Moneda",
   "listings.compose.location_label": "Dónde está",
-  "listings.compose.lat_label": "Latitud",
-  "listings.compose.lon_label": "Longitud",
+  "listings.compose.location_help":
+    "La gente busca por distancia — un anuncio sin lugar es un anuncio que no encontrarán",
   "listings.compose.geo_incomplete":
     "Una latitud necesita su longitud al lado — media coordenada no apunta a ningún sitio",
   "listings.compose.photos": "Fotos",
@@ -174,11 +177,18 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.mine.archive": "Archivar",
   "listings.mine.complete": "Marcar como vendido",
   "listings.mine.delete": "Borrar",
+  "listings.mine.delete_confirm_title": "¿Borrar este anuncio?",
+  "listings.mine.delete_confirm_body":
+    "Desaparece de tu panel y no se puede recuperar. Archivarlo lo conserva.",
 
   "listings.favorites.title": "Favoritos",
   "listings.favorites.loading": "Cargando tus favoritos…",
   "listings.favorites.load_failed": "No pudimos cargar tus favoritos",
   "listings.favorites.empty": "Todavía no has guardado nada",
+  "listings.favorites.empty_hint":
+    "Toca el corazón en cualquier anuncio y te estará esperando aquí.",
+  "listings.favorites.sign_in_hint":
+    "Los favoritos se guardan en tu cuenta, así que te siguen entre dispositivos.",
 
   "listings.blocked.sign_in": "Inicia sesión para hacer esto",
   "listings.blocked.guest":
@@ -190,6 +200,8 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.blocked.delete_active":
     "Archívalo primero — un anuncio a la venta no se puede borrar",
   "listings.blocked.in_flight": "Un momento — eso ya está en marcha",
+  "listings.blocked.no_editor":
+    "Esta aplicación todavía no tiene una pantalla para editar un anuncio",
 
   "listings.page.prev": "Anterior",
   "listings.page.next": "Siguiente",
@@ -200,7 +212,13 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.nav.favorites": "Favoritos",
 };
 
-/** Register the Spanish bundle into a core i18n engine. */
+/**
+ * Register the Spanish bundle — and, exactly as in `./ru.ts`, the twelve
+ * `stapel_attributes` sentences this pair does not author. The ownership split
+ * is a rule about who WRITES a string, not an instruction to ship two thirds
+ * of a locale and document the rest.
+ */
 export function registerListingsI18nEs(i18n: I18nEngine): void {
+  registerAttributesI18nEs(i18n);
   i18n.registerBundle("es", listingsI18nBundleEs);
 }

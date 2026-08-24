@@ -1,0 +1,25 @@
+{
+  "package": "@stapel/webhooks-react",
+  "version": "0.0.0",
+  "entries": [
+    {
+      "id": "webhooks.overview",
+      "labelKey": "webhooks.nav.overview",
+      "icon": "AppstoreOutlined",
+      "route": {
+        "path": "webhooks"
+      },
+      "component": {
+        "export": "WebhooksPanel",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 50
+    }
+  ]
+}

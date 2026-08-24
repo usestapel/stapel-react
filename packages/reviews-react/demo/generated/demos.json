@@ -4,61 +4,170 @@
   "version": "0.3.2",
   "demos": [
     {
-      "id": "reviews.aggregate",
-      "title": "Rating aggregate",
-      "description": "avg is 0.0 when count is 0 — the module says so in its own schema — so a naive renderer draws the worst possible score over a target nobody has rated. ratingSummary() answers rated:false there and the skin has nothing to draw a star row from. The third variant is the seller roll-up: stapel-reviews aggregates ONE (target_type, target_key) per call and cannot roll a seller's listings up, so the composite's projection computes {avg, count} — the same two field names, deliberately — and this component renders them without a request.",
-      "component": "ReviewAggregate",
-      "covers": [],
-      "tokens": [
-        "surface-raised"
-      ],
-      "variants": [
-        {
-          "id": "rated"
-        },
-        {
-          "id": "never rated"
-        },
-        {
-          "id": "seller roll-up (supplied)"
-        }
-      ],
-      "source": {
-        "file": "demo/ReviewAggregate.demo.tsx",
-        "line": 50
-      }
-    },
-    {
       "id": "reviews.form",
       "title": "Write a review",
-      "description": "The duplicate refusal is read by CODE: `error.400.reviews_duplicate_review` arrives with status 400, while the module's only 409 says the owner's reply already exists — a form branching on the number would miss the first and mishandle the second. And a submitted review is not necessarily a visible one: under pre-moderation the created row comes back `pending`, so the author is told it will appear once checked instead of being left to hunt for it.",
-      "component": "ReviewForm",
-      "covers": [],
+      "description": "The submit button is switched off until a rating is chosen, and it says so beside itself rather than in a tooltip a disabled button can never fire. 'Already rated' is not an error banner: it is the same sentence whether the host knew up front (the own-review pre-check over the loaded rows) or the server answered error.400.reviews_duplicate_review — a 400, while the module's only 409 says the owner's REPLY already exists, so a form branching on the number would miss the first and mishandle the second. The star row draws the DEPLOYMENT's bounds: RATING_MIN/RATING_MAX are settings, and a client that hardwired five would refuse a rating a 1..10 deployment accepts.",
+      "component": "ReviewFormCard",
+      "covers": [
+        "ReviewForm"
+      ],
       "tokens": [
         "surface-raised"
       ],
       "variants": [
         {
-          "id": "post-moderation (published)"
+          "id": "idle",
+          "description": "No rating chosen: submit is off, with the reason under it.",
+          "viewport": "phone",
+          "step": "idle"
         },
         {
-          "id": "pre-moderation (pending)"
+          "id": "already rated",
+          "description": "The form collapses into a note — there is nothing here to fill in.",
+          "viewport": "phone",
+          "step": "duplicate"
         },
         {
-          "id": "already rated (400)"
+          "id": "a 1..10 deployment",
+          "description": "Ten stars, because the runtime says the ceiling is ten.",
+          "viewport": "desktop",
+          "step": "idle-wide-bounds"
         }
       ],
       "source": {
-        "file": "demo/ReviewForm.demo.tsx",
-        "line": 72
+        "file": "demo/ReviewFormCard.demo.tsx",
+        "line": 45
       }
     },
     {
       "id": "reviews.list",
       "title": "Review list",
-      "description": "GET /reviews answers core's AnchorPagination envelope — declared as components/ReviewPage since stapel-reviews 0.3.0, so the pair reads a generated shape instead of the copy it used to maintain. The published scope is what everyone reads, guests included (IsAuthenticatedOrReadOnly since the same release), so an empty list is a reachable state that means what it says. include=all is honoured only for a moderator of the target and narrowed silently for anyone else, which is why every non-published row names its state.",
-      "component": "ReviewList",
+      "description": "GET /reviews answers core's AnchorPagination envelope, declared as components/ReviewPage since stapel-reviews 0.3.0. Guests read it (IsAuthenticatedOrReadOnly), so an EMPTY list is a reachable state that means what it says — which is why it is a designed empty state and not a spinner that never stops. The 'narrowed scope' variant is the one worth reading twice: include=all is honoured only for a moderator of the target and silently narrowed to published for everyone else, with no error and no marker in the body, so a host that passed the prop to the wrong viewer used to get a quietly incomplete list. The pane now says so.",
+      "component": "ReviewListPanel",
       "covers": [
+        "ReviewList",
+        "ReviewResponseComposer"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "published",
+          "description": "Three rows, one carrying the seller's reply, one with a rating and no words.",
+          "viewport": "phone",
+          "step": "ready"
+        },
+        {
+          "id": "end of the run",
+          "description": "has_next false: the load-more control is off, and it says which of the two reasons it is off for.",
+          "viewport": "phone",
+          "step": "ready-exhausted"
+        },
+        {
+          "id": "narrowed scope",
+          "description": "include=all was asked for and nothing that arrived proves it was granted.",
+          "viewport": "phone",
+          "step": "narrowed"
+        },
+        {
+          "id": "empty",
+          "description": "Nobody has reviewed this — a state a guest can reach.",
+          "viewport": "desktop",
+          "step": "empty"
+        },
+        {
+          "id": "failed",
+          "description": "A 503 is not an empty list, and never renders as one.",
+          "viewport": "desktop",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/ReviewListPanel.demo.tsx",
+        "line": 34
+      }
+    },
+    {
+      "id": "reviews.moderation",
+      "title": "Moderation queue",
+      "description": "POST {id}/moderate has existed since stapel-reviews 0.1 and could be reached from no screen in the fleet. This is that screen. Every verdict is state-gated on the row it acts on: re-applying the state a review is already in is an upstream no-op that answers 200, so 'Already hidden' is said before the click instead of a button that appears to do nothing. Hiding is confirmed, because it removes the review from every page AND from the rating — a bottom sheet on a phone, a small modal above it. The second variant is the one to look at: the server narrows include=all for a non-moderator without an error, so a pane that trusted the request would show a short list as if it were the whole queue.",
+      "component": "ReviewModerationPanel",
+      "covers": [
+        "ReviewModeration"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "granted, six rows",
+          "description": "Published, pending, hidden and a state this build does not know — each badged, each with both verdicts gated on where it stands.",
+          "viewport": "phone",
+          "step": "ready"
+        },
+        {
+          "id": "not a moderator",
+          "description": "The request was narrowed and every verdict is off, each carrying its own sentence — never an empty pane.",
+          "viewport": "phone",
+          "step": "blocked"
+        },
+        {
+          "id": "nothing written yet",
+          "description": "A designed empty state, reachable only from a load that succeeded.",
+          "viewport": "desktop",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/ReviewModerationPanel.demo.tsx",
+        "line": 34
+      }
+    },
+    {
+      "id": "reviews.panel",
+      "title": "Reviews block",
+      "description": "The composed block: the rating line, the list, the form for a reader who has not rated yet, and — for whoever the host says moderates the item — the queue below it. Two of those are worth watching. First, a target nobody has rated shows 'No rating yet' above 'No reviews yet': two different absences, two different sentences, because the storefront once printed the identical words twice forty pixels apart and it read as a rendering bug. Second, the moderator variant is TWO panes on purpose: 'what does the public see' and 'what is there' are different questions against different cache keys, and folding them into one switch would make the public view unreachable for the one person who most needs to check it.",
+      "component": "ReviewsPanel",
+      "covers": [
+        "ReviewsProvider",
+        "ReviewList"
+      ],
+      "tokens": [
+        "surface-base"
+      ],
+      "variants": [
+        {
+          "id": "a buyer",
+          "description": "Rating, reviews, and the form — the storefront case.",
+          "viewport": "phone",
+          "step": "ready"
+        },
+        {
+          "id": "nothing rated yet",
+          "description": "Two absences, two sentences: no rating, and no reviews.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "the seller, moderating",
+          "description": "The public list AND the queue, plus the reply composer under every unanswered review.",
+          "viewport": "desktop",
+          "step": "moderating"
+        }
+      ],
+      "source": {
+        "file": "demo/ReviewsPanel.demo.tsx",
+        "line": 52
+      }
+    },
+    {
+      "id": "reviews.rating",
+      "title": "Rating badge",
+      "description": "avg is 0.0 when count is 0 — the module says so in its own schema — so a naive renderer draws the worst possible score over a target nobody has rated. ratingSummary() answers rated:false there and this skin never reaches <Rate> in that arm: no star row at all, one sentence instead. The count is a plural through core's tPlural, so a single review does not read '1 reviews' (and Russian agrees with its own numeral instead of dodging into 'Отзывов: 1'). The last variant is the seller roll-up: stapel-reviews aggregates ONE (target_type, target_key) per call and cannot roll a seller's listings up, so the composite's projection computes {avg, count} — the same two field names, deliberately — and this component renders them without a request.",
+      "component": "RatingBadge",
+      "covers": [
+        "ReviewAggregate",
         "ReviewsProvider"
       ],
       "tokens": [
@@ -66,18 +175,103 @@
       ],
       "variants": [
         {
-          "id": "published"
+          "id": "rated",
+          "description": "12 reviews, 4.25 rounded to one decimal for display.",
+          "viewport": "phone",
+          "step": "ready"
         },
         {
-          "id": "moderator (include=all)"
+          "id": "one review",
+          "description": "The singular arm of the plural family.",
+          "viewport": "phone",
+          "step": "ready-singular"
         },
         {
-          "id": "empty (reachable by a guest)"
+          "id": "never rated",
+          "description": "count 0, avg 0.0 — and no star row is drawn.",
+          "viewport": "phone",
+          "step": "unrated"
+        },
+        {
+          "id": "seller roll-up (supplied)",
+          "description": "Numbers from the composite's projection; no request made.",
+          "viewport": "desktop",
+          "step": "supplied"
         }
       ],
       "source": {
-        "file": "demo/ReviewList.demo.tsx",
-        "line": 52
+        "file": "demo/RatingBadge.demo.tsx",
+        "line": 34
+      }
+    },
+    {
+      "id": "reviews.response",
+      "title": "Seller's reply",
+      "description": "POST {id}/response was displayed by this pair from the first release and could never be written by it. The composer and the reply are deliberately the SAME component, because on the page they are one thing: no reply and you may write it → the box, with the one-shot rule stated beside it; no reply and you may not → the reason beside a switched-off control; a reply exists → the reply, and no box at all. The one-shot line matters: the module stores at most one Response per review and ships no endpoint to edit or delete it, so a composer that discovered that afterwards would be a text box that silently turns out to have been the last word. The empty-body block is the pair's own rule, not the contract's — RespondRequest.body defaults to \"\", so the server would store a blank reply and then refuse forever to replace it.",
+      "component": "ReviewResponseComposer",
+      "covers": [
+        "ReviewResponseForm"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "the owner, nothing written yet",
+          "description": "Reply is off until there are words in the box, and says so; the one-shot rule is stated before it is spent.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "already answered",
+          "description": "The reply, read-only forever — there is no edit endpoint.",
+          "viewport": "phone",
+          "step": "answered"
+        },
+        {
+          "id": "not the owner",
+          "description": "The control is rendered switched off with its reason, not removed — a seller whose ownership callback is mis-wired sees a bug report instead of a blank row.",
+          "viewport": "desktop",
+          "step": "blocked"
+        }
+      ],
+      "source": {
+        "file": "demo/ReviewResponseComposer.demo.tsx",
+        "line": 42
+      }
+    },
+    {
+      "id": "reviews.sign-in-link",
+      "title": "Sign-in door",
+      "description": "actionBlocked ended the grey-rectangle incident by making every switched-off control state its reason. It did not end the next problem: 'sign in to leave a review' is a reason whose next action is a LINK, and this pair used to render the sentence and stop there, leaving the visitor to find the header themselves. WHERE the link goes is the container's business, never the pair's — the shape is core's SignInCta, {href} or {onSignIn} and never both — so the href arm renders a plain anchor (arriving at a sign-in page is one of the few navigations a full load costs nothing) and the handler arm renders a control a router can intercept. A host with no sign-in route at all passes nothing and gets the reason alone, with no trailing space where the link would have been.",
+      "component": "SignInLink",
+      "covers": [],
+      "tokens": [
+        "brand"
+      ],
+      "variants": [
+        {
+          "id": "a route (href)",
+          "description": "A plain anchor — a full load to the sign-in page.",
+          "viewport": "phone",
+          "step": "href"
+        },
+        {
+          "id": "no door at all",
+          "description": "No sign-in route: the reason renders alone.",
+          "viewport": "phone",
+          "step": "absent"
+        },
+        {
+          "id": "a handler (onSignIn)",
+          "description": "A host that routes internally, or opens a modal.",
+          "viewport": "desktop",
+          "step": "on-sign-in"
+        }
+      ],
+      "source": {
+        "file": "demo/SignInLink.demo.tsx",
+        "line": 34
       }
     }
   ]

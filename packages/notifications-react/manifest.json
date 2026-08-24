@@ -4,7 +4,7 @@
   "version": "0.9.1",
   "backend": {
     "module": "stapel-notifications",
-    "contract": ">=0.7 <0.8"
+    "contract": ">=0.17 <0.18"
   },
   "layers": [
     "api",
@@ -30,12 +30,26 @@
       "request": null,
       "response": null
     },
+    "list_device_tokens": {
+      "method": "GET",
+      "path": "/notifications/api/v1/devices/",
+      "tag": "Devices",
+      "request": null,
+      "response": null
+    },
     "register_device_token": {
       "method": "POST",
       "path": "/notifications/api/v1/devices/",
       "tag": "Devices",
       "request": "DeviceTokenRequest",
       "response": "DeviceTokenResponse"
+    },
+    "unregister_device": {
+      "method": "DELETE",
+      "path": "/notifications/api/v1/devices/by-id/{device_id}/",
+      "tag": "Devices",
+      "request": null,
+      "response": null
     },
     "unregister_device_token": {
       "method": "DELETE",
@@ -46,6 +60,14 @@
     }
   },
   "hooks": {
+    "useDevices": {
+      "kind": "query",
+      "operation": "listDevices",
+      "queryKey": [
+        "notifications",
+        "devices"
+      ]
+    },
     "useNotificationFeed": {
       "kind": "query",
       "operation": "feed",
@@ -57,11 +79,33 @@
     },
     "useRegisterDevice": {
       "kind": "mutation",
-      "operation": "registerDevice"
+      "operation": "registerDevice",
+      "invalidates": [
+        [
+          "notifications",
+          "devices"
+        ]
+      ]
     },
     "useUnregisterDevice": {
       "kind": "mutation",
-      "operation": "unregisterDevice"
+      "operation": "unregisterDevice",
+      "invalidates": [
+        [
+          "notifications",
+          "devices"
+        ]
+      ]
+    },
+    "useUnregisterDeviceById": {
+      "kind": "mutation",
+      "operation": "unregisterDeviceById",
+      "invalidates": [
+        [
+          "notifications",
+          "devices"
+        ]
+      ]
     }
   },
   "errors": {
@@ -176,6 +220,39 @@
       "params": [],
       "remediation": "fix_input"
     },
+    "error.400.translate.batch_too_large": {
+      "status": 400,
+      "params": [
+        "max_items"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.translate.batch_too_long": {
+      "status": 400,
+      "params": [
+        "max_chars"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.translate.text_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.translate.text_too_long": {
+      "status": 400,
+      "params": [
+        "max_chars"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.translate.unsupported_language": {
+      "status": 400,
+      "params": [
+        "language"
+      ],
+      "remediation": "fix_input"
+    },
     "error.400.validation_error": {
       "status": 400,
       "params": [],
@@ -225,6 +302,11 @@
       "status": 404,
       "params": [],
       "remediation": "retry"
+    },
+    "error.404.device_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
     },
     "error.404.not_found": {
       "status": 404,
@@ -307,6 +389,16 @@
       "status": 500,
       "params": [],
       "remediation": "contact_support"
+    },
+    "error.502.translate.provider_unavailable": {
+      "status": 502,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
     }
   },
   "events": {
@@ -317,14 +409,15 @@
     {
       "id": "notifications.device_registration",
       "title": "Device registration",
-      "description": "The headless DeviceRegistration wraps the register / unregister push-token mutations and exposes their pending / result / error state. Bring your own permission-prompt UI — the component is renderless.",
+      "description": "The headless DeviceRegistration derives one PushState from GET /devices/ and SHA-256 of the token this device holds — on, off, inactive, unknown, denied, unsupported. Bring your own switch; the bag has no boolean to flip.",
       "component": "DeviceRegistration",
       "tokens": [
         "card-bg",
         "card-border"
       ],
       "variants": [
-        "default"
+        "default",
+        "not-registered"
       ],
       "source": "demo/DeviceRegistration.demo.tsx"
     },
@@ -343,6 +436,46 @@
       "source": "demo/NotificationFeed.demo.tsx"
     },
     {
+      "id": "notifications.feed_list",
+      "title": "Notification feed list",
+      "description": "The feed as a self-contained skin: type glyph, title, one-line body, relative time in a <time> carrying the exact instant, and the whole row as a link when data carries a deep link.",
+      "component": "NotificationFeedList",
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted",
+        "border-subtle"
+      ],
+      "variants": [
+        "default",
+        "refused",
+        "paged"
+      ],
+      "source": "demo/NotificationFeedList.demo.tsx"
+    },
+    {
+      "id": "notifications.page",
+      "title": "Notifications page",
+      "description": "The page the nav routes to: a heading, the delivery mode (live socket or the documented 60s poll), and the feed with a real row anatomy — type glyph, title, body, relative time, deep link.",
+      "component": "NotificationsPage",
+      "covers": [
+        "NotificationFeedList"
+      ],
+      "tokens": [
+        "surface",
+        "text",
+        "text-muted",
+        "border-subtle"
+      ],
+      "variants": [
+        "polling",
+        "live",
+        "desktop",
+        "empty"
+      ],
+      "source": "demo/NotificationsPage.demo.tsx"
+    },
+    {
       "id": "notifications.provider",
       "title": "Notifications provider",
       "description": "The headless notifications root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
@@ -354,6 +487,32 @@
         "default"
       ],
       "source": "demo/Notifications.demo.tsx"
+    },
+    {
+      "id": "notifications.push_settings",
+      "title": "Push notification settings",
+      "description": "The push settings surface: a switch whose position comes from GET /devices/ matched on this device's token fingerprint, and the account's registry with an inactive device flagged and removal by row id behind a confirm sheet.",
+      "component": "PushSettingsPane",
+      "covers": [
+        "PushNotificationToggle",
+        "PushDeviceList"
+      ],
+      "tokens": [
+        "surface",
+        "surface-raised",
+        "text",
+        "text-muted",
+        "border-subtle"
+      ],
+      "variants": [
+        "default",
+        "no-devices",
+        "unsupported",
+        "desktop",
+        "toggle-only",
+        "registry-only"
+      ],
+      "source": "demo/PushSettings.demo.tsx"
     }
   ],
   "i18nKeys": [
@@ -374,6 +533,11 @@
     "error.400.field.unique",
     "error.400.invalid_ad_id",
     "error.400.invalid_platform",
+    "error.400.translate.batch_too_large",
+    "error.400.translate.batch_too_long",
+    "error.400.translate.text_required",
+    "error.400.translate.text_too_long",
+    "error.400.translate.unsupported_language",
     "error.400.validation_error",
     "error.400.verification_failed",
     "error.400.verification_invalid_factor",
@@ -384,6 +548,7 @@
     "error.403.verification_enrollment_required",
     "error.403.verification_required",
     "error.404.ad_not_found",
+    "error.404.device_not_found",
     "error.404.not_found",
     "error.404.token_not_found",
     "error.404.verification_challenge_not_found",
@@ -400,25 +565,69 @@
     "error.429.rate_limit",
     "error.429.too_many_requests",
     "error.500.internal",
-    "notifications.device.register",
-    "notifications.device.registered",
-    "notifications.device.registering",
-    "notifications.device.unregister",
+    "error.502.translate.provider_unavailable",
+    "error.503.mandate_unavailable",
+    "notifications.devices.empty",
+    "notifications.devices.empty_hint",
+    "notifications.devices.inactive",
+    "notifications.devices.last_seen",
+    "notifications.devices.remove",
+    "notifications.devices.remove_body",
+    "notifications.devices.remove_question",
+    "notifications.devices.subtitle",
+    "notifications.devices.this_device",
+    "notifications.devices.title",
     "notifications.error.unknown",
     "notifications.feed.empty",
+    "notifications.feed.empty_hint",
     "notifications.feed.end",
     "notifications.feed.load_more",
     "notifications.feed.loading",
-    "notifications.feed.retry",
+    "notifications.feed.open",
+    "notifications.feed.subtitle",
+    "notifications.feed.title",
+    "notifications.live.connecting",
+    "notifications.live.on",
+    "notifications.live.polling",
+    "notifications.live.polling_hint",
+    "notifications.live.reconnect",
+    "notifications.live.reconnecting",
+    "notifications.live.refused_forbidden",
+    "notifications.live.refused_origin",
+    "notifications.live.refused_revoked",
+    "notifications.live.refused_session",
+    "notifications.live.refused_unknown",
+    "notifications.live.stopped",
     "notifications.nav.feed",
-    "notifications.settings.feed.subtitle",
-    "notifications.settings.feed.title",
+    "notifications.nav.push",
+    "notifications.platform.android",
+    "notifications.platform.ios",
+    "notifications.platform.web",
+    "notifications.push.checking",
+    "notifications.push.denied",
+    "notifications.push.denied_hint",
+    "notifications.push.inactive",
+    "notifications.push.inactive_hint",
+    "notifications.push.off",
+    "notifications.push.on",
+    "notifications.push.toggle_label",
+    "notifications.push.token_unavailable",
+    "notifications.push.token_unavailable_hint",
+    "notifications.push.unknown",
+    "notifications.push.unknown_hint",
+    "notifications.push.unsupported",
+    "notifications.push.unsupported_hint",
     "notifications.settings.push.subtitle",
     "notifications.settings.push.title"
   ],
   "exports": {
     "runtime": [
       "DeviceRegistration",
+      "FEED_LINK_KEYS",
+      "FEED_POLL_INTERVAL_MS",
+      "FEED_POLL_MIN_INTERVAL_MS",
+      "FeedDeliveryContext",
+      "FeedDeliveryProvider",
       "NOTIFICATIONS_ERRORS",
       "NOTIFICATIONS_ERROR_CODES",
       "NOTIFICATIONS_FLOWS",
@@ -426,32 +635,47 @@
       "NotificationFeed",
       "NotificationsProvider",
       "NotificationsRuntimeContext",
+      "canFingerprint",
       "createFlowMachine",
       "createNotificationsApi",
       "createNotificationsRuntime",
       "explainNotificationsError",
+      "feedItemLink",
+      "feedPollInterval",
       "flowEndpoints",
+      "formatDateTime",
+      "formatFeedTime",
       "isErrorCode",
       "notificationsErrorBundleEn",
       "notificationsI18nBundleEn",
       "notificationsQueryKeys",
       "registerNotificationsI18n",
       "toFlowError",
+      "tokenFingerprint",
+      "useDevices",
+      "useFeedDelivery",
       "useFlow",
       "useInfiniteNotificationFeed",
       "useNotificationFeed",
       "useNotificationsAnalytics",
       "useNotificationsApi",
       "useNotificationsRuntime",
+      "usePageVisible",
       "useRegisterDevice",
-      "useUnregisterDevice"
+      "useUnregisterDevice",
+      "useUnregisterDeviceById"
     ],
     "types": [
       "CreateNotificationsRuntimeOptions",
+      "DeviceListItem",
       "DeviceRegistrationBag",
+      "DeviceRegistrationProps",
       "DeviceTokenRequest",
       "DeviceTokenResponse",
+      "FeedDelivery",
+      "FeedDeliveryMode",
       "FeedItem",
+      "FeedRefusalKind",
       "FlowEndpoint",
       "FlowError",
       "FlowMachine",
@@ -468,6 +692,8 @@
       "NotificationsI18nKey",
       "NotificationsRuntime",
       "Platform",
+      "PushBlockedReason",
+      "PushState",
       "RegisterDeviceVariables",
       "Remediation",
       "Schemas"

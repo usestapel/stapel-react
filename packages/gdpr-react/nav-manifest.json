@@ -23,6 +23,25 @@
       "order": 90
     },
     {
+      "id": "public.privacy-request",
+      "labelKey": "gdpr.public.heading",
+      "icon": "SafetyCertificateOutlined",
+      "route": {
+        "path": "privacy-request"
+      },
+      "component": {
+        "export": "PrivacyRequestPane",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": false,
+      "surface": "public",
+      "order": 900
+    },
+    {
       "id": "admin.privacy",
       "labelKey": "gdpr.admin.heading",
       "icon": "AuditOutlined",

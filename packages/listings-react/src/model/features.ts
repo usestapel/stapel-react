@@ -22,20 +22,59 @@
  * `order`, `title`, `badge`) are simply ignored by every formatter. Copying a
  * hand-picked subset instead would be a list to keep in step with ten types.
  *
- * ── What a DAO does NOT carry ──────────────────────────────────────────────
+ * ── What a DAO does NOT carry, and the one line that repairs it ────────────
  *
- * `select`'s `options`. `normalize_to_dao` stores the chosen VALUES, not the
- * option table, so `formatFeatureValue` falls back to the raw option value —
- * which is a translation KEY when the config is translatable (the default),
- * so a host whose bundle carries the catalogue's option copy still reads a
- * word. A host whose bundle does not sees the key, on purpose: a visible
- * `option.condition.used` gets fixed, an invented "Used" ships wrong.
+ * `select`'s `options`. `SelectType.dto_to_dao` stores the chosen VALUES and
+ * the ui config, never the option table — the table lives on the CATEGORY, and
+ * not needing it is the whole point of the projection.
+ *
+ * The consequence was a defect the visual pass caught on every card and every
+ * spec row: `formatFeatureValue` resolves an option's copy by looking the
+ * value up in `config.options`, and with no table it falls through to
+ * `String(value)`. The stored value of a translatable catalogue IS a
+ * translation key, so a listing page printed `demo.condition.used` and
+ * `demo.brand.bosch` at people. (The server does not have this problem: its
+ * own `format_value` has the category's config in hand.)
+ *
+ * So the split below synthesizes the IDENTITY table — `{value: v, label: v}`
+ * for each stored value — which is exactly the table a translatable catalogue
+ * would have produced, since its labels ARE the keys. `formatFeatureValue`
+ * then runs the value through the host's `t` and a bundle carrying the
+ * catalogue copy reads "Used". A bundle that does not still shows the key, on
+ * purpose: a visible `option.condition.used` gets fixed, an invented "Used"
+ * ships wrong. A NON-translatable catalogue stores literal labels, `t` returns
+ * an unknown key unchanged, and the output is what it always was.
  */
 import type { FeatureDef, FeatureValueDto } from "@stapel/attributes-react";
 import type { ListingFeatureDao, ListingFeatureView } from "../api/types.js";
 
 /** Keys that belong to the DAO envelope rather than to the type's config. */
 const ENVELOPE = new Set(["slug", "value", "name", "order", "title", "badge"]);
+
+/** The two types whose stored `value` is an option key rather than the thing
+ * itself. `hierarchical_select` is deliberately absent: its formatter joins
+ * the path with " / " and never consults an option table at all. */
+const OPTION_VALUED = new Set(["select"]);
+
+/**
+ * The identity option table for a stored `select` — see the module header.
+ *
+ * Returns `undefined` when there is nothing to add (another type, a config
+ * that already carries a table, a value that is not a list of strings), so the
+ * common path allocates nothing and a DAO that DOES carry options is left
+ * exactly as it arrived.
+ */
+function synthesizedOptions(
+  dao: ListingFeatureDao,
+  config: Readonly<Record<string, unknown>>
+): readonly { value: string; label: string }[] | undefined {
+  if (typeof dao.type !== "string" || !OPTION_VALUED.has(dao.type)) return undefined;
+  if (Array.isArray(config["options"])) return undefined;
+  const raw = Array.isArray(dao.value) ? dao.value : [dao.value];
+  const values = raw.filter((item): item is string => typeof item === "string");
+  if (values.length === 0) return undefined;
+  return values.map((value) => ({ value, label: value }));
+}
 
 /**
  * One DAO row → the definition/value pair the display half consumes.
@@ -54,6 +93,8 @@ export function featureFromDao(
   for (const [key, value] of Object.entries(dao)) {
     if (!ENVELOPE.has(key)) config[key] = value;
   }
+  const options = synthesizedOptions(dao, config);
+  if (options !== undefined) config["options"] = options;
 
   const feature: FeatureDef = {
     slug: dao.slug,

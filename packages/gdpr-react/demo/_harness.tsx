@@ -77,6 +77,7 @@ const demoBundleEn: Record<string, string> = {
   "demo.action.submit": "Submit",
   "demo.action.reset": "Reset",
   "demo.label.step": "state.step",
+  "demo.label.captcha": "Your captcha widget renders here",
 };
 
 /**
@@ -191,6 +192,29 @@ export function DemoButton(props: {
     <button style={buttonStyle} data-analytics="none" data-analytics-reason="no-flow-machines" onClick={props.run}>
       {t(props.labelKey)}
     </button>
+  );
+}
+
+/**
+ * Stand-in for the challenge widget a host renders into the public intake
+ * page's `captcha` slot. It is a STAND-IN and says so: this package ships no
+ * captcha and cannot know which provider a deployment uses, so the demo shows
+ * the shape of the seam rather than pretending to a provider.
+ */
+export function DemoCaptcha(): ReactElement {
+  const t = useT();
+  return (
+    <div
+      style={{
+        border: `1px dashed ${cssVar("border-subtle")}`,
+        borderRadius: radii.md,
+        padding: spacing["3"],
+        color: cssVar("text-muted"),
+        fontSize: fontSize.sm.fontSize,
+      }}
+    >
+      {t("demo.label.captcha")}
+    </div>
   );
 }
 

@@ -1,0 +1,496 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/webhooks-react",
+  "version": "0.0.0",
+  "backend": {
+    "module": "stapel-webhooks",
+    "contract": ">=0.1 <0.2"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "webhooks_api_v1_deliveries_replay_create": {
+      "method": "POST",
+      "path": "/webhooks/api/v1/deliveries/{delivery_id}/replay",
+      "tag": "Webhooks",
+      "request": null,
+      "response": "ReplayResultDTO"
+    },
+    "webhooks_api_v1_deliveries_retrieve": {
+      "method": "GET",
+      "path": "/webhooks/api/v1/deliveries/{delivery_id}",
+      "tag": "Webhooks",
+      "request": null,
+      "response": "DeliveryPresenterDTO"
+    },
+    "webhooks_api_v1_event_catalog_retrieve": {
+      "method": "GET",
+      "path": "/webhooks/api/v1/event-catalog",
+      "tag": "Webhooks",
+      "request": null,
+      "response": "EventCatalogDTO"
+    },
+    "webhooks_api_v1_subscriptions_create": {
+      "method": "POST",
+      "path": "/webhooks/api/v1/subscriptions",
+      "tag": "Webhooks",
+      "request": "SubscriptionCreate",
+      "response": "SubscriptionSecretDTO"
+    },
+    "webhooks_api_v1_subscriptions_deliveries_list": {
+      "method": "GET",
+      "path": "/webhooks/api/v1/subscriptions/{subscription_id}/deliveries",
+      "tag": "Webhooks",
+      "request": null,
+      "response": null
+    },
+    "webhooks_api_v1_subscriptions_destroy": {
+      "method": "DELETE",
+      "path": "/webhooks/api/v1/subscriptions/{subscription_id}",
+      "tag": "Webhooks",
+      "request": null,
+      "response": null
+    },
+    "webhooks_api_v1_subscriptions_list": {
+      "method": "GET",
+      "path": "/webhooks/api/v1/subscriptions",
+      "tag": "Webhooks",
+      "request": null,
+      "response": null
+    },
+    "webhooks_api_v1_subscriptions_partial_update": {
+      "method": "PATCH",
+      "path": "/webhooks/api/v1/subscriptions/{subscription_id}",
+      "tag": "Webhooks",
+      "request": "PatchedSubscriptionPatch",
+      "response": "SubscriptionPresenterDTO"
+    },
+    "webhooks_api_v1_subscriptions_retrieve": {
+      "method": "GET",
+      "path": "/webhooks/api/v1/subscriptions/{subscription_id}",
+      "tag": "Webhooks",
+      "request": null,
+      "response": "SubscriptionPresenterDTO"
+    },
+    "webhooks_api_v1_subscriptions_secret_create": {
+      "method": "POST",
+      "path": "/webhooks/api/v1/subscriptions/{subscription_id}/secret",
+      "tag": "Webhooks",
+      "request": null,
+      "response": "SubscriptionSecretDTO"
+    }
+  },
+  "hooks": {},
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.webhooks_insecure_target": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.webhooks_invalid_filter": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.webhooks_invalid_target": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.webhooks_not_signed_type": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.webhooks_unknown_delivery": {
+      "status": 400,
+      "params": [
+        "delivery"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.webhooks_unknown_event": {
+      "status": 400,
+      "params": [
+        "event_type"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.webhooks_forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.webhooks_delivery_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.webhooks_subscription_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.webhooks_not_replayable": {
+      "status": 409,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.409.webhooks_subscription_cap": {
+      "status": 409,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [],
+  "i18nKeys": [
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.400.webhooks_insecure_target",
+    "error.400.webhooks_invalid_filter",
+    "error.400.webhooks_invalid_target",
+    "error.400.webhooks_not_signed_type",
+    "error.400.webhooks_unknown_delivery",
+    "error.400.webhooks_unknown_event",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.403.webhooks_forbidden",
+    "error.404.ad_not_found",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.404.webhooks_delivery_not_found",
+    "error.404.webhooks_subscription_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.409.webhooks_not_replayable",
+    "error.409.webhooks_subscription_cap",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.mandate_unavailable",
+    "webhooks.error.unknown",
+    "webhooks.nav.overview",
+    "webhooks.panel.empty",
+    "webhooks.panel.loading"
+  ],
+  "exports": {
+    "runtime": [
+      "WEBHOOKS_ERRORS",
+      "WEBHOOKS_ERROR_CODES",
+      "WEBHOOKS_FLOWS",
+      "WEBHOOKS_I18N_KEYS",
+      "WebhooksProvider",
+      "WebhooksRuntimeContext",
+      "createFlowMachine",
+      "createWebhooksApi",
+      "createWebhooksRuntime",
+      "explainWebhooksError",
+      "flowEndpoints",
+      "isErrorCode",
+      "registerWebhooksI18n",
+      "toFlowError",
+      "useFlow",
+      "useWebhooksAnalytics",
+      "useWebhooksApi",
+      "useWebhooksRuntime",
+      "webhooksErrorBundleEn",
+      "webhooksI18nBundleEn",
+      "webhooksQueryKeys"
+    ],
+    "types": [
+      "CreateWebhooksRuntimeOptions",
+      "FlowEndpoint",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "Remediation",
+      "Schemas",
+      "WebhooksApi",
+      "WebhooksErrorCode",
+      "WebhooksErrorSpec",
+      "WebhooksFlowId",
+      "WebhooksFlowSpec",
+      "WebhooksI18nKey",
+      "WebhooksRuntime"
+    ]
+  }
+}

@@ -73,9 +73,11 @@ function parseVariants(obj) {
       const description = stringProp(p.initializer, "description");
       const mock = stringProp(p.initializer, "mock");
       const viewport = stringProp(p.initializer, "viewport");
+      const step = stringProp(p.initializer, "step");
       if (description !== null) v.description = description;
       if (mock !== null) v.mock = mock;
       if (viewport !== null) v.viewport = viewport;
+      if (step !== null) v.step = step;
     }
     out.push(v);
   }

@@ -1,11 +1,22 @@
 /**
  * Demo fixtures — real response BODIES, not convenient inventions.
  *
- * Every shape here is what stapel-listings 0.6.1 actually serializes,
+ * Every shape here is what stapel-listings 0.7.1 actually serializes,
  * including the two things the OpenAPI schema does not say: a stored DAO
  * carries its `slug` (the projection is a `JSONField`), and it carries the
  * type's display config inline, which is why a card can format a badge with
  * no category read.
+ *
+ * ── Names are copy, option VALUES are keys ─────────────────────────────────
+ *
+ * A DAO's `name` is `Feature.name` and a deployment stores display copy there;
+ * a `select`'s stored value is the option's KEY when the catalogue is
+ * translatable, which is the default. The demo used to put `demo.feature.*`
+ * keys in BOTH, and the visual pass photographed the result: `demo.condition
+ * .used`, `demo.feature.condition` and `demo.brand.bosch` printed at people
+ * across the card, the spec table and the composer. Names are copy here now,
+ * and the option values stay keys — resolved through the harness bundle, which
+ * is the path a real translatable catalogue takes and the one worth showing.
  */
 import type {
   ListingCard,
@@ -21,7 +32,7 @@ const BADGES = [
     slug: "brand",
     type: "select" as const,
     value: ["demo.brand.bosch"],
-    name: "demo.feature.brand",
+    name: "Brand",
     badge: true,
     order: 1,
   },
@@ -29,7 +40,7 @@ const BADGES = [
     slug: "power",
     type: "int" as const,
     value: 1200,
-    name: "demo.feature.power",
+    name: "Power",
     badge: true,
     order: 2,
     postfix: "W",
@@ -41,7 +52,7 @@ const TITLE_FEATURES = [
     slug: "condition",
     type: "select" as const,
     value: ["demo.condition.used"],
-    name: "demo.feature.condition",
+    name: "Condition",
     title: true,
     order: 0,
   },
@@ -165,3 +176,21 @@ export const DEMO_DETAIL: ListingDetailData = {
 };
 
 export const DEMO_COUNTERS: MyCounters = { active: 2, archived: 1, drafts: 3 };
+
+/** A listing with a second page behind it — the only state in which the pager
+ * is drawn at all. */
+export const DEMO_PAGE_WITH_NEXT: PaginatedListingCards = {
+  ...DEMO_PAGE,
+  next_anchor: "c2Vjb25kLXBhZ2U=",
+  has_next: true,
+};
+
+/** What `GET /listings/{id}/status/` says about DEMO_DETAIL. */
+export const DEMO_STATUS = {
+  status: "published" as const,
+  moderation_status: "pending" as const,
+  is_deleted: false,
+  is_expired: false,
+  is_active: true,
+  owner_id: DEMO_DETAIL.owner,
+};

@@ -64,6 +64,77 @@
       ]
     },
     {
+      "package": "@stapel/billing-react",
+      "version": "0.8.0",
+      "entries": [
+        {
+          "id": "account.billing",
+          "labelKey": "billing.wallet.heading",
+          "icon": "TagOutlined",
+          "route": {
+            "path": "billing"
+          },
+          "component": {
+            "export": "WalletPanel",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "account.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 80
+        }
+      ]
+    },
+    {
+      "package": "@stapel/calendar-react",
+      "version": "0.6.1",
+      "entries": [
+        {
+          "id": "calendar.month",
+          "labelKey": "calendar.view.heading",
+          "icon": "ClockCircleOutlined",
+          "route": {
+            "path": "calendar"
+          },
+          "component": {
+            "export": "Calendar",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 40
+        },
+        {
+          "id": "calendar.availability",
+          "labelKey": "calendar.availability.heading",
+          "icon": "OrderedListOutlined",
+          "route": {
+            "path": "availability"
+          },
+          "component": {
+            "export": "AvailabilityPane",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "calendar.month"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 10
+        }
+      ]
+    },
+    {
       "package": "@stapel/categories-react",
       "version": "0.3.1",
       "entries": [
@@ -133,6 +204,121 @@
       ]
     },
     {
+      "package": "@stapel/currencies-react",
+      "version": "0.0.0",
+      "entries": []
+    },
+    {
+      "package": "@stapel/docs-react",
+      "version": "0.3.2",
+      "entries": [
+        {
+          "id": "docs.files",
+          "labelKey": "docs.nav.files",
+          "icon": "FolderOpenOutlined",
+          "route": {
+            "path": "/files"
+          },
+          "component": {
+            "export": "FileManager",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 30
+        },
+        {
+          "id": "docs.document",
+          "labelKey": "docs.nav.document",
+          "icon": "ProfileOutlined",
+          "route": {
+            "path": "/files/:id"
+          },
+          "component": {
+            "export": "DocSurface",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": false,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 31
+        }
+      ]
+    },
+    {
+      "package": "@stapel/forms-react",
+      "version": "0.2.0",
+      "entries": [
+        {
+          "id": "forms.list",
+          "labelKey": "forms.nav.list",
+          "icon": "ProfileOutlined",
+          "route": {
+            "path": "forms"
+          },
+          "component": {
+            "export": "FormsListPane",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "account.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 60
+        },
+        {
+          "id": "forms.builder",
+          "labelKey": "forms.nav.builder",
+          "icon": "AppstoreOutlined",
+          "route": {
+            "path": "forms/:formId"
+          },
+          "component": {
+            "export": "FormBuilderPane",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "account.root"
+          },
+          "menuVisibleDefault": false,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 61
+        },
+        {
+          "id": "forms.responses",
+          "labelKey": "forms.nav.responses",
+          "icon": "OrderedListOutlined",
+          "route": {
+            "path": "forms/:formId/responses"
+          },
+          "component": {
+            "export": "ResponsesPane",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "account.root"
+          },
+          "menuVisibleDefault": false,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 62
+        }
+      ]
+    },
+    {
       "package": "@stapel/gdpr-react",
       "version": "0.1.0",
       "entries": [
@@ -155,6 +341,25 @@
           "requiresAuth": true,
           "surface": "member",
           "order": 90
+        },
+        {
+          "id": "public.privacy-request",
+          "labelKey": "gdpr.public.heading",
+          "icon": "SafetyCertificateOutlined",
+          "route": {
+            "path": "privacy-request"
+          },
+          "component": {
+            "export": "PrivacyRequestPane",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": false,
+          "requiresAuth": false,
+          "surface": "public",
+          "order": 900
         },
         {
           "id": "admin.privacy",
@@ -263,6 +468,31 @@
       ]
     },
     {
+      "package": "@stapel/moderation-react",
+      "version": "0.0.0",
+      "entries": [
+        {
+          "id": "moderation.console",
+          "labelKey": "moderation.nav.moderation",
+          "icon": "SafetyCertificateOutlined",
+          "route": {
+            "path": "moderation"
+          },
+          "component": {
+            "export": "ModerationPanel",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 50
+        }
+      ]
+    },
+    {
       "package": "@stapel/notifications-react",
       "version": "0.9.1",
       "entries": [
@@ -274,7 +504,7 @@
             "path": "notifications"
           },
           "component": {
-            "export": "NotificationFeedList",
+            "export": "NotificationsPage",
             "subpath": "default"
           },
           "placement": {
@@ -283,6 +513,25 @@
           "menuVisibleDefault": true,
           "requiresAuth": true,
           "order": 20
+        },
+        {
+          "id": "notifications.push",
+          "labelKey": "notifications.nav.push",
+          "icon": "BellOutlined",
+          "route": {
+            "path": "settings/push"
+          },
+          "component": {
+            "export": "PushSettingsPane",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "profiles.settings"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "order": 30
         }
       ]
     },
@@ -306,6 +555,145 @@
           },
           "menuVisibleDefault": true,
           "requiresAuth": true,
+          "order": 90
+        },
+        {
+          "id": "profiles.language",
+          "labelKey": "profiles.nav.language",
+          "icon": "MessageOutlined",
+          "route": {
+            "path": "language"
+          },
+          "component": {
+            "export": "LanguageSettings",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "profiles.settings"
+          },
+          "menuVisibleDefault": false,
+          "requiresAuth": true,
+          "order": 20
+        },
+        {
+          "id": "profiles.notifications",
+          "labelKey": "profiles.nav.notifications",
+          "icon": "BellOutlined",
+          "route": {
+            "path": "notifications"
+          },
+          "component": {
+            "export": "NotificationPreferences",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "profiles.settings"
+          },
+          "menuVisibleDefault": false,
+          "requiresAuth": true,
+          "order": 30
+        },
+        {
+          "id": "profiles.connections",
+          "labelKey": "profiles.nav.connections",
+          "icon": "HeartOutlined",
+          "route": {
+            "path": "connections"
+          },
+          "component": {
+            "export": "ConnectionsPage",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "order": 91
+        },
+        {
+          "id": "profiles.public",
+          "labelKey": "profiles.nav.public_profile",
+          "icon": "ProfileOutlined",
+          "route": {
+            "path": "/u/:userId"
+          },
+          "component": {
+            "export": "PublicProfilePage",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": false,
+          "requiresAuth": false,
+          "surface": "public",
+          "order": 92
+        }
+      ]
+    },
+    {
+      "package": "@stapel/recordings-react",
+      "version": "0.5.1",
+      "entries": [
+        {
+          "id": "recordings.list",
+          "labelKey": "recordings.list.heading",
+          "icon": "FolderOpenOutlined",
+          "route": {
+            "path": "recordings"
+          },
+          "component": {
+            "export": "RecordingsList",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 40
+        },
+        {
+          "id": "recordings.detail",
+          "labelKey": "recordings.detail.heading",
+          "icon": "ProfileOutlined",
+          "route": {
+            "path": "recordings/:recordingId"
+          },
+          "component": {
+            "export": "RecordingDetailPane",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "recordings.list"
+          },
+          "menuVisibleDefault": false,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 41
+        },
+        {
+          "id": "share.view",
+          "labelKey": "recordings.share.heading",
+          "icon": "AppstoreOutlined",
+          "route": {
+            "path": "share/:linkToken"
+          },
+          "component": {
+            "export": "SharedRecordingView",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": false,
+          "requiresAuth": false,
+          "surface": "public",
           "order": 90
         }
       ]
@@ -355,9 +743,78 @@
       ]
     },
     {
+      "package": "@stapel/tasks-react",
+      "version": "0.0.0",
+      "entries": [
+        {
+          "id": "tasks.overview",
+          "labelKey": "tasks.nav.overview",
+          "icon": "AppstoreOutlined",
+          "route": {
+            "path": "tasks"
+          },
+          "component": {
+            "export": "TasksPanel",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 50
+        }
+      ]
+    },
+    {
+      "package": "@stapel/translate-react",
+      "version": "0.0.0",
+      "entries": [
+        {
+          "id": "translate.overview",
+          "labelKey": "translate.nav.overview",
+          "icon": "AppstoreOutlined",
+          "route": {
+            "path": "translate"
+          },
+          "component": {
+            "export": "TranslatePanel",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 50
+        }
+      ]
+    },
+    {
       "package": "@stapel/video-react",
       "version": "0.1.0",
       "entries": [
+        {
+          "id": "video.rooms",
+          "labelKey": "video.rooms.heading",
+          "icon": "MessageOutlined",
+          "route": {
+            "path": "meetings"
+          },
+          "component": {
+            "export": "RoomsPane",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 40
+        },
         {
           "id": "admin.usage",
           "labelKey": "video.usage.heading",
@@ -377,6 +834,76 @@
           "requiresAuth": true,
           "surface": "member",
           "order": 30
+        }
+      ]
+    },
+    {
+      "package": "@stapel/webhooks-react",
+      "version": "0.0.0",
+      "entries": [
+        {
+          "id": "webhooks.overview",
+          "labelKey": "webhooks.nav.overview",
+          "icon": "AppstoreOutlined",
+          "route": {
+            "path": "webhooks"
+          },
+          "component": {
+            "export": "WebhooksPanel",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 50
+        }
+      ]
+    },
+    {
+      "package": "@stapel/workspaces-react",
+      "version": "0.17.0",
+      "entries": [
+        {
+          "id": "workspaces.list",
+          "labelKey": "workspaces.nav.workspaces",
+          "icon": "AppstoreOutlined",
+          "route": {
+            "path": "workspaces"
+          },
+          "component": {
+            "export": "WorkspacesPage",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "account.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 10
+        },
+        {
+          "id": "workspaces.invite",
+          "labelKey": "workspaces.nav.invite",
+          "icon": "MessageOutlined",
+          "route": {
+            "path": "/invite/:token"
+          },
+          "component": {
+            "export": "InviteAcceptPage",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": false,
+          "requiresAuth": false,
+          "surface": "public",
+          "order": 0
         }
       ]
     }

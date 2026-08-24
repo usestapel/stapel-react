@@ -1,7 +1,7 @@
 /**
  * `<DsarQueue>` — the staff triage table for data-subject requests.
  *
- * FOUR arms from `matchList` plus one the ordinary list shapes do not have:
+ * FOUR arms from the substrate's `LoadList` plus one no ordinary list has:
  * the **staff refusal**. `GET /dsar` is `AllowAny` at the view level (the POST
  * beside it must accept an anonymous form), so its staff check is hand-rolled
  * in the handler and comes back as a generic `error.403.forbidden`. Rendered
@@ -28,28 +28,21 @@
  */
 import { useState } from "react";
 import type { ReactElement } from "react";
+import { Alert, Card, Flex, Input, Select, Table, Tag, Typography } from "antd";
+import { spacing } from "@stapel/tokens";
 import {
-  Alert,
-  Button,
-  Card,
-  Empty,
-  Flex,
-  Input,
-  Select,
-  Skeleton,
-  Table,
-  Tag,
-  Typography,
-} from "antd";
-import { matchList, useDescribeFlowError, useI18n, useT } from "@stapel/core";
+  EmptyState,
+  ErrorAlert,
+  GatedButton,
+  LoadList,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
+import { actionAvailable, actionBlocked, useI18n, useT } from "@stapel/core";
 import type { DsarState, DsarStatus } from "../../api/types.js";
-import { toFlowError } from "../../flows/errors.js";
 import { GDPR_I18N_KEYS } from "../../i18n/keys.js";
 import { formatInstant } from "../../model/dates.js";
 import { useDsarQueue, useUpdateDsar } from "../../model/dsar.js";
 import { isStaffOnly } from "../../model/refusals.js";
-import { ErrorAlert } from "../ErrorAlert.js";
-import { GdprSkinTheme } from "../theme.js";
 import type { ThemeModeProp } from "../types.js";
 
 export type DsarQueueProps = ThemeModeProp;
@@ -89,7 +82,6 @@ function channelKeyFor(channel: string): string {
 export function DsarQueue(props: DsarQueueProps): ReactElement {
   const t = useT();
   const { locale } = useI18n();
-  const describe = useDescribeFlowError();
   const bag = useDsarQueue();
   const update = useUpdateDsar();
   const [noteDraft, setNoteDraft] = useState<Record<number, string>>({});
@@ -191,7 +183,7 @@ export function DsarQueue(props: DsarQueueProps): ReactElement {
         // edit in the audit trail that edited nothing.
         const unchanged = draft === saved;
         return (
-          <Flex gap={4}>
+          <Flex gap={spacing[1]}>
             <Input
               size="small"
               aria-label={t(GDPR_I18N_KEYS.dsarNoteLabel)}
@@ -203,9 +195,13 @@ export function DsarQueue(props: DsarQueueProps): ReactElement {
                 }))
               }
             />
-            <Button
+            <GatedButton
+              gate={
+                unchanged
+                  ? actionBlocked(GDPR_I18N_KEYS.queueNoteUnchanged)
+                  : actionAvailable()
+              }
               size="small"
-              disabled={unchanged}
               data-analytics="none"
               data-analytics-reason="staff triage write — host app wraps with its own tracked()"
               onClick={() =>
@@ -213,7 +209,7 @@ export function DsarQueue(props: DsarQueueProps): ReactElement {
               }
             >
               {t(GDPR_I18N_KEYS.queueSaveNote)}
-            </Button>
+            </GatedButton>
           </Flex>
         );
       },
@@ -221,19 +217,22 @@ export function DsarQueue(props: DsarQueueProps): ReactElement {
   ];
 
   return (
-    <GdprSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
+    <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
       <Card
         data-testid="gdpr-queue"
         title={t(GDPR_I18N_KEYS.queueHeading)}
         size="small"
       >
-        {matchList(bag.rows, {
-          loading: () => (
-            <div data-testid="gdpr-queue-loading">
-              <Skeleton active paragraph={{ rows: 3 }} />
-            </div>
-          ),
-          failed: (error) =>
+        <LoadList
+          state={bag.rows}
+          testId="gdpr-queue"
+          skeletonRows={3}
+          onRetry={bag.refetch}
+          // The one arm the substrate cannot design for us: a 403 here is not
+          // a fault, it is a person signed in with the wrong account, and the
+          // screen says so by NAME rather than showing them an operations
+          // failure they cannot act on.
+          failed={(error) =>
             isStaffOnly(error) ? (
               <Alert
                 type="info"
@@ -244,27 +243,20 @@ export function DsarQueue(props: DsarQueueProps): ReactElement {
             ) : (
               <ErrorAlert
                 testId="gdpr-queue-failed"
-                error={describe(toFlowError(error))}
-                action={
-                  <Button
-                    size="small"
-                    onClick={bag.refetch}
-                    data-analytics="none"
-                    data-analytics-reason="recovery affordance for a failed read — host app wraps with its own tracked()"
-                  >
-                    {t(GDPR_I18N_KEYS.retry)}
-                  </Button>
-                }
+                thrown={error}
+                onRetry={bag.refetch}
               />
-            ),
-          empty: () => (
-            <Empty
-              data-testid="gdpr-queue-empty"
-              description={t(GDPR_I18N_KEYS.queueEmpty)}
+            )
+          }
+          empty={
+            <EmptyState
+              testId="gdpr-queue-empty"
+              title={t(GDPR_I18N_KEYS.queueEmpty)}
             />
-          ),
-          ready: (rows) => (
-            <Flex vertical gap={8}>
+          }
+        >
+          {(rows) => (
+            <Flex vertical gap={spacing[2]}>
               {bag.ackOverdue.length > 0 ? (
                 <Alert
                   type="error"
@@ -284,9 +276,9 @@ export function DsarQueue(props: DsarQueueProps): ReactElement {
                 scroll={{ x: true }}
               />
             </Flex>
-          ),
-        })}
+          )}
+        </LoadList>
       </Card>
-    </GdprSkinTheme>
+    </SkinTheme>
   );
 }

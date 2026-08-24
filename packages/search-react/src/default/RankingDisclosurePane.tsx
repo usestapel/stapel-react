@@ -8,13 +8,18 @@
  * shipping.
  */
 import type { ReactElement } from "react";
-import { Empty, Flex, List, Spin, Tag, Typography } from "antd";
-import { matchList, toFlowError, useDescribeFlowError, useT } from "@stapel/core";
+import { Flex, List, Tag, Typography } from "antd";
+import { useT } from "@stapel/core";
+import {
+  EmptyState,
+  ErrorAlert,
+  LoadList,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
+import { fontSize, spacing } from "@stapel/tokens";
 import type { Scorer } from "../api/types.js";
 import { RankingDisclosure } from "../headless/RankingDisclosure.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
-import { ErrorAlert } from "./ErrorAlert.js";
-import { SearchSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
 export interface RankingDisclosurePaneProps extends ThemeModeProp {
@@ -22,17 +27,26 @@ export interface RankingDisclosurePaneProps extends ThemeModeProp {
   readonly type?: string;
 }
 
+/**
+ * The widest a disclosure column may grow. A statutory text is a READING
+ * surface: past this it stops being a paragraph and becomes a banner.
+ */
+export const RANKING_MAX_WIDTH = 720;
+
 export function RankingDisclosurePane(
   props: RankingDisclosurePaneProps
 ): ReactElement {
   const t = useT();
-  const describe = useDescribeFlowError();
 
   return (
-    <SearchSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
+    <SkinTheme
+      surface="base"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+      style={{ width: "100%", maxWidth: RANKING_MAX_WIDTH }}
+    >
       <RankingDisclosure {...(props.type !== undefined ? { type: props.type } : {})}>
         {(bag) => (
-          <Flex vertical gap={12} data-testid="search-ranking">
+          <Flex vertical gap={spacing[3]} data-testid="search-ranking">
             <Typography.Title level={4} style={{ margin: 0 }}>
               {t(SEARCH_I18N_KEYS.rankingTitle)}
             </Typography.Title>
@@ -40,35 +54,35 @@ export function RankingDisclosurePane(
               {t(SEARCH_I18N_KEYS.rankingIntro)}
             </Typography.Paragraph>
 
-            {matchList(bag.state, {
-              loading: () => (
-                <Flex justify="center" style={{ padding: 16 }}>
-                  <Spin data-testid="ranking-loading" />
-                </Flex>
-              ),
-              failed: (error) => (
+            <LoadList
+              state={bag.state}
+              testId="ranking"
+              skeletonRows={4}
+              onRetry={bag.refetch}
+              empty={
+                <EmptyState
+                  compact
+                  title={t(SEARCH_I18N_KEYS.rankingEmpty)}
+                  testId="ranking-empty"
+                />
+              }
+              failed={(error) => (
                 <ErrorAlert
                   testId="ranking-failed"
-                  error={{
-                    ...describe(toFlowError(error)),
-                    message: t(SEARCH_I18N_KEYS.rankingLoadFailed),
-                  }}
+                  thrown={error}
+                  message={t(SEARCH_I18N_KEYS.rankingLoadFailed)}
+                  onRetry={bag.refetch}
                 />
-              ),
-              empty: () => (
-                <Empty
-                  data-testid="ranking-empty"
-                  description={t(SEARCH_I18N_KEYS.rankingEmpty)}
-                />
-              ),
-              ready: (scorers) => (
+              )}
+            >
+              {(scorers) => (
                 <List<Scorer>
                   data-testid="ranking-list"
                   dataSource={[...scorers]}
                   renderItem={(scorer) => (
                     <List.Item key={scorer.slug} data-scorer={scorer.slug}>
-                      <Flex vertical gap={2} style={{ width: "100%" }}>
-                        <Flex justify="space-between" align="center" gap={8}>
+                      <Flex vertical gap={spacing[1]} style={{ width: "100%" }}>
+                        <Flex justify="space-between" align="center" gap={spacing[2]}>
                           <Typography.Text strong>
                             {t(scorer.description_key)}
                           </Typography.Text>
@@ -77,7 +91,10 @@ export function RankingDisclosurePane(
                         <Typography.Text type="secondary">
                           {scorer.description}
                         </Typography.Text>
-                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        <Typography.Text
+                          type="secondary"
+                          style={{ fontSize: fontSize.xs.fontSize }}
+                        >
                           {t(SEARCH_I18N_KEYS.rankingAppliesTo)}
                           {": "}
                           {scorer.applies_to_sorts.join(", ")}
@@ -93,11 +110,11 @@ export function RankingDisclosurePane(
                     </List.Item>
                   )}
                 />
-              ),
-            })}
+              )}
+            </LoadList>
 
             {bag.notes.length > 0 && (
-              <Flex vertical gap={2}>
+              <Flex vertical gap={spacing[1]}>
                 <Typography.Text strong>
                   {t(SEARCH_I18N_KEYS.rankingNotes)}
                 </Typography.Text>
@@ -111,6 +128,6 @@ export function RankingDisclosurePane(
           </Flex>
         )}
       </RankingDisclosure>
-    </SearchSkinTheme>
+    </SkinTheme>
   );
 }

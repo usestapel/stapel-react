@@ -10,26 +10,26 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Overridable serializer seams for API views.
+         * @description Turns an unaskable plan ceiling into 503 for the whole view.
          *
-         *     Subclasses (or downstream projects) can swap the request/response
-         *     serializers without copying method bodies:
-         *
-         *         class MyWorkspaceDetailView(WorkspaceDetailView):
-         *             response_serializer_class = MyWorkspaceResponseSerializer
+         *     Mixed in rather than written as an ``except`` at each call site because
+         *     the seam is consulted from views AND from inside ``services`` under the
+         *     workspace lock, and the set of call sites grows: a view that gains a
+         *     method later inherits the mapping instead of re-deriving it. The 402
+         *     denials stay per-call-site — those carry a limit the screen renders.
          *
          *     **Permissions:** `IsAuthenticated`
          */
         get: operations["workspaces_api_v1_retrieve"];
         put?: never;
         /**
-         * @description Overridable serializer seams for API views.
+         * @description Turns an unaskable plan ceiling into 503 for the whole view.
          *
-         *     Subclasses (or downstream projects) can swap the request/response
-         *     serializers without copying method bodies:
-         *
-         *         class MyWorkspaceDetailView(WorkspaceDetailView):
-         *             response_serializer_class = MyWorkspaceResponseSerializer
+         *     Mixed in rather than written as an ``except`` at each call site because
+         *     the seam is consulted from views AND from inside ``services`` under the
+         *     workspace lock, and the set of call sites grows: a view that gains a
+         *     method later inherits the mapping instead of re-deriving it. The 402
+         *     denials stay per-call-site — those carry a limit the screen renders.
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -62,13 +62,13 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * @description Overridable serializer seams for API views.
+         * @description End a workspace — the transition itself lives in the service.
          *
-         *     Subclasses (or downstream projects) can swap the request/response
-         *     serializers without copying method bodies:
-         *
-         *         class MyWorkspaceDetailView(WorkspaceDetailView):
-         *             response_serializer_class = MyWorkspaceResponseSerializer
+         *     The view's whole job here is authority (owner, and only owner) and
+         *     turning the service's typed refusal back into the keyed 409 the
+         *     frontend routes on. The write, the event and the audit line are one
+         *     indivisible act in ``services.delete_workspace``, because a second
+         *     door into this transition is a second chance to forget the record.
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -480,13 +480,13 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Overridable serializer seams for API views.
+         * @description Turns an unaskable plan ceiling into 503 for the whole view.
          *
-         *     Subclasses (or downstream projects) can swap the request/response
-         *     serializers without copying method bodies:
-         *
-         *         class MyWorkspaceDetailView(WorkspaceDetailView):
-         *             response_serializer_class = MyWorkspaceResponseSerializer
+         *     Mixed in rather than written as an ``except`` at each call site because
+         *     the seam is consulted from views AND from inside ``services`` under the
+         *     workspace lock, and the set of call sites grows: a view that gains a
+         *     method later inherits the mapping instead of re-deriving it. The 402
+         *     denials stay per-call-site — those carry a limit the screen renders.
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -520,7 +520,8 @@ export interface paths {
          *     Gate stack, in order: HIGH step-up (``@requires_verification``, scope
          *     ``sensitive`` — the same store as admin step-up) → capability
          *     ``members.provision`` (403) → entitlement ``workspaces.provision_user``
-         *     (402; degrades to allow without billing) → optional per-user debit
+         *     (402; an unreachable billing answers 503, not allow) → optional
+         *     per-user debit
          *     (``STAPEL_WORKSPACES["PROVISION_USER_CREDITS"]`` > 0).
          *
          *     Credentials: a synthetic account normally has no email — when the
@@ -653,6 +654,11 @@ export interface paths {
          *     NOT consumed here: accept stays a separate, deliberate step after
          *     setup. Neither the invite token nor the grant token is ever logged.
          *
+         *     ONE live grant at a time (WORK-03): while the previous grant is inside
+         *     its TTL this answers 429 ``error.429.invitation_grant_pending`` with a
+         *     ``Retry-After``, so a leaked invite link cannot be replayed into an
+         *     endless supply of sign-in credentials for the invited mailbox.
+         *
          *     **Permissions:** `AllowAny`
          */
         post: operations["workspaces_api_v1_invitations_claim_create"];
@@ -674,11 +680,36 @@ export interface paths {
         /**
          * @description Decline an invitation — the invitee's terminal "no" (spec §B2).
          *
-         *     Authenticated + email-match, exactly like accept: only the invited
-         *     account may resolve the invitation, in either direction. Decline ≠
-         *     revoke — both states stay distinguishable in the preview ``status``.
+         *     AllowAny, on the token, exactly like preview and claim — and this is a
+         *     CHANGE from the original authenticated-only rule, made because that rule
+         *     made the common "no" impossible to say.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     Saying no used to require an account. The invitee who has none is the
+         *     majority case on this path (that is why ``claim`` exists at all), so
+         *     declining meant first creating the very account the person was declining
+         *     to create: the flow asked for the commitment before the decision, and
+         *     the refusal left a live, empty account behind it. Verified on the stand.
+         *
+         *     The token is the proof, and it is the same proof the module already
+         *     accepts elsewhere for strictly more: ``claim`` takes this token from an
+         *     anonymous caller and mints a LOGIN GRANT for the invited mailbox.
+         *     Anything a token holder could do by declining, they could already do —
+         *     and more — by claiming. What the token cannot do is act as somebody
+         *     else: a request that arrives WITH a session naming an address must still
+         *     be the invited address, so a signed-in person cannot resolve an
+         *     invitation belonging to someone else. That check is unchanged.
+         *
+         *     A session with no address at all (a guest session — this product mints
+         *     them at meeting doors) is treated as the anonymous case rather than as a
+         *     mismatched account: it names nobody, so it can neither prove nor
+         *     disprove ownership, and the token stands on its own. Before this it was
+         *     refused outright by ``ANONYMOUS_DENIED``, which is how a guest who was
+         *     also an invitee could not decline at all.
+         *
+         *     Decline ≠ revoke — both states stay distinguishable in the preview
+         *     ``status``. Throttled and token-never-logged like its AllowAny siblings.
+         *
+         *     **Permissions:** `AllowAny`
          */
         post: operations["workspaces_api_v1_invitations_decline_create"];
         delete?: never;
@@ -697,13 +728,13 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Overridable serializer seams for API views.
+         * @description Turns an unaskable plan ceiling into 503 for the whole view.
          *
-         *     Subclasses (or downstream projects) can swap the request/response
-         *     serializers without copying method bodies:
-         *
-         *         class MyWorkspaceDetailView(WorkspaceDetailView):
-         *             response_serializer_class = MyWorkspaceResponseSerializer
+         *     Mixed in rather than written as an ``except`` at each call site because
+         *     the seam is consulted from views AND from inside ``services`` under the
+         *     workspace lock, and the set of call sites grows: a view that gains a
+         *     method later inherits the mapping instead of re-deriving it. The 402
+         *     denials stay per-call-site — those carry a limit the screen renders.
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -999,6 +1030,46 @@ export interface components {
              */
             last_sent_at?: string | null;
         };
+        /** @description How far the workspace's require_mfa policy has actually got. */
+        MFAEnforcementStatus: {
+            /**
+             * @description pending / enforcing / enforced / failed. Only "enforced" means every active member's second factor has been confirmed — a settings flag saying require_mfa=true says somebody asked for it, not that it holds
+             * @example enforcing
+             */
+            state: string;
+            /**
+             * @description How many sweeps have run since the policy was switched on
+             * @example 3
+             */
+            attempts?: number;
+            /**
+             * @description Members auth answered about in the last sweep
+             * @example 12
+             */
+            checked_members?: number;
+            /**
+             * @description Of those, members with no strong factor — suspended with reason no_mfa
+             * @example 2
+             */
+            noncompliant_members?: number;
+            /**
+             * @description Active members whose factor nobody has confirmed yet. They are NOT admitted while the policy is on; this is the number an administrator has to get to zero
+             * @example 1
+             */
+            unverified_members?: number;
+            /**
+             * @description ISO 8601 time of the last sweep; null before the first
+             * @example 2026-08-11T10:00:00Z
+             */
+            last_attempt_at?: string | null;
+            /** @description ISO 8601 time coverage last became complete; null while it is not */
+            completed_at?: string | null;
+            /**
+             * @description What auth answered when the last sweep failed, verbatim; empty otherwise. Never credential material
+             * @example FunctionCallError: mfa_status timed out
+             */
+            last_error?: string;
+        };
         /** @description Invite payload. */
         MemberInviteRequest: {
             /**
@@ -1109,6 +1180,11 @@ export interface components {
              * @example Ada Lovelace
              */
             display_name?: string | null;
+            /**
+             * @description Whether this member was PROVEN to hold a strong second factor — true, false, or null for "nobody has asked yet". Under a require_mfa policy the null is what an administrator acts on: those members are not admitted until the answer arrives
+             * @example true
+             */
+            mfa_compliant?: boolean | null;
         };
         PaginatedAuditEventResponseList: {
             items: components["schemas"]["AuditEventResponse"][];
@@ -1396,6 +1472,15 @@ export interface components {
              * @example Victor P.
              */
             owner_display_name?: string;
+            /** @description State of the security.require_mfa policy — present on the single-workspace responses (GET/PATCH detail) when the policy is on, null otherwise. The settings block says what was asked for; this says what actually holds, so an administrator who switched MFA on is not told "done" while half the organization was never checked */
+            mfa_enforcement?: components["schemas"]["MFAEnforcementStatus"] | null;
+            /** @description Whether THIS caller may delete THIS workspace right now. The ANSWER, not the inputs: a client deriving it from my_role alone draws a delete button on the instance's default workspace and on a personal workspace the next sign-in re-mints — both of which the endpoint refuses, which is the "button that leads to a refusal" defect. Same shape and same reason as can_create_workspace on the list response */
+            can_delete?: boolean;
+            /**
+             * @description The error code the DELETE would return, or "" when can_delete is true. The CODE rather than a sentence, so the client renders the refusal in the caller's own language through the error map it already ships. Server verdict and screen explanation are ONE evaluation (services.deletion_block_reason), so a screen cannot promise what the endpoint denies
+             * @example error.409.workspace_is_instance_default
+             */
+            delete_blocked_reason?: string;
         };
     };
     responses: never;

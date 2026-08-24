@@ -29,6 +29,7 @@
  */
 import type { ReactElement } from "react";
 import { Alert, Flex, Typography } from "antd";
+import { fontSize, spacing } from "@stapel/tokens";
 import { useT } from "@stapel/core";
 import type { SearchDegradation } from "../api/types.js";
 import { isCountNuanceOnly } from "../state/degradations.js";
@@ -72,11 +73,11 @@ export function DegradationNotice(
 
   if (variant === "inline") {
     return (
-      <Flex vertical gap={2} data-testid="search-degraded" data-variant="inline">
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+      <Flex vertical gap={spacing[1]} data-testid="search-degraded" data-variant="inline">
+        <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
           {t(SEARCH_I18N_KEYS.degradedTitle)}
         </Typography.Text>
-        <ul style={{ margin: 0, paddingInlineStart: 20, fontSize: 12 }}>
+        <ul style={{ margin: 0, paddingInlineStart: spacing[5], fontSize: fontSize.xs.fontSize }}>
           {lines}
         </ul>
       </Flex>
@@ -91,7 +92,7 @@ export function DegradationNotice(
       data-variant="banner"
       message={t(SEARCH_I18N_KEYS.degradedTitle)}
       description={
-        <ul style={{ margin: 0, paddingInlineStart: 20 }}>{lines}</ul>
+        <ul style={{ margin: 0, paddingInlineStart: spacing[5] }}>{lines}</ul>
       }
     />
   );

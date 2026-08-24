@@ -83,6 +83,7 @@ export const CALENDAR_ERRORS = {
   "error.429.rate_limit": { status: 429, params: ["retry_after_minutes"], remediation: "wait_and_retry", en: "Too many attempts. Try again in {retry_after_minutes} minutes." },
   "error.429.too_many_requests": { status: 429, params: [], remediation: "wait_and_retry", en: "Too many requests. Please try again later." },
   "error.500.internal": { status: 500, params: [], remediation: "contact_support", en: "Something went wrong" },
+  "error.503.mandate_unavailable": { status: 503, params: [], remediation: "retry", en: "Cannot verify workspace mandate right now" },
 } as const;
 
 export type CalendarErrorCode = keyof typeof CALENDAR_ERRORS;
@@ -137,6 +138,7 @@ export const CALENDAR_ERROR_CODES: readonly CalendarErrorCode[] = [
   "error.429.rate_limit",
   "error.429.too_many_requests",
   "error.500.internal",
+  "error.503.mandate_unavailable",
 ];
 
 /**
@@ -193,4 +195,5 @@ export const calendarErrorBundleEn: Record<CalendarErrorCode, string> = {
   "error.429.rate_limit": "Too many attempts. Try again in {retry_after_minutes} minutes.",
   "error.429.too_many_requests": "Too many requests. Please try again later.",
   "error.500.internal": "Something went wrong",
+  "error.503.mandate_unavailable": "Cannot verify workspace mandate right now",
 };

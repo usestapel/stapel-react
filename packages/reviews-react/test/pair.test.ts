@@ -33,22 +33,48 @@ describe("query keys (frontend-standard §2 — namespaced)", () => {
   });
 });
 
-describe("the api surface stops where a browser's rights stop", () => {
-  it("carries no moderate or respond operation", () => {
+describe("the api surface covers the whole contract", () => {
+  it("carries one method per endpoint stapel-reviews declares", () => {
     const api = createReviewsApi(
       createReviewsRuntime({ baseUrl: "/reviews/api/v1", fetch: mockServer({}).fetch })
         .client
     );
-    // Both are gated on the target type's fail-closed can_moderate callback
-    // and belong to consoles this pair does not ship (spec §4.4).
-    expect(api).not.toHaveProperty("moderateReview");
-    expect(api).not.toHaveProperty("respond");
+    // This assertion used to say the opposite — that `moderate` and `respond`
+    // were deliberately absent because they belong to consoles the pair does
+    // not ship. The consequence was that stapel-reviews' moderation queue and
+    // the seller's single reply existed on no screen anywhere in the fleet.
+    // The server is the authority (the can_moderate callback is fail-closed),
+    // so what the client owes is not omission but a state-gated control.
     expect(Object.keys(api).sort()).toEqual([
       "aggregate",
       "client",
       "createReview",
+      "moderate",
+      "respond",
       "reviews",
     ]);
+  });
+
+  it("addresses one review by id, and escapes the id it was given", async () => {
+    const server = mockServer({ "/moderate": { body: review() } });
+    const runtime = createReviewsRuntime({
+      baseUrl: "/reviews/api/v1",
+      fetch: server.fetch,
+    });
+    await runtime.api.moderate("a b/c", { action: "hide", reason: "spam" });
+    expect(server.calls[0]?.url).toContain("/reviews/a%20b%2Fc/moderate");
+    expect(server.calls[0]?.method).toBe("POST");
+    expect(server.calls[0]?.body).toEqual({ action: "hide", reason: "spam" });
+  });
+
+  it("spells an omitted moderation reason ONE way on the wire", async () => {
+    const server = mockServer({ "/moderate": { body: review() } });
+    const runtime = createReviewsRuntime({
+      baseUrl: "/reviews/api/v1",
+      fetch: server.fetch,
+    });
+    await runtime.api.moderate("r1", { action: "publish", reason: "" });
+    expect(server.calls[0]?.body).toEqual({ action: "publish" });
   });
 
   it("addresses the aggregate and the list as two different paths", async () => {

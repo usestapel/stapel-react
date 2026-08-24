@@ -105,11 +105,12 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
-- listings.card → <ListingCard> [default|visitor]  demo/ListingCard.demo.tsx
-- listings.composer → <ListingComposerPage> [default|photos-in-flight|unsupported-type]  demo/ListingComposer.demo.tsx
-- listings.detail → <ListingDetailPane> [default|owner]  demo/ListingDetail.demo.tsx
-- listings.favorites → <FavoritesPane> [default|empty|failed|visitor]  demo/Favorites.demo.tsx
-- listings.mine → <MyListingsPane> [default|taken-down]  demo/MyListings.demo.tsx
+- listings.card → <ListingCard> [default|saved|visitor|no-photo]  demo/ListingCard.demo.tsx
+- listings.composer → <ListingComposerPage> [default|unwired|photos-in-flight|unsupported-type]  demo/ListingComposer.demo.tsx
+- listings.detail → <ListingDetailPane> [default|contact-unwired|owner|not-found]  demo/ListingDetail.demo.tsx
+- listings.favorites → <FavoritesPane> [default|paged|empty|failed|visitor]  demo/Favorites.demo.tsx
+- listings.mine → <MyListingsPane> [default|no-editor|taken-down|visitor|failed]  demo/MyListings.demo.tsx
+- listings.parts → <ListingStatusBlock> [default|tags|notes|media|door]  demo/ListingParts.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

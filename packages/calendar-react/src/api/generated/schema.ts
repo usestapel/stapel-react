@@ -81,7 +81,7 @@ export interface paths {
         /**
          * @description Retrieve/update/delete a single event (mutations owner-only).
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `HasWorkspaceMandateIfScoped`
          */
         get: operations["calendar_api_v1_events_retrieve"];
         put?: never;
@@ -89,7 +89,7 @@ export interface paths {
         /**
          * @description Retrieve/update/delete a single event (mutations owner-only).
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `HasWorkspaceMandateIfScoped`
          */
         delete: operations["calendar_api_v1_events_destroy"];
         options?: never;
@@ -97,7 +97,7 @@ export interface paths {
         /**
          * @description Retrieve/update/delete a single event (mutations owner-only).
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `HasWorkspaceMandateIfScoped`
          */
         patch: operations["calendar_api_v1_events_partial_update"];
         trace?: never;
@@ -112,7 +112,7 @@ export interface paths {
         /**
          * @description Export an event (series RRULE included) as an RFC 5545 .ics file.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `HasWorkspaceMandateIfScoped`
          */
         get: operations["calendar_api_v1_events_ics_retrieve"];
         put?: never;
@@ -134,7 +134,7 @@ export interface paths {
         /**
          * @description Replace an event's participant set (replace-set semantics, owner-only).
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         put: operations["calendar_api_v1_events_participants_update"];
         post?: never;
@@ -156,7 +156,7 @@ export interface paths {
         /**
          * @description Record the requesting user's RSVP to an event.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         post: operations["calendar_api_v1_events_respond_create"];
         delete?: never;
@@ -175,7 +175,7 @@ export interface components {
             busy?: components["schemas"]["IntervalResponse"][];
             /** @description Open booking slots (empty if no availability windows set) */
             slots?: components["schemas"]["IntervalResponse"][];
-            /** @description True when a series expansion hit the */
+            /** @description True when a series expansion hit MAX_EXPANSION_OCCURRENCES inside the range, so later times in this answer only LOOK free — show the reader that the answer is incomplete rather than presenting it as availability */
             truncated?: boolean;
         };
         /** @description A user's calendar over a range: concrete events + expanded occurrences. */
@@ -351,7 +351,14 @@ export type $defs = Record<string, never>;
 export interface operations {
     calendar_api_v1_availability_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Inclusive end of the range (ISO 8601). Defaults to now + DEFAULT_EXPANSION_HORIZON_DAYS (90 by default). An end before start is 400 error.400.calendar_invalid_range. */
+                end?: string;
+                /** @description Length of a bookable slot, in minutes. Must be >= 1 — zero or negative is 400 error.400.calendar_invalid_slot_minutes, not a clamped value. Defaults to DEFAULT_SLOT_MINUTES (30). */
+                slot_minutes?: number;
+                /** @description Inclusive start of the range (ISO 8601; naive values are read in the server's timezone). Defaults to now. */
+                start?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -370,7 +377,12 @@ export interface operations {
     };
     calendar_api_v1_calendar_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Inclusive end of the range (ISO 8601). Defaults to now + DEFAULT_EXPANSION_HORIZON_DAYS (90 by default). An end before start is 400 error.400.calendar_invalid_range. */
+                end?: string;
+                /** @description Inclusive start of the range (ISO 8601; naive values are read in the server's timezone). Defaults to now. */
+                start?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -389,7 +401,12 @@ export interface operations {
     };
     calendar_api_v1_events_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Inclusive end of the range (ISO 8601). Defaults to now + DEFAULT_EXPANSION_HORIZON_DAYS (90 by default). An end before start is 400 error.400.calendar_invalid_range. */
+                end?: string;
+                /** @description Inclusive start of the range (ISO 8601; naive values are read in the server's timezone). Defaults to now. */
+                start?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;

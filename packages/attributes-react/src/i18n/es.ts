@@ -21,17 +21,20 @@ export const attributesI18nBundleEs: I18nDictionary = {
   "error.400.description_too_short": "La descripción debe tener al menos {min_length} caracteres",
   "error.400.description_too_long": "La descripción debe tener como máximo {max_length} caracteres",
 
-  "attributes.unsupported_type":
-    "Esta versión no incluye un editor para el tipo de atributo «{type}», así que no se puede rellenar aquí.",
+  "attributes.unsupported_type": "Este detalle todavía no se puede rellenar aquí.",
   "attributes.submit.blocked.unsupported_type":
-    "Algunos atributos no se pueden rellenar en esta página: {types}",
-  "attributes.untyped_feature": "Este atributo no declara ningún tipo y no se puede editar.",
+    "Algunos detalles no se pueden rellenar en esta página: {features}",
+  "attributes.submit.blocked.invalid": "Revisa los campos marcados antes de continuar.",
+  "attributes.untyped_feature": "Este detalle está mal configurado y no se puede rellenar.",
   "attributes.value.not_set": "Sin especificar",
-  "attributes.value.unreadable": "Esta versión no muestra valores de tipo «{type}»",
+  "attributes.value.unreadable": "Este valor no se puede mostrar aquí",
   "attributes.bool.yes": "Sí",
   "attributes.bool.no": "No",
   "attributes.select.placeholder": "Elegir",
-  "attributes.required": "Obligatorio",
+  "attributes.locked": "Lo define el catálogo: no se puede cambiar aquí.",
+  "attributes.select.min_selected": "Elige al menos {count}.",
+  "attributes.color.exact": "Tono exacto",
+  "attributes.unit": "Unidad",
 };
 
 /** Register the `es` bundle. Call AFTER `registerAttributesI18n` so it

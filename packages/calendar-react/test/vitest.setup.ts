@@ -20,3 +20,27 @@ configure({ asyncUtilTimeout: 10_000 });
 afterEach(() => {
   cleanup();
 });
+
+// jsdom ships no `matchMedia`, and the shared skin substrate reads one to
+// decide its dialog surface and its phone control height — a rule that must
+// hold on the FIRST render, so it cannot be deferred to an effect. Without
+// this stub every `SkinTheme`/`SkinDialog` render throws. The default answer
+// is the phone side (no query matches), which is the side worth testing by
+// default; a test that wants desktop overrides `window.innerWidth` and this
+// evaluates `(min-width: N)` against it.
+if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
+  window.matchMedia = ((query: string) => {
+    const min = /\(min-width:\s*(\d+)px\)/.exec(query);
+    const matches = min !== null ? window.innerWidth >= Number(min[1]) : false;
+    return {
+      matches,
+      media: query,
+      onchange: null,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      dispatchEvent: () => false,
+    };
+  }) as typeof window.matchMedia;
+}

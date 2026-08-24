@@ -1,96 +1,92 @@
 /**
  * `<ReviewListPanel>` — the antd rendering of the review list.
  *
- * Two things it says out loud that a naive list would swallow:
+ * Four things it says out loud that a naive list would swallow:
  *
  * 1. A row that is not `published` carries a badge naming its state. It is on
  *    screen only because a moderator asked for `include=all`, and a pending
  *    or hidden review that looked like an ordinary one would misrepresent
  *    what the public can see.
- * 2. The author is a SLOT. The wire carries `author_id` and nothing else — no
+ * 2. `include=all` is narrowed SILENTLY for a non-moderator, so when the pane
+ *    asked for every review and nothing on screen proves it got them, it says
+ *    so (`ScopeNotice`) instead of showing a short list as if it were whole.
+ * 3. The author is a SLOT. The wire carries `author_id` and nothing else — no
  *    name, no avatar — so the skin renders a neutral label unless the host
  *    passes `renderAuthor`. Printing a raw user id would be both useless to a
  *    reader and a gratuitous disclosure.
+ * 4. The DATE is not a slot any more. It used to be, and the result was a
+ *    review list with no dates in it anywhere the host had not written a
+ *    formatter — so the pair ships a short absolute date in the reader's
+ *    locale (`model/dates.ts`) and the slot survives on top for a host that
+ *    wants relative time.
+ *
+ * The seller's reply is `<ReviewResponseComposer>`, which both shows the
+ * existing reply and — for a viewer the host declares the owner — writes the
+ * one that does not exist yet.
  */
 import type { ReactElement, ReactNode } from "react";
-import { Button, Card, Empty, Flex, List, Rate, Skeleton, Tag, Typography } from "antd";
-import {
-  matchLoad,
-  toFlowError,
-  useActionGate,
-  useDescribeFlowError,
-  useT,
-} from "@stapel/core";
+import { Flex, List, Rate, Typography } from "antd";
+import { useT } from "@stapel/core";
+import type { SignInCta, SignInCtaProp } from "@stapel/core";
+import { EmptyState, LoadList, SkinTheme } from "@stapel/tokens-antd/skin";
+import { spacing } from "@stapel/tokens";
 import type { Review, ReviewTarget } from "../api/types.js";
 import { ReviewList } from "../headless/ReviewList.js";
-import type { ReviewListBag } from "../headless/ReviewList.js";
 import { REVIEWS_I18N_KEYS } from "../i18n/keys.js";
-import { reviewVisibility } from "../model/list.js";
 import { useReviewsRuntime } from "../model/context.js";
-import { ErrorAlert } from "./ErrorAlert.js";
-import { ReviewsSkinTheme } from "./theme.js";
+import { useReviewDateFormat } from "../model/dates.js";
+import { MoreButton, ScopeNotice, VisibilityTag } from "./listParts.js";
+import { ReviewResponseComposer } from "./ReviewResponseComposer.js";
 import type { ThemeModeProp } from "./types.js";
 
-export interface ReviewListPanelProps extends ThemeModeProp {
+export interface ReviewListPanelProps extends ThemeModeProp, SignInCtaProp {
   readonly target: ReviewTarget;
-  /** Ask for pending/hidden rows (granted only to a moderator of the target). */
+  /**
+   * Ask for pending/hidden rows. Granted only to a moderator of the target and
+   * narrowed to published-only for anyone else WITHOUT an error — which is why
+   * passing it also arms the narrowing notice (see {@link canModerate}).
+   */
   readonly include?: "all";
+  /**
+   * Does the host believe this viewer moderates this target? Read here only to
+   * suppress the narrowing notice for a moderator whose target simply has no
+   * hidden rows. The verdict CONTROLS live in `<ReviewModerationPanel>`.
+   */
+  readonly canModerate?: boolean;
+  /** Does the host believe this viewer owns the reviewed item? Arms the reply
+   * composer under every review that has no reply yet. */
+  readonly canRespond?: boolean;
   readonly limit?: number;
   /** Turn `author_id` into something a reader recognises. See the header. */
   readonly renderAuthor?: (review: Review) => ReactNode;
-  /** Format `created_at`. Absent means the raw ISO string is NOT shown. */
+  /** Override the pair's short absolute date (e.g. with relative time). */
   readonly renderDate?: (review: Review) => ReactNode;
-}
-
-/** The badge a non-published row carries. `null` for an ordinary review. */
-function VisibilityTag(props: { status: string }): ReactElement | null {
-  const t = useT();
-  const visibility = reviewVisibility(props.status);
-  if (visibility === "published") return null;
-  if (visibility === "pending") {
-    return (
-      <Tag color="warning" data-testid="reviews-row-pending">
-        {t(REVIEWS_I18N_KEYS.statusPending)}
-      </Tag>
-    );
-  }
-  if (visibility === "hidden") {
-    return (
-      <Tag color="error" data-testid="reviews-row-hidden">
-        {t(REVIEWS_I18N_KEYS.statusHidden)}
-      </Tag>
-    );
-  }
-  // A state this build does not know. Naming it beats rendering it as an
-  // ordinary review (it may be one the server hides) and beats crashing.
-  return (
-    <Tag data-testid="reviews-row-unknown">
-      {t(REVIEWS_I18N_KEYS.statusUnknown, { status: props.status })}
-    </Tag>
-  );
 }
 
 function ReviewRow(props: {
   review: Review;
+  target: ReviewTarget;
   max: number;
+  canRespond: boolean | undefined;
+  signIn: SignInCta | undefined;
   renderAuthor: ReviewListPanelProps["renderAuthor"];
-  renderDate: ReviewListPanelProps["renderDate"];
+  // Not a slot: the panel has already resolved the host slot against the
+  // pair's own default, so this always renders something or an explicit null.
+  dateOf: (review: Review) => ReactNode;
 }): ReactElement {
   const t = useT();
   const { review } = props;
   return (
     <List.Item data-testid="reviews-row" data-review-id={review.id}>
-      <Flex vertical gap={4} style={{ width: "100%" }}>
-        <Flex align="center" gap={8} wrap>
+      <Flex vertical gap={spacing[1]} style={{ width: "100%" }}>
+        <Flex align="center" gap={spacing[2]} wrap>
           <Rate disabled count={props.max} value={review.rating} />
-          <Typography.Text strong>
+          {/* min-width 0 so a long author name can never split the badge
+              beside it across a line (C-ROWOVERFLOW). */}
+          <Typography.Text strong style={{ minWidth: 0 }}>
             {props.renderAuthor?.(review) ?? t(REVIEWS_I18N_KEYS.authorFallback)}
           </Typography.Text>
-          {props.renderDate ? (
-            <Typography.Text type="secondary">
-              {props.renderDate(review)}
-            </Typography.Text>
-          ) : null}
+          {props.dateOf(review)}
           <VisibilityTag status={review.status} />
         </Flex>
         {review.body.length > 0 ? (
@@ -98,107 +94,92 @@ function ReviewRow(props: {
             {review.body}
           </Typography.Paragraph>
         ) : null}
-        {review.response ? (
-          <Card size="small" data-testid="reviews-row-response">
-            <Typography.Text type="secondary">
-              {t(REVIEWS_I18N_KEYS.responseHeading)}
-            </Typography.Text>
-            <Typography.Paragraph style={{ margin: 0 }}>
-              {review.response.body}
-            </Typography.Paragraph>
-          </Card>
-        ) : null}
+        <ReviewResponseComposer
+          target={props.target}
+          review={review}
+          quiet
+          {...(props.canRespond !== undefined
+            ? { canRespond: props.canRespond }
+            : {})}
+          {...(props.signIn !== undefined ? { signIn: props.signIn } : {})}
+        />
       </Flex>
     </List.Item>
   );
 }
 
-function MoreButton(props: { bag: ReviewListBag }): ReactElement {
-  const t = useT();
-  const gate = useActionGate(props.bag.more);
-  return (
-    <Flex vertical align="center" gap={4}>
-      <Button
-        onClick={props.bag.loadMore}
-        disabled={gate.disabled}
-        loading={props.bag.loadingMore}
-        data-testid="reviews-load-more"
-        data-analytics="none"
-        data-analytics-reason="paging further into a read — the host app wraps this with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-      >
-        {t(REVIEWS_I18N_KEYS.listLoadMore)}
-      </Button>
-      {gate.reason ? (
-        <Typography.Text type="secondary" data-testid="reviews-load-more-reason">
-          {gate.reason}
-        </Typography.Text>
-      ) : null}
-    </Flex>
-  );
-}
-
 export function ReviewListPanel(props: ReviewListPanelProps): ReactElement {
   const t = useT();
-  const describe = useDescribeFlowError();
   const runtime = useReviewsRuntime();
-  const { mode, target, renderAuthor, renderDate, ...listOptions } = props;
+  const formatDate = useReviewDateFormat();
+  const {
+    mode,
+    surface,
+    target,
+    signIn,
+    renderAuthor,
+    renderDate,
+    canRespond,
+    ...listOptions
+  } = props;
+
+  const dateOf = (review: Review): ReactNode => {
+    const shown = renderDate?.(review) ?? formatDate(review.created_at) ?? null;
+    return shown === null ? null : (
+      <Typography.Text type="secondary">{shown}</Typography.Text>
+    );
+  };
 
   return (
-    <ReviewsSkinTheme {...(mode !== undefined ? { mode } : {})}>
+    <SkinTheme
+      {...(mode !== undefined ? { mode } : {})}
+      surface={surface ?? "raised"}
+    >
       <ReviewList target={target} {...listOptions}>
         {(bag) => (
-          <Flex vertical gap={8} data-testid="reviews-list">
+          <Flex vertical gap={spacing[2]} data-testid="reviews-list">
             <Typography.Title level={5} style={{ margin: 0 }}>
               {t(REVIEWS_I18N_KEYS.listHeading)}
             </Typography.Title>
 
-            {matchLoad(bag.state, {
-              loading: () => (
-                <Skeleton active data-testid="reviews-list-loading" />
-              ),
-              failed: (error) => (
-                <ErrorAlert
-                  testId="reviews-list-failed"
-                  error={describe(toFlowError(error))}
-                  action={
-                    <Button
-                      size="small"
-                      onClick={bag.refresh}
-                      data-analytics="none"
-                      data-analytics-reason="recovery affordance for a failed read — host app wraps with its own tracked()"
-                    >
-                      {t(REVIEWS_I18N_KEYS.listRefresh)}
-                    </Button>
-                  }
+            <ScopeNotice scope={bag.scope} testId="reviews-list-narrowed" />
+
+            <LoadList
+              state={bag.state}
+              onRetry={bag.refresh}
+              testId="reviews-list"
+              empty={
+                <EmptyState
+                  title={t(REVIEWS_I18N_KEYS.listEmpty)}
+                  hint={t(REVIEWS_I18N_KEYS.listEmptyHint)}
+                  testId="reviews-list-empty"
                 />
-              ),
-              ready: (reviews) =>
-                reviews.length === 0 ? (
-                  <Empty
-                    data-testid="reviews-list-empty"
-                    description={t(REVIEWS_I18N_KEYS.listEmpty)}
+              }
+            >
+              {(reviews) => (
+                <>
+                  <List
+                    dataSource={[...reviews]}
+                    data-testid="reviews-list-rows"
+                    renderItem={(review: Review) => (
+                      <ReviewRow
+                        review={review}
+                        target={target}
+                        max={runtime.ratingBounds.max}
+                        canRespond={canRespond}
+                        signIn={signIn}
+                        renderAuthor={renderAuthor}
+                        dateOf={dateOf}
+                      />
+                    )}
                   />
-                ) : (
-                  <>
-                    <List
-                      dataSource={[...reviews]}
-                      data-testid="reviews-list-rows"
-                      renderItem={(review: Review) => (
-                        <ReviewRow
-                          review={review}
-                          max={runtime.ratingBounds.max}
-                          renderAuthor={renderAuthor}
-                          renderDate={renderDate}
-                        />
-                      )}
-                    />
-                    <MoreButton bag={bag} />
-                  </>
-                ),
-            })}
+                  <MoreButton bag={bag} />
+                </>
+              )}
+            </LoadList>
           </Flex>
         )}
       </ReviewList>
-    </ReviewsSkinTheme>
+    </SkinTheme>
   );
 }

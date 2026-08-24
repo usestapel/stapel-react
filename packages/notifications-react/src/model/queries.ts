@@ -7,11 +7,13 @@ import type {
 import { useActiveSessionReady } from "@stapel/core";
 import type { StapelApiError } from "@stapel/core";
 import type {
+  DeviceListItem,
   NotificationFeedPage,
   NotificationFeedParams,
 } from "../api/types.js";
 import { useNotificationsApi } from "./context.js";
 import { notificationsQueryKeys } from "./queryKeys.js";
+import { feedPollInterval, useFeedDelivery, usePageVisible } from "./delivery.js";
 
 /**
  * Read hooks over the notifications API. Staleness follows core's query
@@ -49,6 +51,17 @@ export function useNotificationFeed(
  * holds. Flatten the pages behind a `LoadState` (see `NotificationFeed`), not
  * into a bare array. Gated on session readiness — see
  * {@link useNotificationFeed}.
+ *
+ * ── Freshness is wired here, once, and it is stated on screen ─────────────
+ *
+ * With a socket (`@stapel/notifications-react/live`) new rows arrive as frames
+ * and this query never polls. Without one it refetches the newest page every
+ * 60 seconds **while the tab is visible and not at all while it is hidden**,
+ * and refetches on focus so the wait after coming back is zero — the interval
+ * and the reasoning are stapel-notifications MODULE.md § "Live feed", not a
+ * number chosen here. Either way `useFeedDelivery()` reports which one is
+ * running, and the default skin draws it: a feed that silently stopped
+ * updating is indistinguishable from a feed with nothing in it.
  */
 export function useInfiniteNotificationFeed(
   limit?: number
@@ -58,6 +71,8 @@ export function useInfiniteNotificationFeed(
 > {
   const api = useNotificationsApi();
   const sessionReady = useActiveSessionReady();
+  const { mode } = useFeedDelivery();
+  const visible = usePageVisible();
   return useInfiniteQuery({
     queryKey: notificationsQueryKeys.feed(),
     queryFn: ({ pageParam }) =>
@@ -69,6 +84,35 @@ export function useInfiniteNotificationFeed(
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) =>
       last.has_next ? (last.next_anchor ?? undefined) : undefined,
+    enabled: sessionReady,
+    refetchInterval: feedPollInterval(mode, visible),
+    // A hidden tab is never polled, so the interval alone would leave a
+    // returning reader looking at whatever was on screen when they left.
+    refetchOnWindowFocus: true,
+  });
+}
+
+/**
+ * The caller's registered push devices — the read that lets a toggle tell the
+ * truth (stapel-notifications 0.17.0, `GET /devices/`).
+ *
+ * Before this endpoint existed no client could answer "is push on for this
+ * device?", so every toggle in the fleet rendered OFF on mount and — holding
+ * no token after a reload — switching it off sent no request at all while
+ * saying it had. Both device mutations invalidate this key, so the switch's
+ * position is always the server's answer and never a local guess.
+ *
+ * Gated on session readiness for the same reason as the feed.
+ */
+export function useDevices(): UseQueryResult<
+  readonly DeviceListItem[],
+  StapelApiError
+> {
+  const api = useNotificationsApi();
+  const sessionReady = useActiveSessionReady();
+  return useQuery({
+    queryKey: notificationsQueryKeys.devices(),
+    queryFn: () => api.listDevices(),
     enabled: sessionReady,
   });
 }

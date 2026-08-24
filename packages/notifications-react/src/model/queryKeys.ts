@@ -15,10 +15,15 @@ export const notificationsQueryKeys: {
   feedPage(
     params: NotificationFeedParams
   ): readonly ["notifications", "feed", NotificationFeedParams];
+  devices(): readonly ["notifications", "devices"];
 } = {
   all: [ROOT],
   // The infinite-scroll feed shares one root key across pages (its pages live
   // under a single cache entry); a single page is keyed by its params.
   feed: () => [ROOT, "feed"],
   feedPage: (params) => [ROOT, "feed", params],
+  // GET /devices/ — the registry read the push toggle derives its state from.
+  // Both device mutations invalidate exactly this key, so the switch and the
+  // server can never disagree about what is registered.
+  devices: () => [ROOT, "devices"],
 };

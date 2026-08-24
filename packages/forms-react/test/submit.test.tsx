@@ -297,6 +297,13 @@ describe("409 forms_version_superseded", () => {
     expect(bag().captchaToken).toBeNull();
   });
 
+  // Explicit bound. This is the only test in the pair that mounts the WHOLE
+  // skin, submits, takes a 409 and re-renders the refetched schema — three
+  // full antd render passes under the shared `SkinTheme` ConfigProvider, which
+  // regenerates its CSS-variable scope each time. It is genuinely slow in
+  // jsdom (~20s on CI hardware) rather than hung: the banner appears, and the
+  // assertion below is the proof. See SCRATCH/wave-b/REQUESTS-forms-react.md —
+  // the cost is in the substrate's theme scope, not in this pair.
   it("surfaces the banner in the default skin so the person re-reads", async () => {
     // Drives the SKIN's own submit button — the banner lives in the
     // <FormFill> instance <StapelForm> owns, so a second, sibling FormFill
@@ -320,7 +327,7 @@ describe("409 forms_version_superseded", () => {
     fireEvent.click(screen.getByTestId("forms-submit"));
 
     expect(await screen.findByTestId("forms-superseded")).toBeTruthy();
-  });
+  }, 60_000);
 });
 
 describe("the unsupported-kind guard", () => {

@@ -1,43 +1,45 @@
 /**
  * `<TrashPane/>` — the default skin's trash view: the `TrashBin` headless
- * bag rendered through core's `matchLoad` (trashed folders, then trashed
- * documents — the backend's real `{folders, documents}` shape), with a
- * per-item context menu (restore / delete forever — `POST /trash/empty` ids
- * target both kinds) and an "Empty trash" header button behind a confirm.
+ * bag rendered through the shared `<LoadBoundary>` (trashed folders, then
+ * trashed documents — the backend's real `{folders, documents}` shape), with
+ * a per-item menu (restore / delete forever — `POST /trash/empty` ids target
+ * both kinds) reachable by click AND right-click, and an "Empty trash" header
+ * button behind a confirmation.
  *
- * "Empty trash" is switched off through core's `useActionGate`, which is why
- * the reason is on screen: the button used to grey out on `rows.length === 0`,
+ * The confirmation is `SkinConfirm`, which is a bottom sheet on a phone: a
+ * `Popconfirm` is an anchored popover that opens against the edge of a 390px
+ * screen and puts two 22px buttons under a thumb, for the one action in this
+ * pane that cannot be undone.
+ *
+ * "Empty trash" is switched off through `GatedButton`, which is why the
+ * reason is on screen: the button used to grey out on `rows.length === 0`,
  * which is equally true when the trash read FAILED — an outage wearing the
  * costume of an empty trash.
  *
  * Replaceable without a fork: `FileManager` resolves this pane through the
  * skin slot registry (`registerDocsSkinComponent("fileManager.trashPane", …)`).
  */
+import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
+import { Dropdown, Flex, List, Typography } from "antd";
 import {
-  Button,
-  Dropdown,
-  Empty,
-  Flex,
-  List,
-  Popconfirm,
-  Spin,
-  Typography,
-} from "antd";
+  EmptyState,
+  ErrorAlert,
+  GatedButton,
+  LoadBoundary,
+  SkinConfirm,
+} from "@stapel/tokens-antd/skin";
 import {
   actionAvailable,
   actionBlocked,
-  matchLoad,
   requireLoaded,
-  useActionGate,
-  useErrorDisplay,
   useT,
 } from "@stapel/core";
+import { fontSize } from "@stapel/tokens";
 import { TrashBin } from "../headless/TrashBin.js";
 import type { TrashBag } from "../headless/TrashBin.js";
 import type { TrashListing } from "../api/types.js";
 import { DOCS_I18N_KEYS } from "../i18n/keys.js";
-import { ErrorAlert } from "./ErrorAlert.js";
 
 export interface TrashPaneProps {
   readonly workspaceId: string;
@@ -68,54 +70,71 @@ export function TrashPane(props: TrashPaneProps): ReactElement {
   );
 }
 
-/** The pane itself — a component, not a closure, so the gate hook runs at a
+/** The pane itself — a component, not a closure, so the hooks run at a
  * component's top level rather than inside the render prop. */
 function TrashPaneBody(props: { readonly bag: TrashBag }): ReactElement {
   const t = useT();
-  const errorDisplay = useErrorDisplay(DOCS_I18N_KEYS.unknownError);
   const { bag } = props;
+  const [confirmingEmpty, setConfirmingEmpty] = useState(false);
+  // Which single item a delete-forever is being confirmed for. One dialog per
+  // list, keyed by the pending id — never one dialog per row.
+  const [purgingRow, setPurgingRow] = useState<TrashRow | null>(null);
+
   // Three reasons the button can be off, and the person is told which:
   // still reading, the read failed, or the trash is genuinely empty.
-  const emptyTrash = useActionGate(
-    requireLoaded(bag.state, (listing) =>
-      toRows(listing).length === 0
-        ? actionBlocked(DOCS_I18N_KEYS.trashEmptyBlocked)
-        : actionAvailable()
-    )
+  const emptyTrash = requireLoaded(bag.state, (listing) =>
+    toRows(listing).length === 0
+      ? actionBlocked(DOCS_I18N_KEYS.trashEmptyBlocked)
+      : actionAvailable()
   );
 
   function item(row: TrashRow): ReactNode {
+    const menu = {
+      items: [
+        { key: "restore", label: t(DOCS_I18N_KEYS.menuRestore) },
+        { type: "divider" as const, key: "sep" },
+        // `POST /trash/empty` ids target folders AND documents
+        // (services.empty_trash filters both sets), so per-item
+        // delete-forever is offered on either kind.
+        {
+          key: "purge",
+          label: t(DOCS_I18N_KEYS.menuDeleteForever),
+          danger: true,
+        },
+      ],
+      onClick: ({ key }: { key: string }) => {
+        if (key === "restore") {
+          if (row.kind === "folder") bag.restoreFolder(row.id);
+          else bag.restoreDocument(row.id);
+        } else if (key === "purge") {
+          setPurgingRow(row);
+        }
+      },
+    };
     return (
-      <Dropdown
-        trigger={["contextMenu"]}
-        menu={{
-          items: [
-            { key: "restore", label: t(DOCS_I18N_KEYS.menuRestore) },
-            { type: "divider" as const },
-            // `POST /trash/empty` ids target folders AND documents
-            // (services.empty_trash filters both sets), so per-item
-            // delete-forever is offered on either kind.
-            {
-              key: "purge",
-              label: t(DOCS_I18N_KEYS.menuDeleteForever),
-              danger: true,
-            },
-          ],
-          onClick: ({ key }) => {
-            if (key === "restore") {
-              if (row.kind === "folder") bag.restoreFolder(row.id);
-              else bag.restoreDocument(row.id);
-            } else if (key === "purge") {
-              bag.emptyTrash([row.id]);
-            }
-          },
-        }}
-      >
-        <List.Item data-docs-trash-item={row.id}>
+      <Dropdown trigger={["contextMenu"]} menu={menu}>
+        <List.Item
+          data-docs-trash-item={row.id}
+          actions={[
+            <Dropdown key="actions" trigger={["click"]} menu={menu}>
+              <Typography.Link
+                aria-label={t(DOCS_I18N_KEYS.menuActions)}
+                data-docs-trash-actions={row.id}
+                data-analytics="none"
+                data-analytics-reason="opens a menu — the chosen item carries the tracked action"
+              >
+                {t(DOCS_I18N_KEYS.menuActions)}
+              </Typography.Link>
+            </Dropdown>,
+          ]}
+        >
           <List.Item.Meta
             title={row.name}
             description={
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              <Typography.Text
+                type="secondary"
+                style={{ fontSize: fontSize.xs.fontSize }}
+              >
                 {row.kind === "folder"
                   ? t(DOCS_I18N_KEYS.trashKindFolder)
                   : t(DOCS_I18N_KEYS.trashKindDocument)}
@@ -129,61 +148,33 @@ function TrashPaneBody(props: { readonly bag: TrashBag }): ReactElement {
 
   return (
     <Flex vertical gap="small" data-testid="docs-trash-pane">
-      <Flex justify="flex-end" align="center" gap="small">
-        {/* Beside the control, not in a `title`: a disabled button gets no
-            pointer events, so a tooltip is a reason nobody can read. */}
-        {emptyTrash.reason !== undefined && (
-          <Typography.Text
-            type="secondary"
-            style={{ fontSize: 12 }}
-            data-testid="docs-trash-empty-reason"
-          >
-            {emptyTrash.reason}
-            {emptyTrash.detail !== undefined ? ` · ${emptyTrash.detail}` : ""}
-          </Typography.Text>
-        )}
-        <Popconfirm
-          title={t(DOCS_I18N_KEYS.trashEmptyConfirm)}
-          okText={t(DOCS_I18N_KEYS.dialogOk)}
-          cancelText={t(DOCS_I18N_KEYS.dialogCancel)}
-          onConfirm={() => {
-            bag.emptyTrash();
+      <Flex justify="flex-end" align="center" gap="small" wrap>
+        <GatedButton
+          gate={emptyTrash}
+          layout="inline"
+          danger
+          loading={bag.isEmptying}
+          onClick={() => {
+            setConfirmingEmpty(true);
           }}
+          testId="docs-trash-empty"
+          data-analytics="none"
+          data-analytics-reason="opens the destructive confirmation — the confirmed purge carries the tracked action"
         >
-          <Button
-            danger
-            size="small"
-            loading={bag.isEmptying}
-            disabled={emptyTrash.disabled}
-            data-analytics="none"
-            data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-          >
-            {t(DOCS_I18N_KEYS.trashEmptyAction)}
-          </Button>
-        </Popconfirm>
+          {t(DOCS_I18N_KEYS.trashEmptyAction)}
+        </GatedButton>
       </Flex>
 
-      {bag.writeError !== null && (
-        <ErrorAlert
-          error={errorDisplay(bag.writeError)}
-          testId="docs-trash-error"
-        />
-      )}
+      <ErrorAlert thrown={bag.writeError} testId="docs-trash-error" />
 
-      {matchLoad(bag.state, {
-        loading: () => <Spin />,
-        failed: (error) => (
-          <ErrorAlert
-            error={errorDisplay(error)}
-            testId="docs-trash-load-error"
-          />
-        ),
-        ready: (listing) => {
+      <LoadBoundary state={bag.state} onRetry={bag.refetch} testId="docs-trash">
+        {(listing) => {
           const rows = toRows(listing);
           return rows.length === 0 ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={t(DOCS_I18N_KEYS.trashEmptyState)}
+            <EmptyState
+              title={t(DOCS_I18N_KEYS.trashEmptyState)}
+              hint={t(DOCS_I18N_KEYS.trashEmptyHint)}
+              testId="docs-trash-empty-state"
             />
           ) : (
             <List<TrashRow>
@@ -192,8 +183,41 @@ function TrashPaneBody(props: { readonly bag: TrashBag }): ReactElement {
               renderItem={item}
             />
           );
-        },
-      })}
+        }}
+      </LoadBoundary>
+
+      <SkinConfirm
+        open={confirmingEmpty}
+        danger
+        title={t(DOCS_I18N_KEYS.trashEmptyConfirm)}
+        confirmLabel={t(DOCS_I18N_KEYS.trashEmptyAction)}
+        confirming={bag.isEmptying}
+        onConfirm={() => {
+          bag.emptyTrash();
+          setConfirmingEmpty(false);
+        }}
+        onCancel={() => {
+          setConfirmingEmpty(false);
+        }}
+        data-testid="docs-trash-empty-confirm"
+      />
+
+      <SkinConfirm
+        open={purgingRow !== null}
+        danger
+        title={t(DOCS_I18N_KEYS.menuDeleteForever)}
+        body={purgingRow?.name}
+        confirmLabel={t(DOCS_I18N_KEYS.menuDeleteForever)}
+        confirming={bag.isEmptying}
+        onConfirm={() => {
+          if (purgingRow !== null) bag.emptyTrash([purgingRow.id]);
+          setPurgingRow(null);
+        }}
+        onCancel={() => {
+          setPurgingRow(null);
+        }}
+        data-testid="docs-trash-purge-confirm"
+      />
     </Flex>
   );
 }

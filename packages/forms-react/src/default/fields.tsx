@@ -34,6 +34,7 @@
  * `convertible_unit`, whose wire DTO genuinely is an object
  * (`{type, value, unit}` — `stapel_attributes.types.convertible_unit.dto`).
  */
+import { spacing } from "@stapel/tokens";
 import { useMemo } from "react";
 import type { ReactElement } from "react";
 import {
@@ -51,6 +52,7 @@ import { useT } from "@stapel/core";
 import type { FormFieldDef } from "../api/types.js";
 import type { FormFieldWidget, FormFieldWidgetProps } from "../widgets/registry.js";
 import { optionValues } from "../widgets/validate.js";
+import { UNIT_SELECT_WIDTH } from "./geometry.js";
 import { FORMS_I18N_KEYS } from "../i18n/keys.js";
 
 /** At or below this many choices a single-select renders as a `Segmented`
@@ -176,7 +178,7 @@ const BoolWidget: FormFieldWidget = (props: FormFieldWidgetProps) => {
   const trueLabel = str(cfg["trueLabel"]) || t(FORMS_I18N_KEYS.fillBoolYes);
   const falseLabel = str(cfg["falseLabel"]) || t(FORMS_I18N_KEYS.fillBoolNo);
   return (
-    <Flex align="center" gap={8}>
+    <Flex align="center" gap={spacing[2]}>
       <Switch
         id={props.id}
         checked={on}
@@ -406,7 +408,7 @@ const ConvertibleUnitWidget: FormFieldWidget = (props: FormFieldWidgetProps) => 
   };
 
   return (
-    <Flex gap={8}>
+    <Flex gap={spacing[2]}>
       <InputNumber
         id={props.id}
         style={{ flex: 1 }}
@@ -418,7 +420,7 @@ const ConvertibleUnitWidget: FormFieldWidget = (props: FormFieldWidgetProps) => 
       />
       {units.length > 0 && (
         <Select
-          style={{ width: 96 }}
+          style={{ width: UNIT_SELECT_WIDTH }}
           disabled={props.disabled}
           {...errorStatus(props.error)}
           value={unit}

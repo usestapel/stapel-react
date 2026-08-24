@@ -31,6 +31,8 @@ const NAV: readonly ResolvedNavEntry[] = [
     labelKey: "listings.nav.compose",
     icon: "PlusOutlined",
     route: { path: "/new" },
+    linkPath: "/new",
+    index: false,
     component: { export: "ListingComposer", subpath: "default" },
     requiresAuth: true,
     surface: "member",
@@ -42,6 +44,8 @@ const NAV: readonly ResolvedNavEntry[] = [
     labelKey: "search.nav.results",
     icon: "SearchOutlined",
     route: { path: "/s" },
+    linkPath: "/s",
+    index: false,
     component: { export: "SearchResults", subpath: "default" },
     requiresAuth: false,
     surface: "public",
@@ -64,7 +68,7 @@ function wrap(
     <I18nProvider i18n={i18n}>
       <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
-          <Route element={<PublicShell nav={NAV} mode="light" {...props} />}>
+          <Route element={<PublicShell nav={NAV} {...props} />}>
             <Route path="s" element={<div>Search Page</div>} />
             <Route path="new" element={<div>Compose Page</div>} />
           </Route>

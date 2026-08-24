@@ -25,6 +25,14 @@
       "types": "./dist/theme/index.d.ts",
       "default": "./dist/theme/index.js"
     },
+    "./i18n/ru": {
+      "types": "./dist/i18n/ru.d.ts",
+      "default": "./dist/i18n/ru.js"
+    },
+    "./i18n/es": {
+      "types": "./dist/i18n/es.d.ts",
+      "default": "./dist/i18n/es.js"
+    },
     "./manifest": "./manifest.json",
     "./manifest.json": "./manifest.json",
     "./package.json": "./package.json"
@@ -45,24 +53,24 @@
   },
   "size-limit": [
     {
-      "name": "index — resolveNav must stay pure: no React, no antd, no react-router",
+      "name": "index \u2014 resolveNav must stay pure: no React, no antd, no react-router",
       "path": "dist/index.js",
       "limit": "2 KB"
     },
     {
-      "name": "default — the antd + react-router chrome must stay out of the main bundle",
+      "name": "default \u2014 the antd + react-router chrome must stay out of the main bundle",
       "path": "dist/default/index.js",
       "limit": "12 KB"
     },
     {
-      "name": "theme — plain DOM + inline SVG: no antd, no react-router, no CSS file",
+      "name": "theme \u2014 plain DOM + inline SVG chrome: the mode READER is @stapel/tokens-antd/skin's (one implementation, tree-shaken away from antd), no react-router, no CSS file",
       "path": "dist/theme/index.js",
       "limit": "4 KB"
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.14.0 <1.0.0",
-    "@stapel/tokens-antd": ">=0.2.0",
+    "@stapel/core": ">=0.18.0 <1.0.0",
+    "@stapel/tokens-antd": ">=0.6.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19",
     "react-router": ">=7.0.0 <8"
@@ -81,6 +89,7 @@
   "devDependencies": {
     "@size-limit/preset-small-lib": "^11.2.0",
     "@stapel/core": "workspace:^",
+    "@stapel/showcase": "workspace:^",
     "@stapel/tokens": "workspace:^",
     "@stapel/tokens-antd": "workspace:^",
     "@testing-library/react": "^16.3.0",

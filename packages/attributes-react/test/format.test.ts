@@ -72,13 +72,34 @@ describe("every builtin type formats", () => {
     ).toBe("2010");
   });
 
-  it("hierarchical_select, as the path", () => {
+  it("hierarchical_select, as the path — the catalogue's LABELS, not the stored values", () => {
     expect(
       formatFeatureValue(HIERARCHICAL_FEATURE, {
         type: "hierarchical_select",
         value: ["passenger", "sedan"],
       })
-    ).toBe("passenger / sedan");
+    ).toBe("Passenger / Sedan");
+  });
+
+  it("hierarchical_select keeps a stored value the tree no longer contains", () => {
+    expect(
+      formatFeatureValue(HIERARCHICAL_FEATURE, {
+        type: "hierarchical_select",
+        value: ["passenger", "retired_body_style"],
+      })
+    ).toBe("Passenger / retired_body_style");
+  });
+
+  it("hierarchical_select labels go through the catalogue when translatable", () => {
+    const f = feature("body", {
+      type: "hierarchical_select",
+      options: [{ value: "passenger", label: "catalog.body.passenger" }],
+    });
+    expect(
+      formatFeatureValue(f, { type: "hierarchical_select", value: ["passenger"] }, {
+        t: () => "Легковой",
+      })
+    ).toBe("Легковой");
   });
 
   it("hex_color, by its label when it has one and its category otherwise", () => {

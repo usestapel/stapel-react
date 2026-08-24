@@ -57,18 +57,22 @@ describe("self-description (frontend-core §2.4 — drift-gated manifest)", () =
 });
 
 describe("navigation contract", () => {
-  it("declares two screens: the person's, and the operator's", () => {
-    expect(navEntries.length).toBe(2);
+  it("declares three screens: the person's, the stranger's, and the operator's", () => {
+    expect(navEntries.length).toBe(3);
     const ids = navEntries.map((entry) => entry.id);
-    expect(ids).toEqual(["account.privacy", "admin.privacy"]);
+    expect(ids).toEqual([
+      "account.privacy",
+      "public.privacy-request",
+      "admin.privacy",
+    ]);
   });
 
-  it("hangs each entry off the container-owned parent for its area", () => {
+  it("hangs each signed-in entry off the container-owned parent for its area", () => {
     expect(navEntries[0]?.placement).toEqual({
       level: "submenu",
       parentId: ACCOUNT_ROOT_ID,
     });
-    expect(navEntries[1]?.placement).toEqual({
+    expect(navEntries[2]?.placement).toEqual({
       level: "submenu",
       parentId: ADMIN_ROOT_ID,
     });
@@ -77,6 +81,15 @@ describe("navigation contract", () => {
     // smaller menu instead of a broken build.
     expect(ACCOUNT_ROOT_ID).toBe("account.root");
     expect(ADMIN_ROOT_ID).toBe("admin.root");
+  });
+
+  it("puts the public intake at the top level — it hangs under no section", () => {
+    // A person with no session has no account menu and no admin area to nest
+    // under, so a submenu placement would be an entry with an unreachable
+    // parent. `top` is what "reachable without signing in" looks like in the
+    // placement axis.
+    expect(navEntries[1]?.placement).toEqual({ level: "top" });
+    expect(navEntries[1]?.placement.parentId).toBeUndefined();
   });
 
   it("names components that the matching subpath actually exports", async () => {
@@ -90,8 +103,10 @@ describe("navigation contract", () => {
     >;
     expect(navEntries[0]?.component.subpath).toBe("default");
     expect(member[navEntries[0]?.component.export ?? ""]).toBeTypeOf("function");
-    expect(navEntries[1]?.component.subpath).toBe("default/admin");
-    expect(admin[navEntries[1]?.component.export ?? ""]).toBeTypeOf("function");
+    expect(navEntries[1]?.component.subpath).toBe("default");
+    expect(member[navEntries[1]?.component.export ?? ""]).toBeTypeOf("function");
+    expect(navEntries[2]?.component.subpath).toBe("default/admin");
+    expect(admin[navEntries[2]?.component.export ?? ""]).toBeTypeOf("function");
   });
 
   it("declares its surface explicitly — the axis cannot say 'staff'", () => {
@@ -102,23 +117,39 @@ describe("navigation contract", () => {
     // `requiresAuth ? "member" : "public"` derivation would make that silently
     // change the day somebody edited requiresAuth for an unrelated reason.
     for (const entry of navEntries) {
-      expect(entry.surface).toBe("member");
-      expect(entry.requiresAuth).toBe(true);
+      const isPublic = entry.id === "public.privacy-request";
+      expect(entry.surface).toBe(isPublic ? "public" : "member");
+      expect(entry.requiresAuth).toBe(!isPublic);
     }
+  });
+
+  it("mounts the anonymous intake as a ROUTE, not as a menu item", () => {
+    // The whole reason it was left out before: listing it would put "make a
+    // data-protection request" in a signed-in person's menu twice, the second
+    // one pointing at a form asking for the email the session already knows.
+    // The route is what was actually missing.
+    const intake = navEntries[1];
+    expect(intake?.menuVisibleDefault).toBe(false);
+    expect(intake?.route.path).toBe("privacy-request");
+    // Every OTHER entry is a menu item, so this is a decision, not a default.
+    expect(navEntries[0]?.menuVisibleDefault).toBe(true);
+    expect(navEntries[2]?.menuVisibleDefault).toBe(true);
   });
 
   it("keeps the destructive screen last in the account menu", () => {
     // Account settings put "delete my account" at the bottom for the same
     // reason this entry carries a high order: nobody should meet it first.
-    expect(navEntries[0]?.order).toBeGreaterThan(navEntries[1]?.order ?? 0);
+    expect(navEntries[0]?.order).toBeGreaterThan(navEntries[2]?.order ?? 0);
   });
 
   it("labels every entry with a KEY that both bundles carry, never a literal", async () => {
     const { gdprI18nBundleRu } = await import("../src/i18n/ru.js");
+    const { gdprI18nBundleEs } = await import("../src/i18n/es.js");
     for (const entry of navEntries) {
       expect(entry.labelKey.startsWith("gdpr.")).toBe(true);
       expect(gdprI18nBundleEn[entry.labelKey]).toBeTruthy();
       expect(gdprI18nBundleRu[entry.labelKey]).toBeTruthy();
+      expect(gdprI18nBundleEs[entry.labelKey]).toBeTruthy();
     }
   });
 

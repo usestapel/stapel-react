@@ -17,6 +17,23 @@
  * No `outline: none` anywhere: the browser's own focus ring is the only
  * focus affordance a library can ship that is right in every host.
  *
+ * ── The radiogroup is a real radiogroup ──────────────────────────────────
+ *
+ * `role="radiogroup"` with three `role="radio"` children is a promise about
+ * KEYBOARD behaviour, not just about the names a screen reader reads out: a
+ * radio group is ONE tab stop, and the arrow keys move the choice inside it
+ * (WAI-ARIA APG, radio group pattern). Three separately tabbable buttons
+ * that ignore the arrow keys announce themselves as a radio group and then
+ * behave like nothing of the sort — which is worse for the person relying on
+ * the announcement than plain buttons would have been. So: roving tabindex
+ * (only the marked button is in the tab order), Left/Up and Right/Down move
+ * and CHOOSE (the APG's "selection follows focus", which is right here
+ * because choosing is instant and reversible), Home/End jump to the ends.
+ *
+ * There is no tooltip. The accessible name carries what the icon means, and
+ * a `title` is invisible to touch, unreachable by keyboard, and a duplicate
+ * of the name for everyone else.
+ *
  * ── Three states, and the one that is not a colour ───────────────────────
  *
  * `system` is a RULE, not a colour: it resolves to light or dark and keeps
@@ -31,7 +48,8 @@
  * needed for that: it is composed from the three labels the control already
  * has.
  */
-import type { ReactElement } from "react";
+import { useCallback, useRef } from "react";
+import type { KeyboardEvent, ReactElement } from "react";
 
 import {
   THEME_PREFERENCES,
@@ -156,13 +174,68 @@ export function ThemeModeControl({
 }: ThemeModeControlProps): ReactElement {
   const observed = useDocumentThemeMode();
   const resolvedMode = resolved ?? observed;
+  const groupRef = useRef<HTMLDivElement | null>(null);
+
+  /** Move the choice — and the focus with it — inside the group. */
+  const step = useCallback(
+    (from: ThemePreference, delta: number): void => {
+      const index = THEME_PREFERENCES.indexOf(from);
+      const next =
+        THEME_PREFERENCES[
+          (index + delta + THEME_PREFERENCES.length) % THEME_PREFERENCES.length
+        ];
+      if (next === undefined || next === from) return;
+      onChange(next);
+      groupRef.current
+        ?.querySelector<HTMLButtonElement>(`[data-state="${next}"]`)
+        ?.focus();
+    },
+    [onChange],
+  );
+
+  const onKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>): void => {
+      const keys: Record<string, number> = {
+        ArrowRight: 1,
+        ArrowDown: 1,
+        ArrowLeft: -1,
+        ArrowUp: -1,
+      };
+      const delta = keys[event.key];
+      if (delta !== undefined) {
+        event.preventDefault();
+        step(value, delta);
+        return;
+      }
+      if (event.key !== "Home" && event.key !== "End") return;
+      event.preventDefault();
+      const target =
+        event.key === "Home"
+          ? THEME_PREFERENCES[0]
+          : THEME_PREFERENCES[THEME_PREFERENCES.length - 1];
+      if (target !== undefined && target !== value) {
+        onChange(target);
+        groupRef.current
+          ?.querySelector<HTMLButtonElement>(`[data-state="${target}"]`)
+          ?.focus();
+      }
+    },
+    [onChange, step, value],
+  );
 
   return (
     <div
+      ref={groupRef}
       role="radiogroup"
       aria-label={labels.group}
       className={className}
       data-testid={testId}
+      onKeyDown={onKeyDown}
+      // The group's key handler only MOVES the choice between its own radios;
+      // the outcome a funnel would count is the `onChange` the host wires,
+      // and the buttons below carry the same declaration for their clicks.
+      data-analytics="none"
+      data-analytics-reason="local-ui-theme-choice — the control writes nothing; pairs carry no @stapel/analytics runtime dependency, so the host instruments its own onChange"
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -187,7 +260,9 @@ export function ThemeModeControl({
             role="radio"
             aria-checked={marked}
             aria-label={name}
-            title={name}
+            // Roving tabindex: the group is ONE tab stop, and the arrow keys
+            // move inside it (see this module's header).
+            tabIndex={marked ? 0 : -1}
             data-state={preference}
             data-resolved={preference === "system" ? resolvedMode : undefined}
             data-analytics="none"

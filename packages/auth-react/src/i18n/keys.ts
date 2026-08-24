@@ -308,6 +308,36 @@ export const AUTH_I18N_KEYS = {
   navLogin: "auth.nav.login",
   navSecurity: "auth.nav.security",
   navQrConfirm: "auth.nav.qr_confirm",
+
+  // Sign-in surface: the way between the two variants. The register screen
+  // used to be a dead end (no route back to sign-in) and the sign-in screen
+  // never offered registration at all — a host had to wire two routes to get
+  // the pair of doors every account system has.
+  uiSwitchToRegister: "auth.ui.switch_to_register",
+  uiSwitchToLogin: "auth.ui.switch_to_login",
+
+  // Step-up verification preferences (auth-sa.md §11). The CHALLENGE existed
+  // and the SETTING did not, so nobody could choose when to be asked.
+
+  // Empty-state hints + in-body calls to action (visual pass C7: an empty
+  // state whose only action sat 380px away in a card header).
+  secPasskeysEmptyHint: "auth.sec.passkeys.empty_hint",
+  // Rename lands the moment `PATCH /passkey/{id}/` does — see
+  // `PASSKEY_RENAME_SUPPORTED` in src/api/authApi.ts.
+  secPasskeysRename: "auth.sec.passkeys.rename",
+  secPasskeysRenameLabel: "auth.sec.passkeys.rename_label",
+  secPasskeysRenameField: "auth.sec.passkeys.rename_field",
+  secPasskeysRenameSave: "auth.sec.passkeys.rename_save",
+  secPasskeysRemoveLabel: "auth.sec.passkeys.remove_label",
+  secSessionsEmptyHint: "auth.sec.sessions.empty_hint",
+
+  // ── Operator console (`@stapel/auth-react/default/admin`) ─────────────────
+
+
+
+
+
+  // Nav-manifest labels for the operator console (under `admin.root`).
 } as const;
 
 export type AuthI18nKey =
@@ -627,6 +657,30 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.nav.login": "Sign in",
   "auth.nav.security": "Security",
   "auth.nav.qr_confirm": "Confirm sign-in",
+
+  // Sign-in surface — the door between the two variants.
+  "auth.ui.switch_to_register": "New here? Create an account",
+  "auth.ui.switch_to_login": "Already have an account? Sign in",
+
+  // Step-up verification preferences
+
+  // Empty states
+  "auth.sec.passkeys.empty_hint":
+    "A passkey signs you in with your face, fingerprint or device PIN — no password to remember or leak.",
+  "auth.sec.passkeys.rename": "Rename",
+  "auth.sec.passkeys.rename_label": "Rename {name}",
+  "auth.sec.passkeys.rename_field": "What should this passkey be called?",
+  "auth.sec.passkeys.rename_save": "Save the name",
+  "auth.sec.passkeys.remove_label": "Remove {name}",
+  "auth.sec.sessions.empty_hint":
+    "Sessions appear here as you sign in on other browsers and devices.",
+
+  // ── Operator console ─────────────────────────────────────────────────────
+
+
+
+
+
 };
 
 /**

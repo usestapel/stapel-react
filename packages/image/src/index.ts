@@ -1,10 +1,18 @@
 // Pure tier/branch math (no DOM, no React).
-export { pickTier, limitingAxis, chooseVariant, numericTier } from "./tiers.js";
+export {
+  pickTier,
+  limitingAxis,
+  chooseVariant,
+  numericTier,
+  PREVIEW_KIND_ASPECT,
+} from "./tiers.js";
 export type {
   Branch,
   ChooseVariantArgs,
   Fit,
-  RenderMetadata,
+  MediaKind,
+  MetaStatus,
+  PreviewKind,
   StapelImage,
   VariantMeta,
 } from "./tiers.js";

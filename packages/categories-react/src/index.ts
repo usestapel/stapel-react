@@ -55,6 +55,8 @@ export type { CategoriesApi } from "./api/categoriesApi.js";
 export type {
   Category,
   CategoryFeature,
+  CategoryFeatureConfig,
+  CategoryFeatureType,
   CategoryListParams,
   CategoryPage as CategoryListPage,
   CategoryRevisions,
@@ -91,6 +93,7 @@ export type { CategorySnapshot } from "./catalog/sync.js";
 
 export {
   categoryLabel,
+  featureCommentLabel,
   featureLabel,
   featureOptionsAreKeys,
   renderCategoryLabel,
@@ -112,6 +115,7 @@ export {
 export {
   CATALOG_KEY,
   CATALOG_NAMESPACE,
+  UNPERSISTED_WARNING,
   createCatalogStore,
   memoryCatalogStore,
 } from "./model/catalogStore.js";
@@ -171,6 +175,7 @@ export { navEntries } from "./nav/manifest.js";
 // ── i18n ─────────────────────────────────────────────────────────────────────
 export {
   CATEGORIES_I18N_KEYS,
+  CATEGORIES_I18N_PLURAL_KEYS,
   categoriesI18nBundleEn,
   registerCategoriesI18n,
 } from "./i18n/keys.js";

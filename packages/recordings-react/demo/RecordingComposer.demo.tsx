@@ -18,7 +18,7 @@ const CREATED = {
     id: "rec-1",
     workspace_id: "ws-1",
     title: "Team standup",
-    status: "awaiting_upload",
+    status: "created",
     source_type: "upload",
     language: "en",
     duration_seconds: null,
@@ -29,6 +29,8 @@ const CREATED = {
     transcript_storage_key: null,
     summary: null,
     created_at: "2026-07-09T09:00:00Z",
+    is_processing: false,
+    poll_after_seconds: null,
   },
   upload: {
     id: "up-1",

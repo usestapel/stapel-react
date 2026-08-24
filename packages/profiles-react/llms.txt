@@ -1,6 +1,6 @@
 # @stapel/profiles-react 0.18.2
 
-Headless React flow pair for stapel-profiles (contract >=0.12 <0.13) — business + state, zero visual opinion.
+Headless React flow pair for stapel-profiles (contract >=0.16 <0.17) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -51,8 +51,9 @@ Paths are relative to `/profiles/api/v1/`.
 - useUpdateMyProfile (mutation) → updateMyProfile
 
 ## Errors (render t(code, params); UX from remediation)
-53 keys (full catalog: manifest.json §errors). By remediation: fix_input 28 · retry 12 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+57 keys (full catalog: manifest.json §errors). By remediation: fix_input 31 · retry 13 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
+- error.400.avatar_url_scheme [400] → fix_input {schemes}
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
 - error.400.field.invalid [400] → fix_input {field}
@@ -88,11 +89,15 @@ const { tracked } = useTracked();
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - profiles.connection_list → <ConnectionList> [default]  demo/ConnectionList.demo.tsx
+- profiles.connections-skin → <ConnectionsPage> [followers|list-and-row|blocked-empty]  demo/ConnectionsSkin.demo.tsx
 - profiles.initial_setup_prompt → <InitialSetupPrompt> [default]  demo/InitialSetupPrompt.demo.tsx
+- profiles.initial-setup-skin → <InitialSetupModal> [first-run|blocking]  demo/InitialSetupModalSkin.demo.tsx
 - profiles.my_profile → <MyProfile> [default]  demo/MyProfile.demo.tsx
 - profiles.notification_preferences → <NotificationPreferences> [default]  demo/NotificationPreferences.demo.tsx
 - profiles.provider → <ProfilesProvider> [default]  demo/Profiles.demo.tsx
+- profiles.public-profile-skin → <PublicProfilePage> [profile|control|unwritten]  demo/PublicProfileSkin.demo.tsx
 - profiles.relationship → <Relationship> [default]  demo/Relationship.demo.tsx
+- profiles.settings-skin → <ProfileSettings> [settings|sections|manifest-failed]  demo/ProfileSettingsSkin.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

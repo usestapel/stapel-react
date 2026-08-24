@@ -10,7 +10,7 @@
         "path": "notifications"
       },
       "component": {
-        "export": "NotificationFeedList",
+        "export": "NotificationsPage",
         "subpath": "default"
       },
       "placement": {
@@ -19,6 +19,25 @@
       "menuVisibleDefault": true,
       "requiresAuth": true,
       "order": 20
+    },
+    {
+      "id": "notifications.push",
+      "labelKey": "notifications.nav.push",
+      "icon": "BellOutlined",
+      "route": {
+        "path": "settings/push"
+      },
+      "component": {
+        "export": "PushSettingsPane",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "profiles.settings"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "order": 30
     }
   ]
 }

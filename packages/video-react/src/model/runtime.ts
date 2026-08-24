@@ -24,6 +24,10 @@ import type { VideoApi } from "../api/videoApi.js";
 export type VideoRuntime = ModuleRuntime<VideoApi> & {
   /** See {@link CreateVideoRuntimeOptions.scopeKey}. */
   readonly scopeKey: string | undefined;
+  /** See {@link CreateVideoRuntimeOptions.clientSessionId}. */
+  readonly clientSessionId: string | undefined;
+  /** See {@link CreateVideoRuntimeOptions.wsOrigin}. */
+  readonly wsOrigin: string | undefined;
 };
 
 export interface CreateVideoRuntimeOptions extends CreateModuleRuntimeOptions {
@@ -39,11 +43,43 @@ export interface CreateVideoRuntimeOptions extends CreateModuleRuntimeOptions {
    * instead and leaves this unset — the pane's prop wins.
    */
   readonly scopeKey?: string;
+
+  /**
+   * A stable per-browser id, sent with every create and join.
+   *
+   * The provider folds it into the connection identity, so a reconnect after a
+   * reload lands under the SAME identity and the vendor evicts the pre-reload
+   * connection on sight instead of leaving a ghost tile until its disconnect
+   * timeout (`dto.JoinRequest`). Omitted, the identity is random per
+   * connection: correct, and quietly leaving one ghost per reload per viewer.
+   *
+   * The HOST supplies it. This pair does not mint one and does not write to
+   * storage: "stable across reloads and not across tabs" is a decision about
+   * the host's session model, and a library that guessed would either collide
+   * two real tabs or lose the property it exists for.
+   */
+  readonly clientSessionId?: string;
+
+  /**
+   * The WebSocket origin the lobby socket lives on, e.g.
+   * `wss://api.example.com`. Absent, `<LobbyPanel>` renders the lobby without
+   * live updates and SAYS so — it never falls back to a hidden poll.
+   *
+   * Host-supplied for the same reason `baseUrl` is: the API's origin is not
+   * the page's in most deployments, and a browser handshake carries only the
+   * cookie the browser attaches to THAT origin.
+   */
+  readonly wsOrigin?: string;
 }
 
 export function createVideoRuntime(
   options: CreateVideoRuntimeOptions
 ): VideoRuntime {
   const runtime = createModuleRuntime(createVideoApi, options);
-  return { ...runtime, scopeKey: options.scopeKey };
+  return {
+    ...runtime,
+    scopeKey: options.scopeKey,
+    clientSessionId: options.clientSessionId,
+    wsOrigin: options.wsOrigin,
+  };
 }

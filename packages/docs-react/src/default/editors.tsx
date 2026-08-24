@@ -20,13 +20,14 @@
  */
 import { useState } from "react";
 import type { KeyboardEvent, ReactElement, ReactNode } from "react";
-import { Alert, Button, Flex, Input, Spin, Tag, Typography } from "antd";
-import { useErrorDisplay, useT } from "@stapel/core";
+import { Alert, Button, Flex, Input, Skeleton, Tag, Typography } from "antd";
+import { ErrorAlert } from "@stapel/tokens-antd/skin";
+import { useT } from "@stapel/core";
+import { fontSize, spacing } from "@stapel/tokens";
 import type { DocEditorBag } from "../headless/DocEditor.js";
 import type { DocEditorAdapterProps } from "../editors/registry.js";
 import { parseCsv, serializeCsv } from "../editors/csv.js";
 import { DOCS_I18N_KEYS } from "../i18n/keys.js";
-import { ErrorAlert } from "./ErrorAlert.js";
 
 /** The shared chrome every default editor renders inside. */
 export function EditorChrome(props: {
@@ -34,7 +35,6 @@ export function EditorChrome(props: {
   readonly children: ReactNode;
 }): ReactElement {
   const t = useT();
-  const errorDisplay = useErrorDisplay(DOCS_I18N_KEYS.unknownError);
   const { bag } = props;
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
@@ -71,7 +71,10 @@ export function EditorChrome(props: {
           <Tag data-testid="docs-editor-dirty">{t(DOCS_I18N_KEYS.editorDirty)}</Tag>
         ) : (
           !bag.isLoading && (
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            <Typography.Text
+              type="secondary"
+              style={{ fontSize: fontSize.xs.fontSize }}
+            >
               {t(DOCS_I18N_KEYS.editorSaved)}
             </Typography.Text>
           )
@@ -99,11 +102,17 @@ export function EditorChrome(props: {
         />
       )}
 
-      {bag.isError && (
-        <ErrorAlert error={errorDisplay(bag.error)} testId="docs-editor-error" />
-      )}
+      <ErrorAlert
+        thrown={bag.error}
+        onRetry={bag.reload}
+        testId="docs-editor-error"
+      />
 
-      {bag.isLoading ? <Spin /> : props.children}
+      {bag.isLoading ? (
+        <Skeleton active data-testid="docs-editor-loading" />
+      ) : (
+        props.children
+      )}
     </Flex>
   );
 }
@@ -264,7 +273,7 @@ export function DefaultCsvEditor(props: DocEditorAdapterProps): ReactElement {
             {model.map((row) => (
               <tr key={row.id}>
                 {row.cells.map((cell) => (
-                  <td key={cell.id} style={{ padding: 2 }}>
+                  <td key={cell.id} style={{ padding: spacing[1] }}>
                     <Input
                       size="small"
                       value={cell.value}
@@ -276,7 +285,7 @@ export function DefaultCsvEditor(props: DocEditorAdapterProps): ReactElement {
                   </td>
                 ))}
                 {!readOnly && (
-                  <td style={{ padding: 2 }}>
+                  <td style={{ padding: spacing[1] }}>
                     <Button
                       size="small"
                       type="text"

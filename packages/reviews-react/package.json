@@ -53,34 +53,38 @@
   },
   "size-limit": [
     {
-      "name": "index — the headless pair (client + list window + aggregate + submit): no antd",
+      "name": "index — the headless pair (client + list window + aggregate + submit + moderate + respond): no antd",
       "path": "dist/index.js",
-      "limit": "6 KB"
+      "limit": "7 KB"
     },
     {
-      "name": "default — the antd skin (list, stars, form) must stay out of the main bundle",
+      "name": "default — the antd skin (list, stars, form, moderation queue, reply composer) must stay out of the main bundle",
       "path": "dist/default/index.js",
-      "limit": "7 KB"
+      "limit": "10 KB"
     },
     {
       "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",
       "path": "dist/i18n/ru.js",
-      "limit": "3 KB"
+      "limit": "3.5 KB"
     },
     {
       "name": "i18n/es — the Spanish bundle is opt-in, not carried by the main entry",
       "path": "dist/i18n/es.js",
-      "limit": "2.5 KB"
+      "limit": "3 KB"
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.16.0 <1.0.0",
-    "@stapel/tokens-antd": ">=0.5.0",
+    "@stapel/core": ">=0.18.0 <1.0.0",
+    "@stapel/tokens": ">=0.5.0",
+    "@stapel/tokens-antd": ">=0.6.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"
   },
   "peerDependenciesMeta": {
+    "@stapel/tokens": {
+      "optional": true
+    },
     "@stapel/tokens-antd": {
       "optional": true
     },

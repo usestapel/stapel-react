@@ -1,17 +1,15 @@
 /**
- * `<MembersManager/>` — default skin for the "members & roles" settings
- * screen (owner directive: workspace settings — name/members/roles/
- * invites). Built entirely on this pair's EXISTING `Members` headless
- * wrapper (`useMembers`/`useInviteMembers`/`useUpdateMemberRole`/
- * `useRemoveMember`) — no new backend surface.
+ * `<MembersManager/>` — the default skin for "who is in this workspace":
+ * the roster, an invite, a role change, a name correction, a removal, and a
+ * page walk that actually reaches the second page.
  *
- * Roles come from the EFFECTIVE registry via the `RoleSelect` headless
- * (GET /roles, org-program §A2) — not a hardcoded builtin four: a deployment
- * that overlays `STAPEL_WORKSPACES["ROLES"]` (e.g. a `secretary`) sees its
- * roles here with `workspaces.role.<key>` labels (client-bundle merge,
- * raw-name fallback). `owner` is offered only in the member-row select (the
- * backend enforces "only an owner grants owner" and last-owner protection);
- * the invite dialog filters it out, as before.
+ * Roles come from the EFFECTIVE registry via `<RoleSelectField/>` (GET /roles,
+ * org-program §A2) — never a hardcoded builtin four: a deployment that
+ * overlays `STAPEL_WORKSPACES["ROLES"]` (e.g. a `secretary`) sees its roles
+ * here, labelled by `workspaces.role.<key>` where a bundle carries one and
+ * title-cased from the key where it does not. `owner` is offered only on an
+ * existing member's row (the backend enforces "only an owner grants owner"
+ * and last-owner protection); the invite dialog leaves it out.
  *
  * ## What a row's controls are allowed to claim
  *
@@ -20,54 +18,67 @@
  * members contract answers only one of them:
  *
  *  - **The last owner.** Answerable: `MemberResponse.role` is on every row and
- *    `has_next` says whether the page IS the roster (`MembersBag.rosterComplete`).
- *    With the whole roster in hand, "exactly one row holds `owner`" is a fact,
- *    so "Remove" on that row is switched off with the reason printed beside it.
- *    On a roster longer than one page nothing is claimed — a count of a page is
- *    not a count of the roster.
- *  - **The caller's own row.** NOT answerable, and therefore NOT gated. Nothing
- *    in the contract identifies the caller among the rows: `MemberResponse`
- *    carries no `is_self`, the page carries no "you are" pointer, and this pair
- *    has no caller identity to compare `user_id` against (`@stapel/core`'s
- *    session exposes a STATUS, never a subject; the mandate axis resolves to
- *    `anonymous`/`guest`/`member`, never to a user id). `WorkspaceResponse`
- *    carries `owner_id` and `my_role`, but neither settles it: `my_role ===
+ *    the page envelope says whether the page IS the roster
+ *    (`MembersBag.rosterComplete`). With the whole roster in hand, "exactly
+ *    one row holds `owner`" is a fact, so "Remove" on that row is switched off
+ *    with the reason printed beside it. On any page of a longer roster nothing
+ *    is claimed — a count of a page is not a count of the roster.
+ *  - **The caller's own row.** Answerable only by the SERVER. This pair has no
+ *    caller identity to compare `user_id` against (`@stapel/core`'s session
+ *    exposes a STATUS, never a subject; the mandate axis resolves to
+ *    `anonymous`/`guest`/`member`, never to a user id), and `my_role ===
  *    "owner"` does not make the caller the user in `owner_id` once more than
- *    one membership can hold the `owner` role. Guessing here would grey out
- *    somebody else's row. The backend would need ONE of: an `is_self` boolean
- *    on `MemberResponse`, or the caller's `user_id` on the members page.
+ *    one membership can hold the role — guessing would grey out somebody
+ *    else's row. So the row is gated on `MemberResponse.is_self`, the
+ *    server-derived flag, and on nothing else: a build talking to a backend
+ *    that does not send it claims nothing rather than guessing. See
+ *    {@link isSelf}.
+ *
+ * ## Two-factor evidence
+ *
+ * `MemberResponse.mfa_compliant` is true / false / **null**, and null is a
+ * state of its own — nobody has asked yet (WORK-01). Under a `require_mfa`
+ * policy those members are the ones an administrator acts on, so the column
+ * prints three different things and never folds the unknown into a "no".
  */
 import { useState } from "react";
-import type { ReactElement } from "react";
-import { Button, Card, Empty, Flex, Input, Popconfirm, Select, Table, Typography } from "antd";
-import type { TableProps } from "antd";
+import type { ReactElement, ReactNode } from "react";
+import { Button, Card, Flex, Input, Typography, theme as antdTheme } from "antd";
 import {
   actionAvailable,
   actionBlocked,
   firstBlock,
-  loadedRowsOrEmpty,
-  matchList,
-  useActionGate,
-  useErrorDisplay,
   useT,
+  useTPlural,
 } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
-import { SkinDialog } from "@stapel/tokens-antd/skin";
+import {
+  EmptyState,
+  ErrorAlert,
+  GatedButton,
+  LoadList,
+  SkinConfirm,
+  SkinDialog,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
+import { spacing } from "@stapel/tokens";
 import { Members } from "../headless/Members.js";
-import { RoleSelect } from "../headless/RoleSelect.js";
-import type { RoleSelectBag } from "../headless/RoleSelect.js";
-import type { Member } from "../api/types.js";
+import type { MembersBag } from "../headless/Members.js";
+import type { Member, MembersParams } from "../api/types.js";
+import { useWorkspaceFormat } from "../model/format.js";
 import { WORKSPACES_I18N_KEYS } from "../i18n/keys.js";
-import { ErrorAlert } from "./ErrorAlert.js";
+import { AnchorPager, Muted, PersonLine, StatusTag } from "./parts.js";
+import { RoleSelectField } from "./RoleSelectField.js";
 
 export interface MembersManagerProps {
   workspaceId: string;
   /**
-   * Whether the caller may invite, change roles, and remove members. The
-   * host already knows the caller's own verdict in this workspace (e.g.
+   * Whether the caller may invite, change roles, rename and remove members.
+   * The host already knows the caller's own verdict in this workspace (e.g.
    * `useCapabilities(workspaceId).can("members.invite")`, or the coarser
    * `my_role`); this component doesn't re-derive it — pass `false` for a
-   * read-only roster. Default `true`.
+   * read-only roster, which says so rather than silently dropping controls.
+   * Default `true`.
    */
   canManage?: boolean;
 }
@@ -77,49 +88,419 @@ const DEFAULT_INVITE_ROLE = "member";
 /** The system-protected role the backend's last-owner rule is about. */
 const OWNER_ROLE = "owner";
 
-/** One entry of the role picker: the registry key plus its resolved label. */
-interface RoleOption {
-  readonly value: string;
-  readonly label: string;
+/** The suspension the `require_mfa` sweep writes. Any other reason is shown
+ * as the plain "suspended" tag — this pair does not invent copy for a value
+ * the backend has not documented. */
+const SUSPENDED_NO_MFA = "no_mfa";
+
+/** A page of the walk. Anchor + direction is the whole cursor; `index` is how
+ * many steps this screen has taken, which is the only page NUMBER an anchor
+ * API can honestly show. */
+interface Walk {
+  readonly anchor: string | undefined;
+  readonly direction: "next" | "prev" | undefined;
+  readonly index: number;
 }
 
-/** The muted sentence that sits under a switched-off control. */
-function BlockedReason(props: { readonly text: string }): ReactElement {
+const FIRST_PAGE: Walk = { anchor: undefined, direction: undefined, index: 1 };
+
+/** A shape good enough to send: the backend answers `error.400.invalid_email`
+ * per address after a round trip, and finding out one at a time is the defect
+ * this closes. Deliberately loose — address validation belongs to the server;
+ * this only catches what is obviously not an address. */
+function looksLikeEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function splitEmails(text: string): readonly string[] {
+  return text
+    .split(/[,\s]+/)
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+}
+
+export function MembersManager(props: MembersManagerProps): ReactElement {
+  const canManage = props.canManage ?? true;
+  const [walk, setWalk] = useState<Walk>(FIRST_PAGE);
+  const [search, setSearch] = useState("");
+
+  const params: MembersParams = {
+    ...(walk.anchor !== undefined ? { anchor: walk.anchor } : {}),
+    ...(walk.direction !== undefined ? { direction: walk.direction } : {}),
+    ...(search.trim() !== "" ? { search: search.trim() } : {}),
+  };
+
   return (
-    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-      {props.text}
-    </Typography.Text>
+    <SkinTheme data-testid="members-manager">
+      <Members workspaceId={props.workspaceId} params={params}>
+        {(bag) => (
+          <RosterCard
+            bag={bag}
+            canManage={canManage}
+            walk={walk}
+            search={search}
+            onSearch={(value) => {
+              // A new filter is a new walk: an anchor from the old one points
+              // into a list that no longer exists.
+              setSearch(value);
+              setWalk(FIRST_PAGE);
+            }}
+            onWalk={setWalk}
+          />
+        )}
+      </Members>
+    </SkinTheme>
+  );
+}
+
+function RosterCard(props: {
+  readonly bag: MembersBag;
+  readonly canManage: boolean;
+  readonly walk: Walk;
+  readonly search: string;
+  readonly onSearch: (value: string) => void;
+  readonly onWalk: (walk: Walk) => void;
+}): ReactElement {
+  const t = useT();
+  const tPlural = useTPlural();
+  const { bag, canManage } = props;
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [removing, setRemoving] = useState<Member | null>(null);
+  const [renaming, setRenaming] = useState<Member | null>(null);
+
+  const page = bag.page;
+
+  return (
+    <Card data-testid="members-manager-card">
+      <Flex justify="space-between" align="flex-start" gap={spacing["4"]} wrap>
+        <Flex vertical gap={spacing["1"]}>
+          <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 0 }}>
+            {t(WORKSPACES_I18N_KEYS.membersTitle)}
+          </Typography.Title>
+          <Typography.Text type="secondary">
+            {t(WORKSPACES_I18N_KEYS.membersSubtitle)}
+          </Typography.Text>
+          {page !== null && (
+            <Muted testId="members-count">
+              {tPlural(WORKSPACES_I18N_KEYS.membersCount, { count: page.count })}
+            </Muted>
+          )}
+        </Flex>
+        {/* The one primary on this screen. Everything else on a row is a
+            quiet link or a danger link. */}
+        {canManage && (
+          <Button
+            type="primary"
+            onClick={() => setInviteOpen(true)}
+            data-analytics="none"
+            data-analytics-reason="local-ui-open-invite-dialog"
+            data-testid="members-invite-open"
+          >
+            {t(WORKSPACES_I18N_KEYS.membersInvite)}
+          </Button>
+        )}
+      </Flex>
+
+      {!canManage && (
+        <div style={{ marginTop: spacing["2"] }}>
+          <Muted testId="members-read-only">
+            {t(WORKSPACES_I18N_KEYS.membersBlockedReadOnly)}
+          </Muted>
+        </div>
+      )}
+
+      <div style={{ marginTop: spacing["4"] }}>
+        <Input
+          value={props.search}
+          onChange={(event) => props.onSearch(event.target.value)}
+          placeholder={t(WORKSPACES_I18N_KEYS.membersSearchPlaceholder)}
+          aria-label={t(WORKSPACES_I18N_KEYS.membersSearchPlaceholder)}
+          allowClear
+          data-testid="members-search"
+        />
+      </div>
+
+      {/* A write that failed — the roster read has its own arm below. */}
+      <ErrorAlert
+        thrown={bag.writeError}
+        style={{ marginTop: spacing["3"] }}
+        testId="members-write-error"
+      />
+
+      <div style={{ marginTop: spacing["4"] }}>
+        <LoadList
+          state={bag.state}
+          testId="members-list"
+          onRetry={bag.refetch}
+          empty={
+            <EmptyState
+              title={t(WORKSPACES_I18N_KEYS.membersEmpty)}
+              testId="members-list-empty"
+              {...(canManage
+                ? {
+                    action: (
+                      <Button
+                        type="primary"
+                        onClick={() => setInviteOpen(true)}
+                        data-analytics="none"
+                        data-analytics-reason="local-ui-open-invite-dialog"
+                      >
+                        {t(WORKSPACES_I18N_KEYS.membersInvite)}
+                      </Button>
+                    ),
+                  }
+                : {})}
+            />
+          }
+        >
+          {(members) => (
+            <div role="list" data-testid="members-rows">
+              {members.map((member) => (
+                <MemberRow
+                  key={member.id}
+                  member={member}
+                  rows={members}
+                  bag={bag}
+                  canManage={canManage}
+                  onRename={() => setRenaming(member)}
+                  onRemove={() => setRemoving(member)}
+                />
+              ))}
+            </div>
+          )}
+        </LoadList>
+      </div>
+
+      {page !== null && (
+        <AnchorPager
+          hasPrev={page.hasPrev}
+          hasNext={page.hasNext}
+          prevLabel={t(WORKSPACES_I18N_KEYS.pagerPrev)}
+          nextLabel={t(WORKSPACES_I18N_KEYS.pagerNext)}
+          position={t(WORKSPACES_I18N_KEYS.pagerPosition, { page: props.walk.index })}
+          testId="members-pager"
+          onPrev={() =>
+            props.onWalk({
+              anchor: page.prevAnchor ?? undefined,
+              direction: "prev",
+              index: Math.max(1, props.walk.index - 1),
+            })
+          }
+          onNext={() =>
+            props.onWalk({
+              anchor: page.nextAnchor ?? undefined,
+              direction: "next",
+              index: props.walk.index + 1,
+            })
+          }
+        />
+      )}
+
+      <InviteDialog
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        isInviting={bag.isInviting}
+        onInvite={(body) => {
+          bag.invite(body);
+          setInviteOpen(false);
+        }}
+      />
+
+      <RenameDialog
+        member={renaming}
+        onClose={() => setRenaming(null)}
+        isRenaming={bag.isRenaming}
+        onRename={(displayName) => {
+          if (renaming === null) return;
+          bag.rename({ userId: renaming.user_id, displayName });
+          setRenaming(null);
+        }}
+      />
+
+      {/* ONE confirm for the list, keyed by the pending row — not one per
+          row, which is N dialogs mounted to answer a question about one. */}
+      <SkinConfirm
+        open={removing !== null}
+        danger
+        title={t(WORKSPACES_I18N_KEYS.membersRemoveConfirm)}
+        body={t(WORKSPACES_I18N_KEYS.membersRemoveConfirmBody, {
+          member: removing?.display_name ?? removing?.email ?? "",
+        })}
+        confirmLabel={t(WORKSPACES_I18N_KEYS.membersRemove)}
+        cancelLabel={t(WORKSPACES_I18N_KEYS.cancel)}
+        confirming={bag.isRemoving}
+        onConfirm={() => {
+          if (removing !== null) bag.remove(removing.user_id);
+          setRemoving(null);
+        }}
+        onCancel={() => setRemoving(null)}
+        data-testid="members-remove-confirm"
+      />
+    </Card>
   );
 }
 
 /**
- * One row's "Remove", switched off WITH ITS REASON when the backend would
- * refuse it (last-owner protection).
+ * Is this row the READER? The server's answer (`MemberResponse.is_self`) and
+ * only the server's.
  *
- * Its own component because `useActionGate` is a hook and a row is rendered
- * from a `columns` callback — and because a disabled button receives no
- * pointer events, so the reason has to be text beside it, never a tooltip
- * (core's `actionGate.ts`; `auth-react`'s `OAuthLinks` is the reference).
+ * Read defensively rather than off the generated type because the field is
+ * additive and a deployment on an older stapel-workspaces sends nothing: the
+ * absence must read as "the server did not say", which is what a missing
+ * property gives, and never as "no". A comparison against a session id would
+ * be the client re-deriving an identity it does not hold — the exact shape of
+ * the `my_role` defect `can_delete` was added to close.
  */
-function RemoveMemberAction(props: {
-  readonly availability: ActionAvailability;
-  readonly onConfirm: () => void;
+function isSelf(member: Member): boolean {
+  return (member as { readonly is_self?: boolean }).is_self === true;
+}
+
+/**
+ * Whether removing THIS member is offerable. Two rules, in the order a person
+ * would be told them; everything else is the backend's to refuse.
+ */
+function removeAvailability(
+  member: Member,
+  rows: readonly Member[],
+  rosterComplete: boolean
+): ActionAvailability {
+  if (isSelf(member)) {
+    return actionBlocked(WORKSPACES_I18N_KEYS.membersRemoveBlockedSelf);
+  }
+  if (!rosterComplete || member.role !== OWNER_ROLE) return actionAvailable();
+  const owners = rows.filter((row) => row.role === OWNER_ROLE).length;
+  return owners <= 1
+    ? actionBlocked(WORKSPACES_I18N_KEYS.membersRemoveBlockedLastOwner)
+    : actionAvailable();
+}
+
+function MemberRow(props: {
+  readonly member: Member;
+  readonly rows: readonly Member[];
+  readonly bag: MembersBag;
+  readonly canManage: boolean;
+  readonly onRename: () => void;
+  readonly onRemove: () => void;
 }): ReactElement {
   const t = useT();
-  const gate = useActionGate(props.availability);
+  const format = useWorkspaceFormat();
+  const { token } = antdTheme.useToken();
+  const { member, bag, canManage } = props;
+
+  const lastSeen = format.relative(member.last_accessed_at);
+  const joined = format.date(member.accepted_at ?? member.invited_at);
+
+  const tags: ReactNode = (
+    <>
+      {member.suspended_at !== null && member.suspended_at !== undefined && (
+        <StatusTag tone="danger" testId="member-suspended">
+          {t(WORKSPACES_I18N_KEYS.membersSuspended)}
+        </StatusTag>
+      )}
+      {member.provisioned === true && (
+        <StatusTag tone="neutral">{t(WORKSPACES_I18N_KEYS.membersProvisioned)}</StatusTag>
+      )}
+      <MfaTag compliant={member.mfa_compliant ?? null} />
+    </>
+  );
+
   return (
-    <Flex vertical align="flex-start" gap={4}>
-      <Popconfirm
-        title={t(WORKSPACES_I18N_KEYS.membersRemoveConfirm)}
-        onConfirm={props.onConfirm}
-        disabled={gate.disabled}
-      >
-        <Button danger type="link" disabled={gate.disabled}>
-          {t(WORKSPACES_I18N_KEYS.membersRemove)}
-        </Button>
-      </Popconfirm>
-      {gate.reason !== undefined && <BlockedReason text={gate.reason} />}
-    </Flex>
+    <div
+      role="listitem"
+      data-testid={`member-row-${member.user_id}`}
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: spacing["3"],
+        paddingTop: spacing["3"],
+        paddingBottom: spacing["3"],
+        borderBottom: `1px solid ${token.colorSplit}`,
+      }}
+    >
+      <PersonLine
+        name={member.display_name ?? null}
+        email={member.email}
+        tags={tags}
+        caption={
+          <>
+            {joined !== null && t(WORKSPACES_I18N_KEYS.membersJoined, { date: joined })}
+            {joined !== null && " · "}
+            {lastSeen === null
+              ? t(WORKSPACES_I18N_KEYS.membersLastSeenNever)
+              : t(WORKSPACES_I18N_KEYS.membersLastSeen, { date: lastSeen })}
+            {member.suspension_reason === SUSPENDED_NO_MFA && (
+              <> · {t(WORKSPACES_I18N_KEYS.membersSuspendedNoMfa)}</>
+            )}
+          </>
+        }
+      />
+      <Flex gap={spacing["3"]} align="center" wrap>
+        <div style={{ minWidth: "10rem" }}>
+          <RoleSelectField
+            value={member.role}
+            size="small"
+            label={t(WORKSPACES_I18N_KEYS.membersRolePickerLabel, {
+              member: member.display_name ?? member.email ?? member.role,
+            })}
+            disabled={!canManage}
+            onChange={(role) => bag.updateRole({ userId: member.user_id, role })}
+            testId={`member-role-${member.user_id}`}
+          />
+        </div>
+        {canManage && (
+          <Flex gap={spacing["2"]} align="flex-start" wrap>
+            <Button
+              type="link"
+              size="small"
+              onClick={props.onRename}
+              data-analytics="none"
+              data-analytics-reason="opens the rename dialog"
+              data-testid={`member-rename-${member.user_id}`}
+            >
+              {t(WORKSPACES_I18N_KEYS.membersRename)}
+            </Button>
+            <GatedButton
+              gate={removeAvailability(member, props.rows, bag.rosterComplete)}
+              danger
+              type="link"
+              size="small"
+              onClick={props.onRemove}
+              testId={`member-remove-${member.user_id}`}
+              data-analytics="none"
+              data-analytics-reason="opens the remove confirm"
+            >
+              {t(WORKSPACES_I18N_KEYS.membersRemove)}
+            </GatedButton>
+          </Flex>
+        )}
+      </Flex>
+    </div>
+  );
+}
+
+/** Three states, never two: confirmed, missing, and nobody has asked. */
+function MfaTag(props: { readonly compliant: boolean | null }): ReactElement {
+  const t = useT();
+  if (props.compliant === true) {
+    return (
+      <StatusTag tone="success" testId="member-mfa">
+        {`${t(WORKSPACES_I18N_KEYS.membersMfaLabel)}: ${t(WORKSPACES_I18N_KEYS.membersMfaCompliant)}`}
+      </StatusTag>
+    );
+  }
+  if (props.compliant === false) {
+    return (
+      <StatusTag tone="warning" testId="member-mfa">
+        {`${t(WORKSPACES_I18N_KEYS.membersMfaLabel)}: ${t(WORKSPACES_I18N_KEYS.membersMfaNoncompliant)}`}
+      </StatusTag>
+    );
+  }
+  return (
+    <StatusTag tone="neutral" testId="member-mfa">
+      {`${t(WORKSPACES_I18N_KEYS.membersMfaLabel)}: ${t(WORKSPACES_I18N_KEYS.membersMfaUnknown)}`}
+    </StatusTag>
   );
 }
 
@@ -127,40 +508,35 @@ function RemoveMemberAction(props: {
  * The invite dialog — a bottom sheet on a phone, a centred modal on
  * tablet/desktop, because that is what `SkinDialog` is (owner ruling
  * 2026-08-24, stated once in `@stapel/tokens-antd/skin`).
- *
- * A component rather than inline JSX for the same reason as
- * {@link RemoveMemberAction}: the dialog's submit is gated, `useActionGate` is
- * a hook, and the surrounding JSX lives inside render-prop closures where a
- * hook call would not have a stable owner.
  */
 function InviteDialog(props: {
   readonly open: boolean;
   readonly onClose: () => void;
-  readonly emailsText: string;
-  readonly onEmailsChange: (value: string) => void;
-  readonly role: string;
-  readonly onRoleChange: (role: string) => void;
-  readonly roleOptions: readonly RoleOption[];
-  readonly rolesLoading: boolean;
-  readonly rolesFailed: boolean;
   readonly isInviting: boolean;
-  /** Send the invitations. Named for the domain, not for a DOM event: there is
-   * no form here, and the one real click point is the button below — which
-   * declares its own analytics outcome (§3.2). */
-  readonly onInvite: () => void;
+  readonly onInvite: (body: {
+    emails: string[];
+    role: string;
+    display_name?: string;
+  }) => void;
 }): ReactElement {
   const t = useT();
-  // Ordered the way it would be explained out loud: the outage first, the
-  // thing the person can fix second.
-  const gate = useActionGate(
-    firstBlock(
-      props.rolesFailed
-        ? actionBlocked(WORKSPACES_I18N_KEYS.rolesLoadFailed)
-        : actionAvailable(),
-      props.emailsText.trim().length === 0
-        ? actionBlocked(WORKSPACES_I18N_KEYS.membersInviteBlockedNoEmails)
-        : actionAvailable()
-    )
+  const [emailsText, setEmailsText] = useState("");
+  const [role, setRole] = useState(DEFAULT_INVITE_ROLE);
+  const [displayName, setDisplayName] = useState("");
+
+  const emails = splitEmails(emailsText);
+  const firstBad = emails.find((email) => !looksLikeEmail(email));
+  // Ordered the way it would be explained out loud: the thing that is empty
+  // first, the thing that is wrong second.
+  const gate = firstBlock(
+    emails.length === 0
+      ? actionBlocked(WORKSPACES_I18N_KEYS.membersInviteBlockedNoEmails)
+      : actionAvailable(),
+    firstBad !== undefined
+      ? actionBlocked(WORKSPACES_I18N_KEYS.membersInviteBlockedBadEmail, {
+          email: firstBad,
+        })
+      : actionAvailable()
   );
 
   return (
@@ -171,274 +547,123 @@ function InviteDialog(props: {
       dismissLabel={t(WORKSPACES_I18N_KEYS.dialogClose)}
       data-testid="members-invite-dialog"
       footer={
-        <Flex vertical align="flex-end" gap={4}>
-          <Button
-            type="primary"
-            loading={props.isInviting}
-            disabled={gate.disabled}
-            onClick={props.onInvite}
-            data-analytics="none"
-            data-analytics-reason="pair-defines-no-analytics-events-yet"
-          >
-            {t(WORKSPACES_I18N_KEYS.membersInviteSubmit)}
-          </Button>
-          {gate.reason !== undefined && <BlockedReason text={gate.reason} />}
-        </Flex>
+        <GatedButton
+          gate={gate}
+          type="primary"
+          loading={props.isInviting}
+          onClick={() => {
+            props.onInvite({
+              emails: [...emails],
+              role,
+              ...(displayName.trim() !== "" ? { display_name: displayName.trim() } : {}),
+            });
+            setEmailsText("");
+            setDisplayName("");
+            setRole(DEFAULT_INVITE_ROLE);
+          }}
+          testId="members-invite-submit"
+          data-analytics="none"
+          data-analytics-reason="business action — host app wraps with its own tracked()"
+        >
+          {t(WORKSPACES_I18N_KEYS.membersInviteSubmit)}
+        </GatedButton>
       }
     >
-      <div style={{ display: "grid", gap: 12 }}>
-        <div>
-          <Typography.Text>{t(WORKSPACES_I18N_KEYS.membersInviteEmailsLabel)}</Typography.Text>
+      <Flex vertical gap={spacing["3"]}>
+        <Flex vertical gap={spacing["1"]}>
+          <Typography.Text>
+            {t(WORKSPACES_I18N_KEYS.membersInviteEmailsLabel)}
+          </Typography.Text>
           <Input
-            value={props.emailsText}
-            onChange={(e) => props.onEmailsChange(e.target.value)}
+            value={emailsText}
+            onChange={(event) => setEmailsText(event.target.value)}
             placeholder={t(WORKSPACES_I18N_KEYS.membersInviteEmailsPlaceholder)}
+            aria-label={t(WORKSPACES_I18N_KEYS.membersInviteEmailsLabel)}
           />
-        </div>
-        <div>
-          <Typography.Text>{t(WORKSPACES_I18N_KEYS.membersInviteRoleLabel)}</Typography.Text>
-          {/* A failed registry read is not an empty registry: an enabled
-              picker over `[]` offers a choice that does not exist. The reason
-              is already stated above the dialog's opener and again under the
-              blocked submit. */}
-          {props.rolesFailed ? (
-            <BlockedReason text={t(WORKSPACES_I18N_KEYS.rolesLoadFailed)} />
-          ) : (
-            <Select<string>
-              value={props.role}
-              onChange={props.onRoleChange}
-              style={{ width: "100%" }}
-              loading={props.rolesLoading}
-              options={[...props.roleOptions]}
-            />
-          )}
-        </div>
-      </div>
+        </Flex>
+        <Flex vertical gap={spacing["1"]}>
+          <Typography.Text>{t(WORKSPACES_I18N_KEYS.membersInviteNameLabel)}</Typography.Text>
+          <Input
+            value={displayName}
+            onChange={(event) => setDisplayName(event.target.value)}
+            placeholder={t(WORKSPACES_I18N_KEYS.membersInviteNamePlaceholder)}
+            aria-label={t(WORKSPACES_I18N_KEYS.membersInviteNameLabel)}
+          />
+        </Flex>
+        <RoleSelectField
+          value={role}
+          onChange={setRole}
+          excludeOwner
+          showLabel
+          label={t(WORKSPACES_I18N_KEYS.membersInviteRoleLabel)}
+          testId="members-invite-role"
+        />
+      </Flex>
     </SkinDialog>
   );
 }
 
-export function MembersManager(props: MembersManagerProps): ReactElement {
+/**
+ * The name correction an owner/admin applies without waiting for the person
+ * themselves. It writes the CANONICAL name (stapel-profiles), which the hint
+ * under the field says out loud — a workspace-local note is what people
+ * expect from a field in a workspace screen, and this is not one.
+ */
+function RenameDialog(props: {
+  readonly member: Member | null;
+  readonly onClose: () => void;
+  readonly isRenaming: boolean;
+  readonly onRename: (displayName: string | null) => void;
+}): ReactElement {
   const t = useT();
-  // Never the raw `.message` — for a response with no error envelope that
-  // is the transport's own "Request failed with status 500" (owner report
-  // 2026-08-09). `useErrorText` folds any thrown value into the one dialect.
-  const errorDisplay = useErrorDisplay(WORKSPACES_I18N_KEYS.unknownError);
-  const canManage = props.canManage ?? true;
-  const [inviteOpen, setInviteOpen] = useState(false);
-  const [emailsText, setEmailsText] = useState("");
-  const [inviteRole, setInviteRole] = useState<string>(DEFAULT_INVITE_ROLE);
+  const current = props.member?.display_name ?? "";
+  const [value, setValue] = useState(current);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Seed the field from the row the dialog was opened for, without an effect:
+  // a different member in the same mounted dialog is a different edit.
+  if (props.member !== null && editingId !== props.member.id) {
+    setEditingId(props.member.id);
+    setValue(props.member.display_name ?? "");
+  }
+
+  const gate =
+    value.trim() === current.trim()
+      ? actionBlocked(WORKSPACES_I18N_KEYS.membersRenameBlockedUnchanged)
+      : actionAvailable();
 
   return (
-    <RoleSelect>
-      {(rolesBag: RoleSelectBag) => (
-        <Members workspaceId={props.workspaceId}>
-          {({ state, rosterComplete, writeError, invite, isInviting, updateRole, remove, refetch }) => {
-            const { labelFor } = rolesBag;
-            // The registry read is a SEPARATE load from the roster's, and it
-            // gets its own sentence below rather than silently producing an
-            // empty picker — a role menu with nothing in it and a role menu
-            // that could not be fetched look identical to a person.
-            const rolesFailed = rolesBag.state.status === "failed";
-            const rolesLoading = rolesBag.state.status === "loading";
-            const roleOptions: readonly RoleOption[] = loadedRowsOrEmpty(rolesBag.state).map((r) => ({
-              value: r.role,
-              label: labelFor(r.role),
-            }));
-            const inviteRoleOptions = roleOptions.filter(
-              (o) => o.value !== OWNER_ROLE
-            );
-
-            function openInvite(): void {
-              setEmailsText("");
-              setInviteRole(DEFAULT_INVITE_ROLE);
-              setInviteOpen(true);
-            }
-
-            function submitInvite(): void {
-              const emails = emailsText
-                .split(/[,\s]+/)
-                .map((e) => e.trim())
-                .filter((e) => e.length > 0);
-              if (emails.length === 0) return;
-              invite({ emails, role: inviteRole });
-              setInviteOpen(false);
-            }
-
-            /**
-             * Whether removing THIS member is offerable. Only the last-owner
-             * rule is decidable here, and only over a complete roster — see
-             * the module doc for the one the contract cannot answer.
-             */
-            function removeAvailability(
-              member: Member,
-              rows: readonly Member[]
-            ): ActionAvailability {
-              if (!rosterComplete || member.role !== OWNER_ROLE) {
-                return actionAvailable();
-              }
-              const owners = rows.filter((m) => m.role === OWNER_ROLE).length;
-              return owners <= 1
-                ? actionBlocked(WORKSPACES_I18N_KEYS.membersRemoveBlockedLastOwner)
-                : actionAvailable();
-            }
-
-            /** Columns need the rows: "is this the last owner?" is a question
-             * about the set, not about the cell. */
-            function columnsFor(
-              rows: readonly Member[]
-            ): NonNullable<TableProps<Member>["columns"]> {
-              return [
-                {
-                  title: "Email",
-                  dataIndex: "email",
-                  key: "email",
-                  render: (value: string | null) => value ?? "—",
-                },
-                {
-                  title: t(WORKSPACES_I18N_KEYS.membersInviteRoleLabel),
-                  key: "role",
-                  render: (_: unknown, member: Member) =>
-                    // No registry, no picker. The alternative — an ENABLED
-                    // Select over `options: []` — is a control that cannot do
-                    // the one thing it is for; the stated failure above the
-                    // table says why, and the role itself still reads.
-                    canManage && !rolesFailed ? (
-                      <Select<string>
-                        value={member.role}
-                        style={{ width: 160 }}
-                        loading={rolesLoading}
-                        onChange={(next) => updateRole({ userId: member.user_id, role: next })}
-                        // A member's CURRENT role may be missing from the
-                        // registry options (a deployment removed an overlay
-                        // role) — antd shows the raw value then, which matches
-                        // labelFor's raw-name fallback contract.
-                        options={[...roleOptions]}
-                      />
-                    ) : (
-                      <span>{labelFor(member.role)}</span>
-                    ),
-                },
-                ...(canManage
-                  ? [
-                      {
-                        title: "",
-                        key: "actions",
-                        render: (_: unknown, member: Member) => (
-                          <RemoveMemberAction
-                            availability={removeAvailability(member, rows)}
-                            onConfirm={() => remove(member.user_id)}
-                          />
-                        ),
-                      },
-                    ]
-                  : []),
-              ];
-            }
-
-            return (
-              <Card data-testid="members-manager">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
-                  <div>
-                    <Typography.Title level={4} style={{ marginTop: 0 }}>
-                      {t(WORKSPACES_I18N_KEYS.membersTitle)}
-                    </Typography.Title>
-                    <Typography.Text type="secondary">{t(WORKSPACES_I18N_KEYS.membersSubtitle)}</Typography.Text>
-                  </div>
-                  {canManage && (
-                    <Button
-                      type="primary"
-                      onClick={openInvite}
-                      data-analytics="none"
-                      data-analytics-reason="local-ui-open-invite-dialog"
-                    >
-                      {t(WORKSPACES_I18N_KEYS.membersInvite)}
-                    </Button>
-                  )}
-                </div>
-
-                {/* A write that failed — the roster read has its own arm below. */}
-                {writeError !== null && (
-                  <ErrorAlert error={errorDisplay(writeError)} style={{ marginTop: 12 }} />
-                )}
-                {rolesFailed && (
-                  <ErrorAlert
-                    testId="members-roles-error"
-                    error={{ message: t(WORKSPACES_I18N_KEYS.rolesLoadFailed), detail: undefined }}
-                    style={{ marginTop: 12 }}
-                  />
-                )}
-
-                {matchList(state, {
-                  loading: () => (
-                    <Table<Member>
-                      style={{ marginTop: 16 }}
-                      size="small"
-                      loading
-                      rowKey={(member) => member.id}
-                      dataSource={[]}
-                      columns={columnsFor([])}
-                      pagination={false}
-                      scroll={{ x: true }}
-                    />
-                  ),
-                  // An antd Table with no rows renders "No data". On a failed
-                  // read that is the empty-state lie with a built-in
-                  // illustration, so the table does not get rendered at all.
-                  failed: (error) => (
-                    <div style={{ marginTop: 16 }} data-testid="members-list-error">
-                      <ErrorAlert error={errorDisplay(error)} />
-                      <Button
-                        style={{ marginTop: 12 }}
-                        onClick={refetch}
-                        data-analytics="none"
-                        data-analytics-reason="local-ui-refetch-after-a-stated-read-failure"
-                      >
-                        {t(WORKSPACES_I18N_KEYS.retry)}
-                      </Button>
-                    </div>
-                  ),
-                  empty: () => (
-                    <Empty
-                      style={{ marginTop: 16 }}
-                      data-testid="members-list-empty"
-                      description={t(WORKSPACES_I18N_KEYS.membersEmpty)}
-                    />
-                  ),
-                  ready: (members) => (
-                    <Table<Member>
-                      style={{ marginTop: 16 }}
-                      size="small"
-                      rowKey={(member) => member.id}
-                      dataSource={[...members]}
-                      columns={columnsFor(members)}
-                      pagination={false}
-                      // Three columns do not fit a phone. Without this the
-                      // last one is simply unreachable (sibling reference:
-                      // gdpr-react's DsarQueue).
-                      scroll={{ x: true }}
-                    />
-                  ),
-                })}
-
-                <InviteDialog
-                  open={inviteOpen}
-                  onClose={() => setInviteOpen(false)}
-                  emailsText={emailsText}
-                  onEmailsChange={setEmailsText}
-                  role={inviteRole}
-                  onRoleChange={setInviteRole}
-                  roleOptions={inviteRoleOptions}
-                  rolesLoading={rolesLoading}
-                  rolesFailed={rolesFailed}
-                  isInviting={isInviting}
-                  onInvite={submitInvite}
-                />
-              </Card>
-            );
-          }}
-        </Members>
-      )}
-    </RoleSelect>
+    <SkinDialog
+      open={props.member !== null}
+      onClose={props.onClose}
+      title={t(WORKSPACES_I18N_KEYS.membersRenameDialogTitle)}
+      dismissLabel={t(WORKSPACES_I18N_KEYS.dialogClose)}
+      data-testid="members-rename-dialog"
+      footer={
+        <GatedButton
+          gate={gate}
+          type="primary"
+          loading={props.isRenaming}
+          onClick={() => props.onRename(value.trim() === "" ? null : value.trim())}
+          testId="members-rename-submit"
+          data-analytics="none"
+          data-analytics-reason="business action — host app wraps with its own tracked()"
+        >
+          {t(WORKSPACES_I18N_KEYS.membersRenameSubmit)}
+        </GatedButton>
+      }
+    >
+      <Flex vertical gap={spacing["2"]}>
+        <Typography.Text>{t(WORKSPACES_I18N_KEYS.membersRenameLabel)}</Typography.Text>
+        <Input
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder={t(WORKSPACES_I18N_KEYS.membersRenamePlaceholder)}
+          aria-label={t(WORKSPACES_I18N_KEYS.membersRenameLabel)}
+          data-testid="members-rename-input"
+        />
+        <Muted>{t(WORKSPACES_I18N_KEYS.membersRenameHint)}</Muted>
+      </Flex>
+    </SkinDialog>
   );
 }

@@ -12,19 +12,44 @@
  *   * {@link useDocumentThemeMode} only READS the mode the document is
  *     stamped with. `<ThemeModeControl/>` uses it, so mounting a control
  *     never changes the theme as a side effect of rendering.
+ *
+ * ── Why the reader is an ALIAS and not an implementation ──────────────────
+ *
+ * "What mode is this document in" had two answers in one layer: this module's
+ * `useDocumentThemeMode` and `@stapel/tokens-antd/skin`'s `useThemeMode`,
+ * which every default skin in the fleet reads. Two subscriptions to one
+ * attribute is the class of defect the shared-layer audit names — they cannot
+ * disagree today and will the first time one of them is fixed. So there is
+ * one implementation, it lives beside the skins that depend on it hardest,
+ * and this name is kept as its alias: a host that imported
+ * `useDocumentThemeMode` keeps working, and the shell's control and a pair's
+ * skin now flip on the same store notification rather than on two.
+ *
+ * `@stapel/tokens-antd` is a peer this package already declares. Its `/skin`
+ * entry is `sideEffects: false`, so a bundler that only sees this import
+ * drops the antd surfaces re-exported beside the hook: `/theme` stays the
+ * plain-DOM control it advertises.
  */
-import { useCallback, useLayoutEffect, useSyncExternalStore } from "react";
+import { useLayoutEffect } from "react";
+import { useThemeMode } from "@stapel/tokens-antd/skin";
 
 import {
   applyThemePreference,
-  documentThemeMode,
-  subscribeThemeStamp,
-  THEME_ATTRIBUTE,
   watchSystemTheme,
   type ApplyThemeOptions,
   type ThemeMode,
   type ThemePreference,
 } from "./preference.js";
+
+/**
+ * The mode the document is stamped with, live — the fleet's single reader
+ * (`@stapel/tokens-antd/skin`'s `useThemeMode`), re-exported under the name
+ * this subpath has always published. It observes `data-theme` on `<html>`,
+ * which is what {@link applyThemePreference} writes, what a host's pre-paint
+ * boot script writes, and what `@stapel/tokens`' generated CSS keys its dark
+ * block on.
+ */
+export const useDocumentThemeMode: () => ThemeMode = useThemeMode;
 
 /**
  * Apply *preference*, and keep applying it as the OS changes while it is
@@ -56,30 +81,4 @@ export function useThemePreference(
   // the OS watcher above re-stamps it, and so may a boot script or a second
   // host surface. One source, so they cannot disagree.
   return useDocumentThemeMode();
-}
-
-/**
- * The mode the document is stamped with. Two subscriptions, because there
- * are two kinds of writer: {@link subscribeThemeStamp} for this module's own
- * applier (synchronous — a MutationObserver alone would deliver it a
- * microtask late, and the control would render a mode the page had already
- * left), and a MutationObserver on {@link THEME_ATTRIBUTE} for everyone else
- * — a pre-paint boot script, a host's own applier.
- */
-export function useDocumentThemeMode(): ThemeMode {
-  const subscribe = useCallback((onChange: () => void) => {
-    const unsubscribe = subscribeThemeStamp(onChange);
-    if (typeof document === "undefined") return unsubscribe;
-    const observer = new MutationObserver(onChange);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: [THEME_ATTRIBUTE],
-    });
-    return () => {
-      unsubscribe();
-      observer.disconnect();
-    };
-  }, []);
-
-  return useSyncExternalStore(subscribe, documentThemeMode, () => "light");
 }

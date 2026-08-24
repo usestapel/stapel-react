@@ -8,7 +8,4 @@ export default { title: "forms-react / Form fill" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-export const Closed = (): ReactElement => renderDemoVariant(demo, "closed");
-Closed.storyName = "closed";
-export const Outage = (): ReactElement => renderDemoVariant(demo, "outage");
-Outage.storyName = "outage";
+Default.parameters = { stapel: {"step":"ready"} };

@@ -20,6 +20,18 @@ export type Schemas = components["schemas"];
 export type DeviceTokenRequest = Schemas["DeviceTokenRequest"];
 /** POST /devices/ 201 body — the registered token echoed back. */
 export type DeviceTokenResponse = Schemas["DeviceTokenResponse"];
+/**
+ * One row of GET /devices/ — a push device registered to the caller.
+ *
+ * The raw token is deliberately absent: it is a bearer credential for that
+ * device's push channel. A client finds ITS OWN row by hashing the token it
+ * already holds (SHA-256, hex) and matching `token_fingerprint` — see
+ * `model/fingerprint.ts`. `is_active` is false once the push provider rejected
+ * the token: the row is still registered and nothing is delivered to it, which
+ * is why the backend lists it instead of hiding it (stapel-notifications
+ * MODULE.md § "The device registry").
+ */
+export type DeviceListItem = Schemas["DeviceListItemResponse"];
 /** One entry in the notification feed (a sent push, logged). */
 export type FeedItem = Schemas["FeedItemResponse"];
 /** GET /feed/ 200 body — an anchor-paginated page of {@link FeedItem}s. */
@@ -47,4 +59,32 @@ export interface NotificationFeedParams {
   readonly direction?: "next" | "prev" | "center";
   /** Page size (default 20, max 50). */
   readonly limit?: number;
+}
+
+/**
+ * The deep-link keys `FeedItemResponse.data` may carry.
+ *
+ * `telemetry.scrub_data` strips everything else before the row is stored, so
+ * this is the complete vocabulary the wire can deliver (stapel-notifications
+ * MODULE.md § "Live feed"). Typed as a lookup rather than as prose because a
+ * feed row exists to take somebody somewhere, and the skin has to know where.
+ */
+export const FEED_LINK_KEYS: readonly ["listing_url", "chat_url", "notifications_chat_url"] =
+  ["listing_url", "chat_url", "notifications_chat_url"];
+
+/**
+ * The first declared deep link on a feed item, or `undefined`.
+ *
+ * Order is the declaration order above, so a row that carries both a listing
+ * and a chat link opens the listing — the subject of the notification, not the
+ * channel it was discussed in. Non-string values are ignored: `data` is typed
+ * `additionalProperties: {}` on the wire, so a number there is a server bug,
+ * not a URL.
+ */
+export function feedItemLink(item: FeedItem): string | undefined {
+  for (const key of FEED_LINK_KEYS) {
+    const value = item.data[key];
+    if (typeof value === "string" && value.length > 0) return value;
+  }
+  return undefined;
 }

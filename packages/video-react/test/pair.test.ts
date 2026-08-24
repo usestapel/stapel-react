@@ -46,40 +46,59 @@ describe("self-description (frontend-core §2.4 — drift-gated manifest)", () =
 });
 
 describe("navigation contract", () => {
-  it("declares exactly one screen, under the workspace admin area", () => {
-    expect(navEntries.length).toBe(1);
-    const entry = navEntries[0];
-    expect(entry?.id).toBe("admin.usage");
-    expect(entry?.placement).toEqual({
+  const entryFor = (id: string) => navEntries.find((e) => e.id === id);
+
+  it("declares two screens: the meeting client and the admin report", () => {
+    expect(navEntries.map((e) => e.id).sort()).toEqual([
+      "admin.usage",
+      "video.rooms",
+    ]);
+  });
+
+  it("the meeting client is TOP LEVEL, so no missing parent can drop its door", () => {
+    // `admin.usage` hangs off a container-owned `admin.root` nobody declares,
+    // and `resolveNav` drops an orphaned submenu silently. The screen an
+    // ordinary person opens must not be reachable only by luck.
+    expect(entryFor("video.rooms")?.placement).toEqual({ level: "top" });
+  });
+
+  it("the usage report stays under the workspace admin area", () => {
+    expect(entryFor("admin.usage")?.placement).toEqual({
       level: "submenu",
       parentId: ADMIN_ROOT_ID,
     });
   });
 
-  it("names a component that this pair's /default actually exports", async () => {
+  it("names components that this pair's /default actually exports", async () => {
     const skin = (await import("../src/default/index.js")) as Record<
       string,
       unknown
     >;
-    const entry = navEntries[0];
-    expect(entry?.component.subpath).toBe("default");
-    expect(skin[entry?.component.export ?? ""]).toBeTypeOf("function");
+    for (const entry of navEntries) {
+      expect(entry.component.subpath).toBe("default");
+      expect(skin[entry.component.export]).toBeTypeOf("function");
+    }
   });
 
   it("declares its surface explicitly — a session is not a mandate", () => {
-    // The pane behind this route answers the uniform 404 to a signed-in
+    // The pane behind `admin.usage` answers the uniform 404 to a signed-in
     // person who is not an admin of the workspace, so the axis must never be
     // left to the `requiresAuth ? "member" : "public"` derivation.
-    expect(navEntries[0]?.surface).toBe("member");
-    expect(navEntries[0]?.requiresAuth).toBe(true);
+    for (const entry of navEntries) {
+      expect(entry.surface).toBe("member");
+      expect(entry.requiresAuth).toBe(true);
+    }
   });
 
-  it("labels the entry with a KEY that both bundles carry, never a literal", async () => {
-    const labelKey = navEntries[0]?.labelKey ?? "";
+  it("labels every entry with a KEY that all three bundles carry", async () => {
     const { videoI18nBundleRu } = await import("../src/i18n/ru.js");
-    expect(labelKey.startsWith("video.")).toBe(true);
-    expect(videoI18nBundleEn[labelKey]).toBeTruthy();
-    expect(videoI18nBundleRu[labelKey]).toBeTruthy();
+    const { videoI18nBundleEs } = await import("../src/i18n/es.js");
+    for (const entry of navEntries) {
+      expect(entry.labelKey.startsWith("video.")).toBe(true);
+      expect(videoI18nBundleEn[entry.labelKey]).toBeTruthy();
+      expect(videoI18nBundleRu[entry.labelKey]).toBeTruthy();
+      expect(videoI18nBundleEs[entry.labelKey]).toBeTruthy();
+    }
   });
 
   it("the generated nav-manifest.json matches the source of truth", () => {

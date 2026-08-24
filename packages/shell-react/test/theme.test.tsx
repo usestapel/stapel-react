@@ -232,15 +232,25 @@ describe("system stays tellable apart from the colour it resolves to", () => {
     expect(markedState()).toBe("system"); // …a different state marked
   });
 
-  it("follows an OS change while mounted, without moving the mark", () => {
+  it("follows an OS change while mounted, without moving the mark", async () => {
     const os = installMatchMedia(false);
     render(<Host initial="system" />);
     expect(documentThemeMode()).toBe("light");
     expect(radio(/\(Light\)$/).getAttribute("aria-checked")).toBe("true");
 
+    // The DOCUMENT moves synchronously — no frame ever shows the old side.
     act(() => os.set(true));
-
     expect(documentThemeMode()).toBe("dark");
+
+    // The CONTROL follows on the same microtask checkpoint: its reader is
+    // now the fleet's single one (`@stapel/tokens-antd/skin`'s
+    // `useThemeMode`), a MutationObserver on `data-theme`, which browsers
+    // deliver before the next paint. Awaiting a microtask here is what a
+    // synchronous `act` does not do; it is not a frame of staleness.
+    await act(async () => {
+      await Promise.resolve();
+    });
+
     // The name follows the resolution…
     expect(radio(/\(Dark\)$/).getAttribute("aria-checked")).toBe("true");
     // …and the mark has not wandered off system.
@@ -256,5 +266,86 @@ describe("system stays tellable apart from the colour it resolves to", () => {
 
     expect(documentThemeMode()).toBe("light");
     expect(markedState()).toBe("light");
+  });
+});
+
+/**
+ * `role="radiogroup"` is a promise about the KEYBOARD, not only about the
+ * names a screen reader reads out. A radio group is ONE tab stop and the
+ * arrow keys move the choice inside it (WAI-ARIA APG). Three separately
+ * tabbable buttons that ignore the arrows announce themselves as a radio
+ * group and then behave like nothing of the sort — which leaves the person
+ * who trusted the announcement worse off than plain buttons would have.
+ */
+describe("the control is the radio group it says it is", () => {
+  it("is one tab stop: only the marked button is in the tab order", () => {
+    render(<Host initial="dark" />);
+    expect(radio(/^Dark$/).getAttribute("tabindex")).toBe("0");
+    expect(radio(/^Light$/).getAttribute("tabindex")).toBe("-1");
+    expect(radio(/^Match system/).getAttribute("tabindex")).toBe("-1");
+  });
+
+  it("moves the choice with ArrowRight and ArrowDown, and wraps at the end", () => {
+    render(<Host initial="light" />);
+    const group = screen.getByRole("radiogroup");
+
+    fireEvent.keyDown(group, { key: "ArrowRight" });
+    expect(markedState()).toBe("dark");
+
+    fireEvent.keyDown(group, { key: "ArrowDown" });
+    expect(markedState()).toBe("system");
+
+    fireEvent.keyDown(group, { key: "ArrowRight" });
+    expect(markedState()).toBe("light");
+  });
+
+  it("moves the other way with ArrowLeft and ArrowUp, wrapping at the start", () => {
+    render(<Host initial="light" />);
+    const group = screen.getByRole("radiogroup");
+
+    fireEvent.keyDown(group, { key: "ArrowLeft" });
+    expect(markedState()).toBe("system");
+
+    fireEvent.keyDown(group, { key: "ArrowUp" });
+    expect(markedState()).toBe("dark");
+  });
+
+  it("jumps to the ends with Home and End", () => {
+    render(<Host initial="dark" />);
+    const group = screen.getByRole("radiogroup");
+
+    fireEvent.keyDown(group, { key: "End" });
+    expect(markedState()).toBe("system");
+
+    fireEvent.keyDown(group, { key: "Home" });
+    expect(markedState()).toBe("light");
+  });
+
+  it("moves the FOCUS with the choice, so the next arrow key comes from the same place", () => {
+    render(<Host initial="light" />);
+    fireEvent.keyDown(screen.getByRole("radiogroup"), { key: "ArrowRight" });
+    expect(document.activeElement).toBe(radio(/^Dark$/));
+    expect(radio(/^Dark$/).getAttribute("tabindex")).toBe("0");
+  });
+
+  it("leaves other keys to the host — a group does not swallow Tab or Enter", () => {
+    const seen: string[] = [];
+    render(
+      <div onKeyDown={(e) => seen.push(e.key)}>
+        <Host initial="light" />
+      </div>
+    );
+    fireEvent.keyDown(screen.getByRole("radiogroup"), { key: "Tab" });
+    fireEvent.keyDown(screen.getByRole("radiogroup"), { key: "Enter" });
+    expect(seen).toEqual(["Tab", "Enter"]);
+    expect(markedState()).toBe("light");
+  });
+
+  it("carries no tooltip: the accessible name is the whole explanation", () => {
+    render(<Host initial="system" />);
+    for (const button of screen.getAllByRole("radio")) {
+      expect(button.getAttribute("title")).toBeNull();
+      expect(button.getAttribute("aria-label")).toBeTruthy();
+    }
   });
 });

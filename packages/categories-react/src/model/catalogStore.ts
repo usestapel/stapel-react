@@ -43,7 +43,26 @@ export interface CreateCatalogStoreOptions {
   /** Inject a repository (tests, SSR, a host with its own backend). Default:
    * an app-scoped repository under {@link CATALOG_NAMESPACE}. */
   readonly repository?: Repository<unknown>;
+  /**
+   * Called when no storage backend could be created and the catalogue will
+   * run UNPERSISTED — a full re-download on every page load. Default: one
+   * `console.warn` (see {@link UNPERSISTED_WARNING}). Pass `() => undefined`
+   * to accept the degradation deliberately and silence it.
+   */
+  readonly onUnpersisted?: (error: unknown) => void;
 }
+
+/**
+ * What the default `onUnpersisted` prints. A silent fallback to an in-memory
+ * store is the §83 shape: the page still works, so nobody reports it, and the
+ * whole catalogue is fetched again on every navigation forever. Naming it in
+ * the console is the minimum — the person who can fix it is the one looking
+ * at that console.
+ */
+export const UNPERSISTED_WARNING: string =
+  "[@stapel/categories-react] No storage backend: the category catalogue will " +
+  "be re-downloaded on every page load. Pass `repository` to " +
+  "createCatalogStore, or `onUnpersisted` to accept this deliberately.";
 
 /** A store that remembers nothing — the honest fallback when persistence is
  * unavailable, and what a caller passes to opt out of caching entirely. */
@@ -70,8 +89,13 @@ export function createCatalogStore(
     repository =
       options.repository ??
       createRepository<unknown>(CATALOG_NAMESPACE, { scope: "app" });
-  } catch {
+  } catch (error) {
     // No storage backend at all (an exotic runtime, a locked-down origin).
+    // Degrading is right; degrading QUIETLY is not — say so once.
+    (options.onUnpersisted ??
+      ((cause: unknown) => {
+        console.warn(UNPERSISTED_WARNING, cause);
+      }))(error);
     return memoryCatalogStore();
   }
 

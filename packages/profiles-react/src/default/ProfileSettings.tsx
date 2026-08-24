@@ -51,13 +51,13 @@
  * back. There is no single "Save changes" button for this screen — every
  * field commits on its own.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { spacing } from "@stapel/tokens";
+import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, ReactElement, ReactNode } from "react";
 import {
   Avatar,
   Button,
   Card,
-  ConfigProvider,
   Flex,
   Input,
   Segmented,
@@ -66,25 +66,30 @@ import {
   Switch,
   Typography,
 } from "antd";
-import { resolveThemeMode, toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { SkinDialog } from "@stapel/tokens-antd/skin";
 import {
+  ErrorAlert,
+  GatedButton,
+  SkinDialog,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
+import {
+  actionAvailable,
+  actionBlocked,
   loadStateFromQuery,
   mapLoad,
   matchList,
-  useErrorDisplay,
   useT,
 } from "@stapel/core";
-import type { FlowErrorDisplay } from "@stapel/core";
 import { useMyProfile, useProfileFieldManifest } from "../model/queries.js";
 import { useUpdateMyProfile } from "../model/mutations.js";
 import { useSetAvatar } from "../headless/AvatarUpload.js";
 import { Image } from "@stapel/image";
 import type { StapelImage } from "@stapel/image";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
-import { ErrorAlert } from "./ErrorAlert.js";
 import { EditPencilIcon } from "./icons.js";
+import { LanguageSettings, SETTINGS_MAX_WIDTH } from "./LanguageSettings.js";
+import { NotificationPreferences } from "./NotificationPreferences.js";
 import type { MyProfile, ProfileFieldManifestEntry, ProfileUpdate } from "../api/types.js";
 
 /**
@@ -118,15 +123,15 @@ const MODEL_REF_OPTIONS: Readonly<Record<string, readonly string[]>> = {
  * HOST app, which already owns its own event catalog. */
 export interface ProfileSettingsProps {
   /**
-   * Light or dark. The theme is derived from `@stapel/tokens` via
-   * `toAntdThemeConfig(mode)` — no manual token wiring, same self-theming
-   * contract as `AuthPanel`. Defaults to the mode the HOST's document
-   * declares (`resolveThemeMode()` — the `data-theme` attribute
-   * `@stapel/tokens`' `tokens.css` keys its dark block on), not to a
-   * hardcoded `"light"`: a light default is a wrong answer on every dark
-   * deployment, and it rendered an unreadable error Alert on a live sandbox
-   * (owner report 2026-08-09 — antd's light algorithm derived a near-white
-   * `colorErrorBg` while `colorText` came live off the host's dark tokens).
+   * Light or dark. Omitted — the normal case — the skin follows the mode the
+   * host's document declares, LIVE, through `SkinTheme`/`useThemeMode`.
+   *
+   * Two failures this replaces, both already paid for: a hardcoded `"light"`
+   * default rendered an unreadable error Alert on a dark sandbox (owner
+   * report 2026-08-09 — antd's light algorithm derived a near-white
+   * `colorErrorBg` while `colorText` came live off the host's dark tokens),
+   * and `resolveThemeMode()` SAMPLES the document once per render, so a host
+   * that flips `data-theme` at runtime left mounted skins on the old side.
    * Pass it explicitly to pin a side.
    */
   readonly mode?: ThemeMode;
@@ -167,6 +172,20 @@ export interface ProfileSettingsProps {
   /** Replace the default `theme` row with the host's own node — same
    * contract as {@link ProfileSettingsProps.displayNameRow}. */
   themeRow?: ReactNode;
+  /**
+   * Render the composed `<LanguageSettings/>` section under the profile card.
+   * Default `true`. Turn it off in a host that routes
+   * `profiles.language` as a page of its own.
+   */
+  readonly showLanguage?: boolean;
+  /**
+   * Render the composed `<NotificationPreferences/>` section. Default `true`;
+   * see {@link ProfileSettingsProps.showLanguage}.
+   */
+  readonly showNotifications?: boolean;
+  /** Forwarded to the composed `<LanguageSettings onSaved=…>` — the hook a
+   * host uses to reload its i18n engine after a language pick. */
+  onLanguageSaved?(appLanguageCode: string): void;
 }
 
 /**
@@ -177,6 +196,10 @@ export interface ProfileSettingsProps {
  * hard-core field has no manifest docstring to borrow).
  */
 const THEME_VALUES = ["light", "dark", "system"] as const;
+
+/** The settings avatar's side. A fixed piece of geometry, not a spacing step
+ * — named so a redesign changes it once (`stapel/no-raw-dimensions`). */
+export const SETTINGS_AVATAR = 64;
 
 /**
  * One setting per row (owner UX audit 2026-07-17 — folded into
@@ -191,7 +214,7 @@ const THEME_VALUES = ["light", "dark", "system"] as const;
 function SettingRow(props: { label: string; children: ReactNode }): ReactElement {
   return (
     <div>
-      <Typography.Text type="secondary" style={{ display: "block", marginBottom: 6 }}>
+      <Typography.Text type="secondary" style={{ display: "block", marginBottom: spacing[1] }}>
         {props.label}
       </Typography.Text>
       {props.children}
@@ -211,7 +234,7 @@ function EditableTextRow(props: {
   value: string;
   saveCta: string;
   saving: boolean;
-  error?: FlowErrorDisplay | undefined;
+  error?: unknown;
   valueTestId?: string | undefined;
   onSave: (next: string) => void;
 }): ReactElement {
@@ -272,7 +295,7 @@ function EditableTextRow(props: {
 
   const body: ReactNode = (
     <Flex vertical gap="middle">
-      <ErrorAlert error={props.error} />
+      <ErrorAlert thrown={props.error} />
       <Input
         autoFocus
         value={draft}
@@ -285,26 +308,29 @@ function EditableTextRow(props: {
 
   // The action row, as the dialog's footer — the sheet and the modal each
   // place it where their own surface puts actions.
+  // No live Save for a draft that would write the value already stored — and
+  // the reason is SAID, not left to a grey button. `GatedButton` renders it as
+  // text beside the control with `aria-describedby` wired to it; a tooltip
+  // would be a reason nobody can read, because a disabled antd Button fires no
+  // pointer events at all.
   const footer: ReactNode = (
-    <Button
+    <GatedButton
+      gate={changed ? actionAvailable() : actionBlocked(PROFILES_I18N_KEYS.profileNoChanges)}
+      layout="stack"
       type="primary"
       onClick={commit}
       loading={props.saving}
-      // No live Save for a draft that would write the value already stored.
-      // Stated by switching the control off rather than in text: unlike a
-      // blocked action whose reason is invisible, the reason here is the row
-      // itself — the field still reads exactly what it read before.
-      disabled={!changed}
+      testId="profile-field-save"
       data-analytics="flow"
     >
       {props.saveCta}
-    </Button>
+    </GatedButton>
   );
 
   return (
     <div>
       <Typography.Text>{props.label}</Typography.Text>
-      <Flex align="center" gap={8}>
+      <Flex align="center" gap={spacing[2]}>
         <Typography.Text strong {...(props.valueTestId ? { "data-testid": props.valueTestId } : {})}>
           {props.value || "—"}
         </Typography.Text>
@@ -345,7 +371,7 @@ function FieldRow(props: {
   profile: MyProfile | undefined;
   saveCta: string;
   saving: boolean;
-  error?: FlowErrorDisplay | undefined;
+  error?: unknown;
   onPatch: (patch: ProfileUpdate) => void;
 }): ReactElement {
   const { entry, profile } = props;
@@ -358,6 +384,10 @@ function FieldRow(props: {
           <Switch
             checked={Boolean(rawValue)}
             onChange={(checked) => props.onPatch({ [entry.name]: checked } as ProfileUpdate)}
+            // The label lives in the sibling SettingRow, so without this the
+            // control announces "switch, off" with no subject.
+            aria-label={entry.docstring}
+            data-testid={`profile-field-${entry.name}-switch`}
           />
         </SettingRow>
       );
@@ -446,8 +476,6 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
   // any thrown value into the ONE dialect and resolves it through the i18n
   // engine, which since @stapel/core 0.x carries a floor for core's own
   // synthesized `stapel.http.*` codes.
-  const errorDisplay = useErrorDisplay(PROFILES_I18N_KEYS.unknownError);
-  const theme = useMemo(() => toAntdThemeConfig(props.mode ?? resolveThemeMode()), [props.mode]);
   const query = useMyProfile();
   const manifest = useProfileFieldManifest();
   const mutation = useUpdateMyProfile();
@@ -487,13 +515,16 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
 
   if (query.isLoading && !profile) {
     return (
-      <ConfigProvider theme={theme}>
+      <SkinTheme
+        surface="base"
+        {...(props.mode !== undefined ? { mode: props.mode } : {})}
+      >
         <Spin data-testid="profile-settings-loading" />
-      </ConfigProvider>
+      </SkinTheme>
     );
   }
 
-  const mutationError = errorDisplay(mutation.error);
+  const mutationError: unknown = mutation.error;
 
   const showDisplayName = props.showDisplayName ?? true;
   const showTheme = props.showTheme ?? true;
@@ -527,16 +558,28 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
       : "system";
 
   return (
-    <ConfigProvider theme={theme}>
-      <Card data-testid="profile-settings">
+    <SkinTheme
+      surface="base"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+      data-testid="profile-settings-page"
+    >
+      <Flex vertical gap={spacing[5]} style={{ width: "100%", maxWidth: SETTINGS_MAX_WIDTH }}>
+      <Card data-testid="profile-settings" style={{ width: "100%" }}>
         <Typography.Title level={4} style={{ marginTop: 0 }}>
           {t(PROFILES_I18N_KEYS.settingsTitle)}
         </Typography.Title>
         <Typography.Text type="secondary">{t(PROFILES_I18N_KEYS.settingsSubtitle)}</Typography.Text>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "16px 0" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: spacing[4],
+            margin: `${spacing[4]}px 0`,
+          }}
+        >
           {uploadPreview ? (
-            <Avatar size={64} src={uploadPreview}>
+            <Avatar size={SETTINGS_AVATAR} src={uploadPreview}>
               {avatarInitials}
             </Avatar>
           ) : avatarImage ? (
@@ -544,10 +587,10 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
               meta={avatarImage}
               fit="cover"
               alt=""
-              style={{ width: 64, height: 64, borderRadius: "50%" }}
+              style={{ width: SETTINGS_AVATAR, height: SETTINGS_AVATAR, borderRadius: "50%" }}
             />
           ) : (
-            <Avatar size={64} src={legacyAvatarSrc}>
+            <Avatar size={SETTINGS_AVATAR} src={legacyAvatarSrc}>
               {avatarInitials}
             </Avatar>
           )}
@@ -581,7 +624,7 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
           </div>
         </div>
 
-        <Flex vertical gap={20} style={{ maxWidth: 480 }}>
+        <Flex vertical gap={spacing[5]}>
           {/* Hard-core rows first (display_name, theme) — model columns since
               stapel-profiles 0.7.0, never in the manifest, so they render here
               like the avatar block: hardcoded but host-toggleable/replaceable. */}
@@ -616,12 +659,12 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
             loading: () => <Spin data-testid="profile-fields-loading" />,
             failed: (error) => (
               <div data-testid="profile-fields-failed">
-                <ErrorAlert error={errorDisplay(error)} />
+                <ErrorAlert thrown={error} />
                 <Button
                   onClick={() => {
                     void manifest.refetch();
                   }}
-                  style={{ marginTop: 8 }}
+                  style={{ marginTop: spacing[2] }}
                   data-analytics="none"
                   data-analytics-reason="retry of a failed read (no flow machine) — pairs carry no @stapel/analytics runtime dependency; the host instruments at its own call site"
                 >
@@ -651,8 +694,33 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
           })}
         </Flex>
 
-        <ErrorAlert error={mutationError} style={{ marginTop: 12 }} />
+        <ErrorAlert
+          thrown={mutationError}
+          style={{ marginTop: spacing[3] }}
+          testId="profile-settings-error"
+        />
       </Card>
-    </ConfigProvider>
+
+      {/* COMPOSED, the way auth-react's <SecuritySettings/> composes its nine
+          widgets into the one page its nav entry mounts. Before this, both of
+          these were finished antd screens with no route and no parent: a host
+          that installed the pair and mounted `profiles.settings` could not
+          reach either of them at all. They ALSO keep their own submenu routes
+          (`profiles.language`, `profiles.notifications`) for a host that
+          prefers three pages — which is why they are props, not a hardcoded
+          layout: turn the section off here and route it there. */}
+      {(props.showLanguage ?? true) && (
+        <LanguageSettings
+          {...(props.mode !== undefined ? { mode: props.mode } : {})}
+          {...(props.onLanguageSaved ? { onSaved: props.onLanguageSaved } : {})}
+        />
+      )}
+      {(props.showNotifications ?? true) && (
+        <NotificationPreferences
+          {...(props.mode !== undefined ? { mode: props.mode } : {})}
+        />
+      )}
+      </Flex>
+    </SkinTheme>
   );
 }

@@ -1,0 +1,600 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/tasks-react",
+  "version": "0.0.0",
+  "backend": {
+    "module": "stapel-tasks",
+    "contract": ">=0.3 <0.4"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "tasks_api_v1_boards_cards_retrieve": {
+      "method": "GET",
+      "path": "/tasks/api/v1/boards/{board_id}/cards",
+      "tag": "Tasks",
+      "request": null,
+      "response": "BoardCardsResponse"
+    },
+    "tasks_api_v1_boards_columns_create": {
+      "method": "POST",
+      "path": "/tasks/api/v1/boards/{board_id}/columns",
+      "tag": "Tasks",
+      "request": "ColumnCreateRequest",
+      "response": "ColumnResponse"
+    },
+    "tasks_api_v1_boards_columns_list": {
+      "method": "GET",
+      "path": "/tasks/api/v1/boards/{board_id}/columns",
+      "tag": "Tasks",
+      "request": null,
+      "response": null
+    },
+    "tasks_api_v1_boards_columns_reorder_create": {
+      "method": "POST",
+      "path": "/tasks/api/v1/boards/{board_id}/columns/reorder",
+      "tag": "Tasks",
+      "request": "ColumnReorderRequest",
+      "response": null
+    },
+    "tasks_api_v1_boards_create": {
+      "method": "POST",
+      "path": "/tasks/api/v1/boards",
+      "tag": "Tasks",
+      "request": "BoardCreateRequest",
+      "response": "BoardResponse"
+    },
+    "tasks_api_v1_boards_destroy": {
+      "method": "DELETE",
+      "path": "/tasks/api/v1/boards/{board_id}",
+      "tag": "Tasks",
+      "request": null,
+      "response": "ArchivedResponse"
+    },
+    "tasks_api_v1_boards_list": {
+      "method": "GET",
+      "path": "/tasks/api/v1/boards",
+      "tag": "Tasks",
+      "request": null,
+      "response": null
+    },
+    "tasks_api_v1_boards_partial_update": {
+      "method": "PATCH",
+      "path": "/tasks/api/v1/boards/{board_id}",
+      "tag": "Tasks",
+      "request": "PatchedBoardUpdateRequest",
+      "response": "BoardResponse"
+    },
+    "tasks_api_v1_boards_presets_retrieve": {
+      "method": "GET",
+      "path": "/tasks/api/v1/boards/presets",
+      "tag": "Tasks",
+      "request": null,
+      "response": "BoardVocabularyResponse"
+    },
+    "tasks_api_v1_boards_retrieve": {
+      "method": "GET",
+      "path": "/tasks/api/v1/boards/{board_id}",
+      "tag": "Tasks",
+      "request": null,
+      "response": "BoardResponse"
+    },
+    "tasks_api_v1_boards_tasks_create": {
+      "method": "POST",
+      "path": "/tasks/api/v1/boards/{board_id}/tasks",
+      "tag": "Tasks",
+      "request": "TaskCreateRequest",
+      "response": "TaskResponse"
+    },
+    "tasks_api_v1_boards_tasks_retrieve": {
+      "method": "GET",
+      "path": "/tasks/api/v1/boards/{board_id}/tasks",
+      "tag": "Tasks",
+      "request": null,
+      "response": "TaskPageResponse"
+    },
+    "tasks_api_v1_tasks_assign_create": {
+      "method": "POST",
+      "path": "/tasks/api/v1/tasks/{task_id}/assign",
+      "tag": "Tasks",
+      "request": "TaskAssignRequest",
+      "response": "TaskResponse"
+    },
+    "tasks_api_v1_tasks_checklist_create": {
+      "method": "POST",
+      "path": "/tasks/api/v1/tasks/{task_id}/checklist",
+      "tag": "Tasks",
+      "request": "ChecklistItemCreateRequest",
+      "response": "ChecklistItemResponse"
+    },
+    "tasks_api_v1_tasks_checklist_list": {
+      "method": "GET",
+      "path": "/tasks/api/v1/tasks/{task_id}/checklist",
+      "tag": "Tasks",
+      "request": null,
+      "response": null
+    },
+    "tasks_api_v1_tasks_checklist_state_create": {
+      "method": "POST",
+      "path": "/tasks/api/v1/tasks/{task_id}/checklist/{item_id}/state",
+      "tag": "Tasks",
+      "request": "ChecklistItemStateRequest",
+      "response": "ChecklistItemResponse"
+    },
+    "tasks_api_v1_tasks_comments_create": {
+      "method": "POST",
+      "path": "/tasks/api/v1/tasks/{task_id}/comments",
+      "tag": "Tasks",
+      "request": "CommentCreateRequest",
+      "response": "CommentResponse"
+    },
+    "tasks_api_v1_tasks_comments_list": {
+      "method": "GET",
+      "path": "/tasks/api/v1/tasks/{task_id}/comments",
+      "tag": "Tasks",
+      "request": null,
+      "response": null
+    },
+    "tasks_api_v1_tasks_destroy": {
+      "method": "DELETE",
+      "path": "/tasks/api/v1/tasks/{task_id}",
+      "tag": "Tasks",
+      "request": null,
+      "response": "ArchivedResponse"
+    },
+    "tasks_api_v1_tasks_move_create": {
+      "method": "POST",
+      "path": "/tasks/api/v1/tasks/{task_id}/move",
+      "tag": "Tasks",
+      "request": "TaskMoveRequest",
+      "response": "MoveResponse"
+    },
+    "tasks_api_v1_tasks_partial_update": {
+      "method": "PATCH",
+      "path": "/tasks/api/v1/tasks/{task_id}",
+      "tag": "Tasks",
+      "request": "PatchedTaskUpdateRequest",
+      "response": "TaskResponse"
+    },
+    "tasks_api_v1_tasks_retrieve": {
+      "method": "GET",
+      "path": "/tasks/api/v1/tasks/{task_id}",
+      "tag": "Tasks",
+      "request": null,
+      "response": "TaskResponse"
+    }
+  },
+  "hooks": {},
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.tasks_invalid_checklist_state": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.tasks_invalid_column": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.tasks_invalid_feature_defs": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.tasks_invalid_features": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.tasks_invalid_move": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.tasks_unknown_preset": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.tasks_forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.tasks_board_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.tasks_checklist_item_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.tasks_column_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.tasks_comment_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.tasks_task_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.tasks_column_exists": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.tasks_transition_not_allowed": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.tasks_scope_unresolved": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [],
+  "i18nKeys": [
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.tasks_invalid_checklist_state",
+    "error.400.tasks_invalid_column",
+    "error.400.tasks_invalid_feature_defs",
+    "error.400.tasks_invalid_features",
+    "error.400.tasks_invalid_move",
+    "error.400.tasks_unknown_preset",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.tasks_forbidden",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.not_found",
+    "error.404.tasks_board_not_found",
+    "error.404.tasks_checklist_item_not_found",
+    "error.404.tasks_column_not_found",
+    "error.404.tasks_comment_not_found",
+    "error.404.tasks_task_not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.409.tasks_column_exists",
+    "error.409.tasks_transition_not_allowed",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.mandate_unavailable",
+    "error.503.tasks_scope_unresolved",
+    "tasks.error.unknown",
+    "tasks.nav.overview",
+    "tasks.panel.empty",
+    "tasks.panel.loading"
+  ],
+  "exports": {
+    "runtime": [
+      "TASKS_ERRORS",
+      "TASKS_ERROR_CODES",
+      "TASKS_FLOWS",
+      "TASKS_I18N_KEYS",
+      "TasksProvider",
+      "TasksRuntimeContext",
+      "createFlowMachine",
+      "createTasksApi",
+      "createTasksRuntime",
+      "explainTasksError",
+      "flowEndpoints",
+      "isErrorCode",
+      "registerTasksI18n",
+      "tasksErrorBundleEn",
+      "tasksI18nBundleEn",
+      "tasksQueryKeys",
+      "toFlowError",
+      "useFlow",
+      "useTasksAnalytics",
+      "useTasksApi",
+      "useTasksRuntime"
+    ],
+    "types": [
+      "CreateTasksRuntimeOptions",
+      "FlowEndpoint",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "Remediation",
+      "Schemas",
+      "TasksApi",
+      "TasksErrorCode",
+      "TasksErrorSpec",
+      "TasksFlowId",
+      "TasksFlowSpec",
+      "TasksI18nKey",
+      "TasksRuntime"
+    ]
+  }
+}

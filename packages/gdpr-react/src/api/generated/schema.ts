@@ -186,13 +186,13 @@ export interface paths {
         put?: never;
         /**
          * Cancel account closure during grace period
-         * @description Base view exposing serializer seams.
+         * @description Stop a closure that is still inside its grace period.
          *
-         *     Every concrete view declares ``request_serializer_class`` /
-         *     ``response_serializer_class`` (``None`` when that direction carries no
-         *     serialized payload). Subclasses may swap either class attribute — or
-         *     override the getters — to customize the request/response envelopes
-         *     without rewriting the method bodies.
+         *     The account is reactivated and a ``user.deletion_cancelled`` comm action
+         *     is emitted — the mirror of the ``user.deletion_initiated`` that started
+         *     the closure, so every consumer that took a reversible action on the
+         *     initiation (suppressed notifications, hidden content, suspended
+         *     memberships) is told to lift it instead of waiting for its next sync.
          *
          *     **Permissions:** `IsAuthenticated, AccountNotClosed`
          */

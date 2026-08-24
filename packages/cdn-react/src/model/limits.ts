@@ -39,7 +39,11 @@ export const ERROR_NO_FILE = "error.400.no_file";
 
 /**
  * The ceilings for one intake kind. Defaults reproduce `stapel_cdn/conf.py`'s
- * `DEFAULTS` at the pinned contract (v0.12.0).
+ * `DEFAULTS` at the pinned contract (v0.17.0) — re-verified line by line
+ * against `conf.py` when the pin moved 0.12 → 0.17: `MAX_IMAGE_SIZE` 20 MB,
+ * `MAX_VIDEO_SIZE` 100 MB, `MAX_FILE_SIZE` 50 MB, all three extension lists and
+ * `ALLOWED_FILE_MIME_TYPES` unchanged, including the deliberate absence of
+ * `application/octet-stream`.
  */
 export interface CdnIntakeLimits {
   /** Byte ceiling. `STAPEL_CDN["MAX_IMAGE_SIZE" | …]`. */

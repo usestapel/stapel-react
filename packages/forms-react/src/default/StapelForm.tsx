@@ -25,24 +25,27 @@
  * required arms make writing one a compile error.
  */
 import type { ReactElement, ReactNode } from "react";
-import { Alert, Button, Flex, Form, Spin, Typography } from "antd";
+import { Alert, Form, Typography } from "antd";
+import {
+  ErrorAlert,
+  GatedButton,
+  LoadBoundary,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
 import {
   hasErrorCode,
-  matchLoad,
-  toFlowError,
   useActionGate,
-  useDescribeFlowError,
   useFormatFlowError,
   useT,
 } from "@stapel/core";
+import { spacing } from "@stapel/tokens";
 import type { FlowError, ThemeModeProp } from "./types.js";
+import { skinThemeProps } from "./types.js";
 import { FormFill } from "../headless/FormFill.js";
 import type { FormFillBag } from "../headless/FormFill.js";
 import type { FormFieldDef } from "../api/types.js";
 import { resolveFormFieldWidget } from "../widgets/registry.js";
 import { BUILTIN_FIELD_KINDS, BUILTIN_FIELD_WIDGETS } from "./fields.js";
-import { FormsSkinTheme } from "./theme.js";
-import { ErrorAlert } from "./ErrorAlert.js";
 import { resolveFormsSkinComponent } from "./slots.js";
 import { FORMS_I18N_KEYS } from "../i18n/keys.js";
 
@@ -126,7 +129,9 @@ function FieldRow(props: FieldRowSlotProps): ReactElement {
   // rendering one inside a labelled Form.Item would make a section heading
   // look like a question.
   if (props.field.kind === "header") {
-    return <Form.Item style={{ marginBottom: 8 }}>{props.control}</Form.Item>;
+    return (
+      <Form.Item style={{ marginBottom: spacing[2] }}>{props.control}</Form.Item>
+    );
   }
   return (
     <Form.Item
@@ -183,6 +188,8 @@ function Confirmation(props: ConfirmationSlotProps): ReactElement {
 }
 
 function SubmitBar(props: { bag: FormFillBag; label: string }): ReactElement {
+  // Only the SLOT contract needs the flattened view; the default rendering
+  // hands the gate itself to <GatedButton>.
   const gate = useActionGate(props.bag.submit);
   const Slot = resolveFormsSkinComponent<SubmitBarSlotProps>("fill.submitBar");
   const slotProps: SubmitBarSlotProps = {
@@ -194,33 +201,22 @@ function SubmitBar(props: { bag: FormFillBag; label: string }): ReactElement {
     onSubmit: props.bag.doSubmit,
   };
   if (Slot) return <Slot {...slotProps} />;
+  // The reason is TEXT beside the button, never a tooltip: a disabled button
+  // receives no pointer events in any browser, so a tooltip on it is a reason
+  // nobody can read. `GatedButton` owns that rule (and the `aria-describedby`
+  // wiring) once for the fleet.
   return (
-    <Flex vertical gap={4} align="flex-start">
-      <Button
-        type="primary"
-        htmlType="submit"
-        loading={props.bag.isSubmitting}
-        disabled={gate.disabled}
-        data-analytics="flow"
-        data-testid="forms-submit"
-        onClick={props.bag.doSubmit}
-      >
-        {props.label}
-      </Button>
-      {/* The reason is TEXT, not a tooltip: a disabled button receives no
-          pointer events in any browser, so a tooltip on it is a reason
-          nobody can read (core's actionGate module header). */}
-      {gate.reason !== undefined && (
-        <Typography.Text type="secondary" data-testid="forms-submit-blocked">
-          {gate.reason}
-        </Typography.Text>
-      )}
-      {gate.detail !== undefined && (
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          {gate.detail}
-        </Typography.Text>
-      )}
-    </Flex>
+    <GatedButton
+      gate={props.bag.submit}
+      type="primary"
+      htmlType="submit"
+      loading={props.bag.isSubmitting}
+      data-analytics="flow"
+      testId="forms-submit"
+      onClick={props.bag.doSubmit}
+    >
+      {props.label}
+    </GatedButton>
   );
 }
 
@@ -243,10 +239,9 @@ export interface StapelFormProps extends ThemeModeProp {
 
 export function StapelForm(props: StapelFormProps): ReactElement {
   const t = useT();
-  const describe = useDescribeFlowError();
 
   return (
-    <FormsSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
+    <SkinTheme {...skinThemeProps(props)}>
       <FormFill
         publicId={props.publicId}
         builtinKinds={BUILTIN_FIELD_KINDS}
@@ -256,122 +251,114 @@ export function StapelForm(props: StapelFormProps): ReactElement {
           if (bag.submitted !== null) {
             return <Confirmation confirmation={bag.submitted.confirmation} />;
           }
-          return matchLoad(bag.state, {
-            loading: () => (
-              <Flex justify="center" style={{ padding: 24 }}>
-                <Spin data-testid="forms-loading" aria-label={t(FORMS_I18N_KEYS.fillLoading)} />
-              </Flex>
-            ),
-            // The three-way split. `hasErrorCode` reads the API dialect, so
-            // this works whether the throw was a StapelApiError or a bare
-            // envelope — and a network fault, which carries NEITHER code,
-            // correctly falls through to "we could not ask".
-            failed: (error) => {
-              if (hasErrorCode(error, CODE_NOT_FOUND)) {
-                return (
-                  <Alert
-                    type="error"
-                    showIcon
-                    data-testid="forms-not-found"
-                    message={t(FORMS_I18N_KEYS.fillNotFound)}
-                  />
-                );
-              }
-              if (hasErrorCode(error, CODE_CLOSED)) {
-                return (
-                  <Alert
-                    type="info"
-                    showIcon
-                    data-testid="forms-closed"
-                    message={t(FORMS_I18N_KEYS.fillClosed)}
-                  />
-                );
-              }
-              return (
-                <ErrorAlert
-                  testId="forms-load-failed"
-                  error={{
-                    ...describe(toFlowError(error)),
-                    message: t(FORMS_I18N_KEYS.fillLoadFailed),
-                  }}
-                  action={
-                    <Button size="small" onClick={bag.refetch} data-analytics="none"
-                      data-analytics-reason="retry of a failed read; no flow to step">
-                      {t(FORMS_I18N_KEYS.fillRetry)}
-                    </Button>
-                  }
-                />
-              );
-            },
-            ready: (form) => {
-              const label =
-                props.submitLabel ??
-                form.meta.submit_label ??
-                t(FORMS_I18N_KEYS.fillSubmit);
-              return (
-                <Form
-                  layout="vertical"
-                  data-testid="forms-form"
-                  onFinish={bag.doSubmit}
-                >
-                  {props.showTitle !== false &&
-                    form.meta.title !== undefined && (
-                      <Typography.Title level={3}>
-                        {form.meta.title}
-                      </Typography.Title>
-                    )}
-                  {form.meta.description !== undefined && (
-                    <Typography.Paragraph type="secondary">
-                      {form.meta.description}
-                    </Typography.Paragraph>
-                  )}
-
-                  {/* A schema that changed under the person is announced, not
-                      swapped in silently — they must re-read before resubmitting. */}
-                  {bag.superseded && (
+          return (
+            <LoadBoundary
+              state={bag.state}
+              onRetry={bag.refetch}
+              testId="forms-fill"
+              // The three-way split. `hasErrorCode` reads the API dialect, so
+              // this works whether the throw was a StapelApiError or a bare
+              // envelope — and a network fault, which carries NEITHER code,
+              // correctly falls through to "we could not ask".
+              failed={(error) => {
+                if (hasErrorCode(error, CODE_NOT_FOUND)) {
+                  return (
                     <Alert
-                      type="warning"
+                      type="error"
                       showIcon
-                      style={{ marginBottom: 16 }}
-                      data-testid="forms-superseded"
-                      message={t(FORMS_I18N_KEYS.fillSuperseded)}
+                      data-testid="forms-not-found"
+                      message={t(FORMS_I18N_KEYS.fillNotFound)}
                     />
-                  )}
-
-                  {form.fields.map((field) => (
-                    <FieldRow
-                      key={field.slug}
-                      field={field}
-                      controlId={fieldControlId(field.slug)}
-                      required={field.mandatory === true}
-                      error={bag.fieldErrors[field.slug]}
-                      control={
-                        <FieldControl
-                          field={field}
-                          bag={bag}
-                          controlId={fieldControlId(field.slug)}
-                        />
-                      }
+                  );
+                }
+                if (hasErrorCode(error, CODE_CLOSED)) {
+                  return (
+                    <Alert
+                      type="info"
+                      showIcon
+                      data-testid="forms-closed"
+                      message={t(FORMS_I18N_KEYS.fillClosed)}
                     />
-                  ))}
+                  );
+                }
+                return (
+                  <ErrorAlert
+                    testId="forms-load-failed"
+                    message={t(FORMS_I18N_KEYS.fillLoadFailed)}
+                    thrown={error}
+                    onRetry={bag.refetch}
+                  />
+                );
+              }}
+            >
+              {(form) => {
+                const label =
+                  props.submitLabel ??
+                  form.meta.submit_label ??
+                  t(FORMS_I18N_KEYS.fillSubmit);
+                return (
+                  <Form
+                    layout="vertical"
+                    data-testid="forms-form"
+                    onFinish={bag.doSubmit}
+                  >
+                    {props.showTitle !== false &&
+                      form.meta.title !== undefined && (
+                        <Typography.Title level={3}>
+                          {form.meta.title}
+                        </Typography.Title>
+                      )}
+                    {form.meta.description !== undefined && (
+                      <Typography.Paragraph type="secondary">
+                        {form.meta.description}
+                      </Typography.Paragraph>
+                    )}
 
-                  {bag.formError !== null && (
+                    {/* A schema that changed under the person is announced, not
+                        swapped in silently — they must re-read before resubmitting. */}
+                    {bag.superseded && (
+                      <Alert
+                        type="warning"
+                        showIcon
+                        style={{ marginBottom: spacing[4] }}
+                        data-testid="forms-superseded"
+                        message={t(FORMS_I18N_KEYS.fillSuperseded)}
+                      />
+                    )}
+
+                    {form.fields.map((field) => (
+                      <FieldRow
+                        key={field.slug}
+                        field={field}
+                        controlId={fieldControlId(field.slug)}
+                        required={field.mandatory === true}
+                        error={bag.fieldErrors[field.slug]}
+                        control={
+                          <FieldControl
+                            field={field}
+                            bag={bag}
+                            controlId={fieldControlId(field.slug)}
+                          />
+                        }
+                      />
+                    ))}
+
                     <ErrorAlert
                       testId="forms-form-error"
-                      style={{ marginBottom: 16 }}
-                      error={describe(toFlowError(bag.formError))}
+                      style={{ marginBottom: spacing[4] }}
+                      {...(bag.formError !== null ? { thrown: bag.formError } : {})}
                     />
-                  )}
 
-                  {props.captcha?.(bag)}
+                    {props.captcha?.(bag)}
 
-                  <SubmitBar bag={bag} label={label} />
-                </Form>
-              );
-            },
-          });
+                    <SubmitBar bag={bag} label={label} />
+                  </Form>
+                );
+                }}
+            </LoadBoundary>
+          );
         }}
       </FormFill>
-    </FormsSkinTheme>
+    </SkinTheme>
   );
 }

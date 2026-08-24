@@ -1,15 +1,19 @@
 {
-  "$generated": "hand-authored, not scripts/gen-manifest.mjs (that driver derives backend.contract from a sibling Django module's docs/schema.json + pyproject.toml; stapel-attributes is an L1 library with NO HTTP surface and emits neither — see backend below)",
+  "$generated": "hand-authored, not scripts/gen-manifest.mjs (that driver derives backend.contract from a sibling Django module's docs/schema.json + pyproject.toml; stapel-attributes is an L1 library with NO HTTP surface and emits neither \u2014 see backend below)",
   "package": "@stapel/attributes-react",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "backend": {
     "module": "stapel-attributes",
     "kind": "L1 library, no HTTP surface",
-    "contract": null,
-    "pin": "test/fixtures/attributes-registry.json — the builtin type set and the ValidationErrorCode vocabulary, taken from the engine's own tests/golden/ corpora and asserted by test/contract.test.ts"
+    "contract": ">=0.4 <0.5",
+    "pin": "stapel-attributes 0.4.7. No docs/schema.json exists to generate against (no HTTP surface), so the contract range is the sibling's pyproject.toml version and the artifacts pinned are test/fixtures/attributes-registry.json (the builtin type set) and the ValidationErrorCode vocabulary, both taken from the engine's own tests/golden/ corpora and asserted by test/contract.test.ts. test/configKeys.test.ts additionally pins the per-type CONFIG key surface: every key the validation mirror reads must reach a control."
   },
-  "layers": ["headless", "default", "i18n"],
-  "axis": "config.type — the VALUE type of an attribute. NOT FormField.kind, which is the admin config form's field kind and is what @stapel/forms-react keys on.",
+  "layers": [
+    "headless",
+    "default",
+    "i18n"
+  ],
+  "axis": "config.type \u2014 the VALUE type of an attribute. NOT FormField.kind, which is the admin config form's field kind and is what @stapel/forms-react keys on.",
   "valueTypes": [
     "bool",
     "convertible_unit",
@@ -61,7 +65,12 @@
       "FeatureBadges",
       "FeatureValueList",
       "timestampToInputValue",
-      "inputValueToTimestamp"
+      "inputValueToTimestamp",
+      "unsupportedFeatureNames",
+      "featureAnswerRequired",
+      "useFeatureFields",
+      "initialFeatureValues",
+      "defaultFeatureValue"
     ],
     "types": [
       "FeatureDef",
@@ -79,18 +88,24 @@
       "FeatureFieldsProps",
       "FeatureRowProps",
       "FeatureDisplayProps",
-      "UnsupportedValueEditorProps"
+      "UnsupportedValueEditorProps",
+      "FeatureFieldsState",
+      "UseFeatureFieldsOptions"
     ]
   },
   "i18nKeys": [
     "attributes.unsupported_type",
     "attributes.submit.blocked.unsupported_type",
+    "attributes.submit.blocked.invalid",
     "attributes.untyped_feature",
     "attributes.value.not_set",
     "attributes.value.unreadable",
     "attributes.bool.yes",
     "attributes.bool.no",
     "attributes.select.placeholder",
-    "attributes.required"
+    "attributes.locked",
+    "attributes.select.min_selected",
+    "attributes.color.exact",
+    "attributes.unit"
   ]
 }

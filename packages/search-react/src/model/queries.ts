@@ -6,7 +6,9 @@ import type {
   RankingResponse,
   SearchQueryState,
   SearchResponse,
+  SuggestResponse,
 } from "../api/types.js";
+import { SUGGEST_MAX_LIMIT, SUGGEST_MIN_CHARS } from "../state/limits.js";
 import { useSearchApi } from "./context.js";
 import { searchQueryKeys } from "./queryKeys.js";
 
@@ -56,6 +58,52 @@ export function useSearchQuery(
     queryFn: ({ signal }) => api.query(state, { signal }),
     enabled: (options?.enabled ?? true) && state.type.length > 0,
     placeholderData: keepPreviousData,
+    retry: false,
+  });
+}
+
+/**
+ * Title prefixes from the index, for the search box's typeahead.
+ *
+ * Not from a query log: stapel-search keeps none, which is a privacy decision
+ * before it is a product one (`services.suggest`). So the list is what exists
+ * in the catalogue, and choosing one is always a search that has results.
+ *
+ * `enabled` is the debounce's partner, not its replacement: the CALLER holds a
+ * debounced prefix (see `useSearchBox`) and this hook refuses to ask about a
+ * prefix too short to mean anything. `placeholderData: keepPreviousData` keeps
+ * the previous list under the cursor while the next one is in flight — a menu
+ * that empties and refills on every keystroke is a menu nobody can click.
+ *
+ * `staleTime` is a minute: the index changes when something is published, not
+ * between two letters of one word.
+ */
+export function useSuggest(params: {
+  readonly type: string;
+  readonly q: string;
+  readonly limit?: number;
+  readonly enabled?: boolean;
+}): UseQueryResult<SuggestResponse, StapelApiError> {
+  const api = useSearchApi();
+  const q = params.q.trim();
+  const limit = params.limit;
+  return useQuery({
+    queryKey: searchQueryKeys.suggest(params.type, q, limit),
+    queryFn: ({ signal }) =>
+      api.suggest(
+        {
+          type: params.type,
+          q,
+          ...(limit !== undefined ? { limit: Math.min(limit, SUGGEST_MAX_LIMIT) } : {}),
+        },
+        { signal }
+      ),
+    enabled:
+      (params.enabled ?? true) &&
+      params.type.length > 0 &&
+      q.length >= SUGGEST_MIN_CHARS,
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
     retry: false,
   });
 }

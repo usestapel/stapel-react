@@ -1,5 +1,6 @@
 /**
- * `<ListingDetailPane>` — the listing page.
+ * `<ListingDetailPane>` — the listing page, and the page a marketplace makes
+ * its money on.
  *
  * Four distinct absences, four distinct sentences, and the whole point of the
  * component is that none of them collapses into another:
@@ -14,21 +15,62 @@
  * detail endpoint has no `published()` filter, so a draft answers 200 to
  * anyone holding the id. The pane says which side of that it is on rather
  * than dressing a draft up as a shop page.
+ *
+ * ── The page has ONE primary action, and it depends on who is reading ──────
+ *
+ * For two releases the only control here was "Save to favourites" — the money
+ * screen of a marketplace with no way to reach the seller, and the owner's own
+ * copy of the page offering to favourite their own listing. So:
+ *
+ *   a buyer  → `contactSlot` (the container's `@stapel/chat-react`
+ *              "message the seller" button), with favouriting beside it as
+ *              the secondary it always was;
+ *   the owner → Edit and Take down, and no contact button at all — you do not
+ *              message yourself.
+ *
+ * `contactSlot` is a SLOT because conversations belong to another L2 pair and
+ * L2 pairs do not import each other. Unfilled it renders `<SlotPlaceholder>`,
+ * so an app wired without a chat is a named gap in a dev build rather than a
+ * page whose only verb is "save".
  */
 import type { ReactElement, ReactNode } from "react";
-import { Alert, Button, Descriptions, Divider, Flex, Space, Spin, Typography } from "antd";
-import { matchLoad, useDescribeFlowError, useT, useI18n } from "@stapel/core";
+import { Button, Descriptions, Divider, Flex, Typography } from "antd";
+import {
+  ErrorAlert,
+  EmptyState,
+  GatedButton,
+  GatedControl,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
+import {
+  SlotPlaceholder,
+  matchLoad,
+  useI18n,
+  useT,
+} from "@stapel/core";
+import { spacing } from "@stapel/tokens";
 import { FeatureValueList } from "@stapel/attributes-react/default";
 import { formatFeatureValue } from "@stapel/attributes-react";
 import { useListingDetail } from "../headless/ListingDetail.js";
+import { useListingActions } from "../headless/ListingActions.js";
 import { asFeatureDaoList, featuresDtoFromDaoList } from "../model/features.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
-import { ErrorAlert } from "./ErrorAlert.js";
 import { HeartIcon } from "./icons.js";
 import { ListingPhoto } from "./ListingPhoto.js";
 import { ListingStatusBlock } from "./StatusTags.js";
-import { ListingsSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
+
+/** The reading measure of the page body. A detail page is prose plus a spec
+ * table; past this it stops being one column and starts being a stripe across
+ * a 2560px pane. */
+export const DETAIL_MEASURE = "60rem";
+
+/** The narrowest a gallery tile may get before the grid drops a column. A
+ * measure rather than a pixel: the tiles then fill whatever the ELEMENT is,
+ * which is §83's geometry rule — one photo per row on a phone, three on a
+ * desktop pane, and no `width: 320` that is near-full-bleed on one and a
+ * postage stamp on the other. */
+export const DETAIL_PHOTO_MIN = "14rem";
 
 export interface ListingDetailPaneProps extends ThemeModeProp {
   readonly id: number;
@@ -36,9 +78,18 @@ export interface ListingDetailPaneProps extends ThemeModeProp {
    * the only place the moderation axis is shown, because it is the only
    * person it concerns. */
   readonly viewerId?: string;
-  /** Slots the container fills: "message the seller" (chat-react), the
-   * seller's profile link, reviews. Cross-pair navigation is the container's
-   * job (spec §6.2 item 5), so this pair takes nodes rather than routes. */
+  /**
+   * THE primary action for a buyer: "message the seller", filled by the
+   * container from `@stapel/chat-react`. Rendered first, before favouriting,
+   * and never shown to the owner.
+   */
+  readonly contactSlot?: ReactNode;
+  /** Open the composer on this listing — the owner's primary. Absent is a real
+   * answer: the button then states that this app has no editing screen. */
+  readonly onEdit?: (id: number) => void;
+  /** Extra chrome beside the primary (the seller's profile link, a share
+   * button). Cross-pair navigation is the container's job (spec §6.2 item 5),
+   * so this pair takes nodes rather than routes. */
   readonly actions?: ReactNode;
   readonly footer?: ReactNode;
 }
@@ -46,53 +97,57 @@ export interface ListingDetailPaneProps extends ThemeModeProp {
 export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
   const t = useT();
   const { locale } = useI18n();
-  const describe = useDescribeFlowError();
   const bag = useListingDetail(
     props.id,
     props.viewerId !== undefined ? { viewerId: props.viewerId } : {}
   );
+  const owner = bag.viewerIsOwner === true;
+  const actions = useListingActions(props.id, bag.status?.lifecycle.status);
+  const editGate = actions.editGate(props.onEdit !== undefined);
+
+  const favoriteLabel = t(
+    bag.isFavorited === true
+      ? LISTINGS_I18N_KEYS.cardFavoriteRemove
+      : LISTINGS_I18N_KEYS.cardFavoriteAdd
+  );
 
   return (
-    <ListingsSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
-      <Flex vertical gap={16} data-testid="listings-detail">
+    <SkinTheme
+      surface="base"
+      style={{ maxWidth: DETAIL_MEASURE, padding: spacing[4] }}
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
+      <Flex vertical gap={spacing[4]} data-testid="listings-detail">
         {bag.removed ? (
-          <Alert
-            type="warning"
-            showIcon
-            data-testid="listings-detail-removed"
+          <ErrorAlert
+            testId="listings-detail-removed"
             message={t(LISTINGS_I18N_KEYS.detailRemoved)}
           />
         ) : null}
 
         {matchLoad(bag.state, {
           loading: () => (
-            <Flex justify="center" data-testid="listings-detail-loading">
-              <Spin aria-label={t(LISTINGS_I18N_KEYS.detailLoading)} />
-            </Flex>
+            <div
+              role="status"
+              aria-busy="true"
+              aria-label={t(LISTINGS_I18N_KEYS.detailLoading)}
+              data-testid="listings-detail-loading"
+              data-stapel-load-state="loading"
+            />
           ),
-          failed: () =>
-            bag.removed ? null : (
+          failed: (error) =>
+            bag.removed ? null : bag.notFound ? (
+              <EmptyState
+                testId="listings-detail-error"
+                title={t(LISTINGS_I18N_KEYS.detailNotFound)}
+              />
+            ) : (
               <ErrorAlert
                 testId="listings-detail-error"
-                error={describe({
-                  code: bag.notFound
-                    ? LISTINGS_I18N_KEYS.detailNotFound
-                    : LISTINGS_I18N_KEYS.detailLoadFailed,
-                  params: {},
-                  status: 0,
-                  message: undefined,
-                  language: undefined,
-                })}
-                action={
-                  <Button
-                    size="small"
-                    data-analytics="none"
-                    data-analytics-reason="retrying a read the person already asked for; not a business action"
-                    onClick={bag.refetch}
-                  >
-                    {t(LISTINGS_I18N_KEYS.detailRetry)}
-                  </Button>
-                }
+                thrown={error}
+                message={t(LISTINGS_I18N_KEYS.detailLoadFailed)}
+                onRetry={bag.refetch}
+                retryLabel={t(LISTINGS_I18N_KEYS.detailRetry)}
               />
             ),
           ready: (listing) => (
@@ -101,34 +156,39 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                   else's: a buyer has no use for "changes under review", and
                   showing a stranger that a listing was refused would leak a
                   verdict about someone else's content. */}
-              {bag.viewerIsOwner === true && bag.status !== undefined ? (
-                <Flex vertical gap={8} data-testid="listings-detail-owner-view">
+              {owner && bag.status !== undefined ? (
+                <Flex vertical gap={spacing[2]} data-testid="listings-detail-owner-view">
                   <ListingStatusBlock status={bag.status} />
                   {!bag.publiclyVisible ? (
-                    <Alert
-                      type="info"
-                      showIcon
-                      message={t(LISTINGS_I18N_KEYS.detailOwnerOnlyView)}
-                    />
+                    <Typography.Text type="secondary">
+                      {t(LISTINGS_I18N_KEYS.detailOwnerOnlyView)}
+                    </Typography.Text>
                   ) : null}
                 </Flex>
               ) : null}
 
-              {bag.viewerIsOwner !== true && !bag.publiclyVisible ? (
-                <Alert
-                  type="warning"
-                  showIcon
-                  data-testid="listings-detail-not-published"
+              {!owner && !bag.publiclyVisible ? (
+                <ErrorAlert
+                  testId="listings-detail-not-published"
                   message={t(LISTINGS_I18N_KEYS.detailNotPublished)}
+                  variant="inline"
                 />
               ) : null}
 
-              <Flex gap={16} wrap>
+              {/* Element-width tiles: the grid decides how many fit, the
+                  photos fill them. */}
+              <div
+                data-testid="listings-detail-gallery"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: `repeat(auto-fit, minmax(${DETAIL_PHOTO_MIN}, 1fr))`,
+                  gap: spacing[3],
+                }}
+              >
                 {bag.images.length === 0 ? (
                   <ListingPhoto
                     imageRef={undefined}
                     alt={listing.title ?? String(listing.id)}
-                    style={{ width: 320, aspectRatio: "4 / 3" }}
                   />
                 ) : (
                   bag.images.map((ref, index) => (
@@ -139,11 +199,10 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                         index: index + 1,
                         total: bag.images.length,
                       })}
-                      style={{ width: 320, aspectRatio: "4 / 3" }}
                     />
                   ))
                 )}
-              </Flex>
+              </div>
 
               <Typography.Title level={3} data-testid="listings-detail-title">
                 {listing.title ?? ""}
@@ -168,43 +227,82 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                   : t(LISTINGS_I18N_KEYS.cardPriceAbsent)}
               </Typography.Title>
 
-              <Space wrap>
-                <Button
-                  disabled={!bag.favoriteGate.available}
-                  aria-label={t(
-                    bag.isFavorited === true
-                      ? LISTINGS_I18N_KEYS.cardFavoriteRemove
-                      : LISTINGS_I18N_KEYS.cardFavoriteAdd
-                  )}
-                  aria-pressed={bag.isFavorited === true}
-                  icon={<HeartIcon filled={bag.isFavorited === true} />}
-                  data-testid="listings-detail-favorite"
-                  data-analytics="none"
-                  data-analytics-reason="business action — host app wraps with its own tracked()"
-                  onClick={bag.toggleFavorite}
-                >
-                  {t(
-                    bag.isFavorited === true
-                      ? LISTINGS_I18N_KEYS.cardFavoriteRemove
-                      : LISTINGS_I18N_KEYS.cardFavoriteAdd
-                  )}
-                </Button>
-                {props.actions}
-              </Space>
+              {/* The buy box. One primary, and which one depends on who is
+                  reading this page. */}
+              <Flex
+                wrap
+                gap={spacing[3]}
+                align="flex-start"
+                data-testid="listings-detail-actions"
+              >
+                {owner ? (
+                  <>
+                    <GatedButton
+                      gate={editGate}
+                      type="primary"
+                      testId="listings-detail-edit"
+                      data-analytics="none"
+                      data-analytics-reason="business action — host app wraps with its own tracked()"
+                      onClick={() => {
+                        props.onEdit?.(props.id);
+                      }}
+                    >
+                      {t(LISTINGS_I18N_KEYS.detailEdit)}
+                    </GatedButton>
+                    <GatedButton
+                      gate={actions.archive}
+                      danger
+                      testId="listings-detail-take-down"
+                      data-analytics="none"
+                      data-analytics-reason="business action — host app wraps with its own tracked()"
+                      onClick={actions.doArchive}
+                    >
+                      {t(LISTINGS_I18N_KEYS.detailTakeDown)}
+                    </GatedButton>
+                  </>
+                ) : (
+                  <div data-testid="listings-detail-contact">
+                    {props.contactSlot ?? <SlotPlaceholder name="contactSlot" />}
+                  </div>
+                )}
 
-              {/* A switched-off control that cannot say why is the one shape
-                  ActionAvailability makes unwritable — so the reason is
-                  rendered, not implied by the disabled attribute. */}
-              {!bag.favoriteGate.available ? (
-                <Typography.Text
-                  type="secondary"
-                  data-testid="listings-detail-favorite-blocked"
-                >
-                  {t(
-                    bag.favoriteGate.block.code,
-                    bag.favoriteGate.block.params
-                  )}
-                </Typography.Text>
+                {/* Favouriting your own listing is not a thing anyone does;
+                    for everyone else it is the secondary it always was. */}
+                {owner ? null : (
+                  <GatedControl
+                    gate={bag.favoriteGate}
+                    testId="listings-detail-favorite-gate"
+                  >
+                    {(bind) => (
+                      <Button
+                        disabled={bind.disabled}
+                        data-disabled-reason="the enclosing <GatedControl> renders the gate's reason beside this button"
+                        {...(bind["aria-describedby"] !== undefined
+                          ? { "aria-describedby": bind["aria-describedby"] }
+                          : {})}
+                        aria-label={favoriteLabel}
+                        aria-pressed={bag.isFavorited === true}
+                        icon={<HeartIcon filled={bag.isFavorited === true} />}
+                        data-testid="listings-detail-favorite"
+                        data-analytics="none"
+                        data-analytics-reason="business action — host app wraps with its own tracked()"
+                        onClick={bag.toggleFavorite}
+                      >
+                        {favoriteLabel}
+                      </Button>
+                    )}
+                  </GatedControl>
+                )}
+
+                {props.actions}
+              </Flex>
+
+              {actions.error !== undefined && actions.error !== null ? (
+                <ErrorAlert
+                  testId="listings-detail-action-error"
+                  thrown={actions.error}
+                  variant="inline"
+                />
               ) : null}
 
               <Divider />
@@ -235,14 +333,14 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
               {/* Counted, not rounded to zero: a stored attribute this build
                   cannot key is a gap in what the buyer is being told. */}
               {bag.unreadableFeatures > 0 ? (
-                <Alert
+                <Typography.Text
                   type="warning"
-                  showIcon
                   data-testid="listings-detail-unreadable"
-                  message={t(LISTINGS_I18N_KEYS.detailUnreadableFeatures, {
+                >
+                  {t(LISTINGS_I18N_KEYS.detailUnreadableFeatures, {
                     count: bag.unreadableFeatures,
                   })}
-                />
+                </Typography.Text>
               ) : null}
 
               <Descriptions size="small" column={1}>
@@ -271,6 +369,6 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
           ),
         })}
       </Flex>
-    </ListingsSkinTheme>
+    </SkinTheme>
   );
 }

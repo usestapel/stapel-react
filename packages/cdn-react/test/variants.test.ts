@@ -39,7 +39,7 @@ describe("waiting for the ladder", () => {
     });
 
     expect(outcome.variantsReady).toBe(true);
-    expect(outcome.image.variants_meta).toHaveLength(2);
+    expect((outcome.row as { variants_meta: unknown[] }).variants_meta).toHaveLength(2);
     expect(checks).toBe(4);
   });
 

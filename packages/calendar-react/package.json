@@ -1,7 +1,7 @@
 {
   "name": "@stapel/calendar-react",
   "version": "0.6.1",
-  "description": "Headless React flow pair for stapel-calendar: typed API client, TanStack Query hooks, flow machines, headless components, and i18n keys. Zero visual opinion.",
+  "description": "Headless React pair for stapel-calendar plus its default antd skin: a typed client, TanStack Query hooks, headless primitives for every one of the module's ten operations, and a wired month/week/day calendar that degrades to an agenda on a phone. The materialized-occurrence dedup the wire contract demands is applied once, in the pair, so no consumer draws a repeating event twice; AvailabilityResponse.truncated is rendered as visible copy rather than silently offering booked time. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -17,8 +17,21 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./default": {
+      "types": "./dist/default/index.d.ts",
+      "default": "./dist/default/index.js"
+    },
+    "./i18n/ru": {
+      "types": "./dist/i18n/ru.d.ts",
+      "default": "./dist/i18n/ru.js"
+    },
+    "./i18n/es": {
+      "types": "./dist/i18n/es.d.ts",
+      "default": "./dist/i18n/es.js"
+    },
     "./manifest": "./manifest.json",
     "./manifest.json": "./manifest.json",
+    "./nav-manifest.json": "./nav-manifest.json",
     "./llms.txt": "./llms.txt",
     "./package.json": "./package.json"
   },
@@ -30,6 +43,7 @@
     "MODULE.md",
     "CHANGELOG.md",
     "manifest.json",
+    "nav-manifest.json",
     "llms.txt"
   ],
   "scripts": {
@@ -41,14 +55,31 @@
   },
   "size-limit": [
     {
-      "name": "index — headless calendar pair (client + hooks + headless + i18n)",
+      "name": "index \u2014 the headless pair (client + hooks + dedup + model): no antd",
       "path": "dist/index.js",
-      "limit": "12 KB"
+      "limit": "14 KB"
+    },
+    {
+      "name": "default \u2014 the antd skin (calendar, agenda, sheets, availability) must stay out of the main bundle",
+      "path": "dist/default/index.js",
+      "limit": "22 KB"
+    },
+    {
+      "name": "i18n/ru \u2014 the Russian bundle is opt-in, not carried by the main entry",
+      "path": "dist/i18n/ru.js",
+      "limit": "8 KB"
+    },
+    {
+      "name": "i18n/es \u2014 the Spanish bundle is opt-in, not carried by the main entry",
+      "path": "dist/i18n/es.js",
+      "limit": "8 KB"
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.13.0 <1.0.0",
+    "@stapel/core": ">=0.18.0 <1.0.0",
+    "@stapel/tokens-antd": ">=0.6.0",
     "@tanstack/react-query": "^5.0.0",
+    "antd": ">=5.20.0 <7",
     "react": ">=19"
   },
   "devDependencies": {
@@ -56,10 +87,12 @@
     "@stapel/core": "workspace:^",
     "@stapel/showcase": "workspace:^",
     "@stapel/tokens": "workspace:^",
+    "@stapel/tokens-antd": "workspace:^",
     "@tanstack/react-query": "^5.81.0",
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "antd": "^6.5.0",
     "jsdom": "^26.1.0",
     "msw": "^2.10.2",
     "react": "^19.1.0",
@@ -73,5 +106,13 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "peerDependenciesMeta": {
+    "@stapel/tokens-antd": {
+      "optional": true
+    },
+    "antd": {
+      "optional": true
+    }
   }
 }

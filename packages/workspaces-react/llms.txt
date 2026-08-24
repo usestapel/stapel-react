@@ -1,6 +1,6 @@
 # @stapel/workspaces-react 0.17.0
 
-Headless React flow pair for stapel-workspaces (contract >=0.24 <0.25) — business + state, zero visual opinion.
+Headless React flow pair for stapel-workspaces (contract >=0.29 <0.30) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -80,7 +80,7 @@ Paths are relative to `/workspaces/api/v1/`.
 - useWorkspaces (query) → listWorkspaces
 
 ## Errors (render t(code, params); UX from remediation)
-69 keys (full catalog: manifest.json §errors). By remediation: fix_input 33 · retry 12 · contact_support 9 · wait_and_retry 8 · verify 5 · reauthenticate 2.
+74 keys (full catalog: manifest.json §errors). By remediation: fix_input 35 · retry 13 · wait_and_retry 10 · contact_support 9 · verify 5 · reauthenticate 2.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -97,6 +97,7 @@ Param-bearing keys (interpolation slots matter):
 - error.403.membership_suspended [403] → fix_input {reason}
 - error.403.missing_capability [403] → contact_support {capability}
 - error.403.role_exceeds_inviter_rank [403] → fix_input {role}
+- error.429.invitation_grant_pending [429] → wait_and_retry {retry_after}
 - error.429.invitation_resend_cooldown [429] → wait_and_retry {retry_after}
 - error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
 

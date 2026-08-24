@@ -4,7 +4,7 @@
   "version": "0.3.0",
   "backend": {
     "module": "stapel-cdn",
-    "contract": ">=0.12 <0.13"
+    "contract": ">=0.17 <0.18"
   },
   "layers": [
     "api",
@@ -29,6 +29,13 @@
       "tag": "Files",
       "request": "FileExists",
       "response": "FileExistsResponse"
+    },
+    "describe_media": {
+      "method": "POST",
+      "path": "/cdn/api/v1/describe/",
+      "tag": "Media",
+      "request": "DescribeManyRequest",
+      "response": "DescribeManyResponse"
     },
     "random_image": {
       "method": "GET",
@@ -231,6 +238,14 @@
     "error.400.no_file": {
       "status": 400,
       "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.too_many_refs": {
+      "status": 400,
+      "params": [
+        "count",
+        "max"
+      ],
       "remediation": "fix_input"
     },
     "error.400.validation_error": {
@@ -497,6 +512,7 @@
     "error.400.invalid_image_type",
     "error.400.missing_fields",
     "error.400.no_file",
+    "error.400.too_many_refs",
     "error.400.validation_error",
     "error.400.verification_failed",
     "error.400.verification_invalid_factor",
@@ -531,6 +547,7 @@
   "exports": {
     "runtime": [
       "CDN_DEFAULT_LIMITS",
+      "CDN_DESCRIBE_MAX_REFS",
       "CDN_ERRORS",
       "CDN_ERROR_CODES",
       "CDN_FLOWS",
@@ -550,24 +567,32 @@
       "cdnQueryKeys",
       "createCdnApi",
       "createCdnRuntime",
+      "createDescribeLoader",
+      "describeRetryDelayMs",
       "explainCdnError",
       "fileExtension",
       "flowEndpoints",
       "formatCdnRef",
+      "imageRowOf",
+      "isRateLimited",
       "isUploadCanceled",
       "parseCdnRef",
       "refOf",
       "registerCdnI18n",
+      "renderMetaToStapelImage",
       "resolveCdnLimits",
       "runUpload",
       "sha256Hex",
       "smallestVariantUrl",
       "targetAssetType",
+      "targetFileKind",
       "toStapelImage",
       "useCdnAnalytics",
       "useCdnApi",
       "useCdnRef",
       "useCdnRuntime",
+      "useDescribe",
+      "useDescribeRef",
       "useUploadImage",
       "useUploadPreview",
       "useUploadQueue",
@@ -575,6 +600,7 @@
     ],
     "types": [
       "CdnApi",
+      "CdnDescribeResponse",
       "CdnErrorCode",
       "CdnErrorSpec",
       "CdnFileExistsResponse",
@@ -588,8 +614,13 @@
       "CdnIntakeLimits",
       "CdnLimits",
       "CdnLimitsOverride",
+      "CdnMediaRow",
+      "CdnMetaStatus",
+      "CdnPreviewKind",
       "CdnRef",
       "CdnRefBag",
+      "CdnRenderMeta",
+      "CdnRenderMetaVariant",
       "CdnRuntime",
       "CdnUploadTarget",
       "CdnVariantMeta",
@@ -598,6 +629,10 @@
       "CdnVideoUploadResponse",
       "CreateCdnRuntimeOptions",
       "DedupSkipReason",
+      "DescribeBag",
+      "DescribeLoader",
+      "DescribeLoaderOptions",
+      "DescribeResult",
       "FlowEndpoint",
       "ParsedCdnRef",
       "Remediation",

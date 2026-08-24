@@ -30,21 +30,28 @@ generated `llms.txt` (agent context) and `manifest.json` (machine catalog).
 - **headless/** — `<GdprProvider>` wires the runtime into context.
   shadcn-copyable (frontend-standard §7).
 - **default/** — the member antd skin: `<AccountClosurePanel>`,
-  `<PendingDeletions>`, `<DataExportPanel>`, `<DsarForm>` and `<PrivacyPane>`
-  (the wired screen `account.privacy` mounts). Every one renders its arms
-  through `matchLoad`/`matchList`, and the ready arm of the two folded reads
-  has two shapes — a closure or none, an export or none — so neither is ever
-  drawn as "empty".
+  `<PendingDeletions>`, `<DataExportPanel>`, `<DsarForm>`, `<PrivacyPane>`
+  (the wired screen `account.privacy` mounts) and `<PrivacyRequestPane>` (the
+  PUBLIC intake page `public.privacy-request` mounts — prop-free, because the
+  nav contract mounts a named export with no props, which is why an
+  anonymous-only form prop could never be a route). Every one renders its arms
+  through the shared substrate's `LoadBoundary`/`LoadList`, and the ready arm
+  of the two folded reads has two shapes — a closure or none, an export or
+  none — so neither is ever drawn as "empty". There is no local `theme.tsx` or
+  `ErrorAlert.tsx` any more: both are `@stapel/tokens-antd/skin`'s
+  (`SkinTheme`, `ErrorAlert`), so the reactive-theme fix lands once for the
+  fleet instead of nine times.
 - **default/admin/** — the staff skin on its OWN subpath: `<DsarQueue>`,
   `<OwnersHealth>`, `<PrivacyAdminPane>`. Separate because a page where a
   person deletes their own account has no business carrying an operations table
   in its bundle; size-limit gates the three entries independently.
-- **nav/** — two `NavEntry` values, `account.privacy` (under the
-  container-owned `account.root`) and `admin.privacy` (under `admin.root`). The
-  ids name the MENU rather than the module: nobody looks for "delete my
+- **nav/** — three `NavEntry` values: `account.privacy` (under the
+  container-owned `account.root`), `admin.privacy` (under `admin.root`), and
+  `public.privacy-request` (top level, `surface: "public"`, not in the menu).
+  The ids name the MENU rather than the module: nobody looks for "delete my
   account" under a regulation's initials.
 - **i18n/** — `GDPR_I18N_KEYS` + the inline en bundle and the opt-in
-  `./i18n/ru` subpath; the generated backend error bundle is merged in so every
+  the opt-in `./i18n/ru` and `./i18n/es` subpaths; the generated backend error bundle is merged in so every
   `error.*` code has a fallback. Unlike most pairs, NOTHING is authored here to
   fill an upstream gap: stapel-gdpr ships `translations/errors.{ru,es}.json`
   covering all 15 keys it owns, so the generated ru bundle is complete over the

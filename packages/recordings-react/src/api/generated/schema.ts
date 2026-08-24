@@ -12,9 +12,18 @@ export interface paths {
         /**
          * @description Create a recording and open its upload session, or list recordings.
          *
-         *     ``GET`` lists your own recordings by default; pass ``?workspace_id=<uuid>``
-         *     to list every recording in a workspace you are a member of (membership is
-         *     verified against the workspaces module; non-members get 403).
+         *     ``POST`` creates the recording inside the workspace its payload names,
+         *     which requires membership of that workspace (verified against the
+         *     workspaces module; non-members get 403 and nothing is created).
+         *
+         *     ``GET`` lists what ``RECORDING_POLICY`` makes visible to you (default:
+         *     your own recordings); pass ``?workspace_id=<uuid>`` to narrow that to one
+         *     workspace you are a member of (membership is verified against the
+         *     workspaces module; non-members get 403). The workspace listing goes
+         *     through the same object policy as the per-recording endpoints, so it
+         *     never lists a recording those would refuse; a deployment that wants
+         *     every member to see every recording in the workspace says so with
+         *     ``WORKSPACE_LISTING_MEMBERS_SEE_ALL``.
          *
          *     Pass ``?resource_key=<opaque-token>`` to narrow the listing to the single
          *     recording that token references. The key is the opaque, signed handle
@@ -26,16 +35,25 @@ export interface paths {
          *     genuine nor surface a distinct error for a value the client only ever
          *     obtains from a prior server response.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         get: operations["recordings_api_v1_recordings_list"];
         put?: never;
         /**
          * @description Create a recording and open its upload session, or list recordings.
          *
-         *     ``GET`` lists your own recordings by default; pass ``?workspace_id=<uuid>``
-         *     to list every recording in a workspace you are a member of (membership is
-         *     verified against the workspaces module; non-members get 403).
+         *     ``POST`` creates the recording inside the workspace its payload names,
+         *     which requires membership of that workspace (verified against the
+         *     workspaces module; non-members get 403 and nothing is created).
+         *
+         *     ``GET`` lists what ``RECORDING_POLICY`` makes visible to you (default:
+         *     your own recordings); pass ``?workspace_id=<uuid>`` to narrow that to one
+         *     workspace you are a member of (membership is verified against the
+         *     workspaces module; non-members get 403). The workspace listing goes
+         *     through the same object policy as the per-recording endpoints, so it
+         *     never lists a recording those would refuse; a deployment that wants
+         *     every member to see every recording in the workspace says so with
+         *     ``WORKSPACE_LISTING_MEMBERS_SEE_ALL``.
          *
          *     Pass ``?resource_key=<opaque-token>`` to narrow the listing to the single
          *     recording that token references. The key is the opaque, signed handle
@@ -47,7 +65,7 @@ export interface paths {
          *     genuine nor surface a distinct error for a value the client only ever
          *     obtains from a prior server response.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         post: operations["recordings_api_v1_recordings_create"];
         delete?: never;
@@ -66,7 +84,7 @@ export interface paths {
         /**
          * @description Fetch a single recording.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         get: operations["recordings_api_v1_recordings_retrieve"];
         put?: never;
@@ -89,9 +107,41 @@ export interface paths {
         /**
          * @description Finalize the upload and enqueue the pipeline.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         post: operations["recordings_api_v1_recordings_finalize_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recordings/api/v1/recordings/{recording_id}/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Issue a short-lived, authorized URL to a recording's media object.
+         *
+         *     This endpoint is how bytes are reached — it exists so that the bucket
+         *     does not have to be readable by anyone holding an object key (audit
+         *     STORE-01). The object policy answers ``can_read`` for *this* recording
+         *     first; only then is a presigned GET minted, with
+         *     ``MEDIA_URL_TTL_SECONDS`` on it.
+         *
+         *     ``?redirect=1`` answers ``302`` to the URL (drop-in for an ``<audio
+         *     src>``); the default JSON body carries the expiry so a client can
+         *     refresh before playback dies. ``503`` means the deployment's storage
+         *     backend cannot sign — no permanent URL is substituted.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["recordings_api_v1_recordings_media_retrieve"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -117,9 +167,193 @@ export interface paths {
          *     (``error.409.recording_invalid_state``). Owner-scoped, like every other
          *     per-recording verb; an unknown/foreign/deleted recording is ``404``.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     Authority is the object policy's ``can_reprocess``. A policy that
+         *     answers with a :class:`~stapel_recordings.policy.PolicyDecision` names
+         *     the status and error key of its own refusal (``402`` for an unpaid
+         *     balance, say); a bare ``bool`` keeps the ``404``.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
          */
         post: operations["recordings_api_v1_recordings_reprocess_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recordings/api/v1/recordings/{recording_id}/resummarize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Regenerate the summary of ONE recording — no STT, no diarization.
+         *
+         *     The cheap half of :class:`ReprocessRecordingView`. Reprocess re-runs the
+         *     whole pipeline (a second transcription, a second bill) and is the wrong
+         *     tool for the case that actually happens: the transcript is right — often
+         *     because a human just corrected it — and the summary built from the older
+         *     transcript is the only thing out of date. Where reprocess is a staff
+         *     verb, this is the user's own: it re-runs the same ``llm.summarize`` call
+         *     the ``merge`` stage makes, stores the result the same way, and re-pins
+         *     the summary to the transcript it was built from so the staleness marker
+         *     clears.
+         *
+         *     ``202`` with a :class:`~stapel_recordings.dto.JobDTO` — the work is
+         *     accepted, not finished. **Idempotent**: while a re-summary for this
+         *     recording is in flight, every further POST answers ``202`` with the SAME
+         *     job instead of paying for a second summary, so a double-clicked button
+         *     costs one summary.
+         *
+         *     ``409`` (``error.409.recording_no_transcript``) when there is nothing to
+         *     summarize yet; ``503`` (``error.503.recording_summarize_unavailable``)
+         *     when the deployment has summaries switched off or the bus refused the
+         *     work. ``404`` for an unknown, foreign or deleted recording.
+         *
+         *     Authority is the object policy's ``can_resummarize`` — which defaults to
+         *     whatever the policy says about ``can_reprocess``, so a host that already
+         *     narrowed reprocess does not have to discover a second verb, while a host
+         *     that wants "users may re-summarize, only staff may reprocess" overrides
+         *     one method.
+         *
+         *     A denial answers with the policy's OWN status and error key when it
+         *     returns a :class:`~stapel_recordings.policy.PolicyDecision`: a metered
+         *     host refuses an out-of-credit re-summary with ``402`` and a key its UI
+         *     can turn into a top-up prompt, instead of the ``404`` that says the
+         *     recording does not exist. A policy that answers with a bare ``bool``
+         *     keeps the ``404``.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        post: operations["recordings_api_v1_recordings_resummarize_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recordings/api/v1/recordings/{recording_id}/transcript": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Read the OWNER's own speaker-attributed transcript.
+         *
+         *     The gap this closes: segments used to leave this module through exactly
+         *     one door — ``SharedRecordingDTO.segments`` on a public share link — so an
+         *     owner could read their transcript only by publishing it to the internet
+         *     first. ``RecordingDTO.transcript_storage_key`` was not an alternative: it
+         *     is a raw object key, and nothing signs it (the media endpoint signs the
+         *     *media* object, not the transcript).
+         *
+         *     Same authority as every other per-recording read: owner-scoped through
+         *     ``_owned_qs`` and then the object policy's ``can_read``, so an unknown,
+         *     foreign or deleted recording is a ``404`` and a widened
+         *     ``RECORDING_POLICY`` widens this with it. Same wire shape as the share
+         *     path — :class:`~stapel_recordings.dto.TranscriptSegmentDTO` — so a
+         *     transcript renderer is written once and serves both doors.
+         *
+         *     Paginated, anchored on ``sequence_num`` (:class:`TranscriptPagination`):
+         *     a meeting-length transcript is thousands of segments, and the anchor is
+         *     what keeps a page stable while the pipeline is still appending to the end.
+         *
+         *     A recording that has no segments yet answers ``200`` with an empty page,
+         *     not an error — "not transcribed yet" is a stage of a normal lifecycle,
+         *     and while the pipeline is mid-flight the response carries the same
+         *     ``Retry-After`` the recording read does, so the client is told when to
+         *     come back rather than left to guess.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["recordings_api_v1_recordings_transcript_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recordings/api/v1/shares/{link_token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Read a recording through a public share link.
+         *
+         *     Anonymous by design: the link token in the path IS the credential, and
+         *     ``shares.access_share`` is what verifies it — revocation, expiry, the
+         *     recording's own lifecycle, and (for a passcode-protected share) a
+         *     *verified* unlock token from the ``X-Share-Unlock-Token`` header. The
+         *     projection then renders only what the share grants.
+         *
+         *     **Permissions:** `AllowAny`
+         */
+        get: operations["recordings_api_v1_shares_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recordings/api/v1/shares/{link_token}/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Media URL for a share link that carries the ``media`` permission.
+         *
+         *     The public half of STORE-01: a shared recording plays without the bucket
+         *     being anonymously readable. The share is verified on every call, the
+         *     ``media`` grant is required explicitly (a share that only grants ``view``
+         *     gets 403), and the URL is minted with ``SHARE_MEDIA_URL_TTL_SECONDS`` —
+         *     shorter than the owner's, because this one leaves the trust boundary.
+         *
+         *     **Permissions:** `AllowAny`
+         */
+        get: operations["recordings_api_v1_shares_media_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recordings/api/v1/shares/{link_token}/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Exchange a share's passcode for a time-limited unlock token.
+         *
+         *     The token is signed and bound to the share, its generation and a TTL —
+         *     presenting *any* nonempty value here is what SHARE-01 was. Guessing is
+         *     bounded by the persisted lockout in ``shares.unlock_share``.
+         *
+         *     **Permissions:** `AllowAny`
+         */
+        post: operations["recordings_api_v1_shares_unlock_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -149,7 +383,47 @@ export interface components {
         FinalizeUploadRequest: {
             file_size_bytes?: number;
         };
-        /** @description A recording as seen by the API. */
+        /**
+         * @description A background job this module accepted — the receipt for a 202.
+         *
+         *     Deliberately not the whole Job row: a caller needs to know WHICH run was
+         *     accepted (so it can poll, and so it can recognize its own retry landing
+         *     on the same one) and what state it is in. ``recording_id`` is here
+         *     because the job reference travels on its own once the client stores it.
+         */
+        JobDTO: {
+            id: string;
+            recording_id: string | null;
+            workspace_id: string;
+            type: string;
+            status: string;
+            queued_at: string;
+        };
+        /**
+         * @description A short-lived, authorized URL to a recording's media object.
+         *
+         *     The expiry travels *with* the URL because the client has to plan around
+         *     it: the URL stops working, and a player that cached it has to come back
+         *     here rather than retry a dead link forever.
+         */
+        MediaURLDTO: {
+            url: string;
+            expires_at: string;
+            expires_in: number;
+        };
+        /**
+         * @description A recording as seen by the API.
+         *
+         *     ``is_processing`` / ``poll_after_seconds`` are the module's answer to
+         *     "when do I ask again": this module serves no socket, so a client learns
+         *     that a recording moved by re-reading it, and the two fields say whether
+         *     that is worth doing and how soon. ``poll_after_seconds`` is ``None``
+         *     exactly when ``is_processing`` is false — the status is terminal, or the
+         *     client itself is holding the next move — which is how the payload says
+         *     *stop* as explicitly as it says *ask again*. The same number travels as
+         *     the ``Retry-After`` header for callers that read HTTP rather than the
+         *     body.
+         */
         RecordingDTO: {
             id: string;
             resource_key: string;
@@ -167,6 +441,74 @@ export interface components {
             transcript_storage_key: string | null;
             summary: string | null;
             created_at: string;
+            is_processing: boolean;
+            poll_after_seconds: number | null;
+        };
+        /** @description The token a client presents after passing a share's passcode. */
+        ShareUnlockDTO: {
+            unlock_token: string;
+            expires_in: number;
+        };
+        /** @description Passcode presented to a share's unlock endpoint. */
+        ShareUnlockRequest: {
+            passcode?: string;
+        };
+        /**
+         * @description A recording as seen through a public share link.
+         *
+         *     Field presence follows the share's granted permissions, not the
+         *     caller's request: ``summary``, ``segments`` and ``media_url`` stay empty
+         *     unless the link grants them. The recording's internal identifiers
+         *     (workspace, storage keys, provider) are not part of this payload at
+         *     all — a public link is not a window into the tenant.
+         */
+        SharedRecordingDTO: {
+            id: string;
+            title: string;
+            status: string;
+            language: string | null;
+            /** Format: double */
+            duration_seconds: number | null;
+            created_at: string;
+            permissions: string[];
+            summary: string | null;
+            media_url: string | null;
+            segments: components["schemas"]["TranscriptSegmentDTO"][];
+        };
+        /**
+         * @description The anchor-paginated envelope one transcript page arrives in.
+         *
+         *     Written out rather than left to the paginator's generic schema so the
+         *     generated client gets a *typed* page: without it ``items`` emits as an
+         *     untyped list and every consumer re-declares the segment shape by hand,
+         *     which is how the two ends drift.
+         */
+        TranscriptPage: {
+            items: components["schemas"]["TranscriptSegmentDTO"][];
+            next_anchor: string | null;
+            prev_anchor: string | null;
+            has_next: boolean;
+            has_prev: boolean;
+            count: number;
+        };
+        /**
+         * @description One speaker-attributed transcript segment.
+         *
+         *     ONE shape for both readers — the owner's paginated transcript read and
+         *     the projection inside a share link — because they are the same thing
+         *     seen from two doors, and a client that renders a transcript must not
+         *     have to write it twice. What differs between the doors is *whether* the
+         *     segments are reachable at all (the share needs the ``transcript``
+         *     grant), never their shape.
+         */
+        TranscriptSegmentDTO: {
+            sequence_num: number;
+            /** Format: double */
+            start_time: number;
+            /** Format: double */
+            end_time: number;
+            speaker: string | null;
+            text: string;
         };
         /** @description A single-PUT upload session. */
         UploadSessionDTO: {
@@ -190,7 +532,7 @@ export interface operations {
             query?: {
                 /** @description Narrow the listing to the single recording this opaque resource_key references. A missing/forged key yields an empty listing. */
                 resource_key?: string;
-                /** @description List all recordings in this workspace (requires membership) instead of only your own. */
+                /** @description Narrow the listing to this workspace (requires membership). What it returns inside the workspace is still what RECORDING_POLICY makes visible. */
                 workspace_id?: string;
             };
             header?: never;
@@ -282,6 +624,30 @@ export interface operations {
             };
         };
     };
+    recordings_api_v1_recordings_media_retrieve: {
+        parameters: {
+            query?: {
+                /** @description Answer 302 to the media URL instead of a JSON body. */
+                redirect?: boolean;
+            };
+            header?: never;
+            path: {
+                recording_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaURLDTO"];
+                };
+            };
+        };
+    };
     recordings_api_v1_recordings_reprocess_create: {
         parameters: {
             query?: never;
@@ -299,6 +665,127 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecordingDTO"];
+                };
+            };
+        };
+    };
+    recordings_api_v1_recordings_resummarize_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recording_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobDTO"];
+                };
+            };
+        };
+    };
+    recordings_api_v1_recordings_transcript_retrieve: {
+        parameters: {
+            query?: {
+                /** @description sequence_num to page from, exclusive. Omit for the first page; pass the previous page's next_anchor to continue. */
+                anchor?: number;
+                /** @description next = later segments (the reading direction), prev = earlier, center = the window around the anchor. */
+                direction?: "center" | "next" | "prev";
+                /** @description Segments per page (default TRANSCRIPT_PAGE_SIZE, capped at TRANSCRIPT_MAX_PAGE_SIZE). */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                recording_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptPage"];
+                };
+            };
+        };
+    };
+    recordings_api_v1_shares_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                link_token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedRecordingDTO"];
+                };
+            };
+        };
+    };
+    recordings_api_v1_shares_media_retrieve: {
+        parameters: {
+            query?: {
+                /** @description Answer 302 to the media URL instead of a JSON body. */
+                redirect?: boolean;
+            };
+            header?: never;
+            path: {
+                link_token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaURLDTO"];
+                };
+            };
+        };
+    };
+    recordings_api_v1_shares_unlock_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                link_token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ShareUnlockRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ShareUnlockRequest"];
+                "multipart/form-data": components["schemas"]["ShareUnlockRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareUnlockDTO"];
                 };
             };
         };

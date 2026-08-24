@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { useDataExport } from "../src/index.js";
+import { EXPORT_POLL_INTERVAL_MS, useDataExport } from "../src/index.js";
 import {
   DOWNLOAD_CONSUMED,
   DOWNLOAD_EXPIRED,
@@ -25,6 +25,7 @@ function Probe(): ReactElement {
         {bag.progress ? `${bag.progress.done}/${bag.progress.total}` : "—"}
       </span>
       <span data-testid="available">{String(bag.downloadAvailable)}</span>
+      <span data-testid="building">{String(bag.building)}</span>
       <span data-testid="missing">{bag.missingServices.join(",")}</span>
       <span data-testid="expires">{bag.expiresAt ?? "—"}</span>
       <button
@@ -231,5 +232,68 @@ describe("useDataExport — the download, and the two 410s", () => {
     await waitFor(() =>
       expect(screen.getByTestId("available").textContent).toBe("false")
     );
+  });
+});
+
+/**
+ * The archive is built by a worker and nothing pushes: the module emails a
+ * link and has no socket. Before this, the only way to learn a finished
+ * archive existed was a manual refresh — a screen that never changes while
+ * the thing it is about is happening.
+ */
+describe("useDataExport — it watches the job it started", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("re-reads while the archive is being built, and stops when it is not", async () => {
+    // Installed BEFORE the mount: react-query schedules the next read on a
+    // timer created during the first render, and a clock swapped in after
+    // that would never own it. `shouldAdvanceTime` keeps `waitFor` working.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    // Stateful server: the second read is the finished archive, so the test
+    // proves BOTH halves — the poll fires, and it stops once the answer is
+    // final. A fixture that kept answering `processing` could only prove one.
+    let reads = 0;
+    const server = mockServer({
+      "GET /user/data-export/status": () => {
+        reads += 1;
+        return { body: reads === 1 ? EXPORT_PROCESSING : EXPORT_PARTIAL };
+      },
+    });
+    mount(server);
+    await ready();
+    expect(screen.getByTestId("status").textContent).toBe("processing");
+    expect(screen.getByTestId("building").textContent).toBe("true");
+    expect(reads).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(EXPORT_POLL_INTERVAL_MS + 1);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("status").textContent).toBe("ready")
+    );
+    expect(screen.getByTestId("building").textContent).toBe("false");
+    const settled = reads;
+
+    // …and now it is quiet: a finished archive is a final answer, not a state
+    // to wait through, so nothing keeps asking on a forgotten tab.
+    await vi.advanceTimersByTimeAsync(EXPORT_POLL_INTERVAL_MS * 3);
+    expect(reads).toBe(settled);
+  });
+
+  it("never polls the two states that are not a job: no export, and a failed one", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    let reads = 0;
+    const server = mockServer({
+      "GET /user/data-export/status": () => {
+        reads += 1;
+        return EXPORT_NOT_FOUND;
+      },
+    });
+    mount(server);
+    await ready();
+    expect(screen.getByTestId("building").textContent).toBe("false");
+    await vi.advanceTimersByTimeAsync(EXPORT_POLL_INTERVAL_MS * 3);
+    expect(reads).toBe(1);
   });
 });

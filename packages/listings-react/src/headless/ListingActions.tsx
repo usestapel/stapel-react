@@ -33,6 +33,18 @@ export interface ListingActionsBag {
   readonly archive: ActionAvailability;
   readonly complete: ActionAvailability;
   readonly remove: ActionAvailability;
+  /**
+   * Whether "edit this listing" is offerable — and if not, WHY.
+   *
+   * Editing is not an endpoint this pair calls: the composer is a screen, and
+   * whether the app has one is the container's fact, which is why it arrives
+   * as an argument rather than being derived. It is a gate all the same,
+   * because the alternative shipped for two releases: `<GatedButton gate={{
+   * available: true }}>` beside an absent `onEdit`, i.e. an enabled button
+   * that did nothing at all in the scripted scaffold (§83, "a control that
+   * offers something meaningless in the current state").
+   */
+  editGate(hasEditor: boolean): ActionAvailability;
   doArchive(): void;
   doComplete(): void;
   doRemove(): void;
@@ -86,6 +98,13 @@ export function useListingActions(
     archive: archiveGate,
     complete: completeGate,
     remove: removeGate,
+    editGate: (hasEditor) =>
+      firstBlock(
+        mandate,
+        hasEditor
+          ? actionAvailable()
+          : actionBlocked(LISTINGS_I18N_KEYS.blockedNoEditor)
+      ),
     doArchive: () => {
       if (archiveGate.available) archive.mutate(id);
     },

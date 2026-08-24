@@ -1,35 +1,49 @@
 import { useCallback, useMemo, useState } from "react";
 import { toStapelApiError, useStapelClient } from "@stapel/core";
-import type { StapelApiError } from "@stapel/core";
-import { createCdnAvatarApi } from "../api/cdnAvatarApi.js";
+import type { StapelApiError, StapelClient } from "@stapel/core";
+import { createCdnApi, useCdnApi } from "@stapel/cdn-react";
+import type { CdnApi } from "@stapel/cdn-react";
 import { useUpdateMyProfile } from "../model/mutations.js";
 
 /**
- * Avatar upload — a DOCUMENTED STOPGAP (ironmemo-libgaps.md "settings inventory"
- * §avatar-upload), not a generated pair surface. stapel-profiles' own contract
- * only STORES the reference (`Profile.avatar`, a CDN `<type>/<hash>` string —
- * see `ProfileUpdate.avatar`); turning a picked `File` into that reference is a
- * stapel-cdn concern (`POST /cdn/api/v1/upload/avatar/`, multipart, 200/201 body
- * `{ image: { prefix, original_url, variant_160_url, ... } }`), and no
- * `@stapel/cdn-react` pair exists yet to own that contract's types/hooks the way
- * every other module does (frontend-standard §2/§3). Until one exists, this
- * hook calls the CDN endpoint directly through core's client-injection seam
- * (`useStapelClient("cdn")` — frontend-standard §7.2): a host that registers a
- * `cdn`-keyed client in `<StapelConfigProvider clients={{cdn: ...}}>` gets a
- * dedicated CDN base URL; a host that doesn't falls back to the default
- * client, which is correct whenever the app already fronts every module behind
- * one gateway origin (the common case — mirrors ironmemo's single
- * `API_BASE_URL` for every `*Client`).
+ * Avatar upload — now a real cross-module call, not a stopgap.
  *
- * The response is hand-typed below (NOT generated) for the same reason the
- * request is hand-called — flagged so it is trivial to delete once
- * `@stapel/cdn-react` ships and this pair can depend on its typed client
- * instead.
+ * stapel-profiles' own contract only STORES the reference (`Profile.avatar`,
+ * a CDN `<type>/<hash>` string); turning a picked `File` into that reference
+ * is a stapel-cdn concern. This pair used to hand-author that one operation
+ * in its own `api/` layer (`api/cdnAvatarApi.ts`, a hand-typed response and a
+ * hand-written path) because no `@stapel/cdn-react` existed to generate it
+ * from stapel-cdn's OWN `docs/schema.json` the way every other cross-module
+ * call in this codebase is generated. It exists now — `@stapel/cdn-react`
+ * 0.3.0 ships `uploadAvatar` on its generated client — so the stopgap and its
+ * file are DELETED and this hook calls the owning pair. One contract, one
+ * owner, one place a CDN schema change lands.
+ *
+ * ── HOW THE CDN CLIENT IS FOUND, AND THE ONE THING A HOST MUST CHECK ────────
+ *
+ * Two wirings, in order:
+ *
+ *  1. A mounted `<CdnProvider>` (the host already uses the cdn pair for its
+ *    galleries): its wired runtime is used as-is, so the avatar upload rides
+ *    the same base URL, limits and client as every other CDN call in the app.
+ *  2. Otherwise the `cdn`-keyed client from core's injection seam
+ *    (`useStapelClient("cdn")` — frontend-standard §7.2), or the default
+ *    client when a host fronts every module behind one gateway origin.
+ *
+ * **Paths are now RELATIVE to the CDN base**, because they are the cdn pair's
+ * paths (`/upload/avatar/`), not a string this pair owns. A host wiring route
+ * 2 must therefore register that client at the CDN base —
+ * `clients={{ cdn: createStapelClient({ baseUrl: "/cdn/api/v1/" }) }}` — the
+ * same base `createCdnRuntime` documents. The deleted stopgap spelled the
+ * whole path (`/cdn/api/v1/upload/avatar/`) against an origin-rooted client;
+ * a host that did that keeps working by moving the prefix from the path it
+ * never wrote to the base URL it did. This is the pre-1.0 breaking change in
+ * the changeset.
  *
  * ── WHY `upload()` RESOLVES A PAIR AND NOT A STRING ─────────────────────────
  *
  * It used to resolve the bare ref, and that destroyed the provenance at the
- * exact instant the system knew it for certain. `POST /cdn/api/v1/upload/avatar/`
+ * exact instant the system knew it for certain. `POST /upload/avatar/`
  * returns — this IS a CDN ref, there is no doubt anywhere in the call stack —
  * and the hook handed back a `string`. The caller then had to remember, out of
  * band, to also write `avatar_source: "cdn"`; the profile model's default is
@@ -95,22 +109,33 @@ export interface AvatarUploadBag {
 /** The error a host gets when it uses the upload hook with no client wired. */
 const NO_CDN_CLIENT: StapelApiError = toStapelApiError(
   new Error(
-    "avatar upload needs a StapelClient: render this subtree inside " +
-      "<StapelConfigProvider> (optionally with clients={{ cdn: ... }})"
+    "avatar upload needs the CDN pair: render this subtree inside " +
+      "<CdnProvider>, or inside <StapelConfigProvider clients={{ cdn: ... }}> " +
+      "with that client based at the CDN root (e.g. /cdn/api/v1/)"
   )
 );
 
 /**
- * The CDN client, or `null` when this subtree has no `<StapelConfigProvider>`.
+ * The cdn pair's API, or `null` when neither wiring is present.
  *
- * `useStapelClient` THROWS in that case, which took down whole tabs that merely
- * rendered a settings route (tracker #24) — an avatar picker is the last thing
- * that should be able to blank a page. The `useContext` call inside runs
- * unconditionally (hook order is preserved; only the throw that follows it is
- * caught), and the missing wiring is reported from `upload()` as an ordinary
- * error instead of as a render crash.
+ * Both `useCdnApi` and `useStapelClient` THROW without their provider, and a
+ * throw here took down whole tabs that merely rendered a settings route
+ * (tracker #24) — an avatar picker is the last thing that should be able to
+ * blank a page. Each `useContext` call runs UNCONDITIONALLY (hook order is
+ * preserved across renders; only the throw that follows it is caught), and the
+ * missing wiring is reported from `upload()` as an ordinary error instead of
+ * as a render crash.
  */
-function useOptionalCdnClient() {
+function useProvidedCdnApi(): CdnApi | null {
+  try {
+    // Unconditional hook call — only the throw that follows it is caught.
+    return useCdnApi();
+  } catch {
+    return null;
+  }
+}
+
+function useOptionalCdnClient(): StapelClient | null {
   try {
     // Unconditional hook call — only the throw that follows it is caught.
     return useStapelClient("cdn");
@@ -119,12 +144,17 @@ function useOptionalCdnClient() {
   }
 }
 
-export function useAvatarUpload(): AvatarUploadBag {
+function useOptionalCdnApi(): CdnApi | null {
+  const provided = useProvidedCdnApi();
   const client = useOptionalCdnClient();
-  const api = useMemo(
-    () => (client === null ? null : createCdnAvatarApi(client)),
-    [client]
+  return useMemo(
+    () => provided ?? (client === null ? null : createCdnApi(client)),
+    [provided, client]
   );
+}
+
+export function useAvatarUpload(): AvatarUploadBag {
+  const api = useOptionalCdnApi();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -154,6 +184,11 @@ export function useAvatarUpload(): AvatarUploadBag {
       setUploadedUrl(null);
       try {
         const res = await api.uploadAvatar(file);
+        // A ready-to-display preview variant. 240px would read nicer on a
+        // settings page, but 160 is the ladder rung stapel-cdn guarantees on
+        // the upload response itself — the rest of the ladder is built
+        // asynchronously, so reading `variants_meta` here would sometimes
+        // find it empty.
         setUploadedUrl(res.image.variant_160_url);
         // The one place in the system that KNOWS this is a CDN ref. Saying so
         // here is the whole fix — see the module doc.

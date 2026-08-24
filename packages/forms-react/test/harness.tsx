@@ -110,11 +110,17 @@ export function mockServer(
 export function TestHarness(props: {
   server: MockServer;
   locale?: string;
+  /** The runtime's default workspace — the ROUTABLE case, where a screen is
+   * mounted from a nav manifest with nothing but the address. */
+  workspaceId?: string;
   children: ReactNode;
 }): ReactElement {
   const runtime = createFormsRuntime({
     baseUrl: BASE,
     fetch: props.server.fetch,
+    ...(props.workspaceId !== undefined
+      ? { workspaceId: props.workspaceId }
+      : {}),
   });
   const i18n = createI18n({ locale: props.locale ?? "en" });
   registerFormsI18n(i18n);

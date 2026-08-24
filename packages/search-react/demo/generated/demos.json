@@ -23,6 +23,44 @@
       }
     },
     {
+      "id": "search.page",
+      "title": "Search page",
+      "description": "The composed /s screen: the query box bound to setText, the filter panel (category and location slots, numeric ranges, drill-down facets), the sort and page-size toolbar, and one keyset page of cards with the DSA promoted marking explained in words rather than in a tooltip.",
+      "component": "SearchPage",
+      "covers": [
+        "SearchStateProvider",
+        "SearchProvider"
+      ],
+      "tokens": [
+        "surface-raised",
+        "warning-bg"
+      ],
+      "variants": [
+        {
+          "id": "desktop",
+          "description": "Filters beside the results, the way a catalogue reads on a desktop.",
+          "viewport": "desktop",
+          "step": "results"
+        },
+        {
+          "id": "phone",
+          "description": "The same search at 390px: the filters move behind a Filters (N) button that opens a bottom sheet, so the first card is the first thing on screen.",
+          "viewport": "phone",
+          "step": "results-phone"
+        },
+        {
+          "id": "unreadable-link",
+          "description": "A shared link whose location and price range could not be read: the page says which parameters it dropped instead of silently widening the search.",
+          "viewport": "phone",
+          "step": "url-issues"
+        }
+      ],
+      "source": {
+        "file": "demo/SearchPage.demo.tsx",
+        "line": 60
+      }
+    },
+    {
       "id": "search.ranking",
       "title": "Ranking disclosure",
       "description": "Which parameters order the results and how much each weighs, straight from the scorer registry. Parameters the configured engine cannot evaluate are listed with their reason rather than filtered out.",

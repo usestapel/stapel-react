@@ -33,12 +33,12 @@ export function SignInLink(props: SignInLinkProps): ReactElement | null {
   const t = useT();
   const { cta } = props;
   if (cta === undefined) return null;
-  // The separating space belongs HERE, not at the call site: a reason with no
-  // door must render as exactly its own sentence, and a `{" "}` left behind by
-  // an absent link is a trailing space in every caller's assertion.
+  // No separating space: since the shared `<GatedControl>` prints the reason
+  // as its own paragraph, the door is a standalone element rather than the
+  // tail of a sentence, and a leading `{" "}` would be a stray space in every
+  // caller's assertion.
   return (
     <>
-      {" "}
       <Typography.Link
         data-testid={props.testId}
         data-analytics="none"

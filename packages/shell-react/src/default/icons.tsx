@@ -188,10 +188,58 @@ const REGISTRY: Record<string, (props: { size?: number }) => ReactElement> = {
   TagOutlined,
 };
 
+/**
+ * Every icon name this registry resolves to a real glyph — the reference set
+ * `scripts/gen-nav-manifest.mjs` validates a manifest's `icon` fields against
+ * (shared-layer audit G5: a typo used to ship a blank square with no error
+ * anywhere).
+ *
+ * The gate reads the `REGISTRY` object literal above out of this file's TEXT,
+ * because a lint/codegen script cannot import TSX. This export is the same
+ * set for anything that CAN import it (a host validating its own pair's
+ * manifest, this package's own tests), derived from the one table rather than
+ * hand-listed beside it — a second list is a second thing to forget.
+ */
+export const NAV_ICON_NAMES: readonly string[] = Object.keys(REGISTRY).sort();
+
+/** Does this registry resolve `name` to a real glyph (rather than the generic
+ * fallback square)? */
+export function isNavIcon(name: string): boolean {
+  return Object.prototype.hasOwnProperty.call(REGISTRY, name);
+}
+
 /** Resolve a `NavEntry.icon` name to its glyph, falling back to the generic
  * `fallback` square for a name outside this registry's coverage (see the
  * module doc's COVERAGE note). */
 export function resolveNavIcon(name: string): ReactElement {
   const Icon = REGISTRY[name] ?? fallback;
   return <Icon />;
+}
+
+/**
+ * The hamburger. Deliberately NOT in `REGISTRY`: that table is the set of
+ * names a nav MANIFEST may declare, and no manifest ever declares the shell's
+ * own chrome. It was a `☰` text glyph, which is a character whose size,
+ * weight and vertical alignment are whatever the host's font decided — inside
+ * a button sized for a 44px touch target, on a phone, that is the one control
+ * every visitor has to hit first.
+ */
+export function MenuGlyph({ size = 18 }: { size?: number }): ReactElement {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      role="img"
+      aria-hidden="true"
+    >
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h16" />
+    </svg>
+  );
 }

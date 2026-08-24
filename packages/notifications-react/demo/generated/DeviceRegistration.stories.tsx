@@ -8,3 +8,7 @@ export default { title: "notifications-react / Device registration" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
+Default.parameters = { stapel: {"viewport":"phone"} };
+export const NotRegistered = (): ReactElement => renderDemoVariant(demo, "not-registered");
+NotRegistered.storyName = "not-registered";
+NotRegistered.parameters = { stapel: {"viewport":"phone"} };

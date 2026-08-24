@@ -24,6 +24,7 @@
  * SMS-based disable (`_TOTPDisableByOTP`) is left for a follow-up — this
  * ships authenticator-code and backup-code disable only.
  */
+import { spacing } from "@stapel/tokens";
 import { useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import type { FlowError } from "@stapel/core";
@@ -215,7 +216,7 @@ function ProofForm(props: {
         label={t(
           useBackup ? AUTH_I18N_KEYS.secTotpDisableBackupLabel : AUTH_I18N_KEYS.secTotpDisableCodeLabel
         )}
-        style={{ marginTop: 12 }}
+        style={{ marginTop: spacing[3] }}
       >
         <Input autoFocus />
       </Form.Item>
@@ -314,7 +315,7 @@ function SetupJourney(props: {
         <Typography.Text type="secondary">
           {t(AUTH_I18N_KEYS.secTotpBackupCodesHint)}
         </Typography.Text>
-        <Flex vertical gap={4}>
+        <Flex vertical gap={spacing[1]}>
           {s.backupCodes.map((c) => (
             <Typography.Text code key={c}>
               {c}
@@ -413,7 +414,7 @@ function DisableDialogBody(props: { onDisabled: () => void }): ReactElement {
         <Alert
           type="error"
           showIcon
-          style={{ marginBottom: 16 }}
+          style={{ marginBottom: spacing[4] }}
           message={formatError({
             code: disable.error.code,
             params: disable.error.params,

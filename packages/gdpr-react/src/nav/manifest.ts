@@ -36,12 +36,26 @@
  * operator that they are signed in as the wrong account.
  *
  * `account.privacy` is `member` for the ordinary reason — every endpoint
- * behind it is `IsAuthenticated`. Note what is NOT here: the anonymous
- * `<DsarForm variant="anonymous"/>` belongs on a PUBLIC /privacy page that a
- * host routes itself, outside the authenticated shell this manifest describes.
- * Declaring it as a `public` nav entry would put "make a data-protection
- * request" in a signed-in person's menu twice, once pointing at a form that
- * asks them to retype the email address the session already knows.
+ * behind it is `IsAuthenticated`.
+ *
+ * ── The third entry is a ROUTE, and deliberately not a menu item ───────────
+ *
+ * `public.privacy-request` mounts `<PrivacyRequestPane/>` — the anonymous
+ * intake `POST /dsar` is `AllowAny` for, because the form a regulator expects
+ * to exist cannot require a login. It was previously left to the host: an
+ * argued omission that produced a legally required page with no route, no
+ * example and no story anywhere in the fleet.
+ *
+ * The original argument was right about the MENU and wrong about the route.
+ * Putting "make a data-protection request" in a signed-in person's menu would
+ * list it twice, once pointing at a form that asks for the email address the
+ * session already knows — so this entry is `menuVisibleDefault: false`: the
+ * scaffold builds the route and nothing appears in the member's navigation.
+ * A host links it from its privacy policy and its footer, which is where
+ * somebody without an account actually looks for it. `level: "top"` because
+ * it hangs under no account or admin section — it is reachable with no
+ * session at all — and `surface: "public"` says exactly that, so a shell's
+ * route guard does not send a stranger to a login screen.
  */
 import type { NavEntry } from "@stapel/core";
 
@@ -62,6 +76,20 @@ export const navEntries: readonly NavEntry[] = [
     requiresAuth: true,
     surface: "member",
     order: 90,
+  },
+  {
+    id: "public.privacy-request",
+    labelKey: "gdpr.public.heading",
+    icon: "SafetyCertificateOutlined",
+    route: { path: "privacy-request" },
+    component: { export: "PrivacyRequestPane", subpath: "default" },
+    placement: { level: "top" },
+    // A route, not a menu item — see the header. A host that WANTS it in a
+    // public footer nav flips this in its own override file.
+    menuVisibleDefault: false,
+    requiresAuth: false,
+    surface: "public",
+    order: 900,
   },
   {
     id: "admin.privacy",

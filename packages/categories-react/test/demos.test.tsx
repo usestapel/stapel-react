@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
-import { renderDemoVariant, variantIds } from "@stapel/showcase";
+import { renderToStaticMarkup } from "react-dom/server";
+import {
+  assertVariantsRenderDistinctly,
+  renderDemoVariant,
+  variantIds,
+} from "@stapel/showcase";
 import type { DemoDef } from "@stapel/showcase";
 
 /**
@@ -29,6 +34,15 @@ describe("categories-react demos", () => {
       if (!first) return;
       const { container } = render(renderDemoVariant(demo, first));
       expect(container.firstChild).not.toBeNull();
+    });
+
+    it(`${demo.id} photographs a different frame per variant`, () => {
+      // C-SAMESHOT: a variant whose named state is only reachable by a click
+      // renders the SAME idle frame as its siblings, and the showcase then
+      // claims five states while showing one. Every variant here is SEEDED
+      // into the query cache instead, so the static render already is the
+      // state the variant is named for — and this is what proves it.
+      assertVariantsRenderDistinctly(demo, renderToStaticMarkup);
     });
   }
 });

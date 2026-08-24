@@ -7,7 +7,9 @@ import type { StapelApiError } from "@stapel/core";
 import type {
   CreateRecordingRequest,
   CreateRecordingResponse,
+  Job,
   Recording,
+  ShareUnlock,
 } from "../api/types.js";
 import { useRecordingsApi } from "./context.js";
 import { recordingsQueryKeys } from "./queryKeys.js";
@@ -84,6 +86,94 @@ export function useFinalizeUpload(): UseMutationResult<
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: recordingsQueryKeys.all });
+    },
+  };
+  return useMutation(options);
+}
+
+/**
+ * Re-run the whole pipeline for a finished recording — a second transcription
+ * and a second bill, allowed only from `completed`. Resolves to the updated
+ * recording (now back on `queued`), so the detail read starts polling again the
+ * moment the invalidation lands.
+ *
+ * The refusals are NOT interchangeable and a skin must not collapse them: `409
+ * recording_invalid_state` is "not from this status", `403
+ * recording_action_denied` is "the policy says no", `402
+ * recording_payment_required` is "the policy says no BECAUSE the balance is
+ * spent" — a top-up prompt, not a dead end — and `404` is the bare-`bool`
+ * policy's uniform refusal.
+ */
+export function useReprocess(): UseMutationResult<
+  Recording,
+  StapelApiError,
+  string
+> {
+  const api = useRecordingsApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<Recording, StapelApiError, string> = {
+    mutationFn: (recordingId) => api.reprocess(recordingId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: recordingsQueryKeys.all });
+    },
+  };
+  return useMutation(options);
+}
+
+/**
+ * Regenerate ONE recording's summary — the user's own cheap verb for "the
+ * transcript is right, only the summary is stale".
+ *
+ * Resolves to a {@link Job}, because `202` means ACCEPTED, not done. The
+ * backend is idempotent (a second POST while one is in flight answers with the
+ * same job id), and the UI must look idempotent too: hold the receipt and keep
+ * the control disabled while that job is in flight, so a double click reads as
+ * one action rather than two summaries the user will be billed for.
+ */
+export function useResummarize(): UseMutationResult<Job, StapelApiError, string> {
+  const api = useRecordingsApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<Job, StapelApiError, string> = {
+    mutationFn: (recordingId) => api.resummarize(recordingId),
+    onSuccess: () => {
+      // The summary is not here yet — but the recording's own read is the only
+      // place it will appear, and that read polls. Invalidating starts it.
+      void queryClient.invalidateQueries({ queryKey: recordingsQueryKeys.all });
+    },
+  };
+  return useMutation(options);
+}
+
+/** Variables for {@link useUnlockShare}. */
+export interface UnlockShareVariables {
+  readonly linkToken: string;
+  readonly passcode: string;
+}
+
+/**
+ * Exchange a share's passcode for a time-limited unlock token.
+ *
+ * Anonymous, so it invalidates the SHARE root only — an unlock has nothing to
+ * say about the signed-in owner's recordings, and touching their cache from a
+ * public page would be a leak of one surface into the other.
+ */
+export function useUnlockShare(): UseMutationResult<
+  ShareUnlock,
+  StapelApiError,
+  UnlockShareVariables
+> {
+  const api = useRecordingsApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    ShareUnlock,
+    StapelApiError,
+    UnlockShareVariables
+  > = {
+    mutationFn: (vars) => api.unlockShare(vars.linkToken, vars.passcode),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: recordingsQueryKeys.allShares,
+      });
     },
   };
   return useMutation(options);

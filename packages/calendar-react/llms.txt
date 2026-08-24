@@ -1,6 +1,6 @@
 # @stapel/calendar-react 0.6.1
 
-Headless React flow pair for stapel-calendar (contract >=0.3 <0.4) — business + state, zero visual opinion.
+Headless React flow pair for stapel-calendar (contract >=0.6 <0.7) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -44,7 +44,7 @@ Paths are relative to `/calendar/api/v1/`.
 - useUpdateEvent (mutation) → updateEvent
 
 ## Errors (render t(code, params); UX from remediation)
-48 keys (full catalog: manifest.json §errors). By remediation: fix_input 21 · retry 14 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+49 keys (full catalog: manifest.json §errors). By remediation: fix_input 21 · retry 15 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -79,9 +79,11 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- calendar.availability → <AvailabilityPane> [default|truncated|no-windows]  demo/AvailabilityPane.demo.tsx
 - calendar.composer → <EventComposer> [default]  demo/EventComposer.demo.tsx
 - calendar.provider → <CalendarProvider> [default]  demo/Calendar.demo.tsx
 - calendar.rsvp → <EventRsvp> [default]  demo/EventRsvp.demo.tsx
+- calendar.screen → <Calendar> [month|agenda-phone|empty|grid-only|agenda-only|failed]  demo/CalendarScreen.demo.tsx
 - calendar.view → <CalendarView> [default]  demo/CalendarView.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 

@@ -12,8 +12,11 @@ import type { ProfilesErrorCode } from "./errors.gen.js";
  * entry, so the locale stays out of hosts that don't ship it.
  */
 export const profilesErrorBundleEs: Record<ProfilesErrorCode, string> = {
+  "error.400.avatar_gravatar_hash": "El avatar de Gravatar debe ser un hash de correo electrónico (32 o 64 caracteres hexadecimales)",
   "error.400.avatar_not_found": "Avatar no encontrado en el CDN",
   "error.400.avatar_source_mismatch": "La referencia del avatar es una referencia de CDN, pero avatar_source indica otra cosa: envía avatar_source=\"cdn\" junto a ella, u omite avatar_source y se derivará de la referencia",
+  "error.400.avatar_url_host": "El host de la URL del avatar no está permitido aquí.",
+  "error.400.avatar_url_scheme": "La URL del avatar debe usar uno de: {schemes}",
   "error.400.bad_request": "Solicitud incorrecta",
   "error.400.cannot_block_self": "No puedes bloquearte a ti mismo",
   "error.400.cannot_follow_self": "No puedes seguirte a ti mismo",
@@ -65,4 +68,5 @@ export const profilesErrorBundleEs: Record<ProfilesErrorCode, string> = {
   "error.429.rate_limit": "Demasiados intentos. Inténtalo de nuevo en {retry_after_minutes} minutos.",
   "error.429.too_many_requests": "Demasiadas solicitudes. Inténtalo de nuevo más tarde.",
   "error.500.internal": "Algo salió mal",
+  "error.503.mandate_unavailable": "No se puede verificar el mandato del espacio de trabajo",
 };

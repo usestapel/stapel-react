@@ -24,6 +24,45 @@
       }
     },
     {
+      "id": "profiles.connections-skin",
+      "title": "Connections (skin)",
+      "description": "Followers / following / blocked behind one control, mounted at profiles.connections. Rows are people: avatar or monogram, display name, location, and a relationship control whose status the batch already answered. The empty state is per list, because 'nobody follows you yet' and 'you have blocked nobody' are different sentences with different feelings.",
+      "component": "ConnectionsPage",
+      "covers": [
+        "ConnectionList",
+        "PersonRow"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "followers",
+          "description": "Three followers: two resolved by the batch, one whose profile row does not exist yet.",
+          "viewport": "phone",
+          "step": "followers"
+        },
+        {
+          "id": "list-and-row",
+          "description": "<ConnectionList> embedded on its own, and <PersonRow> in its `missing` state — the answer for an id whose profile row does not exist. A placeholder, never an error.",
+          "viewport": "desktop",
+          "step": "embedded"
+        },
+        {
+          "id": "blocked-empty",
+          "description": "The blocked list with nobody in it — a designed empty state with its own two lines, not a blank panel.",
+          "viewport": "desktop",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/ConnectionsSkin.demo.tsx",
+        "line": 66
+      }
+    },
+    {
       "id": "profiles.initial_setup_prompt",
       "title": "Initial setup",
       "description": "The headless InitialSetupPrompt wraps the first-run setup form (display name, theme, app language): drafts seeded from the profile, one submit() PATCH that also sets initial_setup_passed, and a skip() that records 'maybe later' without a PATCH. Pair it with useInitialSetupGate to decide when to show it.",
@@ -41,6 +80,35 @@
       "source": {
         "file": "demo/InitialSetupPrompt.demo.tsx",
         "line": 108
+      }
+    },
+    {
+      "id": "profiles.initial-setup-skin",
+      "title": "First run (skin)",
+      "description": "The first-run prompt: display name, theme and app language in the same row canon the settings screen uses, committed in ONE PATCH carrying initial_setup_passed. Save states why it is off, as text beside it, because a disabled button fires no pointer events and a tooltip there is a reason nobody can read.",
+      "component": "InitialSetupModal",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "text"
+      ],
+      "variants": [
+        {
+          "id": "first-run",
+          "description": "Skippable: Continue plus a quiet 'Maybe later', and the usual dismissal.",
+          "viewport": "phone",
+          "step": "open"
+        },
+        {
+          "id": "blocking",
+          "description": "The blocking case (a guest who cannot join a call nameless): no Skip, no dismissal drawn at all, and Save states the reason it is switched off.",
+          "viewport": "desktop",
+          "step": "blocked"
+        }
+      ],
+      "source": {
+        "file": "demo/InitialSetupModalSkin.demo.tsx",
+        "line": 41
       }
     },
     {
@@ -103,6 +171,44 @@
       }
     },
     {
+      "id": "profiles.public-profile-skin",
+      "title": "Public profile (skin)",
+      "description": "The /u/:userId screen: identity block, follower and following counts through ICU plurals, location and rating when the deployment fills them, and the follow / block controls underneath. Since stapel-profiles 0.15.0 a registered person who has typed nothing answers 200 with an empty-but-renderable profile — drawn here as a person, not as an error card.",
+      "component": "PublicProfilePage",
+      "covers": [
+        "Relationship"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "profile",
+          "description": "A filled profile, no relationship yet: Follow is the primary action.",
+          "viewport": "phone",
+          "step": "neutral"
+        },
+        {
+          "id": "control",
+          "description": "<Relationship> alone: Follow as the one primary, Block as a quiet danger link behind a confirm that names the consequence.",
+          "viewport": "phone",
+          "step": "control"
+        },
+        {
+          "id": "unwritten",
+          "description": "The empty-but-renderable answer (stapel-profiles 0.15.0): registered, provisioned, nothing typed. A person, with a sentence — never a 404.",
+          "viewport": "desktop",
+          "step": "unwritten"
+        }
+      ],
+      "source": {
+        "file": "demo/PublicProfileSkin.demo.tsx",
+        "line": 50
+      }
+    },
+    {
       "id": "profiles.relationship",
       "title": "Relationship",
       "description": "The headless Relationship wraps the caller↔target status read and the follow / unfollow / block / unblock actions, exposing the live status plus pending / error state. Bring your own controls — the component is renderless.",
@@ -120,6 +226,45 @@
       "source": {
         "file": "demo/Relationship.demo.tsx",
         "line": 74
+      }
+    },
+    {
+      "id": "profiles.settings-skin",
+      "title": "Profile settings (skin)",
+      "description": "The default skin the nav manifest mounts at profiles.settings: a data-driven profile card whose rows come from GET /field-manifest, with the language picker and the notification matrix composed underneath — the same composition auth-react's SecuritySettings uses. Every field commits on its own (no batched Save); a rejected pick snaps back, because the PATCH is optimistic with rollback.",
+      "component": "ProfileSettings",
+      "covers": [
+        "LanguageSettings",
+        "NotificationPreferences"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "border-subtle"
+      ],
+      "variants": [
+        {
+          "id": "settings",
+          "description": "Everything landed: profile, manifest fields, languages, notifications.",
+          "viewport": "phone",
+          "step": "ready"
+        },
+        {
+          "id": "sections",
+          "description": "The same two screens routed separately (profiles.language / profiles.notifications) instead of composed. The notification matrix is switches with accessible names, and it reflows from two columns to stacked rows on its own container width.",
+          "viewport": "desktop",
+          "step": "sections"
+        },
+        {
+          "id": "manifest-failed",
+          "description": "GET /field-manifest failed. The hard-core rows still render; the manifest block states the failure and offers a retry instead of quietly showing fewer fields.",
+          "viewport": "desktop",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/ProfileSettingsSkin.demo.tsx",
+        "line": 64
       }
     }
   ]

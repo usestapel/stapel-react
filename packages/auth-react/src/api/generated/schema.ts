@@ -311,6 +311,7 @@ export interface paths {
          *     - OTP codes expire after 10 minutes
          *     - Rate limited to 1 request per 30 seconds per email/device
          *     - If authenticated non-anonymous user requests OTP for an email already registered to another account, returns 409 Conflict
+         *     - If the caller already has a VERIFIED email, requesting a code for a different one returns 403 `error.403.change_requires_current` — replacing a verified authenticator goes through the email change flow, which proves the current address first
          *     - Admin accounts (staff/superuser) always receive real OTP even in mock mode for security
          *
          *
@@ -340,7 +341,8 @@ export interface paths {
          *     - **Unauthenticated user + existing email** → LOGGED_IN (login to existing account)
          *     - **Anonymous user + new email** → REGISTERED (anonymous completes registration)
          *     - **Anonymous user + existing email** → MERGED (anonymous merged into existing account)
-         *     - **Authenticated user + own/new email** → MODIFIED (user adds/changes email)
+         *     - **Authenticated user + FIRST email** → MODIFIED (user sets an email the account did not have verified)
+         *     - **Authenticated user + a DIFFERENT email over a verified one** → 403 `error.403.change_requires_current` (use the email change flow: it proves the current email first)
          *     - **Invalid/expired code** → REJECTED
          *
          *     **Status values:**
@@ -348,7 +350,7 @@ export interface paths {
          *     - `REGISTERED` - New account created or anonymous completed registration
          *     - `LOGGED_IN` - Existing user logged in
          *     - `MERGED` - Anonymous user merged into existing account
-         *     - `MODIFIED` - Authenticated user added/changed email
+         *     - `MODIFIED` - Authenticated user set an email, or re-verified the one already on the account
          *
          *
          *     **Permissions:** `DenyEnrollOnly`
@@ -417,7 +419,7 @@ export interface paths {
          *     - YAML: application/vnd.oai.openapi
          *     - JSON: application/vnd.oai.openapi+json
          *
-         *     **Permissions:** `AllowAny`
+         *     **Permissions:** `IsStaffUserForSwagger`
          */
         get: operations["auth_api_v1_gdpr_schema_retrieve"];
         put?: never;
@@ -1413,6 +1415,7 @@ export interface paths {
          *     - OTP codes expire after 10 minutes
          *     - Rate limited to 1 request per 30 seconds per phone/device
          *     - If authenticated non-anonymous user requests OTP for a phone already registered to another account, returns 409 Conflict
+         *     - If the caller already has a VERIFIED phone, requesting a code for a different one returns 403 `error.403.change_requires_current` — replacing a verified authenticator goes through the phone change flow, which proves the current number first
          *     - Admin accounts (staff/superuser) always receive real OTP even in mock mode for security
          *
          *
@@ -1442,7 +1445,8 @@ export interface paths {
          *     - **Unauthenticated user + existing phone** → LOGGED_IN (login to existing account)
          *     - **Anonymous user + new phone** → REGISTERED (anonymous completes registration)
          *     - **Anonymous user + existing phone** → MERGED (anonymous merged into existing account)
-         *     - **Authenticated user + own/new phone** → MODIFIED (user adds/changes phone)
+         *     - **Authenticated user + FIRST phone** → MODIFIED (user sets a phone the account did not have verified)
+         *     - **Authenticated user + a DIFFERENT phone over a verified one** → 403 `error.403.change_requires_current` (use the phone change flow: it proves the current phone first)
          *     - **Invalid/expired code** → REJECTED
          *
          *     **Status values:**
@@ -1450,7 +1454,7 @@ export interface paths {
          *     - `REGISTERED` - New account created or anonymous completed registration
          *     - `LOGGED_IN` - Existing user logged in
          *     - `MERGED` - Anonymous user merged into existing account
-         *     - `MODIFIED` - Authenticated user added/changed phone
+         *     - `MODIFIED` - Authenticated user set a phone, or re-verified the one already on the account
          *
          *
          *     **Permissions:** `DenyEnrollOnly`
@@ -4866,6 +4870,14 @@ export interface operations {
                     "application/json": components["schemas"]["StapelError"];
                 };
             };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4916,6 +4928,14 @@ export interface operations {
                 };
             };
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6355,6 +6375,14 @@ export interface operations {
                     "application/json": components["schemas"]["StapelError"];
                 };
             };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -6405,6 +6433,14 @@ export interface operations {
                 };
             };
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

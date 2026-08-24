@@ -2,7 +2,7 @@
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
 import { MyListingsPane } from "../src/default/index.js";
-import { DemoCard, ListingsDemoHarness } from "./_harness.js";
+import { ListingsDemoHarness } from "./_harness.js";
 import type { DemoHandlers } from "./_harness.js";
 import {
   DEMO_COUNTERS,
@@ -26,12 +26,26 @@ function handlers(blocked: unknown): DemoHandlers {
   };
 }
 
+const BROKEN: DemoHandlers = {
+  "/listings/my/counters/": DEMO_COUNTERS,
+  "/listings/my/listings/": [503, {}],
+};
+
+/** How a container that HAS a composer mounts it. */
 function Dashboard(): ReactElement {
   return (
     <ListingsDemoHarness handlers={handlers(DEMO_MY_NONE_BLOCKED)}>
-      <DemoCard heading="MyListingsPane — the seller's own rows">
-        <MyListingsPane />
-      </DemoCard>
+      <MyListingsPane onEdit={() => undefined} />
+    </ListingsDemoHarness>
+  );
+}
+
+/** How the scripted scaffold mounts it today: no `onEdit`. The Edit button is
+ * switched off WITH the reason instead of being enabled and inert. */
+function NoEditor(): ReactElement {
+  return (
+    <ListingsDemoHarness handlers={handlers(DEMO_MY_NONE_BLOCKED)}>
+      <MyListingsPane />
     </ListingsDemoHarness>
   );
 }
@@ -39,9 +53,26 @@ function Dashboard(): ReactElement {
 function WithTakedown(): ReactElement {
   return (
     <ListingsDemoHarness handlers={handlers(DEMO_MY_BLOCKED)}>
-      <DemoCard heading="MyListingsPane — one listing taken down">
-        <MyListingsPane />
-      </DemoCard>
+      <MyListingsPane onEdit={() => undefined} />
+    </ListingsDemoHarness>
+  );
+}
+
+function Visitor(): ReactElement {
+  return (
+    <ListingsDemoHarness
+      handlers={handlers(DEMO_MY_NONE_BLOCKED)}
+      principal="anonymous"
+    >
+      <MyListingsPane signIn={{ href: "/login" }} />
+    </ListingsDemoHarness>
+  );
+}
+
+function Broken(): ReactElement {
+  return (
+    <ListingsDemoHarness handlers={BROKEN}>
+      <MyListingsPane onEdit={() => undefined} />
     </ListingsDemoHarness>
   );
 }
@@ -50,12 +81,42 @@ export default defineDemo({
   id: "listings.mine",
   title: "My listings",
   description:
-    "stapel-listings 0.7.0 gave the owner's own listings a route (GET my/listings/, every status, ?status= for a tab's set), so the rows here are the contract's own. Three things the pane refuses to smooth over: both axes on every row (a LIVE listing whose edit is under review says so — status alone cannot); a row still in draft renders off title_draft, because the published title is empty until a publish, and is marked as such; and a moderation takedown, which my/counters counts in no tab at all, sits ABOVE the tabs where it cannot be missed.",
+    "stapel-listings 0.7.0 gave the owner's own listings a route (GET my/listings/, every status, ?status= for a tab's set), so the rows here are the contract's own. Four things the pane refuses to smooth over: both axes on every row (a LIVE listing whose edit is under review says so — status alone cannot); a moderation takedown, which my/counters counts in no tab at all, sits ABOVE the tabs; every switched-off action prints its reason beside itself instead of hiding it in a hover a phone cannot open; and Delete asks first, through a bottom sheet. The row is a thumbnail plus a min-width:0 column, so four actions wrap at 390px instead of clipping.",
   component: MyListingsPane,
   covers: ["MyListings"],
   tokens: ["surface-raised"],
   variants: {
-    default: { render: () => <Dashboard /> },
-    "taken-down": { render: () => <WithTakedown /> },
+    default: {
+      viewport: "phone",
+      step: "active_tab_with_editor",
+      description: "A container that has a composer to open.",
+      render: () => <Dashboard />,
+    },
+    "no-editor": {
+      viewport: "phone",
+      step: "active_tab_edit_blocked",
+      description:
+        "The scaffold's wiring: Edit is off and says why, instead of being a click that does nothing.",
+      render: () => <NoEditor />,
+    },
+    "taken-down": {
+      viewport: "phone",
+      step: "takedown_above_tabs",
+      description: "One listing removed by moderation, in no tab and impossible to miss.",
+      render: () => <WithTakedown />,
+    },
+    visitor: {
+      viewport: "phone",
+      step: "no_mandate",
+      description: "No mandate: one designed state carrying its own way in.",
+      render: () => <Visitor />,
+    },
+    failed: {
+      viewport: "desktop",
+      step: "rows_failed",
+      description:
+        "The rows could not be fetched — which is not the same as having none.",
+      render: () => <Broken />,
+    },
   },
 });

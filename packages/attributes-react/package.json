@@ -69,8 +69,8 @@
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.14.0 <1.0.0",
-    "@stapel/tokens-antd": ">=0.5.0",
+    "@stapel/core": ">=0.18.0 <1.0.0",
+    "@stapel/tokens-antd": ">=0.6.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"
   },

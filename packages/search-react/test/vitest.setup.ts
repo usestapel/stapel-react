@@ -21,20 +21,34 @@ afterEach(() => {
 });
 
 // jsdom ships neither `matchMedia` nor `ResizeObserver`; Ant Design (the §54
-// default-skin suite) reads both on mount. Minimal no-op polyfills so the DOM
-// render is exercised without pulling a heavier test env.
-if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
-  window.matchMedia = (query: string): MediaQueryList =>
-    ({
-      matches: false,
+// default-skin suite) reads both on mount, and so does the shared skin
+// substrate — `SkinTheme` raises controls to 44px on a phone and `SkinDialog`
+// turns a modal into a bottom sheet there.
+//
+// A polyfill answering `matches: false` to everything therefore does not mean
+// "no opinion": it means "narrower than every breakpoint", i.e. every suite
+// renders the PHONE layout. That is a wrong default for a package whose
+// desktop layout is the two-column one. So the stub EVALUATES `(min-width: N)`
+// against `window.innerWidth` (jsdom's default is 1024 — a desktop), and a
+// test that wants the phone surface sets the width through
+// `setViewport()` in `test/harness.tsx`.
+if (typeof window !== "undefined") {
+  window.matchMedia = ((query: string) => {
+    const min = /\(min-width:\s*(\d+)px\)/.exec(query);
+    const listeners = new Set<() => void>();
+    return {
+      get matches() {
+        return min === null ? false : window.innerWidth >= Number(min[1]);
+      },
       media: query,
       onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
+      addListener: (l: () => void) => listeners.add(l),
+      removeListener: (l: () => void) => listeners.delete(l),
+      addEventListener: (_: string, l: () => void) => listeners.add(l),
+      removeEventListener: (_: string, l: () => void) => listeners.delete(l),
       dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+    } as unknown as MediaQueryList;
+  }) as typeof window.matchMedia;
 }
 if (typeof globalThis.ResizeObserver === "undefined") {
   globalThis.ResizeObserver = class {

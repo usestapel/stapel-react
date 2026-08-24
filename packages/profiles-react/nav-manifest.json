@@ -19,6 +19,81 @@
       "menuVisibleDefault": true,
       "requiresAuth": true,
       "order": 90
+    },
+    {
+      "id": "profiles.language",
+      "labelKey": "profiles.nav.language",
+      "icon": "MessageOutlined",
+      "route": {
+        "path": "language"
+      },
+      "component": {
+        "export": "LanguageSettings",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "profiles.settings"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": true,
+      "order": 20
+    },
+    {
+      "id": "profiles.notifications",
+      "labelKey": "profiles.nav.notifications",
+      "icon": "BellOutlined",
+      "route": {
+        "path": "notifications"
+      },
+      "component": {
+        "export": "NotificationPreferences",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "profiles.settings"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": true,
+      "order": 30
+    },
+    {
+      "id": "profiles.connections",
+      "labelKey": "profiles.nav.connections",
+      "icon": "HeartOutlined",
+      "route": {
+        "path": "connections"
+      },
+      "component": {
+        "export": "ConnectionsPage",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "order": 91
+    },
+    {
+      "id": "profiles.public",
+      "labelKey": "profiles.nav.public_profile",
+      "icon": "ProfileOutlined",
+      "route": {
+        "path": "/u/:userId"
+      },
+      "component": {
+        "export": "PublicProfilePage",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": false,
+      "surface": "public",
+      "order": 92
     }
   ]
 }

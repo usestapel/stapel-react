@@ -14,16 +14,16 @@
  *   that is deliberately invisible to them.
  */
 import type { ReactElement } from "react";
-import { Alert, Button, Card, Flex, Input, Rate, Typography } from "antd";
-import { useActionGate, useDescribeFlowError, useT } from "@stapel/core";
+import { Alert, Card, Flex, Input, Rate, Typography } from "antd";
+import { useT } from "@stapel/core";
 import type { SignInCta, SignInCtaProp } from "@stapel/core";
+import { ErrorAlert, GatedButton, SkinTheme } from "@stapel/tokens-antd/skin";
+import { spacing } from "@stapel/tokens";
 import type { ReviewTarget } from "../api/types.js";
 import { ReviewForm } from "../headless/ReviewForm.js";
 import type { ReviewFormBag } from "../headless/ReviewForm.js";
 import { REVIEWS_I18N_KEYS } from "../i18n/keys.js";
-import { ErrorAlert } from "./ErrorAlert.js";
 import { SignInLink } from "./SignInLink.js";
-import { ReviewsSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
 export interface ReviewFormCardProps extends ThemeModeProp, SignInCtaProp {
@@ -51,9 +51,7 @@ function FormBody(props: {
   signIn: SignInCta | undefined;
 }): ReactElement {
   const t = useT();
-  const describe = useDescribeFlowError();
   const { bag } = props;
-  const gate = useActionGate(bag.canSubmit);
 
   if (bag.submitted !== null) {
     return (
@@ -84,7 +82,7 @@ function FormBody(props: {
   }
 
   return (
-    <Flex vertical gap={8}>
+    <Flex vertical gap={spacing[2]}>
       <Typography.Text>{t(REVIEWS_I18N_KEYS.formRatingLabel)}</Typography.Text>
       <Rate
         count={bag.bounds.max}
@@ -97,30 +95,22 @@ function FormBody(props: {
         value={bag.body}
         onChange={(event) => bag.setBody(event.target.value)}
         placeholder={t(REVIEWS_I18N_KEYS.formBodyPlaceholder)}
+        aria-label={t(REVIEWS_I18N_KEYS.formBodyLabel)}
         rows={3}
         data-testid="reviews-form-body"
       />
-      {bag.error ? (
-        <ErrorAlert testId="reviews-form-failed" error={describe(bag.error)} />
-      ) : null}
-      <Flex vertical gap={4} align="flex-start">
-        <Button
-          type="primary"
-          onClick={bag.submit}
-          disabled={gate.disabled}
-          loading={bag.submitting}
-          data-testid="reviews-form-submit"
-          data-analytics="none"
-          data-analytics-reason="business action — the host app wraps this with its own tracked(); the pair ships no analytics runtime and no flow machine for a single POST"
-        >
-          {t(REVIEWS_I18N_KEYS.formSubmit)}
-        </Button>
-        {gate.reason ? (
-          <Typography.Text type="secondary" data-testid="reviews-form-blocked">
-            {gate.reason}
-          </Typography.Text>
-        ) : null}
-      </Flex>
+      <ErrorAlert thrown={bag.error} testId="reviews-form-failed" />
+      <GatedButton
+        gate={bag.canSubmit}
+        type="primary"
+        onClick={bag.submit}
+        loading={bag.submitting}
+        testId="reviews-form-submit"
+        data-analytics="none"
+        data-analytics-reason="business action — the host app wraps this with its own tracked(); the pair ships no analytics runtime and no flow machine for a single POST"
+      >
+        {t(REVIEWS_I18N_KEYS.formSubmit)}
+      </GatedButton>
     </Flex>
   );
 }
@@ -129,11 +119,14 @@ export function ReviewFormCard(props: ReviewFormCardProps): ReactElement {
   const t = useT();
   // `signIn` is this card's, not the headless form's: the form knows THAT the
   // author must sign in, the container knows WHERE.
-  const { mode, signIn, ...formProps } = props;
+  const { mode, surface, signIn, ...formProps } = props;
   return (
-    <ReviewsSkinTheme {...(mode !== undefined ? { mode } : {})}>
+    <SkinTheme
+      {...(mode !== undefined ? { mode } : {})}
+      surface={surface ?? "bare"}
+    >
       <Card size="small" data-testid="reviews-form">
-        <Flex vertical gap={8}>
+        <Flex vertical gap={spacing[2]}>
           <Typography.Title level={5} style={{ margin: 0 }}>
             {t(REVIEWS_I18N_KEYS.formHeading)}
           </Typography.Title>
@@ -142,6 +135,6 @@ export function ReviewFormCard(props: ReviewFormCardProps): ReactElement {
           </ReviewForm>
         </Flex>
       </Card>
-    </ReviewsSkinTheme>
+    </SkinTheme>
   );
 }

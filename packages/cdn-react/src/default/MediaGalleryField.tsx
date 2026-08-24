@@ -24,6 +24,7 @@ import type { ChangeEvent, ReactElement } from "react";
 import { Button, Space, Typography } from "antd";
 import { useActionGate, useErrorDisplay, useT } from "@stapel/core";
 import { MediaUploader } from "../headless/MediaUploader.js";
+import { imageRowOf } from "../headless/useUploadQueue.js";
 import type { UploadItem, UploadQueueBag } from "../headless/useUploadQueue.js";
 import { useUploadPreview } from "../headless/useUploadPreview.js";
 import type { CdnRef } from "../api/types.js";
@@ -106,7 +107,7 @@ function Tile(props: {
           not from `smallestVariantUrl` — see `./CdnThumbnail.tsx`. */}
       <CdnThumbnail
         localUrl={preview.localUrl}
-        image={item.image}
+        image={imageRowOf(item)}
         box={PREVIEW_BOX}
         alt={t(CDN_I18N_KEYS.itemAlt)}
       />
@@ -159,6 +160,7 @@ function Tile(props: {
         <Button
           size="small"
           disabled={index === 0}
+          data-disabled-reason="this is the first tile — the cover label beside it says so, and there is nothing earlier to move it before"
           onClick={() => bag.reorder(index, index - 1)}
           data-testid="cdn-tile-earlier"
           data-analytics="none"
@@ -169,6 +171,7 @@ function Tile(props: {
         <Button
           size="small"
           disabled={index === bag.items.length - 1}
+          data-disabled-reason="this is the last tile — its position in the visible row is the reason, and there is nothing later to move it after"
           onClick={() => bag.reorder(index, index + 1)}
           data-testid="cdn-tile-later"
           data-analytics="none"

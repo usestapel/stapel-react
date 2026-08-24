@@ -17,7 +17,23 @@ export const cdnQueryKeys: {
   readonly all: readonly ["cdn"];
   /** The owner-scoped `file/exists/` read for one content hash. */
   exists(fileHash: string): readonly ["cdn", "exists", string];
+  /**
+   * One render-metadata snapshot, keyed by the REF.
+   *
+   * Per ref rather than per batch, and that is the whole design of
+   * `useDescribe`: a page mounts thirty attachments, they share references,
+   * and a key built from "the list this component happened to ask for" would
+   * cache thirty overlapping answers and re-fetch every one of them when a
+   * thirty-first arrived. Keyed per ref, the batch is a TRANSPORT detail —
+   * refs already in the cache are never re-asked, and the answer for one ref is
+   * one cache entry no matter which batch fetched it.
+   *
+   * The ref is content-addressed and the snapshot is immutable, so this entry
+   * can never go stale.
+   */
+  describe(ref: string): readonly ["cdn", "describe", string];
 } = {
   all: [ROOT],
   exists: (fileHash) => [ROOT, "exists", fileHash],
+  describe: (ref) => [ROOT, "describe", ref],
 };

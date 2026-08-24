@@ -7,8 +7,11 @@
  */
 import type {
   Catalog,
+  CreditDebt,
   CreditHold,
   CreditLot,
+  Subscription,
+  TransactionList,
   Wallet,
 } from "../src/api/types.js";
 
@@ -121,4 +124,129 @@ export const CATALOG: Catalog = {
       description: "5000 credits every month",
     },
   ],
+};
+
+/**
+ * A debt the wallet carries (stapel-billing 0.11.0): work served without
+ * cover. `credits_outstanding < credits_initial` because part of it was
+ * already collected from credits that arrived since.
+ */
+export const PARTIAL_DEBIT_DEBT: CreditDebt = {
+  id: "0f6c1a5e-0000-4000-8000-000000000010",
+  credits_outstanding: 120,
+  credits_initial: 200,
+  reason: "partial_debit",
+  type: "transcription_charge",
+  description: "90-minute interview",
+  created_at: "2026-08-19T09:00:00Z",
+};
+
+/** The other direction in time: money taken back after the credits were
+ * spent, so there was nothing left to claw back. */
+export const CLAWBACK_DEBT: CreditDebt = {
+  id: "0f6c1a5e-0000-4000-8000-000000000011",
+  credits_outstanding: 60,
+  credits_initial: 60,
+  reason: "clawback",
+  type: "refund",
+  description: null,
+  created_at: "2026-08-21T16:30:00Z",
+};
+
+/**
+ * A wallet that OWES credits. The balance is a real balance — a debt is not a
+ * negative balance — and `debt_outstanding` is the server's own total, which
+ * is deliberately NOT the sum a client would compute if it were wrong.
+ */
+export const WALLET_IN_DEBT: Wallet = {
+  ...WALLET,
+  debts: [PARTIAL_DEBIT_DEBT, CLAWBACK_DEBT],
+  debt_outstanding: 180,
+};
+
+/** The free row stapel-billing auto-creates for every caller: no paid plan,
+ * and never a 404. */
+export const SUBSCRIPTION_FREE: Subscription = {
+  plan: "free",
+  status: "active",
+  stripe_subscription_id: null,
+  current_period_start: null,
+  current_period_end: null,
+  cancelled_at: null,
+};
+
+/** A live paid subscription on the plan the CATALOG also sells. */
+export const SUBSCRIPTION_ACTIVE: Subscription = {
+  plan: "team",
+  status: "active",
+  stripe_subscription_id: "sub_test",
+  current_period_start: "2026-08-01T00:00:00Z",
+  current_period_end: "2026-09-01T00:00:00Z",
+  cancelled_at: null,
+};
+
+/** The payment bounced. */
+export const SUBSCRIPTION_PAST_DUE: Subscription = {
+  ...SUBSCRIPTION_ACTIVE,
+  status: "past_due",
+};
+
+/** Cancelled and running out — cancelling again is not an action. */
+export const SUBSCRIPTION_CANCELLED: Subscription = {
+  ...SUBSCRIPTION_ACTIVE,
+  status: "cancelled",
+  cancelled_at: "2026-08-20T10:00:00Z",
+};
+
+/** A ledger page with both directions and a cursor to the next one. */
+export const TRANSACTIONS: TransactionList = {
+  transactions: [
+    {
+      id: "1a000000-0000-4000-8000-000000000001",
+      type: "credit_purchase",
+      amount_cents: 1800,
+      credits_delta: 2000,
+      balance_after: 2840,
+      description: "2000 credits",
+      metadata: {},
+      created_at: "2026-08-23T09:12:00Z",
+    },
+    {
+      id: "1a000000-0000-4000-8000-000000000002",
+      type: "transcription_charge",
+      amount_cents: null,
+      credits_delta: -120,
+      balance_after: 840,
+      description: "90-minute interview",
+      metadata: {},
+      created_at: "2026-08-22T17:40:00Z",
+    },
+  ],
+  next_cursor: "cursor-page-2",
+  has_more: true,
+};
+
+/** The second page, and the end of the ledger. */
+export const TRANSACTIONS_PAGE_2: TransactionList = {
+  transactions: [
+    {
+      id: "1a000000-0000-4000-8000-000000000003",
+      type: "expiration",
+      amount_cents: null,
+      credits_delta: -40,
+      balance_after: 800,
+      description: null,
+      metadata: {},
+      created_at: "2026-07-31T23:59:00Z",
+    },
+  ],
+  next_cursor: null,
+  has_more: false,
+};
+
+/** An answered ledger with nothing in it. */
+export const TRANSACTIONS_EMPTY: TransactionList = {
+  transactions: [],
+  next_cursor: null,
+  has_more: false,
 };

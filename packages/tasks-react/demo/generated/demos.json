@@ -1,0 +1,58 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/tasks-react",
+  "version": "0.0.0",
+  "demos": [
+    {
+      "id": "tasks.panel-skin",
+      "title": "Tasks panel (default skin)",
+      "description": "The shipped tasks surface: one themed card with the empty and loading states a screen owes a person. Replace the body as the pair grows read hooks; keep the frame.",
+      "component": "TasksPanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Desktop width, nothing to show yet.",
+          "viewport": "desktop",
+          "step": "empty"
+        },
+        {
+          "id": "phone",
+          "description": "The same surface at 390px — the design width.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "loading",
+          "description": "Data in flight: the panel says so instead of drawing an empty box.",
+          "viewport": "phone",
+          "step": "loading"
+        }
+      ],
+      "source": {
+        "file": "demo/TasksSkin.demo.tsx",
+        "line": 23
+      }
+    },
+    {
+      "id": "tasks.provider",
+      "title": "Tasks provider",
+      "description": "The headless tasks root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "TasksProvider",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/Tasks.demo.tsx",
+        "line": 24
+      }
+    }
+  ]
+}

@@ -35,6 +35,8 @@
 import { useState } from "react";
 import type { ReactElement } from "react";
 import { Alert, Button, Card, Flex, Form, Input, Select, Typography } from "antd";
+import { spacing } from "@stapel/tokens";
+import { SkinTheme } from "@stapel/tokens-antd/skin";
 import { useDescribeFlowError, useI18n, useT } from "@stapel/core";
 import type { DsarKind } from "../api/types.js";
 import { toFlowError } from "../flows/errors.js";
@@ -42,7 +44,6 @@ import { GDPR_I18N_KEYS } from "../i18n/keys.js";
 import { formatDeletionDate } from "../model/dates.js";
 import { useDsar } from "../model/dsar.js";
 import { isCaptchaRefusal } from "../model/refusals.js";
-import { GdprSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
 export interface DsarFormProps extends ThemeModeProp {
@@ -88,13 +89,13 @@ export function DsarForm(props: DsarFormProps): ReactElement {
 
   if (submitted !== undefined) {
     return (
-      <GdprSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
+      <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
         <Card
           data-testid="gdpr-dsar"
           title={t(GDPR_I18N_KEYS.dsarHeading)}
           size="small"
         >
-          <Flex vertical gap={8} data-testid="gdpr-dsar-submitted">
+          <Flex vertical gap={spacing[2]} data-testid="gdpr-dsar-submitted">
             <Alert
               type="success"
               showIcon
@@ -117,18 +118,18 @@ export function DsarForm(props: DsarFormProps): ReactElement {
             </Typography.Text>
           </Flex>
         </Card>
-      </GdprSkinTheme>
+      </SkinTheme>
     );
   }
 
   return (
-    <GdprSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
+    <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
       <Card
         data-testid="gdpr-dsar"
         title={t(GDPR_I18N_KEYS.dsarHeading)}
         size="small"
       >
-        <Flex vertical gap={12}>
+        <Flex vertical gap={spacing[3]}>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
             {t(GDPR_I18N_KEYS.dsarExplain)}
           </Typography.Paragraph>
@@ -229,6 +230,6 @@ export function DsarForm(props: DsarFormProps): ReactElement {
           </div>
         </Flex>
       </Card>
-    </GdprSkinTheme>
+    </SkinTheme>
   );
 }

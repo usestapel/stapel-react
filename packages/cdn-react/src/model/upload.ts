@@ -44,7 +44,12 @@
  */
 import { toStapelApiError } from "@stapel/core";
 import type { CdnApi } from "../api/cdnApi.js";
-import type { CdnImage, CdnRef } from "../api/types.js";
+import type {
+  CdnFileKind,
+  CdnImage,
+  CdnMediaRow,
+  CdnRef,
+} from "../api/types.js";
 import { canHashLocally, sha256Hex } from "./hash.js";
 import { validateFile } from "./limits.js";
 import type { CdnIntakeLimits } from "./limits.js";
@@ -67,12 +72,29 @@ export type CdnUploadTarget =
       /** `POST /images/<assetType>/upload/`, validated against `ASSET_TYPES`. */
       readonly kind: "typed";
       readonly assetType: string;
+    }
+  | {
+      /**
+       * `POST /upload/video/`. Stored as `video/<hash>`; variants are not
+       * generated upstream, so the row arrives with an empty ladder and
+       * `is_processed: false` — which is why a video's picture is its
+       * `poster_url` and its `render_meta.preview_kind` is `"poster"`.
+       */
+      readonly kind: "video";
+    }
+  | {
+      /**
+       * `POST /upload/file/` — documents and archives, stored as
+       * `file/<hash>`. Its allowlist narrows on MIME as well as extension.
+       */
+      readonly kind: "file";
     };
 
 /**
  * The asset type a target produces, which is what the pre-check must match
  * before it may short-circuit. `"product"` is not a guess: it is the literal
- * the view writes (`ImageUploadView.post`).
+ * the view writes (`ImageUploadView.post`); `"video"` and `"file"` are the
+ * prefixes `stapel_cdn.metadata.media_ref` builds for those two models.
  */
 export function targetAssetType(target: CdnUploadTarget): string {
   switch (target.kind) {
@@ -82,6 +104,30 @@ export function targetAssetType(target: CdnUploadTarget): string {
       return "avatar";
     case "typed":
       return target.assetType;
+    case "video":
+      return "video";
+    case "file":
+      return "file";
+  }
+}
+
+/**
+ * What `file/exists/` would call this target's rows.
+ *
+ * The pre-check answers about ANY object with these bytes, and its `type` is
+ * one of three strings (`FileExistsView._exists_response`). A hit is only a hit
+ * when the KIND matches too: the same bytes stored earlier as a document are
+ * not the image this upload would return, and short-circuiting on them would
+ * hand a caller a ref that resolves to the wrong model.
+ */
+export function targetFileKind(target: CdnUploadTarget): CdnFileKind {
+  switch (target.kind) {
+    case "video":
+      return "video";
+    case "file":
+      return "file";
+    default:
+      return "image";
   }
 }
 
@@ -111,7 +157,13 @@ export type DedupSkipReason =
 export interface UploadOutcome {
   /** `<type>/<hash>` — the value a consuming module stores. */
   readonly ref: CdnRef;
-  readonly image: CdnImage;
+  /**
+   * The stored row. Which of the three models it is, is stated by
+   * {@link kind} — never inferred from which fields happen to be present.
+   */
+  readonly row: CdnMediaRow;
+  /** `image` | `video` | `file` — the model this row is. */
+  readonly kind: CdnFileKind;
   /** The pre-check hit and NO upload request was made. */
   readonly deduped: boolean;
   /** `undefined` when the pre-check ran; a reason when it did not. */
@@ -217,6 +269,7 @@ export async function runUpload(
   }
 
   const assetType = targetAssetType(target);
+  const fileKind = targetFileKind(target);
   let fileHash: string | null = null;
   let dedupSkipped: DedupSkipReason | undefined;
 
@@ -235,21 +288,24 @@ export async function runUpload(
       throwIfAborted(signal);
       // Three conditions, all required. `exists` alone is not enough: the
       // endpoint answers about ANY object with these bytes, so the same file
-      // stored earlier as a video or a document reports a hit that is not an
-      // image at all. And an image of a DIFFERENT asset type is not the row
-      // this POST would return either — the upload views filter dedup on
-      // `type=`, so uploading the bytes of one's own avatar as a listing photo
-      // must really upload them.
-      if (found.exists && found.type === "image" && found.file !== null) {
-        const image = found.file as CdnImage;
-        if (image.type === assetType) {
+      // stored earlier as a video or a document reports a hit that is not the
+      // model this upload would produce. And an IMAGE of a different asset type
+      // is not the row this POST would return either — the upload views filter
+      // dedup on `type=`, so uploading the bytes of one's own avatar as a
+      // listing photo must really upload them. Video and file rows carry no
+      // asset type at all (one model, one prefix), so for those the kind match
+      // is the whole test.
+      if (found.exists && found.type === fileKind && found.file !== null) {
+        const row = found.file;
+        if (fileKind !== "image" || (row as CdnImage).type === assetType) {
           phase("done");
           return {
-            ref: refOf(image),
-            image,
+            ref: refOf(row, fileKind),
+            row,
+            kind: fileKind,
             deduped: true,
             dedupSkipped: undefined,
-            variantsReady: image.is_processed,
+            variantsReady: isProcessed(row),
           };
         }
       }
@@ -269,10 +325,9 @@ export async function runUpload(
 
   throwIfAborted(signal);
   phase("uploading");
-  let image: CdnImage;
+  let row: CdnMediaRow;
   try {
-    const response = await uploadTo(api, target, file, signal);
-    image = response.image;
+    row = await uploadTo(api, target, file, signal);
   } catch (error) {
     if (signal?.aborted === true) {
       phase("canceled");
@@ -282,7 +337,7 @@ export async function runUpload(
     throw toStapelApiError(error);
   }
 
-  const settled = await waitForVariants(api, image, {
+  const settled = await waitForVariants(api, row, fileKind, {
     ...(signal !== undefined ? { signal } : {}),
     ...(options.variants !== undefined ? { variants: options.variants } : {}),
     onPhase: phase,
@@ -290,31 +345,53 @@ export async function runUpload(
 
   phase("done");
   return {
-    ref: refOf(settled),
-    image: settled,
+    ref: refOf(settled, fileKind),
+    row: settled,
+    kind: fileKind,
     deduped: false,
     dedupSkipped,
-    variantsReady: settled.is_processed,
+    variantsReady: isProcessed(settled),
   };
+}
+
+/**
+ * Whether the derived work on a row is done.
+ *
+ * A document has none — no ladder, no probe, nothing to wait for — so it is
+ * born settled, and reporting `false` for it would make a file upload look
+ * permanently unfinished. Images and videos carry the flag.
+ */
+function isProcessed(row: CdnMediaRow): boolean {
+  return "is_processed" in row ? row.is_processed : true;
 }
 
 function sig(signal: AbortSignal | undefined): { signal?: AbortSignal } {
   return signal !== undefined ? { signal } : {};
 }
 
-function uploadTo(
+/**
+ * POST the bytes and hand back the ROW, whichever of the three envelopes it
+ * arrived in — `{image}`, `{video}` or `{file}`. Unwrapping here is what lets
+ * the rest of the flow be one flow: the three intakes differ in the key their
+ * envelope uses and in nothing else this pair cares about.
+ */
+async function uploadTo(
   api: CdnApi,
   target: CdnUploadTarget,
   file: File,
   signal: AbortSignal | undefined
-): Promise<{ readonly image: CdnImage }> {
+): Promise<CdnMediaRow> {
   switch (target.kind) {
     case "avatar":
-      return api.uploadAvatar(file, sig(signal));
+      return (await api.uploadAvatar(file, sig(signal))).image;
     case "typed":
-      return api.uploadTypedImage(target.assetType, file, sig(signal));
+      return (await api.uploadTypedImage(target.assetType, file, sig(signal))).image;
     case "image":
-      return api.uploadImage(file, sig(signal));
+      return (await api.uploadImage(file, sig(signal))).image;
+    case "video":
+      return (await api.uploadVideo(file, sig(signal))).video;
+    case "file":
+      return (await api.uploadFile(file, sig(signal))).file;
   }
 }
 
@@ -330,29 +407,30 @@ function uploadTo(
  */
 async function waitForVariants(
   api: CdnApi,
-  image: CdnImage,
+  row: CdnMediaRow,
+  fileKind: CdnFileKind,
   options: {
     readonly signal?: AbortSignal;
     readonly variants?: CdnVariantWaitOptions;
     readonly onPhase: (phase: UploadPhase) => void;
   }
-): Promise<CdnImage> {
-  if (image.is_processed) return image;
+): Promise<CdnMediaRow> {
+  if (isProcessed(row)) return row;
   const attempts = options.variants?.attempts ?? DEFAULT_VARIANT_ATTEMPTS;
-  if (attempts <= 0) return image;
+  if (attempts <= 0) return row;
   const intervalMs = options.variants?.intervalMs ?? DEFAULT_VARIANT_INTERVAL_MS;
   const wait = options.variants?.wait ?? defaultWait;
 
   options.onPhase("processing");
-  let latest = image;
+  let latest = row;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     await wait(intervalMs, options.signal);
     if (options.signal?.aborted === true) return latest;
     try {
       const found = await api.fileExists(latest.file_hash, sig(options.signal));
-      if (found.exists && found.type === "image" && found.file !== null) {
-        latest = found.file as CdnImage;
-        if (latest.is_processed) return latest;
+      if (found.exists && found.type === fileKind && found.file !== null) {
+        latest = found.file;
+        if (isProcessed(latest)) return latest;
       }
     } catch {
       // Same posture as the pre-check: the ladder is an enhancement of a row

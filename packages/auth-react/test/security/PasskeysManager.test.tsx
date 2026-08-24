@@ -15,6 +15,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement, ReactNode } from "react";
 import { I18nProvider, createI18n } from "@stapel/core";
+import { CONFIRM_OK_TESTID } from "@stapel/tokens-antd/skin";
 import { createAuthRuntime } from "../../src/model/runtime.js";
 import type { AuthRuntime } from "../../src/model/runtime.js";
 import { AuthProvider } from "../../src/headless/AuthProvider.js";
@@ -80,7 +81,7 @@ describe("<PasskeysManager/>", () => {
     // `findAllByRole("button", {name: "Remove"})` resolves on the ROW's button
     // the instant it exists and would never wait for the dialog at all.
     await screen.findByTestId("passkey-remove-confirm");
-    screen.getByTestId("passkey-remove-ok").click();
+    screen.getByTestId(CONFIRM_OK_TESTID).click();
 
     await waitFor(() => expect(removed).toBe("pk1"));
     await waitFor(() => expect(screen.getByText("No passkeys yet.")).toBeDefined());
@@ -199,10 +200,15 @@ describe("<PasskeysManager/>", () => {
       })
     );
     const runtime = createAuthRuntime({ baseUrl: BASE });
-    render(wrap(runtime, <PasskeysManager />));
+    const { container } = render(wrap(runtime, <PasskeysManager />));
     const add = await screen.findByRole("button", { name: "Add a passkey" });
     expect(add.hasAttribute("disabled")).toBe(true);
-    expect(screen.getByTestId("passkeys-add-blocked").textContent).toBe(
+    // The reason is rendered BESIDE the control by the shared `GatedButton`,
+    // with `aria-describedby` pointing at it — not in a tooltip a disabled
+    // button can never raise. `data-stapel-gated-reason` is the substrate's
+    // stated handle for it.
+    const reason = container.querySelector("[data-stapel-gated-reason]");
+    expect(reason?.textContent).toBe(
       "This browser can't create passkeys. Open this page in another browser to add one."
     );
     add.click();
@@ -297,7 +303,12 @@ describe("<PasskeysManager/> — loading vs empty vs failed", () => {
     const runtime = createAuthRuntime({ baseUrl: BASE });
     const { container } = render(wrap(runtime, <PasskeysManager />));
 
-    await waitFor(() => expect(container.querySelector(".ant-spin")).not.toBeNull());
+    // The loading arm is the substrate's, stamped `data-stapel-load-state` —
+    // a skeleton rather than a spinner, so the card does not jump height when
+    // the rows arrive.
+    await waitFor(() =>
+      expect(container.querySelector('[data-stapel-load-state="loading"]')).not.toBeNull()
+    );
     expect(screen.queryByText("No passkeys yet.")).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
   });

@@ -16,8 +16,6 @@ const HANDLERS: DemoHandlers = {
   "/versions": DEMO_VERSIONS,
 };
 
-const EMPTY: DemoHandlers = { "/submissions": [], "/versions": DEMO_VERSIONS };
-
 function Responses(props: { handlers: DemoHandlers }): ReactElement {
   return (
     <FormsDemoHarness handlers={props.handlers}>
@@ -49,11 +47,14 @@ export default defineDemo({
     "Headless response review: columns taken from the version each response answered, keyset paging, resend and CSV export.",
   component: ResponsesTable,
   tokens: ["surface-raised"],
+  // ONE variant, for the reason `FormFill.demo.tsx` states: `empty` differed
+  // from `default` only by a fetch a static render never awaits, so both
+  // photographed the same chip. The designed empty state is drawn in
+  // `forms.responses-pane`, where it is seeded rather than fetched.
   variants: {
-    default: { render: () => <Responses handlers={HANDLERS} /> },
-    empty: {
-      description: "A load that succeeded and found nothing — not an outage",
-      render: () => <Responses handlers={EMPTY} />,
+    default: {
+      step: "ready",
+      render: () => <Responses handlers={HANDLERS} />,
     },
   },
 });

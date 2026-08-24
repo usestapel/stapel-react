@@ -86,6 +86,7 @@ export const authErrorBundleRu: Record<AuthErrorCode, string> = {
   "error.401.unauthorized": "Требуется аутентификация",
   "error.401.user_not_found": "Пользователь не найден",
   "error.402.payment_required": "Требуется оплата",
+  "error.403.change_requires_current": "Чтобы изменить подтверждённые эл. почту или телефон, нужен код, отправленный на текущие. Воспользуйтесь процедурой смены.",
   "error.403.forbidden": "У вас нет прав для выполнения этого действия",
   "error.403.gdpr.account_closed": "Эта учётная запись удаляется и больше не может использоваться.",
   "error.403.gdpr.erasure_forbidden": "У вас нет прав запрашивать удаление этого объекта.",

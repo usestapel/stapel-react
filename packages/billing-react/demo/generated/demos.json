@@ -4,6 +4,34 @@
   "version": "0.8.0",
   "demos": [
     {
+      "id": "billing.buy-options",
+      "title": "Two ways to buy (default skin)",
+      "description": "Packages and plans side by side with the same per-credit number under both, so the comparison needs no calculator. The columns are sized by the element, not the viewport. The plan the caller already holds is marked and cannot be bought again.",
+      "component": "BuyOptions",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "No subscription: both columns open, the cheaper side carrying the ribbon and the saving stated per credit.",
+          "viewport": "phone"
+        },
+        {
+          "id": "subscribed",
+          "description": "The caller is on Team. That card says so and its button is off, with the reason beside it."
+        },
+        {
+          "id": "settling-a-debt",
+          "description": "The wallet owes 180 credits, so every offer states how many of its credits are already spoken for.",
+          "viewport": "phone"
+        }
+      ],
+      "source": {
+        "file": "demo/BuyOptionsSkin.demo.tsx",
+        "line": 42
+      }
+    },
+    {
       "id": "billing.pricing_table",
       "title": "Pricing table",
       "description": "The headless PricingTable wraps the catalogue read + Stripe Checkout mutation and exposes packages / plans / checking-out / checkoutUrl / error state. Bring your own pricing cards — the component is renderless.",
@@ -63,6 +91,61 @@
       }
     },
     {
+      "id": "billing.subscription-card",
+      "title": "Subscription (default skin)",
+      "description": "Plan, status and the next date, with 'Manage billing' as the primary and 'Cancel subscription' last, quiet, and behind a confirmation that says what cancelling keeps.",
+      "component": "SubscriptionCard",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "active",
+          "description": "A live Team plan renewing on 1 September. Press Cancel to open the sheet.",
+          "viewport": "phone"
+        },
+        {
+          "id": "free",
+          "description": "The auto-created free row: no paid plan, stated as such, with no dead controls beside it.",
+          "viewport": "phone"
+        },
+        {
+          "id": "past-due",
+          "description": "The last payment bounced — what that costs, and what fixes it, above the buttons."
+        },
+        {
+          "id": "cancelled",
+          "description": "Already cancelled: 'Runs until' replaces 'Renews on', and cancelling again is off with its reason."
+        }
+      ],
+      "source": {
+        "file": "demo/SubscriptionCardSkin.demo.tsx",
+        "line": 43
+      }
+    },
+    {
+      "id": "billing.transaction-history",
+      "title": "Credit history (default skin)",
+      "description": "The credit ledger, paged forward by the server's own cursors: a purchase, two charges, the plan's monthly grant and credits that died of old age — each with a signed delta and the balance it left behind.",
+      "component": "TransactionHistory",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A first page of four movements with 'Show older' offering the server's next cursor.",
+          "viewport": "phone"
+        },
+        {
+          "id": "empty",
+          "description": "An answered ledger with nothing in it — the empty state, reachable only from a read that succeeded."
+        }
+      ],
+      "source": {
+        "file": "demo/TransactionHistorySkin.demo.tsx",
+        "line": 27
+      }
+    },
+    {
       "id": "billing.wallet",
       "title": "Wallet",
       "description": "The headless Wallet wraps the read + partial auto-recharge settings update of the caller's wallet and exposes balance / currency / saving / saved / error state. Bring your own UI — the component is renderless.",
@@ -80,6 +163,61 @@
       "source": {
         "file": "demo/Wallet.demo.tsx",
         "line": 73
+      }
+    },
+    {
+      "id": "billing.wallet-panel",
+      "title": "Billing page (default skin)",
+      "description": "The shipped billing screen: the two credit pools stated separately (bought credits that never expire vs plan credits with a deadline — never one sum), any debt with what the next purchase settles, the subscription and its next date, both ways to buy with the price per credit under each, automatic top-up, and the credit ledger.",
+      "component": "WalletPanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "840 bought credits and 400 that die on the 1st, a live Team plan, and the shop below."
+        },
+        {
+          "id": "in-debt",
+          "description": "The wallet owes 180 credits. Each offer says how many of its credits go straight to the debt.",
+          "viewport": "phone"
+        },
+        {
+          "id": "empty",
+          "description": "A brand-new account: nothing held, no paid plan, no history — and a door out of every one of those.",
+          "viewport": "phone"
+        },
+        {
+          "id": "shop-down",
+          "description": "The catalogue read fails. The shop states the refusal; it never renders as 'nothing is on sale'."
+        }
+      ],
+      "source": {
+        "file": "demo/WalletPanelSkin.demo.tsx",
+        "line": 45
+      }
+    },
+    {
+      "id": "billing.wallet-settings",
+      "title": "Automatic top-up (default skin)",
+      "description": "The auto-recharge and low-balance settings over PATCH /wallet: a trigger balance, the package bought when it is crossed, and an alert threshold — with both switched-off states explained in words beside the control.",
+      "component": "WalletSettings",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "auto-on",
+          "description": "Auto-recharge already on and pointed at a package the shop sells.",
+          "viewport": "phone"
+        },
+        {
+          "id": "no-packages",
+          "description": "The shop sells only plans, so there is nothing to buy automatically — and the switch says so."
+        }
+      ],
+      "source": {
+        "file": "demo/WalletSettingsSkin.demo.tsx",
+        "line": 31
       }
     }
   ]

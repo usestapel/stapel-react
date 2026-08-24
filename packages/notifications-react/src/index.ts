@@ -12,8 +12,10 @@
 // ── api ──────────────────────────────────────────────────────────────────────
 export { createNotificationsApi } from "./api/notificationsApi.js";
 export type { NotificationsApi } from "./api/notificationsApi.js";
+export { FEED_LINK_KEYS, feedItemLink } from "./api/types.js";
 export type {
   Schemas,
+  DeviceListItem,
   DeviceTokenRequest,
   DeviceTokenResponse,
   FeedItem,
@@ -56,19 +58,49 @@ export { notificationsQueryKeys } from "./model/queryKeys.js";
 export {
   useNotificationFeed,
   useInfiniteNotificationFeed,
+  useDevices,
 } from "./model/queries.js";
 export {
   useRegisterDevice,
   useUnregisterDevice,
+  useUnregisterDeviceById,
 } from "./model/mutations.js";
 export type { RegisterDeviceVariables } from "./model/mutations.js";
+
+// how this tab learns that something arrived — a socket, or the documented
+// poll — and the mode a skin must render. The socket ADAPTER lives in
+// `@stapel/notifications-react/live`, so nothing here imports @stapel/realtime.
+export {
+  FeedDeliveryContext,
+  FeedDeliveryProvider,
+  useFeedDelivery,
+  usePageVisible,
+  feedPollInterval,
+  FEED_POLL_INTERVAL_MS,
+  FEED_POLL_MIN_INTERVAL_MS,
+} from "./model/delivery.js";
+export type {
+  FeedDelivery,
+  FeedDeliveryMode,
+  FeedRefusalKind,
+} from "./model/delivery.js";
+
+// this device's identity in a registry that never echoes tokens
+export { canFingerprint, tokenFingerprint } from "./model/fingerprint.js";
+// formatters the pair owns until core grows them (see REQUESTS)
+export { formatFeedTime, formatDateTime } from "./model/format.js";
 
 // ── headless (renderless components) ─────────────────────────────────────────
 export { NotificationsProvider } from "./headless/NotificationsProvider.js";
 export { NotificationFeed } from "./headless/NotificationFeed.js";
 export type { NotificationFeedBag } from "./headless/NotificationFeed.js";
 export { DeviceRegistration } from "./headless/DeviceRegistration.js";
-export type { DeviceRegistrationBag } from "./headless/DeviceRegistration.js";
+export type {
+  DeviceRegistrationBag,
+  DeviceRegistrationProps,
+  PushState,
+  PushBlockedReason,
+} from "./headless/DeviceRegistration.js";
 
 // ── i18n ─────────────────────────────────────────────────────────────────────
 export {

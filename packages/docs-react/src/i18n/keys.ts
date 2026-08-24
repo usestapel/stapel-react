@@ -4,10 +4,11 @@ import { docsErrorBundleEn } from "./errorsMap.js";
 /**
  * docs-react's own translation KEYS (frontend-standard §4.2): headless
  * components never render literal strings — hosts resolve these via core's
- * i18n engine (`useT`). Backend error codes flow through the SAME contour
- * once stapel-docs commits its error registry (the generated en floor spreads
- * under this bundle then — see `errorsMap.ts`). All UI keys live under the
- * `docs.` namespace.
+ * i18n engine (`useT`). Backend error codes flow through the SAME contour:
+ * the generated en floor for all 74 codes of `stapel-docs/docs/errors.json`
+ * spreads UNDER this bundle (see `errorsMap.ts`). All UI keys live under the
+ * `docs.` namespace; `ru` and `es` mirror this file key-for-key
+ * (`src/i18n/{ru,es}.ts`, gated by `test/i18n.test.ts`).
  */
 export const DOCS_I18N_KEYS = {
   unknownError: "docs.error.unknown",
@@ -52,6 +53,12 @@ export const DOCS_I18N_KEYS = {
   managerNewFolder: "docs.manager.newFolder",
   managerUpload: "docs.manager.upload",
   managerFoldersEmpty: "docs.manager.foldersEmpty",
+  /** Primary action of a documents product: create one. */
+  managerNewDocument: "docs.manager.newDocument",
+  /** Phone master/detail switch — the folder tree pane. */
+  managerFoldersPane: "docs.manager.foldersPane",
+  /** Phone master/detail switch — the document list pane. */
+  managerFilesPane: "docs.manager.filesPane",
   managerNameColumn: "docs.manager.nameColumn",
   managerUpdatedColumn: "docs.manager.updatedColumn",
   managerSizeColumn: "docs.manager.sizeColumn",
@@ -65,6 +72,9 @@ export const DOCS_I18N_KEYS = {
   menuHistory: "docs.menu.history",
   menuRestore: "docs.menu.restore",
   menuDeleteForever: "docs.menu.deleteForever",
+  /** Accessible name of the per-row overflow trigger (the keyboard- and
+   * touch-reachable twin of the right-click menu). */
+  menuActions: "docs.menu.actions",
   // Dialogs (default skin: rename / move / new folder)
   dialogRenameTitle: "docs.dialog.renameTitle",
   dialogMoveTitle: "docs.dialog.moveTitle",
@@ -79,6 +89,17 @@ export const DOCS_I18N_KEYS = {
    * different sentences, and the sheet's handle is present with no form. */
   dialogClose: "docs.dialog.close",
   dialogRootFolder: "docs.dialog.rootFolder",
+  dialogNewDocumentTitle: "docs.dialog.newDocumentTitle",
+  dialogDocumentType: "docs.dialog.documentType",
+  /** Why OK is off on a name prompt with nothing typed. */
+  dialogNameBlockedEmpty: "docs.dialog.nameBlockedEmpty",
+  /** Why OK is off when the picked destination is where the item already is. */
+  dialogMoveBlockedUnchanged: "docs.dialog.moveBlockedUnchanged",
+  /** Document-type labels for the create dialog (the three editable
+   * builtins; `file` is created by uploading, not by this dialog). */
+  typeText: "docs.type.text",
+  typeMarkdown: "docs.type.markdown",
+  typeCsv: "docs.type.csv",
   // Revisions modal (default skin: RevisionsModal)
   revisionsTitle: "docs.revisions.title",
   revisionsAutomatic: "docs.revisions.automatic",
@@ -91,6 +112,8 @@ export const DOCS_I18N_KEYS = {
   revisionsRollbackBlockedHead: "docs.revisions.rollbackBlockedHead",
   revisionsNamePlaceholder: "docs.revisions.namePlaceholder",
   revisionsDownload: "docs.revisions.download",
+  /** Why "Name this version" is off with an empty name field. */
+  revisionsNameBlockedEmpty: "docs.revisions.nameBlockedEmpty",
   // Editor chrome (default skin: EditorChrome + default editors)
   editorDirty: "docs.editor.dirty",
   editorAddRow: "docs.editor.addRow",
@@ -103,6 +126,18 @@ export const DOCS_I18N_KEYS = {
   /** Why "Empty trash" is off when the trash loaded and holds nothing —
    * core's floor covers the loading/failed reasons (`useActionGate`). */
   trashEmptyBlocked: "docs.trash.emptyBlocked",
+  /** What an empty document list invites the person to do. */
+  listEmptyHint: "docs.list.emptyHint",
+  /** What an empty trash means (nothing was deleted). */
+  trashEmptyHint: "docs.trash.emptyHint",
+  /** A crdt-discipline document with no registered collaborative editor:
+   * the snapshot save path is NOT legal for it, so the surface says so
+   * instead of silently offering a save the journal would refuse. */
+  editorCollabUnsupported: "docs.editor.collabUnsupported",
+  editorCollabUnsupportedHint: "docs.editor.collabUnsupportedHint",
+  // Navigation (src/nav/manifest.ts — the scripted-fullstack nav contract)
+  navFiles: "docs.nav.files",
+  navDocument: "docs.nav.document",
 } as const;
 
 export type DocsI18nKey = (typeof DOCS_I18N_KEYS)[keyof typeof DOCS_I18N_KEYS];
@@ -114,7 +149,7 @@ export type DocsI18nKey = (typeof DOCS_I18N_KEYS)[keyof typeof DOCS_I18N_KEYS];
  * below overrides the generated English for the keys users see most.
  */
 export const docsI18nBundleEn: I18nDictionary = {
-  // Backend error codes — generated en fallbacks (empty until enrollment).
+  // Backend error codes — the generated en floor (all 74).
   ...docsErrorBundleEn,
 
   // docs-react UI
@@ -153,6 +188,9 @@ export const docsI18nBundleEn: I18nDictionary = {
   "docs.manager.newFolder": "New folder",
   "docs.manager.upload": "Upload",
   "docs.manager.foldersEmpty": "No folders yet.",
+  "docs.manager.newDocument": "New document",
+  "docs.manager.foldersPane": "Folders",
+  "docs.manager.filesPane": "Files",
   "docs.manager.nameColumn": "Name",
   "docs.manager.updatedColumn": "Updated",
   "docs.manager.sizeColumn": "Size",
@@ -165,6 +203,7 @@ export const docsI18nBundleEn: I18nDictionary = {
   "docs.menu.history": "Version history",
   "docs.menu.restore": "Restore",
   "docs.menu.deleteForever": "Delete forever",
+  "docs.menu.actions": "Actions",
   "docs.dialog.renameTitle": "Rename",
   "docs.dialog.moveTitle": "Move to folder",
   "docs.dialog.moveTarget": "Destination folder",
@@ -174,6 +213,13 @@ export const docsI18nBundleEn: I18nDictionary = {
   "docs.dialog.cancel": "Cancel",
   "docs.dialog.close": "Close",
   "docs.dialog.rootFolder": "All documents",
+  "docs.dialog.newDocumentTitle": "New document",
+  "docs.dialog.documentType": "Document type",
+  "docs.dialog.nameBlockedEmpty": "Type a name first.",
+  "docs.dialog.moveBlockedUnchanged": "This is where it already is.",
+  "docs.type.text": "Plain text",
+  "docs.type.markdown": "Markdown",
+  "docs.type.csv": "Spreadsheet (CSV)",
   "docs.revisions.title": "Version history",
   "docs.revisions.automatic": "Automatic revision",
   "docs.revisions.previewEmpty": "Select a revision to preview it.",
@@ -186,6 +232,7 @@ export const docsI18nBundleEn: I18nDictionary = {
     "This is the document's current version.",
   "docs.revisions.namePlaceholder": "Version name",
   "docs.revisions.download": "Download revision",
+  "docs.revisions.nameBlockedEmpty": "Type a name for this version first.",
   "docs.editor.dirty": "Unsaved changes",
   "docs.editor.addRow": "Add row",
   "docs.editor.addColumn": "Add column",
@@ -195,6 +242,14 @@ export const docsI18nBundleEn: I18nDictionary = {
   "docs.trash.kindFolder": "Folder",
   "docs.trash.kindDocument": "Document",
   "docs.trash.emptyBlocked": "There is nothing in the trash to delete.",
+  "docs.list.emptyHint": "Create a document or upload a file to get started.",
+  "docs.trash.emptyHint": "Documents you delete land here first.",
+  "docs.editor.collabUnsupported":
+    "This document is edited collaboratively.",
+  "docs.editor.collabUnsupportedHint":
+    "No collaborative editor is registered for its type, so it cannot be edited here. Download it, or register one with registerDocEditor.",
+  "docs.nav.files": "Documents",
+  "docs.nav.document": "Document",
 };
 
 /**
@@ -204,9 +259,10 @@ export const docsI18nBundleEn: I18nDictionary = {
  *
  * MERGE-PRIORITY CONVENTION (i18n-shipping.md §3): registration order is
  * override priority — later wins per key. A HOST bundle registered AFTER this
- * call overrides any pair text without a fork. stapel-docs ships no locale
- * catalogs yet, so this pair is en-only; a `./i18n/<locale>` subpath follows
- * the notifications etalon once it does.
+ * call overrides any pair text without a fork. `ru` and `es` ship as the
+ * opt-in `./i18n/ru` / `./i18n/es` subpaths (`registerDocsI18nRu` /
+ * `registerDocsI18nEs`), so a host that ships one locale never carries the
+ * other two.
  */
 export function registerDocsI18n(engine: I18nEngine, locale = "en"): void {
   engine.registerBundle(locale, docsI18nBundleEn);

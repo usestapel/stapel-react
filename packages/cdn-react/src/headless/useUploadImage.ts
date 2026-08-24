@@ -100,7 +100,13 @@ export function useUploadImage(options?: {
       });
       if (!alive.current) return outcome.ref;
       setRef(outcome.ref);
-      setImage(outcome.image);
+      // This hook is the IMAGE slot: its three targets all produce image rows,
+      // which is why the bag can carry a narrowed `CdnImage` rather than the
+      // union. The guard is not defensive noise — it is the type-level
+      // statement that a target added later must widen this bag rather than
+      // quietly hand a video row to a component that will read `variants_meta`
+      // off it.
+      setImage(outcome.kind === "image" ? (outcome.row as CdnImage) : null);
       setDeduped(outcome.deduped);
       setVariantsReady(outcome.variantsReady);
       setPhase("done");

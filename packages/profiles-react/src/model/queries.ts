@@ -117,6 +117,22 @@ export function useProfilesBatch(
             profilesQueryKeys.profile(profile.user_id),
             profile
           );
+          // …and the caller↔target relationship, which the SAME projection
+          // already answered (`relationship_status`, computed for whoever is
+          // asking). A roster that draws a follow control per row would
+          // otherwise fire one `GET /{id}/relationship` per person for a fact
+          // this response carried. `null` is NOT seeded: for an anonymous
+          // caller the field means "no answer", and seeding it would cache
+          // "we do not know" as if it were "neutral".
+          if (
+            typeof profile.relationship_status === "string" &&
+            profile.relationship_status.length > 0
+          ) {
+            queryClient.setQueryData(
+              profilesQueryKeys.relationship(profile.user_id),
+              { user_id: profile.user_id, status: profile.relationship_status }
+            );
+          }
         }
       }
       return batch;

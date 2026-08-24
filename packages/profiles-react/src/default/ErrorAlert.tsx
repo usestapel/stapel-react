@@ -15,6 +15,7 @@
  * there was nothing worth quoting — renders nothing rather than an empty
  * muted line.
  */
+import { fontSize } from "@stapel/tokens";
 import { Alert, Typography } from "antd";
 import type { CSSProperties, ReactElement } from "react";
 import type { FlowErrorDisplay } from "@stapel/core";
@@ -36,7 +37,7 @@ export function ErrorAlert(props: {
       {...(error.detail
         ? {
             description: (
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
                 {error.detail}
               </Typography.Text>
             ),

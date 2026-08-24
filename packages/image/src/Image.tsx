@@ -5,8 +5,8 @@ import type {
   ReactElement,
   ReactNode,
 } from "react";
-import { chooseVariant, numericTier } from "./tiers.js";
-import type { Fit, StapelImage, VariantMeta } from "./tiers.js";
+import { chooseVariant, numericTier, PREVIEW_KIND_ASPECT } from "./tiers.js";
+import type { Fit, PreviewKind, StapelImage, VariantMeta } from "./tiers.js";
 import { useDevicePixelRatio, useImageSlot } from "./useImageSlot.js";
 
 /** What {@link ImageProps.renderError} is told about the image that failed. */
@@ -74,6 +74,91 @@ const FILL: CSSProperties = {
 };
 
 /**
+ * What the placeholder is, resolved once.
+ *
+ * A snapshot that carries `preview_b64` but no `preview_kind` predates §83.2
+ * (or was built by a host by hand). Its bytes are a micro thumbnail of a still
+ * image — that is the only thing anything has ever put there — so it reads as
+ * `"blur"`, which keeps every existing producer rendering exactly as before.
+ */
+function previewKindOf(meta: StapelImage): PreviewKind | null {
+  const declared = meta.preview_kind;
+  if (declared !== undefined && declared !== null) {
+    return declared;
+  }
+  return meta.preview_b64 != null ? "blur" : null;
+}
+
+/**
+ * The placeholder source, or `null`.
+ *
+ * `preview_b64` goes straight into a `src`, and `meta` is a value a HOST builds
+ * as often as it is one the server sent — `listings-react` documents
+ * `resolveImage: (ref) => …` as a function the application writes. The backend
+ * bounds its own previews to a few KB of `data:image/webp;base64,…`; nothing
+ * bounds a host's. So the trust boundary is stated here rather than assumed: a
+ * placeholder is a `data:image/` URI or it is not drawn.
+ */
+function previewSrcOf(meta: StapelImage): string | null {
+  const raw = meta.preview_b64;
+  return typeof raw === "string" && raw.startsWith("data:image/") ? raw : null;
+}
+
+/**
+ * Whether an `<img>` may load this medium's own bytes.
+ *
+ * `<img src="clip.mp4">` is not a video, it is a broken image — and before
+ * `kind` existed that is precisely what a chat attachment would have rendered.
+ * A video's loadable still is its `poster_url`; an audio row has no still at
+ * all and its waveform placeholder IS the render.
+ */
+function isTimeBased(meta: StapelImage, previewKind: PreviewKind | null): boolean {
+  return (
+    meta.kind === "video" ||
+    meta.kind === "audio" ||
+    previewKind === "poster" ||
+    previewKind === "waveform"
+  );
+}
+
+/**
+ * The box a preview is drawn in when there is no preview yet.
+ *
+ * This is the whole point of `preview_kind` being knowable while `preview_b64`
+ * is still null: the slot is reserved at the right shape NOW, and what lands in
+ * it later lands without moving anything. A sunken rectangle for a poster; a
+ * centred baseline for a waveform, which is what an amplitude strip degrades to
+ * when its amplitudes are unknown.
+ */
+function PreviewSkeleton(props: { previewKind: PreviewKind }): ReactElement {
+  return (
+    <div
+      data-testid="stapel-image-preview-skeleton"
+      data-stapel-preview-kind={props.previewKind}
+      aria-hidden="true"
+      style={{
+        ...FILL,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--stapel-surface-sunken)",
+      }}
+    >
+      {props.previewKind === "waveform" && (
+        <div
+          style={{
+            width: "80%",
+            height: 2,
+            background: "var(--stapel-text-muted)",
+            opacity: 0.4,
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
  * The honest default for an image that will not load: a neutral box, a glyph,
  * and the `alt` text — never a broken `<img>`, whose native rendering is a
  * torn-page icon and the alt string in the browser's own font, and never an
@@ -133,10 +218,18 @@ function DefaultImageError(props: { alt: string }): ReactElement {
  *
  * 1. `aspect-ratio` from metadata goes on the container BEFORE the first slot
  *    measurement — layout-shift protection entirely from the snapshot, no
- *    network round-trip.
- * 2. Blur-up: the inlined 16px `preview_b64` renders instantly underneath
- *    until the chosen tier has decoded.
+ *    network round-trip. Where the snapshot has no geometry, `preview_kind`
+ *    still fixes the shape (a waveform is a wide strip; see
+ *    `PREVIEW_KIND_ASPECT`).
+ * 2. The placeholder: the inlined `preview_b64` renders instantly underneath
+ *    until the chosen tier has decoded — BRANCHED on `preview_kind`, because a
+ *    blurred waveform is noise and a blurred poster is a discarded frame. When
+ *    `preview_kind` is known and the preview itself has not been generated yet,
+ *    the reserved box is drawn in that shape rather than left empty.
  * 3. `useImageSlot()` measures the actual slot → `chooseVariant(...)` → src.
+ *    A time-based medium (`kind: "video" | "audio"`) skips the ladder: an
+ *    `<img>` cannot load a video, so a video shows its `poster_url` and an
+ *    audio row shows its waveform and nothing else.
  * 4. Upgrades only: a re-measure that picks a variant no bigger than the one
  *    already rendered is ignored; a bigger pick loads off-DOM and swaps in
  *    only after `decode()` — never a flash of empty slot, never a downgrade.
@@ -161,7 +254,30 @@ export function Image({
   const [visible, setVisible] = useState(false);
   const displayedRef = useRef<VariantMeta | undefined>(undefined);
 
+  const previewKind = previewKindOf(meta);
+  const previewSrc = previewSrcOf(meta);
+
   const target = useMemo(() => {
+    // ── A time-based medium never loads its own bytes ─────────────────────
+    //
+    // An audio row's `url` is the audio file and there is nothing an <img> can
+    // do with it; a video's is the video. What IS loadable for a video is the
+    // poster still, so that is what the ladder logic below is skipped in favour
+    // of. With neither, the placeholder stands alone in a correctly shaped box,
+    // which is a finished render and not a failure — so no error is reported
+    // either.
+    if (isTimeBased(meta, previewKindOf(meta))) {
+      const poster = meta.poster_url;
+      return typeof poster === "string" && poster !== ""
+        ? ({
+            tier: "original",
+            branch: null,
+            url: poster,
+            width: meta.width,
+            height: meta.height,
+          } as VariantMeta)
+        : undefined;
+    }
     // No ladder (a "link" / unprocessed file): the single top-level url is all
     // there is — show it immediately, no slot measurement needed.
     if (meta.variants.length === 0) {
@@ -299,40 +415,66 @@ export function Image({
     };
   }, [displayed, visible]);
 
+  // Layout-shift protection from the snapshot. The measured aspect wins; where
+  // there is none, `preview_kind` still fixes a SHAPE for two of the three
+  // kinds (see PREVIEW_KIND_ASPECT) — an audio row carries no geometry
+  // whatsoever, and a strip reserved at nothing is a strip that arrives by
+  // shoving the rest of the page down.
+  const reservedAspect =
+    meta.aspect ?? (previewKind !== null ? PREVIEW_KIND_ASPECT[previewKind] : null);
+
   const containerStyle: CSSProperties = {
     position: "relative",
     overflow: "hidden",
-    // Layout-shift protection from the snapshot — only when the aspect is
-    // actually known (a "link" image may not carry one).
-    ...(meta.aspect ? { aspectRatio: String(meta.aspect) } : {}),
+    ...(reservedAspect ? { aspectRatio: String(reservedAspect) } : {}),
     ...style,
   };
 
   // Only when NOTHING is on screen: a failed upgrade keeps the tier already
   // rendered, because the person is looking at the image, not at its ladder.
   const showError = failed !== undefined && displayed === undefined;
+  const showPlaceholder = !showError && displayed === undefined;
 
   return (
-    <div ref={ref} className={className} style={containerStyle}>
+    <div
+      ref={ref}
+      className={className}
+      style={containerStyle}
+      {...(previewKind !== null ? { "data-stapel-preview-kind": previewKind } : {})}
+    >
       {showError &&
         (renderError !== undefined
           ? renderError({ alt, meta, url: failed.url })
           : <DefaultImageError alt={alt} />)}
-      {!showError && meta.preview_b64 != null && (
+      {/* ── The placeholder, branched on WHAT it is ────────────────────────
+          A blurred waveform is noise and a blurred poster throws away the one
+          frame somebody chose. `filter`/`transform` belong to "blur" alone;
+          a poster is a real still and is shown as one; a waveform is drawn
+          whole (`contain`), because cropping an amplitude strip to fill a box
+          removes the amplitudes. Under the loaded image it stays visible only
+          until that image commits, exactly as before. */}
+      {!showError && previewSrc !== null && (
         <img
-          src={meta.preview_b64}
+          src={previewSrc}
           alt=""
           aria-hidden="true"
+          data-testid="stapel-image-preview"
+          data-stapel-preview-kind={previewKind ?? "blur"}
           style={{
             ...FILL,
-            objectFit: fit,
-            filter: "blur(12px)",
-            transform: "scale(1.05)",
+            objectFit: previewKind === "waveform" ? "contain" : fit,
+            ...(previewKind === "blur" || previewKind === null
+              ? { filter: "blur(12px)", transform: "scale(1.05)" }
+              : {}),
           }}
         />
       )}
+      {showPlaceholder && previewSrc === null && previewKind !== null && (
+        <PreviewSkeleton previewKind={previewKind} />
+      )}
       {displayed !== undefined && (
         <img
+          loading="lazy"
           {...imgProps}
           src={displayed.url}
           alt={alt}

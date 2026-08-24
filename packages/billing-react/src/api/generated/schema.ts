@@ -271,6 +271,32 @@ export interface components {
             idempotency_key?: string | null;
         };
         /**
+         * @description Credits this wallet owes — service given, or money taken back.
+         *
+         *     A debt is not a negative balance: the balance still counts the credits
+         *     that exist. It is collected automatically from the next credits that
+         *     arrive, oldest debt first, before they become spendable.
+         */
+        CreditDebtResponse: {
+            /**
+             * Format: uuid
+             * @description Debt UUID
+             */
+            id: string;
+            /** @description Credits still owed */
+            credits_outstanding: number;
+            /** @description Credits the debt was opened for */
+            credits_initial: number;
+            /** @description partial_debit (work served without cover) or clawback */
+            reason: string;
+            /** @description Transaction type the settlement is billed under */
+            type: string;
+            /** @description What the uncovered charge was, or null */
+            description: string | null;
+            /** @description ISO 8601 */
+            created_at: string;
+        };
+        /**
          * @description A reservation: credits already out of the spendable balance.
          *
          *     A hold is a real withdrawal, not an overlay — its credits are gone from
@@ -438,6 +464,10 @@ export interface components {
             holds?: components["schemas"]["CreditHoldResponse"][];
             /** @description The earliest-expiring live lot; null if none expires */
             expiring_soon?: components["schemas"]["ExpiringCreditsResponse"] | null;
+            /** @description Open debts, oldest first — the order they are collected in */
+            debts?: components["schemas"]["CreditDebtResponse"][];
+            /** @description Total credits owed. The next credits into this */
+            debt_outstanding?: number;
         };
     };
     responses: never;

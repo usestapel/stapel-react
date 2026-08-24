@@ -275,10 +275,17 @@ describe("an erased response", () => {
     );
 
     // The reason is READABLE, beside the controls — a disabled button gets no
-    // pointer events, so a tooltip would be a reason nobody can reach.
-    expect(screen.getByTestId("forms-responses-write-blocked").textContent).toBe(
+    // pointer events, so a tooltip would be a reason nobody can reach. It is
+    // the shared substrate that renders it (GatedButton), and it wires the
+    // sentence to the button with aria-describedby.
+    const gate = screen.getByTestId("forms-delete-gate");
+    const reason = gate.querySelector("[data-stapel-gated-reason]");
+    expect(reason?.textContent).toBe(
       "This response was erased, so it can no longer be resent or deleted."
     );
+    expect(
+      screen.getByTestId("forms-delete").getAttribute("aria-describedby")
+    ).toBe(reason?.id);
   });
 
   it("does not even offer the delete CONFIRMATION", async () => {
@@ -286,8 +293,9 @@ describe("an erased response", () => {
     await openRow(ERASED_SUBMITTED_AT);
     fireEvent.click(screen.getByTestId("forms-delete"));
     // A confirm that can never be confirmed is chrome pretending the action
-    // exists; the dead button carries no popconfirm at all.
+    // exists; the dead button opens nothing at all.
     expect(screen.queryByText("Delete this response permanently?")).toBeNull();
+    expect(screen.queryByTestId("stapel-confirm-ok")).toBeNull();
   });
 
   it("leaves both writes live on a response that was NOT erased", async () => {
@@ -295,7 +303,11 @@ describe("an erased response", () => {
     await openRow("2026-08-21T11:00:00+00:00");
     expect(screen.getByTestId("forms-resend")).toHaveProperty("disabled", false);
     expect(screen.getByTestId("forms-delete")).toHaveProperty("disabled", false);
-    expect(screen.queryByTestId("forms-responses-write-blocked")).toBeNull();
+    expect(
+      screen
+        .getByTestId("forms-delete-gate")
+        .querySelector("[data-stapel-gated-reason]")
+    ).toBeNull();
   });
 });
 

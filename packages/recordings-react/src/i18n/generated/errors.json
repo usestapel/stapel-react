@@ -166,6 +166,13 @@
     "en": "This verification factor is not available"
   },
   {
+    "code": "error.401.share_passcode_required",
+    "status": 401,
+    "params": [],
+    "remediation": "reauthenticate",
+    "en": "This share link requires a passcode"
+  },
+  {
     "code": "error.401.unauthorized",
     "status": 401,
     "params": [],
@@ -178,6 +185,13 @@
     "params": [],
     "remediation": "retry",
     "en": "Payment required"
+  },
+  {
+    "code": "error.402.recording_payment_required",
+    "status": 402,
+    "params": [],
+    "remediation": "retry",
+    "en": "This action requires available credit"
   },
   {
     "code": "error.403.forbidden",
@@ -194,11 +208,25 @@
     "en": "Requests from this network are not allowed"
   },
   {
+    "code": "error.403.recording_action_denied",
+    "status": 403,
+    "params": [],
+    "remediation": "retry",
+    "en": "You are not allowed to do that with this recording"
+  },
+  {
     "code": "error.403.recording_workspace_forbidden",
     "status": 403,
     "params": [],
     "remediation": "retry",
     "en": "You are not a member of this workspace"
+  },
+  {
+    "code": "error.403.share_permission_denied",
+    "status": 403,
+    "params": [],
+    "remediation": "retry",
+    "en": "This share link does not grant that"
   },
   {
     "code": "error.403.verification_enrollment_required",
@@ -234,6 +262,13 @@
     "params": [],
     "remediation": "retry",
     "en": "Recording not found"
+  },
+  {
+    "code": "error.404.share_not_found",
+    "status": 404,
+    "params": [],
+    "remediation": "retry",
+    "en": "Share link not found"
   },
   {
     "code": "error.404.verification_challenge_not_found",
@@ -276,6 +311,20 @@
     "params": [],
     "remediation": "fix_input",
     "en": "Recording is not in a valid state for this action"
+  },
+  {
+    "code": "error.409.recording_media_not_stored",
+    "status": 409,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "This recording has no media file"
+  },
+  {
+    "code": "error.409.recording_no_transcript",
+    "status": 409,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "This recording has no transcript to summarize yet"
   },
   {
     "code": "error.410.gone",
@@ -343,6 +392,13 @@
     "en": "Too many attempts. Try again in {retry_after_minutes} minutes."
   },
   {
+    "code": "error.429.share_unlock_throttled",
+    "status": 429,
+    "params": [],
+    "remediation": "wait_and_retry",
+    "en": "Too many attempts — try again later"
+  },
+  {
     "code": "error.429.too_many_requests",
     "status": 429,
     "params": [],
@@ -355,5 +411,33 @@
     "params": [],
     "remediation": "contact_support",
     "en": "Something went wrong"
+  },
+  {
+    "code": "error.503.mandate_unavailable",
+    "status": 503,
+    "params": [],
+    "remediation": "retry",
+    "en": "Cannot verify workspace mandate right now"
+  },
+  {
+    "code": "error.503.recording_media_unavailable",
+    "status": 503,
+    "params": [],
+    "remediation": "retry",
+    "en": "Media delivery is not available"
+  },
+  {
+    "code": "error.503.recording_summarize_unavailable",
+    "status": 503,
+    "params": [],
+    "remediation": "retry",
+    "en": "Summaries are not available"
+  },
+  {
+    "code": "error.503.recording_upload_unverifiable",
+    "status": 503,
+    "params": [],
+    "remediation": "retry",
+    "en": "Upload could not be verified"
   }
 ]

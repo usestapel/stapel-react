@@ -20,6 +20,7 @@ import { registerAttributesI18nEs } from "@stapel/attributes-react/i18n/es";
 import {
   CATEGORIES_ERROR_CODES,
   CATEGORIES_I18N_KEYS,
+  CATEGORIES_I18N_PLURAL_KEYS,
   categoriesI18nBundleEn,
   registerCategoriesI18n,
 } from "../src/index.js";
@@ -29,6 +30,29 @@ import { categoriesI18nBundleEs, registerCategoriesI18nEs } from "../src/i18n/es
 const CATEGORIES_OWNED = CATEGORIES_ERROR_CODES.filter((c) =>
   c.includes("categories_")
 );
+
+/** Families are catalogued per CLDR form, so they have no flat key to resolve. */
+const PLURAL_FAMILIES = new Set<string>(CATEGORIES_I18N_PLURAL_KEYS);
+const FLAT_UI_KEYS = Object.values(CATEGORIES_I18N_KEYS).filter(
+  (key) => !PLURAL_FAMILIES.has(key)
+);
+
+/**
+ * The categories a locale can actually SELECT — asked of `Intl.PluralRules`
+ * rather than listed here, because "how many forms does this language have"
+ * is a fact about the language. A bundle is complete when it carries a
+ * message for every form its locale can land on.
+ */
+function selectableCategories(locale: string): readonly string[] {
+  const rules = new Intl.PluralRules(locale);
+  const seen = new Set<string>();
+  // 0..200 covers every cardinal rule these locales use (ru's `many` needs
+  // teens; `other` is reached by a fraction, which is why 0.5 is in here).
+  for (const n of [0.5, ...Array.from({ length: 201 }, (_, i) => i)]) {
+    seen.add(rules.select(n));
+  }
+  return [...seen];
+}
 
 function engineFor(locale: "en" | "ru" | "es") {
   const engine = createI18n({ locale });
@@ -57,9 +81,29 @@ describe.each(["en", "ru", "es"] as const)("locale %s", (locale) => {
   });
 
   it("resolves every UI key the pair declares", () => {
-    for (const key of Object.values(CATEGORIES_I18N_KEYS)) {
+    for (const key of FLAT_UI_KEYS) {
       const text = engine.t(key);
       expect(text, key).not.toBe(key);
+    }
+  });
+
+  it("carries every plural form this locale can select", () => {
+    // The flat family key stays ABSENT on purpose: it is the shape that
+    // renders one ending for every number, which in ru is wrong for 1-4.
+    const bundle =
+      locale === "en"
+        ? categoriesI18nBundleEn
+        : locale === "ru"
+          ? categoriesI18nBundleRu
+          : categoriesI18nBundleEs;
+    for (const family of CATEGORIES_I18N_PLURAL_KEYS) {
+      expect(bundle[family], family).toBeUndefined();
+      for (const category of selectableCategories(locale)) {
+        expect(bundle[`${family}.${category}`], `${family}.${category}`).toBeTruthy();
+      }
+      const text = engine.tPlural(family, { count: 3 });
+      expect(text, family).not.toBe(family);
+      expect(text, family).toContain("3");
     }
   });
 });
@@ -119,8 +163,12 @@ describe("the three bundles cover the same UI keys", () => {
   it("ru and es carry every key en carries under categories.*", () => {
     // A half-translated catalogue menu above a translated search is worse
     // than either.
-    const uiKeys = Object.keys(categoriesI18nBundleEn).filter((k) =>
-      k.startsWith("categories.")
+    const uiKeys = Object.keys(categoriesI18nBundleEn).filter(
+      (k) =>
+        k.startsWith("categories.") &&
+        // Plural forms are covered by the per-locale test above: `en` has two
+        // and `ru` has four, so key-for-key parity is the WRONG assertion.
+        ![...PLURAL_FAMILIES].some((family) => k.startsWith(`${family}.`))
     );
     for (const key of uiKeys) {
       expect(categoriesI18nBundleRu[key], `ru ${key}`).toBeTruthy();

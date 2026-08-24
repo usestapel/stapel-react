@@ -165,10 +165,20 @@ export type FormRow = Omit<
  * are a property of the routing entry; what a form needs is DESTINATIONS, so
  * these keys name destinations and map to `request_notification` keywords
  * through `notifications.TARGET_KINDS`.
+ *
+ * `retention_days` is the third key the pair drives and the only one that is
+ * a REFUSAL waiting to happen: `services._validated_settings` accepts an
+ * integer that is `>= 1` and `<= STAPEL_FORMS["RETENTION_DAYS"]` — a per-form
+ * override may only SHORTEN the deployment's promise — and answers
+ * `error.400.forms_invalid_retention` with `params.limit` otherwise. The
+ * client mirrors the `>= 1` half (which needs no server knowledge) and lets
+ * the ceiling arrive as the server's own refusal, because the ceiling is a
+ * deployment setting this pair cannot read.
  */
 export type FormSettings = {
   readonly notify_emails?: readonly string[];
   readonly notify_telegram_chat_ids?: readonly string[];
+  readonly retention_days?: number | null;
 } & Record<string, unknown>;
 
 /** `POST /forms` body. */

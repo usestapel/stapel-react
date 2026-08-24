@@ -126,10 +126,19 @@ describe("the loud fallback", () => {
         <StapelForm publicId={PUBLIC_ID} />
       </TestHarness>
     );
-    const blocked = await screen.findByTestId("forms-submit-blocked");
+    // The reason lives in the shared substrate's gate wrapper
+    // (`@stapel/tokens-antd/skin` GatedButton), stamped
+    // `data-stapel-gated-reason` and linked to the button by
+    // aria-describedby — not in a per-pair testid.
+    const gate = await screen.findByTestId("forms-submit-gate");
+    const blocked = gate.querySelector("[data-stapel-gated-reason]");
     // The sentence names the kind — a grey button with no reason is the
     // defect core's ActionAvailability exists to prevent.
-    expect(blocked.textContent).toContain("signature");
+    expect(blocked?.textContent).toContain("signature");
+    expect(gate.getAttribute("data-stapel-gated")).toBe("blocked");
+    expect(
+      screen.getByTestId("forms-submit").getAttribute("aria-describedby")
+    ).toBe(blocked?.id);
     expect(screen.getByTestId("forms-submit").hasAttribute("disabled")).toBe(true);
   });
 });

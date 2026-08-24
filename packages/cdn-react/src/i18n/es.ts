@@ -23,6 +23,8 @@ export const cdnI18nBundleEs: I18nDictionary = {
   "error.400.invalid_format": "Formato de archivo no admitido",
   "error.400.invalid_hash": "Hash de archivo no válido",
   "error.400.invalid_image_type": "Tipo de imagen desconocido",
+  "error.400.too_many_refs":
+    "Demasiadas referencias en una sola petición ({count}; el máximo es {max})",
   "error.400.missing_fields": "Faltan campos obligatorios",
   "error.400.no_file": "No se ha elegido ningún archivo",
   "error.403.storage_quota_exceeded": "Se ha superado la cuota de almacenamiento",

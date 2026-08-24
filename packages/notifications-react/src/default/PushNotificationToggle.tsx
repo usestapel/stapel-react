@@ -1,86 +1,84 @@
 /**
- * `<PushNotificationToggle/>` — default skin for the "push notifications"
- * settings surface. Built entirely on this pair's EXISTING
- * `DeviceRegistration` headless wrapper (`useRegisterDevice` /
- * `useUnregisterDevice`) — no new backend surface. stapel-notifications has
- * NO endpoint to list a caller's already-registered devices (see
- * `ironmemo-libgaps.md` §settings inventory), so this skin can't render a
- * persisted on/off state the way `<ProfileSettings/>` can — it models the
- * single real settings action the contract supports: bind (or unbind) THIS
- * device's push token. Getting a fresh token (VAPID/APNs/FCM) is a host
- * concern — see `getToken`.
+ * `<PushNotificationToggle/>` — one switch, and it tells the truth.
+ *
+ * Every position it can be in is derived from `GET /devices/` plus this
+ * device's token fingerprint (see `headless/DeviceRegistration.tsx`). There is
+ * no `useState(false)` here and nothing to flip optimistically: a registration
+ * that fails leaves the switch where it was, because the switch is drawing the
+ * server's answer and the server's answer did not change.
+ *
+ * What that fixes, concretely, is the defect the audit called this pair's
+ * blocker:
+ *
+ *   - the switch used to render OFF on every mount even for a device that was
+ *     receiving push;
+ *   - after a reload it held no token, so `if (token) unregister(token)` sent
+ *     NOTHING and the next line flipped the UI off anyway — the person
+ *     believed push was disabled and the server kept sending;
+ *   - `await props.getToken()` was unguarded, so the commonest real path (the
+ *     permission prompt refused) rejected into `void handleChange(next)`, the
+ *     switch sprang back, and no message appeared at all.
+ *
+ * All three are now states with their own sentence beside the control:
+ * `denied`, `unsupported`, `unknown`, `inactive`. None of them is a switch
+ * position guessed at.
  */
-import { useState } from "react";
 import type { ReactElement } from "react";
-import { Card, Switch, Typography } from "antd";
-import { useErrorDisplay, useT } from "@stapel/core";
+import { SkinTheme } from "@stapel/tokens-antd/skin";
+import type { SkinSurface } from "@stapel/tokens-antd/skin";
+import { spacing } from "@stapel/tokens";
 import { DeviceRegistration } from "../headless/DeviceRegistration.js";
 import type { Platform } from "../api/types.js";
-import { NOTIFICATIONS_I18N_KEYS } from "../i18n/keys.js";
-import { ErrorAlert } from "./ErrorAlert.js";
+import { PushToggleBody } from "./pushParts.js";
 
 export interface PushNotificationToggleProps {
-  /** Resolve a fresh push token when the caller turns notifications ON (e.g.
-   * from the browser Push API's `PushSubscription`, or a native bridge). This
-   * pair doesn't obtain tokens itself — VAPID/APNs/FCM wiring is a host
-   * concern, not a headless module's. */
+  /**
+   * Obtain a push token for this device when the person turns notifications
+   * ON. VAPID/APNs/FCM wiring is a host concern, not a headless module's, and
+   * this is called only from a deliberate toggle — never on mount.
+   */
   getToken(): Promise<string>;
+  /**
+   * The token this device ALREADY holds (`registration.pushManager
+   * .getSubscription()`, a cached FCM token), or `null` when it holds none.
+   * Must not prompt.
+   *
+   * Strongly recommended: without it the switch cannot find this device's row
+   * in the registry after a reload, and honestly reports `unknown` rather than
+   * drawing a position it does not know.
+   */
+  currentToken?: () => Promise<string | null>;
   /** Device platform sent with the registration. Default `"web"`. */
   platform?: Platform;
+  /** `false` where the host knows push cannot work here at all. */
+  supported?: boolean;
+  /** Draw the heading above the control. `false` inside a pane that already
+   * carries it. */
+  heading?: boolean;
+  /** What the skin paints under itself; `"bare"` inside a host-painted card. */
+  surface?: SkinSurface;
+  /** Pin the theme side (a demo showing both). Defaults to the live mode. */
+  mode?: "light" | "dark";
 }
 
-export function PushNotificationToggle(props: PushNotificationToggleProps): ReactElement {
-  const t = useT();
-  // Never the raw `.message` — for a response with no error envelope that
-  // is the transport's own "Request failed with status 500" (owner report
-  // 2026-08-09). `useErrorText` folds any thrown value into the one dialect.
-  const errorDisplay = useErrorDisplay(NOTIFICATIONS_I18N_KEYS.unknownError);
-  const [enabled, setEnabled] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
-
+export function PushNotificationToggle(
+  props: PushNotificationToggleProps
+): ReactElement {
   return (
-    <DeviceRegistration>
-      {({ register, unregister, isRegistering, isUnregistering, isError, error }) => {
-        async function handleChange(next: boolean): Promise<void> {
-          if (next) {
-            const fresh = await props.getToken();
-            setToken(fresh);
-            setEnabled(true);
-            register(fresh, props.platform ?? "web");
-          } else {
-            if (token) unregister(token);
-            setEnabled(false);
-          }
-        }
-
-        return (
-          <Card data-testid="push-notification-toggle">
-            <Typography.Title level={4} style={{ marginTop: 0 }}>
-              {t(NOTIFICATIONS_I18N_KEYS.pushSettingsTitle)}
-            </Typography.Title>
-            <Typography.Text type="secondary">
-              {t(NOTIFICATIONS_I18N_KEYS.pushSettingsSubtitle)}
-            </Typography.Text>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }}>
-              <Switch
-                checked={enabled}
-                loading={isRegistering || isUnregistering}
-                onChange={(next) => {
-                  void handleChange(next);
-                }}
-              />
-              <Typography.Text>
-                {enabled
-                  ? t(NOTIFICATIONS_I18N_KEYS.deviceRegistered)
-                  : t(NOTIFICATIONS_I18N_KEYS.deviceRegister)}
-              </Typography.Text>
-            </div>
-
-            {isError && <ErrorAlert error={errorDisplay(error)} style={{ marginTop: 12 }} />}
-          </Card>
-        );
-      }}
-    </DeviceRegistration>
+    <SkinTheme
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+      surface={props.surface ?? "raised"}
+      data-testid="push-notification-toggle"
+      style={{ width: "100%", padding: spacing[4] }}
+    >
+      <DeviceRegistration
+        getToken={props.getToken}
+        {...(props.currentToken !== undefined ? { currentToken: props.currentToken } : {})}
+        {...(props.platform !== undefined ? { platform: props.platform } : {})}
+        {...(props.supported !== undefined ? { supported: props.supported } : {})}
+      >
+        {(bag) => <PushToggleBody bag={bag} heading={props.heading ?? true} />}
+      </DeviceRegistration>
+    </SkinTheme>
   );
 }

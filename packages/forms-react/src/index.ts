@@ -89,6 +89,7 @@ export {
   useFormsRuntime,
   useFormsApi,
   useFormsAnalytics,
+  useFormsWorkspaceId,
 } from "./model/context.js";
 export { formsQueryKeys } from "./model/queryKeys.js";
 
@@ -160,6 +161,8 @@ export type {
 } from "./headless/ResponsesTable.js";
 export { FormList } from "./headless/FormList.js";
 export type { FormListBag } from "./headless/FormList.js";
+export { FormSettingsEditor } from "./headless/FormSettingsEditor.js";
+export type { FormSettingsEditorBag } from "./headless/FormSettingsEditor.js";
 
 // ── i18n ─────────────────────────────────────────────────────────────────────
 export {

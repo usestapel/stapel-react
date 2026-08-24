@@ -23,6 +23,24 @@ export const useFormsApi: () => FormsApi = kit.useApi;
 
 export const useFormsAnalytics: () => Analytics | null = kit.useAnalytics;
 
+/**
+ * The workspace an admin screen acts in: the screen's own prop when it has
+ * one, otherwise the runtime's `workspaceId` (see `model/runtime.ts` for why
+ * the scope lives on the runtime), otherwise `null`.
+ *
+ * `null` is returned rather than thrown: a routed screen that reaches a host
+ * with no workspace declared must be able to SAY so — a thrown error inside a
+ * route renders a blank page and blames nothing.
+ */
+export function useFormsWorkspaceId(explicit?: string): string | null {
+  const runtime = useFormsRuntime();
+  if (explicit !== undefined && explicit.length > 0) return explicit;
+  const fromRuntime = runtime.workspaceId;
+  return fromRuntime !== undefined && fromRuntime.length > 0
+    ? fromRuntime
+    : null;
+}
+
 /** @internal Re-exported as `<FormsProvider>` from `headless/`. */
 export const ModuleProvider: ModuleContextKit<FormsRuntime>["Provider"] =
   kit.Provider;

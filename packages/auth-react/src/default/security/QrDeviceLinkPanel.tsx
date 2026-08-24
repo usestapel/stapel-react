@@ -27,13 +27,14 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Button, Card, Flex, QRCode, Typography } from "antd";
+import { Alert, Button, Card, Flex, Typography } from "antd";
 import { SkinDialog } from "@stapel/tokens-antd/skin";
 import { useFormatFlowError, useT } from "@stapel/core";
 import type { QrLoginBag } from "../../headless/QrLogin.js";
 import type { QrLoginState } from "../../flows/qrLoginFlow.js";
 import { QrLogin } from "../../headless/QrLogin.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
+import { QrCanvas } from "./QrCanvas.js";
 
 function formatCountdown(seconds: number): string {
   const s = Math.max(0, Math.ceil(seconds));
@@ -139,18 +140,12 @@ function QrJourney(props: {
           pattern — the same bug already fixed once for the in-room QR
           modal (`components/room/QRModal.tsx` in the meettoday host app);
           this is that same fix applied to the settings-tab surface. */}
-      {/* eslint-disable-next-line stapel/no-raw-colors -- deliberate, theme-INDEPENDENT pure white/black: a QR code's camera contrast is a functional requirement, not decor, and must not follow dark mode into low-contrast token colours */}
-      <div style={{ background: "#ffffff", padding: 16, borderRadius: 8 }}>
-        <QRCode
-          value={scanUrl}
-          status={qrCodeStatus(s.step)}
-          onRefresh={regenerate}
-          color="#000000"
-          bgColor="#ffffff"
-          bordered={false}
-          size={240}
-        />
-      </div>
+      <QrCanvas
+        value={scanUrl}
+        status={qrCodeStatus(s.step)}
+        onRefresh={regenerate}
+        data-testid="qr-device-link-canvas"
+      />
 
       {s.step === "generating" && hadKeyRef.current && (
         <Typography.Text type="secondary">{t(AUTH_I18N_KEYS.secQrRegenerating)}</Typography.Text>

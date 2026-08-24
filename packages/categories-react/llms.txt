@@ -111,10 +111,13 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
-- categories.carousel → <CategoryCarousel> [default]  demo/CategoryCarousel.demo.tsx
-- categories.features → <CategoryFeatures> [default]  demo/CategoryFeatures.demo.tsx
-- categories.picker → <CategoryPicker> [default]  demo/CategoryPicker.demo.tsx
-- categories.tree → <CategoryTree> [roots|one category]  demo/CategoryTree.demo.tsx
+- categories.breadcrumbs → <CategoryBreadcrumbsBar> [deep|in a router|the link itself|stale link]  demo/CategoryBreadcrumbsBar.demo.tsx
+- categories.carousel → <CategoryCarouselStrip> [tiles|text only|nothing featured|outage]  demo/CategoryCarouselStrip.demo.tsx
+- categories.catalog → <CatalogPage> [browse|no icons|empty catalogue|outage]  demo/CatalogPage.demo.tsx
+- categories.category → <CategoryPage> [composed|unfilled slot|leaf with its schema|no such category|outage]  demo/CategoryPage.demo.tsx
+- categories.features → <CategoryFeatureList> [schema|no extra details|outage]  demo/CategoryFeatureList.demo.tsx
+- categories.picker → <CategoryPickerField> [on a phone|inline|too general|chosen|outage]  demo/CategoryPickerField.demo.tsx
+- categories.tree → <CategoryTreePane> [roots|one level down|leaf|partial catalogue|outage]  demo/CategoryTreePane.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

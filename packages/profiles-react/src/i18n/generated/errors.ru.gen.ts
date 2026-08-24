@@ -12,8 +12,11 @@ import type { ProfilesErrorCode } from "./errors.gen.js";
  * entry, so the locale stays out of hosts that don't ship it.
  */
 export const profilesErrorBundleRu: Record<ProfilesErrorCode, string> = {
+  "error.400.avatar_gravatar_hash": "Аватар Gravatar должен быть хешем адреса электронной почты (32 или 64 шестнадцатеричных символа)",
   "error.400.avatar_not_found": "Аватар не найден на CDN",
   "error.400.avatar_source_mismatch": "Ссылка на аватар — это CDN-ссылка, но avatar_source говорит иное. Передайте avatar_source=\"cdn\" вместе с ней либо не передавайте avatar_source вовсе — источник будет выведен из самой ссылки",
+  "error.400.avatar_url_host": "Этот хост URL аватара здесь не разрешён.",
+  "error.400.avatar_url_scheme": "URL аватара должен использовать одну из схем: {schemes}",
   "error.400.bad_request": "Некорректный запрос",
   "error.400.cannot_block_self": "Нельзя заблокировать самого себя",
   "error.400.cannot_follow_self": "Нельзя подписаться на самого себя",
@@ -65,4 +68,5 @@ export const profilesErrorBundleRu: Record<ProfilesErrorCode, string> = {
   "error.429.rate_limit": "Слишком много попыток. Повторите попытку через {retry_after_minutes} мин.",
   "error.429.too_many_requests": "Слишком много запросов. Пожалуйста, повторите попытку позже.",
   "error.500.internal": "Что-то пошло не так",
+  "error.503.mandate_unavailable": "Не удалось проверить доступ к рабочему пространству",
 };

@@ -10,14 +10,13 @@
  */
 import type { ReactElement, ReactNode } from "react";
 import { Breadcrumb, Skeleton, Typography } from "antd";
-import { matchLoad, toFlowError, useDescribeFlowError, useT } from "@stapel/core";
+import { useT } from "@stapel/core";
 import { renderCategoryLabel } from "../catalog/labels.js";
 import { CategoryBreadcrumbs } from "../headless/CategoryBreadcrumbs.js";
 import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
 import { CategoryLink } from "./CategoryLink.js";
 import type { LinkComponentProp } from "./CategoryLink.js";
-import { ErrorAlert } from "./ErrorAlert.js";
-import { CategoriesSkinTheme } from "./theme.js";
+import { ErrorAlert, LoadBoundary, SkinTheme } from "@stapel/tokens-antd/skin";
 import type { ThemeModeProp } from "./types.js";
 
 export interface CategoryBreadcrumbsBarProps
@@ -33,7 +32,6 @@ export function CategoryBreadcrumbsBar(
   props: CategoryBreadcrumbsBarProps
 ): ReactElement {
   const t = useT();
-  const describe = useDescribeFlowError();
   const base = props.basePath ?? "/c";
 
   /** A crumb's title: `href` on the ITEM would make antd render its own
@@ -56,7 +54,7 @@ export function CategoryBreadcrumbsBar(
   );
 
   return (
-    <CategoriesSkinTheme
+    <SkinTheme
       {...(props.mode !== undefined ? { mode: props.mode } : {})}
     >
       <CategoryBreadcrumbs
@@ -65,25 +63,29 @@ export function CategoryBreadcrumbsBar(
           ? { categoryId: props.categoryId }
           : {})}
       >
-        {(bag) =>
-          matchLoad(bag.state, {
-            loading: () => (
+        {(bag) => (
+          <LoadBoundary
+            state={bag.state}
+            testId="categories-breadcrumbs"
+            onRetry={bag.refetch}
+            loading={
               <Skeleton.Input
                 active
                 size="small"
                 data-testid="categories-breadcrumbs-loading"
               />
-            ),
-            failed: (error) => (
+            }
+            failed={(error) => (
               <ErrorAlert
                 testId="categories-breadcrumbs-failed"
-                error={{
-                  ...describe(toFlowError(error)),
-                  message: t(CATEGORIES_I18N_KEYS.catalogLoadFailed),
-                }}
+                variant="inline"
+                thrown={error}
+                message={t(CATEGORIES_I18N_KEYS.catalogLoadFailed)}
+                onRetry={bag.refetch}
               />
-            ),
-            ready: (crumbs) =>
+            )}
+          >
+            {(crumbs) =>
               bag.unknownSlug ? (
                 <Typography.Text
                   type="secondary"
@@ -110,10 +112,11 @@ export function CategoryBreadcrumbsBar(
                     })),
                   ]}
                 />
-              ),
-          })
-        }
+              )
+            }
+          </LoadBoundary>
+        )}
       </CategoryBreadcrumbs>
-    </CategoriesSkinTheme>
+    </SkinTheme>
   );
 }

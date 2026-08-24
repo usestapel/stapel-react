@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
-import { renderDemoVariant, variantIds } from "@stapel/showcase";
+import { renderToStaticMarkup } from "react-dom/server";
+import {
+  assertVariantsRenderDistinctly,
+  renderDemoVariant,
+  variantIds,
+} from "@stapel/showcase";
 import type { DemoDef } from "@stapel/showcase";
 
 /**
@@ -29,6 +34,18 @@ describe("notifications-react demos", () => {
       if (!first) return;
       const { container } = render(renderDemoVariant(demo, first));
       expect(container.firstChild).not.toBeNull();
+    });
+
+    // A demo declares variants because the states DIFFER. When the named state
+    // is only reachable by a click, every variant paints the same first frame
+    // and the showcase photographs one screen under three names — worse than
+    // declaring one, because the gap is invisible exactly where it is being
+    // documented. Seed the state (see `demo/_harness.tsx`'s `seed`) or drop
+    // the variant.
+    it(`${demo.id} paints something different for every variant`, () => {
+      assertVariantsRenderDistinctly(demo, (element) =>
+        renderToStaticMarkup(element)
+      );
     });
   }
 });

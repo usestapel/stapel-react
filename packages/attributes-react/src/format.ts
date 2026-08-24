@@ -62,6 +62,16 @@ function translate(options: FormatOptions | undefined, key: string): string {
   return resolved.length > 0 ? resolved : key;
 }
 
+/** A config string the engine declares to be a translation key
+ * (`prefix`/`postfix`/`postfix1000`/`trueLabel`/`falseLabel`), resolved — or
+ * `""` when it is absent. Unlike an option label there is no
+ * `translatable_options` flag on these: upstream's `get_translation_keys`
+ * collects them unconditionally. */
+function translateConfig(options: FormatOptions | undefined, raw: unknown): string {
+  const text = str(raw);
+  return text.length === 0 ? "" : translate(options, text);
+}
+
 /** `{value → label}` for an options-bearing config, in either option shape. */
 function labelOf(
   config: Readonly<Record<string, unknown>>,
@@ -84,18 +94,60 @@ function labelOf(
   return str(value);
 }
 
+/**
+ * A `hierarchical_select` path of stored VALUES → the labels the catalogue
+ * gave them, walking the option tree level by level. A step the tree does not
+ * contain keeps its raw value: the stored answer is the truth, and a
+ * reconfigured category must not make an old listing print a blank.
+ */
+function hierarchicalPathLabels(
+  config: Readonly<Record<string, unknown>>,
+  path: readonly unknown[],
+  options: FormatOptions | undefined
+): readonly string[] {
+  const translatable = config["translatable_options"] !== false;
+  let level: readonly unknown[] = Array.isArray(config["options"]) ? config["options"] : [];
+  return path.map((step) => {
+    const wanted = str(step);
+    const found = level.find(
+      (option) =>
+        option !== null &&
+        typeof option === "object" &&
+        str((option as { value?: unknown }).value) === wanted
+    ) as { label?: unknown; children?: unknown } | undefined;
+    level = found !== undefined && Array.isArray(found.children) ? found.children : [];
+    const label = str(found?.label);
+    if (label.length === 0 || label === wanted) return wanted;
+    return translatable ? translate(options, label) : label;
+  });
+}
+
 function formatNumber(
   config: Readonly<Record<string, unknown>>,
   value: unknown,
-  defaultPrecision: number
+  defaultPrecision: number,
+  options: FormatOptions | undefined
 ): string | undefined {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(parsed)) return undefined;
   const precision = config["precision"];
   const digits = typeof precision === "number" && precision >= 0 ? precision : defaultPrecision;
+  // `prefix`/`postfix`/`postfix1000` are TRANSLATION KEYS upstream
+  // (`types/int/type.py:get_translation_keys` collects all three), so they go
+  // through the host's catalogue like an option label — a Russian storefront
+  // was reading "L" and "each" in English off the spec table.
+  const prefix = translateConfig(options, config["prefix"]);
+  const postfix1000 = str(config["postfix1000"]);
+  // The engine switches unit AND scale at exactly a thousand
+  // (`format_value`: `value / 1000`, trailing zeros stripped, `postfix1000`
+  // as the unit). A display that showed "1500 g" where the server writes
+  // "1.5 kg" is the same value said two ways.
+  if (postfix1000.length > 0 && Math.abs(parsed) >= 1000) {
+    const scaled = (parsed / 1000).toFixed(digits).replace(/\.?0+$/, "");
+    return `${prefix}${scaled} ${translateConfig(options, postfix1000)}`;
+  }
   const body = digits > 0 ? parsed.toFixed(digits) : String(Math.trunc(parsed));
-  const prefix = str(config["prefix"]);
-  const postfix = str(config["postfix"]);
+  const postfix = translateConfig(options, config["postfix"]);
   return `${prefix}${body}${postfix ? ` ${postfix}` : ""}`;
 }
 
@@ -145,18 +197,19 @@ export function formatFeatureValue(
   const value = dto.value;
 
   switch (type) {
-    case "string":
-      return `${str(config["prefix"])}${str(value)}${
-        str(config["postfix"]) ? ` ${str(config["postfix"])}` : ""
-      }`;
+    case "string": {
+      const prefix = translateConfig(options, config["prefix"]);
+      const postfix = translateConfig(options, config["postfix"]);
+      return `${prefix}${str(value)}${postfix ? ` ${postfix}` : ""}`;
+    }
     case "int":
-      return formatNumber(config, value, 0);
+      return formatNumber(config, value, 0, options);
     case "float":
-      return formatNumber(config, value, 2);
+      return formatNumber(config, value, 2, options);
     case "bool": {
       const on = value === true || value === 1 || value === "true";
-      const label = str(config[on ? "trueLabel" : "falseLabel"]);
-      if (label.length > 0) return translate(options, label);
+      const label = translateConfig(options, config[on ? "trueLabel" : "falseLabel"]);
+      if (label.length > 0) return label;
       return on ? "✓" : "—";
     }
     case "select": {
@@ -165,7 +218,11 @@ export function formatFeatureValue(
     }
     case "hierarchical_select": {
       const path = Array.isArray(value) ? value : [value];
-      return path.map((step) => str(step)).join(" / ");
+      // The stored value is the path of option VALUES; the labels live in the
+      // config's tree. Printing the values gave a detail page reading
+      // "passenger / sedan" — the storage keys, in English, whatever the
+      // catalogue called them (visual class C-RAWKEY).
+      return hierarchicalPathLabels(config, path, options).join(" / ");
     }
     case "date": {
       const seconds =
@@ -190,7 +247,7 @@ export function formatFeatureValue(
       if (!Number.isFinite(parsed)) return undefined;
       const digits = typeof config["precision"] === "number" ? config["precision"] : 2;
       const unit = str(dto["unit"]) || str(config["unit_m"]) || str(config["unit_i"]);
-      const body = `${str(config["prefix"])}${parsed.toFixed(digits)}`;
+      const body = `${translateConfig(options, config["prefix"])}${parsed.toFixed(digits)}`;
       return unit ? `${body} ${unit}` : body;
     }
     default:

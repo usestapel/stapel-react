@@ -623,7 +623,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "BoolConfig";
+            type: "bool";
             trueLabel?: string | null;
             falseLabel?: string | null;
         };
@@ -633,7 +633,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "BoolDto";
+            type: "bool";
             value?: boolean;
         };
         /** @description Response for bulk create/update operations. */
@@ -736,7 +736,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "null";
+            type: "convertible_unit";
             unitType?: string | null;
             unit_m?: string | null;
             unit_i?: string | null;
@@ -753,7 +753,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "null";
+            type: "convertible_unit";
             /** Format: double */
             value?: number | null;
             unit?: string | null;
@@ -764,7 +764,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "DateConfig";
+            type: "date";
             precision?: components["schemas"]["PrecisionEnum"];
             minDate?: number | null;
             maxDate?: number | null;
@@ -781,7 +781,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "DateDto";
+            type: "date";
             value?: number | null;
         };
         /**
@@ -1088,7 +1088,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "FloatConfig";
+            type: "float";
             /** Format: double */
             min?: number | null;
             /** Format: double */
@@ -1107,7 +1107,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "FloatDto";
+            type: "float";
             /** Format: double */
             value?: number;
         };
@@ -1117,7 +1117,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "HeaderConfig";
+            type: "header";
             style?: components["schemas"]["StyleEnum"];
         };
         /** @description Serializer for header feature DTO. */
@@ -1126,7 +1126,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "HeaderDto";
+            type: "header";
             value?: string | null;
         };
         /** @description Serializer for hex color feature configuration. */
@@ -1135,7 +1135,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "HexColorConfig";
+            type: "hex_color";
             options?: components["schemas"]["HexColorOption"][];
             allowCustom?: boolean;
         };
@@ -1146,7 +1146,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "HexColorDto";
+            type: "hex_color";
         };
         HexColorOption: {
             simple: string;
@@ -1172,7 +1172,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "HierarchicalSelectConfig";
+            type: "hierarchical_select";
             options?: components["schemas"]["HierarchicalOption"][];
             required?: boolean;
             minDepth?: number;
@@ -1185,7 +1185,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "HierarchicalSelectDto";
+            type: "hierarchical_select";
             value?: string[];
         };
         /** @description Serializer for integer feature configuration. */
@@ -1194,7 +1194,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "IntConfig";
+            type: "int";
             min?: number | null;
             max?: number | null;
             options?: number[] | null;
@@ -1211,7 +1211,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "IntDto";
+            type: "int";
             value?: number;
         };
         /** @description Serializer for /revision endpoint response. */
@@ -1374,7 +1374,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "SelectConfig";
+            type: "select";
             options?: components["schemas"]["SelectOption"][];
             uiStyle?: components["schemas"]["UiStyleEnum"];
             minSelected?: number;
@@ -1388,7 +1388,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "SelectDto";
+            type: "select";
             value?: string[];
         };
         SelectOption: {
@@ -1409,7 +1409,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "StringConfig";
+            type: "string";
             minLength?: number | null;
             maxLength?: number | null;
             pattern?: string | null;
@@ -1427,7 +1427,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "StringDto";
+            type: "string";
             value?: string;
         };
         /**

@@ -16,7 +16,7 @@ const FINALIZED = {
   id: "rec-1",
   workspace_id: "ws-1",
   title: "Team standup",
-  status: "processing",
+  status: "queued",
   source_type: "upload",
   language: "en",
   duration_seconds: null,
@@ -27,6 +27,8 @@ const FINALIZED = {
   transcript_storage_key: null,
   summary: null,
   created_at: "2026-07-09T09:00:00Z",
+  is_processing: true,
+  poll_after_seconds: 5,
 };
 
 function FinalizerBody(): ReactElement {

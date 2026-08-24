@@ -13,6 +13,15 @@
  * // the search pair's card slot — the container is the seam, not an import
  * <SearchPage renderCard={(item) => <ListingCard listing={item.card} href={`/l/${item.id}`} />} />
  * ```
+ *
+ * ── What this barrel no longer exports, and where it went ──────────────────
+ *
+ * `ListingsSkinTheme` and `ErrorAlert` were this pair's copies of two
+ * components nine pairs each carried a copy of. They live in
+ * `@stapel/tokens-antd/skin` now, as `SkinTheme` and `ErrorAlert`: one place
+ * for the reactive-theme fix, one place for the message/detail split. A host
+ * that wrapped its own composition in `<ListingsSkinTheme>` imports
+ * `<SkinTheme>` from the substrate instead — same props, plus a `surface`.
  */
 export { ListingCard } from "./ListingCard.js";
 export type {
@@ -21,17 +30,20 @@ export type {
   ListingCardOpenProps,
   ListingCardBlockedReason,
 } from "./ListingCard.js";
-export { ListingDetailPane } from "./ListingDetailPane.js";
+export { ListingDetailPane, DETAIL_MEASURE, DETAIL_PHOTO_MIN } from "./ListingDetailPane.js";
 export type { ListingDetailPaneProps } from "./ListingDetailPane.js";
-export { ListingComposerPage } from "./ListingComposerPage.js";
+export { ListingComposerPage, COMPOSER_MEASURE } from "./ListingComposerPage.js";
 export type {
   ListingComposerPageProps,
   ComposerCategorySlot,
+  ComposerCurrencySlot,
   ComposerLocationSlot,
+  ComposerLocationValue,
+  ComposerLocationPickerProps,
 } from "./ListingComposerPage.js";
 export { MyListingsPane } from "./MyListingsPane.js";
 export type { MyListingsPaneProps } from "./MyListingsPane.js";
-export { FavoritesPane } from "./FavoritesPane.js";
+export { FavoritesPane, FAVORITES_CARD_MIN } from "./FavoritesPane.js";
 export type {
   FavoritesPaneProps,
   FavoritesPaneOpenProps,
@@ -39,11 +51,8 @@ export type {
 
 export { LifecycleTag, ListingStatusBlock, ModerationNote } from "./StatusTags.js";
 export type { ListingStatusProps } from "./StatusTags.js";
-export { ListingPhoto } from "./ListingPhoto.js";
+export { ListingPhoto, LISTING_PHOTO_ASPECT } from "./ListingPhoto.js";
 export type { ListingPhotoProps } from "./ListingPhoto.js";
-export { ErrorAlert } from "./ErrorAlert.js";
 export { SignInLink } from "./SignInLink.js";
 export type { SignInLinkProps } from "./SignInLink.js";
-export { ListingsSkinTheme } from "./theme.js";
-export type { ListingsSkinThemeProps } from "./theme.js";
 export type { ThemeModeProp } from "./types.js";

@@ -1,12 +1,17 @@
 /**
  * `<AccountClosurePanel>` — "is my account being deleted?", answered.
  *
- * THREE arms from `matchLoad`, and the ready arm has two shapes:
+ * THREE arms from the substrate's `LoadBoundary`, and the ready arm has two
+ * shapes:
  *
  *   loading   — we are asking
  *   failed    — we could not ask                 (retry, never "you're fine")
  *   ready(null)   — nothing is being deleted     (offer the destructive door)
  *   ready(closure) — a DATE, and the way back    (never a countdown)
+ *
+ * The loading and failed arms are the design system's, not this panel's
+ * (`@stapel/tokens-antd/skin`): one skeleton, one error surface with the
+ * retry beside the bad news, drawn identically on every screen in the fleet.
  *
  * ── Why `ready(null)` is not the empty state ──────────────────────────────
  *
@@ -42,16 +47,14 @@
  */
 import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Button, Card, Flex, Skeleton, Typography } from "antd";
-import { SkinDialog } from "@stapel/tokens-antd/skin";
-import { matchLoad, useDescribeFlowError, useI18n, useT } from "@stapel/core";
-import { toFlowError } from "../flows/errors.js";
+import { Alert, Button, Card, Flex, Typography } from "antd";
+import { spacing } from "@stapel/tokens";
+import { ErrorAlert, LoadBoundary, SkinDialog, SkinTheme } from "@stapel/tokens-antd/skin";
+import { useI18n, useT } from "@stapel/core";
 import { GDPR_I18N_KEYS } from "../i18n/keys.js";
 import { useAccountClosure } from "../model/closure.js";
 import { formatDeletionDate } from "../model/dates.js";
 import { isClosureAlreadyPending, isLegalHold } from "../model/refusals.js";
-import { ErrorAlert } from "./ErrorAlert.js";
-import { GdprSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
 export interface AccountClosurePanelProps extends ThemeModeProp {
@@ -65,7 +68,6 @@ export function AccountClosurePanel(
 ): ReactElement {
   const t = useT();
   const { locale } = useI18n();
-  const describe = useDescribeFlowError();
   const bag = useAccountClosure();
   const [confirming, setConfirming] = useState(false);
 
@@ -90,52 +92,43 @@ export function AccountClosurePanel(
       : undefined;
 
   return (
-    <GdprSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
+    <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
       <Card
         data-testid="gdpr-closure"
         title={t(GDPR_I18N_KEYS.closureHeading)}
         size="small"
       >
-        <Flex vertical gap={12}>
-          {matchLoad(bag.state, {
-            loading: () => (
-              <div data-testid="gdpr-closure-loading">
-                <Skeleton active paragraph={{ rows: 2 }} />
-              </div>
-            ),
-            failed: (error) => (
-              <ErrorAlert
-                testId="gdpr-closure-failed"
-                error={describe(toFlowError(error))}
-                action={
-                  <Button
-                    size="small"
-                    onClick={bag.refetch}
-                    data-analytics="none"
-                    data-analytics-reason="recovery affordance for a failed read — host app wraps with its own tracked()"
-                  >
-                    {t(GDPR_I18N_KEYS.retry)}
-                  </Button>
-                }
-              />
-            ),
-            ready: (closure) =>
+        <Flex vertical gap={spacing[3]}>
+          {/* Three arms from the shared substrate — the loading skeleton and
+              the failed alert with its retry are the design system's, drawn
+              the same way on every screen in the fleet. Only the ready arm is
+              this panel's, and it still has two shapes. */}
+          <LoadBoundary
+            state={bag.state}
+            testId="gdpr-closure"
+            skeletonRows={2}
+            onRetry={bag.refetch}
+          >
+            {(closure) =>
               closure === null ? (
                 <IdleState
                   onOpen={() => setConfirming(true)}
                   busy={bag.initiate.isPending}
                   error={alreadyPending ? undefined : initiateError}
+                  cancelled={bag.cancel.isSuccess}
                 />
               ) : (
                 <ScheduledState
                   date={graceDate}
+                  erased={closure.status === "deleted"}
                   canCancel={bag.canCancel}
                   busy={bag.cancel.isPending}
                   onCancel={() => bag.cancel.mutate()}
                   error={bag.cancel.error}
                 />
-              ),
-          })}
+              )
+            }
+          </LoadBoundary>
         </Flex>
       </Card>
 
@@ -150,7 +143,7 @@ export function AccountClosurePanel(
         maskClosable={false}
         data-testid="gdpr-closure-confirm"
         footer={
-          <Flex gap={8} justify="flex-end">
+          <Flex gap={spacing[2]} justify="flex-end">
             <Button
               onClick={() => setConfirming(false)}
               data-testid="gdpr-closure-confirm-cancel"
@@ -188,7 +181,7 @@ export function AccountClosurePanel(
             : t(GDPR_I18N_KEYS.closureExplain)}
         </Typography.Paragraph>
       </SkinDialog>
-    </GdprSkinTheme>
+    </SkinTheme>
   );
 }
 
@@ -197,12 +190,24 @@ function IdleState(props: {
   onOpen: () => void;
   busy: boolean;
   error: unknown;
+  cancelled: boolean;
 }): ReactElement {
   const t = useT();
-  const describe = useDescribeFlowError();
   const legalHold = props.error != null && isLegalHold(props.error);
   return (
-    <Flex vertical gap={12} data-testid="gdpr-closure-idle">
+    <Flex vertical gap={spacing[3]} data-testid="gdpr-closure-idle">
+      {/* A cancel that worked leaves the idle screen — which is the same
+          screen as "you never asked", and would therefore say nothing about
+          what just happened. The receipt is the difference between a control
+          that worked and a control that did nothing. */}
+      {props.cancelled ? (
+        <Alert
+          type="success"
+          showIcon
+          data-testid="gdpr-closure-cancelled"
+          message={t(GDPR_I18N_KEYS.closureCancelled)}
+        />
+      ) : null}
       <Alert
         type="success"
         showIcon
@@ -219,12 +224,9 @@ function IdleState(props: {
           data-testid="gdpr-closure-legal-hold"
           message={t(GDPR_I18N_KEYS.errorLegalHold)}
         />
-      ) : props.error != null ? (
-        <ErrorAlert
-          testId="gdpr-closure-initiate-failed"
-          error={describe(toFlowError(props.error))}
-        />
-      ) : null}
+      ) : (
+        <ErrorAlert testId="gdpr-closure-initiate-failed" thrown={props.error} />
+      )}
       <div>
         <Button
           danger
@@ -244,41 +246,38 @@ function IdleState(props: {
 /** A closure exists: the DATE, and the way back while there is one. */
 function ScheduledState(props: {
   date: string | undefined;
+  erased: boolean;
   canCancel: boolean;
   busy: boolean;
   onCancel: () => void;
   error: unknown;
 }): ReactElement {
   const t = useT();
-  const describe = useDescribeFlowError();
   // Grace is over once the erasure is running: the module stops accepting a
   // cancel, and the panel must stop implying one is possible.
   const erasing = !props.canCancel;
   return (
-    <Flex vertical gap={12} data-testid="gdpr-closure-scheduled">
+    <Flex vertical gap={spacing[3]} data-testid="gdpr-closure-scheduled">
       <Alert
         type={erasing ? "error" : "warning"}
         showIcon
         data-testid="gdpr-closure-banner"
         message={
-          props.date !== undefined
-            ? t(GDPR_I18N_KEYS.closureScheduled, { date: props.date })
-            : t(GDPR_I18N_KEYS.closureDeleting)
+          props.erased
+            ? t(GDPR_I18N_KEYS.closureDeleted)
+            : props.date !== undefined
+              ? t(GDPR_I18N_KEYS.closureScheduled, { date: props.date })
+              : t(GDPR_I18N_KEYS.closureDeleting)
         }
         description={
-          erasing ? (
+          erasing && !props.erased ? (
             <Typography.Text type="secondary" data-testid="gdpr-closure-final">
               {t(GDPR_I18N_KEYS.closureDeleting)}
             </Typography.Text>
           ) : undefined
         }
       />
-      {props.error != null ? (
-        <ErrorAlert
-          testId="gdpr-closure-cancel-failed"
-          error={describe(toFlowError(props.error))}
-        />
-      ) : null}
+      <ErrorAlert testId="gdpr-closure-cancel-failed" thrown={props.error} />
       {props.canCancel ? (
         <div>
           <Button

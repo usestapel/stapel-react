@@ -81,6 +81,7 @@ export default defineDemo({
   description:
     "The headless EventRsvp wraps the respond mutation for one event (accepted/tentative/declined). Bring your own control UI — the component is renderless.",
   component: EventRsvp,
+  covers: ["EventDetail", "EventDelete"],
   tokens: ["card-bg"],
   variants: {
     default: { render: () => <EventRsvpDemo /> },

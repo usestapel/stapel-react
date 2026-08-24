@@ -61,11 +61,35 @@ export {
   planOffer,
   bestPerCredit,
   perCreditSavingsPercent,
-  formatMoney,
-  formatPerCredit,
-  formatExpiryDate,
 } from "./model/pricing.js";
 export type { CreditOffer, OfferKind } from "./model/pricing.js";
+
+// ── model (formatters — money, counted credits, deadlines) ───────────────────
+export {
+  formatMoney,
+  formatPerCredit,
+  formatCreditCount,
+  formatCreditDelta,
+  formatExpiryDate,
+  formatTimestamp,
+  formatDeadlineRelative,
+  daysUntil,
+} from "./model/money.js";
+
+// ── model (the two credit pools, holds, and what the next purchase owes) ─────
+export {
+  creditPools,
+  heldCredits,
+  debtOutstanding,
+  openDebts,
+  collectedFromPurchase,
+  isEmptyWallet,
+} from "./model/credits.js";
+export type {
+  CreditPool,
+  CreditPools,
+  CreditPoolKind,
+} from "./model/credits.js";
 
 // ── model (write hooks) ──────────────────────────────────────────────────────
 export {
@@ -81,8 +105,11 @@ export type {
   WalletUpdate,
   CreditLot,
   CreditHold,
+  CreditDebt,
   CreditLotSource,
   CreditHoldStatus,
+  CreditDebtReason,
+  TransactionType,
   ExpiringCredits,
   TransactionList,
   Transaction,

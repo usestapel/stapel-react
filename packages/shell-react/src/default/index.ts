@@ -8,7 +8,7 @@
  * import { resolveNav } from "@stapel/shell-react";
  * import { AppShell } from "@stapel/shell-react/default";
  * const nav = resolveNav(installedManifests, overridesFile);
- * <Route element={<AppShell nav={nav} mode="light" />}>...child routes...</Route>
+ * <Route element={<AppShell nav={nav} />}>...child routes...</Route>
  * ```
  *
  * Two chromes live here, siblings rather than modes of one another:

@@ -2,6 +2,47 @@
 // Source: the backend module's own docs/schema.json (§17-native per-module contract).
 // Regenerate: pnpm gen:api   ·   Drift gate: pnpm gen:api:check
 export interface paths {
+    "/cdn/api/v1/describe/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Render metadata for a batch of media refs
+         * @description Resolve up to 50 media refs to the
+         *     render-metadata snapshot a UI needs to draw them with no second round trip and
+         *     no layout jump: aspect box, byte size, an inline `preview_b64` placeholder,
+         *     `preview_kind` (known even while `preview_b64` is still null, so the box can be
+         *     reserved in the right shape), and `duration_ms` for time-based media.
+         *
+         *     This is the HTTP form of the `cdn.describe_many` comm Function and returns the
+         *     identical object — the same snapshot the upload endpoints inline as
+         *     `render_meta`.
+         *
+         *     **Unknown refs are data, not an error.** A ref that was deleted, never stored,
+         *     or is malformed comes back in `missing`; the call still succeeds and the other
+         *     snapshots still arrive, so one dead attachment does not cost a page its other
+         *     thirty-nine.
+         *
+         *     **Duplicates collapse** before the 50-ref ceiling is
+         *     applied. Over the ceiling the answer is `error.400.too_many_refs` with `count`
+         *     and `max` in the params — page the batch. The ceiling exists because every
+         *     snapshot may inline a preview, so batch size is response size.
+         *
+         *     **Denormalize the result once**, when the ref is resolved. It is an immutable
+         *     snapshot, not something to recompute per render.
+         */
+        post: operations["describe_media"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/cdn/api/v1/file/exists/": {
         parameters: {
             query?: never;
@@ -207,10 +248,27 @@ export interface paths {
          *     - 16px, 32px, 64px, 120px - min-side thumbnails
          *     - 160px, 240px, 480px, 560px, 720px, 1080px - w/h preview branches
          *
+         *     **`variants_status` — read it before you render a variant URL.** Every
+         *     `variant_<size>_url` in this response is derived from `<type>/<hash>`, so
+         *     all of them are present and well-formed in the 201 that creates the row,
+         *     *before* the background task has written a single file. `variants_status`
+         *     is `"pending"` until generation succeeds and `"ready"` afterwards
+         *     (`variants_ready_at` carries the moment, null while pending). A `pending`
+         *     payload's variant URLs are a prediction, not a resource; poll the media ref
+         *     (`/file-exists/`) or fall back to `original_url` until it reads `ready`.
+         *     A row that stays `pending` is a broken pipeline, not a slow one — see
+         *     `checks.W008`.
+         *
          *     **Request format:** `multipart/form-data` with `file` field
          *
          *     **Maximum file size:** `STAPEL_CDN["MAX_IMAGE_SIZE"]`, 20MB by default.
          *     Enforced before the body is hashed; over it the answer is 413.
+         *
+         *     **Stored type:** `"product"` — one value from `STAPEL_CDN["ASSET_TYPES"]`,
+         *     same as any type `TypedImageUploadView` accepts. The zero-infra default is
+         *     `("avatar",)` only (see `ASSET_TYPES` in CONFIG.MD), so a deployment that
+         *     never added `"product"` gets a 400 here, exactly as
+         *     `/images/product/upload/` already does for that string.
          *
          *
          *     **Permissions:** `IsNotAnonymousUser`
@@ -266,6 +324,73 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description The refs one ``POST /describe/`` call asks about.
+         *
+         *     Shape only. The ceiling is NOT checked here: it belongs to
+         *     ``services.describe_refs``, the body the comm Function shares, so that the
+         *     rule (dedup, then compare against ``DESCRIBE_MANY_LIMIT``) has exactly one
+         *     implementation and the two transports cannot drift apart on where the
+         *     fifty-first ref stops being acceptable.
+         *
+         *     A ref whose shape is wrong is not a 400 either: it resolves to nothing and
+         *     comes back in ``missing`` like any other unresolvable ref, so one
+         *     malformed entry never costs the caller the other forty-nine snapshots.
+         */
+        DescribeManyRequest: {
+            /** @description Media refs in <prefix>/<hash> form. Duplicates collapse before the 50-ref ceiling is applied. */
+            refs: string[];
+        };
+        /** @description Batch render-metadata snapshots, plus the refs that resolved to nothing. */
+        DescribeManyResponse: {
+            /**
+             * @description Snapshot per ref that resolved, keyed by ref
+             * @example {
+             *       "avatar/<hash>": {
+             *         "ref": "avatar/<hash>",
+             *         "meta_status": "ok"
+             *       }
+             *     }
+             */
+            items: {
+                [key: string]: {
+                    ref: string;
+                    /** @description Open media-kind registry (STAPEL_CDN['MEDIA_KINDS']): image, gif, video, audio, file, or a host-defined kind. */
+                    kind?: string | null;
+                    mime: string;
+                    /** @description Lowercase, dot-prefixed. */
+                    ext: string;
+                    bytes: number;
+                    width?: number | null;
+                    height?: number | null;
+                    /**
+                     * Format: float
+                     * @description width / height, 6dp.
+                     */
+                    aspect?: number | null;
+                    square?: boolean;
+                    animated?: boolean;
+                    duration_ms?: number | null;
+                    /** @description data:image/webp;base64,... bounded by STAPEL_CDN['MICRO_PREVIEW_MAX_BYTES']; null when refused or not generated, with meta_reason saying which. */
+                    preview_b64?: string | null;
+                    /** @enum {string|null} */
+                    preview_kind?: "blur" | "poster" | "waveform" | null;
+                    poster_url?: string | null;
+                    /** @enum {string} */
+                    meta_status: "ok" | "partial" | "missing";
+                    /** @description stapel_cdn.metadata.REASONS; null when ok. */
+                    meta_reason?: string | null;
+                    variants?: Record<string, never>[];
+                };
+            };
+            /**
+             * @description Refs that resolved to nothing — deleted, never existed, or malformed. Data, not an error
+             * @example [
+             *       "product/deadbeef"
+             *     ]
+             */
+            missing: string[];
+        };
         /** @description Serializer for file existence check by hash. */
         FileExists: {
             /** @description SHA-256 hash of the file content (64 hex characters) */
@@ -303,6 +428,36 @@ export interface components {
              * @description URL to original uploaded file
              */
             readonly original_url: string;
+            /** @description cdn.describe snapshot for this file (see RenderMeta). */
+            readonly render_meta: {
+                ref: string;
+                /** @description Open media-kind registry (STAPEL_CDN['MEDIA_KINDS']): image, gif, video, audio, file, or a host-defined kind. */
+                kind?: string | null;
+                mime: string;
+                /** @description Lowercase, dot-prefixed. */
+                ext: string;
+                bytes: number;
+                width?: number | null;
+                height?: number | null;
+                /**
+                 * Format: float
+                 * @description width / height, 6dp.
+                 */
+                aspect?: number | null;
+                square?: boolean;
+                animated?: boolean;
+                duration_ms?: number | null;
+                /** @description data:image/webp;base64,... bounded by STAPEL_CDN['MICRO_PREVIEW_MAX_BYTES']; null when refused or not generated, with meta_reason saying which. */
+                preview_b64?: string | null;
+                /** @enum {string|null} */
+                preview_kind?: "blur" | "poster" | "waveform" | null;
+                poster_url?: string | null;
+                /** @enum {string} */
+                meta_status: "ok" | "partial" | "missing";
+                /** @description stapel_cdn.metadata.REASONS; null when ok. */
+                meta_reason?: string | null;
+                variants?: Record<string, never>[];
+            };
             /** @description List of references: service/entity_type/entity_id */
             refs?: string[];
             /** Format: uuid */
@@ -437,6 +592,48 @@ export interface components {
                 width: number;
                 height: number;
             }[];
+            /**
+             * @description 'pending' — variant generation has not completed, every variant_<size>_url in this payload is a prediction; 'ready' — the ladder exists and the URLs resolve.
+             *
+             *     * `pending` - pending
+             *     * `ready` - ready
+             */
+            readonly variants_status: components["schemas"]["VariantsStatusEnum"];
+            /**
+             * Format: date-time
+             * @description When variant generation completed; null while pending.
+             */
+            readonly variants_ready_at: string | null;
+            /** @description cdn.describe snapshot for this image (see RenderMeta). */
+            readonly render_meta: {
+                ref: string;
+                /** @description Open media-kind registry (STAPEL_CDN['MEDIA_KINDS']): image, gif, video, audio, file, or a host-defined kind. */
+                kind?: string | null;
+                mime: string;
+                /** @description Lowercase, dot-prefixed. */
+                ext: string;
+                bytes: number;
+                width?: number | null;
+                height?: number | null;
+                /**
+                 * Format: float
+                 * @description width / height, 6dp.
+                 */
+                aspect?: number | null;
+                square?: boolean;
+                animated?: boolean;
+                duration_ms?: number | null;
+                /** @description data:image/webp;base64,... bounded by STAPEL_CDN['MICRO_PREVIEW_MAX_BYTES']; null when refused or not generated, with meta_reason saying which. */
+                preview_b64?: string | null;
+                /** @enum {string|null} */
+                preview_kind?: "blur" | "poster" | "waveform" | null;
+                poster_url?: string | null;
+                /** @enum {string} */
+                meta_status: "ok" | "partial" | "missing";
+                /** @description stapel_cdn.metadata.REASONS; null when ok. */
+                meta_reason?: string | null;
+                variants?: Record<string, never>[];
+            };
             /** @description Whether variants have been generated */
             readonly is_processed: boolean;
             /** Format: uuid */
@@ -537,6 +734,12 @@ export interface components {
          * @enum {string}
          */
         TypeEnum: "avatar";
+        /**
+         * @description * `pending` - pending
+         *     * `ready` - ready
+         * @enum {string}
+         */
+        VariantsStatusEnum: "pending" | "ready";
         /** @description Serializer for Video model. */
         Video: {
             readonly id: number;
@@ -569,7 +772,42 @@ export interface components {
             readonly variant_1080p_url: string;
             /** Format: uri */
             readonly variant_2160p_url: string;
-            /** @description Whether variants have been generated */
+            /**
+             * Format: uri
+             * @description Derived poster frame; null until one has been written.
+             */
+            readonly poster_url: string;
+            /** @description cdn.describe snapshot for this video (see RenderMeta). */
+            readonly render_meta: {
+                ref: string;
+                /** @description Open media-kind registry (STAPEL_CDN['MEDIA_KINDS']): image, gif, video, audio, file, or a host-defined kind. */
+                kind?: string | null;
+                mime: string;
+                /** @description Lowercase, dot-prefixed. */
+                ext: string;
+                bytes: number;
+                width?: number | null;
+                height?: number | null;
+                /**
+                 * Format: float
+                 * @description width / height, 6dp.
+                 */
+                aspect?: number | null;
+                square?: boolean;
+                animated?: boolean;
+                duration_ms?: number | null;
+                /** @description data:image/webp;base64,... bounded by STAPEL_CDN['MICRO_PREVIEW_MAX_BYTES']; null when refused or not generated, with meta_reason saying which. */
+                preview_b64?: string | null;
+                /** @enum {string|null} */
+                preview_kind?: "blur" | "poster" | "waveform" | null;
+                poster_url?: string | null;
+                /** @enum {string} */
+                meta_status: "ok" | "partial" | "missing";
+                /** @description stapel_cdn.metadata.REASONS; null when ok. */
+                meta_reason?: string | null;
+                variants?: Record<string, never>[];
+            };
+            /** @description Whether metadata/variants have been generated */
             readonly is_processed: boolean;
             /** Format: uuid */
             readonly uploaded_by: string | null;
@@ -598,6 +836,63 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    describe_media: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DescribeManyRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["DescribeManyRequest"];
+                "multipart/form-data": components["schemas"]["DescribeManyRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DescribeManyResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
     check_file_exists_get: {
         parameters: {
             query: {
@@ -783,6 +1078,14 @@ export interface operations {
                     "application/json": components["schemas"]["StapelError"];
                 };
             };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
             500: {
                 headers: {
                     [name: string]: unknown;
@@ -862,6 +1165,14 @@ export interface operations {
                 };
             };
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -963,6 +1274,14 @@ export interface operations {
                 };
             };
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };

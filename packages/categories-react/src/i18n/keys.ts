@@ -47,7 +47,16 @@ export const CATEGORIES_I18N_KEYS = {
   // ── one category ─────────────────────────────────────────────────────────
   categoryTitle: "categories.category.title",
   categoryUnknownSlug: "categories.category.unknown_slug",
+  /** What to do about an address that resolves to nothing. */
+  categoryUnknownSlugHint: "categories.category.unknown_slug_hint",
   categorySubcategories: "categories.category.subcategories",
+  /**
+   * "N subcategories" beside a tree row. A PLURAL FAMILY: render with
+   * `tPlural`, never `t` (see {@link CATEGORIES_I18N_PLURAL_KEYS}). It
+   * replaces a hover `title=` on the count badge — a number whose meaning was
+   * available only to a mouse.
+   */
+  categorySubcategoriesCount: "categories.category.subcategories_count",
   /** A leaf: no sub-categories, and that is not an error. */
   categoryNoSubcategories: "categories.category.no_subcategories",
   categoryOpen: "categories.category.open",
@@ -70,6 +79,10 @@ export const CATEGORIES_I18N_KEYS = {
   pickerNoMatches: "categories.picker.no_matches",
   pickerUp: "categories.picker.up",
   pickerSelected: "categories.picker.selected",
+  /** The phone trigger that opens the drill-down as a bottom sheet. */
+  pickerChoose: "categories.picker.choose",
+  /** Close the sheet, keeping whatever is chosen. */
+  pickerDone: "categories.picker.done",
   pickerBlockedNothingSelected: "categories.picker.blocked.nothing_selected",
   pickerBlockedNotALeaf: "categories.picker.blocked.not_a_leaf",
 
@@ -86,6 +99,21 @@ export const CATEGORIES_I18N_KEYS = {
 
 export type CategoriesI18nKey =
   (typeof CATEGORIES_I18N_KEYS)[keyof typeof CATEGORIES_I18N_KEYS];
+
+/**
+ * The keys above that are PLURAL FAMILIES rather than single messages.
+ *
+ * A family is catalogued as one flat key per CLDR category
+ * (`<family>.one`, `…few`, `…many`, `…other`) and rendered with core's
+ * `tPlural(family, { count })`, which asks `Intl.PluralRules` for the current
+ * locale's category. Which categories a bundle carries is a fact about the
+ * language — `en` needs two, `ru` needs four — so `test/i18n.test.ts` asks
+ * `Intl.PluralRules` which forms each locale can select and demands exactly
+ * those, rather than checking a list somebody typed.
+ */
+export const CATEGORIES_I18N_PLURAL_KEYS: readonly CategoriesI18nKey[] = [
+  CATEGORIES_I18N_KEYS.categorySubcategoriesCount,
+];
 
 /**
  * English fallback bundle for categories-react UI keys + backend error codes.
@@ -110,7 +138,11 @@ export const categoriesI18nBundleEn: Record<string, string> = {
   "categories.category.title": "Category",
   "categories.category.unknown_slug":
     "There is no category at this address",
+  "categories.category.unknown_slug_hint":
+    "The address may be out of date. Start again from the catalogue.",
   "categories.category.subcategories": "Subcategories",
+  "categories.category.subcategories_count.one": "{count} subcategory",
+  "categories.category.subcategories_count.other": "{count} subcategories",
   "categories.category.no_subcategories": "This category has no subcategories",
   "categories.category.open": "Open",
 
@@ -129,6 +161,8 @@ export const categoriesI18nBundleEn: Record<string, string> = {
   "categories.picker.no_matches": "No category matches that",
   "categories.picker.up": "Up one level",
   "categories.picker.selected": "Selected: {category}",
+  "categories.picker.choose": "Choose a category",
+  "categories.picker.done": "Done",
   "categories.picker.blocked.nothing_selected": "Choose a category first",
   "categories.picker.blocked.not_a_leaf":
     "Choose a more specific category — this one has subcategories, and the details asked for depend on which",

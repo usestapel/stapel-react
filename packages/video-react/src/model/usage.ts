@@ -164,6 +164,38 @@ export function isScopeUnavailable(error: unknown): boolean {
   return isErrorCode(toFlowError(error), "error.404.video_scope_not_found");
 }
 
+/** The narrowest window the read accepts. Below it the answer is
+ * `video_invalid_usage_period`. */
+export const MIN_USAGE_MONTHS = 1;
+
+/**
+ * A caller's `months` brought onto the range the view accepts (1..36).
+ *
+ * The predicate below has existed since 0.1.0 and reached no screen, so
+ * `<ScopeUsagePane months={48}/>` produced a server 400 rendered as a generic
+ * error — a refusal the pair already owned the rule for. Clamping rather than
+ * throwing: `months` is a display preference, and the report a person came for
+ * is better served by 36 months than by an error page about the number 48. The
+ * screen still names the clamp, so nobody thinks they are reading 48.
+ */
+export function clampUsageMonths(months: number): number {
+  if (!Number.isFinite(months)) return DEFAULT_USAGE_MONTHS;
+  const whole = Math.trunc(months);
+  if (whole < MIN_USAGE_MONTHS) return MIN_USAGE_MONTHS;
+  if (whole > MAX_USAGE_MONTHS) return MAX_USAGE_MONTHS;
+  return whole;
+}
+
+/** Would this `months` be refused by the view? The predicate the pane uses to
+ * say so BEFORE asking. */
+export function isUsageMonthsOutOfRange(months: number): boolean {
+  return (
+    !Number.isFinite(months) ||
+    Math.trunc(months) < MIN_USAGE_MONTHS ||
+    Math.trunc(months) > MAX_USAGE_MONTHS
+  );
+}
+
 /**
  * Is this the refusal about the PERIOD rather than the scope?
  * `error.400.video_invalid_usage_period` — a malformed `month`, a `months`

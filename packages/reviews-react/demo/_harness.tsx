@@ -1,16 +1,37 @@
 /**
- * Shared harness for the reviews-react demos (frontend-guardrails §4.2).
- * Demos are first-class code — compiled, linted with the PRODUCT ruleset,
- * smoke-rendered — so this file obeys the same guardrails as `src/`: no raw
- * colours (tokens via `cssVar()`) and no hardcoded prose (every label is a
- * key).
+ * Provider frame for the reviews-react demos (frontend-guardrails §4.2).
+ *
+ * ── What used to be here, and why it is gone ──────────────────────────────
+ *
+ * This file used to export a `DemoCard` (a bordered box with the component's
+ * class name as a heading) and a `StepBadge` (a monospace chip printing a bag
+ * field). Every demo rendered the HEADLESS render prop into those, so the
+ * whole showcase for this pair was `5/5 · published · reply` and
+ * `submit: reviews.submit.blocked.no_rating` — a hook conformance harness
+ * photographed as if it were the product, while `ReviewsPanel` and
+ * `ReviewFormCard` had never been drawn at all (visual pass, class C-NOSKIN).
+ *
+ * The demos now render the SKIN, so the debug chrome is deleted rather than
+ * kept beside it: the point of the showcase is the shipped surface, and a
+ * harness that renders a second, uglier version of every state is how the real
+ * one stays unreviewed. Everything left here is plumbing — a mock wire, the
+ * providers, and a page frame — and none of it draws.
+ *
+ * MOCK THE WIRE, NOT THE MODULE: every request goes through the real
+ * `StapelClient` and every response is a real `Response` carrying the real
+ * body stapel-reviews sends.
  */
 import { useMemo } from "react";
-import type { CSSProperties, ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider, createI18n } from "@stapel/core";
-import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
-import { ReviewsProvider, createReviewsRuntime, registerReviewsI18n } from "../src/index.js";
+import { spacing } from "@stapel/tokens";
+import {
+  ReviewsProvider,
+  createReviewsRuntime,
+  registerReviewsI18n,
+} from "../src/index.js";
+import type { ReviewRatingBounds } from "../src/index.js";
 
 /** The base every mock handler mounts on (mirrors `/reviews/api/v1`). */
 export const DEMO_BASE = "https://reviews.demo.stapel.dev/reviews/api/v1";
@@ -28,7 +49,9 @@ function statusAndBody(value: DemoResponse): [number, unknown] {
 /**
  * Build a canned `fetch` from a route key → response map. A key may name a
  * method (`"POST /reviews"`), and matching is on the full URL so
- * `/reviews/aggregate` can be told apart from `/reviews`.
+ * `/reviews/aggregate` and `/moderate` can be told apart from `/reviews`.
+ * Routes are tried in declaration order, which matters because `/reviews` is a
+ * prefix of every other path here.
  */
 export function mockFetch(handlers: DemoHandlers): typeof globalThis.fetch {
   const routes = Object.entries(handlers);
@@ -54,90 +77,48 @@ export function mockFetch(handlers: DemoHandlers): typeof globalThis.fetch {
 }
 
 /**
- * `demo.*` is an UNMANAGED namespace, so `i18n-key-exists` treats these as
- * app-local and never false-positives on them.
+ * Provider frame every reviews demo variant renders inside.
  *
- * Review bodies are FIXTURE CONTENT, not library copy — a real review is
- * whatever a buyer typed. They are keys here only so the demo carries no
- * hardcoded prose.
+ * `ratingBounds` is a demo knob for the same reason it is a runtime option:
+ * `RATING_MIN`/`RATING_MAX` are deployment settings, and a showcase that only
+ * ever draws five stars hides the fact that the skin follows them.
  */
-const demoBundleEn: Record<string, string> = {
-  "demo.review.body.good": "Exactly as described, met at the metro, no fuss.",
-  "demo.review.body.ok": "Works fine, box was a bit battered.",
-  "demo.review.body.pending": "Awaiting a moderator's decision.",
-  "demo.review.body.hidden": "Hidden by a moderator.",
-  "demo.review.body.future": "Filed under a state this build predates.",
-  "demo.review.response.thanks": "Thanks for the review!",
-  "demo.author.buyer": "Anna K.",
-};
-
-/** Provider frame every reviews demo variant renders inside. */
 export function ReviewsDemoHarness(props: {
   handlers?: DemoHandlers;
+  ratingBounds?: Partial<ReviewRatingBounds>;
   children: ReactNode;
 }): ReactElement {
-  const { handlers } = props;
+  const { handlers, ratingBounds } = props;
   const { runtime, queryClient, i18n } = useMemo(() => {
     const engine = createI18n({ locale: "en" });
     registerReviewsI18n(engine);
-    engine.registerBundle("en", demoBundleEn);
     return {
       runtime: createReviewsRuntime({
         baseUrl: DEMO_BASE,
         fetch: mockFetch(handlers ?? {}),
+        ...(ratingBounds !== undefined ? { ratingBounds } : {}),
       }),
       queryClient: new QueryClient({
         defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
       }),
       i18n: engine,
     };
-  }, [handlers]);
+  }, [handlers, ratingBounds]);
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
-        <ReviewsProvider runtime={runtime}>{props.children}</ReviewsProvider>
+        <ReviewsProvider runtime={runtime}>
+          {/* Element-width geometry: the frame is a max measure, not a
+              viewport calculation — the viewer owns the width, and the skin
+              fills whatever it is given. */}
+          <div style={{ maxWidth: MEASURE, padding: spacing[3] }}>
+            {props.children}
+          </div>
+        </ReviewsProvider>
       </I18nProvider>
     </QueryClientProvider>
   );
 }
 
-const cardStyle: CSSProperties = {
-  background: cssVar("surface-raised"),
-  color: cssVar("text"),
-  border: `1px solid ${cssVar("border")}`,
-  borderRadius: radii.lg,
-  padding: spacing["5"],
-  display: "flex",
-  flexDirection: "column",
-  gap: spacing["3"],
-  fontSize: fontSize.md.fontSize,
-};
-
-/** A titled card wrapper for a demo body. */
-export function DemoCard(props: {
-  heading: ReactNode;
-  children: ReactNode;
-}): ReactElement {
-  return (
-    <div style={cardStyle} data-theme-surface>
-      <strong style={{ fontSize: fontSize.lg.fontSize }}>{props.heading}</strong>
-      {props.children}
-    </div>
-  );
-}
-
-/** Renders a technical token (a load status, a count), never user prose. */
-export function StepBadge(props: { step: string }): ReactElement {
-  return (
-    <code
-      style={{
-        background: cssVar("surface-sunken"),
-        color: cssVar("brand"),
-        borderRadius: radii.sm,
-        padding: `${spacing["1"]}px ${spacing["2"]}px`,
-      }}
-    >
-      {props.step}
-    </code>
-  );
-}
+/** A readable measure for a review column — prose, not a dashboard. */
+const MEASURE = "44rem";

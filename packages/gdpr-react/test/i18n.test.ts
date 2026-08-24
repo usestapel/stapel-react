@@ -5,6 +5,7 @@ import {
   gdprI18nBundleEn,
 } from "../src/index.js";
 import { gdprErrorBundleRu, gdprI18nBundleRu } from "../src/i18n/ru.js";
+import { gdprErrorBundleEs, gdprI18nBundleEs } from "../src/i18n/es.js";
 
 /** The 15 codes stapel_gdpr owns — the ones a sibling module cannot supply. */
 const OWNED = GDPR_ERROR_CODES.filter((code) => code.includes(".gdpr."));
@@ -13,6 +14,7 @@ describe("both locales carry every key this pair renders", () => {
   it.each([
     ["en", gdprI18nBundleEn],
     ["ru", gdprI18nBundleRu],
+    ["es", gdprI18nBundleEs],
   ])("%s covers every GDPR_I18N_KEY", (_locale, bundle) => {
     const missing = Object.values(GDPR_I18N_KEYS).filter(
       (key) => !(key in bundle)
@@ -23,6 +25,7 @@ describe("both locales carry every key this pair renders", () => {
   it.each([
     ["en", gdprI18nBundleEn],
     ["ru", gdprI18nBundleRu],
+    ["es", gdprI18nBundleEs],
   ])("%s covers every backend error code", (_locale, bundle) => {
     const missing = GDPR_ERROR_CODES.filter((code) => !(code in bundle));
     expect(missing).toEqual([]);
@@ -47,13 +50,50 @@ describe("the fifteen keys stapel-gdpr owns are GENERATED, not hand-authored", (
     expect(OWNED.length).toBe(15);
   });
 
-  it("the generated ru bundle carries every one of them", () => {
-    const missing = OWNED.filter((code) => !(code in gdprErrorBundleRu));
+  it.each([
+    ["ru", gdprErrorBundleRu],
+    ["es", gdprErrorBundleEs],
+  ])("the generated %s bundle carries every one of them", (_l, bundle) => {
+    const missing = OWNED.filter((code) => !(code in bundle));
     expect(missing).toEqual([]);
   });
 
-  it("the generated ru bundle covers the whole registry, not a subset", () => {
-    expect(Object.keys(gdprErrorBundleRu).length).toBe(GDPR_ERROR_CODES.length);
+  it.each([
+    ["ru", gdprErrorBundleRu],
+    ["es", gdprErrorBundleEs],
+  ])("the generated %s bundle covers the whole registry, not a subset", (_l, bundle) => {
+    expect(Object.keys(bundle).length).toBe(GDPR_ERROR_CODES.length);
+  });
+});
+
+/**
+ * Locale PARITY, key for key. A bundle that is merely "complete over the
+ * keys the pair renders" can still carry a key the English one does not —
+ * which is a key that will never resolve, because nothing looks it up. The ru
+ * bundle shipped exactly that (`error.409.gdpr.export_cooldown`, overridden in
+ * Russian and left at the registry's English), which is how a deliberate
+ * override became a locale-only string.
+ */
+describe("every locale defines the same keys as English — no more, no less", () => {
+  it.each([
+    ["ru", gdprI18nBundleRu],
+    ["es", gdprI18nBundleEs],
+  ])("%s has no key English lacks, and lacks none English has", (_l, bundle) => {
+    const en = Object.keys(gdprI18nBundleEn).sort();
+    expect(Object.keys(bundle).sort()).toEqual(en);
+  });
+
+  it.each([
+    ["en", gdprI18nBundleEn],
+    ["ru", gdprI18nBundleRu],
+    ["es", gdprI18nBundleEs],
+  ])("%s overrides the cooldown refusal with the RULE, not the incident", (_l, bundle) => {
+    // The registry says "a data export was already requested in the last 30
+    // days", which reads as a report about something that happened. On the
+    // button it is switched off beside, the useful sentence is the rule.
+    const text = String(bundle["error.409.gdpr.export_cooldown"]);
+    expect(text).toContain("30");
+    expect(text).not.toBe(String(bundle[GDPR_I18N_KEYS.exportInFlight]));
   });
 });
 
@@ -67,6 +107,7 @@ describe("the two 404s that mean 'you are fine' read as reassurance", () => {
   it.each([
     ["en", gdprI18nBundleEn],
     ["ru", gdprI18nBundleRu],
+    ["es", gdprI18nBundleEs],
   ])("%s: the closure 404 says the same thing as the screen", (_l, bundle) => {
     expect(bundle["error.404.gdpr.no_active_closure"]).toBe(
       bundle[GDPR_I18N_KEYS.closureNone]
@@ -76,6 +117,7 @@ describe("the two 404s that mean 'you are fine' read as reassurance", () => {
   it.each([
     ["en", gdprI18nBundleEn],
     ["ru", gdprI18nBundleRu],
+    ["es", gdprI18nBundleEs],
   ])("%s: the export 404 says the same thing as the screen", (_l, bundle) => {
     expect(bundle["error.404.gdpr.export_not_found"]).toBe(
       bundle[GDPR_I18N_KEYS.exportNone]
@@ -106,6 +148,7 @@ describe("deadlines are stated as dates the server computed", () => {
   it.each([
     ["en", gdprI18nBundleEn],
     ["ru", gdprI18nBundleRu],
+    ["es", gdprI18nBundleEs],
   ])("%s interpolates {date} rather than counting down", (_l, bundle) => {
     for (const key of [
       GDPR_I18N_KEYS.closureScheduled,
@@ -121,6 +164,7 @@ describe("deadlines are stated as dates the server computed", () => {
   it.each([
     ["en", gdprI18nBundleEn],
     ["ru", gdprI18nBundleRu],
+    ["es", gdprI18nBundleEs],
   ])("%s keeps the two erasure clocks as two different sentences", (_l, bundle) => {
     expect(bundle[GDPR_I18N_KEYS.deletionsColumnDue]).not.toBe(
       bundle[GDPR_I18N_KEYS.deletionsColumnFullyErased]

@@ -214,13 +214,9 @@ describe("one heading, one sort control, and it says what the page is sorted by"
     return <SearchPage adapter={adapter} defaultType="listing" />;
   }
 
-  function occurrences(haystack: string, needle: string): number {
-    return haystack.split(needle).length - 1;
-  }
-
   it("says each of them exactly once", async () => {
     const server = mockServer({ "/query": { body: searchResponse() } });
-    const { container } = render(
+    render(
       <TestProviders server={server} locale="ru">
         <Page />
       </TestProviders>
@@ -228,9 +224,12 @@ describe("one heading, one sort control, and it says what the page is sorted by"
     await waitFor(() => {
       expect(screen.getByTestId("search-results")).toBeTruthy();
     });
-    const text = container.textContent ?? "";
-    expect(occurrences(text, "Результаты")).toBe(1);
-    expect(occurrences(text, "Сортировка")).toBe(1);
+    // Counted as ELEMENTS, not as substrings: the distance sort's blocked
+    // reason legitimately starts with the same word as the control's own
+    // label in Russian, and a substring count reads that sentence as a second
+    // label.
+    expect(screen.getAllByText("Результаты", { exact: true })).toHaveLength(1);
+    expect(screen.getAllByText("Сортировка", { exact: true })).toHaveLength(1);
   });
 
   it("shows the sort the SERVER applied when the URL names none", async () => {

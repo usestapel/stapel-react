@@ -88,6 +88,9 @@ export const LISTINGS_I18N_KEYS = {
    * quantity in the value cell, so this key carries no `{count}` — it used to,
    * and the live page printed the placeholder. */
   detailStock: "listings.detail.stock",
+  /** The owner's two primaries on their own listing page. */
+  detailEdit: "listings.detail.edit",
+  detailTakeDown: "listings.detail.take_down",
 
   // ── composer ─────────────────────────────────────────────────────────────
   composeNewTitle: "listings.compose.new_title",
@@ -103,8 +106,7 @@ export const LISTINGS_I18N_KEYS = {
   composePriceInvalid: "listings.compose.price_invalid",
   composeCurrencyLabel: "listings.compose.currency_label",
   composeLocationLabel: "listings.compose.location_label",
-  composeLatLabel: "listings.compose.lat_label",
-  composeLonLabel: "listings.compose.lon_label",
+  composeLocationHelp: "listings.compose.location_help",
   composeGeoIncomplete: "listings.compose.geo_incomplete",
   composePhotos: "listings.compose.photos",
   composeTooManyImages: "listings.compose.too_many_images",
@@ -158,12 +160,18 @@ export const LISTINGS_I18N_KEYS = {
   mineArchive: "listings.mine.archive",
   mineComplete: "listings.mine.complete",
   mineDelete: "listings.mine.delete",
+  /** Deleting is irreversible, so it asks — through the shared SkinConfirm,
+   * which is a bottom sheet on a phone. */
+  mineDeleteConfirmTitle: "listings.mine.delete_confirm_title",
+  mineDeleteConfirmBody: "listings.mine.delete_confirm_body",
 
   // ── favourites ───────────────────────────────────────────────────────────
   favoritesTitle: "listings.favorites.title",
   favoritesLoading: "listings.favorites.loading",
   favoritesLoadFailed: "listings.favorites.load_failed",
   favoritesEmpty: "listings.favorites.empty",
+  favoritesEmptyHint: "listings.favorites.empty_hint",
+  favoritesSignInHint: "listings.favorites.sign_in_hint",
 
   // ── gates shared by every action a visitor cannot take ───────────────────
   blockedSignIn: "listings.blocked.sign_in",
@@ -174,6 +182,10 @@ export const LISTINGS_I18N_KEYS = {
   blockedTransition: "listings.blocked.transition",
   blockedDeleteActive: "listings.blocked.delete_active",
   blockedInFlight: "listings.blocked.in_flight",
+  /** Editing is a SCREEN, not an endpoint: whether this app has one is the
+   * container's fact, and a host that wires no `onEdit` gets a switched-off
+   * button that says so instead of one that silently does nothing. */
+  blockedNoEditor: "listings.blocked.no_editor",
 
   // ── keyset pagination ────────────────────────────────────────────────────
   pagePrev: "listings.page.prev",
@@ -252,6 +264,8 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.detail.published_at": "Published {date}",
   "listings.detail.expires_at": "Listed until {date}",
   "listings.detail.stock": "In stock",
+  "listings.detail.edit": "Edit listing",
+  "listings.detail.take_down": "Take it down",
 
   "listings.compose.new_title": "New listing",
   "listings.compose.edit_title": "Edit listing",
@@ -270,8 +284,8 @@ export const listingsI18nBundleEn: Record<string, string> = {
     "Enter a price as a number, with at most two decimals",
   "listings.compose.currency_label": "Currency",
   "listings.compose.location_label": "Where it is",
-  "listings.compose.lat_label": "Latitude",
-  "listings.compose.lon_label": "Longitude",
+  "listings.compose.location_help":
+    "Buyers filter by distance, so a listing with no place is a listing they will not find",
   "listings.compose.geo_incomplete":
     "A latitude needs a longitude beside it — half a coordinate points nowhere",
   "listings.compose.photos": "Photos",
@@ -333,11 +347,18 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.mine.archive": "Archive",
   "listings.mine.complete": "Mark sold",
   "listings.mine.delete": "Delete",
+  "listings.mine.delete_confirm_title": "Delete this listing?",
+  "listings.mine.delete_confirm_body":
+    "It disappears from your dashboard and cannot be brought back. Archiving keeps it.",
 
   "listings.favorites.title": "Favourites",
   "listings.favorites.loading": "Loading your favourites…",
   "listings.favorites.load_failed": "We could not load your favourites",
   "listings.favorites.empty": "You have not saved anything yet",
+  "listings.favorites.empty_hint":
+    "Tap the heart on any listing and it will be waiting here.",
+  "listings.favorites.sign_in_hint":
+    "Favourites are kept with your account, so they follow you between devices.",
 
   "listings.blocked.sign_in": "Sign in to do this",
   "listings.blocked.guest":
@@ -349,6 +370,8 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.blocked.delete_active":
     "Archive it first — a listing that is on sale cannot be deleted",
   "listings.blocked.in_flight": "One moment — that is already under way",
+  "listings.blocked.no_editor":
+    "This app has no screen for editing a listing yet",
 
   "listings.page.prev": "Previous",
   "listings.page.next": "Next",

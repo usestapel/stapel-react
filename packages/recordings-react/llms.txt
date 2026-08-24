@@ -1,6 +1,6 @@
 # @stapel/recordings-react 0.5.1
 
-Headless React flow pair for stapel-recordings (contract >=0.4 <0.5) — business + state, zero visual opinion.
+Headless React flow pair for stapel-recordings (contract >=0.20 <0.21) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -24,17 +24,29 @@ Paths are relative to `/recordings/api/v1/`.
 - recordings_api_v1_recordings_create: POST /recordings
 - recordings_api_v1_recordings_finalize_create: POST /recordings/{recording_id}/finalize
 - recordings_api_v1_recordings_list: GET /recordings
+- recordings_api_v1_recordings_media_retrieve: GET /recordings/{recording_id}/media
 - recordings_api_v1_recordings_reprocess_create: POST /recordings/{recording_id}/reprocess
+- recordings_api_v1_recordings_resummarize_create: POST /recordings/{recording_id}/resummarize
 - recordings_api_v1_recordings_retrieve: GET /recordings/{recording_id}
+- recordings_api_v1_recordings_transcript_retrieve: GET /recordings/{recording_id}/transcript
+- recordings_api_v1_shares_media_retrieve: GET /shares/{link_token}/media
+- recordings_api_v1_shares_retrieve: GET /shares/{link_token}
+- recordings_api_v1_shares_unlock_create: POST /shares/{link_token}/unlock
 
 ## Query hooks (server state; keys come only from the key factory)
 - useCreateRecording (mutation) → createRecording
 - useFinalizeUpload (mutation) → finalizeUpload
 - useRecording (query) → getRecording
+- useRecordingMedia (query) → getMediaUrl
 - useRecordings (query) → listRecordings
+- useReprocess (mutation) → reprocess
+- useResummarize (mutation) → resummarize
+- useSharedMedia (query) → getSharedMediaUrl
+- useSharedRecording (query) → getSharedRecording
+- useUnlockShare (mutation) → unlockShare
 
 ## Errors (render t(code, params); UX from remediation)
-47 keys (full catalog: manifest.json §errors). By remediation: fix_input 18 · retry 16 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+59 keys (full catalog: manifest.json §errors). By remediation: retry 24 · fix_input 20 · wait_and_retry 6 · verify 5 · contact_support 2 · reauthenticate 2.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -70,9 +82,22 @@ const { tracked } = useTracked();
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - recordings.composer → <RecordingComposer> [default]  demo/RecordingComposer.demo.tsx
+- recordings.detail-skin → <RecordingDetailPane> [default|phone]  demo/RecordingDetailPaneSkin.demo.tsx
 - recordings.finalize → <UploadFinalizer> [default]  demo/UploadFinalizer.demo.tsx
 - recordings.list → <RecordingList> [default]  demo/RecordingList.demo.tsx
+- recordings.list-skin → <RecordingsList> [default|phone]  demo/RecordingsListSkin.demo.tsx
+- recordings.payment-skin → <PaymentRequiredNotice> [default|phone]  demo/PaymentRequiredNoticeSkin.demo.tsx
+- recordings.player-skin → <RecordingPlayer> [default|phone]  demo/RecordingPlayerSkin.demo.tsx
 - recordings.provider → <RecordingsProvider> [default]  demo/Recordings.demo.tsx
+- recordings.reprocess-skin → <ReprocessAction> [default|phone]  demo/ReprocessActionSkin.demo.tsx
+- recordings.resummarize-skin → <ResummarizeAction> [default|phone]  demo/ResummarizeActionSkin.demo.tsx
+- recordings.share-skin → <SharedRecordingView> [default|phone]  demo/SharedRecordingViewSkin.demo.tsx
+- recordings.share-unlock-skin → <ShareUnlockGate> [default|phone]  demo/ShareUnlockGateSkin.demo.tsx
+- recordings.shared-media-skin → <SharedMedia> [default|phone]  demo/SharedMediaSkin.demo.tsx
+- recordings.status-chip → <RecordingStatusChip> [default|phone]  demo/RecordingStatusChipSkin.demo.tsx
+- recordings.summary-skin → <SummaryPane> [default|phone]  demo/SummaryPaneSkin.demo.tsx
+- recordings.transcript-skin → <TranscriptPane> [default|phone]  demo/TranscriptPaneSkin.demo.tsx
+- recordings.uploader-skin → <RecordingUploader> [default|phone]  demo/RecordingUploaderSkin.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

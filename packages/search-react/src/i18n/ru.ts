@@ -62,6 +62,13 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.results.distance_km": "{km} км от вас",
   "search.results.untitled": "Без названия",
   "search.results.open": "Открыть",
+  "search.results.image_alt": "Фото: {title}",
+
+  "search.box.label": "Поиск",
+  "search.box.placeholder": "Что ищете?",
+  "search.box.submit": "Найти",
+  "search.box.clear": "Очистить запрос",
+  "search.box.suggestions": "Подсказки",
 
   "search.sort.label": "Сортировка",
   "search.sort.relevance": "По релевантности",
@@ -87,9 +94,29 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.facets.range_from": "От",
   "search.facets.range_to": "До",
   "search.facets.range_apply": "Применить",
+  "search.facets.range_clear": "Сбросить",
+  "search.facets.range_from_aria": "{feature}, от",
+  "search.facets.range_to_aria": "{feature}, до",
+  "search.facets.range_invalid":
+    "«От» больше, чем «до», — под такой диапазон ничего не подойдёт. Поменяйте значения местами.",
+
+  "search.filters.open": "Фильтры ({count})",
+  "search.filters.apply": "Показать результаты",
+  "search.filters.dismiss": "Закрыть фильтры",
+
+  "search.category.title": "Категория",
+  "search.category.clear": "Искать по всему каталогу",
+  "search.category.current": "Ищем внутри {path}",
+
+  "search.language.label": "Язык запроса",
+  "search.language.any": "Любой язык",
+
+  "search.limit.label": "На странице",
+  "search.limit.option": "{count} на странице",
 
   "search.geo.title": "Где искать",
   "search.geo.radius_km": "В радиусе {km} км",
+  "search.geo.radius_label": "Радиус, км",
   "search.geo.clear": "Везде",
   "search.geo.box": "В показанной области",
   "search.geo.center": "Рядом с {lat}, {lon}",

@@ -15,6 +15,10 @@ import { Alert, Typography } from "antd";
 import type { CSSProperties, ReactElement } from "react";
 import type { FlowErrorDisplay } from "@stapel/core";
 
+/** One step under body text — a one-off type decision, named so it is one. */
+const DETAIL_FONT_SIZE_PX = 12;
+const DETAIL_TEXT_STYLE: CSSProperties = { fontSize: DETAIL_FONT_SIZE_PX };
+
 export function ErrorAlert(props: {
   error: FlowErrorDisplay | undefined;
   style?: CSSProperties | undefined;
@@ -32,7 +36,7 @@ export function ErrorAlert(props: {
       {...(error.detail
         ? {
             description: (
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              <Typography.Text type="secondary" style={DETAIL_TEXT_STYLE}>
                 {error.detail}
               </Typography.Text>
             ),

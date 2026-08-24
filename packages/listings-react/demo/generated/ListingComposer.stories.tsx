@@ -8,7 +8,13 @@ export default { title: "listings-react / Listing composer" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
+Default.parameters = { stapel: {"viewport":"phone","step":"editing_all_slots_filled"} };
+export const Unwired = (): ReactElement => renderDemoVariant(demo, "unwired");
+Unwired.storyName = "unwired";
+Unwired.parameters = { stapel: {"viewport":"phone","step":"choosing_category_slots_empty"} };
 export const PhotosInFlight = (): ReactElement => renderDemoVariant(demo, "photos-in-flight");
 PhotosInFlight.storyName = "photos-in-flight";
+PhotosInFlight.parameters = { stapel: {"viewport":"phone","step":"editing_photos_pending"} };
 export const UnsupportedType = (): ReactElement => renderDemoVariant(demo, "unsupported-type");
 UnsupportedType.storyName = "unsupported-type";
+UnsupportedType.parameters = { stapel: {"viewport":"desktop","step":"editing_unsupported_type"} };

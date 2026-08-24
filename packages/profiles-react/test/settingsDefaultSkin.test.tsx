@@ -160,7 +160,11 @@ function wrap(
   const i18n = createI18n({ locale: "en" });
   registerProfilesI18n(i18n);
   const defaultClient = createStapelClient({ baseUrl: "https://unused.stapel.test" });
-  const cdnClient = createStapelClient({ baseUrl: CDN_BASE });
+  // The CDN client is based at the CDN ROOT, because the paths are now
+  // @stapel/cdn-react's own (`/upload/avatar/`) rather than a whole path this
+  // pair used to spell for itself. A host wires the same base its
+  // `createCdnRuntime({ baseUrl: "/cdn/api/v1/" })` uses.
+  const cdnClient = createStapelClient({ baseUrl: `${CDN_BASE}/cdn/api/v1` });
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
@@ -177,7 +181,7 @@ function wrap(
   );
 }
 
-describe("useAvatarUpload (headless stopgap)", () => {
+describe("useAvatarUpload (over @stapel/cdn-react's generated client)", () => {
   it("uploads a file through the injected cdn client and resolves the CDN ref", async () => {
     // NOTE: the handler deliberately does NOT call `request.formData()` —
     // jsdom's FormData polyfill hangs msw's body parser in this test
@@ -323,7 +327,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
   it("renders the hard-core rows (display_name, theme) plus one row per manifest entry", async () => {
     serveManifestAndProfile();
     const runtime = createProfilesRuntime({ baseUrl: BASE });
-    render(wrap(runtime, <ProfileSettings />));
+    render(wrap(runtime, <ProfileSettings showLanguage={false} showNotifications={false} />));
 
     // Hard-core display_name — rendered by the skin itself (no manifest
     // entry), pair-owned i18n label, editable-text canon.
@@ -352,7 +356,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     const runtime = createProfilesRuntime({ baseUrl: BASE });
 
     // Default: core rows are there even with nothing manifest-selected.
-    const { unmount } = render(wrap(runtime, <ProfileSettings />));
+    const { unmount } = render(wrap(runtime, <ProfileSettings showLanguage={false} showNotifications={false} />));
     await waitFor(() =>
       expect(screen.getByTestId("profile-field-display_name-value")).toBeDefined()
     );
@@ -362,7 +366,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
 
     // Owner canon: even the default skin must let a host customize or
     // disable them — both off leaves only the avatar block.
-    render(wrap(runtime, <ProfileSettings showDisplayName={false} showTheme={false} />));
+    render(wrap(runtime, <ProfileSettings showLanguage={false} showNotifications={false} showDisplayName={false} showTheme={false} />));
     await waitFor(() => expect(screen.getByTestId("profile-settings")).toBeDefined());
     expect(screen.queryByText("Theme")).toBeNull();
     expect(document.querySelectorAll('[data-testid^="profile-field-"]')).toHaveLength(0);
@@ -374,7 +378,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     render(
       wrap(
         runtime,
-        <ProfileSettings
+        <ProfileSettings showLanguage={false} showNotifications={false}
           displayNameRow={<div data-testid="custom-name-row">custom name UI</div>}
           themeRow={<div data-testid="custom-theme-row">custom theme UI</div>}
         />
@@ -407,7 +411,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
       http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE_EXT))
     );
     const runtime = createProfilesRuntime({ baseUrl: BASE });
-    render(wrap(runtime, <ProfileSettings />));
+    render(wrap(runtime, <ProfileSettings showLanguage={false} showNotifications={false} />));
 
     await waitFor(() =>
       expect(screen.getAllByTestId("profile-field-display_name-value")).toHaveLength(1)
@@ -425,7 +429,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
       lastPatch = p;
     });
     const runtime = createProfilesRuntime({ baseUrl: BASE });
-    render(wrap(runtime, <ProfileSettings />));
+    render(wrap(runtime, <ProfileSettings showLanguage={false} showNotifications={false} />));
 
     await waitFor(() =>
       expect(screen.getByTestId("profile-field-display_name-value").textContent).toBe("Ada Lovelace")
@@ -453,7 +457,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     const runtime = createProfilesRuntime({ baseUrl: BASE });
 
     setViewport(390);
-    const { unmount } = render(wrap(runtime, <ProfileSettings />));
+    const { unmount } = render(wrap(runtime, <ProfileSettings showLanguage={false} showNotifications={false} />));
     await waitFor(() =>
       expect(screen.getByTestId("profile-field-display_name-value")).toBeDefined()
     );
@@ -464,7 +468,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     unmount();
 
     setViewport(1024);
-    render(wrap(runtime, <ProfileSettings />));
+    render(wrap(runtime, <ProfileSettings showLanguage={false} showNotifications={false} />));
     await waitFor(() =>
       expect(screen.getByTestId("profile-field-display_name-value")).toBeDefined()
     );
@@ -482,7 +486,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     const patches: Record<string, unknown>[] = [];
     serveManifestAndProfile((p) => patches.push(p));
     const runtime = createProfilesRuntime({ baseUrl: BASE });
-    render(wrap(runtime, <ProfileSettings />));
+    render(wrap(runtime, <ProfileSettings showLanguage={false} showNotifications={false} />));
 
     await waitFor(() =>
       expect(screen.getByTestId("profile-field-display_name-value").textContent).toBe("Ada Lovelace")
@@ -522,7 +526,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
       lastPatch = p;
     });
     const runtime = createProfilesRuntime({ baseUrl: BASE });
-    render(wrap(runtime, <ProfileSettings />));
+    render(wrap(runtime, <ProfileSettings showLanguage={false} showNotifications={false} />));
     await waitFor(() => expect(screen.getByText("Dark")).toBeDefined());
 
     expect(screen.queryByText("Save changes")).toBeNull();
@@ -537,7 +541,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
       lastPatch = p;
     });
     const runtime = createProfilesRuntime({ baseUrl: BASE });
-    render(wrap(runtime, <ProfileSettings />));
+    render(wrap(runtime, <ProfileSettings showLanguage={false} showNotifications={false} />));
     await waitFor(() => expect(screen.getByText("GBP")).toBeDefined());
 
     fireEvent.mouseDown(screen.getByText("GBP")); // MY_PROFILE_EXT's current currency, opens the Select
@@ -553,7 +557,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
       lastPatch = p;
     });
     const runtime = createProfilesRuntime({ baseUrl: BASE });
-    render(wrap(runtime, <ProfileSettings />));
+    render(wrap(runtime, <ProfileSettings showLanguage={false} showNotifications={false} />));
     const toggle = await screen.findByRole("switch");
     expect(toggle.getAttribute("aria-checked")).toBe("true"); // MY_PROFILE_EXT.default_camera_on
 
@@ -569,7 +573,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
       http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE))
     );
     const runtime = createProfilesRuntime({ baseUrl: BASE });
-    render(wrap(runtime, <ProfileSettings />));
+    render(wrap(runtime, <ProfileSettings showLanguage={false} showNotifications={false} />));
 
     await waitFor(() => expect(screen.getByTestId("profile-fields-failed")).toBeDefined());
     expect(screen.getByText("Try again")).toBeDefined();
@@ -583,12 +587,12 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     serveManifestAndProfile();
     const runtime = createProfilesRuntime({ baseUrl: BASE });
 
-    const { unmount } = render(wrap(runtime, <ProfileSettings />));
+    const { unmount } = render(wrap(runtime, <ProfileSettings showLanguage={false} showNotifications={false} />));
     await waitFor(() => expect(screen.getByText("GBP")).toBeDefined());
     expect(screen.queryByTestId("profile-field-geohash-value")).toBeNull();
     unmount();
 
-    render(wrap(runtime, <ProfileSettings showGeohash />));
+    render(wrap(runtime, <ProfileSettings showLanguage={false} showNotifications={false} showGeohash />));
     await waitFor(() =>
       expect(screen.getByTestId("profile-field-geohash-value").textContent).toBe("gbsuv7z")
     );

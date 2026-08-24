@@ -19,51 +19,59 @@
  * `<ErrorAlert>`. The one thing that IS knowable here is the ROW's state, and
  * that is gated below.
  *
- * ── Two things this surface deliberately does not do ───────────────────────
+ * ── Freshness: POLLING, declared ───────────────────────────────────────────
  *
- * 1. **No live counts over a socket.** Refetch only. A
- *    `forms:ws:<workspace_id>` Signal stream is reserved naming for when the
- *    stapel-realtime substrate lands; forms does not build a socket, and that
- *    is a lint boundary rather than an unfinished feature.
- * 2. **No client-side CSV escaping.** The formula-injection guard (a `'`
- *    prefix on a leading `= + - @`) lives SERVER-side, so every consumer
- *    inherits it — a second escape here would double-prefix the cells the
- *    server already fixed.
+ * This list is **refetch-only, and it says so on screen**. stapel-forms 0.2.0
+ * ships no realtime consumer at all — MODULE.md §11 lists "realtime response
+ * feed" as out of scope and RESERVES the stream name `forms:ws:<workspace_id>`
+ * for a consumer that does not exist ("modules do not open sockets"), so there
+ * is nothing for `@stapel/realtime` to subscribe to. A socket opened here
+ * would be this pair inventing a protocol the backend does not speak, which is
+ * precisely the defect `@stapel/realtime` was extracted to end.
+ *
+ * The policy that replaces it is explicit rather than silent: no background
+ * timer (a table that reorders itself under a reviewer's cursor mid-read is
+ * worse than a stale one), one visible "check for new responses" control, and
+ * one sentence saying the list does not update on its own. When stapel-forms
+ * grows the consumer, this comment and that sentence are what get deleted —
+ * see `SCRATCH/wave-b/REQUESTS-forms-react.md`.
+ *
+ * ── No client-side CSV escaping ────────────────────────────────────────────
+ *
+ * The formula-injection guard (a `'` prefix on a leading `= + - @`) lives
+ * SERVER-side, so every consumer inherits it — a second escape here would
+ * double-prefix the cells the server already fixed.
  */
 import { useState } from "react";
 import type { ReactElement } from "react";
+import { Button, Flex, Input, Select, Space, Table, Tag, Typography } from "antd";
 import {
-  Button,
-  Empty,
-  Flex,
-  Input,
-  Popconfirm,
-  Select,
-  Space,
-  Spin,
-  Table,
-  Tag,
-  Typography,
-} from "antd";
-import { SkinDialog } from "@stapel/tokens-antd/skin";
+  EmptyState,
+  ErrorAlert,
+  GatedButton,
+  LoadBoundary,
+  SkinConfirm,
+  SkinDialog,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
 import {
   actionAvailable,
   actionBlocked,
   matchLoad,
-  toFlowError,
   useActionGate,
-  useDescribeFlowError,
   useT,
 } from "@stapel/core";
+import { spacing } from "@stapel/tokens";
 import type { Submission } from "../api/types.js";
 import { ResponsesTable } from "../headless/ResponsesTable.js";
 import type {
   ResponseColumn,
   ResponsesTableBag,
 } from "../headless/ResponsesTable.js";
-import { FormsSkinTheme } from "./theme.js";
-import { ErrorAlert } from "./ErrorAlert.js";
+import { RESPONSE_DIALOG_WIDTH, VERSION_SELECT_WIDTH } from "./geometry.js";
 import { resolveFormsSkinComponent } from "./slots.js";
+import { MissingWorkspaceNotice, useFormsWorkspaceId } from "./workspace.js";
+import { skinThemeProps } from "./types.js";
 import type { ThemeModeProp } from "./types.js";
 import { FORMS_I18N_KEYS } from "../i18n/keys.js";
 
@@ -98,8 +106,6 @@ function Cell(props: ResponseCellSlotProps): ReactElement {
 function Toolbar(props: ResponsesToolbarSlotProps): ReactElement {
   const t = useT();
   const { bag } = props;
-  const nextGate = useActionGate(bag.nextPage);
-  const prevGate = useActionGate(bag.prevPage);
   const Slot = resolveFormsSkinComponent<ResponsesToolbarSlotProps>(
     "responses.toolbar"
   );
@@ -116,49 +122,65 @@ function Toolbar(props: ResponsesToolbarSlotProps): ReactElement {
   });
 
   return (
-    <Flex gap={8} wrap align="center">
-      <Select<number | null>
-        style={{ width: 180 }}
-        value={bag.version}
-        onChange={(next) => bag.setVersion(next)}
-        data-testid="forms-responses-version"
-        options={[
-          { value: null, label: t(FORMS_I18N_KEYS.responsesAllVersions) },
-          ...versionOptions,
-        ]}
-      />
-      <Button
-        disabled={prevGate.disabled}
-        data-analytics="none"
-        data-analytics-reason="keyset paging of a read; no flow to step"
-        onClick={bag.goPrevPage}
-      >
-        {t(FORMS_I18N_KEYS.responsesPrev)}
-      </Button>
-      <Button
-        disabled={nextGate.disabled}
-        data-analytics="none"
-        data-analytics-reason="keyset paging of a read; no flow to step"
-        data-testid="forms-responses-next"
-        onClick={bag.goNextPage}
-      >
-        {t(FORMS_I18N_KEYS.responsesNext)}
-      </Button>
-      <Button
-        loading={bag.isExporting}
-        data-analytics="flow"
-        data-testid="forms-responses-export"
-        onClick={() => {
-          void bag.exportCsv();
-        }}
-      >
-        {bag.isExporting
-          ? t(FORMS_I18N_KEYS.responsesExporting, { pages: bag.exportPages })
-          : t(FORMS_I18N_KEYS.responsesExport)}
-      </Button>
-      {nextGate.reason !== undefined && (
-        <Typography.Text type="secondary">{nextGate.reason}</Typography.Text>
-      )}
+    <Flex vertical gap={spacing[1]}>
+      <Flex gap={spacing[2]} wrap align="flex-start">
+        <Select<number | null>
+          aria-label={t(FORMS_I18N_KEYS.responsesVersion)}
+          style={{ width: VERSION_SELECT_WIDTH }}
+          value={bag.version}
+          onChange={(next) => bag.setVersion(next)}
+          data-testid="forms-responses-version"
+          options={[
+            { value: null, label: t(FORMS_I18N_KEYS.responsesAllVersions) },
+            ...versionOptions,
+          ]}
+        />
+        <GatedButton
+          gate={bag.prevPage}
+          layout="inline"
+          data-analytics="none"
+          data-analytics-reason="keyset paging of a read; no flow to step"
+          testId="forms-responses-prev"
+          onClick={bag.goPrevPage}
+        >
+          {t(FORMS_I18N_KEYS.responsesPrev)}
+        </GatedButton>
+        <GatedButton
+          gate={bag.nextPage}
+          layout="inline"
+          data-analytics="none"
+          data-analytics-reason="keyset paging of a read; no flow to step"
+          testId="forms-responses-next"
+          onClick={bag.goNextPage}
+        >
+          {t(FORMS_I18N_KEYS.responsesNext)}
+        </GatedButton>
+        <Button
+          data-analytics="none"
+          data-analytics-reason="manual refetch of a read; no flow to step"
+          data-testid="forms-responses-refresh"
+          onClick={bag.refetch}
+        >
+          {t(FORMS_I18N_KEYS.responsesRefresh)}
+        </Button>
+        <Button
+          loading={bag.isExporting}
+          data-analytics="flow"
+          data-testid="forms-responses-export"
+          onClick={() => {
+            void bag.exportCsv();
+          }}
+        >
+          {bag.isExporting
+            ? t(FORMS_I18N_KEYS.responsesExporting, { pages: bag.exportPages })
+            : t(FORMS_I18N_KEYS.responsesExport)}
+        </Button>
+      </Flex>
+      {/* The freshness policy, said once where the list is: this is polling,
+          and nothing arrives on its own. */}
+      <Typography.Text type="secondary" data-testid="forms-responses-polling">
+        {t(FORMS_I18N_KEYS.responsesPollingNote)}
+      </Typography.Text>
     </Flex>
   );
 }
@@ -166,13 +188,14 @@ function Toolbar(props: ResponsesToolbarSlotProps): ReactElement {
 /**
  * The response detail surface — a vertical read-and-act journey over one
  * submission, so a dialog rather than navigation: a bottom sheet on a phone,
- * a 480px centred modal on tablet and desktop. The sheet is viewport-wide, so
+ * a centred modal on tablet and desktop. The sheet is viewport-wide, so
  * `width` applies to the modal only.
  */
 function DetailDialog(props: { bag: ResponsesTableBag }): ReactElement {
   const t = useT();
   const { bag } = props;
   const [override, setOverride] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const row = bag.selected;
 
   // An erased row has no answers left. Resending it would deliver an empty
@@ -180,11 +203,11 @@ function DetailDialog(props: { bag: ResponsesTableBag }): ReactElement {
   // both are refusals waiting to happen, so both are switched off HERE, with
   // the reason printed as text beside them (a disabled control receives no
   // pointer events, so a tooltip is a reason nobody can read).
-  const writeGate = useActionGate(
+  const writeGate =
     row !== null && row.erased_at != null
       ? actionBlocked(FORMS_I18N_KEYS.responsesErasedNoWrite)
-      : actionAvailable()
-  );
+      : actionAvailable();
+  const writeView = useActionGate(writeGate);
 
   return (
     <SkinDialog
@@ -192,11 +215,11 @@ function DetailDialog(props: { bag: ResponsesTableBag }): ReactElement {
       onClose={() => bag.select(null)}
       title={t(FORMS_I18N_KEYS.responsesDetail)}
       dismissLabel={t(FORMS_I18N_KEYS.responsesClose)}
-      width={480}
+      width={RESPONSE_DIALOG_WIDTH}
       data-testid="forms-responses-dialog"
     >
       {row !== null && (
-        <Flex vertical gap={12}>
+        <Flex vertical gap={spacing[3]}>
           <Typography.Text type="secondary">
             {t(FORMS_I18N_KEYS.responsesVersion)} {row.version} ·{" "}
             {row.submitted_at}
@@ -214,18 +237,20 @@ function DetailDialog(props: { bag: ResponsesTableBag }): ReactElement {
             {t(FORMS_I18N_KEYS.responsesResendOverrideHint)}
           </Typography.Text>
           <Input
+            aria-label={t(FORMS_I18N_KEYS.responsesResendOverride)}
             placeholder={t(FORMS_I18N_KEYS.responsesResendOverride)}
             value={override}
-            disabled={writeGate.disabled}
+            disabled={writeView.disabled}
+            data-disabled-reason="erased row; the reason is printed under the action row"
             onChange={(event) => setOverride(event.target.value)}
             data-testid="forms-resend-override"
           />
-          <Space>
-            <Button
-              disabled={writeGate.disabled}
+          <Space wrap>
+            <GatedButton
+              gate={writeGate}
               loading={bag.isResending}
               data-analytics="flow"
-              data-testid="forms-resend"
+              testId="forms-resend"
               onClick={() => {
                 const recipients = override
                   .split(",")
@@ -240,43 +265,18 @@ function DetailDialog(props: { bag: ResponsesTableBag }): ReactElement {
               }}
             >
               {t(FORMS_I18N_KEYS.responsesResend)}
-            </Button>
-            {writeGate.disabled ? (
-              // No Popconfirm around a dead button: a confirmation that can
-              // never be confirmed is chrome pretending the action exists.
-              <Button
-                danger
-                disabled
-                data-analytics="none"
-                data-analytics-reason="erased row; the delete it would confirm cannot run"
-                data-testid="forms-delete"
-              >
-                {t(FORMS_I18N_KEYS.responsesDelete)}
-              </Button>
-            ) : (
-              <Popconfirm
-                title={t(FORMS_I18N_KEYS.responsesDeleteConfirm)}
-                onConfirm={() => bag.remove(row.id)}
-              >
-                <Button
-                  danger
-                  loading={bag.isRemoving}
-                  data-analytics="flow"
-                  data-testid="forms-delete"
-                >
-                  {t(FORMS_I18N_KEYS.responsesDelete)}
-                </Button>
-              </Popconfirm>
-            )}
-          </Space>
-          {writeGate.reason !== undefined && (
-            <Typography.Text
-              type="secondary"
-              data-testid="forms-responses-write-blocked"
+            </GatedButton>
+            <GatedButton
+              gate={writeGate}
+              danger
+              data-analytics="none"
+              data-analytics-reason="opens the delete confirmation; the DELETE inside it is the tracked step"
+              testId="forms-delete"
+              onClick={() => setConfirmingDelete(true)}
             >
-              {writeGate.reason}
-            </Typography.Text>
-          )}
+              {t(FORMS_I18N_KEYS.responsesDelete)}
+            </GatedButton>
+          </Space>
           {bag.lastResendCount !== null && (
             <Typography.Text type="success" data-testid="forms-resend-sent">
               {t(FORMS_I18N_KEYS.responsesResendSent, {
@@ -284,6 +284,20 @@ function DetailDialog(props: { bag: ResponsesTableBag }): ReactElement {
               })}
             </Typography.Text>
           )}
+
+          <SkinConfirm
+            open={confirmingDelete}
+            danger
+            confirming={bag.isRemoving}
+            title={t(FORMS_I18N_KEYS.responsesDeleteConfirm)}
+            confirmLabel={t(FORMS_I18N_KEYS.responsesDelete)}
+            onConfirm={() => {
+              bag.remove(row.id);
+              setConfirmingDelete(false);
+            }}
+            onCancel={() => setConfirmingDelete(false)}
+            data-testid="forms-delete-confirm"
+          />
         </Flex>
       )}
     </SkinDialog>
@@ -291,66 +305,61 @@ function DetailDialog(props: { bag: ResponsesTableBag }): ReactElement {
 }
 
 export interface ResponsesPaneProps extends ThemeModeProp {
-  readonly workspaceId: string;
+  /** Omit to use the runtime's `workspaceId` (the routable case). */
+  readonly workspaceId?: string;
   readonly formId: string;
   readonly limit?: number;
 }
 
 export function ResponsesPane(props: ResponsesPaneProps): ReactElement {
   const t = useT();
-  const describe = useDescribeFlowError();
+  const workspaceId = useFormsWorkspaceId(props.workspaceId);
+
+  if (workspaceId === null) {
+    return (
+      <SkinTheme {...skinThemeProps(props)}>
+        <MissingWorkspaceNotice testId="forms-responses-no-workspace" />
+      </SkinTheme>
+    );
+  }
 
   return (
-    <FormsSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
+    <SkinTheme {...skinThemeProps(props)}>
       <ResponsesTable
-        workspaceId={props.workspaceId}
+        workspaceId={workspaceId}
         formId={props.formId}
         {...(props.limit !== undefined ? { limit: props.limit } : {})}
       >
         {(bag) => (
-          <Flex vertical gap={16}>
-            <Typography.Title level={4}>
+          <Flex vertical gap={spacing[4]}>
+            <Typography.Title level={4} style={{ margin: 0 }}>
               {t(FORMS_I18N_KEYS.responsesTitle)}
             </Typography.Title>
             <Toolbar bag={bag} />
-            {bag.error !== null && (
-              <ErrorAlert
-                testId="forms-responses-error"
-                error={describe(toFlowError(bag.error))}
-              />
-            )}
-            {matchLoad(bag.state, {
-              loading: () => (
-                <Flex justify="center" style={{ padding: 24 }}>
-                  <Spin data-testid="forms-responses-loading" />
-                </Flex>
-              ),
+            <ErrorAlert
+              testId="forms-responses-error"
+              {...(bag.error !== null ? { thrown: bag.error } : {})}
+            />
+            <LoadBoundary
+              state={bag.state}
+              onRetry={bag.refetch}
+              testId="forms-responses"
               // "We could not load the responses" — never an empty grid,
               // which would read as "nobody answered".
-              failed: (error) => (
+              failed={(thrown) => (
                 <ErrorAlert
                   testId="forms-responses-failed"
-                  error={{
-                    ...describe(toFlowError(error)),
-                    message: t(FORMS_I18N_KEYS.responsesLoadFailed),
-                  }}
-                  action={
-                    <Button
-                      size="small"
-                      onClick={bag.refetch}
-                      data-analytics="none"
-                      data-analytics-reason="retry of a failed read; no flow to step"
-                    >
-                      {t(FORMS_I18N_KEYS.fillRetry)}
-                    </Button>
-                  }
+                  message={t(FORMS_I18N_KEYS.responsesLoadFailed)}
+                  thrown={thrown}
+                  onRetry={bag.refetch}
                 />
-              ),
-              ready: (view) =>
+              )}
+            >
+              {(view) =>
                 view.rows.length === 0 ? (
-                  <Empty
-                    data-testid="forms-responses-empty"
-                    description={t(FORMS_I18N_KEYS.responsesEmpty)}
+                  <EmptyState
+                    testId="forms-responses-empty"
+                    title={t(FORMS_I18N_KEYS.responsesEmpty)}
                   />
                 ) : (
                   <Table<Submission>
@@ -389,12 +398,13 @@ export function ResponsesPane(props: ResponsesPaneProps): ReactElement {
                       })),
                     ]}
                   />
-                ),
-            })}
+                )
+              }
+            </LoadBoundary>
             <DetailDialog bag={bag} />
           </Flex>
         )}
       </ResponsesTable>
-    </FormsSkinTheme>
+    </SkinTheme>
   );
 }

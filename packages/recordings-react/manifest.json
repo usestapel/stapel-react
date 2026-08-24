@@ -4,7 +4,7 @@
   "version": "0.5.1",
   "backend": {
     "module": "stapel-recordings",
-    "contract": ">=0.4 <0.5"
+    "contract": ">=0.20 <0.21"
   },
   "layers": [
     "api",
@@ -37,6 +37,13 @@
       "request": null,
       "response": null
     },
+    "recordings_api_v1_recordings_media_retrieve": {
+      "method": "GET",
+      "path": "/recordings/api/v1/recordings/{recording_id}/media",
+      "tag": "Recordings",
+      "request": null,
+      "response": "MediaURLDTO"
+    },
     "recordings_api_v1_recordings_reprocess_create": {
       "method": "POST",
       "path": "/recordings/api/v1/recordings/{recording_id}/reprocess",
@@ -44,12 +51,47 @@
       "request": null,
       "response": "RecordingDTO"
     },
+    "recordings_api_v1_recordings_resummarize_create": {
+      "method": "POST",
+      "path": "/recordings/api/v1/recordings/{recording_id}/resummarize",
+      "tag": "Recordings",
+      "request": null,
+      "response": "JobDTO"
+    },
     "recordings_api_v1_recordings_retrieve": {
       "method": "GET",
       "path": "/recordings/api/v1/recordings/{recording_id}",
       "tag": "Recordings",
       "request": null,
       "response": "RecordingDTO"
+    },
+    "recordings_api_v1_recordings_transcript_retrieve": {
+      "method": "GET",
+      "path": "/recordings/api/v1/recordings/{recording_id}/transcript",
+      "tag": "Recordings",
+      "request": null,
+      "response": "TranscriptPage"
+    },
+    "recordings_api_v1_shares_media_retrieve": {
+      "method": "GET",
+      "path": "/recordings/api/v1/shares/{link_token}/media",
+      "tag": "Recordings",
+      "request": null,
+      "response": "MediaURLDTO"
+    },
+    "recordings_api_v1_shares_retrieve": {
+      "method": "GET",
+      "path": "/recordings/api/v1/shares/{link_token}",
+      "tag": "Recordings",
+      "request": null,
+      "response": "SharedRecordingDTO"
+    },
+    "recordings_api_v1_shares_unlock_create": {
+      "method": "POST",
+      "path": "/recordings/api/v1/shares/{link_token}/unlock",
+      "tag": "Recordings",
+      "request": "ShareUnlockRequest",
+      "response": "ShareUnlockDTO"
     }
   },
   "hooks": {
@@ -80,6 +122,15 @@
         "{recordingId}"
       ]
     },
+    "useRecordingMedia": {
+      "kind": "query",
+      "operation": "getMediaUrl",
+      "queryKey": [
+        "recordings",
+        "media",
+        "{recordingId}"
+      ]
+    },
     "useRecordings": {
       "kind": "query",
       "operation": "listRecordings",
@@ -87,6 +138,53 @@
         "recordings",
         "list",
         "{params}"
+      ]
+    },
+    "useReprocess": {
+      "kind": "mutation",
+      "operation": "reprocess",
+      "invalidates": [
+        [
+          "recordings"
+        ]
+      ]
+    },
+    "useResummarize": {
+      "kind": "mutation",
+      "operation": "resummarize",
+      "invalidates": [
+        [
+          "recordings"
+        ]
+      ]
+    },
+    "useSharedMedia": {
+      "kind": "query",
+      "operation": "getSharedMediaUrl",
+      "queryKey": [
+        "recording-shares",
+        "media",
+        "{linkToken}",
+        "{unlockToken}"
+      ]
+    },
+    "useSharedRecording": {
+      "kind": "query",
+      "operation": "getSharedRecording",
+      "queryKey": [
+        "recording-shares",
+        "detail",
+        "{linkToken}",
+        "{unlockToken}"
+      ]
+    },
+    "useUnlockShare": {
+      "kind": "mutation",
+      "operation": "unlockShare",
+      "invalidates": [
+        [
+          "recording-shares"
+        ]
       ]
     }
   },
@@ -217,12 +315,22 @@
       "params": [],
       "remediation": "verify"
     },
+    "error.401.share_passcode_required": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
     "error.401.unauthorized": {
       "status": 401,
       "params": [],
       "remediation": "reauthenticate"
     },
     "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.402.recording_payment_required": {
       "status": 402,
       "params": [],
       "remediation": "retry"
@@ -237,7 +345,17 @@
       "params": [],
       "remediation": "contact_support"
     },
+    "error.403.recording_action_denied": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.403.recording_workspace_forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.share_permission_denied": {
       "status": 403,
       "params": [],
       "remediation": "retry"
@@ -263,6 +381,11 @@
       "remediation": "retry"
     },
     "error.404.recording_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.share_not_found": {
       "status": 404,
       "params": [],
       "remediation": "retry"
@@ -293,6 +416,16 @@
       "remediation": "fix_input"
     },
     "error.409.recording_invalid_state": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.recording_media_not_stored": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.recording_no_transcript": {
       "status": 409,
       "params": [],
       "remediation": "fix_input"
@@ -344,6 +477,11 @@
       ],
       "remediation": "wait_and_retry"
     },
+    "error.429.share_unlock_throttled": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
     "error.429.too_many_requests": {
       "status": 429,
       "params": [],
@@ -353,6 +491,26 @@
       "status": 500,
       "params": [],
       "remediation": "contact_support"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.recording_media_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.recording_summarize_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.recording_upload_unverifiable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
     }
   },
   "events": {
@@ -372,6 +530,24 @@
         "default"
       ],
       "source": "demo/RecordingComposer.demo.tsx"
+    },
+    {
+      "id": "recordings.detail-skin",
+      "title": "Recording screen (default skin)",
+      "description": "The recording screen: facts through the locale formatters, the player, the summary, the synced transcript, and the two metered actions with their reasons.",
+      "component": "RecordingDetailPane",
+      "covers": [
+        "RecordingDetail",
+        "RecordingMedia",
+        "Transcript",
+        "ResummarizeControl",
+        "ReprocessControl"
+      ],
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/RecordingDetailPaneSkin.demo.tsx"
     },
     {
       "id": "recordings.finalize",
@@ -401,6 +577,39 @@
       "source": "demo/RecordingList.demo.tsx"
     },
     {
+      "id": "recordings.list-skin",
+      "title": "Recordings screen (default skin)",
+      "description": "The shipped list: real RecordingStatus pills, dates and lengths through the locale formatters, and a failed arm that never wears the empty copy.",
+      "component": "RecordingsList",
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/RecordingsListSkin.demo.tsx"
+    },
+    {
+      "id": "recordings.payment-skin",
+      "title": "Out of credit",
+      "description": "The metered refusal as a top-up prompt; where the money is added is a host slot, visible and named in development when unfilled.",
+      "component": "PaymentRequiredNotice",
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/PaymentRequiredNoticeSkin.demo.tsx"
+    },
+    {
+      "id": "recordings.player-skin",
+      "title": "Player",
+      "description": "The only path to the bytes: a minted URL that re-mints before it expires, and named arms for 'not stored' and 'delivery is down'.",
+      "component": "RecordingPlayer",
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/RecordingPlayerSkin.demo.tsx"
+    },
+    {
       "id": "recordings.provider",
       "title": "Recordings provider",
       "description": "The headless recordings root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
@@ -412,6 +621,111 @@
         "default"
       ],
       "source": "demo/Recordings.demo.tsx"
+    },
+    {
+      "id": "recordings.reprocess-skin",
+      "title": "Transcribe again",
+      "description": "A second transcription and a second bill, so it goes through the fleet's confirm surface — a bottom sheet on a phone, a modal above 768px.",
+      "component": "ReprocessAction",
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/ReprocessActionSkin.demo.tsx"
+    },
+    {
+      "id": "recordings.resummarize-skin",
+      "title": "Rewrite summary",
+      "description": "Accepted is not finished: the 202 receipt keeps the control blocked so a double click reads as one action, and a 402 becomes a top-up prompt.",
+      "component": "ResummarizeAction",
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/ResummarizeActionSkin.demo.tsx"
+    },
+    {
+      "id": "recordings.share-skin",
+      "title": "Public share page",
+      "description": "A share link renders what it grants and nothing else — a view-only link never puts up a player that cannot play.",
+      "component": "SharedRecordingView",
+      "covers": [
+        "SharedRecording"
+      ],
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/SharedRecordingViewSkin.demo.tsx"
+    },
+    {
+      "id": "recordings.share-unlock-skin",
+      "title": "Passcode gate",
+      "description": "401 share_passcode_required renders as a gate; 429 share_unlock_throttled is a named lockout, not a generic failure.",
+      "component": "ShareUnlockGate",
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/ShareUnlockGateSkin.demo.tsx"
+    },
+    {
+      "id": "recordings.shared-media-skin",
+      "title": "Shared playback",
+      "description": "Playback on the public surface, refreshed on the share's shorter TTL, and absent entirely when the link does not grant media.",
+      "component": "SharedMedia",
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/SharedMediaSkin.demo.tsx"
+    },
+    {
+      "id": "recordings.status-chip",
+      "title": "Status chip",
+      "description": "The eleven lifecycle values the backend can emit, each with a sentence and a tone, and the neutral chip an unknown status falls back to.",
+      "component": "RecordingStatusChip",
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/RecordingStatusChipSkin.demo.tsx"
+    },
+    {
+      "id": "recordings.summary-skin",
+      "title": "Summary pane",
+      "description": "The summary with its rewrite action; when the deployment has summaries switched off the pane is absent rather than an empty card.",
+      "component": "SummaryPane",
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/SummaryPaneSkin.demo.tsx"
+    },
+    {
+      "id": "recordings.transcript-skin",
+      "title": "Transcript pane",
+      "description": "A live region rather than a list: every segment is a real button that seeks the audio, and the playing line announces itself.",
+      "component": "TranscriptPane",
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/TranscriptPaneSkin.demo.tsx"
+    },
+    {
+      "id": "recordings.uploader-skin",
+      "title": "Uploader (create → upload → finalize)",
+      "description": "One surface for the whole upload act, so a half-uploaded recording cannot be stranded between three host-wired controls.",
+      "component": "RecordingUploader",
+      "covers": [
+        "RecordingUpload"
+      ],
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/RecordingUploaderSkin.demo.tsx"
     }
   ],
   "i18nKeys": [
@@ -435,22 +749,29 @@
     "error.400.validation_error",
     "error.400.verification_failed",
     "error.400.verification_invalid_factor",
+    "error.401.share_passcode_required",
     "error.401.unauthorized",
     "error.402.payment_required",
+    "error.402.recording_payment_required",
     "error.403.forbidden",
     "error.403.network_blocked",
+    "error.403.recording_action_denied",
     "error.403.recording_workspace_forbidden",
+    "error.403.share_permission_denied",
     "error.403.verification_enrollment_required",
     "error.403.verification_required",
     "error.404.ad_not_found",
     "error.404.not_found",
     "error.404.recording_not_found",
+    "error.404.share_not_found",
     "error.404.verification_challenge_not_found",
     "error.405.method_not_allowed",
     "error.406.not_acceptable",
     "error.408.request_timeout",
     "error.409.conflict",
     "error.409.recording_invalid_state",
+    "error.409.recording_media_not_stored",
+    "error.409.recording_no_transcript",
     "error.410.gone",
     "error.413.payload_too_large",
     "error.413.recording_too_large",
@@ -460,55 +781,205 @@
     "error.423.locked",
     "error.423.verification_locked",
     "error.429.rate_limit",
+    "error.429.share_unlock_throttled",
     "error.429.too_many_requests",
     "error.500.internal",
+    "error.503.mandate_unavailable",
+    "error.503.recording_media_unavailable",
+    "error.503.recording_summarize_unavailable",
+    "error.503.recording_upload_unverifiable",
     "recordings.composer.create",
     "recordings.composer.created",
     "recordings.composer.creating",
+    "recordings.detail.back",
+    "recordings.detail.created",
+    "recordings.detail.duration",
+    "recordings.detail.heading",
+    "recordings.detail.language",
+    "recordings.detail.processing",
+    "recordings.detail.provider",
+    "recordings.detail.segments",
+    "recordings.detail.speakers",
+    "recordings.detail.unknown_value",
+    "recordings.detail.words",
     "recordings.error.unknown",
     "recordings.finalize.done",
     "recordings.finalize.finalizing",
     "recordings.finalize.submit",
     "recordings.list.empty",
+    "recordings.list.empty_hint",
     "recordings.list.error",
+    "recordings.list.heading",
     "recordings.list.load_failed",
     "recordings.list.loading",
+    "recordings.list.open",
     "recordings.list.retry",
+    "recordings.list.workspace_note",
+    "recordings.payment.action",
+    "recordings.payment.hint",
+    "recordings.payment.title",
+    "recordings.player.blocked_deleted",
+    "recordings.player.blocked_not_ready",
+    "recordings.player.heading",
+    "recordings.player.label",
+    "recordings.player.not_stored",
+    "recordings.player.preparing",
+    "recordings.player.refresh",
+    "recordings.player.unavailable",
+    "recordings.reprocess.action",
+    "recordings.reprocess.blocked_not_completed",
+    "recordings.reprocess.confirm_body",
+    "recordings.reprocess.confirm_ok",
+    "recordings.reprocess.confirm_title",
+    "recordings.reprocess.queued",
+    "recordings.reprocess.running",
+    "recordings.resummarize.accepted",
+    "recordings.resummarize.action",
+    "recordings.resummarize.blocked_in_flight",
+    "recordings.resummarize.blocked_no_transcript",
+    "recordings.resummarize.blocked_processing",
+    "recordings.resummarize.running",
     "recordings.retry",
-    "recordings.upload.uploading"
+    "recordings.share.footer",
+    "recordings.share.heading",
+    "recordings.share.locked_hint",
+    "recordings.share.locked_title",
+    "recordings.share.media_blocked",
+    "recordings.share.not_found",
+    "recordings.share.passcode_label",
+    "recordings.share.throttled",
+    "recordings.share.transcript_blocked",
+    "recordings.share.unlock",
+    "recordings.share.unlocking",
+    "recordings.share.view_only",
+    "recordings.status.analyzing",
+    "recordings.status.completed",
+    "recordings.status.created",
+    "recordings.status.deleted",
+    "recordings.status.diarizing",
+    "recordings.status.error",
+    "recordings.status.merging",
+    "recordings.status.normalizing",
+    "recordings.status.processing_label",
+    "recordings.status.queued",
+    "recordings.status.transcribing",
+    "recordings.status.unknown",
+    "recordings.status.uploading",
+    "recordings.summary.empty",
+    "recordings.summary.heading",
+    "recordings.transcript.current",
+    "recordings.transcript.empty",
+    "recordings.transcript.heading",
+    "recordings.transcript.load_more",
+    "recordings.transcript.pending",
+    "recordings.transcript.region_label",
+    "recordings.transcript.seek",
+    "recordings.transcript.speaker_fallback",
+    "recordings.upload.uploading",
+    "recordings.uploader.blocked_no_file",
+    "recordings.uploader.blocked_no_title",
+    "recordings.uploader.blocked_no_workspace",
+    "recordings.uploader.cancel",
+    "recordings.uploader.diarization_label",
+    "recordings.uploader.done",
+    "recordings.uploader.heading",
+    "recordings.uploader.language_auto",
+    "recordings.uploader.language_label",
+    "recordings.uploader.pick",
+    "recordings.uploader.picked",
+    "recordings.uploader.progress",
+    "recordings.uploader.session_expired",
+    "recordings.uploader.source_dictaphone",
+    "recordings.uploader.source_label",
+    "recordings.uploader.source_meet",
+    "recordings.uploader.source_other",
+    "recordings.uploader.source_upload",
+    "recordings.uploader.start",
+    "recordings.uploader.step_creating",
+    "recordings.uploader.step_finalizing",
+    "recordings.uploader.step_uploading",
+    "recordings.uploader.title_label",
+    "recordings.uploader.title_placeholder",
+    "recordings.uploader.too_large",
+    "recordings.uploader.unsupported_type"
   ],
   "exports": {
     "runtime": [
+      "PROCESSING_STATUSES",
       "RECORDINGS_ERRORS",
       "RECORDINGS_ERROR_CODES",
       "RECORDINGS_FLOWS",
       "RECORDINGS_I18N_KEYS",
+      "RECORDING_STATUSES",
       "RecordingComposer",
+      "RecordingDetail",
       "RecordingList",
+      "RecordingMedia",
+      "RecordingUpload",
       "RecordingsProvider",
       "RecordingsRuntimeContext",
+      "ReprocessControl",
+      "ResummarizeControl",
+      "SHARE_PERMISSIONS",
+      "SHARE_UNLOCK_HEADER",
+      "SharedRecording",
+      "TERMINAL_STATUSES",
+      "Transcript",
       "UploadFinalizer",
+      "UploadPreflightError",
       "createFlowMachine",
       "createRecordingsApi",
       "createRecordingsRuntime",
       "explainRecordingsError",
       "flowEndpoints",
+      "formatBytes",
+      "formatCount",
+      "formatDate",
+      "formatDuration",
+      "formatInstant",
+      "formatTimecode",
+      "hasErrorCode",
+      "isAcceptedMediaType",
       "isErrorCode",
+      "isKnownRecordingStatus",
+      "isNoTranscript",
+      "isPaymentRequired",
+      "isProcessingStatus",
+      "isSummarizeUnavailable",
+      "isTerminalStatus",
       "isUploadExpired",
+      "mediaGate",
+      "mediaRefreshMs",
+      "pollIntervalMs",
       "recordingsErrorBundleEn",
       "recordingsI18nBundleEn",
       "recordingsQueryKeys",
       "registerRecordingsI18n",
+      "reprocessGate",
+      "resummarizeGate",
+      "segmentIndexAt",
+      "shareGrants",
+      "speakerLabel",
       "toFlowError",
+      "uploadGate",
+      "uploadPreflightKey",
       "uploadRecordingBlob",
       "useCreateRecording",
       "useFinalizeUpload",
       "useFlow",
       "useRecording",
+      "useRecordingMedia",
       "useRecordings",
       "useRecordingsAnalytics",
       "useRecordingsApi",
-      "useRecordingsRuntime"
+      "useRecordingsFormat",
+      "useRecordingsRuntime",
+      "useReprocess",
+      "useResummarize",
+      "useSharedMedia",
+      "useSharedRecording",
+      "useTranscript",
+      "useUnlockShare"
     ],
     "types": [
       "CreateRecordingRequest",
@@ -521,22 +992,49 @@
       "FlowMachine",
       "FlowMachineOptions",
       "FlowStateBase",
+      "Job",
+      "MediaUrl",
+      "MediaUrlOptions",
+      "PollHint",
       "Recording",
       "RecordingComposerBag",
+      "RecordingDetailBag",
+      "RecordingDraft",
       "RecordingListBag",
       "RecordingListParams",
+      "RecordingMediaBag",
+      "RecordingStatus",
+      "RecordingUploadBag",
       "RecordingsApi",
       "RecordingsErrorCode",
       "RecordingsErrorSpec",
       "RecordingsFlowId",
       "RecordingsFlowSpec",
+      "RecordingsFormat",
       "RecordingsI18nKey",
       "RecordingsRuntime",
       "Remediation",
+      "ReprocessControlBag",
+      "ResummarizeControlBag",
       "Schemas",
+      "ShareAccessOptions",
+      "SharePermission",
+      "ShareUnlock",
+      "ShareUnlockRequest",
+      "SharedMediaBag",
+      "SharedRecordingBag",
+      "SharedRecordingDto",
+      "TranscriptBag",
+      "TranscriptPage",
+      "TranscriptParams",
+      "TranscriptSegment",
+      "UnlockShareVariables",
       "UploadBlobOptions",
       "UploadFinalizerBag",
-      "UploadSession"
+      "UploadPreflightReason",
+      "UploadProgress",
+      "UploadSession",
+      "UploadStep"
     ]
   }
 }

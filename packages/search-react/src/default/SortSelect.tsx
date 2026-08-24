@@ -10,12 +10,17 @@
  *
  * `sort=distance` needs a centre — the server answers
  * `error.400.search_sort_needs_center` without one. The option is therefore
- * DISABLED with the reason named when no geo centre is set, rather than
- * offered and then refused.
+ * DISABLED when no geo centre is set, and the REASON is rendered beside the
+ * control through `GatedControl`, not in a `title=` a phone can never surface.
+ * That is the whole defect this file used to carry: the one sort a person
+ * would most want on a phone was greyed out with its explanation in a hover.
  */
 import type { ReactElement } from "react";
 import { Flex, Select, Typography } from "antd";
-import { useT } from "@stapel/core";
+import { actionAvailable, actionBlocked, useT } from "@stapel/core";
+import type { ActionAvailability } from "@stapel/core";
+import { GatedControl } from "@stapel/tokens-antd/skin";
+import { spacing } from "@stapel/tokens";
 import { SEARCH_SORTS } from "../api/types.js";
 import { useAppliedSort } from "../headless/useAppliedSort.js";
 import { useSearchState } from "../headless/SearchStateProvider.js";
@@ -28,6 +33,13 @@ const SORT_LABEL_KEY: Readonly<Record<string, string>> = {
   price_desc: SEARCH_I18N_KEYS.sortPriceDesc,
   distance: SEARCH_I18N_KEYS.sortDistance,
 };
+
+/**
+ * The select's floor width. Off the spacing scale on purpose and named for it:
+ * it is the width of the longest shipped sort label ("Price: low to high") at
+ * the default type step, so the control does not resize as the choice changes.
+ */
+export const SORT_SELECT_MIN_WIDTH = 200;
 
 export interface SortSelectProps {
   /** The sort the SERVER applied, shown when the URL names none. Omitted, it
@@ -54,33 +66,41 @@ export function SortSelect(props: SortSelectProps): ReactElement {
       ? [...SEARCH_SORTS, active]
       : SEARCH_SORTS;
 
+  // The gate is about ONE option, not the whole control — so the binding's
+  // `aria-describedby` is spread onto the select (a screen reader hears the
+  // reason with the control) and its `disabled` deliberately is not: the other
+  // four sorts work perfectly well without a location.
+  const distance: ActionAvailability = hasCentre
+    ? actionAvailable()
+    : actionBlocked("error.400.search_sort_needs_center");
+
   return (
-    <Flex gap={8} align="center">
-      <Typography.Text type="secondary">
-        {t(SEARCH_I18N_KEYS.sortLabel)}
-      </Typography.Text>
-      <Select<string>
-        data-testid="search-sort"
-        style={{ minWidth: 180 }}
-        value={active ?? null}
-        onChange={(next) => {
-          setSort(next);
-        }}
-        options={values.map((value) => {
-          const key = SORT_LABEL_KEY[value];
-          const needsCentre = value === "distance" && !hasCentre;
-          return {
-            value,
-            label: key !== undefined ? t(key) : value,
-            disabled: needsCentre,
-            // A disabled control states its reason (the ActionAvailability
-            // canon), even inside a select.
-            ...(needsCentre
-              ? { title: t("error.400.search_sort_needs_center") }
-              : {}),
-          };
-        })}
-      />
-    </Flex>
+    <GatedControl gate={distance} testId="search-sort-gate">
+      {(bind) => (
+        <Flex gap={spacing[2]} align="center">
+          <Typography.Text type="secondary" aria-hidden="true">
+            {t(SEARCH_I18N_KEYS.sortLabel)}
+          </Typography.Text>
+          <Select<string>
+            data-testid="search-sort"
+            aria-label={t(SEARCH_I18N_KEYS.sortLabel)}
+            aria-describedby={bind["aria-describedby"]}
+            style={{ minWidth: SORT_SELECT_MIN_WIDTH }}
+            value={active ?? null}
+            onChange={(next) => {
+              setSort(next);
+            }}
+            options={values.map((value) => {
+              const key = SORT_LABEL_KEY[value];
+              return {
+                value,
+                label: key !== undefined ? t(key) : value,
+                disabled: value === "distance" && !hasCentre,
+              };
+            })}
+          />
+        </Flex>
+      )}
+    </GatedControl>
   );
 }

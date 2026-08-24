@@ -194,7 +194,7 @@ function serveBodiless500(): void {
 async function renderAlertOnFailedSave(mode: "light" | "dark", locale: string): Promise<void> {
   installHostTokens(mode);
   serveBodiless500();
-  render(wrap(<ProfileSettings />, locale));
+  render(wrap(<ProfileSettings showLanguage={false} showNotifications={false} />, locale));
   await screen.findByTestId("profile-settings");
   // The hard-core theme row's Segmented commits reactively — one click is the
   // whole "save", exactly as the owner's screen behaved.

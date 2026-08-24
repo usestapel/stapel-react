@@ -1,0 +1,44 @@
+{
+  "package": "@stapel/docs-react",
+  "version": "0.3.2",
+  "entries": [
+    {
+      "id": "docs.files",
+      "labelKey": "docs.nav.files",
+      "icon": "FolderOpenOutlined",
+      "route": {
+        "path": "/files"
+      },
+      "component": {
+        "export": "FileManager",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 30
+    },
+    {
+      "id": "docs.document",
+      "labelKey": "docs.nav.document",
+      "icon": "ProfileOutlined",
+      "route": {
+        "path": "/files/:id"
+      },
+      "component": {
+        "export": "DocSurface",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 31
+    }
+  ]
+}

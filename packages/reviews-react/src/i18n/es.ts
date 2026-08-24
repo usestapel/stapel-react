@@ -39,10 +39,13 @@ export const reviewsI18nBundleEs: I18nDictionary = {
 
   "reviews.list.heading": "Reseñas",
   "reviews.list.empty": "Todavía no hay reseñas",
+  "reviews.list.empty_hint": "Cuenta tú el primero qué tal fue.",
   "reviews.list.load_more": "Ver más",
   "reviews.list.refresh": "Actualizar",
   "reviews.list.more.blocked.end": "Eso es todo",
   "reviews.list.more.blocked.pending": "Cargando…",
+  "reviews.list.scope.narrowed":
+    "Solo reseñas publicadas. Las pendientes y las ocultas las ve quien modera este objeto, y aquí nada confirma que seas tú.",
 
   "reviews.review.author_fallback": "Un cliente",
   "reviews.review.response_heading": "Respuesta del vendedor",
@@ -53,7 +56,8 @@ export const reviewsI18nBundleEs: I18nDictionary = {
 
   "reviews.rating.none": "Todavía no hay valoración",
   "reviews.rating.value": "{avg} de {max}",
-  "reviews.rating.count": "{count} reseñas",
+  "reviews.rating.count.one": "{count} reseña",
+  "reviews.rating.count.other": "{count} reseñas",
   "reviews.rating.star_label": "{index} de {max}",
 
   "reviews.form.heading": "Valora esto",
@@ -74,6 +78,59 @@ export const reviewsI18nBundleEs: I18nDictionary = {
   "reviews.submit.blocked.duplicate": "Ya has valorado esto",
   "reviews.submit.blocked.submitted": "Tu reseña se ha enviado",
   "reviews.submit.blocked.forbidden": "No puedes reseñar esto",
+
+  "reviews.moderation.heading": "Moderación",
+  "reviews.moderation.hint":
+    "Todo lo escrito sobre este objeto, incluido lo que el público no ve. El servidor decide qué te envía.",
+  "reviews.moderation.empty": "No hay nada que moderar",
+  "reviews.moderation.empty_hint": "Todavía nadie ha escrito sobre esto.",
+  "reviews.moderation.empty_filtered":
+    "Nada en esta vista entre las reseñas cargadas",
+  "reviews.moderation.filter.label": "Qué reseñas mostrar",
+  "reviews.moderation.filter.all": "Todo",
+  "reviews.moderation.filter.pending": "Pendientes de moderación",
+  "reviews.moderation.filter.hidden": "Ocultas",
+  "reviews.moderation.hide": "Ocultar",
+  "reviews.moderation.publish": "Publicar",
+  "reviews.moderation.reason_label": "Motivo",
+  "reviews.moderation.reason_placeholder": "Por qué, con tus palabras",
+  "reviews.moderation.reason_hint":
+    "Queda en el registro de moderación. Ni el autor ni el público lo ven.",
+  "reviews.moderation.confirm_hide": "¿Ocultar esta reseña?",
+  "reviews.moderation.confirm_hide_body":
+    "Deja de verse para todo el mundo y de contar para la valoración. Puedes volver a publicarla más tarde.",
+  "reviews.moderation.done.hidden": "Oculta",
+  "reviews.moderation.done.published": "Publicada",
+  "reviews.moderation.done.unknown": "Guardado",
+
+  "reviews.moderate.blocked.not_moderator":
+    "Solo quien modera este objeto puede ocultar o publicar reseñas",
+  "reviews.moderate.blocked.already_hidden": "Ya está oculta",
+  "reviews.moderate.blocked.already_published": "Ya está publicada",
+  "reviews.moderate.blocked.pending": "Trabajando…",
+  "reviews.moderate.blocked.forbidden":
+    "El servidor no te reconoce como moderador de este objeto",
+  "reviews.moderate.blocked.gone": "Esta reseña ya no existe",
+  "reviews.moderate.blocked.sign_in": "Inicia sesión para moderar",
+
+  "reviews.response.compose_label": "Tu respuesta",
+  "reviews.response.placeholder": "Responde al cliente, en público",
+  "reviews.response.submit": "Responder",
+  "reviews.response.sent": "Tu respuesta está publicada",
+  "reviews.response.only_one":
+    "Cada reseña admite una respuesta, y después no se puede cambiar.",
+
+  "reviews.respond.blocked.not_owner":
+    "Solo el propietario de este objeto puede responder a sus reseñas",
+  "reviews.respond.blocked.empty": "Escribe primero la respuesta",
+  "reviews.respond.blocked.pending": "Enviando…",
+  "reviews.respond.blocked.already": "Esta reseña ya tiene una respuesta",
+  "reviews.respond.blocked.not_allowed":
+    "Las respuestas están desactivadas para este tipo de objeto",
+  "reviews.respond.blocked.forbidden":
+    "El servidor no te reconoce como propietario de este objeto",
+  "reviews.respond.blocked.sign_in": "Inicia sesión para responder",
+  "reviews.respond.blocked.gone": "Esta reseña ya no existe",
 };
 
 /** Register the Spanish bundle into a core i18n engine. */

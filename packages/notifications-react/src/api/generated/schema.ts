@@ -9,11 +9,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List registered push devices
+         * @description The caller's own push devices, most recently registered first. The raw token is never returned: a client identifies its own device by hashing the token it holds (SHA-256, hex) and matching `token_fingerprint`. Rows with `is_active: false` are still registered but the push provider has rejected the token, so nothing is delivered to them.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["list_device_tokens"];
         put?: never;
         /**
          * Register push token
-         * @description Register a push notification token.
+         * @description List the caller's push devices, or register one.
          *
          *     **Permissions:** `IsNotAnonymousUser`
          */
@@ -41,6 +47,35 @@ export interface paths {
          *     **Permissions:** `IsNotAnonymousUser`
          */
         delete: operations["unregister_device_token"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/api/v1/devices/by-id/{device_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Unregister a push device by id
+         * @description Unregister a push device by the id ``GET /devices/`` handed out.
+         *
+         *     The token-keyed sibling above stays: a client that has just minted a token
+         *     and wants it gone does not need a round trip through the list. This one is
+         *     for the other direction — a device row read from the list, unregistered by
+         *     the identifier the list gave, without the caller ever holding the token
+         *     (a second device in the list is not one this client can produce a token
+         *     for at all).
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        delete: operations["unregister_device"];
         options?: never;
         head?: never;
         patch?: never;
@@ -94,6 +129,43 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description One push device registered to the caller.
+         *
+         *     The raw token is deliberately absent — see ``token_fingerprint``.
+         */
+        DeviceListItemResponse: {
+            /**
+             * @description Device registration id, for DELETE devices/by-id/{id}/
+             * @example 42
+             */
+            id: number;
+            /**
+             * @description SHA-256 of the device token, hex — hash your own token to find this device
+             * @example 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+             */
+            token_fingerprint: string;
+            /**
+             * @description Device platform
+             * @example ios
+             */
+            platform: string;
+            /**
+             * @description False once the push provider rejected this token — registered, but no longer delivered to
+             * @example true
+             */
+            is_active: boolean;
+            /**
+             * @description ISO 8601 timestamp of the first registration
+             * @example 2026-03-17T10:30:00Z
+             */
+            created_at: string;
+            /**
+             * @description ISO 8601 timestamp of the last registration of this token
+             * @example 2026-03-18T08:02:11Z
+             */
+            last_seen: string;
+        };
         /** @description Register a push token. */
         DeviceTokenRequest: {
             /**
@@ -196,6 +268,25 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_device_tokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceListItemResponse"][];
+                };
+            };
+        };
+    };
     register_device_token: {
         parameters: {
             query?: never;
@@ -235,6 +326,34 @@ export interface operations {
             header?: never;
             path: {
                 token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    unregister_device: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device_id: number;
             };
             cookie?: never;
         };

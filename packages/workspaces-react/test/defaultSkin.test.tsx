@@ -101,17 +101,63 @@ describe("<WorkspaceSettings/> (default skin)", () => {
     expect(screen.getByText("acme-eng")).toBeDefined();
   });
 
-  it("shows the danger zone (delete) only for the owner", async () => {
+  /**
+   * THE RULE THIS FILE USED TO CEMENT. The old test asserted "delete is drawn
+   * only for the owner" — the exact derivation stapel-workspaces 0.26.0 added
+   * `can_delete` + `delete_blocked_reason` to replace, because an owner of the
+   * instance's default workspace, or of a personal one the next sign-in
+   * re-mints, gets a 409 from the endpoint the button calls. The control is
+   * now drawn from the SERVER's verdict and switched off with the server's own
+   * refusal code beside it.
+   */
+  it("switches Delete OFF and prints the server's refusal when can_delete is false", async () => {
     server.use(
       http.get(`${BASE}/${WS}`, () =>
-        HttpResponse.json({ ...WORKSPACE, my_role: "member" })
+        HttpResponse.json({
+          ...WORKSPACE,
+          // An owner — and still not allowed, which is the whole point.
+          my_role: "owner",
+          can_delete: false,
+          delete_blocked_reason: "error.409.workspace_is_instance_default",
+        })
       )
     );
     const runtime = createWorkspacesRuntime({ baseUrl: BASE });
     render(wrap(runtime, <WorkspaceSettings workspaceId={WS} />));
 
-    await waitFor(() => expect(screen.getByDisplayValue("Acme Engineering")).toBeDefined());
-    expect(screen.queryByText("Delete workspace")).toBeNull();
+    await waitFor(() => expect(screen.getByTestId("workspace-delete")).toBeDefined());
+    expect((screen.getByTestId("workspace-delete") as HTMLButtonElement).disabled).toBe(
+      true
+    );
+    // The reason is the generated bundle's sentence for the code the DELETE
+    // would have answered — not a raw key, and not a shrug. This is the half
+    // that was untranslatable until the error bundle was regenerated.
+    const reason = screen
+      .getByTestId("workspace-delete-gate")
+      .querySelector("[data-stapel-gated-reason]")?.textContent;
+    expect(reason).toBeDefined();
+    expect(reason).not.toContain("error.409");
+    expect((reason ?? "").length).toBeGreaterThan(0);
+  });
+
+  it("offers Delete when the server says the caller may", async () => {
+    server.use(
+      http.get(`${BASE}/${WS}`, () =>
+        HttpResponse.json({ ...WORKSPACE, can_delete: true, delete_blocked_reason: "" })
+      )
+    );
+    const runtime = createWorkspacesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <WorkspaceSettings workspaceId={WS} />));
+
+    await waitFor(() => expect(screen.getByTestId("workspace-delete")).toBeDefined());
+    expect((screen.getByTestId("workspace-delete") as HTMLButtonElement).disabled).toBe(
+      false
+    );
+    expect(
+      screen
+        .getByTestId("workspace-delete-gate")
+        .querySelector("[data-stapel-gated-reason]")
+    ).toBeNull();
   });
 
   it("deletes the workspace and calls onDeleted", async () => {
@@ -132,12 +178,14 @@ describe("<WorkspaceSettings/> (default skin)", () => {
       )
     );
 
-    await waitFor(() => expect(screen.getByText("Delete workspace")).toBeDefined());
-    fireEvent.click(screen.getByText("Delete workspace"));
+    await waitFor(() => expect(screen.getByTestId("workspace-delete")).toBeDefined());
+    fireEvent.click(screen.getByTestId("workspace-delete"));
+    // A confirmation is a DIALOG (a bottom sheet on a phone), never an
+    // anchored popover — `SkinConfirm`, with the fixed ids the substrate ships.
     await waitFor(() =>
       expect(screen.getByText("Delete this workspace? This can't be undone.")).toBeDefined()
     );
-    fireEvent.click(screen.getByRole("button", { name: "OK" }));
+    fireEvent.click(screen.getByTestId("stapel-confirm-ok"));
     await waitFor(() => expect(deleted).toBe(true));
     await waitFor(() => expect(notified).toBe(true));
   });
@@ -171,7 +219,7 @@ describe("<MembersManager/> (default skin)", () => {
     render(wrap(runtime, <MembersManager workspaceId={WS} />));
 
     await waitFor(() => expect(screen.getByText("owner@example.com")).toBeDefined());
-    fireEvent.click(screen.getByText("Invite"));
+    fireEvent.click(screen.getByTestId("members-invite-open"));
     await waitFor(() => expect(screen.getByText("Invite members")).toBeDefined());
     fireEvent.change(screen.getByPlaceholderText("Type an email and press Enter"), {
       target: { value: "new@example.com" },
@@ -245,7 +293,7 @@ describe("<MembersManager/> invite dialog — sheet on a phone, modal above it",
     const runtime = createWorkspacesRuntime({ baseUrl: BASE });
     render(wrap(runtime, <MembersManager workspaceId={WS} />));
     await waitFor(() => expect(screen.getByText("owner@example.com")).toBeDefined());
-    fireEvent.click(screen.getByText("Invite"));
+    fireEvent.click(screen.getByTestId("members-invite-open"));
     await waitFor(() => expect(screen.getByTestId("members-invite-dialog")).toBeDefined());
     return screen.getByTestId("members-invite-dialog");
   }
@@ -342,15 +390,22 @@ describe("<MembersManager/> — a control never offers what the backend would re
     const runtime = createWorkspacesRuntime({ baseUrl: BASE });
     render(wrap(runtime, <MembersManager workspaceId={WS} />));
 
-    await waitFor(() => expect(screen.getByTestId("members-roles-error")).toBeDefined());
     await waitFor(() => expect(screen.getByText("owner@example.com")).toBeDefined());
     // An enabled Select over `options: []` is a control that cannot do the one
-    // thing it exists for. There is no picker at all — the role still reads.
-    expect(screen.queryAllByRole("combobox")).toEqual([]);
+    // thing it exists for. The ROW has no picker at all — the role still
+    // reads, and the reason sits beside it. (Scoped to the row: the closed
+    // invite dialog keeps its own picker mounted.)
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`member-role-${MEMBER.user_id}-blocked`).textContent
+      ).toContain("We could not load the role list")
+    );
+    const row = screen.getByTestId(`member-row-${MEMBER.user_id}`);
+    expect(row.querySelectorAll('[role="combobox"]').length).toBe(0);
     expect(screen.getByText("Owner")).toBeDefined();
   });
 
-  it("blocks the invite submit — with the reason — while the registry is unreadable", async () => {
+  it("states the registry failure INSIDE the invite dialog, beside the picker", async () => {
     server.use(
       http.get(`${BASE}/roles`, () => new HttpResponse(null, { status: 500 })),
       http.get(`${BASE}/${WS}/members`, () => HttpResponse.json(membersPage([MEMBER])))
@@ -358,21 +413,19 @@ describe("<MembersManager/> — a control never offers what the backend would re
     const runtime = createWorkspacesRuntime({ baseUrl: BASE });
     render(wrap(runtime, <MembersManager workspaceId={WS} />));
 
-    await waitFor(() => expect(screen.getByTestId("members-roles-error")).toBeDefined());
-    fireEvent.click(screen.getByText("Invite"));
+    await waitFor(() => expect(screen.getByText("owner@example.com")).toBeDefined());
+    fireEvent.click(screen.getByTestId("members-invite-open"));
     await waitFor(() => expect(screen.getByTestId("members-invite-dialog")).toBeDefined());
     fireEvent.change(screen.getByPlaceholderText("Type an email and press Enter"), {
       target: { value: "new@example.com" },
     });
-    const submit = screen.getByRole("button", { name: "Send invitations" });
-    expect((submit as HTMLButtonElement).disabled).toBe(true);
-    // Two sentences, one text: the alert above the roster and the reason under
-    // the switched-off submit. Both say the same true thing.
+    // The submit is NOT blocked: the default role is a real registry key and
+    // the backend re-checks it, so a send would succeed. What the person must
+    // not get is a picker offering a choice that could not be loaded — the
+    // dialog says so where the picker would have been.
     expect(
-      screen.getAllByText(
-        "We could not load the role list, so roles cannot be changed right now. It is not a workspace without roles."
-      ).length
-    ).toBeGreaterThan(1);
+      screen.getByTestId("members-invite-role-blocked").textContent
+    ).toContain("We could not load the role list");
   });
 });
 

@@ -28,6 +28,8 @@ export const cdnI18nBundleRu: I18nDictionary = {
   "error.400.invalid_format": "Формат файла не поддерживается",
   "error.400.invalid_hash": "Некорректный хеш файла",
   "error.400.invalid_image_type": "Неизвестный тип изображения",
+  "error.400.too_many_refs":
+    "Слишком много ссылок в одном запросе ({count}; максимум — {max})",
   "error.400.missing_fields": "Заполнены не все обязательные поля",
   "error.400.no_file": "Файл не выбран",
   "error.403.storage_quota_exceeded": "Исчерпана квота на хранение",

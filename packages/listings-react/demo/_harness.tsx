@@ -75,11 +75,28 @@ export function mockFetch(handlers: DemoHandlers): typeof globalThis.fetch {
   }) as typeof globalThis.fetch;
 }
 
+/**
+ * A stand-in PHOTO, not a stand-in for a photo.
+ *
+ * It was a flat `#d9d9d9` rectangle, and the visual pass read it exactly as a
+ * viewer does: a broken image. This is a photograph-shaped thing — a sky
+ * gradient over a horizon — so a card demo shows a card with a picture in it
+ * and the reviewer's eye goes to the layout instead of to the grey slab. It is
+ * demo CONTENT and carries its own colours for that reason; the skin around it
+ * still owns not one hex (`no-raw-colors` covers `src/`).
+ */
 const PLACEHOLDER =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240">' +
-      '<rect width="320" height="240" fill="#d9d9d9"/></svg>'
+      '<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="#7f9bb5"/>' +
+      '<stop offset="100%" stop-color="#cfd9e2"/></linearGradient></defs>' +
+      '<rect width="320" height="240" fill="url(#s)"/>' +
+      '<rect y="168" width="320" height="72" fill="#6f7d67"/>' +
+      '<circle cx="248" cy="56" r="26" fill="#f2e6c2"/>' +
+      '<path d="M0 168 L96 104 L168 168 Z" fill="#55604f"/>' +
+      "</svg>"
   );
 
 /** The seam a deployment fills in: reference → renderable image. */
@@ -100,16 +117,29 @@ export function demoResolveImage(ref: string): StapelImage | undefined {
 
 /**
  * `demo.*` is an UNMANAGED namespace, so `i18n-key-exists` treats these as
- * app-local and never false-positives on them. The feature NAMES here are the
- * point being made twice over: a feature's name arrives from the wire as a
- * translation key, and a deployment's bundle is where its copy belongs.
+ * app-local and never false-positives on them.
+ *
+ * These are OPTION labels, and the point they make is the one that survives
+ * review: a translatable catalogue stores the option's KEY as the value, the
+ * deployment's bundle carries its copy, and the pair resolves the two
+ * (`model/features.ts` synthesizes the identity option table a stored DAO does
+ * not carry). Every key registered here therefore reaches the screen as a
+ * word — a demo that photographs `demo.condition.used` is documenting a bug.
  */
 const demoBundleEn: Record<string, string> = {
-  "demo.feature.brand": "Brand",
-  "demo.feature.power": "Power",
-  "demo.feature.condition": "Condition",
   "demo.brand.bosch": "Bosch",
+  "demo.brand.makita": "Makita",
   "demo.condition.used": "Used",
+  "demo.condition.new": "New",
+
+  // Copy the demo STAND-INS render. A demo is product code (compiled, linted
+  // with the product ruleset, rendered), so a literal string in one is the
+  // same defect as a literal string in a skin — `no-hardcoded-text` does not
+  // make an exception for a file whose job is to be photographed.
+  "demo.contact.seller": "Message the seller",
+  "demo.category.placeholder": "Choose a category",
+  "demo.photo.none": "A listing with no photo",
+  "demo.photo.unresolvable": "A reference nothing resolves",
 };
 
 /** Provider frame every listings demo variant renders inside. */

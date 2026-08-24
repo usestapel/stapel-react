@@ -2,7 +2,7 @@
  * The `/default` skin: the four load arms reaching a screen, the blocked
  * control naming its reason, and zero literal strings in the UI.
  */
-import { describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import {
   CatalogPage,
@@ -12,7 +12,14 @@ import {
   CategoryPickerField,
   CategoryTreePane,
 } from "../src/default/index.js";
-import { TestProviders, mockServer } from "./harness.js";
+import {
+  DESKTOP_WIDTH,
+  TestProviders,
+  installViewport,
+  mockServer,
+  resetViewportListeners,
+  setViewport,
+} from "./harness.js";
 import { FEATURES, FULL_PAGE, page } from "./fixtures.js";
 
 const OK = {
@@ -20,6 +27,17 @@ const OK = {
   "/features/": { body: FEATURES },
   "/categories/": { body: FULL_PAGE },
 };
+
+// This file photographs the DESKTOP shape. The phone shape — bottom sheets,
+// 44px controls — has its own suite (`responsive.test.tsx`), because "the
+// picker is a sheet below the tablet breakpoint" is a claim, not a detail.
+beforeAll(() => {
+  installViewport();
+});
+beforeEach(() => {
+  resetViewportListeners();
+  setViewport(DESKTOP_WIDTH);
+});
 
 describe("<CategoryTreePane>", () => {
   it("renders the roots as links to /c/:slug", async () => {

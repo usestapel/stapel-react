@@ -80,13 +80,37 @@ A 403 there (`error.403.gdpr.erasure_forbidden`) is usually the host's missing
 `isErasureForbidden` exists to say that rather than accusing someone of not
 owning their own recording.
 
-The public `/privacy` page mounts the anonymous form on its own:
+### The public intake page
+
+The anonymous request page is a screen this pair ships, not a host
+responsibility: `<PrivacyRequestPane>` is what the nav entry
+`public.privacy-request` mounts (`surface: "public"`, `requiresAuth: false`,
+`menuVisibleDefault: false` — a ROUTE, deliberately not a menu item).
 
 ```tsx
-<GdprProvider runtime={runtime}>
-  <DsarForm variant="anonymous" captchaToken={token} />
-</GdprProvider>
+// The scaffold builds this route from nav-manifest.json. By hand it is:
+<Route
+  path="/privacy-request"
+  element={
+    <GdprProvider runtime={runtime}>
+      <PrivacyRequestPane captcha={<YourCaptcha onToken={setToken} />} captchaToken={token} />
+    </GdprProvider>
+  }
+/>
 ```
+
+It is not in the menu on purpose: listing it would show "make a
+data-protection request" twice to a signed-in person, the second one pointing
+at a form asking for the email address the session already knows. Link it from
+the privacy policy and the footer, which is where somebody without an account
+looks for it. The captcha is a SLOT — an unfilled one renders a visible
+placeholder in a dev build and nothing in production, so a deployment WITH a
+captcha backend that forgot to wire the widget finds out while building the
+page rather than when every public submission starts answering
+`error.400.captcha_required`.
+
+`<DsarForm variant="anonymous"/>` remains exported for a host placing the form
+in its own page chrome.
 
 `POST /dsar` is `AllowAny` — a form a regulator expects to exist cannot require
 a login — so the two variants are genuinely different callers, not a style
@@ -166,7 +190,8 @@ src/
   default/    the member antd skin (AccountClosurePanel, PendingDeletions,
               DataExportPanel, DsarForm, PrivacyPane) — opt-in subpath
   default/admin/  the staff skin (DsarQueue, OwnersHealth, PrivacyAdminPane)
-  nav/        the scripted-fullstack nav entries (account.privacy, admin.privacy)
+  nav/        the scripted-fullstack nav entries (account.privacy,
+              public.privacy-request, admin.privacy)
   i18n/       translation keys, en inline + opt-in ru subpath, generated error map
   analytics/  generated typed-event registry (events.json)
 demo/         first-class demos (compiled, product-linted, smoke-rendered)

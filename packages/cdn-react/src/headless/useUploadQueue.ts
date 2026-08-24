@@ -29,11 +29,11 @@ import {
   toStapelApiError,
 } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
-import type { CdnImage, CdnRef } from "../api/types.js";
+import type { CdnFileKind, CdnImage, CdnMediaRow, CdnRef } from "../api/types.js";
 import { useCdnRuntime } from "../model/context.js";
 import type { CdnIntakeLimits } from "../model/limits.js";
 import { acceptAttribute, validateFile } from "../model/limits.js";
-import { isUploadCanceled, runUpload } from "../model/upload.js";
+import { isUploadCanceled, runUpload, targetFileKind } from "../model/upload.js";
 import type {
   CdnUploadTarget,
   DedupSkipReason,
@@ -52,8 +52,13 @@ export interface UploadItem {
   readonly phase: UploadPhase;
   /** `<type>/<hash>`, as soon as the CDN holds the bytes. */
   readonly ref: CdnRef | null;
-  /** The CDN row, when this item's flow produced one. */
-  readonly image: CdnImage | null;
+  /**
+   * The stored row, when this item's flow produced one — an image, a video or
+   * a document, said out loud by {@link kind} rather than sniffed.
+   */
+  readonly row: CdnMediaRow | null;
+  /** Which of the three models {@link row} is; `null` until there is one. */
+  readonly kind: CdnFileKind | null;
   /** The pre-check hit: these bytes were already stored and nothing was sent. */
   readonly deduped: boolean;
   /** Why the pre-check did not run, when it did not. */
@@ -126,6 +131,18 @@ function nextId(): string {
   return `upload-${String(counter)}`;
 }
 
+/**
+ * The image row of an item, or `null` when this item is not an image.
+ *
+ * The narrowing reads `kind` — which the flow SET from the target it uploaded
+ * to — rather than sniffing for a field only images have. A skin that renders a
+ * variant ladder needs the difference to be a decision somebody made, not a
+ * shape somebody guessed.
+ */
+export function imageRowOf(item: UploadItem): CdnImage | null {
+  return item.kind === "image" ? (item.row as CdnImage) : null;
+}
+
 function refsOf(items: readonly UploadItem[]): readonly CdnRef[] {
   const out: CdnRef[] = [];
   for (const item of items) if (item.ref !== null) out.push(item.ref);
@@ -144,7 +161,8 @@ function isInFlight(phase: UploadPhase): boolean {
 const RESTORED: Omit<UploadItem, "id" | "ref"> = {
   file: null,
   phase: "done",
-  image: null,
+  row: null,
+  kind: null,
   deduped: false,
   dedupSkipped: undefined,
   variantsReady: false,
@@ -153,8 +171,12 @@ const RESTORED: Omit<UploadItem, "id" | "ref"> = {
 
 export function useUploadQueue(options: UseUploadQueueOptions): UploadQueueBag {
   const runtime = useCdnRuntime();
-  const limits = runtime.limits.image;
   const target: CdnUploadTarget = options.target ?? { kind: "image" };
+  // The ceilings that apply are the ones for THIS intake. A video queue
+  // validating against the image limits would refuse a 40 MB clip the server
+  // would have accepted, which is the exact failure `model/limits.ts` opens by
+  // forbidding: a mirror must never refuse what the server would take.
+  const limits = runtime.limits[targetFileKind(target)];
   const concurrency = options.concurrency ?? 3;
   const { max, onRefsChange } = options;
 
@@ -230,7 +252,8 @@ export function useUploadQueue(options: UseUploadQueueOptions): UploadQueueBag {
           patch(item.id, {
             phase: "done",
             ref: outcome.ref,
-            image: outcome.image,
+            row: outcome.row,
+            kind: outcome.kind,
             deduped: outcome.deduped,
             dedupSkipped: outcome.dedupSkipped,
             variantsReady: outcome.variantsReady,
@@ -319,7 +342,8 @@ export function useUploadQueue(options: UseUploadQueueOptions): UploadQueueBag {
             file,
             phase: refusal === null ? "idle" : "failed",
             ref: null,
-            image: null,
+            row: null,
+            kind: null,
             deduped: false,
             dedupSkipped: undefined,
             variantsReady: false,

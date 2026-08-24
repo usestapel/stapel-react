@@ -3,6 +3,8 @@ import { loadStateFromQuery, mapLoad } from "@stapel/core";
 import type { LoadState } from "@stapel/core";
 import type { FeedItem } from "../api/types.js";
 import { useInfiniteNotificationFeed } from "../model/queries.js";
+import { useFeedDelivery } from "../model/delivery.js";
+import type { FeedDelivery } from "../model/delivery.js";
 
 /** Render-prop bag for {@link NotificationFeed}. */
 export interface NotificationFeedBag {
@@ -26,6 +28,16 @@ export interface NotificationFeedBag {
   fetchNextPage(): void;
   /** Refetch from the newest page. */
   refetch(): void;
+  /**
+   * How this tab is being told that something arrived: a socket (`live`) or a
+   * 60-second poll of the newest page (`polling`), plus the states in between
+   * and the refusal that ends them.
+   *
+   * A skin MUST render this. The failure it prevents is the one the fleet
+   * already shipped once — a transport that quietly degraded and said nothing,
+   * so a working feed and a dead one looked identical for months.
+   */
+  readonly delivery: FeedDelivery;
 }
 
 /**
@@ -52,7 +64,9 @@ export function NotificationFeed(props: {
   children: (bag: NotificationFeedBag) => ReactNode;
 }): ReactNode {
   const query = useInfiniteNotificationFeed(props.limit);
+  const delivery = useFeedDelivery();
   return props.children({
+    delivery,
     // The pages are flattened INSIDE the ready arm — a failed or not-yet-run
     // read never produces a list at all.
     state: mapLoad(loadStateFromQuery(query), (data) =>

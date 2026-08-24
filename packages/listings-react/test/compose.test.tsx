@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { act } from "react";
@@ -41,12 +42,36 @@ async function seeded(): Promise<void> {
   });
 }
 
+/**
+ * The category chooser a container mounts. It is a SLOT, not a control this
+ * pair writes: the composer no longer degrades into a text box asking a person
+ * to type a numeric category id, so every test that needs a category mounts
+ * the same one-button stand-in a real `<CategoryPickerField>` stands in for.
+ */
+function categoryPicker(slot: { setCategory: (id: string) => void }): ReactElement {
+  return (
+    <button
+      type="button"
+      data-testid="listings-composer-category-pick"
+      onClick={() => {
+        slot.setCategory("tools/power");
+      }}
+    >
+      pick
+    </button>
+  );
+}
+
 /** Choose a category through the form, which is what unblocks everything
  * downstream of it — the composer refuses to submit without one, and says so. */
 function chooseCategory(): void {
-  fireEvent.change(screen.getByTestId("listings-composer-category"), {
-    target: { value: "tools/power" },
-  });
+  fireEvent.click(screen.getByTestId("listings-composer-category-pick"));
+}
+
+/** The publish button's reason, wherever the shared `<GatedButton>` puts it. */
+function publishReason(): string {
+  const gate = screen.getByTestId("listings-composer-publish-gate");
+  return gate.querySelector("[data-stapel-gated-reason]")?.textContent ?? "";
 }
 
 const GALLERY = { refs: ["image/9f2c1a"], settled: actionAvailable() };
@@ -64,13 +89,15 @@ describe("the draft row is created once, then saved into", () => {
     const srv = server();
     render(
       <TestProviders server={srv}>
-        <ListingComposerPage features={[]} images={GALLERY} />
+        <ListingComposerPage
+          renderCategoryPicker={categoryPicker}
+          features={[]}
+          images={GALLERY}
+        />
       </TestProviders>
     );
 
-    fireEvent.change(screen.getByTestId("listings-composer-category"), {
-      target: { value: "tools/power" },
-    });
+    chooseCategory();
     fireEvent.change(screen.getByTestId("listings-composer-title"), {
       target: { value: "Bosch GSB 1200" },
     });
@@ -129,7 +156,12 @@ describe("the draft row is created once, then saved into", () => {
     const srv = server();
     render(
       <TestProviders server={srv}>
-        <ListingComposerPage listingId={42} features={[]} images={GALLERY} />
+        <ListingComposerPage
+          listingId={42}
+          features={[]}
+          images={GALLERY}
+          renderCategoryPicker={categoryPicker}
+        />
       </TestProviders>
     );
     await seeded();
@@ -217,7 +249,12 @@ describe("the two publish outcomes come from the server's answer", () => {
     });
     render(
       <TestProviders server={srv}>
-        <ListingComposerPage listingId={42} features={[]} images={GALLERY} />
+        <ListingComposerPage
+          listingId={42}
+          features={[]}
+          images={GALLERY}
+          renderCategoryPicker={categoryPicker}
+        />
       </TestProviders>
     );
     await seeded();
@@ -245,7 +282,12 @@ describe("the two publish outcomes come from the server's answer", () => {
     });
     render(
       <TestProviders server={srv}>
-        <ListingComposerPage listingId={42} features={[]} images={GALLERY} />
+        <ListingComposerPage
+          listingId={42}
+          features={[]}
+          images={GALLERY}
+          renderCategoryPicker={categoryPicker}
+        />
       </TestProviders>
     );
     await seeded();
@@ -265,13 +307,17 @@ describe("every blocked publish states which reason it is", () => {
     const srv = server();
     render(
       <TestProviders server={srv} mandate="anonymous">
-        <ListingComposerPage features={[]} images={GALLERY} />
+        <ListingComposerPage
+          renderCategoryPicker={categoryPicker}
+          features={[]}
+          images={GALLERY}
+        />
       </TestProviders>
     );
     chooseCategory();
     const button = screen.getByTestId("listings-composer-publish");
     expect(button.hasAttribute("disabled")).toBe(true);
-    expect(screen.getByTestId("listings-composer-publish-blocked").textContent).toBe(
+    expect(publishReason()).toBe(
       "Sign in to do this"
     );
   });
@@ -282,12 +328,16 @@ describe("every blocked publish states which reason it is", () => {
     const srv = server();
     render(
       <TestProviders server={srv} mandate="asking">
-        <ListingComposerPage features={[]} images={GALLERY} />
+        <ListingComposerPage
+          renderCategoryPicker={categoryPicker}
+          features={[]}
+          images={GALLERY}
+        />
       </TestProviders>
     );
     chooseCategory();
     expect(
-      screen.getByTestId("listings-composer-publish-blocked").textContent
+      publishReason()
     ).toContain("could not check");
   });
 
@@ -296,6 +346,7 @@ describe("every blocked publish states which reason it is", () => {
     render(
       <TestProviders server={srv}>
         <ListingComposerPage
+          renderCategoryPicker={categoryPicker}
           features={[]}
           images={{
             refs: [],
@@ -306,7 +357,7 @@ describe("every blocked publish states which reason it is", () => {
     );
     chooseCategory();
     expect(
-      screen.getByTestId("listings-composer-publish-blocked").textContent
+      publishReason()
     ).toContain("photos");
   });
 
@@ -318,6 +369,7 @@ describe("every blocked publish states which reason it is", () => {
     render(
       <TestProviders server={srv}>
         <ListingComposerPage
+          renderCategoryPicker={categoryPicker}
           features={[
             { slug: "size_grid", name: "Size grid", config: { type: "size_grid" } },
           ]}
@@ -326,8 +378,8 @@ describe("every blocked publish states which reason it is", () => {
       </TestProviders>
     );
     chooseCategory();
-    const blocked = screen.getByTestId("listings-composer-publish-blocked");
-    expect(blocked.textContent).toContain("size_grid");
+    const blocked = publishReason();
+    expect(blocked).toContain("size_grid");
     // …and the field itself is drawn loudly rather than skipped.
     expect(screen.getByTestId("attributes-unsupported-type")).toBeTruthy();
   });
@@ -337,6 +389,7 @@ describe("every blocked publish states which reason it is", () => {
     render(
       <TestProviders server={srv}>
         <ListingComposerPage
+          renderCategoryPicker={categoryPicker}
           features={[]}
           featuresError={new Error("boom")}
           images={GALLERY}
@@ -345,7 +398,7 @@ describe("every blocked publish states which reason it is", () => {
     );
     chooseCategory();
     expect(
-      screen.getByTestId("listings-composer-publish-blocked").textContent
+      publishReason()
     ).toContain("could not load");
     expect(screen.getByTestId("listings-composer-features-failed")).toBeTruthy();
   });
@@ -358,7 +411,12 @@ describe("the button says what it will do", () => {
     });
     render(
       <TestProviders server={srv}>
-        <ListingComposerPage listingId={42} features={[]} images={GALLERY} />
+        <ListingComposerPage
+          listingId={42}
+          features={[]}
+          images={GALLERY}
+          renderCategoryPicker={categoryPicker}
+        />
       </TestProviders>
     );
     await waitFor(() => {

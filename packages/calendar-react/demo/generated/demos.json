@@ -4,11 +4,51 @@
   "version": "0.6.1",
   "demos": [
     {
+      "id": "calendar.availability",
+      "title": "Free time",
+      "description": "Free/busy and bookable slots. `truncated` is rendered as a visible warning above the slots — a degraded answer that does not say it is degraded would offer already-booked time with total confidence — and an empty slots[] is named as 'no windows are set', never as 'nothing free'.",
+      "component": "AvailabilityPane",
+      "covers": [
+        "Availability"
+      ],
+      "tokens": [
+        "warning-bg",
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Windows are set: open slots, and what is already booked.",
+          "viewport": "phone",
+          "step": "ready"
+        },
+        {
+          "id": "truncated",
+          "description": "The expansion hit its cap: the banner says the answer is incomplete before anyone books off it.",
+          "viewport": "phone",
+          "step": "ready.truncated"
+        },
+        {
+          "id": "no-windows",
+          "description": "No availability windows — its own named arm, with the reason.",
+          "viewport": "desktop",
+          "step": "ready.no_windows"
+        }
+      ],
+      "source": {
+        "file": "demo/AvailabilityPane.demo.tsx",
+        "line": 40
+      }
+    },
+    {
       "id": "calendar.composer",
       "title": "Event composer",
       "description": "The headless EventComposer wraps the create-event mutation; on success the pair invalidates the calendar reads. Bring your own form UI — the component is renderless.",
       "component": "EventComposer",
-      "covers": [],
+      "covers": [
+        "EventEditor",
+        "ParticipantsEditor"
+      ],
       "tokens": [
         "card-bg"
       ],
@@ -46,7 +86,10 @@
       "title": "Event RSVP",
       "description": "The headless EventRsvp wraps the respond mutation for one event (accepted/tentative/declined). Bring your own control UI — the component is renderless.",
       "component": "EventRsvp",
-      "covers": [],
+      "covers": [
+        "EventDetail",
+        "EventDelete"
+      ],
       "tokens": [
         "card-bg"
       ],
@@ -58,6 +101,66 @@
       "source": {
         "file": "demo/EventRsvp.demo.tsx",
         "line": 78
+      }
+    },
+    {
+      "id": "calendar.screen",
+      "title": "Calendar",
+      "description": "The wired month/week/day screen. The canned range deliberately contains a materialized occurrence in BOTH events[] and occurrences[] — the duplicate the module's contract warns about — plus a cancelled row, so the shot proves the dedup and the tombstone arm rather than asserting them. Below the grid's minimum element width it becomes the agenda; the geometry is the box's, never the viewport's.",
+      "component": "Calendar",
+      "covers": [
+        "CalendarMonthGrid",
+        "CalendarAgenda",
+        "CalendarProvider",
+        "CalendarView",
+        "EventList"
+      ],
+      "tokens": [
+        "surface-raised",
+        "border-subtle",
+        "brand"
+      ],
+      "variants": [
+        {
+          "id": "month",
+          "description": "Desktop month grid: a standalone event, a materialized occurrence drawn once, a virtual instance, a cancelled row struck through.",
+          "viewport": "desktop",
+          "step": "ready.month"
+        },
+        {
+          "id": "agenda-phone",
+          "description": "A phone: the same deduped instants as a day-grouped agenda. No sideways scroll, no six-week grid squeezed into 390px.",
+          "viewport": "phone",
+          "step": "ready.agenda"
+        },
+        {
+          "id": "empty",
+          "description": "A quiet month — reachable only from a read that ANSWERED, with the way to fill it beside the sentence.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "grid-only",
+          "description": "The grid alone: one week of cells over the deduped instants — the materialized occurrence appears once.",
+          "viewport": "phone",
+          "step": "parts.grid"
+        },
+        {
+          "id": "agenda-only",
+          "description": "The agenda alone, over the same instants — the row shape a phone gets.",
+          "viewport": "phone",
+          "step": "parts.agenda"
+        },
+        {
+          "id": "failed",
+          "description": "The range read failed. An outage renders as an outage with a retry, never as an empty calendar.",
+          "viewport": "desktop",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/CalendarScreen.demo.tsx",
+        "line": 130
       }
     },
     {

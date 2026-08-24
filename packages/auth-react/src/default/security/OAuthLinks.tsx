@@ -22,9 +22,11 @@
  * this component is ready for the day the pin bumps to a commit that has
  * them, not a claim that it works against today's released contract.
  */
+import { spacing, fontSize } from "@stapel/tokens";
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Alert, Avatar, Button, Card, Empty, Flex, Popconfirm, Spin, Tag, Typography } from "antd";
+import { ErrorAlert } from "@stapel/tokens-antd/skin";
 import {
   actionAvailable,
   actionBlocked,
@@ -41,7 +43,6 @@ import type { Capabilities, LinkedOAuthAccount } from "../../api/types.js";
 import { useLinkOAuth, useUnlinkOAuth } from "../../model/mutations.js";
 import { useCapabilities, useOAuthLinks } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
-import { ErrorAlert } from "../ErrorAlert.js";
 import { SecurityEmptyIcon } from "./icons.js";
 
 export interface OAuthLinksProps {
@@ -145,7 +146,7 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
                     </Button>
                   </Popconfirm>
                 ) : (
-                  <Flex vertical align="flex-end" gap={4}>
+                  <Flex vertical align="flex-end" gap={spacing[1]}>
                     <Button
                       disabled={connectGate.disabled}
                       loading={pending === p.id}
@@ -155,7 +156,7 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
                       {t(AUTH_I18N_KEYS.secOauthLink)}
                     </Button>
                     {connectGate.reason && (
-                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
                         {connectGate.reason}
                       </Typography.Text>
                     )}

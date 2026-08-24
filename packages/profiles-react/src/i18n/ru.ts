@@ -31,6 +31,7 @@ export const profilesI18nBundleRu: I18nDictionary = {
   "profiles.profile.save": "Сохранить изменения",
   "profiles.profile.saving": "Сохранение…",
   "profiles.profile.saved": "Профиль сохранён.",
+  "profiles.profile.no_changes": "Сохранять нечего — это уже сохранённое значение.",
   "profiles.relationship.follow": "Подписаться",
   "profiles.relationship.following": "Вы подписаны",
   "profiles.relationship.unfollow": "Отписаться",
@@ -38,10 +39,55 @@ export const profilesI18nBundleRu: I18nDictionary = {
   "profiles.relationship.blocked": "Заблокирован",
   "profiles.relationship.unblock": "Разблокировать",
   "profiles.relationship.self": "Это вы",
+  "profiles.relationship.confirm_block.title": "Заблокировать {name}?",
+  "profiles.relationship.confirm_block.body":
+    "Этот человек отпишется от вас и не сможет подписаться снова, пока вы его не разблокируете.",
+  "profiles.relationship.confirm_unblock.title": "Разблокировать {name}?",
+  "profiles.relationship.confirm_unblock.body":
+    "Человек снова сможет на вас подписаться. Подписка автоматически не восстанавливается.",
+  "profiles.relationship.blocked_notice": "Вы заблокировали этого человека.",
+  "profiles.relationship.blocked.self": "Это ваш собственный профиль.",
+  "profiles.relationship.blocked.blocked":
+    "Разблокируйте этого человека, чтобы на него подписаться.",
+  "profiles.relationship.blocked.unknown":
+    "Не удалось узнать, в каких вы отношениях с этим человеком.",
   "profiles.list.followers": "Подписчики",
   "profiles.list.following": "Подписки",
   "profiles.list.blocked": "Заблокированные",
   "profiles.list.empty": "Здесь пока никого нет.",
+  // Russian has four cardinal forms where English has two. The FAMILY key is
+  // shared across locales; the categories under it are each language's own
+  // (core's `pluralCategory`, via `Intl.PluralRules`).
+  "profiles.list.count.followers.one": "{count} подписчик",
+  "profiles.list.count.followers.few": "{count} подписчика",
+  "profiles.list.count.followers.many": "{count} подписчиков",
+  "profiles.list.count.followers.other": "{count} подписчиков",
+  "profiles.list.count.following.one": "{count} подписка",
+  "profiles.list.count.following.few": "{count} подписки",
+  "profiles.list.count.following.many": "{count} подписок",
+  "profiles.list.count.following.other": "{count} подписок",
+  "profiles.list.count.blocked.one": "{count} заблокированный",
+  "profiles.list.count.blocked.few": "{count} заблокированных",
+  "profiles.list.count.blocked.many": "{count} заблокированных",
+  "profiles.list.count.blocked.other": "{count} заблокированных",
+  "profiles.list.empty.followers": "Подписчиков пока нет",
+  "profiles.list.empty.followers_hint": "Когда на вас подпишутся, люди появятся здесь.",
+  "profiles.list.empty.following": "Вы пока ни на кого не подписаны",
+  "profiles.list.empty.following_hint":
+    "Подпишитесь на кого-нибудь в его профиле, и он появится в этом списке.",
+  "profiles.list.empty.blocked": "Вы никого не заблокировали",
+  "profiles.list.empty.blocked_hint":
+    "Заблокированный человек не может подписаться на вас и не видит ваш профиль.",
+  "profiles.person.unnamed": "Без имени",
+  "profiles.person.you": "Вы",
+  "profiles.person.missing": "Профиль не заполнен",
+  "profiles.connections.title": "Связи",
+  "profiles.connections.subtitle":
+    "Кто подписан на вас, на кого подписаны вы и кого вы заблокировали.",
+  "profiles.connections.kind_label": "Какой список показать",
+  "profiles.public.unwritten": "Этот человек ещё не заполнил профиль.",
+  "profiles.public.location": "Местоположение",
+  "profiles.public.rating": "Рейтинг",
   "profiles.settings.title": "Профиль",
   "profiles.settings.subtitle": "Имя, аватар и общие настройки.",
   "profiles.settings.avatar.change": "Изменить аватар",
@@ -73,7 +119,12 @@ export const profilesI18nBundleRu: I18nDictionary = {
   "profiles.notif_prefs.category.system": "Системные",
   "profiles.notif_prefs.channel.email": "Email",
   "profiles.notif_prefs.channel.push": "Push",
+  "profiles.notif_prefs.toggle_label": "Уведомления «{category}» по каналу {channel}",
   "profiles.nav.settings": "Настройки",
+  "profiles.nav.language": "Язык",
+  "profiles.nav.notifications": "Уведомления",
+  "profiles.nav.connections": "Связи",
+  "profiles.nav.public_profile": "Публичный профиль",
 };
 
 /**

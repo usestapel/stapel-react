@@ -10,6 +10,7 @@
  * tests in the same file and make each test depend on the ones before it.
  */
 import type { ReactElement, ReactNode } from "react";
+import { act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider, createI18n } from "@stapel/core";
 import type { I18nEngine } from "@stapel/core";
@@ -134,4 +135,70 @@ export function TestProviders(props: {
 /** One fresh in-memory store per test — see this file's header. */
 export function testStore(): CatalogStore {
   return memoryCatalogStore();
+}
+
+// ── viewport + theme, mocked at the ENVIRONMENT edge ────────────────────────
+//
+// The skin substrate decides two things from outside React: the dialog surface
+// (a sheet below the `tablet` breakpoint) and the theme mode (the document's
+// `data-theme`). A test that stubbed the HOOKS would prove nothing — it would
+// pass even if a hook's media query and `@stapel/tokens`' breakpoints
+// disagreed. So the viewport is a real `matchMedia` evaluating `(min-width: N)`
+// against a real `window.innerWidth`, exactly as `packages/tokens-antd/test/env.tsx`
+// does it, and the theme is a real attribute on a real `documentElement`.
+
+type ViewportListener = () => void;
+const viewportListeners = new Set<ViewportListener>();
+
+/** Widths the render tests photograph at — the two the viewer offers. */
+export const PHONE_WIDTH = 390;
+export const DESKTOP_WIDTH = 1280;
+
+/** Install the viewport-aware `matchMedia`. Call once per suite. */
+export function installViewport(): void {
+  window.matchMedia = ((query: string) => {
+    const min = /\(min-width:\s*(\d+)px\)/.exec(query);
+    const matches = (): boolean =>
+      min === null ? false : window.innerWidth >= Number(min[1]);
+    return {
+      get matches() {
+        return matches();
+      },
+      media: query,
+      onchange: null,
+      addListener: (l: ViewportListener) => viewportListeners.add(l),
+      removeListener: (l: ViewportListener) => viewportListeners.delete(l),
+      addEventListener: (_: string, l: ViewportListener) => viewportListeners.add(l),
+      removeEventListener: (_: string, l: ViewportListener) =>
+        viewportListeners.delete(l),
+      dispatchEvent: () => false,
+    } as unknown as MediaQueryList;
+  }) as typeof window.matchMedia;
+}
+
+/** Move the viewport and notify every subscriber, inside `act`. */
+export function setViewport(width: number): void {
+  Object.defineProperty(window, "innerWidth", {
+    value: width,
+    configurable: true,
+  });
+  act(() => {
+    for (const listener of [...viewportListeners]) listener();
+    window.dispatchEvent(new Event("resize"));
+  });
+}
+
+export function resetViewportListeners(): void {
+  viewportListeners.clear();
+}
+
+/** Stamp the document's theme and let `useThemeMode`'s observer deliver it. */
+export async function setDocumentTheme(
+  mode: "light" | "dark" | null
+): Promise<void> {
+  await act(async () => {
+    if (mode === null) document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", mode);
+    await Promise.resolve();
+  });
 }

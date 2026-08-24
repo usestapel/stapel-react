@@ -69,7 +69,13 @@ export const categoriesI18nBundleRu: I18nDictionary = {
 
   "categories.category.title": "Категория",
   "categories.category.unknown_slug": "По этому адресу нет категории.",
+  "categories.category.unknown_slug_hint":
+    "Возможно, ссылка устарела. Начните с каталога.",
   "categories.category.subcategories": "Подкатегории",
+  "categories.category.subcategories_count.one": "{count} подкатегория",
+  "categories.category.subcategories_count.few": "{count} подкатегории",
+  "categories.category.subcategories_count.many": "{count} подкатегорий",
+  "categories.category.subcategories_count.other": "{count} подкатегории",
   "categories.category.no_subcategories": "У этой категории нет подкатегорий.",
   "categories.category.open": "Открыть",
 
@@ -88,6 +94,8 @@ export const categoriesI18nBundleRu: I18nDictionary = {
   "categories.picker.no_matches": "Ни одна категория не подходит.",
   "categories.picker.up": "На уровень выше",
   "categories.picker.selected": "Выбрано: {category}",
+  "categories.picker.choose": "Выберите категорию",
+  "categories.picker.done": "Готово",
   "categories.picker.blocked.nothing_selected": "Сначала выберите категорию.",
   "categories.picker.blocked.not_a_leaf":
     "Выберите категорию точнее — у этой есть подкатегории, а от них зависит, какие характеристики спросят.",

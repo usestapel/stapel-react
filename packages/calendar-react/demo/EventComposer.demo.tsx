@@ -82,6 +82,7 @@ export default defineDemo({
   description:
     "The headless EventComposer wraps the create-event mutation; on success the pair invalidates the calendar reads. Bring your own form UI — the component is renderless.",
   component: EventComposer,
+  covers: ["EventEditor", "ParticipantsEditor"],
   tokens: ["card-bg"],
   variants: {
     default: { render: () => <EventComposerDemo /> },

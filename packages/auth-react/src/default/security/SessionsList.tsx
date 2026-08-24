@@ -3,16 +3,29 @@
  * (owner directive point 5; auth-sa.md §12). Built entirely on the pair's
  * EXISTING query/mutation hooks (`useSessions`, `useRevokeSession`,
  * `useRevokeOtherSessions`, `useConfirmSession`) — no new backend surface.
- * UX shape (device row, "this device"/"suspicious" badges, per-row revoke,
- * "sign out everyone else" with a confirm) matches the common security-
- * settings pattern; this is an original implementation, not copied from any
- * reference. Manual `Flex`/`Divider` layout rather than antd's `List` — that
- * component is deprecated as of antd 6.5.
+ *
+ * Rows use the shared `SecurityListRow` (an explicit action slot + a container
+ * query) rather than a wrapping space-between flex: the ad-hoc version put the
+ * action in a different place on each row at the same phone width, because
+ * `wrap` tips per row instead of switching per list.
+ *
+ * Confirmations are `SkinConfirm`, not `Popconfirm`. A popover anchored to a
+ * small link button is a desktop shape — on a phone it can render off-viewport
+ * and its OK/Cancel targets fall under the touch minimum, and this particular
+ * OK ends someone's session.
  */
+import { fontSize } from "@stapel/tokens";
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Badge, Button, Card, Divider, Empty, Flex, Popconfirm, Spin, Tag, Typography } from "antd";
-import { loadStateFromQuery, matchList, matchLoad, useErrorDisplay, useT } from "@stapel/core";
+import { Badge, Button, Card, Flex, Tag, Typography, theme as antdTheme } from "antd";
+import {
+  EmptyState,
+  ErrorAlert,
+  LoadList,
+  SkinConfirm,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
+import { loadStateFromQuery, matchLoad, useT } from "@stapel/core";
 import type { AuthSession } from "../../api/types.js";
 import {
   useConfirmSession,
@@ -20,70 +33,71 @@ import {
   useRevokeSession,
 } from "../../model/mutations.js";
 import { useSessions } from "../../model/queries.js";
+import { useAuthDateFormat } from "../../model/formatDate.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
-import { ErrorAlert } from "../ErrorAlert.js";
 import { SecurityEmptyIcon } from "./icons.js";
-
-function formatRelative(iso: string): string {
-  const d = new Date(iso);
-  const diffMs = Date.now() - d.getTime();
-  if (Number.isNaN(diffMs)) return iso;
-  const sec = Math.floor(diffMs / 1000);
-  if (sec < 60) return "just now";
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.floor(hr / 24);
-  if (day < 7) return `${day}d ago`;
-  return d.toLocaleDateString();
-}
+import { SecurityList, SecurityListRow } from "./SecurityListRow.js";
 
 /** One session row: device identity + this-device/suspicious badges + actions. */
 function SessionRow(props: {
   session: AuthSession;
   onConfirmMe: () => void;
   onRevoke: () => void;
-  revoking: boolean;
 }): ReactElement {
   const t = useT();
+  const when = useAuthDateFormat();
   const s = props.session;
+  const detail = [
+    s.device_details,
+    s.ip_address,
+    t(AUTH_I18N_KEYS.secSessionsLastUsed, { when: when.relative(s.last_used_at) }),
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(" — ");
   return (
-    <Flex justify="space-between" align="flex-start" gap="middle" style={{ width: "100%" }}>
-      <Flex vertical gap={2}>
-        <Flex gap="small" align="center">
-          <Typography.Text strong>{s.device_name}</Typography.Text>
+    <SecurityListRow
+      data-testid="session-row"
+      title={s.device_name}
+      badges={
+        <>
           {s.is_current && <Tag color="blue">{t(AUTH_I18N_KEYS.sessionThisDevice)}</Tag>}
           {s.is_suspicious && (
             <Badge status="warning" text={t(AUTH_I18N_KEYS.sessionSuspicious)} />
           )}
-        </Flex>
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          {s.device_details ? `${s.device_details} — ` : ""}
-          {s.ip_address ? `${s.ip_address} — ` : ""}
-          {t(AUTH_I18N_KEYS.secSessionsLastUsed, { when: formatRelative(s.last_used_at) })}
+        </>
+      }
+      meta={
+        <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
+          {detail}
         </Typography.Text>
-      </Flex>
-      {!s.is_current && (
-        <Flex gap="small" flex="none">
-          {s.is_suspicious && (
-            <Button type="link" onClick={props.onConfirmMe} data-analytics="flow">
-              {t(AUTH_I18N_KEYS.secSessionsConfirmMe)}
-            </Button>
-          )}
-          <Popconfirm
-            title={t(AUTH_I18N_KEYS.secSessionsSignOutConfirmTitle)}
-            onConfirm={props.onRevoke}
-            okText={t(AUTH_I18N_KEYS.secSessionsSignOut)}
-            okButtonProps={{ danger: true, loading: props.revoking }}
-          >
-            <Button type="link" danger data-analytics="flow">
-              {t(AUTH_I18N_KEYS.secSessionsSignOut)}
-            </Button>
-          </Popconfirm>
-        </Flex>
-      )}
-    </Flex>
+      }
+      {...(s.is_current
+        ? {}
+        : {
+            actions: (
+              <>
+                {s.is_suspicious && (
+                  <Button type="link" onClick={props.onConfirmMe} data-analytics="flow">
+                    {t(AUTH_I18N_KEYS.secSessionsConfirmMe)}
+                  </Button>
+                )}
+                {/* `type="text"`: on a screen whose purpose is reassurance, a
+                    row of red outlined buttons is the loudest thing present.
+                    The danger weight belongs on the confirm, where the
+                    decision is actually taken. */}
+                <Button
+                  type="text"
+                  danger
+                  onClick={props.onRevoke}
+                  data-analytics="none"
+                  data-analytics-reason="local-ui-open-revoke-session-confirm"
+                >
+                  {t(AUTH_I18N_KEYS.secSessionsSignOut)}
+                </Button>
+              </>
+            ),
+          })}
+    />
   );
 }
 
@@ -96,15 +110,15 @@ export interface SessionsListProps {
 /** Full device-CRUD security screen: list, per-device revoke, revoke-others. */
 export function SessionsList(props: SessionsListProps = {}): ReactElement {
   const t = useT();
-  // Never the raw `.message` — for a response with no error envelope that
-  // is the transport's own "Request failed with status 500" (owner report
-  // 2026-08-09). `useErrorText` folds any thrown value into the one dialect.
-  const errorDisplay = useErrorDisplay(AUTH_I18N_KEYS.unknownError);
+  const { token } = antdTheme.useToken();
   const sessions = useSessions();
   const revokeOne = useRevokeSession();
   const revokeOthers = useRevokeOtherSessions();
   const confirmMe = useConfirmSession();
   const [pendingRevokeAll, setPendingRevokeAll] = useState(false);
+  // ONE confirm for the whole list, keyed by the row waiting on it — not one
+  // dialog per row, which is N mounted dialogs to show at most one.
+  const [pendingRevokeId, setPendingRevokeId] = useState<string | null>(null);
 
   const state = loadStateFromQuery(sessions);
   // The bulk action needs to know there IS another device, so it is decided
@@ -116,61 +130,89 @@ export function SessionsList(props: SessionsListProps = {}): ReactElement {
     failed: () => null,
     ready: (rows) =>
       rows.some((s) => !s.is_current) ? (
-        <Popconfirm
-          title={t(AUTH_I18N_KEYS.secSessionsSignOutAllConfirmTitle)}
-          open={pendingRevokeAll}
-          onOpenChange={setPendingRevokeAll}
-          onConfirm={() => revokeOthers.mutate()}
-          okText={t(AUTH_I18N_KEYS.secSessionsSignOutAll)}
-          okButtonProps={{ danger: true, loading: revokeOthers.isPending }}
+        <Button
+          danger
+          onClick={() => setPendingRevokeAll(true)}
+          data-analytics="none"
+          data-analytics-reason="local-ui-open-revoke-all-confirm"
         >
-          <Button danger data-analytics="flow">
-            {t(AUTH_I18N_KEYS.secSessionsSignOutAll)}
-          </Button>
-        </Popconfirm>
+          {t(AUTH_I18N_KEYS.secSessionsSignOutAll)}
+        </Button>
       ) : null,
   });
 
   return (
-    <Card
-      title={t(AUTH_I18N_KEYS.secSessionsTitle)}
-      data-testid="sessions-list"
-      style={{ width: "100%" }}
-      extra={signOutOthers}
-    >
-      <Flex vertical gap="middle" style={{ width: "100%" }}>
-        <Typography.Text type="secondary">
-          {t(AUTH_I18N_KEYS.secSessionsSubtitle)}
-        </Typography.Text>
+    <SkinTheme surface="bare">
+      <Card
+        title={t(AUTH_I18N_KEYS.secSessionsTitle)}
+        data-testid="sessions-list"
+        style={{ width: "100%" }}
+        extra={signOutOthers}
+      >
+        <Flex vertical gap="middle" style={{ width: "100%" }}>
+          <Typography.Text type="secondary">
+            {t(AUTH_I18N_KEYS.secSessionsSubtitle)}
+          </Typography.Text>
 
-        {matchList(state, {
-          loading: () => <Spin />,
-          failed: (error) => (
-            <ErrorAlert error={errorDisplay(error)} onRetry={() => void sessions.refetch()} />
-          ),
-          empty: () => (
-            <Empty
-              image={props.emptyIcon ?? <SecurityEmptyIcon />}
-              description={t(AUTH_I18N_KEYS.secSessionsEmpty)}
-            />
-          ),
-          ready: (list) => (
-            <Flex vertical>
-              {list.map((s, i) => (
-                <div key={s.id}>
-                  {i > 0 && <Divider style={{ margin: "8px 0" }} />}
+          <LoadList
+            state={state}
+            testId="sessions"
+            onRetry={() => void sessions.refetch()}
+            empty={
+              <EmptyState
+                icon={props.emptyIcon ?? <SecurityEmptyIcon />}
+                title={t(AUTH_I18N_KEYS.secSessionsEmpty)}
+                hint={t(AUTH_I18N_KEYS.secSessionsEmptyHint)}
+              />
+            }
+          >
+            {(list) => (
+              <SecurityList ruleColor={token.colorBorderSecondary}>
+                {list.map((s) => (
                   <SessionRow
+                    key={s.id}
                     session={s}
                     onConfirmMe={() => confirmMe.mutate(s.id)}
-                    onRevoke={() => revokeOne.mutate(s.id)}
-                    revoking={revokeOne.isPending && revokeOne.variables === s.id}
+                    onRevoke={() => setPendingRevokeId(s.id)}
                   />
-                </div>
-              ))}
-            </Flex>
-          ),
-        })}
-      </Flex>
-    </Card>
+                ))}
+              </SecurityList>
+            )}
+          </LoadList>
+
+          <ErrorAlert thrown={revokeOne.error} />
+          <ErrorAlert thrown={revokeOthers.error} />
+        </Flex>
+
+        <SkinConfirm
+          open={pendingRevokeId !== null}
+          danger
+          title={t(AUTH_I18N_KEYS.secSessionsSignOutConfirmTitle)}
+          confirmLabel={t(AUTH_I18N_KEYS.secSessionsSignOut)}
+          confirming={revokeOne.isPending}
+          data-testid="session-revoke-confirm"
+          onConfirm={() => {
+            const id = pendingRevokeId;
+            if (id === null) return;
+            revokeOne.mutate(id, { onSettled: () => setPendingRevokeId(null) });
+          }}
+          onCancel={() => setPendingRevokeId(null)}
+        />
+        <SkinConfirm
+          open={pendingRevokeAll}
+          danger
+          title={t(AUTH_I18N_KEYS.secSessionsSignOutAllConfirmTitle)}
+          confirmLabel={t(AUTH_I18N_KEYS.secSessionsSignOutAll)}
+          confirming={revokeOthers.isPending}
+          data-testid="sessions-revoke-all-confirm"
+          onConfirm={() =>
+            revokeOthers.mutate(undefined, {
+              onSettled: () => setPendingRevokeAll(false),
+            })
+          }
+          onCancel={() => setPendingRevokeAll(false)}
+        />
+      </Card>
+    </SkinTheme>
   );
 }

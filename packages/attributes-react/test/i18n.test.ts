@@ -81,11 +81,27 @@ describe("registration order", () => {
     expect(i18n.t(ATTRIBUTES_I18N_KEYS.boolYes)).toBe("Sí");
   });
 
-  it("interpolates the unsupported-type notice with the type", () => {
+  it("keeps developer language out of the copy a person reads (C-DEVCOPY)", () => {
     const i18n = createI18n({ locale: "en" });
     registerAttributesI18n(i18n);
-    expect(i18n.t(ATTRIBUTES_I18N_KEYS.unsupportedType, { type: "size_grid" })).toContain(
-      "size_grid"
-    );
+    // Two sentences used to leak our release process and a Python registry
+    // identifier into a seller's form: "This build has no editor for the
+    // “size_grid” attribute type". Neither interpolates a type any more.
+    for (const key of [
+      ATTRIBUTES_I18N_KEYS.unsupportedType,
+      ATTRIBUTES_I18N_KEYS.valueUnreadable,
+    ]) {
+      const text = i18n.t(key);
+      expect(text).not.toContain("{type}");
+      expect(text).not.toContain("build");
+    }
+  });
+
+  it("names the blocked submit by FEATURE, since that is what is on the screen", () => {
+    const i18n = createI18n({ locale: "en" });
+    registerAttributesI18n(i18n);
+    expect(
+      i18n.t(ATTRIBUTES_I18N_KEYS.submitBlockedUnsupportedType, { features: "Size grid" })
+    ).toContain("Size grid");
   });
 });

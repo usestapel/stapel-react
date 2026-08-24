@@ -25,6 +25,10 @@
       "types": "./dist/i18n/ru.d.ts",
       "default": "./dist/i18n/ru.js"
     },
+    "./i18n/es": {
+      "types": "./dist/i18n/es.d.ts",
+      "default": "./dist/i18n/es.js"
+    },
     "./manifest": "./manifest.json",
     "./manifest.json": "./manifest.json",
     "./nav-manifest.json": "./nav-manifest.json",
@@ -51,39 +55,53 @@
   },
   "size-limit": [
     {
-      "name": "index — the headless pair (client + usage query + month arithmetic): no antd",
+      "name": "index \u2014 the headless pair (client, the usage query, the meeting bags, the lobby's frame vocabulary): no antd, no socket",
       "path": "dist/index.js",
-      "limit": "8 KB"
+      "limit": "10 KB"
     },
     {
-      "name": "default — the antd skin (the usage table and its month selector) must stay out of the main bundle",
+      "name": "default \u2014 the antd skin (the meeting client and the usage report) must stay out of the main bundle",
       "path": "dist/default/index.js",
-      "limit": "9 KB"
+      "limit": "14 KB"
     },
     {
-      "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",
+      "name": "i18n/ru \u2014 the Russian bundle is opt-in, not carried by the main entry",
       "path": "dist/i18n/ru.js",
-      "limit": "3 KB"
+      "limit": "5 KB"
+    },
+    {
+      "name": "i18n/es \u2014 the Spanish bundle is opt-in, not carried by the main entry",
+      "path": "dist/i18n/es.js",
+      "limit": "4 KB"
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.15.0 <1.0.0",
-    "@stapel/tokens-antd": ">=0.5.0",
+    "@stapel/core": ">=0.18.0 <1.0.0",
+    "@stapel/realtime": ">=0.1.0",
+    "@stapel/tokens-antd": ">=0.6.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
+    "livekit-client": ">=2 <3",
     "react": ">=19"
   },
   "peerDependenciesMeta": {
+    "@stapel/realtime": {
+      "optional": true
+    },
     "@stapel/tokens-antd": {
       "optional": true
     },
     "antd": {
+      "optional": true
+    },
+    "livekit-client": {
       "optional": true
     }
   },
   "devDependencies": {
     "@size-limit/preset-small-lib": "^11.2.0",
     "@stapel/core": "workspace:^",
+    "@stapel/realtime": "workspace:^",
     "@stapel/showcase": "workspace:^",
     "@stapel/tokens": "workspace:^",
     "@stapel/tokens-antd": "workspace:^",

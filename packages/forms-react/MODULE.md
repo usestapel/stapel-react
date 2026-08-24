@@ -28,10 +28,17 @@ carried. See "What 0.2.0 deleted" below.
   mirror. Main entry, not `/default`: a host building its own renderer uses the
   same seam the skin does. (The config-form declarations used to live here too,
   as `configForms.ts`; they come off the wire now.)
-- **headless/** — `FormFill`, `FormBuilder`, `ResponsesTable`, `FormList`.
+- **headless/** — `FormFill`, `FormBuilder`, `ResponsesTable`, `FormList`,
+  `FormSettingsEditor`.
+- **nav/** — `navEntries`, this pair's slice of the scripted-fullstack nav
+  contract (`gen:nav` → `nav-manifest.json`).
 - **i18n/** — the en floor + generated backend error bundles; `ru`/`es` as
   their own subpaths so a host that does not need them carries nothing.
-- **default/** — the antd skin, a separate entry point.
+- **default/** — the antd skin, a separate entry point, built on the SHARED
+  substrate (`@stapel/tokens-antd/skin`): `SkinTheme`, `LoadBoundary`/`LoadList`,
+  `EmptyState`, `ErrorAlert`, `SkinDialog`, `SkinConfirm`, `GatedButton`. This
+  pair owns no theme provider and no error alert of its own — see
+  "What 0.2.0 deleted".
 
 ## Why the CSV export does not use core's client
 
@@ -55,7 +62,30 @@ other error status instead of triggering a refresh-and-retry. `credentials` and
 unchanged. Closing this properly is a core change (a response-returning
 primitive on `StapelClient`), not a per-module workaround.
 
-## What 0.2.0 deleted
+## What this pair's 0.2.0 deleted
+
+**`default/theme.tsx` and `default/ErrorAlert.tsx` are gone**, and so are the
+`FormsSkinTheme` / `ErrorAlert` exports of `@stapel/forms-react/default`
+(pre-1.0 breaking = minor). Nine pairs shipped a byte-identical copy of each,
+which meant every fleet-wide fix to them had to land nine times and landed in
+eight — the reactive-theme bug (a runtime `data-theme` flip left mounted skins
+on the old side, because `resolveThemeMode()` SAMPLES the document once per
+render) is the one that made the cost obvious. Both now live once, in
+`@stapel/tokens-antd/skin`, as `SkinTheme` (same `mode`/`style`/`children`,
+plus a `surface` prop) and `ErrorAlert` (same call shape, plus `thrown` and
+`onRetry`). Re-exporting them under the old names would have kept nine copies
+of a decision alive behind an alias, so the export is dropped rather than
+forwarded — a host that wrapped a composition in `<FormsSkinTheme>` imports
+`<SkinTheme>` instead.
+
+The same migration took the pair's last `Popconfirm` (→ `SkinConfirm`, so a
+confirmation is a bottom sheet on a phone rather than an anchored popover) and
+every bare `disabled={…}` on a reason-bearing control (→ `GatedButton`, which
+renders the reason as text beside the control and wires `aria-describedby` to
+it — a disabled antd button receives no pointer events, so a tooltip on one is
+a reason nobody can read).
+
+### What stapel-forms 0.2.0 deleted from this pair
 
 **`widgets/configForms.ts` — the pinned TypeScript mirror — is gone.**
 stapel-forms 0.2.0 serves `stapel_attributes.config_form()` at
@@ -165,8 +195,73 @@ deliberately NOT — core's own doc comment carves out "a public GET", and gatin
 it would make an embedded form on a marketing page wait for a login bootstrap it
 has no stake in.
 
-## Live counts
+## The workspace an admin screen acts in
 
-Refetch only. A `forms:ws:<workspace_id>` Signal stream is reserved naming for
-when the stapel-realtime substrate lands; forms does not build a socket, and
-that is a lint boundary rather than an unfinished feature.
+Every admin route is workspace-scoped, and a ROUTE carries no workspace: a
+container mounts `<FormsListPane/>` from the nav manifest with nothing but the
+address, and the workspace a person is acting in is a property of the session,
+not of the URL. So the scope is declared once on the runtime:
+
+```tsx
+const runtime = createFormsRuntime({ baseUrl: "/forms/api/v1/", workspaceId });
+```
+
+`useFormsWorkspaceId(explicit?)` resolves the screen's own prop first and the
+runtime second, which is why `workspaceId` is OPTIONAL on `FormsListPane`,
+`FormBuilderPane`, `ResponsesPane` and `FormSettingsPane` — a host driving two
+workspaces on one page still passes it and still wins. With neither declared,
+the screen renders a named notice and issues no request: rendering an empty
+list would blame the workspace for a wiring mistake, and throwing would render
+a blank route explaining nothing.
+
+## Where a form's notifications are configured
+
+`PATCH /forms/<id>` is the ONLY writer of `Form.settings`, and `Form.settings`
+is where the destinations live (`notify_emails`, `notify_telegram_chat_ids`)
+next to `retention_days`. `<FormSettingsEditor>` / `<FormSettingsPane>` is that
+writer, reached from the builder's toolbar and from each list row.
+
+Three rules it follows:
+
+1. **The bag is patched whole.** `services.update_form` REPLACES `settings`, so
+   a patch carrying only the three keys this pair drives would silently delete
+   every key a host put there. The editor spreads the stored bag first.
+2. **Destinations are not validated here.** The backend validates retention and
+   passes the lists through; a client-side refusal of an address the server
+   accepts would be a verdict this pair has no standing to give. An address
+   that does not look like one is a NOTICE beside the field.
+3. **The retention ceiling is not guessed.** `>= 1` is knowable here and is
+   blocked here; `STAPEL_FORMS["RETENTION_DAYS"]` is a deployment setting no
+   client can read, so a too-long override comes back as the server's own
+   `error.400.forms_invalid_retention` with its `params.limit`.
+
+## Live counts — polling, declared
+
+Refetch only, and the surface **says so**. This is a decision with a date on
+it, not an unfinished feature: `@stapel/realtime` has shipped, but stapel-forms
+exposes no stream to consume — its MODULE.md §11 lists "realtime response feed"
+as out of scope and RESERVES the name `forms:ws:<workspace_id>` for a consumer
+that does not exist ("modules do not open sockets"). A socket opened here would
+be this pair inventing a protocol the backend does not speak, which is exactly
+the defect `@stapel/realtime` was extracted to end.
+
+There is no `refetchInterval` either: a reviewer reads one response at a time,
+and a table that silently reorders under the cursor mid-read loses their place
+and can move the row they were about to delete. So freshness is an ACT —
+`bag.refetch()`, surfaced by `<ResponsesPane>` as a visible control with one
+sentence saying the list does not update on its own. When stapel-forms grows
+the consumer, that sentence is what gets deleted.
+
+## Nav
+
+Three routable admin surfaces — `forms.list`, `forms.builder` (`:formId`),
+`forms.responses` (`:formId`) — all `submenu` under the container-owned
+`account.root`, with RELATIVE paths: an absolute `/forms` is byte-for-byte the
+catalogued `forms_api_v1_forms_create` operation path, and
+`stapel/no-string-paths` is right to refuse a literal a reader cannot tell
+apart from an API call.
+
+The anonymous `<StapelForm>` deliberately has **no** entry. It is embedded by a
+host wherever the form belongs, addressed by a non-enumerable `public_id`, and
+reachable with no session — a route for it would claim an address the shell
+does not know and cannot enumerate.

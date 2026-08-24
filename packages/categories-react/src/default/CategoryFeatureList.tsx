@@ -14,16 +14,21 @@
  * outright: `formatFeatureValue`, `<FeatureBadges>`, `<FeatureValueList>`. A
  * listing card imports those directly and this pair is not in the path.
  */
+import { fontSize, spacing } from "@stapel/tokens";
 import type { ReactElement } from "react";
-import { Empty, Flex, List, Spin, Tag, Typography } from "antd";
-import { matchList, toFlowError, useDescribeFlowError, useT } from "@stapel/core";
+import { Flex, List, Tag, Typography } from "antd";
+import { useT } from "@stapel/core";
 import { BUILTIN_VALUE_EDITOR_TYPES } from "@stapel/attributes-react/default";
-import { renderCategoryLabel } from "../catalog/labels.js";
+import { featureCommentLabel, renderCategoryLabel } from "../catalog/labels.js";
 import { CategoryFeatures } from "../headless/CategoryFeatures.js";
 import type { CategoryFeatureEntry } from "../headless/CategoryFeatures.js";
 import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
-import { ErrorAlert } from "./ErrorAlert.js";
-import { CategoriesSkinTheme } from "./theme.js";
+import {
+  EmptyState,
+  ErrorAlert,
+  LoadList,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
 import type { ThemeModeProp } from "./types.js";
 
 export interface CategoryFeatureListProps extends ThemeModeProp {
@@ -34,92 +39,107 @@ export function CategoryFeatureList(
   props: CategoryFeatureListProps
 ): ReactElement {
   const t = useT();
-  const describe = useDescribeFlowError();
   const drawable = new Set<string>(BUILTIN_VALUE_EDITOR_TYPES);
 
   return (
-    <CategoriesSkinTheme
+    <SkinTheme
       {...(props.mode !== undefined ? { mode: props.mode } : {})}
     >
       <CategoryFeatures categoryId={props.categoryId}>
         {(bag) => (
-          <Flex vertical gap={8} data-testid="categories-features">
+          <Flex vertical gap={spacing[2]} data-testid="categories-features">
             <Typography.Title level={5} style={{ margin: 0 }}>
               {t(CATEGORIES_I18N_KEYS.featuresTitle)}
             </Typography.Title>
 
-            {matchList(bag.state, {
-              loading: () => (
-                <Flex justify="center" style={{ padding: 16 }}>
-                  <Spin data-testid="categories-features-loading" />
-                </Flex>
-              ),
-              failed: (error) => (
+            <LoadList
+              state={bag.state}
+              testId="categories-features"
+              onRetry={bag.refetch}
+              failed={(error) => (
                 <ErrorAlert
                   testId="categories-features-failed"
-                  error={{
-                    ...describe(toFlowError(error)),
-                    message: t(CATEGORIES_I18N_KEYS.featuresLoadFailed),
-                  }}
+                  thrown={error}
+                  message={t(CATEGORIES_I18N_KEYS.featuresLoadFailed)}
+                  onRetry={bag.refetch}
                 />
-              ),
-              empty: () => (
-                <Empty
-                  data-testid="categories-features-empty"
-                  description={t(CATEGORIES_I18N_KEYS.featuresEmpty)}
+              )}
+              empty={
+                <EmptyState
+                  testId="categories-features-empty"
+                  compact
+                  title={t(CATEGORIES_I18N_KEYS.featuresEmpty)}
                 />
-              ),
-              ready: (entries) => (
+              }
+            >
+              {(entries) => (
                 <List<CategoryFeatureEntry>
                   data-testid="categories-features-list"
                   size="small"
                   dataSource={[...entries]}
-                  renderItem={(entry) => (
-                    <List.Item
-                      key={entry.feature.slug}
-                      data-feature-slug={entry.feature.slug}
-                    >
-                      <Flex
-                        justify="space-between"
-                        align="center"
-                        gap={8}
-                        style={{ width: "100%" }}
+                  renderItem={(entry) => {
+                    // The catalogue author's note TO the person filling in the
+                    // form ("as printed on the label"). It reached no screen
+                    // in the fleet before this line — see `featureCommentLabel`.
+                    const comment = featureCommentLabel(entry.feature);
+                    return (
+                      <List.Item
+                        key={entry.feature.slug}
+                        data-feature-slug={entry.feature.slug}
                       >
-                        <Typography.Text>
-                          {renderCategoryLabel(entry.label, t)}
-                        </Typography.Text>
-                        <Flex gap={4} align="center">
-                          {entry.mandatory ? (
-                            <Tag color="red">
-                              {t(CATEGORIES_I18N_KEYS.featuresMandatory)}
-                            </Tag>
-                          ) : null}
-                          {entry.type === undefined ? (
-                            <Tag color="warning" data-feature-untyped>
-                              {t(CATEGORIES_I18N_KEYS.featuresUntyped)}
-                            </Tag>
-                          ) : (
-                            <Tag
-                              {...(drawable.has(entry.type)
-                                ? {}
-                                : { color: "warning" })}
-                              data-feature-type={entry.type}
-                            >
-                              {t(CATEGORIES_I18N_KEYS.featuresType, {
-                                type: entry.type,
-                              })}
-                            </Tag>
-                          )}
+                        <Flex
+                          justify="space-between"
+                          align="flex-start"
+                          gap={spacing[2]}
+                          style={{ width: "100%" }}
+                        >
+                          <Flex vertical gap={spacing[1]}>
+                            <Typography.Text>
+                              {renderCategoryLabel(entry.label, t)}
+                            </Typography.Text>
+                            {comment !== null ? (
+                              <Typography.Text
+                                type="secondary"
+                                data-testid={`categories-feature-comment-${entry.feature.slug}`}
+                                style={{ fontSize: fontSize.sm.fontSize }}
+                              >
+                                {renderCategoryLabel(comment, t)}
+                              </Typography.Text>
+                            ) : null}
+                          </Flex>
+                          <Flex gap={spacing[1]} align="center">
+                            {entry.mandatory ? (
+                              <Tag color="red">
+                                {t(CATEGORIES_I18N_KEYS.featuresMandatory)}
+                              </Tag>
+                            ) : null}
+                            {entry.type === undefined ? (
+                              <Tag color="warning" data-feature-untyped>
+                                {t(CATEGORIES_I18N_KEYS.featuresUntyped)}
+                              </Tag>
+                            ) : (
+                              <Tag
+                                {...(drawable.has(entry.type)
+                                  ? {}
+                                  : { color: "warning" })}
+                                data-feature-type={entry.type}
+                              >
+                                {t(CATEGORIES_I18N_KEYS.featuresType, {
+                                  type: entry.type,
+                                })}
+                              </Tag>
+                            )}
+                          </Flex>
                         </Flex>
-                      </Flex>
-                    </List.Item>
-                  )}
+                      </List.Item>
+                    );
+                  }}
                 />
-              ),
-            })}
+              )}
+            </LoadList>
           </Flex>
         )}
       </CategoryFeatures>
-    </CategoriesSkinTheme>
+    </SkinTheme>
   );
 }

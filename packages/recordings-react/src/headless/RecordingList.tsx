@@ -17,16 +17,30 @@ export interface RecordingListBag {
    * outage stayed invisible for hours on the sibling pair.
    */
   readonly state: LoadState<readonly Recording[]>;
-  /** Re-read the list (e.g. to poll a processing recording to completion). */
+  /**
+   * Re-read now. The hook already polls on its own while any row is
+   * mid-pipeline (each recording carries `poll_after_seconds`, and the list
+   * asks again at the shortest one until no row does), so this is the manual
+   * refresh and the failed arm's retry — not the mechanism that makes a
+   * processing recording finish on screen.
+   */
   refetch(): void;
 }
 
 /**
- * Headless recording list — a renderless read of recordings. Reads the caller's
- * own recordings by default, or a whole workspace's when `workspaceId` is set
- * (requires membership). Wires {@link useRecordings} and hands a
- * {@link RecordingListBag} to `children`; bring your own list/table, skeleton,
- * and empty UI. Zero visual opinion (frontend-standard §2).
+ * Headless recording list — a renderless read of recordings.
+ *
+ * Reads what `RECORDING_POLICY` makes visible to the caller (default: their
+ * own). `workspaceId` narrows that to one workspace they are a member of — and
+ * narrowing is all it does: the workspace listing goes through the same object
+ * policy as the per-recording endpoints, so it is "what the policy shows you
+ * inside this workspace", NOT "every recording in it". A deployment opts into
+ * the latter with `WORKSPACE_LISTING_MEMBERS_SEE_ALL`; a non-member gets
+ * `error.403.recording_workspace_forbidden` either way.
+ *
+ * Wires {@link useRecordings} and hands a {@link RecordingListBag} to
+ * `children`; bring your own list/table, skeleton, and empty UI. Zero visual
+ * opinion (frontend-standard §2).
  *
  * ```tsx
  * <RecordingList workspaceId="ws-1">
@@ -35,7 +49,7 @@ export interface RecordingListBag {
  * ```
  */
 export function RecordingList(props: {
-  /** List a whole workspace's recordings (requires membership) instead of own. */
+  /** Narrow the listing to this workspace (requires membership). */
   workspaceId?: string;
   children: (bag: RecordingListBag) => ReactNode;
 }): ReactNode {

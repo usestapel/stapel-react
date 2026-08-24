@@ -24,6 +24,8 @@
  */
 const ROOT = "video" as const;
 const USAGE = "usage" as const;
+const ROOM = "room" as const;
+const PARTICIPANTS = "participants" as const;
 
 export const videoQueryKeys: {
   readonly all: readonly ["video"];
@@ -53,4 +55,42 @@ export const usageQueryKeys: {
   scope: (scopeKey) => [ROOT, USAGE, scopeKey],
   window: (scopeKey, months, tz) => [ROOT, USAGE, scopeKey, tz, "window", months],
   month: (scopeKey, month, tz) => [ROOT, USAGE, scopeKey, tz, "month", month],
+};
+
+/**
+ * The meeting half. A room is addressed by its JOIN CODE and by nothing else —
+ * there is no room list on the wire, so there is no list key either: a factory
+ * entry for a collection this contract cannot answer would be a promise the
+ * cache could never keep.
+ *
+ * The participant page is keyed by its anchor, because an anchored page is a
+ * different answer from the page before it and the two must not overwrite each
+ * other in the cache.
+ */
+export const roomQueryKeys: {
+  /** Everything cached about every room. */
+  readonly all: readonly ["video", "room"];
+  /** One room, by join code. */
+  room(joinCode: string): readonly ["video", "room", string];
+  /** Every participant page of one room — the invalidation target after a
+   * lobby verdict. */
+  participants(
+    joinCode: string
+  ): readonly ["video", "room", string, "participants"];
+  /** One anchored page of one room's participants. */
+  participantPage(
+    joinCode: string,
+    anchor: string
+  ): readonly ["video", "room", string, "participants", string];
+} = {
+  all: [ROOT, ROOM],
+  room: (joinCode) => [ROOT, ROOM, joinCode],
+  participants: (joinCode) => [ROOT, ROOM, joinCode, PARTICIPANTS],
+  participantPage: (joinCode, anchor) => [
+    ROOT,
+    ROOM,
+    joinCode,
+    PARTICIPANTS,
+    anchor,
+  ],
 };

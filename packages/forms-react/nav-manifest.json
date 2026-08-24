@@ -1,0 +1,66 @@
+{
+  "package": "@stapel/forms-react",
+  "version": "0.2.0",
+  "entries": [
+    {
+      "id": "forms.list",
+      "labelKey": "forms.nav.list",
+      "icon": "ProfileOutlined",
+      "route": {
+        "path": "forms"
+      },
+      "component": {
+        "export": "FormsListPane",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "account.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 60
+    },
+    {
+      "id": "forms.builder",
+      "labelKey": "forms.nav.builder",
+      "icon": "AppstoreOutlined",
+      "route": {
+        "path": "forms/:formId"
+      },
+      "component": {
+        "export": "FormBuilderPane",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "account.root"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 61
+    },
+    {
+      "id": "forms.responses",
+      "labelKey": "forms.nav.responses",
+      "icon": "OrderedListOutlined",
+      "route": {
+        "path": "forms/:formId/responses"
+      },
+      "component": {
+        "export": "ResponsesPane",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "account.root"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 62
+    }
+  ]
+}

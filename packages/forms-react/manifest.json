@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/forms-react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "backend": {
     "module": "stapel-forms",
     "contract": ">=0.2 <0.3"
@@ -704,6 +704,39 @@
       "source": "demo/FormBuilder.demo.tsx"
     },
     {
+      "id": "forms.builder-pane",
+      "title": "Form builder (default skin)",
+      "description": "Draft editing, publish, lifecycle state and the public link, plus the door to the form's settings. Reorder buttons at the ends of the list are gated with the reason beside them rather than greyed out for no stated cause, and a kind the deployment does not recognise stays listed and says why it cannot be configured — dropping it would silently delete a field from a stored schema.",
+      "component": "FormBuilderPane",
+      "covers": [
+        "FormBuilder",
+        "ConfigField"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "empty-draft"
+      ],
+      "source": "demo/FormBuilderPaneSkin.demo.tsx"
+    },
+    {
+      "id": "forms.config-field",
+      "title": "Config row (default skin)",
+      "description": "The data-driven config row: a declaration arrives from GET /field-kinds as {name, kind, params} and this picks the widget. A widget the skin does not implement — including one a future stapel-attributes release adds — degrades to a named explanation instead of a control that would write a wrong shape into a published schema.",
+      "component": "ConfigField",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "number",
+        "string-options",
+        "unimplemented"
+      ],
+      "source": "demo/ConfigFieldSkin.demo.tsx"
+    },
+    {
       "id": "forms.fill",
       "title": "Form fill",
       "description": "Headless anonymous fill: the schema load as a three-state LoadState, the unsupported-kind guard, and the submit gate's reason.",
@@ -712,9 +745,7 @@
         "surface-raised"
       ],
       "variants": [
-        "default",
-        "closed",
-        "outage"
+        "default"
       ],
       "source": "demo/FormFill.demo.tsx"
     },
@@ -730,6 +761,23 @@
         "default"
       ],
       "source": "demo/FormList.demo.tsx"
+    },
+    {
+      "id": "forms.list-pane",
+      "title": "Forms list (default skin)",
+      "description": "The workspace's forms with the two acts the builder does not own: configure who gets told about a response, and delete. The delete confirmation is one SkinConfirm for the whole list — a bottom sheet on a phone — and it names the consequence, because deleting an open form stops its public link resolving immediately.",
+      "component": "FormsListPane",
+      "covers": [
+        "FormList"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "empty"
+      ],
+      "source": "demo/FormsListPaneSkin.demo.tsx"
     },
     {
       "id": "forms.provider",
@@ -753,10 +801,60 @@
         "surface-raised"
       ],
       "variants": [
+        "default"
+      ],
+      "source": "demo/ResponsesTable.demo.tsx"
+    },
+    {
+      "id": "forms.responses-pane",
+      "title": "Responses (default skin)",
+      "description": "Answers as their own version asked them: a submission records WHICH schema it answered, so reviewing an old response shows the questions that were actually put, not today's. Deleting and resending are not pre-gated on a guessed capability — the contract exposes none, and a guessed 'you may not' is the same defect as a dead button — but an ERASED row is gated, with the reason beside both controls.",
+      "component": "ResponsesPane",
+      "covers": [
+        "ResponsesTable"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
         "default",
         "empty"
       ],
-      "source": "demo/ResponsesTable.demo.tsx"
+      "source": "demo/ResponsesPaneSkin.demo.tsx"
+    },
+    {
+      "id": "forms.settings-pane",
+      "title": "Form settings (default skin)",
+      "description": "Who gets told when a response arrives, and how long responses are kept. Destinations are not validated here — the server accepts what it accepts, so an address that does not look like one is a notice beside the field, never a refusal. The retention ceiling is a deployment setting no client can read, so a too-long override comes back as the server's own error.400.forms_invalid_retention rather than a guessed number.",
+      "component": "FormSettingsPane",
+      "covers": [
+        "FormSettingsEditor"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "configured",
+        "no-destination"
+      ],
+      "source": "demo/FormSettingsPaneSkin.demo.tsx"
+    },
+    {
+      "id": "forms.stapel-form",
+      "title": "Public form (default skin)",
+      "description": "A published schema rendered as a form: one antd widget per stapel-attributes kind, the admin's own labels, and a submit bar whose blocked reason is text beside the button rather than a tooltip a disabled control can never show.",
+      "component": "StapelForm",
+      "covers": [
+        "FormFill"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "unsupported-kind"
+      ],
+      "source": "demo/StapelFormSkin.demo.tsx"
     }
   ],
   "i18nKeys": [
@@ -837,6 +935,8 @@
     "error.503.mandate_unavailable",
     "forms.builder.add_field",
     "forms.builder.blocked.empty_schema",
+    "forms.builder.blocked.first_field",
+    "forms.builder.blocked.last_field",
     "forms.builder.blocked.no_changes",
     "forms.builder.blocked.publishing",
     "forms.builder.blocked.saving",
@@ -866,6 +966,7 @@
     "forms.builder.state_open",
     "forms.builder.title",
     "forms.builder.unsupported_config",
+    "forms.error.no_workspace",
     "forms.error.unknown",
     "forms.fill.bool_no",
     "forms.fill.bool_yes",
@@ -884,11 +985,21 @@
     "forms.fill.unlimited",
     "forms.fill.unsupported_field",
     "forms.list.create",
+    "forms.list.delete",
+    "forms.list.delete_body",
+    "forms.list.delete_body_open",
+    "forms.list.delete_confirm",
     "forms.list.empty",
+    "forms.list.empty_hint",
     "forms.list.load_failed",
     "forms.list.new_title",
+    "forms.list.open",
+    "forms.list.state_filter",
     "forms.list.submission_count",
     "forms.list.title",
+    "forms.nav.builder",
+    "forms.nav.list",
+    "forms.nav.responses",
     "forms.responses.all_versions",
     "forms.responses.anonymous",
     "forms.responses.blocked.at_end",
@@ -904,7 +1015,9 @@
     "forms.responses.exporting",
     "forms.responses.load_failed",
     "forms.responses.next",
+    "forms.responses.polling_note",
     "forms.responses.prev",
+    "forms.responses.refresh",
     "forms.responses.resend",
     "forms.responses.resend_override",
     "forms.responses.resend_override_hint",
@@ -913,6 +1026,28 @@
     "forms.responses.submitted_at",
     "forms.responses.title",
     "forms.responses.version",
+    "forms.settings.add_destination",
+    "forms.settings.blocked.loading",
+    "forms.settings.blocked.no_changes",
+    "forms.settings.blocked.no_title",
+    "forms.settings.blocked.retention",
+    "forms.settings.blocked.saving",
+    "forms.settings.close",
+    "forms.settings.form_title",
+    "forms.settings.load_failed",
+    "forms.settings.no_destination",
+    "forms.settings.notify_emails",
+    "forms.settings.notify_emails_hint",
+    "forms.settings.notify_telegram",
+    "forms.settings.notify_telegram_hint",
+    "forms.settings.open",
+    "forms.settings.retention",
+    "forms.settings.retention_default",
+    "forms.settings.retention_hint",
+    "forms.settings.save",
+    "forms.settings.saved",
+    "forms.settings.suspect_emails",
+    "forms.settings.title",
     "forms.submit.blocked.done",
     "forms.submit.blocked.in_flight",
     "forms.submit.blocked.unsupported_kind"
@@ -930,6 +1065,7 @@
       "FormBuilder",
       "FormFill",
       "FormList",
+      "FormSettingsEditor",
       "FormsProvider",
       "FormsRuntimeContext",
       "ResponsesTable",
@@ -964,6 +1100,7 @@
       "useFormsAnalytics",
       "useFormsApi",
       "useFormsRuntime",
+      "useFormsWorkspaceId",
       "usePublicForm",
       "usePublishForm",
       "useResendSubmission",
@@ -1004,6 +1141,7 @@
       "FormSchema",
       "FormSchemaMeta",
       "FormSettings",
+      "FormSettingsEditorBag",
       "FormState",
       "FormVersion",
       "FormsApi",

@@ -23,24 +23,82 @@
  *     resolved TOP entry whose `id === placement.parentId`. A submenu entry
  *     whose parent is absent from the installed set (e.g. the parent's
  *     package isn't installed) is DROPPED — logged nowhere, thrown nowhere;
- *     this is documented degrade-gracefully behavior, not a bug.
- *  4. Sort: top entries by `(order, id)`; each parent's children by the
+ *     this is documented degrade-gracefully behavior, not a bug. The ONE
+ *     exception is {@link ADMIN_ROOT_ID}: no module owns "the admin
+ *     section", so nothing declares it and every staff screen hung from it
+ *     used to vanish. It is synthesised here instead (see
+ *     {@link ADMIN_ROOT_ENTRY}).
+ *  4. Address: `route.index` says an entry mounts at its SECTION's address
+ *     rather than at a segment of its own, so the resolved entry carries a
+ *     {@link ResolvedNavEntry.linkPath} a renderer links to and matches the
+ *     location against — the field the manifest emitted and nothing read.
+ *  5. Sort: top entries by `(order, id)`; each parent's children by the
  *     same `(order, id)` — the `id` tiebreak keeps output deterministic
  *     when two entries share an `order`.
- *  5. Filter: drop any entry (top or child) whose resolved `menuVisible` is
- *     `false`, or whose `surface` is closed to the caller's `audience` (see
+ *  6. Filter: drop any entry (top or child) whose resolved `menuVisible` is
+ *     `false`, whose `surface` is closed to the caller's `audience`, or
+ *     whose `requiresAuth` is closed to the caller's session (see
  *     {@link ResolveNavOptions}). A top entry that drops takes its entire
  *     subtree with it — a child cannot render nested under a parent that
  *     isn't in the menu at all.
+ *
+ * What is deliberately NOT filtered here is the STAFF axis. The admin
+ * section is listed for everyone and refuses by name (the reason lives
+ * beside the entry — `<AppShell staff={…}/>`, `adminNavIds`): a menu entry
+ * that vanishes teaches nobody that the screen exists, and a person who
+ * cannot see it cannot ask for access to it.
  */
 import { navEntrySurface, navSurfaceVisibleTo } from "@stapel/core";
 import type {
   MandatePrincipal,
   NavComponentRef,
+  NavEntry,
   NavRoute,
   NavSurface,
   PackageNavManifest,
 } from "@stapel/core";
+
+/**
+ * The parent id of "the admin section" — the staff area every module hangs
+ * its own operator screen from (`@stapel/gdpr-react`'s DSAR queue,
+ * `@stapel/video-react`'s usage table) and that NO module owns, because
+ * "admin" is not a feature: it is where the features a person operates the
+ * product with are collected.
+ *
+ * Nobody declared it, so `resolveNav`'s orphan-drop removed every screen
+ * that named it, in every host, with no log — two real staff screens gone
+ * (shared-layer audit Q3/G5). {@link resolveNav} therefore SYNTHESISES the
+ * parent when at least one installed entry asks for it, the same way the
+ * generated container synthesises it for the route tree. A host that wants
+ * its own admin root simply declares an entry with this id and the
+ * synthetic one steps aside.
+ */
+export const ADMIN_ROOT_ID = "admin.root";
+
+/**
+ * The synthetic {@link ADMIN_ROOT_ID} top entry, byte-for-byte the shape the
+ * generated container declares (`stapel-tools`'
+ * `_frontend_templates.MONOLITH_CONTAINER_ROOTS["admin.root"]`) so a
+ * scaffolded host and a hand-wired one draw the same section: same label
+ * key, same icon, same address, same order.
+ *
+ * `component` names the section page a host mounts at that address. The
+ * shell mounts no routes, so this is data for the host's route builder — a
+ * host with no such component simply gets a section whose own address is
+ * empty and whose children carry the screens.
+ */
+export const ADMIN_ROOT_ENTRY: NavEntry = {
+  id: ADMIN_ROOT_ID,
+  labelKey: "shell.nav.admin",
+  icon: "AuditOutlined",
+  route: { path: "admin" },
+  component: { export: "AdminSection", subpath: "." },
+  placement: { level: "top" },
+  menuVisibleDefault: true,
+  requiresAuth: true,
+  surface: "member",
+  order: 110,
+};
 
 /** One entry's override in a project's nav-override file. */
 export interface NavOverrideEntry {
@@ -79,6 +137,23 @@ export interface NavOverridesFile {
  */
 export interface ResolveNavOptions {
   readonly audience?: MandatePrincipal;
+  /**
+   * Whether the caller holds a SESSION — the axis `NavEntry.requiresAuth`
+   * states, and the one nothing read.
+   *
+   * `surface` and `requiresAuth` are not the same question. `auth.qr_confirm`
+   * is `surface: "public"` (no mandate needed — a phone confirming a
+   * signed-out desktop) and `requiresAuth: true` (a session is), so the
+   * audience filter alone hands it to an anonymous visitor, who is then
+   * bounced to `/login` by the route guard. A door that opens onto a
+   * redirect is the same defect as a door that answers 403.
+   *
+   * Omit it and nothing is filtered on this axis — the scaffold-codegen call
+   * site, which bakes every route a project could ever mount, and every
+   * caller written before the axis was read. Pass `false` and every
+   * `requiresAuth` entry drops.
+   */
+  readonly authenticated?: boolean;
 }
 
 /** A `NavEntry` after override resolution and (for a top-level entry with
@@ -88,6 +163,22 @@ export interface ResolvedNavEntry {
   readonly labelKey: string;
   readonly icon: string;
   readonly route: NavRoute;
+  /**
+   * The address a renderer links to, and matches the browser's location
+   * against. `route.path` for an ordinary entry; for an `route.index` entry
+   * nested in a section, the SECTION's path — an index route mounts at its
+   * parent's address, so linking to a segment of its own would land on a
+   * route that does not exist.
+   *
+   * Resolved here rather than in each renderer because `route.index` was the
+   * one manifest field nothing read: `resolveNav` copied `route` opaque and
+   * the menu's matcher ignored it, so an index screen was permanently
+   * unreachable and permanently unselected (shared-layer audit Q3).
+   */
+  readonly linkPath: string;
+  /** Resolved `route.index` — `false` when the manifest omits it, so a
+   * renderer reads one shape instead of `boolean | undefined`. */
+  readonly index: boolean;
   readonly component: NavComponentRef;
   readonly requiresAuth: boolean;
   /** Resolved surface — declared, or derived from `requiresAuth`. Always
@@ -111,21 +202,43 @@ export interface ResolvedNavEntry {
 }
 
 function resolveOne(
-  entry: PackageNavManifest["entries"][number],
-  overrides: Record<string, NavOverrideEntry>
+  entry: NavEntry,
+  overrides: Record<string, NavOverrideEntry>,
+  /** The section this entry sits in, when it sits in one — an index entry
+   * takes its address from it (see {@link ResolvedNavEntry.linkPath}). */
+  section?: NavEntry
 ): ResolvedNavEntry {
   const o = overrides[entry.id];
+  const index = entry.route.index === true;
   return {
     id: entry.id,
     labelKey: entry.labelKey,
     icon: entry.icon,
     route: entry.route,
+    linkPath: index && section !== undefined ? section.route.path : entry.route.path,
+    index,
     component: entry.component,
     requiresAuth: entry.requiresAuth,
     surface: navEntrySurface(entry),
     order: o?.order ?? entry.order,
     menuVisible: o?.menuVisible ?? entry.menuVisibleDefault,
   };
+}
+
+/**
+ * The installed entries plus the {@link ADMIN_ROOT_ENTRY} when something
+ * needs it: at least one entry hangs from {@link ADMIN_ROOT_ID} and no
+ * installed package declares it. Returns the input untouched otherwise, so a
+ * project with no staff screen never grows an empty "Admin" tab and a
+ * project that declares its own root keeps it.
+ */
+function withAdminRoot(all: readonly NavEntry[]): readonly NavEntry[] {
+  const wanted = all.some(
+    (e) => e.placement.level === "submenu" && e.placement.parentId === ADMIN_ROOT_ID
+  );
+  if (!wanted) return all;
+  if (all.some((e) => e.id === ADMIN_ROOT_ID)) return all;
+  return [...all, ADMIN_ROOT_ENTRY];
 }
 
 function byOrderThenId(a: { order: number; id: string }, b: { order: number; id: string }): number {
@@ -139,17 +252,22 @@ export function resolveNav(
 ): readonly ResolvedNavEntry[] {
   const overrides = overridesFile?.overrides ?? {};
   const audience = options?.audience;
-  /** The surface gate. A project's override file can flip `menuVisible` and
-   * `order`; it deliberately cannot flip this — a per-project preference must
-   * not be able to put a screen that will refuse the caller back in front of
-   * them. */
-  const openToAudience = (e: ResolvedNavEntry): boolean =>
-    audience === undefined || navSurfaceVisibleTo(e.surface, audience);
-  const all = installed.flatMap((m) => m.entries);
+  const authenticated = options?.authenticated;
+  /** The surface + session gate. A project's override file can flip
+   * `menuVisible` and `order`; it deliberately cannot flip this — a
+   * per-project preference must not be able to put a screen that will refuse
+   * the caller back in front of them. */
+  const openTo = (e: ResolvedNavEntry): boolean => {
+    if (audience !== undefined && !navSurfaceVisibleTo(e.surface, audience)) return false;
+    return !(authenticated === false && e.requiresAuth);
+  };
+  const all = withAdminRoot(installed.flatMap((m) => m.entries));
 
+  const topSources = new Map<string, NavEntry>();
   const tops = new Map<string, ResolvedNavEntry>();
   for (const entry of all) {
     if (entry.placement.level === "top") {
+      topSources.set(entry.id, entry);
       tops.set(entry.id, resolveOne(entry, overrides));
     }
   }
@@ -158,8 +276,9 @@ export function resolveNav(
   for (const entry of all) {
     if (entry.placement.level !== "submenu") continue;
     const parentId = entry.placement.parentId;
-    if (parentId === undefined || !tops.has(parentId)) continue; // orphan — dropped, not thrown
-    const resolved = resolveOne(entry, overrides);
+    const section = parentId === undefined ? undefined : topSources.get(parentId);
+    if (parentId === undefined || section === undefined) continue; // orphan — dropped, not thrown
+    const resolved = resolveOne(entry, overrides, section);
     const bucket = childrenByParent.get(parentId);
     if (bucket) bucket.push(resolved);
     else childrenByParent.set(parentId, [resolved]);
@@ -167,19 +286,39 @@ export function resolveNav(
 
   const result: ResolvedNavEntry[] = [];
   for (const top of [...tops.values()].sort(byOrderThenId)) {
-    if (!top.menuVisible || !openToAudience(top)) continue;
+    if (!top.menuVisible || !openTo(top)) continue;
     const kids = childrenByParent.get(top.id);
     if (kids === undefined) {
       result.push(top);
       continue;
     }
-    const visibleKids = kids
-      .filter((k) => k.menuVisible && openToAudience(k))
-      .sort(byOrderThenId);
+    const visibleKids = kids.filter((k) => k.menuVisible && openTo(k)).sort(byOrderThenId);
     result.push({ ...top, children: visibleKids });
   }
 
   return result;
+}
+
+/**
+ * The ids that make up the admin section of an already-resolved tree: the
+ * {@link ADMIN_ROOT_ID} entry and every screen nested under it. Empty when
+ * the tree carries no admin section at all.
+ *
+ * This is the input to the STAFF gate, which is a rendering decision and not
+ * a resolution one: the section stays in the menu for everyone and states
+ * that it is staff-only beside itself (`<AppShell staff={…}/>`). Hiding it
+ * would leave a person who needs access with nothing to point at, and would
+ * put the answer in a second place from the container's own `AdminGate`,
+ * which refuses by name on the screen itself.
+ */
+export function adminNavIds(nav: readonly ResolvedNavEntry[]): ReadonlySet<string> {
+  const ids = new Set<string>();
+  for (const entry of nav) {
+    if (entry.id !== ADMIN_ROOT_ID) continue;
+    ids.add(entry.id);
+    for (const child of entry.children ?? []) ids.add(child.id);
+  }
+  return ids;
 }
 
 /**
@@ -197,7 +336,13 @@ export function resolvePublicNav(
   installed: readonly PackageNavManifest[],
   overridesFile?: NavOverridesFile
 ): readonly ResolvedNavEntry[] {
-  return resolveNav(installed, overridesFile, { audience: "anonymous" });
+  return resolveNav(installed, overridesFile, {
+    audience: "anonymous",
+    // An anonymous visitor has no session either, so a `requiresAuth` screen
+    // is a door that opens onto the sign-in redirect. The storefront's own
+    // door to a session is the sign-in CTA `PublicShell` always renders.
+    authenticated: false,
+  });
 }
 
 /** `resolveNav` for a settled MEMBER mandate — the signed-in tree. See
@@ -212,5 +357,5 @@ export function resolveMemberNav(
   installed: readonly PackageNavManifest[],
   overridesFile?: NavOverridesFile
 ): readonly ResolvedNavEntry[] {
-  return resolveNav(installed, overridesFile, { audience: "member" });
+  return resolveNav(installed, overridesFile, { audience: "member", authenticated: true });
 }

@@ -122,6 +122,18 @@ export interface UseListingComposerOptions {
   /** Value types the rendering half can draw — pass
    * `BUILTIN_VALUE_EDITOR_TYPES` from `@stapel/attributes-react/default`. */
   readonly editorTypes?: readonly string[];
+  /**
+   * The language a NEW draft is written in — the composer's own UI locale, in
+   * practice (`useI18n().locale`).
+   *
+   * `Listing.language` is sent on every save and was never settable: a blank
+   * value let the server's deployment default decide, so a Spanish seller's
+   * listing was filed as Russian because that is what the storefront defaults
+   * to. Seeding it from the locale the form is being READ in is the only
+   * honest guess a library can make, and a host that knows better passes
+   * `initialValues.language`, which still wins.
+   */
+  readonly language?: string;
   /** The upload queue. Absent: no gallery, and `images` is set through
    * `setValue` by whatever the host uses instead. */
   readonly images?: ListingImagesBag;
@@ -186,6 +198,17 @@ export interface ListingComposerBag {
   readonly saveGate: ActionAvailability;
   readonly publishGate: ActionAvailability;
   save(): void;
+  /**
+   * Save once the state written in this same handler has landed.
+   *
+   * `save()` closes over the values of the render it was created in, so a
+   * picker doing `setLocation(place); save()` in one click saved the draft as
+   * it was BEFORE the place was chosen — the plain fields never hit this
+   * because a blur is always a separate tick from the keystroke. A picker has
+   * no blur: choosing a suggestion IS the commit, so it needs a save that runs
+   * after the write it belongs to.
+   */
+  saveSoon(): void;
   publish(): void;
   readonly saving: boolean;
   readonly publishing: boolean;
@@ -204,7 +227,10 @@ export function useListingComposer(
     options.listingId
   );
   const [values, setValues] = useState<ListingDraftValues>(() => ({
-    ...emptyDraftValues({ currency: runtime.currency }),
+    ...emptyDraftValues({
+      currency: runtime.currency,
+      ...(options.language !== undefined ? { language: options.language } : {}),
+    }),
     ...options.initialValues,
   }));
   const [showErrors, setShowErrors] = useState(false);
@@ -212,6 +238,9 @@ export function useListingComposer(
   const [refusal, setRefusal] = useState<PublishRefusal | undefined>(undefined);
   const [outcome, setOutcome] = useState<PublishOutcome | undefined>(undefined);
   const [saved, setSaved] = useState(false);
+  // A counter rather than a boolean: two picks in a row are two saves, and a
+  // boolean that was already `true` would swallow the second.
+  const [saveRequest, setSaveRequest] = useState(0);
 
   const existing = useListing(options.listingId);
   const createDraft = useCreateDraft();
@@ -401,6 +430,19 @@ export function useListingComposer(
     });
   }, [saveGate.available, persist]);
 
+  // `save` through a ref, so the effect below can run the CURRENT one without
+  // re-firing every time the form changes shape.
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  useEffect(() => {
+    if (saveRequest === 0) return;
+    saveRef.current();
+  }, [saveRequest]);
+
+  const saveSoon = useCallback((): void => {
+    setSaveRequest((current) => current + 1);
+  }, []);
+
   const publish = useCallback((): void => {
     setShowErrors(true);
     if (!publishGate.available) return;
@@ -489,6 +531,7 @@ export function useListingComposer(
     saveGate,
     publishGate,
     save,
+    saveSoon,
     publish,
     saving: busy,
     publishing: publishListing.isPending,

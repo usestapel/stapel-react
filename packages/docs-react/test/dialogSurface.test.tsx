@@ -63,7 +63,7 @@ const DOCUMENT = {
   mime_type: "text/markdown",
   metadata: {},
   editor_hint: "markdown",
-  collab: false,
+  collab: "snapshot",
   diffable: true,
   created_at: "2026-08-01T09:00:00Z",
   updated_at: "2026-08-02T09:00:00Z",
@@ -84,9 +84,12 @@ const DOC_ROOT = {
  * on screen right now. The other two are real history. */
 const REV_HEAD = {
   id: "rev-head",
+  document_id: "d-1",
+  kind: "named",
   name: "current",
   seq: 4,
-  author_id: "u-1",
+  size_bytes: 11,
+  created_by: "u-1",
   created_at: "2026-08-02T10:00:00Z",
 };
 const REV_MID = { ...REV_HEAD, id: "rev-mid", name: "before rewrite", seq: 3 };
@@ -164,11 +167,23 @@ async function openDocumentMenu(): Promise<void> {
 
 /** The rollback button of one revision row. */
 function rollbackButton(revisionId: string): HTMLButtonElement {
-  const row = document.querySelector(`[data-docs-revision="${revisionId}"]`);
-  if (!(row instanceof HTMLElement)) throw new Error(`no row for ${revisionId}`);
-  const button = within(row).getByRole("button");
+  const button = within(revisionRow(revisionId)).getByRole("button");
   if (!(button instanceof HTMLButtonElement)) throw new Error("not a button");
   return button;
+}
+
+function revisionRow(revisionId: string): HTMLElement {
+  const row = document.querySelector(`[data-docs-revision="${revisionId}"]`);
+  if (!(row instanceof HTMLElement)) throw new Error(`no row for ${revisionId}`);
+  return row;
+}
+
+/** The visible reason `GatedControl` renders beside a switched-off rollback. */
+function rollbackReason(revisionId: string): string | null {
+  const reason = revisionRow(revisionId).querySelector(
+    "[data-stapel-gated-reason]"
+  );
+  return reason instanceof HTMLElement ? reason.textContent : null;
 }
 
 describe("every default-skin dialog is a bottom sheet on a phone", () => {
@@ -223,7 +238,7 @@ describe("<RevisionsModal/> — rollback is per-revision, and not offered on the
     await waitFor(() => expect(rollbackButton("rev-head").disabled).toBe(true));
     // Off with the reason ON SCREEN: a disabled control gets no pointer
     // events, so a tooltip would be a reason nobody can read.
-    expect(screen.getByTestId("docs-revision-rollback-blocked").textContent).toBe(
+    expect(rollbackReason("rev-head")).toBe(
       "This is the document's current version."
     );
     // …and real history is still rollback-able.
@@ -245,7 +260,8 @@ describe("<RevisionsModal/> — rollback is per-revision, and not offered on the
     await waitFor(() => expect(screen.getByText("first draft")).toBeDefined());
 
     fireEvent.click(rollbackButton("rev-mid"));
-    fireEvent.click(await screen.findByText("OK"));
+    // The confirmation is a SkinConfirm — its affirmative NAMES the action.
+    fireEvent.click(await screen.findByTestId("stapel-confirm-ok"));
 
     await waitFor(() =>
       expect(rollbackButton("rev-mid").className).toContain("ant-btn-loading")
@@ -263,13 +279,17 @@ describe("<MoveDialog/> — the folder it is already in is not a destination", (
     const combobox = await screen.findByRole("combobox");
     // Opens preselected on the document's current parent (the workspace
     // root, for an unfiled document) — "move it where it already is".
-    expect(screen.getByText("OK").closest("button")?.disabled).toBe(true);
+    expect(
+      (screen.getByTestId("docs-move-confirm") as HTMLButtonElement).disabled
+    ).toBe(true);
 
     fireEvent.mouseDown(combobox);
     fireEvent.click(await screen.findByTitle("Q3"));
 
     await waitFor(() =>
-      expect(screen.getByText("OK").closest("button")?.disabled).toBe(false)
+      expect(
+        (screen.getByTestId("docs-move-confirm") as HTMLButtonElement).disabled
+      ).toBe(false)
     );
   });
 });

@@ -94,27 +94,32 @@ describe("declared coverage: Spanish errors, English UI (no raw keys)", () => {
     expect(i18n.t(code)).toBe(notificationsErrorBundleEs[code]);
   });
 
-  it("pair-owned UI keys fall back to ENGLISH under locale es — not to a raw key", async () => {
-    // The inversion of the ru suite: Spanish UI copy does not exist yet, so the
-    // en floor under the locale is what a host reads. When Spanish UI copy
-    // lands, this assertion is the one that must be updated.
+  it("every pair-owned UI key resolves to its OWN Spanish text — locale parity", async () => {
+    // This assertion used to say the opposite: the es bundle carried only the
+    // generated backend error texts, so a Spanish reader got Spanish error
+    // messages inside an English screen. That is a worse result than either
+    // language alone, and it is what the fleet lint calls
+    // `i18n-locale-parity/untranslatedBundle`. Every key now has es copy, and
+    // this test is what keeps the next key from arriving without it.
     const i18n = createI18n({ locale: "en" });
     registerNotificationsI18n(i18n);
     registerNotificationsI18nEs(i18n);
     await i18n.setLocale("es");
     for (const key of Object.values(NOTIFICATIONS_I18N_KEYS)) {
-      const en = notificationsI18nBundleEn[key] ?? "";
-      expect(i18n.t(key), key).toBe(en);
+      const es = notificationsI18nBundleEs[key];
+      expect(es, key).toBeDefined();
+      expect(i18n.t(key), key).toBe(es);
       expect(i18n.t(key), key).not.toBe(key);
+      // Not the English text either — that is the fallback this pair shipped
+      // for a whole release and the reason the rule exists.
+      expect(i18n.t(key), key).not.toBe(notificationsI18nBundleEn[key]);
     }
   });
 
-  it("the es bundle carries exactly the error codes and no UI keys (yet)", () => {
-    const uiKeys = new Set<string>(Object.values(NOTIFICATIONS_I18N_KEYS));
-    const carried = Object.keys(notificationsI18nBundleEs).filter((k) => uiKeys.has(k));
-    expect(carried).toEqual([]);
+  it("the es bundle carries every error code AND every pair-owned UI key", () => {
+    const uiKeys = [...Object.values(NOTIFICATIONS_I18N_KEYS)] as string[];
     expect(Object.keys(notificationsI18nBundleEs).sort()).toEqual(
-      [...NOTIFICATIONS_ERROR_CODES].sort()
+      [...NOTIFICATIONS_ERROR_CODES, ...uiKeys].sort()
     );
   });
 });

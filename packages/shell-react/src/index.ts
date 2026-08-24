@@ -11,6 +11,9 @@ export {
   resolveNav,
   resolvePublicNav,
   resolveMemberNav,
+  adminNavIds,
+  ADMIN_ROOT_ID,
+  ADMIN_ROOT_ENTRY,
 } from "./headless/resolveNav.js";
 export type {
   ResolvedNavEntry,

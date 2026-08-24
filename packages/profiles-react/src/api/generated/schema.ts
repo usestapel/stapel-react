@@ -11,7 +11,7 @@ export interface paths {
         };
         /**
          * Get user profile
-         * @description Get compact profile of a specific user by UUID. Includes relationship status with current user if authenticated.
+         * @description Get compact profile of a specific user by UUID. Includes relationship status with current user if authenticated. A registered user who has never filled anything in answers 200 with an empty-but-renderable profile; 404 means the id names no user.
          *
          *     **Permissions:** `AllowAny`
          */
@@ -145,7 +145,7 @@ export interface paths {
         put?: never;
         /**
          * Get many user profiles at once
-         * @description Resolve up to PROFILES_BATCH_MAX_IDS (default 100) public profiles in one call. Ids with no profile row come back in `missing` — a normal state, never a 404. Ids in neither list were not part of the request. Over the limit the request is refused with `error.400.too_many_ids` carrying both numbers; the list is never silently truncated.
+         * @description Resolve up to PROFILES_BATCH_MAX_IDS (default 100) public profiles in one call. A registered user who has never filled anything in is answered with an empty-but-renderable profile, exactly as `GET .../<user_id>` answers them. Ids that name no user come back in `missing` — a normal state, never a 404. Ids in neither list were not part of the request. Over the limit the request is refused with `error.400.too_many_ids` carrying both numbers; the list is never silently truncated.
          *
          *     **Permissions:** `AllowAny`
          */

@@ -25,8 +25,6 @@ import { gdprErrorBundleEn } from "./generated/errors.gen.js";
  */
 export const GDPR_I18N_KEYS = {
   unknownError: "gdpr.error.unknown",
-  /** The one recovery affordance every failed READ on this surface offers. */
-  retry: "gdpr.action.retry",
   /** Dismissal — the accessible name of a dialog's close button, and of the
    * grab handle the same dialog grows when it is a bottom sheet on a phone. */
   close: "gdpr.action.close",
@@ -36,11 +34,13 @@ export const GDPR_I18N_KEYS = {
   // Section headings — also the nav labels (see `nav/manifest.ts`).
   privacyHeading: "gdpr.privacy.heading",
   adminHeading: "gdpr.admin.heading",
+  /** The PUBLIC intake page — no session, so it introduces itself. */
+  publicHeading: "gdpr.public.heading",
+  publicExplain: "gdpr.public.explain",
 
   // ── Account closure ──────────────────────────────────────────────────────
   closureHeading: "gdpr.closure.heading",
   closureExplain: "gdpr.closure.explain",
-  closureLoading: "gdpr.closure.loading",
   /** The 404 arm, rendered as the state it actually is. */
   closureNone: "gdpr.closure.none",
   closureInitiate: "gdpr.closure.initiate",
@@ -58,7 +58,6 @@ export const GDPR_I18N_KEYS = {
 
   // ── Pending deletions (the caller's own erasures) ────────────────────────
   deletionsHeading: "gdpr.deletions.heading",
-  deletionsLoading: "gdpr.deletions.loading",
   deletionsEmpty: "gdpr.deletions.empty",
   deletionsColumnSubject: "gdpr.deletions.column.subject",
   deletionsColumnState: "gdpr.deletions.column.state",
@@ -74,6 +73,19 @@ export const GDPR_I18N_KEYS = {
   deletionsStateTimeout: "gdpr.deletions.state.timeout",
   deletionsTimeoutHint: "gdpr.deletions.timeout_hint",
 
+  // The per-row detail (`GET /erasures/{id}`): which system has confirmed,
+  // and which processor window is still open. Opening a row is the only place
+  // a person can see WHY a deletion is still on the list.
+  deletionsExpand: "gdpr.deletions.expand",
+  deletionsPartsHeading: "gdpr.deletions.parts_heading",
+  deletionsPartsEmpty: "gdpr.deletions.parts_empty",
+  deletionsPartDone: "gdpr.deletions.part.done",
+  deletionsPartPending: "gdpr.deletions.part.pending",
+  deletionsPartTimeout: "gdpr.deletions.part.timeout",
+  deletionsPartReceipt: "gdpr.deletions.part.receipt",
+  deletionsObligationsHeading: "gdpr.deletions.obligations_heading",
+  deletionsObligation: "gdpr.deletions.obligation",
+
   // Subject vocabulary. `SUBJECT_TYPES` is host-extensible, so an unknown
   // subject renders its own raw name rather than a wrong one.
   subjectAccount: "gdpr.subject.account",
@@ -86,7 +98,6 @@ export const GDPR_I18N_KEYS = {
   // ── Data export ──────────────────────────────────────────────────────────
   exportHeading: "gdpr.export.heading",
   exportExplain: "gdpr.export.explain",
-  exportLoading: "gdpr.export.loading",
   /** The other "404 that is a state": no export was ever requested. */
   exportNone: "gdpr.export.none",
   exportRequest: "gdpr.export.request",
@@ -126,7 +137,6 @@ export const GDPR_I18N_KEYS = {
 
   // ── Staff: the DSAR queue ────────────────────────────────────────────────
   queueHeading: "gdpr.queue.heading",
-  queueLoading: "gdpr.queue.loading",
   queueEmpty: "gdpr.queue.empty",
   queueColumnReference: "gdpr.queue.column.reference",
   queueColumnKind: "gdpr.queue.column.kind",
@@ -141,6 +151,9 @@ export const GDPR_I18N_KEYS = {
   /** The triage note's own save control — NOT the intake form's "Send
    * request", which is a different act by a different person. */
   queueSaveNote: "gdpr.queue.save_note",
+  /** Why the save is off: the draft is still the note already on the row, so
+   * saving would write an audit-trail edit that edited nothing. */
+  queueNoteUnchanged: "gdpr.queue.note_unchanged",
   queueStateReceived: "gdpr.queue.state.received",
   queueStateAcknowledged: "gdpr.queue.state.acknowledged",
   queueStateInProgress: "gdpr.queue.state.in_progress",
@@ -153,7 +166,6 @@ export const GDPR_I18N_KEYS = {
   // ── Staff: data-owner health ─────────────────────────────────────────────
   ownersHeading: "gdpr.owners.heading",
   ownersExplain: "gdpr.owners.explain",
-  ownersLoading: "gdpr.owners.loading",
   /** No owner declared at all — a wiring gap, named as one. */
   ownersEmpty: "gdpr.owners.empty",
   ownersColumnOwner: "gdpr.owners.column.owner",
@@ -205,21 +217,24 @@ export const gdprI18nBundleEn: I18nDictionary = {
   "error.404.gdpr.export_not_found": "You have not requested a data export yet",
   "error.409.gdpr.legal_hold":
     "This data is under a legal hold and cannot be deleted yet. Support can explain why.",
+  "error.409.gdpr.export_cooldown":
+    "You can ask for a copy of your data once every 30 days.",
 
   // gdpr-react UI
   "gdpr.error.unknown": "Something went wrong. Please try again.",
-  "gdpr.action.retry": "Try again",
   "gdpr.action.close": "Close",
   "gdpr.admin.staff_only":
     "This screen is for staff. You are signed in with an account that does not have access to it.",
 
   "gdpr.privacy.heading": "Privacy and your data",
   "gdpr.admin.heading": "Privacy operations",
+  "gdpr.public.heading": "Privacy requests",
+  "gdpr.public.explain":
+    "You do not need an account. Ask what we hold about you, ask for a correction, or ask us to delete it — we answer at the address you give us.",
 
   "gdpr.closure.heading": "Delete your account",
   "gdpr.closure.explain":
     "Deleting your account starts a 30-day grace period. You are signed out everywhere immediately, and you can change your mind until the grace period ends.",
-  "gdpr.closure.loading": "Checking your account…",
   "gdpr.closure.none": "Your account is not scheduled for deletion",
   "gdpr.closure.initiate": "Delete my account",
   "gdpr.closure.confirm_title": "Delete this account?",
@@ -235,7 +250,6 @@ export const gdprI18nBundleEn: I18nDictionary = {
   "gdpr.closure.deleted": "This account has been erased",
 
   "gdpr.deletions.heading": "Waiting to be deleted",
-  "gdpr.deletions.loading": "Loading what is being deleted…",
   "gdpr.deletions.empty": "Nothing of yours is waiting to be deleted",
   "gdpr.deletions.column.subject": "Item",
   "gdpr.deletions.column.state": "State",
@@ -250,6 +264,15 @@ export const gdprI18nBundleEn: I18nDictionary = {
   "gdpr.deletions.state.timeout": "Overdue",
   "gdpr.deletions.timeout_hint":
     "A system that holds part of this item has not confirmed. Support has been alerted; the item is not lost track of.",
+  "gdpr.deletions.expand": "Show which systems have confirmed",
+  "gdpr.deletions.parts_heading": "Systems that hold it",
+  "gdpr.deletions.parts_empty": "No system has claimed this item yet",
+  "gdpr.deletions.part.done": "Confirmed",
+  "gdpr.deletions.part.pending": "Waiting",
+  "gdpr.deletions.part.timeout": "No answer",
+  "gdpr.deletions.part.receipt": "Confirmed {date}",
+  "gdpr.deletions.obligations_heading": "Processors that also hold it",
+  "gdpr.deletions.obligation": "{provider} — their window closes {date}",
 
   "gdpr.subject.account": "Account",
   "gdpr.subject.workspace": "Workspace",
@@ -261,7 +284,6 @@ export const gdprI18nBundleEn: I18nDictionary = {
   "gdpr.export.heading": "Download your data",
   "gdpr.export.explain":
     "We build an archive of everything we hold about you. It is ready within 48 hours and can be requested once every 30 days.",
-  "gdpr.export.loading": "Checking your export…",
   "gdpr.export.none": "You have not requested a data export yet",
   "gdpr.export.request": "Request my data",
   "gdpr.export.requested":
@@ -298,7 +320,6 @@ export const gdprI18nBundleEn: I18nDictionary = {
   "gdpr.dsar.resolve_by": "Answered by {date}",
 
   "gdpr.queue.heading": "Data-protection requests",
-  "gdpr.queue.loading": "Loading requests…",
   "gdpr.queue.empty": "No data-protection requests",
   "gdpr.queue.column.reference": "Ref",
   "gdpr.queue.column.kind": "Asking for",
@@ -311,6 +332,7 @@ export const gdprI18nBundleEn: I18nDictionary = {
   "gdpr.queue.ack_sent": "Acknowledged {date}",
   "gdpr.queue.ack_missing": "Not acknowledged",
   "gdpr.queue.save_note": "Save note",
+  "gdpr.queue.note_unchanged": "No change to save",
   "gdpr.queue.state.received": "Received",
   "gdpr.queue.state.acknowledged": "Acknowledged",
   "gdpr.queue.state.in_progress": "In progress",
@@ -323,7 +345,6 @@ export const gdprI18nBundleEn: I18nDictionary = {
   "gdpr.owners.heading": "Data owners",
   "gdpr.owners.explain":
     "Every system that holds personal data answers a daily probe from the same subscriber that erases. A system that stops answering is a system whose erasures nobody is confirming.",
-  "gdpr.owners.loading": "Loading data owners…",
   "gdpr.owners.empty": "No data owners are declared — nothing would receive an erasure",
   "gdpr.owners.column.owner": "System",
   "gdpr.owners.column.state": "State",

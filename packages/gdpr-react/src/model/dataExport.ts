@@ -8,6 +8,29 @@ import { useGdprApi } from "./context.js";
 import { gdprQueryKeys } from "./queryKeys.js";
 import { isExportNotFound } from "./refusals.js";
 
+/**
+ * How often the export status is re-read while the archive is being BUILT.
+ *
+ * The job is asynchronous and nothing pushes: the module emails a link when it
+ * finishes and has no socket. Without this, a person who asks for their data
+ * and stays on the page watches a screen that never changes — the only way to
+ * learn the archive is ready is a manual refresh or a reload, which is a
+ * product asking someone to poll it by hand.
+ *
+ * Fifteen seconds because the work is minutes, not seconds (the copy promises
+ * 48 hours), and the read is one row: often enough that "ready" appears while
+ * the person is still looking, cheap enough that a forgotten tab is not a
+ * load generator. The interval STOPS the moment the status leaves
+ * `pending`/`processing` — including on `failed` and `expired`, which are
+ * final answers, not states to wait through.
+ */
+export const EXPORT_POLL_INTERVAL_MS = 15_000;
+
+/** The two statuses that mean a worker is still building the archive. */
+function isBuilding(row: ExportStatus | null | undefined): boolean {
+  return row != null && (row.status === "pending" || row.status === "processing");
+}
+
 /** What {@link useDataExport} reports. */
 export interface DataExportBag {
   /**
@@ -20,6 +43,15 @@ export interface DataExportBag {
   readonly status: ExportStatus["status"] | "none" | undefined;
   /** Sections finished / sections expected — the honest progress pair. */
   readonly progress: { readonly done: number; readonly total: number } | undefined;
+  /**
+   * A worker is building the archive right now (`pending` | `processing`),
+   * which is also exactly when the status read polls itself
+   * ({@link EXPORT_POLL_INTERVAL_MS}). A skin gates the "request" control on
+   * this rather than waiting for the 409 cooldown to teach it: the refusal
+   * arrives only after a second copy of everything the product knows about a
+   * person has already been asked for.
+   */
+  readonly building: boolean;
   /**
    * True only while the single-use token is unspent AND the archive exists.
    * The server owns this bit; nothing here infers it from `status`.
@@ -83,6 +115,12 @@ export function useDataExport(
         throw error;
       }),
     enabled,
+    // Poll only while a worker is actually building something. The predicate
+    // reads the LAST ANSWER, so the day the module gains a `queued` status the
+    // list of building states is the one place to change — and a `null`
+    // (never asked) or a finished archive polls nothing at all.
+    refetchInterval: (q) =>
+      isBuilding(q.state.data) ? EXPORT_POLL_INTERVAL_MS : false,
   });
 
   // Typed options object, not call-site generics: `void` stays in
@@ -120,6 +158,7 @@ export function useDataExport(
       row != null
         ? { done: row.parts_done, total: row.parts_total }
         : undefined,
+    building: isBuilding(row),
     downloadAvailable: row?.download_available ?? false,
     missingServices: row?.missing_services ?? [],
     expiresAt: row?.expires_at ?? undefined,

@@ -19,7 +19,39 @@
       ],
       "source": {
         "file": "demo/RecordingComposer.demo.tsx",
-        "line": 98
+        "line": 100
+      }
+    },
+    {
+      "id": "recordings.detail-skin",
+      "title": "Recording screen (default skin)",
+      "description": "The recording screen: facts through the locale formatters, the player, the summary, the synced transcript, and the two metered actions with their reasons.",
+      "component": "RecordingDetailPane",
+      "covers": [
+        "RecordingDetail",
+        "RecordingMedia",
+        "Transcript",
+        "ResummarizeControl",
+        "ReprocessControl"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A finished recording with a transcript and a summary.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "At 390px — the same screen stacked, with 44px controls inherited from SkinTheme.",
+          "viewport": "phone",
+          "step": "ready-phone"
+        }
+      ],
+      "source": {
+        "file": "demo/RecordingDetailPaneSkin.demo.tsx",
+        "line": 23
       }
     },
     {
@@ -38,7 +70,7 @@
       ],
       "source": {
         "file": "demo/UploadFinalizer.demo.tsx",
-        "line": 74
+        "line": 76
       }
     },
     {
@@ -58,7 +90,85 @@
       ],
       "source": {
         "file": "demo/RecordingList.demo.tsx",
-        "line": 120
+        "line": 124
+      }
+    },
+    {
+      "id": "recordings.list-skin",
+      "title": "Recordings screen (default skin)",
+      "description": "The shipped list: real RecordingStatus pills, dates and lengths through the locale formatters, and a failed arm that never wears the empty copy.",
+      "component": "RecordingsList",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Two recordings: one still transcribing, one finished.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "The designed empty state at 390px — the first-run screen, with the create slot unfilled.",
+          "viewport": "phone",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/RecordingsListSkin.demo.tsx",
+        "line": 23
+      }
+    },
+    {
+      "id": "recordings.payment-skin",
+      "title": "Out of credit",
+      "description": "The metered refusal as a top-up prompt; where the money is added is a host slot, visible and named in development when unfilled.",
+      "component": "PaymentRequiredNotice",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "With the host's top-up route filled in.",
+          "viewport": "desktop",
+          "step": "filled"
+        },
+        {
+          "id": "phone",
+          "description": "At 390px with the slot unfilled — a named box in development, nothing in production.",
+          "viewport": "phone",
+          "step": "unfilled"
+        }
+      ],
+      "source": {
+        "file": "demo/PaymentRequiredNoticeSkin.demo.tsx",
+        "line": 31
+      }
+    },
+    {
+      "id": "recordings.player-skin",
+      "title": "Player",
+      "description": "The only path to the bytes: a minted URL that re-mints before it expires, and named arms for 'not stored' and 'delivery is down'.",
+      "component": "RecordingPlayer",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A finished recording, transport ready.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "A recording still uploading: no dead transport, a blocked control with its reason.",
+          "viewport": "phone",
+          "step": "blocked"
+        }
+      ],
+      "source": {
+        "file": "demo/RecordingPlayerSkin.demo.tsx",
+        "line": 26
       }
     },
     {
@@ -78,6 +188,244 @@
       "source": {
         "file": "demo/Recordings.demo.tsx",
         "line": 24
+      }
+    },
+    {
+      "id": "recordings.reprocess-skin",
+      "title": "Transcribe again",
+      "description": "A second transcription and a second bill, so it goes through the fleet's confirm surface — a bottom sheet on a phone, a modal above 768px.",
+      "component": "ReprocessAction",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Available on a finished recording.",
+          "viewport": "desktop",
+          "step": "available"
+        },
+        {
+          "id": "phone",
+          "description": "Blocked at 390px: only a finished recording can be re-run, and the button says so.",
+          "viewport": "phone",
+          "step": "blocked"
+        }
+      ],
+      "source": {
+        "file": "demo/ReprocessActionSkin.demo.tsx",
+        "line": 24
+      }
+    },
+    {
+      "id": "recordings.resummarize-skin",
+      "title": "Rewrite summary",
+      "description": "Accepted is not finished: the 202 receipt keeps the control blocked so a double click reads as one action, and a 402 becomes a top-up prompt.",
+      "component": "ResummarizeAction",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Available — the recording has a transcript.",
+          "viewport": "desktop",
+          "step": "available"
+        },
+        {
+          "id": "phone",
+          "description": "Blocked at 390px: nothing to summarize yet, with the reason beside the button.",
+          "viewport": "phone",
+          "step": "blocked"
+        }
+      ],
+      "source": {
+        "file": "demo/ResummarizeActionSkin.demo.tsx",
+        "line": 24
+      }
+    },
+    {
+      "id": "recordings.share-skin",
+      "title": "Public share page",
+      "description": "A share link renders what it grants and nothing else — a view-only link never puts up a player that cannot play.",
+      "component": "SharedRecordingView",
+      "covers": [
+        "SharedRecording"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A link granting everything: media, transcript and summary.",
+          "viewport": "desktop",
+          "step": "full"
+        },
+        {
+          "id": "phone",
+          "description": "A view-only link at 390px: the details, and the sentence saying the rest is not included.",
+          "viewport": "phone",
+          "step": "view-only"
+        }
+      ],
+      "source": {
+        "file": "demo/SharedRecordingViewSkin.demo.tsx",
+        "line": 24
+      }
+    },
+    {
+      "id": "recordings.share-unlock-skin",
+      "title": "Passcode gate",
+      "description": "401 share_passcode_required renders as a gate; 429 share_unlock_throttled is a named lockout, not a generic failure.",
+      "component": "ShareUnlockGate",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Waiting for the passcode.",
+          "viewport": "desktop",
+          "step": "locked"
+        },
+        {
+          "id": "phone",
+          "description": "Locked out after too many attempts, at 390px.",
+          "viewport": "phone",
+          "step": "throttled"
+        }
+      ],
+      "source": {
+        "file": "demo/ShareUnlockGateSkin.demo.tsx",
+        "line": 27
+      }
+    },
+    {
+      "id": "recordings.shared-media-skin",
+      "title": "Shared playback",
+      "description": "Playback on the public surface, refreshed on the share's shorter TTL, and absent entirely when the link does not grant media.",
+      "component": "SharedMedia",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A link that grants media.",
+          "viewport": "desktop",
+          "step": "granted"
+        },
+        {
+          "id": "phone",
+          "description": "A link that does not grant media: the sentence, and no transport.",
+          "viewport": "phone",
+          "step": "not-granted"
+        }
+      ],
+      "source": {
+        "file": "demo/SharedMediaSkin.demo.tsx",
+        "line": 36
+      }
+    },
+    {
+      "id": "recordings.status-chip",
+      "title": "Status chip",
+      "description": "The eleven lifecycle values the backend can emit, each with a sentence and a tone, and the neutral chip an unknown status falls back to.",
+      "component": "RecordingStatusChip",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The full vocabulary: pipeline-owned, terminal-good, terminal-bad.",
+          "viewport": "desktop",
+          "step": "all"
+        },
+        {
+          "id": "phone",
+          "description": "A status string this build does not know — a neutral chip, never the raw enum member.",
+          "viewport": "phone",
+          "step": "unknown"
+        }
+      ],
+      "source": {
+        "file": "demo/RecordingStatusChipSkin.demo.tsx",
+        "line": 34
+      }
+    },
+    {
+      "id": "recordings.summary-skin",
+      "title": "Summary pane",
+      "description": "The summary with its rewrite action; when the deployment has summaries switched off the pane is absent rather than an empty card.",
+      "component": "SummaryPane",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A summary, with the rewrite action beside the heading.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "A recording with no summary yet: a designed empty state, not a blank card.",
+          "viewport": "phone",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/SummaryPaneSkin.demo.tsx",
+        "line": 24
+      }
+    },
+    {
+      "id": "recordings.transcript-skin",
+      "title": "Transcript pane",
+      "description": "A live region rather than a list: every segment is a real button that seeks the audio, and the playing line announces itself.",
+      "component": "TranscriptPane",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Three segments, one with no diarized speaker (the positional fallback).",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "A recording still being transcribed: the empty arm says the transcript is coming, not that there is none.",
+          "viewport": "phone",
+          "step": "pending"
+        }
+      ],
+      "source": {
+        "file": "demo/TranscriptPaneSkin.demo.tsx",
+        "line": 23
+      }
+    },
+    {
+      "id": "recordings.uploader-skin",
+      "title": "Uploader (create → upload → finalize)",
+      "description": "One surface for the whole upload act, so a half-uploaded recording cannot be stranded between three host-wired controls.",
+      "component": "RecordingUploader",
+      "covers": [
+        "RecordingUpload"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Ready to pick a file, inside a workspace.",
+          "viewport": "desktop",
+          "step": "idle"
+        },
+        {
+          "id": "phone",
+          "description": "At 390px with no workspace: the start button is blocked and says why, beside it.",
+          "viewport": "phone",
+          "step": "blocked"
+        }
+      ],
+      "source": {
+        "file": "demo/RecordingUploaderSkin.demo.tsx",
+        "line": 23
       }
     }
   ]

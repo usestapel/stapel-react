@@ -29,12 +29,14 @@ import { DEFAULT_LISTING_CURRENCY } from "../api/types.js";
  * `geohash` that disagrees with the coordinates beside it is worse than no
  * geohash — the pin and the bucket point at different places.
  *
- * The pair does NOT compute `geohash` from `lat`/`lon`, and that is a
- * decision. A geohash is precision-dependent, the indexer's bucketing depends
- * on which precision was used, and a client that picked its own would put
- * listings in neighbouring cells for reasons nobody could see. It is written
- * by whatever resolved the place (a geo picker, `stapel-geo`) and carried
- * verbatim from there to the wire.
+ * `geohash` is SERVER-COMPUTED and read-only since stapel-listings 0.7.1.
+ * `Listing.save()` stamps `geohash_draft` from `lat_draft`/`lon_draft` through
+ * the `geo.geohash_encode` comm function, and `ListingDraftSerializer` marks
+ * the field `readOnly` — a value sent in the request body is silently ignored.
+ * So this member is something the composer READS BACK (a reopened draft, a
+ * published listing) and never something it sends: `draftPatchFromValues`
+ * omits it, and a picker that happens to know a geohash may keep it for its
+ * own display without expecting the wire to carry it.
  */
 export interface ListingLocation {
   /** Opaque id from whatever place directory the deployment uses. */
@@ -45,6 +47,7 @@ export interface ListingLocation {
    * `55.796100` into `55.7961` and change what was submitted. */
   readonly lat: string | null;
   readonly lon: string | null;
+  /** Read-only: the server computes it from `lat`/`lon` (0.7.1). Never sent. */
   readonly geohash: string;
 }
 
@@ -242,7 +245,9 @@ export function draftPatchFromValues(
     images_draft: [...values.images],
     location_id_draft: values.location.locationId,
     location_label_draft: values.location.locationLabel,
-    geohash_draft: values.location.geohash,
+    // No `geohash_draft`: stapel-listings 0.7.1 computes it in `Listing.save()`
+    // from the coordinates and marks the serializer field read-only, so a value
+    // sent here is discarded. Sending one would be a claim the wire ignores.
     lat_draft: values.location.lat,
     lon_draft: values.location.lon,
     features_draft: toWireFeatures(features, values.features),

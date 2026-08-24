@@ -4,6 +4,42 @@
   "version": "0.1.0",
   "demos": [
     {
+      "id": "gdpr.account-closure",
+      "title": "Delete your account",
+      "description": "Three states, three different screens. `ready(null)` is not an empty state — the read answers 404 for the account that is fine, and the hook folds it, so the panel either offers deletion or reports one. In grace the panel shows the DATE the sweep task will act on (never a countdown) and the cancel beside it; once the erasure is running the cancel is gone, because the module has stopped accepting one.",
+      "component": "AccountClosurePanel",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "error",
+        "warning"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Nothing is being deleted — explain the consequence, then offer the door.",
+          "viewport": "phone",
+          "step": "idle"
+        },
+        {
+          "id": "grace",
+          "description": "A closure that can still be called off: the date, and 'Keep my account'.",
+          "viewport": "phone",
+          "step": "grace"
+        },
+        {
+          "id": "erasing",
+          "description": "Grace is over — the erasure is running and no cancel is offered.",
+          "viewport": "phone",
+          "step": "deleting"
+        }
+      ],
+      "source": {
+        "file": "demo/AccountClosurePanel.demo.tsx",
+        "line": 41
+      }
+    },
+    {
       "id": "gdpr.closure",
       "title": "Account closure",
       "description": "GET /gdpr/api/v1/user/account/close/status — is this account being deleted? The module answers 404 error.404.gdpr.no_active_closure for the state almost every account is in, so useAccountClosure folds that ONE code (never the status) into a null answer: the ready arm has two shapes and the failed arm keeps meaning 'we could not ask'. The grace variant shows the date the sweep task will act on, straight off the wire, and the pending erasure beside it carries BOTH clocks — due_at is when our systems are done, fully_erased_by is when the last subprocessor's window closes.",
@@ -26,6 +62,314 @@
       "source": {
         "file": "demo/Gdpr.demo.tsx",
         "line": 90
+      }
+    },
+    {
+      "id": "gdpr.data-export",
+      "title": "Download your data",
+      "description": "Four states that never collapse into each other. While a worker is building the archive the request button is OFF with its reason printed beside it — read from the wire status, not learned from the 409 a second request would earn — and the status re-reads itself every 15s, so a person who asks for their data and waits sees it finish. The download appears only when the server says the single-use token is still unspent AND the host passes the token from the email; without one, the panel says where the link is instead of inventing an input box for it.",
+      "component": "DataExportPanel",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "info",
+        "warning"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Never asked for one — a state, not a failure.",
+          "viewport": "phone",
+          "step": "none"
+        },
+        {
+          "id": "building",
+          "description": "1 of 5 sections ready; the request control is off and says why. This is the state that polls.",
+          "viewport": "phone",
+          "step": "processing"
+        },
+        {
+          "id": "ready-with-token",
+          "description": "Ready but partial: the missing section is named, the expiry is a date, and the download is offered because the host routed a page carrying the emailed token.",
+          "viewport": "phone",
+          "step": "ready"
+        },
+        {
+          "id": "ready-desktop",
+          "description": "The same finished archive at desk width, with no token in the URL.",
+          "viewport": "desktop",
+          "step": "ready"
+        }
+      ],
+      "source": {
+        "file": "demo/DataExportPanel.demo.tsx",
+        "line": 44
+      }
+    },
+    {
+      "id": "gdpr.dsar-form",
+      "title": "Make a data-protection request",
+      "description": "One component, two callers that are not a style choice. Signed in (`app`), the server takes the email off the session and IGNORES a supplied one — so the form does not ask for it, because asking would invite somebody to type a different address and believe the answer goes there. Anonymous, the email IS the only identity the request has, so it is required and refused HERE rather than by the server's bare 400, on the one page whose visitor has no account and no support channel to ask.",
+      "component": "DsarForm",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Signed in: kind and note, and no email field at all.",
+          "viewport": "phone",
+          "step": "app"
+        },
+        {
+          "id": "anonymous",
+          "description": "The public form: an email field, because it is the only identity the request has.",
+          "viewport": "phone",
+          "step": "anonymous"
+        },
+        {
+          "id": "erasure-preselected",
+          "description": "A 'delete my data' link in a privacy policy lands on the same form with the kind chosen.",
+          "viewport": "desktop",
+          "step": "app"
+        }
+      ],
+      "source": {
+        "file": "demo/DsarForm.demo.tsx",
+        "line": 27
+      }
+    },
+    {
+      "id": "gdpr.dsar-queue",
+      "title": "Data-protection requests (staff)",
+      "description": "Two deadlines, and one of them means the machine broke: `ack_due_at` is three BUSINESS days and the acknowledgement is AUTOMATED, so a row past it with no `ack_sent_at` is a broken notification path, not a slow operator — the same finding `gdpr.W008` raises at boot, here on the screen where somebody can act on it. The triage save is gated rather than merely greyed: a draft equal to the stored note would write an audit-trail edit that edited nothing, and the reason says so beside the control.",
+      "component": "DsarQueue",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "error",
+        "warning"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "One acknowledged request, with the date the automation sent it.",
+          "viewport": "phone",
+          "step": "acknowledged"
+        },
+        {
+          "id": "ack-overdue",
+          "description": "Past the statutory acknowledgement deadline with nothing sent — raised as its own banner.",
+          "viewport": "desktop",
+          "step": "ack_overdue"
+        },
+        {
+          "id": "empty",
+          "description": "No requests — said, not left blank.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "not-staff",
+          "description": "The door is visible and explains itself: the nav axis has no 'staff' value, so the screen does the explaining.",
+          "viewport": "phone",
+          "step": "forbidden"
+        }
+      ],
+      "source": {
+        "file": "demo/DsarQueue.demo.tsx",
+        "line": 47
+      }
+    },
+    {
+      "id": "gdpr.owners-health",
+      "title": "Data owners (staff)",
+      "description": "The table is built from the INVENTORY, not from the answers, so a system that never replies appears as a red row saying 'silent' instead of vanishing from a list that then looks perfectly healthy. That inversion is the defect the probe machinery exists to fix: seven owners in a running product had never started their subscriber, and the only trace was an erasure sitting `queued` until a sweep marked it `timeout`. `alive` is the SERVER's bit — nothing here re-derives liveness from a timestamp and a guess at the threshold.",
+      "component": "OwnersHealth",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "success",
+        "error",
+        "warning"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "One owner, answering, for exactly the subjects it declares.",
+          "viewport": "phone",
+          "step": "healthy"
+        },
+        {
+          "id": "silent",
+          "description": "A system that has never answered, and one answering for fewer subjects than it declares — both rows, both named.",
+          "viewport": "desktop",
+          "step": "silent"
+        },
+        {
+          "id": "none-declared",
+          "description": "No owners at all: nothing would receive an erasure, said out loud.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "not-staff",
+          "description": "The 403, named rather than rendered as an operations failure.",
+          "viewport": "phone",
+          "step": "forbidden"
+        }
+      ],
+      "source": {
+        "file": "demo/OwnersHealth.demo.tsx",
+        "line": 47
+      }
+    },
+    {
+      "id": "gdpr.pending-deletions",
+      "title": "Waiting to be deleted",
+      "description": "Two date columns because there are two clocks: `due_at` is when OUR systems are done, `fully_erased_by` stretches that to the last subprocessor's contractual window — so a recording can be gone from us on 23 September and gone from everywhere on 18 October. The difference is explained as TEXT under the table, not as a tooltip on a column header, because a phone has no hover. Opening a row reads that one erasure and shows the per-owner receipts and the processor windows behind the second date.",
+      "component": "PendingDeletions",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "warning",
+        "error",
+        "success"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The empty arm — an answer, reachable only from a load that worked.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "erasing",
+          "description": "One recording being erased, both clocks, and the owner it is still waiting on.",
+          "viewport": "phone",
+          "step": "erasing"
+        },
+        {
+          "id": "overdue",
+          "description": "A request no owner ever confirmed: raised as a banner, not left as a quiet green tick.",
+          "viewport": "desktop",
+          "step": "timeout"
+        }
+      ],
+      "source": {
+        "file": "demo/PendingDeletions.demo.tsx",
+        "line": 41
+      }
+    },
+    {
+      "id": "gdpr.privacy-admin",
+      "title": "Privacy operations",
+      "description": "The screen `admin.privacy` mounts. The order is the order of urgency: a DSAR has a statutory clock and a named person waiting; a silent data owner is a slower fault that turns into missed erasure deadlines later. The nav axis has two values (public | member) and cannot say 'staff', so the door stays visible and BOTH surfaces name the 403 — a hidden control teaches nobody that they are signed in with the wrong account.",
+      "component": "PrivacyAdminPane",
+      "covers": [],
+      "tokens": [
+        "surface",
+        "surface-raised",
+        "error",
+        "warning"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Nothing overdue, every declared system answering.",
+          "viewport": "phone",
+          "step": "calm"
+        },
+        {
+          "id": "overdue-and-silent",
+          "description": "An acknowledgement the automation never sent, and a system that has never answered.",
+          "viewport": "desktop",
+          "step": "trouble"
+        },
+        {
+          "id": "not-staff",
+          "description": "Both tables explain the refusal instead of showing an empty operations screen.",
+          "viewport": "phone",
+          "step": "forbidden"
+        }
+      ],
+      "source": {
+        "file": "demo/PrivacyAdminPane.demo.tsx",
+        "line": 46
+      }
+    },
+    {
+      "id": "gdpr.privacy-pane",
+      "title": "Privacy and your data",
+      "description": "The screen `account.privacy` mounts, in the order a person needs it: what is already on its way out, a copy of your data, a formal request, and only then the account itself. The destructive control is LAST on purpose — nobody should delete an account to answer a question the export would have answered. Each of the four panels runs its own read, so a failure in one never blanks the others.",
+      "component": "PrivacyPane",
+      "covers": [],
+      "tokens": [
+        "surface",
+        "surface-raised",
+        "text",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Nothing pending: the state almost every account is in.",
+          "viewport": "phone",
+          "step": "idle"
+        },
+        {
+          "id": "closing-with-export",
+          "description": "A closure inside its grace period, an archive being built, one recording already erasing.",
+          "viewport": "phone",
+          "step": "grace"
+        },
+        {
+          "id": "archive-ready-desktop",
+          "description": "A finished (partial) archive and an overdue deletion, at desk width.",
+          "viewport": "desktop",
+          "step": "ready"
+        }
+      ],
+      "source": {
+        "file": "demo/PrivacyPane.demo.tsx",
+        "line": 49
+      }
+    },
+    {
+      "id": "gdpr.privacy-request",
+      "title": "Privacy requests (public)",
+      "description": "`POST /dsar` is AllowAny because the form a regulator expects to exist cannot require a login — so this page is a ROUTE with no menu entry (`public.privacy-request`, surface `public`): listing it in a signed-in person's menu would show 'make a data-protection request' twice, the second one asking for the email the session already knows. The captcha is a SLOT: this package ships none and cannot know a deployment's provider, so an unfilled slot renders a dev-only placeholder rather than silently submitting requests a captcha-configured backend will refuse.",
+      "component": "PrivacyRequestPane",
+      "covers": [],
+      "tokens": [
+        "surface",
+        "text",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "No captcha wired: the slot says so in a dev build and renders nothing in production.",
+          "viewport": "phone",
+          "step": "intake"
+        },
+        {
+          "id": "with-captcha",
+          "description": "The host's challenge widget in the slot, its token threaded to the form.",
+          "viewport": "phone",
+          "step": "intake-captcha"
+        },
+        {
+          "id": "erasure-from-a-policy-link",
+          "description": "Arrived from a 'delete my data' link in the privacy policy, at desk width: the kind is chosen, the email is still required.",
+          "viewport": "desktop",
+          "step": "intake-erasure"
+        }
+      ],
+      "source": {
+        "file": "demo/PrivacyRequestPane.demo.tsx",
+        "line": 30
       }
     }
   ]

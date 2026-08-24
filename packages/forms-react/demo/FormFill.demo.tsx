@@ -7,12 +7,6 @@ import type { DemoHandlers } from "./_harness.js";
 import { DEMO_PUBLIC_FORM, DEMO_PUBLIC_ID } from "./fixtures.js";
 
 const OK: DemoHandlers = { [`/public/${DEMO_PUBLIC_ID}/`]: DEMO_PUBLIC_FORM };
-const CLOSED: DemoHandlers = {
-  [`/public/${DEMO_PUBLIC_ID}/`]: [410, { localizable_error: "error.410.forms_closed" }],
-};
-const OUTAGE: DemoHandlers = {
-  [`/public/${DEMO_PUBLIC_ID}/`]: [503, { localizable_error: "stapel.http.503" }],
-};
 
 function Fill(props: { handlers: DemoHandlers }): ReactElement {
   return (
@@ -46,12 +40,18 @@ export default defineDemo({
     "Headless anonymous fill: the schema load as a three-state LoadState, the unsupported-kind guard, and the submit gate's reason.",
   component: FormFill,
   tokens: ["surface-raised"],
+  // ONE variant. `closed` (410) and `outage` (503) used to stand beside this
+  // one and photographed identically: their difference arrives with a fetch,
+  // and a static render never awaits one, so the gallery showed the same
+  // `loading` chip under three names (visual pass M-6 / C-SAMESHOT, now a
+  // failing assertion in `test/demos.test.tsx`). The three-way split those
+  // variants existed to document is asserted in `test/loadStates.test.tsx`
+  // and DRAWN in `forms.stapel-form` — this demo documents the bag's shape.
   variants: {
-    default: { description: "Schema loaded", render: () => <Fill handlers={OK} /> },
-    closed: { description: "410 — the form is closed", render: () => <Fill handlers={CLOSED} /> },
-    outage: {
-      description: "503 — we could not ask, which is not 'no form here'",
-      render: () => <Fill handlers={OUTAGE} />,
+    default: {
+      description: "Schema loaded — the headless bag a host renders its own visuals over",
+      step: "ready",
+      render: () => <Fill handlers={OK} />,
     },
   },
 });

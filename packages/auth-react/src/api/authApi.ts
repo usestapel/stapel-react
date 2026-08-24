@@ -1,5 +1,9 @@
 import type { StapelClient, StapelRequestOptions } from "@stapel/core";
+import type { paths } from "./generated/schema.js";
 import type {
+  AdminAuditQuery,
+  AdminUserCreateRequest,
+  AdminUserCreateResponse,
   AuthResponse,
   AuditPage,
   AuthSession,
@@ -24,7 +28,17 @@ import type {
   QrType,
   RefreshResponse,
   SecurityStatus,
+  ServiceKey,
+  ServiceKeyPatch,
+  ServiceKeyWrite,
   SsoLookupResponse,
+  SsoOrg,
+  SsoOrgConfig,
+  SsoOrgConfigPatch,
+  SsoOrgPatch,
+  SsoOrgWrite,
+  StaffRoleAssignRequest,
+  StaffRoleAssignment,
   StapelUser,
   StatusResponse,
   TotpDisableRequest,
@@ -35,6 +49,8 @@ import type {
   VerificationEnvelope,
   VerificationFactorId,
   VerificationInitiateResponse,
+  VerificationPreferenceRow,
+  VerificationPreferences,
 } from "./types.js";
 
 /**
@@ -46,6 +62,37 @@ import type {
 const CSRF_HEADERS: Record<string, string> = {
   "X-Requested-With": "XMLHttpRequest",
 };
+
+/**
+ * Does the PINNED contract carry `PATCH /passkey/{id}/` — the rename route?
+ *
+ * A passkey row has to answer "what can I do to it", and today the honest
+ * answer is remove-only: `device_name` is writable exactly once, at
+ * register-complete, and nothing updates it afterwards. `PasskeysManager`
+ * therefore renders NO rename affordance rather than a control that cannot do
+ * its job (which is the same defect as the "log in" button the owner found on
+ * that screen). {@link AuthApi.passkeyRename} is written and ready; only this
+ * flag holds it back.
+ *
+ * The type below is the tripwire. `paths[…]["patch"]` is `undefined` while the
+ * operation is absent (the generator writes `patch?: never`) and an operation
+ * object once it lands, so the day `pnpm gen:api` picks up the new backend the
+ * annotation stops accepting `false` and the build fails HERE, at the one line
+ * that has to change, instead of quietly shipping a screen that is a release
+ * behind. Flip it to `true` in the same commit as that regen.
+ */
+type PasskeyRenameInContract =
+  undefined extends paths["/auth/api/v1/passkey/{id}/"]["patch"] ? false : true;
+
+const PASSKEY_RENAME_IN_CONTRACT: PasskeyRenameInContract = false;
+
+/**
+ * Whether this build's contract supports renaming a passkey. Typed `boolean`
+ * (not the literal) on purpose: the skin BRANCHES on it, and a literal type
+ * would narrow the branch away and take the rename UI out of type-checking
+ * altogether — the code would rot unseen until the flag flipped.
+ */
+export const PASSKEY_RENAME_SUPPORTED: boolean = PASSKEY_RENAME_IN_CONTRACT;
 
 function mutating(
   options?: Omit<StapelRequestOptions, "method" | "body">
@@ -186,6 +233,13 @@ export interface AuthApi {
   passkeyAuthenticateBegin(email?: string): Promise<PasskeyAuthenticateBeginResponse>;
   passkeyAuthenticateComplete(sessionKey: string, credential: unknown): Promise<AuthResponse>;
   passkeyRemove(id: string): Promise<void>;
+  /**
+   * Rename a stored credential. Guarded by {@link PASSKEY_RENAME_SUPPORTED} —
+   * calling it against a backend that has not shipped `PATCH /passkey/{id}/`
+   * answers 405, which is exactly why the skin does not offer the control
+   * there.
+   */
+  passkeyRename(id: string, deviceName: string): Promise<Passkey>;
 
   // Authenticator change (auth-sa.md §9)
   changeInstantRequestOld(channel: OtpChannel): Promise<OtpRequestResponse>;
@@ -201,6 +255,56 @@ export interface AuthApi {
 
   // Audit log (auth-sa.md §16)
   auditLog(page?: number): Promise<AuditPage>;
+
+  // Step-up verification preferences (auth-sa.md §11)
+  verificationPreferences(): Promise<VerificationPreferences>;
+  /**
+   * Upsert one scope's preference. Turning a scope ON never needs proof;
+   * turning it OFF is itself step-up protected and answers the 403
+   * verification envelope, which the caller feeds to `VerificationChallenge`.
+   */
+  setVerificationPreference(
+    scope: string,
+    enabled: boolean
+  ): Promise<VerificationPreferenceRow>;
+
+  // ── Operator console (staff only) ──────────────────────────────────────────
+  //
+  // Every method below answers 403 for a non-staff caller. The skins that use
+  // them live behind the `@stapel/auth-react/default/admin` subpath and are
+  // mounted under the shell's `admin.root` container, so an ordinary user
+  // never reaches a screen that can only refuse them.
+
+  // Enterprise SSO organizations (auth-sa.md §18)
+  ssoOrgs(): Promise<readonly SsoOrg[]>;
+  ssoOrg(slug: string): Promise<SsoOrg>;
+  createSsoOrg(body: SsoOrgWrite): Promise<SsoOrg>;
+  updateSsoOrg(slug: string, body: SsoOrgPatch): Promise<SsoOrg>;
+  deleteSsoOrg(slug: string): Promise<void>;
+  /** Replace an org's IdP connection wholesale (`PUT`). */
+  putSsoOrgConfig(slug: string, body: SsoOrgConfig): Promise<SsoOrgConfig>;
+  /** Change part of an org's IdP connection (`PATCH`). */
+  patchSsoOrgConfig(slug: string, body: SsoOrgConfigPatch): Promise<SsoOrgConfig>;
+
+  // Service API keys (machine credentials)
+  serviceKeys(): Promise<readonly ServiceKey[]>;
+  serviceKey(id: number): Promise<ServiceKey>;
+  /** The ONLY response that carries the full secret — see {@link ServiceKey}. */
+  createServiceKey(body: ServiceKeyWrite): Promise<ServiceKey>;
+  replaceServiceKey(id: number, body: ServiceKeyWrite): Promise<ServiceKey>;
+  updateServiceKey(id: number, body: ServiceKeyPatch): Promise<ServiceKey>;
+  deleteServiceKey(id: number): Promise<void>;
+
+  // Staff roles
+  staffRoles(userId?: string): Promise<readonly StaffRoleAssignment[]>;
+  assignStaffRole(body: StaffRoleAssignRequest): Promise<StaffRoleAssignment>;
+  removeStaffRole(assignmentId: string): Promise<void>;
+
+  // Operator-provisioned accounts
+  createAdminUser(body: AdminUserCreateRequest): Promise<AdminUserCreateResponse>;
+
+  // The global audit stream (every user), as opposed to `auditLog`'s own.
+  adminAudit(query?: AdminAuditQuery): Promise<AuditPage>;
 }
 
 /**
@@ -400,6 +504,8 @@ export function createAuthApi(client: StapelClient): AuthApi {
         mutating()
       ),
     passkeyRemove: (id) => client.delete(`/passkey/${id}/`, mutating()),
+    passkeyRename: (id, deviceName) =>
+      client.patch(`/passkey/${id}/`, { device_name: deviceName }, mutating()),
 
     changeInstantRequestOld: (channel) =>
       client.post(`/${channel}/change/instant/request-old/`, undefined, mutating()),
@@ -438,5 +544,43 @@ export function createAuthApi(client: StapelClient): AuthApi {
       client.get("/security/audit/", {
         query: page === undefined ? {} : { page },
       }),
+
+    verificationPreferences: () => client.get("/verification/preferences/"),
+    setVerificationPreference: (scope, enabled) =>
+      client.put("/verification/preferences/", { scope, enabled }, mutating()),
+
+    ssoOrgs: () => client.get("/sso/orgs/"),
+    ssoOrg: (slug) => client.get(`/sso/orgs/${encodeURIComponent(slug)}/`),
+    createSsoOrg: (body) => client.post("/sso/orgs/", body, mutating()),
+    updateSsoOrg: (slug, body) =>
+      client.patch(`/sso/orgs/${encodeURIComponent(slug)}/`, body, mutating()),
+    deleteSsoOrg: (slug) =>
+      client.delete(`/sso/orgs/${encodeURIComponent(slug)}/`, mutating()),
+    putSsoOrgConfig: (slug, body) =>
+      client.put(`/sso/orgs/${encodeURIComponent(slug)}/config/`, body, mutating()),
+    patchSsoOrgConfig: (slug, body) =>
+      client.patch(`/sso/orgs/${encodeURIComponent(slug)}/config/`, body, mutating()),
+
+    // No trailing slash: the router registers `/service-keys` exactly.
+    serviceKeys: () => client.get("/service-keys"),
+    serviceKey: (id) => client.get(`/service-keys/${id}`),
+    createServiceKey: (body) => client.post("/service-keys", body, mutating()),
+    replaceServiceKey: (id, body) =>
+      client.put(`/service-keys/${id}`, body, mutating()),
+    updateServiceKey: (id, body) =>
+      client.patch(`/service-keys/${id}`, body, mutating()),
+    deleteServiceKey: (id) => client.delete(`/service-keys/${id}`, mutating()),
+
+    staffRoles: (userId) =>
+      client.get("/staff-roles/", {
+        query: userId === undefined ? {} : { user_id: userId },
+      }),
+    assignStaffRole: (body) => client.post("/staff-roles/", body, mutating()),
+    removeStaffRole: (assignmentId) =>
+      client.delete(`/staff-roles/${encodeURIComponent(assignmentId)}/`, mutating()),
+
+    createAdminUser: (body) => client.post("/admin-users/", body, mutating()),
+
+    adminAudit: (query) => client.get("/admin/audit/", { query: { ...query } }),
   };
 }

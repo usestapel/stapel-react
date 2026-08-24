@@ -12,6 +12,7 @@ import { createI18n } from "@stapel/core";
 import {
   REVIEWS_ERROR_CODES,
   REVIEWS_I18N_KEYS,
+  REVIEWS_I18N_PLURALS,
   registerReviewsI18n,
   reviewsI18nBundleEn,
 } from "../src/index.js";
@@ -47,6 +48,23 @@ describe.each(["en", "ru", "es"] as const)("locale %s", (locale) => {
       expect(text, key).not.toBe(key);
     }
   });
+
+  it("resolves every plural family at 1 and at many, in this locale's own forms", () => {
+    // Not through `t`: a family has no value of its own, and reaching one
+    // through `t` would print the family name on the page. The counts below
+    // hit `one` and `other` in en/es and `one`/`many` in ru.
+    for (const family of Object.values(REVIEWS_I18N_PLURALS)) {
+      for (const count of [1, 12]) {
+        const text = engine.tPlural(family, { count });
+        expect(text, `${family} @${count}`).not.toBe(family);
+        expect(text, `${family} @${count}`).toContain(String(count));
+      }
+      expect(
+        engine.tPlural(family, { count: 1 }),
+        `${family} singular differs from plural`
+      ).not.toBe(engine.tPlural(family, { count: 12 }).replace("12", "1"));
+    }
+  });
 });
 
 describe("ownership of the nine un-catalogued keys", () => {
@@ -69,7 +87,9 @@ describe("interpolation slots survive translation", () => {
   it("keeps {avg}/{max}, {count} and {status} in every locale", () => {
     const slots: Record<string, readonly string[]> = {
       "reviews.rating.value": ["{avg}", "{max}"],
-      "reviews.rating.count": ["{count}"],
+      // The count is a plural FAMILY now, so `other` — the one category every
+      // CLDR locale defines — is what a cross-locale check may demand.
+      "reviews.rating.count.other": ["{count}"],
       "reviews.status.unknown": ["{status}"],
       "reviews.rating.star_label": ["{index}", "{max}"],
     };

@@ -66,19 +66,63 @@ describe("generated ru error bundle", () => {
   });
 });
 
+
+/**
+ * CLDR categories a plural FAMILY is spelled with. A family key (the value in
+ * `PROFILES_I18N_KEYS`, e.g. `profiles.list.count.followers`) is never itself
+ * a bundle entry: the bundle carries `<family>.<category>`, and WHICH
+ * categories a language uses is a fact about the language — English has
+ * one/other, Russian also has few/many. So a family must match across locales
+ * and its categories must not.
+ */
+const PLURAL_CATEGORIES = ["zero", "one", "two", "few", "many", "other"] as const;
+
+function familyCategories(bundle: Record<string, string>, family: string): string[] {
+  return PLURAL_CATEGORIES.filter((c) => `${family}.${c}` in bundle);
+}
+
+function isPluralFamily(bundle: Record<string, string>, family: string): boolean {
+  return familyCategories(bundle, family).length > 0;
+}
+
 describe("ru bundle covers the pair's UI keys", () => {
   it("every PROFILES_I18N_KEYS value has a ru text", () => {
     const missing = Object.values(PROFILES_I18N_KEYS).filter(
-      (key) => !(key in profilesI18nBundleRu)
+      (key) =>
+        !(key in profilesI18nBundleRu) && !isPluralFamily(profilesI18nBundleRu, key)
     );
     expect(missing).toEqual([]);
   });
 
   it("ui {param} slots match the en copy", () => {
     for (const key of Object.values(PROFILES_I18N_KEYS)) {
+      if (isPluralFamily(profilesI18nBundleEn, key)) continue;
       expect(paramsOf(profilesI18nBundleRu[key] ?? "").sort(), key).toEqual(
         paramsOf(profilesI18nBundleEn[key] ?? "").sort()
       );
+    }
+  });
+
+  it("every plural family spells Russian's OWN categories, and every form keeps {count}", () => {
+    const families = Object.values(PROFILES_I18N_KEYS).filter((key) =>
+      isPluralFamily(profilesI18nBundleEn, key)
+    );
+    // The families exist at all — a fixed guard against the whole block being
+    // dropped and this suite quietly asserting nothing.
+    expect(families.length).toBeGreaterThan(0);
+    for (const family of families) {
+      const forms = familyCategories(profilesI18nBundleRu, family);
+      // Russian is a four-form language; `other` is the only category every
+      // language defines, so it is the only one that may be demanded.
+      expect(forms, family).toContain("other");
+      expect(forms.length, family).toBeGreaterThan(
+        familyCategories(profilesI18nBundleEn, family).length
+      );
+      for (const form of forms) {
+        expect(profilesI18nBundleRu[`${family}.${form}`], `${family}.${form}`).toContain(
+          "{count}"
+        );
+      }
     }
   });
 });

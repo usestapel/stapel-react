@@ -13,7 +13,7 @@
  * and a sign-in CTA. A `public` flag would branch the entire render tree —
  * two components wearing one coat — so the axis is expressed as two
  * components sharing everything that is genuinely shared: `resolveNav` (the
- * headless entry, no React), `resolveNavIcon`, `NavMenu`, `toAntdThemeConfig`
+ * headless entry, no React), `resolveNavIcon`, `NavMenu`, `SkinTheme`
  * and `useBreakpoint`.
  *
  * ── The three rules this component is TESTED against, not trusted on ───────
@@ -44,7 +44,6 @@
  * <Route element={
  *   <PublicShell
  *     nav={resolvePublicNav(INSTALLED_NAV_MANIFESTS, overrides)}
- *     mode="light"
  *     brand={<Link to="/"><Logo/></Link>}
  *     searchSlot={<SearchField/>}
  *     categorySlot={<TopCategories/>}
@@ -55,13 +54,15 @@
  */
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Button, ConfigProvider, Drawer, Flex, Layout } from "antd";
+import { Button, Drawer, Flex, Layout } from "antd";
 import { Link, Outlet } from "react-router";
-import { toAntdThemeConfig } from "@stapel/tokens-antd";
+import { SkinTheme } from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
 import { useBreakpoint, useT } from "@stapel/core";
+import { spacing } from "@stapel/tokens";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
 import { NavMenu } from "./navMenu.js";
+import { MenuGlyph } from "./icons.js";
 import { SHELL_I18N_KEYS } from "../i18n/keys.js";
 
 /**
@@ -87,7 +88,14 @@ export interface PublicShellProps {
    * `PublicShell` renders it as-is; it never resolves nav itself, and it
    * never filters by surface a second time. */
   readonly nav: readonly ResolvedNavEntry[];
-  readonly mode: ThemeMode;
+  /**
+   * Pin the theme to one side. Omitted — the normal case — the storefront
+   * follows the document's live `data-theme` through `SkinTheme`, so a
+   * runtime theme flip moves the chrome with everything else. Never
+   * defaulted to `"light"`: a hardcoded side is a wrong answer on every dark
+   * deployment.
+   */
+  readonly mode?: ThemeMode;
   /** Brand slot at the head of the top bar — conventionally the logo, already
    * wrapped by the host in its own link to `/` (the shell does not wrap it,
    * which would nest one anchor inside another). */
@@ -107,7 +115,7 @@ export interface PublicShellProps {
    * viewport. Default 1280; `false` is edge-to-edge for a page that draws its
    * own full-bleed sections (a landing page, a map).
    *
-   * `Layout.Content` had a hardcoded `padding: 16` and nothing else, so a
+   * `Layout.Content` carried one spacing step and nothing else, so a
    * detail page's prose ran the full width of a 2560px monitor — a line
    * length nobody reads. The chrome above it stays full-bleed on purpose: a
    * top bar that stops short of the window edges reads as a broken page, not
@@ -150,21 +158,31 @@ export function PublicShell(props: PublicShellProps): ReactElement {
     ) : null;
 
   return (
-    <ConfigProvider theme={toAntdThemeConfig(props.mode)}>
+    <SkinTheme
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+      surface="base"
+      style={{ minHeight: "100vh" }}
+    >
       <Layout style={{ minHeight: "100vh" }} data-testid="public-shell">
         <Layout.Header
           data-testid="public-shell-header"
-          style={{ display: "flex", alignItems: "center", gap: 16, padding: "0 16px" }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: spacing[4],
+            padding: `0 ${String(spacing[4])}px`,
+          }}
         >
           {!isDesktop && hasBrowse && (
             <Button
               aria-label={t(SHELL_I18N_KEYS.navOpenMenu)}
+              aria-expanded={drawerOpen}
               onClick={() => setDrawerOpen(true)}
+              icon={<MenuGlyph />}
+              data-testid="public-shell-menu-trigger"
               data-analytics="none"
               data-analytics-reason="local-ui-open-nav-drawer"
-            >
-              ☰
-            </Button>
+            />
           )}
           {props.brand !== undefined && (
             <div data-testid="public-shell-brand">{props.brand}</div>
@@ -188,9 +206,9 @@ export function PublicShell(props: PublicShellProps): ReactElement {
         {isDesktop && hasBrowse && (
           <Flex
             align="center"
-            gap={16}
+            gap={spacing[4]}
             wrap
-            style={{ padding: "0 16px" }}
+            style={{ padding: `0 ${String(spacing[4])}px` }}
             data-testid="public-shell-browse"
           >
             {/* The menu gets the row's leftover width — `flex: 1 1 auto`
@@ -233,14 +251,14 @@ export function PublicShell(props: PublicShellProps): ReactElement {
           >
             {navMenu}
             {props.categorySlot !== undefined && (
-              <div style={{ padding: 16 }} data-testid="public-shell-categories">
+              <div style={{ padding: spacing[4] }} data-testid="public-shell-categories">
                 {props.categorySlot}
               </div>
             )}
           </Drawer>
         )}
 
-        <Layout.Content style={{ padding: 16 }}>
+        <Layout.Content style={{ padding: spacing[4] }}>
           <div
             style={{
               width: "100%",
@@ -258,6 +276,6 @@ export function PublicShell(props: PublicShellProps): ReactElement {
           <Layout.Footer data-testid="public-shell-footer">{props.footer}</Layout.Footer>
         )}
       </Layout>
-    </ConfigProvider>
+    </SkinTheme>
   );
 }

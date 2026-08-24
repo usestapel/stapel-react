@@ -1,10 +1,24 @@
 import type { StapelClient } from "@stapel/core";
 import type {
+  CdnDescribeResponse,
   CdnFileExistsResponse,
   CdnFileUploadResponse,
   CdnImageUploadResponse,
+  CdnRef,
   CdnVideoUploadResponse,
 } from "./types.js";
+
+/**
+ * `metadata.DESCRIBE_MANY_LIMIT` — how many refs one `POST /describe/` may
+ * carry. Mirrored, not guessed: over it the server answers
+ * `error.400.too_many_refs` with `count` and `max`, and the fix is mechanical
+ * (page the batch), which is exactly the kind of refusal a client should never
+ * make a person discover. `useDescribe` pages on this number.
+ *
+ * The ceiling exists because every snapshot may inline a preview, so batch size
+ * IS response size.
+ */
+export const CDN_DESCRIBE_MAX_REFS = 50;
 
 /**
  * The pair's typed operation surface — one method per stapel-cdn endpoint a
@@ -67,6 +81,35 @@ export interface CdnApi {
     fileHash: string,
     options?: { readonly signal?: AbortSignal }
   ): Promise<CdnFileExistsResponse>;
+
+  /**
+   * `POST /describe/` — render metadata for up to
+   * {@link CDN_DESCRIBE_MAX_REFS} refs (stapel-cdn 0.17.0).
+   *
+   * THE READ THIS PAIR DID NOT HAVE. Until 0.17 `describe` was a comm Function
+   * only: a browser could see `render_meta` for something it had just uploaded
+   * itself and for nothing else, so a chat bubble holding somebody else's
+   * `<prefix>/<hash>` had nothing to draw with and an attachment renderer was
+   * not expressible. This is that transport, and the contract is unchanged —
+   * the endpoint and the comm Function are two doors onto one function.
+   *
+   * NOT OWNER-SCOPED, unlike {@link fileExists}. The default guard is
+   * `IsAuthenticatedOrService`, and the snapshot carries no uploader, no
+   * filename and no reference list — geometry, duration and a bounded inline
+   * preview. That is what lets it answer for a ref the caller did not upload,
+   * which is the entire case it exists for.
+   *
+   * UNKNOWN REFS ARE DATA. Deleted, never stored, or malformed all come back in
+   * `missing` with a 200, so one dead attachment never costs a page its other
+   * thirty-nine. A caller that treats `missing` as an error re-invents the
+   * failure this contract exists to avoid.
+   *
+   * Duplicates collapse server-side BEFORE the ceiling is applied.
+   */
+  describe(
+    refs: readonly CdnRef[],
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<CdnDescribeResponse>;
 
   /**
    * `POST /upload/image/` — the general image intake (`IsNotAnonymousUser`).
@@ -164,6 +207,9 @@ export function createCdnApi(client: StapelClient): CdnApi {
         query: { file_hash: fileHash },
         ...signalOf(options),
       }),
+
+    describe: (refs, options) =>
+      client.post("/describe/", { refs: [...refs] }, signalOf(options)),
 
     uploadImage: (file, options) =>
       client.post("/upload/image/", filePart(file), signalOf(options)),

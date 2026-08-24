@@ -8,9 +8,11 @@
  * skin can drive for it yet; left for a follow-up alongside a TOTP-specific
  * verification path.
  */
+import { spacing } from "@stapel/tokens";
 import { useState } from "react";
 import type { ReactElement } from "react";
 import { Alert, Button, Card, Empty, Flex, Form, Input, Result, Tabs, Typography } from "antd";
+import { ErrorAlert } from "@stapel/tokens-antd/skin";
 import type { ReactNode } from "react";
 import {
   loadStateFromQuery,
@@ -28,7 +30,6 @@ import { useAuthSessionState } from "../../model/context.js";
 import { useCapabilities, usePasswordMethods } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import type { AuthI18nKey } from "../../i18n/keys.js";
-import { ErrorAlert } from "../ErrorAlert.js";
 import { OtpField } from "../OtpField.js";
 
 const CHANNEL_LABEL: Record<OtpChannel, AuthI18nKey> = {
@@ -58,7 +59,7 @@ function OldPasswordTab(props: { bag: PasswordChangeBag }): ReactElement {
         bag.changeWithPassword(v.oldPassword ?? "", v.newPassword ?? "")
       }
     >
-      {err && <Alert type="error" showIcon style={{ marginBottom: 16 }} message={formatError(err)} />}
+      {err && <Alert type="error" showIcon style={{ marginBottom: spacing[4] }} message={formatError(err)} />}
       <Form.Item name="oldPassword" label={t(AUTH_I18N_KEYS.secPasswordOldLabel)}>
         <Input.Password autoFocus autoComplete="current-password" />
       </Form.Item>
@@ -120,7 +121,7 @@ function OtpTab(props: { bag: PasswordChangeBag; channel: OtpChannel; target: st
           bag.submitOtp(v.code ?? "", v.newPassword ?? "")
         }
       >
-        {err && <Alert type="error" showIcon style={{ marginBottom: 16 }} message={formatError(err)} />}
+        {err && <Alert type="error" showIcon style={{ marginBottom: spacing[4] }} message={formatError(err)} />}
         <Typography.Text type="secondary">
           {t(AUTH_I18N_KEYS.secPasswordViaOtpHint, { target: s.target })}
         </Typography.Text>
@@ -263,7 +264,7 @@ function LoadedPanel(props: { entries: readonly PasswordMethodEntry[] }): ReactE
             <Typography.Text
               type="secondary"
               data-testid="password-capability-label"
-              style={{ display: "block", marginBottom: 16 }}
+              style={{ display: "block", marginBottom: spacing[4] }}
             >
               {t(capLabelKey)}
             </Typography.Text>

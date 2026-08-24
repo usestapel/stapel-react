@@ -35,8 +35,11 @@ export interface ProfilesErrorSpec {
  * remediation lookup, and the manifest `errors` block.
  */
 export const PROFILES_ERRORS = {
+  "error.400.avatar_gravatar_hash": { status: 400, params: [], remediation: "fix_input", en: "Gravatar avatar must be an email hash (32 or 64 hex characters)" },
   "error.400.avatar_not_found": { status: 400, params: [], remediation: "fix_input", en: "Avatar not found on CDN" },
   "error.400.avatar_source_mismatch": { status: 400, params: [], remediation: "fix_input", en: "Avatar reference is a CDN reference but avatar_source says otherwise — send avatar_source=\"cdn\" with it, or omit avatar_source and it will be derived from the reference" },
+  "error.400.avatar_url_host": { status: 400, params: [], remediation: "fix_input", en: "Avatar URL host is not allowed here" },
+  "error.400.avatar_url_scheme": { status: 400, params: ["schemes"], remediation: "fix_input", en: "Avatar URL must use one of: {schemes}" },
   "error.400.bad_request": { status: 400, params: [], remediation: "fix_input", en: "Bad request" },
   "error.400.cannot_block_self": { status: 400, params: [], remediation: "fix_input", en: "Cannot block yourself" },
   "error.400.cannot_follow_self": { status: 400, params: [], remediation: "fix_input", en: "Cannot follow yourself" },
@@ -88,14 +91,18 @@ export const PROFILES_ERRORS = {
   "error.429.rate_limit": { status: 429, params: ["retry_after_minutes"], remediation: "wait_and_retry", en: "Too many attempts. Try again in {retry_after_minutes} minutes." },
   "error.429.too_many_requests": { status: 429, params: [], remediation: "wait_and_retry", en: "Too many requests. Please try again later." },
   "error.500.internal": { status: 500, params: [], remediation: "contact_support", en: "Something went wrong" },
+  "error.503.mandate_unavailable": { status: 503, params: [], remediation: "retry", en: "Cannot verify workspace mandate right now" },
 } as const;
 
 export type ProfilesErrorCode = keyof typeof PROFILES_ERRORS;
 
 /** Every backend error code this module can surface, sorted. */
 export const PROFILES_ERROR_CODES: readonly ProfilesErrorCode[] = [
+  "error.400.avatar_gravatar_hash",
   "error.400.avatar_not_found",
   "error.400.avatar_source_mismatch",
+  "error.400.avatar_url_host",
+  "error.400.avatar_url_scheme",
   "error.400.bad_request",
   "error.400.cannot_block_self",
   "error.400.cannot_follow_self",
@@ -147,6 +154,7 @@ export const PROFILES_ERROR_CODES: readonly ProfilesErrorCode[] = [
   "error.429.rate_limit",
   "error.429.too_many_requests",
   "error.500.internal",
+  "error.503.mandate_unavailable",
 ];
 
 /**
@@ -155,8 +163,11 @@ export const PROFILES_ERROR_CODES: readonly ProfilesErrorCode[] = [
  * {@link authI18nBundleEn} (polish wins; this guarantees coverage).
  */
 export const profilesErrorBundleEn: Record<ProfilesErrorCode, string> = {
+  "error.400.avatar_gravatar_hash": "Gravatar avatar must be an email hash (32 or 64 hex characters)",
   "error.400.avatar_not_found": "Avatar not found on CDN",
   "error.400.avatar_source_mismatch": "Avatar reference is a CDN reference but avatar_source says otherwise — send avatar_source=\"cdn\" with it, or omit avatar_source and it will be derived from the reference",
+  "error.400.avatar_url_host": "Avatar URL host is not allowed here",
+  "error.400.avatar_url_scheme": "Avatar URL must use one of: {schemes}",
   "error.400.bad_request": "Bad request",
   "error.400.cannot_block_self": "Cannot block yourself",
   "error.400.cannot_follow_self": "Cannot follow yourself",
@@ -208,4 +219,5 @@ export const profilesErrorBundleEn: Record<ProfilesErrorCode, string> = {
   "error.429.rate_limit": "Too many attempts. Try again in {retry_after_minutes} minutes.",
   "error.429.too_many_requests": "Too many requests. Please try again later.",
   "error.500.internal": "Something went wrong",
+  "error.503.mandate_unavailable": "Cannot verify workspace mandate right now",
 };

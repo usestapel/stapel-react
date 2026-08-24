@@ -88,6 +88,7 @@ export const DEMO_FEATURES: readonly FeatureDef[] = [
     id: 11,
     slug: "brand",
     name: "demo.feature.brand",
+    comment: "demo.feature.brand.comment",
     mandatory: true,
     show_as_badge: true,
     show_at_title: true,
@@ -115,6 +116,7 @@ export const DEMO_FEATURES: readonly FeatureDef[] = [
     // `translate: "none"` — the stored string IS the label, and the demo shows
     // the pair rendering it as one instead of running it through `t`.
     name: "Warranty (raw label)",
+    comment: "Tick it if the box says so",
     translate: "none",
     config: { type: "bool" },
   },

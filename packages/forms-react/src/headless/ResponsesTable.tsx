@@ -132,10 +132,27 @@ function columnsOf(fields: readonly FormFieldDef[]): ResponseColumn[] {
  * Headless response review — keyset paging, per-version columns, detail
  * selection, delete, resend and CSV export, renderless.
  *
- * Live-updating counts are refetch-only by design: a `forms:ws:<workspace_id>`
- * Signal stream is RESERVED naming for when the stapel-realtime substrate
- * lands (spec §8.2), and forms does not build a socket of its own — that is a
- * lint boundary, not an omission.
+ * ── Freshness policy: MANUAL POLLING, declared ─────────────────────────────
+ *
+ * This bag has no live feed and no background timer, and that is a decision
+ * with a date on it rather than an unfinished feature:
+ *
+ *  - `@stapel/realtime` has shipped and this pair could consume it — but
+ *    stapel-forms 0.2.0 exposes **no stream to consume**. Its MODULE.md §11
+ *    lists "realtime response feed" as out of scope and RESERVES the name
+ *    `forms:ws:<workspace_id>` for a consumer that does not exist ("modules do
+ *    not open sockets"); `grep -l Consumer stapel-forms/*.py` finds nothing.
+ *    A socket opened from here would be this pair inventing a protocol the
+ *    backend does not speak — the exact defect `@stapel/realtime` exists to
+ *    end.
+ *  - No `refetchInterval` either. A reviewer reads one response at a time; a
+ *    table that silently reorders under the cursor mid-read loses their place
+ *    and can move the row they were about to delete.
+ *
+ * So freshness is an ACT: {@link ResponsesTableBag.refetch}, surfaced by the
+ * skin as a visible control with one sentence saying the list does not update
+ * on its own. When stapel-forms grows the consumer, this bag gains a
+ * `useStream` subscription and that sentence is what gets deleted.
  */
 export function ResponsesTable(props: {
   workspaceId: string;

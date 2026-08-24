@@ -752,19 +752,189 @@
     "defined": [],
     "flows": []
   },
-  "demos": [],
+  "demos": [
+    {
+      "id": "docs.breadcrumbs",
+      "title": "Breadcrumbs",
+      "description": "The trail is walked up parent_id over the one folder read. While that read is in flight the root crumb alone is the honest render — a breadcrumb bar must never invent the path it is not sure of.",
+      "component": "FileManagerBreadcrumbs",
+      "covers": [
+        "Breadcrumbs"
+      ],
+      "variants": [
+        "default",
+        "root",
+        "loading"
+      ],
+      "source": "demo/FileManagerBreadcrumbs.demo.tsx"
+    },
+    {
+      "id": "docs.dialogs",
+      "title": "Dialogs",
+      "description": "Rename, move and New document. Their affirmative is a GatedButton, not a boolean disabled: an empty name and a destination that is where the item already is each say so in a sentence the button's aria-describedby points at, instead of leaving a grey rectangle a person has to guess about.",
+      "component": "NameDialog",
+      "covers": [
+        "MoveDialog",
+        "NewDocumentDialog"
+      ],
+      "variants": [
+        "default",
+        "name-empty",
+        "move-unchanged",
+        "new-document"
+      ],
+      "source": "demo/dialogs.demo.tsx"
+    },
+    {
+      "id": "docs.document",
+      "title": "Document",
+      "description": "The resolution ladder: an explicitly registered editor, then the skin's default for the hint, then the unstyled builtin, then the file card. The crdt variant is the guard this pair was missing — a type whose write discipline is the update journal must not be handed a snapshot Save the wire would refuse, so it gets a stated reason and its bytes.",
+      "component": "DocSurface",
+      "covers": [
+        "DocEditor"
+      ],
+      "variants": [
+        "default",
+        "download-only",
+        "crdt-unsupported",
+        "not-found"
+      ],
+      "source": "demo/DocSurface.demo.tsx"
+    },
+    {
+      "id": "docs.document-list",
+      "title": "Document list",
+      "description": "Dates and sizes formatted in the APP's locale, not the browser's. The 'no-open' variant is the §83 rule with teeth: a host that passes no onOpenDocument gets rows with no Open item and no clickable cursor, rather than an affordance that answers nothing.",
+      "component": "DocumentListPane",
+      "covers": [
+        "DocumentList"
+      ],
+      "variants": [
+        "default",
+        "no-open-route",
+        "empty"
+      ],
+      "source": "demo/DocumentListPane.demo.tsx"
+    },
+    {
+      "id": "docs.editors",
+      "title": "Editors",
+      "description": "Every builtin editor rides one EditorChrome: Save (also Ctrl/Cmd-S), the dirty marker, the saving state, the conflict banner with the informed override, and the folded error line. Markdown is a SOURCE editor on purpose — a default that dragged a WYSIWYG dependency in would not be a default, it would be a decision; a host swaps it with registerDocEditor or the editor.markdown slot.",
+      "component": "DefaultTextEditor",
+      "covers": [
+        "EditorChrome",
+        "DefaultMarkdownEditor",
+        "DefaultCsvEditor",
+        "DocEditor"
+      ],
+      "variants": [
+        "default",
+        "markdown",
+        "csv"
+      ],
+      "source": "demo/editors.demo.tsx"
+    },
+    {
+      "id": "docs.file-card",
+      "title": "File card",
+      "description": "editor_hint '' means download-only by contract, and an unknown hint degrades here too — a file, never a crash. The download button is gated, so a URL that could not be minted greys it out WITH the reason: 'still minting' and 'the mint failed' used to look identical.",
+      "component": "FileCard",
+      "covers": [
+        "MediaViewer"
+      ],
+      "variants": [
+        "default",
+        "minting",
+        "mint-failed"
+      ],
+      "source": "demo/FileCard.demo.tsx"
+    },
+    {
+      "id": "docs.file-manager",
+      "title": "File manager",
+      "description": "The workspace's documents: folder tree beside the list on a wide box, one pane at a time under the tablet breakpoint (measured off the container, not the viewport). New document and Upload are both here because both are how a document comes into existence. Every row's menu opens by click as well as by right-click, so rename/move/trash are reachable by keyboard and on touch.",
+      "component": "FileManager",
+      "covers": [
+        "DocsProvider",
+        "DocumentList",
+        "FolderTree",
+        "Breadcrumbs",
+        "DocUploader"
+      ],
+      "variants": [
+        "default",
+        "phone",
+        "empty",
+        "loading",
+        "outage"
+      ],
+      "source": "demo/FileManager.demo.tsx"
+    },
+    {
+      "id": "docs.folder-tree",
+      "title": "Folder tree",
+      "description": "One wire read, rendered as a tree by parent_id. A folder whose parent is missing (trashed) stays reachable as a root rather than disappearing. The failed arm is a stated failure, never 'no folders yet'.",
+      "component": "FolderTreePane",
+      "covers": [
+        "FolderTree"
+      ],
+      "variants": [
+        "default",
+        "empty",
+        "failed"
+      ],
+      "source": "demo/FolderTreePane.demo.tsx"
+    },
+    {
+      "id": "docs.revisions",
+      "title": "Version history",
+      "description": "A bottom sheet on a phone and a centred modal above the tablet breakpoint, with the list and the preview stacking on a narrow one. Rollback is switched off on the revision the document is already at — restoring it would write a byte-identical head and a history entry saying nothing happened — and the reason is beside the button, because a disabled control receives no pointer events.",
+      "component": "RevisionsModal",
+      "covers": [
+        "RevisionHistory"
+      ],
+      "variants": [
+        "default",
+        "desktop",
+        "empty",
+        "binary"
+      ],
+      "source": "demo/RevisionsModal.demo.tsx"
+    },
+    {
+      "id": "docs.trash",
+      "title": "Trash",
+      "description": "Three states that a boolean `disabled` used to blur into one grey button: the read is in flight, the read failed, or the trash is genuinely empty. Each says which, in a sentence beside the control that aria-describedby points at. Delete-forever is confirmed through SkinConfirm — a bottom sheet on a phone, never a popover clipped against the screen edge.",
+      "component": "TrashPane",
+      "covers": [
+        "TrashBin"
+      ],
+      "variants": [
+        "default",
+        "empty",
+        "failed"
+      ],
+      "source": "demo/TrashPane.demo.tsx"
+    }
+  ],
   "i18nKeys": [
     "docs.dialog.cancel",
     "docs.dialog.close",
+    "docs.dialog.documentType",
+    "docs.dialog.moveBlockedUnchanged",
     "docs.dialog.moveTarget",
     "docs.dialog.moveTitle",
+    "docs.dialog.nameBlockedEmpty",
     "docs.dialog.namePlaceholder",
+    "docs.dialog.newDocumentTitle",
     "docs.dialog.newFolderTitle",
     "docs.dialog.ok",
     "docs.dialog.renameTitle",
     "docs.dialog.rootFolder",
     "docs.editor.addColumn",
     "docs.editor.addRow",
+    "docs.editor.collabUnsupported",
+    "docs.editor.collabUnsupportedHint",
     "docs.editor.conflict",
     "docs.editor.deleteRow",
     "docs.editor.dirty",
@@ -776,18 +946,23 @@
     "docs.editor.saving",
     "docs.error.unknown",
     "docs.list.empty",
+    "docs.list.emptyHint",
     "docs.list.error",
     "docs.list.loading",
     "docs.list.retry",
+    "docs.manager.filesPane",
     "docs.manager.filesView",
     "docs.manager.foldersEmpty",
+    "docs.manager.foldersPane",
     "docs.manager.nameColumn",
+    "docs.manager.newDocument",
     "docs.manager.newFolder",
     "docs.manager.sizeColumn",
     "docs.manager.trashView",
     "docs.manager.updatedColumn",
     "docs.manager.upload",
     "docs.media.download",
+    "docs.menu.actions",
     "docs.menu.deleteForever",
     "docs.menu.download",
     "docs.menu.history",
@@ -797,11 +972,14 @@
     "docs.menu.open",
     "docs.menu.rename",
     "docs.menu.restore",
+    "docs.nav.document",
+    "docs.nav.files",
     "docs.revisions.automatic",
     "docs.revisions.create",
     "docs.revisions.download",
     "docs.revisions.empty",
     "docs.revisions.loading",
+    "docs.revisions.nameBlockedEmpty",
     "docs.revisions.namePlaceholder",
     "docs.revisions.previewBinary",
     "docs.revisions.previewEmpty",
@@ -814,6 +992,7 @@
     "docs.trash.emptyAction",
     "docs.trash.emptyBlocked",
     "docs.trash.emptyConfirm",
+    "docs.trash.emptyHint",
     "docs.trash.emptyState",
     "docs.trash.emptying",
     "docs.trash.kindDocument",
@@ -822,6 +1001,9 @@
     "docs.tree.error",
     "docs.tree.loading",
     "docs.tree.root",
+    "docs.type.csv",
+    "docs.type.markdown",
+    "docs.type.text",
     "docs.upload.action",
     "docs.upload.done",
     "docs.upload.failed",
@@ -905,6 +1087,7 @@
     "runtime": [
       "Breadcrumbs",
       "CsvEditor",
+      "DEFAULT_DOCUMENT_TYPES",
       "DOCS_ERRORS",
       "DOCS_ERROR_CODES",
       "DOCS_FLOWS",
@@ -933,9 +1116,13 @@
       "exportDocument",
       "flowEndpoints",
       "folderTrail",
+      "formatBytes",
+      "formatDate",
+      "formatDateTime",
       "getDocumentContent",
       "getRevisionContent",
       "isErrorCode",
+      "isUpdatesResync",
       "parseCsv",
       "putDocumentContent",
       "registerDocEditor",
@@ -973,6 +1160,7 @@
       "useUpload"
     ],
     "types": [
+      "AppendResult",
       "BreadcrumbTrail",
       "BreadcrumbsBag",
       "CreateDocsRuntimeOptions",
@@ -982,6 +1170,7 @@
       "CreateRevisionVariables",
       "CreateUploadRequest",
       "CreateUploadResponse",
+      "DocCollab",
       "DocDocument",
       "DocEditorAdapterProps",
       "DocEditorBag",
@@ -989,7 +1178,9 @@
       "DocFolder",
       "DocRevision",
       "DocUpdate",
+      "DocUpdatesFeed",
       "DocUpdatesResponse",
+      "DocUpdatesResync",
       "DocsApi",
       "DocsApiOptions",
       "DocsErrorCode",
@@ -1003,6 +1194,7 @@
       "DocumentListBag",
       "DocumentListParams",
       "DocumentText",
+      "DocumentTypeOption",
       "DownloadUrl",
       "EmptyTrashRequest",
       "ExportUrlVariables",
@@ -1029,9 +1221,11 @@
       "SaveContentOk",
       "SaveContentResult",
       "SaveContentVariables",
+      "Schemas",
       "TrashActions",
       "TrashBag",
       "TrashListing",
+      "TrashPurgeResult",
       "UpdateDocumentVariables",
       "UpdateFolderVariables",
       "UploadBag",

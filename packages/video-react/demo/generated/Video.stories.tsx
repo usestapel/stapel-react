@@ -8,7 +8,16 @@ export default { title: "video-react / Scope usage" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
+Default.parameters = { stapel: {"viewport":"desktop"} };
+export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
+Phone.storyName = "phone";
+Phone.parameters = { stapel: {"viewport":"phone"} };
 export const Nobody = (): ReactElement => renderDemoVariant(demo, "nobody");
 Nobody.storyName = "nobody";
+Nobody.parameters = { stapel: {"viewport":"phone"} };
+export const InvalidPeriod = (): ReactElement => renderDemoVariant(demo, "invalid-period");
+InvalidPeriod.storyName = "invalid-period";
+InvalidPeriod.parameters = { stapel: {"viewport":"phone"} };
 export const Unavailable = (): ReactElement => renderDemoVariant(demo, "unavailable");
 Unavailable.storyName = "unavailable";
+Unavailable.parameters = { stapel: {"viewport":"desktop"} };

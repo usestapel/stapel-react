@@ -107,6 +107,19 @@ const { tracked } = useTracked();
 // data-analytics="flow" instead; tracked() on top double-counts (§3.2).
 ```
 
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- docs.breadcrumbs → <FileManagerBreadcrumbs> [default|root|loading]  demo/FileManagerBreadcrumbs.demo.tsx
+- docs.dialogs → <NameDialog> [default|name-empty|move-unchanged|new-document]  demo/dialogs.demo.tsx
+- docs.document → <DocSurface> [default|download-only|crdt-unsupported|not-found]  demo/DocSurface.demo.tsx
+- docs.document-list → <DocumentListPane> [default|no-open-route|empty]  demo/DocumentListPane.demo.tsx
+- docs.editors → <DefaultTextEditor> [default|markdown|csv]  demo/editors.demo.tsx
+- docs.file-card → <FileCard> [default|minting|mint-failed]  demo/FileCard.demo.tsx
+- docs.file-manager → <FileManager> [default|phone|empty|loading|outage]  demo/FileManager.demo.tsx
+- docs.folder-tree → <FolderTreePane> [default|empty|failed]  demo/FolderTreePane.demo.tsx
+- docs.revisions → <RevisionsModal> [default|desktop|empty|binary]  demo/RevisionsModal.demo.tsx
+- docs.trash → <TrashPane> [default|empty|failed]  demo/TrashPane.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
+
 ## Snippets
 ```tsx
 // Error rendering + remediation branch (one pattern for every pair).

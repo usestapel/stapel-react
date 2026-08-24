@@ -63,6 +63,7 @@ export {
   registeredValueEditorTypes,
   resolveValueEditor,
   unregisterValueEditor,
+  unsupportedFeatureNames,
   unsupportedTypeGate,
   unsupportedTypes,
 } from "./registry.js";
@@ -78,11 +79,22 @@ export {
 export {
   SIMPLE_COLORS,
   codePointLength,
+  featureAnswerRequired,
   isBlank,
   mirrorValidate,
   patternFullMatch,
   validateFeatureValue,
 } from "./validate.js";
+
+export {
+  defaultFeatureValue,
+  initialFeatureValues,
+  useFeatureFields,
+} from "./useFeatureFields.js";
+export type {
+  FeatureFieldsState,
+  UseFeatureFieldsOptions,
+} from "./useFeatureFields.js";
 
 export { fromFeaturesDto, toFeaturesDto } from "./dto.js";
 

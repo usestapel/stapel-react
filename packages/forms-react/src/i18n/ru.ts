@@ -45,6 +45,12 @@ export const formsI18nBundleRu: I18nDictionary = {
   ...ATTRIBUTES_ERRORS_RU,
 
   "forms.error.unknown": "Что-то пошло не так. Попробуйте ещё раз.",
+  "forms.error.no_workspace":
+    "Этому экрану нужно рабочее пространство. Передайте `workspaceId` или объявите его в рантайме: `createFormsRuntime({ workspaceId })`.",
+
+  "forms.nav.list": "Формы",
+  "forms.nav.builder": "Конструктор формы",
+  "forms.nav.responses": "Ответы",
 
   "forms.fill.loading": "Загрузка формы…",
   "forms.fill.retry": "Повторить",
@@ -109,6 +115,36 @@ export const formsI18nBundleRu: I18nDictionary = {
   "forms.builder.state_draft": "Черновик",
   "forms.builder.rotate_link": "Обновить публичную ссылку",
   "forms.builder.public_link": "Публичная ссылка",
+  "forms.builder.blocked.first_field": "Это уже первое поле.",
+  "forms.builder.blocked.last_field": "Это уже последнее поле.",
+
+  "forms.settings.title": "Настройки формы",
+  "forms.settings.open": "Настройки",
+  "forms.settings.close": "Закрыть",
+  "forms.settings.form_title": "Название формы",
+  "forms.settings.notify_emails": "Уведомлять эти адреса",
+  "forms.settings.notify_emails_hint":
+    "Каждый новый ответ уходит письмом на эти адреса. Если не указан ни один, ответы сохраняются, но никто о них не узнаёт.",
+  "forms.settings.notify_telegram": "Уведомлять эти чаты в Telegram",
+  "forms.settings.notify_telegram_hint":
+    "Идентификаторы чатов, а не имена пользователей: у группового чата id начинается с минуса.",
+  "forms.settings.add_destination": "Введите адрес и нажмите Enter",
+  "forms.settings.retention": "Удалять ответы через",
+  "forms.settings.retention_hint":
+    "Дней. Переопределение может только СОКРАТИТЬ срок хранения этой установки; оставьте пустым, чтобы использовать срок установки.",
+  "forms.settings.retention_default": "Срок установки",
+  "forms.settings.no_destination":
+    "Ни один получатель не указан: новый ответ будет сохранён, но никто не получит уведомления.",
+  "forms.settings.suspect_emails":
+    "Это не похоже на адреса электронной почты, письма могут не дойти: {list}",
+  "forms.settings.save": "Сохранить настройки",
+  "forms.settings.saved": "Настройки сохранены.",
+  "forms.settings.load_failed": "Не удалось загрузить настройки этой формы.",
+  "forms.settings.blocked.loading": "Загружаем настройки формы…",
+  "forms.settings.blocked.saving": "Сохраняем…",
+  "forms.settings.blocked.no_changes": "С последнего сохранения ничего не изменилось.",
+  "forms.settings.blocked.retention": "Ответы нужно хранить хотя бы один день.",
+  "forms.settings.blocked.no_title": "Сначала дайте форме название.",
 
   "forms.responses.title": "Ответы",
   "forms.responses.empty": "Ответов пока нет.",
@@ -136,6 +172,9 @@ export const formsI18nBundleRu: I18nDictionary = {
     "Этот ответ стёрт — его больше нельзя переслать или удалить.",
   "forms.responses.detail": "Ответ целиком",
   "forms.responses.close": "Закрыть",
+  "forms.responses.refresh": "Проверить новые ответы",
+  "forms.responses.polling_note":
+    "Список не обновляется сам — проверьте ещё раз, чтобы увидеть ответы, пришедшие после загрузки.",
 
   "forms.list.title": "Формы",
   "forms.list.empty": "В этом рабочем пространстве пока нет форм.",
@@ -143,6 +182,16 @@ export const formsI18nBundleRu: I18nDictionary = {
   "forms.list.create": "Новая форма",
   "forms.list.new_title": "Форма без названия",
   "forms.list.submission_count": "Ответов: {count}",
+  "forms.list.empty_hint":
+    "Форма собирает ответы по публичной ссылке, которую можно разместить на любой странице.",
+  "forms.list.open": "Открыть",
+  "forms.list.delete": "Удалить",
+  "forms.list.delete_confirm": "Удалить «{title}»?",
+  "forms.list.delete_body":
+    "Форма и её ответы (всего {count}) перестанут быть доступны. Публичная ссылка перестанет работать сразу.",
+  "forms.list.delete_body_open":
+    "Эта форма ОТКРЫТА. Удаление закроет её: публичная ссылка перестанет работать сразу, а ответы (всего {count}) станут недоступны.",
+  "forms.list.state_filter": "Фильтр по состоянию",
 };
 
 /** Register the ru bundle. Call AFTER `registerFormsI18n` so it layers over

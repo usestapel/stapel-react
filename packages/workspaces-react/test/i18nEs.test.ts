@@ -130,10 +130,17 @@ describe("declared coverage: Spanish errors, English UI (no raw keys)", () => {
 
   it("the es bundle carries every error code, plus only pair-owned UI keys", () => {
     const uiKeys = new Set<string>(Object.values(WORKSPACES_I18N_KEYS));
+    // A plural family is declared ONCE in the key registry and catalogued as
+    // one flat string per CLDR category, so `workspaces.members.count.one` is
+    // a leaf of a declared key rather than a key of its own. Which categories
+    // a language uses is a fact about the language — see keys.ts.
+    const PLURAL = /\.(zero|one|two|few|many|other)$/;
+    const declared = (key: string): boolean =>
+      uiKeys.has(key) || (PLURAL.test(key) && uiKeys.has(key.replace(PLURAL, "")));
     const carried = Object.keys(workspacesI18nBundleEs);
     // Nothing in here that is neither a registry code nor a key this pair owns
     // — a typo'd key would otherwise sit in the bundle translating nothing.
-    expect(carried.filter((k) => !uiKeys.has(k)).sort()).toEqual(
+    expect(carried.filter((k) => !declared(k)).sort()).toEqual(
       [...WORKSPACES_ERROR_CODES].sort()
     );
   });

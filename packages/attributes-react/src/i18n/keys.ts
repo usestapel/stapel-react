@@ -26,20 +26,46 @@ import type { I18nDictionary, I18nEngine } from "@stapel/core";
  * this bundle, which is why the formatter takes a `t` and never a table.
  */
 export const ATTRIBUTES_I18N_KEYS = {
-  /** The loud last rung of the resolution ladder. */
+  /**
+   * The loud last rung of the resolution ladder.
+   *
+   * It interpolates NOTHING. It used to render the type SLUG —
+   * "This build has no editor for the “size_grid” attribute type" — which the
+   * visual pass filed as developer copy shipped to a person filling in a form
+   * (class C-DEVCOPY): "this build" is a fact about our release process and
+   * `size_grid` is an identifier from a Python registry. The row already
+   * carries the feature's own NAME; the slug now travels as
+   * `data-attributes-type` on the notice, where support can read it and a
+   * seller cannot.
+   */
   unsupportedType: "attributes.unsupported_type",
-  /** Why the submit is off while an undrawable feature is on screen. */
+  /** Why the submit is off while an undrawable feature is on screen. Named by
+   * FEATURE (what a person can see on the page), not by type slug. */
   submitBlockedUnsupportedType: "attributes.submit.blocked.unsupported_type",
+  /** Why the submit is off while the mirror is refusing something. */
+  submitBlockedInvalid: "attributes.submit.blocked.invalid",
   /** A feature whose config declares no type at all. */
   untypedFeature: "attributes.untyped_feature",
   /** Display side: the value is absent. Never rendered as an empty cell. */
   valueNotSet: "attributes.value.not_set",
-  /** Display side: the type has no formatter in this build. */
+  /** Display side: this build has no formatter for the value's type. Same
+   * C-DEVCOPY rule as `unsupportedType`: no slug in the sentence. */
   valueUnreadable: "attributes.value.unreadable",
   boolYes: "attributes.bool.yes",
   boolNo: "attributes.bool.no",
   selectPlaceholder: "attributes.select.placeholder",
-  required: "attributes.required",
+  /** `select.lockUserInput` / `date.lockInput`: the catalogue set this value
+   * and the control is deliberately read-only. A disabled control with no
+   * sentence beside it is the dead rectangle §83 forbids. */
+  lockedByConfig: "attributes.locked",
+  /** `select.minSelected` — the floor antd's `Select` cannot enforce, said
+   * beside the control instead of only after a refused submit. */
+  selectMinSelected: "attributes.select.min_selected",
+  /** Accessible name of the `hex_color` exact-shade picker, which antd renders
+   * as an unlabelable trigger. */
+  colorExact: "attributes.color.exact",
+  /** Accessible name of the `convertible_unit` unit chooser. */
+  unit: "attributes.unit",
 } as const;
 
 export type AttributesI18nKey =
@@ -68,17 +94,20 @@ export const ATTRIBUTES_ERROR_BUNDLE_EN: I18nDictionary = {
 
 export const attributesI18nBundleEn: I18nDictionary = {
   ...ATTRIBUTES_ERROR_BUNDLE_EN,
-  "attributes.unsupported_type":
-    "This build has no editor for the “{type}” attribute type, so it cannot be filled in here.",
+  "attributes.unsupported_type": "This detail cannot be filled in here yet.",
   "attributes.submit.blocked.unsupported_type":
-    "Some attributes cannot be filled in on this page: {types}",
-  "attributes.untyped_feature": "This attribute declares no type and cannot be edited.",
+    "Some details cannot be filled in on this page: {features}",
+  "attributes.submit.blocked.invalid": "Check the highlighted fields before continuing.",
+  "attributes.untyped_feature": "This detail is misconfigured and cannot be filled in.",
   "attributes.value.not_set": "Not specified",
-  "attributes.value.unreadable": "Cannot display a “{type}” value in this build",
+  "attributes.value.unreadable": "This value cannot be shown here",
   "attributes.bool.yes": "Yes",
   "attributes.bool.no": "No",
   "attributes.select.placeholder": "Choose",
-  "attributes.required": "Required",
+  "attributes.locked": "Set by the catalogue — it cannot be changed here.",
+  "attributes.select.min_selected": "Choose at least {count}.",
+  "attributes.color.exact": "Exact shade",
+  "attributes.unit": "Unit",
 };
 
 /** Register the package's `en` floor into a core i18n engine (call once at

@@ -18,13 +18,19 @@
  *
  * ── The other one worth naming ─────────────────────────────────────────────
  *
- * All four stapel-reviews views are `IsAuthenticated`, so a signed-out
- * visitor gets 401 on the review LIST and on the AGGREGATE. Read as a
- * generic failure that becomes "no reviews yet" under any code that defaults
- * an empty array — a well-reviewed seller shown as unreviewed to exactly the
- * people who have not signed up yet. {@link isSignInRequired} exists so the
- * list bag can carry that as its own state and the skin can say the true
- * thing.
+ * The two READS are anonymous since stapel-reviews 0.3.0, so a 401 no longer
+ * arrives from the list or the aggregate. It still arrives from every WRITE —
+ * the review, the moderation verdict, the owner's reply — because each of
+ * those needs an identity to attribute the act to. {@link isSignInRequired}
+ * exists so a write bag can carry that as its own state and the skin can offer
+ * a door instead of a red banner.
+ *
+ * ── The moderation gate is one code for two capabilities ───────────────────
+ *
+ * The seller's reply and the moderator's verdict are gated on the SAME
+ * fail-closed `can_moderate` callback, so both are refused with
+ * `error.403.reviews_cannot_moderate`. {@link isModerationForbidden} is
+ * therefore read by both surfaces, and the sentence each shows is its own.
  */
 import { isErrorCode, toFlowError } from "@stapel/core";
 import type { FlowError } from "@stapel/core";
@@ -36,6 +42,9 @@ export const REVIEWS_ERROR_UNKNOWN_TARGET_TYPE =
   "error.400.reviews_unknown_target_type";
 /** The rating fell outside `[RATING_MIN, RATING_MAX]`. */
 export const REVIEWS_ERROR_INVALID_RATING = "error.400.reviews_invalid_rating";
+/** The moderation verdict was not one of `hide` / `publish`. */
+export const REVIEWS_ERROR_INVALID_MODERATION_ACTION =
+  "error.400.reviews_invalid_moderation_action";
 /** The type's `can_review` callback said no. */
 export const REVIEWS_ERROR_CANNOT_REVIEW = "error.403.reviews_cannot_review";
 /** The type's `can_moderate` callback said no (fail-closed when unset). */
@@ -97,6 +106,66 @@ export function isSignInRequired(error: unknown): boolean {
 /** The host's `can_review` callback refused this author for this target. */
 export function isReviewingForbidden(error: unknown): boolean {
   return isErrorCode(toReviewsError(error), REVIEWS_ERROR_CANNOT_REVIEW);
+}
+
+/**
+ * The type's `can_moderate` callback refused this actor — for a moderation
+ * verdict OR for the owner's reply, which share the gate.
+ *
+ * Worth its own predicate rather than a generic "403": the callback is
+ * **fail-closed** (`registry.check_can_moderate` denies everyone when a target
+ * type names no callback at all), so this arrives just as readily from a
+ * deployment that has not wired moderation up as from a person who is not a
+ * moderator. Either way the honest sentence is "the server does not accept you
+ * as a moderator of this item" — not "you are not signed in" and not "this
+ * failed".
+ */
+export function isModerationForbidden(error: unknown): boolean {
+  return isErrorCode(toReviewsError(error), REVIEWS_ERROR_CANNOT_MODERATE);
+}
+
+/**
+ * The verdict was not one of `hide` / `publish`.
+ *
+ * A client that only ever sends the two cannot provoke this — which is
+ * exactly why it is named: if it ever fires, the module grew a third verdict
+ * this build does not know, and that is worth showing as itself instead of as
+ * a generic 400.
+ */
+export function isInvalidModerationAction(error: unknown): boolean {
+  return isErrorCode(
+    toReviewsError(error),
+    REVIEWS_ERROR_INVALID_MODERATION_ACTION
+  );
+}
+
+/**
+ * Replies are switched off for this target type (`allow_response: false` in
+ * the type's policy). A **400**, not a 403: nobody may reply here, so it is
+ * not a statement about the caller.
+ */
+export function isResponseNotAllowed(error: unknown): boolean {
+  return isErrorCode(toReviewsError(error), REVIEWS_ERROR_RESPONSE_NOT_ALLOWED);
+}
+
+/**
+ * The review already carries the owner's reply — the module's ONLY 409, and
+ * the mirror image of the duplicate trap: here the status reads the way a
+ * naive client expects, while the duplicate REVIEW is a 400. Both are
+ * branched on the code so neither can be mistaken for the other.
+ */
+export function isAlreadyResponded(error: unknown): boolean {
+  return isErrorCode(toReviewsError(error), REVIEWS_ERROR_ALREADY_RESPONDED);
+}
+
+/**
+ * No review with that id — it was deleted (or purged by GDPR erasure) between
+ * the read that put it on screen and the write aimed at it. A moderation queue
+ * is the surface where this actually happens, which is why it is a named
+ * outcome there rather than a red banner.
+ */
+export function isReviewGone(error: unknown): boolean {
+  return isErrorCode(toReviewsError(error), REVIEWS_ERROR_NOT_FOUND);
 }
 
 /**

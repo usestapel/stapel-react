@@ -145,6 +145,76 @@ export function isBlank(value: unknown): boolean {
   return false;
 }
 
+// ── "is an answer required here?" — a per-type hook, not an `if` on a slug ───
+
+/**
+ * A type that carries its OWN "an answer is required" switch, beside
+ * `FeatureDef.mandatory`, and the refusal it produces when the answer is
+ * blank.
+ *
+ * There is exactly one today, and the shape is a TABLE rather than an `if`
+ * because the next one must not need this file re-reasoned about: a type
+ * plugin's config is the type's business, and `mandatory` is the category's.
+ */
+interface RequiredRule {
+  /** Does this config demand an answer even when `mandatory` is false? */
+  required(config: Readonly<Record<string, unknown>>): boolean;
+  /** What the server calls the blank answer, so the mirror says the same. */
+  refusal(config: Readonly<Record<string, unknown>>): Refusal;
+}
+
+const REQUIRED_RULES: Readonly<Record<string, RequiredRule>> = {
+  /**
+   * `HierarchicalSelectConfig.required` defaults to **True**
+   * (`types/hierarchical_select/config.py`), and
+   * `HierarchicalSelectFeatureType.validate_dto` raises `MANDATORY_MISSING`
+   * on an empty path when it is set — which is the RAISE-style pipeline
+   * `stapel_listings.services.publish.publish_listing` runs at publish time
+   * (`validate_dto`, not `validate_dto_structured`).
+   *
+   * Reading only `feature.mandatory`, as this file used to, left the field
+   * unmarked and unmirrored: no asterisk, no client-side refusal, and a
+   * publish the server rejects for an attribute the form never said was
+   * needed. Upstream divergence worth knowing about: the STRUCTURED
+   * pipeline behind `POST /categories/{pk}/validate-dto/` short-circuits an
+   * empty value on `feature.mandatory` alone and answers `ok`, so preflight
+   * and publish disagree server-side. The mirror follows the stricter of the
+   * two — the one that can refuse a submit.
+   */
+  hierarchical_select: {
+    required: (config) => config["required"] !== false,
+    refusal: () => ({ code: "mandatory_missing" }),
+  },
+};
+
+/**
+ * Is an answer to this feature required — by the CATEGORY (`mandatory`) or by
+ * the TYPE's own config?
+ *
+ * The one predicate both halves read: `validateFeatureValue` refuses a blank
+ * answer with it, and `<FeatureFields>` draws the required marker from it, so
+ * the asterisk and the refusal can never disagree. `header` is never required:
+ * it holds no value at all.
+ */
+export function featureAnswerRequired(feature: FeatureDef): boolean {
+  const type = featureType(feature);
+  if (type === "header") return false;
+  if (feature.mandatory === true) return true;
+  const rule = type === undefined ? undefined : REQUIRED_RULES[type];
+  return rule !== undefined && rule.required(featureConfig(feature));
+}
+
+/** The refusal a blank required answer produces — `mandatory_missing` unless
+ * the type's own rule names a different code. */
+function blankRefusal(feature: FeatureDef): Refusal {
+  if (feature.mandatory === true) return { code: "mandatory_missing" };
+  const type = featureType(feature);
+  const rule = type === undefined ? undefined : REQUIRED_RULES[type];
+  return rule === undefined
+    ? { code: "mandatory_missing" }
+    : rule.refusal(featureConfig(feature));
+}
+
 // ── per-type rules ───────────────────────────────────────────────────────────
 
 function validateString(
@@ -403,9 +473,7 @@ export function validateFeatureValue(
   const config = featureConfig(feature);
 
   if (isBlank(dto.value)) {
-    return feature.mandatory === true
-      ? failed(feature, { code: "mandatory_missing" })
-      : ok(feature);
+    return featureAnswerRequired(feature) ? failed(feature, blankRefusal(feature)) : ok(feature);
   }
 
   const refusal = ((): Refusal | undefined => {
@@ -468,7 +536,8 @@ function failed(feature: FeatureDef, refusal: Refusal): FeatureValidationResult 
  * a caller sees: first every SUBMITTED entry whose slug the category allows
  * (an unknown slug is ignored, not refused — the engine's documented
  * behaviour), then every allowed feature that was never submitted, of which
- * only a mandatory non-header one produces a row.
+ * only a REQUIRED non-header one produces a row — required by the category
+ * (`mandatory`) or by the type's own config ({@link featureAnswerRequired}).
  */
 export function mirrorValidate(
   features: readonly FeatureDef[],
@@ -496,8 +565,8 @@ export function mirrorValidate(
   for (const feature of features) {
     if (seen.has(feature.slug)) continue;
     if (featureType(feature) === "header") continue;
-    if (feature.mandatory !== true) continue;
-    results.push(failed(feature, { code: "mandatory_missing" }));
+    if (!featureAnswerRequired(feature)) continue;
+    results.push(failed(feature, blankRefusal(feature)));
   }
 
   return {

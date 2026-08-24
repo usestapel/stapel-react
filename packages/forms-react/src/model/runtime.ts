@@ -24,15 +24,32 @@ import type { FormsApi } from "../api/formsApi.js";
  * pair does not re-implement them. The runtime's fetch/credentials/
  * defaultHeaders are ALSO forwarded to the pair's raw CSV surface
  * (`api/export.ts`), which cannot ride the JSON client.
+ *
+ * ── The workspace scope, and why it lives here ─────────────────────────────
+ *
+ * Every admin route is workspace-scoped, so every admin screen needs a
+ * workspace id — and a ROUTE cannot carry one: a container mounts
+ * `<FormsListPane/>` from a nav manifest with nothing but the URL in hand,
+ * and the workspace a person is acting in is a property of the SESSION, not
+ * of the address. Declaring it once on the runtime is what lets the three
+ * admin screens be routable at all; passing `workspaceId` to a screen still
+ * wins, so a host driving two workspaces on one page keeps working.
  */
-export type FormsRuntime = ModuleRuntime<FormsApi>;
+export type FormsRuntime = ModuleRuntime<FormsApi> & {
+  /** The workspace the admin screens act in when a screen is not given one. */
+  readonly workspaceId?: string;
+};
 
-export type CreateFormsRuntimeOptions = CreateModuleRuntimeOptions;
+export type CreateFormsRuntimeOptions = CreateModuleRuntimeOptions & {
+  /** Default workspace for the admin surface. Omit for the anonymous embed —
+   * `<StapelForm>` and `<FormFill>` never read it. */
+  readonly workspaceId?: string;
+};
 
 export function createFormsRuntime(
   options: CreateFormsRuntimeOptions
 ): FormsRuntime {
-  return createModuleRuntime(
+  const base = createModuleRuntime(
     (client) =>
       createFormsApi(client, {
         ...(options.fetch !== undefined ? { fetch: options.fetch } : {}),
@@ -45,4 +62,10 @@ export function createFormsRuntime(
       }),
     options
   );
+  return {
+    ...base,
+    ...(options.workspaceId !== undefined
+      ? { workspaceId: options.workspaceId }
+      : {}),
+  };
 }

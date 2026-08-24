@@ -1,5 +1,6 @@
 import type { StapelClient, StapelRequestOptions } from "@stapel/core";
 import type {
+  DeviceListItem,
   DeviceTokenRequest,
   DeviceTokenResponse,
   NotificationFeedPage,
@@ -46,6 +47,19 @@ export interface NotificationsApi {
   registerDevice(token: string, platform: Platform): Promise<DeviceTokenResponse>;
   /** Unregister a push token. Resolves on 204; 404 becomes a StapelApiError. */
   unregisterDevice(token: string): Promise<void>;
+  /**
+   * The caller's own push devices, most recently registered first. The read
+   * that lets a toggle tell the truth (stapel-notifications 0.17.0): the raw
+   * token is never echoed, so a client identifies its own row by hashing the
+   * token it holds and matching `token_fingerprint`.
+   */
+  listDevices(): Promise<readonly DeviceListItem[]>;
+  /**
+   * Unregister a device by the id `listDevices` handed out — the only way to
+   * drop a device whose token this client does not (and cannot) hold. Resolves
+   * on 204; someone else's id answers `error.404.device_not_found`.
+   */
+  unregisterDeviceById(deviceId: number): Promise<void>;
   /** A page of the user's notification feed (newest first, anchor-paginated). */
   feed(params?: NotificationFeedParams): Promise<NotificationFeedPage>;
 }
@@ -63,6 +77,11 @@ export function createNotificationsApi(client: StapelClient): NotificationsApi {
 
     unregisterDevice: (token) =>
       client.delete(`/devices/${encodeURIComponent(token)}/`, mutating()),
+
+    listDevices: () => client.get("/devices/"),
+
+    unregisterDeviceById: (deviceId) =>
+      client.delete(`/devices/by-id/${String(deviceId)}/`, mutating()),
 
     feed: (params) => {
       const query: Record<string, string | number> = {};

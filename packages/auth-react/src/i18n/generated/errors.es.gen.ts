@@ -86,6 +86,7 @@ export const authErrorBundleEs: Record<AuthErrorCode, string> = {
   "error.401.unauthorized": "Se requiere autenticación",
   "error.401.user_not_found": "Usuario no encontrado",
   "error.402.payment_required": "Se requiere pago",
+  "error.403.change_requires_current": "Para cambiar un correo o un teléfono verificados hace falta un código enviado al actual. Usa el flujo de cambio.",
   "error.403.forbidden": "No tienes permiso para realizar esta acción",
   "error.403.gdpr.account_closed": "Esta cuenta se está eliminando y ya no se puede utilizar.",
   "error.403.gdpr.erasure_forbidden": "No tienes permiso para solicitar la eliminación de este elemento.",

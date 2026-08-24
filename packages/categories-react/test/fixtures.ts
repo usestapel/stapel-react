@@ -142,6 +142,10 @@ export const FEATURE_BRAND: FeatureDef = {
   id: 11,
   slug: "brand",
   name: "feature.brand",
+  // The catalogue author's note to the person filling the form. A KEY, on the
+  // same terms as `name` — stapel-categories' own translation.py reads it as
+  // `translate(feature.comment) or translate(feature.name)`.
+  comment: "feature.brand.comment",
   mandatory: true,
   show_as_badge: true,
   show_at_title: true,
@@ -169,6 +173,7 @@ export const FEATURE_WARRANTY: FeatureDef = {
   id: 13,
   slug: "warranty",
   name: "Warranty (raw label)",
+  comment: "Tick if the box says so",
   translate: "none",
   config: { type: "bool" },
 };

@@ -8,5 +8,7 @@ export default { title: "cdn-react / Thumbnail tier comes from the element" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
+Default.parameters = { stapel: {"viewport":"desktop"} };
 export const Fluid = (): ReactElement => renderDemoVariant(demo, "fluid");
 Fluid.storyName = "fluid";
+Fluid.parameters = { stapel: {"viewport":"phone"} };

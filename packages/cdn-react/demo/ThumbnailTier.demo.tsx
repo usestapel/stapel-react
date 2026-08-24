@@ -95,17 +95,33 @@ function ThumbnailTierDemo(): ReactElement {
   );
 }
 
-/** One element that fills whatever the viewport gives it — the resize case. */
-function FluidTierDemo(): ReactElement {
+/**
+ * The body of the fluid variant, as its own component.
+ *
+ * `useT()` MUST be called below the `<I18nProvider>` the harness renders, and a
+ * component that renders the harness is its PARENT, not its child — so calling
+ * the hook in `FluidTierDemo` itself ran it one level above the provider it
+ * needs and threw `useI18n must be used within an <I18nProvider>`, which is why
+ * this story photographed as a blank white page. The `default` variant never
+ * had the bug for exactly this reason: its `useT()` lives in `Frame`.
+ */
+function FluidTierBody(): ReactElement {
   const t = useT();
   return (
+    <CdnThumbnail
+      localUrl={null}
+      image={ladderRow()}
+      box={{ width: "100%", height: 240, objectFit: "cover", display: "block" }}
+      alt={t(CDN_I18N_KEYS.itemAlt)}
+    />
+  );
+}
+
+/** One element that fills whatever the viewport gives it — the resize case. */
+function FluidTierDemo(): ReactElement {
+  return (
     <CdnDemoHarness handlers={{}}>
-      <CdnThumbnail
-        localUrl={null}
-        image={ladderRow()}
-        box={{ width: "100%", height: 240, objectFit: "cover", display: "block" }}
-        alt={t(CDN_I18N_KEYS.itemAlt)}
-      />
+      <FluidTierBody />
     </CdnDemoHarness>
   );
 }
@@ -120,9 +136,13 @@ export default defineDemo({
   variants: {
     default: {
       description: "Three fixed boxes, three different requests.",
+      viewport: "desktop",
+      step: "measured",
       render: () => <ThumbnailTierDemo />,
     },
     fluid: {
+      viewport: "phone",
+      step: "measured",
       description:
         "One full-width element: resize the viewer and it upgrades, never downgrades once a tier is painted.",
       render: () => <FluidTierDemo />,

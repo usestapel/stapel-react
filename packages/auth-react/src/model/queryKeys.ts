@@ -20,6 +20,16 @@ export const authQueryKeys: {
   delayedChange(channel: string): readonly ["auth", "change", "delayed", string];
   totpDelayedChange(): readonly ["auth", "totp", "change", "delayed"];
   ssoLookup(domain: string): readonly ["auth", "sso", "lookup", string];
+  verificationPreferences(): readonly ["auth", "verification", "preferences"];
+  ssoOrgs(): readonly ["auth", "admin", "sso", "orgs"];
+  ssoOrg(slug: string): readonly ["auth", "admin", "sso", "orgs", string];
+  ssoOrgConfig(slug: string): readonly ["auth", "admin", "sso", "orgs", string, "config"];
+  serviceKeys(): readonly ["auth", "admin", "service-keys"];
+  staffRoles(userId: string): readonly ["auth", "admin", "staff-roles", string];
+  /** Every staff-roles read, whatever it is filtered by — the invalidation
+   *  target after an assign/remove, which changes rows in all of them. */
+  staffRolesAll(): readonly ["auth", "admin", "staff-roles"];
+  adminAudit(query: string): readonly ["auth", "admin", "audit", string];
 } = {
   all: [ROOT],
   capabilities: () => [ROOT, "capabilities"],
@@ -33,4 +43,15 @@ export const authQueryKeys: {
   delayedChange: (channel) => [ROOT, "change", "delayed", channel],
   totpDelayedChange: () => [ROOT, "totp", "change", "delayed"],
   ssoLookup: (domain) => [ROOT, "sso", "lookup", domain],
+  verificationPreferences: () => [ROOT, "verification", "preferences"],
+  // The operator console sits under one `admin` segment so a host can drop the
+  // whole staff surface from the cache in a single `removeQueries` when a
+  // person's staff role goes away mid-session.
+  ssoOrgs: () => [ROOT, "admin", "sso", "orgs"],
+  ssoOrg: (slug) => [ROOT, "admin", "sso", "orgs", slug],
+  ssoOrgConfig: (slug) => [ROOT, "admin", "sso", "orgs", slug, "config"],
+  serviceKeys: () => [ROOT, "admin", "service-keys"],
+  staffRoles: (userId) => [ROOT, "admin", "staff-roles", userId],
+  staffRolesAll: () => [ROOT, "admin", "staff-roles"],
+  adminAudit: (query) => [ROOT, "admin", "audit", query],
 };

@@ -1,13 +1,54 @@
 # @stapel/video-react
 
-Headless React pair for **stapel-video**'s scope usage read (frontend-standard
-§2): who, inside one partition, talked how much, per calendar month. Business +
-state only in the main entry, zero visual opinion — an opt-in `/default` subpath
-ships the antd skin. Built on `@stapel/core` (typed client + `StapelApiError`
-envelope, token refresh, verification-403 interception, i18n engine, analytics
-seam, TanStack Query).
+The React pair for **stapel-video** (frontend-standard §2): the **meeting
+client** — open a room, join by code, wait in the lobby, admit or turn people
+away, see who is in the call — and the workspace-admin **call-time report**.
+Business + state only in the main entry, zero visual opinion; an opt-in
+`/default` subpath ships the antd skin and the two screens the navigation
+manifest mounts (`video.rooms`, `admin.usage`). Built on `@stapel/core` (typed
+client + `StapelApiError` envelope, token refresh, verification-403
+interception, i18n engine, analytics seam, TanStack Query).
 
 See `MODULE.md` for the layer map, extension seams, and persist policy.
+
+## Backend floors — read this before wiring the lobby
+
+| Thing | Floor | Why |
+|---|---|---|
+| `stapel-video` | **0.8.0** (`manifest.json` contract `>=0.8 <0.9`) | the rooms/lobby/participants surface this pair now calls |
+| `stapel-core` **on the backend** | **>= 0.44.2** | the WebSocket **cookie** branch in `stapel_core.django.jwt.channels` and its origin gate |
+| `@stapel/realtime` | >= 0.1.0 (optional peer) | the lobby socket; without it the lobby still works and says it is not live |
+| `livekit-client` | >= 2 (optional peer) | the media session only; its absence is a designed screen |
+
+**The core floor is the one that bites.** `stapel-video` mounts its lobby socket
+under `JWTAuthMiddlewareStack` and floors `stapel-core>=0.35.0`, so a deployment
+can satisfy video's own floor with a core whose extractor cannot read a cookie —
+and a browser cannot set a header on `new WebSocket()`. The socket would then
+close **4401** on every real browser while the session is perfectly valid, which
+is exactly the incident §83.1 records for chat. Run **stapel-core >= 0.44.2** on
+the backend, set `STAPEL_WS_ALLOWED_ORIGINS` (it fails closed — an empty list
+refuses every handshake with 4403, surfaced here as `refusal: "origin"`), and
+`JWT_COOKIE_SAMESITE=None` + `Secure` when the socket host is cross-site from
+the page.
+
+## What is here, and where the line is drawn
+
+Seven of stapel-video's eight HTTP operations are wired (the eighth is the
+provider webhook, which a browser has no business calling). The **media
+session** is not: `<CallStage>` loads `livekit-client` with `import()` at the
+moment a token exists, renders a named refusal when the package is not there,
+and a host can replace the whole surface through `<MeetingPane renderCallStage>`.
+
+What this pair owns is the half a vendor SDK cannot produce:
+`JoinResponse.token` is minted by stapel-video's provider out of the join grant,
+and the lobby is a stapel concept the SDK has never heard of.
+
+The lobby's socket is **not opened here**. `@stapel/realtime` is the fleet's one
+reconnect/resume runtime and the one place a 4401 or 4403 close code is given a
+meaning; this pair contributes the stream key, the three frame types
+(`lobby.waiting` / `lobby.admitted` / `lobby.denied`) and what each one means.
+With no `<RealtimeProvider>` mounted or no `wsOrigin` configured the lobby
+renders an **offline** state with a visible "Check again" — never a hidden poll.
 
 ## The two facts that shape everything here
 

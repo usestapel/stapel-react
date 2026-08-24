@@ -1,6 +1,6 @@
 # @stapel/cdn-react 0.3.0
 
-Headless React flow pair for stapel-cdn (contract >=0.12 <0.13) — business + state, zero visual opinion.
+Headless React flow pair for stapel-cdn (contract >=0.17 <0.18) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -23,6 +23,7 @@ Request/response schema names are in manifest.json + the generated types.
 Paths are relative to `/cdn/api/v1/`.
 - check_file_exists_get: GET /file/exists/
 - check_file_exists_post: POST /file/exists/
+- describe_media: POST /describe/
 - random_image: GET /images/{image_type}/random/
 - sync_refs: POST /refs/sync/
 - upload_avatar: POST /upload/avatar/
@@ -35,7 +36,7 @@ Paths are relative to `/cdn/api/v1/`.
 - useCdnRef (query) → fileExists
 
 ## Errors (render t(code, params); UX from remediation)
-53 keys (full catalog: manifest.json §errors). By remediation: fix_input 24 · retry 15 · verify 5 · wait_and_retry 5 · contact_support 3 · reauthenticate 1.
+54 keys (full catalog: manifest.json §errors). By remediation: fix_input 25 · retry 15 · verify 5 · wait_and_retry 5 · contact_support 3 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -48,6 +49,7 @@ Param-bearing keys (interpolation slots matter):
 - error.400.field.null [400] → fix_input {field}
 - error.400.field.required [400] → fix_input {field}
 - error.400.field.unique [400] → fix_input {field}
+- error.400.too_many_refs [400] → fix_input {count,max}
 - error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
 - error.503.image_decoder_unavailable [503] → contact_support {extension}
 

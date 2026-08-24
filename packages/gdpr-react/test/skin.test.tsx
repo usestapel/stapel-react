@@ -59,6 +59,16 @@ function setViewportWidth(width: number): void {
   Object.defineProperty(window, "innerWidth", { value: width, configurable: true });
 }
 
+/**
+ * The reason text the substrate's `GatedControl` renders beside a blocked
+ * control. Selected by the substrate's own attribute rather than by a test id
+ * of ours: the contract is "a blocked control shows its reason, wired to
+ * aria-describedby", and that attribute is where the contract lives.
+ */
+function gateReason(): HTMLElement | null {
+  return document.querySelector<HTMLElement>("[data-stapel-gated-reason]");
+}
+
 const JSDOM_DEFAULT_WIDTH = 1024;
 afterEach(() => {
   setViewportWidth(JSDOM_DEFAULT_WIDTH);
@@ -446,13 +456,23 @@ describe("<DataExportPanel> — the cooldown is a rule, not an error", () => {
     });
     mount(server, <DataExportPanel />);
     fireEvent.click(await screen.findByTestId("gdpr-export-request"));
+    // The rule is not an error report: it is the REASON the button is off,
+    // and it is rendered where the button is — by the substrate's gate, whose
+    // reason node the control points `aria-describedby` at.
     await waitFor(() =>
-      expect(screen.getByTestId("gdpr-export-cooldown")).toBeTruthy()
+      expect(
+        screen.getByTestId("gdpr-export-request").closest("button")?.disabled
+      ).toBe(true)
     );
-    expect(screen.queryByTestId("gdpr-export-request-failed")).toBeNull();
+    const reason = gateReason();
+    expect(reason?.textContent).toContain("once every 30 days");
     expect(
-      screen.getByTestId("gdpr-export-request").closest("button")?.disabled
-    ).toBe(true);
+      screen
+        .getByTestId("gdpr-export-request")
+        .closest("button")
+        ?.getAttribute("aria-describedby")
+    ).toBe(reason?.getAttribute("id"));
+    expect(screen.queryByTestId("gdpr-export-request-failed")).toBeNull();
   });
 
   it("an accepted request says the archive is being built", async () => {
@@ -484,9 +504,9 @@ describe("<DataExportPanel> — one archive at a time, refused BEFORE the reques
     // …and the reason is READABLE, as text beside the control. A disabled
     // button receives no pointer events, so a tooltip here would be a reason
     // nobody can reach — least of all on the phone this rule exists for.
-    const reason = screen.getByTestId("gdpr-export-request-blocked");
-    expect(reason.textContent).toContain("already building");
-    expect(reason.getAttribute("title")).toBeNull();
+    const reason = gateReason();
+    expect(reason?.textContent).toContain("already building");
+    expect(button.closest("button")?.getAttribute("title")).toBeNull();
 
     fireEvent.click(button);
     expect(server.calls.some((call) => call.method === "POST")).toBe(false);
@@ -499,7 +519,12 @@ describe("<DataExportPanel> — one archive at a time, refused BEFORE the reques
     expect(
       screen.getByTestId("gdpr-export-request").closest("button")?.disabled
     ).toBe(false);
-    expect(screen.queryByTestId("gdpr-export-request-blocked")).toBeNull();
+    expect(gateReason()).toBeNull();
+    expect(
+      screen
+        .getByTestId("gdpr-export-request-gate")
+        .getAttribute("data-stapel-gated")
+    ).toBe("available");
   });
 });
 

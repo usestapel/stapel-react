@@ -28,17 +28,20 @@ export const attributesI18nBundleRu: I18nDictionary = {
   "error.400.description_too_short": "Описание должно содержать не менее {min_length} символов",
   "error.400.description_too_long": "Описание должно содержать не более {max_length} символов",
 
-  "attributes.unsupported_type":
-    "В этой сборке нет редактора для типа характеристики «{type}», заполнить её здесь нельзя.",
+  "attributes.unsupported_type": "Эту характеристику здесь пока нельзя заполнить.",
   "attributes.submit.blocked.unsupported_type":
-    "Часть характеристик нельзя заполнить на этой странице: {types}",
-  "attributes.untyped_feature": "У характеристики не указан тип, редактировать её нельзя.",
+    "Часть характеристик нельзя заполнить на этой странице: {features}",
+  "attributes.submit.blocked.invalid": "Проверьте отмеченные поля, прежде чем продолжить.",
+  "attributes.untyped_feature": "Характеристика настроена неверно, заполнить её нельзя.",
   "attributes.value.not_set": "Не указано",
-  "attributes.value.unreadable": "Значение типа «{type}» в этой сборке не отображается",
+  "attributes.value.unreadable": "Это значение здесь не отображается",
   "attributes.bool.yes": "Да",
   "attributes.bool.no": "Нет",
   "attributes.select.placeholder": "Выберите",
-  "attributes.required": "Обязательно",
+  "attributes.locked": "Значение задано каталогом — изменить его здесь нельзя.",
+  "attributes.select.min_selected": "Выберите не менее {count}.",
+  "attributes.color.exact": "Точный оттенок",
+  "attributes.unit": "Единица измерения",
 };
 
 /** Register the `ru` bundle. Call AFTER `registerAttributesI18n` so it

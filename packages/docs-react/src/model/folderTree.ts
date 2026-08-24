@@ -20,10 +20,11 @@ export function buildFolderTree(
 
   const childrenOf = new Map<string | null, DocFolder[]>();
   for (const folder of folders) {
+    // `parent_id` is optional on the wire as well as nullable; both spellings
+    // mean "at the workspace root".
+    const parentId = folder.parent_id ?? null;
     const parentKey =
-      folder.parent_id !== null && byId.has(folder.parent_id)
-        ? folder.parent_id
-        : null;
+      parentId !== null && byId.has(parentId) ? parentId : null;
     const siblings = childrenOf.get(parentKey);
     if (siblings) siblings.push(folder);
     else childrenOf.set(parentKey, [folder]);
@@ -61,7 +62,7 @@ export function folderTrail(
     const folder = byId.get(cursor);
     if (!folder) break;
     trail.unshift(folder);
-    cursor = folder.parent_id;
+    cursor = folder.parent_id ?? null;
   }
   return trail;
 }

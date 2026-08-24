@@ -5,11 +5,24 @@ import type {
 } from "@tanstack/react-query";
 import type { StapelApiError } from "@stapel/core";
 import type {
+  AdminUserCreateRequest,
+  AdminUserCreateResponse,
   DelayedChangeInitiatedResponse,
   LinkedOAuthAccount,
   OtpChannel,
+  Passkey,
+  ServiceKey,
+  ServiceKeyPatch,
+  ServiceKeyWrite,
+  SsoOrg,
+  SsoOrgConfig,
+  SsoOrgPatch,
+  SsoOrgWrite,
+  StaffRoleAssignRequest,
+  StaffRoleAssignment,
   StatusResponse,
   TotpDisableRequest,
+  VerificationPreferenceRow,
 } from "../api/types.js";
 import { useAuthApi, useAuthSession } from "./context.js";
 import { authQueryKeys } from "./queryKeys.js";
@@ -305,6 +318,271 @@ export function useRejectQrLogin(): UseMutationResult<
   const api = useAuthApi();
   const options: UseMutationOptions<StatusResponse, StapelApiError, string> = {
     mutationFn: (key) => api.qrReject(key),
+  };
+  return useMutation(options);
+}
+
+// ── Step-up verification preferences (auth-sa.md §11) ────────────────────────
+
+/**
+ * Turn step-up verification on or off for one scope.
+ *
+ * ASYMMETRIC BY DESIGN, and the asymmetry is the point: enabling protection
+ * applies immediately, while DISABLING it is itself a protected action — the
+ * backend answers the 403 verification envelope, which the caller hands to
+ * `VerificationChallenge` and retries. So a stolen session cannot quietly
+ * switch a person's protections off; it has to pass a factor first.
+ */
+export function useSetVerificationPreference(): UseMutationResult<
+  VerificationPreferenceRow,
+  StapelApiError,
+  { readonly scope: string; readonly enabled: boolean }
+> {
+  const api = useAuthApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    VerificationPreferenceRow,
+    StapelApiError,
+    { readonly scope: string; readonly enabled: boolean }
+  > = {
+    mutationFn: ({ scope, enabled }) =>
+      api.setVerificationPreference(scope, enabled),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: authQueryKeys.verificationPreferences(),
+      });
+    },
+  };
+  return useMutation(options);
+}
+
+// ── Operator console (staff only) ────────────────────────────────────────────
+
+/** Create an enterprise-SSO organization. */
+export function useCreateSsoOrg(): UseMutationResult<
+  SsoOrg,
+  StapelApiError,
+  SsoOrgWrite
+> {
+  const api = useAuthApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<SsoOrg, StapelApiError, SsoOrgWrite> = {
+    mutationFn: (body) => api.createSsoOrg(body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: authQueryKeys.ssoOrgs() });
+    },
+  };
+  return useMutation(options);
+}
+
+/** Edit an organization's name / domain / SSO enforcement. */
+export function useUpdateSsoOrg(): UseMutationResult<
+  SsoOrg,
+  StapelApiError,
+  { readonly slug: string; readonly body: SsoOrgPatch }
+> {
+  const api = useAuthApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    SsoOrg,
+    StapelApiError,
+    { readonly slug: string; readonly body: SsoOrgPatch }
+  > = {
+    mutationFn: ({ slug, body }) => api.updateSsoOrg(slug, body),
+    onSuccess: (_data, { slug }) => {
+      void queryClient.invalidateQueries({ queryKey: authQueryKeys.ssoOrgs() });
+      void queryClient.invalidateQueries({ queryKey: authQueryKeys.ssoOrg(slug) });
+    },
+  };
+  return useMutation(options);
+}
+
+/**
+ * Delete an organization. Every account on its domain loses its SSO route, so
+ * the skin confirms in a danger dialog before this runs.
+ */
+export function useDeleteSsoOrg(): UseMutationResult<void, StapelApiError, string> {
+  const api = useAuthApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<void, StapelApiError, string> = {
+    mutationFn: (slug) => api.deleteSsoOrg(slug),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: authQueryKeys.ssoOrgs() });
+    },
+  };
+  return useMutation(options);
+}
+
+/**
+ * Write an organization's IdP connection. `PUT` when the org has no config
+ * yet (the whole object is being stated for the first time), `PATCH` when it
+ * has one — the caller passes `replace` to say which, because "create or
+ * update" is a fact about the org, not a guess this hook may make.
+ */
+export function useSaveSsoOrgConfig(): UseMutationResult<
+  SsoOrgConfig,
+  StapelApiError,
+  { readonly slug: string; readonly body: SsoOrgConfig; readonly replace: boolean }
+> {
+  const api = useAuthApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    SsoOrgConfig,
+    StapelApiError,
+    { readonly slug: string; readonly body: SsoOrgConfig; readonly replace: boolean }
+  > = {
+    mutationFn: ({ slug, body, replace }) =>
+      replace ? api.putSsoOrgConfig(slug, body) : api.patchSsoOrgConfig(slug, body),
+    onSuccess: (_data, { slug }) => {
+      void queryClient.invalidateQueries({
+        queryKey: authQueryKeys.ssoOrgConfig(slug),
+      });
+      void queryClient.invalidateQueries({ queryKey: authQueryKeys.ssoOrgs() });
+    },
+  };
+  return useMutation(options);
+}
+
+/** Issue a machine credential. The response is the one place the secret exists. */
+export function useCreateServiceKey(): UseMutationResult<
+  ServiceKey,
+  StapelApiError,
+  ServiceKeyWrite
+> {
+  const api = useAuthApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<ServiceKey, StapelApiError, ServiceKeyWrite> = {
+    mutationFn: (body) => api.createServiceKey(body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: authQueryKeys.serviceKeys() });
+    },
+  };
+  return useMutation(options);
+}
+
+/** Rename a key, change what it may reach, or switch it off. */
+export function useUpdateServiceKey(): UseMutationResult<
+  ServiceKey,
+  StapelApiError,
+  { readonly id: number; readonly body: ServiceKeyPatch }
+> {
+  const api = useAuthApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    ServiceKey,
+    StapelApiError,
+    { readonly id: number; readonly body: ServiceKeyPatch }
+  > = {
+    mutationFn: ({ id, body }) => api.updateServiceKey(id, body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: authQueryKeys.serviceKeys() });
+    },
+  };
+  return useMutation(options);
+}
+
+/** Delete a machine credential outright — every caller holding it stops working. */
+export function useDeleteServiceKey(): UseMutationResult<
+  void,
+  StapelApiError,
+  number
+> {
+  const api = useAuthApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<void, StapelApiError, number> = {
+    mutationFn: (id) => api.deleteServiceKey(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: authQueryKeys.serviceKeys() });
+    },
+  };
+  return useMutation(options);
+}
+
+/** Give a person a staff role. */
+export function useAssignStaffRole(): UseMutationResult<
+  StaffRoleAssignment,
+  StapelApiError,
+  StaffRoleAssignRequest
+> {
+  const api = useAuthApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    StaffRoleAssignment,
+    StapelApiError,
+    StaffRoleAssignRequest
+  > = {
+    mutationFn: (body) => api.assignStaffRole(body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: authQueryKeys.staffRolesAll(),
+      });
+    },
+  };
+  return useMutation(options);
+}
+
+/** Take a staff role away. */
+export function useRemoveStaffRole(): UseMutationResult<
+  void,
+  StapelApiError,
+  string
+> {
+  const api = useAuthApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<void, StapelApiError, string> = {
+    mutationFn: (assignmentId) => api.removeStaffRole(assignmentId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: authQueryKeys.staffRolesAll(),
+      });
+    },
+  };
+  return useMutation(options);
+}
+
+/**
+ * Provision an account without the normal registration flow. Nothing to
+ * invalidate: this pair has no user LIST to refresh — the created summary the
+ * screen shows is the whole result.
+ */
+export function useCreateAdminUser(): UseMutationResult<
+  AdminUserCreateResponse,
+  StapelApiError,
+  AdminUserCreateRequest
+> {
+  const api = useAuthApi();
+  const options: UseMutationOptions<
+    AdminUserCreateResponse,
+    StapelApiError,
+    AdminUserCreateRequest
+  > = {
+    mutationFn: (body) => api.createAdminUser(body),
+  };
+  return useMutation(options);
+}
+
+/**
+ * Rename a stored passkey. Gated at the CALL SITE by
+ * `PASSKEY_RENAME_SUPPORTED` (src/api/authApi.ts): against a backend without
+ * `PATCH /passkey/{id}/` this hook exists but the skin never offers the
+ * control, so a person is never shown a rename that answers 405.
+ */
+export function useRenamePasskey(): UseMutationResult<
+  Passkey,
+  StapelApiError,
+  { readonly id: string; readonly deviceName: string }
+> {
+  const api = useAuthApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    Passkey,
+    StapelApiError,
+    { readonly id: string; readonly deviceName: string }
+  > = {
+    mutationFn: ({ id, deviceName }) => api.passkeyRename(id, deviceName),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: authQueryKeys.passkeys() });
+    },
   };
   return useMutation(options);
 }

@@ -7,43 +7,60 @@
  * peephole that the actual form authors cannot open.
  *
  * The §8 scope discipline is visible in the code: there is no per-kind form
- * anywhere here. A field's options come from `widgets/configForms.ts` and are
- * drawn by `<ConfigField>`, chosen by config-widget kind. "Rich per-kind
- * config editors and drag-reorder polish are explicitly allowed to be ugly in
- * v1" — so reordering is two buttons, not a drag surface.
+ * anywhere here. A field's options come from `GET /field-kinds` and are drawn
+ * by `<ConfigField>`, chosen by config-widget kind. "Rich per-kind config
+ * editors and drag-reorder polish are explicitly allowed to be ugly in v1" —
+ * so reordering is two buttons, not a drag surface.
+ *
+ * What the builder does NOT own: who gets told about a response. That is
+ * `<FormSettingsPane>`, opened from the toolbar as a dialog (a bottom sheet on
+ * a phone) — a form's schema and a form's recipients are edited on different
+ * days by different people, and mixing them makes both harder to find.
  */
+import { useMemo, useState } from "react";
 import type { ReactElement } from "react";
 import {
   Alert,
   Button,
   Card,
   Collapse,
-  Empty,
   Flex,
   Form,
   Input,
   Select,
   Space,
-  Spin,
   Switch,
   Tag,
   Typography,
 } from "antd";
 import {
-  matchList,
-  matchLoad,
-  toFlowError,
-  useActionGate,
-  useDescribeFlowError,
+  EmptyState,
+  ErrorAlert,
+  GatedButton,
+  LoadBoundary,
+  LoadList,
+  SkinDialog,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
+import {
+  actionAvailable,
+  actionBlocked,
   useT,
 } from "@stapel/core";
+import type { ActionAvailability } from "@stapel/core";
+import { spacing } from "@stapel/tokens";
 import type { ConfigFieldSpec, FormRow, FormState } from "../api/types.js";
 import { FormBuilder } from "../headless/FormBuilder.js";
 import type { BuilderField, FormBuilderBag } from "../headless/FormBuilder.js";
 import { ConfigField } from "./ConfigField.js";
-import { FormsSkinTheme } from "./theme.js";
-import { ErrorAlert } from "./ErrorAlert.js";
+import { FormSettingsPane } from "./FormSettingsPane.js";
+import {
+  FORM_STATE_SELECT_WIDTH,
+  SETTINGS_DIALOG_WIDTH,
+} from "./geometry.js";
 import { resolveFormsSkinComponent } from "./slots.js";
+import { MissingWorkspaceNotice, useFormsWorkspaceId } from "./workspace.js";
+import { skinThemeProps } from "./types.js";
 import type { ThemeModeProp } from "./types.js";
 import { FORMS_I18N_KEYS } from "../i18n/keys.js";
 
@@ -51,6 +68,8 @@ import { FORMS_I18N_KEYS } from "../i18n/keys.js";
 export interface BuilderToolbarSlotProps {
   readonly bag: FormBuilderBag;
   readonly row: FormRow;
+  /** Open the form-settings dialog. */
+  onOpenSettings(): void;
 }
 
 /** Props of the `"builder.fieldRow"` slot. */
@@ -66,10 +85,27 @@ function FieldEditor(props: BuilderFieldRowSlotProps): ReactElement {
   const Slot = resolveFormsSkinComponent<BuilderFieldRowSlotProps>(
     "builder.fieldRow"
   );
-  if (Slot) return <Slot {...props} />;
-
   const { entry, index, total, bag } = props;
   const { field } = entry;
+  // A reorder button that cannot move is not "greyed out for unknown
+  // reasons": the two ends of a list are the whole reason, and the gate is
+  // what carries that sentence to the person and to a screen reader.
+  const moveUp: ActionAvailability = useMemo(
+    () =>
+      index === 0
+        ? actionBlocked(FORMS_I18N_KEYS.builderReorderBlockedFirst)
+        : actionAvailable(),
+    [index]
+  );
+  const moveDown: ActionAvailability = useMemo(
+    () =>
+      index === total - 1
+        ? actionBlocked(FORMS_I18N_KEYS.builderReorderBlockedLast)
+        : actionAvailable(),
+    [index, total]
+  );
+  if (Slot) return <Slot {...props} />;
+
   const config = field.config ?? {};
 
   return (
@@ -77,36 +113,41 @@ function FieldEditor(props: BuilderFieldRowSlotProps): ReactElement {
       size="small"
       data-testid={`forms-builder-field-${field.slug}`}
       title={
-        <Flex align="center" gap={8}>
+        <Flex align="center" gap={spacing[2]} wrap>
           <Tag>{field.kind}</Tag>
           <Typography.Text strong>{field.name || field.slug}</Typography.Text>
         </Flex>
       }
       extra={
-        <Space>
-          <Button
+        <Space wrap>
+          <GatedButton
+            gate={moveUp}
+            layout="inline"
             size="small"
-            disabled={index === 0}
             data-analytics="none"
             data-analytics-reason="local draft reorder; the save mutation is the tracked step"
+            testId={`forms-builder-up-${field.slug}`}
             onClick={() => bag.moveField(field.slug, index - 1)}
           >
             {t(FORMS_I18N_KEYS.builderMoveUp)}
-          </Button>
-          <Button
+          </GatedButton>
+          <GatedButton
+            gate={moveDown}
+            layout="inline"
             size="small"
-            disabled={index === total - 1}
             data-analytics="none"
             data-analytics-reason="local draft reorder; the save mutation is the tracked step"
+            testId={`forms-builder-down-${field.slug}`}
             onClick={() => bag.moveField(field.slug, index + 1)}
           >
             {t(FORMS_I18N_KEYS.builderMoveDown)}
-          </Button>
+          </GatedButton>
           <Button
             size="small"
             danger
             data-analytics="none"
             data-analytics-reason="local draft edit; the save mutation is the tracked step"
+            data-testid={`forms-builder-remove-${field.slug}`}
             onClick={() => bag.removeField(field.slug)}
           >
             {t(FORMS_I18N_KEYS.builderRemoveField)}
@@ -193,8 +234,6 @@ function FieldEditor(props: BuilderFieldRowSlotProps): ReactElement {
 
 function Toolbar(props: BuilderToolbarSlotProps): ReactElement {
   const t = useT();
-  const saveGate = useActionGate(props.bag.save);
-  const publishGate = useActionGate(props.bag.publish);
   const Slot = resolveFormsSkinComponent<BuilderToolbarSlotProps>(
     "builder.toolbar"
   );
@@ -208,30 +247,31 @@ function Toolbar(props: BuilderToolbarSlotProps): ReactElement {
   };
 
   return (
-    <Flex vertical gap={8}>
-      <Flex gap={8} wrap align="center">
-        <Button
+    <Flex vertical gap={spacing[2]}>
+      <Flex gap={spacing[2]} wrap align="flex-start">
+        <GatedButton
+          gate={bag.save}
           type="default"
           loading={bag.isSaving}
-          disabled={saveGate.disabled}
           data-analytics="flow"
-          data-testid="forms-builder-save"
+          testId="forms-builder-save"
           onClick={bag.doSave}
         >
           {t(FORMS_I18N_KEYS.builderSave)}
-        </Button>
-        <Button
+        </GatedButton>
+        <GatedButton
+          gate={bag.publish}
           type="primary"
           loading={bag.isPublishing}
-          disabled={publishGate.disabled}
           data-analytics="flow"
-          data-testid="forms-builder-publish"
+          testId="forms-builder-publish"
           onClick={bag.doPublish}
         >
           {t(FORMS_I18N_KEYS.builderPublish)}
-        </Button>
+        </GatedButton>
         <Select<FormState>
-          style={{ width: 140 }}
+          aria-label={t(FORMS_I18N_KEYS.listStateFilter)}
+          style={{ width: FORM_STATE_SELECT_WIDTH }}
           value={row.state as FormState}
           onChange={(next) => bag.setState(next)}
           options={(["draft", "open", "closed"] as const).map((s) => ({
@@ -246,17 +286,15 @@ function Toolbar(props: BuilderToolbarSlotProps): ReactElement {
         >
           {t(FORMS_I18N_KEYS.builderRotateLink)}
         </Button>
+        <Button
+          data-analytics="none"
+          data-analytics-reason="opens the settings dialog; the PATCH inside it is the tracked step"
+          data-testid="forms-builder-settings"
+          onClick={props.onOpenSettings}
+        >
+          {t(FORMS_I18N_KEYS.settingsOpen)}
+        </Button>
       </Flex>
-      {/* Reasons as text beside the controls, never as tooltips on disabled
-          buttons — those receive no pointer events. */}
-      {saveGate.reason !== undefined && (
-        <Typography.Text type="secondary">{saveGate.reason}</Typography.Text>
-      )}
-      {publishGate.reason !== undefined && (
-        <Typography.Text type="secondary" data-testid="forms-publish-blocked">
-          {publishGate.reason}
-        </Typography.Text>
-      )}
       <Typography.Text type="secondary" copyable={{ text: row.public_id }}>
         {t(FORMS_I18N_KEYS.builderPublicLink)}: {row.public_id}
       </Typography.Text>
@@ -265,56 +303,58 @@ function Toolbar(props: BuilderToolbarSlotProps): ReactElement {
 }
 
 export interface FormBuilderPaneProps extends ThemeModeProp {
-  readonly workspaceId: string;
+  /** Omit to use the runtime's `workspaceId` (the routable case). */
+  readonly workspaceId?: string;
   readonly formId: string;
 }
 
 export function FormBuilderPane(props: FormBuilderPaneProps): ReactElement {
   const t = useT();
-  const describe = useDescribeFlowError();
+  const workspaceId = useFormsWorkspaceId(props.workspaceId);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  if (workspaceId === null) {
+    return (
+      <SkinTheme {...skinThemeProps(props)}>
+        <MissingWorkspaceNotice testId="forms-builder-no-workspace" />
+      </SkinTheme>
+    );
+  }
 
   return (
-    <FormsSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
-      <FormBuilder workspaceId={props.workspaceId} formId={props.formId}>
-        {(bag) =>
-          matchLoad(bag.state, {
-            loading: () => (
-              <Flex justify="center" style={{ padding: 24 }}>
-                <Spin data-testid="forms-builder-loading" />
-              </Flex>
-            ),
+    <SkinTheme {...skinThemeProps(props)}>
+      <FormBuilder workspaceId={workspaceId} formId={props.formId}>
+        {(bag) => (
+          <LoadBoundary
+            state={bag.state}
+            onRetry={bag.refetch}
+            testId="forms-builder"
             // Never "this form does not exist" — a failed read is a failed
             // read, and it offers a retry.
-            failed: (error) => (
+            failed={(thrown) => (
               <ErrorAlert
                 testId="forms-builder-failed"
-                error={describe(toFlowError(error))}
-                action={
-                  <Button
-                    size="small"
-                    onClick={bag.refetch}
-                    data-analytics="none"
-                    data-analytics-reason="retry of a failed read; no flow to step"
-                  >
-                    {t(FORMS_I18N_KEYS.fillRetry)}
-                  </Button>
-                }
+                thrown={thrown}
+                onRetry={bag.refetch}
               />
-            ),
-            ready: (row) => (
-              <Flex vertical gap={16}>
-                <Typography.Title level={4}>
+            )}
+          >
+            {(row) => (
+              <Flex vertical gap={spacing[4]}>
+                <Typography.Title level={4} style={{ margin: 0 }}>
                   {t(FORMS_I18N_KEYS.builderTitle)}
                 </Typography.Title>
 
-                <Toolbar bag={bag} row={row} />
+                <Toolbar
+                  bag={bag}
+                  row={row}
+                  onOpenSettings={() => setSettingsOpen(true)}
+                />
 
-                {bag.error !== null && (
-                  <ErrorAlert
-                    testId="forms-builder-error"
-                    error={describe(toFlowError(bag.error))}
-                  />
-                )}
+                <ErrorAlert
+                  testId="forms-builder-error"
+                  {...(bag.error !== null ? { thrown: bag.error } : {})}
+                />
 
                 <Form layout="vertical">
                   <Form.Item label={t(FORMS_I18N_KEYS.builderMetaTitle)}>
@@ -353,9 +393,12 @@ export function FormBuilderPane(props: FormBuilderPaneProps): ReactElement {
                 </Form>
 
                 {bag.fields.length === 0 ? (
-                  <Empty description={t(FORMS_I18N_KEYS.builderEmpty)} />
+                  <EmptyState
+                    testId="forms-builder-empty"
+                    title={t(FORMS_I18N_KEYS.builderEmpty)}
+                  />
                 ) : (
-                  <Flex vertical gap={12}>
+                  <Flex vertical gap={spacing[3]}>
                     {bag.fields.map((entry, index) => (
                       <FieldEditor
                         key={entry.field.slug}
@@ -371,24 +414,26 @@ export function FormBuilderPane(props: FormBuilderPaneProps): ReactElement {
                 {/* The catalogue is a LoadState of its own: a builder whose
                     dictionary failed to load must say so, not render zero
                     buttons and imply this deployment has no field kinds. */}
-                {matchList(bag.availableKinds, {
-                  loading: () => <Spin size="small" data-testid="forms-kinds-loading" />,
-                  failed: (error) => (
+                <LoadList
+                  state={bag.availableKinds}
+                  testId="forms-kinds"
+                  failed={(thrown) => (
                     <ErrorAlert
                       testId="forms-kinds-failed"
-                      error={{
-                        ...describe(toFlowError(error)),
-                        message: t(FORMS_I18N_KEYS.builderKindsFailed),
-                      }}
+                      message={t(FORMS_I18N_KEYS.builderKindsFailed)}
+                      thrown={thrown}
                     />
-                  ),
-                  empty: () => (
-                    <Typography.Text type="secondary" data-testid="forms-kinds-empty">
-                      {t(FORMS_I18N_KEYS.builderNoKinds)}
-                    </Typography.Text>
-                  ),
-                  ready: (kinds) => (
-                    <Flex gap={8} wrap>
+                  )}
+                  empty={
+                    <EmptyState
+                      testId="forms-kinds-empty"
+                      compact
+                      title={t(FORMS_I18N_KEYS.builderNoKinds)}
+                    />
+                  }
+                >
+                  {(kinds) => (
+                    <Flex gap={spacing[2]} wrap>
                       {kinds.map((kind) => (
                         <Button
                           key={kind.kind}
@@ -402,13 +447,30 @@ export function FormBuilderPane(props: FormBuilderPaneProps): ReactElement {
                         </Button>
                       ))}
                     </Flex>
-                  ),
-                })}
+                  )}
+                </LoadList>
+
+                <SkinDialog
+                  open={settingsOpen}
+                  onClose={() => setSettingsOpen(false)}
+                  title={t(FORMS_I18N_KEYS.settingsTitle)}
+                  dismissLabel={t(FORMS_I18N_KEYS.settingsClose)}
+                  width={SETTINGS_DIALOG_WIDTH}
+                  data-testid="forms-builder-settings-dialog"
+                >
+                  {settingsOpen && (
+                    <FormSettingsPane
+                      workspaceId={workspaceId}
+                      formId={props.formId}
+                      surface="bare"
+                    />
+                  )}
+                </SkinDialog>
               </Flex>
-            ),
-          })
-        }
+            )}
+          </LoadBoundary>
+        )}
       </FormBuilder>
-    </FormsSkinTheme>
+    </SkinTheme>
   );
 }

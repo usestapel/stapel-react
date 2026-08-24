@@ -18,12 +18,18 @@ import {
 } from "../src/i18n/es.js";
 
 /**
- * The es locale contour of the pair (i18n-shipping.md §2/§3). Mirrors the ru
- * contour with ONE deliberate inversion: Spanish covers the backend error
- * registry but NOT the pair-owned UI keys, so the UI-coverage suite asserts
- * that those keys resolve to their ENGLISH text under locale `es` — partial
- * coverage as a declared, tested state rather than an accident. Whoever adds
- * hand-written Spanish UI copy flips that suite on purpose.
+ * The es locale contour of the pair (i18n-shipping.md §2/§3) — now a full
+ * mirror of the ru contour.
+ *
+ * Until wave B this suite asserted the INVERSION: Spanish covered the backend
+ * error registry but none of the pair-owned UI keys, so every visible string
+ * in the wallet and the shop fell through to English and a Spanish-speaking
+ * customer read Spanish refusals inside an English screen. That was a
+ * declared, tested state with a note saying whoever wrote the copy would flip
+ * these assertions on purpose. This is that flip: the assertions below now
+ * demand SPANISH for every pair-owned key, and the en floor stays underneath
+ * only as the guarantee that a future key added without a translation
+ * degrades to English rather than to a raw key.
  */
 
 const PKG_DIR = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
@@ -85,7 +91,7 @@ describe("generated es error bundle", () => {
   });
 });
 
-describe("declared coverage: Spanish errors, English UI (no raw keys)", () => {
+describe("declared coverage: Spanish errors AND Spanish UI (no raw keys)", () => {
   it("every registry code resolves to its SPANISH text under locale es", async () => {
     const i18n = createI18n({ locale: "en" });
     registerBillingI18nEs(i18n);
@@ -94,28 +100,69 @@ describe("declared coverage: Spanish errors, English UI (no raw keys)", () => {
     expect(i18n.t(code)).toBe(billingErrorBundleEs[code]);
   });
 
-  it("pair-owned UI keys fall back to ENGLISH under locale es — not to a raw key", async () => {
-    // The inversion of the ru suite: Spanish UI copy does not exist yet, so the
-    // en floor under the locale is what a host reads. When Spanish UI copy
-    // lands, this assertion is the one that must be updated.
+  it("every pair-owned UI key resolves to its SPANISH text under locale es", async () => {
     const i18n = createI18n({ locale: "en" });
     registerBillingI18n(i18n);
     registerBillingI18nEs(i18n);
     await i18n.setLocale("es");
     for (const key of Object.values(BILLING_I18N_KEYS)) {
-      const en = billingI18nBundleEn[key] ?? "";
-      expect(i18n.t(key), key).toBe(en);
+      const es = billingI18nBundleEs[key];
+      // Present: the bundle carries the key at all.
+      expect(es, key).toBeTruthy();
+      // Reached: registration order puts it above the en floor.
+      expect(i18n.t(key), key).toBe(es);
+      // And never the raw key — the failure this whole contour exists to
+      // make impossible.
       expect(i18n.t(key), key).not.toBe(key);
     }
   });
 
-  it("the es bundle carries exactly the error codes and no UI keys (yet)", () => {
+  it("the es UI copy is not the English text wearing a Spanish label", () => {
+    // A bundle that "covers" every key by copying the en string would pass a
+    // key-set comparison and ship an English screen. Keys whose text is
+    // legitimately identical across the two languages (a bare placeholder,
+    // a proper noun) are the exception, so this asserts the SHAPE of the
+    // coverage — the overwhelming majority differ — rather than every key.
+    const uiKeys = Object.values(BILLING_I18N_KEYS);
+    const differing = uiKeys.filter(
+      (key) => billingI18nBundleEs[key] !== billingI18nBundleEn[key]
+    );
+    expect(differing.length).toBeGreaterThan(uiKeys.length - 3);
+  });
+
+  it("every es UI text preserves the {param} slots its en text declares", () => {
+    // A translation that drops a placeholder renders a sentence with a hole
+    // in it — "créditos caducan el" with no date. Cheap to check, and the
+    // exact drift a hand-written bundle acquires over time.
+    for (const key of Object.values(BILLING_I18N_KEYS)) {
+      const en = billingI18nBundleEn[key];
+      const es = billingI18nBundleEs[key];
+      if (typeof en !== "string" || typeof es !== "string") continue;
+      expect(paramsOf(es).sort(), key).toEqual(paramsOf(en).sort());
+    }
+  });
+
+  it("every plural family ships its es CLDR categories", () => {
+    // `tPlural` looks up `<key>.<category>` first; a family that ships only
+    // the flat key silently renders the `other` form for a count of one.
+    const families = Object.values(BILLING_I18N_KEYS).filter(
+      (key) => `${key}.other` in billingI18nBundleEn
+    );
+    expect(families.length).toBeGreaterThan(0);
+    for (const family of families) {
+      // `es` uses exactly one/other (CLDR).
+      expect(billingI18nBundleEs[`${family}.one`], family).toBeTruthy();
+      expect(billingI18nBundleEs[`${family}.other`], family).toBeTruthy();
+    }
+  });
+
+  it("the es bundle covers the error codes AND the pair's UI keys", () => {
     const uiKeys = new Set<string>(Object.values(BILLING_I18N_KEYS));
     const carried = Object.keys(billingI18nBundleEs).filter((k) => uiKeys.has(k));
-    expect(carried).toEqual([]);
-    expect(Object.keys(billingI18nBundleEs).sort()).toEqual(
-      [...BILLING_ERROR_CODES].sort()
-    );
+    expect(carried.sort()).toEqual([...uiKeys].sort());
+    for (const code of BILLING_ERROR_CODES) {
+      expect(billingI18nBundleEs[code], code).toBeTruthy();
+    }
   });
 });
 

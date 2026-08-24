@@ -29,18 +29,46 @@
  *    this workspace" — and never as an empty table, and never guesses which of
  *    the three it was.
  *
- * The meeting itself is not here: rooms, the lobby verdicts and the join grant
- * are a media-server client's job (see `api/videoApi.ts`).
+ * ── And the meeting, since 0.2.0 ──────────────────────────────────────────
+ *
+ * The other six browser-callable operations — open a room, read one, ask to
+ * join, the host's two lobby verdicts, the participant list — are here too,
+ * with the realtime lobby they belong to. The usage report was never the
+ * product of a calls module; it is the report ABOUT the product.
+ *
+ * The line that is still drawn, and where: the MEDIA session (a WebRTC stack,
+ * device permissions, tiles) is an optional peer that `/default`'s
+ * `<CallStage>` loads with `import()` and a host may replace outright. What
+ * this pair owns is the half a vendor SDK cannot produce — `JoinResponse.token`
+ * is minted by stapel-video's provider out of the join grant, and the lobby is
+ * a stapel concept the SDK has never heard of.
+ *
+ * The lobby's socket is NOT opened here: `@stapel/realtime` is the fleet's one
+ * reconnect/resume runtime and the one place a 4401 or a 4403 close code is
+ * given a meaning (§83.1). This pair contributes the stream key, the three
+ * frame types and what each one means.
  */
 
 // ── api ──────────────────────────────────────────────────────────────────────
 export { createVideoApi } from "./api/videoApi.js";
-export type { VideoApi, ScopeUsageRequest } from "./api/videoApi.js";
+export type {
+  VideoApi,
+  ScopeUsageRequest,
+  ParticipantPageRequest,
+} from "./api/videoApi.js";
 export type {
   Schemas,
   ScopeUsageResponse,
   ScopeUsageMonth,
   ScopeUsageRow,
+  RoomResponse,
+  RoomCreateRequest,
+  JoinRequest,
+  JoinResponse,
+  ParticipantResponse,
+  ParticipantListResponse,
+  LobbyActionRequest,
+  AdmitResponse,
 } from "./api/types.js";
 
 // ── flows ────────────────────────────────────────────────────────────────────
@@ -73,13 +101,18 @@ export {
   useVideoApi,
   useVideoAnalytics,
 } from "./model/context.js";
-export { videoQueryKeys, usageQueryKeys } from "./model/queryKeys.js";
+export {
+  videoQueryKeys,
+  usageQueryKeys,
+  roomQueryKeys,
+} from "./model/queryKeys.js";
 
 // ── model (the usage read) ──────────────────────────────────────────────────
 export { useScopeUsage } from "./model/queries.js";
 export type { UseScopeUsageOptions, ScopeUsageBag } from "./model/queries.js";
 export {
   DEFAULT_USAGE_MONTHS,
+  MIN_USAGE_MONTHS,
   MAX_USAGE_MONTHS,
   DEFAULT_USAGE_TZ,
   normalizeScopeUsage,
@@ -89,12 +122,76 @@ export {
   formatPresence,
   isScopeUnavailable,
   isInvalidUsagePeriod,
+  clampUsageMonths,
+  isUsageMonthsOutOfRange,
 } from "./model/usage.js";
 export type {
   ScopeUsageAnswer,
   UsageMonth,
   UsageTotals,
 } from "./model/usage.js";
+
+// ── model (the meeting) ─────────────────────────────────────────────────────
+export {
+  JOIN_ADMITTED,
+  JOIN_WAITING,
+  JOIN_DENIED,
+  PARTICIPANT_WAITING,
+  PARTICIPANT_ADMITTED,
+  PARTICIPANT_DENIED,
+  PARTICIPANT_LEFT,
+  joinOutcome,
+  joinOutcomeFromError,
+  isJoinDenied,
+  isRoomNotFound,
+  isNotRoomHost,
+  isNotRoomParticipant,
+  isParticipantNotFound,
+  accessLevelKey,
+  participantStatusKey,
+  participantRoleKey,
+  waitingParticipants,
+  presentParticipants,
+  isRoomHost,
+  normalizeJoinCode,
+} from "./model/meeting.js";
+export type { JoinOutcome } from "./model/meeting.js";
+
+export {
+  useMeeting,
+  useLobby,
+  useRoom,
+  staticLobbyBag,
+  staticMeetingBag,
+} from "./model/meetingQueries.js";
+export type {
+  MeetingBag,
+  UseMeetingOptions,
+  LobbyBag,
+  UseLobbyOptions,
+  WaitingPerson,
+} from "./model/meetingQueries.js";
+
+// ── model (the lobby's realtime half — data only; no socket is opened here) ──
+export {
+  LOBBY_FRAME_WAITING,
+  LOBBY_FRAME_ADMITTED,
+  LOBBY_FRAME_DENIED,
+  LOBBY_FRAME_TYPES,
+  lobbyStreamKey,
+  lobbySocketPath,
+  lobbySocketUrl,
+  decodeLobbyEvent,
+  lobbyLiveness,
+} from "./model/lobby.js";
+export type {
+  LobbyEvent,
+  LobbyWaitingEvent,
+  LobbyAdmittedEvent,
+  LobbyDeniedEvent,
+  LobbyFrameLike,
+  LobbyLiveness,
+} from "./model/lobby.js";
 
 // ── nav (the scripted-fullstack navigation contract) ────────────────────────
 export { navEntries, ADMIN_ROOT_ID } from "./nav/manifest.js";

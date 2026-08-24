@@ -5,9 +5,11 @@
  * ironmemo port; re-added here as its own Card so the security page always
  * shows recent account activity, not just the mutable settings around it.
  */
+import { fontSize } from "@stapel/tokens";
 import { useState } from "react";
 import type { ReactElement } from "react";
 import { Card, Empty, List, Spin, Tag, Typography } from "antd";
+import { ErrorAlert } from "@stapel/tokens-antd/skin";
 import {
   isLoadReady,
   loadStateFromQuery,
@@ -18,7 +20,6 @@ import {
 } from "@stapel/core";
 import { useAuditLog } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
-import { ErrorAlert } from "../ErrorAlert.js";
 import { SecurityEmptyIcon } from "./icons.js";
 
 /** `"user.session_revoked"` → `"User session revoked"` — best-effort, since
@@ -69,7 +70,7 @@ export function AuditLogPanel(): ReactElement {
                 <List.Item.Meta
                   title={humanizeEventType(entry.event_type)}
                   description={
-                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                    <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
                       {formatWhen(entry.created_at)}
                       {entry.ip_address
                         ? ` — ${t(AUTH_I18N_KEYS.secAuditIp, { ip: entry.ip_address })}`

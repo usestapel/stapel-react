@@ -1,6 +1,6 @@
 # @stapel/notifications-react 0.9.1
 
-Headless React flow pair for stapel-notifications (contract >=0.7 <0.8) — business + state, zero visual opinion.
+Headless React flow pair for stapel-notifications (contract >=0.17 <0.18) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -23,16 +23,20 @@ Request/response schema names are in manifest.json + the generated types.
 Paths are relative to `/notifications/api/v1/`.
 - get_notification_feed: GET /feed/
 - get_notification_keys: GET /notification-keys/
+- list_device_tokens: GET /devices/
 - register_device_token: POST /devices/
+- unregister_device: DELETE /devices/by-id/{device_id}/
 - unregister_device_token: DELETE /devices/{token}/
 
 ## Query hooks (server state; keys come only from the key factory)
+- useDevices (query) → listDevices
 - useNotificationFeed (query) → feed
 - useRegisterDevice (mutation) → registerDevice
 - useUnregisterDevice (mutation) → unregisterDevice
+- useUnregisterDeviceById (mutation) → unregisterDeviceById
 
 ## Errors (render t(code, params); UX from remediation)
-43 keys (full catalog: manifest.json §errors). By remediation: fix_input 18 · retry 12 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+51 keys (full catalog: manifest.json §errors). By remediation: fix_input 23 · retry 14 · verify 6 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -45,6 +49,10 @@ Param-bearing keys (interpolation slots matter):
 - error.400.field.null [400] → fix_input {field}
 - error.400.field.required [400] → fix_input {field}
 - error.400.field.unique [400] → fix_input {field}
+- error.400.translate.batch_too_large [400] → fix_input {max_items}
+- error.400.translate.batch_too_long [400] → fix_input {max_chars}
+- error.400.translate.text_too_long [400] → fix_input {max_chars}
+- error.400.translate.unsupported_language [400] → fix_input {language}
 - error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
 
 ## Analytics events (typed; defineEvent → events.json, drift-gated)
@@ -67,9 +75,12 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
-- notifications.device_registration → <DeviceRegistration> [default]  demo/DeviceRegistration.demo.tsx
+- notifications.device_registration → <DeviceRegistration> [default|not-registered]  demo/DeviceRegistration.demo.tsx
 - notifications.feed → <NotificationFeed> [default]  demo/NotificationFeed.demo.tsx
+- notifications.feed_list → <NotificationFeedList> [default|refused|paged]  demo/NotificationFeedList.demo.tsx
+- notifications.page → <NotificationsPage> [polling|live|desktop|empty]  demo/NotificationsPage.demo.tsx
 - notifications.provider → <NotificationsProvider> [default]  demo/Notifications.demo.tsx
+- notifications.push_settings → <PushSettingsPane> [default|no-devices|unsupported|desktop|toggle-only|registry-only]  demo/PushSettings.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

@@ -1,0 +1,94 @@
+# @stapel/translate-react 0.0.0
+
+Headless React flow pair for stapel-translate (contract >=0.7 <0.8) — business + state, zero visual opinion.
+Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
+verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
+
+## The one right way (do this, the rest is a review/lint smell)
+- No raw fetch/axios. The client is injected via <TranslateProvider>/StapelConfigProvider;
+  every hook and flow already carries auth, refresh, and the error envelope.
+- Render errors, never try/catch them: a flow's state carries FlowError{code,params};
+  render `t(code, params)` and branch on `explainTranslateError(code)` remediation.
+- Server state = the use* hooks (query layer); keys come only from translateQueryKeys.
+- User strings = i18n keys (registerTranslateI18n); never string literals.
+- Sign-in UI = a headless flow component; copy it (shadcn-style) to restyle.
+
+## Layers
+api (typed client) · model (hooks, session) · flows (machines) · headless · i18n
+
+## Documented flows (flows.json — canonical id, steps, endpoints)
+
+## Operations (typed; use the named op, never a path string)
+Request/response schema names are in manifest.json + the generated types.
+Paths are relative to `/translate/api/v1/`.
+- translate_api_v1_dashboard_languages_list: GET /dashboard/languages/{lang}/
+- translate_api_v1_dashboard_llm_help_create: POST /dashboard/llm-help/
+- translate_api_v1_dashboard_stats_retrieve: GET /dashboard/stats/
+- translate_api_v1_dashboard_translations_comment_partial_update: PATCH /dashboard/translations/{id}/comment/
+- translate_api_v1_dashboard_translations_destroy: DELETE /dashboard/translations/{id}/
+- translate_api_v1_dashboard_translations_navigation_retrieve: GET /dashboard/translations/{id}/navigation/
+- translate_api_v1_dashboard_translations_partial_update: PATCH /dashboard/translations/{id}/
+- translate_api_v1_dashboard_translations_retrieve: GET /dashboard/translations/{id}/
+- translate_api_v1_dashboard_translations_verify_create: POST /dashboard/translations/{id}/verify/
+- translate_api_v1_figma_auth_retrieve: GET /figma/auth/
+- translate_api_v1_figma_translations_create: POST /figma/translations/
+- translate_api_v1_figma_translations_remove_ref_create: POST /figma/translations/remove-ref/
+- translate_api_v1_figma_translations_retrieve: GET /figma/translations/
+- translate_api_v1_figma_translations_retrieve_2: GET /figma/translations/{key}/
+- translate_api_v1_figma_translations_screenshot_create: POST /figma/translations/screenshot/
+- translate_api_v1_figma_translations_search_create: POST /figma/translations/search/
+- translate_api_v1_figma_translations_sync_create: POST /figma/translations/sync/
+- translate_api_v1_languages_data_retrieve: GET /languages/{lang}/data/
+- translate_api_v1_languages_revision_retrieve: GET /languages/revision/
+- translate_api_v1_text_create: POST /text/
+- translate_api_v1_translations_bulk_update_create: POST /translations/bulk_update/
+- translate_api_v1_translations_data.json_list: GET /translations/data.json/
+- translate_api_v1_translations_list: GET /translations/
+- translate_api_v1_translations_retrieve: GET /translations/{id}/
+- translate_api_v1_translations_revision_retrieve: GET /translations/revision/
+
+## Errors (render t(code, params); UX from remediation)
+48 keys (full catalog: manifest.json §errors). By remediation: fix_input 21 · retry 14 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+Param-bearing keys (interpolation slots matter):
+- error.400.field.blank [400] → fix_input {field}
+- error.400.field.does_not_exist [400] → fix_input {field}
+- error.400.field.invalid [400] → fix_input {field}
+- error.400.field.invalid_choice [400] → fix_input {field}
+- error.400.field.max_length [400] → fix_input {field,max_length}
+- error.400.field.max_value [400] → fix_input {field,max_value}
+- error.400.field.min_length [400] → fix_input {field,min_length}
+- error.400.field.min_value [400] → fix_input {field,min_value}
+- error.400.field.null [400] → fix_input {field}
+- error.400.field.required [400] → fix_input {field}
+- error.400.field.unique [400] → fix_input {field}
+- error.400.translate.batch_too_large [400] → fix_input {max_items}
+- error.400.translate.batch_too_long [400] → fix_input {max_chars}
+- error.400.translate.text_too_long [400] → fix_input {max_chars}
+- error.400.translate.unsupported_language [400] → fix_input {language}
+- error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
+
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
+## Snippets
+```tsx
+// Error rendering + remediation branch (one pattern for every pair).
+const r = explainTranslateError(err.code); // 'wait_and_retry' | 'verify' | ...
+return <Alert action={r}>{t(err.code, err.params)}</Alert>;
+```

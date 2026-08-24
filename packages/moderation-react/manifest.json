@@ -1,0 +1,1138 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/moderation-react",
+  "version": "0.0.0",
+  "backend": {
+    "module": "stapel-moderation",
+    "contract": ">=0.3 <0.4"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [
+    "createAppealFlow",
+    "createReportFlow",
+    "createTriageFlow"
+  ],
+  "operations": {
+    "moderation_api_v1_appeals_create": {
+      "method": "POST",
+      "path": "/moderation/api/v1/appeals/",
+      "tag": "Moderation / appeals",
+      "request": "AppealCreate",
+      "response": "AppealPresenterDTO"
+    },
+    "moderation_api_v1_appeals_list": {
+      "method": "GET",
+      "path": "/moderation/api/v1/appeals/",
+      "tag": "Moderation / appeals",
+      "request": null,
+      "response": null
+    },
+    "moderation_api_v1_appeals_queue_list": {
+      "method": "GET",
+      "path": "/moderation/api/v1/appeals/queue",
+      "tag": "Moderation / appeals",
+      "request": null,
+      "response": null
+    },
+    "moderation_api_v1_appeals_resolve_create": {
+      "method": "POST",
+      "path": "/moderation/api/v1/appeals/{appeal_id}/resolve",
+      "tag": "Moderation / appeals",
+      "request": "AppealResolve",
+      "response": "AppealPresenterDTO"
+    },
+    "moderation_api_v1_cases_claim_create": {
+      "method": "POST",
+      "path": "/moderation/api/v1/cases/{case_id}/claim",
+      "tag": "Moderation / queue",
+      "request": null,
+      "response": "CasePresenterDTO"
+    },
+    "moderation_api_v1_cases_events_list": {
+      "method": "GET",
+      "path": "/moderation/api/v1/cases/{case_id}/events",
+      "tag": "Moderation / queue",
+      "request": null,
+      "response": null
+    },
+    "moderation_api_v1_cases_list": {
+      "method": "GET",
+      "path": "/moderation/api/v1/cases",
+      "tag": "Moderation / queue",
+      "request": null,
+      "response": null
+    },
+    "moderation_api_v1_cases_release_create": {
+      "method": "POST",
+      "path": "/moderation/api/v1/cases/{case_id}/release",
+      "tag": "Moderation / queue",
+      "request": null,
+      "response": "CasePresenterDTO"
+    },
+    "moderation_api_v1_cases_rescan_create": {
+      "method": "POST",
+      "path": "/moderation/api/v1/cases/{case_id}/rescan",
+      "tag": "Moderation / queue",
+      "request": null,
+      "response": "RescanResultDTO"
+    },
+    "moderation_api_v1_cases_retrieve": {
+      "method": "GET",
+      "path": "/moderation/api/v1/cases/{case_id}",
+      "tag": "Moderation / queue",
+      "request": null,
+      "response": "CaseDetailPresenterDTO"
+    },
+    "moderation_api_v1_cases_verdict_create": {
+      "method": "POST",
+      "path": "/moderation/api/v1/cases/{case_id}/verdict",
+      "tag": "Moderation / queue",
+      "request": "VerdictRequest",
+      "response": "VerdictPresenterDTO"
+    },
+    "moderation_api_v1_policy_retrieve": {
+      "method": "GET",
+      "path": "/moderation/api/v1/policy",
+      "tag": "Moderation / policy",
+      "request": null,
+      "response": "PolicyDisclosureDTO"
+    },
+    "moderation_api_v1_reports_create": {
+      "method": "POST",
+      "path": "/moderation/api/v1/reports/",
+      "tag": "Moderation / reports",
+      "request": "ReportCreate",
+      "response": "ReportResultDTO"
+    },
+    "moderation_api_v1_reports_list": {
+      "method": "GET",
+      "path": "/moderation/api/v1/reports/",
+      "tag": "Moderation / reports",
+      "request": null,
+      "response": null
+    },
+    "moderation_api_v1_sanctions_create": {
+      "method": "POST",
+      "path": "/moderation/api/v1/sanctions",
+      "tag": "Moderation / sanctions",
+      "request": "SanctionCreate",
+      "response": "SanctionPresenterDTO"
+    },
+    "moderation_api_v1_sanctions_lift_create": {
+      "method": "POST",
+      "path": "/moderation/api/v1/sanctions/{sanction_id}/lift",
+      "tag": "Moderation / sanctions",
+      "request": "SanctionLift",
+      "response": "SanctionPresenterDTO"
+    },
+    "moderation_api_v1_sanctions_list": {
+      "method": "GET",
+      "path": "/moderation/api/v1/sanctions",
+      "tag": "Moderation / sanctions",
+      "request": null,
+      "response": null
+    },
+    "moderation_api_v1_stats_retrieve": {
+      "method": "GET",
+      "path": "/moderation/api/v1/stats",
+      "tag": "Moderation / queue",
+      "request": null,
+      "response": "StatsDTO"
+    }
+  },
+  "hooks": {
+    "useCaseDetailQuery": {
+      "kind": "query",
+      "operation": "caseDetail",
+      "queryKey": [
+        "moderation",
+        "case",
+        "{caseId}"
+      ]
+    },
+    "useCaseEventsQuery": {
+      "kind": "query",
+      "operation": "caseEvents",
+      "queryKey": [
+        "moderation",
+        "caseEvents",
+        "{caseId}"
+      ]
+    },
+    "useClaimCase": {
+      "kind": "mutation",
+      "operation": "claim"
+    },
+    "useIssueSanction": {
+      "kind": "mutation",
+      "operation": "issueSanction"
+    },
+    "useLiftSanction": {
+      "kind": "mutation",
+      "operation": "liftSanction"
+    },
+    "usePolicy": {
+      "kind": "query",
+      "operation": "policy",
+      "queryKey": [
+        "moderation",
+        "policy",
+        "{targetType}"
+      ]
+    },
+    "useReleaseCase": {
+      "kind": "mutation",
+      "operation": "release"
+    },
+    "useRescanCase": {
+      "kind": "mutation",
+      "operation": "rescan"
+    },
+    "useResolveAppeal": {
+      "kind": "mutation",
+      "operation": "resolveAppeal"
+    },
+    "useSanctionsQuery": {
+      "kind": "query",
+      "operation": "sanctions",
+      "queryKey": [
+        "moderation",
+        "sanctions",
+        "{filters}"
+      ]
+    },
+    "useStatsQuery": {
+      "kind": "query",
+      "operation": "stats",
+      "queryKey": [
+        "moderation",
+        "stats"
+      ]
+    },
+    "useSubmitAppeal": {
+      "kind": "mutation",
+      "operation": "submitAppeal",
+      "invalidates": [
+        [
+          "moderation",
+          "myAppeals"
+        ]
+      ]
+    },
+    "useSubmitReport": {
+      "kind": "mutation",
+      "operation": "submitReport",
+      "invalidates": [
+        [
+          "moderation",
+          "myReports"
+        ]
+      ]
+    },
+    "useSubmitVerdict": {
+      "kind": "mutation",
+      "operation": "verdict"
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.moderation_contact_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.moderation_description_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.moderation_evidence_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.moderation_invalid_decision": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.moderation_invalid_outcome": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.moderation_invalid_sanction_kind": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.moderation_invalid_transition": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.moderation_own_content": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.moderation_reason_not_applicable": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.moderation_unknown_reason": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.moderation_unknown_target_type": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.moderation_cannot_report": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.moderation_forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.moderation_not_appellant": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.moderation_same_actor": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.moderation_appeal_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.moderation_case_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.moderation_sanction_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.moderation_target_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.moderation_already_appealed": {
+      "status": 409,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.409.moderation_already_reported": {
+      "status": 409,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.409.moderation_appeal_resolved": {
+      "status": 409,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.409.moderation_case_claimed": {
+      "status": 409,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.409.moderation_case_not_resolved": {
+      "status": 409,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.409.moderation_case_resolved": {
+      "status": 409,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.409.moderation_not_claimant": {
+      "status": 409,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.409.moderation_sanction_not_active": {
+      "status": 409,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.moderation_content_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "wait_and_retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [],
+  "i18nKeys": [
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.moderation_contact_required",
+    "error.400.moderation_description_required",
+    "error.400.moderation_evidence_invalid",
+    "error.400.moderation_invalid_decision",
+    "error.400.moderation_invalid_outcome",
+    "error.400.moderation_invalid_sanction_kind",
+    "error.400.moderation_invalid_transition",
+    "error.400.moderation_own_content",
+    "error.400.moderation_reason_not_applicable",
+    "error.400.moderation_unknown_reason",
+    "error.400.moderation_unknown_target_type",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.moderation_cannot_report",
+    "error.403.moderation_forbidden",
+    "error.403.moderation_not_appellant",
+    "error.403.moderation_same_actor",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.moderation_appeal_not_found",
+    "error.404.moderation_case_not_found",
+    "error.404.moderation_sanction_not_found",
+    "error.404.moderation_target_not_found",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.409.moderation_already_appealed",
+    "error.409.moderation_already_reported",
+    "error.409.moderation_appeal_resolved",
+    "error.409.moderation_case_claimed",
+    "error.409.moderation_case_not_resolved",
+    "error.409.moderation_case_resolved",
+    "error.409.moderation_not_claimant",
+    "error.409.moderation_sanction_not_active",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.mandate_unavailable",
+    "error.503.moderation_content_unavailable",
+    "moderation.action.cancel",
+    "moderation.appeal.about",
+    "moderation.appeal.alreadyAppealed",
+    "moderation.appeal.blockedEmpty",
+    "moderation.appeal.blockedInFlight",
+    "moderation.appeal.body",
+    "moderation.appeal.caseNotResolved",
+    "moderation.appeal.needLink",
+    "moderation.appeal.needLinkHint",
+    "moderation.appeal.notAppellant",
+    "moderation.appeal.resolutionNote",
+    "moderation.appeal.state.open",
+    "moderation.appeal.state.overturned",
+    "moderation.appeal.state.upheld",
+    "moderation.appeal.state.withdrawn",
+    "moderation.appeal.submit",
+    "moderation.appeal.submitted",
+    "moderation.appeal.title",
+    "moderation.appealQueue.alreadyDecided",
+    "moderation.appealQueue.appellant",
+    "moderation.appealQueue.blockedInFlight",
+    "moderation.appealQueue.blockedNoOutcome",
+    "moderation.appealQueue.empty",
+    "moderation.appealQueue.emptyHint",
+    "moderation.appealQueue.filterState",
+    "moderation.appealQueue.loadMore",
+    "moderation.appealQueue.note",
+    "moderation.appealQueue.openCase",
+    "moderation.appealQueue.outcome",
+    "moderation.appealQueue.outcome.overturned",
+    "moderation.appealQueue.outcome.upheld",
+    "moderation.appealQueue.outcome.withdrawn",
+    "moderation.appealQueue.outcomeHint.overturned",
+    "moderation.appealQueue.outcomeHint.upheld",
+    "moderation.appealQueue.outcomeHint.withdrawn",
+    "moderation.appealQueue.resolve",
+    "moderation.appealQueue.sameActor",
+    "moderation.appealQueue.title",
+    "moderation.appeals.empty",
+    "moderation.appeals.emptyHint",
+    "moderation.appeals.loadMore",
+    "moderation.appeals.title",
+    "moderation.case.blockedInFlight",
+    "moderation.case.blockedNotClaimed",
+    "moderation.case.blockedNotMine",
+    "moderation.case.blockedResolved",
+    "moderation.case.claim",
+    "moderation.case.claimedByAnother",
+    "moderation.case.content",
+    "moderation.case.content.unavailable.forbidden",
+    "moderation.case.content.unavailable.no_content_function",
+    "moderation.case.content.unavailable.not_loaded",
+    "moderation.case.content.unavailable.target_not_found",
+    "moderation.case.contentAuthor",
+    "moderation.case.contentEvidence",
+    "moderation.case.contentMedia",
+    "moderation.case.contentUrl",
+    "moderation.case.eventsEmpty",
+    "moderation.case.eventsShow",
+    "moderation.case.extend",
+    "moderation.case.goodFaith",
+    "moderation.case.leaseExpired",
+    "moderation.case.leaseFree",
+    "moderation.case.leaseMine",
+    "moderation.case.leaseOther",
+    "moderation.case.noAppeals",
+    "moderation.case.noReports",
+    "moderation.case.noSanctions",
+    "moderation.case.noVerdicts",
+    "moderation.case.notClaimant",
+    "moderation.case.origin.appeal",
+    "moderation.case.origin.manual",
+    "moderation.case.origin.report",
+    "moderation.case.origin.rescan",
+    "moderation.case.origin.submission",
+    "moderation.case.release",
+    "moderation.case.reportCount",
+    "moderation.case.rescan",
+    "moderation.case.rescanQueued",
+    "moderation.case.severity",
+    "moderation.case.state.claimed",
+    "moderation.case.state.open",
+    "moderation.case.state.queued",
+    "moderation.case.state.resolved",
+    "moderation.case.state.screening",
+    "moderation.case.systemActor",
+    "moderation.case.tab.appeals",
+    "moderation.case.tab.events",
+    "moderation.case.tab.reports",
+    "moderation.case.tab.sanctions",
+    "moderation.case.tab.verdicts",
+    "moderation.case.title",
+    "moderation.console.tab.appeals",
+    "moderation.console.tab.queue",
+    "moderation.console.tab.sanctions",
+    "moderation.console.title",
+    "moderation.dialog.dismiss",
+    "moderation.error.unknown",
+    "moderation.nav.appeals",
+    "moderation.nav.moderation",
+    "moderation.nav.policy",
+    "moderation.nav.reports",
+    "moderation.policy.appealDifferentActor",
+    "moderation.policy.appealSameActorAllowed",
+    "moderation.policy.automated",
+    "moderation.policy.automatedOff",
+    "moderation.policy.automatedOn",
+    "moderation.policy.colCode",
+    "moderation.policy.colDescription",
+    "moderation.policy.colNeedsDetail",
+    "moderation.policy.colSeverity",
+    "moderation.policy.confidenceFloor",
+    "moderation.policy.humanAlways",
+    "moderation.policy.humanReview",
+    "moderation.policy.needsDetailYes",
+    "moderation.policy.onUnavailable",
+    "moderation.policy.reasons",
+    "moderation.policy.rules",
+    "moderation.policy.rulesEmpty",
+    "moderation.policy.title",
+    "moderation.queue.col.claimed",
+    "moderation.queue.col.origin",
+    "moderation.queue.col.reports",
+    "moderation.queue.col.severity",
+    "moderation.queue.col.state",
+    "moderation.queue.col.subject",
+    "moderation.queue.col.target",
+    "moderation.queue.col.updated",
+    "moderation.queue.empty",
+    "moderation.queue.emptyHint",
+    "moderation.queue.filter.any",
+    "moderation.queue.filter.reason",
+    "moderation.queue.filter.severity",
+    "moderation.queue.filter.state",
+    "moderation.queue.filter.subject",
+    "moderation.queue.filter.targetType",
+    "moderation.queue.loadMore",
+    "moderation.queue.noTargetTypes",
+    "moderation.queue.openCase",
+    "moderation.queue.staffOnly",
+    "moderation.queue.staffOnlyHint",
+    "moderation.queue.title",
+    "moderation.reason.adult.description",
+    "moderation.reason.adult.label",
+    "moderation.reason.counterfeit.description",
+    "moderation.reason.counterfeit.label",
+    "moderation.reason.fraud.description",
+    "moderation.reason.fraud.label",
+    "moderation.reason.harassment.description",
+    "moderation.reason.harassment.label",
+    "moderation.reason.illegal.description",
+    "moderation.reason.illegal.label",
+    "moderation.reason.low_confidence.description",
+    "moderation.reason.low_confidence.label",
+    "moderation.reason.off_platform_payment.description",
+    "moderation.reason.off_platform_payment.label",
+    "moderation.reason.offensive.description",
+    "moderation.reason.offensive.label",
+    "moderation.reason.other.description",
+    "moderation.reason.other.label",
+    "moderation.reason.personal_data.description",
+    "moderation.reason.personal_data.label",
+    "moderation.reason.screening_held.description",
+    "moderation.reason.screening_held.label",
+    "moderation.reason.screening_unavailable.description",
+    "moderation.reason.screening_unavailable.label",
+    "moderation.reason.spam.description",
+    "moderation.reason.spam.label",
+    "moderation.reason.wrong_category.description",
+    "moderation.reason.wrong_category.label",
+    "moderation.report.accepted",
+    "moderation.report.acceptedHint",
+    "moderation.report.alreadyReported",
+    "moderation.report.automatedNotice",
+    "moderation.report.blockedDescription",
+    "moderation.report.blockedInFlight",
+    "moderation.report.blockedNoReason",
+    "moderation.report.blockedReported",
+    "moderation.report.blockedVisitor",
+    "moderation.report.button",
+    "moderation.report.buttonLabel",
+    "moderation.report.cannotReport",
+    "moderation.report.description",
+    "moderation.report.descriptionOptional",
+    "moderation.report.descriptionRequired",
+    "moderation.report.done",
+    "moderation.report.evidenceInvalid",
+    "moderation.report.goodFaith",
+    "moderation.report.ownContent",
+    "moderation.report.reason",
+    "moderation.report.reasonStale",
+    "moderation.report.signIn",
+    "moderation.report.signInLink",
+    "moderation.report.submit",
+    "moderation.report.targetGone",
+    "moderation.report.throttled",
+    "moderation.report.title",
+    "moderation.report.unknownTargetType",
+    "moderation.reports.empty",
+    "moderation.reports.emptyHint",
+    "moderation.reports.filed",
+    "moderation.reports.loadMore",
+    "moderation.reports.noOutcome",
+    "moderation.reports.title",
+    "moderation.sanction.blockedInFlight",
+    "moderation.sanction.blockedNoSubject",
+    "moderation.sanction.blockedNotActive",
+    "moderation.sanction.duration",
+    "moderation.sanction.durationCustom",
+    "moderation.sanction.durationIndefinite",
+    "moderation.sanction.durationLadder",
+    "moderation.sanction.durationSeconds",
+    "moderation.sanction.expires",
+    "moderation.sanction.filterState",
+    "moderation.sanction.filterSubject",
+    "moderation.sanction.highClearance",
+    "moderation.sanction.indefinite",
+    "moderation.sanction.issue",
+    "moderation.sanction.issuedBy",
+    "moderation.sanction.kind.banned",
+    "moderation.sanction.kind.content_removed",
+    "moderation.sanction.kind.posting_restricted",
+    "moderation.sanction.kind.suspended",
+    "moderation.sanction.kind.warning",
+    "moderation.sanction.ladderHint",
+    "moderation.sanction.lift",
+    "moderation.sanction.liftConfirm",
+    "moderation.sanction.liftNote",
+    "moderation.sanction.noLadder",
+    "moderation.sanction.note",
+    "moderation.sanction.reason",
+    "moderation.sanction.scope",
+    "moderation.sanction.scopeAll",
+    "moderation.sanction.state.active",
+    "moderation.sanction.state.expired",
+    "moderation.sanction.state.lifted",
+    "moderation.sanction.state.overturned",
+    "moderation.sanction.subject",
+    "moderation.sanctions.empty",
+    "moderation.sanctions.emptyHint",
+    "moderation.sanctions.loadMore",
+    "moderation.sanctions.title",
+    "moderation.stats.open",
+    "moderation.stats.resolved",
+    "moderation.stepUp.needed",
+    "moderation.value.unknown",
+    "moderation.verdict.blockedInFlight",
+    "moderation.verdict.blockedNoDecision",
+    "moderation.verdict.blockedNoKind",
+    "moderation.verdict.by",
+    "moderation.verdict.confidence",
+    "moderation.verdict.decision.approved",
+    "moderation.verdict.decision.dismissed",
+    "moderation.verdict.decision.needs_review",
+    "moderation.verdict.decision.rejected",
+    "moderation.verdict.decisionHint.approved",
+    "moderation.verdict.decisionHint.dismissed",
+    "moderation.verdict.decisionHint.needs_review",
+    "moderation.verdict.decisionHint.rejected",
+    "moderation.verdict.evidence",
+    "moderation.verdict.note",
+    "moderation.verdict.reason",
+    "moderation.verdict.sanctionOnlyRejected",
+    "moderation.verdict.sanctionToggle",
+    "moderation.verdict.source.appeal",
+    "moderation.verdict.source.human",
+    "moderation.verdict.source.llm",
+    "moderation.verdict.source.policy_default",
+    "moderation.verdict.source.rule",
+    "moderation.verdict.submit",
+    "moderation.verdict.title"
+  ],
+  "exports": {
+    "runtime": [
+      "APPEAL_FLOW_ID",
+      "APPEAL_OUTCOMES",
+      "APPEAL_STATES",
+      "BUILTIN_REASON_CODES",
+      "CASE_EVENT_KINDS",
+      "CASE_ORIGINS",
+      "CASE_STATES",
+      "CONTENT_UNAVAILABLE_REASONS",
+      "DECISIONS",
+      "DEFAULT_APPEAL_HREF",
+      "MODERATION_ERRORS",
+      "MODERATION_ERROR_CODES",
+      "MODERATION_FLOWS",
+      "MODERATION_I18N_KEYS",
+      "ModerationProvider",
+      "ModerationRuntimeContext",
+      "NEXT_BEFORE_HEADER",
+      "PAGE_SIZE",
+      "REPORT_FLOW_ID",
+      "RESCAN_POLL_INTERVAL_MS",
+      "RESCAN_POLL_TIMEOUT_MS",
+      "SANCTION_KINDS",
+      "SANCTION_STATES",
+      "SYSTEM_REASON_CODES",
+      "TERMINAL_DECISIONS",
+      "TRIAGE_FLOW_ID",
+      "VERDICT_SOURCES",
+      "appealOutcomeHintKey",
+      "appealOutcomeKey",
+      "appealRefused",
+      "appealStateKey",
+      "caseOriginKey",
+      "caseStateKey",
+      "contentUnavailableKey",
+      "createAppealFlow",
+      "createFlowMachine",
+      "createModerationApi",
+      "createModerationRuntime",
+      "createReportFlow",
+      "createTriageFlow",
+      "dataResolvedKeys",
+      "decisionHintKey",
+      "decisionKey",
+      "explainModerationError",
+      "filtersKey",
+      "flowEndpoints",
+      "formatDate",
+      "formatDuration",
+      "formatInstant",
+      "isErrorCode",
+      "isMember",
+      "leaseStatus",
+      "loadOf",
+      "moderationErrorBundleEn",
+      "moderationI18nBundleEn",
+      "moderationQueryKeys",
+      "nextBefore",
+      "reasonDescriptionKey",
+      "reasonLabelKey",
+      "reasonStep",
+      "registerModerationI18n",
+      "remainingMinutes",
+      "reportRefused",
+      "ruleDescriptionKey",
+      "sanctionKindKey",
+      "sanctionStateKey",
+      "shortId",
+      "toFlowError",
+      "triageRefused",
+      "useAppealQueueQuery",
+      "useCaseDetailQuery",
+      "useCaseEventsQuery",
+      "useCasesQuery",
+      "useClaimCase",
+      "useFlow",
+      "useIssueSanction",
+      "useLiftSanction",
+      "useModerationAnalytics",
+      "useModerationApi",
+      "useModerationRuntime",
+      "useMyAppealsQuery",
+      "useMyReportsQuery",
+      "usePolicy",
+      "useReleaseCase",
+      "useRescanCase",
+      "useResolveAppeal",
+      "useSanctionsQuery",
+      "useStatsQuery",
+      "useSubmitAppeal",
+      "useSubmitReport",
+      "useSubmitVerdict",
+      "verdictSourceKey"
+    ],
+    "types": [
+      "Appeal",
+      "AppealFlowOptions",
+      "AppealFlowState",
+      "AppealOutcome",
+      "AppealQueueFilters",
+      "AppealState",
+      "BuiltinReasonCode",
+      "Case",
+      "CaseDetail",
+      "CaseEvent",
+      "CaseEventKind",
+      "CaseFilters",
+      "CaseOrigin",
+      "CaseState",
+      "Content",
+      "ContentUnavailableReason",
+      "CreateModerationRuntimeOptions",
+      "Decision",
+      "FiltersKey",
+      "FlowEndpoint",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "IssueSanctionBody",
+      "KeysetPage",
+      "KeysetRow",
+      "LeaseStatus",
+      "LiftSanctionVariables",
+      "ModerationApi",
+      "ModerationErrorCode",
+      "ModerationErrorSpec",
+      "ModerationFlowId",
+      "ModerationFlowSpec",
+      "ModerationHostSeams",
+      "ModerationI18nKey",
+      "ModerationRuntime",
+      "PagedRows",
+      "PolicyAutomatedMeans",
+      "PolicyDisclosure",
+      "PolicyHumanReview",
+      "PolicyReason",
+      "PolicyRule",
+      "Remediation",
+      "Report",
+      "ReportFlowOptions",
+      "ReportFlowState",
+      "ReportResult",
+      "RequestExtras",
+      "RescanResult",
+      "ResolveAppealBody",
+      "ResolveAppealVariables",
+      "Sanction",
+      "SanctionFilters",
+      "SanctionKind",
+      "SanctionState",
+      "Schemas",
+      "Stats",
+      "SubmitAppealBody",
+      "SubmitReportBody",
+      "SystemReasonCode",
+      "TriageFlowOptions",
+      "TriageFlowState",
+      "Verdict",
+      "VerdictBody",
+      "VerdictSanction",
+      "VerdictSource",
+      "VerdictVariables"
+    ]
+  }
+}

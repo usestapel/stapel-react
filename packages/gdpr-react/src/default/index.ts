@@ -20,7 +20,15 @@
  *
  * `<PrivacyPane>` is the wired screen (the nav manifest's `account.privacy`
  * points at it); the four panels are exported individually for a host that
- * places them in its own settings layout.
+ * places them in its own settings layout. `<PrivacyRequestPane>` is the other
+ * wired screen and the only PUBLIC one: the anonymous intake a regulator
+ * expects to exist without a login (`public.privacy-request`).
+ *
+ * There is no theme wrapper and no error surface here any more. Both moved to
+ * `@stapel/tokens-antd/skin` (`SkinTheme`, `ErrorAlert`), which is where a
+ * design-system decision belongs — nine pairs shipped a byte-identical copy of
+ * each, so the reactive-theme fix had to land nine times and landed in eight.
+ * Import them from the substrate; every surface here already wraps itself.
  */
 export { AccountClosurePanel } from "./AccountClosurePanel.js";
 export type { AccountClosurePanelProps } from "./AccountClosurePanel.js";
@@ -32,7 +40,6 @@ export { DsarForm } from "./DsarForm.js";
 export type { DsarFormProps } from "./DsarForm.js";
 export { PrivacyPane } from "./PrivacyPane.js";
 export type { PrivacyPaneProps } from "./PrivacyPane.js";
-export { GdprSkinTheme } from "./theme.js";
-export type { GdprSkinThemeProps } from "./theme.js";
-export { ErrorAlert } from "./ErrorAlert.js";
+export { PrivacyRequestPane } from "./PrivacyRequestPane.js";
+export type { PrivacyRequestPaneProps } from "./PrivacyRequestPane.js";
 export type { ThemeModeProp } from "./types.js";

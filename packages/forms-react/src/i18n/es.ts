@@ -36,6 +36,12 @@ export const formsI18nBundleEs: I18nDictionary = {
   ...ATTRIBUTES_ERRORS_ES,
 
   "forms.error.unknown": "Algo salió mal. Inténtalo de nuevo.",
+  "forms.error.no_workspace":
+    "Esta pantalla necesita un espacio de trabajo. Pasa `workspaceId` o decláralo en el runtime con `createFormsRuntime({ workspaceId })`.",
+
+  "forms.nav.list": "Formularios",
+  "forms.nav.builder": "Editor de formularios",
+  "forms.nav.responses": "Respuestas",
 
   "forms.fill.loading": "Cargando el formulario…",
   "forms.fill.retry": "Reintentar",
@@ -99,6 +105,36 @@ export const formsI18nBundleEs: I18nDictionary = {
   "forms.builder.state_draft": "Borrador",
   "forms.builder.rotate_link": "Renovar el enlace público",
   "forms.builder.public_link": "Enlace público",
+  "forms.builder.blocked.first_field": "Ya es el primer campo.",
+  "forms.builder.blocked.last_field": "Ya es el último campo.",
+
+  "forms.settings.title": "Ajustes del formulario",
+  "forms.settings.open": "Ajustes",
+  "forms.settings.close": "Cerrar",
+  "forms.settings.form_title": "Nombre del formulario",
+  "forms.settings.notify_emails": "Avisar a estas direcciones de correo",
+  "forms.settings.notify_emails_hint":
+    "Cada respuesta nueva se envía por correo a estas direcciones. Sin ninguna configurada, las respuestas se guardan y nadie se entera.",
+  "forms.settings.notify_telegram": "Avisar a estos chats de Telegram",
+  "forms.settings.notify_telegram_hint":
+    "Identificadores de chat, no nombres de usuario: el id de un grupo empieza por un signo menos.",
+  "forms.settings.add_destination": "Escribe un destino y pulsa Intro",
+  "forms.settings.retention": "Eliminar las respuestas después de",
+  "forms.settings.retention_hint":
+    "Días. Una excepción solo puede ACORTAR el periodo de conservación de esta instalación; déjalo vacío para usar el suyo.",
+  "forms.settings.retention_default": "Periodo de la instalación",
+  "forms.settings.no_destination":
+    "No hay ningún destino configurado: una respuesta nueva se guardará y nadie recibirá aviso.",
+  "forms.settings.suspect_emails":
+    "Esto no parecen direcciones de correo y puede que nunca se entreguen: {list}",
+  "forms.settings.save": "Guardar los ajustes",
+  "forms.settings.saved": "Ajustes guardados.",
+  "forms.settings.load_failed": "No pudimos cargar los ajustes de este formulario.",
+  "forms.settings.blocked.loading": "Cargando los ajustes del formulario…",
+  "forms.settings.blocked.saving": "Guardando…",
+  "forms.settings.blocked.no_changes": "Nada ha cambiado desde la última vez que se guardó.",
+  "forms.settings.blocked.retention": "Las respuestas deben conservarse al menos un día.",
+  "forms.settings.blocked.no_title": "Primero dale un nombre al formulario.",
 
   "forms.responses.title": "Respuestas",
   "forms.responses.empty": "Todavía no hay respuestas.",
@@ -126,6 +162,9 @@ export const formsI18nBundleEs: I18nDictionary = {
     "Esta respuesta fue borrada, así que ya no se puede reenviar ni eliminar.",
   "forms.responses.detail": "Detalle de la respuesta",
   "forms.responses.close": "Cerrar",
+  "forms.responses.refresh": "Buscar respuestas nuevas",
+  "forms.responses.polling_note":
+    "Esta lista no se actualiza sola: vuelve a comprobarla para ver las respuestas llegadas desde que se cargó.",
 
   "forms.list.title": "Formularios",
   "forms.list.empty": "Todavía no hay formularios en este espacio de trabajo.",
@@ -133,6 +172,16 @@ export const formsI18nBundleEs: I18nDictionary = {
   "forms.list.create": "Nuevo formulario",
   "forms.list.new_title": "Formulario sin título",
   "forms.list.submission_count": "{count} respuesta(s)",
+  "forms.list.empty_hint":
+    "Un formulario recoge respuestas mediante un enlace público que puedes poner en cualquier página.",
+  "forms.list.open": "Abrir",
+  "forms.list.delete": "Eliminar",
+  "forms.list.delete_confirm": "¿Eliminar «{title}»?",
+  "forms.list.delete_body":
+    "El formulario y sus {count} respuesta(s) dejarán de estar accesibles. El enlace público dejará de funcionar de inmediato.",
+  "forms.list.delete_body_open":
+    "Este formulario está ABIERTO. Al eliminarlo se cierra: el enlace público dejará de funcionar de inmediato y sus {count} respuesta(s) dejarán de estar accesibles.",
+  "forms.list.state_filter": "Filtrar por estado",
 };
 
 /** Register the es bundle. Call AFTER `registerFormsI18n` so it layers over

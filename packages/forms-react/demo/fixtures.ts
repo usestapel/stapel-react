@@ -148,3 +148,39 @@ export const DEMO_FIELD_KINDS = {
   ],
   config_widgets: { number: ["step"], checkbox: [], select_options_with_default: [] },
 };
+
+/** A second row, so the list demo shows a LIST rather than one item — and a
+ * draft beside an open form, so the state tag has something to distinguish. */
+export const DEMO_FORM_ROW_DRAFT = {
+  ...DEMO_FORM_ROW,
+  id: "7bd11f64-5717-4562-b3fc-2c963f66a002",
+  title: "Event signup",
+  public_id: "p2Tt7cQ0mNx4rWv1kD8yLb",
+  state: "draft",
+  active_version: null,
+  active_version_id: null,
+  submission_count: 0,
+};
+
+/** The form the settings demo exists for: nothing configured, so every
+ * response it collects reaches nobody. */
+export const DEMO_FORM_ROW_NO_DESTINATION = {
+  ...DEMO_FORM_ROW,
+  settings: {},
+};
+
+/** A form whose draft has no fields yet — the builder's empty state. */
+export const DEMO_FORM_ROW_EMPTY_DRAFT = {
+  ...DEMO_FORM_ROW,
+  draft_schema: { fields: [], meta: { title: "Contact us" } },
+};
+
+/** A public schema with a kind nothing can draw, so the fill surface's LOUD
+ * fallback (notice + blocked submit) is visible in the gallery. */
+export const DEMO_PUBLIC_FORM_UNSUPPORTED = {
+  ...DEMO_PUBLIC_FORM,
+  fields: [
+    { slug: "name", kind: "string", name: "Your name", mandatory: true, config: {} },
+    { slug: "sketch", kind: "signature", name: "Signature", mandatory: true },
+  ],
+};

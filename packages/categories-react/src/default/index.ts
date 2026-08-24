@@ -15,6 +15,13 @@
  * `CategoryPage` takes `renderListings` — the half of `/c/:slug` that belongs
  * to `@stapel/search-react`, handed in by the container rather than imported
  * across the L2 layer.
+ *
+ * The pair no longer exports a `CategoriesSkinTheme` or its own `ErrorAlert`:
+ * every surface here wraps itself in `SkinTheme` from
+ * `@stapel/tokens-antd/skin`, which is where the light/dark decision, the
+ * painted surface, the 44px phone control height and the one error surface now
+ * live for the whole fleet. A host that wrapped a composition of these parts
+ * imports `SkinTheme` from there instead.
  */
 export { CatalogPage } from "./CatalogPage.js";
 export type { CatalogPageProps } from "./CatalogPage.js";
@@ -30,9 +37,6 @@ export { CategoryPickerField } from "./CategoryPickerField.js";
 export type { CategoryPickerFieldProps } from "./CategoryPickerField.js";
 export { CategoryFeatureList } from "./CategoryFeatureList.js";
 export type { CategoryFeatureListProps } from "./CategoryFeatureList.js";
-export { CategoriesSkinTheme } from "./theme.js";
-export type { CategoriesSkinThemeProps } from "./theme.js";
-export { ErrorAlert } from "./ErrorAlert.js";
 export { CategoryLink } from "./CategoryLink.js";
 export type { CategoryLinkProps, LinkComponentProp } from "./CategoryLink.js";
 export type { ThemeModeProp } from "./types.js";

@@ -1,0 +1,64 @@
+{
+  "package": "@stapel/recordings-react",
+  "version": "0.5.1",
+  "entries": [
+    {
+      "id": "recordings.list",
+      "labelKey": "recordings.list.heading",
+      "icon": "FolderOpenOutlined",
+      "route": {
+        "path": "recordings"
+      },
+      "component": {
+        "export": "RecordingsList",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 40
+    },
+    {
+      "id": "recordings.detail",
+      "labelKey": "recordings.detail.heading",
+      "icon": "ProfileOutlined",
+      "route": {
+        "path": "recordings/:recordingId"
+      },
+      "component": {
+        "export": "RecordingDetailPane",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "recordings.list"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 41
+    },
+    {
+      "id": "share.view",
+      "labelKey": "recordings.share.heading",
+      "icon": "AppstoreOutlined",
+      "route": {
+        "path": "share/:linkToken"
+      },
+      "component": {
+        "export": "SharedRecordingView",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": false,
+      "surface": "public",
+      "order": 90
+    }
+  ]
+}

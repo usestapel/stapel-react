@@ -1,0 +1,58 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/translate-react",
+  "version": "0.0.0",
+  "demos": [
+    {
+      "id": "translate.panel-skin",
+      "title": "Translate panel (default skin)",
+      "description": "The shipped translate surface: one themed card with the empty and loading states a screen owes a person. Replace the body as the pair grows read hooks; keep the frame.",
+      "component": "TranslatePanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Desktop width, nothing to show yet.",
+          "viewport": "desktop",
+          "step": "empty"
+        },
+        {
+          "id": "phone",
+          "description": "The same surface at 390px — the design width.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "loading",
+          "description": "Data in flight: the panel says so instead of drawing an empty box.",
+          "viewport": "phone",
+          "step": "loading"
+        }
+      ],
+      "source": {
+        "file": "demo/TranslateSkin.demo.tsx",
+        "line": 23
+      }
+    },
+    {
+      "id": "translate.provider",
+      "title": "Translate provider",
+      "description": "The headless translate root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "TranslateProvider",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/Translate.demo.tsx",
+        "line": 24
+      }
+    }
+  ]
+}

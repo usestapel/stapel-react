@@ -37,28 +37,17 @@
  * settings screens' reactive pickers, this form commits ONCE via the bag's
  * `submit()` — the §B5 single PATCH carrying `initial_setup_passed: true`.
  */
-import { useMemo } from "react";
+import { spacing } from "@stapel/tokens";
 import type { ReactElement, ReactNode } from "react";
-import {
-  Button,
-  ConfigProvider,
-  Flex,
-  Input,
-  Segmented,
-  Select,
-  Spin,
-  Typography,
-} from "antd";
-import { resolveThemeMode, toAntdThemeConfig } from "@stapel/tokens-antd";
+import { Button, Flex, Input, Segmented, Select, Spin, Typography } from "antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { SkinDialog } from "@stapel/tokens-antd/skin";
+import { ErrorAlert, SkinDialog, SkinTheme } from "@stapel/tokens-antd/skin";
 import {
   actionAvailable,
   actionBlocked,
   loadStateFromQuery,
   matchList,
   useActionGate,
-  useErrorDisplay,
   useT,
 } from "@stapel/core";
 import { InitialSetupPrompt } from "../headless/InitialSetupPrompt.js";
@@ -68,20 +57,19 @@ import type {
 } from "../headless/InitialSetupPrompt.js";
 import { useLanguages } from "../model/queries.js";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
-import { ErrorAlert } from "./ErrorAlert.js";
 import type { MyProfile } from "../api/types.js";
 
 export interface InitialSetupModalProps {
   /**
-   * Light or dark. The theme is derived from `@stapel/tokens` via
-   * `toAntdThemeConfig(mode)` — no manual token wiring, same self-theming
-   * contract as `AuthPanel`. Defaults to the mode the HOST's document
-   * declares (`resolveThemeMode()` — the `data-theme` attribute
-   * `@stapel/tokens`' `tokens.css` keys its dark block on), not to a
-   * hardcoded `"light"`: a light default is a wrong answer on every dark
-   * deployment, and it rendered an unreadable error Alert on a live sandbox
-   * (owner report 2026-08-09 — antd's light algorithm derived a near-white
-   * `colorErrorBg` while `colorText` came live off the host's dark tokens).
+   * Light or dark. Omitted — the normal case — the skin follows the mode the
+   * host's document declares, LIVE, through `SkinTheme`/`useThemeMode`.
+   *
+   * Two failures this replaces, both already paid for: a hardcoded `"light"`
+   * default rendered an unreadable error Alert on a dark sandbox (owner
+   * report 2026-08-09 — antd's light algorithm derived a near-white
+   * `colorErrorBg` while `colorText` came live off the host's dark tokens),
+   * and `resolveThemeMode()` SAMPLES the document once per render, so a host
+   * that flips `data-theme` at runtime left mounted skins on the old side.
    * Pass it explicitly to pin a side.
    */
   readonly mode?: ThemeMode;
@@ -113,7 +101,7 @@ export interface InitialSetupModalProps {
 function SettingRow(props: { label: string; children: ReactNode }): ReactElement {
   return (
     <div>
-      <Typography.Text type="secondary" style={{ display: "block", marginBottom: 6 }}>
+      <Typography.Text type="secondary" style={{ display: "block", marginBottom: spacing[1] }}>
         {props.label}
       </Typography.Text>
       {props.children}
@@ -126,7 +114,6 @@ function ModalBody(props: {
   skippable: boolean;
 }): ReactElement {
   const t = useT();
-  const errorDisplay = useErrorDisplay(PROFILES_I18N_KEYS.unknownError);
   const languages = useLanguages();
   const { bag } = props;
   const catalogue = loadStateFromQuery(languages);
@@ -144,7 +131,7 @@ function ModalBody(props: {
   }
 
   return (
-    <Flex vertical gap={20}>
+    <Flex vertical gap={spacing[5]}>
       <Typography.Text type="secondary">
         {t(PROFILES_I18N_KEYS.initialSetupSubtitle)}
       </Typography.Text>
@@ -184,10 +171,7 @@ function ModalBody(props: {
         matchList(catalogue, {
           loading: () => <Spin data-testid="initial-setup-languages-loading" />,
           failed: (error) => (
-            <ErrorAlert
-              error={errorDisplay(error)}
-              testId="initial-setup-languages-failed"
-            />
+            <ErrorAlert thrown={error} testId="initial-setup-languages-failed" />
           ),
           // Nothing to pick, and nothing broken — first run goes on without
           // the row rather than showing an empty dropdown.
@@ -207,9 +191,9 @@ function ModalBody(props: {
           ),
         })}
 
-      {bag.isError && <ErrorAlert error={errorDisplay(bag.error)} />}
+      <ErrorAlert thrown={bag.isError ? bag.error : undefined} />
 
-      <Flex gap={8} justify="flex-end" align="center">
+      <Flex gap={spacing[2]} justify="flex-end" align="center">
         {/* A switched-off control must say why, as TEXT: a disabled button
             gets no pointer events, so a tooltip on it is a reason nobody can
             read (@stapel/core actionGate.ts). */}
@@ -251,10 +235,12 @@ function ModalBody(props: {
 export function InitialSetupModal(props: InitialSetupModalProps): ReactElement {
   const t = useT();
   const skippable = props.skippable ?? true;
-  const theme = useMemo(() => toAntdThemeConfig(props.mode ?? resolveThemeMode()), [props.mode]);
 
   return (
-    <ConfigProvider theme={theme}>
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
       <InitialSetupPrompt
         {...(props.fields !== undefined ? { fields: props.fields } : {})}
         onSubmitted={(profile) => {
@@ -287,6 +273,6 @@ export function InitialSetupModal(props: InitialSetupModalProps): ReactElement {
           </SkinDialog>
         )}
       </InitialSetupPrompt>
-    </ConfigProvider>
+    </SkinTheme>
   );
 }

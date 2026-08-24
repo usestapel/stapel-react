@@ -1,7 +1,7 @@
 {
   "name": "@stapel/billing-react",
   "version": "0.8.0",
-  "description": "Headless React flow pair for stapel-billing: typed API client, TanStack Query hooks, flow machines, headless components, and i18n keys. Since stapel-billing 0.8.0 a balance is a set of credit lots with expiry dates, so `useWallet` hands out `lots`, `holds` and the server's `expiringSoon` as LoadStates — a failed wallet read can never be drawn as a wallet with no credits, and neither the spend order nor the deadline is recomputed on the client. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin: <WalletPanel/> states the balance, when the expiring credits die, and the two ways to buy side by side with the price per credit under both.",
+  "description": "Headless React flow pair for stapel-billing: typed API client, TanStack Query hooks, flow machines, headless components, and i18n keys. A balance is a set of credit lots with expiry dates, so `useWallet` hands out `lots`, `holds`, the server's `expiringSoon` and (since stapel-billing 0.11.0) `debts`/`debtOutstanding` as LoadStates — a failed wallet read can never be drawn as a wallet with no credits, and neither the spend order nor the deadline nor the debt total is recomputed on the client. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin: <WalletPanel/> states the TWO credit pools separately (bought credits that never expire vs plan credits with a deadline — never one sum), what the wallet owes and what the next purchase will settle, the subscription with its next date, both ways to buy with the price per credit under each, automatic top-up, and the credit ledger.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -31,6 +31,7 @@
     },
     "./manifest": "./manifest.json",
     "./manifest.json": "./manifest.json",
+    "./nav-manifest.json": "./nav-manifest.json",
     "./llms.txt": "./llms.txt",
     "./package.json": "./package.json"
   },
@@ -42,6 +43,7 @@
     "MODULE.md",
     "CHANGELOG.md",
     "manifest.json",
+    "nav-manifest.json",
     "llms.txt"
   ],
   "scripts": {
@@ -55,27 +57,27 @@
     {
       "name": "index — the ru/es locales must NOT be in the main bundle",
       "path": "dist/index.js",
-      "limit": "12 KB"
+      "limit": "7 KB"
     },
     {
-      "name": "default — the antd skin (the wallet panel and the two-column shop) must stay out of the main bundle",
+      "name": "default — the antd skin (the two credit pools, the debt, the subscription card, the shop, auto-recharge and the ledger) must stay out of the main bundle",
       "path": "dist/default/index.js",
-      "limit": "9 KB"
+      "limit": "11 KB"
     },
     {
       "name": "i18n/ru subpath (opt-in locale: en floor + generated ru + ru UI)",
       "path": "dist/i18n/ru.js",
-      "limit": "3.5 KB"
+      "limit": "6.5 KB"
     },
     {
-      "name": "i18n/es subpath (opt-in locale: en floor + generated es errors; no es UI copy yet)",
+      "name": "i18n/es subpath (opt-in locale: en floor + generated es errors + es UI)",
       "path": "dist/i18n/es.js",
-      "limit": "2.5 KB"
+      "limit": "5.5 KB"
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.13.0 <1.0.0",
-    "@stapel/tokens-antd": ">=0.5.0",
+    "@stapel/core": ">=0.18.0 <1.0.0",
+    "@stapel/tokens-antd": ">=0.6.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"

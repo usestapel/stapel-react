@@ -1,0 +1,25 @@
+{
+  "package": "@stapel/tasks-react",
+  "version": "0.0.0",
+  "entries": [
+    {
+      "id": "tasks.overview",
+      "labelKey": "tasks.nav.overview",
+      "icon": "AppstoreOutlined",
+      "route": {
+        "path": "tasks"
+      },
+      "component": {
+        "export": "TasksPanel",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 50
+    }
+  ]
+}

@@ -1,0 +1,350 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/docs-react",
+  "version": "0.3.2",
+  "demos": [
+    {
+      "id": "docs.breadcrumbs",
+      "title": "Breadcrumbs",
+      "description": "The trail is walked up parent_id over the one folder read. While that read is in flight the root crumb alone is the honest render — a breadcrumb bar must never invent the path it is not sure of.",
+      "component": "FileManagerBreadcrumbs",
+      "covers": [
+        "Breadcrumbs"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "All documents › Specifications › Drafts.",
+          "viewport": "phone"
+        },
+        {
+          "id": "root",
+          "description": "At the workspace root: one crumb, and it is the truth.",
+          "viewport": "phone"
+        },
+        {
+          "id": "loading",
+          "description": "The folder read has not landed — the root crumb, not a guessed trail.",
+          "viewport": "phone"
+        }
+      ],
+      "source": {
+        "file": "demo/FileManagerBreadcrumbs.demo.tsx",
+        "line": 29
+      }
+    },
+    {
+      "id": "docs.dialogs",
+      "title": "Dialogs",
+      "description": "Rename, move and New document. Their affirmative is a GatedButton, not a boolean disabled: an empty name and a destination that is where the item already is each say so in a sentence the button's aria-describedby points at, instead of leaving a grey rectangle a person has to guess about.",
+      "component": "NameDialog",
+      "covers": [
+        "MoveDialog",
+        "NewDocumentDialog"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Rename, prefilled with the current name — the confirm is live.",
+          "viewport": "phone"
+        },
+        {
+          "id": "name-empty",
+          "description": "Nothing typed: the confirm is off WITH the reason.",
+          "viewport": "phone"
+        },
+        {
+          "id": "move-unchanged",
+          "description": "Opened on the folder the document is already in — off, and it says why.",
+          "viewport": "phone"
+        },
+        {
+          "id": "new-document",
+          "description": "The primary action of a documents product: a title and a type.",
+          "viewport": "phone"
+        }
+      ],
+      "source": {
+        "file": "demo/dialogs.demo.tsx",
+        "line": 45
+      }
+    },
+    {
+      "id": "docs.document",
+      "title": "Document",
+      "description": "The resolution ladder: an explicitly registered editor, then the skin's default for the hint, then the unstyled builtin, then the file card. The crdt variant is the guard this pair was missing — a type whose write discipline is the update journal must not be handed a snapshot Save the wire would refuse, so it gets a stated reason and its bytes.",
+      "component": "DocSurface",
+      "covers": [
+        "DocEditor"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A markdown document on the If-Match snapshot path.",
+          "viewport": "phone"
+        },
+        {
+          "id": "download-only",
+          "description": "editor_hint '' — the file card, with the download.",
+          "viewport": "phone"
+        },
+        {
+          "id": "crdt-unsupported",
+          "description": "A crdt-discipline type with no registered collaborative editor.",
+          "viewport": "phone"
+        },
+        {
+          "id": "not-found",
+          "description": "The head read answered 404 — the sentence and a retry.",
+          "viewport": "desktop"
+        }
+      ],
+      "source": {
+        "file": "demo/DocSurface.demo.tsx",
+        "line": 38
+      }
+    },
+    {
+      "id": "docs.document-list",
+      "title": "Document list",
+      "description": "Dates and sizes formatted in the APP's locale, not the browser's. The 'no-open' variant is the §83 rule with teeth: a host that passes no onOpenDocument gets rows with no Open item and no clickable cursor, rather than an affordance that answers nothing.",
+      "component": "DocumentListPane",
+      "covers": [
+        "DocumentList"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Three unfiled documents with their per-row actions menu.",
+          "viewport": "phone"
+        },
+        {
+          "id": "no-open-route",
+          "description": "No onOpenDocument: no Open item, no clickable row.",
+          "viewport": "phone"
+        },
+        {
+          "id": "empty",
+          "description": "The designed empty state with the sentence that says what to do next.",
+          "viewport": "phone"
+        }
+      ],
+      "source": {
+        "file": "demo/DocumentListPane.demo.tsx",
+        "line": 31
+      }
+    },
+    {
+      "id": "docs.editors",
+      "title": "Editors",
+      "description": "Every builtin editor rides one EditorChrome: Save (also Ctrl/Cmd-S), the dirty marker, the saving state, the conflict banner with the informed override, and the folded error line. Markdown is a SOURCE editor on purpose — a default that dragged a WYSIWYG dependency in would not be a default, it would be a decision; a host swaps it with registerDocEditor or the editor.markdown slot.",
+      "component": "DefaultTextEditor",
+      "covers": [
+        "EditorChrome",
+        "DefaultMarkdownEditor",
+        "DefaultCsvEditor",
+        "DocEditor"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Plain text, saved, nothing dirty.",
+          "viewport": "phone"
+        },
+        {
+          "id": "markdown",
+          "description": "Markdown source in a monospace field.",
+          "viewport": "phone"
+        },
+        {
+          "id": "csv",
+          "description": "A CSV snapshot as a table of cells: add row / add column / delete row.",
+          "viewport": "desktop"
+        }
+      ],
+      "source": {
+        "file": "demo/editors.demo.tsx",
+        "line": 45
+      }
+    },
+    {
+      "id": "docs.file-card",
+      "title": "File card",
+      "description": "editor_hint '' means download-only by contract, and an unknown hint degrades here too — a file, never a crash. The download button is gated, so a URL that could not be minted greys it out WITH the reason: 'still minting' and 'the mint failed' used to look identical.",
+      "component": "FileCard",
+      "covers": [
+        "MediaViewer"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The opaque URL minted; the download is live.",
+          "viewport": "phone"
+        },
+        {
+          "id": "minting",
+          "description": "The URL is still being minted — off, and it says so.",
+          "viewport": "phone"
+        },
+        {
+          "id": "mint-failed",
+          "description": "Storage cannot mint links: the title survives, only the download is blocked.",
+          "viewport": "desktop"
+        }
+      ],
+      "source": {
+        "file": "demo/FileCard.demo.tsx",
+        "line": 33
+      }
+    },
+    {
+      "id": "docs.file-manager",
+      "title": "File manager",
+      "description": "The workspace's documents: folder tree beside the list on a wide box, one pane at a time under the tablet breakpoint (measured off the container, not the viewport). New document and Upload are both here because both are how a document comes into existence. Every row's menu opens by click as well as by right-click, so rename/move/trash are reachable by keyboard and on touch.",
+      "component": "FileManager",
+      "covers": [
+        "DocsProvider",
+        "DocumentList",
+        "FolderTree",
+        "Breadcrumbs",
+        "DocUploader"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Two panes, three documents, two folders.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "phone",
+          "description": "One pane at a time with a Folders/Files switch; 44px controls.",
+          "viewport": "phone"
+        },
+        {
+          "id": "empty",
+          "description": "A workspace with nothing in it — said only about a read that succeeded.",
+          "viewport": "phone"
+        },
+        {
+          "id": "loading",
+          "description": "Both reads still in flight: skeletons, and no claim about emptiness.",
+          "viewport": "phone"
+        },
+        {
+          "id": "outage",
+          "description": "Both reads answered 500 — the failure is stated, never dressed as an empty workspace.",
+          "viewport": "desktop"
+        }
+      ],
+      "source": {
+        "file": "demo/FileManager.demo.tsx",
+        "line": 45
+      }
+    },
+    {
+      "id": "docs.folder-tree",
+      "title": "Folder tree",
+      "description": "One wire read, rendered as a tree by parent_id. A folder whose parent is missing (trashed) stays reachable as a root rather than disappearing. The failed arm is a stated failure, never 'no folders yet'.",
+      "component": "FolderTreePane",
+      "covers": [
+        "FolderTree"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Two folders, one nested, with the per-folder actions menu.",
+          "viewport": "phone"
+        },
+        {
+          "id": "empty",
+          "description": "No folders yet — beside a live New folder button.",
+          "viewport": "phone"
+        },
+        {
+          "id": "failed",
+          "description": "The folder read failed: the sentence and a retry, not an empty tree.",
+          "viewport": "desktop"
+        }
+      ],
+      "source": {
+        "file": "demo/FolderTreePane.demo.tsx",
+        "line": 27
+      }
+    },
+    {
+      "id": "docs.revisions",
+      "title": "Version history",
+      "description": "A bottom sheet on a phone and a centred modal above the tablet breakpoint, with the list and the preview stacking on a narrow one. Rollback is switched off on the revision the document is already at — restoring it would write a byte-identical head and a history entry saying nothing happened — and the reason is beside the button, because a disabled control receives no pointer events.",
+      "component": "RevisionsModal",
+      "covers": [
+        "RevisionHistory"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Two revisions; the head's rollback is off with its reason.",
+          "viewport": "phone"
+        },
+        {
+          "id": "desktop",
+          "description": "The modal: list beside preview.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "empty",
+          "description": "A document nobody has saved twice yet.",
+          "viewport": "phone"
+        },
+        {
+          "id": "binary",
+          "description": "A binary document's revisions offer a download, not a garbled preview.",
+          "viewport": "phone"
+        }
+      ],
+      "source": {
+        "file": "demo/RevisionsModal.demo.tsx",
+        "line": 42
+      }
+    },
+    {
+      "id": "docs.trash",
+      "title": "Trash",
+      "description": "Three states that a boolean `disabled` used to blur into one grey button: the read is in flight, the read failed, or the trash is genuinely empty. Each says which, in a sentence beside the control that aria-describedby points at. Delete-forever is confirmed through SkinConfirm — a bottom sheet on a phone, never a popover clipped against the screen edge.",
+      "component": "TrashPane",
+      "covers": [
+        "TrashBin"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "One trashed folder and one trashed document; Empty trash is live.",
+          "viewport": "phone"
+        },
+        {
+          "id": "empty",
+          "description": "Genuinely empty: the button is off WITH the empty reason.",
+          "viewport": "phone"
+        },
+        {
+          "id": "failed",
+          "description": "The read answered 404: the button is off with the LOAD-FAILURE reason, not the empty one.",
+          "viewport": "desktop"
+        }
+      ],
+      "source": {
+        "file": "demo/TrashPane.demo.tsx",
+        "line": 23
+      }
+    }
+  ]
+}

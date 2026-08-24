@@ -23,14 +23,16 @@
  *    when it was last used — or, honestly, that it never has been — and the
  *    two actions that exist against the contract.
  *
- * **RENAME DOES NOT EXIST YET, and is deliberately not faked.** The pair's
- * whole passkey surface is `GET /passkey/`, `POST /passkey/register/{begin,
- * complete}/` and `DELETE /passkey/{id}/`; `device_name` is writable exactly
- * once, at register-complete, and there is no route that updates it
- * afterwards. A rename control here would be a button that cannot do its job,
- * which is the same defect as the LOG IN button one paragraph up. What the
- * backend would need is one route — `PATCH /passkey/{id}/ {"device_name": …}`
- * — and this row is shaped so that adding it is a button, not a redesign.
+ * **RENAME IS WRITTEN HERE AND SWITCHED OFF BY THE CONTRACT.** The pair's
+ * whole passkey surface today is `GET /passkey/`, `POST /passkey/register/
+ * {begin,complete}/` and `DELETE /passkey/{id}/`; `device_name` is writable
+ * exactly once, at register-complete. A rename control against that is a
+ * button that cannot do its job — the same defect as the LOG IN button one
+ * paragraph up — so the affordance is NOT RENDERED rather than rendered
+ * greyed out. `PASSKEY_RENAME_SUPPORTED` (src/api/authApi.ts) is a
+ * compile-time tripwire on the generated contract: the regen that brings
+ * `PATCH /passkey/{id}/` in fails the build at that one constant, it flips to
+ * true, and this UI lights up with no further edit.
  *
  * INTERACTION CANON — passkey = direct trigger, NEVER a modal (owner
  * directive 2026-07-17, folded into frontend-guidelines.md §8): the
@@ -49,27 +51,44 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Alert, Button, Card, Empty, Flex, Spin, Tag, Typography } from "antd";
+import {
+  Button,
+  Card,
+  Flex,
+  Form,
+  Input,
+  Spin,
+  Tag,
+  Typography,
+  theme as antdTheme,
+} from "antd";
 import {
   actionAvailable,
   actionBlocked,
   loadStateFromQuery,
-  matchList,
-  useActionGate,
-  useErrorDisplay,
-  useFormatFlowError,
   useT,
 } from "@stapel/core";
-import { SkinDialog } from "@stapel/tokens-antd/skin";
+import {
+  EmptyState,
+  ErrorAlert,
+  GatedButton,
+  LoadList,
+  SkinConfirm,
+  SkinDialog,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
+import { fontSize } from "@stapel/tokens";
 import type { Passkey } from "../../api/types.js";
+import { PASSKEY_RENAME_SUPPORTED } from "../../api/authApi.js";
 import { PasskeyRegistration } from "../../headless/Passkey.js";
 import type { PasskeyRegistrationBag, WebauthnBinding } from "../../headless/Passkey.js";
-import { useRemovePasskey } from "../../model/mutations.js";
+import { useRemovePasskey, useRenamePasskey } from "../../model/mutations.js";
 import { usePasskeys } from "../../model/queries.js";
+import { useAuthDateFormat } from "../../model/formatDate.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import { isWebauthnSupported } from "../../webauthn.js";
-import { ErrorAlert } from "../ErrorAlert.js";
 import { SecurityEmptyIcon } from "./icons.js";
+import { SecurityList, SecurityListRow } from "./SecurityListRow.js";
 
 /** A generic device name inferred from the user agent — good enough for a
  * first-pass label; the ceremony is never gated on the user typing one. */
@@ -82,11 +101,6 @@ function inferDeviceName(): string {
   if (/Macintosh/.test(ua)) return "Mac";
   if (/Windows/.test(ua)) return "Windows PC";
   return "Passkey";
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString();
 }
 
 /**
@@ -113,89 +127,82 @@ function kindKeyFor(transports: readonly string[]): string {
 
 /**
  * One stored credential: what it is, when it arrived, whether it is in use,
- * and the one action the contract supports against it.
- *
- * Removal confirms in a `SkinDialog` rather than a `Popconfirm`. A popover
- * anchored to a small `type="link"` button is a desktop shape: on a phone it
- * can render off-viewport and its Ok/Cancel targets are under the touch
- * minimum — and this particular Ok permanently deletes a sign-in credential.
+ * and the actions the contract supports against it. The row shape is the
+ * shared `SecurityListRow` — an explicit action slot instead of ad-hoc
+ * flex-wrap, which is what produced two different geometries for two
+ * identical rows at one phone width (visual pass C5).
  */
 function PasskeyRow(props: {
   passkey: Passkey;
   onRemove: () => void;
-  removing: boolean;
+  onRename: () => void;
 }): ReactElement {
   const t = useT();
-  const [confirming, setConfirming] = useState(false);
+  const when = useAuthDateFormat();
   const p = props.passkey;
   return (
-    <Flex
-      justify="space-between"
-      align="flex-start"
-      gap="middle"
-      wrap
-      style={{ width: "100%" }}
+    <SecurityListRow
       data-testid="passkey-row"
-    >
-      <Flex vertical gap={4}>
-        <Flex align="center" gap="small" wrap>
-          <Typography.Text strong>{p.device_name}</Typography.Text>
-          <Tag data-testid="passkey-kind">{t(kindKeyFor(p.transports))}</Tag>
-        </Flex>
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          {t(AUTH_I18N_KEYS.secPasskeysAddedOn, { date: formatDate(p.created_at) })}
-        </Typography.Text>
-        {/* "Never used" is a real fact about a credential, and a useful one —
-            it is how a person spots the key they enrolled and then lost. An
-            empty line here would have said the same thing by saying nothing. */}
-        <Typography.Text type="secondary" style={{ fontSize: 12 }} data-testid="passkey-last-used">
-          {p.last_used_at === null
-            ? t(AUTH_I18N_KEYS.secPasskeysNeverUsed)
-            : t(AUTH_I18N_KEYS.secPasskeysLastUsed, { date: formatDate(p.last_used_at) })}
-        </Typography.Text>
-      </Flex>
-      <Button
-        danger
-        onClick={() => setConfirming(true)}
-        data-analytics="none"
-        data-analytics-reason="local-ui-open-remove-passkey-confirm"
-      >
-        {t(AUTH_I18N_KEYS.secPasskeysRemove)}
-      </Button>
-      <SkinDialog
-        open={confirming}
-        onClose={() => setConfirming(false)}
-        title={t(AUTH_I18N_KEYS.secPasskeysRemoveConfirmTitle)}
-        dismissLabel={t(AUTH_I18N_KEYS.uiClose)}
-        data-testid="passkey-remove-confirm"
-        footer={
-          <Flex justify="end" gap="small">
+      title={p.device_name}
+      badges={<Tag data-testid="passkey-kind">{t(kindKeyFor(p.transports))}</Tag>}
+      meta={
+        <>
+          <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
+            {t(AUTH_I18N_KEYS.secPasskeysAddedOn, { date: when.date(p.created_at) })}
+          </Typography.Text>
+          {/* "Never used" is a real fact about a credential, and a useful one —
+              it is how a person spots the key they enrolled and then lost. An
+              empty line here would have said the same thing by saying nothing.
+              The date is RELATIVE: "last used" is the one field people read as
+              a duration, and `toLocaleDateString()` answered it in the
+              BROWSER's locale rather than the app's. */}
+          <Typography.Text
+            type="secondary"
+            style={{ fontSize: fontSize.xs.fontSize }}
+            data-testid="passkey-last-used"
+          >
+            {p.last_used_at === null
+              ? t(AUTH_I18N_KEYS.secPasskeysNeverUsed)
+              : t(AUTH_I18N_KEYS.secPasskeysLastUsed, {
+                  date: when.relative(p.last_used_at),
+                })}
+          </Typography.Text>
+        </>
+      }
+      actions={
+        <>
+          {PASSKEY_RENAME_SUPPORTED && (
             <Button
-              onClick={() => setConfirming(false)}
+              type="text"
+              onClick={props.onRename}
+              aria-label={t(AUTH_I18N_KEYS.secPasskeysRenameLabel, {
+                name: p.device_name,
+              })}
               data-analytics="none"
-              data-analytics-reason="local-ui-dismiss-remove-passkey-confirm"
+              data-analytics-reason="local-ui-open-rename-passkey"
             >
-              {t(AUTH_I18N_KEYS.uiClose)}
+              {t(AUTH_I18N_KEYS.secPasskeysRename)}
             </Button>
-            <Button
-              danger
-              type="primary"
-              loading={props.removing}
-              onClick={() => {
-                setConfirming(false);
-                props.onRemove();
-              }}
-              data-testid="passkey-remove-ok"
-              data-analytics="flow"
-            >
-              {t(AUTH_I18N_KEYS.secPasskeysRemove)}
-            </Button>
-          </Flex>
-        }
-      >
-        <Typography.Text>{p.device_name}</Typography.Text>
-      </SkinDialog>
-    </Flex>
+          )}
+          {/* `type="text"`, not a red outline: two outlined destructive
+              buttons stacked were the loudest elements on a screen whose whole
+              purpose is reassurance. The danger weight moves to the confirm,
+              where the decision is actually taken. */}
+          <Button
+            type="text"
+            danger
+            onClick={props.onRemove}
+            aria-label={t(AUTH_I18N_KEYS.secPasskeysRemoveLabel, {
+              name: p.device_name,
+            })}
+            data-analytics="none"
+            data-analytics-reason="local-ui-open-remove-passkey-confirm"
+          >
+            {t(AUTH_I18N_KEYS.secPasskeysRemove)}
+          </Button>
+        </>
+      }
+    />
   );
 }
 
@@ -207,7 +214,6 @@ function AddJourney(props: {
   onDone: () => void;
 }): ReactElement {
   const t = useT();
-  const formatError = useFormatFlowError();
   const { bag, deviceName } = props;
   const s = bag.state;
   const started = useRef(false);
@@ -219,7 +225,7 @@ function AddJourney(props: {
 
   if (s.step === "idle" || s.step === "beginning" || s.step === "completing") {
     return (
-      <Flex justify="center">
+      <Flex justify="center" role="status" aria-busy="true">
         <Spin />
       </Flex>
     );
@@ -230,7 +236,7 @@ function AddJourney(props: {
     // credential for you" — five sentences where there used to be one shrug.
     return (
       <Flex vertical gap="middle">
-        <Alert type="error" showIcon message={formatError(s.error)} />
+        <ErrorAlert thrown={s.error} />
         <Flex justify="end">
           <Button
             onClick={props.onDone}
@@ -278,17 +284,18 @@ export interface PasskeysManagerProps {
   readonly emptyIcon?: ReactNode;
 }
 
-/** Full passkey security screen: list, remove, add (direct-trigger ceremony
- * — no modal, no name prompt; see the module doc's interaction canon). */
+/** Full passkey security screen: list, rename (when the contract has it),
+ * remove, add (direct-trigger ceremony — no modal, no name prompt; see the
+ * module doc's interaction canon). */
 export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
   const t = useT();
-  // A failed passkey read must never read as "you have no passkeys" — on a
-  // security screen that sentence invites the user to add a passkey they
-  // already have, or to conclude their account is less protected than it is.
-  const errorDisplay = useErrorDisplay(AUTH_I18N_KEYS.unknownError);
+  const { token } = antdTheme.useToken();
   const passkeys = usePasskeys();
   const remove = useRemovePasskey();
+  const rename = useRenamePasskey();
   const [adding, setAdding] = useState(false);
+  const [removing, setRemoving] = useState<Passkey | null>(null);
+  const [renaming, setRenaming] = useState<Passkey | null>(null);
   // A browser with no WebAuthn will never raise a prompt, so "Add" cannot
   // work here. The screen has always known that — it just used to spend the
   // knowledge AFTER the click, inside a ceremony that hangs. The reason is
@@ -300,77 +307,163 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
   // whether a ceremony can run — the gate has to ask both questions or it
   // switches off the very hosts the injection seam exists for.
   const canAdd = isWebauthnSupported() || props.webauthnCreate !== undefined;
-  const addGate = useActionGate(
-    canAdd ? actionAvailable() : actionBlocked(AUTH_I18N_KEYS.secPasskeysAddUnsupported)
-  );
+  const addGate = canAdd
+    ? actionAvailable()
+    : actionBlocked(AUTH_I18N_KEYS.secPasskeysAddUnsupported);
 
   const state = loadStateFromQuery(passkeys);
   const hasAny = passkeys.data !== undefined && passkeys.data.length > 0;
 
   return (
-    <Card
-      title={t(AUTH_I18N_KEYS.secPasskeysTitle)}
-      data-testid="passkeys-manager"
-      style={{ width: "100%" }}
-      extra={
-        <Flex align="center" gap="small" wrap justify="end">
-          {addGate.reason !== undefined && (
-            <Typography.Text
-              type="secondary"
-              style={{ fontSize: 12 }}
-              data-testid="passkeys-add-blocked"
-            >
-              {addGate.reason}
-            </Typography.Text>
-          )}
-          <Button
+    <SkinTheme surface="bare">
+      <Card
+        title={t(AUTH_I18N_KEYS.secPasskeysTitle)}
+        data-testid="passkeys-manager"
+        style={{ width: "100%" }}
+        extra={
+          <GatedButton
+            gate={addGate}
             type="primary"
-            disabled={adding || addGate.disabled}
+            testId="passkeys-add"
             onClick={() => setAdding(true)}
+            {...(adding ? { loading: true } : {})}
             data-analytics="flow"
           >
             {/* "Add another" once there is one — the list right above already
                 said what a passkey is, and the generic label reads as though
                 the first one had not registered. */}
-            {t(hasAny ? AUTH_I18N_KEYS.secPasskeysAddAnother : AUTH_I18N_KEYS.secPasskeysAdd)}
-          </Button>
-        </Flex>
-      }
-    >
-      {matchList(state, {
-        loading: () => <Spin />,
-        failed: (error) => (
-          <ErrorAlert error={errorDisplay(error)} onRetry={() => void passkeys.refetch()} />
-        ),
-        // The add ceremony below replaces the empty state while it runs.
-        empty: () =>
-          adding ? null : (
-            <Empty
-              image={props.emptyIcon ?? <SecurityEmptyIcon />}
-              description={t(AUTH_I18N_KEYS.secPasskeysEmpty)}
-            />
-          ),
-        ready: (list) => (
-          <Flex vertical gap="middle">
-            {list.map((p) => (
-              <PasskeyRow
-                key={p.id}
-                passkey={p}
-                onRemove={() => remove.mutate(p.id)}
-                removing={remove.isPending && remove.variables === p.id}
+            {t(
+              hasAny
+                ? AUTH_I18N_KEYS.secPasskeysAddAnother
+                : AUTH_I18N_KEYS.secPasskeysAdd
+            )}
+          </GatedButton>
+        }
+      >
+        <LoadList
+          state={state}
+          testId="passkeys"
+          onRetry={() => void passkeys.refetch()}
+          empty={
+            // The add ceremony replaces the empty state while it runs.
+            adding ? (
+              <Flex justify="center" role="status" aria-busy="true">
+                <Spin />
+              </Flex>
+            ) : (
+              <EmptyState
+                icon={props.emptyIcon ?? <SecurityEmptyIcon />}
+                title={t(AUTH_I18N_KEYS.secPasskeysEmpty)}
+                hint={t(AUTH_I18N_KEYS.secPasskeysEmptyHint)}
+                // The way out lives IN the empty state. It used to live only
+                // in the card header, ~380px away across a dead zone, so the
+                // one screen telling a person they had no passkey offered
+                // them nothing to press about it (visual pass C7).
+                action={
+                  <GatedButton
+                    gate={addGate}
+                    type="primary"
+                    testId="passkeys-add-empty"
+                    onClick={() => setAdding(true)}
+                    data-analytics="flow"
+                  >
+                    {t(AUTH_I18N_KEYS.secPasskeysAdd)}
+                  </GatedButton>
+                }
               />
-            ))}
-          </Flex>
-        ),
-      })}
-
-      {adding && (
-        <PasskeyRegistration {...(props.webauthnCreate !== undefined ? { webauthnCreate: props.webauthnCreate } : {})}>
-          {(bag) => (
-            <AddJourney bag={bag} deviceName={inferDeviceName()} onDone={() => setAdding(false)} />
+            )
+          }
+        >
+          {(list) => (
+            <SecurityList ruleColor={token.colorBorderSecondary}>
+              {list.map((p) => (
+                <PasskeyRow
+                  key={p.id}
+                  passkey={p}
+                  onRemove={() => setRemoving(p)}
+                  onRename={() => setRenaming(p)}
+                />
+              ))}
+            </SecurityList>
           )}
-        </PasskeyRegistration>
-      )}
-    </Card>
+        </LoadList>
+
+        <ErrorAlert thrown={remove.error} />
+        <ErrorAlert thrown={rename.error} />
+
+        {adding && (
+          <PasskeyRegistration
+            {...(props.webauthnCreate !== undefined
+              ? { webauthnCreate: props.webauthnCreate }
+              : {})}
+          >
+            {(bag) => (
+              <AddJourney
+                bag={bag}
+                deviceName={inferDeviceName()}
+                onDone={() => setAdding(false)}
+              />
+            )}
+          </PasskeyRegistration>
+        )}
+
+        {/* ONE confirm for the whole list, keyed by the credential waiting on
+            it — not one mounted dialog per row to show at most one. */}
+        <SkinConfirm
+          open={removing !== null}
+          danger
+          title={t(AUTH_I18N_KEYS.secPasskeysRemoveConfirmTitle)}
+          {...(removing !== null ? { body: removing.device_name } : {})}
+          confirmLabel={t(AUTH_I18N_KEYS.secPasskeysRemove)}
+          confirming={remove.isPending}
+          data-testid="passkey-remove-confirm"
+          onConfirm={() => {
+            const target = removing;
+            if (target === null) return;
+            remove.mutate(target.id, { onSettled: () => setRemoving(null) });
+          }}
+          onCancel={() => setRemoving(null)}
+        />
+
+        {PASSKEY_RENAME_SUPPORTED && (
+          <SkinDialog
+            open={renaming !== null}
+            onClose={() => setRenaming(null)}
+            title={t(AUTH_I18N_KEYS.secPasskeysRename)}
+            dismissLabel={t(AUTH_I18N_KEYS.uiClose)}
+            data-testid="passkey-rename-dialog"
+          >
+            <Form
+              layout="vertical"
+              initialValues={{ deviceName: renaming?.device_name ?? "" }}
+              onFinish={(v: { deviceName?: string }) => {
+                const target = renaming;
+                if (target === null) return;
+                rename.mutate(
+                  { id: target.id, deviceName: v.deviceName ?? "" },
+                  { onSettled: () => setRenaming(null) }
+                );
+              }}
+            >
+              <Form.Item
+                name="deviceName"
+                label={t(AUTH_I18N_KEYS.secPasskeysRenameField)}
+              >
+                <Input autoFocus />
+              </Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                block
+                loading={rename.isPending}
+                data-analytics="flow"
+              >
+                {t(AUTH_I18N_KEYS.secPasskeysRenameSave)}
+              </Button>
+            </Form>
+          </SkinDialog>
+        )}
+      </Card>
+    </SkinTheme>
   );
 }

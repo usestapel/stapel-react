@@ -1,0 +1,26 @@
+{
+  "package": "@stapel/billing-react",
+  "version": "0.8.0",
+  "entries": [
+    {
+      "id": "account.billing",
+      "labelKey": "billing.wallet.heading",
+      "icon": "TagOutlined",
+      "route": {
+        "path": "billing"
+      },
+      "component": {
+        "export": "WalletPanel",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "account.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 80
+    }
+  ]
+}

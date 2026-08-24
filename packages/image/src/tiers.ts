@@ -31,12 +31,59 @@ export function numericTier(tier: string): number | null {
 }
 
 /**
- * A SOURCE-AGNOSTIC image descriptor (`stapel_core.media.StapelImage`) — the
- * single contract `<Image>` consumes for ANY image, CDN ladder or not. A
- * superset of `RenderMetadata`: adds `source` + an always-present top-level
- * `url`. `variants` is the ladder when present, or `[]` for a `"link"`
- * (external URL) / unprocessed file, in which case `<Image>` degrades to the
- * single `url` + `aspect` (layout) + `preview_b64` (blur-up, when available).
+ * What the inline `preview_b64` placeholder IS — stapel-cdn's `preview_kind`.
+ *
+ * The reason this is a separate field from `preview_b64` and not a guess made
+ * from the bytes: it is known **before the preview exists**. A row whose
+ * processing pass has not run reports `preview_kind: "waveform"` with
+ * `preview_b64: null`, and that is exactly enough for a client to reserve a box
+ * of the right SHAPE instead of collapsing to nothing and jumping later.
+ *
+ * - `"blur"` — a micro thumbnail of a still image. Blur it up.
+ * - `"poster"` — a frame lifted out of a video. It is a real, sharp picture of
+ *   the content; blurring it throws away the one thing it is for.
+ * - `"waveform"` — a rendered amplitude strip for audio. Not a photograph at
+ *   all: cropping it to `cover` and blurring it produces noise.
+ */
+export type PreviewKind = "blur" | "poster" | "waveform";
+
+/**
+ * stapel-cdn's OPEN media-kind registry (`STAPEL_CDN["MEDIA_KINDS"]`): the
+ * built-ins are `image`, `gif`, `video`, `audio`, `file`, and a host may
+ * declare its own. Spelled as the union plus `string` so the known kinds
+ * autocomplete while an unknown one from a host's registry still assigns —
+ * narrowing this to a closed union would make a host's own configuration a type
+ * error, which is the same mistake `CdnRef`'s asset type documents.
+ */
+export type MediaKind = "image" | "gif" | "video" | "audio" | "file" | (string & {});
+
+/**
+ * How complete the ingest snapshot is: `"ok"` — everything this kind promises
+ * is present; `"partial"` — some of it is; `"missing"` — none of it. A
+ * `meta_reason` names WHY whenever it is not `"ok"` (stapel-cdn's `REASONS`:
+ * `not_generated`, `decoder_missing`, `preview_over_budget`, `source_missing`,
+ * `encode_failed`, `ffprobe_missing`, `ffmpeg_missing`, `probe_failed`,
+ * `render_failed`, `tool_timeout`).
+ */
+export type MetaStatus = "ok" | "partial" | "missing";
+
+/**
+ * A SOURCE-AGNOSTIC media descriptor (`stapel_core.media.StapelImage`) — the
+ * single contract `<Image>` consumes for ANY image, CDN ladder or not.
+ * `variants` is the ladder when present, or `[]` for a `"link"` (external URL)
+ * / unprocessed file, in which case `<Image>` degrades to the single `url` +
+ * `aspect` (layout) + `preview_b64` (the placeholder, when available).
+ *
+ * ── The six optional fields, and why they are optional ─────────────────────
+ *
+ * Everything from `kind` down is stapel-cdn's single-pass render metadata
+ * (§83.2), reached over `POST /cdn/api/v1/describe/` or inlined as
+ * `render_meta` on an upload response. A host that builds a `StapelImage` by
+ * hand — a `"link"` to somebody else's URL, a local file — knows none of it,
+ * and must not be forced to write `null` six times to say so. Absent means
+ * "not known", which is a different statement from `null` ("known to be
+ * nothing") only for `duration_ms`, where the contract makes the distinction
+ * load-bearing: `null` is *unmeasured*, `0` is an empty voice note.
  */
 export interface StapelImage {
   source: "cdn" | "file" | "link";
@@ -47,30 +94,44 @@ export interface StapelImage {
   height: number | null;
   aspect: number | null;
   square: boolean;
+  /**
+   * `data:image/...;base64,…` — the inline placeholder. `<Image>` refuses
+   * anything that is not a `data:image/` URI: this value is host-built as often
+   * as it is server-sent, and it goes straight into a `src`.
+   */
   preview_b64: string | null;
   variants: VariantMeta[];
+
+  /** What medium this is. Drives whether an `<img>` may load `url` at all. */
+  kind?: MediaKind | null;
+  /** What `preview_b64` is — known even while `preview_b64` is still null. */
+  preview_kind?: PreviewKind | null;
+  /** Duration of a time-based medium. `null` = unmeasured; `0` = empty. */
+  duration_ms?: number | null;
+  /** A full-size still for a video — what an `<img>` may actually load. */
+  poster_url?: string | null;
+  /** How complete this snapshot is. */
+  meta_status?: MetaStatus;
+  /** Why `meta_status` is not `"ok"`; `null` when it is. */
+  meta_reason?: string | null;
 }
 
 /**
- * Immutable render-metadata snapshot produced on ingest by stapel-cdn (or the
- * PIL provider) and resolved via `cdn.describe(ref)` — images-and-cdn.md §5,
- * an additive extension of the chat-design.md attachment snapshot.
+ * The aspect a slot is reserved at when the snapshot says WHAT the preview will
+ * be but carries no geometry to shape it with — an audio row has no width and
+ * no height at all, and a video whose probe has not run yet has neither either.
+ *
+ * `"blur"` is deliberately `null`: a still photograph can be any shape, so
+ * guessing one would trade a collapse for a wrong box, and a wrong box has to
+ * jump twice. The other two are shapes the medium itself fixes — a waveform
+ * strip is drawn wide and short, a video frame is 16:9 far more often than it
+ * is anything else — and both are replaced the moment real geometry arrives.
  */
-export interface RenderMetadata {
-  mime: string;
-  bytes: number;
-  width: number;
-  height: number;
-  /** width / height. */
-  aspect: number;
-  /** Video/audio duration; `null`/absent for still images. */
-  duration_ms?: number | null;
-  /** `data:image/webp;base64,...` — the 16px micro tier, blur-up placeholder. */
-  preview_b64?: string;
-  /** `true` ⇒ w/h branches are identical; `variants[].branch` is irrelevant (§3.3). */
-  square?: boolean;
-  variants: VariantMeta[];
-}
+export const PREVIEW_KIND_ASPECT: Readonly<Record<PreviewKind, number | null>> = {
+  blur: null,
+  poster: 16 / 9,
+  waveform: 4,
+};
 
 export type Fit = "cover" | "contain";
 

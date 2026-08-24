@@ -84,7 +84,16 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- gdpr.account-closure → <AccountClosurePanel> [default|grace|erasing]  demo/AccountClosurePanel.demo.tsx
 - gdpr.closure → <GdprProvider> [default|grace|erasing]  demo/Gdpr.demo.tsx
+- gdpr.data-export → <DataExportPanel> [default|building|ready-with-token|ready-desktop]  demo/DataExportPanel.demo.tsx
+- gdpr.dsar-form → <DsarForm> [default|anonymous|erasure-preselected]  demo/DsarForm.demo.tsx
+- gdpr.dsar-queue → <DsarQueue> [default|ack-overdue|empty|not-staff]  demo/DsarQueue.demo.tsx
+- gdpr.owners-health → <OwnersHealth> [default|silent|none-declared|not-staff]  demo/OwnersHealth.demo.tsx
+- gdpr.pending-deletions → <PendingDeletions> [default|erasing|overdue]  demo/PendingDeletions.demo.tsx
+- gdpr.privacy-admin → <PrivacyAdminPane> [default|overdue-and-silent|not-staff]  demo/PrivacyAdminPane.demo.tsx
+- gdpr.privacy-pane → <PrivacyPane> [default|closing-with-export|archive-ready-desktop]  demo/PrivacyPane.demo.tsx
+- gdpr.privacy-request → <PrivacyRequestPane> [default|with-captcha|erasure-from-a-policy-link]  demo/PrivacyRequestPane.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

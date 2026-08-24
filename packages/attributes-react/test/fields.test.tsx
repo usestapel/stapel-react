@@ -137,6 +137,10 @@ describe("renderRow", () => {
       )
     );
     expect(screen.getByTestId("host-row")).toBeDefined();
-    expect(screen.getByLabelText("title")).toBeDefined();
+    // The host's own `<label htmlFor>` points at the control the ladder built.
+    // Asserted by id rather than by label TEXT: `title` carries a maxLength, so
+    // the control renders antd's code-point counter inside the wrapping label
+    // and the label's accessible text is "title" plus the count.
+    expect(screen.getByRole("textbox").id).toBe(featureControlId("title"));
   });
 });

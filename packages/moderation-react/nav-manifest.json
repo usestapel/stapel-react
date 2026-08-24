@@ -1,0 +1,25 @@
+{
+  "package": "@stapel/moderation-react",
+  "version": "0.0.0",
+  "entries": [
+    {
+      "id": "moderation.console",
+      "labelKey": "moderation.nav.moderation",
+      "icon": "SafetyCertificateOutlined",
+      "route": {
+        "path": "moderation"
+      },
+      "component": {
+        "export": "ModerationPanel",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 50
+    }
+  ]
+}

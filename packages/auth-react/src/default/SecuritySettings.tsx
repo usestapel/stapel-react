@@ -23,8 +23,10 @@
  * individually exported from `./security/index.js`.
  */
 import { Flex, Typography } from "antd";
+import { SkinTheme } from "@stapel/tokens-antd/skin";
+import { spacing } from "@stapel/tokens";
 import { useRef } from "react";
-import type { ReactElement, ReactNode } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { loadStateFromQuery, mapLoad, matchList, useT } from "@stapel/core";
 import type { WebauthnBinding } from "../headless/Passkey.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
@@ -38,6 +40,13 @@ import { PhoneChangePanel } from "./security/PhoneChangePanel.js";
 import { QrDeviceLinkPanel } from "./security/QrDeviceLinkPanel.js";
 import { SessionsList } from "./security/SessionsList.js";
 import { TotpManager } from "./security/TotpManager.js";
+
+/** Element-relative page padding — never a viewport measurement. */
+const PAGE_STYLE: CSSProperties = {
+  minHeight: "100%",
+  padding: spacing[4],
+  boxSizing: "border-box",
+};
 
 export interface SecuritySettingsProps {
   /** Drives the passkeys section's `navigator.credentials.create()` ceremony
@@ -103,7 +112,18 @@ export function SecuritySettings(props: SecuritySettingsProps = {}): ReactElemen
   if (verdict !== null) lastVerdict.current = verdict;
   const showConnected = lastVerdict.current;
   return (
-    <Flex vertical gap="large" style={{ width: "100%" }} data-testid="security-settings">
+    /* The security page paints its own ground. Every widget below is a
+       self-wrapping `SkinTheme surface="bare"` card, so one `SkinTheme` here
+       is what puts the whole page on the project's token palette instead of
+       antd's stock blue (visual pass C11) and keeps its typography legible on
+       a dark document (CF-1). */
+    <SkinTheme surface="base" style={PAGE_STYLE} data-testid="security-settings-page">
+      <Flex
+        vertical
+        gap="large"
+        style={{ width: "100%", maxWidth: "48rem", margin: "0 auto" }}
+        data-testid="security-settings"
+      >
       <div>
         <Typography.Title level={2} style={{ margin: 0 }}>
           {t(AUTH_I18N_KEYS.secPageTitle)}
@@ -147,8 +167,9 @@ export function SecuritySettings(props: SecuritySettingsProps = {}): ReactElemen
       )}
 
       <Section heading={t(AUTH_I18N_KEYS.secGroupAudit)}>
-        <AuditLogPanel />
-      </Section>
-    </Flex>
+          <AuditLogPanel />
+        </Section>
+      </Flex>
+    </SkinTheme>
   );
 }

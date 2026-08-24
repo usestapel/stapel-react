@@ -282,6 +282,17 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.nav.login": "Вход",
   "auth.nav.security": "Безопасность",
   "auth.nav.qr_confirm": "Подтверждение входа",
+  "auth.ui.switch_to_register": "Впервые здесь? Создайте аккаунт",
+  "auth.ui.switch_to_login": "Уже есть аккаунт? Войти",
+  "auth.sec.passkeys.empty_hint":
+    "Passkey подтверждает вход лицом, отпечатком или PIN-кодом устройства — пароль не нужно ни помнить, ни бояться утечки.",
+  "auth.sec.passkeys.rename": "Переименовать",
+  "auth.sec.passkeys.rename_label": "Переименовать «{name}»",
+  "auth.sec.passkeys.rename_field": "Как назвать этот passkey?",
+  "auth.sec.passkeys.rename_save": "Сохранить название",
+  "auth.sec.passkeys.remove_label": "Удалить «{name}»",
+  "auth.sec.sessions.empty_hint":
+    "Сеансы появятся здесь, когда вы войдёте в других браузерах и на других устройствах.",
 };
 
 /**

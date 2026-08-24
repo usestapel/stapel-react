@@ -80,3 +80,24 @@ export const UNAUTHENTICATED_401 = {
   status: 401,
   body: { localizable_error: "stapel.http.401" },
 };
+
+/**
+ * The fail-closed moderation gate saying no — to a VERDICT or to the owner's
+ * REPLY, which share the callback and therefore share this code.
+ */
+export const FORBIDDEN_403 = {
+  status: 403,
+  body: { localizable_error: "error.403.reviews_cannot_moderate" },
+};
+
+/** The reply already exists — and there is no endpoint that replaces it. */
+export const RESPONSE_NOT_ALLOWED_400 = {
+  status: 400,
+  body: { localizable_error: "error.400.reviews_response_not_allowed" },
+};
+
+/** The review was deleted between the read that listed it and the write. */
+export const REVIEW_GONE_404 = {
+  status: 404,
+  body: { localizable_error: "error.404.reviews_review_not_found" },
+};

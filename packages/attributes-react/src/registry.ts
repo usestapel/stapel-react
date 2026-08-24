@@ -42,7 +42,7 @@ import type { FlowError } from "@stapel/core";
 import { actionAvailable, actionBlocked } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
 import type { FeatureDef } from "./types.js";
-import { featureType } from "./types.js";
+import { featureName, featureType } from "./types.js";
 import { ATTRIBUTES_I18N_KEYS } from "./i18n/keys.js";
 
 /**
@@ -64,6 +64,15 @@ export interface ValueEditorProps<T = unknown> {
   readonly error?: FlowError | undefined;
   /** True while a submit is in flight — editors should go read-only. */
   readonly disabled?: boolean;
+  /**
+   * Whether an answer is required — `featureAnswerRequired(feature)`, computed
+   * once by the row so the editor and the required marker cannot disagree.
+   *
+   * An editor puts it on the control as `aria-required`. The asterisk a form
+   * library draws is decorative and reaches no screen reader, so without this
+   * a blind person meets the requirement for the first time as a refusal.
+   */
+  readonly required?: boolean;
   /**
    * DOM id the editor MUST put on its primary control. The field row points
    * its `<label for>` at this, so the label actually names the input for a
@@ -145,6 +154,33 @@ export function unsupportedTypes(
 export const UNTYPED_FEATURE = "(none)";
 
 /**
+ * The same features {@link unsupportedTypes} finds, named the way a PERSON
+ * sees them on the page — the feature's display name, not the type slug.
+ *
+ * The two exist side by side because they answer different questions.
+ * `unsupportedTypes` answers "which type registrations is this build
+ * missing?", which is a developer's question and belongs in a log, a
+ * `data-` attribute, a support ticket. This one answers "which of the things
+ * on my screen can I not fill in?", which is the only question a blocked
+ * submit may put in front of a seller (visual class C-DEVCOPY: `size_grid` is
+ * an identifier out of a Python registry, and rendering it as product copy
+ * tells a person nothing they can act on).
+ */
+export function unsupportedFeatureNames(
+  features: readonly FeatureDef[],
+  builtinTypes: readonly string[]
+): readonly string[] {
+  const builtin = new Set(builtinTypes);
+  const out: string[] = [];
+  for (const feature of features) {
+    const type = featureType(feature);
+    const drawable = type !== undefined && (resolveValueEditor(type) !== null || builtin.has(type));
+    if (!drawable) out.push(featureName(feature));
+  }
+  return out;
+}
+
+/**
  * The submit gate for an unsupported type — blocked with the reason named,
  * never a disabled button with no explanation.
  *
@@ -159,9 +195,12 @@ export function unsupportedTypeGate(
   features: readonly FeatureDef[],
   builtinTypes: readonly string[]
 ): ActionAvailability {
-  const types = unsupportedTypes(features, builtinTypes);
-  if (types.length === 0) return actionAvailable();
+  const names = unsupportedFeatureNames(features, builtinTypes);
+  if (names.length === 0) return actionAvailable();
+  // FEATURE names, not type slugs: the reason is read by the person whose
+  // submit is blocked, and `size_grid` is not something they can act on.
+  // `unsupportedTypes` is still there for the log line.
   return actionBlocked(ATTRIBUTES_I18N_KEYS.submitBlockedUnsupportedType, {
-    types: types.join(", "),
+    features: names.join(", "),
   });
 }

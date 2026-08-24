@@ -57,6 +57,8 @@ export function Wallet(props: {
     lots: query.lots,
     holds: query.holds,
     expiringSoon: query.expiringSoon,
+    debts: query.debts,
+    debtOutstanding: query.debtOutstanding,
     balance: wallet?.balance ?? null,
     currency: wallet?.currency ?? null,
     autoRechargeEnabled: wallet?.auto_recharge_enabled ?? false,

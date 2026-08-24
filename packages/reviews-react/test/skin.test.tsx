@@ -9,12 +9,16 @@ import {
   RatingBadge,
   ReviewFormCard,
   ReviewListPanel,
+  ReviewModerationPanel,
+  ReviewResponseComposer,
   ReviewsPanel,
 } from "../src/default/index.js";
 import { TestProviders, mockServer } from "./harness.js";
 import {
+  ALREADY_RESPONDED_409,
   DUPLICATE_400,
   FIRST_PAGE,
+  FORBIDDEN_403,
   RATED,
   TARGET,
   UNAUTHENTICATED_401,
@@ -179,15 +183,79 @@ describe("<ReviewListPanel>", () => {
   });
 
   it("switches the load-more control off WITH a reason at the end of the run", async () => {
+    const { container } = render(
+      <TestProviders server={mockServer({ "/reviews": { body: page([review()]) } })}>
+        <ReviewListPanel target={TARGET} />
+      </TestProviders>
+    );
+    // The reason is the substrate's, now: `GatedButton` renders it as visible
+    // text and points the button's aria-describedby at it. Never a tooltip —
+    // a disabled antd Button fires none of the events one listens for.
+    await waitFor(() => {
+      expect(container.querySelector("[data-stapel-gated-reason]")).toBeTruthy();
+    });
+    expect(screen.getByText("That is all of them")).toBeTruthy();
+    const wrapper = screen.getByTestId("reviews-load-more-gate");
+    expect(wrapper.getAttribute("data-stapel-gated")).toBe("blocked");
+    const button = screen.getByTestId("reviews-load-more");
+    const reason = container.querySelector("[data-stapel-gated-reason]");
+    expect(button.getAttribute("aria-describedby")).toBe(reason?.id);
+  });
+
+  it("says 'you asked for all, you got published' instead of implying a whole list", async () => {
+    // The view narrows a non-moderator's include=all to published SILENTLY —
+    // no error, no marker in the body — so a pane that trusted the request
+    // showed a short list as if it were the whole thing (audit RV-4).
+    render(
+      <TestProviders server={mockServer({ "/reviews": { body: page([review()]) } })}>
+        <ReviewListPanel target={TARGET} include="all" />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("reviews-list-narrowed")).toBeTruthy();
+    });
+  });
+
+  it("stays quiet about the scope when a hidden row PROVES the grant", async () => {
+    render(
+      <TestProviders
+        server={mockServer({
+          "/reviews": { body: page([review(), review({ id: "h", status: "hidden" })]) },
+        })}
+      >
+        <ReviewListPanel target={TARGET} include="all" />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("reviews-row-hidden")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("reviews-list-narrowed")).toBeNull();
+  });
+
+  it("stays quiet about the scope for a declared moderator with nothing hidden", async () => {
+    render(
+      <TestProviders server={mockServer({ "/reviews": { body: page([review()]) } })}>
+        <ReviewListPanel target={TARGET} include="all" canModerate />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("reviews-list-rows")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("reviews-list-narrowed")).toBeNull();
+  });
+
+  it("dates every review without a host slot, and never as a raw ISO string", async () => {
     render(
       <TestProviders server={mockServer({ "/reviews": { body: page([review()]) } })}>
         <ReviewListPanel target={TARGET} />
       </TestProviders>
     );
     await waitFor(() => {
-      expect(screen.getByTestId("reviews-load-more-reason")).toBeTruthy();
+      expect(screen.getByTestId("reviews-list-rows")).toBeTruthy();
     });
-    expect(screen.getByText("That is all of them")).toBeTruthy();
+    const rows = screen.getByTestId("reviews-list-rows");
+    expect(rows.textContent).not.toContain("2026-08-20T10:00:00Z");
+    expect(rows.textContent).toContain("2026");
   });
 });
 
@@ -249,6 +317,246 @@ describe("<ReviewFormCard>", () => {
       expect(screen.getByTestId("reviews-form-duplicate")).toBeTruthy();
     });
     expect(screen.queryByTestId("reviews-form-failed")).toBeNull();
+  });
+});
+
+describe("<ReviewModerationPanel>", () => {
+  it("badges every state and gates each verdict on where the row stands", async () => {
+    const server = mockServer({
+      "/reviews": {
+        body: page([
+          review({ id: "p", status: "pending" }),
+          review({ id: "h", status: "hidden" }),
+        ]),
+      },
+    });
+    render(
+      <TestProviders server={server}>
+        <ReviewModerationPanel target={TARGET} canModerate />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("reviews-moderation-rows")).toBeTruthy();
+    });
+    expect(screen.getByTestId("reviews-row-pending")).toBeTruthy();
+    expect(screen.getByTestId("reviews-row-hidden")).toBeTruthy();
+    // Re-applying the state a row is already in is an upstream no-op that
+    // answers 200 — a button that appears to do nothing. Blocked BEFORE the
+    // click, with the fact as its reason.
+    expect(screen.getByText("Already hidden")).toBeTruthy();
+  });
+
+  it("switches both verdicts off with a reason when the host declares no moderator", async () => {
+    render(
+      <TestProviders
+        server={mockServer({ "/reviews": { body: page([review()]) } })}
+      >
+        <ReviewModerationPanel target={TARGET} canModerate={false} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("reviews-moderation-rows")).toBeTruthy();
+    });
+    // Not removed: a moderator whose can_moderate callback is mis-wired needs
+    // to see the control refused, not a pane with no buttons on it.
+    expect(screen.getByTestId("reviews-moderation-hide")).toBeTruthy();
+    expect(
+      screen.getAllByText(
+        "Only a moderator of this item can hide or publish reviews"
+      ).length
+    ).toBeGreaterThan(0);
+    expect(screen.getByTestId("reviews-moderation-narrowed")).toBeTruthy();
+  });
+
+  it("publishes a pending row and reports the status the SERVER answered with", async () => {
+    const server = mockServer({
+      "POST /moderate": { body: review({ id: "p", status: "published" }) },
+      "/reviews": { body: page([review({ id: "p", status: "pending" })]) },
+    });
+    render(
+      <TestProviders server={server}>
+        <ReviewModerationPanel target={TARGET} canModerate />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("reviews-moderation-rows")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByTestId("reviews-moderation-publish"));
+    await waitFor(() => {
+      expect(screen.getByTestId("reviews-moderation-settled")).toBeTruthy();
+    });
+    const posted = server.calls.find((call) => call.method === "POST");
+    expect(posted?.url).toContain("/reviews/p/moderate");
+    expect(posted?.body).toEqual({ action: "publish" });
+  });
+
+  it("asks before hiding, because hiding also takes the review out of the rating", async () => {
+    const server = mockServer({
+      "POST /moderate": { body: review({ id: "r1", status: "hidden" }) },
+      "/reviews": { body: page([review({ id: "r1" })]) },
+    });
+    render(
+      <TestProviders server={server}>
+        <ReviewModerationPanel target={TARGET} canModerate />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("reviews-moderation-rows")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByTestId("reviews-moderation-hide"));
+    // Nothing has been sent yet — the confirmation is the surface, and on a
+    // phone it is a bottom sheet (SkinConfirm), never a Popconfirm.
+    expect(server.calls.some((call) => call.method === "POST")).toBe(false);
+    await waitFor(() => {
+      expect(screen.getByTestId("stapel-confirm-ok")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByTestId("stapel-confirm-ok"));
+    await waitFor(() => {
+      expect(server.calls.some((call) => call.method === "POST")).toBe(true);
+    });
+    const posted = server.calls.find((call) => call.method === "POST");
+    expect(posted?.body).toEqual({ action: "hide" });
+  });
+
+  it("says the server refused the verdict, and does not call it a crash", async () => {
+    const server = mockServer({
+      "POST /moderate": FORBIDDEN_403,
+      "/reviews": { body: page([review({ id: "p", status: "pending" })]) },
+    });
+    render(
+      <TestProviders server={server}>
+        <ReviewModerationPanel target={TARGET} canModerate />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("reviews-moderation-rows")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByTestId("reviews-moderation-publish"));
+    await waitFor(() => {
+      // BOTH verdicts on that row carry it: the 403 is a statement about the
+      // actor, not about the button that happened to provoke it.
+      expect(
+        screen.getAllByText(
+          "The server does not accept you as a moderator of this item"
+        )
+      ).toHaveLength(2);
+    });
+    expect(screen.queryByTestId("reviews-moderation-failed")).toBeNull();
+  });
+
+  it("shows a designed empty state, never a spinner that never stops", async () => {
+    render(
+      <TestProviders server={mockServer({ "/reviews": { body: page([]) } })}>
+        <ReviewModerationPanel target={TARGET} canModerate />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("reviews-moderation-empty")).toBeTruthy();
+    });
+  });
+});
+
+describe("<ReviewResponseComposer>", () => {
+  it("offers the box to the owner, blocked until there are words in it", () => {
+    render(
+      <TestProviders server={mockServer({})}>
+        <ReviewResponseComposer target={TARGET} review={review()} canRespond />
+      </TestProviders>
+    );
+    expect(screen.getByTestId("reviews-response-composer")).toBeTruthy();
+    expect(screen.getByText("Write the reply first")).toBeTruthy();
+    // Said BEFORE the one reply is spent, not after.
+    expect(screen.getByTestId("reviews-response-one-shot")).toBeTruthy();
+  });
+
+  it("writes the reply and shows what the SERVER stored, not what was typed", async () => {
+    const answered = review({
+      response: {
+        author_id: "seller",
+        body: "Photos updated, thanks.",
+        created_at: "2026-08-23T09:00:00Z",
+      },
+    });
+    const server = mockServer({
+      "POST /response": { status: 201, body: answered },
+      "/reviews": { body: page([review()]) },
+    });
+    render(
+      <TestProviders server={server}>
+        <ReviewResponseComposer target={TARGET} review={review()} canRespond />
+      </TestProviders>
+    );
+    fireEvent.change(screen.getByTestId("reviews-response-body"), {
+      target: { value: "  Photos updated, thanks.  " },
+    });
+    fireEvent.click(screen.getByTestId("reviews-response-submit"));
+    await waitFor(() => {
+      expect(screen.getByTestId("reviews-row-response")).toBeTruthy();
+    });
+    expect(screen.getByTestId("reviews-response-sent")).toBeTruthy();
+    // Trimmed: a stray newline would be stored forever, unfixably.
+    const posted = server.calls.find((call) => call.method === "POST");
+    expect(posted?.body).toEqual({ body: "Photos updated, thanks." });
+    expect(posted?.url).toContain("/reviews/r1/response");
+  });
+
+  it("shows a reply that already exists and offers no box at all", () => {
+    const answered = review({
+      response: {
+        author_id: "seller",
+        body: "Thanks!",
+        created_at: "2026-08-21T10:00:00Z",
+      },
+    });
+    render(
+      <TestProviders server={mockServer({})}>
+        <ReviewResponseComposer target={TARGET} review={answered} canRespond />
+      </TestProviders>
+    );
+    expect(screen.getByTestId("reviews-row-response")).toBeTruthy();
+    expect(screen.queryByTestId("reviews-response-body")).toBeNull();
+  });
+
+  it("turns the 409 into the same 'already answered' sentence, not a banner", async () => {
+    const server = mockServer({ "POST /response": ALREADY_RESPONDED_409 });
+    render(
+      <TestProviders server={server}>
+        <ReviewResponseComposer target={TARGET} review={review()} canRespond />
+      </TestProviders>
+    );
+    fireEvent.change(screen.getByTestId("reviews-response-body"), {
+      target: { value: "Too late" },
+    });
+    fireEvent.click(screen.getByTestId("reviews-response-submit"));
+    await waitFor(() => {
+      expect(screen.getByText("This review already has a reply")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("reviews-response-failed")).toBeNull();
+  });
+
+  it("says nothing under a review a reader cannot answer (`quiet`)", () => {
+    const { container } = render(
+      <TestProviders server={mockServer({})}>
+        <ReviewResponseComposer target={TARGET} review={review()} quiet />
+      </TestProviders>
+    );
+    expect(screen.queryByTestId("reviews-response-composer")).toBeNull();
+    expect(container.textContent).toBe("");
+  });
+
+  it("but states the reason when the console asks for it (`quiet` off)", () => {
+    render(
+      <TestProviders server={mockServer({})}>
+        <ReviewResponseComposer
+          target={TARGET}
+          review={review()}
+          canRespond={false}
+        />
+      </TestProviders>
+    );
+    expect(
+      screen.getByText("Only the owner of this item can reply to its reviews")
+    ).toBeTruthy();
   });
 });
 

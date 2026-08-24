@@ -8,15 +8,19 @@
  * rendering of the worst possible score and a completely wrong rendering of
  * "nobody has rated this". `ratingSummary()` makes the distinction, and this
  * skin honours it by not reaching `<Rate>` at all in that arm.
+ *
+ * The count is a PLURAL, through core's `tPlural`: "1 reviews" was what the
+ * flat key produced in English, and Russian sidestepped the whole question by
+ * putting the numeral last rather than agreeing with it.
  */
 import type { ReactElement } from "react";
-import { Flex, Rate, Skeleton, Typography } from "antd";
-import { matchLoad, toFlowError, useDescribeFlowError, useT } from "@stapel/core";
+import { Flex, Rate, Typography } from "antd";
+import { useTPlural, useT } from "@stapel/core";
+import { LoadBoundary, SkinTheme } from "@stapel/tokens-antd/skin";
+import { spacing } from "@stapel/tokens";
 import { ReviewAggregate } from "../headless/ReviewAggregate.js";
 import type { ReviewAggregateProps } from "../headless/ReviewAggregate.js";
-import { REVIEWS_I18N_KEYS } from "../i18n/keys.js";
-import { ErrorAlert } from "./ErrorAlert.js";
-import { ReviewsSkinTheme } from "./theme.js";
+import { REVIEWS_I18N_KEYS, REVIEWS_I18N_PLURALS } from "../i18n/keys.js";
 import type { ThemeModeProp } from "./types.js";
 
 export type RatingBadgeProps = ThemeModeProp &
@@ -24,27 +28,25 @@ export type RatingBadgeProps = ThemeModeProp &
 
 export function RatingBadge(props: RatingBadgeProps): ReactElement {
   const t = useT();
-  const describe = useDescribeFlowError();
-  const { mode, ...aggregateProps } = props;
+  const tPlural = useTPlural();
+  const { mode, surface, ...aggregateProps } = props;
 
   return (
-    <ReviewsSkinTheme {...(mode !== undefined ? { mode } : {})}>
+    <SkinTheme
+      {...(mode !== undefined ? { mode } : {})}
+      surface={surface ?? "raised"}
+    >
       <ReviewAggregate {...aggregateProps}>
         {(bag) => (
-          <Flex align="center" gap={8} data-testid="reviews-rating">
-            {matchLoad(bag.state, {
-              loading: () => (
-                <Skeleton.Button active data-testid="reviews-rating-loading" />
-              ),
-              failed: (error) => (
-                <ErrorAlert
-                  testId="reviews-rating-failed"
-                  error={describe(toFlowError(error))}
-                />
-              ),
-              ready: (summary) =>
+          <Flex align="center" gap={spacing[2]} wrap data-testid="reviews-rating">
+            <LoadBoundary
+              state={bag.state}
+              testId="reviews-rating"
+              skeletonRows={1}
+            >
+              {(summary) =>
                 summary.rated ? (
-                  <>
+                  <Flex align="center" gap={spacing[2]} wrap>
                     <Rate
                       disabled
                       allowHalf
@@ -59,11 +61,11 @@ export function RatingBadge(props: RatingBadgeProps): ReactElement {
                       })}
                     </Typography.Text>
                     <Typography.Text type="secondary">
-                      {t(REVIEWS_I18N_KEYS.ratingCount, {
+                      {tPlural(REVIEWS_I18N_PLURALS.ratingCount, {
                         count: summary.count,
                       })}
                     </Typography.Text>
-                  </>
+                  </Flex>
                 ) : (
                   <Typography.Text
                     type="secondary"
@@ -71,11 +73,12 @@ export function RatingBadge(props: RatingBadgeProps): ReactElement {
                   >
                     {t(REVIEWS_I18N_KEYS.ratingNone)}
                   </Typography.Text>
-                ),
-            })}
+                )
+              }
+            </LoadBoundary>
           </Flex>
         )}
       </ReviewAggregate>
-    </ReviewsSkinTheme>
+    </SkinTheme>
   );
 }

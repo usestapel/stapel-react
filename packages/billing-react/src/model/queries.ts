@@ -4,6 +4,7 @@ import { loadStateFromQuery, mapLoad, useActiveSessionReady } from "@stapel/core
 import type { LoadState, StapelApiError } from "@stapel/core";
 import type {
   Catalog,
+  CreditDebt,
   CreditHold,
   CreditLot,
   ExpiringCredits,
@@ -25,7 +26,7 @@ import { billingQueryKeys } from "./queryKeys.js";
  * {@link LoadState}s — so "we could not read the wallet" can never be drawn
  * as "you have no credits expiring".
  *
- * All three come from the SAME `GET /wallet` body, so they always share a
+ * All five come from the SAME `GET /wallet` body, so they always share a
  * status; they are separate fields only because a skin renders them in
  * different places, never because they could disagree.
  */
@@ -46,6 +47,20 @@ export interface WalletCredits {
    * shows the right date.
    */
   readonly expiringSoon: LoadState<ExpiringCredits | null>;
+  /**
+   * The open debts (`WalletResponse.debts[]`, stapel-billing 0.11.0), oldest
+   * first — the order the server collects them in. A debt is credits owed,
+   * NOT a negative balance: `balance` still counts the credits that exist,
+   * which is exactly why a screen that shows one without the other is
+   * showing a number the next purchase will silently contradict.
+   */
+  readonly debts: LoadState<readonly CreditDebt[]>;
+  /**
+   * Total credits owed (`WalletResponse.debt_outstanding`), or 0. The SERVER
+   * totals it — the pair does not add up `debts[]`, for the same reason it
+   * does not scan `lots` for the nearest deadline.
+   */
+  readonly debtOutstanding: LoadState<number>;
 }
 
 /**
@@ -66,8 +81,9 @@ export interface WalletCredits {
  * is on. Asking for "all" up front is the honest version of what flattening
  * the result costs.
  *
- * The wire marks `lots` / `holds` / `expiring_soon` optional, so a host still
- * pointed at a 0.7.x server reads empty lots inside a load that SUCCEEDED —
+ * The wire marks `lots` / `holds` / `expiring_soon` / `debts` /
+ * `debt_outstanding` optional, so a host still pointed at an older server
+ * reads empty lots and no debt inside a load that SUCCEEDED —
  * "this server does not report lots" and "this wallet has none" are the same
  * sentence to a screen, and neither is "the read failed".
  */
@@ -91,6 +107,8 @@ export function useWallet(): UseQueryResult<Wallet, StapelApiError> &
     lots: mapLoad(state, (wallet) => wallet.lots ?? []),
     holds: mapLoad(state, (wallet) => wallet.holds ?? []),
     expiringSoon: mapLoad(state, (wallet) => wallet.expiring_soon ?? null),
+    debts: mapLoad(state, (wallet) => wallet.debts ?? []),
+    debtOutstanding: mapLoad(state, (wallet) => wallet.debt_outstanding ?? 0),
   };
 }
 

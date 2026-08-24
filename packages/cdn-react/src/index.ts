@@ -59,16 +59,22 @@
  */
 
 // ── api ──────────────────────────────────────────────────────────────────────
-export { createCdnApi } from "./api/cdnApi.js";
+export { CDN_DESCRIBE_MAX_REFS, createCdnApi } from "./api/cdnApi.js";
 export type { CdnApi } from "./api/cdnApi.js";
 export type {
+  CdnDescribeResponse,
   CdnFileExistsResponse,
   CdnFileKind,
   CdnFileModel,
   CdnFileUploadResponse,
   CdnImage,
   CdnImageUploadResponse,
+  CdnMediaRow,
+  CdnMetaStatus,
+  CdnPreviewKind,
   CdnRef,
+  CdnRenderMeta,
+  CdnRenderMetaVariant,
   CdnVariantMeta,
   CdnVideo,
   CdnVideoUploadResponse,
@@ -92,8 +98,19 @@ export {
   isUploadCanceled,
   runUpload,
   targetAssetType,
+  targetFileKind,
   UploadCanceled,
 } from "./model/upload.js";
+export {
+  createDescribeLoader,
+  describeRetryDelayMs,
+  isRateLimited,
+} from "./model/describe.js";
+export type {
+  DescribeLoader,
+  DescribeLoaderOptions,
+  DescribeResult,
+} from "./model/describe.js";
 export type {
   CdnUploadTarget,
   CdnVariantWaitOptions,
@@ -117,7 +134,13 @@ export type {
   CdnLimits,
   CdnLimitsOverride,
 } from "./model/limits.js";
-export { formatCdnRef, parseCdnRef, refOf, toStapelImage } from "./model/refs.js";
+export {
+  formatCdnRef,
+  parseCdnRef,
+  refOf,
+  renderMetaToStapelImage,
+  toStapelImage,
+} from "./model/refs.js";
 export { canHashLocally, sha256Hex } from "./model/hash.js";
 
 // ── headless ─────────────────────────────────────────────────────────────────
@@ -126,7 +149,9 @@ export { ImageUpload } from "./headless/ImageUpload.js";
 export { MediaUploader } from "./headless/MediaUploader.js";
 export { useUploadImage } from "./headless/useUploadImage.js";
 export type { UploadImageBag } from "./headless/useUploadImage.js";
-export { useUploadQueue } from "./headless/useUploadQueue.js";
+export { imageRowOf, useUploadQueue } from "./headless/useUploadQueue.js";
+export { useDescribe, useDescribeRef } from "./headless/useDescribe.js";
+export type { DescribeBag } from "./headless/useDescribe.js";
 export type {
   UploadItem,
   UploadQueueBag,

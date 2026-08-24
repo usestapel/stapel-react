@@ -70,6 +70,17 @@
         "query",
         "{params}"
       ]
+    },
+    "useSuggest": {
+      "kind": "query",
+      "operation": "suggest",
+      "queryKey": [
+        "search",
+        "suggest",
+        "{type}",
+        "{q}",
+        "{…}"
+      ]
     }
   },
   "errors": {
@@ -406,6 +417,26 @@
       "source": "demo/FacetPanel.demo.tsx"
     },
     {
+      "id": "search.page",
+      "title": "Search page",
+      "description": "The composed /s screen: the query box bound to setText, the filter panel (category and location slots, numeric ranges, drill-down facets), the sort and page-size toolbar, and one keyset page of cards with the DSA promoted marking explained in words rather than in a tooltip.",
+      "component": "SearchPage",
+      "covers": [
+        "SearchStateProvider",
+        "SearchProvider"
+      ],
+      "tokens": [
+        "surface-raised",
+        "warning-bg"
+      ],
+      "variants": [
+        "desktop",
+        "phone",
+        "unreadable-link"
+      ],
+      "source": "demo/SearchPage.demo.tsx"
+    },
+    {
       "id": "search.ranking",
       "title": "Ranking disclosure",
       "description": "Which parameters order the results and how much each weighs, straight from the scorer registry. Parameters the configured engine cannot evaluate are listed with their reason rather than filtered out.",
@@ -491,6 +522,14 @@
     "error.500.internal",
     "error.503.mandate_unavailable",
     "error.503.search_backend_unavailable",
+    "search.box.clear",
+    "search.box.label",
+    "search.box.placeholder",
+    "search.box.submit",
+    "search.box.suggestions",
+    "search.category.clear",
+    "search.category.current",
+    "search.category.title",
     "search.degraded.category_rollup",
     "search.degraded.exact_facet_counts",
     "search.degraded.exact_total",
@@ -509,15 +548,27 @@
     "search.facets.loading",
     "search.facets.not_counted",
     "search.facets.range_apply",
+    "search.facets.range_clear",
     "search.facets.range_from",
+    "search.facets.range_from_aria",
+    "search.facets.range_invalid",
     "search.facets.range_to",
+    "search.facets.range_to_aria",
     "search.facets.skipped",
     "search.facets.title",
+    "search.filters.apply",
+    "search.filters.dismiss",
+    "search.filters.open",
     "search.geo.box",
     "search.geo.center",
     "search.geo.clear",
     "search.geo.radius_km",
+    "search.geo.radius_label",
     "search.geo.title",
+    "search.language.any",
+    "search.language.label",
+    "search.limit.label",
+    "search.limit.option",
     "search.ranking.applies_to",
     "search.ranking.empty",
     "search.ranking.inactive",
@@ -542,6 +593,7 @@
     "search.results.count_exact.other",
     "search.results.distance_km",
     "search.results.empty",
+    "search.results.image_alt",
     "search.results.load_failed",
     "search.results.loading",
     "search.results.next",
@@ -571,22 +623,31 @@
     "runtime": [
       "FILTER_PREFIX",
       "FacetPanel",
+      "RANGE_FEATURE_TYPES",
       "RANGE_PREFIX",
       "RankingDisclosure",
       "SEARCH_BACKEND_UNAVAILABLE",
+      "SEARCH_BOX_DEBOUNCE_MS",
+      "SEARCH_BOX_SUGGEST_DEBOUNCE_MS",
+      "SEARCH_DEFAULT_PAGE_SIZE",
       "SEARCH_ERRORS",
       "SEARCH_ERROR_CODES",
       "SEARCH_I18N_KEYS",
       "SEARCH_I18N_PLURAL_KEYS",
+      "SEARCH_MAX_PAGE_SIZE",
       "SEARCH_PARAM",
+      "SEARCH_QUERY_MAX_CHARS",
       "SEARCH_SORTS",
       "SEARCH_WINDOW_EXCEEDED",
+      "SUGGEST_MAX_LIMIT",
+      "SUGGEST_MIN_CHARS",
       "SearchProvider",
       "SearchResults",
       "SearchRuntimeContext",
       "SearchStateProvider",
       "activeFilterCount",
       "buildFacetGroups",
+      "buildRangeGroups",
       "clearFilters",
       "countIsEstimate",
       "countKind",
@@ -596,6 +657,8 @@
       "explainSearchError",
       "facetOptionLabel",
       "isCountNuanceOnly",
+      "isRangeFeature",
+      "isRangeUsable",
       "navEntries",
       "ownsParam",
       "parseDegradations",
@@ -614,13 +677,16 @@
       "useRankingDisclosure",
       "useSearchAnalytics",
       "useSearchApi",
+      "useSearchBox",
       "useSearchQuery",
       "useSearchRuntime",
       "useSearchState",
+      "useSuggest",
       "writeSearchState"
     ],
     "types": [
       "BuildFacetGroupsInput",
+      "BuildRangeGroupsInput",
       "CreateSearchRuntimeOptions",
       "FacetGroup",
       "FacetMeta",
@@ -629,12 +695,14 @@
       "FacetSelection",
       "ParseSearchStateOptions",
       "ParsedSearchState",
+      "RangeGroup",
       "RankingDisclosureBag",
       "RankingResponse",
       "Remediation",
       "Schemas",
       "Scorer",
       "SearchApi",
+      "SearchBoxBag",
       "SearchCountKind",
       "SearchDegradation",
       "SearchDegradationKind",
@@ -659,7 +727,8 @@
       "SearchStatePatch",
       "SearchStateProviderProps",
       "SuggestParams",
-      "SuggestResponse"
+      "SuggestResponse",
+      "UseSearchBoxOptions"
     ]
   }
 }

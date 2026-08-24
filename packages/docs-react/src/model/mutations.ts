@@ -14,6 +14,7 @@ import type {
   PatchDocumentRequest,
   PatchFolderRequest,
   SaveContentResult,
+  TrashPurgeResult,
 } from "../api/types.js";
 import { useDocsApi } from "./context.js";
 import { docsQueryKeys } from "./queryKeys.js";
@@ -263,7 +264,11 @@ export interface TrashActions {
   /** `POST /folders/:id/restore` — take a folder out of the trash. */
   readonly restoreFolder: UseMutationResult<DocFolder, StapelApiError, string>;
   /** `POST /trash/empty` — permanently delete (all, or `ids`). */
-  readonly emptyTrash: UseMutationResult<void, StapelApiError, EmptyTrashRequest>;
+  readonly emptyTrash: UseMutationResult<
+    TrashPurgeResult,
+    StapelApiError,
+    EmptyTrashRequest
+  >;
 }
 
 /**
@@ -292,7 +297,7 @@ export function useTrashActions(): TrashActions {
     onSuccess: invalidate,
   };
   const emptyTrashOptions: UseMutationOptions<
-    void,
+    TrashPurgeResult,
     StapelApiError,
     EmptyTrashRequest
   > = {

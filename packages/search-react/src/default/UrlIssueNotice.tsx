@@ -9,6 +9,7 @@
  */
 import type { ReactElement } from "react";
 import { Alert } from "antd";
+import { spacing } from "@stapel/tokens";
 import { useT } from "@stapel/core";
 import { useSearchState } from "../headless/SearchStateProvider.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
@@ -24,7 +25,7 @@ export function UrlIssueNotice(): ReactElement | null {
       data-testid="search-url-issues"
       message={t(SEARCH_I18N_KEYS.urlIssuesTitle)}
       description={
-        <ul style={{ margin: 0, paddingInlineStart: 20 }}>
+        <ul style={{ margin: 0, paddingInlineStart: spacing[5] }}>
           {issues.map((issue) => (
             <li key={`${issue.param}:${issue.code}`}>
               {t(issue.messageKey, { param: issue.param })}

@@ -4,7 +4,7 @@
   "version": "0.18.2",
   "backend": {
     "module": "stapel-profiles",
-    "contract": ">=0.12 <0.13"
+    "contract": ">=0.16 <0.17"
   },
   "layers": [
     "api",
@@ -217,6 +217,11 @@
     }
   },
   "errors": {
+    "error.400.avatar_gravatar_hash": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
     "error.400.avatar_not_found": {
       "status": 400,
       "params": [],
@@ -225,6 +230,18 @@
     "error.400.avatar_source_mismatch": {
       "status": 400,
       "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.avatar_url_host": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.avatar_url_scheme": {
+      "status": 400,
+      "params": [
+        "schemes"
+      ],
       "remediation": "fix_input"
     },
     "error.400.bad_request": {
@@ -512,6 +529,11 @@
       "status": 500,
       "params": [],
       "remediation": "contact_support"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
     }
   },
   "events": {
@@ -534,6 +556,27 @@
       "source": "demo/ConnectionList.demo.tsx"
     },
     {
+      "id": "profiles.connections-skin",
+      "title": "Connections (skin)",
+      "description": "Followers / following / blocked behind one control, mounted at profiles.connections. Rows are people: avatar or monogram, display name, location, and a relationship control whose status the batch already answered. The empty state is per list, because 'nobody follows you yet' and 'you have blocked nobody' are different sentences with different feelings.",
+      "component": "ConnectionsPage",
+      "covers": [
+        "ConnectionList",
+        "PersonRow"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted"
+      ],
+      "variants": [
+        "followers",
+        "list-and-row",
+        "blocked-empty"
+      ],
+      "source": "demo/ConnectionsSkin.demo.tsx"
+    },
+    {
       "id": "profiles.initial_setup_prompt",
       "title": "Initial setup",
       "description": "The headless InitialSetupPrompt wraps the first-run setup form (display name, theme, app language): drafts seeded from the profile, one submit() PATCH that also sets initial_setup_passed, and a skip() that records 'maybe later' without a PATCH. Pair it with useInitialSetupGate to decide when to show it.",
@@ -546,6 +589,21 @@
         "default"
       ],
       "source": "demo/InitialSetupPrompt.demo.tsx"
+    },
+    {
+      "id": "profiles.initial-setup-skin",
+      "title": "First run (skin)",
+      "description": "The first-run prompt: display name, theme and app language in the same row canon the settings screen uses, committed in ONE PATCH carrying initial_setup_passed. Save states why it is off, as text beside it, because a disabled button fires no pointer events and a tooltip there is a reason nobody can read.",
+      "component": "InitialSetupModal",
+      "tokens": [
+        "surface-raised",
+        "text"
+      ],
+      "variants": [
+        "first-run",
+        "blocking"
+      ],
+      "source": "demo/InitialSetupModalSkin.demo.tsx"
     },
     {
       "id": "profiles.my_profile",
@@ -589,6 +647,26 @@
       "source": "demo/Profiles.demo.tsx"
     },
     {
+      "id": "profiles.public-profile-skin",
+      "title": "Public profile (skin)",
+      "description": "The /u/:userId screen: identity block, follower and following counts through ICU plurals, location and rating when the deployment fills them, and the follow / block controls underneath. Since stapel-profiles 0.15.0 a registered person who has typed nothing answers 200 with an empty-but-renderable profile — drawn here as a person, not as an error card.",
+      "component": "PublicProfilePage",
+      "covers": [
+        "Relationship"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted"
+      ],
+      "variants": [
+        "profile",
+        "control",
+        "unwritten"
+      ],
+      "source": "demo/PublicProfileSkin.demo.tsx"
+    },
+    {
       "id": "profiles.relationship",
       "title": "Relationship",
       "description": "The headless Relationship wraps the caller↔target status read and the follow / unfollow / block / unblock actions, exposing the live status plus pending / error state. Bring your own controls — the component is renderless.",
@@ -601,11 +679,35 @@
         "default"
       ],
       "source": "demo/Relationship.demo.tsx"
+    },
+    {
+      "id": "profiles.settings-skin",
+      "title": "Profile settings (skin)",
+      "description": "The default skin the nav manifest mounts at profiles.settings: a data-driven profile card whose rows come from GET /field-manifest, with the language picker and the notification matrix composed underneath — the same composition auth-react's SecuritySettings uses. Every field commits on its own (no batched Save); a rejected pick snaps back, because the PATCH is optimistic with rollback.",
+      "component": "ProfileSettings",
+      "covers": [
+        "LanguageSettings",
+        "NotificationPreferences"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "border-subtle"
+      ],
+      "variants": [
+        "settings",
+        "sections",
+        "manifest-failed"
+      ],
+      "source": "demo/ProfileSettingsSkin.demo.tsx"
     }
   ],
   "i18nKeys": [
+    "error.400.avatar_gravatar_hash",
     "error.400.avatar_not_found",
     "error.400.avatar_source_mismatch",
+    "error.400.avatar_url_host",
+    "error.400.avatar_url_scheme",
     "error.400.bad_request",
     "error.400.cannot_block_self",
     "error.400.cannot_follow_self",
@@ -657,8 +759,12 @@
     "error.429.rate_limit",
     "error.429.too_many_requests",
     "error.500.internal",
+    "error.503.mandate_unavailable",
     "profiles.action.close",
     "profiles.action.retry",
+    "profiles.connections.kind_label",
+    "profiles.connections.subtitle",
+    "profiles.connections.title",
     "profiles.error.unknown",
     "profiles.initialSetup.blocked.name_required",
     "profiles.initialSetup.name_placeholder",
@@ -674,9 +780,28 @@
     "profiles.language.subtitle",
     "profiles.language.title",
     "profiles.list.blocked",
+    "profiles.list.count.blocked",
+    "profiles.list.count.blocked.one",
+    "profiles.list.count.blocked.other",
+    "profiles.list.count.followers",
+    "profiles.list.count.followers.one",
+    "profiles.list.count.followers.other",
+    "profiles.list.count.following",
+    "profiles.list.count.following.one",
+    "profiles.list.count.following.other",
     "profiles.list.empty",
+    "profiles.list.empty.blocked",
+    "profiles.list.empty.blocked_hint",
+    "profiles.list.empty.followers",
+    "profiles.list.empty.followers_hint",
+    "profiles.list.empty.following",
+    "profiles.list.empty.following_hint",
     "profiles.list.followers",
     "profiles.list.following",
+    "profiles.nav.connections",
+    "profiles.nav.language",
+    "profiles.nav.notifications",
+    "profiles.nav.public_profile",
     "profiles.nav.settings",
     "profiles.notif_prefs.category.messages",
     "profiles.notif_prefs.category.system",
@@ -684,12 +809,28 @@
     "profiles.notif_prefs.channel.push",
     "profiles.notif_prefs.subtitle",
     "profiles.notif_prefs.title",
+    "profiles.notif_prefs.toggle_label",
+    "profiles.person.missing",
+    "profiles.person.unnamed",
+    "profiles.person.you",
     "profiles.profile.loading",
+    "profiles.profile.no_changes",
     "profiles.profile.save",
     "profiles.profile.saved",
     "profiles.profile.saving",
+    "profiles.public.location",
+    "profiles.public.rating",
+    "profiles.public.unwritten",
     "profiles.relationship.block",
     "profiles.relationship.blocked",
+    "profiles.relationship.blocked.blocked",
+    "profiles.relationship.blocked.self",
+    "profiles.relationship.blocked.unknown",
+    "profiles.relationship.blocked_notice",
+    "profiles.relationship.confirm_block.body",
+    "profiles.relationship.confirm_block.title",
+    "profiles.relationship.confirm_unblock.body",
+    "profiles.relationship.confirm_unblock.title",
     "profiles.relationship.follow",
     "profiles.relationship.following",
     "profiles.relationship.self",

@@ -246,7 +246,7 @@ describe("<MembersManager/> — the roster's three states on screen", () => {
       expect(screen.getByTestId("members-list-empty")).toBeDefined()
     );
     expect(screen.getByText("No members yet.")).toBeDefined();
-    expect(screen.queryByTestId("members-list-error")).toBeNull();
+    expect(screen.queryByTestId("members-list-failed")).toBeNull();
   });
 
   it("READY: renders the rows", async () => {
@@ -266,7 +266,7 @@ describe("<MembersManager/> — the roster's three states on screen", () => {
     renderManager();
     await waitFor(() => expect(screen.getByText("owner@example.com")).toBeDefined());
     expect(screen.queryByTestId("members-list-empty")).toBeNull();
-    expect(screen.queryByTestId("members-list-error")).toBeNull();
+    expect(screen.queryByTestId("members-list-failed")).toBeNull();
   });
 
   it("FAILED: states the failure, offers a retry, and shows NO empty state", async () => {
@@ -276,12 +276,11 @@ describe("<MembersManager/> — the roster's three states on screen", () => {
     );
     renderManager();
     await waitFor(() =>
-      expect(screen.getByTestId("members-list-error")).toBeDefined()
+      expect(screen.getByTestId("members-list-failed")).toBeDefined()
     );
     expect(screen.getByText("Try again")).toBeDefined();
-    // antd's Table renders its own "No data" illustration for an empty
-    // dataSource. On a failed read that is the empty-state lie with a
-    // built-in picture, so the table is not rendered at all.
+    // The shared `LoadList` renders exactly one arm: a failed read never
+    // reaches the empty arm, so the "you have none" lie is unspellable.
     expect(screen.queryByTestId("members-list-empty")).toBeNull();
     expect(screen.queryByText("No members yet.")).toBeNull();
     expect(screen.queryByText("No data")).toBeNull();
@@ -302,12 +301,16 @@ describe("<MembersManager/> — the roster's three states on screen", () => {
       )
     );
     renderManager();
+    // Two independent reads, two independent sentences: the roster loaded, and
+    // the registry failure is stated beside the control it disables — the row's
+    // role picker, which is not rendered as an enabled `<Select options={[]}/>`.
+    await waitFor(() => expect(screen.getByText("owner@example.com")).toBeDefined());
     await waitFor(() =>
-      expect(screen.getByTestId("members-roles-error")).toBeDefined()
+      expect(
+        screen.getByTestId(`member-role-${MEMBER.user_id}-blocked`).textContent
+      ).toContain("We could not load the role list")
     );
-    // Two independent reads, two independent sentences: the roster loaded.
-    expect(screen.getByText("owner@example.com")).toBeDefined();
-    expect(screen.queryByTestId("members-list-error")).toBeNull();
+    expect(screen.queryByTestId("members-list-failed")).toBeNull();
   });
 });
 
@@ -323,15 +326,24 @@ describe("<WorkspaceSettings/> — a switched-off control says why", () => {
     );
     const runtime = createWorkspacesRuntime({ baseUrl: BASE });
     render(wrap(runtime, <WorkspaceSettings workspaceId={WS} />));
+    // The gate is the SHARED `GatedButton`: the reason is a real text node
+    // beside the control, stamped `data-stapel-gated-reason` and pointed at by
+    // the button's `aria-describedby` — not a `title` a disabled button can
+    // never surface.
     await waitFor(() =>
-      expect(screen.getByTestId("workspace-save-blocked")).toBeDefined()
+      expect(screen.getByTestId("workspace-save-gate")).toBeDefined()
     );
     expect(
-      screen.getByTestId("workspace-save-blocked").textContent
-    ).toBe("Only the workspace owner can change these settings.");
-    // Read as TEXT in the document, not hidden in a `title` a disabled button
-    // can never surface.
-    expect(screen.getByTestId("workspace-name-blocked")).toBeDefined();
+      screen
+        .getByTestId("workspace-save-gate")
+        .querySelector("[data-stapel-gated-reason]")?.textContent
+    ).toBe("Your role cannot change this workspace's settings.");
+    // The field itself states the same block, in its own gate.
+    expect(
+      screen
+        .getByTestId("workspace-name-field")
+        .querySelector("[data-stapel-gated-reason]")
+    ).not.toBeNull();
   });
 
   it("names the empty name field once the person IS the owner", async () => {
@@ -342,9 +354,11 @@ describe("<WorkspaceSettings/> — a switched-off control says why", () => {
     const runtime = createWorkspacesRuntime({ baseUrl: BASE });
     render(wrap(runtime, <WorkspaceSettings workspaceId={WS} />));
     await waitFor(() =>
-      expect(screen.getByTestId("workspace-save-blocked").textContent).toBe(
-        "Enter a workspace name."
-      )
+      expect(
+        screen
+          .getByTestId("workspace-save-gate")
+          .querySelector("[data-stapel-gated-reason]")?.textContent
+      ).toBe("Enter a workspace name.")
     );
   });
 });

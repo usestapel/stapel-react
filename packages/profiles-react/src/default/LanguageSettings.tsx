@@ -16,34 +16,45 @@
  * translations for the newly picked language is still the HOST's job (see
  * `onSaved`), not this pair's.
  */
-import { useEffect, useMemo, useState } from "react";
+import { spacing } from "@stapel/tokens";
+import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
-import { Button, Card, Checkbox, ConfigProvider, Select, Spin, Typography } from "antd";
-import { resolveThemeMode, toAntdThemeConfig } from "@stapel/tokens-antd";
+import { Card, Checkbox, Select, Spin, Typography } from "antd";
+import { ErrorAlert, EmptyState, LoadList, SkinTheme } from "@stapel/tokens-antd/skin";
+import type { SkinSurface } from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { loadStateFromQuery, matchList, useErrorDisplay, useT } from "@stapel/core";
+import { loadStateFromQuery, useT } from "@stapel/core";
 import { useMyProfile } from "../model/queries.js";
 import { useUpdateMyProfile } from "../model/mutations.js";
 import { useLanguages } from "../model/queries.js";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
-import { ErrorAlert } from "./ErrorAlert.js";
 
 const AUTO = "auto";
 
+/** The settings measure: one column of controls, comfortable to read, sized
+ * in `rem` so it follows the root type rather than pinning a pixel box. */
+export const SETTINGS_MAX_WIDTH = "30rem";
+
 export interface LanguageSettingsProps {
   /**
-   * Light or dark. The theme is derived from `@stapel/tokens` via
-   * `toAntdThemeConfig(mode)` — no manual token wiring, same self-theming
-   * contract as `AuthPanel`. Defaults to the mode the HOST's document
-   * declares (`resolveThemeMode()` — the `data-theme` attribute
-   * `@stapel/tokens`' `tokens.css` keys its dark block on), not to a
-   * hardcoded `"light"`: a light default is a wrong answer on every dark
-   * deployment, and it rendered an unreadable error Alert on a live sandbox
-   * (owner report 2026-08-09 — antd's light algorithm derived a near-white
-   * `colorErrorBg` while `colorText` came live off the host's dark tokens).
+   * Light or dark. Omitted — the normal case — the skin follows the mode the
+   * host's document declares, LIVE, through `SkinTheme`/`useThemeMode`.
+   *
+   * Two failures this replaces, both already paid for: a hardcoded `"light"`
+   * default rendered an unreadable error Alert on a dark sandbox (owner
+   * report 2026-08-09 — antd's light algorithm derived a near-white
+   * `colorErrorBg` while `colorText` came live off the host's dark tokens),
+   * and `resolveThemeMode()` SAMPLES the document once per render, so a host
+   * that flips `data-theme` at runtime left mounted skins on the old side.
    * Pass it explicitly to pin a side.
    */
   readonly mode?: ThemeMode;
+  /**
+   * What the theme root paints. Default `"bare"` — this component draws its
+   * own antd `Card`. `"base"` when it is mounted as a page of its own (the
+   * `profiles.language` route).
+   */
+  readonly surface?: SkinSurface;
   /** Called after a successfully-applied pick with the newly picked app
    * language code — the hook the host uses to reload its i18n engine (e.g.
    * `loadTranslations(code)`, stapel-translate-driven). Not called when
@@ -54,9 +65,6 @@ export interface LanguageSettingsProps {
 
 export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
   const t = useT();
-  // See ProfileSettings: never the raw `.message` (owner report 2026-08-09).
-  const errorDisplay = useErrorDisplay(PROFILES_I18N_KEYS.unknownError);
-  const theme = useMemo(() => toAntdThemeConfig(props.mode ?? resolveThemeMode()), [props.mode]);
   const query = useMyProfile();
   const languages = useLanguages();
   const mutation = useUpdateMyProfile();
@@ -99,9 +107,12 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
 
   if (query.isLoading && !profile) {
     return (
-      <ConfigProvider theme={theme}>
+      <SkinTheme
+        surface={props.surface ?? "bare"}
+        {...(props.mode !== undefined ? { mode: props.mode } : {})}
+      >
         <Spin data-testid="language-settings-loading" />
-      </ConfigProvider>
+      </SkinTheme>
     );
   }
 
@@ -112,40 +123,41 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
   // 2026-08-09 — the absence of a result is not a result).
   const catalogue = loadStateFromQuery(languages);
   const pickerValue = useDeviceLanguage ? AUTO : appLanguage;
-  const mutationError = errorDisplay(mutation.error);
 
   return (
-    <ConfigProvider theme={theme}>
-      <Card data-testid="language-settings">
+    <SkinTheme
+      surface={props.surface ?? "bare"}
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
+      <Card data-testid="language-settings" style={{ width: "100%" }}>
         <Typography.Title level={4} style={{ marginTop: 0 }}>
           {t(PROFILES_I18N_KEYS.languageTitle)}
         </Typography.Title>
         <Typography.Text type="secondary">{t(PROFILES_I18N_KEYS.languageSubtitle)}</Typography.Text>
 
-        <div style={{ display: "grid", gap: 12, maxWidth: 480, marginTop: 16 }}>
-          {matchList(catalogue, {
-            loading: () => <Spin data-testid="language-catalogue-loading" />,
-            failed: (error) => (
-              <div data-testid="language-catalogue-failed">
-                <ErrorAlert error={errorDisplay(error)} />
-                <Button
-                  onClick={() => {
-                    void languages.refetch();
-                  }}
-                  style={{ marginTop: 8 }}
-                  data-analytics="none"
-                  data-analytics-reason="retry of a failed read (no flow machine) — pairs carry no @stapel/analytics runtime dependency; the host instruments at its own call site"
-                >
-                  {t(PROFILES_I18N_KEYS.actionRetry)}
-                </Button>
-              </div>
-            ),
-            empty: () => (
-              <Typography.Text type="secondary" data-testid="language-catalogue-empty">
-                {t(PROFILES_I18N_KEYS.languagesEmpty)}
-              </Typography.Text>
-            ),
-            ready: (options) => (
+        <div
+          style={{
+            display: "grid",
+            gap: spacing[3],
+            maxWidth: SETTINGS_MAX_WIDTH,
+            marginTop: spacing[4],
+          }}
+        >
+          <LoadList
+            state={catalogue}
+            onRetry={() => {
+              void languages.refetch();
+            }}
+            testId="language-catalogue"
+            empty={
+              <EmptyState
+                compact
+                title={t(PROFILES_I18N_KEYS.languagesEmpty)}
+                testId="language-catalogue-empty-state"
+              />
+            }
+          >
+            {(options) => (
               <>
                 <div>
                   <Typography.Text>{t(PROFILES_I18N_KEYS.fieldAppLanguage)}</Typography.Text>
@@ -153,6 +165,7 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
                     value={pickerValue}
                     onChange={pickAppLanguage}
                     style={{ width: "100%" }}
+                    aria-label={t(PROFILES_I18N_KEYS.fieldAppLanguage)}
                     options={[
                       { value: AUTO, label: t(PROFILES_I18N_KEYS.languageAuto) },
                       ...options.map((l) => ({
@@ -174,12 +187,16 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
                   </div>
                 </div>
               </>
-            ),
-          })}
+            )}
+          </LoadList>
         </div>
 
-        <ErrorAlert error={mutationError} style={{ marginTop: 12 }} />
+        <ErrorAlert
+          thrown={mutation.error}
+          style={{ marginTop: spacing[3] }}
+          testId="language-settings-error"
+        />
       </Card>
-    </ConfigProvider>
+    </SkinTheme>
   );
 }

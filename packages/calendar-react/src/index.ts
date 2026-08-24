@@ -12,7 +12,11 @@
 // ── api ──────────────────────────────────────────────────────────────────────
 export { createCalendarApi } from "./api/calendarApi.js";
 export type { CalendarApi } from "./api/calendarApi.js";
-export { eventIcsUrl, isSubmittableRsvp } from "./api/extensions.js";
+export {
+  eventIcsUrl,
+  isSubmittableRsvp,
+  SUBMITTABLE_RSVPS,
+} from "./api/extensions.js";
 export type {
   Schemas,
   CalendarEvent,
@@ -93,6 +97,77 @@ export { EventComposer } from "./headless/EventComposer.js";
 export type { EventComposerBag } from "./headless/EventComposer.js";
 export { EventRsvp } from "./headless/EventRsvp.js";
 export type { EventRsvpBag } from "./headless/EventRsvp.js";
+export { EventList } from "./headless/EventList.js";
+export type { EventListBag } from "./headless/EventList.js";
+export { EventDetail } from "./headless/EventDetail.js";
+export type { EventDetailBag, RsvpRollUp } from "./headless/EventDetail.js";
+export { EventEditor } from "./headless/EventEditor.js";
+export type { EventEditorBag } from "./headless/EventEditor.js";
+export { EventDelete } from "./headless/EventDelete.js";
+export type { EventDeleteBag } from "./headless/EventDelete.js";
+export { ParticipantsEditor } from "./headless/ParticipantsEditor.js";
+export type { ParticipantsEditorBag } from "./headless/ParticipantsEditor.js";
+export { Availability } from "./headless/Availability.js";
+export type { AvailabilityBag, AvailabilityData } from "./headless/Availability.js";
+
+// ── model (formatting, range arithmetic, the wire-contract dedup) ─────────────
+export {
+  dedupeCalendarRange,
+  instancesFromEvents,
+} from "./model/occurrences.js";
+export type { CalendarInstance, DedupedRange } from "./model/occurrences.js";
+export {
+  formatTime,
+  formatDateTime,
+  formatDayHeading,
+  formatMonthLabel,
+  formatDayNumber,
+  formatTimeRange,
+  weekdayNames,
+  toLocalInput,
+  fromLocalInput,
+  toDateInput,
+  fromDateInput,
+} from "./model/format.js";
+export {
+  viewDays,
+  viewRange,
+  shiftAnchor,
+  isSameDay,
+  isOutsideMonth,
+  weekdayIndex,
+  groupByDay,
+} from "./model/range.js";
+export type { CalendarViewMode, CalendarRange } from "./model/range.js";
+export {
+  checkInterval,
+  checkSlotMinutes,
+  checkTitle,
+  DEFAULT_SLOT_MINUTES,
+} from "./model/validation.js";
+export {
+  isMandateDenied,
+  isMandateUnavailable,
+  isEventNotFound,
+} from "./model/refusals.js";
+export {
+  CALENDAR_RECURRENCE_PRESETS,
+  RECURRENCE_ENDS,
+  RECURRENCE_LABEL_PREFIX,
+  NO_RECURRENCE,
+  recurrenceLabelKey,
+  recurrenceEndPatch,
+  isRecurring,
+} from "./model/recurrence.js";
+export type {
+  RecurrencePreset,
+  RecurrenceEnd,
+  RecurrenceValue,
+  RecurrencePatch,
+} from "./model/recurrence.js";
+
+// ── nav manifest (scripted-fullstack navigation) ───────────────────────
+export { navEntries } from "./nav/manifest.js";
 
 // ── i18n ─────────────────────────────────────────────────────────────────────
 export {

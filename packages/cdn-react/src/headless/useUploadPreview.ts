@@ -10,6 +10,7 @@
  */
 import { useObjectUrlPreview } from "@stapel/core";
 import type { CdnImage } from "../api/types.js";
+import { imageRowOf } from "./useUploadQueue.js";
 import type { UploadItem } from "./useUploadQueue.js";
 
 export interface UploadPreview {
@@ -43,6 +44,9 @@ export function smallestVariantUrl(image: CdnImage | null): string | null {
 
 export function useUploadPreview(item: UploadItem): UploadPreview {
   const localUrl = useObjectUrlPreview(item.file);
-  const thumbnailUrl = smallestVariantUrl(item.image);
+  // Only an image has a ladder to take a thumbnail from. A video's picture is
+  // its poster and an audio row's is its waveform — both live in `render_meta`
+  // and are drawn by `<Image>`, not by this hook.
+  const thumbnailUrl = smallestVariantUrl(imageRowOf(item));
   return { localUrl, thumbnailUrl, url: localUrl ?? thumbnailUrl };
 }

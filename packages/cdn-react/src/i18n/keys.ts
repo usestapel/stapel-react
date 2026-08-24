@@ -67,6 +67,7 @@ export const CDN_I18N_KEYS = {
   errorInvalidHash: "error.400.invalid_hash",
   errorInvalidImageType: "error.400.invalid_image_type",
   errorMissingFields: "error.400.missing_fields",
+  errorTooManyRefs: "error.400.too_many_refs",
   errorNoFile: "error.400.no_file",
   errorStorageQuotaExceeded: "error.403.storage_quota_exceeded",
   errorNoImages: "error.404.no_images",

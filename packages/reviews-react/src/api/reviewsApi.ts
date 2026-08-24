@@ -3,6 +3,7 @@ import type {
   Review,
   ReviewAggregate,
   ReviewListParams,
+  ReviewModerationAction,
   ReviewPage,
   ReviewTarget,
 } from "./types.js";
@@ -50,19 +51,26 @@ function targetQuery(target: ReviewTarget): Record<string, string> {
  * `signInRequired` is gone from the two read bags and survives only on the
  * write, where a 401 is still the honest answer.
  *
- * ── The two operations that are NOT here, and why ─────────────────────────
+ * ── The two write operations a CONSOLE reaches ────────────────────────────
  *
  * `POST /reviews/{id}/moderate` (hide/publish) and `POST /reviews/{id}/response`
  * (the target owner's single reply) are both gated on the target type's
  * `can_moderate` callback, which is **fail-closed**: a type that names no
- * callback denies everyone (`registry.check_can_moderate`). They belong to a
- * seller console and a moderator console, and this pair ships neither
- * (storefront spec §4.4: the owner's reply is DISPLAYED in the MVP and the
- * button to write one does not exist, rather than existing switched off).
+ * callback denies everyone (`registry.check_can_moderate`). This pair used to
+ * omit them on the grounds that they belong to consoles it does not ship — and
+ * the consequence was that stapel-reviews' moderation queue and the seller's
+ * single reply were backend-only capabilities with no user-reachable surface
+ * anywhere in the fleet.
  *
- * Both stay in the generated schema and therefore in `manifest.json`, which
- * lists the whole contract — nothing is hidden; they are simply not this
- * pair's surface. Adding them later is additive and needs no change here.
+ * They are here now, and the fail-closed callback is exactly why they can be:
+ * the SERVER is the authority on who may call them, so a client that offers
+ * the control to somebody it should not costs a 403, not a leak. What the
+ * client owes is the other half — the control must not be offered blindly.
+ * Both surfaces take an explicit capability flag from the host
+ * (`canModerate` / `canRespond`), and where it is off the control is rendered
+ * switched off WITH its reason beside it rather than omitted, so a seller
+ * looking at a review can see that a reply exists as a concept and why this
+ * one is not theirs to write.
  *
  * These operations will be GENERATED from schema.json operationIds by gen-api
  * v2; until then they are hand-authored here (the ONE legal home of path
@@ -118,6 +126,51 @@ export interface ReviewsApi {
     },
     options?: { readonly signal?: AbortSignal }
   ): Promise<Review>;
+
+  /**
+   * Hide or publish one review — the moderator verdict. Answers the review as
+   * it now stands (200), so the caller never has to guess the resulting
+   * status.
+   *
+   * `reason` is not shown to anyone: it rides into the emitted visibility fact
+   * (`services.moderate_review` → `_emit_review_fact`), which is where an
+   * audit reads it. Re-applying the state a review is already in is a no-op
+   * upstream — no fact, no change — so an idempotent retry is safe.
+   *
+   * Refusals: `error.403.reviews_cannot_moderate` when the type's callback
+   * says no (and when the type names no callback at all — it is fail-closed),
+   * `error.400.reviews_invalid_moderation_action` for anything but the two
+   * verdicts, `error.404.reviews_review_not_found` for an id that is gone.
+   */
+  moderate(
+    reviewId: string,
+    body: {
+      readonly action: ReviewModerationAction;
+      /** Carried into the moderation fact, never rendered to a reader. */
+      readonly reason?: string;
+    },
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<Review>;
+
+  /**
+   * Attach the target owner's single reply to a review. Answers the review
+   * WITH its reply (201), which is why the caller gets a `response` object
+   * back rather than having to re-read the list to see what it wrote.
+   *
+   * "Single" is enforced upstream and is the module's ONLY 409
+   * (`error.409.reviews_already_responded`) — the one refusal whose status
+   * reads the way a naive client expects, in a module where the duplicate
+   * REVIEW is a 400. A deployment may also switch replies off per target type
+   * (`allow_response`), which is `error.400.reviews_response_not_allowed`, and
+   * the ownership gate is the same fail-closed `can_moderate` callback
+   * moderation uses — so the seller's reply and the moderator's verdict are
+   * refused with the same 403 code.
+   */
+  respond(
+    reviewId: string,
+    body: { readonly body: string },
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<Review>;
 }
 
 const signalOf = (options?: {
@@ -164,6 +217,28 @@ export function createReviewsApi(client: StapelClient): ReviewsApi {
             ? { body: body.body }
             : {}),
         },
+        mutating(signalOf(options))
+      ),
+
+    moderate: (reviewId, body, options) =>
+      client.post(
+        `/reviews/${encodeURIComponent(reviewId)}/moderate`,
+        {
+          action: body.action,
+          // `reason` defaults to `""` in the request DTO and is only ever read
+          // into the emitted fact, so an empty box is spelled ONE way on the
+          // wire — the same rule the review body follows.
+          ...(body.reason !== undefined && body.reason.length > 0
+            ? { reason: body.reason }
+            : {}),
+        },
+        mutating(signalOf(options))
+      ),
+
+    respond: (reviewId, body, options) =>
+      client.post(
+        `/reviews/${encodeURIComponent(reviewId)}/response`,
+        { body: body.body },
         mutating(signalOf(options))
       ),
   };

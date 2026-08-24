@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { StapelApiError } from "@stapel/core";
 import type {
+  AdminAuditQuery,
   AuditPage,
   AuthSession as AuthSessionRecord,
   Capabilities,
@@ -11,8 +12,12 @@ import type {
   Passkey,
   PasswordMethods,
   SecurityStatus,
+  ServiceKey,
   SsoLookupResponse,
+  SsoOrg,
+  StaffRoleAssignment,
   StapelUser,
+  VerificationPreferences,
 } from "../api/types.js";
 import { useAuthApi } from "./context.js";
 import { authQueryKeys } from "./queryKeys.js";
@@ -168,4 +173,98 @@ export function useSsoLookup(
     queryFn: () => api.ssoLookup(domain),
     enabled: domain.length > 0,
   });
+}
+
+// ── Step-up verification preferences (auth-sa.md §11) ────────────────────────
+
+/**
+ * The scopes this person has taken a decision about. Rows are sparse by
+ * design: a scope with no row follows the endpoint's own default, so an empty
+ * list means "everything is as this deployment ships it", never "nothing is
+ * protected".
+ */
+export function useVerificationPreferences(): UseQueryResult<
+  VerificationPreferences,
+  StapelApiError
+> {
+  const api = useAuthApi();
+  return useQuery({
+    queryKey: authQueryKeys.verificationPreferences(),
+    queryFn: () => api.verificationPreferences(),
+  });
+}
+
+// ── Operator console (staff only) ────────────────────────────────────────────
+//
+// Every hook below reads an endpoint that answers 403 for a non-staff caller.
+// They are not `enabled`-gated on a client-side role guess: the shell decides
+// who reaches an `admin.root` screen, and a client that thinks it is staff
+// when the server disagrees must SEE the refusal, not a blank list.
+
+/** Enterprise-SSO organizations (`GET /sso/orgs/`). */
+export function useSsoOrgs(): UseQueryResult<readonly SsoOrg[], StapelApiError> {
+  const api = useAuthApi();
+  return useQuery({
+    queryKey: authQueryKeys.ssoOrgs(),
+    queryFn: () => api.ssoOrgs(),
+  });
+}
+
+/** One organization by slug. Disabled until a slug is selected. */
+export function useSsoOrg(
+  slug: string | null
+): UseQueryResult<SsoOrg, StapelApiError> {
+  const api = useAuthApi();
+  return useQuery({
+    queryKey: authQueryKeys.ssoOrg(slug ?? ""),
+    queryFn: () => api.ssoOrg(slug ?? ""),
+    enabled: slug !== null && slug.length > 0,
+  });
+}
+
+/** Machine credentials (`GET /service-keys`). */
+export function useServiceKeys(): UseQueryResult<
+  readonly ServiceKey[],
+  StapelApiError
+> {
+  const api = useAuthApi();
+  return useQuery({
+    queryKey: authQueryKeys.serviceKeys(),
+    queryFn: () => api.serviceKeys(),
+  });
+}
+
+/** Staff-role assignments, optionally narrowed to one user. */
+export function useStaffRoles(
+  userId?: string
+): UseQueryResult<readonly StaffRoleAssignment[], StapelApiError> {
+  const api = useAuthApi();
+  return useQuery({
+    queryKey: authQueryKeys.staffRoles(userId ?? ""),
+    queryFn: () => api.staffRoles(userId),
+  });
+}
+
+/**
+ * A page of the GLOBAL audit stream (`GET /admin/audit/`) — every user's
+ * events, as opposed to {@link useAuditLog}'s own. The filter object is part
+ * of the cache key, so changing a filter is a new read rather than a mutation
+ * of the current one.
+ */
+export function useAdminAudit(
+  query: AdminAuditQuery = {}
+): UseQueryResult<AuditPage, StapelApiError> {
+  const api = useAuthApi();
+  return useQuery({
+    queryKey: authQueryKeys.adminAudit(adminAuditCacheKey(query)),
+    queryFn: () => api.adminAudit(query),
+  });
+}
+
+/** A stable string for a filter set — key order cannot change the cache key. */
+export function adminAuditCacheKey(query: AdminAuditQuery): string {
+  const entries = Object.entries(query)
+    .filter(([, v]) => v !== undefined && v !== "")
+    .sort(([a], [b]) => a.localeCompare(b));
+  return entries.map(([k, v]) => `${k}=${String(v)}`).join("&");
 }

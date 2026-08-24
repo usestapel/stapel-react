@@ -1,6 +1,6 @@
 # @stapel/video-react 0.1.0
 
-Headless React flow pair for stapel-video (contract >=0.7 <0.8) — business + state, zero visual opinion.
+Headless React flow pair for stapel-video (contract >=0.8 <0.9) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -31,6 +31,9 @@ Paths are relative to `/video/api/v1/`.
 - video_api_v1_webhook_create: POST /webhook
 
 ## Query hooks (server state; keys come only from the key factory)
+- useLobby (mutation) → admitParticipant+denyParticipant+participants
+- useMeeting (mutation) → createRoom+joinRoom
+- useRoom (query) → getRoom
 - useScopeUsage (query) → scopeUsage
 
 ## Errors (render t(code, params); UX from remediation)
@@ -69,7 +72,10 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
-- video.usage → <VideoProvider> [default|nobody|unavailable]  demo/Video.demo.tsx
+- video.call-stage → <CallStage> [no-peer|no-token]  demo/CallStage.demo.tsx
+- video.lobby → <LobbyPanel> [queue|empty|not-host|roster]  demo/Lobby.demo.tsx
+- video.meeting → <RoomsPane> [default|phone|admitted|waiting|denied]  demo/Meeting.demo.tsx
+- video.usage → <ScopeUsagePane> [default|phone|nobody|invalid-period|unavailable]  demo/Video.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

@@ -24,8 +24,10 @@
  * be told to scan again.
  */
 import { useState } from "react";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { Alert, Button, Card, Flex, Typography } from "antd";
+import { SkinTheme } from "@stapel/tokens-antd/skin";
+import { spacing } from "@stapel/tokens";
 import { useFormatFlowError, useT } from "@stapel/core";
 import type { StapelApiError } from "@stapel/core";
 import { toFlowError } from "../flows/errors.js";
@@ -58,6 +60,36 @@ export interface QrConfirmPanelProps {
   readonly subtitle?: string;
 }
 
+/**
+ * The page ground this screen lands on. It is a FULL PAGE — stapel-auth
+ * redirects a scanner straight here — so it must paint its own background and
+ * text colour: inheriting the host page is what left every default skin
+ * rendering light-theme text on a dark document (visual pass CF-1), and it is
+ * also why this card used to draw antd's stock blue instead of the project's
+ * token palette (C11). `SkinTheme` supplies both, from the document's LIVE
+ * mode. Element-relative width, never the viewport: the panel fills the box
+ * the host gives it.
+ */
+function QrConfirmSurface(props: { children: ReactNode }): ReactElement {
+  return (
+    <SkinTheme
+      surface="base"
+      style={{
+        minHeight: "100%",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: spacing[4],
+        boxSizing: "border-box",
+      }}
+      data-testid="qr-confirm-surface"
+    >
+      <div style={{ width: "100%", maxWidth: "30rem" }}>{props.children}</div>
+    </SkinTheme>
+  );
+}
+
 type Settled = "approved" | "declined" | null;
 
 export function QrConfirmPanel(props: QrConfirmPanelProps): ReactElement {
@@ -76,9 +108,11 @@ export function QrConfirmPanel(props: QrConfirmPanelProps): ReactElement {
 
   if (qrKey === null || qrKey === "") {
     return (
-      <Card title={title} data-testid="qr-confirm-panel" style={{ width: "100%" }}>
-        <Alert type="warning" showIcon message={t(AUTH_I18N_KEYS.qrConfirmNoKey)} />
-      </Card>
+      <QrConfirmSurface>
+        <Card title={title} data-testid="qr-confirm-panel" style={{ width: "100%" }}>
+          <Alert type="warning" showIcon message={t(AUTH_I18N_KEYS.qrConfirmNoKey)} />
+        </Card>
+      </QrConfirmSurface>
     );
   }
 
@@ -89,7 +123,8 @@ export function QrConfirmPanel(props: QrConfirmPanelProps): ReactElement {
   const busy = confirm.isPending || reject.isPending;
 
   return (
-    <Card title={title} data-testid="qr-confirm-panel" style={{ width: "100%" }}>
+    <QrConfirmSurface>
+      <Card title={title} data-testid="qr-confirm-panel" style={{ width: "100%" }}>
       <Flex vertical gap="middle" style={{ width: "100%" }}>
         {settled === null && (
           <Typography.Text type="secondary">
@@ -154,6 +189,7 @@ export function QrConfirmPanel(props: QrConfirmPanelProps): ReactElement {
           </Flex>
         )}
       </Flex>
-    </Card>
+      </Card>
+    </QrConfirmSurface>
   );
 }

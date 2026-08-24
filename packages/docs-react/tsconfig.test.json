@@ -1,9 +1,13 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "_comment": "Type-checks the test suite (this pair ships no demo/ yet — the file plays tsconfig.demo.json's role in the `test` task). noEmit; the build tsconfig emits src only.",
+  "_comment": "Type-checks the test suite AND the demos (frontend-guardrails \u00a74.2: 'demos are first-class code, compiled'). noEmit; the build tsconfig emits src only. Generated stories are excluded (they are drift-gated, not hand-edited).",
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
@@ -17,5 +21,12 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true
   },
-  "include": ["src", "test"]
+  "include": [
+    "src",
+    "test",
+    "demo"
+  ],
+  "exclude": [
+    "demo/generated"
+  ]
 }

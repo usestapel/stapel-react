@@ -21,6 +21,10 @@
       "types": "./dist/default/index.d.ts",
       "default": "./dist/default/index.js"
     },
+    "./live": {
+      "types": "./dist/live/index.d.ts",
+      "default": "./dist/live/index.js"
+    },
     "./i18n/ru": {
       "types": "./dist/i18n/ru.d.ts",
       "default": "./dist/i18n/ru.js"
@@ -58,31 +62,44 @@
     {
       "name": "index — the ru/es locales must NOT be in the main bundle",
       "path": "dist/index.js",
-      "limit": "12 KB"
+      "limit": "14 KB"
     },
     {
       "name": "i18n/ru subpath (opt-in locale: en floor + generated ru + ru UI)",
       "path": "dist/i18n/ru.js",
-      "limit": "3 KB"
+      "limit": "8 KB"
     },
     {
-      "name": "i18n/es subpath (opt-in locale: en floor + generated es errors; no es UI copy yet)",
+      "name": "i18n/es subpath (opt-in locale: en floor + generated es + es UI)",
       "path": "dist/i18n/es.js",
-      "limit": "2 KB"
+      "limit": "8 KB"
     },
     {
-      "name": "default — the settings skin (antd) must stay out of the main bundle",
+      "name": "default — the antd skin must stay out of the main bundle",
       "path": "dist/default/index.js",
-      "limit": "12 KB"
+      "limit": "20 KB"
+    },
+    {
+      "name": "live — the socket adapter; a polling host must not pay for it",
+      "path": "dist/live/index.js",
+      "limit": "6 KB"
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.13.0 <1.0.0",
+    "@stapel/core": ">=0.18.0 <1.0.0",
+    "@stapel/realtime": ">=0.1.0",
+    "@stapel/tokens-antd": ">=0.6.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"
   },
   "peerDependenciesMeta": {
+    "@stapel/realtime": {
+      "optional": true
+    },
+    "@stapel/tokens-antd": {
+      "optional": true
+    },
     "antd": {
       "optional": true
     }
@@ -90,8 +107,10 @@
   "devDependencies": {
     "@size-limit/preset-small-lib": "^11.2.0",
     "@stapel/core": "workspace:^",
+    "@stapel/realtime": "workspace:^",
     "@stapel/showcase": "workspace:^",
     "@stapel/tokens": "workspace:^",
+    "@stapel/tokens-antd": "workspace:^",
     "@tanstack/react-query": "^5.81.0",
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.1.0",

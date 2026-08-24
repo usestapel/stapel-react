@@ -91,7 +91,9 @@ describe("<FeatureValueList/> — the spec table", () => {
   it("NAMES a value it cannot read, instead of showing an empty cell", () => {
     render(wrap(<FeatureValueList features={[UNKNOWN_TYPE_FEATURE]} values={VALUES} />));
     const cell = screen.getByTestId("attributes-unreadable-value");
-    expect(cell.textContent).toContain("size_grid");
+    expect(cell.textContent).toContain("cannot be shown");
+    expect(cell.textContent).not.toContain("size_grid");
+    expect(cell.getAttribute("data-attributes-type")).toBe("size_grid");
   });
 
   it("keeps the two absences distinguishable", () => {

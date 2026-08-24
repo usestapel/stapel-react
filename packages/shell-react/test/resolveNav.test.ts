@@ -8,6 +8,8 @@
 import { describe, expect, it } from "vitest";
 import type { NavEntry, PackageNavManifest } from "@stapel/core";
 import {
+  ADMIN_ROOT_ID,
+  adminNavIds,
   resolveMemberNav,
   resolveNav,
   resolvePublicNav,
@@ -292,10 +294,17 @@ describe("resolvePublicNav / resolveMemberNav — the audience is in the name", 
   ];
 
   it("resolvePublicNav drops every member screen", () => {
-    expect(resolvePublicNav(installed).map((e) => e.id)).toEqual([
-      "auth.login",
-      "auth.qr_confirm",
-    ]);
+    expect(resolvePublicNav(installed).map((e) => e.id)).toEqual(["auth.login"]);
+  });
+
+  it("resolvePublicNav also drops a PUBLIC screen that still needs a session", () => {
+    // auth.qr_confirm is `surface: "public"` (no mandate: a signed-in phone
+    // confirming a signed-out desktop) and `requiresAuth: true`. The surface
+    // axis alone hands it to an anonymous visitor, whose click lands on the
+    // sign-in redirect — a door that opens onto a bounce.
+    const anonymous = resolvePublicNav(installed).map((e) => e.id);
+    expect(anonymous).not.toContain("auth.qr_confirm");
+    expect(resolveMemberNav(installed).map((e) => e.id)).toContain("auth.qr_confirm");
   });
 
   it("resolveMemberNav keeps them", () => {
@@ -308,22 +317,245 @@ describe("resolvePublicNav / resolveMemberNav — the audience is in the name", 
 
   it("each equals the explicit-audience call it stands for — one implementation, two names", () => {
     expect(resolvePublicNav(installed)).toEqual(
-      resolveNav(installed, undefined, { audience: "anonymous" })
+      resolveNav(installed, undefined, { audience: "anonymous", authenticated: false })
     );
     expect(resolveMemberNav(installed)).toEqual(
-      resolveNav(installed, undefined, { audience: "member" })
+      resolveNav(installed, undefined, { audience: "member", authenticated: true })
     );
   });
 
   it("still honours an override file", () => {
     const overrides = { overrides: { "auth.login": { menuVisible: false } } };
-    expect(resolvePublicNav(installed, overrides).map((e) => e.id)).toEqual([
+    expect(resolvePublicNav(installed, overrides).map((e) => e.id)).toEqual([]);
+    expect(resolveMemberNav(installed, overrides).map((e) => e.id)).toEqual([
       "auth.qr_confirm",
+      "listings.compose",
     ]);
   });
 
   it("differs from the audience-less default, which filters nothing — the trap these exist for", () => {
     expect(resolveNav(installed).map((e) => e.id)).toContain("listings.compose");
     expect(resolvePublicNav(installed).map((e) => e.id)).not.toContain("listings.compose");
+  });
+});
+
+/**
+ * `requiresAuth` — the axis the manifest emitted and nothing read.
+ *
+ * It is NOT a synonym for `surface`. `surface` answers "does this screen need
+ * a MANDATE" and `requiresAuth` answers "does it need a SESSION", and the
+ * pair that shows why is `auth.qr_confirm`: public surface, session required.
+ * The audience filter alone leaves it in an anonymous visitor's menu, where
+ * every click ends at the sign-in redirect.
+ */
+describe("resolveNav — the session axis (requiresAuth)", () => {
+  const installed = [
+    manifest("@stapel/auth", [
+      entry({ id: "auth.login", requiresAuth: false, order: 10 }),
+      entry({ id: "auth.qr_confirm", requiresAuth: true, surface: "public", order: 20 }),
+    ]),
+  ];
+
+  it("filters nothing when the caller does not say — the scaffold bakes every route", () => {
+    expect(resolveNav(installed).map((e) => e.id)).toEqual([
+      "auth.login",
+      "auth.qr_confirm",
+    ]);
+  });
+
+  it("keeps a session-only screen for a caller that has a session", () => {
+    const resolved = resolveNav(installed, undefined, { authenticated: true });
+    expect(resolved.map((e) => e.id)).toEqual(["auth.login", "auth.qr_confirm"]);
+  });
+
+  it("drops a session-only screen for a caller with no session, whatever its surface says", () => {
+    const resolved = resolveNav(installed, undefined, { authenticated: false });
+    expect(resolved.map((e) => e.id)).toEqual(["auth.login"]);
+  });
+
+  it("is independent of the surface axis — both gates apply", () => {
+    const tree = [
+      manifest("@stapel/a", [
+        entry({ id: "a.public_open", requiresAuth: false, surface: "public", order: 1 }),
+        entry({ id: "a.public_session", requiresAuth: true, surface: "public", order: 2 }),
+        entry({ id: "a.member", requiresAuth: true, surface: "member", order: 3 }),
+      ]),
+    ];
+    expect(
+      resolveNav(tree, undefined, { audience: "guest", authenticated: true }).map((e) => e.id)
+    ).toEqual(["a.public_open", "a.public_session"]);
+    expect(
+      resolveNav(tree, undefined, { audience: "guest", authenticated: false }).map((e) => e.id)
+    ).toEqual(["a.public_open"]);
+    expect(
+      resolveNav(tree, undefined, { audience: "member", authenticated: true }).map((e) => e.id)
+    ).toEqual(["a.public_open", "a.public_session", "a.member"]);
+  });
+
+  it("drops a session-only PARENT's whole subtree", () => {
+    const tree = [
+      manifest("@stapel/a", [entry({ id: "a.top", requiresAuth: true, surface: "public" })]),
+      manifest("@stapel/b", [
+        entry({
+          id: "b.child",
+          requiresAuth: false,
+          placement: { level: "submenu", parentId: "a.top" },
+        }),
+      ]),
+    ];
+    expect(resolveNav(tree, undefined, { authenticated: false })).toEqual([]);
+  });
+});
+
+/**
+ * `route.index` — the other field the contract emitted and nothing read.
+ *
+ * An index route mounts at its SECTION's address, so an index child that
+ * linked to a segment of its own name pointed at a route that does not exist,
+ * and the menu's matcher — which compared `route.path` to the last segment of
+ * the location — never selected it either. Both halves are the resolved
+ * `linkPath`.
+ */
+describe("resolveNav — route.index", () => {
+  it("an entry with no index at all resolves to index:false and its own path", () => {
+    const resolved = resolveNav([manifest("@stapel/a", [entry({ id: "a.one" })])]);
+    expect(resolved[0]?.index).toBe(false);
+    expect(resolved[0]?.linkPath).toBe("a.one");
+  });
+
+  it("an explicit index:false is the same answer as omitting it", () => {
+    const omitted = resolveNav([manifest("@stapel/a", [entry({ id: "a.one" })])]);
+    const explicit = resolveNav([
+      manifest("@stapel/a", [entry({ id: "a.one", route: { path: "a.one", index: false } })]),
+    ]);
+    expect(explicit[0]?.index).toBe(false);
+    expect(explicit[0]?.linkPath).toBe(omitted[0]?.linkPath);
+  });
+
+  it("an index CHILD takes its section's address, not a segment of its own", () => {
+    const installed = [
+      manifest("@stapel/profiles", [
+        entry({ id: "profiles.settings", route: { path: "settings" } }),
+      ]),
+      manifest("@stapel/auth", [
+        entry({
+          id: "auth.overview",
+          route: { path: "overview", index: true },
+          placement: { level: "submenu", parentId: "profiles.settings" },
+        }),
+      ]),
+    ];
+    const child = resolveNav(installed)[0]?.children?.[0];
+    expect(child?.index).toBe(true);
+    // The declaration is preserved verbatim…
+    expect(child?.route).toEqual({ path: "overview", index: true });
+    // …and the ADDRESS is the section's, which is where the route mounts.
+    expect(child?.linkPath).toBe("settings");
+  });
+
+  it("a NON-index child keeps its own segment", () => {
+    const installed = [
+      manifest("@stapel/profiles", [
+        entry({ id: "profiles.settings", route: { path: "settings" } }),
+      ]),
+      manifest("@stapel/auth", [
+        entry({
+          id: "auth.security",
+          route: { path: "security" },
+          placement: { level: "submenu", parentId: "profiles.settings" },
+        }),
+      ]),
+    ];
+    expect(resolveNav(installed)[0]?.children?.[0]?.linkPath).toBe("security");
+  });
+
+  it("an index TOP entry keeps its own path — the shell knows no address above it", () => {
+    const resolved = resolveNav([
+      manifest("@stapel/a", [entry({ id: "a.home", route: { path: "/", index: true } })]),
+    ]);
+    expect(resolved[0]?.index).toBe(true);
+    expect(resolved[0]?.linkPath).toBe("/");
+  });
+});
+
+/**
+ * `admin.root` — the parent nobody declared.
+ *
+ * gdpr's DSAR queue and video's usage table both hang from it; no pair owns
+ * "the admin section", so `resolveNav`'s orphan-drop removed both screens in
+ * every host, silently. The section is synthesised instead — and it is NOT
+ * gated away from a non-staff person here: hiding it would leave them nothing
+ * to ask about (the staff gate is `<AppShell staff={…}/>`, which lists it and
+ * states the reason).
+ */
+describe("resolveNav — the admin section", () => {
+  const adminChild = (id: string, order = 10) =>
+    entry({
+      id,
+      order,
+      requiresAuth: true,
+      surface: "member",
+      placement: { level: "submenu", parentId: ADMIN_ROOT_ID },
+    });
+
+  it("synthesises the parent when a pair hangs a screen from it", () => {
+    const resolved = resolveNav([manifest("@stapel/gdpr", [adminChild("admin.privacy")])]);
+    expect(resolved.map((e) => e.id)).toEqual([ADMIN_ROOT_ID]);
+    expect(resolved[0]?.children?.map((c) => c.id)).toEqual(["admin.privacy"]);
+    expect(resolved[0]?.labelKey).toBe("shell.nav.admin");
+  });
+
+  it("collects every pair's staff screens under the one section, in order", () => {
+    const resolved = resolveNav([
+      manifest("@stapel/video", [adminChild("admin.usage", 20)]),
+      manifest("@stapel/gdpr", [adminChild("admin.privacy", 10)]),
+    ]);
+    expect(resolved[0]?.children?.map((c) => c.id)).toEqual([
+      "admin.privacy",
+      "admin.usage",
+    ]);
+  });
+
+  it("does NOT invent the section when nothing hangs from it", () => {
+    const resolved = resolveNav([manifest("@stapel/a", [entry({ id: "a.one" })])]);
+    expect(resolved.map((e) => e.id)).toEqual(["a.one"]);
+  });
+
+  it("steps aside for a host that declares its own admin root", () => {
+    const own = entry({
+      id: ADMIN_ROOT_ID,
+      labelKey: "app.nav.operations",
+      icon: "AppstoreOutlined",
+      order: 5,
+    });
+    const resolved = resolveNav([
+      manifest("app", [own]),
+      manifest("@stapel/gdpr", [adminChild("admin.privacy")]),
+    ]);
+    expect(resolved).toHaveLength(1);
+    expect(resolved[0]?.labelKey).toBe("app.nav.operations");
+    expect(resolved[0]?.children?.map((c) => c.id)).toEqual(["admin.privacy"]);
+  });
+
+  it("is a MEMBER surface: an anonymous storefront never grows an admin tab", () => {
+    const installed = [manifest("@stapel/gdpr", [adminChild("admin.privacy")])];
+    expect(resolvePublicNav(installed)).toEqual([]);
+    expect(resolveMemberNav(installed).map((e) => e.id)).toEqual([ADMIN_ROOT_ID]);
+  });
+
+  it("adminNavIds names the section and everything inside it, and nothing else", () => {
+    const resolved = resolveNav([
+      manifest("@stapel/a", [entry({ id: "a.one" })]),
+      manifest("@stapel/gdpr", [adminChild("admin.privacy")]),
+      manifest("@stapel/video", [adminChild("admin.usage", 20)]),
+    ]);
+    expect([...adminNavIds(resolved)].sort()).toEqual(
+      ["admin.privacy", "admin.usage", ADMIN_ROOT_ID].sort()
+    );
+  });
+
+  it("adminNavIds is empty for a tree with no admin section", () => {
+    const resolved = resolveNav([manifest("@stapel/a", [entry({ id: "a.one" })])]);
+    expect(adminNavIds(resolved).size).toBe(0);
   });
 });

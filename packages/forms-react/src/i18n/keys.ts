@@ -21,6 +21,13 @@ import { FORMS_ERROR_CODES, formsErrorBundleEn } from "./generated/errors.gen.js
  */
 export const FORMS_I18N_KEYS = {
   unknownError: "forms.error.unknown",
+  /** A routed admin screen reached a host that declared no workspace. */
+  noWorkspace: "forms.error.no_workspace",
+
+  // ── nav (the three routable admin surfaces) ──────────────────────────────
+  navList: "forms.nav.list",
+  navBuilder: "forms.nav.builder",
+  navResponses: "forms.nav.responses",
 
   // ── fill: load + refusal states ──────────────────────────────────────────
   fillLoading: "forms.fill.loading",
@@ -77,6 +84,32 @@ export const FORMS_I18N_KEYS = {
   builderStateDraft: "forms.builder.state_draft",
   builderRotateLink: "forms.builder.rotate_link",
   builderPublicLink: "forms.builder.public_link",
+  builderReorderBlockedFirst: "forms.builder.blocked.first_field",
+  builderReorderBlockedLast: "forms.builder.blocked.last_field",
+
+  // ── settings (the only writer of Form.settings) ──────────────────────────
+  settingsTitle: "forms.settings.title",
+  settingsOpen: "forms.settings.open",
+  settingsClose: "forms.settings.close",
+  settingsFormTitle: "forms.settings.form_title",
+  settingsNotifyEmails: "forms.settings.notify_emails",
+  settingsNotifyEmailsHint: "forms.settings.notify_emails_hint",
+  settingsNotifyTelegram: "forms.settings.notify_telegram",
+  settingsNotifyTelegramHint: "forms.settings.notify_telegram_hint",
+  settingsAddDestination: "forms.settings.add_destination",
+  settingsRetention: "forms.settings.retention",
+  settingsRetentionHint: "forms.settings.retention_hint",
+  settingsRetentionDefault: "forms.settings.retention_default",
+  settingsNoDestination: "forms.settings.no_destination",
+  settingsSuspectEmails: "forms.settings.suspect_emails",
+  settingsSave: "forms.settings.save",
+  settingsSaved: "forms.settings.saved",
+  settingsLoadFailed: "forms.settings.load_failed",
+  settingsBlockedLoading: "forms.settings.blocked.loading",
+  settingsBlockedSaving: "forms.settings.blocked.saving",
+  settingsBlockedNoChanges: "forms.settings.blocked.no_changes",
+  settingsBlockedRetention: "forms.settings.blocked.retention",
+  settingsBlockedNoTitle: "forms.settings.blocked.no_title",
 
   // ── responses ────────────────────────────────────────────────────────────
   responsesTitle: "forms.responses.title",
@@ -103,14 +136,23 @@ export const FORMS_I18N_KEYS = {
   responsesErasedNoWrite: "forms.responses.blocked.erased",
   responsesDetail: "forms.responses.detail",
   responsesClose: "forms.responses.close",
+  responsesRefresh: "forms.responses.refresh",
+  responsesPollingNote: "forms.responses.polling_note",
 
   // ── form list ────────────────────────────────────────────────────────────
   listTitle: "forms.list.title",
   listEmpty: "forms.list.empty",
+  listEmptyHint: "forms.list.empty_hint",
   listLoadFailed: "forms.list.load_failed",
   listCreate: "forms.list.create",
   listNewTitle: "forms.list.new_title",
   listSubmissionCount: "forms.list.submission_count",
+  listOpen: "forms.list.open",
+  listDelete: "forms.list.delete",
+  listDeleteConfirm: "forms.list.delete_confirm",
+  listDeleteBody: "forms.list.delete_body",
+  listDeleteBodyOpen: "forms.list.delete_body_open",
+  listStateFilter: "forms.list.state_filter",
 } as const;
 
 export type FormsI18nKey =
@@ -152,6 +194,12 @@ export const formsI18nBundleEn: I18nDictionary = {
 
   // forms-react UI
   "forms.error.unknown": "Something went wrong. Please try again.",
+  "forms.error.no_workspace":
+    "This screen needs a workspace. Pass `workspaceId`, or declare one on the runtime with `createFormsRuntime({ workspaceId })`.",
+
+  "forms.nav.list": "Forms",
+  "forms.nav.builder": "Form builder",
+  "forms.nav.responses": "Responses",
 
   "forms.fill.loading": "Loading the form…",
   "forms.fill.retry": "Try again",
@@ -215,6 +263,37 @@ export const formsI18nBundleEn: I18nDictionary = {
   "forms.builder.state_draft": "Draft",
   "forms.builder.rotate_link": "Rotate public link",
   "forms.builder.public_link": "Public link",
+  "forms.builder.blocked.first_field": "Already the first field.",
+  "forms.builder.blocked.last_field": "Already the last field.",
+
+  "forms.settings.title": "Form settings",
+  "forms.settings.open": "Settings",
+  "forms.settings.close": "Close",
+  "forms.settings.form_title": "Form name",
+  "forms.settings.notify_emails": "Notify these email addresses",
+  "forms.settings.notify_emails_hint":
+    "Every new response is emailed to these addresses. With none configured, responses are stored and nobody is told.",
+  "forms.settings.notify_telegram": "Notify these Telegram chats",
+  "forms.settings.notify_telegram_hint":
+    "Chat ids, not usernames — a group chat id starts with a minus sign.",
+  "forms.settings.add_destination": "Type a destination and press Enter",
+  "forms.settings.retention": "Delete responses after",
+  "forms.settings.retention_hint":
+    "Days. An override may only SHORTEN this deployment's retention period; leave it empty to use the deployment's own.",
+  "forms.settings.retention_default": "Deployment default",
+  "forms.settings.no_destination":
+    "No destination is configured, so a new response will be stored and nobody will be notified.",
+  "forms.settings.suspect_emails":
+    "These do not look like email addresses and may never be delivered: {list}",
+  "forms.settings.save": "Save settings",
+  "forms.settings.saved": "Settings saved.",
+  "forms.settings.load_failed": "We could not load this form's settings.",
+  "forms.settings.blocked.loading": "Loading this form's settings…",
+  "forms.settings.blocked.saving": "Saving…",
+  "forms.settings.blocked.no_changes": "Nothing has changed since the last save.",
+  "forms.settings.blocked.retention":
+    "Responses have to be kept for at least one day.",
+  "forms.settings.blocked.no_title": "Give the form a name first.",
 
   "forms.responses.title": "Responses",
   "forms.responses.empty": "No responses yet.",
@@ -242,13 +321,26 @@ export const formsI18nBundleEn: I18nDictionary = {
     "This response was erased, so it can no longer be resent or deleted.",
   "forms.responses.detail": "Response detail",
   "forms.responses.close": "Close",
+  "forms.responses.refresh": "Check for new responses",
+  "forms.responses.polling_note":
+    "This list does not update on its own — check again to see responses that arrived since it loaded.",
 
   "forms.list.title": "Forms",
   "forms.list.empty": "No forms in this workspace yet.",
+  "forms.list.empty_hint":
+    "A form collects answers through a public link you can put on any page.",
   "forms.list.load_failed": "We could not load the forms.",
   "forms.list.create": "New form",
   "forms.list.new_title": "Untitled form",
   "forms.list.submission_count": "{count} response(s)",
+  "forms.list.open": "Open",
+  "forms.list.delete": "Delete",
+  "forms.list.delete_confirm": "Delete “{title}”?",
+  "forms.list.delete_body":
+    "The form and its {count} response(s) stop being reachable. The public link stops working immediately.",
+  "forms.list.delete_body_open":
+    "This form is OPEN. Deleting it closes it: the public link stops working immediately and its {count} response(s) stop being reachable.",
+  "forms.list.state_filter": "Filter by state",
 };
 
 /**

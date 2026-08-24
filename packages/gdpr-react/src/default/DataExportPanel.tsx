@@ -40,20 +40,17 @@
  */
 import { useEffect } from "react";
 import type { ReactElement } from "react";
+import { Alert, Button, Card, Flex, Progress, Typography } from "antd";
+import { spacing, fontSize } from "@stapel/tokens";
 import {
-  Alert,
-  Button,
-  Card,
-  Flex,
-  Progress,
-  Skeleton,
-  Typography,
-} from "antd";
+  ErrorAlert,
+  GatedButton,
+  LoadBoundary,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
 import {
   actionAvailable,
   actionBlocked,
-  matchLoad,
-  useActionGate,
   useDescribeFlowError,
   useI18n,
   useT,
@@ -68,8 +65,6 @@ import {
   isDownloadExpired,
   isExportCooldown,
 } from "../model/refusals.js";
-import { ErrorAlert } from "./ErrorAlert.js";
-import { GdprSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
 export interface DataExportPanelProps extends ThemeModeProp {
@@ -142,48 +137,38 @@ export function DataExportPanel(props: DataExportPanelProps): ReactElement {
   // A job is already running for this person. `cooldown` only learns that
   // AFTER the server answers 429/409 — by which time a second archive of
   // everything the product knows about somebody has already been asked for.
-  // The status is on the wire and is read here instead, so the control is off
-  // BEFORE the duplicate request rather than after it.
-  const inFlight = bag.status === "pending" || bag.status === "processing";
-  const requestGate = useActionGate(
-    inFlight ? actionBlocked(GDPR_I18N_KEYS.exportInFlight) : actionAvailable()
-  );
+  // The status is on the wire and the bag reads it (`building`, the same bit
+  // its poll runs on), so the control is off BEFORE the duplicate request
+  // rather than after it — and the REASON is rendered beside the button by
+  // the substrate's gate, never as a tooltip a disabled control cannot fire.
+  const requestGate =
+    bag.building || cooldown
+      ? actionBlocked(
+          cooldown
+            ? GDPR_I18N_KEYS.errorExportCooldown
+            : GDPR_I18N_KEYS.exportInFlight
+        )
+      : actionAvailable();
 
   return (
-    <GdprSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
+    <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
       <Card
         data-testid="gdpr-export"
         title={t(GDPR_I18N_KEYS.exportHeading)}
         size="small"
       >
-        <Flex vertical gap={12}>
+        <Flex vertical gap={spacing[3]}>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
             {t(GDPR_I18N_KEYS.exportExplain)}
           </Typography.Paragraph>
 
-          {matchLoad(bag.state, {
-            loading: () => (
-              <div data-testid="gdpr-export-loading">
-                <Skeleton active paragraph={{ rows: 1 }} />
-              </div>
-            ),
-            failed: (error) => (
-              <ErrorAlert
-                testId="gdpr-export-failed"
-                error={describe(toFlowError(error))}
-                action={
-                  <Button
-                    size="small"
-                    onClick={bag.refetch}
-                    data-analytics="none"
-                    data-analytics-reason="recovery affordance for a failed read — host app wraps with its own tracked()"
-                  >
-                    {t(GDPR_I18N_KEYS.retry)}
-                  </Button>
-                }
-              />
-            ),
-            ready: (row) =>
+          <LoadBoundary
+            state={bag.state}
+            testId="gdpr-export"
+            skeletonRows={1}
+            onRetry={bag.refetch}
+          >
+            {(row) =>
               row === null ? (
                 <Alert
                   type="info"
@@ -192,7 +177,7 @@ export function DataExportPanel(props: DataExportPanelProps): ReactElement {
                   message={t(GDPR_I18N_KEYS.exportNone)}
                 />
               ) : (
-                <Flex vertical gap={8} data-testid="gdpr-export-status">
+                <Flex vertical gap={spacing[2]} data-testid="gdpr-export-status">
                   <Typography.Text data-testid="gdpr-export-state">
                     {t(stateKeyFor(row.status))}
                   </Typography.Text>
@@ -207,7 +192,7 @@ export function DataExportPanel(props: DataExportPanelProps): ReactElement {
                     size="small"
                     data-testid="gdpr-export-progress"
                   />
-                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
                     {t(GDPR_I18N_KEYS.exportProgress, {
                       done: row.parts_done,
                       total: row.parts_total,
@@ -227,29 +212,26 @@ export function DataExportPanel(props: DataExportPanelProps): ReactElement {
                     />
                   ) : null}
                   {bag.expiresAt !== undefined ? (
-                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                    <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
                       {t(GDPR_I18N_KEYS.exportExpires, {
                         date: formatDeletionDate(bag.expiresAt, locale),
                       })}
                     </Typography.Text>
                   ) : null}
                 </Flex>
-              ),
-          })}
+              )
+            }
+          </LoadBoundary>
 
-          {cooldown ? (
-            <Alert
-              type="info"
-              showIcon
-              data-testid="gdpr-export-cooldown"
-              message={t(GDPR_I18N_KEYS.errorExportCooldown)}
-            />
-          ) : requestError != null ? (
+          {/* The cooldown is not a failure to report: it is the reason the
+              button below is off, and it is rendered THERE. Everything else
+              the request can answer is a genuine error. */}
+          {cooldown ? null : (
             <ErrorAlert
               testId="gdpr-export-request-failed"
-              error={describe(toFlowError(requestError))}
+              thrown={requestError}
             />
-          ) : null}
+          )}
 
           {bag.request.isSuccess ? (
             <Alert
@@ -275,33 +257,23 @@ export function DataExportPanel(props: DataExportPanelProps): ReactElement {
             />
           ) : null}
 
-          <Flex gap={8} wrap align="flex-start">
+          <Flex gap={spacing[2]} wrap align="flex-start">
             {/* The reason is TEXT beside the button, never a `title`: a
                 disabled control receives no pointer events, so a tooltip on it
-                is a reason nobody can read. The cooldown's own reason is the
-                alert above — the server's sentence, not a guess at it. */}
-            <Flex vertical gap={4} align="flex-start">
-              <Button
-                type="primary"
-                loading={bag.request.isPending}
-                disabled={requestGate.disabled || cooldown}
-                onClick={() => bag.request.mutate()}
-                data-testid="gdpr-export-request"
-                data-analytics="none"
-                data-analytics-reason="starts a server-side job over a read surface — host app wraps with its own tracked()"
-              >
-                {t(GDPR_I18N_KEYS.exportRequest)}
-              </Button>
-              {requestGate.reason !== undefined ? (
-                <Typography.Text
-                  type="secondary"
-                  style={{ fontSize: 12 }}
-                  data-testid="gdpr-export-request-blocked"
-                >
-                  {requestGate.reason}
-                </Typography.Text>
-              ) : null}
-            </Flex>
+                is a reason nobody can read. `GatedButton` wires that text to
+                the button's `aria-describedby`, so a screen reader hears the
+                reason with the control rather than after hunting for it. */}
+            <GatedButton
+              gate={requestGate}
+              type="primary"
+              loading={bag.request.isPending}
+              onClick={() => bag.request.mutate()}
+              testId="gdpr-export-request"
+              data-analytics="none"
+              data-analytics-reason="starts a server-side job over a read surface — host app wraps with its own tracked()"
+            >
+              {t(GDPR_I18N_KEYS.exportRequest)}
+            </GatedButton>
             {bag.downloadAvailable && token !== undefined ? (
               <Button
                 loading={bag.download.isPending}
@@ -320,6 +292,6 @@ export function DataExportPanel(props: DataExportPanelProps): ReactElement {
           </Flex>
         </Flex>
       </Card>
-    </GdprSkinTheme>
+    </SkinTheme>
   );
 }

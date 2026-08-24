@@ -1,168 +1,127 @@
 /**
  * `<RevisionsModal/>` — the default skin's version-history surface: the
- * `RevisionHistory` headless bag rendered as a dialog with a revision list on
- * the left and a preview on the right, plus rollback (behind a confirm — a
- * rollback lands as a NEW head, history keeps everything) and pin-as-named
- * ("Name this version"). Backed 1:1 by the server's revision routes:
- * list / create / `GET …/:rev/content` (the preview) / `…/:rev/download` /
- * `…/:rev/restore` (the rollback).
+ * `RevisionHistory` headless bag rendered as a dialog with the revision list
+ * and a preview, plus rollback (behind a confirmation — a rollback lands as a
+ * NEW head, history keeps everything) and pin-as-named ("Name this version").
+ * Backed 1:1 by the server's revision routes: list / create /
+ * `GET …/:rev/content` (the preview) / `…/:rev/download` / `…/:rev/restore`.
  *
  * Text-like revisions preview inline via `useRevisionContent`; a binary
  * document's revisions offer the download link instead (the preview read
  * would decode garbage).
  *
  * The surface is `@stapel/tokens-antd/skin`'s `<SkinDialog>` — a bottom sheet
- * on a phone, a centred modal on tablet/desktop (owner ruling 2026-08-24).
- * `width` is the modal's; the sheet is viewport-wide and ignores it.
+ * on a phone, a centred modal on tablet/desktop (owner ruling 2026-08-24) —
+ * and the two panes inside it STACK on a narrow one, measured off the dialog
+ * body's own width rather than the viewport. `width` is the modal's; the
+ * sheet is viewport-wide and ignores it.
  *
- * Self-themed via `DocsSkinTheme` (the dialog inherits the internal
- * `ConfigProvider` through context even across its portal). Replaceable
- * without a fork: `FileManager` resolves this modal through the skin slot
- * registry (`registerDocsSkinComponent("revisionsModal", …)`).
+ * Replaceable without a fork: `FileManager` resolves this modal through the
+ * skin slot registry (`registerDocsSkinComponent("revisionsModal", …)`).
  */
 import { useState } from "react";
 import type { ReactElement } from "react";
+import { Flex, Input, List, Typography } from "antd";
 import {
-  Button,
-  Empty,
-  Flex,
-  Input,
-  List,
-  Popconfirm,
-  Spin,
-  Typography,
-} from "antd";
-import { SkinDialog } from "@stapel/tokens-antd/skin";
+  EmptyState,
+  ErrorAlert,
+  GatedButton,
+  LoadBoundary,
+  LoadList,
+  SkinConfirm,
+  SkinDialog,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
 import {
   actionAvailable,
   actionBlocked,
-  matchList,
-  useActionGate,
-  useErrorDisplay,
+  loadStateFromQuery,
+  mapLoad,
+  useI18n,
   useT,
 } from "@stapel/core";
 import type { ThemeMode } from "@stapel/tokens-antd";
+import { fontSize, spacing } from "@stapel/tokens";
 import { RevisionHistory } from "../headless/RevisionHistory.js";
 import { useDocument, useRevisionContent } from "../model/queries.js";
 import { useDocsApi } from "../model/context.js";
+import { formatDateTime } from "../model/format.js";
 import type { DocRevision } from "../api/types.js";
 import { DOCS_I18N_KEYS } from "../i18n/keys.js";
-import { DocsSkinTheme } from "./theme.js";
-import { ErrorAlert } from "./ErrorAlert.js";
+import { useSplitLayout } from "./useSplitLayout.js";
 
 export interface RevisionsModalProps {
   readonly documentId: string;
   readonly open: boolean;
   onClose(): void;
-  /** Light or dark; defaults to the host document's declared mode. */
+  /** Light or dark; defaults to the host document's live declared mode. */
   readonly mode?: ThemeMode;
 }
 
 /** Editor hints whose snapshots are text — inline-previewable. */
 const TEXT_HINTS = new Set(["text", "markdown", "csv"]);
 
+/** The dialog's width on tablet/desktop: two panes side by side. A one-off
+ * geometry (no spacing step is a dialog width), named so it changes once. */
+export const REVISIONS_MODAL_WIDTH: number = 720;
+/** How tall an inline revision preview grows before it scrolls. */
+const PREVIEW_MAX_HEIGHT = spacing[8] * 5;
+
 function RevisionPreview(props: {
   readonly documentId: string;
   readonly revisionId: string;
 }): ReactElement {
-  const errorDisplay = useErrorDisplay(DOCS_I18N_KEYS.unknownError);
   const query = useRevisionContent(props.documentId, props.revisionId);
-  if (query.isLoading) return <Spin />;
-  if (query.isError)
-    return <ErrorAlert error={errorDisplay(query.error)} testId="docs-revision-preview-error" />;
   return (
-    <Typography.Paragraph
-      data-testid="docs-revision-preview"
-      style={{
-        whiteSpace: "pre-wrap",
-        maxHeight: 320,
-        overflow: "auto",
-        marginBottom: 0,
+    <LoadBoundary
+      state={mapLoad(loadStateFromQuery(query), (content) => content.text)}
+      onRetry={() => {
+        void query.refetch();
       }}
+      testId="docs-revision-preview-state"
     >
-      {query.data?.text ?? ""}
-    </Typography.Paragraph>
-  );
-}
-
-/**
- * One row's rollback affordance — a component, not a closure, so the gate
- * hook runs at a component's top level rather than inside `renderItem`.
- *
- * The revision the document is CURRENTLY at is not a place to roll back to:
- * the restore would write a new, byte-identical head and a second history
- * entry saying nothing happened. It is switched off through core's
- * `useActionGate` with the reason on screen beside it — the `TrashPane`
- * precedent, because a disabled control receives no pointer events and a
- * tooltip on it is a reason nobody can read.
- */
-function RevisionRollback(props: {
-  readonly isHead: boolean;
-  /** True only while THIS revision is the one being restored. */
-  readonly restoring: boolean;
-  onConfirm(): void;
-}): ReactElement {
-  const t = useT();
-  const gate = useActionGate(
-    props.isHead
-      ? actionBlocked(DOCS_I18N_KEYS.revisionsRollbackBlockedHead)
-      : actionAvailable()
-  );
-  const button = (
-    <Button
-      size="small"
-      loading={props.restoring}
-      disabled={gate.disabled}
-      data-analytics="none"
-      data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-    >
-      {t(DOCS_I18N_KEYS.revisionsRestore)}
-    </Button>
-  );
-  return (
-    <Flex align="center" gap="small">
-      {gate.reason !== undefined && (
-        <Typography.Text
-          type="secondary"
-          style={{ fontSize: 12 }}
-          data-testid="docs-revision-rollback-blocked"
+      {(text) => (
+        <Typography.Paragraph
+          data-testid="docs-revision-preview"
+          style={{
+            whiteSpace: "pre-wrap",
+            maxHeight: PREVIEW_MAX_HEIGHT,
+            overflow: "auto",
+            marginBottom: 0,
+          }}
         >
-          {gate.reason}
-        </Typography.Text>
+          {text}
+        </Typography.Paragraph>
       )}
-      {gate.disabled ? (
-        button
-      ) : (
-        <Popconfirm
-          title={t(DOCS_I18N_KEYS.revisionsRollbackConfirm)}
-          okText={t(DOCS_I18N_KEYS.dialogOk)}
-          cancelText={t(DOCS_I18N_KEYS.dialogCancel)}
-          onConfirm={props.onConfirm}
-        >
-          {button}
-        </Popconfirm>
-      )}
-    </Flex>
+    </LoadBoundary>
   );
 }
 
 export function RevisionsModal(props: RevisionsModalProps): ReactElement {
   const t = useT();
-  const errorDisplay = useErrorDisplay(DOCS_I18N_KEYS.unknownError);
+  const { locale } = useI18n();
   const api = useDocsApi();
   const documentQuery = useDocument(props.documentId);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pinName, setPinName] = useState("");
+  const [rollbackTo, setRollbackTo] = useState<DocRevision | null>(null);
   // Which revision the in-flight restore is for. The headless bag exposes one
   // `isRestoring` for the whole mutation, so binding it straight to every
   // row's `loading` spun EVERY button on one rollback.
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const { containerRef, stacked } = useSplitLayout();
 
   const previewable = TEXT_HINTS.has(documentQuery.data?.editor_hint ?? "");
   // The document's current content sequence. `undefined` while the head read
   // is in flight — an unknown head blocks nothing, the same way the preview
   // beside it stays provisional until the read lands.
   const headSeq = documentQuery.data?.head_seq;
+
+  const trimmedPin = pinName.trim();
+  const pinGate =
+    trimmedPin.length === 0
+      ? actionBlocked(DOCS_I18N_KEYS.revisionsNameBlockedEmpty)
+      : actionAvailable();
 
   function downloadRevision(revisionId: string): void {
     void (async () => {
@@ -175,12 +134,15 @@ export function RevisionsModal(props: RevisionsModalProps): ReactElement {
   }
 
   return (
-    <DocsSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
       <SkinDialog
         open={props.open}
         title={t(DOCS_I18N_KEYS.revisionsTitle)}
         dismissLabel={t(DOCS_I18N_KEYS.dialogClose)}
-        width={720}
+        width={REVISIONS_MODAL_WIDTH}
         onClose={() => {
           props.onClose();
         }}
@@ -191,140 +153,205 @@ export function RevisionsModal(props: RevisionsModalProps): ReactElement {
             createRevision,
             isCreating,
             createError,
+            refetch,
             restore,
             isRestoring,
             restoreError,
           }) => (
             <Flex vertical gap="middle" data-testid="docs-revisions-modal">
-              {(createError ?? restoreError) !== null && (
-                <ErrorAlert
-                  error={errorDisplay(createError ?? restoreError)}
-                  testId="docs-revisions-error"
-                />
-              )}
+              <ErrorAlert
+                thrown={createError ?? restoreError}
+                testId="docs-revisions-error"
+              />
 
-              <Flex gap="small">
+              <Flex gap="small" align="flex-start" wrap>
                 <Input
-                  size="small"
+                  data-testid="docs-revision-name"
                   placeholder={t(DOCS_I18N_KEYS.revisionsNamePlaceholder)}
                   value={pinName}
                   onChange={(event) => {
                     setPinName(event.target.value);
                   }}
                 />
-                <Button
-                  size="small"
+                <GatedButton
+                  gate={pinGate}
+                  layout="inline"
                   loading={isCreating}
-                  disabled={pinName.trim().length === 0}
                   onClick={() => {
-                    createRevision(pinName.trim());
+                    createRevision(trimmedPin);
                     setPinName("");
                   }}
+                  testId="docs-revision-create"
                   data-analytics="none"
                   data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
                 >
                   {t(DOCS_I18N_KEYS.revisionsCreate)}
-                </Button>
+                </GatedButton>
               </Flex>
 
-              <Flex gap="middle" align="flex-start">
-                <div style={{ flex: "0 0 45%" }}>
-                  {matchList(state, {
-                    loading: () => <Spin />,
-                    failed: (error) => (
-                      <ErrorAlert
-                        error={errorDisplay(error)}
-                        testId="docs-revisions-load-error"
-                      />
-                    ),
-                    empty: () => (
-                      <Empty
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description={t(DOCS_I18N_KEYS.revisionsEmpty)}
-                      />
-                    ),
-                    ready: (revisions) => (
-                    <List<DocRevision>
-                      size="small"
-                      dataSource={[...revisions]}
-                      rowKey={(revision) => revision.id}
-                      renderItem={(revision) => (
-                        <List.Item
-                          data-docs-revision={revision.id}
-                          style={{ cursor: "pointer" }}
-                          onClick={() => {
-                            setSelectedId(revision.id);
-                          }}
-                          data-analytics="none"
-                          data-analytics-reason="selection within the dialog — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-                          actions={[
-                            <RevisionRollback
-                              key="rollback"
-                              isHead={
-                                headSeq !== undefined && revision.seq === headSeq
-                              }
-                              restoring={isRestoring && restoringId === revision.id}
-                              onConfirm={() => {
-                                setRestoringId(revision.id);
-                                restore(revision.id);
+              <div ref={containerRef}>
+                <Flex
+                  gap="middle"
+                  align="flex-start"
+                  vertical={stacked}
+                  data-testid="docs-revisions-split"
+                >
+                  <div style={{ flex: stacked ? "1 1 auto" : "0 0 45%", minWidth: 0, width: "100%" }}>
+                    <LoadList
+                      state={state}
+                      onRetry={refetch}
+                      testId="docs-revisions-list"
+                      empty={
+                        <EmptyState
+                          compact
+                          title={t(DOCS_I18N_KEYS.revisionsEmpty)}
+                          testId="docs-revisions-empty"
+                        />
+                      }
+                    >
+                      {(revisions) => (
+                        <List<DocRevision>
+                          dataSource={[...revisions]}
+                          rowKey={(revision) => revision.id}
+                          renderItem={(revision) => (
+                            <List.Item
+                              data-docs-revision={revision.id}
+                              style={{ cursor: "pointer" }}
+                              onClick={() => {
+                                setSelectedId(revision.id);
                               }}
-                            />,
-                          ]}
-                        >
-                          <List.Item.Meta
-                            title={
-                              revision.name ??
-                              t(DOCS_I18N_KEYS.revisionsAutomatic)
-                            }
-                            description={
-                              <Typography.Text
-                                type="secondary"
-                                style={{ fontSize: 12 }}
-                              >
-                                {new Date(revision.created_at).toLocaleString()}
-                              </Typography.Text>
-                            }
-                          />
-                        </List.Item>
+                              data-analytics="none"
+                              data-analytics-reason="selection within the dialog — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+                              actions={[
+                                <RevisionRollback
+                                  key="rollback"
+                                  isHead={
+                                    headSeq !== undefined &&
+                                    revision.seq === headSeq
+                                  }
+                                  restoring={
+                                    isRestoring && restoringId === revision.id
+                                  }
+                                  onAsk={() => {
+                                    setRollbackTo(revision);
+                                  }}
+                                />,
+                              ]}
+                            >
+                              <List.Item.Meta
+                                title={
+                                  revision.name.length > 0
+                                    ? revision.name
+                                    : t(DOCS_I18N_KEYS.revisionsAutomatic)
+                                }
+                                description={
+                                  <Typography.Text
+                                    type="secondary"
+                                    style={{ fontSize: fontSize.xs.fontSize }}
+                                  >
+                                    {formatDateTime(revision.created_at, locale)}
+                                  </Typography.Text>
+                                }
+                              />
+                            </List.Item>
+                          )}
+                        />
                       )}
-                    />
-                    ),
-                  })}
-                </div>
+                    </LoadList>
+                  </div>
 
-                <div style={{ flex: "1 1 55%" }}>
-                  {selectedId === null ? (
-                    <Typography.Text type="secondary">
-                      {t(DOCS_I18N_KEYS.revisionsPreviewEmpty)}
-                    </Typography.Text>
-                  ) : previewable ? (
-                    <RevisionPreview
-                      documentId={props.documentId}
-                      revisionId={selectedId}
-                    />
-                  ) : (
-                    <Flex vertical gap="small">
+                  <div style={{ flex: stacked ? "1 1 auto" : "1 1 55%", minWidth: 0, width: "100%" }}>
+                    {selectedId === null ? (
                       <Typography.Text type="secondary">
-                        {t(DOCS_I18N_KEYS.revisionsPreviewBinary)}
+                        {t(DOCS_I18N_KEYS.revisionsPreviewEmpty)}
                       </Typography.Text>
-                      <Button
-                        size="small"
-                        onClick={() => {
-                          downloadRevision(selectedId);
-                        }}
-                        data-analytics="none"
-                        data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-                      >
-                        {t(DOCS_I18N_KEYS.revisionsDownload)}
-                      </Button>
-                    </Flex>
-                  )}
-                </div>
-              </Flex>
+                    ) : previewable ? (
+                      <RevisionPreview
+                        documentId={props.documentId}
+                        revisionId={selectedId}
+                      />
+                    ) : (
+                      <Flex vertical gap="small" align="flex-start">
+                        <Typography.Text type="secondary">
+                          {t(DOCS_I18N_KEYS.revisionsPreviewBinary)}
+                        </Typography.Text>
+                        <GatedButton
+                          gate={actionAvailable()}
+                          onClick={() => {
+                            downloadRevision(selectedId);
+                          }}
+                          testId="docs-revision-download"
+                          data-analytics="none"
+                          data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+                        >
+                          {t(DOCS_I18N_KEYS.revisionsDownload)}
+                        </GatedButton>
+                      </Flex>
+                    )}
+                  </div>
+                </Flex>
+              </div>
+
+              <SkinConfirm
+                open={rollbackTo !== null}
+                title={t(DOCS_I18N_KEYS.revisionsRollbackConfirm)}
+                {...(rollbackTo !== null && rollbackTo.name.length > 0
+                  ? { body: rollbackTo.name }
+                  : {})}
+                confirmLabel={t(DOCS_I18N_KEYS.revisionsRestore)}
+                confirming={isRestoring}
+                onConfirm={() => {
+                  if (rollbackTo !== null) {
+                    setRestoringId(rollbackTo.id);
+                    restore(rollbackTo.id);
+                  }
+                  setRollbackTo(null);
+                }}
+                onCancel={() => {
+                  setRollbackTo(null);
+                }}
+                data-testid="docs-revision-rollback-confirm"
+              />
             </Flex>
           )}
         </RevisionHistory>
       </SkinDialog>
-    </DocsSkinTheme>
+    </SkinTheme>
+  );
+}
+
+/**
+ * One row's rollback affordance — a component, not a closure, so the gate
+ * hook runs at a component's top level rather than inside `renderItem`.
+ *
+ * The revision the document is CURRENTLY at is not a place to roll back to:
+ * the restore would write a new, byte-identical head and a second history
+ * entry saying nothing happened. `GatedButton` switches it off WITH the
+ * reason beside it — a disabled control receives no pointer events, so a
+ * tooltip on it is a reason nobody can read.
+ */
+function RevisionRollback(props: {
+  readonly isHead: boolean;
+  /** True only while THIS revision is the one being restored. */
+  readonly restoring: boolean;
+  onAsk(): void;
+}): ReactElement {
+  const t = useT();
+  return (
+    <GatedButton
+      gate={
+        props.isHead
+          ? actionBlocked(DOCS_I18N_KEYS.revisionsRollbackBlockedHead)
+          : actionAvailable()
+      }
+      layout="inline"
+      loading={props.restoring}
+      onClick={props.onAsk}
+      testId="docs-revision-rollback"
+      data-analytics="none"
+      data-analytics-reason="opens the rollback confirmation — the confirmed restore carries the tracked action"
+    >
+      {t(DOCS_I18N_KEYS.revisionsRestore)}
+    </GatedButton>
   );
 }

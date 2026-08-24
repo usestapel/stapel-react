@@ -9,17 +9,22 @@
  * guessed CDN path would be a broken image on every deployment that guessed
  * differently, and a broken image is worse than no image.
  */
+import { spacing } from "@stapel/tokens";
 import type { ReactElement, ReactNode } from "react";
-import { Card, Empty, Flex, Skeleton, Typography } from "antd";
-import { matchList, toFlowError, useDescribeFlowError, useT } from "@stapel/core";
+import { Card, Flex, Skeleton, Typography } from "antd";
+import { useT } from "@stapel/core";
 import { renderCategoryLabel } from "../catalog/labels.js";
 import { CategoryCarousel } from "../headless/CategoryCarousel.js";
 import type { CarouselEntry } from "../headless/CategoryCarousel.js";
 import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
 import { CategoryLink } from "./CategoryLink.js";
 import type { LinkComponentProp } from "./CategoryLink.js";
-import { ErrorAlert } from "./ErrorAlert.js";
-import { CategoriesSkinTheme } from "./theme.js";
+import {
+  EmptyState,
+  ErrorAlert,
+  LoadList,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
 import type { ThemeModeProp } from "./types.js";
 
 export interface CategoryCarouselStripProps
@@ -35,24 +40,26 @@ export function CategoryCarouselStrip(
   props: CategoryCarouselStripProps
 ): ReactElement {
   const t = useT();
-  const describe = useDescribeFlowError();
 
   return (
-    <CategoriesSkinTheme
+    <SkinTheme
       {...(props.mode !== undefined ? { mode: props.mode } : {})}
     >
       <CategoryCarousel
         {...(props.basePath !== undefined ? { basePath: props.basePath } : {})}
       >
         {(bag) => (
-          <Flex vertical gap={8} data-testid="categories-carousel">
+          <Flex vertical gap={spacing[2]} data-testid="categories-carousel">
             <Typography.Title level={5} style={{ margin: 0 }}>
               {t(CATEGORIES_I18N_KEYS.carouselTitle)}
             </Typography.Title>
 
-            {matchList(bag.state, {
-              loading: () => (
-                <Flex gap={8}>
+            <LoadList
+              state={bag.state}
+              testId="categories-carousel"
+              onRetry={bag.refetch}
+              loading={
+                <Flex gap={spacing[2]}>
                   <Skeleton.Button
                     active
                     data-testid="categories-carousel-loading"
@@ -60,24 +67,25 @@ export function CategoryCarouselStrip(
                   <Skeleton.Button active />
                   <Skeleton.Button active />
                 </Flex>
-              ),
-              failed: (error) => (
+              }
+              failed={(error) => (
                 <ErrorAlert
                   testId="categories-carousel-failed"
-                  error={{
-                    ...describe(toFlowError(error)),
-                    message: t(CATEGORIES_I18N_KEYS.carouselLoadFailed),
-                  }}
+                  thrown={error}
+                  message={t(CATEGORIES_I18N_KEYS.carouselLoadFailed)}
+                  onRetry={bag.refetch}
                 />
-              ),
-              empty: () => (
-                <Empty
-                  data-testid="categories-carousel-empty"
-                  description={t(CATEGORIES_I18N_KEYS.carouselEmpty)}
+              )}
+              empty={
+                <EmptyState
+                  testId="categories-carousel-empty"
+                  compact
+                  title={t(CATEGORIES_I18N_KEYS.carouselEmpty)}
                 />
-              ),
-              ready: (entries) => (
-                <Flex gap={8} wrap data-testid="categories-carousel-list">
+              }
+            >
+              {(entries) => (
+                <Flex gap={spacing[2]} wrap data-testid="categories-carousel-list">
                   {entries.map((entry) => (
                     <Card
                       key={entry.category.id}
@@ -91,7 +99,7 @@ export function CategoryCarouselStrip(
                           : {})}
                         href={entry.href}
                       >
-                        <Flex align="center" gap={8}>
+                        <Flex align="center" gap={spacing[2]}>
                           {entry.icon !== null && props.renderIcon !== undefined
                             ? props.renderIcon(entry.icon, entry)
                             : null}
@@ -101,11 +109,11 @@ export function CategoryCarouselStrip(
                     </Card>
                   ))}
                 </Flex>
-              ),
-            })}
+              )}
+            </LoadList>
           </Flex>
         )}
       </CategoryCarousel>
-    </CategoriesSkinTheme>
+    </SkinTheme>
   );
 }

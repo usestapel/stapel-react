@@ -216,7 +216,12 @@ describe("the owner's own rows come off the contract's own route", () => {
     // Without the twin this row would be a blank line — the published fields
     // are empty until a publish promotes them.
     expect(document.body.textContent).toContain("Makita HR2470");
-    expect(screen.getByTestId("listings-mine-draft-title")).toBeTruthy();
+    // The lifecycle tag is the ONE place the row says "Draft" — the word used
+    // to appear a second time beside the title, which is the same fact drawn
+    // twice and the thing that split "Draf/t" across two lines at 390px.
+    const tags = screen.getAllByTestId("listings-status-tag");
+    expect(tags).toHaveLength(1);
+    expect(tags[0]?.getAttribute("data-listing-status")).toBe("draft");
   });
 
   it("does not ask at all for a visitor, and says why", async () => {
@@ -434,9 +439,11 @@ describe("favourites", () => {
       </TestProviders>
     );
     await waitFor(() => {
-      expect(screen.getByTestId("listings-favorites-blocked").textContent).toBe(
-        "Sign in to do this"
-      );
+      // ONE state: the reason, the hint, and the door — not a notice with a
+      // spinner turning underneath it.
+      expect(
+        screen.getByTestId("listings-favorites-blocked").textContent
+      ).toContain("Sign in to do this");
     });
     expect(srv.matching("/listings/my/favorites/")).toHaveLength(0);
   });

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { FacetPanelPane, SearchResultsPane } from "../src/default/index.js";
+import { SearchResults } from "../src/index.js";
+import type { SearchResultsBag } from "../src/index.js";
 import { searchResponse } from "./fixtures.js";
 import { TestHarness, mockServer } from "./harness.js";
 
@@ -51,10 +53,19 @@ describe("keyset paging, forwards and back", () => {
     await waitFor(() => {
       expect(screen.getByTestId("search-results")).toBeTruthy();
     });
-    // Page 1: no previous page, and the control SAYS why it is off.
+    // Page 1: no previous page, and the control SAYS why it is off — as
+    // VISIBLE TEXT beside it, not in a `title` no touch device can surface
+    // and no disabled button ever fires (the reason lands in the
+    // `GatedButton` wrapper and the button points at it with
+    // `aria-describedby`).
     const prev = screen.getByTestId("search-prev") as HTMLButtonElement;
     expect(prev.disabled).toBe(true);
-    expect(prev.getAttribute("title")).toBe("This is the first page");
+    expect(prev.getAttribute("title")).toBeNull();
+    const prevGate = screen.getByTestId("search-prev-gate");
+    expect(prevGate.getAttribute("data-stapel-gated")).toBe("blocked");
+    expect(prevGate.textContent).toContain("This is the first page");
+    const reason = prevGate.querySelector("[data-stapel-gated-reason]");
+    expect(prev.getAttribute("aria-describedby")).toBe(reason?.id);
 
     fireEvent.click(screen.getByTestId("search-next"));
     await waitFor(() => {
@@ -77,7 +88,14 @@ describe("keyset paging, forwards and back", () => {
   it("blocks Next at the last page WITH a reason, never a bare disabled button", async () => {
     const server = mockServer({
       "/query": {
-        body: searchResponse({ has_next: false, next_anchor: null }),
+        // The LAST page of several — there is a previous page, so the pager
+        // is a control that means something and Next is the half that is off.
+        body: searchResponse({
+          has_next: false,
+          next_anchor: null,
+          has_prev: true,
+          prev_anchor: "a1",
+        }),
       },
     });
     render(
@@ -90,21 +108,60 @@ describe("keyset paging, forwards and back", () => {
     });
     const next = screen.getByTestId("search-next") as HTMLButtonElement;
     expect(next.disabled).toBe(true);
-    expect(next.getAttribute("title")).toBe("This is the last page");
+    expect(next.getAttribute("title")).toBeNull();
+    expect(screen.getByTestId("search-next-gate").textContent).toContain(
+      "This is the last page"
+    );
   });
 
-  it("blocks both controls while the first page is still loading, and says so", () => {
-    const server = mockServer({ "/query": { body: searchResponse() } });
+  it("draws no pager at all when there is nothing to page", async () => {
+    // Two disabled buttons under a single page of results is the fleet's
+    // C-DEADPAGER defect: a control that can never do anything is not a
+    // control that needs a reason, it is a control that should not be drawn.
+    const server = mockServer({
+      "/query": {
+        body: searchResponse({
+          has_next: false,
+          next_anchor: null,
+          has_prev: false,
+          prev_anchor: null,
+        }),
+      },
+    });
     render(
       <TestHarness server={server}>
         <SearchResultsPane />
       </TestHarness>
     );
-    const next = screen.getByTestId("search-next") as HTMLButtonElement;
-    expect(next.disabled).toBe(true);
-    // Core's own loading block, resolved to its sentence — a reason, not a
-    // bare disabled control and not a bespoke string this pair invented.
-    expect(next.getAttribute("title")).toBe("Still loading. One moment.");
+    await waitFor(() => {
+      expect(screen.getByTestId("search-results")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("search-pager")).toBeNull();
+  });
+
+  it("blocks both controls while a page is in flight, and says so", async () => {
+    // The bag is where the loading block lives, and it is core's own — not a
+    // bespoke string this pair invented. The pane only draws a pager once a
+    // page has landed, so this is asserted where it is stated.
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    let seen: SearchResultsBag | null = null;
+    render(
+      <TestHarness server={server}>
+        <SearchResults>
+          {(bag) => {
+            seen = bag;
+            return null;
+          }}
+        </SearchResults>
+      </TestHarness>
+    );
+    const bag = seen as SearchResultsBag | null;
+    expect(bag?.next.available).toBe(false);
+    expect(bag?.next.block?.code).toBe("stapel.action.blocked.loading");
+    expect(bag?.prev.block?.code).toBe("stapel.action.blocked.loading");
+    await waitFor(() => {
+      expect((seen as SearchResultsBag | null)?.state.status).toBe("ready");
+    });
   });
 
   it("walking back to page one clears the cursor rather than inventing one", async () => {

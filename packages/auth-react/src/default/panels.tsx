@@ -7,6 +7,7 @@
  * (RULE 6). No colour/px literals: theming comes entirely from the
  * `ConfigProvider` fed by `toAntdThemeConfig` (RULE 12).
  */
+import { spacing } from "@stapel/tokens";
 import { useEffect, useRef, useState } from "react";
 import type { ElementRef, ReactElement, ReactNode } from "react";
 import {
@@ -16,11 +17,17 @@ import {
   Flex,
   Form,
   Input,
-  QRCode,
   Result,
   Typography,
 } from "antd";
-import { useDescribeFlowError, useFormatFlowError, useT } from "@stapel/core";
+import { ErrorAlert, GatedButton } from "@stapel/tokens-antd/skin";
+import {
+  actionAvailable,
+  actionBlocked,
+  useDescribeFlowError,
+  useFormatFlowError,
+  useT,
+} from "@stapel/core";
 import type { FlowErrorDisplay } from "@stapel/core";
 import type { FlowError } from "../flows/errors.js";
 import type { OAuthProviderInfo, OtpChannel } from "../api/types.js";
@@ -36,10 +43,10 @@ import { PasskeyLogin } from "../headless/Passkey.js";
 import { MagicLink, SsoDiscovery } from "../headless/misc.js";
 import { useAuthApi } from "../model/context.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
-import { ErrorAlert } from "./ErrorAlert.js";
 import { isWebauthnSupported } from "../webauthn.js";
 import { ForcedPasswordChangeCard, MfaEnrollPanel } from "./FirstLoginPanels.js";
 import { OtpField } from "./OtpField.js";
+import { QrCanvas } from "./security/QrCanvas.js";
 
 /**
  * Fallback digit count when the backend doesn't send `otp` metadata
@@ -98,17 +105,25 @@ function ResendLink(props: {
     props.onResend();
     setLeft(cooldown);
   };
+  // A cooldown is a REASON, not a mood. The button used to grey itself out and
+  // move the countdown into its own label, so the control said "Resend in 24"
+  // — a disabled thing whose text was the explanation, which no screen reader
+  // announces as a reason and no `aria-describedby` pointed at. The gate keeps
+  // the label stable ("Resend code") and states the wait beside it.
   return (
-    <Button
+    <GatedButton
+      gate={
+        left > 0
+          ? actionBlocked(AUTH_I18N_KEYS.uiResendIn, { s: left })
+          : actionAvailable()
+      }
       type="link"
-      disabled={left > 0}
       onClick={resend}
+      testId="otp-resend"
       data-analytics="flow"
     >
-      {left > 0
-        ? t(AUTH_I18N_KEYS.uiResendIn, { s: left })
-        : t(AUTH_I18N_KEYS.otpResend)}
-    </Button>
+      {t(AUTH_I18N_KEYS.otpResend)}
+    </GatedButton>
   );
 }
 
@@ -430,7 +445,7 @@ export function PasswordRegisterPanel(): ReactElement {
               })
             }
           >
-            <ErrorAlert error={errorShown(err)} style={{ marginBottom: 16 }} />
+            <ErrorAlert error={errorShown(err)} style={{ marginBottom: spacing[4] }} />
             <Form.Item name="email" label={t(AUTH_I18N_KEYS.uiEmailLabel)}>
               <Input autoFocus placeholder={t(AUTH_I18N_KEYS.uiEmailPlaceholder)} autoComplete="email" />
             </Form.Item>
@@ -527,23 +542,10 @@ function QrPanelBody(props: {
   const scanUrl = state.step === "awaitingScan" ? state.scanUrl : "-";
   return (
     <Flex vertical align="center" gap="middle">
-      {/* Explicit white/black + a white padded quiet-zone (owner UX audit
-          2026-07-17 — same fix as the settings-tab QrDeviceLinkPanel):
-          antd's transparent default renders a technically-valid but
-          practically unscannable low-contrast code over anything but a
-          plain white page. */}
-      {/* eslint-disable-next-line stapel/no-raw-colors -- deliberate, theme-INDEPENDENT pure white/black: a QR code's camera contrast is a functional requirement, not decor, and must not follow dark mode into low-contrast token colours */}
-      <div style={{ background: "#ffffff", padding: 16, borderRadius: 8 }}>
-        <QRCode
-          value={scanUrl}
-          status={qrStatus(state.step)}
-          onRefresh={onStart}
-          color="#000000"
-          bgColor="#ffffff"
-          bordered={false}
-          size={240}
-        />
-      </div>
+      {/* The quiet zone, the contrast exemption and the size all live in
+          `QrCanvas` — this block used to be duplicated verbatim here and in
+          the settings page's `QrDeviceLinkPanel`, disable comment and all. */}
+      <QrCanvas value={scanUrl} status={qrStatus(state.step)} onRefresh={onStart} />
       {/* A failed generate/poll used to land here as `status="expired"` on
           the code above and NOTHING else — visually a slightly greyed square,
           indistinguishable from a code that merely aged out, with no message,
@@ -675,7 +677,7 @@ export function OAuthPanel(props: {
     props.redirectUri ??
     (typeof window !== "undefined" ? window.location.href : "/");
   return (
-    <Flex wrap gap="small" data-testid="oauth-panel">
+    <Flex vertical gap="small" style={{ width: "100%" }} data-testid="oauth-panel">
       {props.providers.map((provider) => {
         const href = authUrls(api.client.baseUrl).oauthAuthorize(
           provider.id,
@@ -685,7 +687,13 @@ export function OAuthPanel(props: {
           <Avatar size="small">{provider.name.slice(0, 1).toUpperCase()}</Avatar>
         );
         return (
-          <Button key={provider.id} href={href} icon={icon} data-analytics="flow">
+          <Button
+            key={provider.id}
+            block
+            href={href}
+            icon={icon}
+            data-analytics="flow"
+          >
             {provider.name}
           </Button>
         );

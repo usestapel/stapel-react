@@ -1,99 +1,143 @@
 /**
- * Wire types for the stapel-docs HTTP contract.
+ * Wire types for the stapel-docs HTTP contract — **derived from the generated
+ * OpenAPI surface** (frontend-standard §2/§3), never hand-maintained.
  *
- * HAND-AUTHORED, TEMPORARILY: stapel-docs does not emit its committed contract
- * artifacts yet (`docs/schema.json` / `docs/flows.json` / `docs/errors.json`),
- * so there is no `pnpm gen:api` source to generate `./generated/schema.ts`
- * from. These types are typed 1:1 to the module's endpoint table (base path
- * `/docs/api/v1`). THE FOLLOW-UP IS MANDATORY: once the backend commits its
- * contract, enroll this pair in the root `gen:api`/`gen:manifest`/`gen:errors`
- * driver env-lists, generate the schema module, and re-derive these aliases
- * from `./generated/schema.js` exactly like recordings-react does — hand-typed
- * wire shapes are a transitional state, never the steady state.
+ * §17-native per-module contract: stapel-docs is not part of any unified
+ * schema — it emits its OWN `docs/schema.json`, so this pair generates a
+ * package-LOCAL schema module (`pnpm gen:api` with
+ * `API_SCHEMA=../stapel-docs/docs/schema.json`) and aliases the schemas it
+ * uses from `./generated/schema.js`, exactly like recordings-react. Do NOT
+ * write parallel response bodies here.
  *
- * Shapes marked "provisional" are not pinned by the endpoint table and were
- * typed minimally; reconcile them against the generated schema on enrollment.
+ * The hand-authored shapes this file used to carry had measurably drifted:
+ * `collab` was typed `boolean` where the wire sends `"crdt"`/`"snapshot"`,
+ * and `DocRevision.author_id` was a field name the server has never sent
+ * (it is `created_by`). Both are now impossible: the aliases below are the
+ * generated schema.
  */
+import type { components } from "./generated/schema.js";
 
-/** A folder in a workspace's document tree. Provisional (list shape not pinned
- * by the endpoint table beyond ids + tree edges). */
-export interface DocFolder {
-  readonly id: string;
-  readonly workspace_id: string;
-  /** Parent folder, `null` at the workspace root. */
-  readonly parent_id: string | null;
-  readonly name: string;
-  readonly created_at: string;
-  readonly updated_at: string;
-}
+/** The generated schema table — the one source of truth for wire shapes. */
+export type Schemas = components["schemas"];
 
-/** A document head as read from `GET /documents/:id` (field list pinned by the
- * endpoint table). */
-export interface DocDocument {
-  readonly id: string;
-  readonly workspace_id: string;
-  readonly folder_id: string | null;
-  /** Document type slug (open registry — customer modules add types). */
-  readonly type: string;
-  readonly title: string;
-  /** Content sequence at the head — the `If-Match` value for a snapshot save. */
+// ── aliases (the stapel-docs schemas this pair uses) ─────────────────────────
+
+/** A folder in a workspace's document tree (`deleted_at` set while trashed). */
+export type DocFolder = Schemas["FolderPresenterDTO"];
+
+/**
+ * The write discipline of a document's TYPE, fixed by the backend registry
+ * (`doc_types.py`: `COLLAB_CHOICES = ("crdt", "snapshot")`, and a
+ * `DocTypeSpec` with any other value refuses to construct).
+ *
+ * Narrowing a bare-`string` schema field is a documented correction, not an
+ * invention (the calendar-react precedent): the contract enumerates the two
+ * values in `DocumentPresenterDTO.collab`'s own description, the module
+ * docstring states that "exactly two disciplines exist; a third must pass the
+ * I1–I4 contract before it may be born", and the refusal
+ * `error.400.docs_updates_not_crdt` names the axis. A widened `string` here
+ * is what let `if (doc.collab)` read `true` for a snapshot document.
+ */
+export type DocCollab = "crdt" | "snapshot";
+
+/**
+ * A document head as read from `GET /documents/:id` — including the three
+ * registry-derived fields (`editor_hint` / `collab` / `diffable`) that
+ * degrade to file presentation for an unknown type rather than erroring.
+ */
+export type DocDocument = Omit<Schemas["DocumentPresenterDTO"], "collab"> & {
+  /** Write discipline of the document's type — see {@link DocCollab}. */
+  readonly collab: DocCollab;
+};
+
+/** A revision pointer: a self-contained full snapshot at `seq`. */
+export type DocRevision = Schemas["RevisionPresenterDTO"];
+
+/** One journal row of the `?since=` replay feed (crdt types only). */
+export type DocUpdate = Schemas["JournalUpdateDTO"];
+
+/** The replay-feed answer for `GET …/updates?since=`. */
+export type DocUpdatesFeed = Schemas["UpdatesFeedDTO"];
+
+/**
+ * The OTHER answer `GET …/updates?since=` can give: the requested sequence
+ * fell out of the retained journal, so the client must re-read the whole
+ * content instead of replaying (`services.read_updates` → `present_resync`).
+ *
+ * DOCUMENTED CORRECTION: the view's `@extend_schema(responses={200:
+ * UpdatesFeedSerializer})` declares only the feed branch, so `ResyncDTO` is
+ * absent from `docs/schema.json` and cannot be aliased. Typed here from the
+ * backend's `dto.ResyncDTO`; recorded as a backend schema gap in the wave's
+ * REQUESTS file. Discriminate on `resync`, never on the absence of `updates`.
+ */
+export interface DocUpdatesResync {
+  readonly resync: true;
   readonly head_seq: number;
-  /** Sequence of the last stored snapshot. */
   readonly snapshot_seq: number;
-  readonly size_bytes: number;
-  readonly mime_type: string | null;
-  readonly metadata: Readonly<Record<string, unknown>>;
-  /** Editor selection hint — the key into the editor registry
-   * (`registerDocEditor`); builtins cover `"text" | "markdown" | "csv"`. */
-  readonly editor_hint: string;
-  /** Whether the document collaborates via CRDT updates (v1 builtins are all
-   * snapshot documents — `false`). */
-  readonly collab: boolean;
-  readonly diffable: boolean;
-  readonly created_at: string;
-  readonly updated_at: string;
 }
 
-/** A named revision of a document. Provisional (list shape not pinned). */
-export interface DocRevision {
-  readonly id: string;
-  /** User-given name; `null` for automatic revisions. */
-  readonly name: string | null;
-  /** Content sequence the revision snapshots. */
-  readonly seq: number;
-  readonly author_id: string | null;
-  readonly created_at: string;
+/** `GET /documents/:id/updates` — a replay feed, or an order to resync. */
+export type DocUpdatesResponse = DocUpdatesFeed | DocUpdatesResync;
+
+/** True when the journal read answered "re-read the content" (see above). */
+export function isUpdatesResync(
+  response: DocUpdatesResponse
+): response is DocUpdatesResync {
+  return (response as DocUpdatesResync).resync === true;
 }
 
-/** One CRDT update from `GET /documents/:id/updates?since=`. */
-export interface DocUpdate {
-  readonly seq: number;
-  /** Opaque encoded update payload. */
-  readonly payload: string;
-  readonly author_id: string | null;
-  readonly created_at: string;
+/** The outcome of an accepted journal append: the document's new head. */
+export type AppendResult = Schemas["AppendResultDTO"];
+
+// ── request bodies ───────────────────────────────────────────────────────────
+
+export type CreateFolderRequest = Schemas["FolderCreate"];
+export type PatchFolderRequest = Schemas["PatchedFolderPatch"];
+export type CreateDocumentRequest = Schemas["DocumentCreate"];
+export type PatchDocumentRequest = Schemas["PatchedDocumentPatch"];
+export type CreateRevisionRequest = Schemas["NamedRevision"];
+export type EmptyTrashRequest = Schemas["TrashEmpty"];
+/** `POST /documents/:id/updates` — a BATCH of opaque encoded updates plus the
+ * client's own dedup handle (the wire never took a single `payload`). */
+export type PostUpdateRequest = Schemas["UpdatesAppend"];
+export type CreateUploadRequest = Schemas["UploadCreate"];
+
+/**
+ * `POST /uploads` 2xx body: the created document + where to PUT the bytes,
+ * and `expires_at` — the instant the ticket stops being spendable (`null`
+ * only where the host disabled the TTL). On the local-storage backend profile
+ * `put_url` is NOT writable; callers fall back to `PUT /documents/:id/content`
+ * (see `useUpload`).
+ */
+export type CreateUploadResponse = Schemas["UploadTicketDTO"];
+
+/** `GET /documents/:id/download` body — an opaque (possibly expiring) URL. */
+export type DownloadUrl = Schemas["DownloadUrlDTO"];
+
+/** `PUT /documents/:id/content` 200 body. */
+export type SaveContentOk = Schemas["SaveResultDTO"];
+
+/** Counts of irreversibly purged trash items (`POST /trash/empty`). */
+export type TrashPurgeResult = Schemas["TrashPurgeResultDTO"];
+
+/**
+ * `GET /trash` body — everything soft-deleted in the workspace, folders and
+ * documents in their own arrays.
+ *
+ * DOCUMENTED CORRECTION: `TrashView.get` is decorated
+ * `@extend_schema(responses={200: None})`, so the generated operation carries
+ * "No response body" and there is no schema to alias. The shape below is the
+ * view's literal response (`{"folders": FolderSerializer(...), "documents":
+ * DocumentSerializer(...)}`), composed from the two aliases above so the ROW
+ * types cannot drift even while the envelope is unschema'd. Recorded as a
+ * backend schema gap in the wave's REQUESTS file.
+ */
+export interface TrashListing {
+  readonly folders: readonly DocFolder[];
+  readonly documents: readonly DocDocument[];
 }
 
-/** `GET /documents/:id/updates` response. */
-export interface DocUpdatesResponse {
-  readonly updates: readonly DocUpdate[];
-  readonly head_seq: number;
-  /** Present and `true` when `since` is too old — re-read full content. */
-  readonly resync?: boolean;
-}
-
-// ── request bodies / query params ────────────────────────────────────────────
-
-export interface CreateFolderRequest {
-  readonly workspace_id: string;
-  readonly name: string;
-  readonly parent_id?: string | null;
-}
-
-export interface PatchFolderRequest {
-  readonly name?: string;
-  readonly parent_id?: string | null;
-}
+// ── query params (camelCase JS-facing shapes, not wire bodies) ───────────────
 
 /** Query for `GET /documents` (list routes need `?workspace_id=`). */
 export interface DocumentListParams {
@@ -104,79 +148,7 @@ export interface DocumentListParams {
   readonly q?: string;
 }
 
-export interface CreateDocumentRequest {
-  readonly workspace_id: string;
-  readonly type: string;
-  readonly title: string;
-  readonly folder_id?: string | null;
-  readonly metadata?: Readonly<Record<string, unknown>>;
-  /** Initial content for snapshot document types. */
-  readonly body?: string;
-}
-
-export interface PatchDocumentRequest {
-  readonly title?: string;
-  readonly folder_id?: string | null;
-  readonly metadata?: Readonly<Record<string, unknown>>;
-}
-
-export interface CreateRevisionRequest {
-  readonly name: string;
-}
-
-export interface EmptyTrashRequest {
-  readonly workspace_id: string;
-  /** Restrict to these ids; omit to empty the whole trash. */
-  readonly ids?: readonly string[];
-}
-
-/** `GET /trash` body — everything soft-deleted in the workspace, folders and
- * documents in their own arrays (the 0.1.0 hand-typed `DocDocument[]` was a
- * drift against the backend's `TrashView`; fixed against the real response
- * shape 2026-08-10). */
-export interface TrashListing {
-  readonly folders: readonly DocFolder[];
-  readonly documents: readonly DocDocument[];
-}
-
-export interface PostUpdateRequest {
-  /** Opaque encoded CRDT update payload. */
-  readonly payload: string;
-}
-
-// ── uploads ──────────────────────────────────────────────────────────────────
-
-export interface CreateUploadRequest {
-  readonly workspace_id: string;
-  readonly title: string;
-  readonly folder_id?: string | null;
-  readonly mime_type?: string;
-  readonly size_bytes?: number;
-}
-
-/** `POST /uploads` 2xx body: the created document + where to PUT the bytes.
- * On the local-storage backend profile `put_url` is NOT writable — callers
- * fall back to `PUT /documents/:id/content` (see `useUpload`). */
-export interface CreateUploadResponse {
-  readonly upload_id: string;
-  readonly document_id: string;
-  /** Storage key of the object (opaque). */
-  readonly key: string;
-  readonly put_url: string;
-}
-
-// ── content (raw-bytes surface) ──────────────────────────────────────────────
-
-/** `GET /documents/:id/download` body — an opaque (possibly expiring) URL. */
-export interface DownloadUrl {
-  readonly url: string;
-}
-
-/** `PUT /documents/:id/content` 200 body. */
-export interface SaveContentOk {
-  readonly head_seq: number;
-  readonly revision_id: string;
-}
+// ── content (raw-bytes surface — no JSON schema to alias) ────────────────────
 
 /**
  * A refused save, folded from the wire (camelCase JS-facing shape):
@@ -197,7 +169,14 @@ export interface SaveConflict {
  * folds it into this discriminated union instead of throwing.
  */
 export type SaveContentResult =
-  | { readonly status: "saved"; readonly headSeq: number; readonly revisionId: string }
+  | {
+      readonly status: "saved";
+      readonly headSeq: number;
+      /** The revision the save landed as. `null` where the backend answered
+       * without one (`SaveResultDTO.revision_id` is nullable — a save that
+       * changed nothing writes no revision). */
+      readonly revisionId: string | null;
+    }
   | { readonly status: "conflict"; readonly conflict: SaveConflict };
 
 /** `GET /documents/:id/content` — the raw bytes plus the head sequence the

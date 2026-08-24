@@ -100,7 +100,7 @@ export { useAccountClosure } from "./model/closure.js";
 export type { AccountClosureBag } from "./model/closure.js";
 export { useMyErasures, useErasure, useRequestErasure } from "./model/erasures.js";
 export type { MyErasuresBag } from "./model/erasures.js";
-export { useDataExport } from "./model/dataExport.js";
+export { useDataExport, EXPORT_POLL_INTERVAL_MS } from "./model/dataExport.js";
 export type { DataExportBag } from "./model/dataExport.js";
 export { useDsar, useDsarQueue, useUpdateDsar } from "./model/dsar.js";
 export type {

@@ -239,8 +239,12 @@ describe("the favourite control is blocked, never hidden", () => {
     expect(
       screen.getByTestId("listings-detail-favorite").hasAttribute("disabled")
     ).toBe(true);
+    // The reason is the shared gate's, rendered as visible text and pointed at
+    // by the control's `aria-describedby` — never a hover.
     expect(
-      screen.getByTestId("listings-detail-favorite-blocked").textContent
+      screen
+        .getByTestId("listings-detail-favorite-gate")
+        .querySelector("[data-stapel-gated-reason]")?.textContent
     ).toBe("Sign in to do this");
 
     const before = srv.calls.length;

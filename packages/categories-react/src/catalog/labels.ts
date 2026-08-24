@@ -100,6 +100,31 @@ export function featureLabel(feature: CategoryFeature): CategoryLabel {
 }
 
 /**
+ * A feature's HELP TEXT and what to do with it, or `null` when the row
+ * carries none.
+ *
+ * `FeatureCompact.comment` is `"Comment for translators"` on the model, and
+ * `stapel-categories`' own `translation.py` reads it as
+ * `translate(feature.comment) or translate(feature.name)` — so it is a
+ * translation key on exactly the same terms as the name, and the same
+ * `translate: "none"` opt-out applies. It is the one sentence the person who
+ * built the catalogue wrote FOR the person filling in the form ("measured
+ * across the diagonal", "as printed on the label"), and until now it reached
+ * no screen in the fleet at all: zero readers in this pair and zero in
+ * `@stapel/attributes-react`, where it also lands on `FeatureDef.comment`.
+ */
+export function featureCommentLabel(
+  feature: CategoryFeature
+): CategoryLabel | null {
+  const comment = feature.comment;
+  if (comment === null || comment === undefined || comment === "") return null;
+  return {
+    kind: feature.translate === "none" ? "literal" : "key",
+    value: comment,
+  };
+}
+
+/**
  * Are this feature's option labels translation keys?
  *
  * Only under `translate: "all"`, and only while the config has not opted out

@@ -8,5 +8,13 @@ export default { title: "listings-react / Listing card" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
+Default.parameters = { stapel: {"viewport":"phone","step":"member_not_saved"} };
+export const Saved = (): ReactElement => renderDemoVariant(demo, "saved");
+Saved.storyName = "saved";
+Saved.parameters = { stapel: {"viewport":"phone","step":"member_saved"} };
 export const Visitor = (): ReactElement => renderDemoVariant(demo, "visitor");
 Visitor.storyName = "visitor";
+Visitor.parameters = { stapel: {"viewport":"phone","step":"anonymous_blocked"} };
+export const NoPhoto = (): ReactElement => renderDemoVariant(demo, "no-photo");
+NoPhoto.storyName = "no-photo";
+NoPhoto.parameters = { stapel: {"viewport":"desktop","step":"member_no_media"} };

@@ -416,3 +416,71 @@ export type SsoLookupResponse = Schemas["SSODomainLookupResponse"];
 
 export type AuditEvent = Schemas["AuditLogEntry"];
 export type AuditPage = Schemas["AuditLogPage"];
+
+// ── Step-up verification preferences (auth-sa.md §11, stapel-auth ≥0.25) ─────
+
+/**
+ * One scope the person has taken a decision about. `enabled: false` switches a
+ * `default_on` scope OFF, `enabled: true` switches an `opt_in` scope ON; a
+ * scope with no row follows the endpoint's own level, and `strict` scopes
+ * ignore preferences entirely (`stapel_auth.verification.views`).
+ */
+export type VerificationPreferenceRow = Schemas["VerificationPreferenceRow"];
+
+/**
+ * ADAPTER: `preferences` is the whole point of the response, and a body
+ * without it means "no decisions taken", not "field absent" — the generator
+ * marks it optional because DRF serializes an empty list by default.
+ */
+export type VerificationPreferences = Omit<
+  Schemas["VerificationPreferencesResponse"],
+  "preferences"
+> & {
+  readonly preferences: readonly VerificationPreferenceRow[];
+};
+
+// ── Operator console (auth-sa.md §18–20) ─────────────────────────────────────
+
+/** An enterprise-SSO organization: the domain → IdP binding admins manage. */
+export type SsoOrg = Schemas["_Org"];
+/** Fields a `POST /sso/orgs/` accepts (the server owns `id`/`created_at`). */
+export type SsoOrgWrite = Omit<SsoOrg, "id" | "created_at">;
+/** Fields a `PATCH /sso/orgs/{slug}/` accepts. */
+export type SsoOrgPatch = Partial<SsoOrgWrite>;
+
+/** Which protocol an org's identity provider speaks. */
+export type SsoProtocol = Schemas["ProtocolEnum"];
+/** SAML/OIDC connection details for one org. */
+export type SsoOrgConfig = Schemas["_SSOConfig"];
+export type SsoOrgConfigPatch = Schemas["Patched_SSOConfig"];
+
+/**
+ * A machine credential. `key` is READ-ONLY and the server returns its full
+ * value only in the `POST` response — every later read carries the stored
+ * (masked or truncated) form, so the create screen is the one and only place
+ * it can be copied.
+ */
+export type ServiceKey = Schemas["ServiceAPIKey"];
+/** Fields a `POST /service-keys` accepts. */
+export type ServiceKeyWrite = Omit<
+  ServiceKey,
+  "id" | "key" | "created_at" | "last_used_at"
+>;
+export type ServiceKeyPatch = Partial<ServiceKeyWrite>;
+
+/** One user → staff-role assignment. */
+export type StaffRoleAssignment = Schemas["StaffRoleAssignment"];
+export type StaffRoleAssignRequest = Schemas["StaffRoleAssignRequest"];
+
+/** Operator-provisioned account: request and the created summary. */
+export type AdminUserCreateRequest = Schemas["AdminUserCreateRequest"];
+export type AdminUserCreateResponse = Schemas["AdminUserCreateResponse"];
+
+/** Filters the global audit stream accepts (`GET /admin/audit/`). */
+export interface AdminAuditQuery {
+  readonly page?: number;
+  readonly event_type?: string;
+  readonly user_id?: string;
+  readonly date_from?: string;
+  readonly date_to?: string;
+}

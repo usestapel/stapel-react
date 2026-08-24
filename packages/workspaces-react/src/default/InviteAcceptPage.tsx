@@ -6,10 +6,13 @@
  *  - `renderLoginPanel` — the sign-in surface for a registered invitee
  *    without a session (drop auth-react's `<AuthPanel/>` in; call
  *    `onLoggedIn(email)` — or simply let the `sessionEmail` prop update,
- *    the flow re-routes on it automatically).
+ *    the flow re-routes on it automatically). Unfilled, it renders a
+ *    `SlotPlaceholder` in dev rather than a hole: an accept page with no way
+ *    to sign in looks finished, which is the one defect nobody reports.
  *  - `renderInitialSetup` — the basic-data step for a freshly created
  *    account (drop profiles-react's `InitialSetupPrompt`/`InitialSetupModal`
- *    in; call `onDone()`). Omitted → the step auto-skips.
+ *    in; call `onDone()`). Omitted → the step auto-skips, which is a
+ *    deliberate journey decision, not an unfilled hole.
  *
  * THE GRANT SEAM (§B4): for a NEW user the flow mints a login grant and this
  * page hands it to YOUR `onLoginGrant(grantToken)` — wire it to auth-react's
@@ -18,14 +21,34 @@
  * (`grantExchanged`); a rejection shows a retry. The pairs stay decoupled:
  * this package never imports auth-react.
  *
- * Like the pair's other default skins (MembersManager/WorkspaceSettings),
- * theming comes from the host's antd ConfigProvider — this is a route BODY,
- * not a self-themed shell.
+ * ## One primary per screen
+ *
+ * The visual pass photographed five solid blue buttons on this page, with
+ * "Decline" — irreversible, and the one the workspace is told about —
+ * indistinguishable from "Accept". Every state here now has at most ONE
+ * primary: joining. Declining is a quiet danger link behind a confirm that
+ * says what it costs. Failures come from the substrate's `ErrorAlert`, so a
+ * 429 on the claim reads "you can request another one in 42 seconds" (the
+ * backend's keyed `error.429.invitation_grant_pending` with its `retry_after`)
+ * instead of a generic shrug.
  */
 import { useEffect, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Alert, Button, Card, Flex, Result, Spin, Typography } from "antd";
-import { useFormatFlowError, useT } from "@stapel/core";
+import { Button, Card, Flex, Result, Skeleton, Typography } from "antd";
+import {
+  SlotPlaceholder,
+  actionAvailable,
+  actionBlocked,
+  useDescribeFlowError,
+  useT,
+} from "@stapel/core";
+import {
+  ErrorAlert,
+  GatedButton,
+  SkinConfirm,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
+import { spacing } from "@stapel/tokens";
 import { InviteAcceptFlow } from "../headless/InviteAcceptFlow.js";
 import type { InviteAcceptFlowBag } from "../headless/InviteAcceptFlow.js";
 import type { InvitationPreview, Member } from "../api/types.js";
@@ -56,31 +79,33 @@ export interface InviteAcceptPageProps {
 
 export function InviteAcceptPage(props: InviteAcceptPageProps): ReactElement {
   return (
-    <InviteAcceptFlow
-      token={props.token}
-      sessionEmail={props.sessionEmail ?? null}
-      {...(props.onAccepted !== undefined ? { onAccepted: props.onAccepted } : {})}
-      {...(props.onDeclined !== undefined ? { onDeclined: props.onDeclined } : {})}
-    >
-      {(bag) => (
-        <PageBody
-          bag={bag}
-          sessionEmail={props.sessionEmail ?? null}
-          {...(props.onLoginGrant !== undefined
-            ? { onLoginGrant: props.onLoginGrant }
-            : {})}
-          {...(props.renderLoginPanel !== undefined
-            ? { renderLoginPanel: props.renderLoginPanel }
-            : {})}
-          {...(props.renderInitialSetup !== undefined
-            ? { renderInitialSetup: props.renderInitialSetup }
-            : {})}
-          {...(props.onSwitchAccount !== undefined
-            ? { onSwitchAccount: props.onSwitchAccount }
-            : {})}
-        />
-      )}
-    </InviteAcceptFlow>
+    <SkinTheme surface="base" data-testid="invite-accept-root">
+      <InviteAcceptFlow
+        token={props.token}
+        sessionEmail={props.sessionEmail ?? null}
+        {...(props.onAccepted !== undefined ? { onAccepted: props.onAccepted } : {})}
+        {...(props.onDeclined !== undefined ? { onDeclined: props.onDeclined } : {})}
+      >
+        {(bag) => (
+          <PageBody
+            bag={bag}
+            sessionEmail={props.sessionEmail ?? null}
+            {...(props.onLoginGrant !== undefined
+              ? { onLoginGrant: props.onLoginGrant }
+              : {})}
+            {...(props.renderLoginPanel !== undefined
+              ? { renderLoginPanel: props.renderLoginPanel }
+              : {})}
+            {...(props.renderInitialSetup !== undefined
+              ? { renderInitialSetup: props.renderInitialSetup }
+              : {})}
+            {...(props.onSwitchAccount !== undefined
+              ? { onSwitchAccount: props.onSwitchAccount }
+              : {})}
+          />
+        )}
+      </InviteAcceptFlow>
+    </SkinTheme>
   );
 }
 
@@ -94,7 +119,7 @@ const UNAVAILABLE_KEY: Record<string, string> = {
 function InviteHeader(props: { preview: InvitationPreview }): ReactElement {
   const t = useT();
   return (
-    <Flex vertical gap={4}>
+    <Flex vertical gap={spacing["1"]}>
       <Typography.Title level={3} style={{ margin: 0 }}>
         {t(WORKSPACES_I18N_KEYS.inviteAcceptTitle, {
           workspace: props.preview.workspace_name,
@@ -123,9 +148,10 @@ function PageBody(props: {
   onSwitchAccount?: () => void;
 }): ReactElement {
   const t = useT();
-  const formatError = useFormatFlowError();
+  const describeError = useDescribeFlowError();
   const { bag } = props;
   const s = bag.state;
+  const [confirmingDecline, setConfirmingDecline] = useState(false);
 
   // ── the grant seam: run the host's exchange when the grant is issued ──────
   const { onLoginGrant, renderInitialSetup } = props;
@@ -162,11 +188,11 @@ function PageBody(props: {
     case "loadingPreview":
       return (
         <Card data-testid="invite-accept-page">
-          <Flex vertical align="center" gap="middle">
+          <Flex vertical gap={spacing["3"]} role="status" aria-busy="true">
             <Typography.Text type="secondary">
               {t(WORKSPACES_I18N_KEYS.inviteLoading)}
             </Typography.Text>
-            <Spin />
+            <Skeleton active paragraph={{ rows: 2 }} />
           </Flex>
         </Card>
       );
@@ -174,7 +200,7 @@ function PageBody(props: {
     case "previewError":
       return (
         <Card data-testid="invite-accept-page">
-          <Alert type="error" showIcon message={formatError(s.error)} />
+          <ErrorAlert error={describeError(s.error)} testId="invite-preview-error" />
         </Card>
       );
 
@@ -195,22 +221,29 @@ function PageBody(props: {
     case "wrongAccount":
       return (
         <Card data-testid="invite-accept-page">
-          <Flex vertical gap="middle">
+          <Flex vertical gap={spacing["4"]}>
             <InviteHeader preview={s.preview} />
-            <Alert
-              type="warning"
-              showIcon
+            <ErrorAlert
               message={t(WORKSPACES_I18N_KEYS.inviteWrongAccount)}
-              description={t(WORKSPACES_I18N_KEYS.inviteWrongAccountHint, {
+              detail={t(WORKSPACES_I18N_KEYS.inviteWrongAccountHint, {
                 email: props.sessionEmail ?? "",
                 invited: s.preview.email_masked,
               })}
+              testId="invite-wrong-account"
+              {...(props.onSwitchAccount !== undefined
+                ? {
+                    action: (
+                      <Button
+                        onClick={props.onSwitchAccount}
+                        data-analytics="flow"
+                        data-testid="invite-switch-account"
+                      >
+                        {t(WORKSPACES_I18N_KEYS.inviteSwitchAccountCta)}
+                      </Button>
+                    ),
+                  }
+                : {})}
             />
-            {props.onSwitchAccount && (
-              <Button onClick={props.onSwitchAccount} data-analytics="flow">
-                {t(WORKSPACES_I18N_KEYS.inviteSwitchAccountCta)}
-              </Button>
-            )}
           </Flex>
         </Card>
       );
@@ -218,14 +251,18 @@ function PageBody(props: {
     case "loginRequired":
       return (
         <Card data-testid="invite-accept-page">
-          <Flex vertical gap="middle">
+          <Flex vertical gap={spacing["4"]}>
             <InviteHeader preview={s.preview} />
             <Typography.Text strong>
               {t(WORKSPACES_I18N_KEYS.inviteLoginTitle)}
             </Typography.Text>
-            {props.renderLoginPanel?.({
-              onLoggedIn: (email) => bag.sessionEstablished(email),
-            })}
+            {props.renderLoginPanel !== undefined ? (
+              props.renderLoginPanel({
+                onLoggedIn: (email) => bag.sessionEstablished(email),
+              })
+            ) : (
+              <SlotPlaceholder name="renderLoginPanel" data-testid="invite-login-slot" />
+            )}
           </Flex>
         </Card>
       );
@@ -235,7 +272,7 @@ function PageBody(props: {
     case "claimError":
       return (
         <Card data-testid="invite-accept-page">
-          <Flex vertical gap="middle">
+          <Flex vertical gap={spacing["4"]}>
             <InviteHeader preview={s.preview} />
             <Typography.Text type="secondary">
               {t(WORKSPACES_I18N_KEYS.inviteNewUserHint, {
@@ -243,13 +280,14 @@ function PageBody(props: {
               })}
             </Typography.Text>
             {s.step === "claimError" && (
-              <Alert type="error" showIcon message={formatError(s.error)} />
+              <ErrorAlert error={describeError(s.error)} testId="invite-claim-error" />
             )}
             <Button
               type="primary"
               loading={s.step === "claiming"}
               onClick={() => bag.claim()}
               data-analytics="flow"
+              data-testid="invite-create-account"
             >
               {t(
                 s.step === "claiming"
@@ -264,33 +302,25 @@ function PageBody(props: {
     case "grantIssued":
       return (
         <Card data-testid="invite-accept-page">
-          <Flex vertical align="center" gap="middle">
+          <Flex vertical gap={spacing["3"]}>
             {exchangeFailed ? (
-              <>
-                <Alert
-                  type="error"
-                  showIcon
-                  message={t(WORKSPACES_I18N_KEYS.inviteExchangeFailed)}
-                />
-                <Button
-                  type="primary"
-                  onClick={() => {
-                    // Re-arm the effect for the same grant token.
-                    exchangedRef.current = null;
-                    setExchangeFailed(false);
-                  }}
-                  data-analytics="flow"
-                >
-                  {t(WORKSPACES_I18N_KEYS.inviteRetryCta)}
-                </Button>
-              </>
+              <ErrorAlert
+                message={t(WORKSPACES_I18N_KEYS.inviteExchangeFailed)}
+                retryLabel={t(WORKSPACES_I18N_KEYS.inviteRetryCta)}
+                testId="invite-exchange-error"
+                onRetry={() => {
+                  // Re-arm the effect for the same grant token.
+                  exchangedRef.current = null;
+                  setExchangeFailed(false);
+                }}
+              />
             ) : (
-              <>
+              <Flex vertical gap={spacing["3"]} role="status" aria-busy="true">
                 <Typography.Text type="secondary">
                   {t(WORKSPACES_I18N_KEYS.inviteExchanging)}
                 </Typography.Text>
-                <Spin />
-              </>
+                <Skeleton active paragraph={{ rows: 1 }} />
+              </Flex>
             )}
           </Flex>
         </Card>
@@ -299,14 +329,14 @@ function PageBody(props: {
     case "basicData":
       return (
         <Card data-testid="invite-accept-page">
-          <Flex vertical gap="middle">
+          <Flex vertical gap={spacing["4"]}>
             <Typography.Title level={4} style={{ margin: 0 }}>
               {t(WORKSPACES_I18N_KEYS.inviteBasicDataTitle)}
             </Typography.Title>
-            {renderInitialSetup ? (
+            {renderInitialSetup !== undefined ? (
               renderInitialSetup({ onDone: () => bag.completeBasicData() })
             ) : (
-              <Spin />
+              <Skeleton active paragraph={{ rows: 1 }} />
             )}
           </Flex>
         </Card>
@@ -315,37 +345,63 @@ function PageBody(props: {
     case "acceptPrompt":
     case "accepting":
     case "declining":
-    case "acceptError":
+    case "acceptError": {
+      const busy = s.step === "accepting" || s.step === "declining";
+      const busyGate = busy
+        ? actionBlocked(WORKSPACES_I18N_KEYS.inviteBlockedBusy)
+        : actionAvailable();
       return (
         <Card data-testid="invite-accept-page">
-          <Flex vertical gap="middle">
+          <Flex vertical gap={spacing["4"]}>
             <InviteHeader preview={s.preview} />
             {s.step === "acceptError" && (
-              <Alert type="error" showIcon message={formatError(s.error)} />
+              <ErrorAlert error={describeError(s.error)} testId="invite-accept-error" />
             )}
-            <Flex gap="small">
+            {/* One primary — joining. Declining is the quiet, irreversible
+                path and sits under it behind a confirm. */}
+            <Flex vertical gap={spacing["2"]} align="flex-start">
               <Button
                 type="primary"
+                block
                 loading={s.step === "accepting"}
-                disabled={s.step === "declining"}
                 onClick={() => bag.accept()}
                 data-analytics="flow"
+                data-testid="invite-join"
               >
                 {t(WORKSPACES_I18N_KEYS.inviteJoinCta)}
               </Button>
-              <Button
+              <GatedButton
+                gate={busyGate}
                 danger
+                type="link"
                 loading={s.step === "declining"}
-                disabled={s.step === "accepting"}
-                onClick={() => bag.decline()}
-                data-analytics="flow"
+                onClick={() => setConfirmingDecline(true)}
+                testId="invite-decline"
+                data-analytics="none"
+                data-analytics-reason="opens the decline confirm"
               >
                 {t(WORKSPACES_I18N_KEYS.inviteDeclineCta)}
-              </Button>
+              </GatedButton>
             </Flex>
+            <SkinConfirm
+              open={confirmingDecline}
+              danger
+              title={t(WORKSPACES_I18N_KEYS.inviteDeclineConfirm)}
+              body={t(WORKSPACES_I18N_KEYS.inviteDeclineConfirmBody)}
+              confirmLabel={t(WORKSPACES_I18N_KEYS.inviteDeclineCta)}
+              cancelLabel={t(WORKSPACES_I18N_KEYS.cancel)}
+              confirming={s.step === "declining"}
+              onConfirm={() => {
+                bag.decline();
+                setConfirmingDecline(false);
+              }}
+              onCancel={() => setConfirmingDecline(false)}
+              data-testid="invite-decline-confirm"
+            />
           </Flex>
         </Card>
       );
+    }
 
     case "accepted":
       return (

@@ -41,6 +41,26 @@ export type ReviewOwnerResponse = Schemas["ResponseResponse"];
 /** `POST /reviews` request body. */
 export type ReviewCreateRequest = Schemas["ReviewCreateRequest"];
 
+/** `POST /reviews/{id}/moderate` request body. */
+export type ReviewModerateRequest = Schemas["ModerateRequest"];
+
+/** `POST /reviews/{id}/response` request body. */
+export type ReviewRespondRequest = Schemas["RespondRequest"];
+
+/**
+ * The two moderation verdicts, as `services.MODERATION_ACTIONS` spells them.
+ *
+ * Narrowed here and NOT in {@link ReviewStatus}'s style, because the direction
+ * is opposite: `action` is something this client SENDS, so a value outside the
+ * pair is a bug in the caller rather than a state a future server might teach
+ * us. Sending anything else is `error.400.reviews_invalid_moderation_action`.
+ *
+ * `hide` and `publish` are not symmetrical in effect: hiding also removes the
+ * review from the aggregate, because `avg`/`count` are computed over published
+ * rows only.
+ */
+export type ReviewModerationAction = "hide" | "publish";
+
 /**
  * `GET /reviews/aggregate` 200 body — the module-owned aggregate for ONE
  * target, carrying the target it is about.

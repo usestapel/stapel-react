@@ -15,8 +15,10 @@
  *     skin itself (a field row, the submit bar, a response cell).
  *
  * And beneath all three: retheming through the §68 token JSON, which reaches
- * this skin with zero code because every surface wraps itself in
- * `<FormsSkinTheme>`.
+ * this skin with zero code because every surface wraps itself in `<SkinTheme>`
+ * from `@stapel/tokens-antd/skin` — the shared substrate that also owns the
+ * bottom-sheet rule, the 44px phone control height, and the designed
+ * loading/empty/failed arms these surfaces render through.
  */
 
 // ── surfaces ────────────────────────────────────────────────────────────────
@@ -46,10 +48,17 @@ export type {
 export { FormsListPane } from "./FormsListPane.js";
 export type { FormsListPaneProps } from "./FormsListPane.js";
 
+export { FormSettingsPane } from "./FormSettingsPane.js";
+export type { FormSettingsPaneProps } from "./FormSettingsPane.js";
+
 // ── theming ─────────────────────────────────────────────────────────────────
-export { FormsSkinTheme } from "./theme.js";
-export type { FormsSkinThemeProps } from "./theme.js";
-export { ErrorAlert } from "./ErrorAlert.js";
+// `FormsSkinTheme` and this pair's local `ErrorAlert` are GONE (0.2.0). Both
+// were per-pair copies of a fleet rule; both now live once, in
+// `@stapel/tokens-antd/skin` as `SkinTheme` and `ErrorAlert`. Re-exporting
+// them under the old names from here would keep nine copies of a decision
+// alive under an alias, so the export is dropped rather than forwarded — a
+// host that wrapped a composition in `<FormsSkinTheme>` imports `<SkinTheme>`
+// from the substrate instead, with the same props plus `surface`.
 export type { ThemeModeProp } from "./types.js";
 
 // ── the two override registries ─────────────────────────────────────────────

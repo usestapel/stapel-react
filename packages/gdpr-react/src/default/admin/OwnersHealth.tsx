@@ -24,26 +24,20 @@
  * stopped claiming now gets no receipt slot at all. The row shows both sets.
  */
 import type { ReactElement } from "react";
+import { Alert, Card, Flex, Table, Tag, Typography } from "antd";
+import { fontSize, spacing } from "@stapel/tokens";
 import {
-  Alert,
-  Button,
-  Card,
-  Empty,
-  Flex,
-  Skeleton,
-  Table,
-  Tag,
-  Typography,
-} from "antd";
-import { matchList, useDescribeFlowError, useI18n, useT } from "@stapel/core";
+  EmptyState,
+  ErrorAlert,
+  LoadList,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
+import { useI18n, useT } from "@stapel/core";
 import type { DataOwnerHealth as DataOwnerHealthRow } from "../../api/types.js";
-import { toFlowError } from "../../flows/errors.js";
 import { GDPR_I18N_KEYS } from "../../i18n/keys.js";
 import { formatInstant } from "../../model/dates.js";
 import { useOwnersHealth } from "../../model/owners.js";
 import { isStaffOnly } from "../../model/refusals.js";
-import { ErrorAlert } from "../ErrorAlert.js";
-import { GdprSkinTheme } from "../theme.js";
 import type { ThemeModeProp } from "../types.js";
 
 export type OwnersHealthProps = ThemeModeProp;
@@ -51,7 +45,6 @@ export type OwnersHealthProps = ThemeModeProp;
 export function OwnersHealth(props: OwnersHealthProps): ReactElement {
   const t = useT();
   const { locale } = useI18n();
-  const describe = useDescribeFlowError();
   const bag = useOwnersHealth();
 
   const mismatched = new Set(bag.mismatched.map((row) => row.owner));
@@ -96,7 +89,7 @@ export function OwnersHealth(props: OwnersHealthProps): ReactElement {
             {mismatched.has(row.owner) ? (
               <Typography.Text
                 type="warning"
-                style={{ fontSize: 12 }}
+                style={{ fontSize: fontSize.xs.fontSize }}
                 data-testid="gdpr-owners-mismatch"
               >
                 {t(GDPR_I18N_KEYS.ownersSubjectMismatch, {
@@ -112,24 +105,26 @@ export function OwnersHealth(props: OwnersHealthProps): ReactElement {
   ];
 
   return (
-    <GdprSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
+    <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
       <Card
         data-testid="gdpr-owners"
         title={t(GDPR_I18N_KEYS.ownersHeading)}
         size="small"
       >
-        <Flex vertical gap={8}>
+        <Flex vertical gap={spacing[2]}>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
             {t(GDPR_I18N_KEYS.ownersExplain)}
           </Typography.Paragraph>
 
-          {matchList(bag.rows, {
-            loading: () => (
-              <div data-testid="gdpr-owners-loading">
-                <Skeleton active paragraph={{ rows: 3 }} />
-              </div>
-            ),
-            failed: (error) =>
+          <LoadList
+            state={bag.rows}
+            testId="gdpr-owners"
+            skeletonRows={3}
+            onRetry={bag.refetch}
+            // A 403 here is a person signed in with the wrong account, not an
+            // operations failure — the nav axis cannot say "staff", so the
+            // screen does the explaining.
+            failed={(error) =>
               isStaffOnly(error) ? (
                 <Alert
                   type="info"
@@ -140,30 +135,23 @@ export function OwnersHealth(props: OwnersHealthProps): ReactElement {
               ) : (
                 <ErrorAlert
                   testId="gdpr-owners-failed"
-                  error={describe(toFlowError(error))}
-                  action={
-                    <Button
-                      size="small"
-                      onClick={bag.refetch}
-                      data-analytics="none"
-                      data-analytics-reason="recovery affordance for a failed read — host app wraps with its own tracked()"
-                    >
-                      {t(GDPR_I18N_KEYS.retry)}
-                    </Button>
-                  }
+                  thrown={error}
+                  onRetry={bag.refetch}
                 />
-              ),
+              )
+            }
             // An empty inventory is not "all healthy": it means NOTHING would
             // receive an erasure. The emptiest table on this screen is its
             // worst finding, so it is named rather than left blank.
-            empty: () => (
-              <Empty
-                data-testid="gdpr-owners-empty"
-                description={t(GDPR_I18N_KEYS.ownersEmpty)}
+            empty={
+              <EmptyState
+                testId="gdpr-owners-empty"
+                title={t(GDPR_I18N_KEYS.ownersEmpty)}
               />
-            ),
-            ready: (rows) => (
-              <Flex vertical gap={8}>
+            }
+          >
+            {(rows) => (
+              <Flex vertical gap={spacing[2]}>
                 {bag.silent.length > 0 ? (
                   <Alert
                     type="warning"
@@ -190,10 +178,10 @@ export function OwnersHealth(props: OwnersHealthProps): ReactElement {
                   }
                 />
               </Flex>
-            ),
-          })}
+            )}
+          </LoadList>
         </Flex>
       </Card>
-    </GdprSkinTheme>
+    </SkinTheme>
   );
 }

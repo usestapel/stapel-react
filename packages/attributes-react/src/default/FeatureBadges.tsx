@@ -16,6 +16,7 @@
 import type { ReactElement } from "react";
 import { Descriptions, Flex, Tag, Typography } from "antd";
 import { useI18n, useT } from "@stapel/core";
+import { spacing } from "@stapel/tokens";
 import type { FeatureDef, FeaturesDto } from "../types.js";
 import { featureName, featureType } from "../types.js";
 import { formatFeatureValue, hexColorSwatch } from "../format.js";
@@ -69,8 +70,14 @@ function ValueText(props: {
     );
   }
   return (
-    <Typography.Text type="warning" data-testid="attributes-unreadable-value">
-      {t(ATTRIBUTES_I18N_KEYS.valueUnreadable, { type })}
+    // Same C-DEVCOPY rule as the unsupported EDITOR notice: the sentence says
+    // what happened, the type slug travels as an attribute for support.
+    <Typography.Text
+      type="warning"
+      data-testid="attributes-unreadable-value"
+      data-attributes-type={type}
+    >
+      {t(ATTRIBUTES_I18N_KEYS.valueUnreadable)}
     </Typography.Text>
   );
 }
@@ -85,7 +92,7 @@ export function FeatureBadges(props: FeatureDisplayProps): ReactElement {
   const rows = useRows(props, (feature) => feature.show_as_badge === true);
   const shown = rows.filter((row) => row.text !== undefined);
   return (
-    <Flex gap={4} wrap data-testid="attributes-badges">
+    <Flex gap={spacing[1]} wrap data-testid="attributes-badges">
       {shown.map((row) => (
         <Tag
           key={row.feature.slug}

@@ -9,28 +9,78 @@ import { notificationsErrorBundleEn } from "./generated/errors.gen.js";
  * English fallbacks for both the backend error codes (generated) and the
  * pair's own UI keys. Point core's `loadLocale` at stapel-translate to override
  * per locale. Add UI keys under the `notifications.` namespace as you build flows.
+ *
+ * LOCALE PARITY IS A RULE, NOT AN ASPIRATION: every key here has hand-written
+ * `ru` (`./ru.ts`) and `es` (`./es.ts`) copy, and `test/i18nRu.test.ts` /
+ * `test/i18nEs.test.ts` fail on the first one that does not. A locale bundle
+ * that ships only the generated backend error texts puts Spanish error
+ * messages inside an English screen, which reads as a half-finished product
+ * rather than a missing translation.
  */
 export const NOTIFICATIONS_I18N_KEYS = {
   unknownError: "notifications.error.unknown",
-  // Feed (NotificationFeed headless)
+
+  // ── Feed ──────────────────────────────────────────────────────────────────
+  feedTitle: "notifications.feed.title",
+  feedSubtitle: "notifications.feed.subtitle",
   feedEmpty: "notifications.feed.empty",
+  feedEmptyHint: "notifications.feed.empty_hint",
   feedLoading: "notifications.feed.loading",
   feedLoadMore: "notifications.feed.load_more",
   feedEnd: "notifications.feed.end",
-  feedRetry: "notifications.feed.retry",
-  // Device registration (DeviceRegistration headless)
-  deviceRegister: "notifications.device.register",
-  deviceUnregister: "notifications.device.unregister",
-  deviceRegistering: "notifications.device.registering",
-  deviceRegistered: "notifications.device.registered",
-  // Default skin — PushNotificationToggle / NotificationFeedList
+  feedOpen: "notifications.feed.open",
+
+  // ── Delivery mode (live socket vs the documented poll) ────────────────────
+  liveOn: "notifications.live.on",
+  liveConnecting: "notifications.live.connecting",
+  liveReconnecting: "notifications.live.reconnecting",
+  livePolling: "notifications.live.polling",
+  livePollingHint: "notifications.live.polling_hint",
+  liveStopped: "notifications.live.stopped",
+  liveReconnect: "notifications.live.reconnect",
+  liveRefusedSession: "notifications.live.refused_session",
+  liveRefusedOrigin: "notifications.live.refused_origin",
+  liveRefusedForbidden: "notifications.live.refused_forbidden",
+  liveRefusedUnknown: "notifications.live.refused_unknown",
+  liveRefusedRevoked: "notifications.live.refused_revoked",
+
+  // ── Push toggle (this device) ─────────────────────────────────────────────
   pushSettingsTitle: "notifications.settings.push.title",
   pushSettingsSubtitle: "notifications.settings.push.subtitle",
-  feedSettingsTitle: "notifications.settings.feed.title",
-  feedSettingsSubtitle: "notifications.settings.feed.subtitle",
-  // Nav-manifest label (`../nav/manifest.ts`) — read by a shell (e.g.
+  pushToggleLabel: "notifications.push.toggle_label",
+  pushChecking: "notifications.push.checking",
+  pushOn: "notifications.push.on",
+  pushOff: "notifications.push.off",
+  pushInactive: "notifications.push.inactive",
+  pushInactiveHint: "notifications.push.inactive_hint",
+  pushUnknown: "notifications.push.unknown",
+  pushUnknownHint: "notifications.push.unknown_hint",
+  pushDenied: "notifications.push.denied",
+  pushDeniedHint: "notifications.push.denied_hint",
+  pushUnsupported: "notifications.push.unsupported",
+  pushUnsupportedHint: "notifications.push.unsupported_hint",
+  pushTokenUnavailable: "notifications.push.token_unavailable",
+  pushTokenUnavailableHint: "notifications.push.token_unavailable_hint",
+
+  // ── Registered devices ────────────────────────────────────────────────────
+  devicesTitle: "notifications.devices.title",
+  devicesSubtitle: "notifications.devices.subtitle",
+  devicesEmpty: "notifications.devices.empty",
+  devicesEmptyHint: "notifications.devices.empty_hint",
+  devicesThisDevice: "notifications.devices.this_device",
+  devicesInactive: "notifications.devices.inactive",
+  devicesLastSeen: "notifications.devices.last_seen",
+  devicesRemove: "notifications.devices.remove",
+  devicesRemoveQuestion: "notifications.devices.remove_question",
+  devicesRemoveBody: "notifications.devices.remove_body",
+  platformIos: "notifications.platform.ios",
+  platformAndroid: "notifications.platform.android",
+  platformWeb: "notifications.platform.web",
+
+  // Nav-manifest labels (`../nav/manifest.ts`) — read by a shell (e.g.
   // `@stapel/shell-react`'s `AppShell`) via `t(entry.labelKey)`.
   navFeed: "notifications.nav.feed",
+  navPush: "notifications.nav.push",
 } as const;
 
 export type NotificationsI18nKey =
@@ -49,20 +99,77 @@ export const notificationsI18nBundleEn: I18nDictionary = {
 
   // notifications-react UI
   "notifications.error.unknown": "Something went wrong. Please try again.",
-  "notifications.feed.empty": "No notifications yet.",
+
+  "notifications.feed.title": "Notifications",
+  "notifications.feed.subtitle": "What we've sent you lately.",
+  "notifications.feed.empty": "No notifications yet",
+  "notifications.feed.empty_hint":
+    "When something needs your attention, it will show up here.",
   "notifications.feed.loading": "Loading notifications…",
   "notifications.feed.load_more": "Load more",
   "notifications.feed.end": "You're all caught up.",
-  "notifications.feed.retry": "Try again",
-  "notifications.device.register": "Enable push notifications",
-  "notifications.device.unregister": "Disable push notifications",
-  "notifications.device.registering": "Enabling…",
-  "notifications.device.registered": "Push notifications enabled.",
+  "notifications.feed.open": "Open",
+
+  "notifications.live.on": "Live",
+  "notifications.live.connecting": "Connecting…",
+  "notifications.live.reconnecting": "Reconnecting…",
+  "notifications.live.polling": "Checking every minute",
+  "notifications.live.polling_hint":
+    "This site has no live connection, so the list refreshes every minute while this tab is open.",
+  "notifications.live.stopped": "Live updates stopped",
+  "notifications.live.reconnect": "Reconnect",
+  "notifications.live.refused_session":
+    "Your session expired. Sign in again to resume live updates.",
+  "notifications.live.refused_origin":
+    "Live updates are not configured for this site. The list still refreshes every minute.",
+  "notifications.live.refused_forbidden":
+    "This account is not allowed to receive live updates.",
+  "notifications.live.refused_unknown":
+    "Live updates are unavailable on this server.",
+  "notifications.live.refused_revoked": "The server ended live updates.",
+
   "notifications.settings.push.title": "Push notifications",
-  "notifications.settings.push.subtitle": "Enable push notifications on this device.",
-  "notifications.settings.feed.title": "Recent notifications",
-  "notifications.settings.feed.subtitle": "What we've sent you lately.",
+  "notifications.settings.push.subtitle":
+    "Get notified on this device even when this site is closed.",
+  "notifications.push.toggle_label": "Push notifications on this device",
+  "notifications.push.checking": "Checking this device…",
+  "notifications.push.on": "On for this device",
+  "notifications.push.off": "Off for this device",
+  "notifications.push.inactive": "Registered, but not being delivered to",
+  "notifications.push.inactive_hint":
+    "The push service rejected this device's token. Turn push off and on again to re-register.",
+  "notifications.push.unknown": "We can't tell whether push is on here",
+  "notifications.push.unknown_hint":
+    "This device has not given us its push token, so we can only show the devices registered to your account.",
+  "notifications.push.denied": "Notifications are blocked in this browser",
+  "notifications.push.denied_hint":
+    "Allow notifications for this site in your browser settings, then try again.",
+  "notifications.push.unsupported": "This browser can't receive push",
+  "notifications.push.unsupported_hint":
+    "Push needs a secure (https) connection and a browser that supports it.",
+  "notifications.push.token_unavailable":
+    "We couldn't get a push token from this browser",
+  "notifications.push.token_unavailable_hint":
+    "Reload the page and try again. If it keeps happening, remove this device below and register it fresh.",
+
+  "notifications.devices.title": "Devices receiving push",
+  "notifications.devices.subtitle":
+    "Every device registered to your account. Remove one to stop sending to it.",
+  "notifications.devices.empty": "No devices are registered",
+  "notifications.devices.empty_hint": "Turn push on above to register this one.",
+  "notifications.devices.this_device": "This device",
+  "notifications.devices.inactive": "Not delivered to",
+  "notifications.devices.last_seen": "Last registered {when}",
+  "notifications.devices.remove": "Remove",
+  "notifications.devices.remove_question": "Remove this device?",
+  "notifications.devices.remove_body":
+    "It stops receiving push notifications until it registers again.",
+  "notifications.platform.ios": "iPhone or iPad",
+  "notifications.platform.android": "Android device",
+  "notifications.platform.web": "Browser",
+
   "notifications.nav.feed": "Notifications",
+  "notifications.nav.push": "Push notifications",
 };
 
 /**

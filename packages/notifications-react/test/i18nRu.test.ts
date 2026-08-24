@@ -95,7 +95,7 @@ describe("locale switching through the core engine", () => {
     expect(i18n.t("notifications.error.unknown")).toBe(
       notificationsI18nBundleRu["notifications.error.unknown"]
     );
-    expect(i18n.t("notifications.feed.empty")).toBe("Пока нет уведомлений.");
+    expect(i18n.t("notifications.feed.empty")).toBe("Уведомлений пока нет");
     await i18n.setLocale("en");
     expect(i18n.t("notifications.feed.empty")).toBe(
       notificationsI18nBundleEn["notifications.feed.empty"]

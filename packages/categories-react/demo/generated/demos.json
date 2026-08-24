@@ -4,69 +4,245 @@
   "version": "0.3.1",
   "demos": [
     {
-      "id": "categories.carousel",
-      "title": "Carousel and breadcrumbs",
-      "description": "The carousel is the one endpoint that arrives ready to render — the server filters active + carousel_enabled and sends its own Cache-Control. Icon references stay opaque strings: the host resolves them, the library never guesses a CDN path. Each label reports whether it is a translation key or a literal.",
-      "component": "CategoryCarousel",
+      "id": "categories.breadcrumbs",
+      "title": "Category breadcrumbs",
+      "description": "Every caption goes through renderCategoryLabel, the one place this skin decides between 'translate this' and 'print this': a name is a translation KEY unless the row says otherwise. The CURRENT crumb is a label, never a link to the page under your feet.",
+      "component": "CategoryBreadcrumbsBar",
       "covers": [
-        "CategoryBreadcrumbs"
+        "CategoryBreadcrumbs",
+        "CategoryLink"
       ],
       "tokens": [
         "surface-raised"
       ],
       "variants": [
         {
-          "id": "default"
+          "id": "deep",
+          "description": "Three levels down, only the ancestors linked.",
+          "viewport": "phone"
+        },
+        {
+          "id": "in a router",
+          "description": "The same bar through the host's <Link> — no anchor navigation at all.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "the link itself",
+          "description": "CategoryLink on its own: an anchor by default, the host's component when one is handed in.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "stale link",
+          "description": "A slug the catalogue does not have — said only once the sync succeeded.",
+          "viewport": "desktop"
         }
       ],
       "source": {
-        "file": "demo/CategoryCarousel.demo.tsx",
-        "line": 59
+        "file": "demo/CategoryBreadcrumbsBar.demo.tsx",
+        "line": 39
+      }
+    },
+    {
+      "id": "categories.carousel",
+      "title": "Category carousel",
+      "description": "The one endpoint that arrives ready to render — the server filters active + carousel_enabled, orders by priority and sends its own Cache-Control. Labels still say whether they are translation keys or literals, because the catalogue's names belong to the deployment, not to the library.",
+      "component": "CategoryCarouselStrip",
+      "covers": [
+        "CategoryCarousel"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "tiles",
+          "description": "With the host's icon resolver wired.",
+          "viewport": "phone"
+        },
+        {
+          "id": "text only",
+          "description": "No resolver: text tiles, on purpose, rather than a broken image.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "nothing featured",
+          "description": "A real configuration — a landing page that says so instead of spinning.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "outage",
+          "description": "The strip refuses. The skeleton is three tiles wide, so nothing jumps.",
+          "viewport": "desktop"
+        }
+      ],
+      "source": {
+        "file": "demo/CategoryCarouselStrip.demo.tsx",
+        "line": 46
+      }
+    },
+    {
+      "id": "categories.catalog",
+      "title": "Catalogue page",
+      "description": "The /c route: the carousel of featured categories over the top-level tree. Category names arrive from the wire as TRANSLATION KEYS, so the host's bundle supplies the copy — and icon references stay opaque strings the host resolves, because a library that guessed a CDN path would ship a broken image on every deployment that guessed differently.",
+      "component": "CatalogPage",
+      "covers": [
+        "CategoriesProvider"
+      ],
+      "tokens": [
+        "surface-base",
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "browse",
+          "description": "A visitor on a phone, catalogue already synced.",
+          "viewport": "phone"
+        },
+        {
+          "id": "no icons",
+          "description": "The same screen where the host resolves no icons — text tiles, by construction rather than by accident.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "empty catalogue",
+          "description": "A deployment nobody has filled in yet — two different sentences, one per section.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "outage",
+          "description": "The catalogue endpoint refuses. A failed sync is never an empty catalogue.",
+          "viewport": "desktop"
+        }
+      ],
+      "source": {
+        "file": "demo/CatalogPage.demo.tsx",
+        "line": 51
+      }
+    },
+    {
+      "id": "categories.category",
+      "title": "Category page",
+      "description": "The /c/:slug route. The slug is resolved against the CLIENT-BUILT tree because the server has no slug lookup, and 'there is no category here' is shown only once the sync has succeeded — a slow network must never render a 404 for a page that exists.",
+      "component": "CategoryPage",
+      "covers": [
+        "CategoryTree"
+      ],
+      "tokens": [
+        "surface-base"
+      ],
+      "variants": [
+        {
+          "id": "composed",
+          "description": "What a wired storefront shows: crumbs, sub-categories, listings.",
+          "viewport": "phone"
+        },
+        {
+          "id": "unfilled slot",
+          "description": "The container forgot renderListings. Development names the gap; production renders nothing.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "leaf with its schema",
+          "description": "A leaf category has no sub-menu; `showFeatures` turns the feature schema on for an operator view.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "no such category",
+          "description": "A stale link. Said once the catalogue loaded, never before.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "outage",
+          "description": "The sync refused. Crumbs degrade to one line; the body says which read failed.",
+          "viewport": "desktop"
+        }
+      ],
+      "source": {
+        "file": "demo/CategoryPage.demo.tsx",
+        "line": 44
       }
     },
     {
       "id": "categories.features",
       "title": "Category feature schema",
-      "description": "GET /categories/{id}/features/ resolves inheritance and order server-side and sends config VERBATIM — no defaults filled in, so an absent key means the type's default and attributes-react owns those. Each row reports whether its name and its option labels are translation keys, and one fixture carries a type no builtin editor covers.",
-      "component": "CategoryFeatures",
-      "covers": [],
+      "description": "GET /categories/{id}/features/ resolves inheritance and order server-side and returns config VERBATIM — no defaults filled in, so an absent key means 'the type's default', never 'off'. attributes-react owns those defaults; this pair does not restate them.",
+      "component": "CategoryFeatureList",
+      "covers": [
+        "CategoryFeatures"
+      ],
       "tokens": [
         "surface-raised"
       ],
       "variants": [
         {
-          "id": "default"
+          "id": "schema",
+          "description": "Required markers, type badges, translator comments — and one type no builtin editor covers.",
+          "viewport": "phone"
+        },
+        {
+          "id": "no extra details",
+          "description": "A category that asks for nothing — common for a root, and not an error.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "outage",
+          "description": "The schema read refused. A compose form must not guess the fields.",
+          "viewport": "desktop"
         }
       ],
       "source": {
-        "file": "demo/CategoryFeatures.demo.tsx",
-        "line": 36
+        "file": "demo/CategoryFeatureList.demo.tsx",
+        "line": 23
       }
     },
     {
       "id": "categories.picker",
       "title": "Category picker",
-      "description": "Drill-down over the already-synced tree — no request per level, and none per keystroke when searching. leavesOnly is on by default and the refusal says why: a listing filed one level too high inherits the wrong feature set, so the form then asks the wrong questions.",
-      "component": "CategoryPicker",
-      "covers": [],
+      "description": "Drill down or search; either way the options come out of the tree already in memory, so typing issues no request per keystroke and the control works offline once the catalogue has synced. A non-leaf selection is refused WITH ITS REASON: a listing filed under 'Electronics' instead of 'Electronics › Phones' inherits a different feature set, so the form then asks the wrong questions.",
+      "component": "CategoryPickerField",
+      "covers": [
+        "CategoryPicker"
+      ],
       "tokens": [
         "surface-raised"
       ],
       "variants": [
         {
-          "id": "default"
+          "id": "on a phone",
+          "description": "A trigger plus a bottom sheet — the drill-down is not inline.",
+          "viewport": "phone"
+        },
+        {
+          "id": "inline",
+          "description": "Tablet and desktop: the level is on the page, with the crumb above it.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "too general",
+          "description": "A chosen category that still has sub-categories — the second reason.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "chosen",
+          "description": "A leaf. The control stops blocking and names what was picked.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "outage",
+          "description": "The catalogue never arrived, so there is nothing to choose FROM.",
+          "viewport": "desktop"
         }
       ],
       "source": {
-        "file": "demo/CategoryPicker.demo.tsx",
-        "line": 63
+        "file": "demo/CategoryPickerField.demo.tsx",
+        "line": 23
       }
     },
     {
       "id": "categories.tree",
-      "title": "Category tree",
-      "description": "stapel-categories has no tree endpoint: the list returns flat rows ordered by revision, with ancestry as comma-joined pk strings. The client assembles the hierarchy, drops soft-deleted and inactive rows, and resolves /c/:slug against the result — the server has no slug lookup either.",
-      "component": "CategoryTree",
+      "title": "Category tree pane",
+      "description": "stapel-categories has no tree endpoint: the list returns FLAT rows ordered by revision, with ancestry as comma-joined pk strings. The client assembles the hierarchy, drops soft-deleted and inactive rows for DIFFERENT reasons, and resolves /c/:slug against the result — the server has no slug lookup either.",
+      "component": "CategoryTreePane",
       "covers": [
         "CategoriesProvider"
       ],
@@ -75,15 +251,34 @@
       ],
       "variants": [
         {
-          "id": "roots"
+          "id": "roots",
+          "description": "The top level, each row saying how many sub-categories it has.",
+          "viewport": "phone"
         },
         {
-          "id": "one category"
+          "id": "one level down",
+          "description": "The sub-menu of a category, with the heading the page gives it.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "leaf",
+          "description": "A leaf category. Not an error, and not an empty catalogue — its own sentence.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "partial catalogue",
+          "description": "The sync walk hit its page budget: a branch missing here was NOT read, it was not removed.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "outage",
+          "description": "A refusal. A failed sync never degrades to 'the catalogue is empty'.",
+          "viewport": "desktop"
         }
       ],
       "source": {
-        "file": "demo/CategoryTree.demo.tsx",
-        "line": 45
+        "file": "demo/CategoryTreePane.demo.tsx",
+        "line": 23
       }
     }
   ]

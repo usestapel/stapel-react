@@ -664,7 +664,7 @@ export interface components {
             images_draft?: string[];
             location_id_draft?: string;
             location_label_draft?: string;
-            geohash_draft?: string;
+            readonly geohash_draft: string;
             /** Format: decimal */
             lat_draft?: string | null;
             /** Format: decimal */
@@ -805,7 +805,7 @@ export interface components {
             images_draft?: string[];
             location_id_draft?: string;
             location_label_draft?: string;
-            geohash_draft?: string;
+            readonly geohash_draft?: string;
             /** Format: decimal */
             lat_draft?: string | null;
             /** Format: decimal */

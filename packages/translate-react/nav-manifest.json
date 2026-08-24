@@ -1,0 +1,25 @@
+{
+  "package": "@stapel/translate-react",
+  "version": "0.0.0",
+  "entries": [
+    {
+      "id": "translate.overview",
+      "labelKey": "translate.nav.overview",
+      "icon": "AppstoreOutlined",
+      "route": {
+        "path": "translate"
+      },
+      "component": {
+        "export": "TranslatePanel",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 50
+    }
+  ]
+}

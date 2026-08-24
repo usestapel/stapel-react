@@ -1,0 +1,513 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/currencies-react",
+  "version": "0.0.0",
+  "backend": {
+    "module": "stapel-currencies",
+    "contract": ">=0.1 <0.2"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "currencies_api_v1_list": {
+      "method": "GET",
+      "path": "/currencies/api/v1/",
+      "tag": "Currencies and exchange rates",
+      "request": null,
+      "response": null
+    },
+    "currencies_api_v1_retrieve": {
+      "method": "GET",
+      "path": "/currencies/api/v1/{code}/",
+      "tag": "Currencies and exchange rates",
+      "request": null,
+      "response": "Currency"
+    }
+  },
+  "hooks": {
+    "useCurrencies": {
+      "kind": "query",
+      "operation": "list"
+    },
+    "useCurrency": {
+      "kind": "query",
+      "operation": "retrieve"
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_amount": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.unknown_currency": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.502.rate_fetch_failed": {
+      "status": 502,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "currencies.field",
+      "title": "Currency field (default skin)",
+      "description": "A price input the Money layer can actually convert: validity is checked with the same decimal parser the converter uses, so anything this field accepts is a value the rest of the package understands.",
+      "component": "CurrencyField",
+      "variants": [
+        "default",
+        "invalid"
+      ],
+      "source": "demo/CurrencyField.demo.tsx"
+    },
+    {
+      "id": "currencies.money",
+      "title": "Money (render prop)",
+      "description": "The headless price bag: the original always present, the converted estimate optional, and the state that says which of the three situations the catalogue is in.",
+      "component": "Money",
+      "covers": [
+        "CurrenciesProvider"
+      ],
+      "variants": [
+        "default",
+        "same"
+      ],
+      "source": "demo/Money.demo.tsx"
+    },
+    {
+      "id": "currencies.picker",
+      "title": "Currency picker (default skin)",
+      "description": "Choose the currency prices are shown in. A searchable Select on tablet and desktop; a bottom sheet with a real list on a phone. Loading disables the control WITH its reason beside it; an unconfigured catalogue says so; only a failed read is drawn as a failure.",
+      "component": "CurrencyPicker",
+      "variants": [
+        "default",
+        "phone",
+        "empty",
+        "failed"
+      ],
+      "source": "demo/CurrencyPicker.demo.tsx"
+    },
+    {
+      "id": "currencies.price",
+      "title": "Price (default skin)",
+      "description": "A price in the currency it is quoted in, with an optional estimate under it. The estimate is never shown alone: the catalogue serves no rate timestamp, so the seller's own number stays the number on screen.",
+      "component": "Price",
+      "variants": [
+        "default",
+        "same",
+        "rate",
+        "unavailable"
+      ],
+      "source": "demo/Price.demo.tsx"
+    },
+    {
+      "id": "currencies.rate-table",
+      "title": "Rate table (default skin)",
+      "description": "Code, translated name, rate against the base and symbol, with the honest note about what the catalogue does and does not know.",
+      "component": "RateTable",
+      "variants": [
+        "default",
+        "empty",
+        "failed"
+      ],
+      "source": "demo/RateTable.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "currencies.dialog.dismiss",
+    "currencies.error.unknown",
+    "currencies.field.amount",
+    "currencies.field.invalidAmount",
+    "currencies.picker.empty",
+    "currencies.picker.failed",
+    "currencies.picker.label",
+    "currencies.picker.loading",
+    "currencies.picker.placeholder",
+    "currencies.picker.retry",
+    "currencies.picker.search",
+    "currencies.price.approx",
+    "currencies.price.rate",
+    "currencies.price.unavailable",
+    "currencies.table.baseNote",
+    "currencies.table.code",
+    "currencies.table.empty",
+    "currencies.table.name",
+    "currencies.table.rate",
+    "currencies.table.symbol",
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.invalid_amount",
+    "error.400.unknown_currency",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.502.rate_fetch_failed",
+    "error.503.mandate_unavailable"
+  ],
+  "exports": {
+    "runtime": [
+      "CURRENCIES_ERRORS",
+      "CURRENCIES_ERROR_CODES",
+      "CURRENCIES_EVENTS",
+      "CURRENCIES_FLOWS",
+      "CURRENCIES_I18N_KEYS",
+      "CURRENCY_NAME_KEYS",
+      "CurrenciesProvider",
+      "CurrenciesRuntimeContext",
+      "Money",
+      "RATE_DECIMAL_PLACES",
+      "UNKNOWN_CURRENCY_CODE",
+      "catalogOf",
+      "convert",
+      "createCurrenciesApi",
+      "createCurrenciesRuntime",
+      "createDisplayCurrencyStore",
+      "createFlowMachine",
+      "crossRate",
+      "currenciesErrorBundleEn",
+      "currenciesI18nBundleEn",
+      "currenciesQueryKeys",
+      "explainCurrenciesError",
+      "flowEndpoints",
+      "formatDecimal",
+      "formatMoney",
+      "isErrorCode",
+      "isValidAmount",
+      "minorUnitsOf",
+      "parseDecimal",
+      "quantize",
+      "registerCurrenciesI18n",
+      "toFlowError",
+      "useCurrencies",
+      "useCurrenciesAnalytics",
+      "useCurrenciesApi",
+      "useCurrenciesRuntime",
+      "useCurrency",
+      "useDisplayCurrency",
+      "useFlow",
+      "useMoney",
+      "usePrice"
+    ],
+    "types": [
+      "ConvertOptions",
+      "CreateCurrenciesRuntimeOptions",
+      "CurrenciesApi",
+      "CurrenciesBag",
+      "CurrenciesErrorCode",
+      "CurrenciesErrorSpec",
+      "CurrenciesEventName",
+      "CurrenciesFlowId",
+      "CurrenciesFlowSpec",
+      "CurrenciesI18nKey",
+      "CurrenciesRuntime",
+      "Currency",
+      "CurrencyCatalog",
+      "Decimal",
+      "DisplayCurrencyBag",
+      "DisplayCurrencyStore",
+      "FlowEndpoint",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "FormatMoneyOptions",
+      "MoneyBag",
+      "MoneyPolicy",
+      "MoneyProps",
+      "PriceBag",
+      "PriceState",
+      "Remediation",
+      "Schemas",
+      "SymbolDisplay",
+      "UsePriceOptions"
+    ]
+  }
+}

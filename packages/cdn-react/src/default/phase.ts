@@ -25,10 +25,21 @@ export const PHASE_KEYS: Record<UploadPhase, string> = {
  * shift `@stapel/image` exists to prevent — and here there is no aspect ratio
  * to work from until the row comes back.
  */
+/**
+ * The tile side, in CSS pixels. A one-off geometry rather than a spacing step:
+ * it is the size of a photograph in a grid, not a gap between two things, and
+ * it is named here so the next person changes it in ONE place — which is what
+ * the raw-dimension rule asks for when a number is genuinely not on the scale.
+ */
+export const PREVIEW_TILE_PX = 96;
+
+/** The tile's corner, matching the skin's small radius. */
+export const PREVIEW_TILE_RADIUS_PX = 4;
+
 export const PREVIEW_BOX: CSSProperties = {
-  width: 96,
-  height: 96,
+  width: PREVIEW_TILE_PX,
+  height: PREVIEW_TILE_PX,
   objectFit: "cover",
-  borderRadius: 4,
+  borderRadius: PREVIEW_TILE_RADIUS_PX,
   display: "block",
 };

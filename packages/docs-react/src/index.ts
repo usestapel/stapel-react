@@ -12,11 +12,12 @@
  * discipline (`DocEditor`: load `head_seq` → PUT with `If-Match` → 409/412
  * becomes typed conflict state + `overrideSave`).
  *
- * CONTRACT NOTE: stapel-docs does not emit its contract artifacts
- * (docs/{schema,flows,errors}.json) yet — the api layer is hand-typed to the
- * module's endpoint table and the generated surfaces (schema, error map,
- * manifest enrollment in the root gen:* drivers) are a mandatory follow-up
- * once the backend commits its contract. See `api/types.ts`.
+ * CONTRACT: the pair is generated against stapel-docs' own committed
+ * artifacts (`docs/{schema,flows,errors}.json`) — `src/api/generated/schema.ts`
+ * (27 operations), `src/i18n/generated/errors*.ts` (74 codes, en/ru/es) and
+ * `manifest.json` + `llms.txt` are all emitted by the root `gen:*` drivers and
+ * drift-gated. `flows.json` is `[]` (this module declares no flows), so
+ * `DOCS_FLOWS` is empty by construction rather than by omission.
  */
 
 // ── api ──────────────────────────────────────────────────────────────────────
@@ -31,12 +32,19 @@ export {
   uploadToPutUrl,
 } from "./api/content.js";
 export type { DocsRawTransport, PutContentOptions } from "./api/content.js";
+export { isUpdatesResync } from "./api/types.js";
 export type {
+  Schemas,
   DocFolder,
   DocDocument,
+  DocCollab,
   DocRevision,
   DocUpdate,
+  DocUpdatesFeed,
+  DocUpdatesResync,
   DocUpdatesResponse,
+  AppendResult,
+  TrashPurgeResult,
   CreateFolderRequest,
   PatchFolderRequest,
   DocumentListParams,
@@ -79,6 +87,9 @@ export {
   useDocsAnalytics,
 } from "./model/context.js";
 export { docsQueryKeys } from "./model/queryKeys.js";
+export { DEFAULT_DOCUMENT_TYPES } from "./model/documentTypes.js";
+export type { DocumentTypeOption } from "./model/documentTypes.js";
+export { formatDate, formatDateTime, formatBytes } from "./model/format.js";
 export { buildFolderTree, folderTrail } from "./model/folderTree.js";
 export type { FolderTreeNode } from "./model/folderTree.js";
 export {

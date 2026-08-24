@@ -2,9 +2,9 @@
  * `<SearchResultsPane>` — the antd result page: the count, the degradation
  * banner, the cards, and the keyset controls.
  *
- * Rendered through core's `matchList`, whose FOUR required arms are the point.
- * "Nothing matches this search" is reachable only from a search that actually
- * ran; a 5xx renders "we could not run this search" plus a retry. The
+ * Rendered through the shared substrate's `LoadList`, whose FOUR arms are the
+ * point. "Nothing matches this search" is reachable only from a search that
+ * actually ran; a 5xx renders "we could not run this search" plus a retry. The
  * substitution of one for the other is what cost the 2026-08-09 incident, and
  * the spec's §7.4 negative leg exercises this exact pane against a forced 5xx.
  *
@@ -12,17 +12,29 @@
  * is "narrow the search", not "there is nothing here" — it arrives as a 400
  * with an empty body, which is precisely how it would otherwise render as an
  * empty page.
+ *
+ * ── Two things the pager used to get wrong ────────────────────────────────
+ *
+ * 1. **Its reasons were in `title=`.** A disabled antd Button receives no
+ *    pointer events, so the browser tooltip never fires — on any device — and
+ *    a phone has no hover to begin with. Both buttons are `GatedButton` now:
+ *    the block's reason is ordinary text beside the control and the button's
+ *    `aria-describedby` points at it.
+ * 2. **It rendered when there was nothing to page.** Two dead buttons under an
+ *    empty state is the fleet's C-DEADPAGER defect; the pager now appears only
+ *    when the answer actually has another page in some direction.
  */
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { Button, Empty, Flex, Spin, Typography } from "antd";
+import { Flex, Typography } from "antd";
+import { errorCode, useT, useTPlural } from "@stapel/core";
 import {
-  errorCode,
-  matchList,
-  toFlowError,
-  useDescribeFlowError,
-  useT,
-  useTPlural,
-} from "@stapel/core";
+  EmptyState,
+  ErrorAlert,
+  GatedButton,
+  LoadList,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
+import { spacing } from "@stapel/tokens";
 import type { SearchItem } from "../api/types.js";
 import { SearchResults } from "../headless/SearchResults.js";
 import type { SearchResultsBag } from "../headless/SearchResults.js";
@@ -30,10 +42,8 @@ import { SEARCH_WINDOW_EXCEEDED } from "../i18n/errorsMap.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { DegradationNotice } from "./DegradationNotice.js";
 import type { DegradationNoticeVariant } from "./DegradationNotice.js";
-import { ErrorAlert } from "./ErrorAlert.js";
 import { SearchResultCard } from "./SearchResultCard.js";
 import type { SearchCardRenderer } from "./SearchResultCard.js";
-import { SearchSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
 /**
@@ -48,6 +58,17 @@ export type SearchResultsRenderer = (
 ) => ReactNode;
 
 /**
+ * The widest a column of results is allowed to get.
+ *
+ * Off the spacing scale and named for it: it is a MEASURE, the reading-width
+ * decision every long page has to take. Without it the pane spread the full
+ * width of whatever it was dropped into — the visual pass measured a 2560px
+ * pane with four cards floating at the top of it and a status row 1350px from
+ * the buttons that act on it (class C-NOMAXW).
+ */
+export const RESULTS_MAX_WIDTH = 1120;
+
+/**
  * The results grid. `auto-fill` + `minmax(280px, 1fr)`: as many columns as fit,
  * each at least a readable card and never wider than its share — a catalogue
  * on a 1400px desktop is four columns, not four full-bleed rows, and the same
@@ -58,7 +79,7 @@ export type SearchResultsRenderer = (
 const RESULTS_GRID: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-  gap: 12,
+  gap: spacing[3],
   alignItems: "stretch",
 };
 
@@ -110,6 +131,9 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
    */
   readonly degradationNotice?: DegradationNoticeVariant;
   readonly enabled?: boolean;
+  /** Widest the column of results may grow (default {@link RESULTS_MAX_WIDTH});
+   * `null` lets the container decide. */
+  readonly maxWidth?: number | null;
 }
 
 function Count(props: { bag: SearchResultsBag }): ReactElement | null {
@@ -136,46 +160,60 @@ function Count(props: { bag: SearchResultsBag }): ReactElement | null {
   );
 }
 
-function Pager(props: { bag: SearchResultsBag }): ReactElement {
+/**
+ * The keyset controls — rendered only when there IS another page.
+ *
+ * Keyset paging has no page numbers to jump to: there is a next, a previous,
+ * and a server-side depth cap. When neither direction exists the pager is not
+ * "disabled", it is absent — a control that can never do anything is not a
+ * control that needs explaining.
+ */
+function Pager(props: { bag: SearchResultsBag }): ReactElement | null {
   const t = useT();
-  const { prev, next, goPrev, goNext } = props.bag;
+  const { page, prev, next, goPrev, goNext } = props.bag;
+  if (page === null || (!page.hasNext && !page.hasPrev)) return null;
   return (
-    <Flex gap={8} justify="center" data-testid="search-pager">
-      <Button
-        disabled={!prev.available}
-        title={prev.available ? undefined : t(prev.block.code, prev.block.params)}
+    <Flex gap={spacing[2]} justify="center" wrap data-testid="search-pager">
+      <GatedButton
+        gate={prev}
         onClick={goPrev}
+        testId="search-prev"
         data-analytics="none"
         data-analytics-reason="keyset paging is a read, not a flow step"
-        data-testid="search-prev"
       >
         {t(SEARCH_I18N_KEYS.resultsPrev)}
-      </Button>
-      <Button
-        disabled={!next.available}
-        title={next.available ? undefined : t(next.block.code, next.block.params)}
+      </GatedButton>
+      <GatedButton
+        gate={next}
         onClick={goNext}
+        testId="search-next"
         data-analytics="none"
         data-analytics-reason="keyset paging is a read, not a flow step"
-        data-testid="search-next"
       >
         {t(SEARCH_I18N_KEYS.resultsNext)}
-      </Button>
+      </GatedButton>
     </Flex>
   );
 }
 
 export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
   const t = useT();
-  const describe = useDescribeFlowError();
   const { renderCard, renderResults } = props;
+  const maxWidth = props.maxWidth === undefined ? RESULTS_MAX_WIDTH : props.maxWidth;
 
   return (
-    <SearchSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
+    <SkinTheme
+      surface="base"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+      style={{
+        width: "100%",
+        ...(maxWidth !== null ? { maxWidth } : {}),
+      }}
+    >
       <SearchResults {...(props.enabled !== undefined ? { enabled: props.enabled } : {})}>
         {(bag) => (
-          <Flex vertical gap={16}>
-            <Flex justify="space-between" align="center" wrap gap={8}>
+          <Flex vertical gap={spacing[4]}>
+            <Flex justify="space-between" align="center" wrap gap={spacing[2]}>
               <Typography.Title
                 level={4}
                 style={{ margin: 0 }}
@@ -183,7 +221,7 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
               >
                 {props.heading ?? t(SEARCH_I18N_KEYS.resultsTitle)}
               </Typography.Title>
-              <Flex align="center" wrap gap={12}>
+              <Flex align="center" wrap gap={spacing[3]}>
                 <Count bag={bag} />
                 {props.toolbar}
               </Flex>
@@ -194,47 +232,37 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
               variant={props.degradationNotice ?? "banner"}
             />
 
-            {matchList(bag.state, {
-              loading: () => (
-                <Flex justify="center" style={{ padding: 24 }}>
-                  <Spin data-testid="search-loading" />
-                </Flex>
-              ),
-              failed: (error) => {
+            <LoadList
+              state={bag.state}
+              testId="search"
+              skeletonRows={6}
+              onRetry={bag.refetch}
+              empty={
+                <EmptyState
+                  title={t(SEARCH_I18N_KEYS.resultsEmpty)}
+                  testId="search-empty"
+                />
+              }
+              failed={(error) => {
                 // The window refusal is a DIFFERENT sentence from a failed
                 // search, and both are different from "nothing found".
                 const isWindow = errorCode(error) === SEARCH_WINDOW_EXCEEDED;
                 return (
                   <ErrorAlert
                     testId={isWindow ? "search-window-exceeded" : "search-failed"}
-                    error={{
-                      ...describe(toFlowError(error)),
-                      message: t(
-                        isWindow
-                          ? SEARCH_I18N_KEYS.resultsWindowExceeded
-                          : SEARCH_I18N_KEYS.resultsLoadFailed
-                      ),
-                    }}
-                    action={
-                      <Button
-                        size="small"
-                        onClick={bag.refetch}
-                        data-analytics="none"
-                        data-analytics-reason="retry of a failed read; no flow to step"
-                      >
-                        {t(SEARCH_I18N_KEYS.resultsRetry)}
-                      </Button>
-                    }
+                    thrown={error}
+                    message={t(
+                      isWindow
+                        ? SEARCH_I18N_KEYS.resultsWindowExceeded
+                        : SEARCH_I18N_KEYS.resultsLoadFailed
+                    )}
+                    retryLabel={t(SEARCH_I18N_KEYS.resultsRetry)}
+                    onRetry={bag.refetch}
                   />
                 );
-              },
-              empty: () => (
-                <Empty
-                  data-testid="search-empty"
-                  description={t(SEARCH_I18N_KEYS.resultsEmpty)}
-                />
-              ),
-              ready: (items) => (
+              }}
+            >
+              {(items) => (
                 <div data-testid="search-results">
                   {renderResults !== undefined ? (
                     renderResults(items)
@@ -252,14 +280,14 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                     </div>
                   )}
                 </div>
-              ),
-            })}
+              )}
+            </LoadList>
 
             <Pager bag={bag} />
             {props.footer}
           </Flex>
         )}
       </SearchResults>
-    </SearchSkinTheme>
+    </SkinTheme>
   );
 }

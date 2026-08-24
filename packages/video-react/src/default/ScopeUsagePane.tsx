@@ -9,22 +9,30 @@
  * guessable by a library, so when there is no key the pane says so by name
  * (`video.usage.no_scope`) instead of rendering an empty table — a wiring gap
  * is not a workspace with no calls.
+ *
+ * `months` is clamped to the range the view accepts (1..36) BEFORE the read,
+ * and the clamp is stated on the page. The pair has owned that predicate since
+ * 0.1.0 and never reached a screen with it, so `months={48}` used to produce a
+ * server 400 rendered as a generic error — a refusal this side already knew
+ * how to make.
  */
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Alert, Flex } from "antd";
+import { Flex, theme } from "antd";
 import { useT } from "@stapel/core";
+import { EmptyState, ErrorAlert, SkinTheme } from "@stapel/tokens-antd/skin";
 import { VIDEO_I18N_KEYS } from "../i18n/keys.js";
 import { useVideoRuntime } from "../model/context.js";
 import { useScopeUsage } from "../model/queries.js";
+import { clampUsageMonths, isUsageMonthsOutOfRange } from "../model/usage.js";
 import { ScopeUsageTable } from "./ScopeUsageTable.js";
-import { VideoSkinTheme } from "./theme.js";
 import type { ThemeModeProp } from "./types.js";
 
 export interface ScopeUsagePaneProps extends ThemeModeProp {
   /** The partition to report on. Falls back to the runtime's `scopeKey`. */
   readonly scopeKey?: string;
-  /** How many months the selector offers (1..36). Defaults to the view's 6. */
+  /** How many months the selector offers (1..36). Defaults to the view's 6.
+   * Out of range is clamped, and the clamp is said out loud. */
   readonly months?: number;
   /** IANA zone the buckets are cut in. Defaults to the view's `UTC`. */
   readonly tz?: string;
@@ -40,9 +48,9 @@ export function ScopeUsagePane(props: ScopeUsagePaneProps): ReactElement {
 
   if (scopeKey === undefined || scopeKey.length === 0) {
     return (
-      <VideoSkinTheme {...(mode !== undefined ? { mode } : {})}>
+      <SkinTheme {...(mode !== undefined ? { mode } : {})}>
         <NoScopeNotice />
-      </VideoSkinTheme>
+      </SkinTheme>
     );
   }
   return <WiredPane {...props} scopeKey={scopeKey} />;
@@ -51,14 +59,12 @@ export function ScopeUsagePane(props: ScopeUsagePaneProps): ReactElement {
 function NoScopeNotice(): ReactElement {
   const t = useT();
   return (
-    <Flex vertical gap={8} data-testid="video-usage">
-      <Alert
-        type="info"
-        showIcon
-        data-testid="video-usage-no-scope"
-        message={t(VIDEO_I18N_KEYS.usageNoScope)}
+    <div data-testid="video-usage">
+      <EmptyState
+        testId="video-usage-no-scope"
+        title={t(VIDEO_I18N_KEYS.usageNoScope)}
       />
-    </Flex>
+    </div>
   );
 }
 
@@ -70,23 +76,38 @@ function NoScopeNotice(): ReactElement {
 function WiredPane(
   props: ScopeUsagePaneProps & { readonly scopeKey: string }
 ): ReactElement {
+  const t = useT();
+  const { token } = theme.useToken();
   // `undefined` until a person picks one — the first paint is the window read
   // alone, and its newest month is what the table shows.
   const [month, setMonth] = useState<string | undefined>(undefined);
+  const clamped =
+    props.months !== undefined ? clampUsageMonths(props.months) : undefined;
+  const outOfRange =
+    props.months !== undefined && isUsageMonthsOutOfRange(props.months);
   const bag = useScopeUsage(props.scopeKey, {
-    ...(props.months !== undefined ? { months: props.months } : {}),
+    ...(clamped !== undefined ? { months: clamped } : {}),
     ...(month !== undefined ? { month } : {}),
     ...(props.tz !== undefined ? { tz: props.tz } : {}),
   });
   return (
-    <ScopeUsageTable
-      {...(props.mode !== undefined ? { mode: props.mode } : {})}
-      rows={bag.rows}
-      {...(props.nameFor !== undefined ? { nameFor: props.nameFor } : {})}
-      {...(bag.month !== undefined ? { month: bag.month } : {})}
-      months={bag.monthLabels}
-      onMonthChange={setMonth}
-      onRefresh={bag.refetch}
-    />
+    <Flex vertical gap={token.paddingXS}>
+      {outOfRange && (
+        <ErrorAlert
+          variant="inline"
+          testId="video-usage-clamped"
+          message={t(VIDEO_I18N_KEYS.usageInvalidPeriod)}
+        />
+      )}
+      <ScopeUsageTable
+        {...(props.mode !== undefined ? { mode: props.mode } : {})}
+        rows={bag.rows}
+        {...(props.nameFor !== undefined ? { nameFor: props.nameFor } : {})}
+        {...(bag.month !== undefined ? { month: bag.month } : {})}
+        months={bag.monthLabels}
+        onMonthChange={setMonth}
+        onRefresh={bag.refetch}
+      />
+    </Flex>
   );
 }

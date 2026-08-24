@@ -54,6 +54,16 @@ export const SEARCH_I18N_KEYS = {
   resultsDistanceKm: "search.results.distance_km",
   resultsUntitled: "search.results.untitled",
   resultsOpen: "search.results.open",
+  /** Alt text for the card photo — the card's own title, in a sentence. */
+  resultsImageAlt: "search.results.image_alt",
+
+  // ── the query box ────────────────────────────────────────────────────────
+  boxLabel: "search.box.label",
+  boxPlaceholder: "search.box.placeholder",
+  boxSubmit: "search.box.submit",
+  boxClear: "search.box.clear",
+  /** Accessible name of the suggestion list under the box. */
+  boxSuggestions: "search.box.suggestions",
 
   // ── sort ─────────────────────────────────────────────────────────────────
   sortLabel: "search.sort.label",
@@ -79,10 +89,36 @@ export const SEARCH_I18N_KEYS = {
   facetsRangeFrom: "search.facets.range_from",
   facetsRangeTo: "search.facets.range_to",
   facetsRangeApply: "search.facets.range_apply",
+  facetsRangeClear: "search.facets.range_clear",
+  /** Accessible names: the visible "From"/"To" repeat on every row, so the
+   * field's own name has to carry the feature it belongs to. */
+  facetsRangeFromAria: "search.facets.range_from_aria",
+  facetsRangeToAria: "search.facets.range_to_aria",
+  /** The reason "Apply" is off: the range reads backwards. */
+  facetsRangeInvalid: "search.facets.range_invalid",
+
+  // ── the filter panel as a whole (phone sheet + host slots) ───────────────
+  filtersOpen: "search.filters.open",
+  filtersApply: "search.filters.apply",
+  filtersDismiss: "search.filters.dismiss",
+
+  // ── category (a host slot, plus the control that removes it) ─────────────
+  categoryTitle: "search.category.title",
+  categoryClear: "search.category.clear",
+  categoryCurrent: "search.category.current",
+
+  // ── language of the query ────────────────────────────────────────────────
+  languageLabel: "search.language.label",
+  languageAny: "search.language.any",
+
+  // ── page size ────────────────────────────────────────────────────────────
+  limitLabel: "search.limit.label",
+  limitOption: "search.limit.option",
 
   // ── geo ──────────────────────────────────────────────────────────────────
   geoTitle: "search.geo.title",
   geoRadiusKm: "search.geo.radius_km",
+  geoRadiusLabel: "search.geo.radius_label",
   geoClear: "search.geo.clear",
   geoBox: "search.geo.box",
   geoCenter: "search.geo.center",
@@ -176,6 +212,13 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.results.distance_km": "{km} km away",
   "search.results.untitled": "Untitled",
   "search.results.open": "Open",
+  "search.results.image_alt": "Photo of {title}",
+
+  "search.box.label": "Search",
+  "search.box.placeholder": "What are you looking for?",
+  "search.box.submit": "Search",
+  "search.box.clear": "Clear the search",
+  "search.box.suggestions": "Suggestions",
 
   "search.sort.label": "Sort",
   "search.sort.relevance": "Most relevant",
@@ -201,9 +244,29 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.facets.range_from": "From",
   "search.facets.range_to": "To",
   "search.facets.range_apply": "Apply",
+  "search.facets.range_clear": "Clear",
+  "search.facets.range_from_aria": "{feature}, from",
+  "search.facets.range_to_aria": "{feature}, up to",
+  "search.facets.range_invalid":
+    "“From” is larger than “to”, so nothing could match. Swap them to apply this range.",
+
+  "search.filters.open": "Filters ({count})",
+  "search.filters.apply": "Show results",
+  "search.filters.dismiss": "Close the filters",
+
+  "search.category.title": "Category",
+  "search.category.clear": "Search the whole catalogue",
+  "search.category.current": "Searching inside {path}",
+
+  "search.language.label": "Query language",
+  "search.language.any": "Any language",
+
+  "search.limit.label": "Per page",
+  "search.limit.option": "{count} per page",
 
   "search.geo.title": "Location",
   "search.geo.radius_km": "Within {km} km",
+  "search.geo.radius_label": "Radius, km",
   "search.geo.clear": "Anywhere",
   "search.geo.box": "Inside the shown area",
   "search.geo.center": "Around {lat}, {lon}",

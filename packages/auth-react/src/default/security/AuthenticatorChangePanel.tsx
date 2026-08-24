@@ -19,9 +19,11 @@
  * change already exists on mount, show that banner INSTEAD of the change
  * form").
  */
+import { spacing } from "@stapel/tokens";
 import { useState } from "react";
 import type { ReactElement } from "react";
 import { Alert, Button, Card, Flex, Form, Input, Popconfirm, Result, Spin, Typography } from "antd";
+import { ErrorAlert } from "@stapel/tokens-antd/skin";
 import { useErrorDisplay, useFormatFlowError, useT } from "@stapel/core";
 import type { AuthenticatorChangeBag } from "../../headless/misc.js";
 import { AuthenticatorChange } from "../../headless/misc.js";
@@ -29,7 +31,6 @@ import type { DelayedChangeStatus, OtpChannel } from "../../api/types.js";
 import { useCancelDelayedChange, useInitiateDelayedChange } from "../../model/mutations.js";
 import { useCapabilities, useDelayedChangeStatus, useMe } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
-import { ErrorAlert } from "../ErrorAlert.js";
 import type { AuthI18nKey } from "../../i18n/keys.js";
 import { OtpField } from "../OtpField.js";
 
@@ -104,7 +105,7 @@ function DelayedRequestForm(props: { channel: OtpChannel; onStarted: () => void 
       <Form.Item
         name="value"
         label={t(AUTH_I18N_KEYS.secChangeNewValueLabel, { channel: channelLabel })}
-        style={{ marginTop: 12 }}
+        style={{ marginTop: spacing[3] }}
       >
         <Input autoFocus type={props.channel === "email" ? "email" : "tel"} />
       </Form.Item>
@@ -249,7 +250,7 @@ function ChangeJourney(props: {
             target: s.step === "oldCodeSent" ? s.target : "",
           })}
         </Typography.Text>
-        <Form.Item name="code" label={t(AUTH_I18N_KEYS.otpEnterCode)} style={{ marginTop: 12 }}>
+        <Form.Item name="code" label={t(AUTH_I18N_KEYS.otpEnterCode)} style={{ marginTop: spacing[3] }}>
           <OtpField length={otpLength} autoFocus />
         </Form.Item>
         <Button
@@ -292,7 +293,7 @@ function ChangeJourney(props: {
           target: s.step === "newCodeSent" ? s.target : "",
         })}
       </Typography.Text>
-      <Form.Item name="code" label={t(AUTH_I18N_KEYS.otpEnterCode)} style={{ marginTop: 12 }}>
+      <Form.Item name="code" label={t(AUTH_I18N_KEYS.otpEnterCode)} style={{ marginTop: spacing[3] }}>
         <OtpField length={otpLength} autoFocus />
       </Form.Item>
       <Button

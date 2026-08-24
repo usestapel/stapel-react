@@ -15,7 +15,8 @@
  */
 import type { ReactElement } from "react";
 import { Flex } from "antd";
-import { GdprSkinTheme } from "../theme.js";
+import { spacing } from "@stapel/tokens";
+import { SkinTheme } from "@stapel/tokens-antd/skin";
 import type { ThemeModeProp } from "../types.js";
 import { DsarQueue } from "./DsarQueue.js";
 import { OwnersHealth } from "./OwnersHealth.js";
@@ -25,11 +26,11 @@ export type PrivacyAdminPaneProps = ThemeModeProp;
 export function PrivacyAdminPane(props: PrivacyAdminPaneProps): ReactElement {
   const modeProp = props.mode !== undefined ? { mode: props.mode } : {};
   return (
-    <GdprSkinTheme {...modeProp}>
-      <Flex vertical gap={16} data-testid="gdpr-privacy-admin">
+    <SkinTheme {...modeProp} surface="base">
+      <Flex vertical gap={spacing[4]} data-testid="gdpr-privacy-admin">
         <DsarQueue {...modeProp} />
         <OwnersHealth {...modeProp} />
       </Flex>
-    </GdprSkinTheme>
+    </SkinTheme>
   );
 }

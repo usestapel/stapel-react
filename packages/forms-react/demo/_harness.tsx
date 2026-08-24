@@ -80,30 +80,43 @@ const demoBundleEn: Record<string, string> = {
 };
 
 /**
+ * One pre-seeded read: a query key and the data the cache already holds for
+ * it. Seeding matters for the SKIN demos: a story rendered statically (the
+ * shot runner, `assertVariantsRenderDistinctly`, `renderToStaticMarkup`) never
+ * gets to await a fetch, so an unseeded variant photographs its skeleton — and
+ * every variant's skeleton is the same picture under three different names.
+ */
+export type DemoSeed = readonly [readonly unknown[], unknown];
+
+/**
  * Provider frame every forms demo variant renders inside. Builds a fresh mock
  * runtime + query client per mount so variants stay isolated.
  */
 export function FormsDemoHarness(props: {
   handlers?: DemoHandlers;
+  /** Reads the cache already holds — see {@link DemoSeed}. */
+  seed?: readonly DemoSeed[];
+  /** The workspace the admin screens act in when a screen is not given one.
+   * This is the ROUTABLE case: a nav-mounted screen has only the address. */
+  workspaceId?: string;
   children: ReactNode;
 }): ReactElement {
-  const { handlers } = props;
+  const { handlers, seed, workspaceId } = props;
   const { runtime, queryClient, i18n } = useMemo(() => {
     const rt = createFormsRuntime({
       baseUrl: DEMO_BASE,
       fetch: mockFetch(handlers ?? {}),
+      ...(workspaceId !== undefined ? { workspaceId } : {}),
     });
     const engine = createI18n({ locale: "en" });
     registerFormsI18n(engine);
     engine.registerBundle("en", demoBundleEn);
-    return {
-      runtime: rt,
-      queryClient: new QueryClient({
-        defaultOptions: { queries: { retry: false } },
-      }),
-      i18n: engine,
-    };
-  }, [handlers]);
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    for (const [key, data] of seed ?? []) client.setQueryData(key, data);
+    return { runtime: rt, queryClient: client, i18n: engine };
+  }, [handlers, seed, workspaceId]);
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
@@ -191,6 +204,29 @@ export function DemoButton(props: {
     <button style={buttonStyle} data-analytics="none" data-analytics-reason="no-flow-machines" onClick={props.run}>
       {t(props.labelKey)}
     </button>
+  );
+}
+
+/**
+ * The frame a SKIN demo renders in: the shipped surface, on a page-width
+ * column that is centred rather than pinned to the top-left of a 1280px shot
+ * (visual class M-5). No card chrome — the skin paints its own surface.
+ */
+export function SkinFrame(props: {
+  /** Cap the column so a desktop shot is a page, not a stretched phone. */
+  maxWidth?: string;
+  children: ReactNode;
+}): ReactElement {
+  return (
+    <div
+      style={{
+        maxWidth: props.maxWidth ?? "56rem",
+        margin: "0 auto",
+        padding: spacing["4"],
+      }}
+    >
+      {props.children}
+    </div>
   );
 }
 

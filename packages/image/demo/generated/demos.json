@@ -1,0 +1,54 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/image",
+  "version": "0.3.1",
+  "demos": [
+    {
+      "id": "image.element-width",
+      "title": "The variant comes from the element",
+      "description": "One image descriptor rendered at several sizes. Each box asks for the smallest ladder rung that does not upscale for ITS measured width at the live device pixel ratio — never a size derived from the viewport — and every rung is a picture of its own tier, so the number in the frame is the file that was fetched. Resizing upgrades; it never downgrades something already painted.",
+      "component": "Image",
+      "covers": [],
+      "tokens": [
+        "surface-sunken",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Three fixed boxes, three different files, one descriptor.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "fluid",
+          "description": "One full-width element: resize the viewer and it upgrades, and once a tier is painted it is never replaced by a smaller one.",
+          "viewport": "phone"
+        },
+        {
+          "id": "preview-kinds",
+          "description": "The placeholder is branched on preview_kind: a photo blurs up, a video poster is a real frame and is not smeared, a waveform is drawn whole.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "reserved-box",
+          "description": "preview_kind is known while preview_b64 is still null, so the box is reserved in the right shape now instead of collapsing and jumping later.",
+          "viewport": "phone"
+        },
+        {
+          "id": "dead-url",
+          "description": "A variant that will not load renders the neutral error box with the caller's alt — never the browser's torn-page glyph, never an empty slot.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "no-ladder",
+          "description": "A link image has one url and no rungs: it is shown immediately, with the aspect box still preventing the layout shift.",
+          "viewport": "desktop"
+        }
+      ],
+      "source": {
+        "file": "demo/Image.demo.tsx",
+        "line": 288
+      }
+    }
+  ]
+}

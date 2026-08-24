@@ -8,9 +8,16 @@ export default { title: "listings-react / Favourites" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
+Default.parameters = { stapel: {"viewport":"phone","step":"ready_single_page"} };
+export const Paged = (): ReactElement => renderDemoVariant(demo, "paged");
+Paged.storyName = "paged";
+Paged.parameters = { stapel: {"viewport":"phone","step":"ready_has_next"} };
 export const Empty = (): ReactElement => renderDemoVariant(demo, "empty");
 Empty.storyName = "empty";
+Empty.parameters = { stapel: {"viewport":"phone","step":"empty"} };
 export const Failed = (): ReactElement => renderDemoVariant(demo, "failed");
 Failed.storyName = "failed";
+Failed.parameters = { stapel: {"viewport":"phone","step":"failed"} };
 export const Visitor = (): ReactElement => renderDemoVariant(demo, "visitor");
 Visitor.storyName = "visitor";
+Visitor.parameters = { stapel: {"viewport":"desktop","step":"no_mandate"} };

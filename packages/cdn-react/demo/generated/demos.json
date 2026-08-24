@@ -66,16 +66,18 @@
       "variants": [
         {
           "id": "default",
-          "description": "Three fixed boxes, three different requests."
+          "description": "Three fixed boxes, three different requests.",
+          "viewport": "desktop"
         },
         {
           "id": "fluid",
-          "description": "One full-width element: resize the viewer and it upgrades, never downgrades once a tier is painted."
+          "description": "One full-width element: resize the viewer and it upgrades, never downgrades once a tier is painted.",
+          "viewport": "phone"
         }
       ],
       "source": {
         "file": "demo/ThumbnailTier.demo.tsx",
-        "line": 113
+        "line": 129
       }
     }
   ]
