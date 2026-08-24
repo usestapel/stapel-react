@@ -56,7 +56,7 @@
  */
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactElement, ReactNode } from "react";
-import { Drawer, Modal, theme as antdTheme } from "antd";
+import { Button, Drawer, Modal, theme as antdTheme } from "antd";
 import { breakpoints } from "@stapel/tokens";
 
 /**
@@ -472,5 +472,96 @@ function BottomSheet(props: BottomSheetProps): ReactElement {
     >
       {props.children}
     </Drawer>
+  );
+}
+
+export interface SkinConfirmProps {
+  readonly open: boolean;
+  /** The question. A confirm without one is a box with two buttons in it. */
+  readonly title: ReactNode;
+  /** What is about to happen, in the caller's own words — the row's name, the
+   * count, the consequence. Optional: some questions are complete on their own. */
+  readonly body?: ReactNode;
+  readonly confirmLabel: string;
+  readonly cancelLabel: string;
+  /** Doubles as the dialog's dismiss label, so a sheet's grab handle and a
+   * modal's close button are announced with copy the caller already wrote. */
+  readonly onConfirm: () => void;
+  readonly onCancel: () => void;
+  /** `true` for a destructive answer: the confirm button turns dangerous and
+   * the backdrop stops dismissing, because a permanent deletion should not be
+   * answered by a stray tap beside the sheet. */
+  readonly danger?: boolean;
+  /** The confirm button spins and both buttons stop responding. */
+  readonly confirming?: boolean;
+  readonly width?: number | string;
+  readonly "data-testid"?: string;
+}
+
+/**
+ * A yes/no question — the same surface as {@link SkinDialog}, which is what
+ * makes it a bottom sheet on a phone for free.
+ *
+ * It exists because `Popconfirm` is the same defect in a smaller hat. An
+ * anchored popover positions itself beside its trigger and sizes itself to
+ * desktop prose: on a 390px phone it renders half off-screen or directly over
+ * the row being confirmed, its Ok/Cancel targets land under the touch minimum,
+ * and two of the fleet's sites had one floating over a bottom sheet. None of
+ * that is a styling problem — a confirmation is a dialog, and a dialog's shape
+ * is a decision this package already made once.
+ *
+ * The destructive verb is its own label rather than the trigger button's:
+ * "Remove" on a row and "Remove" as the irreversible answer are the same word
+ * doing two different jobs, and reusing one string for both is how a confirm
+ * ends up agreeing with itself.
+ */
+export function SkinConfirm(props: SkinConfirmProps): ReactElement {
+  const { token } = antdTheme.useToken();
+  const busy = props.confirming === true;
+  return (
+    <SkinDialog
+      open={props.open}
+      onClose={props.onCancel}
+      title={props.title}
+      dismissLabel={props.cancelLabel}
+      // A destructive answer must be answered, not dismissed by a stray tap
+      // beside the sheet — which on a phone is most of the screen.
+      {...(props.danger === true ? { maskClosable: false } : {})}
+      {...(props.width !== undefined ? { width: props.width } : {})}
+      {...(props["data-testid"] !== undefined
+        ? { "data-testid": props["data-testid"] }
+        : {})}
+      footer={
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: token.marginXS,
+          }}
+        >
+          <Button
+            disabled={busy}
+            onClick={props.onCancel}
+            data-analytics="none"
+            data-analytics-reason="local-ui-dismiss-confirm"
+          >
+            {props.cancelLabel}
+          </Button>
+          <Button
+            type="primary"
+            {...(props.danger === true ? { danger: true } : {})}
+            loading={busy}
+            onClick={props.onConfirm}
+            data-testid="stapel-confirm-ok"
+            data-analytics="none"
+            data-analytics-reason="business action — the caller owns the outcome event"
+          >
+            {props.confirmLabel}
+          </Button>
+        </div>
+      }
+    >
+      {props.body}
+    </SkinDialog>
   );
 }

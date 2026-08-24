@@ -15,7 +15,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, configure, fireEvent, render, screen } from "@testing-library/react";
-import { SkinDialog, MODAL_MEDIA_QUERY } from "../src/skin.js";
+import { SkinConfirm, SkinDialog, MODAL_MEDIA_QUERY } from "../src/skin.js";
 import { breakpoints } from "@stapel/tokens";
 
 configure({ asyncUtilTimeout: 10_000 });
@@ -310,5 +310,89 @@ describe("the modal half", () => {
     expect(
       screen.getByText("body").closest("[data-stapel-dialog-surface]")
     ).toHaveProperty("dataset.stapelDialogSurface", "sheet");
+  });
+});
+
+describe("SkinConfirm — a question is a dialog, not an anchored popover", () => {
+  it("is a bottom sheet on a phone, like every other dialog", () => {
+    setViewport(390);
+    render(
+      <SkinConfirm
+        open
+        title="Remove this?"
+        body="MacBook Touch ID"
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        onConfirm={() => undefined}
+        onCancel={() => undefined}
+        data-testid="confirm"
+      />
+    );
+    expect(screen.getByTestId("confirm").dataset["stapelDialogSurface"]).toBe("sheet");
+  });
+
+  it("answers with the confirm button and dismisses with the other one", () => {
+    setViewport(1200);
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+    render(
+      <SkinConfirm
+        open
+        title="Remove this?"
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />
+    );
+    // Two buttons carry this label: the footer's, and the modal's close
+    // button, which is named with the same copy on purpose — a person who
+    // reads "Cancel" on the ✕ and on the button is told the same thing twice,
+    // which is better than being told two different things.
+    const cancels = screen.getAllByRole("button", { name: "Cancel" });
+    expect(cancels).toHaveLength(2);
+    fireEvent.click(cancels[cancels.length - 1] as HTMLElement);
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByTestId("stapel-confirm-ok"));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("a destructive question cannot be answered by a tap beside it", () => {
+    // On a phone the backdrop IS most of the screen, and this particular
+    // dismissal deletes something permanently.
+    setViewport(390);
+    const onCancel = vi.fn();
+    render(
+      <SkinConfirm
+        open
+        danger
+        title="Delete forever?"
+        confirmLabel="Delete"
+        cancelLabel="Keep"
+        onConfirm={() => undefined}
+        onCancel={onCancel}
+      />
+    );
+    const mask = document.querySelector(".ant-drawer-mask") as HTMLElement;
+    fireEvent.click(mask);
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it("while confirming, neither answer can be given twice", () => {
+    setViewport(1200);
+    const onConfirm = vi.fn();
+    render(
+      <SkinConfirm
+        open
+        confirming
+        title="Remove this?"
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        onConfirm={onConfirm}
+        onCancel={() => undefined}
+      />
+    );
+    fireEvent.click(screen.getByTestId("stapel-confirm-ok"));
+    expect(onConfirm).not.toHaveBeenCalled();
   });
 });
