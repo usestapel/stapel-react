@@ -1,9 +1,23 @@
 /**
  * `<ResponsesPane>` — the response review surface (spec §8.2).
  *
- * Per-version column sets, a version filter, a detail drawer, delete under
- * `forms.responses.manage`, resend with an optional destination override, and
- * CSV export driven by the `X-Forms-Next-Before` header cursor.
+ * Per-version column sets, a version filter, a detail dialog (a bottom sheet
+ * on a phone, a centred modal above the tablet breakpoint — one rule, from
+ * `@stapel/tokens-antd/skin`), delete, resend with an optional destination
+ * override, and CSV export driven by the `X-Forms-Next-Before` header cursor.
+ *
+ * ── Who may delete or resend ───────────────────────────────────────────────
+ *
+ * The server does. `forms.responses.manage` is enforced BACKEND-side and the
+ * published contract (`docs/schema.json` → `src/api/generated/schema.ts`)
+ * exposes no projection of it: every admin route is documented
+ * `IsNotAnonymousUser`, and neither `SubmissionPresenterDTO` nor
+ * `FormPresenterDTO` carries a per-principal capability field. So this surface
+ * does NOT pre-gate the two writes on a capability — a client-side gate would
+ * have to guess, and a guessed "you may not" is the same defect as a dead
+ * button. A refusal arrives as the mutation's own error and is rendered by
+ * `<ErrorAlert>`. The one thing that IS knowable here is the ROW's state, and
+ * that is gated below.
  *
  * ── Two things this surface deliberately does not do ───────────────────────
  *
@@ -20,7 +34,6 @@ import { useState } from "react";
 import type { ReactElement } from "react";
 import {
   Button,
-  Drawer,
   Empty,
   Flex,
   Input,
@@ -32,7 +45,10 @@ import {
   Tag,
   Typography,
 } from "antd";
+import { SkinDialog } from "@stapel/tokens-antd/skin";
 import {
+  actionAvailable,
+  actionBlocked,
   matchLoad,
   toFlowError,
   useActionGate,
@@ -147,19 +163,37 @@ function Toolbar(props: ResponsesToolbarSlotProps): ReactElement {
   );
 }
 
-function DetailDrawer(props: { bag: ResponsesTableBag }): ReactElement {
+/**
+ * The response detail surface — a vertical read-and-act journey over one
+ * submission, so a dialog rather than navigation: a bottom sheet on a phone,
+ * a 480px centred modal on tablet and desktop. The sheet is viewport-wide, so
+ * `width` applies to the modal only.
+ */
+function DetailDialog(props: { bag: ResponsesTableBag }): ReactElement {
   const t = useT();
   const { bag } = props;
   const [override, setOverride] = useState("");
   const row = bag.selected;
 
+  // An erased row has no answers left. Resending it would deliver an empty
+  // letter and deleting it would erase what the retention job already erased —
+  // both are refusals waiting to happen, so both are switched off HERE, with
+  // the reason printed as text beside them (a disabled control receives no
+  // pointer events, so a tooltip is a reason nobody can read).
+  const writeGate = useActionGate(
+    row !== null && row.erased_at != null
+      ? actionBlocked(FORMS_I18N_KEYS.responsesErasedNoWrite)
+      : actionAvailable()
+  );
+
   return (
-    <Drawer
+    <SkinDialog
       open={row !== null}
       onClose={() => bag.select(null)}
       title={t(FORMS_I18N_KEYS.responsesDetail)}
+      dismissLabel={t(FORMS_I18N_KEYS.responsesClose)}
       width={480}
-      data-testid="forms-responses-drawer"
+      data-testid="forms-responses-dialog"
     >
       {row !== null && (
         <Flex vertical gap={12}>
@@ -182,11 +216,13 @@ function DetailDrawer(props: { bag: ResponsesTableBag }): ReactElement {
           <Input
             placeholder={t(FORMS_I18N_KEYS.responsesResendOverride)}
             value={override}
+            disabled={writeGate.disabled}
             onChange={(event) => setOverride(event.target.value)}
             data-testid="forms-resend-override"
           />
           <Space>
             <Button
+              disabled={writeGate.disabled}
               loading={bag.isResending}
               data-analytics="flow"
               data-testid="forms-resend"
@@ -205,15 +241,42 @@ function DetailDrawer(props: { bag: ResponsesTableBag }): ReactElement {
             >
               {t(FORMS_I18N_KEYS.responsesResend)}
             </Button>
-            <Popconfirm
-              title={t(FORMS_I18N_KEYS.responsesDeleteConfirm)}
-              onConfirm={() => bag.remove(row.id)}
-            >
-              <Button danger loading={bag.isRemoving} data-analytics="flow">
+            {writeGate.disabled ? (
+              // No Popconfirm around a dead button: a confirmation that can
+              // never be confirmed is chrome pretending the action exists.
+              <Button
+                danger
+                disabled
+                data-analytics="none"
+                data-analytics-reason="erased row; the delete it would confirm cannot run"
+                data-testid="forms-delete"
+              >
                 {t(FORMS_I18N_KEYS.responsesDelete)}
               </Button>
-            </Popconfirm>
+            ) : (
+              <Popconfirm
+                title={t(FORMS_I18N_KEYS.responsesDeleteConfirm)}
+                onConfirm={() => bag.remove(row.id)}
+              >
+                <Button
+                  danger
+                  loading={bag.isRemoving}
+                  data-analytics="flow"
+                  data-testid="forms-delete"
+                >
+                  {t(FORMS_I18N_KEYS.responsesDelete)}
+                </Button>
+              </Popconfirm>
+            )}
           </Space>
+          {writeGate.reason !== undefined && (
+            <Typography.Text
+              type="secondary"
+              data-testid="forms-responses-write-blocked"
+            >
+              {writeGate.reason}
+            </Typography.Text>
+          )}
           {bag.lastResendCount !== null && (
             <Typography.Text type="success" data-testid="forms-resend-sent">
               {t(FORMS_I18N_KEYS.responsesResendSent, {
@@ -223,7 +286,7 @@ function DetailDrawer(props: { bag: ResponsesTableBag }): ReactElement {
           )}
         </Flex>
       )}
-    </Drawer>
+    </SkinDialog>
   );
 }
 
@@ -296,6 +359,11 @@ export function ResponsesPane(props: ResponsesPaneProps): ReactElement {
                     data-testid="forms-responses-table"
                     dataSource={[...view.rows]}
                     pagination={false}
+                    // Two fixed columns plus ONE PER QUESTION: a ten-question
+                    // form is a twelve-column grid, which on a phone is a
+                    // squeezed, unreadable and unreachable table without its
+                    // own horizontal scroller.
+                    scroll={{ x: true }}
                     onRow={(row) => ({ onClick: () => bag.select(row) })}
                     columns={[
                       {
@@ -323,7 +391,7 @@ export function ResponsesPane(props: ResponsesPaneProps): ReactElement {
                   />
                 ),
             })}
-            <DetailDrawer bag={bag} />
+            <DetailDialog bag={bag} />
           </Flex>
         )}
       </ResponsesTable>

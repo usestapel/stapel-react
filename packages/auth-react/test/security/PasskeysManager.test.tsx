@@ -73,11 +73,101 @@ describe("<PasskeysManager/>", () => {
     await waitFor(() => expect(screen.getByText("MacBook Touch ID")).toBeDefined());
 
     screen.getByText("Remove").click();
-    const confirmButtons = await screen.findAllByRole("button", { name: "Remove" });
-    confirmButtons[confirmButtons.length - 1]?.click();
+    // The confirm is a `SkinDialog` (a bottom sheet on a phone, a modal above
+    // the tablet breakpoint) rather than a `Popconfirm`: a popover anchored to
+    // a small link button renders off-viewport on a phone, and this Ok deletes
+    // a sign-in credential permanently. Scoped to the dialog by test id —
+    // `findAllByRole("button", {name: "Remove"})` resolves on the ROW's button
+    // the instant it exists and would never wait for the dialog at all.
+    await screen.findByTestId("passkey-remove-confirm");
+    screen.getByTestId("passkey-remove-ok").click();
 
     await waitFor(() => expect(removed).toBe("pk1"));
     await waitFor(() => expect(screen.getByText("No passkeys yet.")).toBeDefined());
+  });
+
+  /**
+   * Owner report 2026-08-24: the screen showed "a name plus a green LOG IN
+   * button" to a person who is by definition already logged in. A row about a
+   * stored credential has to answer what it is, when it arrived, whether it is
+   * in use, and what can be done to it — and none of those answers is "sign
+   * in".
+   */
+  it("the row says WHAT the credential is, when it arrived and whether it is in use", async () => {
+    server.use(
+      http.get(`${BASE}/passkey/`, () =>
+        HttpResponse.json({
+          passkeys: [
+            passkey({ id: "a", device_name: "MacBook Touch ID", transports: ["internal"] }),
+            passkey({
+              id: "b",
+              device_name: "YubiKey 5",
+              transports: ["usb", "nfc"],
+              last_used_at: "2026-02-03T00:00:00Z",
+            }),
+          ],
+        })
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PasskeysManager />));
+    await waitFor(() => expect(screen.getAllByTestId("passkey-row")).toHaveLength(2));
+
+    const kinds = screen.getAllByTestId("passkey-kind").map((n) => n.textContent);
+    expect(kinds).toEqual(["Built into a device", "Security key"]);
+
+    const used = screen.getAllByTestId("passkey-last-used").map((n) => n.textContent);
+    // "Never used" is a real fact about a credential, and the way a person
+    // spots the key they enrolled and then lost. Saying nothing said nothing.
+    expect(used[0]).toBe("Not used yet");
+    expect(used[1]).toContain("Last used");
+
+    expect(screen.getAllByText(/^Added /)).toHaveLength(2);
+  });
+
+  it("offers NO sign-in action anywhere on the screen", async () => {
+    server.use(http.get(`${BASE}/passkey/`, () => HttpResponse.json({ passkeys: [passkey()] })));
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PasskeysManager />));
+    await waitFor(() => expect(screen.getByTestId("passkey-row")).toBeDefined());
+    expect(screen.queryByRole("button", { name: "Sign in" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Log in" })).toBeNull();
+  });
+
+  it("finishing an add ends in Done, never in the sign-in button's copy", async () => {
+    server.use(
+      http.get(`${BASE}/passkey/`, () => HttpResponse.json({ passkeys: [] })),
+      http.post(`${BASE}/passkey/register/begin/`, () =>
+        HttpResponse.json({ options: { challenge: "AQID" } })
+      ),
+      http.post(`${BASE}/passkey/register/complete/`, () => HttpResponse.json(passkey()))
+    );
+    const create = vi.fn().mockResolvedValue({ id: "c", type: "public-key" });
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PasskeysManager webauthnCreate={create} />));
+    (await screen.findByRole("button", { name: "Add a passkey" })).click();
+    await screen.findByText("Passkey added.");
+    expect(screen.getByRole("button", { name: "Done" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Sign in" })).toBeNull();
+  });
+
+  it("the add label becomes 'Add another' once one exists", async () => {
+    server.use(http.get(`${BASE}/passkey/`, () => HttpResponse.json({ passkeys: [passkey()] })));
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PasskeysManager webauthnCreate={vi.fn()} />));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Add another" })).toBeDefined());
+  });
+
+  it("removal confirms in the fleet's dialog — a bottom SHEET on a phone", async () => {
+    Object.defineProperty(window, "innerWidth", { value: 390, configurable: true });
+    server.use(http.get(`${BASE}/passkey/`, () => HttpResponse.json({ passkeys: [passkey()] })));
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PasskeysManager />));
+    await waitFor(() => expect(screen.getByTestId("passkey-row")).toBeDefined());
+    screen.getByText("Remove").click();
+    const dialog = await screen.findByTestId("passkey-remove-confirm");
+    expect(dialog.dataset["stapelDialogSurface"]).toBe("sheet");
+    Object.defineProperty(window, "innerWidth", { value: 1024, configurable: true });
   });
 
   it("shows an empty state when there are none", async () => {
@@ -93,7 +183,13 @@ describe("<PasskeysManager/>", () => {
    * the browser's own WebAuthn prompt IS the UI. Clicking "Add a passkey"
    * begins the ceremony immediately.
    */
-  it("add flow (no WebAuthn API here): the button directly begins the ceremony — no dialog, no name prompt", async () => {
+  it("no WebAuthn API here: Add is BLOCKED with its reason on screen, and starts nothing", async () => {
+    // Owner sweep 2026-08-24, defect class (a): this used to be an ENABLED
+    // button that ran a `begin` round trip and then parked forever on
+    // `awaitingCredential`, spending the "this browser cannot" knowledge only
+    // AFTER the click. The screen has that fact before the click, so it says
+    // it before the click — as text beside the control, never as a tooltip on
+    // a disabled button, which on a touch screen nobody can read.
     let beginCalls = 0;
     server.use(
       http.get(`${BASE}/passkey/`, () => HttpResponse.json({ passkeys: [] })),
@@ -104,18 +200,15 @@ describe("<PasskeysManager/>", () => {
     );
     const runtime = createAuthRuntime({ baseUrl: BASE });
     render(wrap(runtime, <PasskeysManager />));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Add a passkey" })).toBeDefined());
-    screen.getByRole("button", { name: "Add a passkey" }).click();
-
-    // No name-entry dialog anywhere — straight to the ceremony.
-    expect(screen.queryByPlaceholderText("e.g. My laptop")).toBeNull();
-    // jsdom has no `navigator.credentials`: the default binding cannot run,
-    // so the panel says so rather than pointing at a prompt that will never
-    // appear (the begin call still happened — the flow is parked, not dead).
-    await screen.findByText(
-      "This browser can't use passkeys. Try another browser or device, or pick a different method."
+    const add = await screen.findByRole("button", { name: "Add a passkey" });
+    expect(add.hasAttribute("disabled")).toBe(true);
+    expect(screen.getByTestId("passkeys-add-blocked").textContent).toBe(
+      "This browser can't create passkeys. Open this page in another browser to add one."
     );
-    expect(beginCalls).toBe(1);
+    add.click();
+    // No name-entry dialog anywhere, and no ceremony either.
+    expect(screen.queryByPlaceholderText("e.g. My laptop")).toBeNull();
+    expect(beginCalls).toBe(0);
   });
 
   /**

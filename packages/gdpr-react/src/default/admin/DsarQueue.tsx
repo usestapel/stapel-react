@@ -183,34 +183,40 @@ export function DsarQueue(props: DsarQueueProps): ReactElement {
     {
       key: "note",
       title: t(GDPR_I18N_KEYS.dsarNoteLabel),
-      render: (_: unknown, row: DsarStatus): ReactElement => (
-        <Flex gap={4}>
-          <Input
-            size="small"
-            aria-label={t(GDPR_I18N_KEYS.dsarNoteLabel)}
-            value={noteDraft[row.request_id] ?? row.note ?? ""}
-            onChange={(event) =>
-              setNoteDraft((draft) => ({
-                ...draft,
-                [row.request_id]: event.target.value,
-              }))
-            }
-          />
-          <Button
-            size="small"
-            data-analytics="none"
-            data-analytics-reason="staff triage write — host app wraps with its own tracked()"
-            onClick={() =>
-              update.mutate({
-                dsarId: row.request_id,
-                note: noteDraft[row.request_id] ?? row.note ?? "",
-              })
-            }
-          >
-            {t(GDPR_I18N_KEYS.queueSaveNote)}
-          </Button>
-        </Flex>
-      ),
+      render: (_: unknown, row: DsarStatus): ReactElement => {
+        const saved = row.note ?? "";
+        const draft = noteDraft[row.request_id] ?? saved;
+        // The draft starts life EQUAL to the stored note, so an always-enabled
+        // save is a PATCH that writes the value already on the row — a triage
+        // edit in the audit trail that edited nothing.
+        const unchanged = draft === saved;
+        return (
+          <Flex gap={4}>
+            <Input
+              size="small"
+              aria-label={t(GDPR_I18N_KEYS.dsarNoteLabel)}
+              value={draft}
+              onChange={(event) =>
+                setNoteDraft((current) => ({
+                  ...current,
+                  [row.request_id]: event.target.value,
+                }))
+              }
+            />
+            <Button
+              size="small"
+              disabled={unchanged}
+              data-analytics="none"
+              data-analytics-reason="staff triage write — host app wraps with its own tracked()"
+              onClick={() =>
+                update.mutate({ dsarId: row.request_id, note: draft })
+              }
+            >
+              {t(GDPR_I18N_KEYS.queueSaveNote)}
+            </Button>
+          </Flex>
+        );
+      },
     },
   ];
 

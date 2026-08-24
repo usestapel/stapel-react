@@ -213,13 +213,90 @@ export function isWebauthnSupported(): boolean {
 }
 
 function unsupported(): Error {
-  return new Error("webauthn_unsupported");
+  return new Error(WEBAUTHN_UNSUPPORTED);
 }
 
 function noCredential(): Error {
   // The ceremony resolved without a credential — spec-legal (`null`), and
   // nothing downstream can be built from it.
-  return new Error("webauthn_no_credential");
+  return new Error(WEBAUTHN_NO_CREDENTIAL);
+}
+
+/** This browser has no WebAuthn at all (old browser, insecure context, SSR). */
+export const WEBAUTHN_UNSUPPORTED = "webauthn_unsupported";
+/** The ceremony resolved with `null` — spec-legal, and unusable. */
+export const WEBAUTHN_NO_CREDENTIAL = "webauthn_no_credential";
+
+/**
+ * What went wrong in the browser half of a passkey ceremony, as something a
+ * skin can BRANCH on.
+ *
+ * Every one of these used to arrive as the same thing. `navigator.credentials`
+ * rejects with a `DOMException`, which is not a `StapelApiError`, so
+ * `toFlowError` folded all of them into the single fallback code
+ * `auth.error.unknown` — "Something went wrong. Please try again." That
+ * sentence is wrong for four of the five outcomes below and actively unhelpful
+ * for the most common one: a person who cancelled the system prompt is told
+ * there was a fault, and a person whose device holds no passkey for this site
+ * is told to try the thing that cannot work again.
+ *
+ * The spec deliberately refuses to separate "the user dismissed the prompt"
+ * from "there was no credential to offer" — reporting the difference would
+ * make the ceremony an oracle for whether an account exists on this device.
+ * `"declined"` is therefore ONE outcome that honestly covers both, and its
+ * copy says both. That is a limit of WebAuthn, not a shortcut here.
+ */
+export type WebauthnFailure =
+  /** No WebAuthn API in this browser/context — nothing will ever appear. */
+  | "unsupported"
+  /** `NotAllowedError`: cancelled, dismissed, or no credential to offer. */
+  | "declined"
+  /** `AbortError`: the ceremony was aborted, or the authenticator timed out. */
+  | "timeout"
+  /** `SecurityError`: wrong origin / not a secure context / bad RP id. */
+  | "insecure"
+  /** `InvalidStateError`: this authenticator already holds a credential. */
+  | "already_registered"
+  /** A ceremony that failed for a reason none of the above describes. */
+  | "failed";
+
+/**
+ * Classify a thrown ceremony error. `null` for anything that is not a browser
+ * ceremony failure at all — a rejected server call, say, which is already a
+ * `StapelApiError` carrying its own code and must keep it.
+ */
+export function classifyWebauthnError(error: unknown): WebauthnFailure | null {
+  if (error instanceof Error) {
+    if (error.message === WEBAUTHN_UNSUPPORTED) return "unsupported";
+    if (error.message === WEBAUTHN_NO_CREDENTIAL) return "declined";
+  }
+  // `instanceof DOMException` is unreliable across realms (an iframe, a
+  // webview bridge, jsdom), and the `name` is the part the spec defines.
+  const name =
+    typeof error === "object" && error !== null && "name" in error
+      ? (error as { name: unknown }).name
+      : undefined;
+  switch (name) {
+    case "NotAllowedError":
+      return "declined";
+    case "AbortError":
+    case "TimeoutError":
+      return "timeout";
+    case "SecurityError":
+      return "insecure";
+    case "InvalidStateError":
+      return "already_registered";
+    case "NotSupportedError":
+      return "unsupported";
+    case "ConstraintError":
+    case "UnknownError":
+    case "NetworkError":
+    case "EncodingError":
+    case "DataError":
+      return "failed";
+    default:
+      return null;
+  }
 }
 
 /** Default `webauthnCreate`: registration ceremony via the browser. */

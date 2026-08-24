@@ -14,8 +14,19 @@
  *
  * The meettoday blocking case (`mode: "always"`, `require: "displayName"` —
  * the ex-`GuestNameModal`: a guest cannot join a call nameless) passes
- * `skippable={false}`: no Skip button, no ✕, no Esc/mask dismiss — Save is
- * the only way out, exactly like the reference modal.
+ * `skippable={false}`: no Skip button, and no dismissal — the mask, Esc, the
+ * ✕ and the sheet's swipe are all inert, so Save is the only way out, exactly
+ * like the reference modal.
+ *
+ * SURFACE: this is a dialog, not a modal-shaped component. Which shape it
+ * takes is the fleet rule stated once in `@stapel/tokens-antd/skin` — a
+ * bottom sheet on a phone, a centred modal on tablet/desktop (owner ruling
+ * 2026-08-24) — so the name `<InitialSetupModal/>` is now historical, kept
+ * because it is the pair's published export. Blocking mode (`skippable=
+ * false` — the guest who genuinely cannot join a call nameless) passes
+ * `dismissible={false}`, which draws no dismissal affordance at all and
+ * disarms Esc and the mask with it: Save is visibly the only exit, rather
+ * than a ✕ that is offered and silently does nothing.
  *
  * Rows follow the settings-skin canon (frontend-guidelines §8, one labelled
  * row per field, stacked): display name `Input`; the EXACT theme row
@@ -33,7 +44,6 @@ import {
   ConfigProvider,
   Flex,
   Input,
-  Modal,
   Segmented,
   Select,
   Spin,
@@ -41,6 +51,7 @@ import {
 } from "antd";
 import { resolveThemeMode, toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
+import { SkinDialog } from "@stapel/tokens-antd/skin";
 import {
   actionAvailable,
   actionBlocked,
@@ -253,26 +264,27 @@ export function InitialSetupModal(props: InitialSetupModalProps): ReactElement {
         onSkip={() => props.onClose?.()}
       >
         {(bag) => (
-          <Modal
+          <SkinDialog
             open={props.open}
             title={t(PROFILES_I18N_KEYS.initialSetupTitle)}
-            footer={null}
-            closable={skippable}
-            // antd 6 deprecates `maskClosable` for `mask={{ closable }}` — but
-            // the object form doesn't exist in antd 5 and this pair's peer
-            // range spans both (>=5.20 <7), so the still-functional legacy
-            // prop is the one spelling that behaves on every supported major.
-            maskClosable={skippable}
-            keyboard={skippable}
-            onCancel={() => {
-              // ✕ / Esc / mask — an implicit skip: record it like the button
-              // (only reachable when skippable).
+            dismissLabel={t(PROFILES_I18N_KEYS.actionClose)}
+            // Blocking mode draws NO way out — not an inert one. `dismissible`
+            // turns off the close button, the grab handle, Esc and the mask
+            // together, so Save is visibly the only exit. (It is a prop on the
+            // shared skin rather than a branch here: re-taking the surface
+            // decision per component is what the fleet rule exists to stop.)
+            dismissible={skippable}
+            onClose={() => {
+              // ✕ / Esc / mask / swipe — an implicit skip: record it like the
+              // button does. Unreachable in blocking mode, where no dismissal
+              // affordance is drawn at all; kept as the belt to that braces.
+              if (!skippable) return;
               bag.skip();
             }}
             destroyOnHidden
           >
             <ModalBody bag={bag} skippable={skippable} />
-          </Modal>
+          </SkinDialog>
         )}
       </InitialSetupPrompt>
     </ConfigProvider>

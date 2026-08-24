@@ -17,10 +17,22 @@
  *  - **bottom** — a persistent icon-button row beneath the form (social
  *    provider buttons + qr/passkey by default) — never a tab, never adds one.
  *  - **overflow** — behind the "More ways to sign in" three-dot menu; picking
- *    one opens a DIALOG with that channel's panel. It does NOT try to squeeze
+ *    one opens a DIALOG with that channel's panel — a bottom sheet on a phone
+ *    and a centred modal above the tablet breakpoint, which is not decided
+ *    here: `@stapel/tokens-antd/skin`'s `SkinDialog` states that rule once for
+ *    the whole fleet. It does NOT try to squeeze
  *    into the tab strip — that was the bug: an overflow pick used to set
  *    `active` to a channel absent from the tabs' own `items`, so nothing
  *    rendered at all.
+ *
+ * PASSKEY IS NOT A PANEL (owner ruling 2026-08-24). Clicking it raises the
+ * browser's own WebAuthn prompt immediately; this skin renders nothing until
+ * that prompt has an outcome, and then only if the outcome was not a sign-in.
+ * The failure sheet names WHICH outcome it was — cancelled or no credential,
+ * timed out, insecure origin, this browser cannot — and offers the action that
+ * outcome deserves. What it replaced was a dialog containing a "Use a passkey"
+ * button: two screens of ours in front of the one screen that decides
+ * anything, neither of which the person had a choice to make on.
  *
  * SSO and OAuth are never a `main` tab (`computeZones` clamps this even if a
  * backend plan claims otherwise) — SSO's domain-lookup form and OAuth's
@@ -37,17 +49,15 @@
  * is a configuration error `computeZones` throws on loudly, rather than a
  * signal to silently reproduce a fixed placement table.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import {
   Alert,
   Button,
   ConfigProvider,
   Divider,
-  Drawer,
   Dropdown,
   Flex,
-  Modal,
   Spin,
   Tabs,
   Typography,
@@ -55,7 +65,11 @@ import {
 import type { TabsProps } from "antd";
 import { toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { useBreakpoint, useFormatFlowError, useT } from "@stapel/core";
+import { SkinDialog } from "@stapel/tokens-antd/skin";
+import { useFormatFlowError, useT } from "@stapel/core";
+import { usePasskeyLogin } from "../headless/Passkey.js";
+import { passkeyFailureOf } from "../flows/errors.js";
+import { isWebauthnSupported } from "../webauthn.js";
 import { useCapabilities } from "../model/queries.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
 import type { AuthI18nKey } from "../i18n/keys.js";
@@ -81,6 +95,7 @@ import {
   SsoPanel,
 } from "./panels.js";
 import { AnonymousSession } from "../headless/misc.js";
+import type { FlowError } from "../flows/errors.js";
 
 /** A system notice for zone A's single Alert slot (RULE 3). */
 export interface AuthPanelNotice {
@@ -161,12 +176,37 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
   const caps = useCapabilities();
   const [openChannel, setOpenChannel] = useState<ChannelId | null>(null);
   const [active, setActive] = useState<ChannelId | null>(null);
-  // UX reference: the legacy marketplace's sign-in sheet keeps every alt method in ONE bottom
-  // sheet on mobile rather than a separate page. `useBreakpoint` (already in
-  // `@stapel/core`) makes that cheap here too — same dialog content, just a
-  // `Drawer` sliding up from the bottom on phones instead of a centred
-  // `Modal` on tablet/desktop.
-  const isPhone = useBreakpoint() === "phone";
+
+  // ── Passkey: the system prompt IS the first screen ──────────────────────
+  //
+  // Owner ruling (2026-08-24). This used to open OUR dialog and put a "Use a
+  // passkey" button inside it, so the person pressed "Passkey", read a panel,
+  // pressed a second button, and only THEN saw the thing the operating system
+  // was going to ask them anyway. Two of the three screens were ours and
+  // neither of them decided anything.
+  //
+  // Now `pick("passkey")` raises `navigator.credentials.get()` immediately and
+  // renders nothing. A sheet appears only when the ceremony did NOT sign the
+  // person in — and then it is about that specific outcome, with the other
+  // methods one tap behind it. The dialog is a FALLBACK, not a preamble.
+  //
+  // The flow lives here rather than inside `PasskeyPanel` because a render
+  // prop cannot be driven from outside the subtree it renders, and the button
+  // that starts this is outside.
+  const passkey = usePasskeyLogin();
+  const passkeyError = passkey.state.step === "error" ? passkey.state.error : undefined;
+  const [passkeyFallback, setPasskeyFallback] = useState(false);
+  useEffect(() => {
+    if (passkeyError !== undefined) setPasskeyFallback(true);
+  }, [passkeyError]);
+  const passkeyBusy =
+    passkey.state.step === "beginning" ||
+    passkey.state.step === "awaitingAssertion" ||
+    passkey.state.step === "completing";
+  function closePasskeyFallback(): void {
+    setPasskeyFallback(false);
+    passkey.reset();
+  }
 
   const login = caps.data?.login;
   const registration = caps.data?.registration;
@@ -268,6 +308,18 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
     const placement = zones.bottom.includes(id) ? "bottom" : "overflow";
     const interaction = resolveInteraction(id, placement, methodInteraction(id, methods));
     if (interaction === "redirect") return; // OAuth: the button IS the action.
+    if (id === "passkey") {
+      // A browser with no WebAuthn will never show a prompt, so calling
+      // `begin()` would park the flow on `awaitingAssertion` for ever behind a
+      // spinner. Say so instead, in the same sheet the failures use.
+      if (!isWebauthnSupported()) {
+        setPasskeyFallback(true);
+        return;
+      }
+      passkey.reset();
+      passkey.begin();
+      return;
+    }
     setOpenChannel(id);
   }
 
@@ -311,6 +363,7 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
                 ids={zones.bottom}
                 oauthProviders={oauthProviders}
                 onPick={pick}
+                busyId={passkeyBusy ? "passkey" : null}
                 labelFor={(id) => t(CHANNEL_LABEL[id])}
                 {...(methods !== undefined ? { methods } : {})}
                 {...(props.iconOverrides !== undefined
@@ -384,31 +437,115 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
 
       {/* The alt-method dialog (owner directive point 1): picking anything
           from the bottom row or the overflow menu (other than a direct OAuth
-          redirect) opens THIS, never a phantom fourth tab. A Modal on
-          tablet/desktop, a bottom Drawer ("sheet") on phone. */}
-      {isPhone ? (
-        <Drawer
-          open={openChannel !== null}
-          title={openChannel ? t(CHANNEL_LABEL[openChannel]) : undefined}
-          onClose={() => setOpenChannel(null)}
-          placement="bottom"
-          size="large"
-          destroyOnHidden
-        >
-          {openChannel ? channelPanel(openChannel) : null}
-        </Drawer>
-      ) : (
-        <Modal
-          open={openChannel !== null}
-          title={openChannel ? t(CHANNEL_LABEL[openChannel]) : undefined}
-          onCancel={() => setOpenChannel(null)}
-          footer={null}
-          destroyOnHidden
-        >
-          {openChannel ? channelPanel(openChannel) : null}
-        </Modal>
-      )}
+          redirect, or a passkey — see below) opens THIS, never a phantom
+          fourth tab. Which SHAPE it takes is not decided here any more: a
+          phone gets a bottom sheet and everything else a centred modal,
+          stated once in `@stapel/tokens-antd/skin`. */}
+      <SkinDialog
+        open={openChannel !== null}
+        onClose={() => setOpenChannel(null)}
+        dismissLabel={t(AUTH_I18N_KEYS.uiClose)}
+        data-testid="auth-channel-dialog"
+        {...(openChannel ? { title: t(CHANNEL_LABEL[openChannel]) } : {})}
+      >
+        {openChannel ? channelPanel(openChannel) : null}
+      </SkinDialog>
+
+      {/* The passkey FALLBACK. Not a step in the passkey journey — the system
+          prompt is the whole journey when it works. This is what is left when
+          it did not: one sentence naming the actual outcome (cancelled or no
+          credential / timed out / insecure origin / this browser cannot),
+          the action that outcome deserves, and the door back to the other
+          methods. */}
+      <SkinDialog
+        open={passkeyFallback}
+        onClose={closePasskeyFallback}
+        title={t(AUTH_I18N_KEYS.uiPasskeyFailedTitle)}
+        dismissLabel={t(AUTH_I18N_KEYS.uiClose)}
+        data-testid="auth-passkey-fallback"
+      >
+        <PasskeyFallbackBody
+          error={passkeyError}
+          onRetry={() => {
+            setPasskeyFallback(false);
+            passkey.reset();
+            passkey.begin();
+          }}
+          onPickAnother={() => {
+            closePasskeyFallback();
+            setOpenChannel(null);
+          }}
+        />
+      </SkinDialog>
+
     </ConfigProvider>
+  );
+}
+
+/**
+ * What the fallback sheet says, per outcome.
+ *
+ * Five situations used to render one sentence — "Something went wrong. Please
+ * try again." — because a `navigator.credentials` rejection is a DOMException,
+ * not a `StapelApiError`, and the generic fold swallowed the difference. The
+ * classification now happens in the flow (`toPasskeyFlowError`), and this is
+ * where it earns its keep: the outcome decides not just the words but WHICH
+ * ACTION is on screen.
+ *
+ *  - **timed out / the authenticator refused** — "Try again" is real advice,
+ *    so the button is there and it is primary.
+ *  - **cancelled, or no passkey on this device** — WebAuthn will not tell us
+ *    which (saying so would make the prompt an oracle for whether an account
+ *    exists here), so the copy says both and the primary action is the OTHER
+ *    methods. Offering "try again" for a device with no credential is telling
+ *    someone to repeat the thing that cannot work.
+ *  - **this browser cannot do passkeys / insecure origin** — nothing to retry
+ *    at all. No retry button is rendered; a disabled one would just be a
+ *    second way of saying no.
+ */
+function PasskeyFallbackBody(props: {
+  error: FlowError | undefined;
+  onRetry: () => void;
+  onPickAnother: () => void;
+}): ReactElement {
+  const t = useT();
+  const formatError = useFormatFlowError();
+  // No error at all is the unsupported-browser path: `pick()` opens this sheet
+  // without starting a ceremony, because a ceremony here never resolves.
+  const failure = props.error ? passkeyFailureOf(props.error) : "unsupported";
+  const message = props.error
+    ? formatError(props.error)
+    : t(AUTH_I18N_KEYS.passkeyUnsupported);
+  const retryable = failure === "timeout" || failure === "failed";
+  return (
+    <Flex vertical gap="middle" data-testid="auth-passkey-fallback-body">
+      <Alert
+        type={retryable ? "warning" : "info"}
+        showIcon
+        message={message}
+        data-passkey-failure={failure ?? "failed"}
+      />
+      <Flex gap="small" wrap>
+        {retryable && (
+          <Button
+            type="primary"
+            onClick={props.onRetry}
+            data-analytics="none"
+            data-analytics-reason="local-ui-retry-passkey-ceremony"
+          >
+            {t(AUTH_I18N_KEYS.uiRetry)}
+          </Button>
+        )}
+        <Button
+          {...(retryable ? {} : { type: "primary" as const })}
+          onClick={props.onPickAnother}
+          data-analytics="none"
+          data-analytics-reason="local-ui-dismiss-passkey-fallback"
+        >
+          {t(AUTH_I18N_KEYS.uiPasskeyPickAnother)}
+        </Button>
+      </Flex>
+    </Flex>
   );
 }
 
@@ -436,6 +573,11 @@ function BottomRow(props: {
   ids: readonly ChannelId[];
   oauthProviders: Parameters<typeof OAuthPanel>[0]["providers"];
   onPick: (id: ChannelId) => void;
+  /** The channel whose ceremony is running RIGHT NOW, if any. Passkey raises
+   * the system prompt straight off this button and opens nothing of ours, so
+   * without this the button is the only place a person can see that anything
+   * is happening at all. */
+  busyId: ChannelId | null;
   labelFor: (id: ChannelId) => string;
   methods?: readonly AuthMethodInfo[];
   iconOverrides?: Readonly<Partial<Record<ChannelId, ReactNode>>>;
@@ -459,6 +601,7 @@ function BottomRow(props: {
         ) : (
           <Button
             key={id}
+            loading={props.busyId === id}
             icon={
               <ChannelIcon
                 override={props.iconOverrides?.[id]}

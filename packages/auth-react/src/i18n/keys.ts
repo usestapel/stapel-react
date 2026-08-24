@@ -32,6 +32,24 @@ export const AUTH_I18N_KEYS = {
   passkeyNoCredentials: "auth.passkey.no_credentials",
   /** No `navigator.credentials` here at all (old browser, insecure context). */
   passkeyUnsupported: "auth.passkey.unsupported",
+  /**
+   * The five browser-side passkey outcomes, each with its own sentence
+   * (`flows/errors.ts`, `toPasskeyFlowError`). They used to be one:
+   * `navigator.credentials` rejects with a DOMException, which is not a
+   * StapelApiError, so every one of them folded into `auth.error.unknown` —
+   * "Something went wrong. Please try again." — including the case where
+   * trying again is precisely what cannot work.
+   *
+   * `declined` covers dismissal AND "this device has no passkey for us",
+   * because WebAuthn deliberately refuses to distinguish them: reporting the
+   * difference would make the prompt an oracle for whether an account exists
+   * on the device. The copy therefore says both, out loud.
+   */
+  passkeyDeclined: "auth.passkey.declined",
+  passkeyTimeout: "auth.passkey.timeout",
+  passkeyInsecure: "auth.passkey.insecure",
+  passkeyAlreadyOnDevice: "auth.passkey.already_on_device",
+  passkeyFailed: "auth.passkey.failed",
   unknownError: "auth.error.unknown",
 
   // Default-skin UI keys (§54 AuthPanel). Rendered by @stapel/auth-react/default;
@@ -70,6 +88,15 @@ export const AUTH_I18N_KEYS = {
   uiChannelMagicLink: "auth.ui.channel_magic_link",
   /** Re-run a read that failed — `ErrorAlert`'s action button. */
   uiRetry: "auth.ui.retry",
+  /** The dialog/sheet dismissal — `SkinDialog`'s `dismissLabel`, which is the
+   * accessible name of the sheet's grab handle and of the modal's close
+   * button. The token bridge owns no i18n, so the caller supplies the copy. */
+  uiClose: "auth.ui.close",
+  /** Title of the sheet that appears ONLY when a passkey sign-in did not
+   * happen — the system prompt is the primary UI, this is the fallback. */
+  uiPasskeyFailedTitle: "auth.ui.passkey_failed_title",
+  /** The way out of that sheet: the other sign-in methods are behind it. */
+  uiPasskeyPickAnother: "auth.ui.passkey_pick_another",
 
   // Registration surface (§68 promote/orphan fix follow-up): a channel-
   // filtered `AuthPanel mode="register"` — same zone machinery as the login
@@ -142,6 +169,25 @@ export const AUTH_I18N_KEYS = {
   secPasskeysAwaitingCeremony: "auth.sec.passkeys.awaiting_ceremony",
   secPasskeysRemoveConfirmTitle: "auth.sec.passkeys.remove_confirm_title",
   secPasskeysAddedSuccess: "auth.sec.passkeys.added_success",
+  /**
+   * The credential-management row (owner report 2026-08-24). It used to end in
+   * a green `auth.ui.submit` button — the SIGN-IN button's copy in every
+   * locale — offered to someone who is, necessarily, already signed in. These
+   * are what a row about a stored credential actually says: what it is, when
+   * it was added, when it was last used, and the actions that exist.
+   */
+  secPasskeysDone: "auth.sec.passkeys.done",
+  secPasskeysAddedOn: "auth.sec.passkeys.added_on",
+  secPasskeysLastUsed: "auth.sec.passkeys.last_used",
+  secPasskeysNeverUsed: "auth.sec.passkeys.never_used",
+  secPasskeysAddAnother: "auth.sec.passkeys.add_another",
+  /** What the credential lives in, read from `transports[]`. */
+  secPasskeysKindDevice: "auth.sec.passkeys.kind_device",
+  secPasskeysKindSecurityKey: "auth.sec.passkeys.kind_security_key",
+  secPasskeysKindPhone: "auth.sec.passkeys.kind_phone",
+  secPasskeysKindUnknown: "auth.sec.passkeys.kind_unknown",
+  /** Why "Add" is not available here (no WebAuthn in this browser). */
+  secPasskeysAddUnsupported: "auth.sec.passkeys.add_unsupported",
 
   secPasswordTitle: "auth.sec.password.title",
   secPasswordOldLabel: "auth.sec.password.old_label",
@@ -299,6 +345,16 @@ export const authI18nBundleEn: I18nDictionary = {
     "Couldn't sign in with a passkey on this device. Add one in Security settings after signing in another way, or pick a different sign-in method below.",
   "auth.passkey.unsupported":
     "This browser can't use passkeys. Try another browser or device, or pick a different method.",
+  "auth.passkey.declined":
+    "No passkey was used. Either the prompt was dismissed, or this device has no passkey for us yet — sign in another way, then add one in Security settings.",
+  "auth.passkey.timeout":
+    "The passkey prompt timed out before it was answered. Try again.",
+  "auth.passkey.insecure":
+    "Passkeys need a secure connection to this site. Open it over https and try again.",
+  "auth.passkey.already_on_device":
+    "This device already has a passkey for your account. Use it to sign in instead of adding another.",
+  "auth.passkey.failed":
+    "Your device could not complete the passkey check. Try again, or pick a different method.",
   "auth.error.unknown": "Something went wrong. Please try again.",
 
   // Default-skin UI (§54 AuthPanel)
@@ -336,6 +392,9 @@ export const authI18nBundleEn: I18nDictionary = {
   // is, a link sent to your email.
   "auth.ui.channel_magic_link": "Email link",
   "auth.ui.retry": "Try again",
+  "auth.ui.close": "Close",
+  "auth.ui.passkey_failed_title": "Couldn't sign in with a passkey",
+  "auth.ui.passkey_pick_another": "Use another method",
 
   // Registration surface
   "auth.ui.register_title": "Create account",
@@ -408,6 +467,17 @@ export const authI18nBundleEn: I18nDictionary = {
     "Follow your browser or device's prompt to finish adding this passkey.",
   "auth.sec.passkeys.remove_confirm_title": "Remove this passkey?",
   "auth.sec.passkeys.added_success": "Passkey added.",
+  "auth.sec.passkeys.done": "Done",
+  "auth.sec.passkeys.added_on": "Added {date}",
+  "auth.sec.passkeys.last_used": "Last used {date}",
+  "auth.sec.passkeys.never_used": "Not used yet",
+  "auth.sec.passkeys.add_another": "Add another",
+  "auth.sec.passkeys.kind_device": "Built into a device",
+  "auth.sec.passkeys.kind_security_key": "Security key",
+  "auth.sec.passkeys.kind_phone": "A phone or tablet nearby",
+  "auth.sec.passkeys.kind_unknown": "Passkey",
+  "auth.sec.passkeys.add_unsupported":
+    "This browser can't create passkeys. Open this page in another browser to add one.",
 
   "auth.sec.password.title": "Change password",
   "auth.sec.password.old_label": "Current password",

@@ -20,11 +20,22 @@ import { WorkspaceSettings, MembersManager, InviteAcceptPage } from "../src/defa
 const BASE = "https://workspaces.stapel.test/workspaces/api/v1";
 const WS = "0192f000-0000-4000-8000-000000000001";
 
+/** jsdom's own window is 1024x768 — the width every test that does not say
+ * otherwise runs at, and the one the setup's `matchMedia` now honestly
+ * evaluates `(min-width: 768px)` against. Restored after each test so a
+ * phone-width case cannot leak into the next file's first render. */
+const JSDOM_WIDTH = 1024;
+
+function setViewportWidth(px: number): void {
+  Object.defineProperty(window, "innerWidth", { value: px, configurable: true });
+}
+
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
   cleanup();
   server.resetHandlers();
+  setViewportWidth(JSDOM_WIDTH);
 });
 afterAll(() => server.close());
 
@@ -165,7 +176,7 @@ describe("<MembersManager/> (default skin)", () => {
     fireEvent.change(screen.getByPlaceholderText("Type an email and press Enter"), {
       target: { value: "new@example.com" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "OK" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send invitations" }));
     await waitFor(() => expect(inviteBody).toEqual({ emails: ["new@example.com"], role: "member" }));
   });
 
@@ -183,6 +194,185 @@ describe("<MembersManager/> (default skin)", () => {
     expect(screen.getByText("Owner")).toBeDefined();
     expect(screen.queryByText("Invite")).toBeNull();
     expect(screen.queryByText("Remove")).toBeNull();
+  });
+});
+
+/** One anchor page of members. `has_next: false` is what tells the skin the
+ * page IS the roster — the only condition under which it may count owners. */
+function membersPage(items: unknown[], overrides: Record<string, unknown> = {}) {
+  return {
+    items,
+    next_anchor: null,
+    prev_anchor: null,
+    has_next: false,
+    has_prev: false,
+    count: items.length,
+    ...overrides,
+  };
+}
+
+function memberRow(id: string, email: string, role: string) {
+  return {
+    id: `0192b000-0000-4000-8000-0000000000${id}`,
+    workspace_id: WS,
+    user_id: `0192a000-0000-4000-8000-0000000000${id}`,
+    email,
+    role,
+    invited_at: "2026-05-20T10:00:00Z",
+    accepted_at: "2026-05-20T10:05:00Z",
+    last_accessed_at: null,
+  };
+}
+
+const LAST_OWNER_REASON =
+  "This is the workspace's only owner. Give someone else the owner role first.";
+
+/**
+ * The dialog surface is a DESIGN-SYSTEM rule inherited from
+ * `@stapel/tokens-antd/skin`, not a local preference — so these assert the
+ * rendered surface rather than restating the rule in prose. The stamp comes
+ * from `SkinDialog` itself; a regression in the bridge reddens here too.
+ */
+describe("<MembersManager/> invite dialog — sheet on a phone, modal above it", () => {
+  function serve(): void {
+    server.use(
+      http.get(`${BASE}/roles`, () => HttpResponse.json(ROLES)),
+      http.get(`${BASE}/${WS}/members`, () => HttpResponse.json(membersPage([MEMBER])))
+    );
+  }
+
+  async function openInviteDialog(): Promise<HTMLElement> {
+    const runtime = createWorkspacesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <MembersManager workspaceId={WS} />));
+    await waitFor(() => expect(screen.getByText("owner@example.com")).toBeDefined());
+    fireEvent.click(screen.getByText("Invite"));
+    await waitFor(() => expect(screen.getByTestId("members-invite-dialog")).toBeDefined());
+    return screen.getByTestId("members-invite-dialog");
+  }
+
+  it("is a bottom sheet at a 390px phone viewport", async () => {
+    serve();
+    // BEFORE the render: the surface is read on the first client render, so a
+    // width set afterwards would only prove the resize path.
+    setViewportWidth(390);
+    const body = await openInviteDialog();
+    expect(body.getAttribute("data-stapel-dialog-surface")).toBe("sheet");
+    // The sheet's dismissal is not gesture-only: the handle is a real button
+    // carrying this pair's own i18n copy.
+    expect(screen.getByRole("button", { name: "Close" })).toBeDefined();
+  });
+
+  it("is a centred modal at 1024", async () => {
+    serve();
+    setViewportWidth(1024);
+    const body = await openInviteDialog();
+    expect(body.getAttribute("data-stapel-dialog-surface")).toBe("modal");
+  });
+});
+
+describe("<MembersManager/> — a control never offers what the backend would refuse", () => {
+  it("switches off Remove for the last owner and PRINTS the reason", async () => {
+    server.use(
+      http.get(`${BASE}/roles`, () => HttpResponse.json(ROLES)),
+      http.get(`${BASE}/${WS}/members`, () =>
+        HttpResponse.json(
+          membersPage([MEMBER, memberRow("02", "ada@example.com", "admin")])
+        )
+      )
+    );
+    const runtime = createWorkspacesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <MembersManager workspaceId={WS} />));
+
+    await waitFor(() => expect(screen.getByText("ada@example.com")).toBeDefined());
+    const [ownerRemove, adminRemove] = screen.getAllByRole("button", { name: "Remove" });
+    // The sole owner: off, and the reason is TEXT beside it — a disabled
+    // button receives no pointer events, so a tooltip would be unreadable.
+    expect((ownerRemove as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(LAST_OWNER_REASON)).toBeDefined();
+    // Everyone else is untouched: the gate is about the last owner, not about
+    // switching the column off.
+    expect((adminRemove as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("leaves Remove on when a second owner exists", async () => {
+    server.use(
+      http.get(`${BASE}/roles`, () => HttpResponse.json(ROLES)),
+      http.get(`${BASE}/${WS}/members`, () =>
+        HttpResponse.json(
+          membersPage([MEMBER, memberRow("03", "grace@example.com", "owner")])
+        )
+      )
+    );
+    const runtime = createWorkspacesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <MembersManager workspaceId={WS} />));
+
+    await waitFor(() => expect(screen.getByText("grace@example.com")).toBeDefined());
+    for (const button of screen.getAllByRole("button", { name: "Remove" })) {
+      expect((button as HTMLButtonElement).disabled).toBe(false);
+    }
+    expect(screen.queryByText(LAST_OWNER_REASON)).toBeNull();
+  });
+
+  it("claims nothing about the last owner when the page is not the whole roster", async () => {
+    server.use(
+      http.get(`${BASE}/roles`, () => HttpResponse.json(ROLES)),
+      http.get(`${BASE}/${WS}/members`, () =>
+        HttpResponse.json(
+          // `has_next` — one owner ON THIS PAGE is not one owner in the
+          // workspace, so the skin must not gate on a count it does not have.
+          membersPage([MEMBER], { has_next: true, next_anchor: "a2" })
+        )
+      )
+    );
+    const runtime = createWorkspacesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <MembersManager workspaceId={WS} />));
+
+    await waitFor(() => expect(screen.getByText("owner@example.com")).toBeDefined());
+    expect((screen.getByRole("button", { name: "Remove" }) as HTMLButtonElement).disabled).toBe(
+      false
+    );
+    expect(screen.queryByText(LAST_OWNER_REASON)).toBeNull();
+  });
+
+  it("renders NO enabled role picker when the role registry read fails", async () => {
+    server.use(
+      http.get(`${BASE}/roles`, () => new HttpResponse(null, { status: 500 })),
+      http.get(`${BASE}/${WS}/members`, () => HttpResponse.json(membersPage([MEMBER])))
+    );
+    const runtime = createWorkspacesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <MembersManager workspaceId={WS} />));
+
+    await waitFor(() => expect(screen.getByTestId("members-roles-error")).toBeDefined());
+    await waitFor(() => expect(screen.getByText("owner@example.com")).toBeDefined());
+    // An enabled Select over `options: []` is a control that cannot do the one
+    // thing it exists for. There is no picker at all — the role still reads.
+    expect(screen.queryAllByRole("combobox")).toEqual([]);
+    expect(screen.getByText("Owner")).toBeDefined();
+  });
+
+  it("blocks the invite submit — with the reason — while the registry is unreadable", async () => {
+    server.use(
+      http.get(`${BASE}/roles`, () => new HttpResponse(null, { status: 500 })),
+      http.get(`${BASE}/${WS}/members`, () => HttpResponse.json(membersPage([MEMBER])))
+    );
+    const runtime = createWorkspacesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <MembersManager workspaceId={WS} />));
+
+    await waitFor(() => expect(screen.getByTestId("members-roles-error")).toBeDefined());
+    fireEvent.click(screen.getByText("Invite"));
+    await waitFor(() => expect(screen.getByTestId("members-invite-dialog")).toBeDefined());
+    fireEvent.change(screen.getByPlaceholderText("Type an email and press Enter"), {
+      target: { value: "new@example.com" },
+    });
+    const submit = screen.getByRole("button", { name: "Send invitations" });
+    expect((submit as HTMLButtonElement).disabled).toBe(true);
+    // Two sentences, one text: the alert above the roster and the reason under
+    // the switched-off submit. Both say the same true thing.
+    expect(
+      screen.getAllByText(
+        "We could not load the role list, so roles cannot be changed right now. It is not a workspace without roles."
+      ).length
+    ).toBeGreaterThan(1);
   });
 });
 

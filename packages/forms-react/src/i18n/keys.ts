@@ -100,6 +100,7 @@ export const FORMS_I18N_KEYS = {
   responsesExport: "forms.responses.export",
   responsesExporting: "forms.responses.exporting",
   responsesErased: "forms.responses.erased",
+  responsesErasedNoWrite: "forms.responses.blocked.erased",
   responsesDetail: "forms.responses.detail",
   responsesClose: "forms.responses.close",
 
@@ -237,6 +238,8 @@ export const formsI18nBundleEn: I18nDictionary = {
   "forms.responses.export": "Export CSV",
   "forms.responses.exporting": "Exporting… ({pages} page(s))",
   "forms.responses.erased": "Erased",
+  "forms.responses.blocked.erased":
+    "This response was erased, so it can no longer be resent or deleted.",
   "forms.responses.detail": "Response detail",
   "forms.responses.close": "Close",
 

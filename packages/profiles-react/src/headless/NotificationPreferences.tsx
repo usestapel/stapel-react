@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import type { StapelApiError } from "@stapel/core";
+import { loadStateFromQuery } from "@stapel/core";
+import type { LoadState, StapelApiError } from "@stapel/core";
 import type { MyProfile, ProfileUpdate } from "../api/types.js";
 import { useMyProfile } from "../model/queries.js";
 import { useUpdateMyProfile } from "../model/mutations.js";
@@ -54,6 +55,19 @@ export interface NotificationPrefsBag {
   isEnabled(category: NotificationCategory, channel: NotificationChannel): boolean;
   /** Flip one cell — PATCHes just that field. */
   toggle(category: NotificationCategory, channel: NotificationChannel): void;
+  /**
+   * The preference READ's three answers, kept three (@stapel/core
+   * `loadState.ts`). {@link NotificationPrefsBag.isError} below folds the read
+   * together with the write — the right bit for an alert, the wrong one for
+   * deciding whether the matrix may be rendered at all. A matrix built on a
+   * read that FAILED shows every switch at a default nobody could read, and
+   * flipping one PATCHes a preference derived from that default; a matrix
+   * blanked by a failed WRITE, meanwhile, would throw away a screen the
+   * caller can still use (the write rolls itself back). Render through this.
+   */
+  readonly state: LoadState<MyProfile>;
+  /** Re-run the preference read — the `failed` arm's retry affordance. */
+  refetch(): void;
   readonly isLoading: boolean;
   readonly isSaving: boolean;
   readonly isError: boolean;
@@ -92,6 +106,10 @@ export function NotificationPreferences(props: {
       const field = FIELD[category][channel];
       const patch: ProfileUpdate = { [field]: !profile[field] };
       mutation.mutate(patch);
+    },
+    state: loadStateFromQuery(query),
+    refetch: () => {
+      void query.refetch();
     },
     isLoading: query.isLoading,
     isSaving: mutation.isPending,

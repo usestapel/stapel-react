@@ -266,6 +266,30 @@ describe("the modal half", () => {
     expect(screen.getByRole("button", { name: DISMISS })).toBeDefined();
   });
 
+  it("dismissible={false} draws no way out at all — not an inert one", () => {
+    // A real shape (first-run setup that a guest cannot skip). Before this
+    // prop existed the component had to keep drawing a close button and wire
+    // it to nothing, which is a control that is visibly offered and silently
+    // dead — worse than either answer.
+    setViewport(1200);
+    render(
+      <SkinDialog open dismissible={false} onClose={() => undefined} dismissLabel={DISMISS} title="t">
+        <p>body</p>
+      </SkinDialog>
+    );
+    expect(screen.queryByRole("button", { name: DISMISS })).toBeNull();
+  });
+
+  it("dismissible={false} removes the sheet's grab handle too", () => {
+    setViewport(390);
+    render(
+      <SkinDialog open dismissible={false} onClose={() => undefined} dismissLabel={DISMISS} title="t">
+        <p>body</p>
+      </SkinDialog>
+    );
+    expect(screen.queryByTestId("stapel-sheet-handle")).toBeNull();
+  });
+
   it("takes a forced surface for a host whose dialog is not viewport-sized", () => {
     setViewport(1200);
     render(

@@ -132,6 +132,29 @@ describe("<DsarQueue> — triage writes through the module, by id", () => {
     const patch = server.calls.find((call) => call.method === "PATCH");
     expect(JSON.parse(patch?.body ?? "{}")).toEqual({ note: "matched to account" });
   });
+
+  it("will not PATCH a note that is byte-identical to the stored one", async () => {
+    // `DSAR_RESOLVED.note` is "handled", so the draft starts EQUAL to the row.
+    const server = mockServer({
+      "PATCH /dsar/": { body: DSAR_RESOLVED },
+      [QUEUE]: { body: [DSAR_RESOLVED] },
+    });
+    mount(server, <DsarQueue />);
+    await screen.findByTestId("gdpr-queue-rows");
+
+    const save = screen.getByText("Save note").closest("button");
+    expect(save?.disabled).toBe(true);
+
+    // Editing it and putting it back is still no change — a write that writes
+    // nothing is an audit-trail entry for an edit that never happened.
+    const input = screen.getByLabelText("Anything you want to add");
+    fireEvent.change(input, { target: { value: "handled again" } });
+    expect(screen.getByText("Save note").closest("button")?.disabled).toBe(false);
+    fireEvent.change(input, { target: { value: "handled" } });
+    expect(screen.getByText("Save note").closest("button")?.disabled).toBe(true);
+
+    expect(server.calls.some((call) => call.method === "PATCH")).toBe(false);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

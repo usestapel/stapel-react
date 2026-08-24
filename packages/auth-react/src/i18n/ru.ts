@@ -39,6 +39,16 @@ export const authI18nBundleRu: I18nDictionary = {
     "Не удалось войти по passkey на этом устройстве. Добавьте его в настройках безопасности, войдя другим способом, или выберите другой способ входа ниже.",
   "auth.passkey.unsupported":
     "Этот браузер не умеет passkey. Попробуйте другой браузер или устройство либо выберите другой способ.",
+  "auth.passkey.declined":
+    "Passkey не использован. Либо запрос был отклонён, либо на этом устройстве ещё нет passkey для нас — войдите другим способом и добавьте его в настройках безопасности.",
+  "auth.passkey.timeout":
+    "Запрос passkey истёк, не дождавшись ответа. Попробуйте ещё раз.",
+  "auth.passkey.insecure":
+    "Для passkey нужно защищённое соединение с сайтом. Откройте страницу по https и попробуйте снова.",
+  "auth.passkey.already_on_device":
+    "На этом устройстве уже есть passkey от вашей учётной записи. Войдите по нему, а не добавляйте ещё один.",
+  "auth.passkey.failed":
+    "Устройство не смогло выполнить проверку passkey. Попробуйте ещё раз или выберите другой способ.",
   "auth.error.unknown": "Что-то пошло не так. Попробуйте ещё раз.",
 
   // Default-skin UI (§54 AuthPanel)
@@ -74,6 +84,9 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.ui.channel_qr": "QR-код",
   "auth.ui.channel_magic_link": "Ссылка на почту",
   "auth.ui.retry": "Повторить",
+  "auth.ui.close": "Закрыть",
+  "auth.ui.passkey_failed_title": "Не удалось войти по passkey",
+  "auth.ui.passkey_pick_another": "Выбрать другой способ",
 
   // Registration surface
   "auth.ui.register_title": "Создать аккаунт",
@@ -147,6 +160,17 @@ export const authI18nBundleRu: I18nDictionary = {
     "Следуйте подсказке браузера или устройства, чтобы завершить добавление passkey.",
   "auth.sec.passkeys.remove_confirm_title": "Удалить этот passkey?",
   "auth.sec.passkeys.added_success": "Passkey добавлен.",
+  "auth.sec.passkeys.done": "Готово",
+  "auth.sec.passkeys.added_on": "Добавлен {date}",
+  "auth.sec.passkeys.last_used": "Последний вход {date}",
+  "auth.sec.passkeys.never_used": "Ещё не использовался",
+  "auth.sec.passkeys.add_another": "Добавить ещё один",
+  "auth.sec.passkeys.kind_device": "Встроен в устройство",
+  "auth.sec.passkeys.kind_security_key": "Аппаратный ключ",
+  "auth.sec.passkeys.kind_phone": "Телефон или планшет рядом",
+  "auth.sec.passkeys.kind_unknown": "Passkey",
+  "auth.sec.passkeys.add_unsupported":
+    "Этот браузер не умеет создавать passkey. Откройте страницу в другом браузере, чтобы добавить его.",
 
   "auth.sec.password.title": "Смена пароля",
   "auth.sec.password.old_label": "Текущий пароль",

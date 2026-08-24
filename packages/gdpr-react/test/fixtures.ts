@@ -122,6 +122,19 @@ export const EXPORT_PROCESSING = {
   missing_services: [],
 } as const;
 
+/** An archive that has not been picked up by a worker yet — the first of the
+ * two in-flight statuses a second request must not be issued over. */
+export const EXPORT_PENDING = {
+  request_id: 45,
+  status: "pending",
+  parts_done: 0,
+  parts_total: 5,
+  download_available: false,
+  expires_at: null,
+  is_partial: false,
+  missing_services: [],
+} as const;
+
 /** The accepted export job (`POST /user/data-export/request`). */
 export const EXPORT_ACCEPTED = {
   request_id: 44,

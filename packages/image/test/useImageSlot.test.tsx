@@ -1,7 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
-import { useImageSlot } from "../src/useImageSlot.js";
+import { useDevicePixelRatio, useImageSlot } from "../src/useImageSlot.js";
 
 // jsdom has no ResizeObserver — a controllable mock stands in.
 class MockResizeObserver {
@@ -36,7 +36,6 @@ class MockResizeObserver {
   }
 }
 
-
 function lastObserver(): MockResizeObserver {
   const ro = MockResizeObserver.instances.at(-1);
   if (ro === undefined) {
@@ -45,8 +44,10 @@ function lastObserver(): MockResizeObserver {
   return ro;
 }
 
-function Probe(): ReactElement {
-  const { ref, size } = useImageSlot<HTMLDivElement>();
+function Probe(props: { settleMs?: number }): ReactElement {
+  const { ref, size } = useImageSlot<HTMLDivElement>(
+    props.settleMs === undefined ? undefined : { settleMs: props.settleMs }
+  );
   return (
     <div ref={ref} data-testid="slot">
       {size === undefined ? "unmeasured" : `${size.width}x${size.height}`}
@@ -54,52 +55,117 @@ function Probe(): ReactElement {
   );
 }
 
+/** Past the trailing debounce, so whatever the last observed size was is the
+ * one now reported. */
+function settle(): void {
+  act(() => {
+    vi.advanceTimersByTime(200);
+  });
+}
+
+function reported(): string | null {
+  return screen.getByTestId("slot").textContent;
+}
+
 describe("useImageSlot", () => {
   beforeEach(() => {
     MockResizeObserver.instances = [];
     vi.stubGlobal("ResizeObserver", MockResizeObserver);
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
   it("is undefined until the first measurement (SSR-safe)", () => {
     render(<Probe />);
-    expect(screen.getByTestId("slot").textContent).toBe("unmeasured");
+    expect(reported()).toBe("unmeasured");
   });
 
   it("reports the observed size", () => {
     render(<Probe />);
-    const ro = lastObserver();
     act(() => {
-      ro.trigger(300, 200);
+      lastObserver().trigger(300, 200);
     });
-    expect(screen.getByTestId("slot").textContent).toBe("300x200");
+    settle();
+    expect(reported()).toBe("300x200");
   });
 
-  it("high-water-mark: a shrink does not lower the reported size", () => {
+  // ── The high-water mark is GONE, deliberately ──────────────────────────
+  //
+  // It used to be enforced here, which turned the measurement into a maximum:
+  // an element that laid out wide and settled narrow reported the wide box
+  // for ever and asked the CDN for a tier it could not use. "Never downgrade
+  // what is already painted" is a rule about the network and now lives in
+  // <Image>'s load effect, which is the only layer that knows what is on
+  // screen (see `never downgrades: a shrink keeps the already-rendered tier`
+  // in image.test.tsx — the guarantee itself is still tested, one layer up).
+  it("reports a SHRINK — a slot that got smaller is smaller", () => {
+    render(<Probe />);
+    act(() => {
+      lastObserver().trigger(300, 200);
+    });
+    settle();
+    act(() => {
+      lastObserver().trigger(180, 120);
+    });
+    settle();
+    expect(reported()).toBe("180x120");
+  });
+
+  it("never reports a box that never existed (the two axes are one measurement)", () => {
+    // The per-axis high-water mark could report the widest width the element
+    // ever had beside the tallest height it ever had — a box with an aspect
+    // ratio nothing was ever laid out at. `chooseVariant` derives the limiting
+    // AXIS from that aspect, so the wrong pair picks the wrong axis outright.
+    render(<Probe />);
+    act(() => {
+      lastObserver().trigger(300, 200);
+    });
+    settle();
+    act(() => {
+      lastObserver().trigger(400, 100);
+    });
+    settle();
+    expect(reported()).toBe("400x100");
+  });
+
+  it("coalesces a drag: only the size the element settles at is reported", () => {
     render(<Probe />);
     const ro = lastObserver();
     act(() => {
       ro.trigger(300, 200);
     });
+    settle();
+    // A window-edge drag: dozens of intermediate widths, each of which would
+    // otherwise be a tier decision and potentially a fetch.
     act(() => {
-      ro.trigger(180, 120); // sidebar opened, slot transiently narrower
+      for (let w = 300; w <= 900; w += 20) {
+        ro.trigger(w, 200);
+      }
     });
-    expect(screen.getByTestId("slot").textContent).toBe("300x200");
+    // Nothing reported yet — the element has not held still.
+    expect(reported()).toBe("300x200");
+    settle();
+    expect(reported()).toBe("900x200");
   });
 
-  it("high-water-mark is per-axis: growth on one axis is kept alongside the other's maximum", () => {
+  it("ignores a zero-sided box rather than pinning an axis at 0", () => {
+    // Pre-layout, or display:none. The guard this replaces used `&&`, so a
+    // `200 x 0` box got through and froze the height at zero.
     render(<Probe />);
-    const ro = lastObserver();
     act(() => {
-      ro.trigger(300, 200);
+      lastObserver().trigger(200, 0);
     });
+    settle();
+    expect(reported()).toBe("unmeasured");
     act(() => {
-      ro.trigger(400, 100);
+      lastObserver().trigger(200, 150);
     });
-    expect(screen.getByTestId("slot").textContent).toBe("400x200");
+    settle();
+    expect(reported()).toBe("200x150");
   });
 
   it("disconnects the observer on unmount", () => {
@@ -126,7 +192,56 @@ describe("useImageSlot", () => {
         toJSON: () => ({}),
       } as DOMRect);
     render(<Probe />);
-    expect(screen.getByTestId("slot").textContent).toBe("111x55");
+    expect(reported()).toBe("111x55");
     spy.mockRestore();
+  });
+});
+
+function DprProbe(): ReactElement {
+  return <span data-testid="dpr">{String(useDevicePixelRatio())}</span>;
+}
+
+describe("useDevicePixelRatio", () => {
+  let listeners: (() => void)[] = [];
+
+  beforeEach(() => {
+    listeners = [];
+    vi.stubGlobal("devicePixelRatio", 1);
+    vi.stubGlobal(
+      "matchMedia",
+      (query: string) =>
+        ({
+          matches: true,
+          media: query,
+          onchange: null,
+          addListener: () => undefined,
+          removeListener: () => undefined,
+          addEventListener: (_: string, l: () => void) => listeners.push(l),
+          removeEventListener: (_: string, l: () => void) => {
+            listeners = listeners.filter((x) => x !== l);
+          },
+          dispatchEvent: () => false,
+        }) as unknown as MediaQueryList
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("reads the current ratio", () => {
+    render(<DprProbe />);
+    expect(screen.getByTestId("dpr").textContent).toBe("1");
+  });
+
+  it("re-reads it when it changes — a window dragged to a Retina display", () => {
+    // Read once at mount, the slot keeps its 1x tier after the move and stays
+    // visibly soft on a screen with twice the pixels.
+    render(<DprProbe />);
+    vi.stubGlobal("devicePixelRatio", 3);
+    act(() => {
+      for (const l of [...listeners]) l();
+    });
+    expect(screen.getByTestId("dpr").textContent).toBe("3");
   });
 });

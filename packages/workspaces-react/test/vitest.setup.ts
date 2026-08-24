@@ -22,13 +22,24 @@ afterEach(() => {
 });
 
 // jsdom ships neither `matchMedia` nor `ResizeObserver`; Ant Design (the
-// `/default` settings-skin suite) reads both on mount. Minimal no-op
-// polyfills, mirroring auth-react's suite, so the DOM render is exercised
-// without pulling a heavier test env.
+// `/default` settings-skin suite) reads both on mount. Minimal polyfills,
+// mirroring auth-react's suite, so the DOM render is exercised without
+// pulling a heavier test env.
+//
+// `matches` is EVALUATED, not hardcoded. A blanket `false` is not a neutral
+// stub: `@stapel/tokens-antd/skin` picks a bottom sheet or a modal by asking
+// `(min-width: 768px)`, so a stub that refuses every query silently declares
+// every test viewport a phone — including jsdom's own 1024x768 window — and a
+// suite asserting the desktop surface would pass against the wrong one. The
+// getter reads `innerWidth` at CALL time, so a test that sets a phone width
+// before rendering gets the phone answer without re-installing the stub.
 if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
-  window.matchMedia = (query: string): MediaQueryList =>
-    ({
-      matches: false,
+  window.matchMedia = ((query: string) => {
+    const min = /\(min-width:\s*(\d+)px\)/.exec(query);
+    return {
+      get matches(): boolean {
+        return min === null ? false : window.innerWidth >= Number(min[1]);
+      },
       media: query,
       onchange: null,
       addListener: () => {},
@@ -36,7 +47,8 @@ if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
       addEventListener: () => {},
       removeEventListener: () => {},
       dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+    } as unknown as MediaQueryList;
+  }) as typeof window.matchMedia;
 }
 if (typeof globalThis.ResizeObserver === "undefined") {
   globalThis.ResizeObserver = class {

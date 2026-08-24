@@ -13,7 +13,7 @@ import { Button, Space, Typography } from "antd";
 import { useErrorDisplay, useT } from "@stapel/core";
 import { ImageUpload } from "../headless/ImageUpload.js";
 import type { UploadImageBag } from "../headless/useUploadImage.js";
-import { smallestVariantUrl } from "../headless/useUploadPreview.js";
+import { CdnThumbnail } from "./CdnThumbnail.js";
 import { useCdnRuntime } from "../model/context.js";
 import { acceptAttribute } from "../model/limits.js";
 import type { CdnUploadTarget } from "../model/upload.js";
@@ -53,8 +53,11 @@ function ImageUploadFieldBody(props: {
     });
   };
 
-  const shown =
-    bag.previewUrl ?? smallestVariantUrl(bag.image) ?? props.currentUrl ?? null;
+  // The tier is picked from the BOX, not from the ladder: `<CdnThumbnail>`
+  // measures this tile and asks for what fits it at the live device pixel
+  // ratio, where this used to hardcode the smallest variant the CDN made.
+  const localUrl = bag.previewUrl ?? props.currentUrl ?? null;
+  const hasPixels = localUrl !== null || bag.image !== null;
 
   return (
     <Space direction="vertical" data-testid="cdn-image-field">
@@ -67,14 +70,15 @@ function ImageUploadFieldBody(props: {
         style={{ display: "none" }}
         data-testid="cdn-image-input"
       />
-      {shown === null ? null : (
-        <img
-          src={shown}
+      {hasPixels ? (
+        <CdnThumbnail
+          localUrl={localUrl}
+          image={bag.image}
+          box={PREVIEW_BOX}
           alt={t(CDN_I18N_KEYS.itemAlt)}
-          style={PREVIEW_BOX}
           data-testid="cdn-image-preview"
         />
-      )}
+      ) : null}
       <Space>
         <Button
           onClick={() => input.current?.click()}
@@ -83,7 +87,7 @@ function ImageUploadFieldBody(props: {
           data-analytics="none"
           data-analytics-reason="business action — host app wraps with its own tracked()"
         >
-          {shown === null
+          {!hasPixels
             ? t(CDN_I18N_KEYS.pickImage)
             : t(CDN_I18N_KEYS.pickReplace)}
         </Button>

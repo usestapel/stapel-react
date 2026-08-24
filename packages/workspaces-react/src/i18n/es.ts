@@ -15,22 +15,25 @@ export { workspacesErrorBundleEs } from "./generated/errors.es.gen.js";
  * backend error texts (from stapel-workspaces's `translations/errors.es.json`
  * catalog — `pnpm gen:errors`), complete over the error registry by
  * construction: the generator fails on a gap and the Record type fails
- * compilation on drift. The pair-owned UI keys (`WORKSPACES_I18N_KEYS`) are NOT
- * translated to Spanish yet and deliberately fall back to their English text
- * through the en floor that {@link registerWorkspacesI18nEs} registers underneath.
- * So a Spanish-speaking user reads Spanish error messages and English UI copy —
- * never a raw key. That state is asserted in `test/i18nEs.test.ts`; whoever
- * adds hand-written Spanish UI copy flips those assertions deliberately.
+ * compilation on drift. The pair-owned UI keys (`WORKSPACES_I18N_KEYS`) are
+ * covered only where hand-written Spanish copy exists — today that is the one
+ * key below; every other UI key deliberately falls back to its English text
+ * through the en floor that {@link registerWorkspacesI18nEs} registers
+ * underneath. So a Spanish-speaking user reads Spanish error messages and
+ * mostly English UI copy — never a raw key. That state is asserted in
+ * `test/i18nEs.test.ts`, which reads the coverage off this bundle rather than
+ * off a hand-kept list, so adding the next Spanish string needs no test edit.
  *
- * Adding that copy later is additive and host-invisible: this const and the
- * `./i18n/es` subpath keep their names and shapes when it lands.
+ * Adding that copy is additive and host-invisible: this const and the
+ * `./i18n/es` subpath keep their names and shapes as it grows.
  */
 export const workspacesI18nBundleEs: I18nDictionary = {
   // Backend error codes — generated es texts (coverage by construction).
   ...workspacesErrorBundleEs,
 
-  // No hand-written Spanish UI copy yet — see COVERAGE above. Pair-owned keys
-  // resolve through the en floor until it exists.
+  // Hand-written Spanish UI copy — see COVERAGE above. Every pair-owned key
+  // absent here resolves through the en floor.
+  "workspaces.dialog.close": "Cerrar",
 };
 
 /**

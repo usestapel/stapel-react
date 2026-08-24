@@ -24,6 +24,14 @@
  * the button and the promise in the banner are the same sentence — and both
  * are the instant the sweep task will act on, not a browser's arithmetic.
  *
+ * ── The confirmation is a `SkinDialog`, so it is a sheet on a phone ───────
+ *
+ * The dialog surface is the design system's decision, not this panel's:
+ * `@stapel/tokens-antd/skin` renders a bottom sheet below the tablet
+ * breakpoint and a centred modal above it. It is opened with
+ * `maskClosable={false}` — a question this consequential is answered by one of
+ * its two buttons, never by a stray tap on the backdrop.
+ *
  * ── Two 409s, told apart ──────────────────────────────────────────────────
  *
  * `closure_already_pending` is a no-op: somebody else's tab already did it,
@@ -34,15 +42,8 @@
  */
 import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
-import {
-  Alert,
-  Button,
-  Card,
-  Flex,
-  Modal,
-  Skeleton,
-  Typography,
-} from "antd";
+import { Alert, Button, Card, Flex, Skeleton, Typography } from "antd";
+import { SkinDialog } from "@stapel/tokens-antd/skin";
 import { matchLoad, useDescribeFlowError, useI18n, useT } from "@stapel/core";
 import { toFlowError } from "../flows/errors.js";
 import { GDPR_I18N_KEYS } from "../i18n/keys.js";
@@ -138,18 +139,43 @@ export function AccountClosurePanel(
         </Flex>
       </Card>
 
-      <Modal
+      <SkinDialog
         open={confirming}
+        onClose={() => setConfirming(false)}
         title={t(GDPR_I18N_KEYS.closureConfirmTitle)}
-        okText={t(GDPR_I18N_KEYS.closureConfirmOk)}
-        cancelText={t(GDPR_I18N_KEYS.closureConfirmCancel)}
-        okButtonProps={{ danger: true, loading: bag.initiate.isPending }}
-        onCancel={() => setConfirming(false)}
-        onOk={() => {
-          bag.initiate.mutate(undefined, {
-            onSettled: () => setConfirming(false),
-          });
-        }}
+        dismissLabel={t(GDPR_I18N_KEYS.close)}
+        // A dialog that must be ANSWERED: the destructive step is the only
+        // thing on this surface, and a stray tap on the backdrop is not an
+        // answer to "delete this account?".
+        maskClosable={false}
+        data-testid="gdpr-closure-confirm"
+        footer={
+          <Flex gap={8} justify="flex-end">
+            <Button
+              onClick={() => setConfirming(false)}
+              data-testid="gdpr-closure-confirm-cancel"
+              data-analytics="none"
+              data-analytics-reason="local dismissal of a confirm dialog — host app wraps with its own tracked()"
+            >
+              {t(GDPR_I18N_KEYS.closureConfirmCancel)}
+            </Button>
+            <Button
+              type="primary"
+              danger
+              loading={bag.initiate.isPending}
+              onClick={() => {
+                bag.initiate.mutate(undefined, {
+                  onSettled: () => setConfirming(false),
+                });
+              }}
+              data-testid="gdpr-closure-confirm-ok"
+              data-analytics="none"
+              data-analytics-reason="the destructive commit — host app wraps with its own tracked()"
+            >
+              {t(GDPR_I18N_KEYS.closureConfirmOk)}
+            </Button>
+          </Flex>
+        }
       >
         {/* The confirm text carries the same date the banner will, so nobody
             commits to a deadline they are shown only afterwards. `{date}` is
@@ -161,7 +187,7 @@ export function AccountClosurePanel(
             ? t(GDPR_I18N_KEYS.closureConfirmBody, { date: graceDate })
             : t(GDPR_I18N_KEYS.closureExplain)}
         </Typography.Paragraph>
-      </Modal>
+      </SkinDialog>
     </GdprSkinTheme>
   );
 }

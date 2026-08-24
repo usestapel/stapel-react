@@ -21,12 +21,24 @@ afterEach(() => {
 });
 
 // jsdom ships neither `matchMedia` nor `ResizeObserver`; Ant Design (the §54
-// default-skin suite) reads both on mount. Minimal no-op polyfills so the DOM
-// render is exercised without pulling a heavier test env.
+// default-skin suite) reads both on mount. Minimal polyfills so the DOM render
+// is exercised without pulling a heavier test env.
+//
+// `matches` ANSWERS the query instead of always saying `false`. A blanket
+// `false` is not a neutral stub: `@stapel/tokens-antd/skin` picks a bottom
+// sheet over a modal by asking `(min-width: 768px)`, so a constant `false`
+// declares every test viewport a phone — including jsdom's own 1024x768 window
+// — and a suite could then prove nothing about which surface it renders. The
+// getter is live so a test that reassigns `window.innerWidth` before rendering
+// gets the answer for THAT viewport. Only `min-width` is understood; anything
+// else is still `false`, which is what an unrecognised query means.
 if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
-  window.matchMedia = (query: string): MediaQueryList =>
-    ({
-      matches: false,
+  window.matchMedia = ((query: string) => {
+    const min = /\(min-width:\s*(\d+)px\)/.exec(query);
+    return {
+      get matches(): boolean {
+        return min === null ? false : window.innerWidth >= Number(min[1]);
+      },
       media: query,
       onchange: null,
       addListener: () => {},
@@ -34,7 +46,8 @@ if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
       addEventListener: () => {},
       removeEventListener: () => {},
       dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+    } as unknown as MediaQueryList;
+  }) as typeof window.matchMedia;
 }
 if (typeof globalThis.ResizeObserver === "undefined") {
   globalThis.ResizeObserver = class {

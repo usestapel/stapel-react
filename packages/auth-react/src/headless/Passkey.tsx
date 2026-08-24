@@ -65,15 +65,20 @@ export interface PasskeyLoginBag {
   reset(): void;
 }
 
-/** Headless passkey login (auth-sa.md §17, no auth required). */
-export function PasskeyLogin(props: {
-  children: (bag: PasskeyLoginBag) => ReactNode;
-  webauthnGet?: WebauthnBinding;
-}): ReactNode {
+/**
+ * Headless passkey login as a HOOK.
+ *
+ * The render-prop component below is this hook plus a call — and a render prop
+ * cannot be driven from OUTSIDE the subtree it renders, which is exactly what
+ * an inverted passkey flow needs. The owner's ruling (2026-08-24) is that
+ * clicking "passkey" must raise the SYSTEM prompt immediately, with our own
+ * dialog appearing only if that fails; so the thing that owns the ceremony has
+ * to sit next to the button, not inside the panel the button used to open.
+ */
+export function usePasskeyLogin(webauthnGet?: WebauthnBinding): PasskeyLoginBag {
   const api = useAuthApi();
   const analytics = useAuthAnalytics();
   const session = useAuthSession();
-  const { webauthnGet } = props;
   const flow = useMemo(
     () =>
       createPasskeyLoginFlow({
@@ -85,7 +90,7 @@ export function PasskeyLogin(props: {
     [api, analytics, session, webauthnGet]
   );
   const state = useFlow(flow.machine);
-  return props.children({
+  return {
     state,
     begin: (email) => {
       void flow.begin(email);
@@ -94,5 +99,13 @@ export function PasskeyLogin(props: {
       void flow.submitAssertion(credential);
     },
     reset: flow.reset,
-  });
+  };
+}
+
+/** Headless passkey login (auth-sa.md §17, no auth required). */
+export function PasskeyLogin(props: {
+  children: (bag: PasskeyLoginBag) => ReactNode;
+  webauthnGet?: WebauthnBinding;
+}): ReactNode {
+  return props.children(usePasskeyLogin(props.webauthnGet));
 }

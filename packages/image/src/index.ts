@@ -9,9 +9,10 @@ export type {
   VariantMeta,
 } from "./tiers.js";
 
-// Slot measurement (ResizeObserver, high-water-mark, SSR-safe).
-export { useImageSlot } from "./useImageSlot.js";
-export type { ImageSlot, ImageSlotSize } from "./useImageSlot.js";
+// Per-element slot measurement (ResizeObserver, debounced, SSR-safe) and the
+// device pixel ratio, which is not a constant.
+export { useImageSlot, useDevicePixelRatio } from "./useImageSlot.js";
+export type { ImageSlot, ImageSlotOptions, ImageSlotSize } from "./useImageSlot.js";
 
 // Blur-up component over the ladder.
 export { Image } from "./Image.js";

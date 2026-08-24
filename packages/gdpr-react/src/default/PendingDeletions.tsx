@@ -14,7 +14,9 @@
  * recording can be gone from us on the 23rd and gone from everywhere on the
  * 18th of the following month. Showing only the first date would be a
  * comfortable lie; showing only the second would be a needlessly frightening
- * one. Both, labelled, with the difference explained once in a hint.
+ * one. Both, labelled, with the difference explained once — as TEXT under the
+ * table, not as a tooltip on the column header: a hover-only explanation of
+ * the one column nobody can guess the meaning of does not exist on a phone.
  *
  * ── `timeout` is a row a person can see ───────────────────────────────────
  *
@@ -22,10 +24,11 @@
  * than quietly leaving it `queued` forever. The table renders that as its own
  * state with an explanation that somebody has been alerted — the alternative
  * (a green tick, or a row that simply never changes) is how a deletion gets
- * forgotten.
+ * forgotten. That explanation, and the list of owners a queued request is
+ * still waiting on, are printed under the tag for the same reason as above.
  */
 import type { ReactElement } from "react";
-import { Alert, Card, Empty, Flex, Skeleton, Table, Tag, Tooltip, Typography } from "antd";
+import { Alert, Card, Empty, Flex, Skeleton, Table, Tag, Typography } from "antd";
 import { matchList, useDescribeFlowError, useI18n, useT } from "@stapel/core";
 import type { ErasureStatus } from "../api/types.js";
 import { toFlowError } from "../flows/errors.js";
@@ -129,25 +132,31 @@ export function PendingDeletions(props: PendingDeletionsProps): ReactElement {
       render: (_: unknown, row: ErasureStatus): ReactElement => {
         const color = stateColor(row.state);
         const waiting = row.unreceipted_owners ?? [];
-        const tag = (
-          <Tag {...(color !== undefined ? { color } : {})}>
-            {t(stateKeyFor(row.state))}
-          </Tag>
-        );
-        if (row.state === "timeout") {
-          return (
-            <Tooltip title={t(GDPR_I18N_KEYS.deletionsTimeoutHint)}>{tag}</Tooltip>
-          );
-        }
-        if (waiting.length === 0) return tag;
+        // What the state MEANS is the whole reason this column exists, so it
+        // is printed under the tag rather than hidden behind a hover: on a
+        // phone there is no hover, and a bare "Overdue" on a screen about
+        // one's own deletion request explains nothing.
+        const hint =
+          row.state === "timeout"
+            ? t(GDPR_I18N_KEYS.deletionsTimeoutHint)
+            : waiting.length > 0
+              ? t(GDPR_I18N_KEYS.deletionsWaitingOn, { owners: waiting.join(", ") })
+              : undefined;
         return (
-          <Tooltip
-            title={t(GDPR_I18N_KEYS.deletionsWaitingOn, {
-              owners: waiting.join(", "),
-            })}
-          >
-            {tag}
-          </Tooltip>
+          <Flex vertical gap={2}>
+            <Tag {...(color !== undefined ? { color } : {})}>
+              {t(stateKeyFor(row.state))}
+            </Tag>
+            {hint !== undefined ? (
+              <Typography.Text
+                type="secondary"
+                style={{ fontSize: 12 }}
+                data-testid="gdpr-deletions-state-hint"
+              >
+                {hint}
+              </Typography.Text>
+            ) : null}
+          </Flex>
         );
       },
     },
@@ -159,11 +168,9 @@ export function PendingDeletions(props: PendingDeletionsProps): ReactElement {
     },
     {
       key: "fully",
-      title: (
-        <Tooltip title={t(GDPR_I18N_KEYS.deletionsFullyErasedHint)}>
-          <span>{t(GDPR_I18N_KEYS.deletionsColumnFullyErased)}</span>
-        </Tooltip>
-      ),
+      // The header is a plain label; what the second clock means is said
+      // under the table, in text, where it can be read without a pointer.
+      title: t(GDPR_I18N_KEYS.deletionsColumnFullyErased),
       render: (_: unknown, row: ErasureStatus): string =>
         formatDeletionDate(row.fully_erased_by, locale),
     },
@@ -211,7 +218,17 @@ export function PendingDeletions(props: PendingDeletionsProps): ReactElement {
                 dataSource={[...rows]}
                 columns={columns}
                 pagination={false}
+                // Four columns of dates do not fit a phone. Without this the
+                // last two are simply unreachable there.
+                scroll={{ x: true }}
               />
+              <Typography.Text
+                type="secondary"
+                style={{ fontSize: 12 }}
+                data-testid="gdpr-deletions-fully-erased-hint"
+              >
+                {t(GDPR_I18N_KEYS.deletionsFullyErasedHint)}
+              </Typography.Text>
             </Flex>
           ),
         })}

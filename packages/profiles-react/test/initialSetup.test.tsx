@@ -55,6 +55,9 @@ afterEach(() => {
   server.resetHandlers();
   localStorage.clear();
   vi.restoreAllMocks();
+  // Back to jsdom's own viewport, so a test that set a phone width does not
+  // hand the next one a sheet it never asked for.
+  setViewport(1024);
 });
 afterAll(() => server.close());
 
@@ -143,6 +146,21 @@ async function flushGate(): Promise<void> {
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 30));
   });
+}
+
+/** jsdom's window is 1024x768 and never resizes itself. The dialog surface is
+ * a real `matchMedia` query evaluated against `window.innerWidth` (see
+ * `vitest.setup.ts`), so a test that cares which surface it gets says which
+ * viewport it is standing in. */
+function setViewport(width: number): void {
+  Object.defineProperty(window, "innerWidth", { value: width, configurable: true });
+}
+
+/** The surface `SkinDialog` actually rendered, as it stamps it on the body
+ * wrapper — `"sheet"` (phone) or `"modal"` (tablet/desktop). */
+function dialogSurface(): string | null {
+  const wrapper = document.querySelector("[data-stapel-dialog-surface]");
+  return wrapper === null ? null : wrapper.getAttribute("data-stapel-dialog-surface");
 }
 
 describe("useInitialSetupGate", () => {
@@ -453,17 +471,54 @@ describe("<InitialSetupModal/> (default skin)", () => {
     expect(patches[0]).toMatchObject({ display_name: "Ada", initial_setup_passed: true });
   });
 
-  it("skippable={false} is the blocking mode: no Skip, no ✕", async () => {
+  it("skippable={false} is the blocking mode: no Skip, and every dismissal is inert", async () => {
     serveWithLanguages(profileFixture());
+    const onClose = vi.fn();
     const runtime = createProfilesRuntime({ baseUrl: BASE });
-    render(wrap(runtime, <InitialSetupModal open skippable={false} />));
+    render(wrap(runtime, <InitialSetupModal open skippable={false} onClose={onClose} />));
 
     await waitFor(() =>
       expect(screen.getByTestId("initial-setup-display-name")).toBeDefined()
     );
     expect(screen.queryByText("Maybe later")).toBeNull();
-    expect(document.querySelector(".ant-modal-close")).toBeNull();
+
+    // The shared skin (@stapel/tokens-antd/skin) always DRAWS a dismissal —
+    // the modal's ✕, the sheet's grab handle — and exposes no way to omit it
+    // (see the component's module doc, KNOWN GAP). What the blocking mode can
+    // still guarantee is that pressing it does nothing: no skip is recorded,
+    // the host is never told to close, and no PATCH goes out.
+    const dismiss = document.querySelector(".ant-modal-close");
+    if (dismiss !== null) fireEvent.click(dismiss);
+    const dialog = document.querySelector(".ant-modal-wrap");
+    if (dialog !== null) fireEvent.keyDown(dialog, { key: "Escape", keyCode: 27 });
+
+    await flushGate();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(readStamp()).toBeUndefined();
     // Save is still there — the only way out.
     expect(screen.getByText("Continue")).toBeDefined();
+  });
+
+  it("the dialog is a bottom sheet on a phone viewport and a modal at 1024", async () => {
+    // The owner's fleet rule, inherited rather than restated here: the skin
+    // stamps the surface it chose on the body wrapper, so this pair can prove
+    // it obeys the rule instead of asserting it in prose.
+    serveWithLanguages(profileFixture());
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+
+    setViewport(390);
+    const { unmount } = render(wrap(runtime, <InitialSetupModal open />));
+    await waitFor(() =>
+      expect(screen.getByTestId("initial-setup-display-name")).toBeDefined()
+    );
+    expect(dialogSurface()).toBe("sheet");
+    unmount();
+
+    setViewport(1024);
+    render(wrap(runtime, <InitialSetupModal open />));
+    await waitFor(() =>
+      expect(screen.getByTestId("initial-setup-display-name")).toBeDefined()
+    );
+    expect(dialogSurface()).toBe("modal");
   });
 });

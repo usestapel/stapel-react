@@ -20,10 +20,11 @@ import {
 /**
  * The es locale contour of the pair (i18n-shipping.md §2/§3). Mirrors the ru
  * contour with ONE deliberate inversion: Spanish covers the backend error
- * registry but NOT the pair-owned UI keys, so the UI-coverage suite asserts
- * that those keys resolve to their ENGLISH text under locale `es` — partial
- * coverage as a declared, tested state rather than an accident. Whoever adds
- * hand-written Spanish UI copy flips that suite on purpose.
+ * registry completely but the pair-owned UI keys only PARTIALLY, so the
+ * UI-coverage suite asserts both halves key by key — a key the es bundle
+ * carries resolves to its Spanish text, a key it does not resolves to its
+ * ENGLISH text (never to a raw key). Partial coverage as a declared, tested
+ * state rather than an accident.
  */
 
 const PKG_DIR = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
@@ -85,7 +86,7 @@ describe("generated es error bundle", () => {
   });
 });
 
-describe("declared coverage: Spanish errors, English UI (no raw keys)", () => {
+describe("declared coverage: Spanish errors, partly-Spanish UI (no raw keys)", () => {
   it("every registry code resolves to its SPANISH text under locale es", async () => {
     const i18n = createI18n({ locale: "en" });
     registerProfilesI18nEs(i18n);
@@ -94,28 +95,38 @@ describe("declared coverage: Spanish errors, English UI (no raw keys)", () => {
     expect(i18n.t(code)).toBe(profilesErrorBundleEs[code]);
   });
 
-  it("pair-owned UI keys fall back to ENGLISH under locale es — not to a raw key", async () => {
-    // The inversion of the ru suite: Spanish UI copy does not exist yet, so the
-    // en floor under the locale is what a host reads. When Spanish UI copy
-    // lands, this assertion is the one that must be updated.
+  it("a pair-owned UI key resolves to its SPANISH text where the bundle has one, to ENGLISH where it does not — never to a raw key", async () => {
+    // The inversion of the ru suite: Spanish UI copy is partial, so the en
+    // floor under the locale is what a host reads for every key the es bundle
+    // does not carry. Both halves are asserted, so adding es copy for a key is
+    // a one-line change here and forgetting the en floor is still a failure.
     const i18n = createI18n({ locale: "en" });
     registerProfilesI18n(i18n);
     registerProfilesI18nEs(i18n);
     await i18n.setLocale("es");
     for (const key of Object.values(PROFILES_I18N_KEYS)) {
-      const en = profilesI18nBundleEn[key] ?? "";
-      expect(i18n.t(key), key).toBe(en);
+      const expected = profilesI18nBundleEs[key] ?? profilesI18nBundleEn[key] ?? "";
+      expect(i18n.t(key), key).toBe(expected);
       expect(i18n.t(key), key).not.toBe(key);
     }
   });
 
-  it("the es bundle carries exactly the error codes and no UI keys (yet)", () => {
+  it("the es bundle carries the whole error registry plus only pair-owned UI keys", () => {
     const uiKeys = new Set<string>(Object.values(PROFILES_I18N_KEYS));
-    const carried = Object.keys(profilesI18nBundleEs).filter((k) => uiKeys.has(k));
-    expect(carried).toEqual([]);
-    expect(Object.keys(profilesI18nBundleEs).sort()).toEqual(
-      [...PROFILES_ERROR_CODES].sort()
+    const codes = new Set<string>(PROFILES_ERROR_CODES);
+    // Nothing in the bundle that is neither a registry code nor a key this
+    // pair owns — a typo'd key would otherwise sit there translating nothing.
+    const stray = Object.keys(profilesI18nBundleEs).filter(
+      (k) => !codes.has(k) && !uiKeys.has(k)
     );
+    expect(stray).toEqual([]);
+    // The error registry is still covered completely.
+    const carriedCodes = Object.keys(profilesI18nBundleEs).filter((k) => codes.has(k));
+    expect(carriedCodes.sort()).toEqual([...PROFILES_ERROR_CODES].sort());
+    // The UI keys that DO have Spanish copy today — an explicit inventory, so
+    // adding or losing one is a deliberate edit rather than silent drift.
+    const carriedUi = Object.keys(profilesI18nBundleEs).filter((k) => uiKeys.has(k));
+    expect(carriedUi.sort()).toEqual([PROFILES_I18N_KEYS.actionClose]);
   });
 });
 

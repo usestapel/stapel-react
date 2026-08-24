@@ -287,7 +287,7 @@ describe("<MembersManager/> — the roster's three states on screen", () => {
     expect(screen.queryByText("No data")).toBeNull();
   });
 
-  it("FAILED role registry: says the picker is empty because WE failed", async () => {
+  it("FAILED role registry: says WE failed, and the roster read is untouched", async () => {
     server.use(
       http.get(`${BASE}/roles`, () => notFoundHtml()),
       http.get(`${BASE}/${WS}/members`, () =>

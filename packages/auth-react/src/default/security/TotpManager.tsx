@@ -36,13 +36,13 @@ import {
   Flex,
   Form,
   Input,
-  Modal,
   Popconfirm,
   QRCode,
   Result,
   Spin,
   Typography,
 } from "antd";
+import { SkinDialog } from "@stapel/tokens-antd/skin";
 import { useFormatFlowError, useT } from "@stapel/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { TotpSetup } from "../../headless/TotpSetup.js";
@@ -504,25 +504,28 @@ export function TotpManager(): ReactElement {
         </Flex>
       )}
 
-      <Modal
+      {/* A QR code and a six-digit field are the WORST content for a centred
+          desktop modal on a phone, and that is exactly what these two were.
+          Which surface they take is now the fleet's rule, not this file's. */}
+      <SkinDialog
         title={t(enabled ? AUTH_I18N_KEYS.secTotpReplaceTitle : AUTH_I18N_KEYS.secTotpSetupTitle)}
         open={setupOpen}
-        onCancel={() => setSetupOpen(false)}
-        footer={null}
-        destroyOnHidden
+        onClose={() => setSetupOpen(false)}
+        dismissLabel={t(AUTH_I18N_KEYS.uiClose)}
+        data-testid="totp-setup-dialog"
       >
         <SetupDialogBody isReplace={enabled} onDone={closeSetup} onDelayedStarted={closeSetup} />
-      </Modal>
+      </SkinDialog>
 
-      <Modal
+      <SkinDialog
         title={t(AUTH_I18N_KEYS.secTotpDisableTitle)}
         open={disableOpen}
-        onCancel={() => setDisableOpen(false)}
-        footer={null}
-        destroyOnHidden
+        onClose={() => setDisableOpen(false)}
+        dismissLabel={t(AUTH_I18N_KEYS.uiClose)}
+        data-testid="totp-disable-dialog"
       >
         <DisableDialogBody onDisabled={() => setDisableOpen(false)} />
-      </Modal>
+      </SkinDialog>
     </Card>
   );
 }

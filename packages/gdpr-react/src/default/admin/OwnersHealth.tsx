@@ -182,6 +182,9 @@ export function OwnersHealth(props: OwnersHealthProps): ReactElement {
                   dataSource={[...rows]}
                   columns={columns}
                   pagination={false}
+                  // Four columns, one of them a list of subject types: on a
+                  // phone the table is unreadable without its own scroller.
+                  scroll={{ x: true }}
                   rowClassName={(row: DataOwnerHealthRow) =>
                     row.alive ? "" : "gdpr-owner-silent"
                   }

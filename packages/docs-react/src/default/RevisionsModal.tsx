@@ -1,6 +1,6 @@
 /**
  * `<RevisionsModal/>` — the default skin's version-history surface: the
- * `RevisionHistory` headless bag rendered as a modal with a revision list on
+ * `RevisionHistory` headless bag rendered as a dialog with a revision list on
  * the left and a preview on the right, plus rollback (behind a confirm — a
  * rollback lands as a NEW head, history keeps everything) and pin-as-named
  * ("Name this version"). Backed 1:1 by the server's revision routes:
@@ -11,7 +11,11 @@
  * document's revisions offer the download link instead (the preview read
  * would decode garbage).
  *
- * Self-themed via `DocsSkinTheme` (the antd `Modal` inherits the internal
+ * The surface is `@stapel/tokens-antd/skin`'s `<SkinDialog>` — a bottom sheet
+ * on a phone, a centred modal on tablet/desktop (owner ruling 2026-08-24).
+ * `width` is the modal's; the sheet is viewport-wide and ignores it.
+ *
+ * Self-themed via `DocsSkinTheme` (the dialog inherits the internal
  * `ConfigProvider` through context even across its portal). Replaceable
  * without a fork: `FileManager` resolves this modal through the skin slot
  * registry (`registerDocsSkinComponent("revisionsModal", …)`).
@@ -24,12 +28,19 @@ import {
   Flex,
   Input,
   List,
-  Modal,
   Popconfirm,
   Spin,
   Typography,
 } from "antd";
-import { matchList, useErrorDisplay, useT } from "@stapel/core";
+import { SkinDialog } from "@stapel/tokens-antd/skin";
+import {
+  actionAvailable,
+  actionBlocked,
+  matchList,
+  useActionGate,
+  useErrorDisplay,
+  useT,
+} from "@stapel/core";
 import type { ThemeMode } from "@stapel/tokens-antd";
 import { RevisionHistory } from "../headless/RevisionHistory.js";
 import { useDocument, useRevisionContent } from "../model/queries.js";
@@ -74,6 +85,67 @@ function RevisionPreview(props: {
   );
 }
 
+/**
+ * One row's rollback affordance — a component, not a closure, so the gate
+ * hook runs at a component's top level rather than inside `renderItem`.
+ *
+ * The revision the document is CURRENTLY at is not a place to roll back to:
+ * the restore would write a new, byte-identical head and a second history
+ * entry saying nothing happened. It is switched off through core's
+ * `useActionGate` with the reason on screen beside it — the `TrashPane`
+ * precedent, because a disabled control receives no pointer events and a
+ * tooltip on it is a reason nobody can read.
+ */
+function RevisionRollback(props: {
+  readonly isHead: boolean;
+  /** True only while THIS revision is the one being restored. */
+  readonly restoring: boolean;
+  onConfirm(): void;
+}): ReactElement {
+  const t = useT();
+  const gate = useActionGate(
+    props.isHead
+      ? actionBlocked(DOCS_I18N_KEYS.revisionsRollbackBlockedHead)
+      : actionAvailable()
+  );
+  const button = (
+    <Button
+      size="small"
+      loading={props.restoring}
+      disabled={gate.disabled}
+      data-analytics="none"
+      data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+    >
+      {t(DOCS_I18N_KEYS.revisionsRestore)}
+    </Button>
+  );
+  return (
+    <Flex align="center" gap="small">
+      {gate.reason !== undefined && (
+        <Typography.Text
+          type="secondary"
+          style={{ fontSize: 12 }}
+          data-testid="docs-revision-rollback-blocked"
+        >
+          {gate.reason}
+        </Typography.Text>
+      )}
+      {gate.disabled ? (
+        button
+      ) : (
+        <Popconfirm
+          title={t(DOCS_I18N_KEYS.revisionsRollbackConfirm)}
+          okText={t(DOCS_I18N_KEYS.dialogOk)}
+          cancelText={t(DOCS_I18N_KEYS.dialogCancel)}
+          onConfirm={props.onConfirm}
+        >
+          {button}
+        </Popconfirm>
+      )}
+    </Flex>
+  );
+}
+
 export function RevisionsModal(props: RevisionsModalProps): ReactElement {
   const t = useT();
   const errorDisplay = useErrorDisplay(DOCS_I18N_KEYS.unknownError);
@@ -81,8 +153,16 @@ export function RevisionsModal(props: RevisionsModalProps): ReactElement {
   const documentQuery = useDocument(props.documentId);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pinName, setPinName] = useState("");
+  // Which revision the in-flight restore is for. The headless bag exposes one
+  // `isRestoring` for the whole mutation, so binding it straight to every
+  // row's `loading` spun EVERY button on one rollback.
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
   const previewable = TEXT_HINTS.has(documentQuery.data?.editor_hint ?? "");
+  // The document's current content sequence. `undefined` while the head read
+  // is in flight — an unknown head blocks nothing, the same way the preview
+  // beside it stays provisional until the read lands.
+  const headSeq = documentQuery.data?.head_seq;
 
   function downloadRevision(revisionId: string): void {
     void (async () => {
@@ -96,15 +176,14 @@ export function RevisionsModal(props: RevisionsModalProps): ReactElement {
 
   return (
     <DocsSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
-      <Modal
+      <SkinDialog
         open={props.open}
         title={t(DOCS_I18N_KEYS.revisionsTitle)}
-        footer={null}
+        dismissLabel={t(DOCS_I18N_KEYS.dialogClose)}
         width={720}
-        onCancel={() => {
+        onClose={() => {
           props.onClose();
         }}
-        destroyOnHidden
       >
         <RevisionHistory documentId={props.documentId}>
           {({
@@ -177,26 +256,19 @@ export function RevisionsModal(props: RevisionsModalProps): ReactElement {
                             setSelectedId(revision.id);
                           }}
                           data-analytics="none"
-                          data-analytics-reason="selection within the modal — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+                          data-analytics-reason="selection within the dialog — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
                           actions={[
-                            <Popconfirm
+                            <RevisionRollback
                               key="rollback"
-                              title={t(DOCS_I18N_KEYS.revisionsRollbackConfirm)}
-                              okText={t(DOCS_I18N_KEYS.dialogOk)}
-                              cancelText={t(DOCS_I18N_KEYS.dialogCancel)}
+                              isHead={
+                                headSeq !== undefined && revision.seq === headSeq
+                              }
+                              restoring={isRestoring && restoringId === revision.id}
                               onConfirm={() => {
+                                setRestoringId(revision.id);
                                 restore(revision.id);
                               }}
-                            >
-                              <Button
-                                size="small"
-                                loading={isRestoring}
-                                data-analytics="none"
-                                data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-                              >
-                                {t(DOCS_I18N_KEYS.revisionsRestore)}
-                              </Button>
-                            </Popconfirm>,
+                            />,
                           ]}
                         >
                           <List.Item.Meta
@@ -252,7 +324,7 @@ export function RevisionsModal(props: RevisionsModalProps): ReactElement {
             </Flex>
           )}
         </RevisionHistory>
-      </Modal>
+      </SkinDialog>
     </DocsSkinTheme>
   );
 }

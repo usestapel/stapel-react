@@ -21,6 +21,15 @@
  * that link (`token` prop), and otherwise says where the link is. Inventing an
  * input box for "paste your token here" would be a worse version of the email.
  *
+ * ── One archive at a time, refused BEFORE the request ─────────────────────
+ *
+ * The 30-day cooldown is a server rule and its refusal is a 409 — but a panel
+ * that only learns from the refusal has already asked for a second copy of
+ * everything the product knows about a person while the first one is still
+ * being built. `status` is `pending`/`processing` right there in the same
+ * read, so the button is gated on it (`useActionGate`) and the reason is
+ * printed beside the control, where a phone user can read it.
+ *
  * ── `download_available` is the server's bit, not `status === "ready"` ────
  *
  * It also encodes "the single-use token is still unspent". A panel that
@@ -40,7 +49,15 @@ import {
   Skeleton,
   Typography,
 } from "antd";
-import { matchLoad, useDescribeFlowError, useI18n, useT } from "@stapel/core";
+import {
+  actionAvailable,
+  actionBlocked,
+  matchLoad,
+  useActionGate,
+  useDescribeFlowError,
+  useI18n,
+  useT,
+} from "@stapel/core";
 import type { ExportStatus } from "../api/types.js";
 import { toFlowError } from "../flows/errors.js";
 import { GDPR_I18N_KEYS } from "../i18n/keys.js";
@@ -121,6 +138,16 @@ export function DataExportPanel(props: DataExportPanelProps): ReactElement {
   const requestError = bag.request.error;
   const cooldown = requestError != null && isExportCooldown(requestError);
   const downloadError = bag.download.error;
+
+  // A job is already running for this person. `cooldown` only learns that
+  // AFTER the server answers 429/409 — by which time a second archive of
+  // everything the product knows about somebody has already been asked for.
+  // The status is on the wire and is read here instead, so the control is off
+  // BEFORE the duplicate request rather than after it.
+  const inFlight = bag.status === "pending" || bag.status === "processing";
+  const requestGate = useActionGate(
+    inFlight ? actionBlocked(GDPR_I18N_KEYS.exportInFlight) : actionAvailable()
+  );
 
   return (
     <GdprSkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
@@ -248,18 +275,33 @@ export function DataExportPanel(props: DataExportPanelProps): ReactElement {
             />
           ) : null}
 
-          <Flex gap={8} wrap>
-            <Button
-              type="primary"
-              loading={bag.request.isPending}
-              disabled={cooldown}
-              onClick={() => bag.request.mutate()}
-              data-testid="gdpr-export-request"
-              data-analytics="none"
-              data-analytics-reason="starts a server-side job over a read surface — host app wraps with its own tracked()"
-            >
-              {t(GDPR_I18N_KEYS.exportRequest)}
-            </Button>
+          <Flex gap={8} wrap align="flex-start">
+            {/* The reason is TEXT beside the button, never a `title`: a
+                disabled control receives no pointer events, so a tooltip on it
+                is a reason nobody can read. The cooldown's own reason is the
+                alert above — the server's sentence, not a guess at it. */}
+            <Flex vertical gap={4} align="flex-start">
+              <Button
+                type="primary"
+                loading={bag.request.isPending}
+                disabled={requestGate.disabled || cooldown}
+                onClick={() => bag.request.mutate()}
+                data-testid="gdpr-export-request"
+                data-analytics="none"
+                data-analytics-reason="starts a server-side job over a read surface — host app wraps with its own tracked()"
+              >
+                {t(GDPR_I18N_KEYS.exportRequest)}
+              </Button>
+              {requestGate.reason !== undefined ? (
+                <Typography.Text
+                  type="secondary"
+                  style={{ fontSize: 12 }}
+                  data-testid="gdpr-export-request-blocked"
+                >
+                  {requestGate.reason}
+                </Typography.Text>
+              ) : null}
+            </Flex>
             {bag.downloadAvailable && token !== undefined ? (
               <Button
                 loading={bag.download.isPending}

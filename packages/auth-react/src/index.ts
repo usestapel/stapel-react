@@ -87,7 +87,7 @@ export type {
   FlowStateBase,
   FlowError,
 } from "@stapel/core";
-export { toFlowError } from "./flows/errors.js";
+export { toFlowError, toPasskeyFlowError, passkeyFailureOf } from "./flows/errors.js";
 
 export { createOtpFlow } from "./flows/otpFlow.js";
 export type { OtpFlow, OtpFlowDeps, OtpState } from "./flows/otpFlow.js";
@@ -176,7 +176,11 @@ export {
   defaultWebauthnGet,
   resolveWebauthnCreate,
   resolveWebauthnGet,
+  classifyWebauthnError,
+  WEBAUTHN_UNSUPPORTED,
+  WEBAUTHN_NO_CREDENTIAL,
 } from "./webauthn.js";
+export type { WebauthnFailure } from "./webauthn.js";
 export { createMagicLinkFlow } from "./flows/magicLinkFlow.js";
 export type {
   MagicLinkFlow,
@@ -279,7 +283,7 @@ export type {
 } from "./headless/FirstLogin.js";
 export { QrLogin } from "./headless/QrLogin.js";
 export type { QrLoginBag } from "./headless/QrLogin.js";
-export { PasskeyRegistration, PasskeyLogin } from "./headless/Passkey.js";
+export { PasskeyRegistration, PasskeyLogin, usePasskeyLogin } from "./headless/Passkey.js";
 export type {
   WebauthnBinding,
   PasskeyRegistrationBag,

@@ -15,6 +15,13 @@ export const WORKSPACES_I18N_KEYS = {
   // Retry affordance beside a stated failure — an error a person cannot act
   // on is only half the message.
   retry: "workspaces.retry",
+  /**
+   * The accessible name of a dialog's dismissal — the modal's close button and
+   * the bottom sheet's grab handle (`SkinDialog`'s required `dismissLabel`).
+   * Surface-neutral on purpose: the same dialog is a sheet on a phone and a
+   * modal on a tablet, and the word for "get me out of here" is the same one.
+   */
+  dialogClose: "workspaces.dialog.close",
   // Workspace list (WorkspaceList headless)
   listLoading: "workspaces.list.loading",
   listEmpty: "workspaces.list.empty",
@@ -61,7 +68,13 @@ export const WORKSPACES_I18N_KEYS = {
   membersInviteEmailsLabel: "workspaces.members.invite_dialog.emails_label",
   membersInviteEmailsPlaceholder: "workspaces.members.invite_dialog.emails_placeholder",
   membersInviteRoleLabel: "workspaces.members.invite_dialog.role_label",
+  membersInviteSubmit: "workspaces.members.invite_dialog.submit",
+  // Why the invite dialog's submit is switched off (core's `useActionGate`).
+  membersInviteBlockedNoEmails: "workspaces.members.invite_dialog.blocked.no_emails",
   membersRemoveConfirm: "workspaces.members.remove_confirm",
+  /** Why a row's "Remove" is switched off: the backend's last-owner
+   * protection would refuse it, so the control never offers it. */
+  membersRemoveBlockedLastOwner: "workspaces.members.remove.blocked.last_owner",
   roleOwner: "workspaces.members.role.owner",
   roleAdmin: "workspaces.members.role.admin",
   roleMember: "workspaces.members.role.member",
@@ -119,6 +132,7 @@ export const workspacesI18nBundleEn: I18nDictionary = {
   // workspaces-react UI
   "workspaces.error.unknown": "Something went wrong. Please try again.",
   "workspaces.retry": "Try again",
+  "workspaces.dialog.close": "Close",
   "workspaces.list.loading": "Loading workspaces…",
   "workspaces.list.empty": "No workspaces yet.",
   "workspaces.list.load_failed":
@@ -129,7 +143,7 @@ export const workspacesI18nBundleEn: I18nDictionary = {
   "workspaces.members.empty": "No members yet.",
   "workspaces.members.load_failed": "We could not load the member list.",
   "workspaces.roles.load_failed":
-    "We could not load the role list, so the role picker is empty. It is not a workspace without roles.",
+    "We could not load the role list, so roles cannot be changed right now. It is not a workspace without roles.",
   "workspaces.members.invite": "Invite",
   "workspaces.members.inviting": "Inviting…",
   "workspaces.members.update_role": "Change role",
@@ -156,7 +170,12 @@ export const workspacesI18nBundleEn: I18nDictionary = {
   "workspaces.members.invite_dialog.emails_label": "Emails",
   "workspaces.members.invite_dialog.emails_placeholder": "Type an email and press Enter",
   "workspaces.members.invite_dialog.role_label": "Role",
+  "workspaces.members.invite_dialog.submit": "Send invitations",
+  "workspaces.members.invite_dialog.blocked.no_emails":
+    "Enter at least one email address.",
   "workspaces.members.remove_confirm": "Remove this member?",
+  "workspaces.members.remove.blocked.last_owner":
+    "This is the workspace's only owner. Give someone else the owner role first.",
   "workspaces.members.role.owner": "Owner",
   "workspaces.members.role.admin": "Admin",
   "workspaces.members.role.member": "Member",

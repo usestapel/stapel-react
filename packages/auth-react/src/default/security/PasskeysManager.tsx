@@ -4,31 +4,63 @@
  * pair's existing `usePasskeys`/`useRemovePasskey` hooks; adding one uses the
  * existing `PasskeyRegistration` headless flow. No new backend surface.
  *
+ * ## The row is about a CREDENTIAL, not about signing in
+ *
+ * Owner report, 2026-08-24: this screen showed "a name plus a green LOG IN
+ * button" to a person who is, necessarily, already logged in. Two things had
+ * gone wrong and both are fixed here:
+ *
+ *  - the success step of the add-journey reused `auth.ui.submit` for its
+ *    dismiss button. That key is the SIGN-IN button's copy — its Russian
+ *    translation is literally the word for "log in" — so finishing a passkey
+ *    enrolment ended in a green button
+ *    offering an action the viewer's state makes meaningless. It says
+ *    `auth.sec.passkeys.done` now, which is what the button does;
+ *  - the row said only a name and a date with no label. A credential-
+ *    management row has to answer *what is this*, *when did it arrive*, *is it
+ *    in use*, and *what can I do to it*. It now does: the device name, what
+ *    the credential lives in (read from `transports[]`), when it was added,
+ *    when it was last used — or, honestly, that it never has been — and the
+ *    two actions that exist against the contract.
+ *
+ * **RENAME DOES NOT EXIST YET, and is deliberately not faked.** The pair's
+ * whole passkey surface is `GET /passkey/`, `POST /passkey/register/{begin,
+ * complete}/` and `DELETE /passkey/{id}/`; `device_name` is writable exactly
+ * once, at register-complete, and there is no route that updates it
+ * afterwards. A rename control here would be a button that cannot do its job,
+ * which is the same defect as the LOG IN button one paragraph up. What the
+ * backend would need is one route — `PATCH /passkey/{id}/ {"device_name": …}`
+ * — and this row is shaped so that adding it is a button, not a redesign.
+ *
  * INTERACTION CANON — passkey = direct trigger, NEVER a modal (owner
  * directive 2026-07-17, folded into frontend-guidelines.md §8): the
  * browser's own WebAuthn prompt IS the UI. Clicking "Add a passkey" begins
  * the ceremony immediately (no name-entry dialog gating it first) — the
- * same rule the sign-in `PasskeyPanel` already follows
- * (`bag.begin()` straight off the button click). A generic device name is
- * inferred from the user agent; renaming is a follow-up, not a blocker.
+ * same rule the sign-in surface follows, where clicking "Passkey" now raises
+ * the system prompt straight away and shows a sheet only on failure.
  *
- * WEBAUTHN (MODULE.md "WebAuthn binding", the same contract the sign-in
- * `PasskeyPanel` follows): `navigator.credentials.create()` runs on the
- * pair's built-in default binding, so the ceremony works with nothing
- * injected; `webauthnCreate` overrides it. Where the browser has no WebAuthn
- * API at all, `awaitingCredential` renders the honest "can't use passkeys
- * here" copy instead of guidance for a prompt that will never appear.
+ * WEBAUTHN (MODULE.md "WebAuthn binding"):
+ * `navigator.credentials.create()` runs on the pair's built-in default
+ * binding, so the ceremony works with nothing injected; `webauthnCreate`
+ * overrides it. Where the browser has no WebAuthn API at all, "Add" is
+ * BLOCKED with its reason printed beside it — the screen already knew that
+ * fact, and used to spend it only after the click, from inside a ceremony
+ * that could never complete.
  */
 import { useEffect, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Alert, Button, Card, Empty, Flex, Popconfirm, Spin, Typography } from "antd";
+import { Alert, Button, Card, Empty, Flex, Spin, Tag, Typography } from "antd";
 import {
+  actionAvailable,
+  actionBlocked,
   loadStateFromQuery,
   matchList,
+  useActionGate,
   useErrorDisplay,
   useFormatFlowError,
   useT,
 } from "@stapel/core";
+import { SkinDialog } from "@stapel/tokens-antd/skin";
 import type { Passkey } from "../../api/types.js";
 import { PasskeyRegistration } from "../../headless/Passkey.js";
 import type { PasskeyRegistrationBag, WebauthnBinding } from "../../headless/Passkey.js";
@@ -57,33 +89,117 @@ function formatDate(iso: string): string {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString();
 }
 
-/** One passkey row: name + created/last-used + remove. */
-function PasskeyRow(props: { passkey: Passkey; onRemove: () => void; removing: boolean }): ReactElement {
+/**
+ * WHAT this credential actually is, from the transports the authenticator
+ * reported at registration. It is the one field on the contract that
+ * distinguishes "the fingerprint reader in this laptop" from "the USB key in
+ * my drawer" from "my phone, over Bluetooth" — three very different answers
+ * to "can I use this passkey right now", and until now none of them was on
+ * screen. Unknown transports (an authenticator that reported none) get the
+ * neutral label rather than a guess.
+ */
+function kindKeyFor(transports: readonly string[]): string {
+  if (transports.includes("internal")) return AUTH_I18N_KEYS.secPasskeysKindDevice;
+  if (transports.includes("hybrid")) return AUTH_I18N_KEYS.secPasskeysKindPhone;
+  if (
+    transports.includes("usb") ||
+    transports.includes("nfc") ||
+    transports.includes("ble")
+  ) {
+    return AUTH_I18N_KEYS.secPasskeysKindSecurityKey;
+  }
+  return AUTH_I18N_KEYS.secPasskeysKindUnknown;
+}
+
+/**
+ * One stored credential: what it is, when it arrived, whether it is in use,
+ * and the one action the contract supports against it.
+ *
+ * Removal confirms in a `SkinDialog` rather than a `Popconfirm`. A popover
+ * anchored to a small `type="link"` button is a desktop shape: on a phone it
+ * can render off-viewport and its Ok/Cancel targets are under the touch
+ * minimum — and this particular Ok permanently deletes a sign-in credential.
+ */
+function PasskeyRow(props: {
+  passkey: Passkey;
+  onRemove: () => void;
+  removing: boolean;
+}): ReactElement {
   const t = useT();
+  const [confirming, setConfirming] = useState(false);
   const p = props.passkey;
   return (
-    <Flex justify="space-between" align="center" style={{ width: "100%" }}>
-      <Flex vertical gap={2}>
-        <Typography.Text strong>{p.device_name}</Typography.Text>
+    <Flex
+      justify="space-between"
+      align="flex-start"
+      gap="middle"
+      wrap
+      style={{ width: "100%" }}
+      data-testid="passkey-row"
+    >
+      <Flex vertical gap={4}>
+        <Flex align="center" gap="small" wrap>
+          <Typography.Text strong>{p.device_name}</Typography.Text>
+          <Tag data-testid="passkey-kind">{t(kindKeyFor(p.transports))}</Tag>
+        </Flex>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          {formatDate(p.created_at)}
+          {t(AUTH_I18N_KEYS.secPasskeysAddedOn, { date: formatDate(p.created_at) })}
+        </Typography.Text>
+        {/* "Never used" is a real fact about a credential, and a useful one —
+            it is how a person spots the key they enrolled and then lost. An
+            empty line here would have said the same thing by saying nothing. */}
+        <Typography.Text type="secondary" style={{ fontSize: 12 }} data-testid="passkey-last-used">
+          {p.last_used_at === null
+            ? t(AUTH_I18N_KEYS.secPasskeysNeverUsed)
+            : t(AUTH_I18N_KEYS.secPasskeysLastUsed, { date: formatDate(p.last_used_at) })}
         </Typography.Text>
       </Flex>
-      <Popconfirm
-        title={t(AUTH_I18N_KEYS.secPasskeysRemoveConfirmTitle)}
-        onConfirm={props.onRemove}
-        okText={t(AUTH_I18N_KEYS.secPasskeysRemove)}
-        okButtonProps={{ danger: true, loading: props.removing }}
+      <Button
+        danger
+        onClick={() => setConfirming(true)}
+        data-analytics="none"
+        data-analytics-reason="local-ui-open-remove-passkey-confirm"
       >
-        <Button type="link" danger data-analytics="flow">
-          {t(AUTH_I18N_KEYS.secPasskeysRemove)}
-        </Button>
-      </Popconfirm>
+        {t(AUTH_I18N_KEYS.secPasskeysRemove)}
+      </Button>
+      <SkinDialog
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        title={t(AUTH_I18N_KEYS.secPasskeysRemoveConfirmTitle)}
+        dismissLabel={t(AUTH_I18N_KEYS.uiClose)}
+        data-testid="passkey-remove-confirm"
+        footer={
+          <Flex justify="end" gap="small">
+            <Button
+              onClick={() => setConfirming(false)}
+              data-analytics="none"
+              data-analytics-reason="local-ui-dismiss-remove-passkey-confirm"
+            >
+              {t(AUTH_I18N_KEYS.uiClose)}
+            </Button>
+            <Button
+              danger
+              type="primary"
+              loading={props.removing}
+              onClick={() => {
+                setConfirming(false);
+                props.onRemove();
+              }}
+              data-testid="passkey-remove-ok"
+              data-analytics="flow"
+            >
+              {t(AUTH_I18N_KEYS.secPasskeysRemove)}
+            </Button>
+          </Flex>
+        }
+      >
+        <Typography.Text>{p.device_name}</Typography.Text>
+      </SkinDialog>
     </Flex>
   );
 }
 
-/** The add-passkey dialog's body, given the registration bag — a genuine
+/** The add-passkey journey, given the registration bag — a genuine
  * component (not hooks inlined in a render-prop lambda). */
 function AddJourney(props: {
   bag: PasskeyRegistrationBag;
@@ -109,29 +225,47 @@ function AddJourney(props: {
     );
   }
   if (s.step === "error") {
-    return <Alert type="error" showIcon message={formatError(s.error)} />;
+    // The message is now the CLASSIFIED one (`toPasskeyFlowError`): dismissed,
+    // timed out, insecure origin, or "this authenticator already holds a
+    // credential for you" — five sentences where there used to be one shrug.
+    return (
+      <Flex vertical gap="middle">
+        <Alert type="error" showIcon message={formatError(s.error)} />
+        <Flex justify="end">
+          <Button
+            onClick={props.onDone}
+            data-analytics="none"
+            data-analytics-reason="local-ui-dismiss-add-passkey"
+          >
+            {t(AUTH_I18N_KEYS.secPasskeysDone)}
+          </Button>
+        </Flex>
+      </Flex>
+    );
   }
   if (s.step === "registered") {
     return (
       <Flex vertical gap="middle" align="center">
         <Typography.Text>{t(AUTH_I18N_KEYS.secPasskeysAddedSuccess)}</Typography.Text>
-        <Button type="primary" onClick={props.onDone} data-analytics="flow">
-          {t(AUTH_I18N_KEYS.uiSubmit)}
+        {/* `secPasskeysDone`, NOT `uiSubmit`. `uiSubmit` is the SIGN-IN
+            button's copy in every locale, and this button is pressed by
+            someone who is already signed in — the exact control the owner
+            called nonsense. */}
+        <Button
+          type="primary"
+          onClick={props.onDone}
+          data-analytics="none"
+          data-analytics-reason="local-ui-dismiss-add-passkey"
+        >
+          {t(AUTH_I18N_KEYS.secPasskeysDone)}
         </Button>
       </Flex>
     );
   }
-  // awaitingCredential: normally the browser prompt is already up (default
-  // binding) — guide the user to it. With no WebAuthn API in this browser
-  // nothing will ever appear, so say THAT instead of waiting on a ghost.
+  // awaitingCredential: the browser prompt is already up (default binding) —
+  // guide the user to it.
   return (
-    <Typography.Text type="secondary">
-      {t(
-        isWebauthnSupported()
-          ? AUTH_I18N_KEYS.secPasskeysAwaitingCeremony
-          : AUTH_I18N_KEYS.passkeyUnsupported
-      )}
-    </Typography.Text>
+    <Typography.Text>{t(AUTH_I18N_KEYS.secPasskeysAwaitingCeremony)}</Typography.Text>
   );
 }
 
@@ -155,8 +289,23 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
   const passkeys = usePasskeys();
   const remove = useRemovePasskey();
   const [adding, setAdding] = useState(false);
+  // A browser with no WebAuthn will never raise a prompt, so "Add" cannot
+  // work here. The screen has always known that — it just used to spend the
+  // knowledge AFTER the click, inside a ceremony that hangs. The reason is
+  // printed beside the button, never in a tooltip: a tooltip on a disabled
+  // control is a reason nobody on a touch screen can read.
+  //
+  // An INJECTED binding overrides the browser one (a native bridge, a webview
+  // host, a test), so "this browser has no WebAuthn" says nothing about
+  // whether a ceremony can run — the gate has to ask both questions or it
+  // switches off the very hosts the injection seam exists for.
+  const canAdd = isWebauthnSupported() || props.webauthnCreate !== undefined;
+  const addGate = useActionGate(
+    canAdd ? actionAvailable() : actionBlocked(AUTH_I18N_KEYS.secPasskeysAddUnsupported)
+  );
 
   const state = loadStateFromQuery(passkeys);
+  const hasAny = passkeys.data !== undefined && passkeys.data.length > 0;
 
   return (
     <Card
@@ -164,14 +313,28 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
       data-testid="passkeys-manager"
       style={{ width: "100%" }}
       extra={
-        <Button
-          type="primary"
-          disabled={adding}
-          onClick={() => setAdding(true)}
-          data-analytics="flow"
-        >
-          {t(AUTH_I18N_KEYS.secPasskeysAdd)}
-        </Button>
+        <Flex align="center" gap="small" wrap justify="end">
+          {addGate.reason !== undefined && (
+            <Typography.Text
+              type="secondary"
+              style={{ fontSize: 12 }}
+              data-testid="passkeys-add-blocked"
+            >
+              {addGate.reason}
+            </Typography.Text>
+          )}
+          <Button
+            type="primary"
+            disabled={adding || addGate.disabled}
+            onClick={() => setAdding(true)}
+            data-analytics="flow"
+          >
+            {/* "Add another" once there is one — the list right above already
+                said what a passkey is, and the generic label reads as though
+                the first one had not registered. */}
+            {t(hasAny ? AUTH_I18N_KEYS.secPasskeysAddAnother : AUTH_I18N_KEYS.secPasskeysAdd)}
+          </Button>
+        </Flex>
       }
     >
       {matchList(state, {

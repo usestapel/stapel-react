@@ -16,3 +16,5 @@ export type {
   MediaGalleryFieldBagProps,
   MediaGalleryFieldOwnProps,
 } from "./MediaGalleryField.js";
+export { CdnThumbnail } from "./CdnThumbnail.js";
+export type { CdnThumbnailProps } from "./CdnThumbnail.js";

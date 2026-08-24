@@ -73,6 +73,11 @@ export const DOCS_I18N_KEYS = {
   dialogNamePlaceholder: "docs.dialog.namePlaceholder",
   dialogOk: "docs.dialog.ok",
   dialogCancel: "docs.dialog.cancel",
+  /** Accessible name of a dialog's dismissal affordance — the modal's close
+   * button and the bottom sheet's grab handle (`SkinDialog.dismissLabel`).
+   * Not `dialogCancel`: cancelling an edit and closing the surface are
+   * different sentences, and the sheet's handle is present with no form. */
+  dialogClose: "docs.dialog.close",
   dialogRootFolder: "docs.dialog.rootFolder",
   // Revisions modal (default skin: RevisionsModal)
   revisionsTitle: "docs.revisions.title",
@@ -81,6 +86,9 @@ export const DOCS_I18N_KEYS = {
   revisionsPreviewBinary: "docs.revisions.previewBinary",
   revisionsRollback: "docs.revisions.rollback",
   revisionsRollbackConfirm: "docs.revisions.rollbackConfirm",
+  /** Why rollback is off on the revision the document is already at — the
+   * restore would write a new, byte-identical head. */
+  revisionsRollbackBlockedHead: "docs.revisions.rollbackBlockedHead",
   revisionsNamePlaceholder: "docs.revisions.namePlaceholder",
   revisionsDownload: "docs.revisions.download",
   // Editor chrome (default skin: EditorChrome + default editors)
@@ -164,6 +172,7 @@ export const docsI18nBundleEn: I18nDictionary = {
   "docs.dialog.namePlaceholder": "Name",
   "docs.dialog.ok": "OK",
   "docs.dialog.cancel": "Cancel",
+  "docs.dialog.close": "Close",
   "docs.dialog.rootFolder": "All documents",
   "docs.revisions.title": "Version history",
   "docs.revisions.automatic": "Automatic revision",
@@ -173,6 +182,8 @@ export const docsI18nBundleEn: I18nDictionary = {
   "docs.revisions.rollback": "Roll back to this revision",
   "docs.revisions.rollbackConfirm":
     "Restore this revision? The current content stays in history.",
+  "docs.revisions.rollbackBlockedHead":
+    "This is the document's current version.",
   "docs.revisions.namePlaceholder": "Version name",
   "docs.revisions.download": "Download revision",
   "docs.editor.dirty": "Unsaved changes",

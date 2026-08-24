@@ -893,6 +893,7 @@
     "forms.responses.anonymous",
     "forms.responses.blocked.at_end",
     "forms.responses.blocked.at_start",
+    "forms.responses.blocked.erased",
     "forms.responses.close",
     "forms.responses.delete",
     "forms.responses.delete_confirm",

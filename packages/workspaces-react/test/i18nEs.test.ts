@@ -20,10 +20,12 @@ import {
 /**
  * The es locale contour of the pair (i18n-shipping.md §2/§3). Mirrors the ru
  * contour with ONE deliberate inversion: Spanish covers the backend error
- * registry but NOT the pair-owned UI keys, so the UI-coverage suite asserts
- * that those keys resolve to their ENGLISH text under locale `es` — partial
- * coverage as a declared, tested state rather than an accident. Whoever adds
- * hand-written Spanish UI copy flips that suite on purpose.
+ * registry completely but the pair-owned UI keys only where hand-written copy
+ * exists, so the UI-coverage suite asserts BOTH halves — the translated keys
+ * resolve to Spanish, and every other key resolves to its ENGLISH text under
+ * locale `es`. Partial coverage as a declared, tested state rather than an
+ * accident. The split is read off the bundle, so the next Spanish string is an
+ * edit to `es.ts` alone.
  */
 
 const PKG_DIR = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
@@ -94,26 +96,44 @@ describe("declared coverage: Spanish errors, English UI (no raw keys)", () => {
     expect(i18n.t(code)).toBe(workspacesErrorBundleEs[code]);
   });
 
-  it("pair-owned UI keys fall back to ENGLISH under locale es — not to a raw key", async () => {
-    // The inversion of the ru suite: Spanish UI copy does not exist yet, so the
-    // en floor under the locale is what a host reads. When Spanish UI copy
-    // lands, this assertion is the one that must be updated.
+  it("a pair-owned UI key WITH Spanish copy resolves to it under locale es", async () => {
+    const i18n = createI18n({ locale: "en" });
+    registerWorkspacesI18n(i18n);
+    registerWorkspacesI18nEs(i18n);
+    await i18n.setLocale("es");
+    const translated = Object.values(WORKSPACES_I18N_KEYS).filter(
+      (key) => key in workspacesI18nBundleEs
+    );
+    // Partial UI coverage is the declared state, not an empty one: whatever
+    // Spanish copy exists must actually reach a reader.
+    expect(translated.length).toBeGreaterThan(0);
+    for (const key of translated) {
+      expect(i18n.t(key), key).toBe(workspacesI18nBundleEs[key]);
+    }
+  });
+
+  it("every OTHER pair-owned UI key falls back to ENGLISH — not to a raw key", async () => {
+    // The inversion of the ru suite: Spanish UI copy is partial, so the en
+    // floor under the locale is what a host reads for the rest. The split is
+    // read off the bundle, so adding the next Spanish string needs no edit here.
     const i18n = createI18n({ locale: "en" });
     registerWorkspacesI18n(i18n);
     registerWorkspacesI18nEs(i18n);
     await i18n.setLocale("es");
     for (const key of Object.values(WORKSPACES_I18N_KEYS)) {
+      if (key in workspacesI18nBundleEs) continue;
       const en = workspacesI18nBundleEn[key] ?? "";
       expect(i18n.t(key), key).toBe(en);
       expect(i18n.t(key), key).not.toBe(key);
     }
   });
 
-  it("the es bundle carries exactly the error codes and no UI keys (yet)", () => {
+  it("the es bundle carries every error code, plus only pair-owned UI keys", () => {
     const uiKeys = new Set<string>(Object.values(WORKSPACES_I18N_KEYS));
-    const carried = Object.keys(workspacesI18nBundleEs).filter((k) => uiKeys.has(k));
-    expect(carried).toEqual([]);
-    expect(Object.keys(workspacesI18nBundleEs).sort()).toEqual(
+    const carried = Object.keys(workspacesI18nBundleEs);
+    // Nothing in here that is neither a registry code nor a key this pair owns
+    // — a typo'd key would otherwise sit in the bundle translating nothing.
+    expect(carried.filter((k) => !uiKeys.has(k)).sort()).toEqual(
       [...WORKSPACES_ERROR_CODES].sort()
     );
   });

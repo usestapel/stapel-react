@@ -26,6 +26,7 @@ export const workspacesI18nBundleRu: I18nDictionary = {
   // workspaces-react UI (hand-written ru mirror of the en copy in keys.ts)
   "workspaces.error.unknown": "Что-то пошло не так. Попробуйте ещё раз.",
   "workspaces.retry": "Попробовать снова",
+  "workspaces.dialog.close": "Закрыть",
   "workspaces.list.loading": "Загрузка рабочих пространств…",
   "workspaces.list.empty": "Пока нет рабочих пространств.",
   "workspaces.list.load_failed":
@@ -36,7 +37,7 @@ export const workspacesI18nBundleRu: I18nDictionary = {
   "workspaces.members.empty": "Пока нет участников.",
   "workspaces.members.load_failed": "Не удалось загрузить список участников.",
   "workspaces.roles.load_failed":
-    "Не удалось загрузить список ролей, поэтому выбор роли пуст. Это не рабочее пространство без ролей.",
+    "Не удалось загрузить список ролей, поэтому изменить роль сейчас нельзя. Это не рабочее пространство без ролей.",
   "workspaces.members.invite": "Пригласить",
   "workspaces.members.inviting": "Приглашение…",
   "workspaces.members.update_role": "Изменить роль",
@@ -63,7 +64,12 @@ export const workspacesI18nBundleRu: I18nDictionary = {
   "workspaces.members.invite_dialog.emails_label": "Email-адреса",
   "workspaces.members.invite_dialog.emails_placeholder": "Введите email и нажмите Enter",
   "workspaces.members.invite_dialog.role_label": "Роль",
+  "workspaces.members.invite_dialog.submit": "Отправить приглашения",
+  "workspaces.members.invite_dialog.blocked.no_emails":
+    "Введите хотя бы один email-адрес.",
   "workspaces.members.remove_confirm": "Удалить этого участника?",
+  "workspaces.members.remove.blocked.last_owner":
+    "Это единственный владелец рабочего пространства. Сначала назначьте владельцем кого-то ещё.",
   "workspaces.members.role.owner": "Владелец",
   "workspaces.members.role.admin": "Администратор",
   "workspaces.members.role.member": "Участник",

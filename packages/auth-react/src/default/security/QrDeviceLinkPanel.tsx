@@ -27,8 +27,9 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Button, Card, Drawer, Flex, Modal, QRCode, Typography } from "antd";
-import { useBreakpoint, useFormatFlowError, useT } from "@stapel/core";
+import { Alert, Button, Card, Flex, QRCode, Typography } from "antd";
+import { SkinDialog } from "@stapel/tokens-antd/skin";
+import { useFormatFlowError, useT } from "@stapel/core";
 import type { QrLoginBag } from "../../headless/QrLogin.js";
 import type { QrLoginState } from "../../flows/qrLoginFlow.js";
 import { QrLogin } from "../../headless/QrLogin.js";
@@ -213,9 +214,10 @@ export interface QrDeviceLinkPanelProps {
 }
 
 /** Device-handoff QR panel: a settings-list-style row (title/subtitle + a
- * trigger) that opens the actual QR journey in a dialog — a `Modal` on
- * tablet/desktop, a bottom `Drawer` ("sheet") on phone (`useBreakpoint`,
- * same convention `AuthPanel`'s alt-method dialog follows), NOT inline
+ * trigger) that opens the actual QR journey in a dialog — a bottom sheet on a
+ * phone and a centred modal above the tablet breakpoint, which this component
+ * no longer decides for itself: `@stapel/tokens-antd/skin`'s `SkinDialog`
+ * states that rule once for the whole fleet. NOT inline
  * below the row (owner UX audit 2026-07-17: an inline reveal read as "stuck
  * in the settings list" and, on phone, pushed the rest of the security tab
  * out of view — the mounting problem was this component itself, not
@@ -225,7 +227,6 @@ export interface QrDeviceLinkPanelProps {
 export function QrDeviceLinkPanel(props: QrDeviceLinkPanelProps): ReactElement {
   const t = useT();
   const [open, setOpen] = useState(false);
-  const isPhone = useBreakpoint() === "phone";
   const redirectUrl = props.redirectUrl ?? "/";
   const allowUnauthenticatedScanner = props.allowUnauthenticatedScanner ?? true;
   const title = props.title ?? t(AUTH_I18N_KEYS.secQrTitle);
@@ -266,15 +267,15 @@ export function QrDeviceLinkPanel(props: QrDeviceLinkPanelProps): ReactElement {
         </Flex>
       </Flex>
 
-      {isPhone ? (
-        <Drawer open={open} title={title} onClose={() => setOpen(false)} placement="bottom" size="large" destroyOnHidden>
-          {body}
-        </Drawer>
-      ) : (
-        <Modal open={open} title={title} onCancel={() => setOpen(false)} footer={null} destroyOnHidden>
-          {body}
-        </Modal>
-      )}
+      <SkinDialog
+        open={open}
+        title={title}
+        onClose={() => setOpen(false)}
+        dismissLabel={t(AUTH_I18N_KEYS.uiClose)}
+        data-testid="qr-device-link-dialog"
+      >
+        {body}
+      </SkinDialog>
     </Card>
   );
 }

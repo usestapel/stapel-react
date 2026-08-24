@@ -26,6 +26,7 @@ export const profilesI18nBundleRu: I18nDictionary = {
   // profiles-react UI (hand-written ru mirror of the en copy in keys.ts)
   "profiles.error.unknown": "Что-то пошло не так. Попробуйте ещё раз.",
   "profiles.action.retry": "Попробовать ещё раз",
+  "profiles.action.close": "Закрыть",
   "profiles.profile.loading": "Загрузка профиля…",
   "profiles.profile.save": "Сохранить изменения",
   "profiles.profile.saving": "Сохранение…",

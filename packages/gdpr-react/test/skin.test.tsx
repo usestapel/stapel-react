@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import {
   AccountClosurePanel,
@@ -28,6 +28,7 @@ import {
   ERASURE_TIMEOUT,
   EXPORT_ACCEPTED,
   EXPORT_PARTIAL,
+  EXPORT_PENDING,
   EXPORT_PROCESSING,
   IN_GRACE,
 } from "./fixtures.js";
@@ -46,6 +47,22 @@ const asDate = (iso: string): string => formatDeletionDate(iso, "en");
 function mount(server: MockServer, ui: React.ReactElement): void {
   render(<TestProviders server={server}>{ui}</TestProviders>);
 }
+
+/**
+ * The viewport a dialog is about to be rendered into. jsdom's own window is
+ * 1024x768, which is a desktop — so the phone case has to be ASKED for, before
+ * the render, because `@stapel/tokens-antd/skin` reads the media query on its
+ * very first client render (that is the point of it: no desktop modal flashing
+ * on a phone for one frame).
+ */
+function setViewportWidth(width: number): void {
+  Object.defineProperty(window, "innerWidth", { value: width, configurable: true });
+}
+
+const JSDOM_DEFAULT_WIDTH = 1024;
+afterEach(() => {
+  setViewportWidth(JSDOM_DEFAULT_WIDTH);
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // <AccountClosurePanel> — the 404 that means "you are fine"
@@ -182,6 +199,54 @@ describe("<AccountClosurePanel> — the destructive step is behind a confirmatio
   });
 });
 
+describe("<AccountClosurePanel> — the confirm obeys the design system's surface rule", () => {
+  const openConfirm = async (): Promise<HTMLElement> => {
+    const server = mockServer({
+      [CLOSE]: { status: 202, body: IN_GRACE },
+      [CLOSURE]: NO_ACTIVE_CLOSURE,
+    });
+    mount(server, <AccountClosurePanel />);
+    fireEvent.click(await screen.findByTestId("gdpr-closure-initiate"));
+    return screen.findByTestId("gdpr-closure-confirm");
+  };
+
+  it("is a BOTTOM SHEET on a phone", async () => {
+    setViewportWidth(390);
+    const dialog = await openConfirm();
+    expect(dialog.getAttribute("data-stapel-dialog-surface")).toBe("sheet");
+    // The sheet's dismissal is never gesture-only: the grab handle is a real
+    // button carrying this pair's own close copy.
+    expect(screen.getByTestId("stapel-sheet-handle").getAttribute("aria-label"))
+      .toBe("Close");
+  });
+
+  it("is a centred MODAL on a desktop viewport", async () => {
+    setViewportWidth(1024);
+    const dialog = await openConfirm();
+    expect(dialog.getAttribute("data-stapel-dialog-surface")).toBe("modal");
+    expect(screen.queryByTestId("stapel-sheet-handle")).toBeNull();
+  });
+
+  it("commits the deletion from the sheet, same as from the modal", async () => {
+    setViewportWidth(390);
+    const server = mockServer({
+      [CLOSE]: { status: 202, body: IN_GRACE },
+      [CLOSURE]: NO_ACTIVE_CLOSURE,
+    });
+    mount(server, <AccountClosurePanel />);
+    fireEvent.click(await screen.findByTestId("gdpr-closure-initiate"));
+    fireEvent.click(await screen.findByTestId("gdpr-closure-confirm-ok"));
+    await waitFor(() =>
+      expect(
+        server.calls.some(
+          (call) =>
+            call.method === "POST" && call.url.endsWith("/user/account/close")
+        )
+      ).toBe(true)
+    );
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // <PendingDeletions> — four screens, and two clocks
 // ─────────────────────────────────────────────────────────────────────────────
@@ -286,6 +351,36 @@ describe("<PendingDeletions> — silence is surfaced", () => {
   });
 });
 
+/**
+ * The copy this screen exists to deliver has to be READ, and a phone has no
+ * hover: what `timeout` means, which owners have not receipted, and what the
+ * second date column is are all printed, not hidden behind a pointer.
+ */
+describe("<PendingDeletions> — the explanations are text, not tooltips", () => {
+  it("says what an overdue row means, in the row", async () => {
+    const server = mockServer({ "/me/erasures": { body: [ERASURE_TIMEOUT] } });
+    mount(server, <PendingDeletions />);
+    const table = await screen.findByTestId("gdpr-deletions-rows");
+    expect(table.textContent).toContain("has not confirmed");
+    expect(screen.getAllByTestId("gdpr-deletions-state-hint").length).toBe(1);
+  });
+
+  it("names the owners a request is still waiting on", async () => {
+    const server = mockServer({ "/me/erasures": { body: [ERASURE_ERASING] } });
+    mount(server, <PendingDeletions />);
+    const table = await screen.findByTestId("gdpr-deletions-rows");
+    // The fixture's one unreceipted owner, printed rather than hovered.
+    expect(table.textContent).toContain("media");
+  });
+
+  it("explains the second clock beside the table it labels", async () => {
+    const server = mockServer({ "/me/erasures": { body: [ERASURE_ERASING] } });
+    mount(server, <PendingDeletions />);
+    const hint = await screen.findByTestId("gdpr-deletions-fully-erased-hint");
+    expect(hint.textContent).toContain("contractual windows");
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // <DataExportPanel>
 // ─────────────────────────────────────────────────────────────────────────────
@@ -370,6 +465,41 @@ describe("<DataExportPanel> — the cooldown is a rule, not an error", () => {
     await waitFor(() =>
       expect(screen.getByTestId("gdpr-export-requested")).toBeTruthy()
     );
+  });
+});
+
+describe("<DataExportPanel> — one archive at a time, refused BEFORE the request", () => {
+  it.each([
+    ["pending", EXPORT_PENDING],
+    ["processing", EXPORT_PROCESSING],
+  ])("cannot ask for a second archive while one is %s", async (_status, row) => {
+    const server = mockServer({
+      [EXPORT_REQUEST]: { status: 202, body: EXPORT_ACCEPTED },
+      [EXPORT_STATUS]: { body: row },
+    });
+    mount(server, <DataExportPanel />);
+    const button = await screen.findByTestId("gdpr-export-request");
+    await waitFor(() => expect(button.closest("button")?.disabled).toBe(true));
+
+    // …and the reason is READABLE, as text beside the control. A disabled
+    // button receives no pointer events, so a tooltip here would be a reason
+    // nobody can reach — least of all on the phone this rule exists for.
+    const reason = screen.getByTestId("gdpr-export-request-blocked");
+    expect(reason.textContent).toContain("already building");
+    expect(reason.getAttribute("title")).toBeNull();
+
+    fireEvent.click(button);
+    expect(server.calls.some((call) => call.method === "POST")).toBe(false);
+  });
+
+  it("offers the button again once the archive is finished", async () => {
+    const server = mockServer({ [EXPORT_STATUS]: { body: EXPORT_PARTIAL } });
+    mount(server, <DataExportPanel />);
+    await screen.findByTestId("gdpr-export-status");
+    expect(
+      screen.getByTestId("gdpr-export-request").closest("button")?.disabled
+    ).toBe(false);
+    expect(screen.queryByTestId("gdpr-export-request-blocked")).toBeNull();
   });
 });
 

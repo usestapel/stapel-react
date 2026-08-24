@@ -58,17 +58,17 @@
     {
       "name": "index — the ru/es locales must NOT be in the main bundle",
       "path": "dist/index.js",
-      "limit": "19 KB"
+      "limit": "20 KB"
     },
     {
       "name": "i18n/ru subpath (opt-in locale: en floor + generated ru + ru UI)",
       "path": "dist/i18n/ru.js",
-      "limit": "12 KB"
+      "limit": "13 KB"
     },
     {
       "name": "i18n/es subpath (opt-in locale: en floor + generated es errors; no es UI copy yet)",
       "path": "dist/i18n/es.js",
-      "limit": "8 KB"
+      "limit": "8.5 KB"
     }
   ],
   "peerDependencies": {

@@ -154,6 +154,20 @@ export interface SkinDialogProps {
    */
   readonly maskClosable?: boolean;
   /**
+   * Default `true`. `false` draws NO dismissal affordance at all — no close
+   * button on the modal, no grab handle on the sheet — and stops Esc and the
+   * mask from closing it.
+   *
+   * This exists because a dialog that cannot be dismissed is a real shape and
+   * the fleet has one: `profiles-react`'s first-run setup in blocking mode,
+   * where a guest genuinely cannot proceed nameless. Without the prop, that
+   * component had to keep drawing a ✕ and wire `onClose` to do nothing — a
+   * control that is visibly offered and silently inert, which is worse than
+   * either answer. It is NOT a general escape hatch: a dialog with no way out
+   * is a trap unless its body itself contains the only two exits.
+   */
+  readonly dismissible?: boolean;
+  /**
    * Force a surface instead of reading the viewport. For tests and for the
    * rare host that renders a modal inside a phone-width container that is not
    * the viewport. Not an escape hatch for "I prefer a modal on phones".
@@ -184,6 +198,7 @@ export function SkinDialog(props: SkinDialogProps): ReactElement {
     children,
     footer,
     destroyOnHidden = true,
+    dismissible = true,
   } = props;
 
   const body = (
@@ -202,7 +217,9 @@ export function SkinDialog(props: SkinDialogProps): ReactElement {
         onCancel={onClose}
         destroyOnHidden={destroyOnHidden}
         footer={footer ?? null}
-        closable={{ "aria-label": dismissLabel }}
+        closable={dismissible ? { "aria-label": dismissLabel } : false}
+        keyboard={dismissible}
+        {...(dismissible ? {} : { maskClosable: false })}
         {...(props.maskClosable !== undefined ? { maskClosable: props.maskClosable } : {})}
         {...(title !== undefined ? { title } : {})}
         {...(ariaLabel !== undefined && title === undefined
@@ -221,6 +238,7 @@ export function SkinDialog(props: SkinDialogProps): ReactElement {
       open={open}
       onClose={onClose}
       dismissLabel={dismissLabel}
+      dismissible={dismissible}
       destroyOnHidden={destroyOnHidden}
       radius={token.borderRadiusLG}
       handleColor={token.colorFillSecondary}
@@ -240,6 +258,7 @@ interface BottomSheetProps {
   readonly open: boolean;
   readonly onClose: () => void;
   readonly dismissLabel: string;
+  readonly dismissible: boolean;
   readonly destroyOnHidden: boolean;
   readonly maskClosable?: boolean;
   readonly radius: number;
@@ -261,7 +280,7 @@ interface BottomSheetProps {
  * inside it would slide the content out of its own chrome.
  */
 function BottomSheet(props: BottomSheetProps): ReactElement {
-  const { open, onClose, radius, handleColor, bodyPadding } = props;
+  const { open, onClose, radius, handleColor, bodyPadding, dismissible } = props;
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
   const gesture = useRef<{ startY: number; startedAt: number } | null>(null);
@@ -343,10 +362,16 @@ function BottomSheet(props: BottomSheetProps): ReactElement {
   };
 
   const header = (
-    <div style={{ ...grabArea, userSelect: "none" }} {...dragHandlers}>
+    <div
+      style={dismissible ? { ...grabArea, userSelect: "none" } : { userSelect: "none" }}
+      {...(dismissible ? dragHandlers : {})}
+    >
       {/* The handle is a real button: the swipe is a shortcut, never the only
           way out. Tab reaches it, Enter/Space dismisses, and a screen reader
-          announces it with the caller's own copy. */}
+          announces it with the caller's own copy. A non-dismissible sheet
+          draws no handle at all rather than an inert one — an affordance that
+          is visibly offered and does nothing is worse than its absence. */}
+      {dismissible && (
       <button
         type="button"
         onClick={onClose}
@@ -366,6 +391,7 @@ function BottomSheet(props: BottomSheetProps): ReactElement {
           cursor: "grab",
         }}
       />
+      )}
       {props.title !== undefined && (
         <div style={{ marginTop: 12 }}>{props.title}</div>
       )}
@@ -401,6 +427,7 @@ function BottomSheet(props: BottomSheetProps): ReactElement {
       open={open}
       onClose={onClose}
       placement="bottom"
+      keyboard={dismissible}
       // `size`, not `height`: antd 6 deprecated `height` in favour of it and
       // warns on presence. A non-numeric string passes straight through to the
       // panel, which is how the sheet gets `height: auto`.
@@ -408,7 +435,11 @@ function BottomSheet(props: BottomSheetProps): ReactElement {
       closable={false}
       title={header}
       destroyOnHidden={props.destroyOnHidden}
-      {...(props.maskClosable !== undefined ? { maskClosable: props.maskClosable } : {})}
+      {...(dismissible
+        ? props.maskClosable !== undefined
+          ? { maskClosable: props.maskClosable }
+          : {}
+        : { maskClosable: false })}
       {...(props.ariaLabel !== undefined ? { "aria-label": props.ariaLabel } : {})}
       {...(props.footer !== undefined ? { footer: props.footer } : {})}
       {...(props.className !== undefined ? { className: props.className } : {})}

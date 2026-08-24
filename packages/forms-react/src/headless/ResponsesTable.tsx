@@ -74,7 +74,7 @@ export interface ResponsesTableBag {
   /** 0-based index of the page on screen. */
   readonly pageIndex: number;
 
-  /** The row opened in a detail drawer, or `null`. */
+  /** The row opened in the detail dialog, or `null`. */
   readonly selected: Submission | null;
   select(submission: Submission | null): void;
 

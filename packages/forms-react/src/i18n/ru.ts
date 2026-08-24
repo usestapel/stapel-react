@@ -132,6 +132,8 @@ export const formsI18nBundleRu: I18nDictionary = {
   "forms.responses.export": "Экспорт в CSV",
   "forms.responses.exporting": "Экспорт… (страниц: {pages})",
   "forms.responses.erased": "Стёрт",
+  "forms.responses.blocked.erased":
+    "Этот ответ стёрт — его больше нельзя переслать или удалить.",
   "forms.responses.detail": "Ответ целиком",
   "forms.responses.close": "Закрыть",
 

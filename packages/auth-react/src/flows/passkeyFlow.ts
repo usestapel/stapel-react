@@ -3,7 +3,7 @@ import type { AuthApi } from "../api/authApi.js";
 import type { AuthResponse, PasskeyRegistered } from "../api/types.js";
 import { createFlowMachine } from "@stapel/core";
 import type { FlowMachine } from "@stapel/core";
-import { toFlowError } from "./errors.js";
+import { toFlowError, toPasskeyFlowError } from "./errors.js";
 import type { FlowError } from "./errors.js";
 import { resolveWebauthnCreate, resolveWebauthnGet } from "../webauthn.js";
 
@@ -109,7 +109,10 @@ export function createPasskeyRegistrationFlow(
         // out later must not clobber the newer state (idle / a fresh ceremony
         // / registered) with `error`.
         if (machine.getState() !== after) return;
-        machine.to({ step: "error", error: toFlowError(error) });
+        // `toPasskeyFlowError`, not `toFlowError`: a ceremony rejection is a
+        // DOMException, and folding every one of them into the module fallback
+        // told a person who dismissed the prompt that something had gone wrong.
+        machine.to({ step: "error", error: toPasskeyFlowError(error) });
       }
     }
   }
@@ -214,7 +217,10 @@ export function createPasskeyLoginFlow(
         // A prompt rejected after the machine moved on (reset, re-begin,
         // authenticated via another path) must not clobber the newer state.
         if (machine.getState() !== after) return;
-        machine.to({ step: "error", error: toFlowError(error) });
+        // Classified, not collapsed: cancelled, no-credential, timed out,
+        // insecure origin and "the authenticator refused" are five different
+        // things to tell a person, and the default skin branches on which.
+        machine.to({ step: "error", error: toPasskeyFlowError(error) });
       }
     }
   }

@@ -46,8 +46,26 @@ beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
   cleanup();
   server.resetHandlers();
+  // Back to jsdom's own viewport, so a test that set a phone width does not
+  // hand the next one a bottom sheet it never asked for.
+  setViewport(1024);
 });
 afterAll(() => server.close());
+
+/** jsdom's window is 1024x768 and never resizes itself. Which surface a
+ * dialog takes is a real `matchMedia` query evaluated against
+ * `window.innerWidth` (see `vitest.setup.ts`), so a test that cares says
+ * which viewport it is standing in. */
+function setViewport(width: number): void {
+  Object.defineProperty(window, "innerWidth", { value: width, configurable: true });
+}
+
+/** The surface `SkinDialog` actually rendered, as it stamps it on the body
+ * wrapper — `"sheet"` (phone) or `"modal"` (tablet/desktop). */
+function dialogSurface(): string | null {
+  const wrapper = document.querySelector("[data-stapel-dialog-surface]");
+  return wrapper === null ? null : wrapper.getAttribute("data-stapel-dialog-surface");
+}
 
 // stapel-profiles 0.7.0 (§66 reversal, owner 2026-07-22): display_name and
 // theme are HARD-CORE model columns again — always on the GET /me body, never
@@ -426,6 +444,78 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     );
   });
 
+  it("the edit dialog is a bottom sheet on a phone viewport and a modal at 1024", async () => {
+    // The owner's fleet rule (@stapel/tokens-antd/skin), inherited rather than
+    // restated here: the shared skin stamps the surface it chose on the body
+    // wrapper, so this pair proves it obeys the rule instead of asserting it
+    // in prose. This file used to hand-roll `isPhone ? <Drawer> : <Modal>`.
+    serveManifestAndProfile();
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+
+    setViewport(390);
+    const { unmount } = render(wrap(runtime, <ProfileSettings />));
+    await waitFor(() =>
+      expect(screen.getByTestId("profile-field-display_name-value")).toBeDefined()
+    );
+    expect(dialogSurface()).toBeNull(); // nothing rendered while it is closed
+    screen.getByRole("button", { name: "Display name" }).click();
+    await screen.findByDisplayValue("Ada Lovelace");
+    expect(dialogSurface()).toBe("sheet");
+    unmount();
+
+    setViewport(1024);
+    render(wrap(runtime, <ProfileSettings />));
+    await waitFor(() =>
+      expect(screen.getByTestId("profile-field-display_name-value")).toBeDefined()
+    );
+    screen.getByRole("button", { name: "Display name" }).click();
+    await screen.findByDisplayValue("Ada Lovelace");
+    expect(dialogSurface()).toBe("modal");
+  });
+
+  it("an unchanged draft cannot fire a save — and the real save-then-close path still works", async () => {
+    // A PATCH that writes the value the server already holds is a write with
+    // nothing behind it. Worse, the dialog's dismissal used to hang off that
+    // very equality (`draft.trim() === value`), which is true the instant the
+    // dialog opens — so an unchanged "save" both wrote and closed as if
+    // something had happened.
+    const patches: Record<string, unknown>[] = [];
+    serveManifestAndProfile((p) => patches.push(p));
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <ProfileSettings />));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("profile-field-display_name-value").textContent).toBe("Ada Lovelace")
+    );
+    screen.getByRole("button", { name: "Display name" }).click();
+    const dialogInput = await screen.findByDisplayValue("Ada Lovelace");
+
+    // Untouched draft: Save is off, and Enter — the keyboard path to the same
+    // commit — writes nothing either.
+    expect(screen.getByText("Save changes").closest("button")?.disabled).toBe(true);
+    fireEvent.keyDown(dialogInput, { key: "Enter", code: "Enter", keyCode: 13 });
+
+    // Typing and reverting comes back to the same "nothing to write" state.
+    fireEvent.change(dialogInput, { target: { value: "Ada C. Lovelace" } });
+    await waitFor(() =>
+      expect(screen.getByText("Save changes").closest("button")?.disabled).toBe(false)
+    );
+    fireEvent.change(dialogInput, { target: { value: "Ada Lovelace" } });
+    await waitFor(() =>
+      expect(screen.getByText("Save changes").closest("button")?.disabled).toBe(true)
+    );
+
+    // A real edit still saves, and the dialog still closes on the way out.
+    fireEvent.change(dialogInput, { target: { value: "Ada C. Lovelace" } });
+    screen.getByText("Save changes").click();
+    await waitFor(() =>
+      expect(screen.getByTestId("profile-field-display_name-value").textContent).toBe("Ada C. Lovelace")
+    );
+    await waitFor(() => expect(screen.queryByDisplayValue("Ada C. Lovelace")).toBeNull());
+    // Exactly one write left, and it is the one that changed something.
+    expect(patches).toEqual([{ display_name: "Ada C. Lovelace" }]);
+  });
+
   it("the core theme row is a Segmented that PATCHes immediately — no Save button anywhere", async () => {
     let lastPatch: Record<string, unknown> | null = null;
     serveManifestAndProfile((p) => {
@@ -651,5 +741,37 @@ describe("<NotificationPreferences/> (default skin)", () => {
     await waitFor(() => expect(screen.getByText("Messages")).toBeDefined());
     expect(screen.getByText("System")).toBeDefined();
     expect(screen.getAllByRole("switch")).toHaveLength(4);
+  });
+
+  it("a preference read that FAILED renders no toggleable switch — just the failure and a retry", async () => {
+    // The 2026-08-09 incident class (@stapel/core loadState.ts): the matrix
+    // used to render out of `isEnabled`, which answers `false` for every cell
+    // when there is no profile. So a failed read drew four live switches, each
+    // showing a default rather than the user's real setting — and flipping one
+    // PATCHed a preference derived from a state nobody could read.
+    let calls = 0;
+    server.use(
+      http.get(`${BASE}/me`, () => {
+        calls += 1;
+        return HttpResponse.json(
+          { localizable_error: "", error: "boom", params: {} },
+          { status: 500 }
+        );
+      })
+    );
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <NotificationPreferences />));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("notification-prefs-failed")).toBeDefined()
+    );
+    expect(screen.queryAllByRole("switch")).toHaveLength(0);
+    // The card's own heading stays — the screen is not blanked, only the
+    // control that would have been made of nothing.
+    expect(screen.getByText("Notifications")).toBeDefined();
+
+    expect(calls).toBe(1);
+    fireEvent.click(screen.getByText("Try again"));
+    await waitFor(() => expect(calls).toBe(2));
   });
 });

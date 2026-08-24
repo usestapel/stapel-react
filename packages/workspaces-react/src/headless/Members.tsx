@@ -23,6 +23,18 @@ export interface MembersBag {
    * old merged `isError` could only produce one of them.
    */
   readonly state: LoadState<readonly Member[]>;
+  /**
+   * Whether {@link state} holds the WHOLE roster — the read succeeded and the
+   * page reports no `has_next`.
+   *
+   * A skin may only reason about the roster as a set — "is this the last
+   * owner?", "how many admins are there?" — while this is `true`. On one page
+   * of a longer roster those counts are counts of a page, and a control gated
+   * on one would refuse a removal the backend would have allowed, which is a
+   * worse defect than the ungated button it replaced. `false` while the read
+   * is loading or failed: an unknown roster is never a complete one.
+   */
+  readonly rosterComplete: boolean;
   /** An invite, a role change, or a removal failed. Never the read — that is
    * {@link state}. */
   readonly writeError: StapelApiError | null;
@@ -65,6 +77,7 @@ export function Members(props: {
   const removeMutation = useRemoveMember(props.workspaceId);
   return props.children({
     state: mapLoad(loadStateFromQuery(query), (page) => page.items),
+    rosterComplete: query.data !== undefined && !query.data.has_next,
     writeError:
       inviteMutation.error ?? roleMutation.error ?? removeMutation.error ?? null,
     invite: (body) => {

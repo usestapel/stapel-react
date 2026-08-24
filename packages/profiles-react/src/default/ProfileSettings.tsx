@@ -36,9 +36,14 @@
  *    to fetch it); an unrecognized model_ref falls back to a text edit so
  *    the field stays usable rather than silently disappearing.
  *  - `text` (and `geohash`, a raw string) → read-only with an edit
- *    affordance; clicking it opens a `Modal` (desktop) / bottom `Drawer`
- *    (phone, `useBreakpoint`) to edit + save, instead of an inline `Input`
- *    sitting in a batched form.
+ *    affordance; clicking it opens a dialog to edit + save, instead of an
+ *    inline `Input` sitting in a batched form. WHICH surface that dialog
+ *    takes is no longer this skin's decision: `@stapel/tokens-antd/skin`'s
+ *    `SkinDialog` states the fleet rule once — a bottom sheet on a phone, a
+ *    centred modal on tablet/desktop (owner ruling 2026-08-24) — and every
+ *    default skin inherits it. The hand-rolled `isPhone ? <Drawer> : <Modal>`
+ *    branch this file used to carry is exactly what that rule replaced, and
+ *    `stapel/no-bare-dialog` now fails lint on writing it again.
  *  - `geohash` is HIDDEN by default (`showGeohash` opts in) — a raw geohash
  *    string is not a friendly settings row on its own.
  * `useUpdateMyProfile` is itself optimistic (cache updates before the round
@@ -53,10 +58,8 @@ import {
   Button,
   Card,
   ConfigProvider,
-  Drawer,
   Flex,
   Input,
-  Modal,
   Segmented,
   Select,
   Spin,
@@ -65,11 +68,11 @@ import {
 } from "antd";
 import { resolveThemeMode, toAntdThemeConfig } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
+import { SkinDialog } from "@stapel/tokens-antd/skin";
 import {
   loadStateFromQuery,
   mapLoad,
   matchList,
-  useBreakpoint,
   useErrorDisplay,
   useT,
 } from "@stapel/core";
@@ -198,11 +201,10 @@ function SettingRow(props: { label: string; children: ReactNode }): ReactElement
 
 /**
  * A read-only text row with an edit affordance (owner UX audit 2026-07-17,
- * "Settings Interactions" canon): click the pencil to open a `Modal`
- * (desktop) / bottom `Drawer` (phone) with the value editable, instead of a
- * bare `Input` sitting inline in a batched form. Generic over any
- * manifest-supplied field name — `valueTestId` lets a caller give each row
- * a stable, per-field test selector.
+ * "Settings Interactions" canon): click the pencil to open a {@link SkinDialog}
+ * with the value editable, instead of a bare `Input` sitting inline in a
+ * batched form. Generic over any manifest-supplied field name —
+ * `valueTestId` lets a caller give each row a stable, per-field test selector.
  */
 function EditableTextRow(props: {
   label: string;
@@ -213,27 +215,60 @@ function EditableTextRow(props: {
   valueTestId?: string | undefined;
   onSave: (next: string) => void;
 }): ReactElement {
-  const isPhone = useBreakpoint() === "phone";
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(props.value);
+  /**
+   * The value THIS row asked to write, until that write is answered — the one
+   * thing the dismissal hangs off.
+   *
+   * It used to hang off `draft.trim() === props.value` alone, an equality that
+   * is ALREADY TRUE the moment the dialog opens: a "save" that changed nothing
+   * therefore issued a PATCH *and* closed as if something had happened. And
+   * `saving` is the SHARED `mutation.isPending` of the whole screen, so the
+   * same equality also closed this dialog when a SIBLING row saved. With the
+   * request latched, the equality below stops being an accident of the
+   * starting state and becomes the confirmation of a write this row made.
+   */
+  const [pendingValue, setPendingValue] = useState<string | null>(null);
+
+  /** Is there anything to write? A draft equal to the stored value is not an
+   * edit, and a PATCH carrying it is a write with no change behind it. */
+  const changed = draft.trim() !== props.value;
 
   function openEditor(): void {
     setDraft(props.value);
+    setPendingValue(null);
     setOpen(true);
   }
 
-  function commit(): void {
-    props.onSave(draft.trim());
+  function closeEditor(): void {
+    setPendingValue(null);
+    setOpen(false);
   }
 
-  // Close the dialog once a save actually lands (not on every keystroke —
-  // only when the mutation stops being in flight AND didn't error).
+  function commit(): void {
+    if (!changed || props.saving) return;
+    const next = draft.trim();
+    setPendingValue(next);
+    props.onSave(next);
+  }
+
+  // Close the dialog once the save THIS row asked for has landed — never on
+  // every keystroke, and never on a request nobody made.
   useEffect(() => {
-    if (open && !props.saving && !props.error && draft.trim() === props.value) {
+    if (pendingValue === null || props.saving) return;
+    if (props.error) {
+      // A failed save keeps the dialog open, with the error inside it; the
+      // optimistic write has already rolled itself back.
+      setPendingValue(null);
+      return;
+    }
+    if (props.value === pendingValue) {
+      setPendingValue(null);
       setOpen(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately re-runs only on `saving` edge (see comment above), not on every `draft`/`value` change
-  }, [props.saving]);
+  }, [pendingValue, props.saving, props.error, props.value]);
 
   const body: ReactNode = (
     <Flex vertical gap="middle">
@@ -245,10 +280,25 @@ function EditableTextRow(props: {
         onPressEnter={commit}
         disabled={props.saving}
       />
-      <Button type="primary" onClick={commit} loading={props.saving} data-analytics="flow">
-        {props.saveCta}
-      </Button>
     </Flex>
+  );
+
+  // The action row, as the dialog's footer — the sheet and the modal each
+  // place it where their own surface puts actions.
+  const footer: ReactNode = (
+    <Button
+      type="primary"
+      onClick={commit}
+      loading={props.saving}
+      // No live Save for a draft that would write the value already stored.
+      // Stated by switching the control off rather than in text: unlike a
+      // blocked action whose reason is invisible, the reason here is the row
+      // itself — the field still reads exactly what it read before.
+      disabled={!changed}
+      data-analytics="flow"
+    >
+      {props.saveCta}
+    </Button>
   );
 
   return (
@@ -268,15 +318,15 @@ function EditableTextRow(props: {
           data-analytics-reason="local-ui-open-edit-dialog"
         />
       </Flex>
-      {isPhone ? (
-        <Drawer open={open} title={props.label} onClose={() => setOpen(false)} placement="bottom" size="large" destroyOnHidden>
-          {body}
-        </Drawer>
-      ) : (
-        <Modal open={open} title={props.label} onCancel={() => setOpen(false)} footer={null} destroyOnHidden>
-          {body}
-        </Modal>
-      )}
+      <SkinDialog
+        open={open}
+        title={props.label}
+        onClose={closeEditor}
+        dismissLabel={t(PROFILES_I18N_KEYS.actionClose)}
+        footer={footer}
+      >
+        {body}
+      </SkinDialog>
     </div>
   );
 }

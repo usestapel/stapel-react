@@ -122,6 +122,8 @@ export const formsI18nBundleEs: I18nDictionary = {
   "forms.responses.export": "Exportar CSV",
   "forms.responses.exporting": "Exportando… ({pages} página(s))",
   "forms.responses.erased": "Borrada",
+  "forms.responses.blocked.erased":
+    "Esta respuesta fue borrada, así que ya no se puede reenviar ni eliminar.",
   "forms.responses.detail": "Detalle de la respuesta",
   "forms.responses.close": "Cerrar",
 

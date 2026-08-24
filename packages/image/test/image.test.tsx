@@ -161,6 +161,60 @@ describe("<Image>", () => {
     });
   });
 
+  // THE OWNER'S CASE, verbatim: "small images must get small webp".
+  //
+  // A slot does not arrive at its final size. A card grid before its container
+  // query resolves, a flex row before it wraps, a phone that starts in
+  // landscape — the element is measured WIDE and then settles NARROW. While
+  // the measurement was a per-axis high-water mark this was unrecoverable:
+  // the first wide reading was kept for ever and a 96px thumbnail asked for
+  // the tier a hero needs. Nothing is painted yet here, so re-picking smaller
+  // is not a downgrade — it is the correct answer arriving.
+  it("a slot that lays out wide and settles SMALL asks for the small tier", async () => {
+    render(<Image meta={portraitMeta()} alt="photo" />);
+    const ro = lastObserver();
+    act(() => {
+      ro.trigger(900, 1200); // the pre-layout box
+      ro.trigger(96, 128); // …the box it actually renders at
+    });
+    const img = await screen.findByAltText("photo");
+    // 96 CSS px x dpr 1 = 96 needed; the smallest tier that does not upscale
+    // past the x1.1 tolerance is 120 (min-side, serves either axis).
+    expect(img.getAttribute("src")).toBe("cdn://img/120.webp");
+  });
+
+  it("spends the device pixel ratio: the same small slot at 3x asks for 3x the pixels", async () => {
+    vi.stubGlobal("devicePixelRatio", 3);
+    render(<Image meta={portraitMeta()} alt="photo" />);
+    act(() => {
+      lastObserver().trigger(96, 128);
+    });
+    const img = await screen.findByAltText("photo");
+    // 96 x 3 = 288 device px on the limiting axis -> 480w (240x1.1 = 264 < 288).
+    expect(img.getAttribute("src")).toBe("cdn://img/480w.webp");
+  });
+
+  it("re-picks on a resize, and only after the slot holds still", async () => {
+    render(<Image meta={portraitMeta()} alt="photo" />);
+    const ro = lastObserver();
+    act(() => {
+      ro.trigger(300, 400);
+    });
+    await waitFor(() => {
+      expect(screen.getByAltText("photo").getAttribute("src")).toBe("cdn://img/480w.webp");
+    });
+    // A drag across the whole range: every intermediate width would otherwise
+    // be its own tier decision, and its own fetch.
+    act(() => {
+      for (let w = 300; w <= 900; w += 25) {
+        ro.trigger(w, 1200);
+      }
+    });
+    await waitFor(() => {
+      expect(screen.getByAltText("photo").getAttribute("src")).toBe("cdn://img/1080w.webp");
+    });
+  });
+
   it("never downgrades: a shrink keeps the already-rendered tier", async () => {
     render(<Image meta={portraitMeta()} alt="photo" />);
     const ro = lastObserver();
@@ -173,7 +227,12 @@ describe("<Image>", () => {
     act(() => {
       ro.trigger(200, 120);
     });
-    // High-water-mark + upgrade-only guard: src is untouched.
+    // The slot really did shrink and the hook really does report it — the
+    // guard that keeps the painted tier is the LOAD effect's, one layer up
+    // from the ruler.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
     expect(screen.getByAltText("photo").getAttribute("src")).toBe("cdn://img/720w.webp");
   });
 
@@ -211,6 +270,10 @@ describe("<Image>", () => {
     const ro = lastObserver();
     act(() => {
       ro.trigger(640, 360);
+    });
+    // Past the slot's trailing debounce, so the pick has actually been made.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
     });
     // Three re-renders WHILE the decode is in flight — the shape that used to
     // cancel every attempt and leave the slot empty for ever.

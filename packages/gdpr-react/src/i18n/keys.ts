@@ -27,6 +27,9 @@ export const GDPR_I18N_KEYS = {
   unknownError: "gdpr.error.unknown",
   /** The one recovery affordance every failed READ on this surface offers. */
   retry: "gdpr.action.retry",
+  /** Dismissal — the accessible name of a dialog's close button, and of the
+   * grab handle the same dialog grows when it is a bottom sheet on a phone. */
+  close: "gdpr.action.close",
   /** Every staff screen's refusal — the nav axis cannot say "staff". */
   staffOnly: "gdpr.admin.staff_only",
 
@@ -88,6 +91,9 @@ export const GDPR_I18N_KEYS = {
   exportNone: "gdpr.export.none",
   exportRequest: "gdpr.export.request",
   exportRequested: "gdpr.export.requested",
+  /** Why the request button is off while an archive is already being built —
+   * printed beside the control, because a disabled button has no tooltip. */
+  exportInFlight: "gdpr.export.in_flight",
   exportProgress: "gdpr.export.progress",
   exportPartial: "gdpr.export.partial",
   exportExpires: "gdpr.export.expires",
@@ -203,6 +209,7 @@ export const gdprI18nBundleEn: I18nDictionary = {
   // gdpr-react UI
   "gdpr.error.unknown": "Something went wrong. Please try again.",
   "gdpr.action.retry": "Try again",
+  "gdpr.action.close": "Close",
   "gdpr.admin.staff_only":
     "This screen is for staff. You are signed in with an account that does not have access to it.",
 
@@ -259,6 +266,8 @@ export const gdprI18nBundleEn: I18nDictionary = {
   "gdpr.export.request": "Request my data",
   "gdpr.export.requested":
     "We are building your archive. We will email you when it is ready.",
+  "gdpr.export.in_flight":
+    "We are already building an archive for you. You can ask for another one once this is ready.",
   "gdpr.export.progress": "{done} of {total} sections ready",
   "gdpr.export.partial": "Some sections could not be included: {services}",
   "gdpr.export.expires": "The download link expires on {date}",

@@ -41,6 +41,7 @@ export const gdprI18nBundleRu: I18nDictionary = {
   // UI copy.
   "gdpr.error.unknown": "Что-то пошло не так. Попробуйте ещё раз.",
   "gdpr.action.retry": "Повторить",
+  "gdpr.action.close": "Закрыть",
   "gdpr.admin.staff_only":
     "Этот раздел — для сотрудников. Вы вошли под аккаунтом без доступа к нему.",
 
@@ -96,6 +97,8 @@ export const gdprI18nBundleRu: I18nDictionary = {
   "gdpr.export.request": "Запросить мои данные",
   "gdpr.export.requested":
     "Собираем архив. Мы напишем вам, когда он будет готов.",
+  "gdpr.export.in_flight":
+    "Мы уже собираем ваш архив. Новый запрос можно будет отправить, когда этот будет готов.",
   "gdpr.export.progress": "Готово разделов: {done} из {total}",
   "gdpr.export.partial": "Некоторые разделы не удалось включить: {services}",
   "gdpr.export.expires": "Ссылка на скачивание действует до {date}",

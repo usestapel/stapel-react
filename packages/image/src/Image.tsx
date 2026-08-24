@@ -5,9 +5,9 @@ import type {
   ReactElement,
   ReactNode,
 } from "react";
-import { chooseVariant } from "./tiers.js";
+import { chooseVariant, numericTier } from "./tiers.js";
 import type { Fit, StapelImage, VariantMeta } from "./tiers.js";
-import { useImageSlot } from "./useImageSlot.js";
+import { useDevicePixelRatio, useImageSlot } from "./useImageSlot.js";
 
 /** What {@link ImageProps.renderError} is told about the image that failed. */
 export interface ImageErrorInfo {
@@ -38,6 +38,32 @@ export interface ImageProps
    * fails leaves the tier the person is looking at exactly where it is.
    */
   renderError?: (info: ImageErrorInfo) => ReactNode;
+  /**
+   * How long the slot has to hold still before its new size re-picks a tier,
+   * in ms (see `useImageSlot`). Default 120. Lower it for a slot that is
+   * animated to its final size; raise it for one inside a draggable splitter.
+   */
+  slotSettleMs?: number;
+}
+
+/**
+ * How big a variant is, as ONE comparable number: its ladder tier, with
+ * `"original"` at the top.
+ *
+ * The upgrade-only rule needs to compare two picks, and the file's pixel
+ * dimensions are the wrong instrument for it: `width`/`height` are `null` on
+ * every variant of a ladder whose resolver could not read them (the honest
+ * shape for a CDN-reference resolver), which is how an area comparison of
+ * `0 <= 0` once refused every upgrade for the life of the component. The tier
+ * is on the wire for every variant, always, and it is what the ladder is
+ * ordered by.
+ */
+function tierRank(variant: VariantMeta): number {
+  if (variant.tier === "original") {
+    return Number.POSITIVE_INFINITY;
+  }
+  const numeric = numericTier(variant.tier);
+  return numeric === null ? Number.NaN : numeric;
 }
 
 const FILL: CSSProperties = {
@@ -122,9 +148,13 @@ export function Image({
   style,
   className,
   renderError,
+  slotSettleMs,
   ...imgProps
 }: ImageProps): ReactElement {
-  const { ref, size } = useImageSlot<HTMLDivElement>();
+  const { ref, size } = useImageSlot<HTMLDivElement>(
+    slotSettleMs === undefined ? undefined : { settleMs: slotSettleMs }
+  );
+  const dpr = useDevicePixelRatio();
 
   const [displayed, setDisplayed] = useState<VariantMeta | undefined>(undefined);
   const [failed, setFailed] = useState<VariantMeta | undefined>(undefined);
@@ -142,7 +172,8 @@ export function Image({
     if (size === undefined || size.width <= 0 || size.height <= 0) {
       return undefined;
     }
-    const dpr = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
+    // The size is THIS element's, measured; the DPR is the device's, and it
+    // moves (zoom, a window dragged to a 1x monitor). Neither is the viewport.
     return chooseVariant(
       {
         slotWidthCss: size.width,
@@ -153,7 +184,7 @@ export function Image({
       },
       meta
     );
-  }, [size, meta, fit]);
+  }, [size, meta, fit, dpr]);
 
   // The load below is keyed by the chosen variant's URL, not by the object
   // that carries it — and that distinction is the whole of a bug that made
@@ -181,21 +212,41 @@ export function Image({
       return;
     }
     const current = displayedRef.current;
-    // Upgrade only (§4): never replace an already-rendered variant with an
-    // equal or smaller one (resize jitter, transient shrink).
+    // ── The upgrade-only rule lives HERE, and only here ────────────────────
     //
-    // The comparison is by AREA only when both areas are actually known. A
-    // host whose resolver reports `width: null` on every variant — the honest
-    // shape when nothing measured the file, and what a CDN-reference resolver
-    // that cannot read variant metadata has to write — made both sides 0, so
-    // `0 <= 0` refused every upgrade for the whole life of the component. An
-    // unmeasured ladder is not a reason to freeze on the first tier picked.
+    // "Never downgrade" is a statement about what is ON SCREEN: replacing a
+    // painted variant with a smaller one is a visible regression, not an
+    // optimization. It is therefore checked against `displayedRef` — the
+    // variant actually decoded and committed — and NOT by freezing the ruler
+    // in `useImageSlot`, which is where it used to live and which made the
+    // measurement itself a maximum (see that hook's doc). Before anything is
+    // painted, a re-measure is free to pick smaller, which is the whole point:
+    // a small element gets a small file.
+    //
+    // The comparison is by TIER, the one field every variant carries. It used
+    // to be by pixel AREA, which is `null` on every variant of an unmeasured
+    // ladder — `0 <= 0` then refused every upgrade for the life of the
+    // component. Area survives only as the tiebreaker for a non-ladder tier
+    // string nothing can rank.
     const area = (v: VariantMeta): number => (v.width ?? 0) * (v.height ?? 0);
     if (current !== undefined) {
       if (current.url === pick.url) {
         return;
       }
-      if (area(current) > 0 && area(pick) > 0 && area(pick) <= area(current)) {
+      const currentRank = tierRank(current);
+      const pickRank = tierRank(pick);
+      if (!Number.isNaN(currentRank) && !Number.isNaN(pickRank)) {
+        if (pickRank < currentRank) {
+          return; // a strict downgrade: never.
+        }
+        if (pickRank === currentRank && pick.branch === current.branch) {
+          return; // the same rung of the same ladder, by another URL.
+        }
+        // Equal tier, DIFFERENT branch is not a downgrade — it is the slot's
+        // limiting axis having changed (a portrait card became landscape), and
+        // the variant that served the old axis is short on the new one. Let it
+        // through, or the image stays soft on the axis that now matters.
+      } else if (area(current) > 0 && area(pick) > 0 && area(pick) <= area(current)) {
         return;
       }
     }

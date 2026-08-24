@@ -14,6 +14,13 @@ export const PROFILES_I18N_KEYS = {
   unknownError: "profiles.error.unknown",
   /** Retry affordance beside a `failed` arm's alert (matchList/matchLoad). */
   actionRetry: "profiles.action.retry",
+  /**
+   * Dismiss a dialog — the accessible name of a modal's close button and of a
+   * bottom sheet's grab handle. `@stapel/tokens-antd/skin`'s `SkinDialog`
+   * requires the CALLER to supply it: the token bridge owns no i18n and must
+   * not invent user-facing English.
+   */
+  actionClose: "profiles.action.close",
   // My profile (MyProfile headless)
   profileLoading: "profiles.profile.loading",
   profileSave: "profiles.profile.save",
@@ -97,6 +104,7 @@ export const profilesI18nBundleEn: I18nDictionary = {
   // profiles-react UI
   "profiles.error.unknown": "Something went wrong. Please try again.",
   "profiles.action.retry": "Try again",
+  "profiles.action.close": "Close",
   "profiles.profile.loading": "Loading profile…",
   "profiles.profile.save": "Save changes",
   "profiles.profile.saving": "Saving…",

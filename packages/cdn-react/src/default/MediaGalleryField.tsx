@@ -31,6 +31,7 @@ import type { CdnUploadTarget } from "../model/upload.js";
 import { CDN_I18N_KEYS } from "../i18n/keys.js";
 import { ErrorAlert } from "./ErrorAlert.js";
 import { PHASE_KEYS, PREVIEW_BOX } from "./phase.js";
+import { CdnThumbnail } from "./CdnThumbnail.js";
 
 /**
  * The gallery over a queue the CALLER owns.
@@ -101,11 +102,14 @@ function Tile(props: {
       data-phase={item.phase}
       style={{ width: PREVIEW_BOX.width }}
     >
-      {preview.url === null ? (
-        <div style={{ ...PREVIEW_BOX, border: "1px dashed" }} />
-      ) : (
-        <img src={preview.url} alt={t(CDN_I18N_KEYS.itemAlt)} style={PREVIEW_BOX} />
-      )}
+      {/* The tier comes from THIS tile's box at the live device pixel ratio,
+          not from `smallestVariantUrl` — see `./CdnThumbnail.tsx`. */}
+      <CdnThumbnail
+        localUrl={preview.localUrl}
+        image={item.image}
+        box={PREVIEW_BOX}
+        alt={t(CDN_I18N_KEYS.itemAlt)}
+      />
       <Typography.Text type="secondary" data-testid="cdn-tile-phase">
         {t(PHASE_KEYS[item.phase])}
       </Typography.Text>

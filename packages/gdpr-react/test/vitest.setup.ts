@@ -21,12 +21,22 @@ afterEach(() => {
 });
 
 // jsdom ships neither `matchMedia` nor `ResizeObserver`; Ant Design (the §54
-// default-skin suite) reads both on mount. Minimal no-op polyfills so the DOM
-// render is exercised without pulling a heavier test env.
+// default-skin suite) reads both on mount. Minimal polyfills so the DOM render
+// is exercised without pulling a heavier test env.
+//
+// `matches` is EVALUATED, not hard-coded `false`. `@stapel/tokens-antd/skin`
+// asks `(min-width: 768px)` to decide whether a dialog is a modal or a bottom
+// sheet, so a blanket `false` silently declares every test viewport a phone —
+// including jsdom's own window, which is 1024x768. It is a getter rather than
+// a value so a test that sets `window.innerWidth` before rendering gets the
+// answer for the viewport it actually asked for.
 if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
-  window.matchMedia = (query: string): MediaQueryList =>
-    ({
-      matches: false,
+  window.matchMedia = ((query: string) => {
+    const min = /\(min-width:\s*(\d+)px\)/.exec(query);
+    return {
+      get matches(): boolean {
+        return min === null ? false : window.innerWidth >= Number(min[1]);
+      },
       media: query,
       onchange: null,
       addListener: () => {},
@@ -34,7 +44,8 @@ if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
       addEventListener: () => {},
       removeEventListener: () => {},
       dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+    } as unknown as MediaQueryList;
+  }) as typeof window.matchMedia;
 }
 if (typeof globalThis.ResizeObserver === "undefined") {
   globalThis.ResizeObserver = class {
