@@ -68,15 +68,21 @@ function ThreadBody(): ReactElement {
   return (
     <DemoCard heading="ConversationThread">
       <ConversationThread conversationId={DEMO_CONVERSATION.id}>
-        {({ state, transport }) => (
+        {({ state, transport, degraded }) => (
           <>
+            {/* A degraded transport says WHICH degradation it is. Rendering
+                `transport` alone is how "Refreshing every few seconds" came to
+                mean both "this deployment has no sockets" and "your credential
+                was refused". */}
             <span style={{ color: cssVar("text-muted"), fontSize: fontSize.sm.fontSize }}>
               {t(
-                transport === "socket"
-                  ? "chat.transport.live"
-                  : transport === "polling"
-                    ? "chat.transport.polling"
-                    : "chat.transport.idle"
+                degraded
+                  ? degraded.messageKey
+                  : transport === "socket"
+                    ? "chat.transport.live"
+                    : transport === "polling"
+                      ? "chat.transport.polling"
+                      : "chat.transport.idle"
               )}
             </span>
             {matchList(state, {

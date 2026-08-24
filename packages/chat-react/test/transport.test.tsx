@@ -23,9 +23,11 @@ function Thread(props: { intervalMs?: number }): React.ReactElement {
       {...(props.intervalMs !== undefined ? { refreshIntervalMs: props.intervalMs } : {})}
       autoMarkRead={false}
     >
-      {({ state, transport }) => (
+      {({ state, transport, degraded }) => (
         <div>
           <span data-testid="transport">{transport}</span>
+          <span data-testid="degraded">{degraded?.reason ?? "none"}</span>
+          <span data-testid="degraded-key">{degraded?.messageKey ?? ""}</span>
           {matchList(state, {
             loading: () => <span data-testid="status">loading</span>,
             failed: () => <span data-testid="status">failed</span>,
@@ -142,8 +144,8 @@ describe("the thread renders the same under either transport", () => {
   });
 });
 
-describe("the socket's refusals hand over to polling", () => {
-  it("4403 stops the socket for good and the thread keeps refreshing", async () => {
+describe("a stopped socket never becomes a SILENT polling loop", () => {
+  it("4403 stops the socket for good, keeps the thread fresh, and NAMES the degradation", async () => {
     const { server, transport } = mount({ socket: true, intervalMs: 20 });
     await initialWindowOnScreen();
     await waitFor(() => expect(transport?.sockets.length).toBe(1));
@@ -153,10 +155,48 @@ describe("the socket's refusals hand over to polling", () => {
     await waitFor(() =>
       expect(screen.getByTestId("transport").textContent).toBe("polling")
     );
+    // …and the screen says WHY it is polling. `transport: "polling"` alone is
+    // what a person read as "this product refreshes every few seconds" while
+    // every handshake was being refused.
+    expect(screen.getByTestId("degraded").textContent).toBe("forbidden");
+    expect(screen.getByTestId("degraded-key").textContent).toBe(
+      "chat.transport.degraded.forbidden"
+    );
     // No second socket: the host already answered.
     expect(transport?.sockets).toHaveLength(1);
     await waitFor(() => expect(rendered()).toEqual([1, 2, 3, 4]));
     expect(server.calls.some((c) => c.url.includes("direction=prev"))).toBe(true);
+  });
+
+  it("4401 with nothing to renew asks the person to sign in, out loud", async () => {
+    const { transport } = mount({ socket: true, intervalMs: 20 });
+    await initialWindowOnScreen();
+    await waitFor(() => expect(transport?.sockets.length).toBe(1));
+
+    act(() => transport?.last().serverClose(4401));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("degraded").textContent).toBe("sign_in_required")
+    );
+    // The thread is still kept fresh — degrading is allowed. Doing it
+    // wordlessly is not.
+    expect(screen.getByTestId("transport").textContent).toBe("polling");
+  });
+
+  it("a deployment with no socket at all says so, rather than polling quietly", async () => {
+    mount({ socket: false, intervalMs: 20 });
+    await initialWindowOnScreen();
+    await waitFor(() =>
+      expect(screen.getByTestId("degraded").textContent).toBe("no_socket")
+    );
+  });
+
+  it("a live socket reports no degradation", async () => {
+    const { transport } = mount({ socket: true, intervalMs: 0 });
+    await waitFor(() => expect(rendered()).toEqual([1, 2, 3]));
+    await waitFor(() => expect(transport?.sockets.length).toBe(1));
+    act(() => transport?.last().open());
+    expect(screen.getByTestId("degraded").textContent).toBe("none");
   });
 });
 

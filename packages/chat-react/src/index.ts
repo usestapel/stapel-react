@@ -45,13 +45,42 @@ export type {
 // transport; NOTHING above `flows/freshness.ts` inside this package uses it,
 // which is what keeps the substrate migration to one file.
 export {
-  CHAT_WS_CLOSE_NOT_PARTICIPANT,
-  CHAT_WS_CLOSE_UNAUTHENTICATED,
   CHAT_WS_REPLAY_LIMIT,
   CHAT_WS_RESYNC,
   decodeServerFrame,
   parseServerFrame,
 } from "./realtime/frames.js";
+// Close codes and the ONE place they are interpreted. A host rendering a
+// connection state reads `chatClosePolicy`, never a bare number.
+export {
+  CHAT_WS_CLOSE_DATA_HOME_UNAVAILABLE,
+  CHAT_WS_CLOSE_FORBIDDEN,
+  CHAT_WS_CLOSE_HEARTBEAT_TIMEOUT,
+  CHAT_WS_CLOSE_NOT_PARTICIPANT,
+  CHAT_WS_CLOSE_OVERFLOW,
+  CHAT_WS_CLOSE_PROTOCOL_ERROR,
+  CHAT_WS_CLOSE_REVOKED,
+  CHAT_WS_CLOSE_STREAM_UNKNOWN,
+  CHAT_WS_CLOSE_UNAUTHENTICATED,
+  chatClosePolicy,
+} from "./realtime/closePolicy.js";
+export type {
+  ChatCloseAction,
+  ChatClosePolicy,
+  ChatCloseReason,
+} from "./realtime/closePolicy.js";
+export {
+  CHAT_WS_BEARER_SUBPROTOCOL,
+  CHAT_WS_TOKEN_QUERY_PARAM,
+  chatSocketTarget,
+} from "./realtime/credential.js";
+export type {
+  ChatCredentialRenewal,
+  ChatCredentialRenewalOutcome,
+  ChatCredentialSource,
+  ChatSocketCredential,
+  ChatSocketTarget,
+} from "./realtime/credential.js";
 export type {
   ChatAckFrame,
   ChatClientFrame,
@@ -110,7 +139,10 @@ export {
   THREAD_INTERVAL_MS,
   useChatFreshness,
 } from "./flows/freshness.js";
+export { chatDegradation } from "./flows/freshness.js";
 export type {
+  ChatDegraded,
+  ChatDegradedReason,
   ChatFreshness,
   ChatFreshnessOptions,
   ChatSignal,

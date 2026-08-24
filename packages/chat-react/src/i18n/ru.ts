@@ -85,6 +85,19 @@ export const chatI18nBundleRu: I18nDictionary = {
   "chat.transport.polling": "Обновляется каждые несколько секунд",
   "chat.transport.idle": "Приостановлено",
 
+  "chat.transport.degraded.reconnecting": "Переподключение…",
+  "chat.transport.degraded.renewing": "Обновляем сессию…",
+  "chat.transport.degraded.sign_in_required":
+    "Живые сообщения остановлены — войдите снова, чтобы их вернуть.",
+  "chat.transport.degraded.forbidden":
+    "Живые сообщения недоступны в этом разговоре.",
+  "chat.transport.degraded.unsupported":
+    "Живые сообщения недоступны — приложению нужно обновление.",
+  "chat.transport.degraded.unreachable":
+    "Нет связи для живых сообщений — обновляем каждые несколько секунд.",
+  "chat.transport.degraded.no_socket":
+    "Живые сообщения здесь отключены — обновляем каждые несколько секунд.",
+
   "chat.nav.conversations": "Сообщения",
 };
 

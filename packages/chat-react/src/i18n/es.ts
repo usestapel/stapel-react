@@ -83,6 +83,19 @@ export const chatI18nBundleEs: I18nDictionary = {
   "chat.transport.polling": "Actualizando cada pocos segundos",
   "chat.transport.idle": "En pausa",
 
+  "chat.transport.degraded.reconnecting": "Reconectando…",
+  "chat.transport.degraded.renewing": "Renovando tu sesión…",
+  "chat.transport.degraded.sign_in_required":
+    "Los mensajes en directo se han detenido: inicia sesión de nuevo para recuperarlos.",
+  "chat.transport.degraded.forbidden":
+    "Los mensajes en directo no están disponibles en esta conversación.",
+  "chat.transport.degraded.unsupported":
+    "Los mensajes en directo no están disponibles: la aplicación necesita actualizarse.",
+  "chat.transport.degraded.unreachable":
+    "No se puede conectar con los mensajes en directo: actualizando cada pocos segundos.",
+  "chat.transport.degraded.no_socket":
+    "Los mensajes en directo están desactivados aquí: actualizando cada pocos segundos.",
+
   "chat.nav.conversations": "Mensajes",
 };
 

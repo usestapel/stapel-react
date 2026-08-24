@@ -29,10 +29,21 @@
  */
 export const CHAT_WS_REPLAY_LIMIT = 500;
 
-/** `ChatConsumer.connect()` closes with this when `scope["user"]` is unset. */
-export const CHAT_WS_CLOSE_UNAUTHENTICATED = 4401;
-/** …and with this when the caller is not a participant of the conversation. */
-export const CHAT_WS_CLOSE_NOT_PARTICIPANT = 4403;
+// The close codes and their meanings live in `closePolicy.ts` — one table,
+// one place that branches on them. Re-exported here because this file is the
+// pair's declared protocol mirror and a mirror with the close codes missing
+// is an incomplete one.
+export {
+  CHAT_WS_CLOSE_DATA_HOME_UNAVAILABLE,
+  CHAT_WS_CLOSE_FORBIDDEN,
+  CHAT_WS_CLOSE_HEARTBEAT_TIMEOUT,
+  CHAT_WS_CLOSE_NOT_PARTICIPANT,
+  CHAT_WS_CLOSE_OVERFLOW,
+  CHAT_WS_CLOSE_PROTOCOL_ERROR,
+  CHAT_WS_CLOSE_REVOKED,
+  CHAT_WS_CLOSE_STREAM_UNKNOWN,
+  CHAT_WS_CLOSE_UNAUTHENTICATED,
+} from "./closePolicy.js";
 
 // ── client → server ──────────────────────────────────────────────────────────
 

@@ -7,6 +7,10 @@ import type {
   ChatReconnectOptions,
   ChatWebSocketFactory,
 } from "../realtime/chatSocket.js";
+import type {
+  ChatCredentialRenewal,
+  ChatCredentialSource,
+} from "../realtime/credential.js";
 import { deriveChatSocketBase } from "../realtime/streams.js";
 
 /**
@@ -30,6 +34,35 @@ export interface ChatRealtimeOptions {
   /** Reconnect backoff knobs. */
   readonly reconnect?: ChatReconnectOptions;
   /**
+   * WHAT CREDENTIAL THE HANDSHAKE CARRIES, read afresh at every connect.
+   *
+   * A browser cannot set an `Authorization` header on `new WebSocket()`, so
+   * the token this pair's REST calls send is NOT on the socket unless it is
+   * put there deliberately — in the subprotocol list or the query string
+   * (`realtime/credential.ts`). Omit this and the handshake relies on the
+   * httpOnly JWT cookie the browser attaches by itself, which is the right
+   * default for a same-origin cookie deployment whose backend allow-lists
+   * this origin (`STAPEL_WS_ALLOWED_ORIGINS`), and no credential at all for
+   * a bearer-token host.
+   *
+   * ```ts
+   * realtime: { credential: () => {
+   *   const token = auth.accessToken();
+   *   return token ? { channel: "subprotocol", token } : { channel: "cookie" };
+   * } }
+   * ```
+   */
+  readonly credential?: ChatCredentialSource;
+  /**
+   * Renew a credential the handshake refused (close 4401), then reconnect.
+   * Wire it to core's `SessionManager.refresh()` — the ONE place a rejected
+   * credential is handled — mapping its three outcomes onto this seam's
+   * (`renewed` / `refused` / `unavailable`). Omit it and a 4401 stops the
+   * socket immediately with a VISIBLE `sign_in_required`, never a quiet
+   * fall-through to polling.
+   */
+  readonly renewCredential?: ChatCredentialRenewal;
+  /**
    * Origin used to resolve a relative `baseUrl`. Defaults to the browser's
    * own; irrelevant when `baseUrl` is absolute.
    */
@@ -42,6 +75,8 @@ export interface ChatRealtimeConfig {
   readonly socketBase: string | null;
   readonly webSocket: ChatWebSocketFactory | undefined;
   readonly reconnect: ChatReconnectOptions | undefined;
+  readonly credential: ChatCredentialSource | undefined;
+  readonly renewCredential: ChatCredentialRenewal | undefined;
 }
 
 /**
@@ -79,6 +114,8 @@ function resolveRealtime(
     socketBase,
     webSocket: options?.webSocket,
     reconnect: options?.reconnect,
+    credential: options?.credential,
+    renewCredential: options?.renewCredential,
   };
 }
 

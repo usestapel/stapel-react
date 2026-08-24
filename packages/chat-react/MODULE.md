@@ -124,15 +124,74 @@ spelled identically in `@stapel/reviews-react` and `@stapel/listings-react`;
 the LABEL is this pair's (`chat.start.sign_in`, in all three locales), because
 core floors only `en` and `ru`.
 
+## The credential channel, and why the socket has one at all
+
+A browser cannot set an `Authorization` header on `new WebSocket()`. There is
+no options bag and no interceptor: the constructor takes a URL and a
+subprotocol list. So a pair whose REST calls carry a bearer token and whose
+socket is opened with `new WebSocket(url)` is not sending a weaker credential
+— it is sending none, and every handshake closes 4401. That is not
+hypothetical; it is why this pair polled in production while its sockets were
+reported done.
+
+`realtime.credential` names what goes on the handshake, read afresh at every
+connect (`realtime/credential.ts`), mirroring the four channels
+`stapel_core.django.jwt.channels` reads:
+
+| channel | what is constructed | notes |
+|---|---|---|
+| `cookie` (default) | `new WebSocket(url)` | the browser attaches its httpOnly JWT cookie itself. Ambient, so the backend admits it only from an allow-listed `Origin` (`STAPEL_WS_ALLOWED_ORIGINS`); an unlisted origin closes **4403**, not 4401 |
+| `subprotocol` | `new WebSocket(url, ["bearer", token])` | preferred for a bearer host: not ambient, and not written to access logs |
+| `query` | `…?token=<encoded>` | works everywhere, lands in every proxy log |
+| header | — | **impossible from a browser.** Present in the backend for service-to-service clients |
+
+## Close codes: three answers, one place
+
+`realtime/closePolicy.ts` is the only file that reads a close code, and it
+answers one of three things — `reconnect`, `renew-credential`, `stop`.
+
+| code | action | what the person is told |
+|---|---|---|
+| 4400 protocol error | stop | `unsupported` — this build needs a deploy |
+| **4401 unauthenticated** | **renew-credential** | `renewing_credential`, then `sign_in_required` if the renewal is refused |
+| 4403 forbidden | stop | `forbidden` (rights, or an unlisted origin) |
+| 4404 unknown stream | stop | `forbidden` |
+| 4408 heartbeat / 4413 overflow / 4503 no data home | reconnect | `reconnecting` |
+| 4410 revoked | stop | `forbidden` |
+| anything else (1006, 1001, …) | reconnect | `reconnecting` |
+
+4401 used to be terminal here. It is the load-bearing correction: 4401 is a
+statement about the CREDENTIAL, and a credential can be renewed. Wire
+`realtime.renewCredential` to core's `SessionManager.refresh()` and map its
+three outcomes onto `renewed` / `refused` / `unavailable` — the third is a
+FAULT, not a logout, for the same reason core split it out (a 502
+mid-redeploy must not sign anyone out).
+
+## A degraded transport is never silent
+
+`useChatFreshness` (and both headless bags) returns `degraded: ChatDegraded |
+null` beside `transport`. `transport: "polling"` alone was true and useless —
+it read the same whether the deployment has no sockets, the credential was
+refused, or the retry budget ran out, and "Refreshing every few seconds" was
+read as a product decision for months. Every reason
+(`reconnecting` / `renewing_credential` / `sign_in_required` / `forbidden` /
+`unsupported` / `unreachable` / `no_socket`) carries its own i18n key in all
+three locales, and `<ConversationThreadPanel>` renders it in place of the
+plain transport label.
+
 ## Extension seams (frontend-standard §7)
 
 - The client is injected via `<ChatProvider>` / core's `StapelConfigProvider`
   (per-module override) — pairs never hard-import a client.
 - The socket transport is injected: `createChatRuntime({ realtime: { webSocket } })`
-  takes any factory with `send`/`close` plus four callbacks, which is how the
-  tests drive the protocol frame by frame without a network.
+  takes any factory with `send`/`close` plus four callbacks, plus the
+  subprotocol list. A wrapper that drops that list un-authenticates every
+  handshake — it must refuse the socket rather than open an anonymous one.
+  Injecting it in a TEST hides the credential channel entirely, which is what
+  `test/handshake.test.ts` exists to stop.
 - `realtime.socketUrl: null` turns the socket half off for a deployment that has
-  no sockets (WSGI, no channel layer). Everything keeps working on the timer.
+  no sockets (WSGI, no channel layer). Everything keeps working on the timer —
+  and now SAYS so (`degraded.reason === "no_socket"`).
 - The headless layer is fully replaceable (copy-and-own); the antd skin is a
   separate entry point nobody has to import.
 

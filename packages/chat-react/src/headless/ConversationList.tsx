@@ -9,7 +9,11 @@ import {
   CONVERSATION_LIST_INTERVAL_MS,
   useChatFreshness,
 } from "../flows/freshness.js";
-import type { ChatSignal, ChatTransport } from "../flows/freshness.js";
+import type {
+  ChatDegraded,
+  ChatSignal,
+  ChatTransport,
+} from "../flows/freshness.js";
 import { chatInboxStream } from "../realtime/streams.js";
 
 /** Render-prop bag for {@link ConversationList}. */
@@ -34,6 +38,14 @@ export interface ConversationListBag {
   /** Which transport is keeping this list fresh (always polling — the module
    * mounts no socket for the inbox; see `realtime/streams.ts`). */
   readonly transport: ChatTransport;
+  /**
+   * Why it is not a socket. For the inbox this is always `no_socket` today —
+   * and it is REPORTED rather than assumed, because "this list is on a timer
+   * forever" is a fact a person may read and an operator may act on, not a
+   * silence. (stapel-chat 0.4.0 mounts `ws/chat/inbox`; wiring it is the
+   * protocol wave, and until then this says so out loud.)
+   */
+  readonly degraded: ChatDegraded | null;
 }
 
 /**
@@ -88,5 +100,6 @@ export function ConversationList(props: {
       void query.refetch();
     },
     transport: freshness.transport,
+    degraded: freshness.degraded,
   });
 }

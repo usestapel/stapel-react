@@ -61,6 +61,18 @@ export const CHAT_I18N_KEYS = {
   transportPolling: "chat.transport.polling",
   transportIdle: "chat.transport.idle",
 
+  // Degraded transport. These exist because "Refreshing every few seconds"
+  // was, for months, the only thing a person was told while every websocket
+  // handshake was being refused — a degraded mode nobody could tell from a
+  // design decision. One key per named reason (`flows/freshness.ts`).
+  transportReconnecting: "chat.transport.degraded.reconnecting",
+  transportRenewing: "chat.transport.degraded.renewing",
+  transportSignInRequired: "chat.transport.degraded.sign_in_required",
+  transportForbidden: "chat.transport.degraded.forbidden",
+  transportUnsupported: "chat.transport.degraded.unsupported",
+  transportUnreachable: "chat.transport.degraded.unreachable",
+  transportNoSocket: "chat.transport.degraded.no_socket",
+
   // Backend error keys the pair OWNS the localization of. stapel-chat ships
   // English only (it has no `translations/` directory), so its 12 keys are
   // absent from the generated ru/es bundles and are authored here instead —
@@ -139,6 +151,19 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.transport.live": "Live",
   "chat.transport.polling": "Refreshing every few seconds",
   "chat.transport.idle": "Paused",
+
+  "chat.transport.degraded.reconnecting": "Reconnecting…",
+  "chat.transport.degraded.renewing": "Renewing your session…",
+  "chat.transport.degraded.sign_in_required":
+    "Live messages stopped — sign in again to get them back.",
+  "chat.transport.degraded.forbidden":
+    "Live messages are unavailable for this conversation.",
+  "chat.transport.degraded.unsupported":
+    "Live messages are unavailable — this app needs an update.",
+  "chat.transport.degraded.unreachable":
+    "Can't reach live messages — refreshing every few seconds instead.",
+  "chat.transport.degraded.no_socket":
+    "Live messages are off here — refreshing every few seconds instead.",
 
   "chat.nav.conversations": "Messages",
 };

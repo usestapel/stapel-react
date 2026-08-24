@@ -1,7 +1,19 @@
 /**
  * The resumable client, driven frame by frame against a fake transport: the
- * handshake, the dedup cursor, the resync answer, the two refusals that must
- * NOT be retried, and the backoff that reconnects everything else.
+ * frame loop, the dedup cursor, the resync answer, the refusals that must NOT
+ * be retried, and the backoff that reconnects everything else.
+ *
+ * WHAT THIS FILE CANNOT SEE. It injects a `ChatWebSocketFactory`, so
+ * `browserWebSocketFactory` — the only code that calls `new WebSocket(...)` —
+ * never runs here, and the credential channel is bypassed in every test
+ * below. That is not a flaw to be fixed by deleting the file: driving frames
+ * by hand is the right way to test a frame loop. It is a BOUNDARY, and it was
+ * mistaken for coverage once already: eighteen green tests here coexisted
+ * with a chat that had never authenticated a socket in production.
+ *
+ * The handshake itself — what URL and what subprotocols the client
+ * constructs, and what it does about a 4401 — is covered in
+ * `handshake.test.ts`, against a `WebSocket` double at the ENVIRONMENT edge.
  */
 import { describe, expect, it, vi } from "vitest";
 import { createChatSocket } from "../src/index.js";
@@ -176,24 +188,55 @@ describe("reconnect", () => {
 });
 
 describe("a refusal is not a fault", () => {
-  it("4401 closes for good — reconnecting would hammer the host", () => {
+  it("4401 with no renewal seam stops, and NAMES why", () => {
+    // With a `renewCredential` wired it would renew first — see
+    // `handshake.test.ts`. Without one there is nothing left to try, and the
+    // one thing it must not do is go quiet.
     const d = drive();
     d.transport.last().serverClose(4401);
     expect(d.socket.status()).toMatchObject({
       state: "closed",
       refusal: "unauthenticated",
+      reason: "credential_rejected",
     });
     expect(d.retries).toHaveLength(0);
   });
 
-  it("4403 closes for good too", () => {
+  it("4403 closes for good — a right is not renewable", () => {
     const d = drive();
     d.transport.last().serverClose(4403);
     expect(d.socket.status()).toMatchObject({
       state: "closed",
-      refusal: "not_participant",
+      refusal: "forbidden",
     });
     expect(d.retries).toHaveLength(0);
+  });
+
+  it("4404 (unknown stream) and 4410 (revoked) stop too, each under its own name", () => {
+    const unknown = drive();
+    unknown.transport.last().serverClose(4404);
+    expect(unknown.socket.status()).toMatchObject({
+      state: "closed",
+      refusal: "unknown_stream",
+    });
+
+    const revoked = drive();
+    revoked.transport.last().serverClose(4410);
+    expect(revoked.socket.status()).toMatchObject({
+      state: "closed",
+      refusal: "revoked",
+    });
+  });
+
+  it("4413 (this client was too slow) is a FAULT — it reconnects", () => {
+    const d = drive();
+    d.transport.last().open();
+    d.transport.last().serverClose(4413);
+    expect(d.socket.status()).toMatchObject({
+      state: "degraded",
+      reason: "overflow",
+    });
+    expect(d.retries).toHaveLength(1);
   });
 });
 
@@ -252,8 +295,10 @@ describe("the send frame is typed but never emitted", () => {
   });
 });
 
-describe("the browser factory", () => {
-  it("is only reachable where WebSocket exists", async () => {
+describe("the SSR guard", () => {
+  // NOT a test of `browserWebSocketFactory` — nothing here constructs a
+  // socket. What the factory builds is `handshake.test.ts`'s subject.
+  it("says whether this environment can open a socket at all", async () => {
     const { canOpenWebSocket } = await import("../src/index.js");
     // jsdom provides one; the guard exists for SSR/node, where it does not.
     expect(canOpenWebSocket()).toBe(typeof WebSocket !== "undefined");

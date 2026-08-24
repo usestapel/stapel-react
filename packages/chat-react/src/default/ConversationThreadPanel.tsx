@@ -19,7 +19,7 @@ import {
 import type { ChatMessage } from "../api/types.js";
 import { ConversationThread } from "../headless/ConversationThread.js";
 import { MessageComposer } from "../headless/MessageComposer.js";
-import type { ChatTransport } from "../flows/freshness.js";
+import type { ChatDegradedReason, ChatTransport } from "../flows/freshness.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ErrorAlert } from "./ErrorAlert.js";
 
@@ -27,6 +27,21 @@ const TRANSPORT_KEYS: Record<ChatTransport, string> = {
   socket: CHAT_I18N_KEYS.transportLive,
   polling: CHAT_I18N_KEYS.transportPolling,
   idle: CHAT_I18N_KEYS.transportIdle,
+};
+
+/**
+ * How loud each degradation is. antd's semantic presets, not colours: a
+ * transient reconnect is neutral, something the person must act on is a
+ * warning, and a refusal nothing here can undo is an error.
+ */
+const DEGRADED_TAG_COLORS: Record<ChatDegradedReason, string> = {
+  reconnecting: "default",
+  renewing_credential: "default",
+  no_socket: "default",
+  unreachable: "warning",
+  sign_in_required: "warning",
+  forbidden: "error",
+  unsupported: "error",
 };
 
 export interface ConversationThreadPanelProps {
@@ -169,14 +184,35 @@ export function ConversationThreadPanel(
       conversationId={props.conversationId}
       {...(props.limit !== undefined ? { limit: props.limit } : {})}
     >
-      {({ state, hasOlder, isLoadingOlder, loadOlder, refetch, transport }) => (
+      {({
+        state,
+        hasOlder,
+        isLoadingOlder,
+        loadOlder,
+        refetch,
+        transport,
+        degraded,
+      }) => (
         <Card data-testid="chat-thread">
           <Flex justify="space-between" align="center" style={{ marginBottom: 12 }}>
             <Typography.Title level={4} style={{ margin: 0 }}>
               {t(CHAT_I18N_KEYS.listTitle)}
             </Typography.Title>
-            <Tag data-testid="chat-transport" data-transport={transport}>
-              {t(TRANSPORT_KEYS[transport])}
+            {/* When the socket is not carrying this thread, the label says
+                WHY — a degraded transport that renders as a plain "refreshing
+                every few seconds" is the thing that made this pair's broken
+                handshake look like a design decision for months. */}
+            <Tag
+              data-testid="chat-transport"
+              data-transport={transport}
+              {...(degraded
+                ? {
+                    "data-degraded": degraded.reason,
+                    color: DEGRADED_TAG_COLORS[degraded.reason],
+                  }
+                : {})}
+            >
+              {degraded ? t(degraded.messageKey) : t(TRANSPORT_KEYS[transport])}
             </Tag>
           </Flex>
 

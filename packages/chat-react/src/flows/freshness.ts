@@ -49,6 +49,7 @@ import type {
   ChatSocketStatus,
 } from "../realtime/chatSocket.js";
 import { CHAT_WS_RESYNC } from "../realtime/frames.js";
+import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { chatSocketUrl } from "../realtime/streams.js";
 import type { ChatStreamKey } from "../realtime/streams.js";
 
@@ -72,6 +73,122 @@ export type ChatSignalKeyMap = (signal: ChatSignal) => readonly QueryKey[];
 
 /** Which transport is actually carrying freshness right now. */
 export type ChatTransport = "socket" | "polling" | "idle";
+
+/**
+ * Why the socket is NOT carrying this stream. One name per situation, and
+ * every one of them reaches the UI.
+ *
+ * This type is the fix for the defect that produced this pair's worst bug.
+ * `transport: "polling"` was true and useless: it read the same whether the
+ * deployment has no sockets, the credential was refused, or the retry budget
+ * ran out. A person saw "Refreshing every few seconds" and read it as a
+ * design decision, and so did everyone reporting that "the websockets are
+ * done". A degraded mode that cannot say why is indistinguishable from a
+ * working product, which is exactly how it survives.
+ *
+ *  - `reconnecting` — the socket dropped; a retry is scheduled. Transient.
+ *  - `renewing_credential` — the handshake was refused (4401) and the host's
+ *    renewal seam is being asked for a fresh credential. Transient.
+ *  - `sign_in_required` — the credential was refused and could not be
+ *    renewed. The person has to do something; say so.
+ *  - `forbidden` — this account may not read this stream (4403 / 4404 /
+ *    4410, including a cookie handshake from an origin the deployment does
+ *    not allow-list). Nothing the client does changes it.
+ *  - `unsupported` — the server rejected this build's frames (4400). A
+ *    deploy fixes it; a retry does not.
+ *  - `unreachable` — the retry budget is spent. The socket is down and this
+ *    stream is on a timer until something changes.
+ *  - `no_socket` — this build has no socket for this stream at all: an
+ *    explicit `socketUrl: null`, an origin that cannot be resolved, or a
+ *    stream the pair mounts no socket for. Legitimate, and still named:
+ *    "always polling" must be a fact someone can read, not a silence.
+ */
+export type ChatDegradedReason =
+  | "reconnecting"
+  | "renewing_credential"
+  | "sign_in_required"
+  | "forbidden"
+  | "unsupported"
+  | "unreachable"
+  | "no_socket";
+
+/** The named degradation the UI renders. `null` means the socket is live. */
+export interface ChatDegraded {
+  readonly reason: ChatDegradedReason;
+  /** Consecutive failed connects — 0 when the socket never got to try. */
+  readonly attempt: number;
+  /**
+   * The i18n key for this degradation, carried in the bag so a skin cannot
+   * accidentally render a degraded transport as an unlabelled one. A skin may
+   * of course use `reason` and its own copy instead.
+   */
+  readonly messageKey: string;
+}
+
+const DEGRADED_KEYS: Readonly<Record<ChatDegradedReason, string>> = {
+  reconnecting: CHAT_I18N_KEYS.transportReconnecting,
+  renewing_credential: CHAT_I18N_KEYS.transportRenewing,
+  sign_in_required: CHAT_I18N_KEYS.transportSignInRequired,
+  forbidden: CHAT_I18N_KEYS.transportForbidden,
+  unsupported: CHAT_I18N_KEYS.transportUnsupported,
+  unreachable: CHAT_I18N_KEYS.transportUnreachable,
+  no_socket: CHAT_I18N_KEYS.transportNoSocket,
+};
+
+function degraded(reason: ChatDegradedReason, attempt: number): ChatDegraded {
+  return { reason, attempt, messageKey: DEGRADED_KEYS[reason] };
+}
+
+/** The refusal a stopped socket ended on → what a person is told. */
+function refusalDegradation(
+  refusal: ChatSocketRefusal,
+  attempt: number
+): ChatDegraded {
+  switch (refusal) {
+    case "unauthenticated":
+      return degraded("sign_in_required", attempt);
+    case "forbidden":
+    case "unknown_stream":
+    case "revoked":
+      return degraded("forbidden", attempt);
+    case "protocol":
+      return degraded("unsupported", attempt);
+    default:
+      return degraded("unreachable", attempt);
+  }
+}
+
+/**
+ * The whole "is this stream live, and if not why not" question, in one pure
+ * function so both the hook and its tests read the same answer.
+ *
+ * `attempted` is false while the socket is deliberately held back (the thread
+ * window has not loaded yet — see `socketEnabled`): nothing has failed, so
+ * nothing is degraded.
+ */
+export function chatDegradation(
+  status: ChatSocketStatus,
+  options: { readonly hasSocket: boolean; readonly attempted: boolean }
+): ChatDegraded | null {
+  if (!options.attempted) return null;
+  if (!options.hasSocket) return degraded("no_socket", 0);
+  switch (status.state) {
+    case "open":
+      return null;
+    case "connecting":
+      // A first connect has no close reason behind it; a reconnect does.
+      if (status.reason === undefined) return null;
+      return status.reason === "credential_rejected"
+        ? degraded("renewing_credential", status.attempt)
+        : degraded("reconnecting", status.attempt);
+    case "degraded":
+      return degraded("reconnecting", status.attempt);
+    default:
+      return status.refusal === undefined
+        ? null
+        : refusalDegradation(status.refusal, status.attempt);
+  }
+}
 
 export interface ChatFreshnessOptions {
   /**
@@ -104,6 +221,11 @@ export interface ChatFreshness {
   readonly connection: ChatConnectionState;
   /** Why the socket will not come back, when it will not. */
   readonly refusal: ChatSocketRefusal | undefined;
+  /**
+   * `null` while the socket is carrying this stream; otherwise the NAMED
+   * reason it is not. Never silently absent — see {@link ChatDegradedReason}.
+   */
+  readonly degraded: ChatDegraded | null;
   /** Check for news right now (a pull-to-refresh, a regained focus). */
   pollNow(): void;
 }
@@ -124,6 +246,7 @@ const MAX_BACKOFF_STEPS = 4;
 const IDLE_STATUS: ChatSocketStatus = {
   state: "closed",
   refusal: undefined,
+  reason: undefined,
   attempt: 0,
 };
 
@@ -192,6 +315,8 @@ export function useChatFreshness(
   // ── the socket half ────────────────────────────────────────────────────────
   const socketFactory = runtime.realtime.webSocket;
   const reconnect = runtime.realtime.reconnect;
+  const credential = runtime.realtime.credential;
+  const renewCredential = runtime.realtime.renewCredential;
   useEffect(() => {
     if (!enabled || !socketEnabled || socketUrl === null || conversationId === null) {
       setStatus(IDLE_STATUS);
@@ -235,6 +360,11 @@ export function useChatFreshness(
         // every message they bracket arrives as its own frame.
       },
       onStatus: setStatus,
+      // The credential channel. Absent, the handshake goes out on the cookie
+      // the browser attaches by itself — which is a real channel, not the
+      // absence of one, and is now named as such.
+      ...(credential !== undefined ? { credential } : {}),
+      ...(renewCredential !== undefined ? { renewCredential } : {}),
       ...(socketFactory !== undefined ? { webSocket: socketFactory } : {}),
       ...(reconnect !== undefined ? { reconnect } : {}),
     });
@@ -252,6 +382,8 @@ export function useChatFreshness(
     refresh,
     socketFactory,
     reconnect,
+    credential,
+    renewCredential,
   ]);
 
   // ── the polling half ───────────────────────────────────────────────────────
@@ -303,13 +435,32 @@ export function useChatFreshness(
   const transport: ChatTransport =
     status.state === "open" ? "socket" : polling ? "polling" : "idle";
 
+  // `transport` says WHAT is carrying the stream; this says why it is not the
+  // socket. The pair is the whole point: "polling" alone is the label that
+  // made a broken handshake look like a product decision.
+  const degradation = chatDegradation(status, {
+    hasSocket: socketUrl !== null && conversationId !== null,
+    attempted: enabled && socketEnabled,
+  });
+  const degradedReason = degradation?.reason ?? null;
+  const degradedAttempt = degradation?.attempt ?? 0;
+
   return useMemo(
     () => ({
       transport,
       connection: status.state,
       refusal: status.refusal,
+      degraded:
+        degradedReason === null ? null : degraded(degradedReason, degradedAttempt),
       pollNow,
     }),
-    [transport, status.state, status.refusal, pollNow]
+    [
+      transport,
+      status.state,
+      status.refusal,
+      degradedReason,
+      degradedAttempt,
+      pollNow,
+    ]
   );
 }

@@ -105,7 +105,15 @@ describe("<ConversationThreadPanel/>", () => {
     ).toEqual(["1", "2"]);
 
     // The transport is a LABEL; the screen above it did not branch on it.
-    expect(screen.getByTestId("chat-transport").textContent).toBeTruthy();
+    // But a DEGRADED transport says which degradation it is, in words: this
+    // harness runs `socketUrl: null`, so the tag reads "no socket here",
+    // not the bare "Refreshing every few seconds" that a person spent months
+    // reading as a product decision.
+    const tag = screen.getByTestId("chat-transport");
+    expect(tag.getAttribute("data-degraded")).toBe("no_socket");
+    expect(tag.textContent).toBe(
+      "Live messages are off here — refreshing every few seconds instead."
+    );
 
     // The send button is off, and the reason is on screen as text.
     expect(screen.getByTestId("chat-composer-send")).toHaveProperty("disabled", true);

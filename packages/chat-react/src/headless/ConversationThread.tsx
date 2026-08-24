@@ -8,7 +8,11 @@ import { useLoadOlderMessages, useMarkRead } from "../model/mutations.js";
 import { chatQueryKeys } from "../model/queryKeys.js";
 import { threadLastSeq } from "../model/threadWindow.js";
 import { THREAD_INTERVAL_MS, useChatFreshness } from "../flows/freshness.js";
-import type { ChatSignal, ChatTransport } from "../flows/freshness.js";
+import type {
+  ChatDegraded,
+  ChatSignal,
+  ChatTransport,
+} from "../flows/freshness.js";
 import type { ChatConnectionState } from "../realtime/chatSocket.js";
 import { chatConversationStream } from "../realtime/streams.js";
 
@@ -31,6 +35,14 @@ export interface ConversationThreadBag {
   /** Which transport is carrying this thread right now. */
   readonly transport: ChatTransport;
   readonly connection: ChatConnectionState;
+  /**
+   * `null` while the socket is carrying this thread; otherwise the NAMED
+   * reason it is not, with the i18n key to say so. A skin that renders
+   * `transport` alone tells a person "Refreshing every few seconds" whether
+   * the deployment has no sockets or their credential was just refused —
+   * which is the exact silence this pair shipped for months.
+   */
+  readonly degraded: ChatDegraded | null;
 }
 
 /**
@@ -103,5 +115,6 @@ export function ConversationThread(props: {
     lastSeq,
     transport: freshness.transport,
     connection: freshness.connection,
+    degraded: freshness.degraded,
   });
 }
