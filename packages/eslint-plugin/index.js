@@ -27,6 +27,7 @@ import noRawErrorShape from "./rules/no-raw-error-shape.js";
 import noFlattenedLoadState from "./rules/no-flattened-load-state.js";
 import noCyrillicSource from "./rules/no-cyrillic-source.js";
 import noMixedScriptWord from "./rules/no-mixed-script-word.js";
+import noBareDialog from "./rules/no-bare-dialog.js";
 
 const rules = {
   "no-raw-colors": noRawColors,
@@ -67,6 +68,11 @@ const rules = {
   // scan only fires on a homoglyph (one word straddling both scripts).
   "no-cyrillic-source": noCyrillicSource,
   "no-mixed-script-word": noMixedScriptWord,
+  // Default-skin dialog surface (owner ruling 2026-08-24): a phone gets a
+  // bottom sheet, never a centred modal. One implementation
+  // (@stapel/tokens-antd/skin's SkinDialog); this keeps the twelfth dialog
+  // from being hand-rolled the old way.
+  "no-bare-dialog": noBareDialog,
 };
 
 // Read from package.json rather than typed: this is the version ESLint prints
@@ -264,6 +270,18 @@ const recommended = [
       // untouched by either rule (§ no-cyrillic-source docs).
       "stapel/no-cyrillic-source": "error",
       "stapel/no-mixed-script-word": "error",
+    },
+  },
+  {
+    // The default skins' dialog surface. Scoped to `src/default/**` by the
+    // rule itself; the shell's navigation drawers are dialogs in neither
+    // shape nor purpose and are named here rather than disabled inline.
+    files: JSX,
+    rules: {
+      "stapel/no-bare-dialog": [
+        "error",
+        { allowNavigationDrawer: ["AppShell.tsx", "PublicShell.tsx"] },
+      ],
     },
   },
   {

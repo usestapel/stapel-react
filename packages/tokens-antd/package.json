@@ -1,7 +1,7 @@
 {
   "name": "@stapel/tokens-antd",
   "version": "0.5.0",
-  "description": "Token bridge (§68 neutral colour-role dictionary; frontend-guidelines §2.4, §38 T3): projects @stapel/tokens' roles (surface, brand, text-muted, success-bg, ...) onto an Ant Design ConfigProvider theme. `toAntdTheme(mode)` → theme.token; `toAntdThemeConfig(mode)` → the full ThemeConfig (algorithm + token). Pure functions reading the same `colors` object as @stapel/tokens-mui, so they cannot diverge. Not components.",
+  "description": "Token bridge (§68 neutral colour-role dictionary; frontend-guidelines §2.4, §38 T3): projects @stapel/tokens' roles (surface, brand, text-muted, success-bg, ...) onto an Ant Design ConfigProvider theme. `toAntdTheme(mode)` -> theme.token; `toAntdThemeConfig(mode)` -> the full ThemeConfig (algorithm + token). Pure functions reading the same `colors` object as @stapel/tokens-mui, so they cannot diverge. The root export is not components; the `/skin` subpath carries the ONE antd surface primitive the bridge owns -- `SkinDialog`, the fleet-wide rule that a dialog is a bottom sheet on a phone and a modal on tablet/desktop.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -16,6 +16,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./skin": {
+      "types": "./dist/skin.d.ts",
+      "default": "./dist/skin.js"
     },
     "./package.json": "./package.json"
   },
@@ -33,19 +37,30 @@
   },
   "size-limit": [
     {
+      "name": "root -- the pure token bridge (no components, no React)",
       "path": "dist/index.js",
       "limit": "4 KB"
+    },
+    {
+      "name": "skin subpath -- SkinDialog + the surface rule",
+      "path": "dist/skin.js",
+      "limit": "5 KB"
     }
   ],
   "peerDependencies": {
-    "antd": ">=5.20.0 <7"
+    "antd": ">=5.20.0 <7",
+    "react": ">=19"
   },
   "dependencies": {
     "@stapel/tokens": "workspace:^"
   },
   "devDependencies": {
     "@size-limit/preset-small-lib": "^11.2.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
     "antd": "^6.5.0",
+    "jsdom": "^26.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "size-limit": "^11.2.0",
@@ -57,5 +72,10 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   }
 }
