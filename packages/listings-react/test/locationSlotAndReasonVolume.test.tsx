@@ -4,7 +4,8 @@
  *
  *  - WHERE a thing is was asked as a raw `lat` / `lon` pair, which is a
  *    question no seller can answer. `renderLocationPicker` is the seam a host
- *    fills with its own geocoder (stapel-geo / Photon on the darom fleet), and
+ *    fills with its own geocoder (stapel-geo over a Photon server, on the
+ *    client fleet this came from), and
  *    it carries the whole composite — `geohash` included, which only the
  *    resolver has and which this pair still refuses to compute.
  *  - A blocked favourite stated its reason AND drew a sign-in door on every

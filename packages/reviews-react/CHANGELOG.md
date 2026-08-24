@@ -9,7 +9,7 @@
 
   `reviews.rating.none` and `reviews.list.empty` both read "No reviews yet" in
   every catalogue, and both render on any page that mounts the aggregate above
-  the list — the darom storefront's listing page printed the identical words
+  the list — a client storefront's listing page printed the identical words
   twice, forty pixels apart, which reads as a rendering bug rather than as two
   facts. The aggregate now says "No rating yet" / «Оценок пока нет» /
   "Todavía no hay valoración".

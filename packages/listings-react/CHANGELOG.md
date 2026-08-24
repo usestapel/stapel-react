@@ -9,8 +9,8 @@
 
   The composer asked for a location label and a raw `lat` / `lon` pair, which is
   a question no advert-poster on any marketplace can answer, and it is why
-  `location` was empty on every listing on the darom fleet. The pair still
-  cannot ask for an address — that needs a geocoder, a geocoder is the
+  `location` was empty on every listing on the client fleet that found it. The
+  pair still cannot ask for an address — that needs a geocoder, a geocoder is the
   deployment's, and a library that picked one would pick it for every host — so
   the question is a slot, shaped like `renderCategoryPicker` beside it. It
   carries the whole `ListingLocation` composite including `geohash`, which only

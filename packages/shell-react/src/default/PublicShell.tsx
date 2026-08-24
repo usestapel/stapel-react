@@ -197,13 +197,23 @@ export function PublicShell(props: PublicShellProps): ReactElement {
                 with `minWidth: 0`. As a bare flex child the horizontal
                 `<Menu>` was measured at ~0 by rc-overflow, which is the
                 measurement it collapses on: every tab hid behind a "…" on a
-                1440px storefront while the row it sat in was empty. */}
-            <div
-              style={{ flex: "1 1 auto", minWidth: 0 }}
-              data-testid="public-shell-nav"
-            >
-              {navMenu}
-            </div>
+                1440px storefront while the row it sat in was empty.
+
+                And the spacer exists only when there is a menu to space. A
+                host can legitimately have a category slot and NO nav tabs — a
+                storefront whose every menu entry duplicated a link in the
+                strip beside it, say — and the greedy `flex: 1 1 auto` on an
+                empty div then ate the whole row and shoved the categories
+                against the right edge, under a header whose brand sits at the
+                left. Nothing was broken and the page looked it. */}
+            {navMenu !== null && (
+              <div
+                style={{ flex: "1 1 auto", minWidth: 0 }}
+                data-testid="public-shell-nav"
+              >
+                {navMenu}
+              </div>
+            )}
             {props.categorySlot !== undefined && (
               <div style={{ flex: "0 0 auto" }} data-testid="public-shell-categories">
                 {props.categorySlot}

@@ -7,14 +7,13 @@
  * monochrome, `currentColor` inline SVGs in the same spirit as auth-react's
  * `icon_svg` contract.
  *
- * KNOWN GAP (honest, not silently papered over): this registry only covers
- * the icon names the 3 Phase 1-wired pairs actually declare today
- * (`LoginOutlined`, `SafetyCertificateOutlined`, `UserOutlined`,
- * `BellOutlined`). A pair declaring a new icon name renders the generic
- * `fallback` glyph until this registry grows a case for it — that is a
- * follow-up (a per-project icon registry override, or a small curated set
- * shipped here), not something an npm-installed consumer can silently work
- * around today.
+ * COVERAGE: this registry carries a case for every icon name any pair in
+ * this monorepo declares in its `nav-manifest.json` today. A name from
+ * OUTSIDE the monorepo — a downstream consumer's own pair, or a name typo'd
+ * in a manifest — still resolves to the generic `fallback` square: that is
+ * the honest answer for a name this registry has never heard of, not a gap.
+ * Adding a new pair with a new icon name means adding a case here too (a
+ * test in `test/navIconRegistry.test.tsx` fails otherwise).
  */
 import type { ReactElement } from "react";
 
@@ -68,8 +67,106 @@ const BellOutlined = svg(
   </>
 );
 
+const AppstoreOutlined = svg(
+  <>
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <rect x="14" y="14" width="7" height="7" rx="1" />
+  </>
+);
+
+const AuditOutlined = svg(
+  <>
+    <rect x="5" y="4" width="14" height="17" rx="2" />
+    <path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" />
+    <path d="M9 13l2 2 4-4.5" />
+  </>
+);
+
+const ClockCircleOutlined = svg(
+  <>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3.5 2" />
+  </>
+);
+
+const FolderOpenOutlined = svg(
+  <>
+    <path d="M3 7.5V6a1 1 0 0 1 1-1h4.5l2 2H19a1 1 0 0 1 1 1v1.5" />
+    <path d="M2.2 9.5h19.1a.8.8 0 0 1 .78.97l-1.6 7.2a1 1 0 0 1-.98.83H4a1 1 0 0 1-.98-.8l-1.6-7.2a.8.8 0 0 1 .78-1z" />
+  </>
+);
+
+const HeartOutlined = svg(
+  <path d="M12 20.5s-7.5-4.7-9.8-9.4A5.2 5.2 0 0 1 12 6.3a5.2 5.2 0 0 1 9.8 4.8c-2.3 4.7-9.8 9.4-9.8 9.4z" />
+);
+
+const MessageOutlined = svg(
+  <>
+    <rect x="3" y="4" width="18" height="13" rx="2" />
+    <path d="M8 17l-1.5 4v-4" />
+  </>
+);
+
+const OrderedListOutlined = svg(
+  <>
+    <path d="M9 6h11" />
+    <path d="M9 12h11" />
+    <path d="M9 18h11" />
+    <path d="M4 4.5v3" />
+    <path d="M3.5 10.5h1.5l-1.5 1.5h1.5" />
+    <path d="M3.5 16.5h1.3a.8.8 0 0 1 0 1.6h-.3a.9.9 0 0 1 .3 1.7h-1.3" />
+  </>
+);
+
+const PlusOutlined = svg(
+  <>
+    <path d="M12 5v14" />
+    <path d="M5 12h14" />
+  </>
+);
+
+const ProfileOutlined = svg(
+  <>
+    <rect x="4" y="3" width="16" height="18" rx="2" />
+    <path d="M8 8h8" />
+    <path d="M8 12h8" />
+    <path d="M8 16h5" />
+  </>
+);
+
+const QrcodeOutlined = svg(
+  <>
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <rect x="5.5" y="5.5" width="2" height="2" />
+    <rect x="16.5" y="5.5" width="2" height="2" />
+    <rect x="5.5" y="16.5" width="2" height="2" />
+    <rect x="14" y="14" width="3" height="3" />
+    <rect x="19" y="14" width="2" height="2" />
+    <rect x="14" y="19" width="2" height="2" />
+    <rect x="19" y="19" width="2" height="2" />
+  </>
+);
+
+const SearchOutlined = svg(
+  <>
+    <circle cx="11" cy="11" r="7" />
+    <path d="M21 21l-4.3-4.3" />
+  </>
+);
+
+const TagOutlined = svg(
+  <>
+    <path d="M12.5 3H5a2 2 0 0 0-2 2v7.5a2 2 0 0 0 .586 1.414l8.5 8.5a2 2 0 0 0 2.828 0l6.086-6.086a2 2 0 0 0 0-2.828l-8.5-8.5A2 2 0 0 0 12.5 3z" />
+    <circle cx="8" cy="8" r="1.5" />
+  </>
+);
+
 /** Generic fallback — a plain square outline — for an icon name this
- * registry doesn't recognize (see module doc's KNOWN GAP). */
+ * registry doesn't recognize (see module doc's COVERAGE note). */
 const fallback = svg(<rect x="5" y="5" width="14" height="14" rx="2" />);
 
 const REGISTRY: Record<string, (props: { size?: number }) => ReactElement> = {
@@ -77,10 +174,23 @@ const REGISTRY: Record<string, (props: { size?: number }) => ReactElement> = {
   SafetyCertificateOutlined,
   UserOutlined,
   BellOutlined,
+  AppstoreOutlined,
+  AuditOutlined,
+  ClockCircleOutlined,
+  FolderOpenOutlined,
+  HeartOutlined,
+  MessageOutlined,
+  OrderedListOutlined,
+  PlusOutlined,
+  ProfileOutlined,
+  QrcodeOutlined,
+  SearchOutlined,
+  TagOutlined,
 };
 
-/** Resolve a `NavEntry.icon` name to its glyph, falling back to a generic
- * square for an unregistered name (see module doc's KNOWN GAP). */
+/** Resolve a `NavEntry.icon` name to its glyph, falling back to the generic
+ * `fallback` square for a name outside this registry's coverage (see the
+ * module doc's COVERAGE note). */
 export function resolveNavIcon(name: string): ReactElement {
   const Icon = REGISTRY[name] ?? fallback;
   return <Icon />;
