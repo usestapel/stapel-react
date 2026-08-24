@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/search-react",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "backend": {
     "module": "stapel-search",
     "contract": ">=0.2 <0.3"
@@ -610,6 +610,7 @@
       "setRangeValue",
       "toggleFilterValue",
       "useAppliedSort",
+      "useFacetPanel",
       "useRankingDisclosure",
       "useSearchAnalytics",
       "useSearchApi",
