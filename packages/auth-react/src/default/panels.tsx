@@ -129,6 +129,14 @@ function OtpCodeStep(props: {
   onResend: () => void;
   /** What the server said to wait; undefined on an older backend. */
   resendAfter?: number;
+  /**
+   * This channel's delivery is mocked server-side
+   * (`capabilities.login.{email,phone}_mock`): the code was issued and is
+   * verifiable, but nothing left the building. Without saying so, "Code sent
+   * to you@example.com" is a lie the user waits on. The hint says only that —
+   * the configured code is a credential and is never shown here.
+   */
+  mockDelivery?: boolean;
   /** Purely a static marker for `stapel/clickable-needs-event` — the actual
    * submit happens inside, on `Input.OTP`'s auto-fill (a flow action; the
    * machine auto-emits `flow.<id>.<step>`), not on a DOM click/submit here. */
@@ -160,6 +168,11 @@ function OtpCodeStep(props: {
       <Typography.Text type="secondary">
         {t(AUTH_I18N_KEYS.otpSentTo, { target: props.target })}
       </Typography.Text>
+      {props.mockDelivery ? (
+        <Typography.Text type="warning">
+          {t(AUTH_I18N_KEYS.otpMockDelivery)}
+        </Typography.Text>
+      ) : null}
       <Flex vertical gap="small">
         <Typography.Text>{t(AUTH_I18N_KEYS.otpEnterCode)}</Typography.Text>
         <OtpField
@@ -203,6 +216,11 @@ export function OtpPanel(props: {
   const otpLength =
     (channel === "email" ? caps.data?.otp?.email_code_length : caps.data?.otp?.phone_code_length) ??
     DEFAULT_OTP_LENGTH;
+  // Mocked delivery is per channel and additive transparency, never a gate —
+  // the tab stays exactly as available as its AUTH_*_LOGIN axis says. Absent
+  // on a backend too old to send the flags, which reads as "not mocked".
+  const mockDelivery =
+    (channel === "email" ? caps.data?.login?.email_mock : caps.data?.login?.phone_mock) ?? false;
   const labelKey =
     channel === "email"
       ? AUTH_I18N_KEYS.uiEmailLabel
@@ -231,6 +249,7 @@ export function OtpPanel(props: {
               length={otpLength}
               error={err}
               submitting={s.step === "verifying"}
+              mockDelivery={mockDelivery}
               onSubmit={(code) => bag.submitCode(code)}
               onResend={() => bag.resend()}
               {...(s.step === "codeSent" && s.resendAfter !== undefined

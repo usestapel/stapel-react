@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/auth-react",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "backend": {
     "module": "stapel-auth",
-    "contract": ">=0.20 <0.21"
+    "contract": ">=0.25 <0.26"
   },
   "layers": [
     "api",
@@ -248,6 +248,34 @@
       "request": null,
       "response": "AuthCapabilities"
     },
+    "auth_api_v1_dsar_create": {
+      "method": "POST",
+      "path": "/auth/api/v1/dsar",
+      "tag": "GDPR",
+      "request": "GDPRDsarRequest",
+      "response": "DsarStatusDTO"
+    },
+    "auth_api_v1_dsar_list": {
+      "method": "GET",
+      "path": "/auth/api/v1/dsar",
+      "tag": "GDPR",
+      "request": null,
+      "response": null
+    },
+    "auth_api_v1_dsar_partial_update": {
+      "method": "PATCH",
+      "path": "/auth/api/v1/dsar/{dsar_id}",
+      "tag": "GDPR",
+      "request": "PatchedGDPRDsarPatch",
+      "response": "DsarStatusDTO"
+    },
+    "auth_api_v1_dsar_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/v1/dsar/{dsar_id}",
+      "tag": "GDPR",
+      "request": null,
+      "response": "DsarStatusDTO"
+    },
     "auth_api_v1_email_change_delayed_cancel_create": {
       "method": "POST",
       "path": "/auth/api/v1/email/change/delayed/cancel/",
@@ -311,6 +339,20 @@
       "request": "EmailAuthVerify",
       "response": "AuthResponse"
     },
+    "auth_api_v1_erasures_create": {
+      "method": "POST",
+      "path": "/auth/api/v1/erasures",
+      "tag": "GDPR",
+      "request": "GDPRErasureRequest",
+      "response": "ErasureStatusDTO"
+    },
+    "auth_api_v1_erasures_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/v1/erasures/{request_id}",
+      "tag": "GDPR",
+      "request": null,
+      "response": "ErasureStatusDTO"
+    },
     "auth_api_v1_gdpr_schema_retrieve": {
       "method": "GET",
       "path": "/auth/api/v1/gdpr/schema/",
@@ -324,6 +366,13 @@
       "tag": "Auth",
       "request": "LoginGrantExchangeBody",
       "response": "AuthResponse"
+    },
+    "auth_api_v1_internal_export_part_ready_create": {
+      "method": "POST",
+      "path": "/auth/api/v1/internal/export/{request_id}/part-ready",
+      "tag": "GDPR",
+      "request": "GDPRExportPartReadyRequest",
+      "response": null
     },
     "auth_api_v1_logout_create": {
       "method": "POST",
@@ -350,6 +399,13 @@
       "method": "GET",
       "path": "/auth/api/v1/magic/verify/",
       "tag": "Auth",
+      "request": null,
+      "response": null
+    },
+    "auth_api_v1_me_erasures_list": {
+      "method": "GET",
+      "path": "/auth/api/v1/me/erasures",
+      "tag": "GDPR",
       "request": null,
       "response": null
     },
@@ -422,6 +478,13 @@
       "tag": "OpenID",
       "request": "TokenIntrospectRequest",
       "response": "TokenIntrospectResponse"
+    },
+    "auth_api_v1_owners_health_list": {
+      "method": "GET",
+      "path": "/auth/api/v1/owners/health",
+      "tag": "GDPR",
+      "request": null,
+      "response": null
     },
     "auth_api_v1_passkey_authenticate_begin_create": {
       "method": "POST",
@@ -841,7 +904,7 @@
       "path": "/auth/api/v1/token/",
       "tag": "Token",
       "request": "TokenObtainRequest",
-      "response": "TokenPairResponse"
+      "response": "LegacyTokenResponse"
     },
     "auth_api_v1_token_refresh_create": {
       "method": "POST",
@@ -939,13 +1002,6 @@
       "path": "/auth/api/v1/user/data-export/download",
       "tag": "GDPR",
       "request": "GDPRDownloadTokenRequest",
-      "response": null
-    },
-    "auth_api_v1_user_data_export_download_retrieve": {
-      "method": "GET",
-      "path": "/auth/api/v1/user/data-export/download",
-      "tag": "GDPR",
-      "request": null,
       "response": null
     },
     "auth_api_v1_user_data_export_request_create": {
@@ -1400,6 +1456,16 @@
       "params": [],
       "remediation": "reauthenticate"
     },
+    "error.400.gdpr.unknown_dsar_kind": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.gdpr.unknown_subject_type": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
     "error.400.grant_invalid": {
       "status": 400,
       "params": [],
@@ -1657,6 +1723,16 @@
       "params": [],
       "remediation": "retry"
     },
+    "error.403.gdpr.account_closed": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.gdpr.erasure_forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
     "error.403.mfa_enrollment_required": {
       "status": 403,
       "params": [],
@@ -1718,6 +1794,16 @@
       "remediation": "retry"
     },
     "error.404.change_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.gdpr.dsar_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.gdpr.erasure_not_found": {
       "status": 404,
       "params": [],
       "remediation": "retry"
@@ -1852,6 +1938,11 @@
       "params": [],
       "remediation": "fix_input"
     },
+    "error.410.gdpr.download_consumed": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.410.gdpr.download_expired": {
       "status": 410,
       "params": [],
@@ -1932,6 +2023,21 @@
       "status": 500,
       "params": [],
       "remediation": "retry"
+    },
+    "error.503.gdpr.closure_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.verification_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "wait_and_retry"
     }
   },
   "events": {
@@ -2219,6 +2325,7 @@
     "auth.nav.qr_confirm",
     "auth.nav.security",
     "auth.otp.enter_code",
+    "auth.otp.mock_delivery",
     "auth.otp.resend",
     "auth.otp.sent_to",
     "auth.passkey.no_credentials",
@@ -2402,6 +2509,8 @@
     "error.400.field.required",
     "error.400.field.unique",
     "error.400.first_login_challenge_invalid",
+    "error.400.gdpr.unknown_dsar_kind",
+    "error.400.gdpr.unknown_subject_type",
     "error.400.grant_invalid",
     "error.400.invalid_ad_id",
     "error.400.invalid_change_token",
@@ -2453,6 +2562,8 @@
     "error.401.user_not_found",
     "error.402.payment_required",
     "error.403.forbidden",
+    "error.403.gdpr.account_closed",
+    "error.403.gdpr.erasure_forbidden",
     "error.403.mfa_enrollment_required",
     "error.403.mock_otp_admin",
     "error.403.network_blocked",
@@ -2466,6 +2577,8 @@
     "error.403.verification_required",
     "error.404.ad_not_found",
     "error.404.change_not_found",
+    "error.404.gdpr.dsar_not_found",
+    "error.404.gdpr.erasure_not_found",
     "error.404.gdpr.export_not_found",
     "error.404.gdpr.no_active_closure",
     "error.404.not_found",
@@ -2492,6 +2605,7 @@
     "error.409.qr_account_conflict",
     "error.409.sso_org_slug_taken",
     "error.409.username_taken",
+    "error.410.gdpr.download_consumed",
     "error.410.gdpr.download_expired",
     "error.410.gone",
     "error.413.payload_too_large",
@@ -2507,6 +2621,9 @@
     "error.429.too_many_requests",
     "error.500.internal",
     "error.500.send_failed",
+    "error.503.gdpr.closure_unavailable",
+    "error.503.mandate_unavailable",
+    "error.503.verification_unavailable",
     "flow.auth.first_login.description",
     "flow.auth.first_login.step.0.note",
     "flow.auth.first_login.step.1.note",

@@ -242,6 +242,16 @@ auto-submit, the reference responsive alt-method sheet):
   `AuthMethodInfo` in `api/types.ts`) with a fixed default-placement-table
   fallback for older backends (matches stapel-auth's own defaults:
   email/phone → main, password/magic_link → overflow, the rest → bottom).
+- **`<OtpPanel/>`'s two server-authoritative numbers** — the cell count comes
+  from `capabilities().otp.{email,phone}_code_length` (fallback 6 for a
+  pre-0.6.0 backend), never from a constant here; since stapel-auth 0.25.2 that
+  number is the width the server ACTUALLY issues, so a stand with mocked OTP
+  delivery reports its mock code's width and the panel follows with no change on
+  this side. `capabilities().login.{email,phone}_mock` is the second: a mocked
+  channel gets a hint on the code step saying nothing was really sent
+  (`auth.otp.mock_delivery`). Mock is transparency, never a gate — the tab stays
+  as available as its `AUTH_*_LOGIN` axis says, and the configured code itself is
+  never rendered.
 - **Security-settings components** (`default/security/`) — `SessionsList`,
   `TotpManager`, `PasskeysManager`, `PasswordChangePanel`, `OAuthLinks`. Each
   wraps EXISTING query/mutation hooks and headless flows; `OAuthLinks`

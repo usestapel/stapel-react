@@ -24,6 +24,8 @@ export const authI18nBundleRu: I18nDictionary = {
 
   // auth-react UI (hand-written ru mirror of the en copy in keys.ts)
   "auth.otp.enter_code": "Введите код из сообщения",
+  "auth.otp.mock_delivery":
+    "Тестовый режим: код не отправлялся. Используйте код, заданный в настройках стенда.",
   "auth.otp.resend": "Отправить код ещё раз",
   "auth.otp.sent_to": "Код отправлен на {target}",
   "auth.password.label": "Пароль",

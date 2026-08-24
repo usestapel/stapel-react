@@ -14,7 +14,7 @@ export interface paths {
         /**
          * @description Create a user account without OTP, bypassing normal registration flow. Requires service API key or admin (staff) credentials.
          *
-         *     **Permissions:** `AllowAny`
+         *     **Permissions:** `IsStaffOrServiceAPIKey, DenyEnrollOnly`
          */
         post: operations["auth_api_v1_admin_users_create"];
         delete?: never;
@@ -53,7 +53,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Create anonymous user
+         * @description Create anonymous user. Minting a NEW guest is capped per client per hour (`ANONYMOUS_RATE_LIMIT_PER_HOUR`) — reusing an existing guest session, by `device_id` or by presenting the anonymous session itself, is free.
          *
          *     **Permissions:** `DenyEnrollOnly`
          */
@@ -83,6 +83,69 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/auth/api/v1/dsar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List data-protection requests (staff)
+         * @description Intake and queue for data-subject requests.
+         *
+         *     ``POST`` takes both an authenticated app request and an anonymous one
+         *     from a public /privacy form — the form is the channel a regulator
+         *     expects to exist, and it cannot require a login. The anonymous variant
+         *     goes through the core's tiered captcha policy
+         *     (``@captcha_protected``); an unconfigured captcha backend leaves the
+         *     form open exactly as before, which is a host's decision to make.
+         *
+         *     **Permissions:** `AllowAny`
+         */
+        get: operations["auth_api_v1_dsar_list"];
+        put?: never;
+        /**
+         * Submit a data-protection request
+         * @description Records the request, sends the acknowledgement that satisfies the three-business-day clock, notifies staff, and — for a request matched to an account — starts the machine that answers it (erasure: the cancellable closure; access/portability: a data export). Anonymous submissions require a captcha token when a captcha backend is configured.
+         *
+         *     **Permissions:** `AllowAny`
+         */
+        post: operations["auth_api_v1_dsar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/api/v1/dsar/{dsar_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get one data-protection request (staff)
+         * @description Staff triage of one request: state, note, and matching it to a person.
+         *
+         *     **Permissions:** `IsAdminUser`
+         */
+        get: operations["auth_api_v1_dsar_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a data-protection request (staff)
+         * @description Setting `user_id` on a request that arrived anonymously matches it to an account and wires it to the mechanism that answers it — intake deliberately refuses to do that itself, since turning an unverified email into an erasure is a deletion oracle.
+         *
+         *     **Permissions:** `IsAdminUser`
+         */
+        patch: operations["auth_api_v1_dsar_partial_update"];
         trace?: never;
     };
     "/auth/api/v1/email/change/delayed/cancel/": {
@@ -297,6 +360,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/api/v1/erasures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request erasure of one subject
+         * @description Opens an erasure for a subject the host has already removed from its UI: one receipt slot per data owner that claims this subject type, a purge SLA in `due_at`, and a `gdpr.erasure.requested` action. Authorization is the host's `ERASURE_AUTHORIZER` callable; the default is staff only.
+         *
+         *     **Permissions:** `IsAuthenticated, AccountNotClosed`
+         */
+        post: operations["auth_api_v1_erasures_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/api/v1/erasures/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get erasure status
+         * @description State, receipts, obligations and `fully_erased_by` for one erasure.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        get: operations["auth_api_v1_erasures_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/api/v1/gdpr/schema/": {
         parameters: {
             query?: never;
@@ -337,6 +444,28 @@ export interface paths {
          *     **Permissions:** `AllowAny`
          */
         post: operations["auth_api_v1_grant_exchange_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/api/v1/internal/export/{request_id}/part-ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark an export part ready (service-to-service)
+         * @description Called by a remote data owner once its portion of an export is staged. Requires a service credential (`IsServiceRequest`), not a user session. When the last outstanding part arrives the archive is assembled.
+         *
+         *     **Permissions:** `IsServiceRequest, IsAuthenticated`
+         */
+        post: operations["auth_api_v1_internal_export_part_ready_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -456,6 +585,28 @@ export interface paths {
          *     **Permissions:** `DenyEnrollOnly`
          */
         get: operations["auth_api_v1_me_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/api/v1/me/erasures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my erasure requests
+         * @description The caller's own erasures — the "pending deletion" list a UI shows.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        get: operations["auth_api_v1_me_erasures_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -633,6 +784,28 @@ export interface paths {
          * @description Introspect a JWT. Requires a service API key. Returns `{"active": false}` for invalid/expired tokens (never 401 for those). A 401 is only returned when the caller's service API key is missing/invalid.
          */
         post: operations["auth_api_v1_oauth2_introspect_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/api/v1/owners/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Data owner liveness table (staff)
+         * @description The table behind the `gdpr.W006` boot warning: every declared data owner, when it last answered `gdpr.owner.probe`, and whether the subjects it claims match the inventory.
+         *
+         *     **Permissions:** `IsAdminUser`
+         */
+        get: operations["auth_api_v1_owners_health_list"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1348,7 +1521,7 @@ export interface paths {
          *     **session_share** (scanner already logged in as the same user) → marks fulfilled, redirects.
          *     **session_share** (scanner logged in as a *different* user) → redirects with `?qr_status=account_conflict`.
          *     **login_request** (scanner logged in) → redirects to `/qr-confirm?key=…` for confirmation.
-         *     **login_request** (scanner not logged in) → redirects to `/sign-in?redirect=<scan_url>`.
+         *     **login_request** (scanner not logged in) → redirects to `/login?redirect=<scan_url>`.
          *
          *
          *     **Permissions:** `AllowAny`
@@ -1374,7 +1547,7 @@ export interface paths {
          *
          *     **Statuses:**
          *     - `pending` — waiting for scan/confirm.
-         *     - `fulfilled` — action completed; for `login_request`, tokens are included so the polling device can authenticate.
+         *     - `fulfilled` — action completed; for `login_request`, tokens are included so the polling device can authenticate, AND the same session is set as httponly JWT cookies on this response (plus the non-httponly `stapel_auth_hint`), so a cookie-mode front end is signed in without touching the body.
          *     - `expired` — key was not found (TTL elapsed).
          *     - `rejected` — scanner or confirmer rejected the request; show error UI.
          *
@@ -1848,9 +2021,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description JWT token obtain view using unified jwt_provider.
-         *
-         *     Accepts username/email and password, returns access and refresh tokens.
+         * @description Deprecated alias of `POST /password/login/`. Mounted only while both `AUTH_LEGACY_TOKEN_LOGIN` and `AUTH_PASSWORD_LOGIN` are on; otherwise 403. Subject to the same lockout and the same TOTP step-up (`PASSWORD_LOGIN_STEP_UP`), so the answer is either a `TokenPair` or a `TOTPChallengeResponse` — pass its `challenge_token` to `POST /totp/challenge/verify/`.
          *
          *     **Permissions:** `AllowAny`
          */
@@ -2066,15 +2237,15 @@ export interface paths {
         put?: never;
         /**
          * Cancel account closure during grace period
-         * @description Base view exposing serializer seams.
+         * @description Stop a closure that is still inside its grace period.
          *
-         *     Every concrete view declares ``request_serializer_class`` /
-         *     ``response_serializer_class`` (``None`` when that direction carries no
-         *     serialized payload). Subclasses may swap either class attribute — or
-         *     override the getters — to customize the request/response envelopes
-         *     without rewriting the method bodies.
+         *     The account is reactivated and a ``user.deletion_cancelled`` comm action
+         *     is emitted — the mirror of the ``user.deletion_initiated`` that started
+         *     the closure, so every consumer that took a reversible action on the
+         *     initiation (suppressed notifications, hidden content, suspended
+         *     memberships) is told to lift it instead of waiting for its next sync.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsAuthenticated, AccountNotClosed`
          */
         post: operations["auth_api_v1_user_account_cancel_close_create"];
         delete?: never;
@@ -2094,9 +2265,9 @@ export interface paths {
         put?: never;
         /**
          * Initiate account closure
-         * @description Starts a 30-day grace period. Account is deactivated immediately. Can be cancelled by logging in.
+         * @description Starts a 30-day grace period. The account is deactivated and all of its sessions are revoked immediately. Can be cancelled by logging in during the grace period.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsAuthenticated, AccountNotClosed`
          */
         post: operations["auth_api_v1_user_account_close_create"];
         delete?: never;
@@ -2122,7 +2293,7 @@ export interface paths {
          *     override the getters — to customize the request/response envelopes
          *     without rewriting the method bodies.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsAuthenticated, AccountNotClosed`
          */
         get: operations["auth_api_v1_user_account_close_status_retrieve"];
         put?: never;
@@ -2140,19 +2311,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Download data export archive
-         * @description Returns the ZIP archive. Link is valid for 7 days after export is ready.
-         *
-         *     **Permissions:** `IsAuthenticated`
-         */
-        get: operations["auth_api_v1_user_data_export_download_retrieve"];
+        get?: never;
         put?: never;
         /**
-         * Download data export archive (token in body)
-         * @description Same as GET but the single-use token travels in the request body instead of the URL, so it never lands in access logs or referrers. Bound to the authenticated user.
+         * Download data export archive
+         * @description Spends the single-use token and streams the ZIP archive. The token travels in the request body — never in the URL — and is consumed on the first successful download; the archive is deleted at the same moment. Bound to the authenticated user.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsAuthenticated, AccountNotClosed`
          */
         post: operations["auth_api_v1_user_data_export_download_create"];
         delete?: never;
@@ -2174,7 +2339,7 @@ export interface paths {
          * Request personal data export
          * @description Initiates an async export job. Archive ready within 48 h. Max once per 30 days.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsAuthenticated, AccountNotClosed`
          */
         post: operations["auth_api_v1_user_data_export_request_create"];
         delete?: never;
@@ -2200,7 +2365,7 @@ export interface paths {
          *     override the getters — to customize the request/response envelopes
          *     without rewriting the method bodies.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     **Permissions:** `IsAuthenticated, AccountNotClosed`
          */
         get: operations["auth_api_v1_user_data_export_status_retrieve"];
         put?: never;
@@ -2478,6 +2643,36 @@ export interface components {
              */
             can_cancel: boolean;
         };
+        /** @description Whether a declared data owner is answering probes. */
+        DataOwnerHealthDTO: {
+            /**
+             * @description Data owner name
+             * @example workspaces
+             */
+            owner: string;
+            /** @description Whether it answered within OWNER_ALIVE_MAX_AGE_HOURS */
+            alive: boolean;
+            /**
+             * @description ISO datetime of its last answer, null if it never answered
+             * @example 2026-08-20T05:00:00Z
+             */
+            last_alive_at: string | null;
+            /**
+             * @description ISO datetime it was last asked
+             * @example 2026-08-24T05:00:00Z
+             */
+            last_probe_at: string | null;
+            /**
+             * @description Subjects the inventory says it holds
+             * @example [
+             *       "account",
+             *       "workspace"
+             *     ]
+             */
+            declared_subject_types?: string[];
+            /** @description Subjects it says it holds */
+            answered_subject_types?: string[];
+        };
         /** @description Delayed change cancelled. */
         DelayedCancelResponse: {
             /**
@@ -2571,6 +2766,69 @@ export interface components {
             /** @description List of notification types already sent */
             notifications_sent?: string[] | null;
         };
+        /** @description A data-subject request and the statutory clocks on it. */
+        DsarStatusDTO: {
+            /**
+             * @description DSAR ID, quoted back to the subject as their reference
+             * @example 5
+             */
+            request_id: number;
+            /**
+             * @description One of access, erasure, rectification, portability
+             * @example access
+             */
+            kind: string;
+            /**
+             * @description How it arrived — app, form or email
+             * @example form
+             */
+            channel: string;
+            /**
+             * @description Email the request was made from
+             * @example person@example.com
+             */
+            subject_email: string;
+            /**
+             * @description One of received, acknowledged, in_progress, resolved, rejected
+             * @example acknowledged
+             */
+            state: string;
+            /**
+             * @description ISO datetime the request arrived
+             * @example 2026-08-24T09:00:00Z
+             */
+            received_at: string;
+            /**
+             * @description ISO datetime the acknowledgement is due (3 business days)
+             * @example 2026-08-27T09:00:00Z
+             */
+            ack_due_at: string;
+            /**
+             * @description ISO datetime the acknowledgement went out, null if not yet
+             * @example 2026-08-24T09:00:03Z
+             */
+            ack_sent_at: string | null;
+            /**
+             * @description ISO datetime resolution is due (30 days)
+             * @example 2026-09-23T09:00:00Z
+             */
+            resolve_due_at: string;
+            /**
+             * @description Linked erasure, null when none was started
+             * @example 17
+             */
+            erasure_request_id?: number | null;
+            /**
+             * @description Linked data export, null when none was started
+             * @example 42
+             */
+            export_request_id?: number | null;
+            /**
+             * @description Staff notes and automation outcomes
+             * @example matched to account
+             */
+            note?: string;
+        };
         /** @description Serializer for email authentication request (OTP) */
         EmailAuthRequest: {
             /** Format: email */
@@ -2583,6 +2841,107 @@ export interface components {
             /** Format: email */
             email: string;
             code: string;
+        };
+        /** @description One data owner's receipt for an erasure. */
+        ErasurePartDTO: {
+            /**
+             * @description Data owner name
+             * @example recordings
+             */
+            owner: string;
+            /**
+             * @description One of pending, done, failed, timeout
+             * @example done
+             */
+            state: string;
+            /**
+             * @description ISO datetime the owner confirmed, null while pending
+             * @example 2026-08-24T09:12:00Z
+             */
+            receipt_at: string | null;
+            /**
+             * @description The owner's own durable proof of erasure
+             * @example recordings:job-8812
+             */
+            receipt_id?: string;
+            /**
+             * @description What the owner removed, by its own count
+             * @example {
+             *       "recordings": 3
+             *     }
+             */
+            counts?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description State of an erasure request, with everything it is waiting on. */
+        ErasureStatusDTO: {
+            /**
+             * @description Erasure request ID
+             * @example 17
+             */
+            request_id: number;
+            /**
+             * @description What is being erased
+             * @example recording
+             */
+            subject_type: string;
+            /**
+             * @description The host's id for that subject
+             * @example 9f1c2d3e
+             */
+            subject_key: string;
+            /**
+             * @description Workspace the subject belongs to, null when not partitioned
+             * @example ws-42
+             */
+            workspace_id: string | null;
+            /**
+             * @description One of queued, erasing, deleted, timeout
+             * @example erasing
+             */
+            state: string;
+            /**
+             * @description Why this erasure exists
+             * @example user
+             */
+            origin: string;
+            /**
+             * @description ISO datetime the erasure was opened
+             * @example 2026-08-24T09:00:00Z
+             */
+            requested_at: string;
+            /**
+             * @description ISO datetime our own purge SLA expires
+             * @example 2026-09-23T09:00:00Z
+             */
+            due_at: string;
+            /**
+             * @description ISO datetime every subprocessor window has also closed
+             * @example 2026-10-18T09:00:00Z
+             */
+            fully_erased_by: string;
+            /**
+             * @description ISO datetime the erasure was certified, null while open
+             * @example 2026-08-24T09:12:00Z
+             */
+            completed_at?: string | null;
+            /**
+             * @description ISO datetime a cancellable grace ends (accounts only)
+             * @example 2026-09-23T09:00:00Z
+             */
+            grace_ends_at?: string | null;
+            /** @description Per-owner receipts */
+            parts?: components["schemas"]["ErasurePartDTO"][];
+            /** @description Per-processor deletion windows */
+            obligations?: components["schemas"]["SubprocessorObligationDTO"][];
+            /**
+             * @description Owners still blocking completion
+             * @example [
+             *       "media"
+             *     ]
+             */
+            unreceipted_owners?: string[];
         };
         /** @description Response after initiating a data export request. */
         ExportRequestDTO: {
@@ -2625,7 +2984,7 @@ export interface components {
              */
             parts_total: number;
             /**
-             * @description Whether archive is ready to download
+             * @description Whether archive is ready to download (single-use token unspent)
              * @example true
              */
             download_available: boolean;
@@ -2634,6 +2993,15 @@ export interface components {
              * @example 2026-07-01T12:00:00Z
              */
             expires_at: string | null;
+            /** @description Whether sections are missing from the archive */
+            is_partial?: boolean;
+            /**
+             * @description Sections that could not be included
+             * @example [
+             *       "recordings"
+             *     ]
+             */
+            missing_services?: string[];
         };
         /**
          * @description Intermediate login response for org-provisioned accounts with a
@@ -2680,6 +3048,40 @@ export interface components {
         GDPRDownloadTokenRequest: {
             /** @description Single-use download token bound to the authenticated user. */
             token: string;
+        };
+        GDPRDsarRequest: {
+            /**
+             * @description access, erasure, rectification or portability.
+             *
+             *     * `access` - access
+             *     * `erasure` - erasure
+             *     * `rectification` - rectification
+             *     * `portability` - portability
+             */
+            kind: components["schemas"]["KindEnum"];
+            /**
+             * Format: email
+             * @description Required for anonymous submissions; ignored when authenticated.
+             */
+            email?: string;
+            /** @description What the subject is asking for, in their words. */
+            note?: string;
+            /** @description Captcha token for anonymous submissions. */
+            captcha_token?: string;
+        };
+        GDPRErasureRequest: {
+            /** @description One of STAPEL_GDPR["SUBJECT_TYPES"], e.g. "recording". */
+            subject_type: string;
+            /** @description The host's own id for the subject. */
+            subject_key: string;
+            /** @description Workspace the subject belongs to, for owners that partition by it. */
+            workspace_id?: string;
+        };
+        GDPRExportPartReadyRequest: {
+            /** @description The data owner's section name, e.g. "recordings". */
+            service: string;
+            /** @description Where the staged payload lives, empty for in-process owners. */
+            bucket_path?: string;
         };
         /** @description Request OTP to new authenticator (phone or email). */
         InstantChangeRequestNew: {
@@ -2745,6 +3147,15 @@ export interface components {
              */
             expires_at: string;
         };
+        /**
+         * @description * `access` - access
+         *     * `erasure` - erasure
+         *     * `rectification` - rectification
+         *     * `portability` - portability
+         * @enum {string}
+         */
+        KindEnum: "access" | "erasure" | "rectification" | "portability";
+        LegacyTokenResponse: components["schemas"]["TokenPairResponse"] | components["schemas"]["TOTPChallengeResponse"];
         /**
          * @description One OAuth provider account connected to the current user.
          *
@@ -2953,22 +3364,25 @@ export interface components {
          *     instead of guessing (e.g. hardcoding a 6-box code input when the backend
          *     actually issues 4-digit codes).
          *
-         *     Every value here is sourced from the exact same constant/setting that
-         *     the backend validates against (otp/services.py.OTP_CODE_LENGTH,
-         *     mfa/services.py.TOTPService.CODE_LENGTH, AUTH_OTP_TTL, AUTH_OTP_RESEND_COOLDOWN)
-         *     — a guard test asserts the DB/serializer field widths agree with the
-         *     same constants, so this can't silently drift from what the server
-         *     actually accepts.
+         *     Every value here is sourced from the exact same function/constant the
+         *     backend issues by: the code lengths come from
+         *     ``otp/services.py.issued_code_length(channel)`` — the SAME function
+         *     ``generate_code`` derives its width from, so a mocked channel reports the
+         *     width of MOCK_OTP_CODE and not OTP_LENGTH — and the rest from
+         *     mfa/services.py.TOTPService.CODE_LENGTH, AUTH_OTP_TTL,
+         *     AUTH_OTP_RESEND_COOLDOWN. A guard test asserts the DB/serializer field
+         *     widths agree with the same constants, so this can't silently drift from
+         *     what the server actually accepts.
          */
         OtpMeta: {
             /**
-             * @description Digits in an email OTP code
-             * @example 4
+             * @description Digits in the email OTP code this deployment issues — the mock code's width on a mocked channel
+             * @example 6
              */
             email_code_length: number;
             /**
-             * @description Digits in a phone/SMS OTP code
-             * @example 4
+             * @description Digits in the phone/SMS OTP code this deployment issues — the mock code's width on a mocked channel
+             * @example 6
              */
             phone_code_length: number;
             /**
@@ -3135,6 +3549,11 @@ export interface components {
             phone: string;
             code: string;
             new_password: string;
+        };
+        PatchedGDPRDsarPatch: {
+            state?: components["schemas"]["StateEnum"];
+            note?: string;
+            user_id?: string;
         };
         /** @description Serializer for Service API Keys */
         PatchedServiceAPIKey: {
@@ -3530,6 +3949,38 @@ export interface components {
             };
             /** @description Active Django locale `error` was rendered in (e.g */
             error_language?: string;
+        };
+        /**
+         * @description * `received` - received
+         *     * `acknowledged` - acknowledged
+         *     * `in_progress` - in_progress
+         *     * `resolved` - resolved
+         *     * `rejected` - rejected
+         * @enum {string}
+         */
+        StateEnum: "received" | "acknowledged" | "in_progress" | "resolved" | "rejected";
+        /** @description One processor's contractual deletion window for an erasure. */
+        SubprocessorObligationDTO: {
+            /**
+             * @description Processor name
+             * @example openai
+             */
+            provider: string;
+            /**
+             * @description Contractual window in days from our own completion
+             * @example 30
+             */
+            window_days: number;
+            /**
+             * @description ISO datetime the window closes
+             * @example 2026-09-23T09:12:00Z
+             */
+            due_at: string;
+            /**
+             * @description One of pending, confirmed, overdue
+             * @example pending
+             */
+            state: string;
         };
         /** @description Intermediate response when TOTP 2FA is required to complete login. */
         TOTPChallengeResponse: {
@@ -4031,6 +4482,14 @@ export interface operations {
                     "application/json": components["schemas"]["StapelError"];
                 };
             };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
         };
     };
     auth_api_v1_capabilities_retrieve: {
@@ -4048,6 +4507,130 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthCapabilities"];
+                };
+            };
+        };
+    };
+    auth_api_v1_dsar_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DsarStatusDTO"][];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    auth_api_v1_dsar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GDPRDsarRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["GDPRDsarRequest"];
+                "multipart/form-data": components["schemas"]["GDPRDsarRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DsarStatusDTO"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    auth_api_v1_dsar_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dsar_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DsarStatusDTO"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    auth_api_v1_dsar_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dsar_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedGDPRDsarPatch"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedGDPRDsarPatch"];
+                "multipart/form-data": components["schemas"]["PatchedGDPRDsarPatch"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DsarStatusDTO"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
         };
@@ -4358,6 +4941,76 @@ export interface operations {
             };
         };
     };
+    auth_api_v1_erasures_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GDPRErasureRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["GDPRErasureRequest"];
+                "multipart/form-data": components["schemas"]["GDPRErasureRequest"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErasureStatusDTO"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    auth_api_v1_erasures_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErasureStatusDTO"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
     auth_api_v1_gdpr_schema_retrieve: {
         parameters: {
             query?: {
@@ -4413,6 +5066,48 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AuthResponse"];
                 };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    auth_api_v1_internal_export_part_ready_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GDPRExportPartReadyRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["GDPRExportPartReadyRequest"];
+                "multipart/form-data": components["schemas"]["GDPRExportPartReadyRequest"];
+            };
+        };
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             400: {
                 headers: {
@@ -4560,6 +5255,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    auth_api_v1_me_erasures_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErasureStatusDTO"][];
                 };
             };
         };
@@ -4827,6 +5541,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    auth_api_v1_owners_health_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataOwnerHealthDTO"][];
                 };
             };
         };
@@ -6569,10 +7302,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TokenPairResponse"];
+                    "application/json": components["schemas"]["LegacyTokenResponse"];
                 };
             };
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6927,6 +7676,14 @@ export interface operations {
                     "application/json": components["schemas"]["StapelError"];
                 };
             };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
         };
     };
     auth_api_v1_user_account_close_status_retrieve: {
@@ -6946,45 +7703,7 @@ export interface operations {
                     "application/json": components["schemas"]["ClosureStatusDTO"];
                 };
             };
-        };
-    };
-    auth_api_v1_user_data_export_download_retrieve: {
-        parameters: {
-            query: {
-                /** @description Single-use download token bound to the authenticated user. */
-                token: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/zip": string;
-                };
-            };
             404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StapelError"];
-                };
-            };
-            410: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StapelError"];
-                };
-            };
-            425: {
                 headers: {
                     [name: string]: unknown;
                 };

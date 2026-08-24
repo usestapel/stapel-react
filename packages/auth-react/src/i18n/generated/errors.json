@@ -25,7 +25,7 @@
     "status": 400,
     "params": [],
     "remediation": "retry",
-    "en": "Verification code has expired. Please request a new one."
+    "en": "The wait for your code expired. Please sign in again."
   },
   {
     "code": "error.400.code_required",
@@ -178,6 +178,20 @@
     "params": [],
     "remediation": "reauthenticate",
     "en": "First-login challenge is invalid or has expired. Sign in again to restart."
+  },
+  {
+    "code": "error.400.gdpr.unknown_dsar_kind",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "Unknown kind of data-protection request."
+  },
+  {
+    "code": "error.400.gdpr.unknown_subject_type",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "This kind of data cannot be erased through this endpoint."
   },
   {
     "code": "error.400.grant_invalid",
@@ -539,6 +553,20 @@
     "en": "You do not have permission to perform this action"
   },
   {
+    "code": "error.403.gdpr.account_closed",
+    "status": 403,
+    "params": [],
+    "remediation": "retry",
+    "en": "This account is being erased and can no longer be used."
+  },
+  {
+    "code": "error.403.gdpr.erasure_forbidden",
+    "status": 403,
+    "params": [],
+    "remediation": "contact_support",
+    "en": "You are not allowed to request erasure of this item."
+  },
+  {
     "code": "error.403.mfa_enrollment_required",
     "status": 403,
     "params": [],
@@ -628,6 +656,20 @@
     "params": [],
     "remediation": "retry",
     "en": "Change request not found."
+  },
+  {
+    "code": "error.404.gdpr.dsar_not_found",
+    "status": 404,
+    "params": [],
+    "remediation": "retry",
+    "en": "Data-protection request not found."
+  },
+  {
+    "code": "error.404.gdpr.erasure_not_found",
+    "status": 404,
+    "params": [],
+    "remediation": "retry",
+    "en": "Erasure request not found."
   },
   {
     "code": "error.404.gdpr.export_not_found",
@@ -812,6 +854,13 @@
     "en": "This username is already taken."
   },
   {
+    "code": "error.410.gdpr.download_consumed",
+    "status": 410,
+    "params": [],
+    "remediation": "retry",
+    "en": "Download link was already used. Request a new export."
+  },
+  {
     "code": "error.410.gdpr.download_expired",
     "status": 410,
     "params": [],
@@ -921,5 +970,26 @@
     "params": [],
     "remediation": "retry",
     "en": "Failed to send verification code"
+  },
+  {
+    "code": "error.503.gdpr.closure_unavailable",
+    "status": 503,
+    "params": [],
+    "remediation": "retry",
+    "en": "Account closure is temporarily unavailable. Please retry later."
+  },
+  {
+    "code": "error.503.mandate_unavailable",
+    "status": 503,
+    "params": [],
+    "remediation": "retry",
+    "en": "Cannot verify workspace mandate right now"
+  },
+  {
+    "code": "error.503.verification_unavailable",
+    "status": 503,
+    "params": [],
+    "remediation": "wait_and_retry",
+    "en": "We could not check your sign-in right now. Please try again in a moment."
   }
 ]

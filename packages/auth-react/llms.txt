@@ -1,6 +1,6 @@
-# @stapel/auth-react 0.16.0
+# @stapel/auth-react 0.16.1
 
-Headless React flow pair for stapel-auth (contract >=0.20 <0.21) — business + state, zero visual opinion.
+Headless React flow pair for stapel-auth (contract >=0.25 <0.26) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -48,6 +48,10 @@ Paths are relative to `/auth/api/v1/`.
 - auth_api_v1_admin_users_create: POST /admin-users/
 - auth_api_v1_anonymous_create: POST /anonymous/
 - auth_api_v1_capabilities_retrieve: GET /capabilities/
+- auth_api_v1_dsar_create: POST /dsar
+- auth_api_v1_dsar_list: GET /dsar
+- auth_api_v1_dsar_partial_update: PATCH /dsar/{dsar_id}
+- auth_api_v1_dsar_retrieve: GET /dsar/{dsar_id}
 - auth_api_v1_email_change_delayed_cancel_create: POST /email/change/delayed/cancel/
 - auth_api_v1_email_change_delayed_initiate_create: POST /email/change/delayed/initiate/
 - auth_api_v1_email_change_delayed_status_retrieve: GET /email/change/delayed/status/
@@ -57,12 +61,16 @@ Paths are relative to `/auth/api/v1/`.
 - auth_api_v1_email_change_instant_verify_old_create: POST /email/change/instant/verify-old/
 - auth_api_v1_email_request_create: POST /email/request/
 - auth_api_v1_email_verify_create: POST /email/verify/
+- auth_api_v1_erasures_create: POST /erasures
+- auth_api_v1_erasures_retrieve: GET /erasures/{request_id}
 - auth_api_v1_gdpr_schema_retrieve: GET /gdpr/schema/
 - auth_api_v1_grant_exchange_create: POST /grant/exchange/
+- auth_api_v1_internal_export_part_ready_create: POST /internal/export/{request_id}/part-ready
 - auth_api_v1_logout_create: POST /logout/
 - auth_api_v1_logout_retrieve: GET /logout/
 - auth_api_v1_magic_request_create: POST /magic/request/
 - auth_api_v1_magic_verify_retrieve: GET /magic/verify/
+- auth_api_v1_me_erasures_list: GET /me/erasures
 - auth_api_v1_me_retrieve: GET /me/
 - auth_api_v1_mfa_enroll_exchange_create: POST /mfa/enroll/exchange/
 - auth_api_v1_oauth_authorize_retrieve: GET /oauth/{provider}/authorize/
@@ -73,6 +81,7 @@ Paths are relative to `/auth/api/v1/`.
 - auth_api_v1_oauth_links_retrieve: GET /oauth/links/
 - auth_api_v1_oauth_login_create: POST /oauth/login/
 - auth_api_v1_oauth2_introspect_create: POST /oauth2/introspect/
+- auth_api_v1_owners_health_list: GET /owners/health
 - auth_api_v1_passkey_authenticate_begin_create: POST /passkey/authenticate/begin/
 - auth_api_v1_passkey_authenticate_complete_create: POST /passkey/authenticate/complete/
 - auth_api_v1_passkey_destroy: DELETE /passkey/{id}/
@@ -147,7 +156,6 @@ Paths are relative to `/auth/api/v1/`.
 - auth_api_v1_user_account_close_create: POST /user/account/close
 - auth_api_v1_user_account_close_status_retrieve: GET /user/account/close/status
 - auth_api_v1_user_data_export_download_create: POST /user/data-export/download
-- auth_api_v1_user_data_export_download_retrieve: GET /user/data-export/download
 - auth_api_v1_user_data_export_request_create: POST /user/data-export/request
 - auth_api_v1_user_data_export_status_retrieve: GET /user/data-export/status
 - auth_api_v1_verification_complete_create: POST /verification/{challenge_id}/complete/
@@ -185,7 +193,7 @@ Paths are relative to `/auth/api/v1/`.
 - useUnlinkOAuth (mutation) → oauthUnlink
 
 ## Errors (render t(code, params); UX from remediation)
-127 keys (full catalog: manifest.json §errors). By remediation: fix_input 58 · retry 32 · reauthenticate 14 · verify 8 · wait_and_retry 8 · contact_support 7.
+137 keys (full catalog: manifest.json §errors). By remediation: fix_input 60 · retry 38 · reauthenticate 14 · wait_and_retry 9 · contact_support 8 · verify 8.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}

@@ -322,6 +322,52 @@ describe("<AuthPanel/> — OTP auto-submit (owner directive point 3)", () => {
     expect(screen.queryByLabelText("OTP Input 7")).toBeNull();
   });
 
+  /**
+   * #141 — the capabilities carry `login.email_mock`/`phone_mock` and nothing
+   * read them. A stand with mocked delivery told the user "Code sent to
+   * a***@b.com" and sent nothing, so they waited on an email that was never
+   * going to arrive. The hint says the delivery is mocked; it never shows the
+   * configured code, which is a credential.
+   */
+  it("says the delivery is mocked when capabilities report it — without the code", async () => {
+    const caps = EMAIL_ONLY_CAPS(4);
+    server.use(
+      http.get(`${BASE}/capabilities/`, () =>
+        HttpResponse.json({ ...caps, login: { ...caps.login, email_mock: true } })
+      ),
+      http.post(`${BASE}/email/request/`, () =>
+        HttpResponse.json({ message: "sent", target: "a***@b.com" })
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+    const emailInput = await screen.findByPlaceholderText("you@example.com");
+    fireEvent.change(emailInput, { target: { value: "a@b.com" } });
+    screen.getByRole("button", { name: "Send code" }).click();
+
+    await screen.findByLabelText("OTP Input 1");
+    await screen.findByText(/Test mode: no code was actually sent/);
+    // The mock code itself is never rendered — the hint explains, it does not leak.
+    expect(screen.queryByText(/0000/)).toBeNull();
+  });
+
+  it("says nothing about mocking when the delivery is real", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(EMAIL_ONLY_CAPS(4))),
+      http.post(`${BASE}/email/request/`, () =>
+        HttpResponse.json({ message: "sent", target: "a***@b.com" })
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+    const emailInput = await screen.findByPlaceholderText("you@example.com");
+    fireEvent.change(emailInput, { target: { value: "a@b.com" } });
+    screen.getByRole("button", { name: "Send code" }).click();
+
+    await screen.findByLabelText("OTP Input 1");
+    expect(screen.queryByText(/Test mode/)).toBeNull();
+  });
+
   it("clears the cells and refocuses the first one on a wrong code", async () => {
     server.use(
       http.get(`${BASE}/capabilities/`, () => HttpResponse.json(EMAIL_ONLY_CAPS(4))),

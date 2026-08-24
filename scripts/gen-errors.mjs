@@ -39,6 +39,12 @@
 //                        docs/; "none" disables; or a comma list, e.g. "ru,es" —
 //                        listed locales are REQUIRED, a missing catalog fails)
 //   ERRORS_CATALOG_DIR   locale catalog dir override     (default <backend>/translations)
+//   ERRORS_MERGE_CATALOG_DIRS
+//                        comma list of EXTRA catalog dirs merged UNDER the
+//                        module's own (the general form of the stapel-core
+//                        merge, for a registry that inherits a SIBLING
+//                        module's keys — e.g. stapel-auth's stapel_gdpr keys,
+//                        whose texts live in stapel-gdpr/translations)
 //   ERRORS_LOCALE_EXEMPT_OWNERS
 //                        comma list of registry OWNERS whose keys a locale
 //                        catalog is not required to carry (default: none).
@@ -94,6 +100,26 @@ const LOCALES_MODE = process.env.ERRORS_LOCALES ?? "auto";
 const CORE_CATALOG_DIR =
   process.env.ERRORS_CORE_CATALOG_DIR ??
   resolve(dirname(SOURCE), "..", "..", "stapel-core", "django", "translations");
+
+// CORE IS NOT THE ONLY FOREIGN OWNER.
+//
+// A module whose registry inherits keys from a SIBLING module (not just core)
+// has the same problem one layer over: stapel-auth 0.25.0 registers as a GDPR
+// data owner, so its errors.json carries 15 `stapel_gdpr`-owned keys whose
+// locale texts live in stapel-gdpr/translations — auth's own catalog never had
+// them and never should. `ERRORS_MERGE_CATALOG_DIRS` (comma-separated dirs) is
+// the general form of the core merge: every listed catalog is merged UNDER the
+// module's own, in order, exactly as the backend loader merges the catalogs of
+// every installed app at runtime. What a client bundles stays what a server
+// would have rendered.
+//
+// This is NOT the same tool as LOCALE_EXEMPT_OWNERS: exempt an owner that ships
+// no catalog at all; merge one that does.
+const EXTRA_CATALOG_DIRS = (process.env.ERRORS_MERGE_CATALOG_DIRS ?? "")
+  .split(",")
+  .map((d) => d.trim())
+  .filter(Boolean)
+  .map((d) => resolve(ROOT, d));
 
 // KEYS A MODULE OWNS vs KEYS IT MERELY RAISES.
 //
@@ -216,7 +242,26 @@ async function mergedCatalog(locale, moduleCatalog) {
   } catch {
     core = {};
   }
-  return { catalog: { ...core, ...moduleCatalog }, coreFound, corePath: path };
+  // Sibling owners' catalogs (ERRORS_MERGE_CATALOG_DIRS), same rule as core:
+  // under the module's own, later dirs winning over earlier ones. A listed dir
+  // that carries no catalog for this locale is not fatal by itself — a missing
+  // key is, and the message below names both possible causes.
+  let siblings = {};
+  const siblingsMissing = [];
+  for (const dir of EXTRA_CATALOG_DIRS) {
+    const p = resolve(dir, `errors.${locale}.json`);
+    try {
+      siblings = { ...siblings, ...JSON.parse(await readFile(p, "utf8")) };
+    } catch {
+      siblingsMissing.push(p);
+    }
+  }
+  return {
+    catalog: { ...core, ...siblings, ...moduleCatalog },
+    coreFound,
+    corePath: path,
+    siblingsMissing,
+  };
 }
 
 /**
@@ -244,7 +289,13 @@ function renderLocaleBundle(entries, locale, catalog, core = {}) {
             ` — and stapel-core's catalog was NOT found at ${core.corePath}, ` +
             `which is where the cross-cutting keys live since 0.23. Check out ` +
             `the sibling (or set ERRORS_CORE_CATALOG_DIR) before blaming this module's file.`
-          : ` — regenerate the backend catalog (translate_catalogs --domain errors --lang ${locale})`)
+          : core.siblingsMissing?.length
+            ? // Same shape one owner over: a merged sibling catalog listed in
+              // ERRORS_MERGE_CATALOG_DIRS was not on disk to supply its keys.
+              ` — and these merged catalogs were NOT found: ` +
+              `${core.siblingsMissing.join(", ")}. Check the sibling checkout ` +
+              `(ERRORS_MERGE_CATALOG_DIRS) before blaming this module's file.`
+            : ` — regenerate the backend catalog (translate_catalogs --domain errors --lang ${locale})`)
     );
   const carried = entries.filter((e) => catalog[e.code] !== undefined);
   for (const e of carried) {

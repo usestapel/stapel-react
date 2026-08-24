@@ -13,6 +13,13 @@ import { authErrorBundleEn } from "./generated/errors.gen.js";
 export const AUTH_I18N_KEYS = {
   // Flow UI keys (auth-react-owned)
   otpEnterCode: "auth.otp.enter_code",
+  /**
+   * Shown on the code step when `capabilities.login.{email,phone}_mock` says
+   * this channel's delivery is mocked: nothing was actually sent, so a user
+   * waiting for an email or an SMS would wait forever. The hint says that and
+   * nothing more — the mock code itself is a credential and is never rendered.
+   */
+  otpMockDelivery: "auth.otp.mock_delivery",
   otpResend: "auth.otp.resend",
   otpSentTo: "auth.otp.sent_to",
   passwordLabel: "auth.password.label",
@@ -277,6 +284,8 @@ export const authI18nBundleEn: I18nDictionary = {
 
   // auth-react UI
   "auth.otp.enter_code": "Enter the code we sent you",
+  "auth.otp.mock_delivery":
+    "Test mode: no code was actually sent. Use the code this environment is configured with.",
   "auth.otp.resend": "Resend code",
   "auth.otp.sent_to": "Code sent to {target}",
   "auth.password.label": "Password",

@@ -1,5 +1,39 @@
 # @stapel/auth-react
 
+## 0.16.1
+
+### Patch Changes
+
+- Bumps the `stapel-auth` contract pin from v0.20.1 to **v0.25.2** and regenerates
+  `api/generated/schema.ts`, `i18n/generated/errors.*`, `manifest.json` and
+  `llms.txt` against it — and closes the tracked gap **#141** (`email_mock` /
+  `phone_mock` reported by the backend and read by nobody).
+
+  The pin bump is what makes a mocked stand usable. Until v0.25.2 the backend
+  computed the OTP code width twice — the issuing path read `MOCK_OTP_CODE`, the
+  capabilities contract reported `OTP_LENGTH` — so a stand with mocked delivery
+  handed out a four-character code while telling this pair codes are six digits.
+  `<OtpPanel/>` was already doing the right thing (reading `otp.email_code_length`
+  instead of hardcoding) and therefore drew six boxes nobody could fill. The
+  backend now derives both from one function, so the panel renders the right
+  number of cells with **no change on this side**: the pair reads the number, it
+  never computes one.
+
+  The gap #141 half is new UI: when capabilities say the active channel's delivery
+  is mocked (`login.email_mock` / `login.phone_mock`), the code step now carries a
+  subtle hint that nothing was actually sent — otherwise "Code sent to
+  a\*\*\*@b.com" is a sentence the user waits on forever. It never renders the
+  configured code itself, which is a credential. English and Russian copy ship
+  with it (`auth.otp.mock_delivery`); Spanish falls through the en floor like the
+  pair's other UI keys.
+
+  The v0.20.1..v0.25.2 span also lands, by regeneration: the GDPR surface auth now
+  exposes (`/dsar`, `/erasures`, `/me/erasures`) and its 15 `stapel_gdpr`-owned
+  error keys, QR sign-in on the desktop, the user projection, and the 2026-08-11
+  security wave (OTP codes in stapel-core's TTL store, hourly OTP send limits,
+  anonymous minting caps, default-deny permissions, the legacy `POST /token/`
+  bypass closed). No flow machine moves — `docs/flows.json` is unchanged.
+
 ## 0.16.0
 
 ### Minor Changes
