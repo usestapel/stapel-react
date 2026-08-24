@@ -1,0 +1,118 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/geo-react",
+  "version": "0.1.0",
+  "demos": [
+    {
+      "id": "geo.address-search",
+      "title": "Search-as-you-type, and the five ways it can say nothing",
+      "description": "The address field over usePlaceSearch. Below the deployment's search_min_chars it says keep typing rather than showing an empty state; zero results is an empty state and never an error; a 401 states the deployment's own permission answer without alarm; a 429 keeps the last suggestions on screen; only a 502 is drawn as a failure, with a retry.",
+      "component": "AddressSearchField",
+      "covers": [],
+      "flow": "geo.geocode_address",
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Type three characters or more: the server's own `formatted` line per row.",
+          "viewport": "phone"
+        },
+        {
+          "id": "empty",
+          "description": "A successful call that matched nothing — an empty state, not a red box.",
+          "viewport": "phone"
+        },
+        {
+          "id": "unauthorized",
+          "description": "401/403. The deployment's geocoding verbs default to authenticated-only, so this is the normal configuration for a signed-out visitor — stated in plain text, with the map still working.",
+          "viewport": "phone"
+        },
+        {
+          "id": "throttled",
+          "description": "429. The last good suggestions stay on screen and a line says why nothing new arrives. A rate limit is the server asking for quiet, not a fault.",
+          "viewport": "phone"
+        },
+        {
+          "id": "unavailable",
+          "description": "502 — the one that IS a failure, and the one that is retryable.",
+          "viewport": "phone"
+        }
+      ],
+      "source": {
+        "file": "demo/AddressSearch.demo.tsx",
+        "line": 74
+      }
+    },
+    {
+      "id": "geo.location-picker",
+      "title": "The location picker a product mounts once",
+      "description": "One component instead of two raw fields called latitude and longitude: a map with search-as-you-type, the browser's position prompt, a centre pin, and the address the pin resolved to. The basemap is drawn by this package — no map library, and the OpenStreetMap credit it is not allowed to suppress.",
+      "component": "LocationPickerField",
+      "covers": [
+        "AddressSearchField",
+        "TileMap",
+        "GeoSkinTheme",
+        "GeoProvider"
+      ],
+      "flow": "geo.pick_location",
+      "tokens": [
+        "surface-raised",
+        "border-subtle",
+        "text"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The whole thing, inline in a form column. Drag the map, type an address, press the pin's confirmation.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "sheet",
+          "description": "The dialog form. On a phone SkinDialog makes it a bottom sheet; the map's pan does not fight the sheet's drag-to-dismiss, which is anchored to the header alone.",
+          "viewport": "phone"
+        },
+        {
+          "id": "anonymous",
+          "description": "A signed-out visitor. The four geocoding verbs default to authenticated-only, so search and resolve answer 401 — which is this deployment's configuration, not a fault. The map still renders, the pin still drops, and only the ADDRESS is unavailable.",
+          "viewport": "phone"
+        },
+        {
+          "id": "config-failed",
+          "description": "map/config failed. No tile template means no map — the only state in which this pair draws none — so it says so and offers a retry instead of an empty grey rectangle.",
+          "viewport": "phone"
+        }
+      ],
+      "source": {
+        "file": "demo/LocationPicker.demo.tsx",
+        "line": 80
+      }
+    },
+    {
+      "id": "geo.tile-map",
+      "title": "A basemap with no map library",
+      "description": "A grid of <img> tags plus the Web Mercator arithmetic in model/coords.ts — no Leaflet, no MapLibre, no stylesheet and no CSP surface. The pin is fixed at the centre and the map moves under it, because on a phone a draggable marker is covered by the finger dragging it. Arrow keys pan, +/- zoom, and the container carries an accessible name.",
+      "component": "TileMap",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "border-subtle"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Full width. Drag it, wheel it, double-click it, or tab to it and use the arrows.",
+          "viewport": "desktop"
+        },
+        {
+          "id": "narrow",
+          "description": "The same map in a narrower element at the same viewport width: fewer tiles requested, because the grid is measured from the ELEMENT.",
+          "viewport": "phone"
+        }
+      ],
+      "source": {
+        "file": "demo/TileMap.demo.tsx",
+        "line": 63
+      }
+    }
+  ]
+}

@@ -51,7 +51,14 @@ export interface UsePlaceSearchOptions {
   /** The loaded map config — the source of the endpoint path and of the
    * debounce/min-chars discipline the deployment set. */
   readonly config: MapConfig | undefined;
-  /** The map's current centre, sent as a soft bias so results are local. */
+  /**
+   * The map's current centre, sent as a soft bias so results are local.
+   *
+   * Read BY VALUE, never by identity: `bias={{ lat, lon }}` written inline is
+   * a fresh object on every render, and an effect that depended on it would
+   * re-fire, re-render, and re-fire — an infinite loop in the most natural
+   * way to call this hook. The two numbers are the dependency.
+   */
   readonly bias?: LatLon | undefined;
   readonly zoom?: number | undefined;
   /** See `SearchQuery.lang` — leave unset. */
@@ -93,6 +100,11 @@ export function usePlaceSearch(options: UsePlaceSearchOptions): PlaceSearchBag {
     loadReady([])
   );
   const [availability, setAvailability] = useState<GeocoderAvailability>("available");
+  /** The last answer that actually arrived. A 429 is the server asking for
+   * quiet, not telling the person their search failed — so the suggestions
+   * they are looking at have to survive it, which means remembering them
+   * rather than merely declining to overwrite them with an error. */
+  const lastReady = useRef<readonly PlaceSuggestion[]>([]);
   const [lastLang, setLastLang] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
   const inFlight = useRef<AbortController | null>(null);
@@ -104,13 +116,21 @@ export function usePlaceSearch(options: UsePlaceSearchOptions): PlaceSearchBag {
 
   const trimmed = query.trim();
   const idle = trimmed.length < minChars;
+  // By value (see `UsePlaceSearchOptions.bias`).
+  const biasLat = bias?.lat;
+  const biasLon = bias?.lon;
 
   useEffect(() => {
     if (path === undefined) return;
     if (idle) {
       inFlight.current?.abort();
       inFlight.current = null;
-      setResults(loadReady([]));
+      lastReady.current = [];
+      // A fresh `[]` every pass would be a new state value every render, which
+      // is the other half of the same loop the bias-by-value note describes.
+      setResults((prev) =>
+        prev.status === "ready" && prev.data.length === 0 ? prev : loadReady([])
+      );
       return;
     }
     const timer = setTimeout(() => {
@@ -123,8 +143,14 @@ export function usePlaceSearch(options: UsePlaceSearchOptions): PlaceSearchBag {
           path,
           {
             q: trimmed,
-            ...(bias !== undefined
-              ? { bias: { lat: bias.lat, lon: bias.lon, ...(zoom !== undefined ? { zoom } : {}) } }
+            ...(biasLat !== undefined && biasLon !== undefined
+              ? {
+                  bias: {
+                    lat: biasLat,
+                    lon: biasLon,
+                    ...(zoom !== undefined ? { zoom } : {}),
+                  },
+                }
               : {}),
             ...(lang !== undefined ? { lang } : {}),
           },
@@ -143,22 +169,27 @@ export function usePlaceSearch(options: UsePlaceSearchOptions): PlaceSearchBag {
             if (label === null || label === undefined || label === "") return;
             suggestions.push({ id: idOf(feature, index), label, point, feature });
           });
+          lastReady.current = suggestions;
           setResults(loadReady(suggestions));
         })
         .catch((error: unknown) => {
           if (controller.signal.aborted) return;
           const why = availabilityOf(error);
           setAvailability(why);
-          // A rate limit is the server asking for quiet. Keeping the last good
-          // suggestions is the honest thing to show; replacing them with a red
-          // box would report a fault that did not happen.
-          if (why !== "throttled") setResults(loadFailed(error));
+          // A rate limit is the server asking for quiet. The last good
+          // suggestions are PUT BACK — not merely left un-overwritten, which
+          // was the bug: `loadLoading()` had already been set before the
+          // request, so declining to write a failure left the bag spinning for
+          // the whole throttle window while its own doc promised the previous
+          // list. Replacing them with a red box would report a fault that did
+          // not happen; leaving a spinner reports one that never ends.
+          setResults(why === "throttled" ? loadReady(lastReady.current) : loadFailed(error));
         });
     }, debounceMs);
     return () => {
       clearTimeout(timer);
     };
-  }, [api, path, trimmed, idle, debounceMs, bias, zoom, lang, nonce]);
+  }, [api, path, trimmed, idle, debounceMs, biasLat, biasLon, zoom, lang, nonce]);
 
   useEffect(
     () => () => {

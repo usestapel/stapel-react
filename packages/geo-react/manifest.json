@@ -1,0 +1,632 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/geo-react",
+  "version": "0.1.0",
+  "backend": {
+    "module": "stapel-geo",
+    "contract": ">=0.4 <0.5"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "geo_api_v1_geocoding_resolve_retrieve": {
+      "method": "GET",
+      "path": "/geo/api/v1/geocoding/resolve",
+      "tag": "Geocoding",
+      "request": null,
+      "response": "PlaceResolution"
+    },
+    "geo_api_v1_geocoding_reverse_retrieve": {
+      "method": "GET",
+      "path": "/geo/api/v1/geocoding/reverse",
+      "tag": "Geocoding",
+      "request": null,
+      "response": "GeocodeResponse"
+    },
+    "geo_api_v1_geocoding_search_retrieve": {
+      "method": "GET",
+      "path": "/geo/api/v1/geocoding/search",
+      "tag": "Geocoding",
+      "request": null,
+      "response": "GeocodeResponse"
+    },
+    "geo_api_v1_geocoding_structured_retrieve": {
+      "method": "GET",
+      "path": "/geo/api/v1/geocoding/structured",
+      "tag": "Geocoding",
+      "request": null,
+      "response": "GeocodeResponse"
+    },
+    "geo_api_v1_locations_by_parent_list": {
+      "method": "GET",
+      "path": "/geo/api/v1/locations/by-parent/{parent_id}/",
+      "tag": "Locations",
+      "request": null,
+      "response": null
+    },
+    "geo_api_v1_locations_countries_list": {
+      "method": "GET",
+      "path": "/geo/api/v1/locations/countries/",
+      "tag": "Locations",
+      "request": null,
+      "response": null
+    },
+    "geo_api_v1_locations_create": {
+      "method": "POST",
+      "path": "/geo/api/v1/locations/",
+      "tag": "Locations",
+      "request": "Location",
+      "response": "Location"
+    },
+    "geo_api_v1_locations_destroy": {
+      "method": "DELETE",
+      "path": "/geo/api/v1/locations/{id}/",
+      "tag": "Locations",
+      "request": null,
+      "response": null
+    },
+    "geo_api_v1_locations_list": {
+      "method": "GET",
+      "path": "/geo/api/v1/locations/",
+      "tag": "Locations",
+      "request": null,
+      "response": null
+    },
+    "geo_api_v1_locations_nearby_by_coords_list": {
+      "method": "GET",
+      "path": "/geo/api/v1/locations/nearby-by-coords/",
+      "tag": "Locations",
+      "request": null,
+      "response": null
+    },
+    "geo_api_v1_locations_nearby_by_geohash_list": {
+      "method": "GET",
+      "path": "/geo/api/v1/locations/nearby-by-geohash/",
+      "tag": "Locations",
+      "request": null,
+      "response": null
+    },
+    "geo_api_v1_locations_partial_update": {
+      "method": "PATCH",
+      "path": "/geo/api/v1/locations/{id}/",
+      "tag": "Locations",
+      "request": "PatchedLocation",
+      "response": "Location"
+    },
+    "geo_api_v1_locations_retrieve": {
+      "method": "GET",
+      "path": "/geo/api/v1/locations/{id}/",
+      "tag": "Locations",
+      "request": null,
+      "response": "Location"
+    },
+    "geo_api_v1_locations_update": {
+      "method": "PUT",
+      "path": "/geo/api/v1/locations/{id}/",
+      "tag": "Locations",
+      "request": "Location",
+      "response": "Location"
+    },
+    "geo_api_v1_locations_validate_uuid_retrieve": {
+      "method": "GET",
+      "path": "/geo/api/v1/locations/validate-uuid/{uuid}/",
+      "tag": "Locations",
+      "request": null,
+      "response": "ValidateUuidResponse"
+    },
+    "geo_api_v1_map_config_retrieve": {
+      "method": "GET",
+      "path": "/geo/api/v1/map/config",
+      "tag": "Map",
+      "request": null,
+      "response": "MapConfig"
+    }
+  },
+  "hooks": {
+    "useMapConfig": {
+      "kind": "query",
+      "operation": "mapConfig"
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.geohash_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_bbox": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_geojson": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_import_status": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_params": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.lat_lon_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.uuid_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.502.geocoder_unavailable": {
+      "status": 502,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "geo.address-search",
+      "title": "Search-as-you-type, and the five ways it can say nothing",
+      "description": "The address field over usePlaceSearch. Below the deployment's search_min_chars it says keep typing rather than showing an empty state; zero results is an empty state and never an error; a 401 states the deployment's own permission answer without alarm; a 429 keeps the last suggestions on screen; only a 502 is drawn as a failure, with a retry.",
+      "component": "AddressSearchField",
+      "flow": "geo.geocode_address",
+      "variants": [
+        "default",
+        "empty",
+        "unauthorized",
+        "throttled",
+        "unavailable"
+      ],
+      "source": "demo/AddressSearch.demo.tsx"
+    },
+    {
+      "id": "geo.location-picker",
+      "title": "The location picker a product mounts once",
+      "description": "One component instead of two raw fields called latitude and longitude: a map with search-as-you-type, the browser's position prompt, a centre pin, and the address the pin resolved to. The basemap is drawn by this package — no map library, and the OpenStreetMap credit it is not allowed to suppress.",
+      "component": "LocationPickerField",
+      "covers": [
+        "AddressSearchField",
+        "TileMap",
+        "GeoSkinTheme"
+      ],
+      "flow": "geo.pick_location",
+      "tokens": [
+        "surface-raised",
+        "border-subtle",
+        "text"
+      ],
+      "variants": [
+        "default",
+        "sheet",
+        "anonymous",
+        "config-failed"
+      ],
+      "source": "demo/LocationPicker.demo.tsx"
+    },
+    {
+      "id": "geo.tile-map",
+      "title": "A basemap with no map library",
+      "description": "A grid of <img> tags plus the Web Mercator arithmetic in model/coords.ts — no Leaflet, no MapLibre, no stylesheet and no CSP surface. The pin is fixed at the centre and the map moves under it, because on a phone a draggable marker is covered by the finger dragging it. Arrow keys pan, +/- zoom, and the container carries an accessible name.",
+      "component": "TileMap",
+      "tokens": [
+        "surface-raised",
+        "border-subtle"
+      ],
+      "variants": [
+        "default",
+        "narrow"
+      ],
+      "source": "demo/TileMap.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.geohash_required",
+    "error.400.invalid_ad_id",
+    "error.400.invalid_bbox",
+    "error.400.invalid_geojson",
+    "error.400.invalid_import_status",
+    "error.400.invalid_params",
+    "error.400.lat_lon_required",
+    "error.400.uuid_required",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.502.geocoder_unavailable",
+    "error.503.mandate_unavailable",
+    "geo.error.unknown",
+    "geo.geocoder.failed",
+    "geo.geocoder.throttled",
+    "geo.geocoder.unauthorized",
+    "geo.geocoder.unavailable",
+    "geo.map.config_failed",
+    "geo.map.retry",
+    "geo.picker.close",
+    "geo.picker.confirm",
+    "geo.picker.coordinates",
+    "geo.picker.locating",
+    "geo.picker.map_label",
+    "geo.picker.no_address",
+    "geo.picker.open",
+    "geo.picker.pin_label",
+    "geo.picker.resolving",
+    "geo.picker.search_label",
+    "geo.picker.search_placeholder",
+    "geo.picker.title",
+    "geo.picker.use_my_position",
+    "geo.picker.zoom_in",
+    "geo.picker.zoom_out",
+    "geo.position.denied",
+    "geo.position.timeout",
+    "geo.position.unavailable",
+    "geo.search.no_results",
+    "geo.search.retry",
+    "geo.search.type_more"
+  ],
+  "exports": {
+    "runtime": [
+      "GEO_ERRORS",
+      "GEO_ERROR_CODES",
+      "GEO_I18N_KEYS",
+      "GeoProvider",
+      "GeoRuntimeContext",
+      "MAP_CONFIG_PATH",
+      "MERCATOR_MAX_LAT",
+      "TILE_SIZE",
+      "availabilityOf",
+      "clampLat",
+      "createGeoApi",
+      "createGeoRuntime",
+      "endpointsOf",
+      "explain",
+      "fromGeoJson",
+      "geoErrorBundleEn",
+      "geoI18nBundleEn",
+      "geoKeys",
+      "isRetryable",
+      "panBy",
+      "project",
+      "registerGeoI18n",
+      "tileUrl",
+      "tilesFor",
+      "toGeoJson",
+      "unproject",
+      "useBrowserPosition",
+      "useGeoAnalytics",
+      "useGeoApi",
+      "useGeoRuntime",
+      "useLocationPicker",
+      "useMapConfig",
+      "usePlaceSearch",
+      "worldSize",
+      "wrapLon"
+    ],
+    "types": [
+      "BrowserPositionBag",
+      "CreateGeoRuntimeOptions",
+      "GeoApi",
+      "GeoEndpoints",
+      "GeoErrorCode",
+      "GeoErrorSpec",
+      "GeoI18nKey",
+      "GeoRuntime",
+      "GeocodeFeature",
+      "GeocodeProperties",
+      "GeocodeResponse",
+      "GeocoderAvailability",
+      "LatLon",
+      "LocationPickerBag",
+      "MapConfig",
+      "PickedLocation",
+      "PlaceResolution",
+      "PlaceSearchBag",
+      "PlaceSuggestion",
+      "PlaceSummary",
+      "PositionOutcome",
+      "PositionState",
+      "Remediation",
+      "ResolveQuery",
+      "ResolveState",
+      "Schemas",
+      "SearchQuery",
+      "TileLayer",
+      "TileRef",
+      "UseBrowserPositionOptions",
+      "UseLocationPickerOptions",
+      "UsePlaceSearchOptions",
+      "WorldPoint"
+    ]
+  }
+}

@@ -4,9 +4,11 @@
 // machine testing-library's default 1s `waitFor` budget flakes even though
 // the awaited state always arrives. Raising `asyncUtilTimeout` removes the
 // timing assumption without slowing green tests — `waitFor` still resolves
-// the instant the assertion passes.
+// the instant the assertion passes. (vitest's own per-test budgets are
+// raised alongside in vitest.config.ts.)
 import { afterEach } from "vitest";
 import { cleanup, configure } from "@testing-library/react";
+import { installResizeObserver, resetResizeObservers } from "./resizeDriver.js";
 
 configure({ asyncUtilTimeout: 10_000 });
 
@@ -18,15 +20,26 @@ configure({ asyncUtilTimeout: 10_000 });
 // after a suite whose tests all passed (profiles-react, 2026-08-13).
 afterEach(() => {
   cleanup();
+  resetResizeObservers();
 });
 
 // jsdom ships neither `matchMedia` nor `ResizeObserver`; Ant Design (the §54
-// default-skin suite) reads both on mount. Minimal no-op polyfills so the DOM
-// render is exercised without pulling a heavier test env.
+// default-skin suite) reads both on mount.
+//
+// `matches: false` for every query is NOT a neutral stub. `@stapel/tokens-antd
+// /skin` reads `(min-width: 768px)` to decide whether a dialog is a modal or a
+// bottom sheet, so a blanket `false` silently declares every test viewport a
+// phone — and no suite could then prove which surface it renders. jsdom's own
+// window is 1024x768, so the honest answer is to evaluate the query against
+// `window.innerWidth`; a test that wants to BE a phone sets `innerWidth` to
+// 390 before rendering.
 if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
-  window.matchMedia = (query: string): MediaQueryList =>
-    ({
-      matches: false,
+  window.matchMedia = (query: string): MediaQueryList => {
+    const min = /\(min-width:\s*(\d+)px\)/.exec(query);
+    return {
+      get matches(): boolean {
+        return min === null ? false : window.innerWidth >= Number(min[1]);
+      },
       media: query,
       onchange: null,
       addListener: () => {},
@@ -34,20 +47,39 @@ if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
       addEventListener: () => {},
       removeEventListener: () => {},
       dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+    } as unknown as MediaQueryList;
+  };
 }
-if (typeof globalThis.ResizeObserver === "undefined") {
-  globalThis.ResizeObserver = class {
-    observe(): void {}
-    unobserve(): void {}
-    disconnect(): void {}
-  } as unknown as typeof ResizeObserver;
+
+// The tile grid is measured from the element, which in jsdom is 0x0 until a
+// test says otherwise — see `resizeDriver.ts`.
+installResizeObserver();
+
+/** jsdom ships no `PointerEvent`, so `fireEvent.pointerDown(…, {clientX})`
+ * would construct a bare `Event` with no coordinates — and the map's pan is a
+ * pointer gesture, so a suite without this exercises nothing. This is the
+ * browser's own class, minimally (same shim `tokens-antd` uses for the bottom
+ * sheet's drag). */
+class TestPointerEvent extends MouseEvent {
+  readonly pointerId: number;
+  readonly isPrimary: boolean;
+  constructor(type: string, init: PointerEventInit = {}) {
+    super(type, init);
+    this.pointerId = init.pointerId ?? 1;
+    this.isPrimary = init.isPrimary ?? true;
+  }
+}
+
+if (typeof globalThis.PointerEvent === "undefined") {
+  globalThis.PointerEvent = TestPointerEvent as unknown as typeof PointerEvent;
+  window.PointerEvent = globalThis.PointerEvent;
 }
 
 // jsdom throws "Not implemented" when getComputedStyle is called with a
-// pseudo-element arg — Ant Design v6 does exactly that on some component
-// mounts (surfaced on the auth-react CI release runner). Drop the second arg
-// and delegate to jsdom's real one-arg implementation.
+// pseudo-element arg — Ant Design v6 (the bumped default skin) does exactly
+// that on some component mounts. This surfaced ONLY on the CI release runner
+// (a jsdom/env difference), failing the publish. Drop the second arg and
+// delegate to jsdom's real one-arg implementation.
 if (typeof window !== "undefined" && typeof window.getComputedStyle === "function") {
   const realGetComputedStyle = window.getComputedStyle.bind(window);
   window.getComputedStyle = ((elt: Element) =>
