@@ -14,6 +14,7 @@
  * belongs here — it is why `@stapel/image` exists.
  */
 import type { CSSProperties, ReactElement } from "react";
+import { useMemo } from "react";
 import { Empty } from "antd";
 import { Image } from "@stapel/image";
 import { useT } from "@stapel/core";
@@ -31,10 +32,18 @@ export interface ListingPhotoProps {
 export function ListingPhoto(props: ListingPhotoProps): ReactElement {
   const t = useT();
   const runtime = useListingsRuntime();
-  const meta =
-    props.imageRef === undefined || runtime.resolveImage === undefined
-      ? undefined
-      : runtime.resolveImage(props.imageRef);
+  // Memoised on the REFERENCE, not called in render. A host resolver is a
+  // plain function returning a fresh object (`resolveImage: (ref) => ({ … })`
+  // is the documented shape), so calling it inline handed `<Image>` a new
+  // `meta` identity on every render of this card — which is a load `<Image>`
+  // then has to decide is or is not the same one. It defends itself now, and
+  // a caller still should not manufacture the churn.
+  const resolve = runtime.resolveImage;
+  const imageRef = props.imageRef;
+  const meta = useMemo(
+    () => (imageRef === undefined || resolve === undefined ? undefined : resolve(imageRef)),
+    [imageRef, resolve]
+  );
 
   if (meta === undefined) {
     return (

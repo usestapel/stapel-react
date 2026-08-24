@@ -155,16 +155,49 @@ export function Image({
     );
   }, [size, meta, fit]);
 
+  // The load below is keyed by the chosen variant's URL, not by the object
+  // that carries it — and that distinction is the whole of a bug that made
+  // images never appear.
+  //
+  // `meta` is a value a HOST builds. The documented way to write a resolver is
+  // `resolveImage: (ref) => ({ … })`, called inline in render, which returns a
+  // fresh object every time. That made `target` a new identity on every render
+  // of the caller, which re-ran this effect, whose cleanup set `cancelled` on
+  // the decode that was already in flight — so on any screen that re-renders
+  // while a photo loads (a listing page settling four queries, say) every
+  // attempt was cancelled by the next one and NOTHING was ever committed: not
+  // the image, not the error box. An empty slot, indefinitely.
+  //
+  // The identity of the pick is not what the browser is fetching; the URL is.
+  // Deps are therefore the URL alone, and the pick itself is read through a
+  // ref so a re-render can update it without restarting a live load.
+  const targetRef = useRef<VariantMeta | undefined>(target);
+  targetRef.current = target;
+  const targetUrl = target?.url;
+
   useEffect(() => {
-    if (target === undefined) {
+    const pick = targetRef.current;
+    if (pick === undefined || targetUrl === undefined) {
       return;
     }
     const current = displayedRef.current;
     // Upgrade only (§4): never replace an already-rendered variant with an
     // equal or smaller one (resize jitter, transient shrink).
+    //
+    // The comparison is by AREA only when both areas are actually known. A
+    // host whose resolver reports `width: null` on every variant — the honest
+    // shape when nothing measured the file, and what a CDN-reference resolver
+    // that cannot read variant metadata has to write — made both sides 0, so
+    // `0 <= 0` refused every upgrade for the whole life of the component. An
+    // unmeasured ladder is not a reason to freeze on the first tier picked.
     const area = (v: VariantMeta): number => (v.width ?? 0) * (v.height ?? 0);
-    if (current !== undefined && area(target) <= area(current)) {
-      return;
+    if (current !== undefined) {
+      if (current.url === pick.url) {
+        return;
+      }
+      if (area(current) > 0 && area(pick) > 0 && area(pick) <= area(current)) {
+        return;
+      }
     }
     let cancelled = false;
     const loader = document.createElement("img");
@@ -172,8 +205,8 @@ export function Image({
       if (cancelled) {
         return;
       }
-      displayedRef.current = target;
-      setDisplayed(target);
+      displayedRef.current = pick;
+      setDisplayed(pick);
       setFailed(undefined);
     };
     // A load that does not arrive is NOT a load. Committing on `onerror` (or
@@ -185,9 +218,9 @@ export function Image({
       if (cancelled) {
         return;
       }
-      setFailed(target);
+      setFailed(pick);
     };
-    loader.src = target.url;
+    loader.src = pick.url;
     if (typeof loader.decode === "function") {
       // Swap only after decode — no blank frame during the upgrade. A
       // rejection here is an EncodingError (undecodable bytes) or the load
@@ -200,7 +233,7 @@ export function Image({
     return () => {
       cancelled = true;
     };
-  }, [target]);
+  }, [targetUrl]);
 
   useEffect(() => {
     if (displayed === undefined || visible) {

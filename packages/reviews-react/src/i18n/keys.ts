@@ -105,7 +105,7 @@ export const reviewsI18nBundleEn: I18nDictionary = {
   "reviews.status.hidden": "Hidden by moderation",
   "reviews.status.unknown": "Unknown state: {status}",
 
-  "reviews.rating.none": "No reviews yet",
+  "reviews.rating.none": "No rating yet",
   "reviews.rating.value": "{avg} out of {max}",
   "reviews.rating.count": "{count} reviews",
   "reviews.rating.star_label": "{index} out of {max}",

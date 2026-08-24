@@ -33,7 +33,11 @@ describe("<RatingBadge>", () => {
     await waitFor(() => {
       expect(screen.getByTestId("reviews-rating-none")).toBeTruthy();
     });
-    expect(screen.getByText("No reviews yet")).toBeTruthy();
+    // A DIFFERENT sentence from the review LIST's "No reviews yet". Both
+    // absences render on any page that mounts the aggregate above the list —
+    // the storefront's listing page printed the identical words twice, forty
+    // pixels apart, and it read as a rendering bug rather than as two facts.
+    expect(screen.getByText("No rating yet")).toBeTruthy();
     // The whole point: antd's <Rate value={0}> would have drawn five empty
     // stars, which is the worst possible score, not "not rated".
     expect(screen.queryByTestId("reviews-rating-stars")).toBeNull();

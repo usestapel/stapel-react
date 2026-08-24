@@ -19,6 +19,7 @@ export type {
   ListingCardProps,
   ListingCardBaseProps,
   ListingCardOpenProps,
+  ListingCardBlockedReason,
 } from "./ListingCard.js";
 export { ListingDetailPane } from "./ListingDetailPane.js";
 export type { ListingDetailPaneProps } from "./ListingDetailPane.js";
@@ -26,6 +27,7 @@ export { ListingComposerPage } from "./ListingComposerPage.js";
 export type {
   ListingComposerPageProps,
   ComposerCategorySlot,
+  ComposerLocationSlot,
 } from "./ListingComposerPage.js";
 export { MyListingsPane } from "./MyListingsPane.js";
 export type { MyListingsPaneProps } from "./MyListingsPane.js";

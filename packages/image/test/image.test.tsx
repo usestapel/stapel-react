@@ -1,3 +1,5 @@
+import { useState } from "react";
+import type { ReactElement } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Image } from "../src/Image.js";
@@ -173,6 +175,95 @@ describe("<Image>", () => {
     });
     // High-water-mark + upgrade-only guard: src is untouched.
     expect(screen.getByAltText("photo").getAttribute("src")).toBe("cdn://img/720w.webp");
+  });
+
+  // The bug this pins: a host resolver is documented as
+  // `resolveImage: (ref) => ({ … })`, called inline in render, so `meta` is a
+  // FRESH object every render. Keying the load effect on that object made a
+  // caller's re-render cancel the decode already in flight, and a screen that
+  // re-renders while a photo loads showed an empty slot for ever — no image,
+  // no error box.
+  it("a caller re-rendering with a fresh equal meta object still commits the image", async () => {
+    function Host(): ReactElement {
+      const [tick, setTick] = useState(0);
+      // A new object identity on every render, exactly like a host resolver.
+      return (
+        <div>
+          <button type="button" onClick={() => { setTick((n) => n + 1); }}>
+            {`re-render ${String(tick)}`}
+          </button>
+          <Image meta={portraitMeta()} alt="photo" />
+        </div>
+      );
+    }
+    // A decode that does not resolve until this test says so — otherwise the
+    // mocked one settles in the same microtask and the race never happens.
+    const pending: (() => void)[] = [];
+    Object.defineProperty(window.HTMLImageElement.prototype, "decode", {
+      configurable: true,
+      writable: true,
+      value: vi.fn().mockImplementation(
+        () => new Promise<void>((resolve) => { pending.push(resolve); })
+      ),
+    });
+
+    render(<Host />);
+    const ro = lastObserver();
+    act(() => {
+      ro.trigger(640, 360);
+    });
+    // Three re-renders WHILE the decode is in flight — the shape that used to
+    // cancel every attempt and leave the slot empty for ever.
+    for (let i = 0; i < 3; i += 1) {
+      act(() => {
+        screen.getByRole("button").click();
+      });
+    }
+    expect(pending.length).toBe(1);
+    await act(async () => {
+      for (const resolve of pending) resolve();
+      await Promise.resolve();
+    });
+    const img = await screen.findByAltText("photo");
+    expect(img.getAttribute("src")).toBe("cdn://img/720w.webp");
+  });
+
+  // An unmeasured ladder is the honest shape for a CDN-reference resolver that
+  // cannot read variant metadata: every `width`/`height` is null. The
+  // upgrade-only guard compared areas, both of which were 0, so `0 <= 0`
+  // refused the very first upgrade and the image froze on nothing.
+  it("upgrades a ladder whose variants report no width", async () => {
+    const unmeasured: StapelImage = {
+      source: "cdn",
+      url: "cdn://ref/720w.webp",
+      mime: "image/webp",
+      width: null,
+      height: null,
+      aspect: null,
+      square: false,
+      preview_b64: null,
+      variants: PREVIEW_TIERS.map((tier) => ({
+        tier: String(tier),
+        branch: "w" as const,
+        url: `cdn://ref/${String(tier)}w.webp`,
+        width: null,
+        height: null,
+      })),
+    };
+    render(<Image meta={unmeasured} alt="photo" />);
+    const ro = lastObserver();
+    act(() => {
+      ro.trigger(200, 150);
+    });
+    await waitFor(() => {
+      expect(screen.getByAltText("photo").getAttribute("src")).toBe("cdn://ref/240w.webp");
+    });
+    act(() => {
+      ro.trigger(700, 525);
+    });
+    await waitFor(() => {
+      expect(screen.getByAltText("photo").getAttribute("src")).toBe("cdn://ref/720w.webp");
+    });
   });
 
   it("passes through img props and applies fit", async () => {

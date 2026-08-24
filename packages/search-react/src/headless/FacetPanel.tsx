@@ -72,6 +72,34 @@ export function FacetPanel(props: {
   enabled?: boolean;
   children: (bag: FacetPanelBag) => ReactNode;
 }): ReactNode {
+  return props.children(
+    useFacetPanel({
+      ...(props.categoryFeatures !== undefined
+        ? { categoryFeatures: props.categoryFeatures }
+        : {}),
+      ...(props.locale !== undefined ? { locale: props.locale } : {}),
+      ...(props.enabled !== undefined ? { enabled: props.enabled } : {}),
+    })
+  );
+}
+
+/**
+ * The same bag, as a hook — for a caller that has to know what the panel WILL
+ * render before it renders it.
+ *
+ * The one real caller is `<SearchPage>`: a facet column is a quarter of a
+ * catalogue page, and on a deployment whose plan has no facets at all it was
+ * a quarter of every results page spent on an empty-state illustration
+ * repeating "no filters for this search". Whether to lay out that column is a
+ * LAYOUT decision, and layout is decided by the component that owns the grid
+ * — which therefore has to be able to ask. A render prop cannot answer a
+ * question asked one level up.
+ */
+export function useFacetPanel(props: {
+  categoryFeatures?: readonly FeatureDef[];
+  locale?: string;
+  enabled?: boolean;
+} = {}): FacetPanelBag {
   const { state: searchState, setFilter, setRange, clearAll, toggleFilter, activeFilters } =
     useSearchState();
   const t = useT();
@@ -96,7 +124,7 @@ export function FacetPanel(props: {
     })
   );
 
-  return props.children({
+  return {
     state: groups,
     approximate: meta.approximate,
     skipped: meta.skipped,
@@ -109,5 +137,5 @@ export function FacetPanel(props: {
       setFilter(slug, []);
     },
     clearAll,
-  });
+  };
 }

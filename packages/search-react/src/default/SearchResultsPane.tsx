@@ -81,6 +81,21 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
    * toolbar in here instead of printing a second caption above the pane.
    */
   readonly toolbar?: ReactNode;
+  /**
+   * What this list is CALLED on this surface. Default: "Results".
+   *
+   * The pane owning the heading row is what stops a screen printing two
+   * captions — but "Results" is only the right word when the person performed
+   * a search. A landing's newest-first strip is "Fresh listings"; a seller's
+   * page is "This seller's listings"; a category page's is the category. Every
+   * one of those surfaces had written its own `<Title>` above the pane and got
+   * the pane's "Results" underneath it a moment later — two headings, one
+   * list, on the three busiest screens of the storefront.
+   *
+   * So the name comes IN, to the row that already exists, instead of being
+   * printed a second time above it. Still exactly one heading either way.
+   */
+  readonly heading?: ReactNode;
   /** Rendered under the pager — where the container puts the ranking link. */
   readonly footer?: ReactNode;
   /**
@@ -161,8 +176,12 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
         {(bag) => (
           <Flex vertical gap={16}>
             <Flex justify="space-between" align="center" wrap gap={8}>
-              <Typography.Title level={4} style={{ margin: 0 }}>
-                {t(SEARCH_I18N_KEYS.resultsTitle)}
+              <Typography.Title
+                level={4}
+                style={{ margin: 0 }}
+                data-testid="search-results-heading"
+              >
+                {props.heading ?? t(SEARCH_I18N_KEYS.resultsTitle)}
               </Typography.Title>
               <Flex align="center" wrap gap={12}>
                 <Count bag={bag} />

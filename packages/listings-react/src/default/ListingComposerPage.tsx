@@ -58,6 +58,7 @@ import {
   FeatureFields,
 } from "@stapel/attributes-react/default";
 import { useListingComposer } from "../headless/ListingComposer.js";
+import type { ListingLocation } from "../model/draft.js";
 import type { ListingImagesBag } from "../headless/ListingComposer.js";
 import {
   CATEGORY_FIELD,
@@ -83,6 +84,30 @@ export interface ComposerCategorySlot {
   /** Choose a category. Prunes the answers the new schema does not ask for
    * (one render later, once `features` arrives) and reports upwards. */
   readonly setCategory: (categoryId: string) => void;
+}
+
+/**
+ * What `renderLocationPicker` is handed: the whole location composite and the
+ * one function that changes it.
+ *
+ * The value is the composite and not four scalars on purpose — `lat` without
+ * `lon` is a broken location rather than half a location, and a `geohash` that
+ * disagrees with the pin beside it is worse than none (model/draft.ts). A
+ * picker that resolves a place has all four at once and writes them together.
+ */
+export interface ComposerLocationSlot {
+  /** The location the draft currently carries. */
+  readonly value: ListingLocation;
+  /** Write the whole composite. `geohash` included — this pair will not
+   * compute one, and a resolver that has it should not throw it away. */
+  readonly setLocation: (location: ListingLocation) => void;
+  /**
+   * Persist the draft now. The plain fields save on blur, and a picker has no
+   * blur to speak of: choosing a suggestion IS the commit, so the slot is
+   * handed the same `save` those fields call rather than being left to hope
+   * the next unrelated blur carries its value.
+   */
+  readonly save: () => void;
 }
 
 export interface ListingComposerPageProps extends ThemeModeProp {
@@ -121,6 +146,22 @@ export interface ListingComposerPageProps extends ThemeModeProp {
    * `onCategoryChange` pair). Still rendered, so nothing that passed it breaks.
    */
   readonly categorySlot?: ReactNode;
+  /**
+   * WHERE the thing is, asked the host's way. Omitted, the composer asks for a
+   * label and a raw `lat`/`lon` pair — the only question it can ask on its
+   * own, and one no seller can answer. Filled, it replaces both:
+   *
+   * ```tsx
+   * renderLocationPicker={({ value, setLocation, save }) => (
+   *   <AddressField value={value} onChange={setLocation} onCommit={save} />
+   * )}
+   * ```
+   *
+   * A geocoder is deployment knowledge (stapel-geo's `/geo/api/v1/geocoding/`
+   * proxy, on this fleet), which is why it arrives as a slot rather than as a
+   * dependency of this pair.
+   */
+  readonly renderLocationPicker?: (slot: ComposerLocationSlot) => ReactNode;
   /** The photo grid. Its bag is what `images` carries. */
   readonly gallerySlot?: ReactNode;
   /** `useUploadQueue()`'s bag from `@stapel/cdn-react` — `refs` becomes
@@ -309,65 +350,106 @@ export function ListingComposerPage(
             </Form.Item>
           </Space>
 
-          <Form.Item label={t(LISTINGS_I18N_KEYS.composeLocationLabel)}>
-            <Input
-              value={bag.values.location.locationLabel}
-              aria-label={t(LISTINGS_I18N_KEYS.composeLocationLabel)}
-              data-testid="listings-composer-location"
-              onChange={(event) => {
-                bag.setLocation({
-                  ...bag.values.location,
-                  locationLabel: event.target.value,
-                });
-              }}
-              onBlur={bag.save}
-            />
-          </Form.Item>
+          {/* WHERE, asked once — as a place if the host can resolve places,
+              as coordinates if it cannot.
 
-          {/* Latitude and longitude are ONE value: half a coordinate points
-              nowhere, and the mirror refuses it under `location`. `geohash`
-              is not typed here at all — it comes from whatever resolved the
-              place, because a geohash computed at a precision of our own
-              choosing would bucket the pin somewhere the indexer does not
-              expect (model/draft.ts). */}
-          <Space align="start" wrap>
+              A seller does not know their latitude. Two decimal boxes are a
+              question no advert-poster on any marketplace has ever been asked,
+              and they are the only reason `location` was ever left empty on
+              this fleet. But this pair cannot ask for an ADDRESS either: that
+              needs a geocoder, a geocoder is a deployment's (stapel-geo,
+              Photon, whatever the host runs), and a library that picked one
+              would pick it for every host.
+
+              So the question is a slot. `renderLocationPicker({ value,
+              setLocation })` is the same shape as `renderCategoryPicker`
+              above, and it carries the WHOLE composite — including `geohash`,
+              which only the resolver can fill in and which this pair still
+              refuses to compute (model/draft.ts says why). A host that fills
+              it replaces both the label box and the coordinate pair, because
+              a picker that resolves a place has already answered all four.
+
+              Unfilled, the fields below are exactly what shipped before: the
+              label, and the coordinates behind it. Nothing that worked stops
+              working, and nothing here pretends a geocoder exists. */}
+          {props.renderLocationPicker !== undefined ? (
             <Form.Item
-              label={t(LISTINGS_I18N_KEYS.composeLatLabel)}
-              {...(bag.fieldErrors["location"] ? { validateStatus: "error" as const } : {})}
-            >
-              <Input
-                inputMode="decimal"
-                value={bag.values.location.lat ?? ""}
-                aria-label={t(LISTINGS_I18N_KEYS.composeLatLabel)}
-                data-testid="listings-composer-lat"
-                onChange={(event) => {
-                  bag.setLocation({
-                    ...bag.values.location,
-                    lat: event.target.value.length > 0 ? event.target.value : null,
-                  });
-                }}
-                onBlur={bag.save}
-              />
-            </Form.Item>
-            <Form.Item
-              label={t(LISTINGS_I18N_KEYS.composeLonLabel)}
+              label={t(LISTINGS_I18N_KEYS.composeLocationLabel)}
               {...errorOf("location")}
             >
-              <Input
-                inputMode="decimal"
-                value={bag.values.location.lon ?? ""}
-                aria-label={t(LISTINGS_I18N_KEYS.composeLonLabel)}
-                data-testid="listings-composer-lon"
-                onChange={(event) => {
-                  bag.setLocation({
-                    ...bag.values.location,
-                    lon: event.target.value.length > 0 ? event.target.value : null,
-                  });
-                }}
-                onBlur={bag.save}
-              />
+              <div data-testid="listings-composer-location-slot">
+                {props.renderLocationPicker({
+                  value: bag.values.location,
+                  setLocation: (location) => {
+                    bag.setLocation(location);
+                  },
+                  save: bag.save,
+                })}
+              </div>
             </Form.Item>
-          </Space>
+          ) : (
+            <>
+              <Form.Item label={t(LISTINGS_I18N_KEYS.composeLocationLabel)}>
+                <Input
+                  value={bag.values.location.locationLabel}
+                  aria-label={t(LISTINGS_I18N_KEYS.composeLocationLabel)}
+                  data-testid="listings-composer-location"
+                  onChange={(event) => {
+                    bag.setLocation({
+                      ...bag.values.location,
+                      locationLabel: event.target.value,
+                    });
+                  }}
+                  onBlur={bag.save}
+                />
+              </Form.Item>
+
+              {/* Latitude and longitude are ONE value: half a coordinate points
+                  nowhere, and the mirror refuses it under `location`. `geohash`
+                  is not typed here at all — it comes from whatever resolved the
+                  place, because a geohash computed at a precision of our own
+                  choosing would bucket the pin somewhere the indexer does not
+                  expect (model/draft.ts). */}
+              <Space align="start" wrap>
+                <Form.Item
+                  label={t(LISTINGS_I18N_KEYS.composeLatLabel)}
+                  {...(bag.fieldErrors["location"] ? { validateStatus: "error" as const } : {})}
+                >
+                  <Input
+                    inputMode="decimal"
+                    value={bag.values.location.lat ?? ""}
+                    aria-label={t(LISTINGS_I18N_KEYS.composeLatLabel)}
+                    data-testid="listings-composer-lat"
+                    onChange={(event) => {
+                      bag.setLocation({
+                        ...bag.values.location,
+                        lat: event.target.value.length > 0 ? event.target.value : null,
+                      });
+                    }}
+                    onBlur={bag.save}
+                  />
+                </Form.Item>
+                <Form.Item
+                  label={t(LISTINGS_I18N_KEYS.composeLonLabel)}
+                  {...errorOf("location")}
+                >
+                  <Input
+                    inputMode="decimal"
+                    value={bag.values.location.lon ?? ""}
+                    aria-label={t(LISTINGS_I18N_KEYS.composeLonLabel)}
+                    data-testid="listings-composer-lon"
+                    onChange={(event) => {
+                      bag.setLocation({
+                        ...bag.values.location,
+                        lon: event.target.value.length > 0 ? event.target.value : null,
+                      });
+                    }}
+                    onBlur={bag.save}
+                  />
+                </Form.Item>
+              </Space>
+            </>
+          )}
 
           <Divider />
 

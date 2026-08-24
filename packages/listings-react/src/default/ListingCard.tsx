@@ -87,8 +87,32 @@ export type ListingCardOpenProps =
       readonly linkComponent?: undefined;
     };
 
+/**
+ * How loudly a blocked favourite states its reason on THIS surface.
+ *
+ * `"text"` (the default) is the sentence under the controls, with the sign-in
+ * door beside it — the right volume for a card that stands alone.
+ *
+ * `"line"` collapses it to the reason alone, no door: a grid of forty cards
+ * repeating "sign in to do this — sign in" forty times is not forty pieces of
+ * help, it is the loudest thing on the page, and every one of those doors
+ * leads where the header's own sign-in button already leads.
+ *
+ * `"tooltip"` moves the reason onto the control it is about. Not the pre-0.3.0
+ * defect it resembles: the disabled button still sits inside the `<span>`
+ * wrapper that makes the tooltip reachable by pointer AND by keyboard, so the
+ * reason is readable — it is simply not printed forty times.
+ *
+ * Which one is a decision about the SURFACE, not about whether the reason
+ * matters, and the surface is the container's to make (the same argument as
+ * `<SearchResultsPane degradationNotice>`).
+ */
+export type ListingCardBlockedReason = "text" | "line" | "tooltip";
+
 export interface ListingCardBaseProps extends ThemeModeProp, SignInCtaProp {
   readonly listing: ListingCardData;
+  /** See {@link ListingCardBlockedReason}. Default `"text"`. */
+  readonly blockedReason?: ListingCardBlockedReason;
   /** Extra chrome the container adds (a `promoted` tag from search, say —
    * DSA Art. 26 marking belongs to the pair that receives it). */
   readonly badge?: ReactNode;
@@ -181,6 +205,7 @@ export function ListingCard(props: ListingCardProps): ReactElement {
       : t(LISTINGS_I18N_KEYS.cardPriceAbsent);
 
   const favoriteGate = useActionGate(favorite.gate);
+  const blockedReason = props.blockedReason ?? "text";
 
   const favoriteLabel = t(
     favorite.favorited
@@ -278,14 +303,24 @@ export function ListingCard(props: ListingCardProps): ReactElement {
               button is a reason nobody can read (core's actionGate.ts says so
               in as many words), and a reason with no next action leaves the
               visitor hunting for the header — which is what the storefront
-              had to write a paragraph about instead of shipping the screen. */}
-          {props.showFavorite === false || favoriteGate.reason === undefined ? null : (
+              had to write a paragraph about instead of shipping the screen.
+
+              `blockedReason` is the volume knob, and only the volume: the
+              reason is on the screen under all three settings — printed here,
+              or on the control itself through the tooltip above, which the
+              `<span>` wrapper keeps reachable. See the type's own docstring
+              for why a grid gets a quieter one than a single card. */}
+          {props.showFavorite === false ||
+          favoriteGate.reason === undefined ||
+          blockedReason === "tooltip" ? null : (
             <Typography.Text
               type="secondary"
               data-testid="listings-card-favorite-blocked"
             >
               {favoriteGate.reason}
-              <SignInLink cta={props.signIn} testId="listings-card-sign-in" />
+              {blockedReason === "line" ? null : (
+                <SignInLink cta={props.signIn} testId="listings-card-sign-in" />
+              )}
             </Typography.Text>
           )}
         </Flex>

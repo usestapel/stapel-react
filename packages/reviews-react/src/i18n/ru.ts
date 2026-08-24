@@ -55,7 +55,7 @@ export const reviewsI18nBundleRu: I18nDictionary = {
   "reviews.status.hidden": "Скрыт модерацией",
   "reviews.status.unknown": "Неизвестное состояние: {status}",
 
-  "reviews.rating.none": "Отзывов пока нет",
+  "reviews.rating.none": "Оценок пока нет",
   "reviews.rating.value": "{avg} из {max}",
   "reviews.rating.count": "Отзывов: {count}",
   "reviews.rating.star_label": "{index} из {max}",
