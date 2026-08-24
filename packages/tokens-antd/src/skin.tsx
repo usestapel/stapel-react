@@ -406,10 +406,24 @@ function BottomSheet(props: BottomSheetProps): ReactElement {
   // panel was renamed `content` → `section` in antd 6 and `styles.content` now
   // prints a deprecation warning, so styling it directly would mean either a
   // warning on every sheet (antd 6) or no rounded corners at all (antd 5).
+  // ── Two things this style must NOT do, both learned in a browser ────────
+  //
+  // 1. NOT `height: auto`. antd's rule for the panel INSIDE this wrapper is
+  //    `height: 100%`, and 100% of an auto-height parent is zero. The sheet
+  //    mounted, the accessibility tree had a dialog in it, every jsdom
+  //    assertion passed — and nothing was drawn, because jsdom computes no
+  //    layout and therefore cannot collapse anything. The height stays antd's;
+  //    the BODY scrolls inside it (see `styles.body`).
+  //
+  // 2. NOT a `transition` while the sheet is opening. rc-motion drives the
+  //    open with a transform on this very element and watches for the
+  //    transition to END; overriding the transition property left the panel
+  //    parked in its "prepare" state — translated a full height BELOW the
+  //    viewport — so the mask dimmed and the sheet itself was never seen. The
+  //    drag styles are therefore applied ONLY while a drag is live, and antd
+  //    owns this element the rest of the time.
+  const dragActive = dragging || dragY > 0;
   const wrapperStyle: CSSProperties = {
-    // The sheet is as tall as its content, up to the cap below — a fixed
-    // drawer height leaves a half-empty panel under a three-line confirm.
-    height: "auto",
     // `dvh`, not `vh`: on mobile Safari `vh` is the tallest the viewport ever
     // gets, so a `90vh` sheet is taller than the visible page and its own
     // footer sits under the browser chrome.
@@ -418,8 +432,12 @@ function BottomSheet(props: BottomSheetProps): ReactElement {
     borderTopRightRadius: radius,
     // …so the square-cornered panel inside is actually clipped by them.
     overflow: "hidden",
-    transition: dragging ? "none" : "transform 220ms cubic-bezier(0.2, 0, 0, 1)",
-    ...(dragY > 0 ? { transform: `translateY(${String(dragY)}px)` } : {}),
+    ...(dragActive
+      ? {
+          transform: `translateY(${String(dragY)}px)`,
+          transition: dragging ? "none" : "transform 220ms cubic-bezier(0.2, 0, 0, 1)",
+        }
+      : {}),
   };
 
   return (
@@ -428,10 +446,6 @@ function BottomSheet(props: BottomSheetProps): ReactElement {
       onClose={onClose}
       placement="bottom"
       keyboard={dismissible}
-      // `size`, not `height`: antd 6 deprecated `height` in favour of it and
-      // warns on presence. A non-numeric string passes straight through to the
-      // panel, which is how the sheet gets `height: auto`.
-      size="auto"
       closable={false}
       title={header}
       destroyOnHidden={props.destroyOnHidden}

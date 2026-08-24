@@ -53,6 +53,30 @@
         "file": "demo/ImageUpload.demo.tsx",
         "line": 60
       }
+    },
+    {
+      "id": "cdn.thumbnail-tier",
+      "title": "Thumbnail tier comes from the element",
+      "description": "The same image descriptor at three rendered sizes. Each frame requests the smallest ladder rung that does not upscale for ITS box at the live device pixel ratio — not the smallest rung on the ladder, and not a size derived from the viewport.",
+      "component": "CdnThumbnail",
+      "covers": [],
+      "tokens": [
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Three fixed boxes, three different requests."
+        },
+        {
+          "id": "fluid",
+          "description": "One full-width element: resize the viewer and it upgrades, never downgrades once a tier is painted."
+        }
+      ],
+      "source": {
+        "file": "demo/ThumbnailTier.demo.tsx",
+        "line": 113
+      }
     }
   ]
 }

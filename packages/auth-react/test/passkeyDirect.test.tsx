@@ -89,7 +89,7 @@ function wrap(runtime: AuthRuntime, children: ReactNode): ReactElement {
  * `isWebauthnSupported()` reads. */
 function installCredentials(get: () => Promise<unknown>): { calls: () => number } {
   let calls = 0;
-  vi.stubGlobal("PublicKeyCredential", class {});
+  vi.stubGlobal("PublicKeyCredential", function PublicKeyCredential() {});
   vi.stubGlobal("navigator", {
     ...window.navigator,
     credentials: {

@@ -238,9 +238,18 @@ describe("what makes it a sheet and not a bottom drawer", () => {
     renderSheet(() => undefined);
     const wrapper = document.querySelector(".ant-drawer-content-wrapper") as HTMLElement;
     expect(wrapper.style.maxHeight).toBe("90dvh");
-    expect(wrapper.style.height).toBe("auto");
     expect(wrapper.style.borderTopLeftRadius).not.toBe("");
     expect(wrapper.style.overflow).toBe("hidden");
+    // NOT `height: auto`, and NOT a transition. antd's rule for the panel
+    // inside this wrapper is `height: 100%` (zero inside an auto parent), and
+    // rc-motion drives the open with a transform on this element and waits for
+    // the transition to end. Overriding either one renders a sheet that mounts,
+    // passes every assertion here, and draws nothing in a browser — jsdom
+    // computes no layout, so it can neither collapse a box nor run a
+    // transition, and cannot see this class of defect at all. The assertions
+    // below are therefore about what this component must NOT set.
+    expect(wrapper.style.height).not.toBe("auto");
+    expect(wrapper.style.transition).toBe("");
   });
 
   it("translates the sheet with the finger while the drag is live", () => {
@@ -251,6 +260,7 @@ describe("what makes it a sheet and not a bottom drawer", () => {
     const wrapper = document.querySelector(".ant-drawer-content-wrapper") as HTMLElement;
     expect(wrapper.style.transform).toBe("translateY(40px)");
     // …and no transition while the finger is down, or the panel lags behind it.
+    // (The transition exists ONLY while a drag is live — see the note above.)
     expect(wrapper.style.transition).toBe("none");
   });
 });

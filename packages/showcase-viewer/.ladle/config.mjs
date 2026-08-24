@@ -11,7 +11,17 @@ export default {
     // The theme toggle drives data-theme on <html> (see .ladle/components.tsx),
     // which is how @stapel/tokens switches light/dark (§1.1).
     theme: { enabled: true, defaultState: "light" },
-    width: { enabled: true },
+    // The three widths the fleet actually designs for. `@stapel/tokens`'
+    // breakpoints are phone < 768 <= tablet < 1024 <= desktop, and 390 is the
+    // phone every mobile review starts from — so the viewer offers exactly
+    // those, rather than Ladle's stock 414/640/768/1024, which has no 390 in
+    // it and therefore cannot show the sheet-vs-modal switch at the width a
+    // person actually reports.
+    width: {
+      enabled: true,
+      options: { phone: 390, tablet: 768, desktop: 1280 },
+      defaultState: 0,
+    },
     rtl: { enabled: false },
     source: { enabled: true },
   },

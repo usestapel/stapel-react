@@ -25,6 +25,28 @@
       }
     },
     {
+      "id": "auth.auth-panel-skin",
+      "title": "Sign-in screen (default skin)",
+      "description": "The shipped sign-in surface. Picking an alt method opens the fleet's dialog — a bottom sheet under 768px, a centred modal at or above it. Picking Passkey raises the system prompt immediately and opens nothing of ours unless the ceremony fails.",
+      "component": "AuthPanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Email/phone tabs, a bottom row (QR + passkey), and the overflow menu that opens the shared dialog."
+        },
+        {
+          "id": "register",
+          "description": "The registration surface: only the channels that deanonymize."
+        }
+      ],
+      "source": {
+        "file": "demo/AuthPanelSkin.demo.tsx",
+        "line": 99
+      }
+    },
+    {
       "id": "auth.authenticator-change",
       "title": "Authenticator change (instant)",
       "description": "Headless instant email/phone change: verify the old channel, then confirm the new one — a four-step OTP ladder.",
@@ -135,6 +157,28 @@
       "source": {
         "file": "demo/PasskeyRegistration.demo.tsx",
         "line": 45
+      }
+    },
+    {
+      "id": "auth.passkeys-manager-skin",
+      "title": "Passkeys (default skin)",
+      "description": "Credential-management rows: what the passkey lives in (read from transports), when it was added, when it was last used — or that it never has been — plus remove and add another. Never a sign-in action, and Add is blocked with a printed reason where the browser cannot create passkeys.",
+      "component": "PasskeysManager",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A platform credential never used, and a security key that has been."
+        },
+        {
+          "id": "empty",
+          "description": "No passkeys yet — an empty state, not a failure."
+        }
+      ],
+      "source": {
+        "file": "demo/PasskeysManagerSkin.demo.tsx",
+        "line": 64
       }
     },
     {
