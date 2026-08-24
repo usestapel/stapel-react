@@ -1,0 +1,114 @@
+# @stapel/realtime 0.1.0
+
+The client half of stapel-realtime: ONE reconnect/resume WebSocket runtime for every Stapel pair. Wire envelope v1 ({v,type,stream,payload,seq}) with the two sequences kept apart by name — `envelopeSeq` is the resume cursor, `payloadSeq` is the module's ordering key. Answers the server's heartbeat so 4408 never fires, resumes by hello{last_seq} per stream, dedups the replay/live overlap, multiplexes several streams over one socket, and reads close codes as the fleet canon does: 4403/4404/4410 are refusals (never retried), 4401 in cookie mode is a session that needs refreshing (core's SessionManager seam, then ONE reconnect, then a visible refusal), everything else is exponential backoff with full jitter and no silent give-up. Framework-free at the root; `./react` adds RealtimeProvider/useStream/useRealtimeState.
+
+No backend Django module of its own — this is the SOCKET runtime a pair reaches for instead of writing its own: wire envelope v1, the fleet close-code table, resume by envelope seq, backoff, and the React provider/hooks. A pair that opens a socket depends on this and never re-implements it.
+
+## Exports (call these, never hand-roll the equivalent) — see full
+signatures/JSDoc in the package README and src/index.ts.
+### runtime
+- CLIENT_FRAME_TYPES
+- CLOSE_ABNORMAL
+- CLOSE_CODE_NAMES
+- CLOSE_DATA_HOME_UNAVAILABLE
+- CLOSE_FORBIDDEN
+- CLOSE_HEARTBEAT_TIMEOUT
+- CLOSE_OVERFLOW
+- CLOSE_PROTOCOL_ERROR
+- CLOSE_REVOKED
+- CLOSE_SERVICE_RESTART
+- CLOSE_STREAM_UNKNOWN
+- CLOSE_UNAUTHENTICATED
+- DEFAULT_BASE_DELAY_MS
+- DEFAULT_HEARTBEAT_MS
+- DEFAULT_HEARTBEAT_TIMEOUT_MS
+- DEFAULT_MAX_DELAY_MS
+- ERROR_BAD_ENVELOPE
+- ERROR_BAD_TYPE
+- ERROR_UNAUTHORIZED
+- FRAME_EPHEMERAL
+- FRAME_ERROR
+- FRAME_HELLO
+- FRAME_KICK
+- FRAME_LIVE
+- FRAME_PING
+- FRAME_PONG
+- FRAME_REPLAY
+- FRAME_REPLAY_DONE
+- FRAME_RESYNC
+- FRAME_WELCOME
+- PROTOCOL_FRAME_TYPES
+- SERVER_FRAME_TYPES
+- TERMINAL_CLOSE_CODES
+- WIRE_VERSION
+- backoffDelay
+- bearerSubprotocols
+- browserSocketFactory
+- canOpenWebSocket
+- closeCodeName
+- closeDisposition
+- createRealtimeClient
+- decodeFrame
+- defaultSchedule
+- encodeFrame
+- helloFrame
+- pingFrame
+- pongFrame
+- socketOrigin
+
+### types
+- BackoffOptions
+- Cancel
+- CloseDisposition
+- RealtimeClient
+- RealtimeClientOptions
+- RealtimeConnectionState
+- RealtimeFrame
+- RealtimeRefusal
+- RealtimeSessionSeam
+- RealtimeSocket
+- RealtimeSocketFactory
+- RealtimeSocketHandlers
+- RealtimeState
+- RealtimeStreamState
+- RealtimeStreamStatus
+- RealtimeSubscribeOptions
+- RealtimeSubscription
+- RealtimeUrl
+- Schedule
+
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- realtime.connection-states → <RealtimeProvider> [connecting|live|reconnecting|resync|refused]  demo/Realtime.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
+
+## Snippets
+```tsx
+// One-provider setup (StapelConfigProvider + QueryClientProvider + I18nProvider).
+const client = createStapelClient({ baseUrl, getAccessToken });
+<StapelProvider client={client} queryClient={queryClient} i18n={i18n}>
+  <App />
+</StapelProvider>
+```
+```tsx
+// Error narrowing — never a cast (stapel/no-raw-error-shape).
+if (isStapelApiError(err)) return <Alert>{t(err.code, err.params)}</Alert>;
+```

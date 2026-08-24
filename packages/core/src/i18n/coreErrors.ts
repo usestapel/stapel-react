@@ -126,6 +126,29 @@ const CORE_ERROR_BUNDLES: Readonly<Record<string, I18nDictionary>> = {
     "stapel.http.503": "Сервис временно недоступен. Попробуйте чуть позже.",
     "stapel.http.504": "Сервер слишком долго не отвечал. Попробуйте ещё раз.",
   },
+  es: {
+    "stapel.error.unknown": "Algo salió mal. Inténtalo de nuevo.",
+    "stapel.transport.failed":
+      "No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",
+    [DETAIL_ERROR_KEY]: "HTTP {status}",
+    "stapel.action.blocked.loading": "Todavía se está cargando. Un momento.",
+    "stapel.action.blocked.load_failed":
+      "No pudimos cargar lo que esta acción necesita. Recarga la página para intentarlo de nuevo.",
+    "stapel.http.4xx": "No se pudo completar la solicitud.",
+    "stapel.http.400": "No se pudo completar la solicitud.",
+    "stapel.http.401": "Tu sesión ha caducado. Inicia sesión de nuevo.",
+    "stapel.http.403": "No tienes acceso a esto.",
+    "stapel.http.404": "Esto ya no está disponible.",
+    "stapel.http.408": "El servidor tardó demasiado en responder. Inténtalo de nuevo.",
+    "stapel.http.409": "Esto cambió mientras trabajabas. Recarga la página e inténtalo de nuevo.",
+    "stapel.http.413": "Es demasiado grande para subirlo.",
+    "stapel.http.429": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+    "stapel.http.5xx": "Algo salió mal de nuestro lado. Inténtalo de nuevo en un momento.",
+    "stapel.http.500": "Algo salió mal de nuestro lado. Inténtalo de nuevo en un momento.",
+    "stapel.http.502": "Algo salió mal de nuestro lado. Inténtalo de nuevo en un momento.",
+    "stapel.http.503": "El servicio no está disponible temporalmente. Inténtalo de nuevo en breve.",
+    "stapel.http.504": "El servidor tardó demasiado en responder. Inténtalo de nuevo.",
+  },
 };
 
 /** Locales core ships its own error floor in. */

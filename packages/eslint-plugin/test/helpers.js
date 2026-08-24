@@ -100,3 +100,21 @@ export const EVENT_SETTINGS = {
     ],
   },
 };
+
+// The dimension scales, matching theme.default.json's `scales` shape, so
+// no-raw-dimensions tests do not depend on filesystem discovery and the
+// autofix asserts against known numbers.
+export const SCALE_SETTINGS = {
+  stapel: {
+    scales: {
+      spacing: { 0: 0, 1: 4, 2: 8, 3: 12, 4: 16, 5: 24, 6: 32, 7: 48, 8: 64 },
+      radii: { none: 0, sm: 4, md: 8, lg: 12, xl: 20, full: 9999 },
+      fontSize: {
+        xs: { fontSize: 12, lineHeight: 16 },
+        sm: { fontSize: 14, lineHeight: 20 },
+        md: { fontSize: 16, lineHeight: 24 },
+        "2xl": { fontSize: 28, lineHeight: 36 },
+      },
+    },
+  },
+};

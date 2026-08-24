@@ -28,6 +28,15 @@ import noFlattenedLoadState from "./rules/no-flattened-load-state.js";
 import noCyrillicSource from "./rules/no-cyrillic-source.js";
 import noMixedScriptWord from "./rules/no-mixed-script-word.js";
 import noBareDialog from "./rules/no-bare-dialog.js";
+import noTooltipInSkin from "./rules/no-tooltip-in-skin.js";
+import iconButtonNeedsLabel from "./rules/icon-button-needs-label.js";
+import noHardcodedThemeMode from "./rules/no-hardcoded-theme-mode.js";
+import noLocalSkinTheme from "./rules/no-local-skin-theme.js";
+import noRawDimensions from "./rules/no-raw-dimensions.js";
+import i18nLocaleParity from "./rules/i18n-locale-parity.js";
+import noAdhocSocket from "./rules/no-adhoc-socket.js";
+import noSilentSlot from "./rules/no-silent-slot.js";
+import noBooleanDisabled from "./rules/no-boolean-disabled.js";
 
 const rules = {
   "no-raw-colors": noRawColors,
@@ -73,6 +82,22 @@ const rules = {
   // (@stapel/tokens-antd/skin's SkinDialog); this keeps the twelfth dialog
   // from being hand-rolled the old way.
   "no-bare-dialog": noBareDialog,
+  // ── The doctrine tier (0.11.0) ──────────────────────────────────────────
+  // Ten rules that state, mechanically, the design rulings the fleet keeps
+  // re-taking by hand: no hover-only explanations, an accessible name on an
+  // icon-only control, one theme owner, one dimension scale, locale parity,
+  // one socket client, no silent slots, no reasonless disabled control.
+  // They ship at `warn` in `recommended` this release and at `error` in the
+  // new `strict` config — see the wiring note below.
+  "no-tooltip-in-skin": noTooltipInSkin,
+  "icon-button-needs-label": iconButtonNeedsLabel,
+  "no-hardcoded-theme-mode": noHardcodedThemeMode,
+  "no-local-skin-theme": noLocalSkinTheme,
+  "no-raw-dimensions": noRawDimensions,
+  "i18n-locale-parity": i18nLocaleParity,
+  "no-adhoc-socket": noAdhocSocket,
+  "no-silent-slot": noSilentSlot,
+  "no-boolean-disabled": noBooleanDisabled,
 };
 
 // Read from package.json rather than typed: this is the version ESLint prints
@@ -213,6 +238,53 @@ const LOAD_STATE_ALLOWED = [
   "**/bin/**",
 ];
 
+// ── The doctrine tier (0.11.0) ───────────────────────────────────────────────
+//
+// These ten rules state design rulings, and design rulings arrive before the
+// code that satisfies them: on the day they shipped, nineteen pairs were in
+// violation of most of them. A rule that turns a whole fleet red on the day it
+// lands does not get adopted — it gets deleted, or blanket-disabled, which is
+// worse because the disable outlives the migration.
+//
+// So there are two tiers, and they say different things:
+//
+//   `recommended` — these rules at WARN. A warning is a WORKLIST: `eslint .`
+//     stays green, every pair keeps shipping, and `pnpm turbo run lint` prints
+//     exactly what wave B has to fix, per package, per rule.
+//   `strict` — everything `recommended` has, with the doctrine tier at ERROR
+//     (and no-bare-dialog covering the confirm surface too). A pair that has
+//     finished its migration opts in and cannot regress.
+//
+// THE SWITCH (one line, marked): when wave B has landed the migrations, change
+// `DOCTRINE_LEVEL` below from "warn" to "error" and delete `confirmComponents:
+// []` from the no-bare-dialog block. That is the whole flip; the coordinator
+// owns it.
+const DOCTRINE_LEVEL = "warn"; // ← WAVE-B SWITCH: flip to "error" after the migration wave.
+
+/** Doctrine rules that apply to every source file (.ts included). */
+const DOCTRINE_TS = [
+  // The skins' theme has ONE owner: the document, read reactively.
+  "no-hardcoded-theme-mode",
+  "no-local-skin-theme",
+  // The px twin of no-raw-colors — autofixable on an exact scale hit.
+  "no-raw-dimensions",
+  // Locale parity, anchored on each pair's src/i18n/keys.ts (zero wiring).
+  "i18n-locale-parity",
+  // One socket client for the fleet (the TS half of core's RT001-RT003).
+  "no-adhoc-socket",
+];
+
+/** Doctrine rules that only mean anything in JSX. */
+const DOCTRINE_JSX = [
+  "no-tooltip-in-skin",
+  "icon-button-needs-label",
+  "no-silent-slot",
+  "no-boolean-disabled",
+];
+
+const doctrineRules = (names, level) =>
+  Object.fromEntries(names.map((name) => [`stapel/${name}`, level]));
+
 /**
  * Flat-config `recommended` preset. Consumers spread it AFTER their parser
  * config:
@@ -280,7 +352,15 @@ const recommended = [
     rules: {
       "stapel/no-bare-dialog": [
         "error",
-        { allowNavigationDrawer: ["AppShell.tsx", "PublicShell.tsx"] },
+        {
+          allowNavigationDrawer: ["AppShell.tsx", "PublicShell.tsx"],
+          // ← WAVE-B SWITCH: delete this line once the nine Popconfirm sites
+          // are on SkinConfirm. Until then the confirm surface is covered at
+          // ERROR only in `strict`, because turning it on here would fail the
+          // lint of five packages that are mid-migration — and a preset that
+          // fails on arrival is a preset that gets pinned to the old version.
+          confirmComponents: [],
+        },
       ],
     },
   },
@@ -291,6 +371,15 @@ const recommended = [
       // Clickable-without-an-outcome is a JSX concern (§3.2).
       "stapel/clickable-needs-event": "error",
     },
+  },
+  {
+    // The doctrine tier, at WARN — a worklist, not a wall (see DOCTRINE_LEVEL).
+    files: TS_JS,
+    rules: doctrineRules(DOCTRINE_TS, DOCTRINE_LEVEL),
+  },
+  {
+    files: JSX,
+    rules: doctrineRules(DOCTRINE_JSX, DOCTRINE_LEVEL),
   },
   {
     files: RAW_ALLOWED,
@@ -372,6 +461,14 @@ const recommended = [
       // Route fixtures legitimately probe reserved-path collisions on purpose
       // (that's what this rule's own tests do).
       "stapel/no-reserved-backend-route": "off",
+      // The doctrine tier is off in tests for the SAME reason the content
+      // rules are: a fixture's job is to BE the forbidden shape — a socket
+      // test constructs a socket, a skin test renders an unlabelled button
+      // and a hardcoded padding on purpose. (`no-adhoc-socket` also carves
+      // test paths out inside the rule, so a consumer who never spreads this
+      // block still gets the right answer.) The script canon stays absent
+      // from this list, as above.
+      ...doctrineRules([...DOCTRINE_TS, ...DOCTRINE_JSX], "off"),
       // require-disable-description stays ON — disable hygiene applies everywhere.
       //
       // no-cyrillic-source / no-mixed-script-word are DELIBERATELY ABSENT
@@ -394,7 +491,44 @@ const recommended = [
   },
 ];
 
-plugin.configs = { recommended };
+/**
+ * Flat-config `strict` preset — `recommended` with the doctrine tier at ERROR
+ * and the confirm surface covered. Spread INSTEAD of `recommended`:
+ *
+ *   export default [ ...tseslint.configs.strict, ...stapel.configs.strict ];
+ *
+ * A package opts in when its migrations have landed; after that a regression
+ * fails its own `pnpm lint` instead of adding a line to somebody's worklist.
+ * Built by APPENDING to `recommended` rather than by rebuilding it, so the two
+ * presets can never disagree about a carve-out — the failure mode that made
+ * the 0.7.0 test-glob hole invisible.
+ */
+const strict = [
+  ...recommended,
+  {
+    files: TS_JS,
+    rules: doctrineRules(DOCTRINE_TS, "error"),
+  },
+  {
+    files: JSX,
+    rules: {
+      ...doctrineRules(DOCTRINE_JSX, "error"),
+      // The full dialog surface: Modal, Drawer AND Popconfirm.
+      "stapel/no-bare-dialog": [
+        "error",
+        { allowNavigationDrawer: ["AppShell.tsx", "PublicShell.tsx"] },
+      ],
+    },
+  },
+  {
+    // Re-assert the fixture carve-outs, which the two blocks above would
+    // otherwise have switched back on for test files.
+    files: TEST_FILES,
+    rules: doctrineRules([...DOCTRINE_TS, ...DOCTRINE_JSX], "off"),
+  },
+];
+
+plugin.configs = { recommended, strict };
 
 export default plugin;
-export { rules, recommended };
+export { rules, recommended, strict };

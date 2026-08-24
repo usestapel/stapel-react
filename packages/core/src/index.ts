@@ -123,6 +123,7 @@ export {
   pluralCategory,
   I18nProvider,
   useI18n,
+  useOptionalI18n,
   useT,
   useTPlural,
 } from "./i18n.js";
@@ -220,7 +221,8 @@ export type {
   ModuleContextKit,
 } from "./module.js";
 
-// breakpoints
+// breakpoints — read synchronously (useSyncExternalStore), so the first client
+// render carries the real viewport; `undefined` only on the server.
 export { useBreakpoint } from "./useBreakpoint.js";
 export type { Breakpoint } from "@stapel/tokens";
 
@@ -304,6 +306,20 @@ export {
   coreErrorBundle,
   coreErrorKeyCandidates,
 } from "./i18n/coreErrors.js";
+
+// UI floor (i18n/coreUi.ts): the substrate's own copy — retry, dismiss,
+// confirm, cancel, the empty-state default — under `stapel.ui.*`, seeded by
+// `createI18n` in en/ru/es so `@stapel/tokens-antd/skin` renders a real
+// sentence with zero host wiring. A skin reads the keys off `STAPEL_UI_KEYS`;
+// a host overrides one by registering the same key later.
+export { STAPEL_UI_KEYS, CORE_UI_LOCALES, coreUiBundle } from "./i18n/coreUi.js";
+
+// slot placeholder (slotPlaceholder.tsx): an unfilled render slot is a visible,
+// named box in development and nothing in production — never silent nothing.
+// Design-system-free on purpose (tokens custom properties only), so the
+// headless layer that declares a slot can also stand in for it.
+export { SlotPlaceholder, isDevBuild } from "./slotPlaceholder.js";
+export type { SlotPlaceholderProps } from "./slotPlaceholder.js";
 
 // NOTE: @stapel/core no longer exports a generated `paths`/`components`/
 // `operations` surface. Under the §17 per-module contract pipeline every

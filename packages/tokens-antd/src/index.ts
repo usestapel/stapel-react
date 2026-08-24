@@ -22,6 +22,10 @@
  * For a config that also flips antd's derived neutrals (borders/hovers/fills)
  * to the dark palette — not just the seed tokens — use `toAntdThemeConfig(mode)`
  * and spread it directly: `<ConfigProvider theme={toAntdThemeConfig(mode)}>`.
+ *
+ * A default skin does neither by hand: it wraps itself in `SkinTheme` from
+ * the `/skin` subpath, which applies this config for the document's LIVE mode
+ * (`useThemeMode()`, reactive) and paints its own surface.
  */
 import { theme as antdTheme } from "antd";
 import type { ThemeConfig } from "antd";
@@ -45,7 +49,7 @@ export type ThemeMode = "light" | "dark";
  * `gen/lib.mjs#renderCss`). It is the ONE switch a host flips to change
  * theme, so it is also the ONE signal this bridge reads.
  */
-const THEME_ATTRIBUTE = "data-theme";
+export const THEME_ATTRIBUTE: string = "data-theme";
 
 /**
  * Which mode the host's document is ACTUALLY in, read from the same

@@ -405,6 +405,64 @@ export function loadReservedPathCatalog(settings = {}) {
   return _reservedPathCatalogDefault;
 }
 
+// ── dimension scales (spacing / radii / type steps) ─────────────────────────
+//
+// `no-raw-dimensions` needs the NUMBERS behind the scale, not just the token
+// names — its autofix rewrites `padding: 16` to `spacing[4]`, which is only
+// sound if 4 really is 16 in the live theme. manifest.json carries the colour
+// role dictionary and nothing else, so the source here is the theme JSON that
+// generates `src/generated/tokens.ts` in the first place: same file, same
+// numbers, no third copy of the scale living in a lint rule (§2.1).
+function loadThemeScales(settings) {
+  if (settings.scales) return settings.scales;
+  if (settings.themeFile) return readJson(settings.themeFile)?.scales ?? null;
+  try {
+    return require("@stapel/tokens/theme.default.json").scales ?? null;
+  } catch {
+    /* fall through to workspace discovery */
+  }
+  const root = workspaceRoot(HERE);
+  if (root) {
+    const theme = readJson(join(root, "packages", "tokens", "theme.default.json"));
+    if (theme?.scales) return theme.scales;
+  }
+  return null;
+}
+
+function buildScaleCatalog(scales) {
+  // number → step name, for the three scales a dimension can come from.
+  const spacing = new Map();
+  for (const [step, value] of Object.entries(scales?.spacing ?? {})) {
+    if (typeof value === "number" && !spacing.has(value)) spacing.set(value, step);
+  }
+  const radii = new Map();
+  for (const [name, value] of Object.entries(scales?.radii ?? {})) {
+    if (typeof value === "number" && !radii.has(value)) radii.set(value, name);
+  }
+  const fontSize = new Map();
+  for (const [name, step] of Object.entries(scales?.fontSize ?? {})) {
+    const value = step?.fontSize;
+    if (typeof value === "number" && !fontSize.has(value)) fontSize.set(value, name);
+  }
+  return {
+    spacing,
+    radii,
+    fontSize,
+    loaded: spacing.size > 0 || radii.size > 0 || fontSize.size > 0,
+  };
+}
+
+let _scaleCatalogDefault;
+export function loadScaleCatalog(settings = {}) {
+  if (settings.scales || settings.themeFile) {
+    return buildScaleCatalog(loadThemeScales(settings));
+  }
+  if (!_scaleCatalogDefault) {
+    _scaleCatalogDefault = buildScaleCatalog(loadThemeScales(settings));
+  }
+  return _scaleCatalogDefault;
+}
+
 /** Read `context.settings.stapel` (flat config) with a stable empty default. */
 export function stapelSettings(context) {
   return (context.settings && context.settings.stapel) || {};
@@ -417,6 +475,7 @@ export function __resetCaches() {
   _eventsCatalogDefault = undefined;
   _operationCatalogDefault = undefined;
   _reservedPathCatalogDefault = undefined;
+  _scaleCatalogDefault = undefined;
 }
 
 export { resolve as _resolve };

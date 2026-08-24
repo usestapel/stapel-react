@@ -26,12 +26,40 @@ The Stapel frontend runtime (L0, frontend-standard §1). Everything the
   `I18nProvider` / `useT` / `useI18n`, static bundles + async locale loader
   seam (point it at `translate.resolve` of stapel-translate), missing keys
   fall back to the key itself.
-- **`useBreakpoint()`** — resolves the three `@stapel/tokens` breakpoints;
-  SSR-safe (`undefined` until mounted).
+- **`useBreakpoint()`** — resolves the three `@stapel/tokens` breakpoints,
+  synchronously on the first client render (`useSyncExternalStore`); `undefined`
+  only on the server.
+- **UI floor** — `STAPEL_UI_KEYS` (`stapel.ui.*`: retry, dismiss, confirm,
+  cancel, loading, empty-state title, unfilled slot) seeded in en/ru/es like the
+  error floor, so the shared skin substrate (`@stapel/tokens-antd/skin`) is
+  translated with zero host wiring; override any key by registering it later.
+- **`SlotPlaceholder`** — an unfilled render slot is a visible, named box in
+  development and nothing in production (see below).
 - **Analytics seam** — the `Analytics` type + context plumbing; the facade
   implementation lives in `@stapel/analytics` (see below).
 - **Host seams** (`LinkComponent`, `SignInCta`) — the two things a skin needs
   from its container and a library must not choose for it (see below).
+
+## Slots: an unfilled slot is never silent
+
+A pair's screen takes render slots from its container (`renderCategoryPicker`,
+a header extra). When the host forgets one, `null` is the defect: the screen
+mounts without the control and nobody learns until a person cannot submit.
+Render the placeholder instead:
+
+```tsx
+import { SlotPlaceholder } from "@stapel/core";
+
+{props.renderCategoryPicker !== undefined
+  ? props.renderCategoryPicker(slot)
+  : <SlotPlaceholder name="renderCategoryPicker" />}
+```
+
+In a development build it is a dashed, muted box naming the slot (stamped
+`data-stapel-slot`); in production it renders nothing. It paints with
+`@stapel/tokens` custom properties only, so it works under any design system —
+which is why it lives here and not in the antd skin. `visibility="visible"`
+pins it on for a production-built showcase; `isDevBuild()` is the switch.
 
 ## Host seams: the router and the sign-in door
 

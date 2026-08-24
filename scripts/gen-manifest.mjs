@@ -357,23 +357,24 @@ function renderLlms(m, factories, eventsJson, demosJson) {
  * Hooks/events/demos sections are shared verbatim with the pair renderer —
  * one rendering library, not a forked one, even though the narrative differs.
  */
+// What a backend-less package IS, for the llms.txt a harness reads instead of the
+// source. The default describes @stapel/core; every other runtime package passes
+// its own sentence through MANIFEST_RUNTIME_BLURB (root package.json).
+const RUNTIME_BLURB =
+  process.env.MANIFEST_RUNTIME_BLURB ||
+  "No backend Django module of its own — this is the frontend RUNTIME every " +
+    "@stapel/<module>-react pair is built on top of: client + error envelope, " +
+    "session/refresh seam, TanStack Query layer, i18n engine, analytics seam, " +
+    "flow-machine primitive, encrypted repositories. A pair depends on this " +
+    "and never re-implements what is exported here.";
+
 function renderLlmsGeneric(m, factories, eventsJson, demosJson) {
   const L = [];
   L.push(`# ${m.package} ${m.version}`);
   L.push("");
   L.push(m.description || `${m.package} — no provides one-liner in package.json yet.`);
   L.push("");
-  L.push(
-    "No backend Django module of its own — this is the frontend RUNTIME every "
-  );
-  L.push(
-    "@stapel/<module>-react pair is built on top of: client + error envelope, "
-  );
-  L.push(
-    "session/refresh seam, TanStack Query layer, i18n engine, analytics seam, "
-  );
-  L.push("flow-machine primitive, encrypted repositories. A pair depends on this");
-  L.push("and never re-implements what is exported here.");
+  L.push(RUNTIME_BLURB);
   L.push("");
   if (factories.length > 0) {
     L.push("## Factories (createFlowMachine-style; analytics funnel flow.<id>.<step>)");

@@ -1,493 +1,1042 @@
 {
- "$note": "HAND-AUTHORED (typed to the stapel-docs endpoint table) — stapel-docs does not emit its contract artifacts (docs/schema.json / flows.json / errors.json) yet, so this pair is NOT enrolled in the root gen:* drivers and this file is not drift-gated. FOLLOW-UP: once the backend commits its contract, enroll the pair in package.json gen:api/gen:errors/gen:events/gen:manifest env-lists and let scripts/gen-manifest.mjs own this file.",
- "package": "@stapel/docs-react",
- "version": "0.2.0",
- "backend": {
-  "module": "stapel-docs",
-  "contract": ">=0.1 <0.2"
- },
- "layers": [
-  "api",
-  "model",
-  "flows",
-  "headless",
-  "i18n"
- ],
- "flows": {},
- "machines": [],
- "operations": {
-  "docs_api_v1_folders_list": {
-   "method": "GET",
-   "path": "/docs/api/v1/folders",
-   "tag": "Folders",
-   "request": null,
-   "response": "DocFolder[]"
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/docs-react",
+  "version": "0.3.2",
+  "backend": {
+    "module": "stapel-docs",
+    "contract": ">=0.3 <0.4"
   },
-  "docs_api_v1_folders_create": {
-   "method": "POST",
-   "path": "/docs/api/v1/folders",
-   "tag": "Folders",
-   "request": "CreateFolderRequest",
-   "response": "DocFolder"
-  },
-  "docs_api_v1_folders_retrieve": {
-   "method": "GET",
-   "path": "/docs/api/v1/folders/{folder_id}",
-   "tag": "Folders",
-   "request": null,
-   "response": "DocFolder"
-  },
-  "docs_api_v1_folders_partial_update": {
-   "method": "PATCH",
-   "path": "/docs/api/v1/folders/{folder_id}",
-   "tag": "Folders",
-   "request": "PatchFolderRequest",
-   "response": "DocFolder"
-  },
-  "docs_api_v1_folders_destroy": {
-   "method": "DELETE",
-   "path": "/docs/api/v1/folders/{folder_id}",
-   "tag": "Folders",
-   "request": null,
-   "response": null
-  },
-  "docs_api_v1_folders_restore_create": {
-   "method": "POST",
-   "path": "/docs/api/v1/folders/{folder_id}/restore",
-   "tag": "Folders",
-   "request": null,
-   "response": "DocFolder"
-  },
-  "docs_api_v1_documents_list": {
-   "method": "GET",
-   "path": "/docs/api/v1/documents",
-   "tag": "Documents",
-   "request": null,
-   "response": "DocDocument[]"
-  },
-  "docs_api_v1_documents_create": {
-   "method": "POST",
-   "path": "/docs/api/v1/documents",
-   "tag": "Documents",
-   "request": "CreateDocumentRequest",
-   "response": "DocDocument"
-  },
-  "docs_api_v1_documents_retrieve": {
-   "method": "GET",
-   "path": "/docs/api/v1/documents/{document_id}",
-   "tag": "Documents",
-   "request": null,
-   "response": "DocDocument"
-  },
-  "docs_api_v1_documents_partial_update": {
-   "method": "PATCH",
-   "path": "/docs/api/v1/documents/{document_id}",
-   "tag": "Documents",
-   "request": "PatchDocumentRequest",
-   "response": "DocDocument"
-  },
-  "docs_api_v1_documents_destroy": {
-   "method": "DELETE",
-   "path": "/docs/api/v1/documents/{document_id}",
-   "tag": "Documents",
-   "request": null,
-   "response": null
-  },
-  "docs_api_v1_documents_restore_create": {
-   "method": "POST",
-   "path": "/docs/api/v1/documents/{document_id}/restore",
-   "tag": "Documents",
-   "request": null,
-   "response": "DocDocument"
-  },
-  "docs_api_v1_documents_content_retrieve": {
-   "method": "GET",
-   "path": "/docs/api/v1/documents/{document_id}/content",
-   "tag": "Content",
-   "request": null,
-   "response": "raw bytes + X-Docs-Head-Seq/ETag headers"
-  },
-  "docs_api_v1_documents_content_update": {
-   "method": "PUT",
-   "path": "/docs/api/v1/documents/{document_id}/content",
-   "tag": "Content",
-   "request": "raw body + If-Match: <head_seq>",
-   "response": "SaveContentOk | 409 conflict body | 412"
-  },
-  "docs_api_v1_documents_download_retrieve": {
-   "method": "GET",
-   "path": "/docs/api/v1/documents/{document_id}/download",
-   "tag": "Content",
-   "request": null,
-   "response": "DownloadUrl"
-  },
-  "docs_api_v1_documents_export_retrieve": {
-   "method": "GET",
-   "path": "/docs/api/v1/documents/{document_id}/export",
-   "tag": "Content",
-   "request": null,
-   "response": "binary"
-  },
-  "docs_api_v1_documents_updates_list": {
-   "method": "GET",
-   "path": "/docs/api/v1/documents/{document_id}/updates",
-   "tag": "Updates",
-   "request": null,
-   "response": "DocUpdatesResponse"
-  },
-  "docs_api_v1_documents_updates_create": {
-   "method": "POST",
-   "path": "/docs/api/v1/documents/{document_id}/updates",
-   "tag": "Updates",
-   "request": "PostUpdateRequest",
-   "response": null
-  },
-  "docs_api_v1_documents_revisions_list": {
-   "method": "GET",
-   "path": "/docs/api/v1/documents/{document_id}/revisions",
-   "tag": "Revisions",
-   "request": null,
-   "response": "DocRevision[]"
-  },
-  "docs_api_v1_documents_revisions_create": {
-   "method": "POST",
-   "path": "/docs/api/v1/documents/{document_id}/revisions",
-   "tag": "Revisions",
-   "request": "CreateRevisionRequest",
-   "response": "DocRevision"
-  },
-  "docs_api_v1_documents_revisions_content_retrieve": {
-   "method": "GET",
-   "path": "/docs/api/v1/documents/{document_id}/revisions/{revision_id}/content",
-   "tag": "Revisions",
-   "request": null,
-   "response": "raw bytes"
-  },
-  "docs_api_v1_documents_revisions_download_retrieve": {
-   "method": "GET",
-   "path": "/docs/api/v1/documents/{document_id}/revisions/{revision_id}/download",
-   "tag": "Revisions",
-   "request": null,
-   "response": "DownloadUrl"
-  },
-  "docs_api_v1_documents_revisions_restore_create": {
-   "method": "POST",
-   "path": "/docs/api/v1/documents/{document_id}/revisions/{revision_id}/restore",
-   "tag": "Revisions",
-   "request": null,
-   "response": "DocDocument"
-  },
-  "docs_api_v1_trash_list": {
-   "method": "GET",
-   "path": "/docs/api/v1/trash",
-   "tag": "Trash",
-   "request": null,
-   "response": "TrashListing"
-  },
-  "docs_api_v1_trash_empty_create": {
-   "method": "POST",
-   "path": "/docs/api/v1/trash/empty",
-   "tag": "Trash",
-   "request": "EmptyTrashRequest",
-   "response": null
-  },
-  "docs_api_v1_uploads_create": {
-   "method": "POST",
-   "path": "/docs/api/v1/uploads",
-   "tag": "Uploads",
-   "request": "CreateUploadRequest",
-   "response": "CreateUploadResponse"
-  },
-  "docs_api_v1_uploads_finalize_create": {
-   "method": "POST",
-   "path": "/docs/api/v1/uploads/{upload_id}/finalize",
-   "tag": "Uploads",
-   "request": null,
-   "response": "DocDocument"
-  }
- },
- "hooks": {
-  "useFolders": {
-   "kind": "query",
-   "operation": "listFolders",
-   "queryKey": [
-    "docs",
-    "folders",
-    "{workspaceId}"
-   ]
-  },
-  "useFolderTree": {
-   "kind": "query",
-   "operation": "listFolders",
-   "queryKey": [
-    "docs",
-    "folders",
-    "{workspaceId}"
-   ]
-  },
-  "useDocuments": {
-   "kind": "query",
-   "operation": "listDocuments",
-   "queryKey": [
-    "docs",
-    "documents",
-    "{params}"
-   ]
-  },
-  "useDocument": {
-   "kind": "query",
-   "operation": "getDocument",
-   "queryKey": [
-    "docs",
-    "document",
-    "{documentId}"
-   ]
-  },
-  "useDocumentContent": {
-   "kind": "query",
-   "operation": "getContent",
-   "queryKey": [
-    "docs",
-    "content",
-    "{documentId}"
-   ]
-  },
-  "useRevisions": {
-   "kind": "query",
-   "operation": "listRevisions",
-   "queryKey": [
-    "docs",
-    "revisions",
-    "{documentId}"
-   ]
-  },
-  "useTrash": {
-   "kind": "query",
-   "operation": "listTrash",
-   "queryKey": [
-    "docs",
-    "trash",
-    "{workspaceId}"
-   ]
-  },
-  "useDownloadUrl": {
-   "kind": "query",
-   "operation": "getDownloadUrl",
-   "queryKey": [
-    "docs",
-    "downloadUrl",
-    "{documentId}"
-   ]
-  },
-  "useSaveContent": {
-   "kind": "mutation",
-   "operation": "putContent",
-   "invalidates": [
-    [
-     "docs"
-    ]
-   ]
-  },
-  "useCreateRevision": {
-   "kind": "mutation",
-   "operation": "createRevision",
-   "invalidates": [
-    [
-     "docs"
-    ]
-   ]
-  },
-  "useRestoreRevision": {
-   "kind": "mutation",
-   "operation": "restoreRevision",
-   "invalidates": [
-    [
-     "docs"
-    ]
-   ]
-  },
-  "useTrashActions": {
-   "kind": "mutation",
-   "operation": "restoreDocument|restoreFolder|emptyTrash",
-   "invalidates": [
-    [
-     "docs"
-    ]
-   ]
-  },
-  "useUpload": {
-   "kind": "mutation",
-   "operation": "createUpload+uploadToPutUrl+finalizeUpload | createUpload+putContent",
-   "invalidates": [
-    [
-     "docs"
-    ]
-   ]
-  },
-  "useExportUrl": {
-   "kind": "mutation",
-   "operation": "getDownloadUrl",
-   "invalidates": []
-  }
- },
- "errors": {},
- "events": {
-  "defined": [],
-  "flows": []
- },
- "demos": [],
- "i18nKeys": [
-  "docs.editor.conflict",
-  "docs.editor.downloadOnly",
-  "docs.editor.loading",
-  "docs.editor.override",
-  "docs.editor.save",
-  "docs.editor.saved",
-  "docs.editor.saving",
-  "docs.error.unknown",
-  "docs.list.empty",
-  "docs.list.error",
-  "docs.list.loading",
-  "docs.list.retry",
-  "docs.media.download",
-  "docs.revisions.create",
-  "docs.revisions.empty",
-  "docs.revisions.loading",
-  "docs.revisions.restore",
-  "docs.revisions.restoring",
-  "docs.trash.emptyAction",
-  "docs.trash.emptyState",
-  "docs.trash.emptying",
-  "docs.trash.restore",
-  "docs.tree.error",
-  "docs.tree.loading",
-  "docs.tree.root",
-  "docs.upload.action",
-  "docs.upload.done",
-  "docs.upload.failed",
-  "docs.upload.uploading"
- ],
- "exports": {
-  "runtime": [
-   "Breadcrumbs",
-   "CsvEditor",
-   "DOCS_ERRORS",
-   "DOCS_ERROR_CODES",
-   "DOCS_FLOWS",
-   "DOCS_HEAD_SEQ_HEADER",
-   "DOCS_I18N_KEYS",
-   "DocEditor",
-   "DocUploader",
-   "DocsProvider",
-   "DocsRuntimeContext",
-   "DocumentList",
-   "FolderTree",
-   "MarkdownEditor",
-   "MediaViewer",
-   "RevisionHistory",
-   "TextEditor",
-   "TrashBin",
-   "buildFolderTree",
-   "createDocsApi",
-   "createDocsRuntime",
-   "createFlowMachine",
-   "docsErrorBundleEn",
-   "docsI18nBundleEn",
-   "docsQueryKeys",
-   "explainDocsError",
-   "exportDocument",
-   "flowEndpoints",
-   "folderTrail",
-   "getDocumentContent",
-   "getRevisionContent",
-   "isErrorCode",
-   "parseCsv",
-   "putDocumentContent",
-   "registerDocEditor",
-   "registerDocsI18n",
-   "registeredDocEditorHints",
-   "resolveDocEditor",
-   "serializeCsv",
-   "toFlowError",
-   "unregisterDocEditor",
-   "uploadToPutUrl",
-   "useCreateRevision",
-   "useDocsAnalytics",
-   "useDocsApi",
-   "useDocsRuntime",
-   "useDocument",
-   "useDocumentContent",
-   "useDocuments",
-   "useDownloadUrl",
-   "useExportUrl",
-   "useFlow",
-   "useFolderTree",
-   "useFolders",
-   "useRestoreRevision",
-   "useRevisions",
-   "useSaveContent",
-   "useTrash",
-   "useTrashActions",
-   "useUpload"
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
   ],
-  "types": [
-   "BreadcrumbsBag",
-   "CreateDocsRuntimeOptions",
-   "CreateDocumentRequest",
-   "CreateFolderRequest",
-   "CreateRevisionRequest",
-   "CreateRevisionVariables",
-   "CreateUploadRequest",
-   "CreateUploadResponse",
-   "DocDocument",
-   "DocEditorAdapterProps",
-   "DocEditorBag",
-   "DocEditorComponent",
-   "DocFolder",
-   "DocRevision",
-   "DocUpdate",
-   "DocUpdatesResponse",
-   "DocsApi",
-   "DocsApiOptions",
-   "DocsErrorCode",
-   "DocsErrorSpec",
-   "DocsFlowId",
-   "DocsFlowSpec",
-   "DocsI18nKey",
-   "DocsRawTransport",
-   "DocsRuntime",
-   "DocumentContent",
-   "DocumentListBag",
-   "DocumentListParams",
-   "DocumentText",
-   "DownloadUrl",
-   "EmptyTrashRequest",
-   "ExportUrlVariables",
-   "FlowEndpoint",
-   "FlowError",
-   "FlowMachine",
-   "FlowMachineOptions",
-   "FlowStateBase",
-   "FolderTreeBag",
-   "FolderTreeNode",
-   "MediaKind",
-   "MediaViewerBag",
-   "PatchDocumentRequest",
-   "PatchFolderRequest",
-   "PostUpdateRequest",
-   "PutContentOptions",
-   "Remediation",
-   "RestoreRevisionVariables",
-   "RevisionHistoryBag",
-   "SaveConflict",
-   "SaveContentOk",
-   "SaveContentResult",
-   "SaveContentVariables",
-   "TrashActions",
-   "TrashBag",
-   "UploadBag",
-   "UploadResult",
-   "UploadVariables"
-  ]
- }
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "docs_api_v1_documents_content_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/content",
+      "tag": "Docs / content",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_content_update": {
+      "method": "PUT",
+      "path": "/docs/api/v1/documents/{document_id}/content",
+      "tag": "Docs / content",
+      "request": null,
+      "response": "SaveResultDTO"
+    },
+    "docs_api_v1_documents_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/documents",
+      "tag": "Docs / documents",
+      "request": "DocumentCreate",
+      "response": "DocumentPresenterDTO"
+    },
+    "docs_api_v1_documents_destroy": {
+      "method": "DELETE",
+      "path": "/docs/api/v1/documents/{document_id}",
+      "tag": "Docs / documents",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_download_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/download",
+      "tag": "Docs / content",
+      "request": null,
+      "response": "DownloadUrlDTO"
+    },
+    "docs_api_v1_documents_export_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/export",
+      "tag": "Docs / content",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_list": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents",
+      "tag": "Docs / documents",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_partial_update": {
+      "method": "PATCH",
+      "path": "/docs/api/v1/documents/{document_id}",
+      "tag": "Docs / documents",
+      "request": "PatchedDocumentPatch",
+      "response": "DocumentPresenterDTO"
+    },
+    "docs_api_v1_documents_restore_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/documents/{document_id}/restore",
+      "tag": "Docs / documents",
+      "request": null,
+      "response": "DocumentPresenterDTO"
+    },
+    "docs_api_v1_documents_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}",
+      "tag": "Docs / documents",
+      "request": null,
+      "response": "DocumentPresenterDTO"
+    },
+    "docs_api_v1_documents_revisions_content_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/revisions/{revision_id}/content",
+      "tag": "Docs / revisions",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_revisions_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/documents/{document_id}/revisions",
+      "tag": "Docs / revisions",
+      "request": "NamedRevision",
+      "response": "RevisionPresenterDTO"
+    },
+    "docs_api_v1_documents_revisions_download_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/revisions/{revision_id}/download",
+      "tag": "Docs / revisions",
+      "request": null,
+      "response": "DownloadUrlDTO"
+    },
+    "docs_api_v1_documents_revisions_list": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/revisions",
+      "tag": "Docs / revisions",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_revisions_restore_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/documents/{document_id}/revisions/{revision_id}/restore",
+      "tag": "Docs / revisions",
+      "request": null,
+      "response": "SaveResultDTO"
+    },
+    "docs_api_v1_documents_updates_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/documents/{document_id}/updates",
+      "tag": "Docs / updates",
+      "request": "UpdatesAppend",
+      "response": "AppendResultDTO"
+    },
+    "docs_api_v1_documents_updates_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/updates",
+      "tag": "Docs / updates",
+      "request": null,
+      "response": "UpdatesFeedDTO"
+    },
+    "docs_api_v1_folders_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/folders",
+      "tag": "Docs / folders",
+      "request": "FolderCreate",
+      "response": "FolderPresenterDTO"
+    },
+    "docs_api_v1_folders_destroy": {
+      "method": "DELETE",
+      "path": "/docs/api/v1/folders/{folder_id}",
+      "tag": "Docs / folders",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_folders_list": {
+      "method": "GET",
+      "path": "/docs/api/v1/folders",
+      "tag": "Docs / folders",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_folders_partial_update": {
+      "method": "PATCH",
+      "path": "/docs/api/v1/folders/{folder_id}",
+      "tag": "Docs / folders",
+      "request": "PatchedFolderPatch",
+      "response": "FolderPresenterDTO"
+    },
+    "docs_api_v1_folders_restore_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/folders/{folder_id}/restore",
+      "tag": "Docs / folders",
+      "request": null,
+      "response": "FolderPresenterDTO"
+    },
+    "docs_api_v1_folders_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/folders/{folder_id}",
+      "tag": "Docs / folders",
+      "request": null,
+      "response": "FolderPresenterDTO"
+    },
+    "docs_api_v1_trash_empty_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/trash/empty",
+      "tag": "Docs / trash",
+      "request": "TrashEmpty",
+      "response": "TrashPurgeResultDTO"
+    },
+    "docs_api_v1_trash_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/trash",
+      "tag": "Docs / trash",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_uploads_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/uploads",
+      "tag": "Docs / uploads",
+      "request": "UploadCreate",
+      "response": "UploadTicketDTO"
+    },
+    "docs_api_v1_uploads_finalize_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/uploads/{upload_id}/finalize",
+      "tag": "Docs / uploads",
+      "request": null,
+      "response": "DocumentPresenterDTO"
+    }
+  },
+  "hooks": {
+    "useCreateDocument": {
+      "kind": "mutation",
+      "operation": "createDocument"
+    },
+    "useCreateFolder": {
+      "kind": "mutation",
+      "operation": "createFolder"
+    },
+    "useCreateRevision": {
+      "kind": "mutation",
+      "operation": "createRevision"
+    },
+    "useDocument": {
+      "kind": "query",
+      "operation": "getDocument",
+      "queryKey": [
+        "docs",
+        "document",
+        "{documentId}"
+      ]
+    },
+    "useDocumentContent": {
+      "kind": "query",
+      "operation": "getContent",
+      "queryKey": [
+        "docs",
+        "content",
+        "{documentId}"
+      ]
+    },
+    "useDocuments": {
+      "kind": "query",
+      "operation": "listDocuments",
+      "queryKey": [
+        "docs",
+        "documents",
+        "{params}"
+      ]
+    },
+    "useDownloadUrl": {
+      "kind": "query",
+      "operation": "getDownloadUrl",
+      "queryKey": [
+        "docs",
+        "downloadUrl",
+        "{documentId}"
+      ]
+    },
+    "useExportUrl": {
+      "kind": "mutation",
+      "operation": "getDownloadUrl"
+    },
+    "useFolders": {
+      "kind": "query",
+      "operation": "listFolders",
+      "queryKey": [
+        "docs",
+        "folders",
+        "{workspaceId}"
+      ]
+    },
+    "useFolderTree": {
+      "kind": "query",
+      "operation": "listFolders",
+      "queryKey": [
+        "docs",
+        "folders",
+        "{workspaceId}"
+      ]
+    },
+    "useRestoreRevision": {
+      "kind": "mutation",
+      "operation": "restoreRevision"
+    },
+    "useRevisionContent": {
+      "kind": "query",
+      "operation": "getRevisionContent",
+      "queryKey": [
+        "docs",
+        "revisionContent",
+        "{documentId}",
+        "{revisionId}"
+      ]
+    },
+    "useRevisions": {
+      "kind": "query",
+      "operation": "listRevisions",
+      "queryKey": [
+        "docs",
+        "revisions",
+        "{documentId}"
+      ]
+    },
+    "useSaveContent": {
+      "kind": "mutation",
+      "operation": "putContent"
+    },
+    "useTrash": {
+      "kind": "query",
+      "operation": "listTrash",
+      "queryKey": [
+        "docs",
+        "trash",
+        "{workspaceId}"
+      ]
+    },
+    "useTrashActions": {
+      "kind": "mutation",
+      "operations": [
+        "emptyTrash",
+        "restoreDocument",
+        "restoreFolder"
+      ]
+    },
+    "useTrashDocument": {
+      "kind": "mutation",
+      "operation": "deleteDocument"
+    },
+    "useTrashFolder": {
+      "kind": "mutation",
+      "operation": "deleteFolder"
+    },
+    "useUpdateDocument": {
+      "kind": "mutation",
+      "operation": "patchDocument"
+    },
+    "useUpdateFolder": {
+      "kind": "mutation",
+      "operation": "patchFolder"
+    },
+    "useUpload": {
+      "kind": "mutation",
+      "operations": [
+        "createUpload",
+        "finalizeUpload",
+        "getDocument",
+        "putContent",
+        "uploadToPutUrl"
+      ]
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.docs_bad_since": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_duplicate_name": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_export_format": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_folder_cycle": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_folder_depth": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_not_trashed": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_too_many_updates": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_too_many_uploads": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_type_not_editable": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_unknown_type": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_updates_not_crdt": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_upload_expired": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.docs_upload_mime": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_upload_mismatch": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_upload_state": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_upload_unmeasurable": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.docs_forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.docs_upload_owner": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.docs_document_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.docs_folder_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.docs_revision_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.docs_upload_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.docs_seq_conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.412.docs_missing_if_match": {
+      "status": 412,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.docs_body_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.docs_export_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.docs_update_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.docs_upload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.docs_download_url_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.docs_exporter_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.docs_workspaces_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.507.docs_workspace_quota": {
+      "status": 507,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [],
+  "i18nKeys": [
+    "docs.dialog.cancel",
+    "docs.dialog.close",
+    "docs.dialog.moveTarget",
+    "docs.dialog.moveTitle",
+    "docs.dialog.namePlaceholder",
+    "docs.dialog.newFolderTitle",
+    "docs.dialog.ok",
+    "docs.dialog.renameTitle",
+    "docs.dialog.rootFolder",
+    "docs.editor.addColumn",
+    "docs.editor.addRow",
+    "docs.editor.conflict",
+    "docs.editor.deleteRow",
+    "docs.editor.dirty",
+    "docs.editor.downloadOnly",
+    "docs.editor.loading",
+    "docs.editor.override",
+    "docs.editor.save",
+    "docs.editor.saved",
+    "docs.editor.saving",
+    "docs.error.unknown",
+    "docs.list.empty",
+    "docs.list.error",
+    "docs.list.loading",
+    "docs.list.retry",
+    "docs.manager.filesView",
+    "docs.manager.foldersEmpty",
+    "docs.manager.nameColumn",
+    "docs.manager.newFolder",
+    "docs.manager.sizeColumn",
+    "docs.manager.trashView",
+    "docs.manager.updatedColumn",
+    "docs.manager.upload",
+    "docs.media.download",
+    "docs.menu.deleteForever",
+    "docs.menu.download",
+    "docs.menu.history",
+    "docs.menu.move",
+    "docs.menu.moveToTrash",
+    "docs.menu.newSubfolder",
+    "docs.menu.open",
+    "docs.menu.rename",
+    "docs.menu.restore",
+    "docs.revisions.automatic",
+    "docs.revisions.create",
+    "docs.revisions.download",
+    "docs.revisions.empty",
+    "docs.revisions.loading",
+    "docs.revisions.namePlaceholder",
+    "docs.revisions.previewBinary",
+    "docs.revisions.previewEmpty",
+    "docs.revisions.restore",
+    "docs.revisions.restoring",
+    "docs.revisions.rollback",
+    "docs.revisions.rollbackBlockedHead",
+    "docs.revisions.rollbackConfirm",
+    "docs.revisions.title",
+    "docs.trash.emptyAction",
+    "docs.trash.emptyBlocked",
+    "docs.trash.emptyConfirm",
+    "docs.trash.emptyState",
+    "docs.trash.emptying",
+    "docs.trash.kindDocument",
+    "docs.trash.kindFolder",
+    "docs.trash.restore",
+    "docs.tree.error",
+    "docs.tree.loading",
+    "docs.tree.root",
+    "docs.upload.action",
+    "docs.upload.done",
+    "docs.upload.failed",
+    "docs.upload.uploading",
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.docs_bad_since",
+    "error.400.docs_duplicate_name",
+    "error.400.docs_export_format",
+    "error.400.docs_folder_cycle",
+    "error.400.docs_folder_depth",
+    "error.400.docs_not_trashed",
+    "error.400.docs_too_many_updates",
+    "error.400.docs_too_many_uploads",
+    "error.400.docs_type_not_editable",
+    "error.400.docs_unknown_type",
+    "error.400.docs_updates_not_crdt",
+    "error.400.docs_upload_expired",
+    "error.400.docs_upload_mime",
+    "error.400.docs_upload_mismatch",
+    "error.400.docs_upload_state",
+    "error.400.docs_upload_unmeasurable",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.docs_forbidden",
+    "error.403.docs_upload_owner",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.docs_document_not_found",
+    "error.404.docs_folder_not_found",
+    "error.404.docs_revision_not_found",
+    "error.404.docs_upload_not_found",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.409.docs_seq_conflict",
+    "error.410.gone",
+    "error.412.docs_missing_if_match",
+    "error.413.docs_body_too_large",
+    "error.413.docs_export_too_large",
+    "error.413.docs_update_too_large",
+    "error.413.docs_upload_too_large",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.docs_download_url_unavailable",
+    "error.503.docs_exporter_unavailable",
+    "error.503.docs_workspaces_unavailable",
+    "error.503.mandate_unavailable",
+    "error.507.docs_workspace_quota"
+  ],
+  "exports": {
+    "runtime": [
+      "Breadcrumbs",
+      "CsvEditor",
+      "DOCS_ERRORS",
+      "DOCS_ERROR_CODES",
+      "DOCS_FLOWS",
+      "DOCS_HEAD_SEQ_HEADER",
+      "DOCS_I18N_KEYS",
+      "DocEditor",
+      "DocUploader",
+      "DocsProvider",
+      "DocsRuntimeContext",
+      "DocumentList",
+      "FolderTree",
+      "MarkdownEditor",
+      "MediaViewer",
+      "RevisionHistory",
+      "TextEditor",
+      "TrashBin",
+      "buildFolderTree",
+      "createDocsApi",
+      "createDocsRuntime",
+      "createFlowMachine",
+      "docsErrorBundleEn",
+      "docsI18nBundleEn",
+      "docsQueryKeys",
+      "explainDocsError",
+      "explicitDocEditor",
+      "exportDocument",
+      "flowEndpoints",
+      "folderTrail",
+      "getDocumentContent",
+      "getRevisionContent",
+      "isErrorCode",
+      "parseCsv",
+      "putDocumentContent",
+      "registerDocEditor",
+      "registerDocsI18n",
+      "registeredDocEditorHints",
+      "resolveDocEditor",
+      "serializeCsv",
+      "toFlowError",
+      "unregisterDocEditor",
+      "uploadToPutUrl",
+      "useCreateDocument",
+      "useCreateFolder",
+      "useCreateRevision",
+      "useDocsAnalytics",
+      "useDocsApi",
+      "useDocsRuntime",
+      "useDocument",
+      "useDocumentContent",
+      "useDocuments",
+      "useDownloadUrl",
+      "useExportUrl",
+      "useFlow",
+      "useFolderTree",
+      "useFolders",
+      "useRestoreRevision",
+      "useRevisionContent",
+      "useRevisions",
+      "useSaveContent",
+      "useTrash",
+      "useTrashActions",
+      "useTrashDocument",
+      "useTrashFolder",
+      "useUpdateDocument",
+      "useUpdateFolder",
+      "useUpload"
+    ],
+    "types": [
+      "BreadcrumbTrail",
+      "BreadcrumbsBag",
+      "CreateDocsRuntimeOptions",
+      "CreateDocumentRequest",
+      "CreateFolderRequest",
+      "CreateRevisionRequest",
+      "CreateRevisionVariables",
+      "CreateUploadRequest",
+      "CreateUploadResponse",
+      "DocDocument",
+      "DocEditorAdapterProps",
+      "DocEditorBag",
+      "DocEditorComponent",
+      "DocFolder",
+      "DocRevision",
+      "DocUpdate",
+      "DocUpdatesResponse",
+      "DocsApi",
+      "DocsApiOptions",
+      "DocsErrorCode",
+      "DocsErrorSpec",
+      "DocsFlowId",
+      "DocsFlowSpec",
+      "DocsI18nKey",
+      "DocsRawTransport",
+      "DocsRuntime",
+      "DocumentContent",
+      "DocumentListBag",
+      "DocumentListParams",
+      "DocumentText",
+      "DownloadUrl",
+      "EmptyTrashRequest",
+      "ExportUrlVariables",
+      "FlowEndpoint",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "FolderTreeBag",
+      "FolderTreeNode",
+      "FolderTreeView",
+      "MediaKind",
+      "MediaPresentation",
+      "MediaViewerBag",
+      "PatchDocumentRequest",
+      "PatchFolderRequest",
+      "PostUpdateRequest",
+      "PutContentOptions",
+      "Remediation",
+      "RestoreRevisionVariables",
+      "RevisionHistoryBag",
+      "RevisionText",
+      "SaveConflict",
+      "SaveContentOk",
+      "SaveContentResult",
+      "SaveContentVariables",
+      "TrashActions",
+      "TrashBag",
+      "TrashListing",
+      "UpdateDocumentVariables",
+      "UpdateFolderVariables",
+      "UploadBag",
+      "UploadResult",
+      "UploadVariables"
+    ]
+  }
 }

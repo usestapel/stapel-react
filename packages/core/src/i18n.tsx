@@ -1,6 +1,7 @@
 import { createContext, useContext, useSyncExternalStore } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { CORE_ERROR_LOCALES, coreErrorBundle } from "./i18n/coreErrors.js";
+import { CORE_UI_LOCALES, coreUiBundle } from "./i18n/coreUi.js";
 
 /** Flat key → string dictionary, e.g. `{"auth.otp.invalid": "Invalid code"}`. */
 export type I18nDictionary = Record<string, string>;
@@ -137,12 +138,15 @@ export interface CreateI18nOptions {
  * catalogue's; a bundle that ships only `other` is complete for `ja` and
  * degrades honestly for `ru`.
  *
- * Seeds core's OWN error floor (`./i18n/coreErrors.ts` — `stapel.http.*`,
- * `stapel.transport.failed`, `stapel.error.unknown`) under every locale
- * before anything else, so the codes core itself mints for a response with no
- * envelope have display copy without a single line of host wiring. It is a
- * FLOOR in the fleet's usual sense: registered first, so any pair bundle or
- * host override registered later wins on the same key.
+ * Seeds core's OWN floors under every locale before anything else: the error
+ * floor (`./i18n/coreErrors.ts` — `stapel.http.*`, `stapel.transport.failed`,
+ * `stapel.error.unknown`), so the codes core itself mints for a response with
+ * no envelope have display copy without a single line of host wiring, and the
+ * UI floor (`./i18n/coreUi.ts` — `stapel.ui.*`: retry, dismiss, confirm,
+ * cancel, the empty-state default), so the shared skin substrate's own
+ * controls are translated with the same zero wiring. Both are FLOORS in the
+ * fleet's usual sense: registered first, so any pair bundle or host override
+ * registered later wins on the same key.
  */
 export function createI18n(options: CreateI18nOptions): I18nEngine {
   const dictionaries = new Map<string, I18nDictionary>();
@@ -152,17 +156,20 @@ export function createI18n(options: CreateI18nOptions): I18nEngine {
   let locale = options.locale;
   let version = 0;
 
-  /** Put core's error floor UNDER whatever this locale already has. */
+  /** Put core's error + UI floors UNDER whatever this locale already has. */
   function floor(targetLocale: string): void {
     if (flooredLocales.has(targetLocale)) return;
     flooredLocales.add(targetLocale);
     dictionaries.set(targetLocale, {
       ...coreErrorBundle(targetLocale),
+      ...coreUiBundle(targetLocale),
       ...(dictionaries.get(targetLocale) ?? {}),
     });
   }
 
-  for (const seeded of [...CORE_ERROR_LOCALES, options.locale]) floor(seeded);
+  for (const seeded of [...CORE_ERROR_LOCALES, ...CORE_UI_LOCALES, options.locale]) {
+    floor(seeded);
+  }
 
   if (options.bundles) {
     for (const [bundleLocale, bundle] of Object.entries(options.bundles)) {
@@ -255,6 +262,36 @@ export function useI18n(): I18nEngine {
     throw new Error("useI18n must be used within an <I18nProvider>");
   }
   return engine;
+}
+
+/**
+ * The nearest engine, or `null` outside any `<I18nProvider>`, subscribed to
+ * its changes when there is one.
+ *
+ * For a component that owns its own copy props and merely FLOORS them from
+ * core's bundles when a host is present — the shared skin substrate's
+ * `SkinConfirm` with explicit `confirmLabel`/`cancelLabel`, rendered in a
+ * host that mounts no provider (a bare test, a storybook without the
+ * harness). Everything that renders a pair's own keys keeps using
+ * {@link useT}: a missing provider there is a wiring defect, and throwing is
+ * the right answer.
+ */
+export function useOptionalI18n(): I18nEngine | null {
+  const engine = useContext(I18nContext);
+  useSyncExternalStore(
+    engine === null ? noSubscription : engine.subscribe,
+    engine === null ? zero : engine.getVersion,
+    engine === null ? zero : engine.getVersion
+  );
+  return engine;
+}
+
+function noSubscription(): () => void {
+  return () => undefined;
+}
+
+function zero(): number {
+  return 0;
 }
 
 /**

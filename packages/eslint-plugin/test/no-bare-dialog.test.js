@@ -67,3 +67,43 @@ tester.run("no-bare-dialog", rule, {
     },
   ],
 });
+
+// ── The confirm surface (0.11.0) ─────────────────────────────────────────────
+// A Popconfirm is an anchored popover: on a 390px phone it renders half
+// off-screen or on top of the row being confirmed, and two of the nine sites
+// sit INSIDE a bottom sheet. Same fix, different migration (okText/cancelText
+// need their own i18n keys), so it gets its own messageId.
+tester.run("no-bare-dialog — confirm surface", rule, {
+  valid: [
+    { filename: SKIN, code: 'import { SkinConfirm } from "@stapel/tokens-antd/skin";' },
+    // Headless and host are out of scope here exactly as for Modal/Drawer.
+    { filename: HEADLESS, code: 'import { Popconfirm } from "antd";' },
+    { filename: HOST, code: 'import { Popconfirm } from "antd";' },
+    {
+      // The migration switch `recommended` uses this release: the dialog half
+      // stays at error, the confirm half is off until SkinConfirm lands.
+      filename: SKIN,
+      code: 'import { Popconfirm } from "antd";',
+      options: [{ confirmComponents: [] }],
+    },
+  ],
+  invalid: [
+    {
+      filename: SKIN,
+      code: 'import { Popconfirm } from "antd";',
+      errors: [{ messageId: "bareConfirm" }],
+    },
+    {
+      // The real shape from auth-react/security/SessionsList.tsx — one import
+      // line carrying both surfaces, each reported under its own message.
+      filename: SKIN,
+      code: 'import { Button, Modal, Popconfirm, Tag } from "antd";',
+      errors: [{ messageId: "bareDialog" }, { messageId: "bareConfirm" }],
+    },
+    {
+      filename: SKIN,
+      code: 'import { Popconfirm as Confirm } from "antd";',
+      errors: [{ messageId: "bareConfirm" }],
+    },
+  ],
+});

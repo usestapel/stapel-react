@@ -1,7 +1,7 @@
 {
   "name": "@stapel/tokens-antd",
   "version": "0.5.0",
-  "description": "Token bridge (§68 neutral colour-role dictionary; frontend-guidelines §2.4, §38 T3): projects @stapel/tokens' roles (surface, brand, text-muted, success-bg, ...) onto an Ant Design ConfigProvider theme. `toAntdTheme(mode)` -> theme.token; `toAntdThemeConfig(mode)` -> the full ThemeConfig (algorithm + token). Pure functions reading the same `colors` object as @stapel/tokens-mui, so they cannot diverge. The root export is not components; the `/skin` subpath carries the ONE antd surface primitive the bridge owns -- `SkinDialog`, the fleet-wide rule that a dialog is a bottom sheet on a phone and a modal on tablet/desktop.",
+  "description": "Token bridge (§68 neutral colour-role dictionary; frontend-guidelines §2.4, §38 T3): projects @stapel/tokens' roles (surface, brand, text-muted, success-bg, ...) onto an Ant Design ConfigProvider theme. `toAntdTheme(mode)` -> theme.token; `toAntdThemeConfig(mode)` -> the full ThemeConfig (algorithm + token). Pure functions reading the same `colors` object as @stapel/tokens-mui, so they cannot diverge. The root export is not components; the `/skin` subpath is the shared skin substrate every antd default skin inherits -- SkinTheme + useThemeMode (self-theming from the live data-theme, 44px phone controls), SkinDialog + SkinConfirm (a dialog is a bottom sheet on a phone), ErrorAlert / EmptyState / LoadBoundary / LoadList (the designed state arms), GatedControl / GatedButton (a blocked control's reason as visible text).",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -42,12 +42,13 @@
       "limit": "4 KB"
     },
     {
-      "name": "skin subpath -- SkinDialog + the surface rule",
+      "name": "skin subpath -- the shared skin substrate (theme, dialog, confirm, states, gate)",
       "path": "dist/skin.js",
-      "limit": "5 KB"
+      "limit": "8 KB"
     }
   ],
   "peerDependencies": {
+    "@stapel/core": ">=0.17.0 <1.0.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"
   },
@@ -56,6 +57,7 @@
   },
   "devDependencies": {
     "@size-limit/preset-small-lib": "^11.2.0",
+    "@stapel/core": "workspace:^",
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",

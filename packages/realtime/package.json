@@ -1,0 +1,88 @@
+{
+  "name": "@stapel/realtime",
+  "version": "0.1.0",
+  "description": "The client half of stapel-realtime: ONE reconnect/resume WebSocket runtime for every Stapel pair. Wire envelope v1 ({v,type,stream,payload,seq}) with the two sequences kept apart by name — `envelopeSeq` is the resume cursor, `payloadSeq` is the module's ordering key. Answers the server's heartbeat so 4408 never fires, resumes by hello{last_seq} per stream, dedups the replay/live overlap, multiplexes several streams over one socket, and reads close codes as the fleet canon does: 4403/4404/4410 are refusals (never retried), 4401 in cookie mode is a session that needs refreshing (core's SessionManager seam, then ONE reconnect, then a visible refusal), everything else is exponential backoff with full jitter and no silent give-up. Framework-free at the root; `./react` adds RealtimeProvider/useStream/useRealtimeState.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usestapel/stapel-react.git",
+    "directory": "packages/realtime"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "default": "./dist/react/index.js"
+    },
+    "./manifest": "./manifest.json",
+    "./manifest.json": "./manifest.json",
+    "./llms.txt": "./llms.txt",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "tsconfig.json",
+    "README.md",
+    "CHANGELOG.md",
+    "manifest.json",
+    "llms.txt"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.test.json && vitest run",
+    "lint": "eslint .",
+    "size": "size-limit",
+    "gen:demos": "DEMOS_PKG_DIR=packages/realtime DEMOS_GATE=0 node ../../scripts/gen-demos.mjs",
+    "gen:manifest": "MANIFEST_PKG_DIR=packages/realtime MANIFEST_MODULE= node ../../scripts/gen-manifest.mjs"
+  },
+  "size-limit": [
+    {
+      "name": "index — the framework-free socket runtime (envelope, close codes, resume, backoff, multiplex)",
+      "path": "dist/index.js",
+      "limit": "9 KB"
+    },
+    {
+      "name": "react — provider + the two hooks; a pair that never opens a socket must not pay for this",
+      "path": "dist/react/index.js",
+      "limit": "5 KB"
+    }
+  ],
+  "peerDependencies": {
+    "@stapel/core": ">=0.15.0 <1.0.0",
+    "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@size-limit/preset-small-lib": "^11.2.0",
+    "@stapel/core": "workspace:^",
+    "@stapel/showcase": "workspace:^",
+    "@stapel/tokens": "workspace:^",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "jsdom": "^26.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "size-limit": "^11.2.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -2,11 +2,7 @@
 
 Stapel frontend runtime (L0): typed fetch with the Stapel error envelope, auth token/refresh seams, verification-403 interception, TanStack Query layer with per-user persistence, i18n engine, config provider, breakpoints hook.
 
-No backend Django module of its own — this is the frontend RUNTIME every 
-@stapel/<module>-react pair is built on top of: client + error envelope, 
-session/refresh seam, TanStack Query layer, i18n engine, analytics seam, 
-flow-machine primitive, encrypted repositories. A pair depends on this
-and never re-implements what is exported here.
+No backend Django module of its own — this is the frontend RUNTIME every @stapel/<module>-react pair is built on top of: client + error envelope, session/refresh seam, TanStack Query layer, i18n engine, analytics seam, flow-machine primitive, encrypted repositories. A pair depends on this and never re-implements what is exported here.
 
 ## Exports (call these, never hand-roll the equivalent) — see full
 signatures/JSDoc in the package README and src/index.ts.
@@ -15,10 +11,13 @@ signatures/JSDoc in the package README and src/index.ts.
 - ACTION_BLOCKED_LOAD_FAILED
 - AnalyticsContext
 - CORE_ERROR_LOCALES
+- CORE_UI_LOCALES
 - DETAIL_ERROR_KEY
 - I18nProvider
 - MandateProvider
 - REFRESH_UNAVAILABLE
+- STAPEL_UI_KEYS
+- SlotPlaceholder
 - StapelApiError
 - StapelConfigProvider
 - StapelProvider
@@ -31,6 +30,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - codeCarriesTechnicalDetail
 - coreErrorBundle
 - coreErrorKeyCandidates
+- coreUiBundle
 - createFlowMachine
 - createI18n
 - createMeCachePersister
@@ -52,6 +52,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - hasErrorCode
 - idbStorage
 - interpolate
+- isDevBuild
 - isErrorCode
 - isErrorEnvelope
 - isLoadFailed
@@ -96,6 +97,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - useMandate
 - useMandatePrincipal
 - useObjectUrlPreview
+- useOptionalI18n
 - useSessionReady
 - useStapelClient
 - useStapelConfig
@@ -179,6 +181,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - SessionStatus
 - SignInCta
 - SignInCtaProp
+- SlotPlaceholderProps
 - StapelClient
 - StapelClientOptions
 - StapelConfig

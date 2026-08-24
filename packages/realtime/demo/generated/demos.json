@@ -1,0 +1,50 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/realtime",
+  "version": "0.1.0",
+  "demos": [
+    {
+      "id": "realtime.connection-states",
+      "title": "Realtime connection states",
+      "description": "One socket runtime, five states a skin has to be able to show: connecting, live after replay, reconnecting with the cursor kept, resync, and a refusal that carries the server's reason.",
+      "component": "RealtimeProvider",
+      "covers": [
+        "useStream",
+        "useRealtimeState"
+      ],
+      "tokens": [
+        "surface",
+        "surface-raised",
+        "border-subtle",
+        "text",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "connecting",
+          "description": "The handshake is accepted; no welcome has arrived yet."
+        },
+        {
+          "id": "live",
+          "description": "welcome → replay → replay_done. The resume cursor is the ENVELOPE seq, not the message's place in the thread."
+        },
+        {
+          "id": "reconnecting",
+          "description": "The socket dropped. Backoff with full jitter is running, the cursor is held, and the state says so instead of falling silently back to polling."
+        },
+        {
+          "id": "resync",
+          "description": "The gap is wider than the server's replay window. The socket stays open and the consumer re-hydrates over REST; the cursor is deliberately NOT advanced."
+        },
+        {
+          "id": "refused",
+          "description": "A kick frame carries the reason, and the 4410 that follows is terminal — retrying with the same credential would only hammer the host."
+        }
+      ],
+      "source": {
+        "file": "demo/Realtime.demo.tsx",
+        "line": 40
+      }
+    }
+  ]
+}

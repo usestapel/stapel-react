@@ -15,6 +15,7 @@ import { parseErrorEnvelope, toStapelApiError } from "../src/errors.js";
 import type { StapelApiError } from "../src/errors.js";
 import type { FlowErrorDisplay } from "../src/flows/flowError.js";
 import {
+  CORE_ERROR_LOCALES,
   DETAIL_ERROR_KEY,
   coreErrorBundle,
   coreErrorKeyCandidates,
@@ -59,7 +60,7 @@ describe("core's error floor", () => {
     // The owner's rejection, pinned: a product writes "something went wrong",
     // not "500". Sweeping the whole floor, not just the entries that had it —
     // a new one must not reintroduce the pattern.
-    for (const locale of ["en", "ru"]) {
+    for (const locale of CORE_ERROR_LOCALES) {
       for (const [key, sentence] of Object.entries(coreErrorBundle(locale))) {
         if (key === DETAIL_ERROR_KEY) continue;
         expect(sentence, `${locale}/${key} reads a protocol number to a user`).not.toMatch(

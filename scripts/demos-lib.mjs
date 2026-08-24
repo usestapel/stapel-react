@@ -72,8 +72,10 @@ function parseVariants(obj) {
     if (ts.isObjectLiteralExpression(p.initializer)) {
       const description = stringProp(p.initializer, "description");
       const mock = stringProp(p.initializer, "mock");
+      const viewport = stringProp(p.initializer, "viewport");
       if (description !== null) v.description = description;
       if (mock !== null) v.mock = mock;
+      if (viewport !== null) v.viewport = viewport;
     }
     out.push(v);
   }
@@ -174,6 +176,134 @@ export function completenessGate(headless, demos) {
   return { missing, covered: [...covered].sort() };
 }
 
+// ── default-skin coverage gate (§54, machine form) ──────────────────────────
+//
+// The headless gate above proves a pair's LOGIC is demoed. It says nothing
+// about the product: the visual pass found 17/21 auth stories, 23/24 account
+// stories, 8/8 forms and 3/3 video stories rendering `demo/_harness.tsx`'s
+// debug card — a component class name, a `state.step` chip and a row of naked
+// buttons — while the antd skins on disk had never been photographed at all.
+// A demo that renders the harness is therefore NOT skin coverage, and the only
+// honest way to tell the two apart statically is where the demo's component
+// came FROM: a skin demo imports it out of `src/default/`.
+
+/**
+ * Local names a demo file imports from the package's `src/default/**` — the
+ * evidence that a demo renders the SKIN and not the headless harness. Reads
+ * import declarations only (the TS AST), so an aliased import is recorded under
+ * the local name the `component:` reference actually uses.
+ */
+export function defaultSkinImportNames(sourceText, fileName = "demo.tsx") {
+  const sf = ts.createSourceFile(
+    fileName,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX
+  );
+  const names = new Set();
+  for (const stmt of sf.statements) {
+    if (!ts.isImportDeclaration(stmt)) continue;
+    if (stmt.importClause?.isTypeOnly) continue;
+    const spec = literalText(stmt.moduleSpecifier);
+    // `../src/default/Foo.js`, `../src/default/admin/Bar.js`, `../src/default/index.js`
+    if (!spec || !/(^|\/)src\/default(\/|$)/.test(spec)) continue;
+    const bindings = stmt.importClause?.namedBindings;
+    if (bindings && ts.isNamedImports(bindings)) {
+      for (const el of bindings.elements) {
+        if (el.isTypeOnly) continue;
+        names.add(el.name.text);
+      }
+    }
+    if (stmt.importClause?.name) names.add(stmt.importClause.name.text);
+  }
+  return names;
+}
+
+/**
+ * Runtime component exports of one `src/default/**\/index.ts` barrel — the set
+ * §54 says must be renderable. `export type { … }` is skipped (not demoable)
+ * and so is anything that is not PascalCase.
+ */
+export function defaultSkinExports(indexSrc) {
+  const names = new Set();
+  const re = /export\s+(type\s+)?\{([^}]*)\}\s+from\s+["'][^"']+["']/g;
+  let m;
+  while ((m = re.exec(indexSrc))) {
+    if (m[1]) continue;
+    for (let name of m[2].split(",")) {
+      name = name.trim();
+      if (!name) continue;
+      if (/^type\s/.test(name)) continue;
+      const asMatch = name.match(/\bas\s+(\w+)$/);
+      const publicName = asMatch ? asMatch[1] : name.split(/\s+/)[0];
+      // PascalCase only: a SCREAMING_CASE export is a constant table
+      // (DEFAULT_CHANNEL_PRIORITY, REGISTRATION_ANCHORS), not a component, and
+      // demanding a demo of it would be noise the gate gets ignored for.
+      if (/^[A-Z][A-Za-z0-9]*$/.test(publicName) && /[a-z]/.test(publicName)) {
+        names.add(publicName);
+      }
+    }
+  }
+  return [...names].sort();
+}
+
+/**
+ * The default-skin gate. `required` is the union of every `src/default/**`
+ * barrel export and every `component.export` the pair's nav manifest names (a
+ * screen the scaffold builds a ROUTE to and which has never been drawn is the
+ * worst case of all). `files` is `[{ demos, defaultImports }]`.
+ *
+ * A name is covered when some demo REFERENCES it (`component` or `covers`) from
+ * a file that imports that same name out of `src/default` — a harness demo
+ * covering the headless twin of the same name does not count. Covered names
+ * additionally need one variant declared `viewport: "phone"`: mobile-first is a
+ * rule with teeth only when something reads it.
+ *
+ * Returns `{ missing, noPhone, covered, unseeded }` — `unseeded` is the static
+ * half of the C-SAMESHOT guard: a multi-variant demo where no variant declares
+ * the `step` it is seeded at (the runtime half is @stapel/showcase's
+ * `assertVariantsRenderDistinctly`, which needs a renderer).
+ */
+export function defaultSkinGate(required, files, allow = {}) {
+  const cover = new Map();
+  const unseeded = [];
+  for (const { demos, defaultImports } of files) {
+    for (const d of demos) {
+      const refs = [d.component, ...(d.covers ?? [])].filter(Boolean);
+      const skinRefs = refs.filter((n) => defaultImports.has(n));
+      const phone = d.variants.some((v) => v.viewport === "phone");
+      if (
+        skinRefs.length > 0 &&
+        d.variants.length > 1 &&
+        !d.variants.some((v) => typeof v.step === "string")
+      ) {
+        unseeded.push(d.id);
+      }
+      for (const n of skinRefs) {
+        const entry = cover.get(n) ?? { demos: [], phone: false };
+        entry.demos.push(d.id);
+        entry.phone = entry.phone || phone;
+        cover.set(n, entry);
+      }
+    }
+  }
+  const missing = [];
+  const noPhone = [];
+  for (const name of required) {
+    if (Object.prototype.hasOwnProperty.call(allow, name)) continue;
+    const entry = cover.get(name);
+    if (!entry) missing.push(name);
+    else if (!entry.phone) noPhone.push(name);
+  }
+  return {
+    missing: missing.sort(),
+    noPhone: noPhone.sort(),
+    covered: [...cover.keys()].sort(),
+    unseeded: unseeded.sort(),
+  };
+}
+
 // ── assembly + projections ──────────────────────────────────────────────────
 
 export function buildDemosJson({ pkg, demos }) {
@@ -261,6 +391,17 @@ export function renderStory(demo, demoImport, groupPrefix) {
       `export const ${name} = (): ReactElement => renderDemoVariant(demo, ${JSON.stringify(v.id)});`
     );
     L.push(`${name}.storyName = ${JSON.stringify(v.id)};`);
+    // Declared width / seeded step travel to the viewer and the shot runner, so
+    // a "phone" variant is photographed at 390 and a seeded state is asserted
+    // to be the one on screen. Emitted only when declared, so a demo that
+    // declares neither produces the exact story file it produced before.
+    const params = {
+      ...(v.viewport ? { viewport: v.viewport } : {}),
+      ...(v.step ? { step: v.step } : {}),
+    };
+    if (Object.keys(params).length > 0) {
+      L.push(`${name}.parameters = { stapel: ${JSON.stringify(params)} };`);
+    }
   }
   return L.join("\n") + "\n";
 }

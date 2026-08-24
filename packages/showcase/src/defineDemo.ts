@@ -28,10 +28,37 @@
  */
 import type { ElementType, ReactNode } from "react";
 
+/**
+ * The width a variant is meant to be looked at. The viewer offers 390/768/1280
+ * (`showcase-viewer/.ladle/config.mjs`); this says which one a variant was
+ * DESIGNED for, so the default-skin gate can require that every skin component
+ * has been drawn at least once at phone width instead of only on a desktop.
+ * Metadata only — it selects no layout; the viewer frame owns the width.
+ */
+export type DemoViewport = "phone" | "tablet" | "desktop";
+
 /** A single showcase state of a demo: human copy + a render closure. */
 export interface DemoVariant {
   /** One-line description of what this state shows (optional). */
   readonly description?: string;
+  /**
+   * The width this state documents (see {@link DemoViewport}). A demo of a
+   * `/default` skin component needs at least one `"phone"` variant — mobile
+   * first is a rule with teeth only if something checks it (gen:demos'
+   * default-skin gate reads this literal).
+   */
+  readonly viewport?: DemoViewport;
+  /**
+   * The flow step / component state this variant is SEEDED at, named the way
+   * the machine or the bag names it (`"otp"`, `"locked"`, `"deduped"`).
+   *
+   * A variant whose named state is only reachable by clicking something is a
+   * variant a static shot never photographs: the showcase draws `idle` and the
+   * error state the demo exists to document proves nothing. Declaring the step
+   * says "this render closure starts THERE" — the shot runner asserts it, and
+   * {@link duplicateVariantGroups} catches the case where it did not.
+   */
+  readonly step?: string;
   /**
    * Optional named mock/fixture key (e.g. a schema-driven msw scenario, core
    * task 10). Metadata only today — recorded in the manifest so a future viewer

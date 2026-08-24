@@ -45,6 +45,88 @@ const NAV_PACKAGES = (
 
 const OUT_ROOT_MANIFEST = resolve(ROOT, "nav-manifest.json");
 
+// ── aggregate-level gates (shared-layer audit G5) ────────────────────────────
+// Two fields validate per-entry above and are still wrong in the aggregate:
+//
+//   icon      `shell-react`'s registry falls back to a generic square for a
+//             name it does not know (`icons.tsx resolveNavIcon`), so a typo
+//             ships a blank glyph with no error anywhere.
+//   parentId  `resolveNav` drops a submenu whose parent no installed package
+//             declares — silently. gdpr's `admin.privacy` hangs off
+//             `admin.root`, which NOTHING declares, so a legally-required
+//             staff screen vanishes from every container and "degrade
+//             gracefully" hides a real page.
+//
+// Both are checked against the FULL aggregate (a parent may be declared by a
+// sibling pair), so they cannot live in `validateEntry`.
+const ICON_REGISTRY_FILE = resolve(
+  ROOT,
+  process.env.NAV_ICON_REGISTRY ?? "packages/shell-react/src/default/icons.tsx"
+);
+// Parent ids the CONTAINER synthesises rather than a pair declaring them
+// (stapel-tools `_frontend_templates.py` builds `account.root` around the
+// account submenu). `admin.root` is deliberately NOT here: nobody declares it,
+// which is the finding, not the configuration.
+const CONTAINER_PARENT_IDS = new Set(
+  (process.env.NAV_CONTAINER_PARENTS ?? "account.root")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+);
+// list (default) reports and exits 0; strict fails. Same policy as the other
+// fleet gates: the aggregate does not pass yet, and a gate nobody can go green
+// against gets deleted.
+const NAV_GATE_STRICT =
+  process.argv.includes("--strict") || process.env.NAV_GATE === "strict";
+
+/** Icon names `shell-react`'s registry can resolve to a real glyph. */
+async function iconRegistryNames() {
+  let src;
+  try {
+    src = await readFile(ICON_REGISTRY_FILE, "utf8");
+  } catch {
+    return null; // registry not on disk (partial checkout) — skip, don't guess
+  }
+  const block = /const REGISTRY[^=]*=\s*\{([\s\S]*?)\n\};/.exec(src);
+  if (!block) return null;
+  return new Set(
+    block[1]
+      .split(",")
+      .map((line) => /^\s*([A-Za-z_]\w*)\s*(?::|$)/.exec(line)?.[1])
+      .filter(Boolean)
+  );
+}
+
+/**
+ * Check icons against the registry and every `submenu` parent against the ids
+ * the aggregate (plus the container) actually declares. Returns the problem
+ * lines; empty means clean.
+ */
+function auditAggregate(all, icons) {
+  const declared = new Set();
+  for (const m of all) for (const e of m.entries) declared.add(e.id);
+  const problems = [];
+  for (const m of all) {
+    for (const e of m.entries) {
+      if (icons && !icons.has(e.icon)) {
+        problems.push(
+          `    - ${m.package} "${e.id}": icon "${e.icon}" is not in shell-react's registry ` +
+            `(renders the generic fallback square)`
+        );
+      }
+      if (e.placement.level !== "submenu") continue;
+      const parent = e.placement.parentId;
+      if (declared.has(parent) || CONTAINER_PARENT_IDS.has(parent)) continue;
+      problems.push(
+        `    - ${m.package} "${e.id}": placement.parentId "${parent}" is declared by no ` +
+          `installed package and is not a container-synthesised id — resolveNav drops ` +
+          `this entry silently, so the screen has no door`
+      );
+    }
+  }
+  return problems;
+}
+
 const PLACEMENT_LEVELS = new Set(["top", "submenu"]);
 /** `@stapel/core`'s NavSurface — the authorization axis. Optional in a
  * manifest: omitted, `resolveNav` derives it from `requiresAuth`. */
@@ -163,6 +245,22 @@ async function main() {
     packages: all,
   };
   await writeFile(OUT_ROOT_MANIFEST, `${JSON.stringify(rootManifest, null, 2)}\n`);
+
+  const problems = auditAggregate(all, await iconRegistryNames());
+  if (problems.length > 0) {
+    const verb = NAV_GATE_STRICT ? "✖" : "⚠";
+    console.error(
+      `${verb} gen:nav: ${problems.length} entr${problems.length === 1 ? "y" : "ies"} the shell ` +
+        `cannot render as declared:\n` +
+        problems.join("\n") +
+        `\n  Register the icon in packages/shell-react/src/default/icons.tsx, or declare the ` +
+        `parent\n  (a top-level entry with that id) in the pair that owns the section.` +
+        (NAV_GATE_STRICT
+          ? ""
+          : `\n  (listing mode — pass --strict or set NAV_GATE=strict to fail on this)`)
+    );
+    if (NAV_GATE_STRICT) process.exit(1);
+  }
 
   const totalEntries = all.reduce((n, m) => n + m.entries.length, 0);
   console.error(

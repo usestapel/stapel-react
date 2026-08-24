@@ -158,3 +158,159 @@ describe("recommended preset — the fixture-shaped carve-outs are still intact"
     expect(ruleIds).toContain("stapel/require-disable-description");
   });
 });
+
+// ── The doctrine tier (0.11.0): two presets, two different sentences ─────────
+//
+// The rules themselves are covered by their own suites. What is covered HERE
+// is the wiring, because the wiring is where the 0.7.0 hole lived: a rule that
+// is right and switched off guards nothing, and a rule that is right and set
+// to `error` on a fleet that has not migrated yet gets the whole preset pinned
+// to the previous version.
+import { strict } from "../index.js";
+
+/** Lint `code` at `relativePath` under an arbitrary preset. */
+async function lintUnder(preset, relativePath, code) {
+  const eslint = new ESLint({
+    cwd: PKG_ROOT,
+    overrideConfigFile: true,
+    overrideConfig: [
+      { files: ["**/*.{ts,tsx,js,jsx}"], languageOptions: { parser: tsParser } },
+      ...preset,
+    ],
+  });
+  const [result] = await eslint.lintText(code, { filePath: virtual(relativePath) });
+  return result.messages;
+}
+
+const DOCTRINE_TIER = [
+  "stapel/no-tooltip-in-skin",
+  "stapel/icon-button-needs-label",
+  "stapel/no-hardcoded-theme-mode",
+  "stapel/no-local-skin-theme",
+  "stapel/no-raw-dimensions",
+  "stapel/i18n-locale-parity",
+  "stapel/no-adhoc-socket",
+  "stapel/no-silent-slot",
+  "stapel/no-boolean-disabled",
+];
+
+// One violating sample per rule, at a path where that rule is in scope.
+const SAMPLES = [
+  ["stapel/no-tooltip-in-skin", "src/default/Card.tsx", 'import { Tooltip } from "antd";\n'],
+  [
+    "stapel/icon-button-needs-label",
+    "src/default/Card.tsx",
+    "export const A = () => <Button icon={<DeleteOutlined/>}/>;\n",
+  ],
+  [
+    "stapel/no-hardcoded-theme-mode",
+    "src/default/Panel.tsx",
+    'export const f = (props) => { const { mode = "light" } = props; return mode; };\n',
+  ],
+  [
+    "stapel/no-local-skin-theme",
+    "src/default/theme.tsx",
+    'import { ConfigProvider } from "antd";\nexport const x = ConfigProvider;\n',
+  ],
+  [
+    "stapel/no-raw-dimensions",
+    "src/default/Panel.tsx",
+    "export const A = () => <div style={{ padding: 15 }}/>;\n",
+  ],
+  ["stapel/no-adhoc-socket", "src/model/live.ts", "export const s = new WebSocket(u);\n"],
+  [
+    "stapel/no-silent-slot",
+    "src/default/Shell.tsx",
+    "export const A = (props) => <div>{props.searchSlot}</div>;\n",
+  ],
+  [
+    "stapel/no-boolean-disabled",
+    "src/default/Panel.tsx",
+    "export const A = () => <Button disabled={!x}/>;\n",
+  ],
+];
+
+describe("recommended preset — the doctrine tier is a WORKLIST, not a wall", () => {
+  it.each(SAMPLES)("%s warns (never errors) in recommended", async (ruleId, path, code) => {
+    const messages = await lintUnder(recommended, path, code);
+    const mine = messages.filter((m) => m.ruleId === ruleId);
+    expect(mine.length).toBeGreaterThan(0);
+    // severity 1 = warn. `eslint .` stays green, `pnpm turbo run lint` prints
+    // the migration list — which is the whole point of shipping them this way.
+    expect(mine.every((m) => m.severity === 1)).toBe(true);
+  });
+
+  it("no-bare-dialog stays at ERROR for Modal/Drawer", async () => {
+    const messages = await lintUnder(
+      recommended,
+      "src/default/Panel.tsx",
+      'import { Modal } from "antd";\nexport const x = Modal;\n'
+    );
+    const mine = messages.filter((m) => m.ruleId === "stapel/no-bare-dialog");
+    expect(mine).toHaveLength(1);
+    expect(mine[0].severity).toBe(2);
+  });
+
+  it("…and the confirm surface is NOT on in recommended this release", async () => {
+    // The wave-B switch. When the nine Popconfirm sites are on SkinConfirm,
+    // `confirmComponents: []` comes out of the preset and this expectation
+    // flips to the one in the `strict` block below.
+    const messages = await lintUnder(
+      recommended,
+      "src/default/Panel.tsx",
+      'import { Popconfirm } from "antd";\nexport const x = Popconfirm;\n'
+    );
+    expect(messages.filter((m) => m.ruleId === "stapel/no-bare-dialog")).toHaveLength(0);
+  });
+});
+
+describe("strict preset — the same rules, at error", () => {
+  it.each(SAMPLES)("%s errors in strict", async (ruleId, path, code) => {
+    const messages = await lintUnder(strict, path, code);
+    const mine = messages.filter((m) => m.ruleId === ruleId);
+    expect(mine.length).toBeGreaterThan(0);
+    expect(mine.every((m) => m.severity === 2)).toBe(true);
+  });
+
+  it("covers the confirm surface", async () => {
+    const messages = await lintUnder(
+      strict,
+      "src/default/Panel.tsx",
+      'import { Popconfirm } from "antd";\nexport const x = Popconfirm;\n'
+    );
+    const mine = messages.filter((m) => m.ruleId === "stapel/no-bare-dialog");
+    expect(mine).toHaveLength(1);
+    expect(mine[0].severity).toBe(2);
+  });
+
+  it("keeps every carve-out `recommended` has", () => {
+    // Built by APPENDING to recommended, so the two presets cannot disagree
+    // about where a rule is off. Structural, not sampled.
+    expect(strict.slice(0, recommended.length)).toEqual(recommended);
+  });
+
+  it("still exempts fixtures — a socket test constructs a socket", async () => {
+    for (const preset of [recommended, strict]) {
+      const messages = await lintUnder(
+        preset,
+        "src/realtime/socket.test.ts",
+        "export const s = new WebSocket(u);\n"
+      );
+      expect(messages.filter((m) => m.ruleId === "stapel/no-adhoc-socket")).toHaveLength(0);
+    }
+  });
+});
+
+describe("plugin registry", () => {
+  it("every doctrine rule is registered and documented", () => {
+    for (const ruleId of DOCTRINE_TIER) {
+      const name = ruleId.slice("stapel/".length);
+      expect(plugin.rules[name], `${name} is not registered`).toBeDefined();
+      expect(plugin.rules[name].meta.docs.description).toBeTruthy();
+    }
+  });
+
+  it("no-raw-dimensions is the fixable one", () => {
+    expect(plugin.rules["no-raw-dimensions"].meta.fixable).toBe("code");
+  });
+});

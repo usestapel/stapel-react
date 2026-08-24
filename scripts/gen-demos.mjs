@@ -30,6 +30,9 @@ import {
   completenessGate,
   buildDemosJson,
   renderStory,
+  defaultSkinImportNames,
+  defaultSkinExports,
+  defaultSkinGate,
 } from "./demos-lib.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -37,6 +40,15 @@ const ROOT = resolve(__dirname, "..");
 
 const PKG_DIR = resolve(ROOT, process.env.DEMOS_PKG_DIR ?? "packages/auth-react");
 const RUN_GATE = (process.env.DEMOS_GATE ?? "1") !== "0";
+// The DEFAULT-SKIN gate (§54 machine form). Three modes, because the fleet does
+// not pass it yet and a gate nobody can go green against gets deleted:
+//   "list"   (default) print the per-package gap report, exit 0
+//   "strict" print it and exit 1 — flipped on after the pair wave
+//   "off"    skip entirely
+// `node scripts/gen-demos.mjs --strict` is the same switch on the command line.
+const SKIN_MODE = process.argv.includes("--strict")
+  ? "strict"
+  : (process.env.DEMOS_SKIN_GATE ?? "list");
 
 const DEMO_DIR = resolve(PKG_DIR, "demo");
 const GEN_DIR = resolve(DEMO_DIR, "generated");
@@ -59,6 +71,53 @@ async function collectDemoFiles() {
     .sort();
 }
 
+/** Read an optional JSON file; ENOENT degrades to `fallback`. */
+async function readJsonOptional(path, fallback) {
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch (e) {
+    if (e?.code === "ENOENT") return fallback;
+    throw e;
+  }
+}
+
+/** Every `src/default/**\/index.ts` barrel of the package, deepest last. */
+async function defaultBarrels(dir) {
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const out = [];
+  for (const e of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+    const full = resolve(dir, e.name);
+    if (e.isDirectory()) out.push(...(await defaultBarrels(full)));
+    else if (e.isFile() && /^index\.tsx?$/.test(e.name)) out.push(full);
+  }
+  return out;
+}
+
+/**
+ * What the default-skin gate requires of this package: every component the
+ * `/default` barrels export, plus every `component.export` its nav manifest
+ * names — a screen the scaffold routes to that has never been drawn is the
+ * worst gap of the set, so it is required even if the barrel spells it
+ * differently.
+ */
+async function requiredSkinNames() {
+  const names = new Set();
+  for (const barrel of await defaultBarrels(resolve(PKG_DIR, "src/default"))) {
+    for (const n of defaultSkinExports(await readFile(barrel, "utf8"))) names.add(n);
+  }
+  const nav = await readJsonOptional(resolve(PKG_DIR, "nav-manifest.json"), null);
+  for (const entry of nav?.entries ?? []) {
+    const name = entry?.component?.export;
+    if (typeof name === "string" && /^[A-Z]/.test(name)) names.add(name);
+  }
+  return [...names].sort();
+}
+
 async function main() {
   const pkg = JSON.parse(await readFile(resolve(PKG_DIR, "package.json"), "utf8"));
   const files = await collectDemoFiles();
@@ -73,7 +132,13 @@ async function main() {
     const rel = relative(PKG_DIR, file);
     const fileDemos = extractDemos(src, rel);
     demos.push(...fileDemos);
-    if (fileDemos.length > 0) byFile.push({ file, demos: fileDemos });
+    if (fileDemos.length > 0) {
+      byFile.push({
+        file,
+        demos: fileDemos,
+        defaultImports: defaultSkinImportNames(src, rel),
+      });
+    }
   }
   demos.sort((a, b) => a.id.localeCompare(b.id));
 
@@ -114,6 +179,58 @@ async function main() {
       process.exit(1);
     }
     gateNote = `, ${headless.length} headless covered`;
+  }
+
+  // Default-skin gate — every /default export and every nav-mounted screen must
+  // be rendered by a demo that imports it FROM src/default (§54).
+  if (SKIN_MODE !== "off") {
+    const required = await requiredSkinNames();
+    if (required.length > 0) {
+      const allow = await readJsonOptional(
+        resolve(PKG_DIR, "demo/skin-coverage.allow.json"),
+        {}
+      );
+      const { missing, noPhone, unseeded, covered } = defaultSkinGate(
+        required,
+        byFile,
+        allow
+      );
+      const lines = [];
+      if (missing.length > 0) {
+        lines.push(
+          `  no demo renders the default skin (imported from src/default):\n` +
+            missing.map((n) => `    - ${n}`).join("\n")
+        );
+      }
+      if (noPhone.length > 0) {
+        lines.push(
+          `  demoed, but no variant declares viewport: "phone":\n` +
+            noPhone.map((n) => `    - ${n}`).join("\n")
+        );
+      }
+      if (unseeded.length > 0) {
+        lines.push(
+          `  multi-variant skin demos with no variant declaring the step it is\n` +
+            `  seeded at (a state reached only by a click is never photographed):\n` +
+            unseeded.map((id) => `    - ${id}`).join("\n")
+        );
+      }
+      if (lines.length > 0) {
+        const verb = SKIN_MODE === "strict" ? "✖" : "⚠";
+        console.error(
+          `${verb} default-skin demos [${GROUP}]: ${covered.length}/${required.length} covered\n` +
+            lines.join("\n") +
+            `\n  Add a demo importing the component from ../src/default/<Name>.js with\n` +
+            `  defineDemo({ component: <Name>, variants: { default: { viewport: "phone", … } } }),\n` +
+            `  or record a reason in packages/${GROUP}/demo/skin-coverage.allow.json.` +
+            (SKIN_MODE === "strict"
+              ? ""
+              : `\n  (listing mode — set DEMOS_SKIN_GATE=strict or pass --strict to fail on this)`)
+        );
+        if (SKIN_MODE === "strict") process.exit(1);
+      }
+      gateNote += `, ${covered.length}/${required.length} skin covered`;
+    }
   }
 
   console.error(

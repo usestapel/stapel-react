@@ -75,6 +75,51 @@ missing, the rule is a no-op — it never fails the lint run.
 
 
 
+### Two presets
+
+```js
+...stapel.configs.recommended  // the guardrails at error, the doctrine tier at WARN
+...stapel.configs.strict       // the same, doctrine tier at ERROR (+ Popconfirm)
+```
+
+A design ruling arrives before the code that satisfies it: on the day the
+doctrine tier shipped, nineteen pairs were in violation of most of it. A rule
+that turns a whole fleet red on arrival does not get adopted — it gets
+blanket-disabled, and the disable outlives the migration. So `recommended`
+ships those rules at **`warn`**, where `eslint .` stays green and
+`pnpm turbo run lint` prints the migration worklist per package per rule;
+`strict` is what a pair opts into once its migration has landed, after which a
+regression fails its own lint.
+
+`strict` is built by APPENDING to `recommended`, so the two can never disagree
+about a carve-out (the failure mode that kept the 0.7.0 test-glob hole
+invisible) — asserted structurally in `test/recommended-preset.test.js`.
+
+**The switch** (the coordinator owns it): in `index.js`, flip `DOCTRINE_LEVEL`
+from `"warn"` to `"error"` and delete `confirmComponents: []` from the
+`no-bare-dialog` block. Both lines are marked `← WAVE-B SWITCH`.
+
+### Why i18n parity is a lint rule and not a test helper
+
+The obvious implementation is a vitest helper each pair imports. It is also the
+one that has already failed: 8 of 19 pairs wrote an ad-hoc `test/i18n*.test.ts`
+and 11 did not — and the 11 are exactly the pairs missing locale files (gdpr and
+video have no `es.ts`; calendar, docs, recordings and shell have neither). A
+gate that has to be adopted is a suggestion with a test runner attached.
+
+ESLint is the only tier here with zero per-pair wiring: the root config spreads
+`recommended` once, every package's `lint` is `eslint .`, and every pair has a
+`src/i18n/keys.ts`. So the rule anchors on that file — the one guaranteed to
+exist — and reads its siblings, which makes a MISSING locale file a finding
+rather than a silence.
+
+The cost, stated plainly: ESLint reports on the file it lints, so a key missing
+from `ru.ts` is reported at its definition in `keys.ts` with the locale named in
+the message, not at the line in `ru.ts` where it should go. That is the right
+way round — the definition site is where someone adding a key already stands,
+and it is the only site that exists when the locale file does not.
+
+
 ## Rules
 
 | Rule | Catches |
@@ -102,6 +147,27 @@ missing, the rule is a no-op — it never fails the lint run.
 | `stapel/no-cyrillic-source` | Cyrillic in a comment, a JSDoc block, or an identifier (variable/function/class/type/property name) — fleet source is English-only (owner ruling 2026-08-09). Reports on the exact line the Cyrillic sits on (never collapsed onto a block comment's opening line), so `eslint-disable-next-line`/`eslint-disable` land where they can actually suppress it. Plain string literals are **deliberately never scanned** — that is the whole design: Russian UI copy in i18n catalogs, fixtures, and sample content stays untouched, so the rule needs no path allowlist |
 | `stapel/no-mixed-script-word` | a single word inside a string or template literal that mixes Latin and Cyrillic letters — a homoglyph (`miттudei`, `Q12а`) that reads as one script and greps as neither. The literal-scanning counterpart to `no-cyrillic-source`: pure-Cyrillic text (real i18n copy) is untouched, only a word straddling both scripts fires. Scans the *parsed* string/template value (so a `\n` escape can't glue onto the following Cyrillic run) and skips regex literals outright (pattern syntax like `\b` or `[a-zА-Я]` is not prose); a 4-character floor keeps adjacent regex-range-boundary letters like `zА` silent |
 
+### Doctrine tier (0.11.0)
+
+Ten rules that state, mechanically, the design rulings the fleet kept re-taking
+by hand. They are **`warn` in `recommended` and `error` in `strict`** — see
+"[Two presets](#two-presets)" below for why, and for the one-line switch that
+flips them.
+
+| Rule | Catches |
+|---|---|
+| `stapel/no-bare-dialog` | `Modal`/`Drawer` (and, in `strict`, `Popconfirm`) imported from antd inside `src/default/**`. A phone gets a bottom sheet, not a centred modal, and not an anchored popover that renders half off-screen or on top of the row it is confirming. One implementation: `SkinDialog` / `SkinConfirm` from `@stapel/tokens-antd/skin`. A `Drawer` that is NAVIGATION is exempted by filename via `allowNavigationDrawer`; the confirm half is switched off with `confirmComponents: []` during a migration wave |
+| `stapel/no-tooltip-in-skin` | antd `Tooltip`/`Popover`, and a hover-only `title="…"` on a Button/Tag/anchor/…, inside `src/default/**`. Touch has no hover, and a **disabled** antd Button never fires the pointer events a tooltip listens for — so the one case where the text mattered most is the one case it is guaranteed never to render. Put the sentence beside the control (`GatedControl`); name an icon with `aria-label`. `title` where it is CONTENT (Card, SkinDialog, Collapse.Panel, Table columns, …) is never flagged; `titleComponents` tunes the list |
+| `stapel/icon-button-needs-label` | a `Button`/`button`/`a` whose only content is an icon — `icon={…}` with no children, or children that are all icon-named elements (`*Outlined`, `*Icon`, `<svg>`) — and which carries no `aria-label`/`aria-labelledby`. The other half of the tooltip ruling: removing the hover text without adding a name leaves the control with no name at all. A spread (`{...props}`) or `aria-hidden` skips the element — "might carry the label" is not a finding. Not scoped to `src/default` |
+| `stapel/no-hardcoded-theme-mode` | `const { mode = "light" } = props`, `props.mode ?? "dark"`, `toAntdThemeConfig("light")`, **and `resolveThemeMode()`** inside `src/default/**`. Three such lines meant the auth skin rendered light inputs and an invisible heading under `<html data-theme="dark">` (CF-1, reproduced with the attribute set before first render). The document owns the mode: `useThemeMode()` / `<SkinTheme>` from `@stapel/tokens-antd/skin`. The last of the four is the second half of the same defect and reported separately (`staleModeRead`): `resolveThemeMode()` SAMPLES the document once per render, so a host that flips `data-theme` at runtime (shell-react ships that control) leaves already-mounted skins on the old side — which is why the showcase's dark toggle is a paper feature. `useThemeMode()` is the same answer through `useSyncExternalStore` over a `MutationObserver`, i.e. a subscription. Tune with `staleModeFunctions` |
+| `stapel/no-local-skin-theme` | a `src/default/theme.tsx` that builds its own antd `ConfigProvider`. Nine pairs ship a copy identical modulo names, so the CF-1 fix has to land nine times and will land in eight. One report per file. A **scoped** ConfigProvider inside a panel is not flagged — that would fire on the very thing `SkinTheme` is |
+| `stapel/no-raw-dimensions` | a numeric literal for `padding`/`margin`/`gap`/`width`/`height`/`fontSize`/`borderRadius`… in a style object, or a px-valued JSX prop (`size`, `width`, `height`, `gap`), inside `src/default/**`. **Autofixable** when the number is an EXACT scale step — `padding: 16` → `spacing[4]`, `borderRadius: 8` → `radii.md`, `fontSize: 12` → `fontSize.xs.fontSize` — and the fix writes the `@stapel/tokens` import too (an autofix that leaves an undefined identifier turns a warning into a build error). A number on no step is reported WITHOUT a fix: 15 is not "nearly 16", it was picked by eye. `0` is a reset and never flagged; `lineHeight` is excluded (a bare number there is a unitless multiplier, not px); a non-style object (`{ width: 96 }` on a media descriptor, `<Col span={12}>`) is out of scope. Scale numbers come from `@stapel/tokens/theme.default.json`, so the rule cannot drift from the values it rewrites to |
+| `stapel/i18n-locale-parity` | a key in a pair's English bundle with no translation in `ru.ts`/`es.ts`; a **missing locale file**; a key a locale defines that `en` does not (a rename left behind); and a locale value byte-identical to a long English one (an untranslated copy that every key-set-only parity check calls green). Anchored on `src/i18n/keys.ts` and reads the siblings as text — see [why this is a lint rule](#why-i18n-parity-is-a-lint-rule-and-not-a-test-helper). Spreads (the generated backend error bundles) are ignored on both sides. Tune `locales`, `untranslatedFloor`, `reportExtra` |
+| `stapel/no-adhoc-socket` | `new WebSocket(…)` / `new EventSource(…)` outside the `@stapel/realtime` package (resolved by package NAME from the nearest package.json) and outside test files. A socket is four lines and a year of policy: backoff with jitter, a terminating retry budget, terminal vs retryable close codes, a `hello{last_seq}` resume cursor, seq dedup, a `ping`→`pong` answer, and a 4401 routed once through `SessionManager`'s single-flight refresh. The TS twin of core's RT001-RT003. A pair mid-cutover goes in `allowPackages` with its ticket named |
+| `stapel/no-silent-slot` | `{props.searchSlot}` / `{props.renderX?.(…)}` in a JSX **child** position inside `src/default/**` with no `??` fallback. An unfilled slot renders a hole, and a hole looks like a finished page — the one defect nobody reports. Write the decision: `?? <SlotPlaceholder name="…"/>`, or `?? null` to say empty is correct. An attribute-position slot is the consumer's business and is not covered |
+| `stapel/no-boolean-disabled` (heuristic) | `disabled={<expr>}` on a Button inside `src/default/**` where the expression carries no reason. A grey button with no reason cannot be told apart from a missing permission, a hit limit, or a still-loading page. Disable through `ActionAvailability` and render the reason beside the control with `GatedControl`. **Name-based, and honest about it**: expressions mentioning a gate (`gate`, `available`, `blocked`, `canX`) are accepted, as are transient states (`busy`, `submitting`, `loading`) and a forwarded `props.disabled`; `data-disabled-reason="…"` is the declared escape hatch. `disabled={left > 0}` and `disabled={!name.trim()}` are the false positives it produces on purpose — answer them with the escape hatch or the gate. See the rule header for the full limits |
+
+
 ### Settings
 
 Rules resolve their catalogs automatically; override for non-standard layouts:
@@ -117,6 +183,7 @@ settings: {
     eventsManifests: [manifest],// or eventNames: ["pricing.plan.selected", …]
     operationsManifests: [manifest], // or operationPaths: ["/auth/api/v1/me/", …]
     reservedPathsFile: "./reserved-paths.json", // or reservedPaths: ["/admin", …]
+    scales: {...},              // or themeFile — dimension scales for no-raw-dimensions
     cssVarFunctions: ["cssVar"], // extra token-accessor calls valid-token-name inspects
     httpVerbs: ["get","post"],   // client methods no-string-paths inspects
     queryHooks: ["useQuery"],    // extra react-query hooks to inspect for keys
