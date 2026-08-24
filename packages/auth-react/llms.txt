@@ -236,11 +236,13 @@ const { tracked } = useTracked();
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - auth.anonymous-session → <AnonymousSession> [default]  demo/AnonymousSession.demo.tsx
+- auth.auth-panel-skin → <AuthPanel> [default|register]  demo/AuthPanelSkin.demo.tsx
 - auth.authenticator-change → <AuthenticatorChange> [default]  demo/AuthenticatorChange.demo.tsx
 - auth.first-login → <ForcedPasswordChange> [forcedChange|mfaEnroll]  demo/FirstLogin.demo.tsx
 - auth.magic-link → <MagicLink> [default]  demo/MagicLink.demo.tsx
 - auth.passkey-login → <PasskeyLogin> [default]  demo/PasskeyLogin.demo.tsx
 - auth.passkey-registration → <PasskeyRegistration> [default]  demo/PasskeyRegistration.demo.tsx
+- auth.passkeys-manager-skin → <PasskeysManager> [default|empty]  demo/PasskeysManagerSkin.demo.tsx
 - auth.password-change → <PasswordChange> [default]  demo/PasswordChange.demo.tsx
 - auth.password-login → <PasswordLogin> [default]  demo/PasswordLogin.demo.tsx
 - auth.password-register → <PasswordRegister> [default]  demo/PasswordRegister.demo.tsx

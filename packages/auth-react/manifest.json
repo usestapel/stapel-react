@@ -2082,6 +2082,17 @@
       "source": "demo/AnonymousSession.demo.tsx"
     },
     {
+      "id": "auth.auth-panel-skin",
+      "title": "Sign-in screen (default skin)",
+      "description": "The shipped sign-in surface. Picking an alt method opens the fleet's dialog — a bottom sheet under 768px, a centred modal at or above it. Picking Passkey raises the system prompt immediately and opens nothing of ours unless the ceremony fails.",
+      "component": "AuthPanel",
+      "variants": [
+        "default",
+        "register"
+      ],
+      "source": "demo/AuthPanelSkin.demo.tsx"
+    },
+    {
       "id": "auth.authenticator-change",
       "title": "Authenticator change (instant)",
       "description": "Headless instant email/phone change: verify the old channel, then confirm the new one — a four-step OTP ladder.",
@@ -2160,6 +2171,17 @@
         "default"
       ],
       "source": "demo/PasskeyRegistration.demo.tsx"
+    },
+    {
+      "id": "auth.passkeys-manager-skin",
+      "title": "Passkeys (default skin)",
+      "description": "Credential-management rows: what the passkey lives in (read from transports), when it was added, when it was last used — or that it never has been — plus remove and add another. Never a sign-in action, and Add is blocked with a printed reason where the browser cannot create passkeys.",
+      "component": "PasskeysManager",
+      "variants": [
+        "default",
+        "empty"
+      ],
+      "source": "demo/PasskeysManagerSkin.demo.tsx"
     },
     {
       "id": "auth.password-change",

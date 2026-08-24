@@ -73,6 +73,7 @@ const { tracked } = useTracked();
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - cdn.gallery → <MediaUploader> [default|reopened-draft|full]  demo/MediaUploader.demo.tsx
 - cdn.single → <ImageUpload> [default|already-stored]  demo/ImageUpload.demo.tsx
+- cdn.thumbnail-tier → <CdnThumbnail> [default|fluid]  demo/ThumbnailTier.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets
