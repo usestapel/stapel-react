@@ -422,12 +422,14 @@
   "demos": [
     {
       "id": "geo.address-search",
-      "title": "Search-as-you-type, and the five ways it can say nothing",
+      "title": "Search-as-you-type, and the six ways it can say nothing",
       "description": "The address field over usePlaceSearch. Below the deployment's search_min_chars it says keep typing rather than showing an empty state; zero results is an empty state and never an error; a 401 states the deployment's own permission answer without alarm; a 429 keeps the last suggestions on screen; only a 502 is drawn as a failure, with a retry.",
       "component": "AddressSearchField",
       "flow": "geo.geocode_address",
       "variants": [
         "default",
+        "typing",
+        "idle",
         "empty",
         "unauthorized",
         "throttled",
@@ -456,6 +458,8 @@
         "default",
         "sheet",
         "anonymous",
+        "unavailable",
+        "nowhere",
         "config-failed",
         "dark"
       ],

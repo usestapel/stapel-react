@@ -557,6 +557,9 @@
       "title": "Conversation (default skin)",
       "description": "The shipped thread: replay plus live tail, the reader's own lines aligned to the trailing edge, a composer that states its own limit, and a transport tag that says WHY it is not live instead of only that it is refreshing. The same component renders a socket-fed thread and a polled one — that is the seam holding.",
       "component": "ConversationThreadPanel",
+      "covers": [
+        "ChatSkinTheme"
+      ],
       "tokens": [
         "surface-raised",
         "text",
@@ -566,7 +569,9 @@
       "variants": [
         "default",
         "earlier-history",
-        "no-messages-yet"
+        "no-messages-yet",
+        "dark",
+        "no-live-socket"
       ],
       "source": "demo/ConversationThreadPanelSkin.demo.tsx"
     },
@@ -687,6 +692,8 @@
     "chat.thread.loading",
     "chat.thread.retry",
     "chat.thread.system",
+    "chat.transport.catching_up",
+    "chat.transport.connecting",
     "chat.transport.degraded.forbidden",
     "chat.transport.degraded.never_connected",
     "chat.transport.degraded.no_socket",
@@ -699,7 +706,6 @@
     "chat.transport.degraded.unsupported",
     "chat.transport.idle",
     "chat.transport.live",
-    "chat.transport.polling",
     "error.400.bad_request",
     "error.400.captcha_invalid",
     "error.400.captcha_required",
