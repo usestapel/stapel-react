@@ -51,6 +51,25 @@ export interface LocationPickerBag {
 export interface UseLocationPickerOptions {
   readonly config: MapConfig | undefined;
   readonly initial?: LatLon | undefined;
+  /**
+   * The answer this pair ALREADY has for {@link UseLocationPickerOptions.initial}
+   * — the address a product stored the last time someone picked this point.
+   *
+   * Supplying it does two things, and the second is the reason it exists.
+   * The pin opens with its address on screen instead of a blank line that
+   * fills in half a second later; and the first reverse-geocode is SKIPPED,
+   * because asking the geocoder to re-answer a question whose answer is in the
+   * form is one authenticated call per mount of every edit screen. Under the
+   * deployment's default permissions it is worse than wasteful: a signed-out
+   * visitor opening a stored location would be told the address is
+   * unavailable while it sits in the field above.
+   *
+   * A `PlaceResolution` with no `feature` and no `formatted` is a stored
+   * "there is no address here" and opens on `nowhere` — the middle of a lake
+   * was a successful answer then and is a successful answer now. Any move of
+   * the pin re-resolves as usual; this seeds the opening state only.
+   */
+  readonly initialResolution?: PlaceResolution | undefined;
   /** How many known `Location` rows to ask for. **0 by default — the
    * reference tree is not queried at all**, per the contract, so a picker that
    * does not use them costs nothing. */
@@ -77,18 +96,50 @@ export interface UseLocationPickerOptions {
  * feature means "no address here", which is a sentence to render, not a red
  * box (`"nowhere"`).
  */
+/** A resolution is `nowhere` when the call SUCCEEDED and matched nothing —
+ * the same test the network answer goes through, so a stored answer and a
+ * fresh one cannot be classified two different ways. */
+function stateForResolution(resolution: PlaceResolution): ResolveState {
+  const formatted = resolution.formatted;
+  const nothing =
+    (resolution.feature === null || resolution.feature === undefined) &&
+    (formatted === null || formatted === undefined);
+  return nothing ? { step: "nowhere", resolution } : { step: "resolved", resolution };
+}
+
+/** Identity of a pin, for "have we already been handed this one's answer". */
+function pointKey(point: LatLon): string {
+  return `${String(point.lat)},${String(point.lon)}`;
+}
+
 export function useLocationPicker(options: UseLocationPickerOptions): LocationPickerBag {
   const api = useGeoApi();
-  const { config, initial, nearest = 0, settleMs = 400, lang } = options;
+  const { config, initial, initialResolution, nearest = 0, settleMs = 400, lang } = options;
   const [point, setPoint] = useState<LatLon | undefined>(initial);
-  const [resolve, setResolve] = useState<ResolveState>({ step: "idle" });
+  const [resolve, setResolve] = useState<ResolveState>(() =>
+    initialResolution !== undefined && initial !== undefined
+      ? stateForResolution(initialResolution)
+      : { step: "idle" }
+  );
   const [nonce, setNonce] = useState(0);
   const inFlight = useRef<AbortController | null>(null);
+  /**
+   * The one pin whose answer arrived with the props. Cleared the moment the
+   * pin moves or a retry is asked for, so this suppresses exactly one request
+   * — the redundant one — and never a real question.
+   */
+  const seededFor = useRef<string | null>(
+    initialResolution !== undefined && initial !== undefined ? pointKey(initial) : null
+  );
 
   const path = config ? endpointsOf(config)["resolve"] : undefined;
 
   useEffect(() => {
     if (point === undefined || path === undefined) return;
+    if (seededFor.current !== null) {
+      if (seededFor.current === pointKey(point) && nonce === 0) return;
+      seededFor.current = null;
+    }
     const timer = setTimeout(() => {
       inFlight.current?.abort();
       const controller = new AbortController();
@@ -107,13 +158,7 @@ export function useLocationPicker(options: UseLocationPickerOptions): LocationPi
         )
         .then((resolution) => {
           if (controller.signal.aborted) return;
-          const formatted = resolution.formatted;
-          const nothing =
-            (resolution.feature === null || resolution.feature === undefined) &&
-            (formatted === null || formatted === undefined);
-          setResolve(
-            nothing ? { step: "nowhere", resolution } : { step: "resolved", resolution }
-          );
+          setResolve(stateForResolution(resolution));
         })
         .catch((error: unknown) => {
           if (controller.signal.aborted) return;

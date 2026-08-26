@@ -56,9 +56,22 @@ export const CHAT_I18N_KEYS = {
   startSignIn: "chat.start.sign_in",
 
   // Transport (the seam is invisible to the UI's BEHAVIOUR, but a person may
-  // still be told whether the thread is live or on a timer)
+  // still be told whether the thread is live or on a timer).
+  //
+  // `chat.transport.polling` — "Refreshing every few seconds" — used to live
+  // here and is GONE, because it was the sentence that could never be true
+  // where it was rendered. The tag falls back to a transport label only when
+  // there is NO named degradation, and the states in which that happens are
+  // the healthy ones: a socket that has not opened yet, a socket deliberately
+  // held back until the thread window loads, and a resync that is catching
+  // up. Whenever polling really is the answer there IS a named degradation
+  // (`no_socket`, `never_connected`, `reconnecting…`) and it is that sentence
+  // which renders. So the pair's own complaint copy was printed on precisely
+  // the screens where nothing was wrong — a standing banner that trains
+  // people to ignore the one message that matters.
   transportLive: "chat.transport.live",
-  transportPolling: "chat.transport.polling",
+  transportConnecting: "chat.transport.connecting",
+  transportCatchingUp: "chat.transport.catching_up",
   transportIdle: "chat.transport.idle",
 
   // Degraded transport. These exist because "Refreshing every few seconds"
@@ -162,7 +175,8 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.start.sign_in": "Sign in",
 
   "chat.transport.live": "Live",
-  "chat.transport.polling": "Refreshing every few seconds",
+  "chat.transport.connecting": "Connecting…",
+  "chat.transport.catching_up": "Catching up…",
   "chat.transport.idle": "Paused",
 
   "chat.transport.degraded.reconnecting": "Reconnecting…",

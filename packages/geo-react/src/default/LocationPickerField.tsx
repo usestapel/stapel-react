@@ -71,7 +71,7 @@ import { usePlaceSearch } from "../headless/usePlaceSearch.js";
 import type { PickedLocation } from "../headless/useLocationPicker.js";
 import type { PositionOutcome } from "../headless/useBrowserPosition.js";
 import type { LatLon } from "../model/coords.js";
-import type { MapConfig } from "../api/types.js";
+import type { MapConfig, PlaceResolution } from "../api/types.js";
 import { AddressSearchField, AVAILABILITY_KEYS } from "./AddressSearchField.js";
 import { TileMap } from "./TileMap.js";
 import { GeoSkinTheme } from "./theme.js";
@@ -107,6 +107,17 @@ export interface LocationPickerFieldProps {
   /** The point to start on. Omit for a fresh pick, and the deployment's
    * `default_center` decides. */
   readonly value?: LatLon;
+  /**
+   * The address already stored for {@link LocationPickerFieldProps.value} —
+   * an edit form handing back the answer it saved.
+   *
+   * The picker then OPENS on that address instead of a blank confirmation
+   * line, and does not re-ask the geocoder about a point it was just handed
+   * the answer to. Ignored without a `value`, because an answer with no
+   * question belongs to no pin. See `useLocationPicker`'s `initialResolution`
+   * for why the redundant call is worth removing rather than tolerating.
+   */
+  readonly resolution?: PlaceResolution;
   /** Fires whenever the pin or its resolved address changes — the live value
    * for a form that saves as it goes. */
   readonly onChange?: (picked: PickedLocation) => void;
@@ -156,6 +167,9 @@ export function LocationPickerField(props: LocationPickerFieldProps): ReactEleme
         config={loaded}
         height={height}
         {...(props.value !== undefined ? { value: props.value } : {})}
+        {...(props.value !== undefined && props.resolution !== undefined
+          ? { resolution: props.resolution }
+          : {})}
         {...(props.onChange !== undefined ? { onChange: props.onChange } : {})}
         {...(props.lang !== undefined ? { lang: props.lang } : {})}
         nearest={props.nearest ?? 0}
@@ -266,6 +280,7 @@ interface PickerBodyProps {
   readonly config: MapConfig;
   readonly height: number | string;
   readonly value?: LatLon;
+  readonly resolution?: PlaceResolution;
   readonly onChange?: (picked: PickedLocation) => void;
   readonly onConfirm: (picked: PickedLocation) => void;
   readonly nearest: number;
@@ -298,6 +313,7 @@ function PickerBody(props: PickerBodyProps): ReactElement {
     config,
     initial: center,
     nearest: props.nearest,
+    ...(props.resolution !== undefined ? { initialResolution: props.resolution } : {}),
     ...(props.lang !== undefined ? { lang: props.lang } : {}),
   });
   const position = useBrowserPosition({ offered: config.geolocation });

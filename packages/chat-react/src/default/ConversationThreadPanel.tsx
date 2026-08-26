@@ -23,6 +23,7 @@ import { MessageComposer } from "../headless/MessageComposer.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ErrorAlert } from "./ErrorAlert.js";
 import { TransportTag } from "./TransportTag.js";
+import { ChatSkinTheme } from "./theme.js";
 
 export interface ConversationThreadPanelProps {
   conversationId: string;
@@ -172,8 +173,10 @@ export function ConversationThreadPanel(
         refetch,
         transport,
         degraded,
+        status,
       }) => (
-        <Card data-testid="chat-thread">
+        <ChatSkinTheme>
+          <Card data-testid="chat-thread">
           {/* WRAPS, and the tag's own text wraps inside it. The degradation
               copy is a full sentence ("Live messages stopped — sign in again
               to get them back"), and in a nowrap row at 390px it had nowhere
@@ -196,7 +199,7 @@ export function ConversationThreadPanel(
                 WHY — a degraded transport that renders as a plain "refreshing
                 every few seconds" is the thing that made this pair's broken
                 handshake look like a design decision for months. */}
-            <TransportTag transport={transport} degraded={degraded} />
+            <TransportTag transport={transport} degraded={degraded} status={status} />
           </Flex>
 
           {matchList(state, {
@@ -257,7 +260,8 @@ export function ConversationThreadPanel(
               maxLength={props.maxLength}
             />
           </div>
-        </Card>
+          </Card>
+        </ChatSkinTheme>
       )}
     </ConversationThread>
   );

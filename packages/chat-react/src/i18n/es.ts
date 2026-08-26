@@ -105,7 +105,8 @@ export const chatI18nBundleEs: I18nDictionary = {
   "chat.start.sign_in": "Iniciar sesión",
 
   "chat.transport.live": "En directo",
-  "chat.transport.polling": "Actualizando cada pocos segundos",
+  "chat.transport.connecting": "Conectando…",
+  "chat.transport.catching_up": "Poniéndonos al día…",
   "chat.transport.idle": "En pausa",
 
   "chat.transport.degraded.reconnecting": "Reconectando…",

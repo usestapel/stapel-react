@@ -4,16 +4,39 @@
  * — so this file obeys the same guardrails as `src/`: colours are tokens, every
  * label is an i18n key.
  *
- * The mock runtime injects a canned `fetch` (no MSW worker needed) and turns
- * the socket transport OFF (`realtime: { socketUrl: null }`): a demo shows the
- * SCREEN, and the point of the transport seam is that the screen is the same
- * either way. The socket protocol itself is exercised where it belongs, in
- * `test/socket.test.ts` against a fake transport.
+ * The mock runtime injects a canned `fetch` (no MSW worker needed) and a
+ * STANDING-IN realtime client whose stream is already live — see
+ * {@link liveRealtimeClient}.
+ *
+ * ── Why the socket is no longer simply switched off ────────────────────────
+ *
+ * It used to be (`realtime: { socketUrl: null }`), on the argument that a demo
+ * shows the SCREEN and the seam makes the screen the same either way. The
+ * screen is not the same, and the shots proved it: with no socket the seam
+ * correctly reports `no_socket`, so every single story wore the sentence
+ * "Live messages are off here — refreshing every few seconds instead" as a
+ * standing banner. A catalogue of a chat product in which every frame carries
+ * a degradation notice advertises the broken state as the normal one — and it
+ * is the very sentence this pair was reported for.
+ *
+ * The second reason is worse and less visible: with no live socket the
+ * freshness seam POLLS (3 s in a thread, 15 s in the inbox) and a poll
+ * refetches the seeded queries with `type: "active"`, which ignores
+ * `staleTime` entirely. So a seeded demo left open for three seconds threw its
+ * seed away and rendered whatever the canned server happened to answer. A live
+ * stream is what stops the timer.
  */
 import { useMemo } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider, createI18n, useT } from "@stapel/core";
+import { RealtimeProvider } from "@stapel/realtime/react";
+import type {
+  RealtimeClient,
+  RealtimeState,
+  RealtimeStreamStatus,
+  RealtimeSubscription,
+} from "@stapel/realtime";
 import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
 import { ChatProvider, createChatRuntime, registerChatI18n } from "../src/index.js";
 import { chatQueryKeys } from "../src/model/queryKeys.js";
@@ -38,12 +61,29 @@ function statusAndBody(value: DemoResponse): [number, unknown] {
   return [200, value];
 }
 
-/** Build a canned `fetch` from a suffix→response map; unmatched paths return `{}`. */
+/**
+ * Build a canned `fetch` from a suffix→response map.
+ *
+ * AN UNDECLARED PATH IS A 404, NOT AN EMPTY 200. It used to be `{}` at status
+ * 200, and that default is what turned three seeded thread variants into three
+ * ERROR cards: the thread demo declared `/read` and nothing else, so
+ * `GET …/messages` was answered `{}`, `threadWindowFromPage` read `.items` off
+ * `undefined`, and TanStack Query recorded a rejected query function. The
+ * seeded window was still in the cache and the panel still rendered the failed
+ * arm, because a query that HAS data and an error is an error.
+ *
+ * A demo mock that answers a request nobody wrote a handler for is a mock that
+ * cannot be wrong on screen — it is wrong one layer down, inside the pair's own
+ * parser, where the failure arrives wearing the wrong name. So an unmatched
+ * path now answers the way the real server answers an unknown route, and a
+ * missing handler shows up as the demo's own failure arm with the right
+ * sentence in it.
+ */
 export function mockFetch(handlers: DemoHandlers): typeof globalThis.fetch {
   return ((input: RequestInfo | URL): Promise<Response> => {
     const url =
       typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-    let matched: DemoResponse = {};
+    let matched: DemoResponse = [404, { localizable_error: "error.404.not_found" }];
     for (const [suffix, value] of Object.entries(handlers)) {
       if (url.includes(suffix)) {
         matched = value;
@@ -74,15 +114,30 @@ const demoBundleEn: Record<string, string> = {
  * coverage it does not have (that is exactly what `assertVariantsRenderDistinctly`
  * exists to catch). Seeding puts the state on screen synchronously, which is
  * also what a person opening the viewer wants to see.
+ *
+ * SEEDING THE CACHE IS ONLY HALF OF IT. A seed that is immediately refetched
+ * over is a seed that survives exactly one frame — a static markup renderer
+ * (which runs no effects) sees the state, and the mounted screen a person or a
+ * shot runner looks at sees whatever the mock answered instead. That is how
+ * three seeded inbox variants all photographed the EMPTY card: the seed was
+ * three conversations, the declared handler answered `{items: []}`, and the
+ * mount refetch replaced one with the other before anyone looked.
+ *
+ * So a seeded demo also pins its queries (`staleTime: Infinity`,
+ * `refetchOnMount: false` — see {@link ChatDemoHarness}) AND declares handlers
+ * that agree with the seed ({@link inboxPage}, {@link messagePage}). Either one
+ * alone leaves a hole: the pin does not stop the transport seam's own
+ * `refetchQueries`, and matching handlers alone still cost a round trip the
+ * first frame is racing.
  */
 export type DemoSeed = (queryClient: QueryClient) => void;
 
-/** Seed the inbox with one page of conversations. */
-export function seedInbox(
+/** One page of conversations, in the shape the wire sends it. */
+export function inboxPage(
   rows: readonly Conversation[],
   options?: { readonly hasNext?: boolean }
-): DemoSeed {
-  const page: ConversationPage = {
+): ConversationPage {
+  return {
     items: [...rows],
     next_anchor: options?.hasNext === true ? "2026-08-21T18:00:00Z" : null,
     prev_anchor: null,
@@ -90,6 +145,37 @@ export function seedInbox(
     has_prev: false,
     count: rows.length,
   };
+}
+
+/**
+ * One page of messages, NEWEST-first — the order `direction=next` returns and
+ * the one `threadWindowFromPage` is written against. A demo that hands back
+ * ascending rows here documents an order no server produces.
+ */
+export function messagePage(messages: readonly ChatMessage[]): {
+  items: ChatMessage[];
+  next_anchor: null;
+  prev_anchor: null;
+  has_next: false;
+  has_prev: boolean;
+  count: number;
+} {
+  return {
+    items: [...messages].sort((a, b) => b.seq - a.seq),
+    next_anchor: null,
+    prev_anchor: null,
+    has_next: false,
+    has_prev: false,
+    count: messages.length,
+  };
+}
+
+/** Seed the inbox with one page of conversations. */
+export function seedInbox(
+  rows: readonly Conversation[],
+  options?: { readonly hasNext?: boolean }
+): DemoSeed {
+  const page = inboxPage(rows, options);
   return (queryClient) => {
     queryClient.setQueryData(chatQueryKeys.conversations(), {
       pages: [page],
@@ -121,36 +207,160 @@ export function seedAll(...seeds: readonly DemoSeed[]): DemoSeed {
   };
 }
 
+// ── the standing-in realtime client ──────────────────────────────────────────
+
+/**
+ * The socket origin the demo runtime derives its stream URLs from. Nothing is
+ * ever opened to it — {@link liveRealtimeClient} answers instead — but it has
+ * to be non-null, because `socketUrl: null` is itself a NAMED degradation
+ * (`no_socket`) and saying so out loud is the seam working correctly.
+ */
+const DEMO_SOCKET_ORIGIN = "wss://chat.demo.stapel.dev";
+
+function liveStatus(stream: string): RealtimeStreamStatus {
+  return {
+    stream,
+    state: "live",
+    refusal: undefined,
+    reason: undefined,
+    attempt: 0,
+    cursor: 0,
+    gap: undefined,
+    serverSeq: undefined,
+  };
+}
+
+const LIVE_STATE: RealtimeState = {
+  state: "open",
+  connected: true,
+  reconnecting: false,
+  refused: false,
+  refusal: undefined,
+  reason: undefined,
+  attempt: 0,
+  cursors: {},
+  everConnected: true,
+  firstAttemptAt: 0,
+  lastOpenAt: 0,
+  degradation: null,
+  refreshing: null,
+};
+
+/**
+ * A `RealtimeClient` that is ALREADY LIVE on its first synchronous read, and
+ * that opens nothing.
+ *
+ * ── Why the demos needed one ───────────────────────────────────────────────
+ *
+ * With the socket switched off the seam reports `no_socket`, which is correct
+ * and which put "Live messages are off here — refreshing every few seconds
+ * instead" on EVERY story of this pair. A catalogue in which every frame of a
+ * chat product carries a degradation notice documents the broken deployment as
+ * the normal one, and it does it with the exact sentence this pair was
+ * reported for. A banner that is always on is not a banner.
+ *
+ * It also stops the freshness timer. Polling runs whenever the socket is not
+ * carrying the stream, and a poll calls `refetchQueries({ type: "active" })` —
+ * which ignores `staleTime`, so it walks straight through the pinned query
+ * defaults below and replaces a seeded variant with whatever the canned server
+ * answers, three seconds after anyone opened it. Pinning the cache fixes the
+ * mount; only a live stream fixes the tick.
+ *
+ * `useStream` seeds its state from `client.streamStatus(stream)` DURING the
+ * first render rather than from an effect, which is the only reason a static
+ * shot can show a live chat at all: a real handshake is at best a microtask
+ * away, so every story would otherwise be photographed mid-connect.
+ *
+ * It carries no frames, and it is not pretending to test the transport — that
+ * is `test/transport.test.tsx`, against the real v1 envelope over a fake
+ * `WebSocket`. What this fixes is the CATALOGUE.
+ */
+function liveRealtimeClient(): RealtimeClient {
+  const subscription = (stream: string): RealtimeSubscription => ({
+    stream,
+    status: () => liveStatus(stream),
+    cursor: () => 0,
+    send: () => true,
+    close: () => undefined,
+  });
+  return {
+    subscribe: (stream) => subscription(stream),
+    getState: () => LIVE_STATE,
+    streamStatus: (stream) => liveStatus(stream),
+    cursors: () => ({}),
+    onState: () => () => undefined,
+    reconnect: () => undefined,
+    close: () => undefined,
+  };
+}
+
 /** Provider frame every chat demo variant renders inside. */
 export function ChatDemoHarness(props: {
   handlers?: DemoHandlers;
   /** Cache primed before the first render — see {@link DemoSeed}. */
   seed?: DemoSeed;
+  /**
+   * `"live"` (default) mounts {@link liveRealtimeClient}, so the screen is the
+   * one a working deployment renders. `"off"` is a deployment with no sockets
+   * at all — a real, supported configuration, and the ONE place the named
+   * degradation belongs. Never make it the default again.
+   */
+  socket?: "live" | "off";
   children: ReactNode;
 }): ReactElement {
   const { handlers, seed } = props;
-  const { runtime, queryClient, i18n } = useMemo(() => {
+  const live = (props.socket ?? "live") === "live";
+  const { runtime, queryClient, i18n, realtime } = useMemo(() => {
     const rt = createChatRuntime({
       baseUrl: DEMO_BASE,
       fetch: mockFetch(handlers ?? {}),
-      realtime: { socketUrl: null },
+      realtime: { socketUrl: live ? DEMO_SOCKET_ORIGIN : null },
     });
     const engine = createI18n({ locale: "en" });
     registerChatI18n(engine);
     engine.registerBundle("en", demoBundleEn);
     const client = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
+      defaultOptions: {
+        queries: {
+          retry: false,
+          // A SEEDED DEMO IS NOT A STALE ONE. TanStack's default `staleTime: 0`
+          // makes every seeded query stale the instant it is read, so the mount
+          // refetch fires and the answer — an empty page, a 404 for a path the
+          // demo never declared — lands on top of the state the variant is
+          // NAMED for. Three inbox variants photographed the empty card that
+          // way, and three thread variants the error card.
+          staleTime: Number.POSITIVE_INFINITY,
+          refetchOnMount: false,
+          refetchOnWindowFocus: false,
+          refetchOnReconnect: false,
+        },
+      },
     });
     // Before the provider mounts, so the first render is already the state.
     seed?.(client);
-    return { runtime: rt, queryClient: client, i18n: engine };
-  }, [handlers, seed]);
-  return (
+    return {
+      runtime: rt,
+      queryClient: client,
+      i18n: engine,
+      realtime: live ? liveRealtimeClient() : null,
+    };
+  }, [handlers, seed, live]);
+  const inner = (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
         <ChatProvider runtime={runtime}>{props.children}</ChatProvider>
       </I18nProvider>
     </QueryClientProvider>
+  );
+  // `<ChatProvider>` adopts a client that is already in context instead of
+  // building a second socket stack, so this is the shipped host path and not a
+  // demo-only door.
+  return realtime === null ? (
+    inner
+  ) : (
+    <RealtimeProvider url={DEMO_SOCKET_ORIGIN} client={realtime} session={null}>
+      {inner}
+    </RealtimeProvider>
   );
 }
 

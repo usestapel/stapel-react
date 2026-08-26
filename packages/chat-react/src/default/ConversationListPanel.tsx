@@ -14,6 +14,7 @@ import { ConversationList } from "../headless/ConversationList.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ErrorAlert } from "./ErrorAlert.js";
 import { TransportTag } from "./TransportTag.js";
+import { ChatSkinTheme } from "./theme.js";
 
 const KIND_KEYS: Record<string, string> = {
   direct: CHAT_I18N_KEYS.kindDirect,
@@ -132,8 +133,10 @@ export function ConversationListPanel(
         refetch,
         transport,
         degraded,
+        status,
       }) => (
-        <Card data-testid="chat-conversation-list">
+        <ChatSkinTheme>
+          <Card data-testid="chat-conversation-list">
           {/* The list has a socket of its own now (`ws/chat/inbox`), so it
               gets the same sentence the thread does. A conversation list that
               refreshes on a timer forever is a polling chat however live the
@@ -142,7 +145,7 @@ export function ConversationListPanel(
             <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 0 }}>
               {t(CHAT_I18N_KEYS.listTitle)}
             </Typography.Title>
-            <TransportTag transport={transport} degraded={degraded} />
+            <TransportTag transport={transport} degraded={degraded} status={status} />
           </Flex>
 
           {matchList(state, {
@@ -194,7 +197,8 @@ export function ConversationListPanel(
               </Space>
             ),
           })}
-        </Card>
+          </Card>
+        </ChatSkinTheme>
       )}
     </ConversationList>
   );

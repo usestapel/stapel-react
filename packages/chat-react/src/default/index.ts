@@ -20,3 +20,7 @@ export { StartChatButton } from "./StartChatButton.js";
 export type { StartChatButtonProps } from "./StartChatButton.js";
 export { SignInLink } from "./SignInLink.js";
 export type { SignInLinkProps } from "./SignInLink.js";
+// The skin's own theme root. Every surface above already wraps itself in it;
+// it is exported so a host composing loose parts can wrap them once.
+export { ChatSkinTheme } from "./theme.js";
+export type { ChatSkinThemeProps } from "./theme.js";

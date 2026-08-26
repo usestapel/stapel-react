@@ -29,6 +29,7 @@ import {
 import type { ChatDegradedReason } from "../src/index.js";
 import { chatI18nBundleRu } from "../src/i18n/ru.js";
 import { chatI18nBundleEs } from "../src/i18n/es.js";
+import { TransportTag } from "../src/default/TransportTag.js";
 import { TestHarness, installBrowserWebSocket, mockServer, ChatServer } from "./harness.js";
 import type { BrowserWebSocketEnvironment } from "./harness.js";
 
@@ -266,5 +267,136 @@ describe("a socket that is configured and never connects SAYS SO", () => {
     await waitFor(() =>
       expect(screen.getByTestId("degraded").textContent).toBe("reconnecting_long")
     );
+  });
+});
+
+// ── the label a healthy screen wears ─────────────────────────────────────────
+
+/**
+ * THE REGRESSION THIS BLOCK EXISTS FOR.
+ *
+ * `chatDegradation` was right the whole time; the SKIN was not. `TransportTag`
+ * fell back to a transport label whenever `degraded` was `null`, and the
+ * transport is `"polling"` for every state that is not live — including the
+ * three healthy ones: a socket still connecting, a socket deliberately held
+ * back until the thread window loads, and a resync catching up. The label for
+ * `"polling"` was "Refreshing every few seconds", so a perfectly healthy
+ * screen printed the pair's own complaint copy as a standing banner, from its
+ * first frame until the socket opened.
+ *
+ * That is worse than the original defect it was written for. The original was
+ * a true sentence nobody could act on; this was the same sentence shown when
+ * it was FALSE, which leaves a person no way to tell a fixed product from a
+ * broken one and teaches them to skip the one message that matters.
+ *
+ * So the assertion is about the copy, not about the internal state: no screen
+ * whose socket is fine may say anything about refreshing on a timer.
+ */
+const REFRESH_COPY = /refreshing|every few seconds/i;
+
+function TaggedSurface(): React.ReactElement {
+  // A non-zero fallback interval is the shape that produced the bug: the
+  // polling timer IS armed while the socket is connecting, so `transport`
+  // reads "polling" on a screen where nothing is wrong.
+  const freshness = useChatFreshness(STREAM, () => [], {
+    fallbackRefetchInterval: 3_000,
+  });
+  return (
+    <TransportTag
+      transport={freshness.transport}
+      degraded={freshness.degraded}
+      status={freshness.status}
+    />
+  );
+}
+
+function mountTagged(): void {
+  render(
+    <TestHarness
+      server={mockServer({})}
+      realtime={{
+        socketUrl: "wss://chat.test",
+        schedule: (fn, delay) => {
+          retries.push({ fn, delay });
+          return () => {
+            const index = retries.findIndex((entry) => entry.fn === fn);
+            if (index >= 0) retries.splice(index, 1);
+          };
+        },
+        now: () => nowMs,
+        random: () => 0.5,
+      }}
+    >
+      <TaggedSurface />
+    </TestHarness>
+  );
+}
+
+describe("a screen whose socket is fine never says it is refreshing on a timer", () => {
+  it("says nothing about refreshing while the socket is still connecting", async () => {
+    mountTagged();
+    await waitFor(() => expect(env.sockets.length).toBe(1));
+    const tag = screen.getByTestId("chat-transport");
+    // The frame a person sees first, and the frame a shot runner keeps.
+    expect(tag.textContent ?? "").not.toMatch(REFRESH_COPY);
+    // Nothing is wrong, so nothing is named as wrong.
+    expect(tag.getAttribute("data-degraded")).toBeNull();
+  });
+
+  it("a live socket renders the live label and NO degradation banner", async () => {
+    mountTagged();
+    await waitFor(() => expect(env.sockets.length).toBe(1));
+    const consumer = new ChatServer(env.last(), { stream: STREAM.key, ephemeral: true });
+    act(() => {
+      consumer.accept();
+    });
+
+    const tag = screen.getByTestId("chat-transport");
+    await waitFor(() => expect(tag.getAttribute("data-transport")).toBe("socket"));
+    expect(tag.getAttribute("data-degraded")).toBeNull();
+    expect(tag.textContent).toBe(chatI18nBundleEn["chat.transport.live"]);
+    expect(tag.textContent ?? "").not.toMatch(REFRESH_COPY);
+  });
+
+  it("still SAYS SO when the socket really never connects", async () => {
+    mountTagged();
+    await waitFor(() => expect(env.sockets.length).toBe(1));
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      act(() => {
+        env.last().serverClose(1006);
+      });
+      runNextTimer();
+    }
+    const tag = screen.getByTestId("chat-transport");
+    await waitFor(() =>
+      expect(tag.getAttribute("data-degraded")).toBe("never_connected")
+    );
+    // The named degradation is allowed to talk about refreshing — it is the
+    // one place the sentence is true, and the seam can prove it.
+    expect(tag.textContent).toBe(
+      chatI18nBundleEn["chat.transport.degraded.never_connected"]
+    );
+  });
+
+  it("no transport label the healthy path can reach mentions refreshing", () => {
+    for (const key of [
+      "chat.transport.live",
+      "chat.transport.connecting",
+      "chat.transport.catching_up",
+      "chat.transport.idle",
+    ]) {
+      for (const bundle of [chatI18nBundleEn, chatI18nBundleRu, chatI18nBundleEs]) {
+        const copy = bundle[key];
+        expect(copy).toBeTruthy();
+        expect(copy ?? "").not.toMatch(REFRESH_COPY);
+        // The Russian sentence the owner reported this product for.
+        expect(copy ?? "").not.toMatch(/обновляется раз в несколько секунд/i);
+      }
+    }
+    // Deleted, not merely unused: an unreachable key is a sentence waiting to
+    // be wired back up by the next person who needs "a polling label".
+    expect(chatI18nBundleEn["chat.transport.polling"]).toBeUndefined();
+    expect(chatI18nBundleRu["chat.transport.polling"]).toBeUndefined();
+    expect(chatI18nBundleEs["chat.transport.polling"]).toBeUndefined();
   });
 });

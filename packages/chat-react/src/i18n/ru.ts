@@ -105,7 +105,8 @@ export const chatI18nBundleRu: I18nDictionary = {
   "chat.start.sign_in": "Войти",
 
   "chat.transport.live": "На связи",
-  "chat.transport.polling": "Обновляется каждые несколько секунд",
+  "chat.transport.connecting": "Подключаемся…",
+  "chat.transport.catching_up": "Догоняем…",
   "chat.transport.idle": "Приостановлено",
 
   "chat.transport.degraded.reconnecting": "Переподключение…",

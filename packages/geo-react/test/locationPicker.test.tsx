@@ -407,3 +407,102 @@ describe("<LocationPickerField/> — the skin themes itself", () => {
     expect(document.querySelector("[data-stapel-skin-root]")).not.toBeNull();
   });
 });
+
+describe("<LocationPickerField/> — an address the form already holds", () => {
+  /**
+   * A stored point arrives with a stored address. Re-asking the geocoder for
+   * it is one authenticated call per mount of every edit screen, and under the
+   * deployment's default permissions it is worse than wasteful: a signed-out
+   * visitor would be told the address is unavailable while it sits in the
+   * field above. So `resolution` seeds the confirmation line and suppresses
+   * exactly one request — the redundant one.
+   */
+  it("opens on the stored address WITHOUT asking the geocoder again", async () => {
+    let resolveCalls = 0;
+    server.use(
+      http.get(CONFIG_URL, () => HttpResponse.json(mapConfig())),
+      http.get(SEARCH_URL, () => HttpResponse.json(features([]))),
+      http.get(RESOLVE_URL, () => {
+        resolveCalls += 1;
+        return HttpResponse.json(resolution());
+      })
+    );
+    render(
+      wrap(
+        <LocationPickerField
+          mode="inline"
+          height={320}
+          value={{ lat: 52.51667, lon: 13.38333 }}
+          resolution={resolution() as never}
+        />
+      )
+    );
+
+    // On screen from the first frame the map is — not after a round trip.
+    await waitFor(() => {
+      expect(screen.getByTestId("geo-map")).toBeTruthy();
+    });
+    expect(screen.getByText("Unter den Linden, 1, Berlin, Deutschland")).toBeTruthy();
+
+    // Well past the 400 ms settle: the request that would have re-answered a
+    // question already answered never goes out.
+    await act(async () => {
+      await new Promise((done) => setTimeout(done, 700));
+    });
+    expect(resolveCalls).toBe(0);
+  });
+
+  it("a stored answer with no address is `nowhere`, not a failure", async () => {
+    server.use(
+      http.get(CONFIG_URL, () => HttpResponse.json(mapConfig())),
+      http.get(SEARCH_URL, () => HttpResponse.json(features([]))),
+      http.get(RESOLVE_URL, () => HttpResponse.json(resolution()))
+    );
+    render(
+      wrap(
+        <LocationPickerField
+          mode="inline"
+          height={320}
+          value={{ lat: 54.8, lon: 15.2 }}
+          resolution={nowhere() as never}
+        />
+      )
+    );
+    await waitFor(() => {
+      expect(document.querySelector('[data-geo-resolve="nowhere"]')).not.toBeNull();
+    });
+    // An empty answer is an empty state: no alert, and the coordinates stay.
+    expect(screen.queryByTestId("geo-resolve-error")).toBeNull();
+    expect(screen.getByTestId("geo-coordinates")).toBeTruthy();
+  });
+
+  it("moving the pin re-resolves — the seed suppresses one request, not the seam", async () => {
+    let resolveCalls = 0;
+    server.use(
+      http.get(CONFIG_URL, () => HttpResponse.json(mapConfig())),
+      http.get(SEARCH_URL, () => HttpResponse.json(features([]))),
+      http.get(RESOLVE_URL, () => {
+        resolveCalls += 1;
+        return HttpResponse.json(resolution({ formatted: "Alexanderplatz, Berlin" }));
+      })
+    );
+    render(
+      wrap(
+        <LocationPickerField
+          mode="inline"
+          height={320}
+          value={{ lat: 52.51667, lon: 13.38333 }}
+          resolution={resolution() as never}
+        />
+      )
+    );
+    const map = await screen.findByTestId("geo-map");
+
+    // An arrow key is a camera move, and the pin IS the centre.
+    fireEvent.keyDown(map, { key: "ArrowRight" });
+    await waitFor(() => {
+      expect(screen.getByText("Alexanderplatz, Berlin")).toBeTruthy();
+    });
+    expect(resolveCalls).toBeGreaterThan(0);
+  });
+});

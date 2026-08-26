@@ -16,13 +16,36 @@
 import type { ReactElement } from "react";
 import { Tag } from "antd";
 import { useT } from "@stapel/core";
+import type { RealtimeStreamStatus } from "@stapel/realtime";
+import type { NoProviderStatus } from "@stapel/realtime/react";
 import type { ChatDegraded, ChatDegradedReason } from "../realtime/degradation.js";
 import type { ChatTransport } from "../flows/freshness.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 
-const TRANSPORT_KEYS: Record<ChatTransport, string> = {
+/**
+ * THE HEALTHY LABELS — and why "Refreshing every few seconds" is not one of
+ * them any more.
+ *
+ * This map is read ONLY when `degraded` is `null`, which the seam guarantees
+ * means nothing is wrong: the stream is live, or it is on its way, or it is
+ * healing. `transport` is `"polling"` in all of the latter cases — the timer
+ * genuinely is armed while the socket has not reported yet — and this map
+ * used to answer that with the pair's own complaint copy. So a freshly
+ * mounted, perfectly healthy thread printed "Refreshing every few seconds"
+ * from its first frame until the socket opened, and a thread whose window was
+ * still loading (`socketEnabled: loaded`, so the socket has not even been
+ * attempted) printed it for as long as the read took. That is the exact
+ * sentence the owner reported this product for, rendered when it was false.
+ *
+ * A standing banner is not a degradation notice; it is noise that teaches
+ * people to skip the one message that matters. So the fallback now says the
+ * true thing — the socket is connecting, or catching up — and every sentence
+ * about polling belongs to a NAMED degradation, which is the only place the
+ * seam can prove it.
+ */
+const HEALTHY_KEYS: Record<ChatTransport, string> = {
   socket: CHAT_I18N_KEYS.transportLive,
-  polling: CHAT_I18N_KEYS.transportPolling,
+  polling: CHAT_I18N_KEYS.transportConnecting,
   idle: CHAT_I18N_KEYS.transportIdle,
 };
 
@@ -59,9 +82,22 @@ const DEGRADED_TAG_COLORS: Record<ChatDegradedReason, string> = {
 export function TransportTag(props: {
   transport: ChatTransport;
   degraded: ChatDegraded | null;
+  /**
+   * The substrate's own stream state, when the caller has it. It separates
+   * the two healthy non-live cases: a socket that has not opened yet
+   * ("Connecting…") from one that is open and re-reading the journal after a
+   * gap ("Catching up…"). Omit it and the honest generic is used.
+   */
+  status?: RealtimeStreamStatus | NoProviderStatus;
 }): ReactElement {
   const t = useT();
-  const { transport, degraded } = props;
+  const { transport, degraded, status } = props;
+  // Healing is not degrading, and it is not connecting either: the socket is
+  // open and the store is re-reading over REST.
+  const healthyKey =
+    transport === "polling" && status?.state === "resync"
+      ? CHAT_I18N_KEYS.transportCatchingUp
+      : HEALTHY_KEYS[transport];
   return (
     <Tag
       data-testid="chat-transport"
@@ -78,7 +114,7 @@ export function TransportTag(props: {
           }
         : {})}
     >
-      {degraded ? t(degraded.messageKey) : t(TRANSPORT_KEYS[transport])}
+      {degraded ? t(degraded.messageKey) : t(healthyKey)}
     </Tag>
   );
 }

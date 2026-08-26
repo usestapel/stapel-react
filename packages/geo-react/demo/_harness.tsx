@@ -20,7 +20,8 @@ import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider, createI18n } from "@stapel/core";
 import { cssVar, fontSize, radii, spacing } from "@stapel/tokens";
-import { GeoProvider, createGeoRuntime, registerGeoI18n } from "../src/index.js";
+import { GeoProvider, createGeoRuntime, geoKeys, registerGeoI18n } from "../src/index.js";
+import type { MapConfig } from "../src/api/types.js";
 
 /** The base every mock handler mounts on (mirrors `path("geo/", …)`). */
 export const DEMO_BASE = "https://geo.demo.stapel.dev/geo";
@@ -147,21 +148,74 @@ export function mockFetch(handlers: DemoHandlers): typeof globalThis.fetch {
   }) as typeof globalThis.fetch;
 }
 
+/**
+ * Prime the query cache before the first paint.
+ *
+ * THE WHOLE PICKER HANGS OFF ONE QUERY. `LocationPickerField` opens with
+ * `useMapConfig()`, and until that answers it renders `<MapPlaceholder/>` — the
+ * map's exact box, in grey. `map/config` arrives over `fetch`, so on the first
+ * frame it is always pending, and the first frame is what a static markup
+ * renderer produces and what a shot runner keeps.
+ *
+ * That is how five variants named `resolved`, `idle`, `unauthorized`,
+ * `config-failed` and `dark` came to be the SAME grey rectangle: not one of
+ * them had reached the state it was named for when it was photographed. Seeding
+ * the config makes the first frame the real picker — map, pin, search box,
+ * confirmation line — so a variant's name and its picture are the same claim.
+ */
+export type DemoSeed = (queryClient: QueryClient) => void;
+
+/**
+ * Put `map/config` in the cache, so the picker's first frame is the map.
+ *
+ * The body is {@link demoConfig}'s, so a variant that also declares a
+ * `map/config` handler is answering with the same object it was seeded with,
+ * and a refetch cannot contradict the seed.
+ */
+export function seedMapConfig(overrides?: Record<string, unknown>): DemoSeed {
+  const config = demoConfig(overrides) as unknown as MapConfig;
+  return (queryClient) => {
+    queryClient.setQueryData(geoKeys.mapConfig(), config);
+  };
+}
+
 /** Provider frame every geo demo variant renders inside. */
 export function GeoDemoHarness(props: {
   handlers?: DemoHandlers;
+  /** Cache primed before the first render — see {@link DemoSeed}. */
+  seed?: DemoSeed;
   children: ReactNode;
 }): ReactElement {
-  const { handlers } = props;
+  const { handlers, seed } = props;
   const { runtime, queryClient, i18n } = useMemo(() => {
     const engine = createI18n({ locale: "en" });
     registerGeoI18n(engine);
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          // A SEEDED DEMO IS NOT A STALE ONE. TanStack's default `staleTime: 0`
+          // marks a seeded entry stale the instant it is read, so the mount
+          // refetch fires and the answer lands on top of the state the variant
+          // is named for. `useMapConfig` sets its own 30-minute `staleTime`, so
+          // this matters most for anything seeded later — but a demo harness
+          // that relies on a hook's own staleness setting is a demo that breaks
+          // when the hook is retuned.
+          staleTime: Number.POSITIVE_INFINITY,
+          refetchOnMount: false,
+          refetchOnWindowFocus: false,
+          refetchOnReconnect: false,
+        },
+      },
+    });
+    // Before the provider mounts, so the first render is already the state.
+    seed?.(client);
     return {
       runtime: createGeoRuntime({ baseUrl: DEMO_BASE, fetch: mockFetch(handlers ?? {}) }),
-      queryClient: new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+      queryClient: client,
       i18n: engine,
     };
-  }, [handlers]);
+  }, [handlers, seed]);
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>

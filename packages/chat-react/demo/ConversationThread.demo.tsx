@@ -81,7 +81,9 @@ function ThreadBody(): ReactElement {
                   : transport === "socket"
                     ? "chat.transport.live"
                     : transport === "polling"
-                      ? "chat.transport.polling"
+                      ? // NOT "refreshing every few seconds": with no named
+                        // degradation the socket is on its way, not missing.
+                        "chat.transport.connecting"
                       : "chat.transport.idle"
               )}
             </span>

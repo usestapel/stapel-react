@@ -37,7 +37,7 @@
       ],
       "source": {
         "file": "demo/ConversationListPanelSkin.demo.tsx",
-        "line": 37
+        "line": 59
       }
     },
     {
@@ -45,7 +45,9 @@
       "title": "Conversation (default skin)",
       "description": "The shipped thread: replay plus live tail, the reader's own lines aligned to the trailing edge, a composer that states its own limit, and a transport tag that says WHY it is not live instead of only that it is refreshing. The same component renders a socket-fed thread and a polled one — that is the seam holding.",
       "component": "ConversationThreadPanel",
-      "covers": [],
+      "covers": [
+        "ChatSkinTheme"
+      ],
       "tokens": [
         "surface-raised",
         "text",
@@ -55,7 +57,7 @@
       "variants": [
         {
           "id": "default",
-          "description": "Phone width, a thread with a system line and both sides talking. The header carries the named degradation for a deployment with no socket, and it WRAPS onto its own line rather than squeezing the title — the sentence is the part a person may act on.",
+          "description": "Phone width, a thread with a system line and both sides talking, on a working deployment: the header says Live and there is no banner, because there is nothing to report.",
           "viewport": "phone",
           "step": "ready"
         },
@@ -70,11 +72,23 @@
           "description": "A thread that exists but has nothing in it — the composer is the whole screen, at desk width.",
           "viewport": "desktop",
           "step": "empty"
+        },
+        {
+          "id": "dark",
+          "description": "The same thread under the skin's own theme root, pinned dark. The wrapper is not decoration: without it this card took whatever ConfigProvider happened to be above it, and in a dark document with none antd's default algorithm is the LIGHT one — which is how six of this pair's stories were photographed as white text on a black field. Pinning the mode is the one use the prop is FOR, and it is what makes that failure visible if it ever comes back.",
+          "viewport": "phone",
+          "step": "dark"
+        },
+        {
+          "id": "no-live-socket",
+          "description": "A deployment with no sockets at all — a supported configuration, not a fault. The header carries the NAMED reason rather than a bare `Refreshing every few seconds`, and it WRAPS onto its own line instead of squeezing the title: at 390px the sentence is the part a person may act on, so it is the part that must survive. This is the only variant that wears the banner, which is what makes it readable.",
+          "viewport": "phone",
+          "step": "no_socket"
         }
       ],
       "source": {
         "file": "demo/ConversationThreadPanelSkin.demo.tsx",
-        "line": 42
+        "line": 83
       }
     },
     {
@@ -221,7 +235,7 @@
       ],
       "source": {
         "file": "demo/ConversationThread.demo.tsx",
-        "line": 161
+        "line": 163
       }
     }
   ]

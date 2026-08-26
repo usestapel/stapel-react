@@ -4,11 +4,17 @@ import type { ReactElement } from "react";
 import { renderDemoVariant } from "@stapel/showcase";
 import demo from "../AddressSearch.demo.js";
 
-export default { title: "geo-react / Search-as-you-type, and the five ways it can say nothing" };
+export default { title: "geo-react / Search-as-you-type, and the six ways it can say nothing" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
 Default.parameters = { stapel: {"viewport":"phone","step":"results"} };
+export const Typing = (): ReactElement => renderDemoVariant(demo, "typing");
+Typing.storyName = "typing";
+Typing.parameters = { stapel: {"viewport":"phone","step":"loading"} };
+export const Idle = (): ReactElement => renderDemoVariant(demo, "idle");
+Idle.storyName = "idle";
+Idle.parameters = { stapel: {"viewport":"phone","step":"idle"} };
 export const Empty = (): ReactElement => renderDemoVariant(demo, "empty");
 Empty.storyName = "empty";
 Empty.parameters = { stapel: {"viewport":"phone","step":"empty"} };

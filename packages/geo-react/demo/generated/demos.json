@@ -5,7 +5,7 @@
   "demos": [
     {
       "id": "geo.address-search",
-      "title": "Search-as-you-type, and the five ways it can say nothing",
+      "title": "Search-as-you-type, and the six ways it can say nothing",
       "description": "The address field over usePlaceSearch. Below the deployment's search_min_chars it says keep typing rather than showing an empty state; zero results is an empty state and never an error; a 401 states the deployment's own permission answer without alarm; a 429 keeps the last suggestions on screen; only a 502 is drawn as a failure, with a retry.",
       "component": "AddressSearchField",
       "covers": [],
@@ -14,9 +14,21 @@
       "variants": [
         {
           "id": "default",
-          "description": "Type three characters or more: the server's own `formatted` line per row.",
+          "description": "Search-as-you-type, running for real: the query is typed through the bag's own setter, so the debounce, the abort and the min-chars gate all run, and the rows are the server's own `formatted` lines.",
           "viewport": "phone",
           "step": "results"
+        },
+        {
+          "id": "typing",
+          "description": "The keystroke is out and the answer is not back. A spinner, not an empty state — the field must never say `nothing matched` about a question that is still open.",
+          "viewport": "phone",
+          "step": "loading"
+        },
+        {
+          "id": "idle",
+          "description": "Below the deployment's `search_min_chars`: nothing has been ASKED yet, so nothing is reported about results. Two letters that matched nothing and two letters nobody searched for are different sentences.",
+          "viewport": "phone",
+          "step": "idle"
         },
         {
           "id": "empty",
@@ -26,7 +38,7 @@
         },
         {
           "id": "unauthorized",
-          "description": "401/403. The deployment's geocoding verbs default to authenticated-only, so this is the normal configuration for a signed-out visitor — stated in plain text, with the map still working.",
+          "description": "401/403. The deployment's geocoding verbs default to authenticated-only, so this is the NORMAL configuration for a signed-out visitor — stated in plain text with no alarm, and the copy itself says the map still works and the pin can be placed by hand. It is not the geocoder being down.",
           "viewport": "phone",
           "step": "unauthorized"
         },
@@ -38,14 +50,14 @@
         },
         {
           "id": "unavailable",
-          "description": "502 — the one that IS a failure, and the one that is retryable.",
+          "description": "502 — the one that IS a failure, and the one that is retryable. Compare it with `unauthorized`: same empty list of suggestions, entirely different sentence and entirely different affordance.",
           "viewport": "phone",
           "step": "unavailable"
         }
       ],
       "source": {
         "file": "demo/AddressSearch.demo.tsx",
-        "line": 74
+        "line": 140
       }
     },
     {
@@ -68,7 +80,7 @@
       "variants": [
         {
           "id": "default",
-          "description": "The whole thing, inline in a form column. Drag the map, type an address, press the pin's confirmation.",
+          "description": "LOCATED — the whole thing, inline in a form column, on a pin the form already held and the address it was saved with. Both halves are on the first frame: the map because `map/config` is seeded, and the address because an edit form hands back the `resolution` it stored rather than making the geocoder re-answer a question it has already answered. Drag the map and the address re-resolves for real.",
           "viewport": "desktop",
           "step": "resolved"
         },
@@ -80,13 +92,25 @@
         },
         {
           "id": "anonymous",
-          "description": "A signed-out visitor. The four geocoding verbs default to authenticated-only, so search and resolve answer 401 — which is this deployment's configuration, not a fault. The map still renders, the pin still drops, and only the ADDRESS is unavailable.",
+          "description": "A signed-out visitor. The four geocoding verbs default to authenticated-only, so search and resolve answer 401 — this deployment's configuration, not a fault. The map still renders, the pin still drops and its coordinates are still saved; only the ADDRESS is unavailable, and it says so in plain text with no retry, because retrying will not change the answer.",
           "viewport": "phone",
           "step": "unauthorized"
         },
         {
+          "id": "unavailable",
+          "description": "The geocoder is genuinely down — 502. Compare with `anonymous`: the address line is empty in both, and only this one is a failure, drawn as one, with a retry. Conflating the two sends a person hunting for a permissions bug that does not exist, or waiting for an outage to end that never started.",
+          "viewport": "phone",
+          "step": "unavailable"
+        },
+        {
+          "id": "nowhere",
+          "description": "A pin in the open sea. The resolve SUCCEEDED and matched nothing, which is an empty state and not an error: the line says there is no address here, and the coordinates are still saved.",
+          "viewport": "phone",
+          "step": "nowhere"
+        },
+        {
           "id": "config-failed",
-          "description": "map/config failed. No tile template means no map — the only state in which this pair draws none — so it says so and offers a retry instead of an empty grey rectangle.",
+          "description": "map/config failed. No tile template means no map — the only state in which this pair draws none — so it says so and offers a retry instead of an empty grey rectangle. Deliberately NOT seeded: the missing config is the subject.",
           "viewport": "phone",
           "step": "config-failed"
         },
@@ -99,7 +123,7 @@
       ],
       "source": {
         "file": "demo/LocationPicker.demo.tsx",
-        "line": 102
+        "line": 170
       }
     },
     {

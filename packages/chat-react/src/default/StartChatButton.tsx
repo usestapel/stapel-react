@@ -17,6 +17,7 @@ import { StartDirectChat } from "../headless/StartDirectChat.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ErrorAlert } from "./ErrorAlert.js";
 import { SignInLink } from "./SignInLink.js";
+import { ChatSkinTheme } from "./theme.js";
 
 export interface StartChatButtonProps extends SignInCtaProp {
   sellerId: string | null | undefined;
@@ -71,14 +72,19 @@ export function StartChatButton(props: StartChatButtonProps): ReactElement {
       {...(props.onOpened !== undefined ? { onOpened: props.onOpened } : {})}
     >
       {({ availability, isStarting, error, start }) => (
-        <StartChatBody
-          availability={availability}
-          isStarting={isStarting}
-          error={error}
-          start={start}
-          block={props.block}
-          signIn={props.signIn}
-        />
+        // `bare` by default: this control is dropped onto a listing card the
+        // host already painted, so the wrapper's job is antd's THEME, not a
+        // second rectangle behind the button.
+        <ChatSkinTheme>
+          <StartChatBody
+            availability={availability}
+            isStarting={isStarting}
+            error={error}
+            start={start}
+            block={props.block}
+            signIn={props.signIn}
+          />
+        </ChatSkinTheme>
       )}
     </StartDirectChat>
   );

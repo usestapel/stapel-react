@@ -13,8 +13,9 @@
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
 import { ConversationListPanel } from "../src/default/ConversationListPanel.js";
-import { ChatDemoHarness, DEMO_INBOX, seedInbox } from "./_harness.js";
-import type { DemoSeed } from "./_harness.js";
+import { ChatDemoHarness, DEMO_INBOX, inboxPage, seedInbox } from "./_harness.js";
+import type { Conversation } from "../src/api/types.js";
+import type { DemoHandlers, DemoSeed } from "./_harness.js";
 
 /** Where a row leads. A storefront hands the panel real hrefs, so a thread is
  * right-clickable and lands in the browser's own history — the demo does the
@@ -23,12 +24,33 @@ function href(conversationId: string): string {
   return `/chat/${conversationId}`;
 }
 
-function Panel(props: { seed?: DemoSeed }): ReactElement {
+/**
+ * A variant's seed AND the wire behind it, built from the same rows.
+ *
+ * All three variants used to share ONE handler map that answered
+ * `/conversations` with an empty page, whatever the seed said. TanStack marks a
+ * seeded query stale immediately, so the mount refetch fired, the empty page
+ * won, and the catalogue photographed the EMPTY card three times under three
+ * names — including the variant whose whole point is a busy inbox. Seeding the
+ * cache is not enough on its own: the wire has to agree with it.
+ */
+function inboxDemo(
+  rows: readonly Conversation[],
+  options?: { readonly hasNext?: boolean }
+): { seed: DemoSeed; handlers: DemoHandlers } {
+  return {
+    seed: seedInbox(rows, options),
+    handlers: { "/conversations": inboxPage(rows, options) },
+  };
+}
+
+const READY = inboxDemo(DEMO_INBOX);
+const PAGED = inboxDemo(DEMO_INBOX, { hasNext: true });
+const EMPTY = inboxDemo([]);
+
+function Panel(props: { demo: { seed: DemoSeed; handlers: DemoHandlers } }): ReactElement {
   return (
-    <ChatDemoHarness
-      {...(props.seed ? { seed: props.seed } : {})}
-      handlers={{ "/conversations": { items: [], count: 0, has_next: false, has_prev: false } }}
-    >
+    <ChatDemoHarness seed={props.demo.seed} handlers={props.demo.handlers}>
       <ConversationListPanel openHref={href} />
     </ChatDemoHarness>
   );
@@ -47,21 +69,21 @@ export default defineDemo({
         "Phone width, the state almost every inbox is in: three threads, the top one with news. The unread badge is a number to the eye and a sentence to a screen reader — it names itself with `aria-label`, because a `title` tooltip is unreachable on the device this variant is drawn for.",
       viewport: "phone",
       step: "ready",
-      render: () => <Panel seed={seedInbox(DEMO_INBOX)} />,
+      render: () => <Panel demo={READY} />,
     },
     "more-to-load": {
       description:
         "A deeper inbox at desk width: the server says there is another page, so the end-of-list sentence is replaced by the control that fetches it.",
       viewport: "desktop",
       step: "paged",
-      render: () => <Panel seed={seedInbox(DEMO_INBOX, { hasNext: true })} />,
+      render: () => <Panel demo={PAGED} />,
     },
     empty: {
       description:
         "No conversations yet — reachable only when the read SUCCEEDED and returned nothing.",
       viewport: "phone",
       step: "empty",
-      render: () => <Panel seed={seedInbox([])} />,
+      render: () => <Panel demo={EMPTY} />,
     },
   },
 });
