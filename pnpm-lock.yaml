@@ -425,6 +425,9 @@ importers:
       '@stapel/core':
         specifier: workspace:^
         version: link:../core
+      '@stapel/realtime':
+        specifier: workspace:^
+        version: link:../realtime
       '@stapel/showcase':
         specifier: workspace:^
         version: link:../showcase
