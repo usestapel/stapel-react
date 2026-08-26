@@ -18,6 +18,8 @@
  * the session through core's single-flight refresh and the answer has not
  * landed. It names the question, never an outcome — debounce on its `since`
  * rather than rendering the socket as broken while the answer is on the wire.
+ * `state` never reads `idle` for that window; it reports `reconnecting`, so a
+ * skin that renders off `state` alone still says something true.
  */
 import { useCallback, useSyncExternalStore } from "react";
 import type { RealtimeState } from "../client.js";

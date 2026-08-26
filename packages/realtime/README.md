@@ -197,7 +197,11 @@ blinks.
 for **all three** outcomes alike (renewed, no verdict, refused); those stay the
 only truths and are read where they already live, in `state`/`refusal`. It is a
 separate field and **not** a new member of the `state` union, for the reason
-`no_provider` is a separate type below. Debounce it: a healthy refresh answers
+`no_provider` is a separate type below. The aggregate `state` is never `idle`
+while `refreshing` is non-null: the socket is gone and no retry is armed yet,
+so the window publishes as `reconnecting` — the transition the union already
+carries — rather than as the resting state a shell renders as "all is well"
+(`refused` and `closed` still win, because a verdict is not a slow reconnect). Debounce it: a healthy refresh answers
 in well under a second, and a badge that flips on the field directly flashes a
 scary sentence at every routine token renewal. Render "renewing your session"
 only once `Date.now() - refreshing.since` passes a threshold you pick (~500 ms

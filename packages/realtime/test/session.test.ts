@@ -203,11 +203,12 @@ describe("a session refresh in flight", () => {
     expect(session.refresh).toHaveBeenCalledTimes(1);
     expect(h.client.getState().refreshing).toEqual({ since: at });
     // It says "asking", never "answered": no outcome has been written
-    // anywhere. The aggregate is `idle` here — the socket is gone and no retry
-    // is armed yet, because what happens next depends on the refresh — which
-    // is exactly the moment a shell had nothing honest to render before.
+    // anywhere. The transport is at rest here — the socket is gone and no
+    // retry is armed yet, because what happens next depends on the refresh —
+    // so the aggregate reports the transition it already has a word for
+    // rather than `idle`, which every consumer renders as "all is well".
     expect(h.subscription.status().state).toBe("reconnecting");
-    expect(h.client.getState().state).toBe("idle");
+    expect(h.client.getState().state).toBe("reconnecting");
     expect(h.client.getState().refused).toBe(false);
   });
 
@@ -246,6 +247,38 @@ describe("a session refresh in flight", () => {
     await vi.waitFor(() => expect(h.client.getState().refused).toBe(true));
     expect(h.client.getState().refreshing).toBeNull();
     expect(h.client.getState().refusal).toBe("session");
+  });
+
+  it("never reads as idle for the whole window, whatever the answer is", async () => {
+    // The window, not just its first instant: every publish between the 4401
+    // and the verdict is sampled, and the reader's own `getState()` with it,
+    // for all three outcomes.
+    const outcomes = [true, "unavailable", false] as const;
+    for (const outcome of outcomes) {
+      const session = deferredSession();
+      const h = harness(session);
+      const seen: string[] = [];
+      const stop = h.client.onState((state) => {
+        if (state.refreshing !== null) {
+          seen.push(state.state);
+          expect(h.client.getState().state).toBe(state.state);
+        }
+      });
+
+      h.transport.last().serverClose(4401);
+      expect(h.client.getState().refreshing).not.toBeNull();
+      expect(h.client.getState().state).not.toBe("idle");
+      expect(h.client.getState().state).toBe("reconnecting");
+
+      session.settle(outcome);
+      await vi.waitFor(() =>
+        expect(h.client.getState().refreshing).toBeNull()
+      );
+      stop();
+      expect(seen.length).toBeGreaterThan(0);
+      expect(seen).not.toContain("idle");
+      h.client.close();
+    }
   });
 
   it("is never set when no refresh is spent", async () => {

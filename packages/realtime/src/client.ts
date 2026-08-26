@@ -242,6 +242,15 @@ export interface RealtimeSessionRefresh {
 }
 
 export interface RealtimeState {
+  /**
+   * What a shell renders off: the transport's own state, with ONE override —
+   * it is never `"idle"` while {@link RealtimeState.refreshing} is non-null.
+   * A 4401 waiting on the single-flight refresh has no socket and no retry
+   * armed yet, and `"idle"` reads to every consumer as "all is well"; the
+   * window is published as `"reconnecting"`, the transition this union already
+   * carries, so nothing has to widen the union to tell the truth. A verdict
+   * (`"refused"`) and a disposed client (`"closed"`) still win over it.
+   */
   readonly state: RealtimeConnectionState;
   readonly connected: boolean;
   readonly reconnecting: boolean;
@@ -519,6 +528,12 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
   let refreshesInFlight = 0;
   /** Held by identity so an unchanged snapshot stays `===` for React. */
   let refreshing: RealtimeSessionRefresh | null = null;
+  /**
+   * The transport's own answer, before the refresh override below. Kept apart
+   * from `snapshot.state` so a re-derivation reads the socket's truth rather
+   * than the last published verdict about it.
+   */
+  let transportState: RealtimeConnectionState = "idle";
   let snapshot: RealtimeState = {
     state: "idle",
     connected: false,
@@ -615,6 +630,26 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
   }
 
   /**
+   * The aggregate state, from the transport's answer and the one fact that is
+   * not about the transport.
+   *
+   * While a session refresh is in flight the socket is gone and no retry is
+   * armed yet, so the transport honestly reports `idle` — and `idle` is what
+   * every consumer renders as "all is well". `reconnecting` is the transition
+   * this union already has, and using it keeps the union (and every exhaustive
+   * `switch` written over it) exactly as wide as it was.
+   *
+   * `refused` is exempt for the same reason it wins in `deriveDegradation`: a
+   * verdict is not a slow reconnect, and covering one with a spinner tells a
+   * person to wait for something that is never coming. So is `closed` — a
+   * torn-down client is not reconnecting, whatever refresh is still landing.
+   */
+  function deriveState(transport: RealtimeConnectionState): RealtimeConnectionState {
+    if (refreshing === null || disposed) return transport;
+    return transport === "refused" ? transport : "reconnecting";
+  }
+
+  /**
    * The degradation is DERIVED, so a reader always gets the truth for the
    * current instant — {@link RealtimeClient.getState} re-derives it, and keeps
    * the snapshot's identity when the answer has not changed (a store whose
@@ -622,8 +657,11 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
    * `useSyncExternalStore`).
    */
   function currentState(): RealtimeState {
+    // Both derivations happen HERE, off the same instant, so a reader and a
+    // subscriber can never be told two different things about one refresh.
+    const state = deriveState(transportState);
     const fresh = deriveDegradation(
-      snapshot.state,
+      state,
       snapshot.connected,
       snapshot.attempt,
       snapshot.refusal,
@@ -639,8 +677,10 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
           fresh.since === held.since &&
           fresh.attempts === held.attempts &&
           fresh.reason === held.reason;
-    if (same) return snapshot;
-    snapshot = { ...snapshot, degradation: fresh };
+    if (same && state === snapshot.state && refreshing === snapshot.refreshing) {
+      return snapshot;
+    }
+    snapshot = { ...snapshot, state, degradation: fresh, refreshing };
     return snapshot;
   }
 
@@ -701,13 +741,15 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
         reason = record.status.reason;
       }
     }
-    let state: RealtimeConnectionState;
-    if (disposed) state = "closed";
-    else if (connected) state = "open";
-    else if (reconnecting) state = "reconnecting";
-    else if (connecting) state = "connecting";
-    else if (refusal !== undefined) state = "refused";
-    else state = "idle";
+    let transport: RealtimeConnectionState;
+    if (disposed) transport = "closed";
+    else if (connected) transport = "open";
+    else if (reconnecting) transport = "reconnecting";
+    else if (connecting) transport = "connecting";
+    else if (refusal !== undefined) transport = "refused";
+    else transport = "idle";
+    transportState = transport;
+    const state = deriveState(transport);
 
     const at = now();
     // "Down since" is the moment it stopped being open — NOT the moment it was
