@@ -99,6 +99,12 @@ function checkPinsResolve(pins) {
  * pin vs 0.6.x, 2026-08-26). Compare the pinned pyproject version with the
  * sibling's newest release tag: one minor behind is a deliberate hold and is
  * listed; two or more is an artifact nobody chose, and fails.
+ *
+ * A `hold: "<reason>"` records a DECISION, not a fact: the reason is a claim
+ * someone must eventually verify. stapel-core was held as "not an API-contract
+ * source" on 2026-08-26 while being the source of the shared error catalogue
+ * every pair merges — the hold worked, the claim was false, 42 codes vanished
+ * from ru/es on the runner. Re-read a hold's reason whenever the gate lists it.
  */
 function checkPinsFresh(pins) {
   const notes = [];

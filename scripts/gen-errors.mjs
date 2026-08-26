@@ -54,6 +54,7 @@
 //   pnpm gen:errors                    # generate (root script)
 //   pnpm gen:errors:check              # drift gate (fails on divergence)
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -97,9 +98,17 @@ const LOCALES_MODE = process.env.ERRORS_LOCALES ?? "auto";
 // The module's catalog stopped being the whole answer; the merge below is the
 // same one the backend loader performs at runtime, so what a client bundles is
 // what a server would have rendered.
-const CORE_CATALOG_DIR =
-  process.env.ERRORS_CORE_CATALOG_DIR ??
-  resolve(dirname(SOURCE), "..", "..", "stapel-core", "django", "translations");
+// Resolved the way every other gen:* driver finds a sibling — under
+// SIBLING_ROOT — with the registry-relative path as a fallback. The old
+// SOURCE-relative guess broke on the runner, where stapel-auth is checked out
+// under .errors-source/ and stapel-core under .other-source/: the core catalog
+// was silently not found and 42 cross-cutting codes vanished from ru/es.
+const coreCatalogCandidates = [
+  process.env.ERRORS_CORE_CATALOG_DIR,
+  resolve(SIBLING_ROOT, "stapel-core", "django", "translations"),
+  resolve(dirname(SOURCE), "..", "..", "stapel-core", "django", "translations"),
+].filter(Boolean);
+const CORE_CATALOG_DIR = coreCatalogCandidates.find((d) => existsSync(d)) ?? coreCatalogCandidates[0];
 
 // CORE IS NOT THE ONLY FOREIGN OWNER.
 //
