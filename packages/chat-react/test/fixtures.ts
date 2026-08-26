@@ -19,6 +19,12 @@ export function conversation(overrides: Partial<Conversation> = {}): Conversatio
     kind: "direct",
     scope_key: "global",
     support_status: "",
+    // Populated by the server on every conversation it serves — and absent
+    // from the schema's `required` list, which is the upstream note in
+    // MODULE.md. The pair reads them when they are there and derives when
+    // they are not.
+    stream_key: `chat:conv:${CONVERSATION_ID}`,
+    socket_path: `ws/chat/${CONVERSATION_ID}`,
     last_seq: 3,
     unread_count: 2,
     created_at: "2026-08-20T09:00:00Z",
@@ -51,6 +57,11 @@ export function message(seq: number, overrides: Partial<ChatMessage> = {}): Chat
     id: `m-${seq}`,
     conversation_id: CONVERSATION_ID,
     seq,
+    // `rev_seq` is required since 0.6.0 and is the RESUME CURSOR — the number
+    // `hello{last_seq}` carries. A fresh message has rev_seq === seq; an edit
+    // keeps its seq and takes a new rev_seq, which is why the two are separate
+    // fields here rather than one reused number.
+    rev_seq: seq,
     kind: "text",
     body: `message ${seq}`,
     created_at: "2026-08-21T18:00:00Z",
@@ -86,22 +97,6 @@ export function messagePage(
     has_next: options.has_next ?? false,
     has_prev: options.has_prev ?? false,
     count: ordered.length,
-  };
-}
-
-/** The wire frame `stapel_chat.realtime.message_frame` sends. */
-export function messageFrame(seq: number, body = `message ${seq}`): unknown {
-  return {
-    type: "message",
-    message_id: `m-${seq}`,
-    conversation_id: CONVERSATION_ID,
-    sender_id: SELLER,
-    seq,
-    kind: "text",
-    body,
-    reply_to: null,
-    attachments: [],
-    created_at: "2026-08-21T18:20:00Z",
   };
 }
 

@@ -9,7 +9,7 @@
  */
 import { fontSize, spacing } from "@stapel/tokens-antd";
 import type { CSSProperties, ReactElement } from "react";
-import { Button, Card, Empty, Flex, Input, Space, Spin, Tag, Typography } from "antd";
+import { Button, Card, Empty, Flex, Input, Space, Spin, Typography } from "antd";
 import {
   matchList,
   useActionGate,
@@ -20,30 +20,9 @@ import {
 import type { ChatMessage } from "../api/types.js";
 import { ConversationThread } from "../headless/ConversationThread.js";
 import { MessageComposer } from "../headless/MessageComposer.js";
-import type { ChatDegradedReason, ChatTransport } from "../flows/freshness.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ErrorAlert } from "./ErrorAlert.js";
-
-const TRANSPORT_KEYS: Record<ChatTransport, string> = {
-  socket: CHAT_I18N_KEYS.transportLive,
-  polling: CHAT_I18N_KEYS.transportPolling,
-  idle: CHAT_I18N_KEYS.transportIdle,
-};
-
-/**
- * How loud each degradation is. antd's semantic presets, not colours: a
- * transient reconnect is neutral, something the person must act on is a
- * warning, and a refusal nothing here can undo is an error.
- */
-const DEGRADED_TAG_COLORS: Record<ChatDegradedReason, string> = {
-  reconnecting: "default",
-  renewing_credential: "default",
-  no_socket: "default",
-  unreachable: "warning",
-  sign_in_required: "warning",
-  forbidden: "error",
-  unsupported: "error",
-};
+import { TransportTag } from "./TransportTag.js";
 
 export interface ConversationThreadPanelProps {
   conversationId: string;
@@ -217,23 +196,7 @@ export function ConversationThreadPanel(
                 WHY — a degraded transport that renders as a plain "refreshing
                 every few seconds" is the thing that made this pair's broken
                 handshake look like a design decision for months. */}
-            <Tag
-              data-testid="chat-transport"
-              data-transport={transport}
-              // antd's Tag is `white-space: nowrap` by default; a degradation
-              // is a sentence, not a word, so it is allowed to take two lines
-              // instead of one very long one. `marginInlineEnd: 0` because the
-              // Flex gap owns the spacing now.
-              style={{ whiteSpace: "normal", marginInlineEnd: 0 }}
-              {...(degraded
-                ? {
-                    "data-degraded": degraded.reason,
-                    color: DEGRADED_TAG_COLORS[degraded.reason],
-                  }
-                : {})}
-            >
-              {degraded ? t(degraded.messageKey) : t(TRANSPORT_KEYS[transport])}
-            </Tag>
+            <TransportTag transport={transport} degraded={degraded} />
           </Flex>
 
           {matchList(state, {

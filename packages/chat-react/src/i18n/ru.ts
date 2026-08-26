@@ -109,15 +109,20 @@ export const chatI18nBundleRu: I18nDictionary = {
   "chat.transport.idle": "Приостановлено",
 
   "chat.transport.degraded.reconnecting": "Переподключение…",
-  "chat.transport.degraded.renewing": "Обновляем сессию…",
+  "chat.transport.degraded.reconnecting_long":
+    "Всё ещё переподключаемся — показываем сообщения на момент последнего обновления.",
+  "chat.transport.degraded.never_connected":
+    "Живые сообщения не доходят до приложения — обновляем каждые несколько секунд.",
   "chat.transport.degraded.sign_in_required":
     "Живые сообщения остановлены — войдите снова, чтобы их вернуть.",
   "chat.transport.degraded.forbidden":
     "Живые сообщения недоступны в этом разговоре.",
+  "chat.transport.degraded.revoked":
+    "У вас больше нет доступа к этому разговору.",
+  "chat.transport.degraded.origin_not_allowed":
+    "Живые сообщения заблокированы для этого сайта — их должен разрешить администратор.",
   "chat.transport.degraded.unsupported":
     "Живые сообщения недоступны — приложению нужно обновление.",
-  "chat.transport.degraded.unreachable":
-    "Нет связи для живых сообщений — обновляем каждые несколько секунд.",
   "chat.transport.degraded.no_socket":
     "Живые сообщения здесь отключены — обновляем каждые несколько секунд.",
 

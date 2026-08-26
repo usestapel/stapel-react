@@ -66,11 +66,17 @@ export const CHAT_I18N_KEYS = {
   // handshake was being refused — a degraded mode nobody could tell from a
   // design decision. One key per named reason (`flows/freshness.ts`).
   transportReconnecting: "chat.transport.degraded.reconnecting",
-  transportRenewing: "chat.transport.degraded.renewing",
+  /** Down long enough to be worth naming — and still trying, always. */
+  transportReconnectingLong: "chat.transport.degraded.reconnecting_long",
+  /** Configured, tried, never once open. The state the defect lived in. */
+  transportNeverConnected: "chat.transport.degraded.never_connected",
   transportSignInRequired: "chat.transport.degraded.sign_in_required",
   transportForbidden: "chat.transport.degraded.forbidden",
+  /** Access withdrawn mid-socket (a `kick`, then 4410). */
+  transportRevoked: "chat.transport.degraded.revoked",
+  /** The deployment's socket origin allowlist, not this person's rights. */
+  transportOriginNotAllowed: "chat.transport.degraded.origin_not_allowed",
   transportUnsupported: "chat.transport.degraded.unsupported",
-  transportUnreachable: "chat.transport.degraded.unreachable",
   transportNoSocket: "chat.transport.degraded.no_socket",
 
   // Backend error keys the pair OWNS the localization of. stapel-chat ships
@@ -153,15 +159,20 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.transport.idle": "Paused",
 
   "chat.transport.degraded.reconnecting": "Reconnecting…",
-  "chat.transport.degraded.renewing": "Renewing your session…",
+  "chat.transport.degraded.reconnecting_long":
+    "Still reconnecting — showing messages from your last update.",
+  "chat.transport.degraded.never_connected":
+    "Live messages aren't reaching this app — refreshing every few seconds instead.",
   "chat.transport.degraded.sign_in_required":
     "Live messages stopped — sign in again to get them back.",
   "chat.transport.degraded.forbidden":
     "Live messages are unavailable for this conversation.",
+  "chat.transport.degraded.revoked":
+    "You no longer have access to this conversation.",
+  "chat.transport.degraded.origin_not_allowed":
+    "Live messages are blocked for this site — an administrator has to allow it.",
   "chat.transport.degraded.unsupported":
     "Live messages are unavailable — this app needs an update.",
-  "chat.transport.degraded.unreachable":
-    "Can't reach live messages — refreshing every few seconds instead.",
   "chat.transport.degraded.no_socket":
     "Live messages are off here — refreshing every few seconds instead.",
 

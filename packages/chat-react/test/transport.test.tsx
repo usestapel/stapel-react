@@ -5,15 +5,30 @@
  * runtime and a polling one wherever the outcome must be identical — because
  * "the UI never knows which transport is active" is not a comment, it is a
  * property, and a property is something a test can hold.
+ *
+ * The socket half runs through the REAL path: `@stapel/realtime`'s
+ * `browserSocketFactory`, `new WebSocket(url)`, and a server double
+ * (`test/chatServer.ts`) that reproduces the consumer rather than answering
+ * whatever the client hoped for. Nothing is injected where the constructor
+ * stands — that is the seam whose bypass hid this pair's defect for months.
  */
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { matchList } from "@stapel/core";
-import { ConversationThread } from "../src/index.js";
+import { ConversationThread, chatConversationStream } from "../src/index.js";
 import type { ChatRealtimeOptions } from "../src/index.js";
-import { TestHarness, fakeTransport, mockServer } from "./harness.js";
-import type { FakeTransport, MockServer } from "./harness.js";
-import { CONVERSATION_ID, messageFrame, messagePage } from "./fixtures.js";
+import {
+  ChatServer,
+  TestHarness,
+  chatMessagePayload,
+  installBrowserWebSocket,
+  mockServer,
+} from "./harness.js";
+import type { BrowserWebSocketEnvironment, MockServer } from "./harness.js";
+import { CONVERSATION_ID, messagePage } from "./fixtures.js";
+
+const STREAM = chatConversationStream(CONVERSATION_ID).key;
+const SOCKET_ORIGIN = "wss://chat.test";
 
 /** A thread screen with nothing in it but the list and its states. */
 function Thread(props: { intervalMs?: number }): React.ReactElement {
@@ -35,7 +50,7 @@ function Thread(props: { intervalMs?: number }): React.ReactElement {
             ready: (messages) => (
               <ul data-testid="status">
                 {messages.map((m) => (
-                  <li key={m.id} data-testid="row">
+                  <li key={m.id} data-testid="row" data-body={m.body}>
                     {m.seq}
                   </li>
                 ))}
@@ -53,14 +68,6 @@ function rendered(): number[] {
   return screen.queryAllByTestId("row").map((node) => Number(node.textContent));
 }
 
-/**
- * The initial window is on screen. NOT `toEqual([1, 2, 3])`: with a 20 ms
- * refresh the tail (seq 4) can land before `waitFor`'s first 50 ms look, so
- * the exact intermediate state is a race the test must not depend on — it
- * did, and lost on a slow CI runner three tests in a row. The initial three
- * are the prefix either way; the tail is asserted separately where it
- * matters.
- */
 async function initialWindowOnScreen(): Promise<void> {
   await waitFor(() => expect(rendered().slice(0, 3)).toEqual([1, 2, 3]));
 }
@@ -74,55 +81,82 @@ function threadServer(): MockServer {
         return { body: messagePage([4], { direction: "prev" }) };
       }
       return {
-        body: tailDelivered
-          ? messagePage([4, 3, 2, 1])
-          : messagePage([3, 2, 1]),
+        body: tailDelivered ? messagePage([4, 3, 2, 1]) : messagePage([3, 2, 1]),
       };
     },
   });
 }
 
-const SOCKET_URL = "wss://chat.test/ws/chat/";
+let env: BrowserWebSocketEnvironment;
+const retries: { fn: () => void; delay: number }[] = [];
+
+beforeEach(() => {
+  retries.length = 0;
+  env = installBrowserWebSocket();
+});
+
+afterEach(() => {
+  env.restore();
+  setVisibility("visible");
+});
 
 interface Mounted {
   readonly server: MockServer;
-  readonly transport: FakeTransport | null;
 }
 
 function mount(options: { socket: boolean; intervalMs?: number }): Mounted {
   const server = threadServer();
-  const transport = options.socket ? fakeTransport() : null;
-  const realtime: ChatRealtimeOptions = transport
-    ? { socketUrl: SOCKET_URL, webSocket: transport.factory }
+  const realtime: ChatRealtimeOptions = options.socket
+    ? {
+        socketUrl: SOCKET_ORIGIN,
+        // The substrate's OWN timer seam — not the socket's. A test that
+        // wanted a reconnect to happen now would otherwise wait out a real
+        // backoff, and one that wanted no reconnect could not prove it.
+        schedule: (fn, delay) => {
+          retries.push({ fn, delay });
+          return () => {
+            const index = retries.findIndex((entry) => entry.fn === fn);
+            if (index >= 0) retries.splice(index, 1);
+          };
+        },
+        random: () => 0.5,
+      }
     : { socketUrl: null };
   render(
     <TestHarness server={server} realtime={realtime}>
       <Thread {...(options.intervalMs !== undefined ? { intervalMs: options.intervalMs } : {})} />
     </TestHarness>
   );
-  return { server, transport };
+  return { server };
 }
 
-afterEach(() => {
-  setVisibility("visible");
-});
+/** Wait for the pair to open its socket, then stand the consumer behind it. */
+async function connected(): Promise<ChatServer> {
+  await waitFor(() => expect(env.sockets.length).toBeGreaterThan(0));
+  const server = new ChatServer(env.last(), { stream: STREAM });
+  return server;
+}
 
 describe("the thread renders the same under either transport", () => {
-  it("socket: replay window, then a live frame appends exactly once", async () => {
-    const { server, transport } = mount({ socket: true, intervalMs: 0 });
+  it("socket: the replay window resumes by rev_seq, and a live frame appends exactly once", async () => {
+    const { server } = mount({ socket: true, intervalMs: 0 });
     await waitFor(() => expect(rendered()).toEqual([1, 2, 3]));
 
-    // The socket only opens once the window is loaded — with a real cursor.
-    await waitFor(() => expect(transport?.sockets.length).toBe(1));
-    act(() => transport?.last().open());
-    expect(transport?.last().sent).toEqual([{ type: "hello", last_seq: 3 }]);
+    // The socket only opens once the window is loaded — with a real cursor,
+    // and the cursor is the REVISION seq, not the thread's.
+    const consumer = await connected();
+    expect(env.last().url).toBe(`${SOCKET_ORIGIN}/ws/chat/${CONVERSATION_ID}`);
+    act(() => {
+      consumer.accept();
+    });
+    expect(consumer.lastHelloCursor).toBe(3);
     expect(screen.getByTestId("transport").textContent).toBe("socket");
 
     act(() => {
-      transport?.last().emit(messageFrame(4));
+      consumer.publish(chatMessagePayload({ seq: 4, conversationId: CONVERSATION_ID }));
       // The fan-out delivers the same row to every subscriber, and a resume
       // overlaps replay with live: the screen must show it once.
-      transport?.last().emit(messageFrame(4));
+      consumer.publish(chatMessagePayload({ seq: 4, conversationId: CONVERSATION_ID }));
     });
 
     await waitFor(() => expect(rendered()).toEqual([1, 2, 3, 4]));
@@ -144,13 +178,52 @@ describe("the thread renders the same under either transport", () => {
   });
 });
 
-describe("a stopped socket never becomes a SILENT polling loop", () => {
-  it("4403 stops the socket for good, keeps the thread fresh, and NAMES the degradation", async () => {
-    const { server, transport } = mount({ socket: true, intervalMs: 20 });
-    await initialWindowOnScreen();
-    await waitFor(() => expect(transport?.sockets.length).toBe(1));
+describe("an edit is applied where no anchored refetch can reach it", () => {
+  it("a revision frame rewrites the body in place, keeping the thread's order", async () => {
+    mount({ socket: true, intervalMs: 0 });
+    await waitFor(() => expect(rendered()).toEqual([1, 2, 3]));
+    const consumer = await connected();
+    act(() => {
+      consumer.accept();
+    });
 
-    act(() => transport?.last().serverClose(4403));
+    act(() => {
+      consumer.publish(
+        chatMessagePayload({
+          seq: 2,
+          revSeq: 4,
+          conversationId: CONVERSATION_ID,
+          body: "fixed a typo",
+          edited: true,
+        })
+      );
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.queryAllByTestId("row").map((node) => node.getAttribute("data-body"))
+      ).toEqual(["message 1", "fixed a typo", "message 3"])
+    );
+    // Its place in the thread did not move — that is what happens when the
+    // revision seq is mistaken for the ordering key.
+    expect(rendered()).toEqual([1, 2, 3]);
+  });
+});
+
+describe("a stopped socket never becomes a SILENT polling loop", () => {
+  it("4403 on an accepted socket stops it for good, keeps the thread fresh, and NAMES the refusal", async () => {
+    const { server } = mount({ socket: true, intervalMs: 20 });
+    await initialWindowOnScreen();
+    const consumer = await connected();
+    act(() => {
+      consumer.accept();
+    });
+
+    // `authorize()` said no for this stream — on a socket that WAS accepted,
+    // which is what tells it apart from the origin gate.
+    act(() => {
+      env.last().serverClose(4403);
+    });
 
     await waitFor(() =>
       expect(screen.getByTestId("transport").textContent).toBe("polling")
@@ -163,24 +236,37 @@ describe("a stopped socket never becomes a SILENT polling loop", () => {
       "chat.transport.degraded.forbidden"
     );
     // No second socket: the host already answered.
-    expect(transport?.sockets).toHaveLength(1);
+    expect(env.sockets).toHaveLength(1);
     await waitFor(() => expect(rendered()).toEqual([1, 2, 3, 4]));
     expect(server.calls.some((c) => c.url.includes("direction=prev"))).toBe(true);
   });
 
-  it("4401 with nothing to renew asks the person to sign in, out loud", async () => {
-    const { transport } = mount({ socket: true, intervalMs: 20 });
+  it("4403 BEFORE the handshake is accepted is the deployment's origin allowlist, not this person's rights", async () => {
+    mount({ socket: true, intervalMs: 20 });
     await initialWindowOnScreen();
-    await waitFor(() => expect(transport?.sockets.length).toBe(1));
+    await connected();
 
-    act(() => transport?.last().serverClose(4401));
+    // Core's origin gate runs in ASGI middleware, before `websocket.accept`,
+    // so the socket never opens. One delayed retry (an allowlist being rolled
+    // out can be right a moment later), then it holds and SAYS so — an
+    // operator has to see it to go and fix it.
+    act(() => {
+      env.last().serverClose(4403);
+    });
+    await waitFor(() => expect(retries.length).toBeGreaterThan(0));
+    act(() => {
+      retries.shift()?.fn();
+    });
+    act(() => {
+      env.last().serverClose(4403);
+    });
 
     await waitFor(() =>
-      expect(screen.getByTestId("degraded").textContent).toBe("sign_in_required")
+      expect(screen.getByTestId("degraded").textContent).toBe("origin_not_allowed")
     );
-    // The thread is still kept fresh — degrading is allowed. Doing it
-    // wordlessly is not.
-    expect(screen.getByTestId("transport").textContent).toBe("polling");
+    expect(screen.getByTestId("degraded-key").textContent).toBe(
+      "chat.transport.degraded.origin_not_allowed"
+    );
   });
 
   it("a deployment with no socket at all says so, rather than polling quietly", async () => {
@@ -189,13 +275,16 @@ describe("a stopped socket never becomes a SILENT polling loop", () => {
     await waitFor(() =>
       expect(screen.getByTestId("degraded").textContent).toBe("no_socket")
     );
+    expect(env.sockets).toHaveLength(0);
   });
 
   it("a live socket reports no degradation", async () => {
-    const { transport } = mount({ socket: true, intervalMs: 0 });
+    mount({ socket: true, intervalMs: 0 });
     await waitFor(() => expect(rendered()).toEqual([1, 2, 3]));
-    await waitFor(() => expect(transport?.sockets.length).toBe(1));
-    act(() => transport?.last().open());
+    const consumer = await connected();
+    act(() => {
+      consumer.accept();
+    });
     expect(screen.getByTestId("degraded").textContent).toBe("none");
   });
 });
@@ -251,9 +340,6 @@ describe("polling is visibility-aware and backs off", () => {
         <Thread intervalMs={10} />
       </TestHarness>
     );
-    // The first page has been served; whether the screen still shows it or
-    // already the failure arm (the tail 503s at once) is timing, not the
-    // subject — the subject is how many attempts the next 250 ms cost.
     await waitFor(() => expect(server.calls.length).toBeGreaterThan(0));
     const start = server.calls.length;
     await new Promise((resolve) => setTimeout(resolve, 250));

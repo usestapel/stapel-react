@@ -6,15 +6,17 @@ Built on `@stapel/core` (typed client + `StapelApiError` envelope, token
 refresh, verification-403 interception, i18n engine, analytics seam, TanStack
 Query).
 
-Its backend delivers the same journal two ways — the REST history and its own
-resumable WebSocket protocol — and this pair wires **both, behind one seam**, so
-a deployment with sockets and one without run the same screens. See `MODULE.md`
-for the layer map and the seam's replacement criterion.
+Its backend delivers the same journal two ways — the REST history and two
+WebSocket streams on the `stapel-realtime` wire — and this pair wires **both,
+behind one seam**, so a deployment with sockets and one without run the same
+screens. The socket half is `@stapel/realtime`: one reconnect/resume runtime
+for the whole fleet, and a required peer here. See `MODULE.md` for the layer
+map and the two streams.
 
 ## Install
 
 ```
-pnpm add @stapel/chat-react @stapel/core @tanstack/react-query react
+pnpm add @stapel/chat-react @stapel/core @stapel/realtime @tanstack/react-query react
 ```
 
 ## Wire the app once
@@ -25,10 +27,15 @@ import { ChatProvider, createChatRuntime, registerChatI18n } from "@stapel/chat-
 
 const runtime = createChatRuntime({
   baseUrl: "/chat/api/v1",
-  // Sockets are derived from baseUrl's origin (`/ws/chat/`, the module's
-  // canonical mount). On a deployment that has none, say so — it goes
-  // straight to polling instead of failing a handshake six times first:
+  // The socket ORIGIN is derived from baseUrl; the paths are the streams'
+  // (`ws/chat/<id>`, `ws/chat/inbox`). On a deployment that has no sockets,
+  // say so — it polls, and the screens SAY they are polling:
   //   realtime: { socketUrl: null },
+  //
+  // The handshake carries the browser's httpOnly cookie, because a page
+  // cannot put a header on `new WebSocket()`. A non-browser host passes
+  // `protocols: bearerSubprotocols(token)` instead. A 4401 goes to core's
+  // single-flight `SessionManager.refresh()` and reconnects once.
 });
 const i18n = createI18n({ locale: "en" });
 registerChatI18n(i18n);
@@ -48,7 +55,10 @@ export function Root({ children }: { children: React.ReactNode }) {
 import { ConversationList } from "@stapel/chat-react";
 import { matchList } from "@stapel/core";
 
-<ConversationList>
+// `viewerId` is what turns the inbox socket on: the stream is
+// `chat:user:<id>` and the server derives that key from the session, so it
+// cannot be guessed. Without it the list polls — and says so.
+<ConversationList viewerId={me.id}>
   {({ state }) =>
     matchList(state, {
       loading: () => <Spinner />,
@@ -66,9 +76,15 @@ import { matchList } from "@stapel/core";
 import { ConversationThread, MessageComposer } from "@stapel/chat-react";
 
 <ConversationThread conversationId={id}>
-  {({ state, hasOlder, loadOlder, transport }) => (
+  {({ state, hasOlder, loadOlder, transport, degraded }) => (
     /* `transport` is "socket" | "polling" | "idle" — a LABEL. Nothing about
-       the thread's behaviour depends on it; that is the seam's whole point. */
+       the thread's behaviour depends on it; that is the seam's whole point.
+       `degraded` is the other half, and the one that matters: when the socket
+       is not carrying the thread it carries the NAMED reason and its i18n key
+       (`never_connected`, `reconnecting_long`, `sign_in_required`,
+       `origin_not_allowed`, `forbidden`, `revoked`, `unsupported`,
+       `no_socket`). "Refreshing every few seconds", with no reason beside it,
+       is what let a broken handshake read as a product decision for months. */
     ...
   )}
 </ConversationThread>;
@@ -85,6 +101,13 @@ import { ConversationThread, MessageComposer } from "@stapel/chat-react";
 The thread replays, then stays live; the read marker advances to the tip while
 it is mounted and never moves backwards. Sending is REST — the persisted row
 comes back with its `seq` and is folded into the window.
+
+Chat is also the substrate's ONE documented socket-write exception. The bag's
+`socket` (`ChatSocketWrites`) emits `send`/`edit`/`delete`/`read`/`delivered`/
+`activity` with a `client_msg_id`, so a host that wants Enter to travel on the
+same wire as the messages it produces can have that. It is not the default:
+the REST twins answer with the persisted row and a localized error envelope,
+while a socket refusal is a protocol code with no i18n key.
 
 ## "Message the seller"
 

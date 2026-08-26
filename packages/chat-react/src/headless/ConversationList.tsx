@@ -2,6 +2,8 @@ import { useCallback } from "react";
 import type { ReactNode } from "react";
 import { loadStateFromQuery, mapLoad } from "@stapel/core";
 import type { LoadState } from "@stapel/core";
+import type { RealtimeStreamStatus } from "@stapel/realtime";
+import type { NoProviderStatus } from "@stapel/realtime/react";
 import type { Conversation } from "../api/types.js";
 import { useConversations } from "../model/queries.js";
 import { chatQueryKeys } from "../model/queryKeys.js";
@@ -35,17 +37,22 @@ export interface ConversationListBag {
   readonly isFetchingNextPage: boolean;
   fetchNextPage(): void;
   refetch(): void;
-  /** Which transport is keeping this list fresh (always polling — the module
-   * mounts no socket for the inbox; see `realtime/streams.ts`). */
+  /** Which transport is keeping this list fresh. */
   readonly transport: ChatTransport;
+  /** The substrate's own stream state, unflattened. */
+  readonly status: RealtimeStreamStatus | NoProviderStatus;
   /**
-   * Why it is not a socket. For the inbox this is always `no_socket` today —
-   * and it is REPORTED rather than assumed, because "this list is on a timer
-   * forever" is a fact a person may read and an operator may act on, not a
-   * silence. (stapel-chat 0.4.0 mounts `ws/chat/inbox`; wiring it is the
-   * protocol wave, and until then this says so out loud.)
+   * Why it is not a socket, when it is not. The inbox HAS one since
+   * stapel-chat 0.4.0 (`ws/chat/inbox`, stream `chat:user:<id>`), so the
+   * honest answers here are the same as the thread's — plus `no_socket` for a
+   * host that has not told this list who is reading it, since the stream key
+   * is the viewer's own and cannot be guessed. Always reported: "this list is
+   * on a timer forever" is a fact a person may read and an operator may act
+   * on, not a silence.
    */
   readonly degraded: ChatDegraded | null;
+  /** Clear a refusal and reconnect — the button beside a visible refusal. */
+  reconnect(): void;
 }
 
 /**
@@ -66,6 +73,18 @@ export interface ConversationListBag {
  * ```
  */
 export function ConversationList(props: {
+  /**
+   * WHO IS READING. The inbox stream key is `chat:user:<id>` and the server
+   * derives it from the authenticated scope — the route carries no user
+   * segment, so there is nothing to tamper with and nothing to infer. A
+   * client that subscribed under a guessed id would open a socket that
+   * delivers nothing, silently. So the id is asked for, and a list without
+   * one polls and SAYS it is polling (`degraded.reason === "no_socket"`).
+   *
+   * The host knows who is signed in (`@stapel/auth-react`'s `useMe`); this
+   * pair does not take a dependency on auth to find out.
+   */
+  viewerId?: string | number | null;
   limit?: number;
   /** Poll period in ms; `0` turns the list's own freshness off entirely. */
   refreshIntervalMs?: number;
@@ -76,9 +95,17 @@ export function ConversationList(props: {
     (_signal: ChatSignal) => [chatQueryKeys.conversations()],
     []
   );
-  const freshness = useChatFreshness(chatInboxStream(), mapKeys, {
-    fallbackRefetchInterval: props.refreshIntervalMs ?? CONVERSATION_LIST_INTERVAL_MS,
-  });
+  const viewerId =
+    props.viewerId === null || props.viewerId === undefined
+      ? null
+      : String(props.viewerId);
+  const freshness = useChatFreshness(
+    viewerId === null ? null : chatInboxStream(viewerId),
+    mapKeys,
+    {
+      fallbackRefetchInterval: props.refreshIntervalMs ?? CONVERSATION_LIST_INTERVAL_MS,
+    }
+  );
 
   // Pages are flattened INSIDE the ready arm — a failed or not-yet-run read
   // never produces a list at all.
@@ -100,6 +127,8 @@ export function ConversationList(props: {
       void query.refetch();
     },
     transport: freshness.transport,
+    status: freshness.status,
     degraded: freshness.degraded,
+    reconnect: freshness.reconnect,
   });
 }

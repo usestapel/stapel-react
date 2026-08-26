@@ -5,13 +5,13 @@
  * i18n, analytics, query layer).
  *
  * WHAT IS DIFFERENT ABOUT THIS PAIR. Its backend has two ways to deliver the
- * same journal: the REST history, and its own resumable WebSocket protocol
- * (`ws/chat/<conversation_id>` — hello{last_seq} → welcome → replay →
- * replay_done → live). Both are wired here, behind ONE seam
- * (`useChatFreshness`), and no component above that seam can tell which is
- * running. Writes go over REST in either case. See `flows/freshness.ts` for
- * the seam and the criterion under which `@stapel/realtime` replaces its
- * insides.
+ * same journal: the REST history, and two resumable/ephemeral WebSocket
+ * streams on `@stapel/realtime`'s wire — `chat:conv:<id>` (`ws/chat/<id>`,
+ * resumed by `rev_seq`) and `chat:user:<id>` (`ws/chat/inbox`). Both are
+ * wired here, behind ONE seam (`useChatFreshness`), and no component above
+ * that seam can tell which is running. Writes go over REST by default; chat
+ * is also the substrate's one documented socket-WRITE exception, and that
+ * seam is `model/socketWrites.ts`.
  *
  * Layers: api → model → realtime → flows → headless → i18n. Generated
  * surfaces (error map, manifest, llms.txt) are produced by the monorepo
@@ -40,88 +40,66 @@ export type {
   SupportStatus,
 } from "./api/types.js";
 
-// ── realtime (the module's own socket protocol, typed) ───────────────────────
-// Exported because a host may want to render the connection state or inject a
-// transport; NOTHING above `flows/freshness.ts` inside this package uses it,
-// which is what keeps the substrate migration to one file.
+// ── realtime (chat's stream keys and payloads, on @stapel/realtime) ─────────
+// The protocol itself is NOT here any more and never will be again: the
+// envelope, the resume handshake, the heartbeat answer, the close-code table
+// and the 4401 session refresh are `@stapel/realtime`'s, one implementation
+// for the fleet. What a pair owns is its stream keys and what its payloads
+// mean — which is all this section exports.
 export {
-  CHAT_WS_REPLAY_LIMIT,
-  CHAT_WS_RESYNC,
-  decodeServerFrame,
-  parseServerFrame,
+  CHAT_ACTIVITY_STATES,
+  CHAT_FRAME_ACTIVITY,
+  CHAT_FRAME_DELETE,
+  CHAT_FRAME_DELIVERED,
+  CHAT_FRAME_EDIT,
+  CHAT_FRAME_READ,
+  CHAT_FRAME_SEND,
+  CHAT_SIGNAL_ACTIVITY,
+  CHAT_SIGNAL_DELIVERED,
+  CHAT_SIGNAL_INBOX,
+  CHAT_SIGNAL_READ,
+  CHAT_WS_ERRORS,
+  chatClientMessageId,
+  isChatMessageFrame,
+  readChatActivityFrame,
+  readChatInboxFrame,
+  readChatMarkerFrame,
+  readChatMessageFrame,
+  readChatMessagePayload,
 } from "./realtime/frames.js";
-// Close codes and the ONE place they are interpreted. A host rendering a
-// connection state reads `chatClosePolicy`, never a bare number.
-export {
-  CHAT_WS_CLOSE_DATA_HOME_UNAVAILABLE,
-  CHAT_WS_CLOSE_FORBIDDEN,
-  CHAT_WS_CLOSE_HEARTBEAT_TIMEOUT,
-  CHAT_WS_CLOSE_NOT_PARTICIPANT,
-  CHAT_WS_CLOSE_OVERFLOW,
-  CHAT_WS_CLOSE_PROTOCOL_ERROR,
-  CHAT_WS_CLOSE_REVOKED,
-  CHAT_WS_CLOSE_STREAM_UNKNOWN,
-  CHAT_WS_CLOSE_UNAUTHENTICATED,
-  chatClosePolicy,
-} from "./realtime/closePolicy.js";
 export type {
-  ChatCloseAction,
-  ChatClosePolicy,
-  ChatCloseReason,
-} from "./realtime/closePolicy.js";
-export {
-  CHAT_WS_BEARER_SUBPROTOCOL,
-  CHAT_WS_TOKEN_QUERY_PARAM,
-  chatSocketTarget,
-} from "./realtime/credential.js";
-export type {
-  ChatCredentialRenewal,
-  ChatCredentialRenewalOutcome,
-  ChatCredentialSource,
-  ChatSocketCredential,
-  ChatSocketTarget,
-} from "./realtime/credential.js";
-export type {
-  ChatAckFrame,
-  ChatClientFrame,
-  ChatErrorFrame,
-  ChatHelloFrame,
-  ChatMessageFrame,
-  ChatPingFrame,
-  ChatPongFrame,
-  ChatReplayDoneFrame,
-  ChatSendFrame,
-  ChatServerFrame,
-  ChatWelcomeFrame,
+  ChatActivityFramePayload,
+  ChatActivityPayload,
+  ChatActivityState,
+  ChatDeletePayload,
+  ChatEditPayload,
+  ChatInboxPayload,
+  ChatMarkerFramePayload,
+  ChatMarkerPayload,
+  ChatMessagePayload,
+  ChatSendPayload,
+  ChatWriteRefusal,
 } from "./realtime/frames.js";
 export {
-  browserWebSocketFactory,
-  canOpenWebSocket,
-  createChatSocket,
-} from "./realtime/chatSocket.js";
-export type {
-  ChatConnectionState,
-  ChatReconnectOptions,
-  ChatSocket,
-  ChatSocketConnection,
-  ChatSocketHandlers,
-  ChatSocketOptions,
-  ChatSocketRefusal,
-  ChatSocketStatus,
-  ChatWebSocketFactory,
-} from "./realtime/chatSocket.js";
-export {
+  CHAT_INBOX_SOCKET_PATH,
+  CHAT_STREAM_MODULE,
+  chatConversationSocketPath,
   chatConversationStream,
+  chatConversationStreamKey,
   chatInboxStream,
   chatSocketUrl,
-  chatStreamId,
-  deriveChatSocketBase,
+  chatSocketUrlForStreamKey,
+  chatStreamForConversation,
+  chatUserStreamKey,
+  deriveChatSocketOrigin,
 } from "./realtime/streams.js";
-export type {
-  ChatConversationStream,
-  ChatInboxStream,
-  ChatStreamKey,
-} from "./realtime/streams.js";
+export type { ChatStream } from "./realtime/streams.js";
+// The named degradations — every reason a socket is not carrying a stream,
+// with its i18n key. A degraded transport that cannot say why is
+// indistinguishable from a working product, which is how this pair's own
+// defect survived for months.
+export { chatDegradation, chatDegraded } from "./realtime/degradation.js";
+export type { ChatDegraded, ChatDegradedReason } from "./realtime/degradation.js";
 
 // ── flows (the transport seam + the error fold) ──────────────────────────────
 export { createFlowMachine, useFlow, isErrorCode } from "@stapel/core";
@@ -139,10 +117,7 @@ export {
   THREAD_INTERVAL_MS,
   useChatFreshness,
 } from "./flows/freshness.js";
-export { chatDegradation } from "./flows/freshness.js";
 export type {
-  ChatDegraded,
-  ChatDegradedReason,
   ChatFreshness,
   ChatFreshnessOptions,
   ChatSignal,
@@ -153,6 +128,7 @@ export type {
 // ── model (runtime wiring, query keys, context, the thread store) ────────────
 export { createChatRuntime } from "./model/runtime.js";
 export type {
+  ChatRealtimeClientOptions,
   ChatRealtimeConfig,
   ChatRealtimeOptions,
   ChatRuntime,
@@ -180,14 +156,28 @@ export { CHAT_DEFAULT_MAX_BODY_LENGTH } from "./model/limits.js";
 export { nextReadMarker } from "./model/readMarker.js";
 export {
   EMPTY_THREAD_WINDOW,
+  applyRevision,
   mergeMessage,
   mergeNewerPage,
   mergeOlderPage,
   threadFirstSeq,
+  threadLastRevSeq,
   threadLastSeq,
   threadWindowFromPage,
 } from "./model/threadWindow.js";
-export type { ChatThreadWindow, ThreadMergeResult } from "./model/threadWindow.js";
+export type {
+  ChatMessageRevision,
+  ChatThreadWindow,
+  ThreadMergeResult,
+} from "./model/threadWindow.js";
+// Chat is the substrate's ONE documented socket-write exception; this is the
+// typed way to emit those six frames, not a replacement for the REST twins.
+export { createChatSocketWrites } from "./model/socketWrites.js";
+export type {
+  ChatFrameSender,
+  ChatSendOverSocket,
+  ChatSocketWrites,
+} from "./model/socketWrites.js";
 
 // ── headless (renderless components) ─────────────────────────────────────────
 export { ChatProvider } from "./headless/ChatProvider.js";

@@ -79,6 +79,95 @@ export function threadFirstSeq(window: ChatThreadWindow): number {
 }
 
 /**
+ * THE RESUME CURSOR — the highest `rev_seq` the window holds, or 0.
+ *
+ * Not `threadLastSeq`. `seq` is the message's place in the thread; `rev_seq`
+ * is its place in the conversation's REVISION journal, which is what the
+ * socket resumes on (`hello{last_seq}` → replay everything after it). The two
+ * are different numbers with the same shape, and handing the server the wrong
+ * one asks it to replay from a revision that has nothing to do with what this
+ * client holds.
+ *
+ * It is a MAX over the window rather than the last element's value, because
+ * `rev_seq` is not in `seq` order: editing an old message gives it the newest
+ * `rev_seq` while it stays where it is in the thread.
+ *
+ * Under-counting is safe (the server replays a little more, and the substrate
+ * dedupes by envelope seq); over-counting silently skips revisions. So a
+ * window that does not reach the top of the journal simply asks for more.
+ */
+export function threadLastRevSeq(window: ChatThreadWindow): number {
+  let highest = 0;
+  for (const message of window.messages) {
+    if (message.rev_seq > highest) highest = message.rev_seq;
+  }
+  return highest;
+}
+
+/**
+ * What a revision frame carries: the id it revises, its new `rev_seq`, and
+ * the fields an edit or a delete actually changes.
+ *
+ * Deliberately NARROW. A socket payload and a REST body are the same row on
+ * every field but one — `attachments` is rendered by the REST serializer and
+ * raw on the wire (`realtime/frames.ts`) — so a revision may only carry the
+ * fields whose shape both transports agree on. `attachments` is not among
+ * them, and an edit does not change them anyway (`services.edit_message`
+ * writes `body` alone); a tombstone empties them, which is the one case
+ * handled explicitly below.
+ */
+export interface ChatMessageRevision {
+  readonly message_id: string;
+  readonly rev_seq: number;
+  readonly body: string;
+  readonly edited: boolean;
+  readonly edited_at: string | null;
+  readonly deleted: boolean;
+  readonly deleted_at: string | null;
+}
+
+/**
+ * Apply an edit or a tombstone to the message it revises.
+ *
+ * WHY THIS EXISTS AT ALL, when every other kind of news is a refetch. A
+ * revision keeps its `seq`: the thread query advances by
+ * `direction=prev&anchor=<tip>`, so a refetch after an edit returns an empty
+ * page and the change stays invisible until something rebuilds the window.
+ * There is no anchor that reaches backwards for one row.
+ *
+ * Returns the SAME window object when nothing applied — an id we do not hold
+ * (older than the loaded window: not a hole, just not ours), or a `rev_seq`
+ * at or below the one already stored (the replay/live overlap after a resume
+ * delivers the same revision twice, and it must be idempotent).
+ */
+export function applyRevision(
+  window: ChatThreadWindow,
+  revision: ChatMessageRevision
+): ChatThreadWindow {
+  const index = window.messages.findIndex(
+    (message) => message.id === revision.message_id
+  );
+  if (index === -1) return window;
+  const current = window.messages[index];
+  if (current === undefined || current.rev_seq >= revision.rev_seq) return window;
+  const next: ChatMessage = {
+    ...current,
+    rev_seq: revision.rev_seq,
+    body: revision.body,
+    edited: revision.edited,
+    edited_at: revision.edited_at,
+    deleted: revision.deleted,
+    deleted_at: revision.deleted_at,
+    // A tombstone erases: the row keeps its id, its seq and its author, and
+    // loses everything a reader could still read.
+    ...(revision.deleted ? { attachments: [] } : {}),
+  };
+  const messages = [...window.messages];
+  messages[index] = next;
+  return { ...window, messages };
+}
+
+/**
  * A fresh window from the newest page (`GET …/messages` with no anchor).
  * This is also the resync path: whatever was loaded before is dropped,
  * because a window that cannot be proven contiguous is worse than a short

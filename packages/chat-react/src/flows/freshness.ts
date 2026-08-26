@@ -2,70 +2,114 @@
  * THE TRANSPORT SEAM. One hook, two transports, and no screen that knows
  * which one is running.
  *
- * ── What changed since the spec ─────────────────────────────────────────────
+ * ── What this file is, after the cutover ────────────────────────────────────
  *
- * The storefront spec §3.6 ruled polling-by-seq for chat v1,
- * and it was right about the fleet it surveyed: stapel-chat had the resumable
- * consumer but `routing.py` exported nothing, so no host could mount it.
- * stapel-chat 0.2.2 ships that mount (`ws/chat/<uuid:conversation_id>`) and
- * the client fleet runs it. So the pair carries BOTH transports and picks at
- * runtime — a deployment without sockets (WSGI, no channel layer, a
- * misconfigured proxy) is not a broken chat, it is a chat that refreshes on a
- * timer.
+ * It is the ONLY place chat touches a socket, and it no longer contains one.
+ * `@stapel/realtime` owns the wire — the v1 envelope, the resume handshake,
+ * the heartbeat answer, the close-code table, the 4401 session refresh, the
+ * backoff — and this file owns the two things a pair cannot delegate: which
+ * STREAM a surface watches, and what its PAYLOADS mean to the store.
  *
- * ── The shape, and why it is this shape ─────────────────────────────────────
+ * ```
+ * useChatFreshness(stream, mapToQueryKeys, { fallbackRefetchInterval })
+ *     ├── socket  → useStream(chat:conv:<id>) → replay/live frames, resumed
+ *     │              by rev_seq; resync → re-hydrate
+ *     └── polling → a visibility-aware tick, exponential backoff on failures
+ * ```
  *
- * `useChatFreshness(streamKey, mapToQueryKeys, { fallbackRefetchInterval })`
- * is deliberately the signature §3.6 specified and the realtime substrate
- * spec (§7) reserves for `useSignalInvalidate`: a signal maps to query keys,
- * the keys are refetched, and the fallback interval turns the same interface
- * into polling. Both halves therefore end in the same place — a refetch of
- * the thread query, whose query function advances the window BY SEQ
- * (`model/queries.ts`). A socket frame does not carry its payload into the
- * cache; it says "there is something after your tip", and the store goes and
- * gets it. That is resync-by-refetch as a first-class construction, and it is
- * why the tests below hold for both transports without a branch.
+ * Both ends do the same thing with what they learn: **refetch the thread
+ * query**, whose query function advances the window BY SEQ
+ * (`GET …/messages?direction=prev&anchor=<tip>`). A frame says "there is
+ * something after your tip" and the store goes and gets it — which is also
+ * why a live payload is not written into the cache as if it were a REST row:
+ * the socket sends raw attachment descriptors where REST sends rendered ones
+ * (`realtime/frames.ts`), and a cache holding both shapes under one type is a
+ * renderer bug waiting for an attachment.
  *
- * ── The replacement criterion, stated up front ──────────────────────────────
+ * The ONE exception is a revision. An edit or a tombstone re-arrives with its
+ * existing `seq` and a new `rev_seq`, so a refetch anchored on the tip returns
+ * nothing and the change would be invisible until the screen was rebuilt.
+ * Those frames are applied in place, and only over the fields whose shape the
+ * two transports agree on — body, the edit/delete marks, `rev_seq`. See
+ * `model/threadWindow.ts#applyRevision`.
  *
- * When `@stapel/realtime` phase 1 lands, THIS FILE is the migration: `createChatSocket`
- * goes away, `useSignalInvalidate` takes its place, and the pair's tests must
- * stay green with no edits. Nothing above this file imports `realtime/`, so
- * the blast radius is checkable rather than promised. There is no
- * "TODO: replace with sockets" comment anywhere in this package — there is a
- * seam with one consumer and a written criterion.
+ * ── The two sequences, one more time ────────────────────────────────────────
+ *
+ * The resume cursor handed back in `hello{last_seq}` is `rev_seq`
+ * (`threadLastRevSeq`), NOT the thread's `seq`. The pre-substrate client sent
+ * the thread seq, which asked the server to replay from a revision number
+ * that had nothing to do with what the client held.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { QueryKey } from "@tanstack/react-query";
+import type { QueryClient, QueryKey } from "@tanstack/react-query";
+import { useStream, useRealtimeState } from "@stapel/realtime/react";
+import type { RealtimeFrame, RealtimeStreamStatus } from "@stapel/realtime";
+import type { NoProviderStatus } from "@stapel/realtime/react";
 import { useChatRuntime } from "../model/context.js";
 import { chatQueryKeys } from "../model/queryKeys.js";
-import { threadLastSeq } from "../model/threadWindow.js";
+import { applyRevision, threadLastRevSeq } from "../model/threadWindow.js";
 import type { ChatThreadWindow } from "../model/threadWindow.js";
-import { createChatSocket } from "../realtime/chatSocket.js";
-import type {
-  ChatConnectionState,
-  ChatSocketRefusal,
-  ChatSocketStatus,
-} from "../realtime/chatSocket.js";
-import { CHAT_WS_RESYNC } from "../realtime/frames.js";
-import { CHAT_I18N_KEYS } from "../i18n/keys.js";
+import {
+  readChatActivityFrame,
+  readChatInboxFrame,
+  readChatMarkerFrame,
+  readChatMessageFrame,
+} from "../realtime/frames.js";
+import type { ChatMessagePayload } from "../realtime/frames.js";
+import { chatDegradation } from "../realtime/degradation.js";
+import type { ChatDegraded } from "../realtime/degradation.js";
 import { chatSocketUrl } from "../realtime/streams.js";
-import type { ChatStreamKey } from "../realtime/streams.js";
+import type { ChatStream } from "../realtime/streams.js";
 
 /**
  * What a transport reports upward. One vocabulary for both, so the mapping
  * function does not care where the news came from:
  *
- *  - `message` — a specific message landed (socket only),
- *  - `resync` — the stream gave up on incremental delivery; re-read the
- *    journal (socket `error{resync}`),
- *  - `tick` — a scheduled "check for news" (polling), or a catch-up after a
- *    reconnect.
+ *  - `message` — a message landed on the journal (socket only). `revision`
+ *    tells an edit or a tombstone apart from a new line.
+ *  - `marker` — someone's read or delivery marker moved (socket only).
+ *  - `activity` — someone is typing/recording/uploading. Ephemeral, expires
+ *    on its own `ttlMs`; nothing to refetch, and it is delivered so a host
+ *    that wants an indicator has one.
+ *  - `inbox` — a conversation this user takes part in moved (inbox socket).
+ *  - `resync` — the stream fell behind the replay window; re-read the
+ *    journal.
+ *  - `tick` — a scheduled "check for news" (polling), or a catch-up after an
+ *    ephemeral stream reconnected and cannot replay what it missed.
  */
 export type ChatSignal =
-  | { readonly kind: "message"; readonly conversationId: string; readonly seq: number }
-  | { readonly kind: "resync"; readonly conversationId: string }
+  | {
+      readonly kind: "message";
+      readonly conversationId: string;
+      /** Place in the thread — the sort key. */
+      readonly seq: number;
+      /** Place in the revision journal — the resume cursor. */
+      readonly revSeq: number;
+      /** An edit or a tombstone, rather than a new line. */
+      readonly revision: boolean;
+      readonly message: ChatMessagePayload;
+    }
+  | {
+      readonly kind: "marker";
+      readonly conversationId: string;
+      readonly userId: string;
+      readonly seq: number;
+      readonly marker: "read" | "delivered";
+    }
+  | {
+      readonly kind: "activity";
+      readonly conversationId: string;
+      readonly userId: string;
+      readonly state: string;
+      readonly ttlMs: number;
+    }
+  | {
+      readonly kind: "inbox";
+      readonly conversationId: string;
+      readonly lastSeq: number;
+    }
+  | { readonly kind: "resync"; readonly conversationId: string | null }
   | { readonly kind: "tick" };
 
 /** Signal → the query keys it makes stale. The whole contract with the UI. */
@@ -74,121 +118,7 @@ export type ChatSignalKeyMap = (signal: ChatSignal) => readonly QueryKey[];
 /** Which transport is actually carrying freshness right now. */
 export type ChatTransport = "socket" | "polling" | "idle";
 
-/**
- * Why the socket is NOT carrying this stream. One name per situation, and
- * every one of them reaches the UI.
- *
- * This type is the fix for the defect that produced this pair's worst bug.
- * `transport: "polling"` was true and useless: it read the same whether the
- * deployment has no sockets, the credential was refused, or the retry budget
- * ran out. A person saw "Refreshing every few seconds" and read it as a
- * design decision, and so did everyone reporting that "the websockets are
- * done". A degraded mode that cannot say why is indistinguishable from a
- * working product, which is exactly how it survives.
- *
- *  - `reconnecting` — the socket dropped; a retry is scheduled. Transient.
- *  - `renewing_credential` — the handshake was refused (4401) and the host's
- *    renewal seam is being asked for a fresh credential. Transient.
- *  - `sign_in_required` — the credential was refused and could not be
- *    renewed. The person has to do something; say so.
- *  - `forbidden` — this account may not read this stream (4403 / 4404 /
- *    4410, including a cookie handshake from an origin the deployment does
- *    not allow-list). Nothing the client does changes it.
- *  - `unsupported` — the server rejected this build's frames (4400). A
- *    deploy fixes it; a retry does not.
- *  - `unreachable` — the retry budget is spent. The socket is down and this
- *    stream is on a timer until something changes.
- *  - `no_socket` — this build has no socket for this stream at all: an
- *    explicit `socketUrl: null`, an origin that cannot be resolved, or a
- *    stream the pair mounts no socket for. Legitimate, and still named:
- *    "always polling" must be a fact someone can read, not a silence.
- */
-export type ChatDegradedReason =
-  | "reconnecting"
-  | "renewing_credential"
-  | "sign_in_required"
-  | "forbidden"
-  | "unsupported"
-  | "unreachable"
-  | "no_socket";
-
-/** The named degradation the UI renders. `null` means the socket is live. */
-export interface ChatDegraded {
-  readonly reason: ChatDegradedReason;
-  /** Consecutive failed connects — 0 when the socket never got to try. */
-  readonly attempt: number;
-  /**
-   * The i18n key for this degradation, carried in the bag so a skin cannot
-   * accidentally render a degraded transport as an unlabelled one. A skin may
-   * of course use `reason` and its own copy instead.
-   */
-  readonly messageKey: string;
-}
-
-const DEGRADED_KEYS: Readonly<Record<ChatDegradedReason, string>> = {
-  reconnecting: CHAT_I18N_KEYS.transportReconnecting,
-  renewing_credential: CHAT_I18N_KEYS.transportRenewing,
-  sign_in_required: CHAT_I18N_KEYS.transportSignInRequired,
-  forbidden: CHAT_I18N_KEYS.transportForbidden,
-  unsupported: CHAT_I18N_KEYS.transportUnsupported,
-  unreachable: CHAT_I18N_KEYS.transportUnreachable,
-  no_socket: CHAT_I18N_KEYS.transportNoSocket,
-};
-
-function degraded(reason: ChatDegradedReason, attempt: number): ChatDegraded {
-  return { reason, attempt, messageKey: DEGRADED_KEYS[reason] };
-}
-
-/** The refusal a stopped socket ended on → what a person is told. */
-function refusalDegradation(
-  refusal: ChatSocketRefusal,
-  attempt: number
-): ChatDegraded {
-  switch (refusal) {
-    case "unauthenticated":
-      return degraded("sign_in_required", attempt);
-    case "forbidden":
-    case "unknown_stream":
-    case "revoked":
-      return degraded("forbidden", attempt);
-    case "protocol":
-      return degraded("unsupported", attempt);
-    default:
-      return degraded("unreachable", attempt);
-  }
-}
-
-/**
- * The whole "is this stream live, and if not why not" question, in one pure
- * function so both the hook and its tests read the same answer.
- *
- * `attempted` is false while the socket is deliberately held back (the thread
- * window has not loaded yet — see `socketEnabled`): nothing has failed, so
- * nothing is degraded.
- */
-export function chatDegradation(
-  status: ChatSocketStatus,
-  options: { readonly hasSocket: boolean; readonly attempted: boolean }
-): ChatDegraded | null {
-  if (!options.attempted) return null;
-  if (!options.hasSocket) return degraded("no_socket", 0);
-  switch (status.state) {
-    case "open":
-      return null;
-    case "connecting":
-      // A first connect has no close reason behind it; a reconnect does.
-      if (status.reason === undefined) return null;
-      return status.reason === "credential_rejected"
-        ? degraded("renewing_credential", status.attempt)
-        : degraded("reconnecting", status.attempt);
-    case "degraded":
-      return degraded("reconnecting", status.attempt);
-    default:
-      return status.refusal === undefined
-        ? null
-        : refusalDegradation(status.refusal, status.attempt);
-  }
-}
+export type { ChatDegraded, ChatDegradedReason } from "../realtime/degradation.js";
 
 export interface ChatFreshnessOptions {
   /**
@@ -203,31 +133,36 @@ export interface ChatFreshnessOptions {
    * Whether the SOCKET half may open (default `true`). Polling is unaffected.
    *
    * A resumable stream must not be subscribed before its cursor exists:
-   * `hello{last_seq: 0}` asks the server to replay the whole thread over the
+   * `hello{last_seq: 0}` asks the server to replay the whole journal over the
    * socket, which the store would then discard and re-read by REST. So
    * `<ConversationThread>` holds the socket back until the window is loaded,
    * while polling stays on — polling is also how a FAILED first read
    * recovers, and switching that off with the socket would leave a broken
    * thread broken until someone pressed something.
-   *
-   * The substrate is expected to subsume this: a stream that owns its own
-   * cursor knows when it has one.
    */
   readonly socketEnabled?: boolean;
 }
 
 export interface ChatFreshness {
   readonly transport: ChatTransport;
-  readonly connection: ChatConnectionState;
-  /** Why the socket will not come back, when it will not. */
-  readonly refusal: ChatSocketRefusal | undefined;
+  /** The substrate's own per-stream state, unflattened. */
+  readonly status: RealtimeStreamStatus | NoProviderStatus;
   /**
    * `null` while the socket is carrying this stream; otherwise the NAMED
-   * reason it is not. Never silently absent — see {@link ChatDegradedReason}.
+   * reason it is not. Never silently absent — see {@link ChatDegraded}.
    */
   readonly degraded: ChatDegraded | null;
   /** Check for news right now (a pull-to-refresh, a regained focus). */
   pollNow(): void;
+  /** Clear a refusal and reconnect — the button beside a visible refusal. */
+  reconnect(): void;
+  /**
+   * Send a client frame on this stream — chat's documented socket-WRITE
+   * exception (`send`/`edit`/`delete`/`read`/`delivered`/`activity`).
+   * `false` when there is no open socket to write to, which is why every one
+   * of them has a REST twin. See `model/socketWrites.ts`.
+   */
+  send(type: string, payload?: Readonly<Record<string, unknown>>): boolean;
 }
 
 /**
@@ -243,19 +178,43 @@ const FLUSH_DELAY_MS = 40;
 /** Backoff ceiling: interval × 2^4 (3s → 48s) before it stops growing. */
 const MAX_BACKOFF_STEPS = 4;
 
-const IDLE_STATUS: ChatSocketStatus = {
-  state: "closed",
-  refusal: undefined,
-  reason: undefined,
-  attempt: 0,
-};
-
 function documentVisible(): boolean {
   return typeof document === "undefined" || document.visibilityState !== "hidden";
 }
 
+/** The resume cursor for a stream: the highest `rev_seq` the store holds. */
+function threadCursor(queryClient: QueryClient, conversationId: string | undefined): number {
+  if (conversationId === undefined) return 0;
+  const window = queryClient.getQueryData<ChatThreadWindow>(
+    chatQueryKeys.thread(conversationId)
+  );
+  return window ? threadLastRevSeq(window) : 0;
+}
+
+/**
+ * Fold an edit or a tombstone into the cached window, where the anchored
+ * refetch cannot reach it. A no-op for a thread nobody has read and for a
+ * message outside the loaded window — an id we do not hold is not a hole.
+ */
+function applyThreadRevision(
+  queryClient: QueryClient,
+  message: ChatMessagePayload
+): void {
+  const key = chatQueryKeys.thread(message.conversation_id);
+  const window = queryClient.getQueryData<ChatThreadWindow>(key);
+  if (window === undefined) return;
+  const next = applyRevision(window, message);
+  if (next !== window) queryClient.setQueryData(key, next);
+}
+
+/**
+ * `stream: null` means this SURFACE has no stream to watch — the inbox of a
+ * list that was never told who is reading it. It is not "disabled": nothing
+ * was switched off, there is simply no key, and the seam says `no_socket`
+ * rather than pretending the socket is on its way.
+ */
 export function useChatFreshness(
-  stream: ChatStreamKey,
+  stream: ChatStream | null,
   mapToQueryKeys: ChatSignalKeyMap,
   options?: ChatFreshnessOptions
 ): ChatFreshness {
@@ -265,20 +224,27 @@ export function useChatFreshness(
   const socketEnabled = options?.socketEnabled ?? true;
   const interval = options?.fallbackRefetchInterval ?? 0;
 
-  // Both are plain values, compared by value in the dependency lists below —
-  // no memo needed, and no memo to forget to update.
-  const socketUrl = chatSocketUrl(runtime.realtime.socketBase, stream);
-  const conversationId = stream.kind === "conversation" ? stream.conversationId : null;
+  // Plain values, compared by value in the dependency lists below — no memo
+  // needed, and no memo to forget to update.
+  const socketUrl =
+    stream === null ? null : chatSocketUrl(runtime.realtime.socketOrigin, stream);
+  // A key is required to call `useStream` at all; with no stream there is
+  // nothing to subscribe to, so the hook runs disabled on a key that is never
+  // sent anywhere.
+  const streamKey = stream?.key ?? "chat:none";
+  const conversationId = stream?.conversationId;
+  const journal = stream?.journal ?? false;
+  const hasSocket = socketUrl !== null;
+  const socketOn = enabled && socketEnabled && hasSocket;
 
   // The mapping function is a call-site lambda; keeping it in a ref is what
-  // stops every render from tearing down the socket.
+  // stops every render from tearing the subscription down.
   const mapRef = useRef<ChatSignalKeyMap>(mapToQueryKeys);
   useEffect(() => {
     mapRef.current = mapToQueryKeys;
   });
 
   const failuresRef = useRef(0);
-  const [status, setStatus] = useState<ChatSocketStatus>(IDLE_STATUS);
   const [visible, setVisible] = useState<boolean>(documentVisible);
 
   /** Refetch everything the signals touch. Resolves `true` if any read failed. */
@@ -313,85 +279,132 @@ export function useChatFreshness(
   }, [refresh]);
 
   // ── the socket half ────────────────────────────────────────────────────────
-  const socketFactory = runtime.realtime.webSocket;
-  const reconnect = runtime.realtime.reconnect;
-  const credential = runtime.realtime.credential;
-  const renewCredential = runtime.realtime.renewCredential;
-  useEffect(() => {
-    if (!enabled || !socketEnabled || socketUrl === null || conversationId === null) {
-      setStatus(IDLE_STATUS);
-      return;
-    }
-    let buffered: ChatSignal[] = [];
-    let flushHandle: ReturnType<typeof setTimeout> | undefined;
-    const flush = (): void => {
-      const signals = buffered;
-      buffered = [];
-      flushHandle = undefined;
-      void refresh(signals);
-    };
-    const push = (signal: ChatSignal): void => {
-      buffered.push(signal);
-      if (flushHandle === undefined) flushHandle = setTimeout(flush, FLUSH_DELAY_MS);
-    };
+  //
+  // Frames arriving in a burst (a replay after a resume) are buffered and
+  // flushed once: a catch-up of forty messages is one refetch, not forty.
+  const buffered = useRef<ChatSignal[]>([]);
+  const flushHandle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const push = useCallback(
+    (signal: ChatSignal): void => {
+      buffered.current.push(signal);
+      if (flushHandle.current !== undefined) return;
+      flushHandle.current = setTimeout(() => {
+        const signals = buffered.current;
+        buffered.current = [];
+        flushHandle.current = undefined;
+        void refresh(signals);
+      }, FLUSH_DELAY_MS);
+    },
+    [refresh]
+  );
+  useEffect(
+    () => () => {
+      if (flushHandle.current !== undefined) clearTimeout(flushHandle.current);
+      flushHandle.current = undefined;
+    },
+    []
+  );
 
-    const socket = createChatSocket({
-      url: socketUrl,
-      // Read at every connect: the store keeps advancing by REST while the
-      // socket is down, and resuming from a stale cursor is how a reconnect
-      // turns into a duplicate storm.
-      lastSeq: () => {
-        const window = queryClient.getQueryData<ChatThreadWindow>(
-          chatQueryKeys.thread(conversationId)
-        );
-        return window ? threadLastSeq(window) : 0;
-      },
-      onFrame: (frame) => {
-        if (frame.type === "message") {
-          push({ kind: "message", conversationId, seq: frame.seq });
-          return;
-        }
-        if (frame.type === "error" && frame.code === CHAT_WS_RESYNC) {
-          // The gap is wider than the replay window. The journal is the
-          // truth; go and read it.
-          push({ kind: "resync", conversationId });
-        }
-        // `welcome`, `replay_done` and `pong` carry no news the store needs:
-        // every message they bracket arrives as its own frame.
-      },
-      onStatus: setStatus,
-      // The credential channel. Absent, the handshake goes out on the cookie
-      // the browser attaches by itself — which is a real channel, not the
-      // absence of one, and is now named as such.
-      ...(credential !== undefined ? { credential } : {}),
-      ...(renewCredential !== undefined ? { renewCredential } : {}),
-      ...(socketFactory !== undefined ? { webSocket: socketFactory } : {}),
-      ...(reconnect !== undefined ? { reconnect } : {}),
-    });
+  const onFrame = useCallback(
+    (frame: RealtimeFrame): void => {
+      const message = readChatMessageFrame(frame);
+      if (message !== null) {
+        const revision = message.edited || message.deleted;
+        // An edit or a tombstone keeps its `seq`, so no anchored refetch can
+        // reach it — apply it where it lives. A new line is left to the REST
+        // read, which is the only place attachments arrive rendered.
+        if (revision) applyThreadRevision(queryClient, message);
+        push({
+          kind: "message",
+          conversationId: message.conversation_id,
+          seq: message.seq,
+          revSeq: message.rev_seq,
+          revision,
+          message,
+        });
+        return;
+      }
+      const marker = readChatMarkerFrame(frame);
+      if (marker !== null) {
+        push({
+          kind: "marker",
+          conversationId: marker.conversation_id,
+          userId: marker.user_id,
+          seq: marker.seq,
+          marker: frame.type === "chat.read" ? "read" : "delivered",
+        });
+        return;
+      }
+      const activity = readChatActivityFrame(frame);
+      if (activity !== null) {
+        push({
+          kind: "activity",
+          conversationId: activity.conversation_id,
+          userId: activity.user_id,
+          state: activity.state,
+          ttlMs: activity.ttl_s * 1000,
+        });
+        return;
+      }
+      const inbox = readChatInboxFrame(frame);
+      if (inbox !== null) {
+        push({
+          kind: "inbox",
+          conversationId: inbox.conversation_id,
+          lastSeq: inbox.last_seq,
+        });
+      }
+      // `welcome`, `replay_done`, `ping`/`pong` and `kick` carry no news the
+      // store needs: the substrate answers the heartbeat itself, and every
+      // message they bracket arrives as its own frame.
+    },
+    [push, queryClient]
+  );
 
-    return () => {
-      if (flushHandle !== undefined) clearTimeout(flushHandle);
-      socket.close();
-    };
-  }, [
-    enabled,
-    socketEnabled,
-    socketUrl,
-    conversationId,
-    queryClient,
-    refresh,
-    socketFactory,
-    reconnect,
-    credential,
-    renewCredential,
-  ]);
+  const wasLive = useRef(false);
+  const onState = useCallback(
+    (next: RealtimeStreamStatus): void => {
+      if (next.state === "resync") {
+        // The gap is wider than the server's replay window. The journal is
+        // the truth; go and read it.
+        push({ kind: "resync", conversationId: conversationId ?? null });
+      }
+      const live = next.state === "live";
+      // An EPHEMERAL stream cannot replay what it missed while it was down —
+      // that is the contract, not a defect — so coming back is the moment to
+      // re-read. A journal stream needs no such nudge: its replay is the
+      // catch-up.
+      if (live && !wasLive.current && !journal) push({ kind: "tick" });
+      wasLive.current = live;
+    },
+    [push, conversationId, journal]
+  );
+
+  const lastSeq = useCallback(
+    (): number => (journal ? threadCursor(queryClient, conversationId) : 0),
+    [journal, queryClient, conversationId]
+  );
+
+  const { status, send, reconnect } = useStream(streamKey, {
+    optional: true,
+    enabled: socketOn,
+    ...(socketUrl !== null ? { url: socketUrl } : {}),
+    lastSeq,
+    onFrame,
+    onState,
+  });
+
+  // Client-wide facts — `never_connected`, `reconnecting_long`. Consulted
+  // only to sharpen a stream already known to be down (see `chatDegradation`).
+  const clientState = useRealtimeState();
 
   // ── the polling half ───────────────────────────────────────────────────────
   //
-  // Runs whenever the socket is NOT carrying the stream — including the
-  // inbox, which has no socket at all — and never while the tab is in the
-  // background (nobody is reading; the catch-up happens on the way back).
-  const polling = enabled && interval > 0 && visible && status.state !== "open";
+  // Runs whenever the socket is NOT carrying the stream, and never while the
+  // tab is in the background (nobody is reading; the catch-up happens on the
+  // way back).
+  const live = status.state === "live" || status.state === "replaying";
+  const polling = enabled && interval > 0 && visible && !live;
   useEffect(() => {
     if (!polling) return;
     let cancelled = false;
@@ -432,35 +445,47 @@ export function useChatFreshness(
     };
   }, [refresh]);
 
-  const transport: ChatTransport =
-    status.state === "open" ? "socket" : polling ? "polling" : "idle";
+  const transport: ChatTransport = live ? "socket" : polling ? "polling" : "idle";
 
   // `transport` says WHAT is carrying the stream; this says why it is not the
   // socket. The pair is the whole point: "polling" alone is the label that
   // made a broken handshake look like a product decision.
-  const degradation = chatDegradation(status, {
-    hasSocket: socketUrl !== null && conversationId !== null,
+  const degradation = chatDegradation(status, clientState.degradation, {
+    hasSocket,
     attempted: enabled && socketEnabled,
   });
   const degradedReason = degradation?.reason ?? null;
   const degradedAttempt = degradation?.attempt ?? 0;
+  const degradedSince = degradation?.since;
+  const degradedKey = degradation?.messageKey ?? "";
 
   return useMemo(
     () => ({
       transport,
-      connection: status.state,
-      refusal: status.refusal,
+      status,
       degraded:
-        degradedReason === null ? null : degraded(degradedReason, degradedAttempt),
+        degradedReason === null
+          ? null
+          : {
+              reason: degradedReason,
+              attempt: degradedAttempt,
+              since: degradedSince,
+              messageKey: degradedKey,
+            },
       pollNow,
+      reconnect,
+      send,
     }),
     [
       transport,
-      status.state,
-      status.refusal,
+      status,
       degradedReason,
       degradedAttempt,
+      degradedSince,
+      degradedKey,
       pollNow,
+      reconnect,
+      send,
     ]
   );
 }

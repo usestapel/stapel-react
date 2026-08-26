@@ -1,20 +1,22 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import type { ReactNode } from "react";
 import { isLoadReady, loadStateFromQuery, mapLoad } from "@stapel/core";
 import type { LoadState } from "@stapel/core";
-import type { ChatMessage } from "../api/types.js";
+import type { RealtimeStreamStatus } from "@stapel/realtime";
+import type { NoProviderStatus } from "@stapel/realtime/react";
+import type { ChatMessage, Conversation } from "../api/types.js";
 import { useThread } from "../model/queries.js";
 import { useLoadOlderMessages, useMarkRead } from "../model/mutations.js";
 import { chatQueryKeys } from "../model/queryKeys.js";
 import { threadLastSeq } from "../model/threadWindow.js";
+import { createChatSocketWrites } from "../model/socketWrites.js";
+import type { ChatSocketWrites } from "../model/socketWrites.js";
 import { THREAD_INTERVAL_MS, useChatFreshness } from "../flows/freshness.js";
-import type {
-  ChatDegraded,
-  ChatSignal,
-  ChatTransport,
-} from "../flows/freshness.js";
-import type { ChatConnectionState } from "../realtime/chatSocket.js";
-import { chatConversationStream } from "../realtime/streams.js";
+import type { ChatDegraded, ChatSignal, ChatTransport } from "../flows/freshness.js";
+import {
+  chatConversationStream,
+  chatStreamForConversation,
+} from "../realtime/streams.js";
 
 /** Render-prop bag for {@link ConversationThread}. */
 export interface ConversationThreadBag {
@@ -34,7 +36,8 @@ export interface ConversationThreadBag {
   readonly lastSeq: number;
   /** Which transport is carrying this thread right now. */
   readonly transport: ChatTransport;
-  readonly connection: ChatConnectionState;
+  /** The substrate's own stream state, unflattened. */
+  readonly status: RealtimeStreamStatus | NoProviderStatus;
   /**
    * `null` while the socket is carrying this thread; otherwise the NAMED
    * reason it is not, with the i18n key to say so. A skin that renders
@@ -43,6 +46,14 @@ export interface ConversationThreadBag {
    * which is the exact silence this pair shipped for months.
    */
   readonly degraded: ChatDegraded | null;
+  /** Clear a refusal and reconnect — the button beside a visible refusal. */
+  reconnect(): void;
+  /**
+   * Chat's socket-WRITE seam (the substrate's one documented exception).
+   * `available: false` when no socket is open — the REST twins
+   * (`useSendMessage`, `useMarkRead`) are the default path and stay so.
+   */
+  readonly socket: ChatSocketWrites;
 }
 
 /**
@@ -51,8 +62,9 @@ export interface ConversationThreadBag {
  *
  * The socket subscription starts only once the window is loaded, and that is
  * deliberate: `hello{last_seq}` with a cursor of 0 asks the server to replay
- * the entire thread over the socket, which the store would then throw away
- * and re-read by REST. Loading first makes the resume carry a real cursor.
+ * the entire revision journal over the socket, which the store would then
+ * throw away and re-read by REST. Loading first makes the resume carry a real
+ * cursor — and the cursor is `rev_seq`, not the thread's `seq`.
  *
  * The read marker advances automatically to the tip while the thread is
  * mounted (`autoMarkRead`, on by default): the person is looking at these
@@ -62,6 +74,12 @@ export interface ConversationThreadBag {
  */
 export function ConversationThread(props: {
   conversationId: string;
+  /**
+   * The conversation row, when the caller holds one. Its `stream_key` and
+   * `socket_path` are the SERVER's own answer to where this thread lives, and
+   * they win over anything derived from the id here.
+   */
+  conversation?: Conversation;
   limit?: number;
   /** Poll period in ms while the socket is not carrying this thread. */
   refreshIntervalMs?: number;
@@ -69,30 +87,36 @@ export function ConversationThread(props: {
   autoMarkRead?: boolean;
   children: (bag: ConversationThreadBag) => ReactNode;
 }): ReactNode {
-  const { conversationId } = props;
+  const { conversationId, conversation } = props;
   const query = useThread(conversationId, props.limit);
   const older = useLoadOlderMessages(conversationId, props.limit);
   const markRead = useMarkRead(conversationId);
 
   const mapKeys = useCallback(
-    (_signal: ChatSignal) => [
-      chatQueryKeys.thread(conversationId),
-      // A new message also moves this thread up the list and changes its
-      // unread badge — one signal, two reads.
-      chatQueryKeys.conversations(),
-    ],
+    (signal: ChatSignal) =>
+      // "typing…" expires on its own hint; there is nothing on the server to
+      // go and read, and refetching a thread on every keystroke of the other
+      // party is how a courtesy frame becomes a load test.
+      signal.kind === "activity"
+        ? []
+        : [
+            chatQueryKeys.thread(conversationId),
+            // A new message also moves this thread up the list and changes
+            // its unread badge — one signal, two reads.
+            chatQueryKeys.conversations(),
+          ],
     [conversationId]
   );
   const windowState = loadStateFromQuery(query);
   const loaded = isLoadReady(windowState);
-  const freshness = useChatFreshness(
-    chatConversationStream(conversationId),
-    mapKeys,
-    {
-      socketEnabled: loaded,
-      fallbackRefetchInterval: props.refreshIntervalMs ?? THREAD_INTERVAL_MS,
-    }
-  );
+  const stream =
+    conversation !== undefined
+      ? chatStreamForConversation(conversation)
+      : chatConversationStream(conversationId);
+  const freshness = useChatFreshness(stream, mapKeys, {
+    socketEnabled: loaded,
+    fallbackRefetchInterval: props.refreshIntervalMs ?? THREAD_INTERVAL_MS,
+  });
 
   const lastSeq = isLoadReady(windowState) ? threadLastSeq(windowState.data) : 0;
   const autoMarkRead = props.autoMarkRead ?? true;
@@ -101,6 +125,13 @@ export function ConversationThread(props: {
     if (!autoMarkRead || lastSeq === 0) return;
     markReadMutate(lastSeq);
   }, [autoMarkRead, lastSeq, markReadMutate]);
+
+  const socketSend = freshness.send;
+  const socketLive = freshness.transport === "socket";
+  const socket = useMemo(
+    () => createChatSocketWrites(socketSend, socketLive),
+    [socketSend, socketLive]
+  );
 
   return props.children({
     state: mapLoad(windowState, (window) => window.messages),
@@ -114,7 +145,9 @@ export function ConversationThread(props: {
     },
     lastSeq,
     transport: freshness.transport,
-    connection: freshness.connection,
+    status: freshness.status,
     degraded: freshness.degraded,
+    reconnect: freshness.reconnect,
+    socket,
   });
 }

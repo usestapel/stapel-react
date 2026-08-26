@@ -7,12 +7,13 @@
  */
 import { spacing } from "@stapel/tokens-antd";
 import type { ReactElement } from "react";
-import { Badge, Button, Card, Empty, List, Space, Spin, Typography } from "antd";
+import { Badge, Button, Card, Empty, Flex, List, Space, Spin, Typography } from "antd";
 import { matchList, useErrorDisplay, useI18n, useT } from "@stapel/core";
 import type { Conversation } from "../api/types.js";
 import { ConversationList } from "../headless/ConversationList.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ErrorAlert } from "./ErrorAlert.js";
+import { TransportTag } from "./TransportTag.js";
 
 const KIND_KEYS: Record<string, string> = {
   direct: CHAT_I18N_KEYS.kindDirect,
@@ -21,6 +22,13 @@ const KIND_KEYS: Record<string, string> = {
 };
 
 export interface ConversationListPanelProps {
+  /**
+   * WHO IS READING. The inbox stream is `chat:user:<id>` and the server
+   * derives that key from the authenticated scope, so it cannot be guessed —
+   * a client subscribed under the wrong id gets a socket that delivers
+   * nothing, silently. Without it this screen polls, and the tag says so.
+   */
+  viewerId?: string | number | null;
   /** Page size for the underlying list. */
   limit?: number;
   /**
@@ -112,12 +120,30 @@ export function ConversationListPanel(
   };
 
   return (
-    <ConversationList {...(props.limit !== undefined ? { limit: props.limit } : {})}>
-      {({ state, hasNextPage, isFetchingNextPage, fetchNextPage, refetch }) => (
+    <ConversationList
+      {...(props.limit !== undefined ? { limit: props.limit } : {})}
+      {...(props.viewerId !== undefined ? { viewerId: props.viewerId } : {})}
+    >
+      {({
+        state,
+        hasNextPage,
+        isFetchingNextPage,
+        fetchNextPage,
+        refetch,
+        transport,
+        degraded,
+      }) => (
         <Card data-testid="chat-conversation-list">
-          <Typography.Title level={4} style={{ marginTop: 0 }}>
-            {t(CHAT_I18N_KEYS.listTitle)}
-          </Typography.Title>
+          {/* The list has a socket of its own now (`ws/chat/inbox`), so it
+              gets the same sentence the thread does. A conversation list that
+              refreshes on a timer forever is a polling chat however live the
+              open thread is — and until this cutover nobody was told. */}
+          <Flex justify="space-between" align="center" wrap="wrap" gap={spacing[2]}>
+            <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 0 }}>
+              {t(CHAT_I18N_KEYS.listTitle)}
+            </Typography.Title>
+            <TransportTag transport={transport} degraded={degraded} />
+          </Flex>
 
           {matchList(state, {
             loading: () => <Spin style={{ marginTop: spacing[4] }} />,

@@ -5,15 +5,14 @@ generated `llms.txt` (agent context) and `manifest.json` (machine catalog).
 
 ## The one thing to understand first: the transport seam
 
-stapel-chat can deliver the same journal two ways — the REST history, and its
-own resumable WebSocket protocol (`ws/chat/<uuid:conversation_id>`, exported by
-`stapel_chat.routing` since 0.2.2). This pair wires **both**, behind one hook,
-and no component above that hook can tell which is running:
+stapel-chat can deliver the same journal two ways — the REST history, and two
+WebSocket streams on `stapel-realtime`'s wire. This pair wires **both**, behind
+one hook, and no component above that hook can tell which is running:
 
 ```
-useChatFreshness(streamKey, mapToQueryKeys, { fallbackRefetchInterval })
-    ├── socket  → hello{last_seq} → welcome → replay… → replay_done → live
-    │              frames, seq-deduped; error{resync} → re-hydrate
+useChatFreshness(stream, mapToQueryKeys, { fallbackRefetchInterval })
+    ├── socket  → @stapel/realtime: hello{last_seq=rev_seq} → welcome →
+    │              replay… → replay_done → live; resync → re-hydrate
     └── polling → a visibility-aware tick, exponential backoff on failures
 ```
 
@@ -24,68 +23,181 @@ its payload into the cache — it says "there is something after your tip" and
 the store goes and gets it. That is why the screens, and their tests, are
 written once.
 
-Writes never go over the socket. The `send` frame is typed (a mirror must be
-complete) and never emitted: its refusals carry socket-local codes
-(`empty`, `too_long`, …) that are not in the module's error registry, so they
-have no i18n key and no remediation. `POST …/messages` answers with the
-persisted row and a real error envelope.
+There is exactly one exception, and it is forced by the wire: an edit or a
+tombstone re-arrives with its EXISTING `seq` and a new `rev_seq`, so no
+anchored refetch can reach it. Those are applied in place
+(`threadWindow.applyRevision`) over the fields whose shape both transports
+agree on — body, the edit/delete marks, `rev_seq`. Not `attachments`: REST
+renders them (`attachment_to_dto`) and the socket sends the raw stored
+descriptors, which is also why a new message still arrives over REST.
 
-> ### ⚠️ THE SOCKET HALF DOES NOT WORK AGAINST ANY CURRENTLY-RELEASED BACKEND
->
-> This is stated at the top of the file because it is the single most important
-> fact about this pair, and because everything written below it about the
-> credential channel, the close-code table and the named degradations describes
-> a client that is CORRECT and TALKING TO NOBODY.
->
-> `src/realtime/` implements stapel-chat's own pre-0.3.0 wire: flat frames
-> (`{type:"message", seq, …}`), a bare `hello{last_seq}`, `error{resync}`.
-> **stapel-chat 0.3.0 deleted that protocol.** Since then the module's
-> consumers are `stapel_realtime`'s (`stapel_chat/consumers.py` imports
-> `stapel_realtime.envelope`), and the wire is the substrate's versioned
-> envelope `{v, type, stream, payload, seq}` with `live`/`replay`/`ping`/
-> `kick`/`resync` frame types.
->
-> This pair's own decoder was run against the frames a 0.6.0 server actually
-> sends. It returns `null` for every one of them:
+## The wire, and the cutover that got us onto it
+
+> **This section used to be a warning.** It said, correctly, that the socket
+> half did not work against any released backend: `src/realtime/` implemented
+> stapel-chat's own pre-0.3.0 protocol (flat `{type:"message", seq}` frames, a
+> bare `hello{last_seq}`, `error{resync}`), and **stapel-chat 0.3.0 deleted
+> that protocol**. Run against the frames a 0.6.0 server actually sends, this
+> pair's own decoder returned `null` for every one of them:
 >
 > ```
 > live -> null   replay -> null   welcome -> null   ping -> null   resync -> null
 > ```
 >
-> The consequences, in order of severity:
->
-> 1. **No message ever arrives over the socket.** Unknown frames are dropped by
->    design (an unreadable frame must not advance the seq cursor), so the
->    failure is silent.
-> 2. **`ping -> null` means the heartbeat is never answered**, so the server
->    closes 4408 every 35 s. `closePolicy` correctly reads 4408 as retryable,
->    so this is a permanent reconnect loop that spends the retry budget and
->    lands on `degraded.reason === "unreachable"` — polling, forever.
-> 3. **The resume cursor is the wrong number.** `hello{last_seq}` is sent
->    `threadLastSeq()`, the message `seq`; the journal cursor is `rev_seq`
->    (`MessageResponse.rev_seq`, required since 0.6.0). Conflating them drops
->    every edit and every tombstone across a resume.
-> 4. **The inbox socket is declared not to exist.** `realtime/streams.ts` says
->    the module mounts no socket for the conversation list. Since 0.4.0
->    `routing.py` mounts `ws/chat/inbox` (stream `chat:user:<id>`, ephemeral).
->
-> The REST half is fine and is regenerated against 0.6.0 — which is exactly why
-> `manifest.json` says `contract: ">=0.6 <0.7"`. **Read that pin as a statement
-> about the HTTP surface only.**
->
-> **The migration, and why it is not a rename.** `@stapel/realtime` exists now
-> and is the right target: it answers the heartbeat, keeps `envelopeSeq` and
-> `payloadSeq` apart, routes 4401 once through core's single-flight
-> `SessionManager.refresh()` (keeping all three of core's outcomes apart), and
-> splits 4403 into `origin` and `forbidden`. But this is a wire-protocol
-> cutover, not the "delete `createChatSocket`, call `useSignalInvalidate`"
-> swap this section used to promise: the stream keys change
-> (`chat:conv:<id>`, `chat:user:<id>`), the cursor changes to `rev_seq`, the
-> inbox gains a socket, and chat is the substrate's one documented socket-WRITE
-> exception (`send`/`edit`/`delete`/`read`/`delivered`/`activity`, carrying
-> `client_msg_id`). It is tracked as **CHAT-RT-CUTOVER**; until it lands,
-> `stapel/no-adhoc-socket` carries this package in its `allowPackages` with
-> that ticket named.
+> So no message ever arrived; `ping -> null` meant the heartbeat was never
+> answered, the server closed 4408 every 35 s, the retry budget drained, and
+> the pair polled forever while reporting "websockets are done". That is the
+> defect the owner met in production.
+
+The cutover is done. `src/realtime/chatSocket.ts`, `closePolicy.ts` and
+`credential.ts` — 715 lines of client, and their ~50 socket tests — are
+**deleted**. The wire is `@stapel/realtime`'s, one implementation for the
+fleet, and what is left in `src/realtime/` is the part only chat can know:
+
+| what | where | source of truth |
+|---|---|---|
+| the two stream keys and their mounts | `realtime/streams.ts` | `stapel_chat/realtime.py`, `routing.py` |
+| chat's payloads and its six write frames | `realtime/frames.ts` | `stapel_chat/realtime.py::message_payload`, `consumers.py` |
+| the named degradations a person is shown | `realtime/degradation.ts` | this pair |
+
+### The two streams
+
+| stream key | socket path | kind |
+|---|---|---|
+| `chat:conv:<conversation_id>` | `ws/chat/<conversation_id>` | journal — resumable by `rev_seq` |
+| `chat:user:<user_id>` | `ws/chat/inbox` | ephemeral — nothing to resume |
+
+The inbox socket has existed since stapel-chat 0.4.0 and `streams.ts` declared,
+as a fact about the backend, that it did not. It is wired now:
+`<ConversationList viewerId={me.id}>` subscribes to it. The id is a REQUIRED
+argument rather than something inferred, because the route carries no user
+segment — the consumer derives the key from the authenticated scope, and a
+client that guessed would open a socket that silently delivers nothing. A list
+with no `viewerId` polls and says `no_socket`.
+
+### The two sequences, which are not the same number
+
+`envelope.seq` is the message's `rev_seq` — the RESUME CURSOR, bumped by every
+edit and every delete. `payload.seq` is its place in the thread — the SORT KEY,
+immutable. The old client sent `threadLastSeq()` as `hello{last_seq}`, which
+asked the server to replay from a revision number that had nothing to do with
+what the client held. The cursor is now `threadLastRevSeq()` — a MAX over the
+window, not the last element, because editing an old message gives it the
+newest `rev_seq` while it stays where it is.
+
+### Writes: the substrate's one documented exception
+
+The fleet rule is that writes go over REST. Chat is the exception, deliberately
+(`stapel_chat/consumers.py`: *"a compose box whose Enter key takes a different
+transport than the messages it produces is the seam where 'realtime was built'
+stops being true"*). `model/socketWrites.ts` types all six frames —
+`send`/`edit`/`delete`/`read`/`delivered`/`activity` — each carrying a
+`client_msg_id` the server echoes back, so a retry after a dropped socket
+reconciles into one bubble instead of two.
+
+It is a seam, not the default. `useSendMessage` still POSTs, because a socket
+refusal is a socket-local code (`empty`, `too_long`, `send_refused`, …) that is
+not in the module's error registry and therefore has no i18n key and no
+remediation, while `POST …/messages` answers with the persisted row and a real
+error envelope.
+
+### What the substrate owns now, and what that bought
+
+Everything that used to live in this package's 715 deleted lines: the v1
+envelope, resume-by-cursor, the replay/live dedup, exponential backoff with
+full jitter, the fleet close-code table, and — the one that mattered most —
+**the `pong`**. Plus three things this pair did not have:
+
+- **4403 is split.** Core's origin gate refuses BEFORE `websocket.accept`;
+  `authorize()` refuses a stream on a socket that was accepted. They are
+  different failures with the same number, and now different words: an
+  operator's `STAPEL_WS_ALLOWED_ORIGINS` versus a person's rights.
+- **No attempt budget.** The old client stopped after six tries and reported
+  `unreachable`. `reconnecting_long` replaces it: still trying, and saying so.
+- **`degradation`.** See below.
+
+## The credential channel — now the substrate's, and still the same fact
+
+A browser cannot set an `Authorization` header on `new WebSocket()`. There is
+no options bag and no interceptor: the constructor takes a URL and a
+subprotocol list. So a pair whose REST calls carry a bearer token and whose
+socket is opened with `new WebSocket(url)` is not sending a weaker credential —
+it is sending none, and every handshake closes 4401. That is not hypothetical;
+it is why this pair polled in production while its sockets were reported done.
+
+`@stapel/realtime`'s transport opens with **one argument**, and the browser
+attaches its httpOnly JWT cookie itself (core's channel 4, admitted only from
+an allow-listed `Origin`; an unlisted one closes 4403, not 4401). A non-browser
+host passes `protocols: bearerSubprotocols(token)`. The `?token=` channel core
+also accepts is deliberately NOT offered: query strings land in every proxy
+access log.
+
+`realtime.credential` and `realtime.renewCredential` are gone from
+`ChatRealtimeOptions` with the client that needed them.
+
+## 4401 is not terminal — three outcomes, kept apart
+
+4401 is a statement about the CREDENTIAL, and a credential can be renewed. The
+substrate reads it as `closeDisposition === "reauthenticate"` and hands it to
+core's ACTIVE `SessionManager` (adopted by `<RealtimeProvider>`), which is the
+same single-flight refresh the HTTP client already coalesces its 401s into —
+N sockets that all see 4401 in one second produce ONE refresh. The three
+outcomes stay three (`test/session.test.tsx`):
+
+| core's `RefreshOutcome` | what the socket does | what the person sees |
+|---|---|---|
+| a status (renewed) | reconnect at once, no backoff | nothing — it comes back |
+| `REFRESH_UNAVAILABLE` (no verdict) | back off and retry; session untouched | `reconnecting` |
+| `null` (the server answered) | stop | `sign_in_required` |
+
+The one-shot renewal is re-armed on `welcome`, so a token that expires an hour
+into a live socket renews again; a second 4401 with no `welcome` between them
+is the verdict, not a renewal loop.
+
+## A degraded transport is never silent
+
+`useChatFreshness` (and both headless bags) returns `degraded: ChatDegraded |
+null` beside `transport`. `transport: "polling"` alone was true and useless —
+it read the same whether the deployment has no sockets, the credential was
+refused, or the retry budget ran out, and "Refreshing every few seconds" was
+read as a product decision for months.
+
+| reason | what it means | who acts |
+|---|---|---|
+| `reconnecting` | it dropped; a retry is scheduled | nobody — wait |
+| `reconnecting_long` | it worked, went away, and stayed away | nobody, but say so |
+| **`never_connected`** | configured, tried, and never once open | an operator |
+| `sign_in_required` | 4401 survived a session refresh | the person |
+| `forbidden` | `authorize()` said no for this stream | the owner |
+| `revoked` | access withdrawn mid-socket (`kick` → 4410) | the owner |
+| `origin_not_allowed` | 4403 before accept — the origin allowlist | an operator |
+| `unsupported` | 4404, or no `WebSocket` in this environment | a developer |
+| `no_socket` | no socket for this stream in this build | the host |
+
+`never_connected` is the state this pair was IN, and it is the reason to take
+the substrate's `RealtimeState.degradation` rather than keep a local one: it
+distinguishes "your network went away" from "this was never wired up here",
+which no amount of watching a spinner can. It was verified against the built
+substrate before being depended on (`test/degradation.test.tsx` drives a socket
+that never opens, and the substrate's own suite covers it in 11 cases).
+
+Two reasons the old vocabulary had are gone. `unreachable` meant "the retry
+budget is spent" and there is no budget any more. `renewing_credential` is not
+observable through the substrate — it reports a stream mid-refresh as
+`reconnecting` — so the pair does not claim to know; the three OUTCOMES above
+are all still named. (Upstream note, below.)
+
+## Upstream notes (reported, not worked around)
+
+- **`ConversationResponse.stream_key` / `socket_path` are not in the schema's
+  `required` list**, though the server populates both on every conversation it
+  serves. The generated type therefore makes them optional and every consumer
+  must handle an absence the server never produces.
+  `chatStreamForConversation` reads them when present and derives when not.
+- **A session refresh is invisible to a consumer.** `@stapel/realtime` reports
+  a stream as `reconnecting` while core's refresh is in flight, so a pair
+  cannot tell "renewing your session" from "the network blipped". The three
+  outcomes are distinguishable; the transient state is not.
 
 ## Layers
 
@@ -95,11 +207,13 @@ persisted row and a real error envelope.
   (`/support/queue`, assign / resolve / reopen) is deliberately absent — it is
   an operator console, not the buyer-and-seller surface. `api/extensions.ts`
   records the one request field that is NOT exposed and why.
-- **realtime/** — the protocol, typed (`frames.ts`), the resumable client
-  (`chatSocket.ts`), and the stream keys plus the URL rule (`streams.ts`). No
-  React, no `@stapel/core`: plain protocol the substrate can subsume.
+- **realtime/** — what only chat can know: the two stream keys and their
+  mounts (`streams.ts`), chat's payloads and its six write frames
+  (`frames.ts`), and the named degradations (`degradation.ts`). No React and
+  no socket — the wire is `@stapel/realtime`'s.
 - **model/** — `chatQueryKeys` (one factory, `["chat"]` namespace),
-  `createChatRuntime` (which also resolves WHERE the socket is),
+  `createChatRuntime` (which also resolves WHERE the sockets are),
+  `socketWrites.ts` (the documented socket-WRITE seam),
   `threadWindow.ts` (the merge rules — the store's real logic, pure and
   directly testable), `readMarker.ts`, queries and mutations.
 - **flows/** — the transport seam (`freshness.ts`) and the error fold. The flow
@@ -115,17 +229,21 @@ persisted row and a real error envelope.
 - **nav/** — one MEMBER entry (`chat.conversations`). The thread route is not a
   menu destination and is mounted by the container under its own `:id` child.
 
-## The thread store, in three rules
+## The thread store, in four rules
 
 1. **`seq` is the order.** Gapless and total; ordering by `created_at` is an
    upstream anti-pattern. Every merge sorts, dedupes and detects holes by seq.
 2. **A window is contiguous or it is rebuilt.** A tail page that does not touch
    the tip (or that the paginator flags as truncated with `has_prev`) is a
    hole; the window is re-read from the newest page rather than stitched. That
-   is the REST twin of the socket's `error{resync}`.
+   is the REST twin of the socket's `resync` frame.
 3. **The same row can arrive twice** — the sender's own REST answer and the
    socket's fan-out of it. `mergeMessage` drops a seq the window already holds,
    which is what makes both paths idempotent.
+4. **`rev_seq` is the CURSOR, never the order.** `threadLastRevSeq` is what a
+   resume hands back; `applyRevision` is the only thing that may rewrite a row
+   already in the window, and it moves nothing. An edit that reordered the
+   thread would be the two sequences confused, on screen.
 
 ## Localization — the twelve keys this pair owns
 
@@ -176,74 +294,28 @@ spelled identically in `@stapel/reviews-react` and `@stapel/listings-react`;
 the LABEL is this pair's (`chat.start.sign_in`, in all three locales), because
 core floors only `en` and `ru`.
 
-## The credential channel, and why the socket has one at all
-
-A browser cannot set an `Authorization` header on `new WebSocket()`. There is
-no options bag and no interceptor: the constructor takes a URL and a
-subprotocol list. So a pair whose REST calls carry a bearer token and whose
-socket is opened with `new WebSocket(url)` is not sending a weaker credential
-— it is sending none, and every handshake closes 4401. That is not
-hypothetical; it is why this pair polled in production while its sockets were
-reported done.
-
-`realtime.credential` names what goes on the handshake, read afresh at every
-connect (`realtime/credential.ts`), mirroring the four channels
-`stapel_core.django.jwt.channels` reads:
-
-| channel | what is constructed | notes |
-|---|---|---|
-| `cookie` (default) | `new WebSocket(url)` | the browser attaches its httpOnly JWT cookie itself. Ambient, so the backend admits it only from an allow-listed `Origin` (`STAPEL_WS_ALLOWED_ORIGINS`); an unlisted origin closes **4403**, not 4401 |
-| `subprotocol` | `new WebSocket(url, ["bearer", token])` | preferred for a bearer host: not ambient, and not written to access logs |
-| `query` | `…?token=<encoded>` | works everywhere, lands in every proxy log |
-| header | — | **impossible from a browser.** Present in the backend for service-to-service clients |
-
-## Close codes: three answers, one place
-
-`realtime/closePolicy.ts` is the only file that reads a close code, and it
-answers one of three things — `reconnect`, `renew-credential`, `stop`.
-
-| code | action | what the person is told |
-|---|---|---|
-| 4400 protocol error | stop | `unsupported` — this build needs a deploy |
-| **4401 unauthenticated** | **renew-credential** | `renewing_credential`, then `sign_in_required` if the renewal is refused |
-| 4403 forbidden | stop | `forbidden` (rights, or an unlisted origin) |
-| 4404 unknown stream | stop | `forbidden` |
-| 4408 heartbeat / 4413 overflow / 4503 no data home | reconnect | `reconnecting` |
-| 4410 revoked | stop | `forbidden` |
-| anything else (1006, 1001, …) | reconnect | `reconnecting` |
-
-4401 used to be terminal here. It is the load-bearing correction: 4401 is a
-statement about the CREDENTIAL, and a credential can be renewed. Wire
-`realtime.renewCredential` to core's `SessionManager.refresh()` and map its
-three outcomes onto `renewed` / `refused` / `unavailable` — the third is a
-FAULT, not a logout, for the same reason core split it out (a 502
-mid-redeploy must not sign anyone out).
-
-## A degraded transport is never silent
-
-`useChatFreshness` (and both headless bags) returns `degraded: ChatDegraded |
-null` beside `transport`. `transport: "polling"` alone was true and useless —
-it read the same whether the deployment has no sockets, the credential was
-refused, or the retry budget ran out, and "Refreshing every few seconds" was
-read as a product decision for months. Every reason
-(`reconnecting` / `renewing_credential` / `sign_in_required` / `forbidden` /
-`unsupported` / `unreachable` / `no_socket`) carries its own i18n key in all
-three locales, and `<ConversationThreadPanel>` renders it in place of the
-plain transport label.
-
 ## Extension seams (frontend-standard §7)
 
 - The client is injected via `<ChatProvider>` / core's `StapelConfigProvider`
   (per-module override) — pairs never hard-import a client.
-- The socket transport is injected: `createChatRuntime({ realtime: { webSocket } })`
-  takes any factory with `send`/`close` plus four callbacks, plus the
-  subprotocol list. A wrapper that drops that list un-authenticates every
-  handshake — it must refuse the socket rather than open an anonymous one.
-  Injecting it in a TEST hides the credential channel entirely, which is what
-  `test/handshake.test.ts` exists to stop.
+- The socket runtime is the host's if it has one: `<ChatProvider>` reuses a
+  `<RealtimeProvider>` above it and mounts its own only when there is none, so
+  a page that already runs the substrate for notifications or the video lobby
+  does not gain a second socket stack. Chat passes its own URL per stream, so
+  the host's resolver needs no chat knowledge.
+- `ChatRealtimeOptions` is the substrate's client options minus `url` and
+  `onState` — `webSocket`, `schedule`, `random`, `now`, `heartbeat`,
+  `reconnect`, `protocols`, `session`, `degradation` — so an injected
+  transport (React Native, instrumentation) is one seam for the whole fleet
+  rather than a per-pair invention.
+  **Do not inject `webSocket` in a test that means to cover the handshake.**
+  A fake standing exactly where `new WebSocket()` stands cannot see whether a
+  credential travelled; eighteen green tests once proved precisely that.
+  `test/chatServer.ts` stands at the ENVIRONMENT edge instead, and
+  `test/wire.test.ts` drives the real constructor.
 - `realtime.socketUrl: null` turns the socket half off for a deployment that has
   no sockets (WSGI, no channel layer). Everything keeps working on the timer —
-  and now SAYS so (`degraded.reason === "no_socket"`).
+  and SAYS so (`degraded.reason === "no_socket"`).
 - The headless layer is fully replaceable (copy-and-own); the antd skin is a
   separate entry point nobody has to import.
 

@@ -5,8 +5,10 @@
  *
  * MOCK THE WIRE, NOT THE MODULE (CONTRIBUTING.md): every request goes through
  * the real `StapelClient`, every response is a real `Response` carrying the
- * real body stapel-chat sends, and every frame is the real JSON its consumer
- * emits. Nothing here hand-shapes a value the code under test would otherwise
+ * real body stapel-chat sends, and every frame is the real v1 envelope its
+ * consumers emit — built by `test/chatServer.ts`, which reproduces
+ * `ResumableStreamConsumer` rather than answering whatever the client hoped
+ * for. Nothing here hand-shapes a value the code under test would otherwise
  * have derived — that is the only way these tests can disprove the assumption
  * that would produce the bug.
  */
@@ -22,10 +24,17 @@ import {
 } from "../src/index.js";
 import type { ChatRealtimeOptions } from "../src/index.js";
 
-// The hand-driven socket lives in its own (React-free) module so the
-// non-React suites can use it without pulling the provider tree in.
-export { fakeTransport } from "./harnessSocket.js";
-export type { FakeSocket, FakeTransport } from "./harnessSocket.js";
+// The socket double stands at the ENVIRONMENT edge (`globalThis.WebSocket`),
+// not at an injectable factory: a fake standing where `new WebSocket()`
+// stands cannot see whether a credential travelled, and eighteen green tests
+// once proved exactly that. Re-exported here so a React suite drives the same
+// server the protocol suite does.
+export {
+  ChatServer,
+  chatMessagePayload,
+  installBrowserWebSocket,
+} from "./chatServer.js";
+export type { BrowserWebSocketEnvironment, ConstructedSocket } from "./chatServer.js";
 
 export const BASE = "https://chat.test/chat/api/v1";
 
