@@ -1,5 +1,11 @@
 # @stapel/shell-react
 
+## 0.7.2
+
+### Patch Changes
+
+- 5c4c17e: `matchesLocation` matches a multi-segment relative `linkPath` (e.g. `workspaces/settings`) as a whole instead of on its last segment only, so such menu rows now highlight as active.
+
 ## 0.7.1
 
 ### Patch Changes

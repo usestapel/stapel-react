@@ -1,5 +1,11 @@
 # @stapel/recordings-react
 
+## 0.6.2
+
+### Patch Changes
+
+- 5c4c17e: Nav manifest: `recordings.detail` mounts at `:recordingId` relative to its parent (was `recordings/:recordingId`, which composed to an unreachable `recordings/recordings/:recordingId`).
+
 ## 0.6.1
 
 ### Patch Changes
