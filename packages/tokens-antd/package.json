@@ -48,7 +48,7 @@
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.17.0 <1.0.0",
+    "@stapel/core": ">=0.18.0 <1.0.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"
   },
