@@ -17,7 +17,7 @@
     {
       "id": "realtime.connection-states",
       "title": "Realtime connection states",
-      "description": "One socket runtime, five states a skin has to be able to show: connecting, live after replay, reconnecting with the cursor kept, resync, and a refusal that carries the server's reason.",
+      "description": "One socket runtime, six states a skin has to be able to show — and the badge that shows them. `demo/LiveBadge.tsx` is the component a pair copies: it reads `degradation.kind` and `status.refusal` off the runtime and turns them into a dot, one sentence, and a Reconnect button that is present only where retrying can change the answer. The wire envelope stays available to developers, one disclosure down.",
       "component": "RealtimeProvider",
       "covers": [
         "useStream",
@@ -25,15 +25,24 @@
       ],
       "tokens": [
         "surface",
-        "surface-raised",
+        "border",
         "border-subtle",
         "text",
-        "text-muted"
+        "text-muted",
+        "success",
+        "success-bg",
+        "info",
+        "info-bg",
+        "warning",
+        "warning-bg",
+        "error",
+        "error-bg"
       ],
       "variants": [
         "connecting",
         "live",
         "reconnecting",
+        "unavailable",
         "resync",
         "refused"
       ],
@@ -106,6 +115,7 @@
       "RealtimeDegradationThresholds",
       "RealtimeFrame",
       "RealtimeRefusal",
+      "RealtimeSessionRefresh",
       "RealtimeSessionSeam",
       "RealtimeSocket",
       "RealtimeSocketFactory",

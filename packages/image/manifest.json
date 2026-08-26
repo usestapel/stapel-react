@@ -21,7 +21,9 @@
       "component": "Image",
       "tokens": [
         "surface-sunken",
-        "text-muted"
+        "text-muted",
+        "text",
+        "border-subtle"
       ],
       "variants": [
         "default",

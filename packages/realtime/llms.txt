@@ -70,6 +70,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - RealtimeDegradationThresholds
 - RealtimeFrame
 - RealtimeRefusal
+- RealtimeSessionRefresh
 - RealtimeSessionSeam
 - RealtimeSocket
 - RealtimeSocketFactory
@@ -102,7 +103,7 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
-- realtime.connection-states → <RealtimeProvider> [connecting|live|reconnecting|resync|refused]  demo/Realtime.demo.tsx
+- realtime.connection-states → <RealtimeProvider> [connecting|live|reconnecting|unavailable|resync|refused]  demo/Realtime.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

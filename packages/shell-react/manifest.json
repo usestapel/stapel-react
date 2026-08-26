@@ -17,7 +17,7 @@
     {
       "id": "shell.app",
       "title": "App shell",
-      "description": "The chrome around every signed-in screen. It renders an already-resolved nav and owns no nav logic: a Sider at desktop width, a hamburger sheet below it, decided by @stapel/core's useBreakpoint — which now answers on the FIRST client render, so the phone branch is never painted on a desktop and swapped out a frame later. The admin section is the one a pair hangs a staff screen from and nobody declares; it is synthesised, LISTED for everyone, and switched off with its reason beside it when the staff capability is absent, because an entry that vanishes teaches nobody the screen exists.",
+      "description": "The chrome around every signed-in screen. It renders an already-resolved nav and owns no nav logic: one top bar across the whole window, a Sider under it at desktop width, a hamburger sheet below that width, decided by @stapel/core's useBreakpoint — which now answers on the FIRST client render, so the phone branch is never painted on a desktop and swapped out a frame later. The admin section is the one a pair hangs a staff screen from and nobody declares; it is synthesised, LISTED for everyone, and drawn as a closed group with its reason under it when the staff capability is absent, because an entry that vanishes teaches nobody the screen exists.",
       "component": "AppShell",
       "covers": [
         "ADMIN_ROOT_ID",
@@ -38,7 +38,7 @@
     {
       "id": "shell.public",
       "title": "Public shell",
-      "description": "A storefront's chrome, and a sibling of AppShell rather than a flag on it: top bar, browse bar, measured content, footer — and never a Sider. On a phone the browse bar collapses into a sheet while the header and its search box stay, because a storefront whose search disappears on a phone is a storefront nobody searches. Omit accountSlot and a sign-in link renders anyway: the absence of a sign-in button on a public page is not clean, it is a dead end for the one person the page exists to convert.",
+      "description": "A storefront's chrome, and a sibling of AppShell rather than a flag on it: top bar, browse bar, measured content, footer — and never a Sider. On a phone the search box moves to its own line of the same header instead of disappearing, because a storefront whose search vanishes on a phone is a storefront nobody searches. Omit accountSlot and a sign-in link renders anyway: the absence of a sign-in button on a public page is not clean, it is a dead end for the one person the page exists to convert.",
       "component": "PublicShell",
       "tokens": [
         "surface",
@@ -55,12 +55,15 @@
     {
       "id": "shell.theme-mode",
       "title": "Theme mode control",
-      "description": "Sun, moon, half-disc — a real ARIA radio group: one tab stop, arrow keys move the choice, and no tooltip anywhere (the accessible name carries what the icon means, and hover does not exist on a phone). `system` is a RULE, not a colour: it resolves to light or dark and keeps resolving, so the distinction lives in WHICH button is marked, and — for a reader who cannot see the mark — in the half-disc's name, which appends what it currently resolves to. Plain DOM and inline currentColor SVG, sized in em: the fleet's two consumers render nothing alike.",
+      "description": "Sun, moon, half-disc — three NAMED segments in one track, the chosen one filled, each at least 44px tall: a control whose current value can be read at a glance, which three bare 24px glyphs with no selected state could not. Under it a real ARIA radio group: one tab stop, arrow keys move the choice, and no tooltip anywhere (the accessible name carries what the icon means, and hover does not exist on a phone). `system` is a RULE, not a colour: it resolves to light or dark and keeps resolving, so the distinction lives in WHICH segment is marked, and — for a reader who cannot see the mark — in the half-disc's name, which appends what it currently resolves to. Plain DOM and inline currentColor SVG, sized in em: the fleet's two consumers render nothing alike.",
       "component": "ThemeModeControl",
       "tokens": [
         "text",
         "text-muted",
-        "surface-overlay"
+        "surface",
+        "surface-sunken",
+        "border",
+        "brand"
       ],
       "variants": [
         "default",
@@ -73,6 +76,7 @@
   "i18nKeys": [
     "shell.nav.admin",
     "shell.nav.admin_staff_only",
+    "shell.nav.close_menu",
     "shell.nav.open_menu",
     "shell.public.sign_in",
     "shell.theme.dark",

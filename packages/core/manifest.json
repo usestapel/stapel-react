@@ -66,6 +66,7 @@
       "formatRelative",
       "getActiveSessionManager",
       "hasErrorCode",
+      "httpStatusFloorKeys",
       "idbStorage",
       "interpolate",
       "isDevBuild",
