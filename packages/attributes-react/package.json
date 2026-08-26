@@ -85,6 +85,7 @@
   "devDependencies": {
     "@size-limit/preset-small-lib": "^11.2.0",
     "@stapel/core": "workspace:^",
+    "@stapel/showcase": "workspace:^",
     "@stapel/tokens": "workspace:^",
     "@stapel/tokens-antd": "workspace:^",
     "@testing-library/react": "^16.3.0",

@@ -92,6 +92,9 @@ importers:
       '@stapel/core':
         specifier: workspace:^
         version: link:../core
+      '@stapel/showcase':
+        specifier: workspace:^
+        version: link:../showcase
       '@stapel/tokens':
         specifier: workspace:^
         version: link:../tokens

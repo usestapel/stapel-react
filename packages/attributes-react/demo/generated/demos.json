@@ -2,5 +2,132 @@
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/attributes-react",
   "version": "0.3.0",
-  "demos": []
+  "demos": [
+    {
+      "id": "attributes.display",
+      "title": "Badges and the spec table",
+      "description": "The stored {slug: {type, value}} envelope rendered back: badges for a card, a Descriptions table for a detail page. Values are formatted by type — a hierarchical path resolves to its catalogue labels, a hex_color carries its swatch onto the tag, a float carries its translated postfix — and an absent or unreadable value is named rather than left blank.",
+      "component": "FeatureBadges",
+      "covers": [
+        "FeatureValueList"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text-secondary"
+      ],
+      "variants": [
+        {
+          "id": "badges",
+          "description": "Only the four features the category flagged show_as_badge, in the order it declared. A feature with no value is omitted here — a card is a summary, and 'not specified' is not a selling point.",
+          "viewport": "phone",
+          "step": "badges"
+        },
+        {
+          "id": "spec table",
+          "description": "Every feature and its value, headers excluded. Nine of the ten types formatted, each by its own rule — and `length` reads 4.28 m because the unit travelled with the number.",
+          "viewport": "desktop",
+          "step": "specs"
+        },
+        {
+          "id": "two kinds of absence",
+          "description": "'Not specified' (nobody answered) and 'This value cannot be shown here' (a stored value of a type this build cannot format) are different facts and read differently. Neither is an empty cell; the type slug travels as data-attributes-type for support.",
+          "viewport": "phone",
+          "step": "gaps"
+        },
+        {
+          "id": "card and specs",
+          "description": "How a detail page composes the two: the summary line, then the full table.",
+          "viewport": "desktop",
+          "step": "composed"
+        }
+      ],
+      "source": {
+        "file": "demo/FeatureBadges.demo.tsx",
+        "line": 45
+      }
+    },
+    {
+      "id": "attributes.fields",
+      "title": "Feature fields - the ten builtin editors",
+      "description": "<FeatureFields> runs the resolution ladder per feature (host registration > skin builtin > loud notice) and draws each value type from its own config. It holds no state and owns no submit: values in, changes out, so the composer that owns the draft keeps one source of truth. All ten builtin types appear across these variants.",
+      "component": "FeatureFields",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "text"
+      ],
+      "variants": [
+        {
+          "id": "text and numbers",
+          "description": "header, string, int, float, bool — a caption with no label or asterisk, a code-point counter rather than a hard cap (the DOM counts UTF-16, the engine counts code points), a translated postfix on the float, and the admin's own comment under the headline.",
+          "viewport": "phone",
+          "step": "answered"
+        },
+        {
+          "id": "choices",
+          "description": "select (chips, and checkboxes with the minimum said in words), hierarchical_select as a Cascader whose minDepth stops a partial path being selectable, hex_color as a category picker with real swatches, and a select the catalogue locked — with the reason beside it, not a bare grey control.",
+          "viewport": "desktop",
+          "step": "chosen"
+        },
+        {
+          "id": "dates and units",
+          "description": "date is a Unix timestamp, not an ISO string — and 'year only' is a number, because a date input would force a month and a day the admin said they do not want. convertible_unit sends the number AS TYPED beside its unit; the server converts.",
+          "viewport": "phone",
+          "step": "measured"
+        },
+        {
+          "id": "refused",
+          "description": "The mirror speaks the engine's own error.400.feature_* keys, and each refusal lands under the control it is about. A banner says 'something is wrong'; this says 'this box is wrong', and only the second one can be acted on.",
+          "viewport": "desktop",
+          "step": "invalid"
+        },
+        {
+          "id": "submitting",
+          "description": "A submit in flight: every editor goes read-only at once, from the one prop the composer already owns.",
+          "viewport": "phone",
+          "step": "submitting"
+        }
+      ],
+      "source": {
+        "file": "demo/FeatureFields.demo.tsx",
+        "line": 29
+      }
+    },
+    {
+      "id": "attributes.unsupported",
+      "title": "A type this build cannot draw",
+      "description": "The third rung of the resolution ladder: no host registration, no skin builtin, so the row becomes a NOTICE — never a skipped field. While one is on screen `unsupportedTypeGate` blocks the submit and names the blocked features. The row itself is label-less, because the notice already names the feature and the visual pass caught it printed twice.",
+      "component": "UnsupportedValueEditor",
+      "covers": [
+        "FeatureFields"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "unknown type",
+          "description": "A mandatory feature whose type has no editor here. The sentence carries no slug; `data-attributes-type=\"size_grid\"` does.",
+          "viewport": "phone",
+          "step": "unsupported"
+        },
+        {
+          "id": "no type at all",
+          "description": "A config that declares no type is MISCONFIGURED, not exotic — a different fact about the catalogue, so a different sentence.",
+          "viewport": "desktop",
+          "step": "untyped"
+        },
+        {
+          "id": "submit blocked",
+          "description": "The whole point: the form still draws every feature it can, and the submit is off with the blocked FEATURES named beside it — not a grey button, and not a list of type slugs.",
+          "viewport": "desktop",
+          "step": "blocked"
+        }
+      ],
+      "source": {
+        "file": "demo/UnsupportedValueEditor.demo.tsx",
+        "line": 76
+      }
+    }
+  ]
 }
