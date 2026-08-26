@@ -39,6 +39,24 @@
 // Callers that need the confirm surface OFF during a migration wave pass
 // `confirmComponents: []` (that is what `recommended` does this release; the
 // `strict` config runs the full set).
+// ── WHY THERE IS NO `stapel/dialog-needs-theme` ─────────────────────────────
+//
+// The next defect in this family was a dialog painted on antd's default LIGHT
+// algorithm over a dark app (calendar, docs, chat). A dialog PORTALS to
+// `<body>`, so it is themed by the `ConfigProvider` above the element — which
+// stands next to the trigger — and not by the `SkinTheme` wrapping the screen.
+// The wave's first reading was to ask for a rule here: fail a `SkinDialog`
+// with no `SkinTheme` ancestor in the file.
+//
+// It was fixed in the SUBSTRATE instead (tokens-antd 0.7.0): `SkinDialog` now
+// renders its own `SkinTheme surface="bare"` around the antd component and
+// inside the portal, resolving the mode from the nearest enclosing skin and
+// falling back to the document's live one. A lint rule would have been the
+// weaker half of that fix twice over — it can only ask every future pair to
+// write the wrapper by hand, and the case that actually shipped is a
+// `SkinTheme` that IS in the file but does not ENCLOSE the dialog element,
+// which no ancestor-in-file heuristic can see. A rule earns its place when the
+// substrate cannot state the rule for itself; this one now can.
 const DIALOG_COMPONENTS = new Set(["Modal", "Drawer"]);
 const CONFIRM_COMPONENTS = ["Popconfirm"];
 

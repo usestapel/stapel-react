@@ -37,7 +37,7 @@ import type { ThemeConfig } from "antd";
 import { spacing } from "@stapel/tokens";
 import { hostBrandFingerprint, resolveThemeMode, toAntdThemeConfig } from "../index.js";
 import type { ThemeMode } from "../index.js";
-import { useDialogSurface } from "./dialog.js";
+import { useDialogSurface } from "./dialogSurface.js";
 import { useThemeMode } from "./themeMode.js";
 
 /**

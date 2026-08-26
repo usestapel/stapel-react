@@ -20,7 +20,8 @@
  *    document's LIVE `data-theme`, never a hardcoded side, and paints its own
  *    surface; phone controls are 44px.
  *  - {@link SkinDialog} + {@link useDialogSurface} — on a phone a dialog is a
- *    bottom sheet; modals are tablet/desktop only.
+ *    bottom sheet; modals are tablet/desktop only. It also themes its own
+ *    portal, so a dialog is on the right side wherever it was declared.
  *  - {@link SkinConfirm} — a confirmation is a dialog (so: a sheet on a
  *    phone), never an anchored popover.
  *  - {@link ErrorAlert}, {@link EmptyState}, {@link LoadBoundary},
@@ -55,14 +56,14 @@
  */
 export {
   SkinDialog,
-  useDialogSurface,
-  MODAL_MEDIA_QUERY,
   SHEET_MAX_HEIGHT,
   SHEET_WRAPPER_CLASS,
   SHEET_STYLE_HREF,
   sheetSizingCss,
 } from "./skin/dialog.js";
-export type { SkinDialogProps, DialogSurface } from "./skin/dialog.js";
+export type { SkinDialogProps } from "./skin/dialog.js";
+export { useDialogSurface, MODAL_MEDIA_QUERY } from "./skin/dialogSurface.js";
+export type { DialogSurface } from "./skin/dialogSurface.js";
 export { useThemeMode, subscribeThemeMode } from "./skin/themeMode.js";
 export {
   SkinTheme,

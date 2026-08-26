@@ -14,10 +14,11 @@
  * fails if the rule's query and `@stapel/tokens`' breakpoints ever disagree.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, configure, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, configure, createEvent, fireEvent, render, screen } from "@testing-library/react";
 import {
   SkinConfirm,
   SkinDialog,
+  SkinTheme,
   MODAL_MEDIA_QUERY,
   SHEET_MAX_HEIGHT,
   SHEET_STYLE_HREF,
@@ -25,6 +26,8 @@ import {
   sheetSizingCss,
 } from "../src/skin.js";
 import { breakpoints } from "@stapel/tokens";
+import { theme as antdTheme } from "antd";
+import type { ReactElement } from "react";
 
 configure({ asyncUtilTimeout: 10_000 });
 
@@ -98,6 +101,27 @@ afterEach(() => {
 });
 
 const DISMISS = "close-dialog";
+
+/**
+ * A pointer event with its `timeStamp` PINNED.
+ *
+ * The sheet's flick detection divides distance by `up.timeStamp -
+ * down.timeStamp`, and a DOM event stamps itself when it is constructed — so
+ * driving it with plain `fireEvent` measures the test runner's render time
+ * and calls the result a gesture velocity. `timeStamp` is read-only on a
+ * constructed event and cannot be passed to the constructor, hence the
+ * redefine on the event object before it is dispatched.
+ */
+function firePointerAt(
+  element: HTMLElement,
+  type: "pointerDown" | "pointerMove" | "pointerUp",
+  init: Record<string, unknown>,
+  timeStamp: number
+): void {
+  const event = createEvent[type](element, init);
+  Object.defineProperty(event, "timeStamp", { value: timeStamp });
+  fireEvent(element, event);
+}
 
 describe("the surface rule", () => {
   it("is a bottom sheet below the tablet breakpoint", () => {
@@ -201,12 +225,32 @@ describe("what makes it a sheet and not a bottom drawer", () => {
     const onClose = vi.fn();
     renderSheet(onClose);
     const handle = screen.getByTestId("stapel-sheet-handle").parentElement as HTMLElement;
-    // 50px — under the 88px distance threshold, over the flick floor, and
-    // covered in ~no time, which is what a flick is.
-    fireEvent.pointerDown(handle, { clientY: 100, isPrimary: true, pointerId: 1 });
+    // 50px in 60ms — under the 88px distance threshold, over the flick floor,
+    // and fast, which is what a flick is.
+    //
+    // The clock is PINNED on the two events rather than read from the wall,
+    // because the gesture's velocity is `distance / (up.timeStamp -
+    // down.timeStamp)` and those stamps are set when the event objects are
+    // constructed — so an un-pinned version of this test measures how long the
+    // machine took to re-render between two `fireEvent` calls and calls that
+    // the user's flick speed. Under a loaded test runner that is hundreds of
+    // milliseconds, and the assertion becomes a benchmark.
+    firePointerAt(handle, "pointerDown", { clientY: 100, isPrimary: true, pointerId: 1 }, 1_000);
     fireEvent.pointerMove(handle, { clientY: 150, pointerId: 1 });
-    fireEvent.pointerUp(handle, { clientY: 150, pointerId: 1 });
+    firePointerAt(handle, "pointerUp", { clientY: 150, pointerId: 1 }, 1_060);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("does NOT read a slow 50px drag as a flick", () => {
+    const onClose = vi.fn();
+    renderSheet(onClose);
+    const handle = screen.getByTestId("stapel-sheet-handle").parentElement as HTMLElement;
+    // The same 50px, taken 400ms: over the flick floor in distance, far under
+    // it in speed, and under the 88px threshold. It springs back.
+    firePointerAt(handle, "pointerDown", { clientY: 100, isPrimary: true, pointerId: 1 }, 2_000);
+    fireEvent.pointerMove(handle, { clientY: 150, pointerId: 1 });
+    firePointerAt(handle, "pointerUp", { clientY: 150, pointerId: 1 }, 2_400);
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("ignores an UPWARD drag rather than lifting the sheet off the edge", () => {
@@ -318,6 +362,170 @@ describe("the modal half", () => {
     expect(
       screen.getByText("body").closest("[data-stapel-dialog-surface]")
     ).toHaveProperty("dataset.stapelDialogSurface", "sheet");
+  });
+});
+
+describe("a dialog is themed where it is PAINTED, not where it is written", () => {
+  // A dialog portals to `<body>`, so the antd theme it paints under is the one
+  // above the ELEMENT — beside the trigger — and not the one wrapping the
+  // screen. Calendar, docs and chat each shipped a dialog on antd's default
+  // LIGHT algorithm over a dark app that way. `SkinDialog` now carries the
+  // theme into its own portal, so this is a property of the substrate.
+  //
+  // The token the panel is actually painted with is read by a probe INSIDE the
+  // dialog: it sits under the very `ConfigProvider` the antd chrome is under,
+  // so what it reports is what the panel, its header and its footer got.
+  function TokenProbe(): ReactElement {
+    const { token } = antdTheme.useToken();
+    return <span data-testid="probe" data-elevated={token.colorBgElevated} />;
+  }
+
+  /** What that probe reports under a `SkinTheme` pinned to `mode`, with no
+   * dialog involved — the answer the dialog has to match. */
+  function pinned(mode: "light" | "dark"): string {
+    const { unmount, getByTestId } = render(
+      <SkinTheme mode={mode}>
+        <TokenProbe />
+      </SkinTheme>
+    );
+    const value = getByTestId("probe").dataset["elevated"] ?? "";
+    unmount();
+    expect(value).not.toBe("");
+    return value;
+  }
+
+  function paintedIn(): { mode: string; elevated: string; inPortal: boolean } {
+    const probe = screen.getByTestId("probe");
+    const root = probe.closest("[data-stapel-skin-root]");
+    return {
+      mode: root instanceof HTMLElement ? (root.dataset["stapelSkinMode"] ?? "") : "",
+      elevated: probe.dataset["elevated"] ?? "",
+      inPortal: probe.closest(".ant-drawer, .ant-modal") !== null,
+    };
+  }
+
+  afterEach(() => {
+    document.documentElement.removeAttribute("data-theme");
+  });
+
+  it("carries a pinned dark theme into the sheet's portal", () => {
+    setViewport(390);
+    const dark = pinned("dark");
+    render(
+      <SkinTheme mode="dark">
+        <SkinDialog open onClose={() => undefined} dismissLabel={DISMISS} title="t">
+          <TokenProbe />
+        </SkinDialog>
+      </SkinTheme>
+    );
+    const painted = paintedIn();
+    expect(painted.inPortal).toBe(true);
+    expect(painted.mode).toBe("dark");
+    expect(painted.elevated).toBe(dark);
+  });
+
+  it("carries a pinned dark theme into the modal's portal", () => {
+    setViewport(breakpoints.tablet);
+    const dark = pinned("dark");
+    render(
+      <SkinTheme mode="dark">
+        <SkinDialog open onClose={() => undefined} dismissLabel={DISMISS} title="t">
+          <TokenProbe />
+        </SkinDialog>
+      </SkinTheme>
+    );
+    const painted = paintedIn();
+    expect(painted.inPortal).toBe(true);
+    expect(painted.mode).toBe("dark");
+    expect(painted.elevated).toBe(dark);
+  });
+
+  it("keeps the PIN through the portal even when the document says otherwise", () => {
+    // The document is light, the screen pinned dark (a demo showing both
+    // sides). The dialog belongs to the screen, not to the page it floats over.
+    setViewport(390);
+    document.documentElement.setAttribute("data-theme", "light");
+    const dark = pinned("dark");
+    render(
+      <SkinTheme mode="dark">
+        <SkinDialog open onClose={() => undefined} dismissLabel={DISMISS} title="t">
+          <TokenProbe />
+        </SkinDialog>
+      </SkinTheme>
+    );
+    expect(paintedIn().elevated).toBe(dark);
+  });
+
+  it("follows the document when nothing above it decided — the class defect", () => {
+    // No `SkinTheme` anywhere: this is exactly what calendar and docs shipped.
+    // The old answer was antd's built-in light algorithm on a dark page.
+    setViewport(390);
+    document.documentElement.setAttribute("data-theme", "dark");
+    const dark = pinned("dark");
+    const light = pinned("light");
+    expect(dark).not.toBe(light);
+    render(
+      <SkinDialog open onClose={() => undefined} dismissLabel={DISMISS} title="t">
+        <TokenProbe />
+      </SkinDialog>
+    );
+    const painted = paintedIn();
+    expect(painted.mode).toBe("dark");
+    expect(painted.elevated).toBe(dark);
+    expect(painted.elevated).not.toBe(light);
+  });
+
+  it("follows the document's light side too, rather than pinning either", () => {
+    setViewport(breakpoints.tablet);
+    document.documentElement.setAttribute("data-theme", "light");
+    const light = pinned("light");
+    render(
+      <SkinDialog open onClose={() => undefined} dismissLabel={DISMISS} title="t">
+        <TokenProbe />
+      </SkinDialog>
+    );
+    const painted = paintedIn();
+    expect(painted.mode).toBe("light");
+    expect(painted.elevated).toBe(light);
+  });
+
+  it("adds no box to the layout it is declared in", () => {
+    // The wrapper stands where the dialog is written — inside a toolbar, a row
+    // of buttons, a flex container with a gap. An empty flex child would open a
+    // gap there, so the wrapper is `display: contents`.
+    setViewport(390);
+    const { container } = render(
+      <SkinDialog open onClose={() => undefined} dismissLabel={DISMISS} title="t">
+        <p>body</p>
+      </SkinDialog>
+    );
+    const wrapper = container.firstElementChild as HTMLElement;
+    expect(wrapper.dataset["stapelSkinRoot"]).toBe("");
+    expect(wrapper.style.display).toBe("contents");
+    expect(wrapper.childElementCount).toBe(0);
+  });
+
+  it("themes the sheet's own chrome, not only the content inside it", () => {
+    // The grab handle is painted from `colorFillSecondary` read inside the
+    // sheet. A light handle on a dark sheet is the same defect one element
+    // smaller, and it is the tell that the PANEL is on the wrong provider.
+    setViewport(390);
+    document.documentElement.setAttribute("data-theme", "dark");
+    render(
+      <SkinDialog open onClose={() => undefined} dismissLabel={DISMISS} title="t">
+        <p>body</p>
+      </SkinDialog>
+    );
+    const darkHandle = screen.getByTestId("stapel-sheet-handle").style.background;
+    cleanup();
+    document.documentElement.setAttribute("data-theme", "light");
+    render(
+      <SkinDialog open onClose={() => undefined} dismissLabel={DISMISS} title="t">
+        <p>body</p>
+      </SkinDialog>
+    );
+    expect(darkHandle).not.toBe("");
+    expect(screen.getByTestId("stapel-sheet-handle").style.background).not.toBe(darkHandle);
   });
 });
 

@@ -44,113 +44,59 @@
  *    to the opener on close; the sheet keeps that and adds the accessible
  *    name (`aria-label`) a header-less sheet would otherwise not have.
  *
- * ## The surface decision is not a measurement
+ * ## A dialog is themed where it is PAINTED, not where it is written
  *
- * Which surface to render is a decision about the VIEWPORT's shape — the one
- * legitimate use of a viewport query (an element-sized decision would be a
- * defect; see `@stapel/image`). It reads one `matchMedia` against
- * `@stapel/tokens`' `tablet` breakpoint through `useSyncExternalStore`, so
- * the very first CLIENT render already has the right answer: the
- * `useBreakpoint()` pattern (`undefined` until an effect runs) would paint a
- * desktop modal on a phone for one frame and then swap it for a sheet.
+ * A dialog PORTALS to `<body>`. React context still flows down the element
+ * tree, so the panel is themed by whatever `ConfigProvider` stands above the
+ * `<SkinDialog>` ELEMENT — which is next to the trigger that opens it, not
+ * inside the screen's painted panel. A pair that wrapped its screen in
+ * `SkinTheme` but declared the dialog outside that wrapper (or that leaned on
+ * the document's `data-theme` alone, which antd cannot see) shipped a dialog
+ * on antd's default LIGHT algorithm over a dark app. The visual pass found it
+ * in calendar, docs and chat; the reading it produced first — "three sheet
+ * implementations, one of them theme-aware" — was wrong, all three already
+ * rendered through this component. Only the wrapper differed, and a rule that
+ * every caller has to remember is not a rule.
+ *
+ * So the surface themes itself: {@link SkinDialog} renders its own
+ * `SkinTheme surface="bare"` around the antd component (so the PANEL, its
+ * header and its footer are on the right algorithm, not just the body) and a
+ * second one inside the portal (so the painted content carries
+ * `data-stapel-skin-mode` where a test can see it). The mode comes from the
+ * nearest enclosing `SkinTheme` at the declaration site, and from the live
+ * document mode when there is none — the same order `SkinTheme` itself uses.
+ *
+ * A caller that already wraps its dialog keeps working and pays nothing:
+ * `AppliedThemeContext` makes a nested `SkinTheme` with the same answer a
+ * plain `<div>` and no second provider. The outer wrapper is `display:
+ * contents`, so it adds no box to the declaring layout — an empty flex child
+ * would otherwise open a gap in the row the trigger sits in.
+ *
+ * This is why there is no `stapel/dialog-needs-theme` lint rule: a rule would
+ * only tell the twelfth pair to write the wrapper the substrate now writes for
+ * it, and it could not see the case that actually broke — a `SkinTheme` that
+ * IS in the file but does not enclose the dialog element.
+ *
+ * The viewport rule itself (`useDialogSurface`, `MODAL_MEDIA_QUERY`) lives in
+ * `./dialogSurface.js`, because `SkinTheme` reads it too and two modules that
+ * import each other are a cycle.
  */
-import { useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactElement, ReactNode } from "react";
 import { ConfigProvider, Drawer, Modal, theme as antdTheme } from "antd";
-import { breakpoints } from "@stapel/tokens";
+import { useDialogSurface } from "./dialogSurface.js";
+import type { DialogSurface } from "./dialogSurface.js";
+import { SkinTheme } from "./theme.js";
+
+export { MODAL_MEDIA_QUERY, useDialogSurface } from "./dialogSurface.js";
+export type { DialogSurface } from "./dialogSurface.js";
 
 /**
- * Which shape a dialog takes: a bottom `"sheet"` (phone) or a centred
- * `"modal"` (tablet and desktop).
+ * The wrapper that carries the theme to the portal without adding a box to
+ * the tree the dialog is DECLARED in: the antd component renders nothing
+ * where it stands, so this element must not either.
  */
-export type DialogSurface = "sheet" | "modal";
-
-/**
- * The rule, as a media query: at or above the `tablet` breakpoint a dialog is
- * a modal; below it, a sheet. One query, derived from the same generated
- * `@stapel/tokens` breakpoints `@stapel/core`'s `useBreakpoint()` reads, so
- * the two can never disagree about where a phone ends.
- */
-export const MODAL_MEDIA_QUERY: string = `(min-width: ${String(breakpoints.tablet)}px)`;
-
-/**
- * One `MediaQueryList` for the whole process, not one per call.
- *
- * `useSyncExternalStore` calls its snapshot on EVERY render of every
- * consumer, and `SkinTheme` is a consumer — so a screen of a hundred skinned
- * parts was asking the platform to parse and evaluate the same media query a
- * hundred times per render pass, plus one live query object per `subscribe`.
- * `matchMedia` returns a live object: one handle answers forever and keeps
- * reporting the current viewport.
- *
- * Keyed on the `matchMedia` function itself so a test that installs its own
- * (`test/env.tsx`) is never answered by a handle the previous one made.
- */
-let cachedMatcher: typeof window.matchMedia | null = null;
-let cachedQuery: MediaQueryList | null = null;
-
-function modalQuery(): MediaQueryList | null {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-    return null;
-  }
-  if (cachedQuery === null || cachedMatcher !== window.matchMedia) {
-    cachedMatcher = window.matchMedia;
-    cachedQuery = window.matchMedia(MODAL_MEDIA_QUERY);
-  }
-  return cachedQuery;
-}
-
-function subscribe(onChange: () => void): () => void {
-  const query = modalQuery();
-  if (query === null) return () => undefined;
-  query.addEventListener("change", onChange);
-  return () => {
-    query.removeEventListener("change", onChange);
-  };
-}
-
-function readSurface(): DialogSurface {
-  const query = modalQuery();
-  if (query === null) return "modal";
-  return query.matches ? "modal" : "sheet";
-}
-
-/** `"modal"` where there is no DOM to ask (SSR): the server cannot know the
- * viewport, and a dialog is closed on the first paint either way, so the
- * hydrated client render is the first one that can be seen. */
-function serverSurface(): DialogSurface {
-  return "modal";
-}
-
-/**
- * The surface a dialog should take right now — `"sheet"` on a phone,
- * `"modal"` on tablet/desktop — recomputed when the viewport crosses the
- * breakpoint (rotation, a resized desktop window, a split-screen tablet).
- *
- * ## Viewport, deliberately — and the house rule it does not break
- *
- * The house rule is "geometry from element width, never from the viewport":
- * a card grid, a table's density, an image's variant are all questions about
- * the box the thing is IN, and a 390px-wide panel on a desktop must lay out
- * like a phone. A DIALOG is the one component that question does not apply
- * to, because a dialog is not in a box: a modal is positioned against the
- * viewport, a sheet is anchored to the viewport's bottom edge and sized by
- * its height (`90dvh`, safe-area insets), and both sit above every element
- * that could have been measured. There is no element whose width could be
- * the right input — the opener's width is irrelevant to whether a sheet
- * should slide up from the bottom of the phone. So this hook reads the
- * viewport, and it is the ONLY shared primitive that decides a shape from
- * it (with `@stapel/core`'s `useBreakpoint`, which decides the shell's
- * chrome — also a viewport surface). Everything that lays out inside a box
- * keeps measuring the box.
- *
- * Exported so a skin that cannot use {@link SkinDialog} (a third-party
- * dialog, a control that grows to 44px only on a phone) can still obey the
- * same rule from the same source; `SkinTheme` reads it for exactly that.
- */
-export function useDialogSurface(): DialogSurface {
-  return useSyncExternalStore(subscribe, readSurface, serverSurface);
-}
+const CONTENTS_STYLE: CSSProperties = { display: "contents" };
 
 /** The tallest a sheet gets: the rest of the page must stay visible behind it. */
 export const SHEET_MAX_HEIGHT: string = "90dvh";
@@ -263,7 +209,6 @@ export interface SkinDialogProps {
 export function SkinDialog(props: SkinDialogProps): ReactElement {
   const auto = useDialogSurface();
   const surface = props.surface ?? auto;
-  const { token } = antdTheme.useToken();
   const {
     open,
     onClose,
@@ -276,17 +221,24 @@ export function SkinDialog(props: SkinDialogProps): ReactElement {
     dismissible = true,
   } = props;
 
+  // The inner half of the theming: inside the portal, where the content is
+  // actually painted. Under the outer `SkinTheme` this is a plain `<div>` —
+  // same mode, same phone answer, so `AppliedThemeContext` renders no second
+  // provider — and it stamps `data-stapel-skin-mode` on the panel's content so
+  // a test can prove which side the PORTAL is on, not which side the file is.
   const body = (
-    <div
-      data-stapel-dialog-surface={surface}
-      {...(props["data-testid"] !== undefined ? { "data-testid": props["data-testid"] } : {})}
-    >
-      {children}
-    </div>
+    <SkinTheme surface="bare" style={CONTENTS_STYLE}>
+      <div
+        data-stapel-dialog-surface={surface}
+        {...(props["data-testid"] !== undefined ? { "data-testid": props["data-testid"] } : {})}
+      >
+        {children}
+      </div>
+    </SkinTheme>
   );
 
-  if (surface === "modal") {
-    return (
+  const dialog =
+    surface === "modal" ? (
       <Modal
         open={open}
         onCancel={onClose}
@@ -305,27 +257,32 @@ export function SkinDialog(props: SkinDialogProps): ReactElement {
       >
         {body}
       </Modal>
+    ) : (
+      <BottomSheet
+        open={open}
+        onClose={onClose}
+        dismissLabel={dismissLabel}
+        dismissible={dismissible}
+        destroyOnHidden={destroyOnHidden}
+        {...(props.maskClosable !== undefined ? { maskClosable: props.maskClosable } : {})}
+        {...(title !== undefined ? { title } : {})}
+        {...(ariaLabel !== undefined ? { ariaLabel } : {})}
+        {...(footer !== undefined ? { footer } : {})}
+        {...(props.className !== undefined ? { className: props.className } : {})}
+      >
+        {body}
+      </BottomSheet>
     );
-  }
 
+  // The outer half: above the antd component itself, so the PANEL — its
+  // background, its header, its close button, its footer — is on the same
+  // algorithm as the content, and not just the body inside it. `display:
+  // contents` because the dialog renders nothing where it is declared, so
+  // neither may its theme wrapper.
   return (
-    <BottomSheet
-      open={open}
-      onClose={onClose}
-      dismissLabel={dismissLabel}
-      dismissible={dismissible}
-      destroyOnHidden={destroyOnHidden}
-      radius={token.borderRadiusLG}
-      handleColor={token.colorFillSecondary}
-      bodyPadding={token.paddingLG}
-      {...(props.maskClosable !== undefined ? { maskClosable: props.maskClosable } : {})}
-      {...(title !== undefined ? { title } : {})}
-      {...(ariaLabel !== undefined ? { ariaLabel } : {})}
-      {...(footer !== undefined ? { footer } : {})}
-      {...(props.className !== undefined ? { className: props.className } : {})}
-    >
-      {body}
-    </BottomSheet>
+    <SkinTheme surface="bare" style={CONTENTS_STYLE}>
+      {dialog}
+    </SkinTheme>
   );
 }
 
@@ -336,9 +293,6 @@ interface BottomSheetProps {
   readonly dismissible: boolean;
   readonly destroyOnHidden: boolean;
   readonly maskClosable?: boolean;
-  readonly radius: number;
-  readonly handleColor: string;
-  readonly bodyPadding: number;
   readonly title?: ReactNode;
   readonly ariaLabel?: string;
   readonly footer?: ReactNode;
@@ -355,7 +309,16 @@ interface BottomSheetProps {
  * inside it would slide the content out of its own chrome.
  */
 function BottomSheet(props: BottomSheetProps): ReactElement {
-  const { open, onClose, radius, handleColor, bodyPadding, dismissible } = props;
+  const { open, onClose, dismissible } = props;
+  // Read INSIDE the sheet, not in `SkinDialog`: the token the grab handle is
+  // painted with has to come from the provider the sheet is rendered under
+  // (the one `SkinDialog` puts above it), not from whatever theme happened to
+  // stand where the dialog was written. A light `colorFillSecondary` handle on
+  // a dark sheet is the same defect as a light panel, one element smaller.
+  const { token } = antdTheme.useToken();
+  const radius = token.borderRadiusLG;
+  const handleColor = token.colorFillSecondary;
+  const bodyPadding = token.paddingLG;
   const { getPrefixCls } = useContext(ConfigProvider.ConfigContext);
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);

@@ -74,7 +74,7 @@ the theme mapping never loads a component.
 | --- | --- |
 | `SkinTheme` | A skin self-themes from the document's LIVE `data-theme` (never `"light"`), paints its own surface (`raised` default / `base` / `bare`), and on a phone raises antd's `controlHeight` to 44px. |
 | `useThemeMode()` / `subscribeThemeMode()` | The reactive mode read (`useSyncExternalStore` + MutationObserver on `data-theme`), SSR-safe. |
-| `SkinDialog` / `useDialogSurface()` | On a phone a dialog is a bottom sheet; modals are tablet/desktop only. |
+| `SkinDialog` / `useDialogSurface()` | On a phone a dialog is a bottom sheet; modals are tablet/desktop only. It themes its own portal, so a dialog is on the right side wherever it was declared. |
 | `SkinConfirm` | A confirmation is a dialog (so: a sheet on a phone), never an anchored `Popconfirm`. Controlled; `danger` variant; `confirming` holds both arms. |
 | `ErrorAlert` | The one error surface: `error` (described), `thrown` (raw), or `message`; `onRetry`, `onDismiss`, `action`; `variant="block"` (Alert) or `"inline"`. In a box narrower than `ACTION_STACK_BELOW` the actions stack under the message instead of taking a column beside it. |
 | `EmptyState` | Icon, title, hint, action. Reachable only from a load that succeeded. |
