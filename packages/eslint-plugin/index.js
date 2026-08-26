@@ -379,16 +379,7 @@ const recommended = [
   {
     // The doctrine tier, at WARN — a worklist, not a wall (see DOCTRINE_LEVEL).
     files: TS_JS,
-    rules: {
-      ...doctrineRules(DOCTRINE_TS, DOCTRINE_LEVEL),
-      // CHAT-RT-CUTOVER (2026-08-26): chat-react's hand-rolled socket speaks the
-      // protocol stapel-chat 0.3.0 deleted — every frame a 0.6 server sends
-      // decodes to null, the heartbeat goes unanswered, the pair polls forever.
-      // Its cutover to @stapel/realtime is dispatched as its own wire change;
-      // until it lands the pair is named here, not silenced inline. Remove the
-      // entry with the cutover commit.
-      "stapel/no-adhoc-socket": [DOCTRINE_LEVEL, { allowPackages: ["@stapel/realtime", "@stapel/chat-react"] }],
-    },
+    rules: doctrineRules(DOCTRINE_TS, DOCTRINE_LEVEL),
   },
   {
     files: JSX,

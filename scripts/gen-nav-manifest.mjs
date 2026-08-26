@@ -65,10 +65,13 @@ const ICON_REGISTRY_FILE = resolve(
 );
 // Parent ids the CONTAINER synthesises rather than a pair declaring them
 // (stapel-tools `_frontend_templates.py` builds `account.root` around the
-// account submenu). `admin.root` is deliberately NOT here: nobody declares it,
-// which is the finding, not the configuration.
+// member section and, since tools 0.54.0 / shell-react 0.7.0, `admin.root`
+// whenever any installed pair hangs a staff screen off it —
+// account submenu, and — since stapel-tools 0.54.0 / shell-react 0.7.0 —
+// `admin.root` whenever any installed pair hangs a staff screen off it, gated
+// on the session's staff capability and refusing by name).
 const CONTAINER_PARENT_IDS = new Set(
-  (process.env.NAV_CONTAINER_PARENTS ?? "account.root")
+  (process.env.NAV_CONTAINER_PARENTS ?? "account.root,admin.root")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean)
