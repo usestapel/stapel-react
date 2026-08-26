@@ -1,6 +1,6 @@
 {
   "name": "@stapel/notifications-react",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Headless React flow pair for stapel-notifications: typed API client, TanStack Query hooks, flow machines, headless components, and i18n keys. Zero visual opinion.",
   "license": "MIT",
   "repository": {
@@ -86,9 +86,9 @@
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.18.0 <1.0.0",
-    "@stapel/realtime": ">=0.1.0",
-    "@stapel/tokens-antd": ">=0.6.0",
+    "@stapel/core": ">=0.18.1 <1.0.0",
+    "@stapel/realtime": ">=0.1.1",
+    "@stapel/tokens-antd": ">=0.7.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"

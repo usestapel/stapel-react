@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/image",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "backend": null,
   "description": "Stapel image rendering: tier/branch math for the CDN variant ladder (pickTier, limitingAxis, chooseVariant), slot measurement hook (useImageSlot), and a blur-up <Image> component with upgrade-only tier fetching.",
   "flows": {},

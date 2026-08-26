@@ -1,6 +1,6 @@
 {
   "name": "@stapel/currencies-react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "React pair for stapel-currencies: the Money layer of the fleet. One formatter (Intl.NumberFormat, per locale, per currency's minor units), one converter (decimal-string BigInt math in parity with the backend's services.convert), and an opt-in /default antd skin — <Price> with its estimate, a CurrencyPicker that is a bottom sheet on a phone, a decimal-string CurrencyField and a RateTable. Prices stop being `${amount} ${code}`.",
   "license": "MIT",
   "repository": {
@@ -76,8 +76,8 @@
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.18.0 <1.0.0",
-    "@stapel/tokens-antd": ">=0.6.0",
+    "@stapel/core": ">=0.18.1 <1.0.0",
+    "@stapel/tokens-antd": ">=0.7.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"

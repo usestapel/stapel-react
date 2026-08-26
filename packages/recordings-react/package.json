@@ -1,6 +1,6 @@
 {
   "name": "@stapel/recordings-react",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "React pair for stapel-recordings: typed API client, TanStack Query hooks with payload-driven polling, headless components (list / detail / uploader / player / transcript / re-summarize / reprocess / public share) and i18n in en+ru+es. The main entry is headless; the opt-in /default subpath ships the antd skin — the recordings screen, the recording screen with its player and speaker-attributed transcript, the create->upload->finalize uploader, and the anonymous share page with its passcode gate.",
   "license": "MIT",
   "repository": {
@@ -66,8 +66,8 @@
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.18.0 <1.0.0",
-    "@stapel/tokens-antd": ">=0.6.0",
+    "@stapel/core": ">=0.18.1 <1.0.0",
+    "@stapel/tokens-antd": ">=0.7.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"

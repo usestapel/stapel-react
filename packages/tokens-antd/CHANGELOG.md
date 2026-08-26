@@ -1,5 +1,44 @@
 # @stapel/tokens-antd
 
+## 0.7.0
+
+### Minor Changes
+
+- d3c98a1: The third visual pass traced its remaining defect classes to the substrate; this release closes them where they were traced.
+
+  - **A nested bare `SkinTheme` inherits the pin above it.** `mode` resolves `props.mode ?? inherited.mode ?? liveMode`: a demo pinning `mode="dark"` around a self-wrapping surface no longer renders that surface light (search: 16 of 29 dark shots; reviews' sign-in door; geo's `--dark` guard).
+  - **The phone touch floor reaches every control.** `PHONE_TOUCH_FLOOR` raises `controlHeightSM` to 44 as well, puts `Rate` stars on a 44px pitch and checkbox/radio boxes at 24px; `phoneTouchFloorCss` (hoisted once, scoped under `[data-stapel-skin-phone]`) gives rate stars, checkbox/radio rows, clickable tags and list/menu rows a 44px hit area.
+  - **Status surfaces from the `*-bg` / `*-border` roles.** `toAntdTheme` maps `colorSuccessBg`, `colorWarningBg`, `colorErrorBg`, `colorInfoBg` and their borders/hovers from the token JSON instead of antd's palette derivation — the khaki warning and sage success are gone. `colorPrimaryBg`/`Hover`/`Active` come from `brand-subtle`/`brand-hover`/`brand-active`.
+  - **Dark primaries readable.** `colorTextLightSolid` is the `text-on-accent` role (near-black in dark), so a primary button's label holds AA on the lavender dark fill; `Tooltip` keeps a light label in both modes. Tested with a WCAG contrast assertion.
+  - **The sheet fits its content up to 90dvh**, body scrolls, footer pinned (`sheetSizingCss`, `SHEET_MAX_HEIGHT`) — no more 378px sheet clipping mid-sentence with the primary below the fold.
+  - **New primitives:** `Pane` / `Page` (the measure and padding scale; `PANE_MEASURES`), `StatusTag` (one treatment per status family), `RowActions` (wrap between buttons, never inside a word; overflow into a sheet on a phone), `PaneGate` (one refusal per pane; pools identical per-control reasons through `GateReasonScopeContext`), `ListRow` / `CardHeader` (`min-width: 0`, wrap not truncate, badge and actions slots), `DataTable` (table or cards by element width).
+
+  Additive: every existing export keeps its signature. Peer `@stapel/core >=0.18.1` for the `more` / `actions` floor keys `RowActions` reads.
+
+### Patch Changes
+
+- e617a05: **A dialog is now themed where it is PAINTED.** `SkinDialog` and `SkinConfirm` carry the skin theme into their own portal, so a dialog no longer depends on the caller having wrapped it.
+
+  A dialog portals to `<body>`, so the `ConfigProvider` it paints under is the one above the `<SkinDialog>` ELEMENT — beside the trigger — not the one wrapping the screen's panel. Every pair that did not wrap the dialog itself shipped a dialog on antd's default LIGHT algorithm over a dark app: the third visual pass found it in calendar, docs and chat, and its first reading ("three sheet implementations, one of them theme-aware") was wrong — all three already rendered through `SkinDialog`; only the wrapper differed.
+
+  - `SkinDialog` renders `SkinTheme surface="bare"` around the antd component (so the PANEL, its header, its close button and its footer are on the right algorithm — not only the body) and again inside the portal, where it stamps `data-stapel-skin-mode` on the painted content.
+  - The mode is the nearest enclosing `SkinTheme`'s, and the live document mode when there is none — the same order `SkinTheme` itself uses, so a screen that pins `mode="dark"` keeps the pin through the portal.
+  - A caller that already wraps its dialogs keeps working and pays nothing: `AppliedThemeContext` makes the nested wrapper a plain `<div>` with no second provider. The outer wrapper is `display: contents`, so it adds no box to the row the trigger sits in.
+  - The sheet's grab handle reads `colorFillSecondary` from inside the sheet, so the chrome is painted from the panel's own tokens.
+  - No `stapel/dialog-needs-theme` lint rule: a rule could only ask the next pair to write by hand what the substrate now writes for it, and it could not see the case that actually shipped — a `SkinTheme` that is in the file but does not enclose the dialog element. Recorded in `no-bare-dialog`'s docblock.
+
+  Internal: the viewport rule (`useDialogSurface`, `MODAL_MEDIA_QUERY`) moved to `skin/dialogSurface.ts`, since `SkinTheme` and `SkinDialog` now both read it. Both are re-exported unchanged from `@stapel/tokens-antd/skin`.
+
+- 61e8615: The two additive items the account-group builders filed against the substrate.
+
+  - **`useElementWidth(ref, { thresholds })` is exported from `@stapel/tokens-antd/skin`** — the fleet's one element-width measurement. Five packages wrote their own this wave (`billing-react/src/default/elementWidth.ts`, `calendar-react/src/default/useElementWidth.ts`, `docs-react/src/default/useSplitLayout.ts`, `geo-react`'s `TileMap`, `gdpr-react/src/default/DataTable.tsx`), each with its own answer to what a zero width means and what an unmeasured box means. Both are stated once here: zero is not a measurement (a `display:none` box must not stick to its narrow arm), and unmeasured is `undefined` — `width` and every named threshold — so a caller states its own seed (`below.cards ?? phone`) instead of inheriting somebody else's guess. `DataTable` and `Pane` now read it, and `Pane`'s gutter step follows the pane's OWN width rather than the viewport: a 360px column on a desktop gets the tight gutter.
+  - **`ErrorAlert`'s actions stack under the message in a narrow box (VC-B6).** antd puts `action` in a column beside the message; below `ACTION_STACK_BELOW` (the `narrow` measure, 576px) of ELEMENT width the retry moves under the message and detail instead, so the sentence keeps the full width of the alert. Measured in Chromium: the message column in a 390px box goes from the squeezed ~110px to 300px, while a 900px box keeps the action column. The alert is wrapped in a measured `<div data-stapel-error-actions="inline|stacked">`; `data-stapel-error="block"` stays on the alert itself.
+
+  Additive: every existing export keeps its signature.
+
+- Updated dependencies [f9d8b66]
+  - @stapel/tokens@0.5.1
+
 ## 0.6.0
 
 ### Minor Changes

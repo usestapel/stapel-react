@@ -1,5 +1,69 @@
 # @stapel/attributes-react
 
+## 0.3.1
+
+### Patch Changes
+
+- ba97390: Demos: the antd skin is photographed for the first time, and held there by a gate.
+
+  `demo/` did not exist, so the default-skin gate read `0/4 covered` — the ten
+  builtin value editors, the unsupported-type notice and both display surfaces
+  had never been rendered in a story. Three `defineDemo` sources now cover all
+  four `/default` exports (`FeatureFields`, `UnsupportedValueEditor`,
+  `FeatureBadges`, `FeatureValueList`) with **all ten builtin value types** drawn
+  across their variants, every variant declaring the `viewport` it was designed
+  for and the `step` it opens SEEDED at — so a static shot photographs the state
+  its name claims instead of one idle frame under five names.
+
+  - `demo/fixtures.ts` — rows shaped as `GET /categories/{id}/features/` sends
+    them: `config` carries only the keys an admin set (that endpoint serializes
+    `obj.config` verbatim), `name` is admin content rendered as-is, and option
+    labels / `postfix` / `trueLabel` are catalogue KEYS resolved through `t()`.
+  - `demo/_harness.tsx` — a translator and the shared `SkinTheme`, and nothing
+    else: no debug card, no class-name heading, no state chip.
+  - `attributes.fields` (5 variants), `attributes.unsupported` (3),
+    `attributes.display` (4) — including the locked control with its reason, the
+    minimum-selected hint, the code-point counter, refusals landing under their
+    own control, and the submit blocked by FEATURE name rather than type slug.
+  - `test/demos.test.tsx` — glob discovery, a smoke render per demo,
+    `assertVariantsRenderDistinctly` per demo, and an assertion that every
+    `BUILTIN_VALUE_EDITOR_TYPES` entry appears in a demo fixture.
+  - `test/responsive.test.tsx` — all four skin surfaces at phone and desktop
+    width on both sides of the theme (16 cases), plus a sweep asserting no
+    builtin editor is desktop-only. The viewport and theme are mocked at the
+    environment edge (a real `matchMedia` over a real `innerWidth`, a real
+    `data-theme`), never by stubbing the hooks.
+
+  `@stapel/showcase` joins the devDependencies. 168 tests (was 142); lint 0/0.
+
+- 0921578: Every `/default` surface is its own skin root, and the composer's chips are a touch target.
+
+  **Nothing in `src/default/**`wrapped itself.** The package draws form rows,
+not pages, and it took that as licence to render no`SkinTheme`anywhere — so
+on a dark document with no`ConfigProvider`above it, antd fell back to its
+light algorithm and the ten editors painted light inputs and near-invisible
+help text on a dark form.`FeatureFields`, `UnsupportedValueEditor`,
+`FeatureBadges`, `FeatureValueList`and every builtin editor in`BUILTIN_VALUE_EDITORS`now render inside`SkinTheme surface="bare"`: the theme
+  applies, the paint stays the host's, and a host that wraps the composer too
+  pays nothing (nested skins reuse the applied config and render no second
+  provider).
+
+  **The test proved the test.** `test/responsive.test.tsx` already rendered every
+  surface at phone/desktop × light/dark and asserted a skin root on the
+  document's side — inside a `SkinTheme surface="base"` the test itself
+  supplied. It renders with no skin above it now, so the assertion is about the
+  component; the phone case asserts `data-stapel-skin-phone`, the branch the
+  44px `controlHeight` comes from.
+
+  **Chips at 27px.** `SkinTheme` raises antd's `controlHeight` to 44px on a phone
+  VIEWPORT, and the listings composer draws these rows in a narrow form column on
+  a full desktop — where the visual pass measured the segmented feature chips at
+  ~27px. `FeatureFields` measures its own column with `useElementWidth` (the
+  substrate's one measurement) against the `tablet` breakpoint and publishes the
+  answer to the editors through context, since a registry-resolved editor cannot
+  see its host. Below it, a `select` drawn as chips holds its labels to the touch
+  floor, so the chip lands on 44 regardless of how wide the window is.
+
 ## 0.3.0
 
 ### Minor Changes

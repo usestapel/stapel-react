@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/notifications-react",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "backend": {
     "module": "stapel-notifications",
     "contract": ">=0.18 <0.19"
@@ -546,7 +546,6 @@
     "notifications.devices.this_device",
     "notifications.devices.title",
     "notifications.error.unknown",
-    "notifications.feed.all_read",
     "notifications.feed.empty",
     "notifications.feed.empty_hint",
     "notifications.feed.end",

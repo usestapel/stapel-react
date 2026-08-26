@@ -1,5 +1,60 @@
 # @stapel/notifications-react
 
+## 0.11.0
+
+### Minor Changes
+
+- 686024f: Read state: the bell finally clears.
+
+  Against **stapel-notifications 0.18.0** (`read_at` on the feed row, `unread_count` on the page envelope, `POST feed/read/`, `notification.read` on the stream this pair already listened to). Pre-1.0, and `NotificationFeedBag` gains fields, so this is a minor.
+
+  - **The badge is the feed's own number.** `useUnreadCount()` subscribes to the SAME query key as `useInfiniteNotificationFeed()`, because `unread_count` rides the page envelope rather than an endpoint of its own — a bell in the nav and an open feed page share one cache entry and one request. A badge answered separately disagrees with the rows under it for exactly one round trip, and that round trip is the one right after somebody clears something. It is a `LoadState`, so a failed read and a cleared inbox are not both "all caught up".
+  - **`<NotificationBell/>`** (`/default`) — the nav entry with the count in the badge AND in its accessible name, `99+` past a hundred, and NOTHING drawn at zero or on a failed read. It is a component and not a field on the nav manifest on purpose: a count is a subscription, and a nav contract that could hold subscriptions would make every shell's menu a set of queries.
+  - **The row says which it is.** Unread rows carry a labelled dot and a bold title; read rows drop both. Opening a linked row marks it read (modified clicks included — a row opened in a background tab has been opened); a row with no deep link gets an explicit "Mark as read" button while it is unread, rather than the dead click target this skin already refuses to draw for navigation.
+  - **"Mark all as read"** as a `GatedButton`: switched OFF with the sentence saying why when there is nothing unread. `POST feed/read/ {all:true}` on a read feed is legal, successful and pointless (`marked: 0`), and a person who presses a live button and sees nothing change learns nothing.
+  - **Optimistic, with a real way back.** `useMarkFeedRead()` stamps the rows and moves the badge before the request goes, keeps the whole pre-write cache, and restores it on failure — the badge and the rows moved together, so they return together. It subtracts what CHANGED rather than what was asked for (the endpoint's own `filter(read_at__isnull=True)` arithmetic), so a repeat on an already-read row cannot drive the badge negative, and an already-read row sends no request at all.
+  - **`notification.read` applied to the cache**, not invalidated: the frame carries both which rows moved and the badge value that is now true. The transforms live in `model/feedCache.ts` (`markReadLocally`, `applyReadSignal`, `mergeArrivedItem`, `unreadCountOf`) rather than in `/live`, so marking a row read never pulls `@stapel/realtime` into a polling deployment — which reaches the same state on the documented 60-second poll plus the mutation's own invalidation.
+  - New: `useUnreadCount`, `useMarkFeedRead`, `NotificationBell`, `isFeedItemUnread`, `feedReadBody`, `FEED_READ_MAX_IDS`, `NOTIFICATION_READ_SIGNAL`, the four cache transforms, and `notifications.feed.unread*` / `mark_read` / `mark_all_read*` / `bell.*` keys in en+ru+es. `NotificationFeedBag` gains `unreadCount`, `unreadState`, `markAll`, `markAllRead`, `markRead`, `isMarkingRead`, `markReadError`.
+
+- 57bd738: Delete the legacy harness demos, and fix the feed and push defects the VISUAL3 pass filed.
+
+  **Removed stories (breaking for anyone deep-importing a demo id).** `notifications.provider`, `notifications.feed` and `notifications.device_registration` shipped alongside the skins they duplicate, still drawing a `state.step` chip, a component name as a heading, and the two-button push control the toggle replaced. They are gone; `NotificationsProvider`, `NotificationFeed` and `DeviceRegistration` are now covered by the skin demos that actually render them. The demo harness keeps only providers and canned server state — no demo-local card, chip or button.
+
+  **Copy that said the wrong thing.**
+
+  - The end-of-list footnote said "You're all caught up." — the empty state's sentence, used under rows that exist. "There is no more" and "there is nothing" are different claims and now read differently.
+  - The polling indicator narrated the client's plumbing ("This site has no live connection, so the list refreshes every minute while this tab is open"). It now states what is true for the reader — "Updates within a minute" — in one line. `notifications.live.polling_hint` is removed.
+  - "Not delivered to" and "Registered, but not being delivered to" were unfinished phrases; both are finished.
+
+  **Feed row anatomy.** The title/time line no longer wraps, so a long title cannot push the time onto a second line and give one list two different row shapes. The title truncates; the time keeps its own column.
+
+  **Push registry.** Row removal is red text, matching every other pair's destructive row action, instead of the only outlined button on the screen. A platform the backend adds later renders a human label with the raw wire value as a caption underneath, never as the row title.
+
+  **Page geometry.** The notifications page centres its reading measure, so a wide monitor no longer leaves the feed hugging the left edge.
+
+  **Fixture.** The demo feed is ordered newest-first, as `GET /feed/` documents. It was not, which made the skin look like it sorted wrongly.
+
+  Unread state and mark-read remain unbuilt: `FeedItemResponse` carries no read flag and `/feed/` is GET-only, so both need a backend change first.
+
+### Patch Changes
+
+- 0e33d0b: `<PushDeviceList/>`'s registry test waited on the wrong async chain. Two
+  independent ones feed that render: `GET /devices/` produces the rows, while
+  `currentToken()` → `crypto.subtle.digest` produces the fingerprint that marks
+  one row as THIS device. The test awaited the rows and then asserted
+  `push-device-current` synchronously, which assumes the digest always lands
+  first. It usually does; under a loaded runner it does not, and the failure
+  reads as a missing marker on a list that clearly rendered. The assertion now
+  sits inside the same `waitFor`, so it waits for the state that needs both
+  chains.
+
+  Also shims the pseudo-element form of `getComputedStyle` in
+  `test/vitest.setup.ts`. jsdom refuses it and antd 6's scroll locker calls it on
+  every dialog mount, emitting each refusal as a `jsdomError` with a full React
+  stack. Answering the element form is the honest degradation: a document with no
+  stylesheets has no pseudo-element styles, so an empty declaration is the
+  correct answer.
+
 ## 0.10.0
 
 ### Minor Changes

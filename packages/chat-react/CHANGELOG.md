@@ -1,5 +1,261 @@
 # @stapel/chat-react
 
+## 0.4.0
+
+### Minor Changes
+
+- 2087398: The default skin becomes visible, and the pair is regenerated against
+  stapel-chat 0.6.0.
+
+  **Four skin demos, 4/4 under the strict default-skin gate.** `ConversationListPanel`,
+  `ConversationThreadPanel`, `StartChatButton` and `SignInLink` each get a demo
+  that imports the component from `src/default`, carries a `viewport: "phone"`
+  variant and declares a distinct `step`. Every variant is SEEDED through the
+  harness's new `seedInbox`/`seedThread`, so its first paint is the state it is
+  named for — a shot runner keeps the first frame, and four spinners under four
+  names is worse than one honest demo.
+
+  `test/demos.test.tsx` now runs `assertVariantsRenderDistinctly`, the runtime
+  half of the C-SAMESHOT guard this package was missing. It immediately caught a
+  demo that declared `step: "sign_in"` and rendered the signed-in button:
+  "signed out" is not derived from `viewerId`, it is read off core's mandate axis,
+  so the demo now names its principal through `<MandateProvider>`.
+
+  **Two accessibility/mobile defects fixed, both found by drawing the phone.**
+
+  - The unread badge carried its sentence in `title=` — a browser hover, which
+    does not exist on touch, cannot be reached by keyboard, and is announced
+    inconsistently (some readers say it INSTEAD of the label). It is now the
+    badge's accessible name: `role="img"` + `aria-label`, because an `aria-label`
+    on a bare `<span>` names nothing.
+  - The thread header was a nowrap row holding a title and the transport tag. The
+    degradation copy is a full sentence, so at 390px the flex line could not
+    shrink below its content and the one thing on the screen a person can act on
+    went off the edge. The header wraps and the tag's text wraps inside it.
+
+  **Regenerated against stapel-chat 0.6.0** (the released tag; 0.6.1 is in flight
+  and not on PyPI). The typed surface gains `MessageResponse.rev_seq` — the
+  journal cursor, required — plus `client_msg_id`, `edited`/`deleted` and their
+  timestamps, `ConversationResponse.subject`/`stream_key`/`socket_path`, and the
+  subject endpoints: 10 paths, 13 operations, 65 error keys (was 54).
+
+  The 11 new stapel-chat-owned error codes are authored in `ru` and `es` — the
+  module ships no `translations/` of its own, so a key the pair does not write is
+  a key a Russian or Spanish host reads in English. `error.403.chat_send_refused`
+  and `error.503.chat_blocks_unavailable` deliberately do not name the block:
+  upstream refuses a send and a new direct thread with one and the same code so
+  that a block cannot be detected from outside, and a translation that named it
+  would leak what the contract is built to withhold.
+
+  **Declares `@stapel/tokens-antd`.** `src/default/` imports it; the package
+  never listed it, so the pair did not typecheck.
+
+  **Not fixed here, and now stated at the top of MODULE.md**: `src/realtime/`
+  speaks stapel-chat's pre-0.3.0 wire and cannot read a single frame a released
+  backend sends — including `ping`, so the heartbeat is never answered. Tracked
+  as CHAT-RT-CUTOVER against `@stapel/realtime`.
+
+- 9893527: **The wire cutover: chat's realtime works again.** This pair's socket half
+  implemented stapel-chat's own pre-0.3.0 protocol, and stapel-chat 0.3.0 deleted
+  it. Run this pair's decoder against the frames a 0.6 server actually sends and
+  every one of them came back `null` — `live`, `replay`, `welcome`, `ping`,
+  `resync`. So no message ever arrived over the socket; the heartbeat was never
+  answered, so the server closed 4408 every 35 s; the retry budget drained; and
+  the pair fell to polling and stayed there, telling the person "Refreshing every
+  few seconds" while reporting that websockets were done. That is the defect the
+  owner met on a live product.
+
+  `src/realtime/chatSocket.ts`, `closePolicy.ts` and `credential.ts` — 715 lines
+  and ~50 socket tests — are **deleted**. The wire is now `@stapel/realtime`, one
+  reconnect/resume runtime for the fleet: the v1 envelope, resume by cursor, the
+  replay/live dedup, backoff with full jitter, the shared close-code table, and
+  the `pong` whose absence caused the 4408 loop.
+
+  **BREAKING (pre-1.0, so a minor).**
+
+  - **`@stapel/realtime >=0.1.0` is a required peer.** Install it.
+  - **`ChatRealtimeOptions` changes shape.** `credential` and `renewCredential`
+    are gone: a browser cannot put a header on `new WebSocket()`, so the
+    handshake is the cookie one (or `protocols` for a non-browser host), and a
+    4401 goes to core's single-flight `SessionManager.refresh()`. `socketUrl` is
+    now the socket ORIGIN (`wss://host`), not a `/ws/chat/` base — the paths are
+    the streams'. Everything else the substrate's client takes (`webSocket`,
+    `schedule`, `random`, `now`, `heartbeat`, `reconnect`, `protocols`,
+    `session`, `degradation`) passes straight through.
+  - **The removed exports**, all of them the deleted client's:
+    `createChatSocket`, `browserWebSocketFactory`, `canOpenWebSocket`,
+    `chatClosePolicy` and the nine `CHAT_WS_CLOSE_*` constants,
+    `chatSocketTarget` + `CHAT_WS_BEARER_SUBPROTOCOL` +
+    `CHAT_WS_TOKEN_QUERY_PARAM`, `decodeServerFrame`, `parseServerFrame`,
+    `CHAT_WS_REPLAY_LIMIT`, `CHAT_WS_RESYNC`, `deriveChatSocketBase`,
+    `chatStreamId`, and the types around them (`ChatSocket*`, `Chat*Frame`,
+    `ChatClosePolicy`/`ChatCloseAction`/`ChatCloseReason`, `ChatCredential*`,
+    `ChatConnectionState`, `ChatReconnectOptions`, `ChatWebSocketFactory`,
+    `ChatStreamKey`, `ChatConversationStream`, `ChatInboxStream`).
+    The close codes, the frame decoder and the transport are
+    `@stapel/realtime`'s now — one table, one implementation. What replaces the
+    chat-specific half is `ChatStream` + `chatStreamForConversation` +
+    `deriveChatSocketOrigin` + `chatSocketUrlForStreamKey`, and the payload
+    readers `readChatMessageFrame` / `readChatMarkerFrame` /
+    `readChatActivityFrame` / `readChatInboxFrame`.
+  - **`ChatDegradedReason` changes.** `renewing_credential` and `unreachable` are
+    gone; `never_connected`, `reconnecting_long`, `revoked` and
+    `origin_not_allowed` are new. Their i18n keys move with them, in en, ru and
+    es.
+  - **The bags change.** `ConversationThreadBag.connection` is replaced by
+    `status` (the substrate's `RealtimeStreamStatus`), and both bags gain
+    `reconnect()`; the thread bag gains `socket`.
+
+  **The inbox has a socket now.** `ws/chat/inbox` (stream `chat:user:<id>`) has
+  existed since stapel-chat 0.4.0 while `streams.ts` declared, as a fact about
+  the backend, that the conversation list had none — so it polled forever, and a
+  chat that polls its inbox is a polling chat however live the open thread is.
+  `<ConversationList viewerId={me.id}>` subscribes to it. The id is required
+  rather than inferred: the route carries no user segment, the server derives the
+  key from the session, and a client that guessed would open a socket that
+  silently delivers nothing. Without it the list polls and says `no_socket`.
+
+  **The resume cursor is `rev_seq`, not `seq`.** The envelope's `seq` is the
+  journal cursor; the payload's `seq` is the message's place in the thread.
+  `hello{last_seq}` now carries `threadLastRevSeq()` — a max over the window,
+  because editing an old message gives it the newest `rev_seq` while it stays
+  where it is. Conflating them dropped every edit and every tombstone across a
+  resume; `applyRevision` folds those in where no anchored refetch can reach
+  them, over the fields both transports spell identically.
+
+  **Chat is the substrate's one documented socket-WRITE exception**, and
+  `createChatSocketWrites` types all six frames —
+  `send`/`edit`/`delete`/`read`/`delivered`/`activity` — each carrying a
+  `client_msg_id` the server echoes back, so a retry after a dropped socket is
+  one bubble and not two. It is a seam, not the default: `useSendMessage` still
+  POSTs, because a socket refusal is a protocol code with no i18n key while the
+  REST answer is the persisted row and a real error envelope.
+
+  **Degradation is named, including "configured but never connects".**
+  `RealtimeState.degradation` gives `never_connected` — the state a deployment
+  can sit in for months, and the state this pair was in — as a different sentence
+  from `reconnecting`. The substrate's version was verified against the built
+  package before being depended on, not assumed.
+
+  **The tests stopped lying.** Before `test/handshake.test.ts` was added, all
+  eighteen of this package's socket tests injected a fake factory standing
+  exactly where the only `new WebSocket()` call stands, so 100% of them bypassed
+  the line that decides whether a credential travels — which is how a green suite
+  coexisted with a chat that had never authenticated a socket, and the shape the
+  50 tests deleted here still mostly had. Nothing is injected in front of that
+  seam any more: the double stands at `globalThis.WebSocket` and speaks the real
+  wire —
+  `test/chatServer.ts` reproduces `ResumableStreamConsumer` (welcome, bounded
+  replay, `resync`, `seq` dedup) and `_heartbeat_loop` — including the 4408 it
+  closes with when no `pong` comes back. `test/wire.test.ts` proves the two
+  things that were false: a frame the server builds decodes to a message, and
+  thirty heartbeat windows later it is still the same socket, never reopened.
+
+  Also: the conversation list gained the transport tag the thread already had
+  (one `<TransportTag/>`, so a new degradation cannot be wired into one screen
+  and forgotten on the other), and the `i18n/ru` size budget rises to 4.5 KB for
+  the four new named degradations.
+
+- f452cfe: Stop showing the degradation sentence on healthy screens, and theme the default skin.
+
+  **"Refreshing every few seconds" was a standing banner, and that is a
+  regression of the defect it was written for.** `TransportTag` renders the named
+  degradation when there is one and falls back to a TRANSPORT label when there is
+  not. `transport` reads `"polling"` for every state that is not live — including
+  the three healthy ones: a socket still connecting, a socket deliberately held
+  back until the thread window loads (`socketEnabled: loaded`), and a `resync`
+  catching up. The label for `"polling"` was "Refreshing every few seconds", so a
+  perfectly healthy thread printed the pair's own complaint copy from its first
+  frame until the socket opened, and a thread whose window was still loading
+  printed it for as long as the read took. `chatDegradation` was right the whole
+  time; the sentence was keyed on the polling timer being armed rather than on
+  anything the seam could prove.
+
+  The original defect was a true sentence nobody could act on. This was the same
+  sentence shown when it was false, which leaves a person no way to tell a fixed
+  chat from a broken one and teaches them to skip the one message that matters.
+
+  `chat.transport.polling` is DELETED in all three locales rather than left
+  unused — an unreachable key is a sentence waiting to be wired back up by the
+  next person who needs "a polling label". The healthy fallback now says the true
+  thing: `chat.transport.connecting` ("Connecting…"), and
+  `chat.transport.catching_up` for a `resync`, which the tag can now tell apart
+  because it takes the stream `status` the bag already carried. Every sentence
+  about refreshing on a timer belongs to a named degradation — the only place the
+  seam can prove it. `test/degradation.test.tsx` asserts a live socket renders
+  the live label with no `data-degraded` and nothing matching /refreshing/, that a
+  still-connecting socket says nothing about refreshing either, that a socket
+  which really never connects still SAYS SO, and that no healthy-path label in
+  en/ru/es mentions refreshing.
+
+  **The default skin had no theme root.** `src/default/**` rendered antd
+  `Card`/`Typography`/`Tag` with no `ConfigProvider` of its own, so in a dark
+  document with none above it antd fell back to its LIGHT algorithm — tracker
+  \#26's failure, and how six of this pair's stories were photographed as white
+  text on a black field. New `ChatSkinTheme` delegates to
+  `@stapel/tokens-antd/skin`'s `SkinTheme` (reactive `useThemeMode()`, painted
+  surface, 44px phone control height) and every shipped surface wraps itself in
+  it. A hand-painted background would not have fixed it: the Card, the tag's
+  semantic colours and every border come from the algorithm.
+
+  **The demos photographed the broken deployment as the normal one.** The harness
+  turned the socket off for every variant, so every frame of the catalogue wore
+  "Live messages are off here — refreshing every few seconds instead". It also
+  meant the freshness seam POLLED, and a poll refetches with `type: "active"`,
+  which walks straight through `staleTime` and replaces a seeded variant three
+  seconds after anyone opens it. The harness now mounts a realtime client that is
+  already live on its first synchronous read (`useStream` seeds its state from
+  `client.streamStatus` during render, which is the only way a static shot can
+  show a live chat at all), and `socket: "off"` is opt-in — used by one variant,
+  `no-live-socket`, which is where the named degradation is photographed. A `dark`
+  variant photographs the theme root.
+
+- 45450c7: **`renewing_credential` comes back, as a question.** The wire cutover deleted
+  this named degradation deliberately: `@stapel/realtime` reported a stream
+  mid-refresh as plain `reconnecting`, so the pair could not tell a credential
+  renewal from a network blip, and a module that cannot know a thing must not
+  print a sentence claiming it. The substrate publishes
+  `RealtimeState.refreshing: { since } | null` now — set when a 4401 enters
+  core's single-flight `SessionManager.refresh()`, cleared when it lands, for all
+  three outcomes alike — so the pair can, and does.
+
+  `ChatDegradedReason` gains `renewing_credential`, with
+  `chat.transport.degraded.renewing_credential` in **en, ru and es**. The copy is
+  a question ("Checking your session — live messages are waiting on the answer."),
+  because at the moment it is on screen nobody knows the answer and one of the
+  three things it can land on is being signed out.
+
+  **It renders off `refreshing`, never off a state.** The aggregate reads
+  `reconnecting` in this window, which is also what an ordinary drop reads;
+  `refreshing` is the only thing that knows which of the two is happening. The
+  seam's own `transport` flattens to `idle` there — no socket, no timer armed —
+  and `chat.transport.idle` is "Paused", which a person reads as "all is well" at
+  the exact moment their credential is being renewed. That is the trap, and
+  `test/refreshWindow.test.tsx` asserts explicitly that the tag says neither
+  "Paused" nor "Live".
+
+  **Debounced on `since`: `RENEWING_CREDENTIAL_DEBOUNCE_MS` = 750 ms**, one
+  exported constant with its reasoning beside it. A healthy refresh is one round
+  trip and lands well inside that; a sentence about someone's sign-in that
+  flashes for 80 ms is worse than saying nothing. 750 sits above a healthy
+  refresh even on a slow mobile link (where the round trip alone can be
+  300–500 ms, so 500 would still flash) and below the ~1 s at which a stalled
+  screen stops reading as latency and starts reading as broken. `useChatFreshness`
+  arms one timer, from the same constant, for the moment the window crosses it.
+
+  **It never becomes a promise.** `withRenewingCredential` (also exported, for a
+  host skin that replaces the tag) is pure and reads only the CURRENT field —
+  no latch, no "was refreshing". An answer outranks a question, so it cannot
+  speak over `sign_in_required`, `forbidden`, `revoked`, `origin_not_allowed`,
+  `unsupported` or `no_socket`; it only sharpens a silence already being reported
+  (`reconnecting`, `reconnecting_long`, `never_connected`). The instant the field
+  clears, the three landings read exactly as they did before: renewed reconnects
+  at once, no verdict backs off with the session intact, refused says
+  `sign_in_required` — each pinned by a test that puts the window on screen
+  first.
+
+  New exports: `RENEWING_CREDENTIAL_DEBOUNCE_MS`, `withRenewingCredential`.
+
 ## 0.3.1
 
 ### Patch Changes

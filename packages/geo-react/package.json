@@ -1,6 +1,6 @@
 {
   "name": "@stapel/geo-react",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "React pair for stapel-geo: the human half of a location. A picker a product mounts once and gets a map, search-as-you-type, the browser's position prompt and a draggable pin that turns into a real address — instead of two raw fields called latitude and longitude. Headless hooks (map config, debounced+aborted forward search, browser geolocation with its four distinct refusals, pin -> resolve) plus an opt-in /default antd skin whose basemap is drawn here, with no map-library dependency and the OSM attribution it is not allowed to suppress. Anonymous is a supported state: the four geocoding verbs default to authenticated-only, so the map and the pin keep working and only the address is unavailable.",
   "license": "MIT",
   "repository": {
@@ -75,7 +75,7 @@
   ],
   "peerDependencies": {
     "@stapel/core": ">=0.15.0 <1.0.0",
-    "@stapel/tokens-antd": ">=0.6.0",
+    "@stapel/tokens-antd": ">=0.7.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"

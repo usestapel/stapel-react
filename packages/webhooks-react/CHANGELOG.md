@@ -1,5 +1,11 @@
 # @stapel/webhooks-react
 
+## 0.1.1
+
+### Patch Changes
+
+- f9d8b66: The new-rule and delivery sheets keep their action on screen: Create/Save and Replay are pinned to the bottom of the dialog's own scroll box instead of sitting below an invisible fold, the delivery card folds its headers and envelope dumps behind a labelled disclosure, and the delivery-type `Segmented` scrolls inside its box instead of overflowing a 390px sheet.
+
 ## 0.1.0
 
 ### Minor Changes
