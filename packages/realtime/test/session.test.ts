@@ -42,6 +42,43 @@ function sessionDouble(outcome: boolean | "unavailable"): SessionDouble {
   return double;
 }
 
+/**
+ * A refresh that does not answer until the test says so — the only way to
+ * observe the window between the question and the verdict, which is precisely
+ * what `RealtimeState.refreshing` reports.
+ */
+interface DeferredSession extends SessionDouble {
+  settle(outcome: boolean | "unavailable"): void;
+}
+
+function deferredSession(): DeferredSession {
+  const handlers = new Set<(payload: unknown) => void>();
+  let release: ((ok: boolean) => void) | null = null;
+  const double: DeferredSession = {
+    refresh: vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          release = resolve;
+        })
+    ),
+    sessionLost: vi.fn(),
+    on: (event, handler) => {
+      if (event !== "session:refresh-unavailable") return () => undefined;
+      handlers.add(handler);
+      return () => handlers.delete(handler);
+    },
+    fireUnavailable: () => {
+      for (const handler of handlers) handler(undefined);
+    },
+    settle: (outcome) => {
+      if (release === null) throw new Error("refresh() was never called");
+      if (outcome === "unavailable") double.fireUnavailable();
+      release(outcome === true);
+    },
+  };
+  return double;
+}
+
 function harness(session: RealtimeSessionSeam | null) {
   const transport = fakeTransport();
   const clock = manualClock();
@@ -50,6 +87,7 @@ function harness(session: RealtimeSessionSeam | null) {
     webSocket: transport.factory,
     schedule: clock.schedule,
     random: () => 1,
+    now: clock.now,
     session,
   });
   const subscription = client.subscribe(STREAM);
@@ -140,5 +178,96 @@ describe("4401", () => {
     // not read as a first connection.
     expect(h.subscription.status().state).toBe("reconnecting");
     expect(h.subscription.status().refusal).toBeUndefined();
+  });
+});
+
+/**
+ * The window between the question and the verdict.
+ *
+ * A 4401 that is being refreshed is not yet a broken socket and not yet a dead
+ * session, and for the ~200 ms it takes a shell used to render it as one or the
+ * other. `refreshing` names the question and NOTHING else: it is set on the way
+ * into the single-flight refresh and cleared on the way out of it for all three
+ * outcomes alike, so a skin can never read an answer out of it. The `state`
+ * union is deliberately untouched — an extra member there breaks an exhaustive
+ * switch in every consumer that already wrote one.
+ */
+describe("a session refresh in flight", () => {
+  it("is published while the refresh is unanswered, stamped from the injected clock", () => {
+    const session = deferredSession();
+    const h = harness(session);
+    h.clock.advance(5_000); // the socket ran for a while before the 4401
+    const at = h.clock.now();
+    h.transport.last().serverClose(4401);
+
+    expect(session.refresh).toHaveBeenCalledTimes(1);
+    expect(h.client.getState().refreshing).toEqual({ since: at });
+    // It says "asking", never "answered": no outcome has been written
+    // anywhere. The aggregate is `idle` here — the socket is gone and no retry
+    // is armed yet, because what happens next depends on the refresh — which
+    // is exactly the moment a shell had nothing honest to render before.
+    expect(h.subscription.status().state).toBe("reconnecting");
+    expect(h.client.getState().state).toBe("idle");
+    expect(h.client.getState().refused).toBe(false);
+  });
+
+  it("clears when the session is renewed", async () => {
+    const session = deferredSession();
+    const h = harness(session);
+    h.transport.last().serverClose(4401);
+    expect(h.client.getState().refreshing).not.toBeNull();
+
+    session.settle(true);
+    await vi.waitFor(() => expect(h.transport.sockets).toHaveLength(2));
+    expect(h.client.getState().refreshing).toBeNull();
+  });
+
+  it("clears when the refresh reached no verdict", async () => {
+    const session = deferredSession();
+    const h = harness(session);
+    h.transport.last().serverClose(4401);
+    expect(h.client.getState().refreshing).not.toBeNull();
+
+    session.settle("unavailable");
+    await vi.waitFor(() =>
+      expect(h.subscription.status().state).toBe("reconnecting")
+    );
+    expect(h.client.getState().refreshing).toBeNull();
+    expect(h.client.getState().refused).toBe(false);
+  });
+
+  it("clears when the refresh was refused", async () => {
+    const session = deferredSession();
+    const h = harness(session);
+    h.transport.last().serverClose(4401);
+    expect(h.client.getState().refreshing).not.toBeNull();
+
+    session.settle(false);
+    await vi.waitFor(() => expect(h.client.getState().refused).toBe(true));
+    expect(h.client.getState().refreshing).toBeNull();
+    expect(h.client.getState().refusal).toBe("session");
+  });
+
+  it("is never set when no refresh is spent", async () => {
+    // An ordinary retryable close asks the session nothing.
+    const backoff = harness(sessionDouble(true));
+    backoff.transport.last().serverClose(4408);
+    expect(backoff.client.getState().refreshing).toBeNull();
+
+    // No seam to ask: a refusal, with no phantom refresh in front of it.
+    const seamless = harness(null);
+    seamless.transport.last().serverClose(4401);
+    expect(seamless.client.getState().refreshing).toBeNull();
+
+    // The second 4401 has no refresh left to arm — it is the HTTP path's
+    // verdict, and a state that said "refreshing" there would be inventing one.
+    const session = sessionDouble(true);
+    const h = harness(session);
+    h.transport.last().serverClose(4401);
+    await vi.waitFor(() => expect(h.transport.sockets).toHaveLength(2));
+    h.transport.last().serverClose(4401);
+    expect(session.refresh).toHaveBeenCalledTimes(1);
+    expect(h.client.getState().refreshing).toBeNull();
+    expect(h.client.getState().refusal).toBe("session");
   });
 });

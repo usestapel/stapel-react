@@ -220,6 +220,27 @@ export const DEFAULT_NEVER_CONNECTED_ATTEMPTS = 3;
 export const DEFAULT_NEVER_CONNECTED_MS = 30_000;
 export const DEFAULT_RECONNECTING_LONG_MS = 60_000;
 
+/**
+ * A session refresh that is in flight right now — the gap between a 4401 and
+ * whatever the refresh turns out to mean.
+ *
+ * It is deliberately NOT an outcome and never becomes one. Renewed, no verdict
+ * and refused stay the only three truths, and they are read where they already
+ * live: a reconnect that works, a backoff, or
+ * {@link RealtimeState.refusal} === `"session"`. This carries one fact — the
+ * question is currently being asked — so a skin can stop rendering a socket as
+ * plainly broken while the answer is still on the wire.
+ */
+export interface RealtimeSessionRefresh {
+  /**
+   * When the single-flight refresh started, on the client's own clock (the
+   * injectable one, so a test asserts rather than waits). A skin debounces on
+   * it: a refresh that lands in 80 ms must never flash "renewing your session"
+   * — see the README.
+   */
+  readonly since: number;
+}
+
 export interface RealtimeState {
   readonly state: RealtimeConnectionState;
   readonly connected: boolean;
@@ -252,6 +273,16 @@ export interface RealtimeState {
    * crosses its threshold out loud rather than hanging on the last event.
    */
   readonly degradation: RealtimeDegradation | null;
+  /**
+   * A session refresh is in flight (the 4401 path is inside `SessionManager`'s
+   * single-flight `refresh()`), or `null`. Set when the refresh starts, cleared
+   * when it lands — for ALL THREE outcomes alike, because this field says
+   * "asking", never "answered". A skin reads it only to hold its tongue for a
+   * moment; the answer is `state`/`refusal`. It is a separate field and not a
+   * member of {@link RealtimeConnectionState} on purpose: widening that union
+   * silently defeats every exhaustive `switch` a consumer wrote over it.
+   */
+  readonly refreshing: RealtimeSessionRefresh | null;
 }
 
 /**
@@ -479,6 +510,15 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
   let refusedAt: number | undefined;
   /** Re-derivation timer: silence produces no events, so it must be asked. */
   let cancelDegradationWatch: Cancel | null = null;
+  /**
+   * Session refreshes this client is waiting on. It is a COUNT, not a flag:
+   * the seam's `refresh()` is single-flight, but several sockets can each enter
+   * the 4401 path and each hold a handle on the same promise, and a flag would
+   * be cleared by the first one to land while the others are still asking.
+   */
+  let refreshesInFlight = 0;
+  /** Held by identity so an unchanged snapshot stays `===` for React. */
+  let refreshing: RealtimeSessionRefresh | null = null;
   let snapshot: RealtimeState = {
     state: "idle",
     connected: false,
@@ -492,8 +532,27 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
     firstAttemptAt: undefined,
     lastOpenAt: undefined,
     degradation: null,
+    refreshing: null,
   };
   if (options.onState) stateListeners.add(options.onState);
+
+  function beginRefresh(): void {
+    refreshesInFlight += 1;
+    // `since` is the FIRST socket's question, not the latest one's: they are
+    // all waiting on the same single-flight promise, and restarting the clock
+    // per socket would keep a debounced skin permanently just under its
+    // threshold.
+    refreshing ??= { since: now() };
+  }
+
+  /** Returns whether that was the last one out (the caller must publish). */
+  function endRefresh(): boolean {
+    if (refreshesInFlight === 0) return false;
+    refreshesInFlight -= 1;
+    if (refreshesInFlight > 0) return false;
+    refreshing = null;
+    return true;
+  }
 
   function resolveUrl(stream: string, override: string | undefined): string {
     if (override !== undefined) return override;
@@ -680,6 +739,7 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
       firstAttemptAt,
       lastOpenAt,
       degradation,
+      refreshing,
     };
     armDegradationWatch();
     for (const listener of stateListeners) listener(snapshot);
@@ -808,6 +868,11 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
       return;
     }
     connection.refreshArmed = false;
+    // Marked BEFORE the publish below, so the one render a subscriber gets for
+    // this transition already carries the question. A skin that learned about
+    // the refresh only on the next event would never see it at all when the
+    // refresh is fast — which is every healthy refresh.
+    beginRefresh();
     for (const record of streamsOf(connection)) {
       if (record.status.state === "refused") continue;
       setStreamStatus(record, { state: "reconnecting" });
@@ -825,7 +890,15 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
       .refresh()
       .then((ok) => {
         off?.();
-        if (disposed || connections.get(connection.key) !== connection) return;
+        // The question has been answered — clear it for every outcome alike,
+        // and before the branch below decides which of the three it was.
+        const lastOut = endRefresh();
+        if (disposed || connections.get(connection.key) !== connection) {
+          // Nobody downstream will publish for us on this path, and a torn-down
+          // client must not be left reporting a refresh it is no longer in.
+          if (lastOut) publish();
+          return;
+        }
         if (ok) {
           // One immediate retry with the fresh credential — no backoff, the
           // person is looking at the screen.
@@ -841,7 +914,11 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
       })
       .catch(() => {
         off?.();
-        if (disposed || connections.get(connection.key) !== connection) return;
+        const lastOut = endRefresh();
+        if (disposed || connections.get(connection.key) !== connection) {
+          if (lastOut) publish();
+          return;
+        }
         connection.refreshArmed = true;
         scheduleReconnect(connection, undefined);
       });

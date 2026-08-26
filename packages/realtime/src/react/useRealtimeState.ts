@@ -13,6 +13,11 @@
  * hook hands a skin the NAME for that — `never_connected`, `reconnecting_long`
  * or `refused` — so it can say "live updates unavailable — polling" instead of
  * "reconnecting…" forever. See {@link RealtimeDegradation}.
+ *
+ * `refreshing` is the one moment the state is honestly undecided: a 4401 sent
+ * the session through core's single-flight refresh and the answer has not
+ * landed. It names the question, never an outcome — debounce on its `since`
+ * rather than rendering the socket as broken while the answer is on the wire.
  */
 import { useCallback, useSyncExternalStore } from "react";
 import type { RealtimeState } from "../client.js";
@@ -37,6 +42,7 @@ const DISCONNECTED: RealtimeState = {
   firstAttemptAt: undefined,
   lastOpenAt: undefined,
   degradation: null,
+  refreshing: null,
 };
 
 export function useRealtimeState(): RealtimeState {

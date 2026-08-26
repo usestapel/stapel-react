@@ -99,6 +99,7 @@ export type {
   RealtimeDegradation,
   RealtimeDegradationThresholds,
   RealtimeRefusal,
+  RealtimeSessionRefresh,
   RealtimeSessionSeam,
   RealtimeState,
   RealtimeStreamState,

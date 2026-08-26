@@ -216,6 +216,59 @@ describe("RealtimeProvider + useStream + useRealtimeState", () => {
     expect(transport.sockets).toHaveLength(0);
   });
 
+  it("hands the tree a session refresh that is still in flight", async () => {
+    // The ~200 ms after a 4401 in which nothing is decided. A shell has to be
+    // able to hold its tongue for that long instead of rendering the socket as
+    // broken — so the question has to reach the tree, and it has to leave it
+    // again the moment the answer lands, whatever the answer was.
+    let release: ((ok: boolean) => void) | null = null;
+    const session = {
+      refresh: () =>
+        new Promise<boolean>((resolve) => {
+          release = resolve;
+        }),
+    };
+    function Refreshing(): ReactElement {
+      const { refreshing } = useRealtimeState();
+      return (
+        <output data-testid="refreshing">
+          {refreshing === null ? "-" : String(refreshing.since)}
+        </output>
+      );
+    }
+    render(
+      <RealtimeProvider
+        url="wss://api.example.test/ws/chat/7"
+        webSocket={transport.factory}
+        schedule={clock.schedule}
+        random={() => 1}
+        now={clock.now}
+        session={session}
+      >
+        <Panel />
+        <Refreshing />
+      </RealtimeProvider>
+    );
+    const socket = transport.last();
+    act(() => {
+      socket.accept();
+      new FakeServer(socket).pump();
+    });
+    expect(screen.getByTestId("refreshing").textContent).toBe("-");
+
+    const at = clock.now();
+    act(() => {
+      socket.serverClose(4401);
+    });
+    expect(screen.getByTestId("refreshing").textContent).toBe(String(at));
+
+    await act(async () => {
+      release?.(true);
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId("refreshing").textContent).toBe("-");
+  });
+
   it("refuses to pretend a stream hook works without a provider", () => {
     function Bare(): ReactElement {
       useStream(STREAM);

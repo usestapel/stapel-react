@@ -29,6 +29,7 @@ export { useRealtimeState } from "./useRealtimeState.js";
 export type {
   RealtimeDegradation,
   RealtimeDegradationThresholds,
+  RealtimeSessionRefresh,
   RealtimeState,
   RealtimeStreamStatus,
 } from "../client.js";

@@ -190,6 +190,20 @@ are what let a badge say *since when* instead of *for a while*; note that
 hour of healthy uptime does not report as an hour of outage the instant it
 blinks.
 
+### A refresh in flight is a question, not an outcome
+
+`refreshing` — `{ since } | null` on the same aggregate — is set the moment a
+4401 enters core's single-flight `refresh()` and cleared the moment it lands,
+for **all three** outcomes alike (renewed, no verdict, refused); those stay the
+only truths and are read where they already live, in `state`/`refusal`. It is a
+separate field and **not** a new member of the `state` union, for the reason
+`no_provider` is a separate type below. Debounce it: a healthy refresh answers
+in well under a second, and a badge that flips on the field directly flashes a
+scary sentence at every routine token renewal. Render "renewing your session"
+only once `Date.now() - refreshing.since` passes a threshold you pick (~500 ms
+is a good start) — the `since` stamp is there so the wait is measured on the
+client's own clock rather than guessed at with a timer per render.
+
 ### `no_provider` is not a socket state
 
 `useStream(key, { optional: true })` returns `status.state === "no_provider"`
