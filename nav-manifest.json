@@ -822,7 +822,7 @@
           "labelKey": "recordings.detail.heading",
           "icon": "ProfileOutlined",
           "route": {
-            "path": "recordings/:recordingId"
+            "path": ":recordingId"
           },
           "component": {
             "export": "RecordingDetailPane",

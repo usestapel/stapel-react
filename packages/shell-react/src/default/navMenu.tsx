@@ -35,13 +35,16 @@ const alwaysOpen: NavGate = () => OPEN;
  * that address is either absolute (`"/login"`) or a bare relative segment
  * (`"settings"`, `"security"`) per the nav-manifest contract (`@stapel/core`'s
  * `NavRoute`): an absolute path matches exactly, a relative one matches the
- * pathname's last segment (the shell doesn't know the full mount prefix a
- * host nested its routes under). */
+ * pathname's trailing segments (the shell doesn't know the full mount prefix a
+ * host nested its routes under; a multi-segment relative path such as
+ * `workspaces/settings` matches as a whole, never on `settings` alone). */
 export function matchesLocation(entry: ResolvedNavEntry, pathname: string): boolean {
   const path = entry.linkPath;
   if (path.startsWith("/")) return pathname === path;
   const segments = pathname.split("/").filter(Boolean);
-  return segments[segments.length - 1] === path;
+  const own = path.split("/").filter(Boolean);
+  if (own.length === 0 || own.length > segments.length) return false;
+  return own.every((segment, i) => segments[segments.length - own.length + i] === segment);
 }
 
 export function flatten(

@@ -98,6 +98,18 @@ describe("matchesLocation — the address is linkPath, not route.path", () => {
     expect(section && matchesLocation(section, "/app/other")).toBe(false);
   });
 
+  it("matches a multi-segment relative address as a whole, segment-aligned", () => {
+    const [row] = resolveNav([
+      manifest("@stapel/workspaces", [
+        entry({ id: "workspaces.settings", route: { path: "workspaces/settings" } }),
+      ]),
+    ]);
+    expect(row && matchesLocation(row, "/app/account/workspaces/settings")).toBe(true);
+    expect(row && matchesLocation(row, "/app/settings")).toBe(false);
+    expect(row && matchesLocation(row, "/app/xworkspaces/settings")).toBe(false);
+    expect(row && matchesLocation(row, "/workspaces")).toBe(false);
+  });
+
   it("matches an INDEX child at its section's address — the address it mounts at", () => {
     const index = SECTION[0]?.children?.[0];
     expect(index?.id).toBe("auth.overview");

@@ -200,6 +200,19 @@ function validateEntries(pkgName, entries) {
     }
     seen.add(entry.id);
   });
+  // A submenu child's route.path is a segment RELATIVE to its parent (the
+  // container composes `<parent>/<child>`); a child that restates the
+  // parent's segment mounts at `<parent>/<parent>/...` — unreachable.
+  const byId = new Map(entries.map((entry) => [entry.id, entry]));
+  for (const entry of entries) {
+    const parent = entry.placement.level === "submenu" ? byId.get(entry.placement.parentId) : undefined;
+    if (!parent || entry.route.path.startsWith("/") || parent.route.path.startsWith("/")) continue;
+    if (entry.route.path === parent.route.path || entry.route.path.startsWith(`${parent.route.path}/`)) {
+      throw new Error(
+        `gen:nav: ${pkgName}'s src/nav/manifest.ts entry "${entry.id}" route.path "${entry.route.path}" repeats its parent "${parent.id}" segment "${parent.route.path}" — child paths are relative to the parent`
+      );
+    }
+  }
 }
 
 /** Load one package dir's manifest.ts + package.json into a validated

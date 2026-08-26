@@ -45,7 +45,7 @@ export const navEntries: readonly NavEntry[] = [
     id: "recordings.detail",
     labelKey: "recordings.detail.heading",
     icon: "ProfileOutlined",
-    route: { path: "recordings/:recordingId" },
+    route: { path: ":recordingId" },
     component: { export: "RecordingDetailPane", subpath: "default" },
     placement: { level: "submenu", parentId: "recordings.list" },
     menuVisibleDefault: false,
