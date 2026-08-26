@@ -60,17 +60,21 @@ installResizeObserver();
  * pointer gesture, so a suite without this exercises nothing. This is the
  * browser's own class, minimally (same shim `tokens-antd` uses for the bottom
  * sheet's drag). */
-class TestPointerEvent extends MouseEvent {
-  readonly pointerId: number;
-  readonly isPrimary: boolean;
-  constructor(type: string, init: PointerEventInit = {}) {
-    super(type, init);
-    this.pointerId = init.pointerId ?? 1;
-    this.isPrimary = init.isPrimary ?? true;
+// Declared inside the DOM guard: `extends MouseEvent` is evaluated when the
+// class statement runs, so at module scope it throws in a `node` environment —
+// which the pack-purity suite is. The setup file runs for every suite in the
+// package regardless of its environment.
+if (typeof window !== "undefined" && typeof globalThis.PointerEvent === "undefined") {
+  class TestPointerEvent extends MouseEvent {
+    readonly pointerId: number;
+    readonly isPrimary: boolean;
+    constructor(type: string, init: PointerEventInit = {}) {
+      super(type, init);
+      this.pointerId = init.pointerId ?? 1;
+      this.isPrimary = init.isPrimary ?? true;
+    }
   }
-}
 
-if (typeof globalThis.PointerEvent === "undefined") {
   globalThis.PointerEvent = TestPointerEvent as unknown as typeof PointerEvent;
   window.PointerEvent = globalThis.PointerEvent;
 }
