@@ -2,10 +2,18 @@
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
 import { PublicShell } from "../src/default/index.js";
-import { PUBLIC_NAV, ShellFrame } from "./_harness.js";
-import { DemoPage } from "./_harness.js";
+import {
+  AccountControl,
+  Brand,
+  CategoryStrip,
+  PUBLIC_NAV,
+  ResultsScreen,
+  SearchField,
+  ShellFrame,
+  StorefrontFooter,
+} from "./_harness.js";
 
-const ROUTES = [{ path: "s", labelKey: "demo.page.settings" }] as const;
+const ROUTES = [{ path: "s", element: <ResultsScreen /> }] as const;
 
 function Storefront(props: {
   withAccount?: boolean;
@@ -18,15 +26,13 @@ function Storefront(props: {
       shell={
         <PublicShell
           nav={props.withBrowse === false ? [] : PUBLIC_NAV}
-          brand={<DemoPage labelKey="demo.brand" />}
-          searchSlot={<DemoPage labelKey="demo.search" />}
-          {...(props.withBrowse === false
-            ? {}
-            : { categorySlot: <DemoPage labelKey="demo.categories" /> })}
+          brand={<Brand />}
+          searchSlot={<SearchField />}
+          {...(props.withBrowse === false ? {} : { categorySlot: <CategoryStrip /> })}
           {...(props.withAccount === true
-            ? { accountSlot: <DemoPage labelKey="demo.account" /> }
+            ? { accountSlot: <AccountControl /> }
             : {})}
-          footer={<DemoPage labelKey="demo.footer" />}
+          footer={<StorefrontFooter />}
         />
       }
     />
@@ -37,7 +43,7 @@ export default defineDemo({
   id: "shell.public",
   title: "Public shell",
   description:
-    "A storefront's chrome, and a sibling of AppShell rather than a flag on it: top bar, browse bar, measured content, footer — and never a Sider. On a phone the browse bar collapses into a sheet while the header and its search box stay, because a storefront whose search disappears on a phone is a storefront nobody searches. Omit accountSlot and a sign-in link renders anyway: the absence of a sign-in button on a public page is not clean, it is a dead end for the one person the page exists to convert.",
+    "A storefront's chrome, and a sibling of AppShell rather than a flag on it: top bar, browse bar, measured content, footer — and never a Sider. On a phone the search box moves to its own line of the same header instead of disappearing, because a storefront whose search vanishes on a phone is a storefront nobody searches. Omit accountSlot and a sign-in link renders anyway: the absence of a sign-in button on a public page is not clean, it is a dead end for the one person the page exists to convert.",
   component: PublicShell,
   tokens: ["surface", "text"],
   variants: {
@@ -60,7 +66,7 @@ export default defineDemo({
       render: () => <Storefront withBrowse={false} />,
     },
     phone: {
-      description: "Phone: the header and its search stay; browse collapses.",
+      description: "Phone: the header keeps its search on a second line; browse collapses.",
       viewport: "phone",
       step: "collapsed",
       render: () => <Storefront />,

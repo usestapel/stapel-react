@@ -11,12 +11,14 @@
       "covers": [],
       "tokens": [
         "surface-sunken",
-        "text-muted"
+        "text-muted",
+        "text",
+        "border-subtle"
       ],
       "variants": [
         {
           "id": "default",
-          "description": "Three fixed boxes, three different files, one descriptor.",
+          "description": "Three boxes, three different files, one descriptor — with the legend that says which number is which: the caption is the box, the number inside the frame is the variant that was served. Every box is capped at the viewport, so the ladder reads the same at 390px as it does on a desktop.",
           "viewport": "desktop",
           "step": "measured"
         },
@@ -34,7 +36,7 @@
         },
         {
           "id": "reserved-box",
-          "description": "preview_kind is known while preview_b64 is still null, so the box is reserved in the right shape now instead of collapsing and jumping later.",
+          "description": "preview_kind is known while preview_b64 is still null, so the box is reserved in the right shape now instead of collapsing and jumping later. All three are the same designed state: the medium's own glyph inside the reserved box, and a caption saying what is being waited for — never a blank rectangle, which is indistinguishable from nothing being there at all.",
           "viewport": "phone",
           "step": "not_generated"
         },
@@ -53,7 +55,7 @@
       ],
       "source": {
         "file": "demo/Image.demo.tsx",
-        "line": 288
+        "line": 410
       }
     }
   ]

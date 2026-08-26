@@ -78,7 +78,18 @@ export function AppealsQueue(props: AppealsQueueProps): ReactElement {
         <Card
           size="small"
           title={t(MODERATION_I18N_KEYS.appealQueueTitle)}
-          extra={
+        >
+          {/* The state filter is a row of its own, not the card header's
+              `extra`: a header extra never shrinks, so at 390px the six-state
+              `Segmented` measured 551px and dragged the whole page out of the
+              viewport. Here it scrolls inside its own box. */}
+          <div
+            style={{
+              maxWidth: "100%",
+              overflowX: "auto",
+              marginBottom: spacing["3"],
+            }}
+          >
             <Segmented
               value={bag.filterState}
               data-testid={`${testId}-filter-state`}
@@ -93,8 +104,7 @@ export function AppealsQueue(props: AppealsQueueProps): ReactElement {
                 bag.setFilterState(String(value));
               }}
             />
-          }
-        >
+          </div>
           <LoadList
             state={bag.rows}
             testId={testId}

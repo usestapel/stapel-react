@@ -235,6 +235,20 @@ describe("<PublicShell/> — the browse bar gives the menu real width", () => {
     expect(screen.getByTestId("public-shell-categories").style.flex).toBe("0 0 auto");
   });
 
+  it("reads categories THEN tabs, so the two halves of one bar are not a screen apart", async () => {
+    setViewportWidth(1440);
+    render(wrap("/s", { categorySlot: <span>Cars</span> }));
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-browse")).toBeDefined());
+    // The menu is the greedy child; with the strip behind it, the strip was
+    // pinned to the far right of the window while the tabs sat at the far
+    // left — nothing broken, and the bar looked it.
+    const order = [...screen.getByTestId("public-shell-browse").children].map((el) =>
+      el.getAttribute("data-testid")
+    );
+    expect(order).toEqual(["public-shell-categories", "public-shell-nav"]);
+  });
+
   it("renders every menu entry, not a single overflow trigger", async () => {
     setViewportWidth(1440);
     render(wrap("/s"));

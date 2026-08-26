@@ -6,11 +6,12 @@ import type { I18nDictionary, I18nEngine } from "@stapel/core";
  * never registers it carries none of these strings (the package root does not
  * import this module).
  *
- * See `ru.ts` for why the shell's own seven strings matter more than their
+ * See `ru.ts` for why the shell's own eight strings matter more than their
  * number suggests: they are the frame every other translated screen sits in.
  */
 export const shellI18nBundleEs: I18nDictionary = {
   "shell.nav.open_menu": "Abrir el menú",
+  "shell.nav.close_menu": "Cerrar el menú",
   "shell.nav.admin": "Administración",
   "shell.nav.admin_staff_only": "Para el personal que opera este producto",
   "shell.public.sign_in": "Iniciar sesión",

@@ -1,9 +1,10 @@
 /**
  * The shell's own chrome copy, in every locale it ships.
  *
- * These seven strings are the frame every translated screen sits inside: the
- * hamburger's accessible name, the admin section and why it is closed, the
- * storefront's sign-in call, and the theme control's three states. Shipping
+ * These eight strings are the frame every translated screen sits inside: the
+ * nav sheet's open and close controls, the admin section and why it is
+ * closed, the storefront's sign-in call, and the theme control's three
+ * states. Shipping
  * them in English on a ru/es host was not a missing translation — it was an
  * English frame around a translated product, and it was invisible to every
  * test that runs in one locale, which is all of them.

@@ -226,6 +226,45 @@ export function resolveNavIcon(name: string): ReactElement {
  */
 export function MenuGlyph({ size = 18 }: { size?: number }): ReactElement {
   return (
+    <ChromeGlyph size={size}>
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h16" />
+    </ChromeGlyph>
+  );
+}
+
+/** The nav sheet's close control. Chrome, like {@link MenuGlyph} — never a
+ * manifest name. */
+export function CloseGlyph({ size = 18 }: { size?: number }): ReactElement {
+  return (
+    <ChromeGlyph size={size}>
+      <path d="M6 6l12 12" />
+      <path d="M18 6L6 18" />
+    </ChromeGlyph>
+  );
+}
+
+/** A closed padlock — drawn beside a nav section a capability keeps shut, so
+ * "listed but closed" is visible and not only readable. */
+export function LockGlyph({ size = 14 }: { size?: number }): ReactElement {
+  return (
+    <ChromeGlyph size={size}>
+      <rect x="4.5" y="10.5" width="15" height="10" rx="2" />
+      <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+    </ChromeGlyph>
+  );
+}
+
+/** The frame every chrome glyph above is drawn in. */
+function ChromeGlyph({
+  size,
+  children,
+}: {
+  size: number;
+  children: ReactElement | readonly ReactElement[];
+}): ReactElement {
+  return (
     <svg
       width={size}
       height={size}
@@ -234,12 +273,11 @@ export function MenuGlyph({ size = 18 }: { size?: number }): ReactElement {
       stroke="currentColor"
       strokeWidth="1.75"
       strokeLinecap="round"
+      strokeLinejoin="round"
       role="img"
       aria-hidden="true"
     >
-      <path d="M4 7h16" />
-      <path d="M4 12h16" />
-      <path d="M4 17h16" />
+      {children}
     </svg>
   );
 }

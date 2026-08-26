@@ -1,28 +1,119 @@
 /**
  * Shared harness for the realtime demos (frontend-guardrails §4.2). Demos are
  * first-class code — compiled, linted with the PRODUCT ruleset, smoke-rendered
- * — so this file obeys the same guardrails as `src/`: colours through
- * `cssVar()`, no prose literals (every label here is a machine name rendered
- * from data, exactly as the tokens palette demo renders token names), and the
- * one button carries `data-analytics="none"` with an honest reason.
+ * — so this file obeys the same guardrails as `src/`: colours and dimensions
+ * through `@stapel/tokens`, and every user-visible string through an i18n
+ * engine, in the unmanaged `demo.*` namespace this package does not ship.
  *
  * The socket is a scripted double: no network, no timers a viewer has to wait
  * on, and the frames are the real wire envelope. A demo of a connection state
  * that fakes the STATE rather than the frames would document nothing.
+ *
+ * The clock is scripted too. `reconnecting_long` and `never_connected` are
+ * defined by elapsed time, and a demo that waited sixty real seconds for one
+ * of them would photograph a spinner. So the variants that need a named
+ * degradation inject a fixed `now` and the threshold that makes the state
+ * arrive with the frame that causes it — the runtime's own injectable clock,
+ * used exactly as its tests use it.
  */
 import { useMemo } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { cssVar, fontSize, radii, spacing } from "@stapel/tokens";
-import { RealtimeProvider, useRealtimeState, useStream } from "../src/react/index.js";
-import type { RealtimeSocket, RealtimeSocketFactory } from "../src/index.js";
+import { I18nProvider, createI18n } from "@stapel/core";
+import { spacing } from "@stapel/tokens";
+import { RealtimeProvider } from "../src/react/index.js";
+import type { RealtimeDegradationThresholds, RealtimeSocket, RealtimeSocketFactory } from "../src/index.js";
+import { DeveloperDetails, LiveBadge } from "./LiveBadge.js";
 
 /** The stream key the demos watch — a real one, in the canonical shape. */
 export const DEMO_STREAM = "chat:conv:7ad1c0de";
 
-/** One scripted step: a frame the server sends, or a close code it sends. */
+/**
+ * A fixed wall clock for the timed degradations: 14:02 UTC.
+ *
+ * Two builds of the same story must produce the same picture, and "since
+ * 14:02" read off `Date.now()` would make the badge differ on every run — the
+ * one thing a screenshot review cannot tell apart from a regression.
+ */
+export const DEMO_CLOCK = Date.UTC(2026, 7, 24, 14, 2, 0);
+
+/**
+ * Demo-local copy, in the unmanaged `demo.*` namespace (the pattern
+ * `shell-react`'s harness established) so `i18n-key-exists` reads it as
+ * app-local rather than as a typo against a catalogue this package has none
+ * of. Every sentence here is the one a PAIR would ship: what is true for the
+ * reader, never what the client is doing about it.
+ */
+const demoBundleEn: Record<string, string> = {
+  "demo.realtime.badge.live.title": "Live",
+  "demo.realtime.badge.live.body":
+    "New messages appear here the moment they are sent.",
+
+  "demo.realtime.badge.connecting.title": "Connecting…",
+  "demo.realtime.badge.connecting.body":
+    "Opening the live connection. Anything already loaded stays on screen.",
+
+  "demo.realtime.badge.resync.title": "Catching up",
+  "demo.realtime.badge.resync.body":
+    "You were away longer than the history we keep ready, so the conversation is being reloaded in full.",
+
+  "demo.realtime.badge.reconnecting.title": "Live updates stopped",
+  "demo.realtime.badge.reconnecting.body":
+    "Trying to reconnect. You are seeing the messages we already had.",
+
+  "demo.realtime.badge.reconnecting-long.title": "Live updates stopped",
+  "demo.realtime.badge.reconnecting-long.body":
+    "Reconnecting since {since} — showing the messages we already had.",
+
+  "demo.realtime.badge.never-connected.title": "Live updates unavailable",
+  "demo.realtime.badge.never-connected.body":
+    "This page has never managed to open a live connection, so you are seeing cached data. An administrator may need to check how the site is deployed.",
+
+  "demo.realtime.badge.refused-revoked.title": "Live updates ended",
+  "demo.realtime.badge.refused-revoked.body":
+    "Your access to this conversation was withdrawn.",
+
+  "demo.realtime.badge.refused-forbidden.title": "Live updates ended",
+  "demo.realtime.badge.refused-forbidden.body":
+    "You are not allowed to follow this conversation.",
+
+  "demo.realtime.badge.refused-session.title": "Live updates paused",
+  "demo.realtime.badge.refused-session.body":
+    "Your sign-in expired while this page was open.",
+
+  "demo.realtime.badge.refused-origin.title": "Live updates unavailable",
+  "demo.realtime.badge.refused-origin.body":
+    "This site is not on the server's list of addresses allowed to open a live connection. An administrator has to add it.",
+
+  "demo.realtime.badge.refused-stream-unknown.title": "Live updates ended",
+  "demo.realtime.badge.refused-stream-unknown.body":
+    "This conversation no longer exists.",
+
+  "demo.realtime.badge.refused-unsupported.title": "Live updates unavailable",
+  "demo.realtime.badge.refused-unsupported.body":
+    "This browser cannot keep a live connection open.",
+
+  "demo.realtime.badge.refused-ended.title": "Live updates ended",
+  "demo.realtime.badge.refused-ended.body":
+    "The server closed the live connection without giving a reason we can show.",
+
+  "demo.realtime.badge.off.title": "Live updates are off",
+  "demo.realtime.badge.off.body": "Nothing on this screen is being watched.",
+
+  "demo.realtime.badge.no-provider.title": "Live updates are not set up",
+  "demo.realtime.badge.no-provider.body":
+    "This screen was rendered without a live connection, so nothing here refreshes on its own.",
+
+  "demo.realtime.action.reconnect": "Reconnect",
+  "demo.realtime.action.futile": "Reconnecting will not restore it.",
+  "demo.realtime.developer.summary": "Developer details",
+};
+
+/** One scripted step: a frame the server sends, a close code it sends, or a
+ * handshake that is answered with a close and never opens at all. */
 export type ServerStep =
   | { readonly frame: Record<string, unknown> }
-  | { readonly close: number };
+  | { readonly close: number }
+  | { readonly failHandshake: number };
 
 /** The wire frames the scripts below are built from. */
 export const WELCOME: ServerStep = {
@@ -67,22 +158,28 @@ export const RESYNC: ServerStep = {
 };
 export const DROP: ServerStep = { close: 1006 };
 export const REVOKE: ServerStep = { close: 4410 };
+/** The handshake that is never answered — an ingress that does not upgrade,
+ * a firewall that swallows it. Nothing opens, so nothing can be resumed. */
+export const NEVER_OPENS: ServerStep = { failHandshake: 1006 };
 
 /** Build a transport that replays `script` as soon as the socket opens. */
 function scriptedTransport(script: readonly ServerStep[]): RealtimeSocketFactory {
-  let opened = false;
+  let played = false;
   return (_url, handlers) => {
     const socket: RealtimeSocket = {
       send: () => undefined,
       close: () => undefined,
     };
-    if (!opened) {
-      opened = true;
+    if (!played) {
+      played = true;
+      const first = script[0];
+      const opens = first === undefined || !("failHandshake" in first);
       queueMicrotask(() => {
-        handlers.onOpen();
+        if (opens) handlers.onOpen();
         for (const step of script) {
           if ("frame" in step) handlers.onData(JSON.stringify(step.frame));
-          else handlers.onClose(step.close, "");
+          else if ("close" in step) handlers.onClose(step.close, "");
+          else handlers.onClose(step.failHandshake, "");
         }
       });
     }
@@ -90,103 +187,45 @@ function scriptedTransport(script: readonly ServerStep[]): RealtimeSocketFactory
   };
 }
 
-const frame: CSSProperties = {
-  background: cssVar("surface"),
-  color: cssVar("text"),
-  padding: spacing["5"],
+const board: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: spacing["4"],
-  fontSize: fontSize.sm.fontSize,
-  borderRadius: radii.md,
 };
 
-const row: CSSProperties = {
-  display: "flex",
-  gap: spacing["2"],
-  flexWrap: "wrap",
-  alignItems: "center",
-};
-
-const chip: CSSProperties = {
-  border: `1px solid ${cssVar("border-subtle")}`,
-  borderRadius: radii.sm,
-  padding: `${spacing["1"]} ${spacing["2"]}`,
-  color: cssVar("text-muted"),
-  wordBreak: "break-all",
-};
-
-/** A `name: value` pair. Both halves are data — no prose lives in this file. */
-export function Field(props: { name: string; value: string }): ReactElement {
+/** What every variant renders: the badge, and the wire under a disclosure. */
+export function ConnectionSurface(): ReactElement {
   return (
-    <span style={chip}>
-      <code>{props.name}</code>
-      <code>{": "}</code>
-      <strong style={{ color: cssVar("text") }}>{props.value}</strong>
-    </span>
-  );
-}
-
-/** The board every variant renders: stream status beside connection status. */
-export function StatusBoard(): ReactElement {
-  const stream = useStream(DEMO_STREAM);
-  const connection = useRealtimeState();
-  const cursors = Object.entries(connection.cursors);
-  return (
-    <div style={frame}>
-      <div style={row}>
-        <Field name="stream.state" value={stream.status.state} />
-        <Field name="stream.refusal" value={stream.status.refusal ?? "—"} />
-        <Field name="stream.reason" value={stream.status.reason ?? "—"} />
-        <Field name="stream.attempt" value={String(stream.status.attempt)} />
-        <Field name="stream.gap" value={String(stream.status.gap ?? "—")} />
-      </div>
-      <div style={row}>
-        <Field name="connection.state" value={connection.state} />
-        <Field name="connection.connected" value={String(connection.connected)} />
-        <Field name="connection.reconnecting" value={String(connection.reconnecting)} />
-        <Field name="connection.refused" value={String(connection.refused)} />
-      </div>
-      <div style={row}>
-        {cursors.length === 0 ? (
-          <Field name="cursors" value="—" />
-        ) : (
-          cursors.map(([key, cursor]) => (
-            <Field key={key} name={key} value={String(cursor)} />
-          ))
-        )}
-      </div>
-      <div style={row}>
-        <button
-          type="button"
-          style={{ ...chip, background: cssVar("surface-raised"), cursor: "pointer" }}
-          onClick={stream.reconnect}
-          data-analytics="none"
-          data-analytics-reason="demo-only control: the scripted transport has no server to reconnect to"
-        >
-          <code>{"reconnect()"}</code>
-        </button>
-      </div>
+    <div style={board}>
+      <LiveBadge stream={DEMO_STREAM} />
+      <DeveloperDetails stream={DEMO_STREAM} />
     </div>
   );
 }
 
 /**
- * Mount the board over a scripted socket. `key`-ed on the script so each
+ * Mount the surface over a scripted socket. `key`-ed on the script so each
  * variant gets a fresh client rather than one that already ran.
  */
 export function RealtimeDemoHarness(props: {
   script: readonly ServerStep[];
+  /** Thresholds that make a named degradation arrive with its frame. */
+  degradation?: RealtimeDegradationThresholds;
   children?: ReactNode;
 }): ReactElement {
   const factory = useMemo(() => scriptedTransport(props.script), [props.script]);
+  const i18n = useMemo(() => createI18n({ locale: "en", bundles: { en: demoBundleEn } }), []);
   return (
-    <RealtimeProvider
-      url="wss://demo.stapel.dev/ws/chat/7ad1c0de"
-      webSocket={factory}
-      session={null}
-    >
-      {props.children ?? <StatusBoard />}
-    </RealtimeProvider>
+    <I18nProvider i18n={i18n}>
+      <RealtimeProvider
+        url="wss://demo.stapel.dev/ws/chat/7ad1c0de"
+        webSocket={factory}
+        session={null}
+        now={() => DEMO_CLOCK}
+        {...(props.degradation === undefined ? {} : { degradation: props.degradation })}
+      >
+        {props.children ?? <ConnectionSurface />}
+      </RealtimeProvider>
+    </I18nProvider>
   );
 }

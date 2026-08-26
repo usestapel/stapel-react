@@ -52,7 +52,7 @@ import {
   Timeline,
   Typography,
 } from "antd";
-import { spacing } from "@stapel/tokens";
+import { cssVar, spacing } from "@stapel/tokens";
 import {
   EmptyState,
   ErrorAlert,
@@ -159,10 +159,17 @@ export function CaseDetail(props: CaseDetailProps): ReactElement {
         : t(MODERATION_I18N_KEYS.caseLeaseMine, { until: instant(lease.until) });
     }
     if (lease.kind === "other") {
-      return t(MODERATION_I18N_KEYS.caseLeaseOther, {
-        who: label(lease.who),
-        until: instant(lease.until),
-      });
+      // With no `userLabel` seam filled there is no name to print, and a bare
+      // `shortId` on the glass is a machine value the reader cannot act on:
+      // which colleague it is only matters when the host can say who.
+      return runtime.userLabel !== undefined
+        ? t(MODERATION_I18N_KEYS.caseLeaseOther, {
+            who: label(lease.who),
+            until: instant(lease.until),
+          })
+        : t(MODERATION_I18N_KEYS.caseLeaseOtherAnonymous, {
+            until: instant(lease.until),
+          });
     }
     return detail.state === "resolved"
       ? t(MODERATION_I18N_KEYS.caseBlockedResolved)
@@ -189,9 +196,8 @@ export function CaseDetail(props: CaseDetailProps): ReactElement {
     }
     return (
       <Flex vertical gap={spacing["2"]} data-testid={`${testId}-content`}>
-        {content.title !== undefined && content.title !== "" ? (
-          <Typography.Text strong>{content.title}</Typography.Text>
-        ) : null}
+        {/* The title is the DIALOG's heading — see `caseHeading` — so printing
+            it again here would be the same sentence twice in one sheet. */}
         {content.text !== undefined && content.text !== "" ? (
           <Typography.Paragraph style={{ marginBottom: spacing["0"] }}>
             {content.text}
@@ -722,6 +728,34 @@ export function CaseDetail(props: CaseDetailProps): ReactElement {
     });
   }
 
+  /**
+   * What the moderator is looking at, as a person would name it — the reported
+   * item's own title, with the case reference demoted to a caption under it.
+   * A case id is a lookup key, never a heading: `Case 2b7f0d18` tells the
+   * reader nothing about what they are about to decide.
+   */
+  const caseHeading: ReactElement = (
+    <Flex vertical>
+      <Typography.Text strong>
+        {matchLoad(bag.detail, {
+          loading: () => t(MODERATION_I18N_KEYS.caseUntitled),
+          failed: () => t(MODERATION_I18N_KEYS.caseUntitled),
+          ready: (detail) =>
+            detail.content.available === true &&
+            detail.content.title !== undefined &&
+            detail.content.title !== ""
+              ? detail.content.title
+              : t(MODERATION_I18N_KEYS.caseUntitled),
+        })}
+      </Typography.Text>
+      <Typography.Text type="secondary">
+        {t(MODERATION_I18N_KEYS.caseTitle, {
+          caseRef: shortId(props.caseId ?? ""),
+        })}
+      </Typography.Text>
+    </Flex>
+  );
+
   return (
     <SkinTheme
       surface="bare"
@@ -730,7 +764,8 @@ export function CaseDetail(props: CaseDetailProps): ReactElement {
       <SkinDialog
         open={props.open}
         onClose={props.onClose}
-        title={t(MODERATION_I18N_KEYS.caseTitle, {
+        title={caseHeading}
+        ariaLabel={t(MODERATION_I18N_KEYS.caseTitle, {
           caseRef: shortId(props.caseId ?? ""),
         })}
         dismissLabel={t(MODERATION_I18N_KEYS.dialogDismiss)}
@@ -745,9 +780,29 @@ export function CaseDetail(props: CaseDetailProps): ReactElement {
         >
           {(detail) => (
             <Flex vertical gap={spacing["3"]}>
+              {/* Pinned to the top of the sheet's own scroll box. The lease
+                  acts are what the whole card is FOR, and the body below them
+                  is several screens long on a phone: unpinned, every moderator
+                  action sat under an invisible fold. It is `sticky` rather
+                  than the dialog's `footer` slot because antd memoises that
+                  slot and it would keep showing the gate the case had on the
+                  first frame, before the detail landed. */}
+              <div
+                style={{
+                  position: "sticky",
+                  top: spacing["0"],
+                  zIndex: 1,
+                  background: cssVar("surface-overlay"),
+                  paddingBlock: spacing["2"],
+                }}
+              >
+                {actionBar()}
+              </div>
+
               <Descriptions
                 size="small"
                 column={1}
+                colon={false}
                 data-testid={`${testId}-facts`}
                 items={[
                   {
@@ -763,17 +818,17 @@ export function CaseDetail(props: CaseDetailProps): ReactElement {
                   {
                     key: "severity",
                     label: t(MODERATION_I18N_KEYS.queueColSeverity),
-                    children: t(MODERATION_I18N_KEYS.caseSeverity, {
-                      value: detail.severity,
-                    }),
-                  },
-                  {
-                    key: "lease",
-                    label: t(MODERATION_I18N_KEYS.queueColClaimed),
-                    children: leaseLine(detail),
+                    children: String(detail.severity),
                   },
                 ]}
               />
+
+              {/* The lease is a SENTENCE, not a field: "Held by: Nobody is
+                  holding this case." read as a label whose value contradicts
+                  it. It stands on its own line instead. */}
+              <Typography.Text type="secondary" data-testid={`${testId}-lease`}>
+                {leaseLine(detail)}
+              </Typography.Text>
 
               {bag.state.step === "screening" ? (
                 <Typography.Text type="secondary" role="status">
@@ -801,8 +856,6 @@ export function CaseDetail(props: CaseDetailProps): ReactElement {
               >
                 {contentBlock(detail.content)}
               </Card>
-
-              {actionBar()}
 
               <Tabs
                 data-testid={`${testId}-tabs`}

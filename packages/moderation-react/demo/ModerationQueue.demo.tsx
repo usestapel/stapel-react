@@ -64,7 +64,7 @@ export default defineDemo({
     },
     phone: {
       description:
-        "The same queue as cards: the state, the severity, the complaint count and the way in.",
+        "The same queue as cards, and the five filter fields collapsed behind one control that says how many of them are on — a filter bar is the most width-hungry part of a console and the least of what a moderator came for.",
       viewport: "phone",
       step: "cards",
       render: () => <Queue handlers={HELD} />,

@@ -122,13 +122,52 @@ function isTimeBased(meta: StapelImage, previewKind: PreviewKind | null): boolea
 }
 
 /**
+ * The glyph a reserved box carries, one per `preview_kind`.
+ *
+ * Inline and `currentColor`, like `DefaultImageError`'s: no icon dependency,
+ * and the colour is the token role the box is already painted in. Sized in
+ * `em` so a 96px avatar slot and a 640px hero get a proportionate mark rather
+ * than the same 24px sticker.
+ */
+function SkeletonGlyph(props: { previewKind: PreviewKind }): ReactElement {
+  return (
+    <svg
+      width="2em"
+      height="2em"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      {props.previewKind === "blur" && <path d="M3 16l5-5 4 4 3-3 6 6M9 9.5h.01" />}
+      {props.previewKind === "poster" && <path d="M10.5 9.2l4.5 2.8-4.5 2.8z" />}
+      {props.previewKind === "waveform" && (
+        <path d="M7 10v4M10 8v8M13 10.5v3M16 8.5v7" />
+      )}
+    </svg>
+  );
+}
+
+/**
  * The box a preview is drawn in when there is no preview yet.
  *
  * This is the whole point of `preview_kind` being knowable while `preview_b64`
  * is still null: the slot is reserved at the right shape NOW, and what lands in
- * it later lands without moving anything. A sunken rectangle for a poster; a
- * centred baseline for a waveform, which is what an amplitude strip degrades to
- * when its amplitudes are unknown.
+ * it later lands without moving anything.
+ *
+ * It carries a MARK, not just a shape. A blank rectangle and a rectangle that
+ * is still loading are the same picture, so a reader cannot tell "there is a
+ * video here whose still frame has not been made yet" from "there is nothing
+ * here" — and two reserved boxes of different kinds beside each other read as
+ * two unfinished states rather than one designed one. The glyph names the
+ * medium; it carries no text, because this package renders no copy of its own
+ * (the only string it has ever drawn is the caller's `alt`) and a library that
+ * invented a sentence here would ship it untranslated to every host.
  */
 function PreviewSkeleton(props: { previewKind: PreviewKind }): ReactElement {
   return (
@@ -142,18 +181,10 @@ function PreviewSkeleton(props: { previewKind: PreviewKind }): ReactElement {
         alignItems: "center",
         justifyContent: "center",
         background: "var(--stapel-surface-sunken)",
+        color: "var(--stapel-text-muted)",
       }}
     >
-      {props.previewKind === "waveform" && (
-        <div
-          style={{
-            width: "80%",
-            height: 2,
-            background: "var(--stapel-text-muted)",
-            opacity: 0.4,
-          }}
-        />
-      )}
+      <SkeletonGlyph previewKind={props.previewKind} />
     </div>
   );
 }

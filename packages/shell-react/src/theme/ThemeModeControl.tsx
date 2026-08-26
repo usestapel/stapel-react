@@ -1,6 +1,14 @@
 /**
- * `<ThemeModeControl/>` — the three-state theme switch, in the Django-admin
- * idiom: sun, moon, half-filled disc, side by side, one of them marked.
+ * `<ThemeModeControl/>` — the three-state theme switch: a segmented control of
+ * three named choices — sun/Light, moon/Dark, half-disc/Match system — inside
+ * one track, with the chosen segment filled.
+ *
+ * It shipped as three bare 24px glyphs with no words and no visible selected
+ * state, which is a control whose CURRENT VALUE cannot be read: the one thing
+ * a settings control exists to tell you. Each segment now carries its label
+ * beside its glyph and is at least 44px tall (WCAG 2.5.8), and the chosen one
+ * is a filled, outlined, semibold segment rather than a slightly different
+ * grey.
  *
  * ── Why it is plain DOM and not a skin ───────────────────────────────────
  *
@@ -157,11 +165,33 @@ const GLYPHS: Record<ThemePreference, (p: { size: string }) => ReactElement> = {
   system: HalfDisc,
 };
 
-// Neutral translucent grey: legible over a light OR a dark surface, so the
+// Neutral translucent greys: legible over a light OR a dark surface, so the
 // fallback is not a bet on which one a token-less host is showing.
-const MARKED_BG = "var(--stapel-surface-overlay, rgba(128,128,128,0.22))";
+const TRACK_BG = "var(--stapel-surface-sunken, rgba(128,128,128,0.12))";
+const TRACK_BORDER = "var(--stapel-border, rgba(128,128,128,0.35))";
+const MARKED_BG = "var(--stapel-surface, rgba(255,255,255,0.9))";
+const MARKED_BORDER = "var(--stapel-brand, rgba(128,128,128,0.6))";
 const MARKED_FG = "var(--stapel-text, currentColor)";
 const UNMARKED_FG = "var(--stapel-text-muted, currentColor)";
+
+/**
+ * The minimum touch target (WCAG 2.5.8 / platform HIGs: 44 CSS px), in `em` so
+ * the control scales with the type around it — the same unit the glyphs use.
+ * The shipped control was three 24px squares, which is a 44px rule written
+ * down and then not applied to the one control that is nothing but targets.
+ */
+const SEGMENT_MIN_HEIGHT = "2.75rem";
+
+const GROUP_STYLE = {
+  display: "inline-flex",
+  alignItems: "stretch",
+  gap: "0.125rem",
+  maxWidth: "100%",
+  padding: "0.125rem",
+  background: TRACK_BG,
+  border: `1px solid ${TRACK_BORDER}`,
+  borderRadius: "var(--stapel-radius-lg, 0.625rem)",
+} as const;
 
 export function ThemeModeControl({
   value,
@@ -236,12 +266,7 @@ export function ThemeModeControl({
       // and the buttons below carry the same declaration for their clicks.
       data-analytics="none"
       data-analytics-reason="local-ui-theme-choice — the control writes nothing; pairs carry no @stapel/analytics runtime dependency, so the host instruments its own onChange"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "0.125rem",
-        borderRadius: "var(--stapel-radius-md, 0.375rem)",
-      }}
+      style={GROUP_STYLE}
     >
       {THEME_PREFERENCES.map((preference) => {
         const marked = preference === value;
@@ -274,16 +299,27 @@ export function ThemeModeControl({
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: "0.3125rem",
-              border: "none",
-              borderRadius: "var(--stapel-radius-md, 0.375rem)",
+              gap: "0.4375rem",
+              minHeight: SEGMENT_MIN_HEIGHT,
+              minWidth: 0,
+              padding: "0 0.75rem",
+              border: `1px solid ${marked ? MARKED_BORDER : "transparent"}`,
+              borderRadius: "var(--stapel-radius-md, 0.5rem)",
               background: marked ? MARKED_BG : "transparent",
               color: marked ? MARKED_FG : UNMARKED_FG,
               cursor: marked ? "default" : "pointer",
-              lineHeight: 0,
+              font: "inherit",
+              fontWeight: marked ? 600 : 400,
+              lineHeight: 1.2,
             }}
           >
             <Glyph size={size} />
+            {/* The label is not decoration on top of the icon: three bare
+                glyphs with no selected state and no words is a control whose
+                current value cannot be read at all. `aria-label` still carries
+                the composed name (`Match system (Dark)`) for a reader who
+                cannot see which segment is marked. */}
+            <span style={{ whiteSpace: "nowrap" }}>{labels[preference]}</span>
           </button>
         );
       })}

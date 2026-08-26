@@ -54,15 +54,15 @@
  */
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Button, Drawer, Flex, Layout } from "antd";
+import { Button, Drawer, Flex, Layout, theme } from "antd";
 import { Link, Outlet } from "react-router";
 import { SkinTheme } from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
 import { useBreakpoint, useT } from "@stapel/core";
-import { spacing } from "@stapel/tokens";
+import { spacing } from "@stapel/tokens-antd";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
 import { NavMenu } from "./navMenu.js";
-import { MenuGlyph } from "./icons.js";
+import { CloseGlyph, MenuGlyph } from "./icons.js";
 import { SHELL_I18N_KEYS } from "../i18n/keys.js";
 
 /**
@@ -81,6 +81,10 @@ const SIGN_IN_PATH = "/login";
  * bigger than the layout.
  */
 const DEFAULT_CONTENT_MAX_WIDTH = 1280;
+
+/** See `AppShell`'s constants of the same name — one frame, one geometry. */
+const HEADER_HEIGHT_DESKTOP = spacing[8];
+const DRAWER_WIDTH = "min(20rem, 86vw)";
 
 export interface PublicShellProps {
   /** Already-resolved nav — the output of `resolvePublicNav` /
@@ -136,7 +140,24 @@ function SignInCta(): ReactElement {
 
 /** Public storefront chrome: top bar + optional browse bar + `<Outlet/>`. */
 export function PublicShell(props: PublicShellProps): ReactElement {
+  return (
+    <SkinTheme
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+      surface="base"
+      style={{ minHeight: "100vh" }}
+    >
+      <PublicChrome {...props} />
+    </SkinTheme>
+  );
+}
+
+/**
+ * The chrome itself, drawn INSIDE the theme — see `AppShell`'s `AppChrome`
+ * for why the token bag has to be read on this side of the provider.
+ */
+function PublicChrome(props: PublicShellProps): ReactElement {
   const t = useT();
+  const { token } = theme.useToken();
   const contentMaxWidth = props.contentMaxWidth ?? DEFAULT_CONTENT_MAX_WIDTH;
   const breakpoint = useBreakpoint();
   const isDesktop = breakpoint === "desktop";
@@ -153,112 +174,219 @@ export function PublicShell(props: PublicShellProps): ReactElement {
         nav={props.nav}
         mode={isDesktop ? "horizontal" : "inline"}
         testId="public-shell-menu"
+        style={{ borderInlineEnd: "none", background: "transparent" }}
         {...(isDesktop ? {} : { onNavigate: () => setDrawerOpen(false) })}
       />
     ) : null;
 
-  return (
-    <SkinTheme
-      {...(props.mode !== undefined ? { mode: props.mode } : {})}
-      surface="base"
-      style={{ minHeight: "100vh" }}
+  // The three header slots, built once and ARRANGED differently per width. On
+  // a phone the brand, the account control and a search field cannot share one
+  // 390px line without each of them being unreadable, so the search takes a
+  // second line of the same header rather than being dropped: a storefront
+  // whose search box disappears on a phone is a storefront nobody searches.
+  const brandNode =
+    props.brand !== undefined ? (
+      <div
+        style={{ display: "flex", alignItems: "center", minWidth: 0 }}
+        data-testid="public-shell-brand"
+      >
+        {props.brand}
+      </div>
+    ) : null;
+
+  const searchNode =
+    props.searchSlot !== undefined ? (
+      <div
+        style={
+          isDesktop
+            ? { flex: "1 1 auto", minWidth: 0 }
+            : { flex: "0 0 auto", width: "100%", minWidth: 0 }
+        }
+        data-testid="public-shell-search"
+      >
+        {props.searchSlot}
+      </div>
+    ) : null;
+
+  const accountNode = (
+    <div
+      style={{
+        marginInlineStart:
+          isDesktop && props.searchSlot !== undefined ? 0 : "auto",
+        flex: "0 0 auto",
+      }}
+      data-testid="public-shell-account"
     >
-      <Layout style={{ minHeight: "100vh" }} data-testid="public-shell">
-        <Layout.Header
-          data-testid="public-shell-header"
+      {props.accountSlot ?? <SignInCta />}
+    </div>
+  );
+
+  const menuTrigger =
+    !isDesktop && hasBrowse ? (
+      <Button
+        type="text"
+        aria-label={t(SHELL_I18N_KEYS.navOpenMenu)}
+        aria-expanded={drawerOpen}
+        onClick={() => setDrawerOpen(true)}
+        icon={<MenuGlyph />}
+        data-testid="public-shell-menu-trigger"
+        data-analytics="none"
+        data-analytics-reason="local-ui-open-nav-drawer"
+      />
+    ) : null;
+
+  return (
+    <Layout style={{ minHeight: "100vh" }} data-testid="public-shell">
+      <Layout.Header
+        data-testid="public-shell-header"
+        style={{
+          display: "flex",
+          alignItems: isDesktop ? "center" : "stretch",
+          flexDirection: isDesktop ? "row" : "column",
+          gap: isDesktop ? spacing[4] : spacing[2],
+          padding: isDesktop
+            ? `0 ${String(spacing[4])}px`
+            : `${String(spacing[2])}px ${String(spacing[4])}px`,
+          height: isDesktop ? HEADER_HEIGHT_DESKTOP : "auto",
+          lineHeight: 1,
+          background: token.colorBgContainer,
+          borderBottom: `1px solid ${token.colorSplit}`,
+        }}
+      >
+        {isDesktop ? (
+          <>
+            {brandNode}
+            {searchNode}
+            {/* Pushed to the trailing edge whether or not a search slot
+                claimed the middle — the CTA's position must not depend on
+                which other slots the host happened to fill. */}
+            {accountNode}
+          </>
+        ) : (
+          <>
+            <Flex align="center" gap={spacing[3]}>
+              {menuTrigger}
+              {brandNode}
+              {accountNode}
+            </Flex>
+            {searchNode}
+          </>
+        )}
+      </Layout.Header>
+
+      {isDesktop && hasBrowse && (
+        <Flex
+          align="center"
+          gap={spacing[5]}
+          wrap
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: spacing[4],
             padding: `0 ${String(spacing[4])}px`,
+            background: token.colorBgContainer,
+            borderBottom: `1px solid ${token.colorSplit}`,
           }}
+          data-testid="public-shell-browse"
         >
-          {!isDesktop && hasBrowse && (
-            <Button
-              aria-label={t(SHELL_I18N_KEYS.navOpenMenu)}
-              aria-expanded={drawerOpen}
-              onClick={() => setDrawerOpen(true)}
-              icon={<MenuGlyph />}
-              data-testid="public-shell-menu-trigger"
-              data-analytics="none"
-              data-analytics-reason="local-ui-open-nav-drawer"
-            />
-          )}
-          {props.brand !== undefined && (
-            <div data-testid="public-shell-brand">{props.brand}</div>
-          )}
-          {props.searchSlot !== undefined && (
-            <div style={{ flex: 1, minWidth: 0 }} data-testid="public-shell-search">
-              {props.searchSlot}
+          {/* Categories FIRST, tabs after them. The menu is the greedy child
+              (see below), so with the strip behind it the strip was pinned to
+              the far right of a 2560px window while the tabs sat at the far
+              left — two halves of one browse bar, a screen apart, and nothing
+              broken enough for anyone to file. Reading order now matches
+              reading order. */}
+          {props.categorySlot !== undefined && (
+            <div style={{ flex: "0 0 auto" }} data-testid="public-shell-categories">
+              {props.categorySlot}
             </div>
           )}
-          {/* Pushed to the trailing edge whether or not a search slot claimed
-              the middle — the CTA's position must not depend on which other
-              slots the host happened to fill. */}
+          {/* The menu gets the row's leftover width — `flex: 1 1 auto`
+              with `minWidth: 0`. As a bare flex child the horizontal
+              `<Menu>` was measured at ~0 by rc-overflow, which is the
+              measurement it collapses on: every tab hid behind a "…" on a
+              1440px storefront while the row it sat in was empty.
+
+              And the spacer exists only when there is a menu to space. A
+              host can legitimately have a category slot and NO nav tabs — a
+              storefront whose every menu entry duplicated a link in the
+              strip beside it, say — and the greedy `flex: 1 1 auto` on an
+              empty div then ate the whole row and shoved the categories
+              against the right edge, under a header whose brand sits at the
+              left. Nothing was broken and the page looked it. */}
+          {navMenu !== null && (
+            <div
+              style={{ flex: "1 1 auto", minWidth: 0 }}
+              data-testid="public-shell-nav"
+            >
+              {navMenu}
+            </div>
+          )}
+        </Flex>
+      )}
+
+      {!isDesktop && (
+        <Drawer
+          placement="left"
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          closable={false}
+          /* Width through `styles.wrapper`, not the `width` prop: antd 6
+             deprecates `width` in favour of a `size` that antd 5 spells
+             differently, and a shell must not warn on either. */
+          styles={{ wrapper: { width: DRAWER_WIDTH }, body: { padding: 0 } }}
+          data-testid="public-shell-drawer"
+        >
           <div
-            style={{ marginInlineStart: props.searchSlot === undefined ? "auto" : 0 }}
-            data-testid="public-shell-account"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: spacing[3],
+              minHeight: HEADER_HEIGHT_DESKTOP,
+              padding: `0 ${String(spacing[3])}px 0 ${String(spacing[4])}px`,
+              borderBottom: `1px solid ${token.colorSplit}`,
+            }}
+            data-testid="public-shell-drawer-header"
           >
-            {props.accountSlot ?? <SignInCta />}
+            <div style={{ flex: "1 1 auto", minWidth: 0 }}>{props.brand}</div>
+            <Button
+              type="text"
+              aria-label={t(SHELL_I18N_KEYS.navCloseMenu)}
+              onClick={() => setDrawerOpen(false)}
+              icon={<CloseGlyph />}
+              data-testid="public-shell-drawer-close"
+              data-analytics="none"
+              data-analytics-reason="local-ui-close-nav-drawer"
+            />
           </div>
-        </Layout.Header>
+          {navMenu}
+          {props.categorySlot !== undefined && (
+            <div style={{ padding: spacing[4] }} data-testid="public-shell-categories">
+              {props.categorySlot}
+            </div>
+          )}
+        </Drawer>
+      )}
 
-        {isDesktop && hasBrowse && (
-          <Flex
-            align="center"
-            gap={spacing[4]}
-            wrap
-            style={{ padding: `0 ${String(spacing[4])}px` }}
-            data-testid="public-shell-browse"
-          >
-            {/* The menu gets the row's leftover width — `flex: 1 1 auto`
-                with `minWidth: 0`. As a bare flex child the horizontal
-                `<Menu>` was measured at ~0 by rc-overflow, which is the
-                measurement it collapses on: every tab hid behind a "…" on a
-                1440px storefront while the row it sat in was empty.
+      <Layout.Content style={{ padding: spacing[4] }}>
+        <div
+          style={{
+            width: "100%",
+            ...(contentMaxWidth === false
+              ? {}
+              : { maxWidth: contentMaxWidth, marginInline: "auto" }),
+          }}
+          data-testid="public-shell-content"
+        >
+          <Outlet />
+        </div>
+      </Layout.Content>
 
-                And the spacer exists only when there is a menu to space. A
-                host can legitimately have a category slot and NO nav tabs — a
-                storefront whose every menu entry duplicated a link in the
-                strip beside it, say — and the greedy `flex: 1 1 auto` on an
-                empty div then ate the whole row and shoved the categories
-                against the right edge, under a header whose brand sits at the
-                left. Nothing was broken and the page looked it. */}
-            {navMenu !== null && (
-              <div
-                style={{ flex: "1 1 auto", minWidth: 0 }}
-                data-testid="public-shell-nav"
-              >
-                {navMenu}
-              </div>
-            )}
-            {props.categorySlot !== undefined && (
-              <div style={{ flex: "0 0 auto" }} data-testid="public-shell-categories">
-                {props.categorySlot}
-              </div>
-            )}
-          </Flex>
-        )}
-
-        {!isDesktop && (
-          <Drawer
-            placement="left"
-            open={drawerOpen}
-            onClose={() => setDrawerOpen(false)}
-            closable={false}
-            styles={{ body: { padding: 0 } }}
-            data-testid="public-shell-drawer"
-          >
-            {navMenu}
-            {props.categorySlot !== undefined && (
-              <div style={{ padding: spacing[4] }} data-testid="public-shell-categories">
-                {props.categorySlot}
-              </div>
-            )}
-          </Drawer>
-        )}
-
-        <Layout.Content style={{ padding: spacing[4] }}>
+      {props.footer !== undefined && (
+        <Layout.Footer
+          style={{
+            background: token.colorBgContainer,
+            borderTop: `1px solid ${token.colorSplit}`,
+            padding: `${String(spacing[5])}px ${String(spacing[4])}px`,
+          }}
+          data-testid="public-shell-footer"
+        >
           <div
             style={{
               width: "100%",
@@ -266,16 +394,11 @@ export function PublicShell(props: PublicShellProps): ReactElement {
                 ? {}
                 : { maxWidth: contentMaxWidth, marginInline: "auto" }),
             }}
-            data-testid="public-shell-content"
           >
-            <Outlet />
+            {props.footer}
           </div>
-        </Layout.Content>
-
-        {props.footer !== undefined && (
-          <Layout.Footer data-testid="public-shell-footer">{props.footer}</Layout.Footer>
-        )}
-      </Layout>
-    </SkinTheme>
+        </Layout.Footer>
+      )}
+    </Layout>
   );
 }

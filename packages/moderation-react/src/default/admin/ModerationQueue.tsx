@@ -46,9 +46,17 @@ import {
   ErrorAlert,
   GatedButton,
   LoadList,
+  SkinDialog,
   SkinTheme,
 } from "@stapel/tokens-antd/skin";
-import { matchLoad, useI18n, useT } from "@stapel/core";
+import {
+  actionAvailable,
+  actionBlocked,
+  matchLoad,
+  useI18n,
+  useT,
+  useTPlural,
+} from "@stapel/core";
 import { CASE_STATES } from "../../api/enums.js";
 import type { CaseState } from "../../api/enums.js";
 import type { Case } from "../../api/types.js";
@@ -87,6 +95,7 @@ export interface ModerationQueueProps extends ThemeModeProp {
 
 export function ModerationQueue(props: ModerationQueueProps): ReactElement {
   const t = useT();
+  const tPlural = useTPlural();
   const { locale } = useI18n();
   const runtime = useModerationRuntime();
   const testId = props["data-testid"] ?? "moderation-queue";
@@ -95,13 +104,20 @@ export function ModerationQueue(props: ModerationQueueProps): ReactElement {
   const { ref, width } = useElementWidth<HTMLDivElement>();
   const narrow = isNarrowWidth(width);
   const [openCaseId, setOpenCaseId] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const label = (userId: string): string =>
     runtime.userLabel !== undefined ? runtime.userLabel(userId) : shortId(userId);
 
+  // `listing:8842` is a lookup key wearing the clothes of a title. The kind is
+  // the line a moderator reads; the key is the caption under it, which is what
+  // an id is for. A host that fills `renderTarget` replaces both.
   const targetOf = (row: Case): ReactElement => (
     <Flex vertical>
-      <Typography.Text>{`${row.target_type}:${row.target_key}`}</Typography.Text>
+      <Typography.Text style={{ textTransform: "capitalize" }}>
+        {row.target_type}
+      </Typography.Text>
+      <Typography.Text type="secondary">{row.target_key}</Typography.Text>
       {runtime.renderTarget !== undefined ? runtime.renderTarget(row) : null}
     </Flex>
   );
@@ -188,6 +204,17 @@ export function ModerationQueue(props: ModerationQueueProps): ReactElement {
     })),
   ];
 
+  /** How many filters are narrowing the queue right now — the one fact the
+   * phone arm's collapsed "Filters" button has to carry, since the fields
+   * themselves are behind it. */
+  const activeFilterCount = [
+    bag.filters.state,
+    bag.filters.targetType,
+    bag.filters.reasonCode,
+    bag.filters.severityMin,
+    bag.filters.subjectUserId,
+  ].filter((value) => value !== undefined && value !== "").length;
+
   const reasonOptions = matchLoad(bag.reasons, {
     loading: () => [],
     failed: () => [],
@@ -198,6 +225,169 @@ export function ModerationQueue(props: ModerationQueueProps): ReactElement {
       })),
   });
 
+  /**
+   * The five filter fields, laid out along one axis.
+   *
+   * They are ONE definition rendered in two arms because the phone arm puts
+   * them in a sheet: a second copy would be the pair of filter bars that
+   * disagree about which field exists, which is how a filter silently stops
+   * being applied on one surface only.
+   */
+  function filterFields(vertical: boolean): ReactElement {
+    return (
+      <Flex
+        gap={spacing["3"]}
+        wrap
+        vertical={vertical}
+        align={vertical ? "stretch" : "flex-end"}
+      >
+        <Flex vertical gap={spacing["1"]} style={{ minWidth: 0 }}>
+          <Typography.Text type="secondary">
+            {t(MODERATION_I18N_KEYS.queueFilterState)}
+          </Typography.Text>
+          {/* A `Segmented` measures its widest possible row and refuses to
+              shrink below it. Six states at 390px are 668px of intrinsic
+              width, and it dragged the WHOLE page out of the viewport — the
+              stats, the cards and the filter card were all sliced by the
+              right edge. It scrolls inside its own box instead. */}
+          <div style={{ maxWidth: "100%", overflowX: "auto" }}>
+            <Segmented
+              value={bag.filters.state ?? ANY}
+              options={stateOptions}
+              data-testid={`${testId}-filter-state`}
+              onChange={(value) => {
+                const next = String(value);
+                bag.setFilters({
+                  ...bag.filters,
+                  ...(next !== ANY ? { state: next } : { state: undefined }),
+                });
+              }}
+            />
+          </div>
+        </Flex>
+
+        <Flex vertical gap={spacing["1"]} style={{ minWidth: 0 }}>
+          <Typography.Text type="secondary">
+            {t(MODERATION_I18N_KEYS.queueFilterTargetType)}
+          </Typography.Text>
+          {bag.targetTypes === undefined ? (
+            <Typography.Text type="secondary" data-testid={`${testId}-no-types`}>
+              {t(MODERATION_I18N_KEYS.queueNoTargetTypes)}
+            </Typography.Text>
+          ) : (
+            <Select
+              allowClear
+              value={bag.filters.targetType ?? undefined}
+              style={{ minWidth: "10rem" }}
+              aria-label={t(MODERATION_I18N_KEYS.queueFilterTargetType)}
+              data-testid={`${testId}-filter-type`}
+              options={bag.targetTypes.map((type) => ({
+                value: type,
+                label: type,
+              }))}
+              onChange={(value?: string) => {
+                bag.setFilters({ ...bag.filters, targetType: value });
+              }}
+            />
+          )}
+        </Flex>
+
+        <Flex vertical gap={spacing["1"]} style={{ minWidth: 0 }}>
+          <Typography.Text type="secondary">
+            {t(MODERATION_I18N_KEYS.queueFilterReason)}
+          </Typography.Text>
+          <Select
+            allowClear
+            value={bag.filters.reasonCode ?? undefined}
+            style={{ minWidth: "10rem" }}
+            aria-label={t(MODERATION_I18N_KEYS.queueFilterReason)}
+            data-testid={`${testId}-filter-reason`}
+            options={reasonOptions}
+            onChange={(value?: string) => {
+              bag.setFilters({ ...bag.filters, reasonCode: value });
+            }}
+          />
+        </Flex>
+
+        <Flex vertical gap={spacing["1"]} style={{ minWidth: 0 }}>
+          <Typography.Text type="secondary">
+            {t(MODERATION_I18N_KEYS.queueFilterSeverity)}
+          </Typography.Text>
+          <InputNumber
+            value={bag.filters.severityMin ?? null}
+            min={0}
+            aria-label={t(MODERATION_I18N_KEYS.queueFilterSeverity)}
+            data-testid={`${testId}-filter-severity`}
+            onChange={(value) => {
+              bag.setFilters({
+                ...bag.filters,
+                severityMin: typeof value === "number" ? value : undefined,
+              });
+            }}
+          />
+        </Flex>
+
+        <Flex vertical gap={spacing["1"]} style={{ minWidth: 0 }}>
+          <Typography.Text type="secondary">
+            {t(MODERATION_I18N_KEYS.queueFilterSubject)}
+          </Typography.Text>
+          <Input
+            allowClear
+            value={bag.filters.subjectUserId ?? ""}
+            style={{ minWidth: "12rem" }}
+            aria-label={t(MODERATION_I18N_KEYS.queueFilterSubject)}
+            data-testid={`${testId}-filter-subject`}
+            onChange={(event) => {
+              const value = event.target.value.trim();
+              bag.setFilters({
+                ...bag.filters,
+                subjectUserId: value !== "" ? value : undefined,
+              });
+            }}
+          />
+        </Flex>
+      </Flex>
+    );
+  }
+
+  /**
+   * Where there is room the five fields stand in a card; where there is not,
+   * they collapse behind one control that says how many of them are on. A
+   * filter bar is the most width-hungry part of a console and the least of
+   * what a moderator came for.
+   */
+  function filterBlock(): ReactElement {
+    if (!narrow) {
+      return (
+        <Card size="small" data-testid={`${testId}-filters`}>
+          {filterFields(false)}
+        </Card>
+      );
+    }
+    return (
+      <Flex align="center" gap={spacing["3"]} data-testid={`${testId}-filters`}>
+        <GatedButton
+          gate={actionAvailable()}
+          testId={`${testId}-filters-open`}
+          data-analytics="none"
+          data-analytics-reason="local-ui-open-filter-sheet"
+          onClick={() => {
+            setFiltersOpen(true);
+          }}
+        >
+          {t(MODERATION_I18N_KEYS.queueFilters)}
+        </GatedButton>
+        <Typography.Text type="secondary">
+          {activeFilterCount === 0
+            ? t(MODERATION_I18N_KEYS.queueFiltersNone)
+            : tPlural(MODERATION_I18N_KEYS.queueFiltersActive, {
+                count: activeFilterCount,
+              })}
+        </Typography.Text>
+      </Flex>
+    );
+  }
+
   return (
     <SkinTheme
       surface="base"
@@ -205,7 +395,11 @@ export function ModerationQueue(props: ModerationQueueProps): ReactElement {
     >
       <div ref={ref} data-testid={testId}>
         <Flex vertical gap={spacing["4"]}>
-          <Flex gap={spacing["4"]} wrap data-testid={`${testId}-stats`}>
+          <Typography.Title level={3} style={{ margin: spacing["0"] }}>
+            {t(MODERATION_I18N_KEYS.queueTitle)}
+          </Typography.Title>
+
+          <Flex gap={spacing["6"]} wrap data-testid={`${testId}-stats`}>
             {matchLoad(bag.stats, {
               loading: () => null,
               failed: () => null,
@@ -224,108 +418,7 @@ export function ModerationQueue(props: ModerationQueueProps): ReactElement {
             })}
           </Flex>
 
-          <Card size="small" data-testid={`${testId}-filters`}>
-            <Flex gap={spacing["3"]} wrap align="flex-end">
-              <Flex vertical gap={spacing["1"]}>
-                <Typography.Text type="secondary">
-                  {t(MODERATION_I18N_KEYS.queueFilterState)}
-                </Typography.Text>
-                <Segmented
-                  value={bag.filters.state ?? ANY}
-                  options={stateOptions}
-                  data-testid={`${testId}-filter-state`}
-                  onChange={(value) => {
-                    const next = String(value);
-                    bag.setFilters({
-                      ...bag.filters,
-                      ...(next !== ANY ? { state: next } : { state: undefined }),
-                    });
-                  }}
-                />
-              </Flex>
-
-              <Flex vertical gap={spacing["1"]}>
-                <Typography.Text type="secondary">
-                  {t(MODERATION_I18N_KEYS.queueFilterTargetType)}
-                </Typography.Text>
-                {bag.targetTypes === undefined ? (
-                  <Typography.Text type="secondary" data-testid={`${testId}-no-types`}>
-                    {t(MODERATION_I18N_KEYS.queueNoTargetTypes)}
-                  </Typography.Text>
-                ) : (
-                  <Select
-                    allowClear
-                    value={bag.filters.targetType ?? undefined}
-                    style={{ minWidth: "10rem" }}
-                    aria-label={t(MODERATION_I18N_KEYS.queueFilterTargetType)}
-                    data-testid={`${testId}-filter-type`}
-                    options={bag.targetTypes.map((type) => ({
-                      value: type,
-                      label: type,
-                    }))}
-                    onChange={(value?: string) => {
-                      bag.setFilters({ ...bag.filters, targetType: value });
-                    }}
-                  />
-                )}
-              </Flex>
-
-              <Flex vertical gap={spacing["1"]}>
-                <Typography.Text type="secondary">
-                  {t(MODERATION_I18N_KEYS.queueFilterReason)}
-                </Typography.Text>
-                <Select
-                  allowClear
-                  value={bag.filters.reasonCode ?? undefined}
-                  style={{ minWidth: "10rem" }}
-                  aria-label={t(MODERATION_I18N_KEYS.queueFilterReason)}
-                  data-testid={`${testId}-filter-reason`}
-                  options={reasonOptions}
-                  onChange={(value?: string) => {
-                    bag.setFilters({ ...bag.filters, reasonCode: value });
-                  }}
-                />
-              </Flex>
-
-              <Flex vertical gap={spacing["1"]}>
-                <Typography.Text type="secondary">
-                  {t(MODERATION_I18N_KEYS.queueFilterSeverity)}
-                </Typography.Text>
-                <InputNumber
-                  value={bag.filters.severityMin ?? null}
-                  min={0}
-                  aria-label={t(MODERATION_I18N_KEYS.queueFilterSeverity)}
-                  data-testid={`${testId}-filter-severity`}
-                  onChange={(value) => {
-                    bag.setFilters({
-                      ...bag.filters,
-                      severityMin: typeof value === "number" ? value : undefined,
-                    });
-                  }}
-                />
-              </Flex>
-
-              <Flex vertical gap={spacing["1"]}>
-                <Typography.Text type="secondary">
-                  {t(MODERATION_I18N_KEYS.queueFilterSubject)}
-                </Typography.Text>
-                <Input
-                  allowClear
-                  value={bag.filters.subjectUserId ?? ""}
-                  style={{ minWidth: "12rem" }}
-                  aria-label={t(MODERATION_I18N_KEYS.queueFilterSubject)}
-                  data-testid={`${testId}-filter-subject`}
-                  onChange={(event) => {
-                    const value = event.target.value.trim();
-                    bag.setFilters({
-                      ...bag.filters,
-                      subjectUserId: value !== "" ? value : undefined,
-                    });
-                  }}
-                />
-              </Flex>
-            </Flex>
-          </Card>
+          {filterBlock()}
 
           <LoadList
             state={bag.rows}
@@ -375,7 +468,7 @@ export function ModerationQueue(props: ModerationQueueProps): ReactElement {
                               })}
                             </Typography.Text>
                             <Typography.Text type="secondary">
-                              {t(MODERATION_I18N_KEYS.caseReportCount, {
+                              {tPlural(MODERATION_I18N_KEYS.caseReportCount, {
                                 count: row.report_count,
                               })}
                             </Typography.Text>
@@ -393,7 +486,7 @@ export function ModerationQueue(props: ModerationQueueProps): ReactElement {
                   <Table
                     size="small"
                     pagination={false}
-                    scroll={{ x: true }}
+                    scroll={{ x: "max-content" }}
                     rowKey={(row: Case) => row.id}
                     dataSource={[...rows]}
                     columns={columns}
@@ -415,6 +508,49 @@ export function ModerationQueue(props: ModerationQueueProps): ReactElement {
             )}
           </LoadList>
         </Flex>
+
+        <SkinDialog
+          open={filtersOpen}
+          onClose={() => {
+            setFiltersOpen(false);
+          }}
+          title={t(MODERATION_I18N_KEYS.queueFilters)}
+          dismissLabel={t(MODERATION_I18N_KEYS.dialogDismiss)}
+          data-testid={`${testId}-filter-sheet`}
+          footer={
+            <Flex gap={spacing["2"]} justify="flex-end">
+              <GatedButton
+                gate={
+                  activeFilterCount > 0
+                    ? actionAvailable()
+                    : actionBlocked(MODERATION_I18N_KEYS.queueFiltersNone)
+                }
+                testId={`${testId}-filters-clear`}
+                data-analytics="none"
+                data-analytics-reason="local-ui-reset-filter-state"
+                onClick={() => {
+                  bag.setFilters({});
+                }}
+              >
+                {t(MODERATION_I18N_KEYS.queueFiltersClear)}
+              </GatedButton>
+              <GatedButton
+                gate={actionAvailable()}
+                type="primary"
+                testId={`${testId}-filters-apply`}
+                data-analytics="none"
+                data-analytics-reason="local-ui-close-filter-sheet"
+                onClick={() => {
+                  setFiltersOpen(false);
+                }}
+              >
+                {t(MODERATION_I18N_KEYS.queueFiltersApply)}
+              </GatedButton>
+            </Flex>
+          }
+        >
+          {filterFields(true)}
+        </SkinDialog>
 
         <CaseDetail
           caseId={openCaseId ?? undefined}

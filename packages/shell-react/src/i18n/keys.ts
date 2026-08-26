@@ -11,6 +11,11 @@ import type { I18nDictionary, I18nEngine } from "@stapel/core";
  */
 export const SHELL_I18N_KEYS = {
   navOpenMenu: "shell.nav.open_menu",
+  /** The nav sheet's own close control. A drawer that can only be dismissed
+   * by pressing the scrim behind it has no visible way out on a phone, where
+   * the scrim is a sliver — so the sheet carries a labelled close button and
+   * this is its accessible name. */
+  navCloseMenu: "shell.nav.close_menu",
   /** Label of the synthetic admin section (`resolveNav`'s
    * {@link ADMIN_ROOT_ENTRY}). Owned here, not by a module, because no module
    * owns "the admin section" — and it is the same key the generated container
@@ -40,6 +45,7 @@ export type ShellI18nKey = (typeof SHELL_I18N_KEYS)[keyof typeof SHELL_I18N_KEYS
 
 export const shellI18nBundleEn: I18nDictionary = {
   "shell.nav.open_menu": "Open menu",
+  "shell.nav.close_menu": "Close menu",
   "shell.nav.admin": "Admin",
   "shell.nav.admin_staff_only": "For the people who operate this product",
   "shell.public.sign_in": "Sign in",

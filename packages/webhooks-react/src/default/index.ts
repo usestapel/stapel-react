@@ -36,5 +36,9 @@ export {
   deliveryStatusColor,
   targetFieldLabelKey,
 } from "./labels.js";
-export { CODE_BLOCK_STYLE, SETTINGS_MAX_WIDTH } from "./layout.js";
+export {
+  CODE_BLOCK_STYLE,
+  DIALOG_ACTION_BAR_STYLE,
+  SETTINGS_MAX_WIDTH,
+} from "./layout.js";
 export type { ThemeModeProp } from "./types.js";

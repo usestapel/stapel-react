@@ -13,13 +13,14 @@
  * `resolveNav` (`../headless/resolveNav.js`). This module is a renderer.
  */
 import { useMemo } from "react";
-import type { ReactElement, ReactNode } from "react";
-import { Menu, Typography } from "antd";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
+import { ConfigProvider, Menu, Typography, theme } from "antd";
 import type { MenuProps } from "antd";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useT } from "@stapel/core";
 import type { ActionAvailability, TranslateFn } from "@stapel/core";
-import { resolveNavIcon } from "./icons.js";
+import { radii, spacing } from "@stapel/tokens-antd";
+import { LockGlyph, resolveNavIcon } from "./icons.js";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
 
 /** Why an entry is offered, or is not. See {@link NavMenuProps.gate}. */
@@ -67,17 +68,69 @@ export function findActive(
   return nav.find((entry) => matchesLocation(entry, pathname));
 }
 
-/** The label of a blocked entry: its own copy, plus the reason under it. The
- * reason is TEXT beside the control, never a hover title — touch has no
- * hover, and a person who cannot see why a section is closed cannot ask for
- * it to be opened. */
-function blockedLabel(label: string, reason: string): ReactNode {
+/**
+ * A nav glyph, spaced from its label.
+ *
+ * antd's own icon gap is styled onto `.ant-menu-item-icon` / `.anticon`, and
+ * this package's icons are neither: they are plain inline SVGs (house
+ * convention — `default/icons.tsx` carries no `@ant-design/icons`
+ * dependency). So the rule never matched them and every row in the shipped
+ * drawer read `⌂Notifications`, with the glyph welded to the word. The gap is
+ * ours to draw, on our own element, rather than a class name borrowed from
+ * antd's internals.
+ */
+function navIcon(name: string): ReactNode {
   return (
-    <span data-stapel-nav-blocked="">
-      {label}
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        marginInlineEnd: spacing[3],
+      }}
+    >
+      {resolveNavIcon(name)}
+    </span>
+  );
+}
+
+/**
+ * The label of a blocked entry: its own copy under a padlock, plus the reason
+ * under that. The reason is TEXT beside the control, never a hover title —
+ * touch has no hover, and a person who cannot see why a section is closed
+ * cannot ask for it to be opened.
+ *
+ * `whiteSpace: "normal"` and the block layout are not decoration. antd sizes a
+ * menu row from one line of text and clips the overflow, so the reason
+ * rendered inside a row was PRESENT IN THE DOM AND INVISIBLE ON THE SCREEN —
+ * which is how the shell's `admin-blocked` state was pixel-identical to its
+ * open one while its tests passed. A blocked entry is laid out to grow.
+ */
+function blockedLabel(label: string, reason: string, icon?: ReactNode): ReactNode {
+  return (
+    <span
+      data-stapel-nav-blocked=""
+      style={{ display: "block", whiteSpace: "normal", lineHeight: 1.35 }}
+    >
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: spacing[2],
+          verticalAlign: "middle",
+        }}
+      >
+        {icon}
+        <span>{label}</span>
+        <LockGlyph />
+      </span>
       <Typography.Text
         type="secondary"
-        style={{ display: "block", fontSize: "0.75em", lineHeight: 1.3 }}
+        style={{
+          display: "block",
+          fontSize: "0.8125em",
+          lineHeight: 1.35,
+          whiteSpace: "normal",
+        }}
         data-stapel-nav-blocked-reason=""
       >
         {reason}
@@ -85,6 +138,14 @@ function blockedLabel(label: string, reason: string): ReactNode {
     </span>
   );
 }
+
+/** A blocked ROW has to be allowed to be two lines tall — see `blockedLabel`. */
+const BLOCKED_ROW_STYLE: CSSProperties = {
+  height: "auto",
+  lineHeight: 1.35,
+  paddingBlock: spacing[2],
+  whiteSpace: "normal",
+};
 
 export function toMenuItems(
   nav: readonly ResolvedNavEntry[],
@@ -100,23 +161,27 @@ export function toMenuItems(
   ): NonNullable<MenuProps["items"]>[number] => {
     const availability = gate(entry);
     const text = t(entry.labelKey);
-    const icon = resolveNavIcon(entry.icon);
     if (!availability.available) {
       const reason = t(availability.block.code, availability.block.params);
-      return {
-        key: entry.id,
-        icon,
-        label: statesReason ? blockedLabel(text, reason) : text,
-        disabled: true,
-      };
+      return statesReason
+        ? {
+            key: entry.id,
+            label: blockedLabel(text, reason, resolveNavIcon(entry.icon)),
+            disabled: true,
+            style: BLOCKED_ROW_STYLE,
+          }
+        : { key: entry.id, icon: navIcon(entry.icon), label: text, disabled: true };
     }
-    return { key: entry.id, icon, label: <Link to={entry.linkPath}>{text}</Link> };
+    return {
+      key: entry.id,
+      icon: navIcon(entry.icon),
+      label: <Link to={entry.linkPath}>{text}</Link>,
+    };
   };
 
   return nav.map((entry) => {
     const availability = gate(entry);
     const text = t(entry.labelKey);
-    const icon = resolveNavIcon(entry.icon);
     if (entry.children && entry.children.length > 0) {
       // A blocked SECTION keeps its children LISTED: the reason belongs to the
       // section, and a person asking for access has to be able to name what
@@ -125,11 +190,24 @@ export function toMenuItems(
       const reason = availability.available
         ? undefined
         : t(availability.block.code, availability.block.params);
+      if (reason === undefined) {
+        return {
+          key: entry.id,
+          icon: navIcon(entry.icon),
+          label: text,
+          children: entry.children.map((child) => one(child)),
+        };
+      }
+      // A closed section is a GROUP, not a collapsed submenu: there is nothing
+      // to expand into, the twisty would promise a fold that does nothing, and
+      // a group title is the one menu row antd lets grow to the two lines the
+      // reason needs. Its children stay on screen, switched off, so the person
+      // can name the screen they are asking to be let into.
       return {
         key: entry.id,
-        icon,
-        label: reason === undefined ? text : blockedLabel(text, reason),
-        children: entry.children.map((child) => one(child, reason === undefined)),
+        type: "group" as const,
+        label: blockedLabel(text, reason, resolveNavIcon(entry.icon)),
+        children: entry.children.map((child) => one(child, false)),
       };
     }
     return one(entry);
@@ -156,16 +234,48 @@ export interface NavMenuProps {
   /** Test hook. Defaults to `AppShell`'s historical id so its suite — and any
    * host asserting on it — keeps working unchanged. */
   readonly testId?: string;
+  /** Layout styles for the `<Menu>` itself — the surface it is mounted on is
+   * the caller's knowledge (a Sider, a sheet, a top bar). */
+  readonly style?: CSSProperties;
 }
 
-/** One build of the resolved nav, mounted wherever a skin needs it. */
+/**
+ * One build of the resolved nav, mounted wherever a skin needs it.
+ *
+ * The scoped `ConfigProvider` is geometry, not a theme: it is where the rows
+ * get a real touch height and the selected row gets a BACKGROUND rather than
+ * only a change of text colour, which is the only marking that survives a
+ * glance. `no-local-skin-theme` is about a per-pair
+ * theme MODULE; this is a scoped component override inside one component, and
+ * the mode still comes from the enclosing `SkinTheme`.
+ */
 export function NavMenu(props: NavMenuProps): ReactElement {
   const t = useT();
+  const { token } = theme.useToken();
   const location = useLocation();
   const navigate = useNavigate();
   const { nav, onNavigate, gate } = props;
   const flat = useMemo(() => flatten(nav), [nav]);
   const items = useMemo(() => toMenuItems(nav, t, gate), [nav, t, gate]);
+  // One config object per distinct answer. A fresh `ThemeConfig` on every
+  // render makes antd re-derive the whole theme on every render — the exact
+  // cost `SkinTheme`'s own cache exists to avoid.
+  const menuTheme = useMemo(
+    () => ({
+      components: {
+        Menu: {
+          itemHeight: spacing[7],
+          itemBorderRadius: radii.md,
+          itemMarginInline: spacing[2],
+          itemSelectedBg: token.colorPrimaryBg,
+          itemSelectedColor: token.colorPrimary,
+          groupTitleFontSize: token.fontSize,
+          groupTitleColor: token.colorText,
+        },
+      },
+    }),
+    [token.colorPrimaryBg, token.colorPrimary, token.fontSize, token.colorText]
+  );
 
   const active = findActive(nav, location.pathname);
   const selectedKeys = active ? [active.id] : [];
@@ -184,15 +294,18 @@ export function NavMenu(props: NavMenuProps): ReactElement {
   };
 
   return (
-    <Menu
-      mode={props.mode ?? "inline"}
-      items={items}
-      selectedKeys={selectedKeys}
-      defaultOpenKeys={openKeys}
-      onClick={handleClick}
-      data-testid={props.testId ?? "app-shell-menu"}
-      data-analytics="none"
-      data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-    />
+    <ConfigProvider theme={menuTheme}>
+      <Menu
+        mode={props.mode ?? "inline"}
+        items={items}
+        selectedKeys={selectedKeys}
+        defaultOpenKeys={openKeys}
+        onClick={handleClick}
+        {...(props.style === undefined ? {} : { style: props.style })}
+        data-testid={props.testId ?? "app-shell-menu"}
+        data-analytics="none"
+        data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+      />
+    </ConfigProvider>
   );
 }

@@ -7,7 +7,7 @@
  * inside a narrow drawer that is nobody's breakpoint.
  */
 import type { CSSProperties } from "react";
-import { fontSize, radii, spacing } from "@stapel/tokens";
+import { cssVar, fontSize, radii, spacing } from "@stapel/tokens";
 
 /**
  * A payload or an envelope is arbitrary JSON — one long line in it must scroll
@@ -34,3 +34,26 @@ export const CODE_BLOCK_STYLE: CSSProperties = {
  * display with one table.
  */
 export const SETTINGS_MAX_WIDTH = "56rem";
+
+/**
+ * The action row at the foot of a dialog, pinned to the bottom of the dialog's
+ * own scroll box.
+ *
+ * A bottom sheet is a fixed slice of the viewport, and these bodies are long —
+ * a new-rule form is six fields, a delivery card is two JSON blocks. Left in
+ * the flow, "Create rule" and "Replay" sat below an invisible fold: the sheet
+ * clipped its own content mid-sentence and the only thing a person opened it
+ * to do was unreachable without a scroll nobody knew to make. `sticky` keeps
+ * the act on screen while the body scrolls under it.
+ *
+ * It is NOT `SkinDialog`'s `footer` slot: antd memoises that slot, so a gate
+ * that opens once the data lands keeps rendering the state it had on the
+ * dialog's first frame.
+ */
+export const DIALOG_ACTION_BAR_STYLE: CSSProperties = {
+  position: "sticky",
+  bottom: 0,
+  zIndex: 1,
+  background: cssVar("surface-overlay"),
+  paddingBlock: spacing[3],
+};

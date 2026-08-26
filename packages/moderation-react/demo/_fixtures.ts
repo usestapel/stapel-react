@@ -83,6 +83,18 @@ export const POLICY_NO_AUTOMATION: PolicyDisclosure = {
 /** A registry with nothing in it: the form has nothing to offer, and says so. */
 export const POLICY_EMPTY: PolicyDisclosure = { ...POLICY, reasons: [] };
 
+/**
+ * A lease that is still running, measured from whenever the demo is rendered.
+ *
+ * A fixed instant is either already in the past — and the console correctly
+ * reports the hold as expired, which is not the state the story is named for —
+ * or it is a sentinel like `2099-01-01`, which reaches the glass as
+ * "holding this case until Jan 1, 2099" and reads as a defect.
+ */
+const LEASE_STILL_RUNNING: string = new Date(
+  Date.now() + 42 * 60_000
+).toISOString();
+
 const MODERATOR = "7f3a1c22-0b41-4f0e-9a1e-2f8b6d0c1e55";
 const COLLEAGUE = "1c9d5e40-7a2b-4c8e-b3d1-9f0a6e2b4c77";
 const AUTHOR = "4e21b8a0-33cd-4a17-8f52-6b90d1c4e2a8";
@@ -115,7 +127,7 @@ export const CASE_CLAIMED: Case = {
   severity: 40,
   report_count: 1,
   claimed_by: COLLEAGUE,
-  claimed_until: "2099-01-01T00:00:00Z",
+  claimed_until: LEASE_STILL_RUNNING,
 };
 
 const REPORTS = [

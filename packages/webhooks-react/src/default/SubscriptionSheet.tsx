@@ -51,6 +51,7 @@ import {
 import { useSubscriptionForm } from "../model/subscriptionForm.js";
 import { SecretReveal } from "./SecretReveal.js";
 import { deliveryLabelKey, targetFieldLabelKey } from "./labels.js";
+import { DIALOG_ACTION_BAR_STYLE } from "./layout.js";
 import type { ThemeModeProp } from "./types.js";
 
 export interface SubscriptionSheetProps extends ThemeModeProp {
@@ -186,15 +187,21 @@ export function SubscriptionSheet(props: SubscriptionSheetProps): ReactElement {
               <Typography.Text strong>
                 {t(WEBHOOKS_I18N_KEYS.formDelivery)}
               </Typography.Text>
-              <Segmented
-                value={form.fields.delivery}
-                data-testid={`${testId}-delivery`}
-                onChange={(value) => form.setDelivery(String(value))}
-                options={catalog.deliveryTypes.map((name) => ({
-                  value: name,
-                  label: t(deliveryLabelKey(name), { delivery: name }),
-                }))}
-              />
+              {/* A `Segmented` measures its widest possible row and refuses
+                  to shrink below it, so at 390px this control was wider than
+                  the sheet and its last option was sliced by the edge. It
+                  scrolls inside its own box instead. */}
+              <div style={{ maxWidth: "100%", overflowX: "auto" }}>
+                <Segmented
+                  value={form.fields.delivery}
+                  data-testid={`${testId}-delivery`}
+                  onChange={(value) => form.setDelivery(String(value))}
+                  options={catalog.deliveryTypes.map((name) => ({
+                    value: name,
+                    label: t(deliveryLabelKey(name), { delivery: name }),
+                  }))}
+                />
+              </div>
             </Flex>
 
             {/* target */}
@@ -233,7 +240,7 @@ export function SubscriptionSheet(props: SubscriptionSheetProps): ReactElement {
                 {t(WEBHOOKS_I18N_KEYS.formFilter)}
               </Typography.Text>
               <Input.TextArea
-                rows={4}
+                rows={3}
                 value={form.fields.filterText}
                 aria-label={t(WEBHOOKS_I18N_KEYS.formFilter)}
                 data-testid={`${testId}-filter`}
@@ -274,27 +281,31 @@ export function SubscriptionSheet(props: SubscriptionSheetProps): ReactElement {
               />
             </Flex>
 
-            <ErrorAlert
-              testId={`${testId}-failed`}
-              thrown={editing ? update.error : create.error}
-            />
+            <div style={DIALOG_ACTION_BAR_STYLE}>
+              <Flex vertical gap={spacing[2]}>
+                <ErrorAlert
+                  testId={`${testId}-failed`}
+                  thrown={editing ? update.error : create.error}
+                />
 
-            <GatedButton
-              gate={saveGate}
-              type="primary"
-              block
-              loading={create.isPending || update.isPending}
-              testId={`${testId}-submit`}
-              data-analytics="none"
-              data-analytics-reason="the create/toggle events are emitted by the model layer on success"
-              onClick={submit}
-            >
-              {t(
-                editing
-                  ? WEBHOOKS_I18N_KEYS.formSave
-                  : WEBHOOKS_I18N_KEYS.formSubmit
-              )}
-            </GatedButton>
+                <GatedButton
+                  gate={saveGate}
+                  type="primary"
+                  block
+                  loading={create.isPending || update.isPending}
+                  testId={`${testId}-submit`}
+                  data-analytics="none"
+                  data-analytics-reason="the create/toggle events are emitted by the model layer on success"
+                  onClick={submit}
+                >
+                  {t(
+                    editing
+                      ? WEBHOOKS_I18N_KEYS.formSave
+                      : WEBHOOKS_I18N_KEYS.formSubmit
+                  )}
+                </GatedButton>
+              </Flex>
+            </div>
           </Flex>
         )}
       </SkinTheme>

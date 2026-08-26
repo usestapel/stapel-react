@@ -25,7 +25,7 @@
  * same sentence in both places.
  */
 import type { ReactElement } from "react";
-import { Descriptions, Flex, Tag, Typography } from "antd";
+import { Collapse, Descriptions, Flex, Tag, Typography } from "antd";
 import { spacing } from "@stapel/tokens";
 import {
   ErrorAlert,
@@ -45,7 +45,7 @@ import {
   formatOptionalInstant,
 } from "../model/format.js";
 import { deliveryStatusColor, deliveryStatusKey } from "./labels.js";
-import { CODE_BLOCK_STYLE } from "./layout.js";
+import { CODE_BLOCK_STYLE, DIALOG_ACTION_BAR_STYLE } from "./layout.js";
 import type { ThemeModeProp } from "./types.js";
 
 export interface DeliveryDetailSheetProps extends ThemeModeProp {
@@ -150,43 +150,64 @@ export function DeliveryDetailSheet(
                 {t(WEBHOOKS_I18N_KEYS.detailReconstructed)}
               </Typography.Text>
 
-              <Flex vertical gap={spacing[1]}>
-                <Typography.Text strong>
-                  {t(WEBHOOKS_I18N_KEYS.detailHeaders)}
-                </Typography.Text>
-                <pre style={CODE_BLOCK_STYLE} data-testid={`${testId}-headers`}>
-                  {deliveryHeaders(row)
-                    .map(([name, value]) => `${name}: ${value}`)
-                    .join("\n")}
-                </pre>
-              </Flex>
-
-              <Flex vertical gap={spacing[1]}>
-                <Typography.Text strong>
-                  {t(WEBHOOKS_I18N_KEYS.detailEnvelope)}
-                </Typography.Text>
-                <pre style={CODE_BLOCK_STYLE} data-testid={`${testId}-envelope`}>
-                  {formatJson(deliveryEnvelope(row))}
-                </pre>
-              </Flex>
-
-              <ErrorAlert
-                testId={`${testId}-replay-failed`}
-                thrown={log.replay.error}
-                variant="inline"
+              {/* Two JSON blocks are the tallest thing on this card and the
+                  least of what a person opens it for — folded away, the
+                  status, the error and Replay all fit a phone sheet at once.
+                  They are still one press away, and the press is labelled. */}
+              <Collapse
+                size="small"
+                data-testid={`${testId}-wire`}
+                items={[
+                  {
+                    key: "headers",
+                    label: t(WEBHOOKS_I18N_KEYS.detailHeaders),
+                    children: (
+                      <pre
+                        style={CODE_BLOCK_STYLE}
+                        data-testid={`${testId}-headers`}
+                      >
+                        {deliveryHeaders(row)
+                          .map(([name, value]) => `${name}: ${value}`)
+                          .join("\n")}
+                      </pre>
+                    ),
+                  },
+                  {
+                    key: "envelope",
+                    label: t(WEBHOOKS_I18N_KEYS.detailEnvelope),
+                    children: (
+                      <pre
+                        style={CODE_BLOCK_STYLE}
+                        data-testid={`${testId}-envelope`}
+                      >
+                        {formatJson(deliveryEnvelope(row))}
+                      </pre>
+                    ),
+                  },
+                ]}
               />
 
-              <GatedButton
-                gate={log.replayGate(row)}
-                block
-                testId={`${testId}-replay`}
-                loading={log.replay.isPending}
-                data-analytics="none"
-                data-analytics-reason="the replay event is emitted by the model layer on success"
-                onClick={() => log.replay.mutate(row.id)}
-              >
-                {t(WEBHOOKS_I18N_KEYS.logReplay)}
-              </GatedButton>
+              <div style={DIALOG_ACTION_BAR_STYLE}>
+                <Flex vertical gap={spacing[2]}>
+                  <ErrorAlert
+                    testId={`${testId}-replay-failed`}
+                    thrown={log.replay.error}
+                    variant="inline"
+                  />
+
+                  <GatedButton
+                    gate={log.replayGate(row)}
+                    block
+                    testId={`${testId}-replay`}
+                    loading={log.replay.isPending}
+                    data-analytics="none"
+                    data-analytics-reason="the replay event is emitted by the model layer on success"
+                    onClick={() => log.replay.mutate(row.id)}
+                  >
+                    {t(WEBHOOKS_I18N_KEYS.logReplay)}
+                  </GatedButton>
+                </Flex>
+              </div>
             </Flex>
           )}
         </LoadBoundary>

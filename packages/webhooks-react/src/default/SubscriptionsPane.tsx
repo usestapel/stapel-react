@@ -228,6 +228,10 @@ export function SubscriptionsPane(props: SubscriptionsPaneProps): ReactElement {
         size="small"
         title={t(WEBHOOKS_I18N_KEYS.title)}
         extra={newButton}
+        // A card header is one non-wrapping row, so at 390px the "New webhook"
+        // primary hung past the card's right edge and broke its corner radius.
+        // Allowed to wrap, it drops onto its own line instead.
+        styles={{ header: { flexWrap: "wrap", rowGap: spacing[2] } }}
         data-testid={testId}
       >
         <Flex vertical gap={spacing[3]}>

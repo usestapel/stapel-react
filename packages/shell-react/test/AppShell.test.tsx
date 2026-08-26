@@ -110,7 +110,73 @@ describe("<AppShell/> — desktop: Sider + Menu", () => {
   });
 });
 
+/**
+ * The chrome as ONE frame. The top bar used to be nested inside the content
+ * column, so it began at the Sider's trailing edge and the page read as two
+ * unrelated panels in the shape of an L — and on a phone, where there is no
+ * Sider at all, that same bar held one hamburger and nothing else: no product
+ * name, no account.
+ */
+describe("<AppShell/> — one bar across the window", () => {
+  it("puts the header above BOTH columns, not beside the Sider", async () => {
+    setViewportWidth(1440);
+    render(wrap("/settings"));
+
+    await waitFor(() => expect(screen.getByTestId("app-shell-sider")).toBeDefined());
+    const header = screen.getByTestId("app-shell-header");
+    const sider = screen.getByTestId("app-shell-sider");
+    expect(header.contains(sider)).toBe(false);
+    expect(header.parentElement).toBe(screen.getByTestId("app-shell"));
+    // The Sider's own column starts where the bar ends.
+    expect(sider.parentElement?.previousElementSibling).toBe(header);
+  });
+
+  it("carries the brand and the account control in that bar, at phone width too", async () => {
+    setViewportWidth(375);
+    const i18n = createI18n({ locale: "en" });
+    registerShellI18n(i18n);
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/settings"]}>
+          <Routes>
+            <Route
+              element={
+                <AppShell nav={NAV} logo={<span>Northgate</span>} headerExtra={<span>DW</span>} />
+              }
+            >
+              <Route path="settings" element={<div>Settings Page</div>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </I18nProvider>
+    );
+
+    await waitFor(() => expect(screen.getByTestId("app-shell-header")).toBeDefined());
+    const header = screen.getByTestId("app-shell-header");
+    expect(header.contains(screen.getByTestId("app-shell-brand"))).toBe(true);
+    expect(header.contains(screen.getByText("DW"))).toBe(true);
+    expect(header.contains(screen.getByRole("button", { name: "Open menu" }))).toBe(true);
+    setViewportWidth(1440);
+  });
+});
+
 describe("<AppShell/> — phone/tablet: hamburger Drawer", () => {
+  it("gives the nav sheet its own way out, named", async () => {
+    setViewportWidth(375);
+    render(wrap("/settings"));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Open menu" })).toBeDefined());
+
+    fireEvent.click(screen.getByRole("button", { name: "Open menu" }));
+    await waitFor(() => expect(document.querySelector(".ant-drawer-open")).not.toBeNull());
+
+    // A sheet that covers the viewport leaves no scrim to press: the way back
+    // has to be inside the sheet, and it has to have a name.
+    const close = screen.getByRole("button", { name: "Close menu" });
+    fireEvent.click(close);
+    await waitFor(() => expect(document.querySelector(".ant-drawer-open")).toBeNull());
+    setViewportWidth(1440);
+  });
+
   it("hides the Sider and shows a hamburger trigger instead, at phone width", async () => {
     setViewportWidth(375);
     render(wrap("/settings"));
@@ -288,6 +354,24 @@ describe("<AppShell/> — the admin section is gated on staff, not hidden by it"
 
     expect(document.querySelector("[data-stapel-nav-blocked-reason]")).toBeNull();
     expect(document.querySelector('[data-testid="app-shell-menu"] li')).not.toBeNull();
+  });
+
+  it("keeps the closed section's screens on the page, not behind a fold that opens onto nothing", async () => {
+    renderAdmin(false);
+    await waitFor(() => expect(screen.getByText("Admin")).toBeDefined());
+
+    // A closed section is a GROUP, not a collapsed submenu: there is nothing
+    // to expand into, and a group title is the one menu row antd lets grow to
+    // the two lines the reason needs — which is why the reason used to be in
+    // the DOM and invisible on the screen, and why `admin-blocked` was
+    // pixel-identical to the open state while these tests passed.
+    expect(screen.getByText("Privacy requests")).toBeDefined();
+    expect(document.querySelector(".ant-menu-submenu")).toBeNull();
+    expect(
+      document
+        .querySelector("[data-stapel-nav-blocked-reason]")
+        ?.closest(".ant-menu-item-group-title")
+    ).not.toBeNull();
   });
 
   it("states the reason once, on the section — not again on every screen inside it", async () => {

@@ -161,6 +161,10 @@ describe("<DeliveriesPane> — the log states its retention and gates its replay
     await screen.findByTestId("webhooks-log-rows");
     fireEvent.click(screen.getByTestId(`webhooks-log-open-${DELIVERY_DEAD.id}`));
 
+    // The wire blocks are folded on this card: two JSON dumps are the tallest
+    // thing on a phone sheet and the least of what a person opened it for. The
+    // test presses what a person presses.
+    fireEvent.click(await screen.findByText("Headers"));
     const headers = await screen.findByTestId(
       "webhooks-log-detail-headers"
     );
@@ -171,6 +175,7 @@ describe("<DeliveriesPane> — the log states its retention and gates its replay
     // misleading row on a debugging screen.
     expect(headers.textContent).not.toContain("X-Stapel-Signature");
 
+    fireEvent.click(await screen.findByText("Envelope"));
     const envelope = await screen.findByTestId("webhooks-log-detail-envelope");
     expect(envelope.textContent).toContain(DELIVERY_DEAD.event_id);
     expect(baseElement.textContent).toContain("Rebuilt from the stored event");

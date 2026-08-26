@@ -6,13 +6,18 @@
     {
       "id": "tokens.palette",
       "title": "Token palette",
-      "description": "Every design token by name — L1 raw ramps (hex), the §68 neutral colour roles (live var refs, re-theme on data-theme), and the spacing/radii/fontSize scales. Enumerated from the generated surface, so it never drifts.",
+      "description": "Every design token by name and by value — L1 raw ramps (literal hex), the §68 neutral colour roles (resolved at runtime, so the printed value follows data-theme), and spacing/radii/fontSize drawn as specimens. Click any cell to copy its value. Enumerated from the generated surface, so it never drifts.",
       "component": "Palette",
       "covers": [],
       "tokens": [
         "surface",
+        "surface-raised",
+        "surface-sunken",
         "text",
-        "border-subtle"
+        "text-muted",
+        "border-subtle",
+        "brand",
+        "success"
       ],
       "variants": [
         {
@@ -21,7 +26,7 @@
       ],
       "source": {
         "file": "demo/tokens-palette.demo.tsx",
-        "line": 104
+        "line": 427
       }
     }
   ]

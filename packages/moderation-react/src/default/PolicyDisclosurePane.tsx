@@ -61,7 +61,7 @@ export function PolicyDisclosurePane(
               <Table
                 size="small"
                 pagination={false}
-                scroll={{ x: true }}
+                scroll={{ x: "max-content" }}
                 rowKey={(row: PolicyReason) => row.code}
                 dataSource={[...policy.reasons]}
                 data-testid={`${testId}-reasons`}

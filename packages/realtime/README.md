@@ -159,29 +159,60 @@ A pair renders it beside the content it affects — never in a tooltip, because 
 reason nobody hovers is a reason nobody reads:
 
 ```tsx
+// Only an expired session is worth a retry. 4403/4404/4410 are verdicts (see
+// `closeDisposition`), and a Reconnect button on a verdict turns the reader
+// into a load generator for a host that has already said no.
+const RETRYABLE: Partial<Record<RealtimeRefusal, true>> = { session: true };
+
 function LiveBadge(): ReactElement | null {
   const { degradation, connected } = useRealtimeState();
-  const { reconnect } = useStream(streamKey, { optional: true });
+  const { status, reconnect } = useStream(streamKey, { optional: true });
   if (connected || degradation === null) return null;
 
-  const line = {
-    never_connected: t("realtime.degraded.never"),      // "Live updates unavailable — polling"
-    reconnecting_long: t("realtime.degraded.long", {    // "Reconnecting since {since} — showing cached data"
-      since: formatTime(degradation.since),
-    }),
-    refused: t("realtime.degraded.refused", { reason: degradation.reason ?? "" }),
-  }[degradation.kind];
+  // The refusal is a KIND, not a sentence: `status.refusal` selects one of
+  // your own keys. Never interpolate `degradation.reason` into copy — it is
+  // the server's `snake_case` payload (`removed_from_conversation`), and it
+  // belongs in a developer disclosure, not on the glass.
+  const line =
+    degradation.kind === "refused"
+      ? t(`realtime.refused.${status.refusal ?? "ended"}`)  // "Live updates ended — your access to this conversation was withdrawn"
+      : degradation.kind === "never_connected"
+        ? t("realtime.degraded.never")                      // "Live updates unavailable — showing cached data"
+        : t("realtime.degraded.long", {                     // "Reconnecting since {since} — showing cached data"
+            since: formatTime(degradation.since),
+          });
+
+  const retryable =
+    degradation.kind !== "refused" ||
+    (status.refusal !== undefined && RETRYABLE[status.refusal] === true);
 
   return (
-    <Banner tone="warning">
+    <Banner tone={degradation.kind === "refused" ? "error" : "warning"}>
       {line}
-      {degradation.kind !== "refused" || degradation.reason !== "origin" ? (
+      {/* The reason for a MISSING button sits where the button would have
+          been — that is what "beside the control" means when the control is
+          deliberately absent. */}
+      {retryable ? (
         <Button onClick={reconnect}>{t("realtime.retry")}</Button>
-      ) : null}
+      ) : (
+        <span>{t("realtime.retry-futile")}</span>
+      )}
     </Banner>
   );
 }
 ```
+
+That component is not pseudo-code: `demo/LiveBadge.tsx` in this package is a
+working, linted, token-styled build of exactly this shape — a coloured dot, one
+human sentence per state, a labelled **Reconnect** button only where retrying
+can change the answer, and the raw envelope one collapsed "Developer details"
+disclosure below it. Six variants of `realtime.connection-states` drive it with
+real frames on a scripted socket. It lives in `demo/` rather than in `src/`
+deliberately: a badge is copy plus a skin, this package ships neither (no i18n
+catalogue, no design system, two size budgets that exist so a pair which never
+opens a socket pays nothing), and the runtime's job ends at handing out
+`degradation.kind` and `status.refusal`. Copy the file into your pair and point
+`t()` at your own keys.
 
 `everConnected` is the same fact in its rawest form — `false` with a socket
 configured is the state that hid for months. `firstAttemptAt` and `lastOpenAt`
