@@ -8,7 +8,7 @@ export default { title: "video-react / The call stage" };
 
 export const NoPeer = (): ReactElement => renderDemoVariant(demo, "no-peer");
 NoPeer.storyName = "no-peer";
-NoPeer.parameters = { stapel: {"viewport":"phone"} };
+NoPeer.parameters = { stapel: {"viewport":"phone","step":"missing"} };
 export const NoToken = (): ReactElement => renderDemoVariant(demo, "no-token");
 NoToken.storyName = "no-token";
-NoToken.parameters = { stapel: {"viewport":"desktop"} };
+NoToken.parameters = { stapel: {"viewport":"desktop","step":"idle"} };

@@ -8,13 +8,13 @@ export default { title: "video-react / The lobby" };
 
 export const Queue = (): ReactElement => renderDemoVariant(demo, "queue");
 Queue.storyName = "queue";
-Queue.parameters = { stapel: {"viewport":"phone"} };
+Queue.parameters = { stapel: {"viewport":"phone","step":"waiting"} };
 export const Empty = (): ReactElement => renderDemoVariant(demo, "empty");
 Empty.storyName = "empty";
-Empty.parameters = { stapel: {"viewport":"desktop"} };
+Empty.parameters = { stapel: {"viewport":"desktop","step":"empty"} };
 export const NotHost = (): ReactElement => renderDemoVariant(demo, "not-host");
 NotHost.storyName = "not-host";
-NotHost.parameters = { stapel: {"viewport":"phone"} };
+NotHost.parameters = { stapel: {"viewport":"phone","step":"blocked"} };
 export const Roster = (): ReactElement => renderDemoVariant(demo, "roster");
 Roster.storyName = "roster";
-Roster.parameters = { stapel: {"viewport":"phone"} };
+Roster.parameters = { stapel: {"viewport":"phone","step":"ready"} };

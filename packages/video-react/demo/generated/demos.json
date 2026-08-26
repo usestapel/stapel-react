@@ -16,12 +16,14 @@
         {
           "id": "no-peer",
           "description": "The peer is not installed. The most likely state in any host that only wanted the usage report.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "missing"
         },
         {
           "id": "no-token",
           "description": "Not admitted yet, so there is no token. A sentence, not a failure.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "idle"
         }
       ],
       "source": {
@@ -44,22 +46,26 @@
         {
           "id": "queue",
           "description": "Two people waiting, one of them learned from the socket.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "waiting"
         },
         {
           "id": "empty",
           "description": "Nobody waiting — a designed zero state, not the digit 0.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "empty"
         },
         {
           "id": "not-host",
           "description": "A participant who is not the host. The verdicts are off and the sentence saying why is beside them.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "blocked"
         },
         {
           "id": "roster",
           "description": "The room's people with their state as a coloured tag — never the raw enum member the visual pass found across six packages.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "ready"
         }
       ],
       "source": {
@@ -85,32 +91,37 @@
         {
           "id": "default",
           "description": "The front door. There is no room list on the wire, and the pane says so rather than drawing an empty one.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "idle"
         },
         {
           "id": "phone",
           "description": "The same door at 390px — one column, 44px controls.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "idle"
         },
         {
           "id": "admitted",
           "description": "A host inside their own room: the code to share, the lobby queue, the roster, and the call surface.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "admitted"
         },
         {
           "id": "waiting",
           "description": "A guest parked in the lobby. The page says it is waiting AND whether it is still listening — the state chat used to hide behind a 15-second timer.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "waiting"
         },
         {
           "id": "denied",
           "description": "The host said no. Sticky for the room, so there is no retry — the one arm a generic error surface would have got wrong.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "denied"
         }
       ],
       "source": {
         "file": "demo/Meeting.demo.tsx",
-        "line": 19
+        "line": 18
       }
     },
     {
@@ -129,32 +140,37 @@
         {
           "id": "default",
           "description": "Two people in the newest month, with the month selector.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "ready"
         },
         {
           "id": "phone",
           "description": "The same month at 390px: cards, not a four-column table pushed off the side of the page.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "ready"
         },
         {
           "id": "nobody",
           "description": "A month that succeeded and holds nobody — a designed zero state, never the same screen as a refusal.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "empty"
         },
         {
           "id": "invalid-period",
           "description": "The table on its own, in the arm the pair owned a predicate for since 0.1.0 and never rendered: a reporting period the read cannot accept.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "invalid"
         },
         {
           "id": "unavailable",
           "description": "The uniform 404. One sentence for three situations, and never an empty table.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "unavailable"
         }
       ],
       "source": {
         "file": "demo/Video.demo.tsx",
-        "line": 94
+        "line": 93
       }
     }
   ]
