@@ -9,7 +9,7 @@
  */
 import type { ReactElement } from "react";
 import { Flex, List, Tag, Typography } from "antd";
-import { useT } from "@stapel/core";
+import { useFormat, useT } from "@stapel/core";
 import {
   EmptyState,
   ErrorAlert,
@@ -20,6 +20,7 @@ import { fontSize, spacing } from "@stapel/tokens";
 import type { Scorer } from "../api/types.js";
 import { RankingDisclosure } from "../headless/RankingDisclosure.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
+import { sortLabel } from "./sortLabels.js";
 import type { ThemeModeProp } from "./types.js";
 
 export interface RankingDisclosurePaneProps extends ThemeModeProp {
@@ -37,6 +38,7 @@ export function RankingDisclosurePane(
   props: RankingDisclosurePaneProps
 ): ReactElement {
   const t = useT();
+  const format = useFormat();
 
   return (
     <SkinTheme
@@ -86,7 +88,15 @@ export function RankingDisclosurePane(
                           <Typography.Text strong>
                             {t(scorer.description_key)}
                           </Typography.Text>
-                          <Tag>{scorer.weight}</Tag>
+                          {/* A bare "0.3" is a number with no unit in a
+                              statutory text. The tag says what the number IS;
+                              the disclosure's intro already says weights are
+                              relative to each other. */}
+                          <Tag>
+                            {t(SEARCH_I18N_KEYS.rankingWeight)}
+                            {" "}
+                            {format.number(scorer.weight) ?? scorer.weight}
+                          </Tag>
                         </Flex>
                         <Typography.Text type="secondary">
                           {scorer.description}
@@ -97,7 +107,12 @@ export function RankingDisclosurePane(
                         >
                           {t(SEARCH_I18N_KEYS.rankingAppliesTo)}
                           {": "}
-                          {scorer.applies_to_sorts.join(", ")}
+                          {/* The sorts a reader can actually choose, by the
+                              names the sort control gives them — not the
+                              registry's slugs. */}
+                          {scorer.applies_to_sorts
+                            .map((sort) => sortLabel(t, sort))
+                            .join(", ")}
                         </Typography.Text>
                         {!scorer.active && (
                           <Typography.Text type="warning" data-testid="ranking-inactive">

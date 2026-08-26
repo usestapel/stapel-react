@@ -19,12 +19,20 @@ import { SearchSkinHarness } from "./_harness.js";
 import type { DemoSeed } from "./_harness.js";
 import {
   DEMO_EMPTY_RESPONSE,
+  DEMO_RANKING,
   DEMO_SEARCH_RESPONSE,
   DEMO_TYPE,
 } from "./fixtures.js";
 
 const SEARCH = `type=${DEMO_TYPE}&q=bosch`;
-const FOUND: DemoSeed = { page: DEMO_SEARCH_RESPONSE };
+// The ranking answer rides along so the degradation banner can NAME the scorer
+// the engine skipped instead of printing its registry slug — the disclosure is
+// where that name lives, and the pane reads it from cache without asking again.
+const FOUND: DemoSeed = {
+  page: DEMO_SEARCH_RESPONSE,
+  ranking: DEMO_RANKING,
+  rankingType: DEMO_TYPE,
+};
 const NOTHING: DemoSeed = { page: DEMO_EMPTY_RESPONSE };
 
 function Pane(props: { phone?: boolean; seed: DemoSeed }): ReactElement {
@@ -45,6 +53,7 @@ export default defineDemo({
   description:
     "One keyset page in the default skin: a counted heading (a capped count reads 'N+', never a flat number the server did not promise), the degradation banner, an auto-fill card grid, and a pager that is ABSENT when there is nothing to page rather than disabled with its reason in a tooltip.",
   component: SearchResultsPane,
+  covers: ["SearchResults"],
   tokens: ["surface-raised", "warning-bg"],
   variants: {
     desktop: {

@@ -43,7 +43,7 @@ import {
   InputNumber,
   Typography,
 } from "antd";
-import { SlotPlaceholder, useT } from "@stapel/core";
+import { SlotPlaceholder, isDevBuild, useT } from "@stapel/core";
 import {
   EmptyState,
   ErrorAlert,
@@ -51,6 +51,7 @@ import {
   SkinTheme,
 } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
+import { featureName } from "@stapel/attributes-react";
 import type { FeatureDef } from "@stapel/attributes-react";
 import type { SearchGeo } from "../api/types.js";
 import { FacetPanel } from "../headless/FacetPanel.js";
@@ -91,6 +92,14 @@ export interface FacetPanelPaneProps extends ThemeModeProp {
   readonly renderGeoFilter?: (slot: GeoFilterSlotProps) => ReactNode;
   /** BCP-47 tags this deployment indexes — see {@link LanguageSelect}. */
   readonly languages?: readonly string[];
+  /**
+   * What the panel calls itself. `null` draws no title at all — for a surface
+   * that has ALREADY named it, which the phone sheet has: its dialog title and
+   * the panel's own heading both said "Filters", one under the other, in every
+   * shot of the open sheet. The row itself stays either way, because the
+   * "Clear all" control lives in it.
+   */
+  readonly heading?: ReactNode;
 }
 
 function OptionRow(props: {
@@ -165,7 +174,6 @@ function CategoryFilter(props: {
         {t(SEARCH_I18N_KEYS.categoryCurrent, { path: value })}
       </Typography.Text>
       <Button
-        size="small"
         style={{ alignSelf: "flex-start" }}
         data-testid="search-category-clear"
         data-analytics="none"
@@ -209,6 +217,12 @@ function GeoFilter(props: {
         : null;
 
   if (geo === undefined) {
+    // An unfilled slot is a NAMED hole in development and nothing at all in a
+    // production build — so the heading has to follow the placeholder rather
+    // than outlive it. It did not, and the live desktop panel printed
+    // "Location" over empty space with no location control under it
+    // (class NC-ORPHANFIELD): a label is a promise that a control follows.
+    if (props.render === undefined && !isDevBuild()) return null;
     return slot === null ? null : (
       <Flex vertical gap={spacing[1]} data-testid="search-geo">
         <Typography.Text strong>{t(SEARCH_I18N_KEYS.geoTitle)}</Typography.Text>
@@ -251,7 +265,6 @@ function GeoFilter(props: {
         </Flex>
       )}
       <Button
-        size="small"
         style={{ alignSelf: "flex-start" }}
         data-testid="search-geo-clear"
         data-analytics="none"
@@ -264,6 +277,31 @@ function GeoFilter(props: {
       </Button>
     </Flex>
   );
+}
+
+/**
+ * The slugs the server skipped, named the way the panel names everything else.
+ *
+ * `facet_meta.skipped` is a list of index slugs (`power_w`); the sentence that
+ * reports them was printing exactly that, so a shopper read "These filters
+ * were not counted for this search: power_w". The category schema is already
+ * in this component for the option labels — it names these too. A slug the
+ * schema does not know stays as it is, because a made-up name would be worse
+ * than an honest identifier.
+ */
+function skippedNames(
+  slugs: readonly string[],
+  features: readonly FeatureDef[] | undefined,
+  t: (key: string) => string
+): string {
+  return slugs
+    .map((slug) => {
+      const feature = features?.find((candidate) => candidate.slug === slug);
+      if (feature === undefined) return slug;
+      const name = t(featureName(feature));
+      return name.length > 0 ? name : slug;
+    })
+    .join(", ");
 }
 
 export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
@@ -289,12 +327,15 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
         {(bag) => (
           <Flex vertical gap={spacing[3]} data-testid="search-facets">
             <Flex justify="space-between" align="center" gap={spacing[2]}>
-              <Typography.Title level={5} style={{ margin: 0 }}>
-                {t(SEARCH_I18N_KEYS.facetsTitle)}
-              </Typography.Title>
+              {props.heading === null ? (
+                <span />
+              ) : (
+                <Typography.Title level={5} style={{ margin: 0 }}>
+                  {props.heading ?? t(SEARCH_I18N_KEYS.facetsTitle)}
+                </Typography.Title>
+              )}
               {bag.activeFilters > 0 && (
                 <Button
-                  size="small"
                   onClick={bag.clearAll}
                   data-analytics="none"
                   data-analytics-reason="a filter is a read, not a flow step"
@@ -337,7 +378,7 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 showIcon
                 data-testid="facets-skipped"
                 title={t(SEARCH_I18N_KEYS.facetsSkipped, {
-                  slugs: bag.skipped.join(", "),
+                  slugs: skippedNames(bag.skipped, props.categoryFeatures, t),
                 })}
               />
             )}
@@ -371,25 +412,33 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
             >
               {(groups) => (
                 <Flex vertical gap={spacing[4]}>
-                  {groups.map((group) => (
-                    <Flex
-                      vertical
-                      gap={spacing[1]}
-                      key={group.slug}
-                      data-testid={`facet-group-${group.slug}`}
-                      data-counted={group.counted ? "true" : "false"}
-                    >
-                      <Typography.Text strong>{group.label}</Typography.Text>
-                      {group.options.map((option) => (
-                        <OptionRow
-                          key={option.value}
-                          group={group}
-                          option={option}
-                          onToggle={bag.toggle}
-                        />
-                      ))}
-                    </Flex>
-                  ))}
+                  {/* A group with no options is a heading with nothing under
+                      it. `power_w` arrives in `skipped` and in no facet map,
+                      so it produced exactly that — "Power" printed twice on
+                      the desktop panel, once as the range row and once as a
+                      label over air. The skipped Alert above already names it;
+                      a heading with no control under it names nothing. */}
+                  {groups
+                    .filter((group) => group.options.length > 0)
+                    .map((group) => (
+                      <Flex
+                        vertical
+                        gap={spacing[1]}
+                        key={group.slug}
+                        data-testid={`facet-group-${group.slug}`}
+                        data-counted={group.counted ? "true" : "false"}
+                      >
+                        <Typography.Text strong>{group.label}</Typography.Text>
+                        {group.options.map((option) => (
+                          <OptionRow
+                            key={option.value}
+                            group={group}
+                            option={option}
+                            onToggle={bag.toggle}
+                          />
+                        ))}
+                      </Flex>
+                    ))}
                   <Typography.Text type="secondary">
                     {t(SEARCH_I18N_KEYS.facetsDrillDownHint)}
                   </Typography.Text>

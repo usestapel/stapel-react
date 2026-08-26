@@ -79,6 +79,10 @@ export const searchI18nBundleEs: I18nDictionary = {
 
   "search.filters.open": "Filtros ({count})",
   "search.filters.apply": "Ver resultados",
+  "search.filters.show_count.one": "Ver {count} resultado",
+  "search.filters.show_count.other": "Ver {count} resultados",
+  "search.filters.show_count_at_least.one": "Ver {count}+ resultado",
+  "search.filters.show_count_at_least.other": "Ver {count}+ resultados",
   "search.filters.dismiss": "Cerrar los filtros",
 
   "search.category.title": "Categoría",
@@ -90,6 +94,7 @@ export const searchI18nBundleEs: I18nDictionary = {
 
   "search.limit.label": "Por página",
   "search.limit.option": "{count} por página",
+  "search.limit.from_link": "Este enlace fija su propio tamaño de página.",
 
   "search.geo.title": "Ubicación",
   "search.geo.radius_km": "A menos de {km} km",
@@ -99,13 +104,14 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.geo.center": "Cerca de {lat}, {lon}",
 
   "search.url.issues_title": "Parte de este enlace no se pudo leer",
-  "search.url.issue.not_a_number": "{param} no es un número y se ignoró",
+  "search.url.issue.not_a_number":
+    "«{param}» en este enlace no es un número, así que se ignoró",
   "search.url.issue.geo_incomplete":
-    "la ubicación necesita lat y lon, así que se ignoró",
+    "la ubicación de este enlace está incompleta, así que se ignoró",
   "search.url.issue.bbox_malformed":
-    "el área necesita cuatro números (minLat,minLon,maxLat,maxLon) y se ignoró",
+    "el área del mapa de este enlace está incompleta, así que se ignoró",
   "search.url.issue.range_malformed":
-    "{param} no es un rango from..to y se ignoró",
+    "al rango «{param}» de este enlace le faltan números, así que se ignoró",
 
   "search.degraded.title": "Lo que esta búsqueda no pudo hacer",
   "search.degraded.typo_tolerance":

@@ -17,7 +17,7 @@
 import type { ReactElement } from "react";
 import { Flex, Select, Typography } from "antd";
 import { useT } from "@stapel/core";
-import { spacing } from "@stapel/tokens";
+import { fontSize, spacing } from "@stapel/tokens";
 import { useSearchState } from "../headless/SearchStateProvider.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 
@@ -39,26 +39,42 @@ export function PageSizeSelect(props: PageSizeSelectProps): ReactElement {
   const { state, setLimit } = useSearchState();
   const ladder = props.sizes ?? SEARCH_PAGE_SIZES;
   const active = state.limit ?? props.defaultSize ?? 24;
-  const values = ladder.includes(active) ? ladder : [...ladder, active].sort((a, b) => a - b);
+  const offLadder = !ladder.includes(active);
+  const values = offLadder ? [...ladder, active].sort((a, b) => a - b) : ladder;
 
   return (
-    <Flex gap={spacing[2]} align="center">
-      <Typography.Text type="secondary" aria-hidden="true">
-        {t(SEARCH_I18N_KEYS.limitLabel)}
-      </Typography.Text>
-      <Select<number>
-        data-testid="search-limit"
-        aria-label={t(SEARCH_I18N_KEYS.limitLabel)}
-        style={{ minWidth: PAGE_SIZE_SELECT_MIN_WIDTH }}
-        value={active}
-        onChange={(next) => {
-          setLimit(next);
-        }}
-        options={values.map((size) => ({
-          value: size,
-          label: t(SEARCH_I18N_KEYS.limitOption, { count: size }),
-        }))}
-      />
+    <Flex vertical gap={spacing[1]} data-off-ladder={offLadder ? "true" : "false"}>
+      <Flex gap={spacing[2]} align="center">
+        <Typography.Text type="secondary" aria-hidden="true">
+          {t(SEARCH_I18N_KEYS.limitLabel)}
+        </Typography.Text>
+        <Select<number>
+          data-testid="search-limit"
+          aria-label={t(SEARCH_I18N_KEYS.limitLabel)}
+          style={{ minWidth: PAGE_SIZE_SELECT_MIN_WIDTH }}
+          value={active}
+          onChange={(next) => {
+            setLimit(next);
+          }}
+          options={values.map((size) => ({
+            value: size,
+            label: t(SEARCH_I18N_KEYS.limitOption, { count: size }),
+          }))}
+        />
+      </Flex>
+      {/* Keeping a link's own page size is a DECISION, and a decision nobody
+          is told about is indistinguishable from a default. "37 per page" in
+          the box looks like the deployment's ladder until this line says
+          where it came from. */}
+      {offLadder && (
+        <Typography.Text
+          type="secondary"
+          style={{ fontSize: fontSize.xs.fontSize }}
+          data-testid="search-limit-from-link"
+        >
+          {t(SEARCH_I18N_KEYS.limitFromLink)}
+        </Typography.Text>
+      )}
     </Flex>
   );
 }

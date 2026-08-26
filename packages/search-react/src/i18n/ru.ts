@@ -102,6 +102,14 @@ export const searchI18nBundleRu: I18nDictionary = {
 
   "search.filters.open": "Фильтры ({count})",
   "search.filters.apply": "Показать результаты",
+  "search.filters.show_count.one": "Показать {count} объявление",
+  "search.filters.show_count.few": "Показать {count} объявления",
+  "search.filters.show_count.many": "Показать {count} объявлений",
+  "search.filters.show_count.other": "Показать {count} объявления",
+  "search.filters.show_count_at_least.one": "Показать {count}+ объявление",
+  "search.filters.show_count_at_least.few": "Показать {count}+ объявления",
+  "search.filters.show_count_at_least.many": "Показать {count}+ объявлений",
+  "search.filters.show_count_at_least.other": "Показать {count}+ объявления",
   "search.filters.dismiss": "Закрыть фильтры",
 
   "search.category.title": "Категория",
@@ -113,6 +121,7 @@ export const searchI18nBundleRu: I18nDictionary = {
 
   "search.limit.label": "На странице",
   "search.limit.option": "{count} на странице",
+  "search.limit.from_link": "Размер страницы задан этой ссылкой.",
 
   "search.geo.title": "Где искать",
   "search.geo.radius_km": "В радиусе {km} км",
@@ -122,13 +131,14 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.geo.center": "Рядом с {lat}, {lon}",
 
   "search.url.issues_title": "Часть этой ссылки прочитать не удалось",
-  "search.url.issue.not_a_number": "{param} — не число, параметр пропущен",
+  "search.url.issue.not_a_number":
+    "«{param}» в этой ссылке — не число, поэтому параметр пропущен",
   "search.url.issue.geo_incomplete":
-    "для точки нужны и lat, и lon — параметр пропущен",
+    "точка в этой ссылке указана наполовину, поэтому она пропущена",
   "search.url.issue.bbox_malformed":
-    "для области нужны четыре числа (minLat,minLon,maxLat,maxLon) — параметр пропущен",
+    "область на карте в этой ссылке указана не полностью, поэтому она пропущена",
   "search.url.issue.range_malformed":
-    "{param} — не диапазон вида from..to, параметр пропущен",
+    "диапазону «{param}» в этой ссылке не хватает чисел, поэтому он пропущен",
 
   "search.degraded.title": "Что этот поиск не смог сделать",
   "search.degraded.typo_tolerance":

@@ -114,10 +114,15 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
           }}
           onPressEnter={commit}
         />
+        {/* Primary when there is something to apply, secondary when there is
+            not. It used to be the other way round — filled over two empty
+            fields, ghosted the moment the person had typed the numbers the
+            button exists to submit (class C-NOPRIMARY). And no `size="small"`:
+            a filter row that a phone cannot hit is not a filter row, and the
+            shared `SkinTheme` only raises the DEFAULT control height to 44. */}
         <GatedButton
           gate={apply}
-          size="small"
-          type={group.active ? "default" : "primary"}
+          type={usable && !empty ? "primary" : "default"}
           testId={`facet-range-${group.slug}-apply`}
           data-analytics="none"
           data-analytics-reason="a filter is a read, not a flow step"
@@ -127,7 +132,6 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
         </GatedButton>
         {group.active && (
           <Button
-            size="small"
             data-testid={`facet-range-${group.slug}-clear`}
             data-analytics="none"
             data-analytics-reason="a filter is a read, not a flow step"

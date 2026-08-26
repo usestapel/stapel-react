@@ -2,9 +2,10 @@
 // CSF story projected from a defineDemo() source (frontend-guardrails §4.1).
 import type { ReactElement } from "react";
 import { renderDemoVariant } from "@stapel/showcase";
-import demo from "../FacetPanel.demo.js";
+import demo from "../FilterSheet.demo.js";
 
-export default { title: "search-react / Facet panel" };
+export default { title: "search-react / Filter sheet" };
 
-export const Default = (): ReactElement => renderDemoVariant(demo, "default");
-Default.storyName = "default";
+export const Open = (): ReactElement => renderDemoVariant(demo, "open");
+Open.storyName = "open";
+Open.parameters = { stapel: {"viewport":"phone","step":"sheet-open"} };

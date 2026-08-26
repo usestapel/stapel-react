@@ -48,6 +48,13 @@ export type DegradationNoticeVariant = "banner" | "inline" | "off";
 export interface DegradationNoticeProps {
   readonly degradations: readonly SearchDegradation[];
   readonly variant?: DegradationNoticeVariant;
+  /**
+   * Names a `scorer:` degradation's slug, when something on the page knows
+   * one. `<SearchResultsPane>` passes the ranking disclosure's own names
+   * (`useScorerNames`); with no answer the slug is printed, which is what a
+   * registry identifier is worth on its own.
+   */
+  readonly scorerName?: (slug: string) => string | undefined;
 }
 
 export function DegradationNotice(
@@ -60,14 +67,24 @@ export function DegradationNotice(
   // A count nuance is not a degraded search — the count already says "N+".
   if (isCountNuanceOnly(props.degradations)) return null;
 
+  const say = (degradation: SearchDegradation): string => {
+    const slug = degradation.scorer;
+    return t(degradation.messageKey, {
+      scorer:
+        slug === undefined
+          ? ""
+          : (props.scorerName?.(slug) ?? slug),
+      raw: degradation.raw,
+    });
+  };
+
+  // NOT `type="secondary"` in the banner: antd paints a warning Alert in the
+  // theme's warning tint, and grey body text on it measured under 3:1 in the
+  // visual pass. Inside a coloured box the readable colour is the box's own
+  // text colour, which is what a plain `<Typography.Text>` inherits.
   const lines = props.degradations.map((degradation) => (
     <li key={degradation.raw} data-degradation={degradation.raw}>
-      <Typography.Text type="secondary">
-        {t(degradation.messageKey, {
-          scorer: degradation.scorer ?? "",
-          raw: degradation.raw,
-        })}
-      </Typography.Text>
+      <Typography.Text>{say(degradation)}</Typography.Text>
     </li>
   ));
 
@@ -78,7 +95,11 @@ export function DegradationNotice(
           {t(SEARCH_I18N_KEYS.degradedTitle)}
         </Typography.Text>
         <ul style={{ margin: 0, paddingInlineStart: spacing[5], fontSize: fontSize.xs.fontSize }}>
-          {lines}
+          {props.degradations.map((degradation) => (
+            <li key={degradation.raw} data-degradation={degradation.raw}>
+              <Typography.Text type="secondary">{say(degradation)}</Typography.Text>
+            </li>
+          ))}
         </ul>
       </Flex>
     );

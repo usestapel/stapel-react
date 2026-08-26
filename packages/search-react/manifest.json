@@ -436,6 +436,9 @@
       "title": "Filter panel",
       "description": "The drill-down facet panel with every count beside its option — including the options you have not chosen, which is what makes them drill-down rather than naive — plus the server's honesty flags said in words: 'these counts are approximate' and the slugs it did not count at all, whose options read 'not counted' and never a zero that looks like an answer.",
       "component": "FacetPanelPane",
+      "covers": [
+        "FacetPanel"
+      ],
       "tokens": [
         "surface-raised"
       ],
@@ -446,17 +449,17 @@
       "source": "demo/FacetPanelPane.demo.tsx"
     },
     {
-      "id": "search.facets",
-      "title": "Facet panel",
-      "description": "Counts are computed with each facet's own filter removed, so picking one value does not zero its siblings. Labels come from the category schema through @stapel/attributes-react; a slug the server skipped shows 'not counted', never 0.",
-      "component": "FacetPanel",
+      "id": "search.filter-sheet",
+      "title": "Filter sheet",
+      "description": "The filters as a phone actually meets them: a bottom sheet over the results, with the drill-down counts beside every option, a Clear all for the two constraints the link arrived with, and a footer that commits by saying how many results the current choices lead to rather than a bare 'Apply'.",
+      "component": "SearchPage",
       "tokens": [
         "surface-raised"
       ],
       "variants": [
-        "default"
+        "open"
       ],
-      "source": "demo/FacetPanel.demo.tsx"
+      "source": "demo/FilterSheet.demo.tsx"
     },
     {
       "id": "search.language-select",
@@ -479,7 +482,9 @@
       "component": "SearchPage",
       "covers": [
         "SearchStateProvider",
-        "SearchProvider"
+        "SearchProvider",
+        "SearchResults",
+        "FacetPanel"
       ],
       "tokens": [
         "surface-raised",
@@ -521,23 +526,13 @@
       "source": "demo/RangeFilterRow.demo.tsx"
     },
     {
-      "id": "search.ranking",
-      "title": "Ranking disclosure",
-      "description": "Which parameters order the results and how much each weighs, straight from the scorer registry. Parameters the configured engine cannot evaluate are listed with their reason rather than filtered out.",
-      "component": "RankingDisclosure",
-      "tokens": [
-        "surface-raised"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/RankingDisclosure.demo.tsx"
-    },
-    {
       "id": "search.ranking-pane",
       "title": "Ranking disclosure",
       "description": "The statutory ranking page in the default skin: every scorer with its weight, the sorts it applies to, and — for a scorer the deployment's engine cannot evaluate — the reason it is inactive, so the disclosure describes the ranking that actually ran rather than the one that was configured.",
       "component": "RankingDisclosurePane",
+      "covers": [
+        "RankingDisclosure"
+      ],
       "tokens": [
         "surface-raised"
       ],
@@ -565,27 +560,13 @@
       "source": "demo/SearchResultCard.demo.tsx"
     },
     {
-      "id": "search.results",
-      "title": "Search results",
-      "description": "One keyset page, rendered through matchList so 'nothing found' can only be said about a search that actually ran. The count is marked as an estimate when the envelope says so, and degraded[] is surfaced rather than swallowed.",
-      "component": "SearchResults",
-      "covers": [
-        "SearchProvider",
-        "SearchStateProvider"
-      ],
-      "tokens": [
-        "surface-raised"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/SearchResults.demo.tsx"
-    },
-    {
       "id": "search.results-pane",
       "title": "Results pane",
       "description": "One keyset page in the default skin: a counted heading (a capped count reads 'N+', never a flat number the server did not promise), the degradation banner, an auto-fill card grid, and a pager that is ABSENT when there is nothing to page rather than disabled with its reason in a tooltip.",
       "component": "SearchResultsPane",
+      "covers": [
+        "SearchResults"
+      ],
       "tokens": [
         "surface-raised",
         "warning-bg"
@@ -718,6 +699,12 @@
     "search.filters.apply",
     "search.filters.dismiss",
     "search.filters.open",
+    "search.filters.show_count",
+    "search.filters.show_count.one",
+    "search.filters.show_count.other",
+    "search.filters.show_count_at_least",
+    "search.filters.show_count_at_least.one",
+    "search.filters.show_count_at_least.other",
     "search.geo.box",
     "search.geo.center",
     "search.geo.clear",
@@ -726,6 +713,7 @@
     "search.geo.title",
     "search.language.any",
     "search.language.label",
+    "search.limit.from_link",
     "search.limit.label",
     "search.limit.option",
     "search.ranking.applies_to",

@@ -14,6 +14,7 @@ import { useMemo, useState } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider, createI18n, useT } from "@stapel/core";
+import { SkinTheme, useThemeMode } from "@stapel/tokens-antd/skin";
 import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
 import {
   SearchProvider,
@@ -45,12 +46,27 @@ function statusAndBody(value: DemoResponse): [number, unknown] {
   return [200, value];
 }
 
+/**
+ * What an UNMOCKED path answers.
+ *
+ * It used to be `{}` with a 200, and that is what turned five stories into
+ * blank pages: an empty object is not a `SearchResponse`, so the first thing
+ * that read `data.items` or `data.facet_meta` off it threw, and a throw
+ * during render is a white screen with the reason only in the console. A
+ * demo that forgot a handler now renders the pane's own "we could not run
+ * this search" arm — a designed state, photographable, and true.
+ */
+const UNMOCKED: readonly [number, unknown] = [
+  503,
+  { code: "error.503.search_backend_unavailable", detail: "no demo handler", params: {} },
+];
+
 /** Build a canned `fetch` from a suffix→response map. */
 export function mockFetch(handlers: DemoHandlers): typeof globalThis.fetch {
   return ((input: RequestInfo | URL): Promise<Response> => {
     const url =
       typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-    let matched: DemoResponse = {};
+    let matched: DemoResponse = UNMOCKED;
     for (const [suffix, value] of Object.entries(handlers)) {
       if (url.includes(suffix)) {
         matched = value;
@@ -105,6 +121,27 @@ export interface DemoSeed {
   /** A `GET /suggest` answer for one prefix (the typeahead's cache). */
   readonly suggest?: SuggestResponse;
   readonly suggestPrefix?: string;
+}
+
+/**
+ * The wire answers the seed too.
+ *
+ * Seeding the cache alone was half a mechanism: `useSearchQuery` sets no
+ * `staleTime` (drill-down facets must not serve a stale page after a click),
+ * so a seeded entry is stale the instant it is mounted and TanStack refetches
+ * it in the background. The demo's `fetch` then answered whatever the handler
+ * map said — nothing, for a variant that seeded instead of mocking — and the
+ * page that was on screen was replaced by that. So a seed also mounts as a
+ * handler: the cache and the wire tell the same story, and the refetch that
+ * follows the first paint is a no-op instead of a demolition.
+ */
+function seedHandlers(seed: DemoSeed | undefined): DemoHandlers {
+  if (seed === undefined) return {};
+  return {
+    ...(seed.page !== undefined ? { "/query": seed.page } : {}),
+    ...(seed.ranking !== undefined ? { "/ranking": seed.ranking } : {}),
+    ...(seed.suggest !== undefined ? { "/suggest": seed.suggest } : {}),
+  };
 }
 
 /**
@@ -177,10 +214,11 @@ export function SearchDemoHarness(props: {
   children: ReactNode;
 }): ReactElement {
   const { handlers, seed, seedSearch } = props;
+  const mode = useThemeMode();
   const { runtime, queryClient, i18n } = useMemo(() => {
     const rt = createSearchRuntime({
       baseUrl: DEMO_BASE,
-      fetch: mockFetch(handlers ?? {}),
+      fetch: mockFetch({ ...seedHandlers(seed), ...(handlers ?? {}) }),
     });
     const engine = createI18n({ locale: "en" });
     registerSearchI18n(engine);
@@ -191,10 +229,18 @@ export function SearchDemoHarness(props: {
     }
     return { runtime: rt, queryClient: client, i18n: engine };
   }, [handlers, seed, seedSearch]);
+  // The mode is PINNED to what the document says right now, rather than left
+  // to the nearest `SkinTheme` to resolve. A story is shot at `data-theme` =
+  // light and dark, and a part that ships no wrapper of its own (the selects,
+  // the card, the two notices) was drawing antd's light algorithm on a dark
+  // page — light widgets, a second brand blue, 16 of 29 dark shots wrong.
+  // The frame the product composes them in is the frame the story photographs.
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
-        <SearchProvider runtime={runtime}>{props.children}</SearchProvider>
+        <SkinTheme surface="base" mode={mode} style={{ padding: spacing[4] }}>
+          <SearchProvider runtime={runtime}>{props.children}</SearchProvider>
+        </SkinTheme>
       </I18nProvider>
     </QueryClientProvider>
   );

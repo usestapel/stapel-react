@@ -38,6 +38,7 @@ import { spacing } from "@stapel/tokens";
 import type { SearchItem } from "../api/types.js";
 import { SearchResults } from "../headless/SearchResults.js";
 import type { SearchResultsBag } from "../headless/SearchResults.js";
+import { useScorerNames } from "../headless/useScorerNames.js";
 import { SEARCH_WINDOW_EXCEEDED } from "../i18n/errorsMap.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { DegradationNotice } from "./DegradationNotice.js";
@@ -199,6 +200,7 @@ function Pager(props: { bag: SearchResultsBag }): ReactElement | null {
 export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
   const t = useT();
   const { renderCard, renderResults } = props;
+  const scorerName = useScorerNames();
   const maxWidth = props.maxWidth === undefined ? RESULTS_MAX_WIDTH : props.maxWidth;
 
   return (
@@ -230,6 +232,7 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
             <DegradationNotice
               degradations={bag.degradations}
               variant={props.degradationNotice ?? "banner"}
+              scorerName={scorerName}
             />
 
             <LoadList

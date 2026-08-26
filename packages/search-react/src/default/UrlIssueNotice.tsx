@@ -11,8 +11,25 @@ import type { ReactElement } from "react";
 import { Alert } from "antd";
 import { spacing } from "@stapel/tokens";
 import { useT } from "@stapel/core";
+import { FILTER_PREFIX, RANGE_PREFIX } from "../state/urlState.js";
 import { useSearchState } from "../headless/SearchStateProvider.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
+
+/**
+ * The parameter as a person can recognise it.
+ *
+ * The codec reports the WIRE name, which for a facet or a range carries the
+ * prefix that tells the backend which family it belongs to (`r.price`,
+ * `f.brand`). That prefix is a protocol detail: the sentence is read by
+ * somebody who followed a link, and "price" is the part of `r.price` they
+ * have any chance of recognising.
+ */
+function readableParam(param: string): string {
+  for (const prefix of [RANGE_PREFIX, FILTER_PREFIX]) {
+    if (param.startsWith(prefix)) return param.slice(prefix.length);
+  }
+  return param;
+}
 
 export function UrlIssueNotice(): ReactElement | null {
   const t = useT();
@@ -28,7 +45,7 @@ export function UrlIssueNotice(): ReactElement | null {
         <ul style={{ margin: 0, paddingInlineStart: spacing[5] }}>
           {issues.map((issue) => (
             <li key={`${issue.param}:${issue.code}`}>
-              {t(issue.messageKey, { param: issue.param })}
+              {t(issue.messageKey, { param: readableParam(issue.param) })}
             </li>
           ))}
         </ul>

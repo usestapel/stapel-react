@@ -197,8 +197,16 @@ describe("a link whose parameters cannot be read says so", () => {
       expect(screen.getByTestId("search-url-issues")).toBeTruthy();
     });
     const text = screen.getByTestId("search-url-issues").textContent ?? "";
-    expect(text).toContain("lat and lon");
-    expect(text).toContain("r.price");
+    // One line per parameter the codec dropped, each identified: the half a
+    // location (`lat` with no `lon`) and the range that was a word. The names
+    // are the reader's — "location", "price" — not the wire's `r.price`,
+    // because the sentence is read by whoever followed the link.
+    expect(text).toContain("location");
+    expect(text).toContain("price");
+    expect(text).not.toContain("r.price");
+    expect(
+      screen.getByTestId("search-url-issues").querySelectorAll("li")
+    ).toHaveLength(2);
   });
 });
 

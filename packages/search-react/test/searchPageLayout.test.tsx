@@ -136,3 +136,81 @@ describe("the results heading names the list this surface is showing", () => {
     expect(screen.getAllByTestId("search-results-heading")).toHaveLength(1);
   });
 });
+
+/**
+ * The phone filter path — the only filter path a phone HAS, and until this
+ * release the one nothing outside a live browser had ever entered: the sheet
+ * opens on a tap, so every static render and every screenshot stopped at the
+ * closed button.
+ */
+describe("the filter sheet is a state the page can open in", () => {
+  function SheetPage(props: { readonly open?: boolean }): ReactElement {
+    const adapter: SearchParamsAdapter = useTestParams(
+      "type=listing&f.brand=bosch"
+    );
+    return (
+      <SearchPage
+        adapter={adapter}
+        defaultType="listing"
+        filtersLayout="sheet"
+        {...(props.open === true ? { defaultFiltersOpen: true } : {})}
+      />
+    );
+  }
+
+  it("keeps the sheet shut by default", async () => {
+    render(
+      <TestProviders server={serverWith({ brand: { bosch: 12 } }, ["brand"])}>
+        <SheetPage />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-filters-open")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("search-filters-sheet")).toBeNull();
+  });
+
+  it("opens it on defaultFiltersOpen, with the facets inside", async () => {
+    render(
+      <TestProviders server={serverWith({ brand: { bosch: 12 } }, ["brand"])}>
+        <SheetPage open />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-filters-sheet")).toBeTruthy();
+    });
+    expect(screen.getByTestId("search-facets")).toBeTruthy();
+  });
+
+  it("commits by saying how many results the choices lead to", async () => {
+    render(
+      <TestProviders server={serverWith({ brand: { bosch: 12 } }, ["brand"])}>
+        <SheetPage open />
+      </TestProviders>
+    );
+    // The fixture answers an EXACT count of 25. A bare "Show results" is a
+    // button that asks a person to commit without saying to what.
+    await waitFor(() => {
+      expect(screen.getByTestId("search-filters-apply").textContent).toBe(
+        "Show 25 results"
+      );
+    });
+  });
+
+  it("counts nothing on the opener until something is applied", async () => {
+    function Unfiltered(): ReactElement {
+      const adapter: SearchParamsAdapter = useTestParams("type=listing");
+      return (
+        <SearchPage adapter={adapter} defaultType="listing" filtersLayout="sheet" />
+      );
+    }
+    render(
+      <TestProviders server={serverWith({ brand: { bosch: 12 } }, ["brand"])}>
+        <Unfiltered />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-filters-open").textContent).toBe("Filters");
+    });
+  });
+});

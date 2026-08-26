@@ -48,15 +48,16 @@
  * be worse than the hole.
  */
 import { useState } from "react";
-import type { ReactElement, ReactNode } from "react";
-import { Button, Col, Flex, Row } from "antd";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
+import { Button, Flex } from "antd";
 import { SkinDialog, SkinTheme, useDialogSurface } from "@stapel/tokens-antd/skin";
-import { useT } from "@stapel/core";
+import { useT, useTPlural } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
 import type { FeatureDef } from "@stapel/attributes-react";
 import { SearchStateProvider, useSearchState } from "../headless/SearchStateProvider.js";
 import type { SearchParamsAdapter } from "../headless/SearchStateProvider.js";
 import { useFacetPanel } from "../headless/FacetPanel.js";
+import { useAppliedCount } from "../headless/useAppliedCount.js";
 import type { ParseSearchStateOptions } from "../state/urlState.js";
 import { buildRangeGroups } from "../state/ranges.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
@@ -76,6 +77,29 @@ import type { ThemeModeProp } from "./types.js";
 
 /** Where the filters live: beside the results, or behind a button in a sheet. */
 export type SearchFiltersLayout = "column" | "sheet";
+
+/**
+ * The desktop filter rail's width.
+ *
+ * A rail, not a half-page. `Col md={7}` gave the panel a SHARE of the page, so
+ * on a wide screen the filters grew with it — the visual pass measured 570 of
+ * 1280px (45%) spent on the controls that narrow a list, next to the list they
+ * narrow. Filters are a fixed instrument: a checkbox column needs the width of
+ * its longest label and nothing more, and every pixel past that comes out of
+ * the results. 280px is that width at the default type step, and it is the
+ * same panel the phone sheet draws — one component, two frames.
+ */
+export const FILTERS_RAIL_WIDTH = 280;
+
+/** The rail: fixed, never squeezed, never grown. */
+const RAIL: CSSProperties = {
+  flex: `0 0 ${String(FILTERS_RAIL_WIDTH)}px`,
+  maxWidth: FILTERS_RAIL_WIDTH,
+};
+
+/** The results take what is left. `minWidth: 0` so a long word inside a card
+ * cannot push the grid wider than its column. */
+const RESULTS_COLUMN: CSSProperties = { flex: "1 1 auto", minWidth: 0 };
 
 export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions {
   /** The URL binding. `useRouterSearchParams()` from `./router` is the
@@ -116,6 +140,16 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * not the viewport — not an escape hatch for "I prefer a column on phones".
    */
   readonly filtersLayout?: SearchFiltersLayout;
+  /**
+   * Open the phone filter sheet on mount.
+   *
+   * For a container that deep-links INTO the filters ("Refine this search"
+   * from a category page), and for the story that photographs the sheet —
+   * a state reached only by a tap is a state nothing outside a browser has
+   * ever seen. The person still closes it; this is the initial value, not a
+   * controlled one.
+   */
+  readonly defaultFiltersOpen?: boolean;
   /** Offer a page-size control beside the sort. Default `true`. */
   readonly pageSize?: boolean;
 }
@@ -133,6 +167,7 @@ interface SearchPageBodyProps {
   readonly resultsHeading?: ReactNode;
   readonly degradationNotice?: DegradationNoticeVariant;
   readonly filtersLayout?: SearchFiltersLayout;
+  readonly defaultFiltersOpen?: boolean;
   readonly pageSize?: boolean;
 }
 
@@ -142,16 +177,37 @@ interface SearchPageBodyProps {
  */
 function SearchPageBody(props: SearchPageBodyProps): ReactElement {
   const t = useT();
+  const tPlural = useTPlural();
   const { categoryFeatures, locale, filtersHeader } = props;
   const { state } = useSearchState();
   const facets = useFacetPanel({
     ...(categoryFeatures !== undefined ? { categoryFeatures } : {}),
     ...(locale !== undefined ? { locale } : {}),
   });
+  const applied = useAppliedCount();
   const surface = useDialogSurface();
   const layout: SearchFiltersLayout =
     props.filtersLayout ?? (surface === "sheet" ? "sheet" : "column");
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(props.defaultFiltersOpen === true);
+
+  /**
+   * "Show 25 results", not "Show results".
+   *
+   * The sheet's own button is the only place a person learns what the filters
+   * they just ticked did — the results are behind it. When the engine cannot
+   * say how many there are (`countKind: "unknown"`) the button says so by
+   * saying nothing: a fabricated number on the one control that commits the
+   * change is worse than a generic verb.
+   */
+  const applyLabel =
+    applied.count === null || applied.kind === "unknown"
+      ? t(SEARCH_I18N_KEYS.filtersApply)
+      : tPlural(
+          applied.kind === "at_least"
+            ? SEARCH_I18N_KEYS.filtersShowCountAtLeast
+            : SEARCH_I18N_KEYS.filtersShowCount,
+          { count: applied.count }
+        );
 
   // "Nothing to filter by" is a LOADED answer of zero facet groups AND no
   // other control with anything to say — see the header. Every clause is a
@@ -181,8 +237,11 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
           is its own empty state and the column is open for the host's control
           alone — one empty-state illustration under a working filter is still
           a hole, just a smaller one. */}
+      {/* In the sheet the dialog's own title already says "Filters"; the panel
+          repeating it printed the word twice, one line apart. */}
       {filtersEmpty ? null : (
         <FacetPanelPane
+          {...(layout === "sheet" ? { heading: null } : {})}
           {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
           {...(locale !== undefined ? { locale } : {})}
           {...(props.languages !== undefined ? { languages: props.languages } : {})}
@@ -240,7 +299,12 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
               setSheetOpen(true);
             }}
           >
-            {t(SEARCH_I18N_KEYS.filtersOpen, { count: facets.activeFilters })}
+            {/* "Filters (0)" is a count of nothing printed on the control that
+                opens the thing that would produce one. The count appears when
+                there is a count. */}
+            {facets.activeFilters === 0
+              ? t(SEARCH_I18N_KEYS.facetsTitle)
+              : t(SEARCH_I18N_KEYS.filtersOpen, { count: facets.activeFilters })}
           </Button>
           <SkinDialog
             open={sheetOpen}
@@ -261,7 +325,7 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
                   setSheetOpen(false);
                 }}
               >
-                {t(SEARCH_I18N_KEYS.filtersApply)}
+                {applyLabel}
               </Button>
             }
           >
@@ -270,20 +334,16 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
           {results}
         </>
       ) : showFilters ? (
-        <Row gutter={[spacing[4], spacing[4]]}>
-          <Col xs={24} md={7}>
-            {panel}
-          </Col>
+        <Flex align="flex-start" gap={spacing[5]} data-testid="search-page-columns">
+          <div style={RAIL}>{panel}</div>
           {/* ONE heading and ONE sort control. The page used to caption
               the toolbar "Results" and then mount a pane whose own heading
               says "Results" again — the live /s page printed both, one
               above the other. The pane owns the heading row; the page puts
               the sort control INTO it, and `resultsHeading` puts this
               surface's own word there rather than above it. */}
-          <Col xs={24} md={17}>
-            {results}
-          </Col>
-        </Row>
+          <div style={RESULTS_COLUMN}>{results}</div>
+        </Flex>
       ) : (
         results
       )}
@@ -306,6 +366,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     resultsHeading,
     degradationNotice,
     filtersLayout,
+    defaultFiltersOpen,
     pageSize,
     mode,
     ...parseOptions
@@ -327,6 +388,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(resultsHeading !== undefined ? { resultsHeading } : {})}
           {...(degradationNotice !== undefined ? { degradationNotice } : {})}
           {...(filtersLayout !== undefined ? { filtersLayout } : {})}
+          {...(defaultFiltersOpen !== undefined ? { defaultFiltersOpen } : {})}
           {...(pageSize !== undefined ? { pageSize } : {})}
         />
       </SearchStateProvider>

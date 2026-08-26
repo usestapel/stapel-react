@@ -25,14 +25,7 @@ import { SEARCH_SORTS } from "../api/types.js";
 import { useAppliedSort } from "../headless/useAppliedSort.js";
 import { useSearchState } from "../headless/SearchStateProvider.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
-
-const SORT_LABEL_KEY: Readonly<Record<string, string>> = {
-  relevance: SEARCH_I18N_KEYS.sortRelevance,
-  newest: SEARCH_I18N_KEYS.sortNewest,
-  price_asc: SEARCH_I18N_KEYS.sortPriceAsc,
-  price_desc: SEARCH_I18N_KEYS.sortPriceDesc,
-  distance: SEARCH_I18N_KEYS.sortDistance,
-};
+import { sortLabelKey } from "./sortLabels.js";
 
 /**
  * The select's floor width. Off the spacing scale on purpose and named for it:
@@ -91,7 +84,7 @@ export function SortSelect(props: SortSelectProps): ReactElement {
               setSort(next);
             }}
             options={values.map((value) => {
-              const key = SORT_LABEL_KEY[value];
+              const key = sortLabelKey(value);
               return {
                 value,
                 label: key !== undefined ? t(key) : value,

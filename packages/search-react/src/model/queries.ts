@@ -115,12 +115,14 @@ export function useSuggest(params: {
  * not while a person reads the page it explains.
  */
 export function useRankingDisclosure(
-  type?: string
+  type?: string,
+  options?: { readonly enabled?: boolean }
 ): UseQueryResult<RankingResponse, StapelApiError> {
   const api = useSearchApi();
   return useQuery({
     queryKey: searchQueryKeys.ranking(type),
     queryFn: ({ signal }) => api.ranking(type, { signal }),
+    enabled: options?.enabled ?? true,
     staleTime: Number.POSITIVE_INFINITY,
     retry: false,
   });

@@ -33,7 +33,18 @@ const HANDLERS: DemoHandlers = {
   "/ranking": DEMO_RANKING,
 };
 
-const SEED: DemoSeed = { page: DEMO_SEARCH_RESPONSE };
+/**
+ * The ranking answer is seeded beside the page's own, and it is not decoration:
+ * `degraded[]` reports a scorer the engine skipped as the slug `geo_decay`, and
+ * the disclosure is the only thing that knows that slug's NAME. Seed it and the
+ * banner says "Distance"; leave it out and the shot photographs a registry
+ * identifier in a shopper's sentence, which is what the visual pass found.
+ */
+const SEED: DemoSeed = {
+  page: DEMO_SEARCH_RESPONSE,
+  ranking: DEMO_RANKING,
+  rankingType: DEMO_TYPE,
+};
 
 const RESULTS_SEARCH = `type=${DEMO_TYPE}&q=bosch`;
 const UNREADABLE_SEARCH = `type=${DEMO_TYPE}&q=bosch&lat=abc&lon=37.6&r.price=cheap`;
@@ -61,7 +72,7 @@ export default defineDemo({
   description:
     "The composed /s screen: the query box bound to setText, the filter panel (category and location slots, numeric ranges, drill-down facets), the sort and page-size toolbar, and one keyset page of cards with the DSA promoted marking explained in words rather than in a tooltip.",
   component: SearchPage,
-  covers: ["SearchStateProvider", "SearchProvider"],
+  covers: ["SearchStateProvider", "SearchProvider", "SearchResults", "FacetPanel"],
   tokens: ["surface-raised", "warning-bg"],
   variants: {
     desktop: {

@@ -31,6 +31,7 @@ export default defineDemo({
   description:
     "The statutory ranking page in the default skin: every scorer with its weight, the sorts it applies to, and — for a scorer the deployment's engine cannot evaluate — the reason it is inactive, so the disclosure describes the ranking that actually ran rather than the one that was configured.",
   component: RankingDisclosurePane,
+  covers: ["RankingDisclosure"],
   tokens: ["surface-raised"],
   variants: {
     desktop: {

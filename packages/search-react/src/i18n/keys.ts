@@ -99,7 +99,13 @@ export const SEARCH_I18N_KEYS = {
 
   // ── the filter panel as a whole (phone sheet + host slots) ───────────────
   filtersOpen: "search.filters.open",
+  /** The sheet's commit button when the count is unknown. */
   filtersApply: "search.filters.apply",
+  /** "Show N results" — an EXACT count on the sheet's commit button.
+   * A PLURAL FAMILY. */
+  filtersShowCount: "search.filters.show_count",
+  /** "Show N+ results" — a FLOOR on the same button. A PLURAL FAMILY. */
+  filtersShowCountAtLeast: "search.filters.show_count_at_least",
   filtersDismiss: "search.filters.dismiss",
 
   // ── category (a host slot, plus the control that removes it) ─────────────
@@ -114,6 +120,9 @@ export const SEARCH_I18N_KEYS = {
   // ── page size ────────────────────────────────────────────────────────────
   limitLabel: "search.limit.label",
   limitOption: "search.limit.option",
+  /** Said beside the control when the URL carries a size the ladder does not
+   * offer — otherwise the story of "we kept your link's size" is invisible. */
+  limitFromLink: "search.limit.from_link",
 
   // ── geo ──────────────────────────────────────────────────────────────────
   geoTitle: "search.geo.title",
@@ -176,6 +185,8 @@ export const SEARCH_I18N_PLURAL_KEYS: readonly SearchI18nKey[] = [
   SEARCH_I18N_KEYS.resultsCountApproximate,
   SEARCH_I18N_KEYS.resultsCountAtLeast,
   SEARCH_I18N_KEYS.resultsCountExact,
+  SEARCH_I18N_KEYS.filtersShowCount,
+  SEARCH_I18N_KEYS.filtersShowCountAtLeast,
 ];
 
 /**
@@ -252,6 +263,10 @@ export const searchI18nBundleEn: Record<string, string> = {
 
   "search.filters.open": "Filters ({count})",
   "search.filters.apply": "Show results",
+  "search.filters.show_count.one": "Show {count} result",
+  "search.filters.show_count.other": "Show {count} results",
+  "search.filters.show_count_at_least.one": "Show {count}+ result",
+  "search.filters.show_count_at_least.other": "Show {count}+ results",
   "search.filters.dismiss": "Close the filters",
 
   "search.category.title": "Category",
@@ -263,6 +278,7 @@ export const searchI18nBundleEn: Record<string, string> = {
 
   "search.limit.label": "Per page",
   "search.limit.option": "{count} per page",
+  "search.limit.from_link": "This link sets its own page size.",
 
   "search.geo.title": "Location",
   "search.geo.radius_km": "Within {km} km",
@@ -272,13 +288,13 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.geo.center": "Around {lat}, {lon}",
 
   "search.url.issues_title": "Part of this link could not be read",
-  "search.url.issue.not_a_number": "{param} is not a number and was ignored",
+  "search.url.issue.not_a_number": "“{param}” in this link is not a number, so it was ignored",
   "search.url.issue.geo_incomplete":
-    "the location needs both lat and lon, so it was ignored",
+    "the location in this link is only half there, so it was ignored",
   "search.url.issue.bbox_malformed":
-    "the area needs four numbers (minLat,minLon,maxLat,maxLon) and was ignored",
+    "the map area in this link is incomplete, so it was ignored",
   "search.url.issue.range_malformed":
-    "{param} is not a from..to range and was ignored",
+    "the range “{param}” in this link needs two numbers, so it was ignored",
 
   "search.degraded.title": "What this search could not do",
   "search.degraded.typo_tolerance":

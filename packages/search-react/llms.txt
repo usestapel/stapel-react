@@ -78,15 +78,13 @@ const { tracked } = useTracked();
 - search.box → <SearchBox> [empty|typed]  demo/SearchBox.demo.tsx
 - search.degradation-notice → <DegradationNotice> [banner|inline]  demo/DegradationNotice.demo.tsx
 - search.facet-panel-pane → <FacetPanelPane> [open-search|narrowed]  demo/FacetPanelPane.demo.tsx
-- search.facets → <FacetPanel> [default]  demo/FacetPanel.demo.tsx
+- search.filter-sheet → <SearchPage> [open]  demo/FilterSheet.demo.tsx
 - search.language-select → <LanguageSelect> [offered|from-a-link]  demo/LanguageSelect.demo.tsx
 - search.page → <SearchPage> [desktop|phone|unreadable-link]  demo/SearchPage.demo.tsx
 - search.page-size-select → <PageSizeSelect> [ladder|off-ladder]  demo/PageSizeSelect.demo.tsx
 - search.range-filter-row → <RangeFilterRow> [untouched|applied]  demo/RangeFilterRow.demo.tsx
-- search.ranking → <RankingDisclosure> [default]  demo/RankingDisclosure.demo.tsx
 - search.ranking-pane → <RankingDisclosurePane> [desktop|phone]  demo/RankingDisclosurePane.demo.tsx
 - search.result-card → <SearchResultCard> [promoted|plain]  demo/SearchResultCard.demo.tsx
-- search.results → <SearchResults> [default]  demo/SearchResults.demo.tsx
 - search.results-pane → <SearchResultsPane> [desktop|phone|empty]  demo/SearchResultsPane.demo.tsx
 - search.sort-select → <SortSelect> [no-centre|with-centre]  demo/SortSelect.demo.tsx
 - search.url-issue-notice → <UrlIssueNotice> [two-issues|one-issue]  demo/UrlIssueNotice.demo.tsx

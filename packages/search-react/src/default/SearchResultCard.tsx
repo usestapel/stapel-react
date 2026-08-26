@@ -30,14 +30,27 @@
  *    (`stapel/no-tooltip-in-skin`), and the tag itself is a `--stapel-*` role
  *    rather than an antd preset, because the one legally-mandated marking in
  *    the pair has to look the same in every skin a deployment builds.
+ * 3. **The tag was white on cream.** `warning-on` is the text colour for the
+ *    SOLID warning fill; over `warning-bg` the readable role is `warning`
+ *    itself. The visual pass measured the one legally-mandated string in the
+ *    package at roughly 1.2:1 — a disclosure nobody can read is the same as
+ *    no disclosure, in both themes.
+ * 4. **The price was a raw amount and an ISO code.** "3200 RUB" is a wire
+ *    value printed as prose: no grouping, no symbol, and the code in the
+ *    reader's face. It goes through core's `useFormat().number` with
+ *    `style: "currency"`, which is the same `Intl` path `@stapel/currencies-
+ *    react`'s `formatMoney` takes — this pair does not depend on that package
+ *    (a search index is not a price book) but it must not invent a second
+ *    way to write money either.
  */
 import { useMemo } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Card, Flex, Typography } from "antd";
 import { Image } from "@stapel/image";
 import type { StapelImage } from "@stapel/image";
-import { useT } from "@stapel/core";
-import { cssVar, fontSize, radii, spacing } from "@stapel/tokens";
+import { useFormat, useT } from "@stapel/core";
+import type { Format } from "@stapel/core";
+import { cssVar, fontSize, fontWeight, radii, spacing } from "@stapel/tokens";
 import type { SearchItem } from "../api/types.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 
@@ -66,7 +79,51 @@ export const GENERIC_CARD_FIELDS: readonly string[] = [
   "currency",
   "location",
   "image_url",
+  "url",
 ];
+
+/**
+ * The card's price, written the way money is written.
+ *
+ * `card.price` arrives as a string because the index stores it as one, and
+ * `card.currency` as an ISO 4217 code because that is what a document carries.
+ * Rendered verbatim they read "3200 RUB": no grouping, the code where the
+ * symbol belongs, and the reader doing the arithmetic of where the thousands
+ * are. `Intl` knows all of that per locale, so the code goes in and the
+ * locale's own rendering comes out.
+ *
+ * Two ways this refuses to guess. A `price` that is not a finite number is
+ * passed through UNCHANGED — a doc type may store "on request", and turning
+ * that into `NaN` or into nothing loses what the seller wrote. A `currency`
+ * that is not a three-letter code (or one this runtime rejects) falls back to
+ * the plain grouped number plus the code, which is still better than the raw
+ * pair and never throws inside a render.
+ */
+export function formatCardPrice(
+  format: Format,
+  price: string | undefined,
+  currency: string | undefined
+): string | undefined {
+  if (price === undefined) return undefined;
+  const amount = Number(price);
+  if (!Number.isFinite(amount)) return price;
+  if (currency !== undefined && /^[A-Za-z]{3}$/.test(currency)) {
+    try {
+      const money = format.number(amount, {
+        style: "currency",
+        currency: currency.toUpperCase(),
+        currencyDisplay: "narrowSymbol",
+        maximumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+      });
+      if (money !== null) return money;
+    } catch {
+      // An unsupported currency code: fall through to the grouped number.
+    }
+  }
+  const grouped = format.number(amount);
+  if (grouped === null) return price;
+  return currency === undefined ? grouped : `${grouped} ${currency}`;
+}
 
 /**
  * The DSA Art. 26 marking, as a token role.
@@ -81,7 +138,10 @@ export const GENERIC_CARD_FIELDS: readonly string[] = [
 const PROMOTED_TAG: CSSProperties = {
   alignSelf: "flex-start",
   background: cssVar("warning-bg"),
-  color: cssVar("warning-on"),
+  // `warning`, not `warning-on`: the latter is the text colour for the SOLID
+  // warning fill (white on light), and over `warning-bg` it is cream on cream.
+  color: cssVar("warning"),
+  fontWeight: fontWeight.medium,
   border: `1px solid ${cssVar("warning-border")}`,
   borderRadius: radii.sm,
   padding: `0 ${String(spacing[2])}px`,
@@ -127,12 +187,30 @@ function cardImage(card: Readonly<Record<string, unknown>>): StapelImage | undef
   };
 }
 
+/**
+ * The whole card as ONE tap target.
+ *
+ * A catalogue row is a link — the person taps the picture, the title or the
+ * price and expects the same thing to happen. The card used to have no
+ * clickable anything at all: the entire result page of a storefront that had
+ * not passed `renderCard` was a wall of text with the tap target missing
+ * (class C-NOPRIMARY). `card.url` is the conventional field a doc type stores
+ * it in; without one the card stays exactly what it was, because inventing a
+ * destination is worse than not having one.
+ */
+const CARD_LINK: CSSProperties = {
+  color: "inherit",
+  display: "block",
+  textDecoration: "none",
+};
+
 export function SearchResultCard(props: SearchCardProps): ReactElement {
   const t = useT();
+  const format = useFormat();
   const card = props.item.card;
   const title = text(card["title"]) ?? t(SEARCH_I18N_KEYS.resultsUntitled);
-  const price = text(card["price"]);
-  const currency = text(card["currency"]);
+  const price = formatCardPrice(format, text(card["price"]), text(card["currency"]));
+  const href = text(card["url"]);
   const location = text(card["location"]);
   const distance =
     props.item.distance_km !== null
@@ -144,53 +222,81 @@ export function SearchResultCard(props: SearchCardProps): ReactElement {
   // is a load `<Image>` has to decide is or is not the same one.
   const image = useMemo(() => cardImage(card), [card]);
 
+  const body = (
+    <Flex vertical gap={spacing[2]}>
+      {image !== undefined && (
+        <div style={PHOTO} data-testid="search-result-photo">
+          {/* The WELL owns the shape (4:3, drawn before the network answers),
+              so the image is told to fill it. Without an explicit box the
+              image's own container reserves height only from the snapshot's
+              `aspect` — which a doc type storing a bare `image_url` does not
+              have — and a `cover` image inside a zero-height parent is a
+              photo that loaded and was never seen. */}
+          <Image
+            meta={image}
+            alt={t(SEARCH_I18N_KEYS.resultsImageAlt, { title })}
+            fit="cover"
+            style={{ width: "100%", height: "100%" }}
+          />
+        </div>
+      )}
+      <Flex vertical gap={spacing[1]}>
+        <Typography.Text strong>{title}</Typography.Text>
+        {/* The price is the strongest line on a catalogue card: it is what
+            the eye scans a grid for. It used to share a type step with the
+            location and sit under a disclosure three times its size. */}
+        {price !== undefined && (
+          <Typography.Text
+            strong
+            style={{ fontSize: fontSize.lg.fontSize }}
+            data-testid="search-result-price"
+          >
+            {price}
+          </Typography.Text>
+        )}
+        {(location !== undefined || distance !== undefined) && (
+          <Typography.Text type="secondary">
+            {[location, distance].filter((v) => v !== undefined).join(" · ")}
+          </Typography.Text>
+        )}
+      </Flex>
+    </Flex>
+  );
+
   return (
     <Card
       size="small"
       data-testid="search-result-card"
       data-promoted={props.item.promoted ? "true" : "false"}
+      {...(href !== undefined ? { hoverable: true } : {})}
       styles={{ body: { padding: spacing[3] } }}
     >
       <Flex vertical gap={spacing[2]}>
-        {image !== undefined && (
-          <div style={PHOTO} data-testid="search-result-photo">
-            <Image
-              meta={image}
-              alt={t(SEARCH_I18N_KEYS.resultsImageAlt, { title })}
-              fit="cover"
-            />
-          </div>
+        {href === undefined ? (
+          body
+        ) : (
+          <a href={href} style={CARD_LINK} data-testid="search-result-link">
+            {body}
+          </a>
         )}
-        <Flex vertical gap={spacing[1]}>
-          <Typography.Text strong>{title}</Typography.Text>
-          {price !== undefined && (
-            <Typography.Text>
-              {currency !== undefined ? `${price} ${currency}` : price}
+        {props.item.promoted && (
+          <Flex vertical gap={spacing[1]} data-testid="search-result-promotion">
+            <span style={PROMOTED_TAG} data-testid="search-result-promoted">
+              {t(SEARCH_I18N_KEYS.resultsPromoted)}
+            </span>
+            {/* The explanation the marking exists FOR. Visible, on every
+                device, because a legal disclosure that needs a mouse is a
+                disclosure a phone never receives — as a caption, so it marks
+                the card rather than outweighing what is for sale on it. */}
+            <Typography.Text
+              type="secondary"
+              style={{ fontSize: fontSize.xs.fontSize }}
+              data-testid="search-result-promoted-hint"
+            >
+              {t(SEARCH_I18N_KEYS.resultsPromotedHint)}
             </Typography.Text>
-          )}
-          {(location !== undefined || distance !== undefined) && (
-            <Typography.Text type="secondary">
-              {[location, distance].filter((v) => v !== undefined).join(" · ")}
-            </Typography.Text>
-          )}
-          {props.item.promoted && (
-            <Flex vertical gap={spacing[1]} data-testid="search-result-promotion">
-              <span style={PROMOTED_TAG} data-testid="search-result-promoted">
-                {t(SEARCH_I18N_KEYS.resultsPromoted)}
-              </span>
-              {/* The explanation the marking exists FOR. Visible, on every
-                  device, because a legal disclosure that needs a mouse is a
-                  disclosure a phone never receives. */}
-              <Typography.Text
-                type="secondary"
-                style={{ fontSize: fontSize.xs.fontSize }}
-                data-testid="search-result-promoted-hint"
-              >
-                {t(SEARCH_I18N_KEYS.resultsPromotedHint)}
-              </Typography.Text>
-            </Flex>
-          )}
-        </Flex>
+          </Flex>
+        )}
       </Flex>
     </Card>
   );

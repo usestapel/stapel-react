@@ -12,6 +12,54 @@ import type {
 
 export const DEMO_TYPE = "listing";
 
+/**
+ * A drawing rather than a photograph: an inline SVG data URI, so a card demo
+ * has a picture in every environment — a shot runner with no network, a
+ * reviewer offline — and pulls nothing from a host this package does not own.
+ *
+ * Parameterised by tone so a result PAGE does not show one image three times.
+ * A grid where every row carries the same picture photographs as a rendering
+ * bug even when it is only a fixture.
+ *
+ * The root carries an explicit `width`/`height` as well as its `viewBox`:
+ * `<Image>` commits a load through `HTMLImageElement.decode()`, and a browser
+ * asked to decode an SVG with no intrinsic size rejects it — which renders as
+ * the placeholder well, empty, in every card. The `charset` is spelled
+ * properly for the same reason: a fixture that fails to load is a fixture
+ * that tests nothing.
+ */
+function demoPhoto(body: string, tone: string): string {
+  return (
+    "data:image/svg+xml;charset=utf-8," +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" ' +
+        'viewBox="0 0 400 300">' +
+        `<rect width="400" height="300" fill="${tone}"/>` +
+        body +
+        "</svg>"
+    )
+  );
+}
+
+const DEMO_PHOTO_DRILL = demoPhoto(
+  '<rect x="90" y="120" width="150" height="60" rx="12" fill="#6b7280"/>' +
+    '<rect x="240" y="140" width="90" height="20" rx="6" fill="#9ca3af"/>' +
+    '<rect x="120" y="180" width="60" height="80" rx="10" fill="#4b5563"/>',
+  "#dbe3ee"
+);
+
+const DEMO_PHOTO_HAMMER = demoPhoto(
+  '<rect x="80" y="130" width="200" height="26" rx="10" fill="#8a6a45"/>' +
+    '<rect x="250" y="100" width="70" height="90" rx="12" fill="#6b7280"/>',
+  "#efe6da"
+);
+
+const DEMO_PHOTO_SAW = demoPhoto(
+  '<circle cx="200" cy="150" r="80" fill="#9ca3af"/>' +
+    '<circle cx="200" cy="150" r="26" fill="#e5e7eb"/>',
+  "#e4ece4"
+);
+
 /** A page with a promoted row, approximate facet counts and one skipped slug. */
 export const DEMO_SEARCH_RESPONSE: SearchResponse = {
   items: [
@@ -20,21 +68,41 @@ export const DEMO_SEARCH_RESPONSE: SearchResponse = {
       score: 1.42,
       promoted: true,
       distance_km: 3.4,
-      card: { title: "Bosch GSB 13 RE", price: "3200", currency: "RUB", location: "Moscow" },
+      card: {
+        title: "Bosch GSB 13 RE",
+        price: "3200",
+        currency: "RUB",
+        location: "Moscow",
+        image_url: DEMO_PHOTO_DRILL,
+        url: "https://demo.stapel.dev/l/1001",
+      },
     },
     {
       key: "l-1002",
       score: 1.1,
       promoted: false,
       distance_km: 11.9,
-      card: { title: "Makita HP1630", price: "4100", currency: "RUB", location: "Khimki" },
+      card: {
+        title: "Makita HP1630",
+        price: "4100",
+        currency: "RUB",
+        location: "Khimki",
+        image_url: DEMO_PHOTO_HAMMER,
+        url: "https://demo.stapel.dev/l/1002",
+      },
     },
     {
       key: "l-1003",
       score: 0.8,
       promoted: false,
       distance_km: null,
-      card: { title: "Interskol DU-13", price: "1800", currency: "RUB" },
+      card: {
+        title: "Interskol DU-13",
+        price: "1800",
+        currency: "RUB",
+        image_url: DEMO_PHOTO_SAW,
+        url: "https://demo.stapel.dev/l/1003",
+      },
     },
   ],
   facets: {
@@ -82,21 +150,6 @@ export const DEMO_EMPTY_RESPONSE: SearchResponse = {
   degraded: [],
 };
 
-/**
- * A drawing rather than a photograph: an inline SVG data URI, so the card demo
- * has a picture in every environment — a shot runner with no network, a
- * reviewer offline — and pulls nothing from a host this package does not own.
- */
-const DEMO_PHOTO_URI =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">' +
-      '<rect width="400" height="300" fill="#d9d9d9"/>' +
-      '<circle cx="140" cy="120" r="44" fill="#bfbfbf"/>' +
-      '<path d="M40 260 L160 150 L250 230 L310 190 L360 260 Z" fill="#a6a6a6"/>' +
-      "</svg>"
-  );
-
 /** The one item the DSA marking is about: promoted, with a photo. */
 export const DEMO_PROMOTED_ITEM: SearchItem = {
   key: "l-1001",
@@ -108,17 +161,24 @@ export const DEMO_PROMOTED_ITEM: SearchItem = {
     price: "3200",
     currency: "RUB",
     location: "Moscow",
-    image_url: DEMO_PHOTO_URI,
+    image_url: DEMO_PHOTO_DRILL,
+    url: "https://demo.stapel.dev/l/1001",
   },
 };
 
-/** An ordinary row: no marking, no photo, no distance — the common case. */
+/** An ordinary row: no marking, no distance, and no `url` — a doc type that
+ * stores none gets a card that is read, not opened. */
 export const DEMO_PLAIN_ITEM: SearchItem = {
   key: "l-1003",
   score: 0.8,
   promoted: false,
   distance_km: null,
-  card: { title: "Interskol DU-13", price: "1800", currency: "RUB" },
+  card: {
+    title: "Interskol DU-13",
+    price: "1800",
+    currency: "RUB",
+    image_url: DEMO_PHOTO_SAW,
+  },
 };
 
 /** Title prefixes out of the INDEX — never a query log (`services.suggest`). */
