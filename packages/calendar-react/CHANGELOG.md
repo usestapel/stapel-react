@@ -1,5 +1,37 @@
 # @stapel/calendar-react
 
+## 0.7.0
+
+### Minor Changes
+
+- 80617e9: The calendar becomes a feature, not a client: a default antd skin, six missing headless primitives, and the wire dedup the contract has always demanded.
+
+  **The dedup (correctness bug, independent of any skin).** `GET /calendar` returns a materialized occurrence twice by design — as a row in `events[]` and as an entry in `occurrences[]` — and stapel-calendar's MODULE.md says clients must dedup by `occurrences[].materialized_id == events[].id`. This pair did not: it handed both arrays through raw, so every consumer drew a repeating meeting twice at the same instant, and cancelled rows arrived as ordinary events with no arm. `dedupeCalendarRange` (`model/occurrences.ts`) now applies the rule once, in the pair, and `CalendarViewBag.state` carries `instances` (each drawable instant exactly once, with its series identity intact) plus a named `cancelled` arm. Six tests pin it against the generated schema types.
+
+  **Six primitives that were hooks and nothing else.** `EventList`, `EventDetail`, `EventEditor` (PATCH **and** cancel), `EventDelete`, `ParticipantsEditor` and `Availability` — availability, the agenda, detail, edit/cancel, delete and the invitee replace-set were reachable only by a host that wrote the whole screen itself.
+
+  **A default skin behind `./default`** (new export; `antd` + `@stapel/tokens-antd` peers): `Calendar` (month/week/day, geometry from element width — a narrow box gets the agenda, never a sideways-scrolling grid), `CalendarMonthGrid`, `CalendarAgenda`, `EventSheet`, `EventEditorSheet` (create and edit in one surface, with the cancel arm), `RecurrenceField` (presets read from a registry, `until` XOR `count`), `ParticipantsField` (shows the complete resulting set before a replace-set write), `RsvpControl` (ONE primary, the server-set `invited` never offered), `DeleteEventAction` (confirmation in a sheet, told apart from cancel), `AvailabilityPane`. Every dialog is `SkinDialog`/`SkinConfirm`; every load arm, empty state and error comes from `@stapel/tokens-antd/skin`; there is deliberately no local `SkinTheme` copy and no local `ErrorAlert`.
+
+  **`truncated` is on the screen.** `AvailabilityResponse.truncated` means a series expansion hit its cap and later times only LOOK free. It appeared nowhere outside the generated schema; it is now a visible warning above the slots, and an empty `slots[]` is named as "no windows are set" rather than "nothing free".
+
+  **The mandate refusal has words.** stapel-calendar moved the event endpoints onto `HasWorkspaceMandateIfScoped`, creating a refusal class with no typed footprint. `error.503.mandate_unavailable` was missing from the error bundle entirely (it rendered as a raw key); it is regenerated, and `isMandateUnavailable`/`isMandateDenied` keep "we could not ask" from rendering as "you may not".
+
+  **Also:** dates and times go through a formatter (`model/format.ts`) — no component interpolates a wire instant into JSX; client-side parity for the two documented 400s (`end >= start`, `slot_minutes >= 1`) as blocked-action reasons beside the control; `ru` and `es` bundles on `./i18n/ru` and `./i18n/es`; a nav manifest (`calendar.month`, `calendar.availability`); the contract pin moves from `>=0.3 <0.4` to `>=0.6 <0.7` against stapel-calendar 0.6.1, whose schema now declares the `start`/`end`/`slot_minutes` query parameters the client had been hand-writing.
+
+  Breaking (pre-1.0, therefore minor): `CalendarRangeData` gains `instances`/`cancelled` and its `events` no longer includes materialized-occurrence duplicates or tombstones.
+
+### Patch Changes
+
+- 308e3d6: The default skin gets photographed: a demo for every one of the ten surfaces, seeded at the state it is named for, and a render matrix that holds the mobile-first and theme rules to their promise.
+
+  **Six surfaces had no picture.** `EventSheet`, `EventEditorSheet`, `RecurrenceField`, `ParticipantsField`, `RsvpControl` and `DeleteEventAction` were built, wired and tested, but nothing in the catalogue drew them — so the skin gate had to stay in listing mode for this pair. Each now has a demo importing from `src/default`, with phone variants and the states that matter: the owner/invitee axis and the three different refusals on the event sheet (403 "a workspace you're not in", 503 "we could not ask", the narrower owner-only block); create, edit, the zero-duration marker and the owner-only refusal on the editor; `until` XOR `count` and the custom preset on the recurrence field; both replace-set modes on the invitee list; the answer-on-record and each blocked reason on the RSVP row; and the delete confirmation in both of its consequences. `node scripts/gen-demos.mjs` reports **10/10 skin covered, 0 missing, 0 unseeded** for this package and passes `--strict`.
+
+  **Variants are seeded, not hopeful.** A read served by a mocked `fetch` paints its loading arm on the first frame, so a catalogue of six variants photographs one skeleton six times. The demo harness gained a `seed`: the answer — or the exact refusal — goes straight into the query cache, and the client is configured so nothing re-reads over it (`retryOnMount: false` is load-bearing — react-query clears a cached error the moment it starts a fetch on a query holding no data). `assertVariantsRenderDistinctly` now runs over every demo in the suite and is what keeps it honest. It is fed a jsdom renderer rather than `renderToStaticMarkup`, because half of this pair's surfaces are dialogs and React's server renderer refuses portals outright.
+
+  **A render matrix, ten surfaces wide.** Every default-skin surface is now rendered at 390px and 1280px, on both theme sides: the surface appears, every skin root in the document reports the document's live mode (a `mode = "light"` default would fail it), and the three dialog surfaces are bottom sheets on a phone and centred modals above the tablet break. The `matchMedia` stub's `matches` became a live getter in the process — the substrate caches one `MediaQueryList` per process because a real one is live, so a frozen stub answered every width with the first one and a phone/desktop matrix would have quietly asserted the same side twice. 40 → 98 tests.
+
+  **`DeleteEventAction` accepts `open` / `onOpenChange`** (additive). The confirmation was reachable only by clicking, which meant no static shot could ever show what deleting one time in a series says differently from deleting a standalone event. Controlling it is also what a host needs to put "Delete" in its own overflow menu and still get this pair's confirmation copy.
+
 ## 0.6.1
 
 ### Patch Changes

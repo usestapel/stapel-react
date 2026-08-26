@@ -1,5 +1,166 @@
 # @stapel/cdn-react
 
+## 0.4.0
+
+### Minor Changes
+
+- 308e3d6: feat: the read side ships — `MediaAttachment`, video/document intake, and a skin that looks like an upload control
+
+  Wave D on top of the describe keystone. The pair could already ASK what a
+  reference was; nothing could draw the answer, and two shipped endpoints still
+  had no widget.
+
+  **`<MediaAttachment/>` — the surface chat and listings mount.** One reference,
+  drawn by its `render_meta.kind`: a photo picks its tier from its own element, a
+  video renders `poster_url` with the clip's length over it (an `<img>` cannot
+  load an mp4), an audio row renders the waveform that IS its render, and a
+  document renders its extension and size because no pixels for it exist. A
+  snapshot handed in (`meta={…}`) makes NO request — a thread resolves thirty refs
+  with one `useDescribe` and hands each bubble its answer. A reference that
+  resolves to nothing says "this attachment is no longer available" (data, with a
+  200 behind it); a reference we could not ASK about says something different and
+  carries a retry. `preview_kind` reserves the box in the right shape before
+  `preview_b64` exists, so the only movement left is the describe round trip
+  itself, which holds a reserved slot rather than collapsing.
+
+  **`<MediaUploadField kind="video" | "file">`.** `POST /upload/video/` and
+  `POST /upload/file/` have been typed and callable since this package was
+  written, documented in its own source as endpoints with "no hook and no widget
+  over it". They have both now. The ceilings, the `accept` string and the result
+  renderer are all data, so it is one component with two arms rather than the same
+  file twice with a different noun — and this is where `duration_ms`,
+  `poster_url` and the waveform half of §83.2 finally have a producer.
+
+  **The upload controls are upload controls.** Both fields now stand on a real
+  drop target: a bordered region that takes a drag, a `<label htmlFor>` that makes
+  the whole rectangle open the picker (and gives the hidden input the association
+  it never had), and a focusable button beside it, because a `<label>` is not
+  focusable and a `display: none` input is out of the tab order. The picked or
+  stored image is drawn inside the frame. The phase is announced
+  (`aria-live="polite"`) instead of only painted, and it no longer says "Waiting
+  its turn" under a control nothing was ever queued on.
+
+  **`variants_status` is read, and shown.** Every `variant_<n>_url` is a derived
+  path present in the 201 that creates the row, before any file exists behind it;
+  the contract says to read `variants_status` before rendering one. The flow read
+  `is_processed` — equivalent today by derivation, and the field whose meaning the
+  release notes moved. `variantsStatusOf` / `variantsReadyAtOf` are exported, the
+  outcome, the queue item and the image bag carry it, and the skins show the
+  server's own word for "the previews are still being made".
+
+  **Counting, and the substrate.** `cdn.gallery.count` is a plural family rendered
+  with `tPlural` — it read "1 of 1 photos" in three languages — and the full-gallery
+  refusal is worded without a counted noun, because `useActionGate` resolves a
+  block's code with `t`, which cannot select a form. The local
+  `src/default/ErrorAlert.tsx` is deleted in favour of the shared skin's, the
+  gallery's empty state is an `EmptyState`, the add control is a `GatedButton`, and
+  every surface is wrapped in `SkinTheme` (so a phone gets 44px controls — the tile
+  buttons lost `size="small"`, which had opted every one of them out of that rule
+  on the surface it is for). `CdnThumbnail`'s empty frame takes the border role
+  instead of inheriting text colour.
+
+  Breaking, pre-1.0 (minor): `UploadOutcome` gains `variantsStatus` /
+  `variantsReadyAt`, `UploadItem` and `UploadImageBag` gain `variantsStatus`, and
+  `ImageUploadField` / `MediaGalleryField` accept `mode`. The gallery's internal
+  test ids moved under the drop zone (`cdn-gallery-drop-*`).
+
+  New: `MediaAttachment`, `MediaUploadField`, `formatBytes`, `formatDurationMs`,
+  `variantsStatusOf`, `variantsReadyAtOf`, `CdnVariantsStatus`,
+  `ATTACHMENT_MAX_WIDTH_PX`, `RESERVED_ASPECT`. Peer floors raised to
+  `@stapel/core >=0.18.0` and `@stapel/tokens-antd >=0.6.0`.
+
+  Fixed alongside: the batching describe loader could hang every waiter in a batch
+  if the injected client threw synchronously — the call is now raised inside a
+  promise chain, so a failure that reaches nobody is impossible.
+
+  Tests 104 → 175, including dedicated suites for the describe loader/hook and for
+  the `render_meta` read. Five default-skin demos, every one with a phone variant
+  and a seeded step; `cdn.single`'s two byte-identical variants are one.
+
+- 80617e9: The pair stops throwing away the metadata the backend went to the trouble of producing, and a browser can finally describe a reference it did not upload.
+
+  **`toStapelImage` reads `render_meta`.** This function is the fleet's one boundary
+  into `<Image>`, and it hardcoded `preview_b64: null` under a comment stating that
+  stapel-cdn generates no inline placeholder — false since 0.16, which is why the
+  blur-up path was dead code fleet-wide. It also recomputed `aspect` from the row's
+  own width and height, producing a second answer to a question the server had
+  already answered and rounded differently. Now the snapshot wins: `preview_b64`,
+  `aspect`, `mime`, `square` are read, and `kind` / `preview_kind` / `duration_ms` /
+  `meta_status` / `meta_reason` are carried through to `@stapel/image`'s widened
+  `StapelImage`. Local arithmetic survives only as the fallback for a host still on
+  an older stapel-cdn. The ladder is taken from `render_meta.variants`, which is the
+  only list carrying the `original` rung — the one a hero needs.
+
+  **Contract pin 0.12 → 0.17** with the schema, the manifest and the error bundles
+  regenerated: 54 error keys now, including `error.400.too_many_refs`, authored in
+  en/ru/es because stapel-cdn ships English only. The limits mirror was re-verified
+  line by line against `conf.py` at 0.17 and is still byte-accurate.
+
+  **`describe` is reachable** (stapel-cdn 0.17.0's new `POST /describe/`):
+
+  - `CdnApi.describe(refs)` + `CDN_DESCRIBE_MAX_REFS`, and the `CdnRenderMeta` /
+    `CdnDescribeResponse` types — with `variants[]` widened out of the generated
+    `Record<string, never>[]`, which describes nothing.
+  - `useDescribe(refs)` / `useDescribeRef(ref)` over a batching loader. Callers ask
+    per ref; requests raised in the same tick coalesce into as few POSTs as the
+    50-ref ceiling allows, and the CACHE UNIT IS THE REF — so thirty attachments
+    sharing references cost one request, and a thirty-first does not re-fetch the
+    thirty already in hand. Neither of the obvious shapes would do: one request per
+    ref walks into the rate limit while a page draws itself, and one query keyed on
+    "the list this component happens to hold" caches an overlapping copy per
+    component.
+  - **Missing is data.** A ref that was deleted, never stored or is malformed
+    resolves to `null` with a 200 behind it, never a rejection — one dead
+    attachment must not cost a page its other thirty-nine. A transport failure
+    stays a failure, because "this attachment is gone" and "we could not ask" are
+    different sentences.
+  - Rate limiting is re-asked on the server's own `retry_after` (clamped);
+    everything else is a settled answer a retry would only repeat.
+  - `renderMetaToStapelImage(meta)` converts a snapshot for `<Image>`, which is
+    what makes an attachment renderer expressible at all.
+
+  **Video and document intake are one flow with images, at the model layer.**
+  `CdnUploadTarget` gains `{kind:"video"}` and `{kind:"file"}`; `runUpload` returns
+  `{row, kind}` for all three models. The dedup pre-check now matches on KIND as
+  well as asset type (the same bytes stored earlier as a document are not the image
+  this POST would return), the variant wait polls the right kind, a document is born
+  settled because it has no derived work to wait for, and a queue validates against
+  the ceilings for ITS intake instead of always the image ones. `refOf(row, kind)`
+  reads `render_meta.ref` — the backend's own `media_ref()` — before falling back to
+  `prefix`, and only builds `<kind>/<hash>` for the video row, the one serializer
+  that publishes neither. Video references were unreachable before.
+
+  BREAKING (pre-1.0, so minor): `UploadOutcome.image` → `{row, kind}`;
+  `UploadItem.image` → `{row, kind}` with the new `imageRowOf(item)` narrowing
+  helper. `UploadImageBag.image` is unchanged — that bag is the image slot and stays
+  narrowed. `refOf` takes the row and its kind.
+
+  Also: the `cdn.thumbnail-tier` `fluid` story rendered a blank white page — its
+  `useT()` sat one level ABOVE the `<I18nProvider>` its own harness renders, so the
+  hook threw. Moved into a child, where the working variant already had it. Both
+  variants now declare their viewport and seeded step, and the tile geometry and the
+  two reorder buttons carry their reasons in code rather than as bare numbers and
+  bare booleans — the package is at zero doctrine-lint warnings.
+
+- 95e8eec: An upload tile asks for the tier its own box needs, not for the smallest file
+  on the ladder.
+
+  Both upload skins rendered a raw `<img>` into a hardcoded 96x96 frame with
+  `smallestVariantUrl(image)` as its source — the bottom rung, chosen with no
+  reference to the frame at all. On a 2x or 3x phone that frame wants 192-288
+  device pixels, so the smallest tier is guaranteed to be under-resolution, and
+  every thumbnail in the fleet's upload grids was soft on exactly the screens
+  that show it most.
+
+  The new `<CdnThumbnail>` (exported from `/default`) routes the CDN case through
+  `@stapel/image`'s `<Image>`, which measures the element's own rendered box,
+  multiplies by the live device pixel ratio and picks the smallest tier that does
+  not upscale. The local pick stays a plain `<img>`: an object URL has no ladder,
+  and the whole point of it is that it paints before any request is made.
+  `smallestVariantUrl` remains exported — it is still the right answer for a
+  caller that genuinely wants the cheapest byte — it is just no longer what a
+  rendered tile uses.
+
 ## 0.3.0
 
 ### Minor Changes

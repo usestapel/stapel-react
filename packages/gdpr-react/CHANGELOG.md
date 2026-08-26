@@ -1,5 +1,100 @@
 # @stapel/gdpr-react
 
+## 0.2.0
+
+### Minor Changes
+
+- 80617e9: The pair gets a face the showcase can photograph, a Spanish locale, an export
+  that watches itself, and the public intake page it was missing.
+
+  **Spanish.** `./i18n/es` (`gdprI18nBundleEs`, `registerGdprI18nEs`) — the
+  generated backend bundle plus this pair's own ~120 UI keys. A GDPR module that
+  could not speak a European language whose catalogue it already shipped was a
+  bad look specifically for this module. `error.409.gdpr.export_cooldown` is now
+  overridden in EN as well: Russian had a polished sentence English did not,
+  which is a key that resolves in one locale only, and a new parity test pins
+  en/ru/es to the same key set.
+
+  **The archive stops being a screen that never changes.** `useDataExport` polls
+  its own status every `EXPORT_POLL_INTERVAL_MS` (15s, exported) while a worker
+  is building the archive, and stops on every final answer. The bag reports
+  `building`, which is also what the panel's request gate reads — the refusal is
+  now known before the duplicate request, not after it.
+
+  **Ten demos, nine skins.** Every `src/default` export and every nav-mounted
+  screen now has a demo that imports the SKIN (not the headless harness), each
+  with a phone variant and every variant seeded at a named step: the account
+  group's stories were a debug card with a `state.step` chip while sixteen
+  designed screens had never been drawn.
+
+  **A per-row erasure detail.** `useErasure` shipped in 0.1.0 with no consumer
+  anywhere. Opening a row in `<PendingDeletions>` now reads that one erasure and
+  shows the per-owner receipts and the processor windows that push
+  `fully_erased_by` past `due_at` — the answer to "why is this still here?",
+  which the row provokes and could not give.
+
+  **The public intake page.** `<PrivacyRequestPane>` + the nav entry
+  `public.privacy-request` (`surface: "public"`, a route, not a menu item). The
+  anonymous DSAR form was previously an argued omission with no route, no example
+  and no story; the argument was right about the menu and wrong about the route.
+  The host's captcha is a declared slot, so an unfilled one is visible in a dev
+  build instead of silent.
+
+  **Breaking (pre-1.0, so minor).** `src/default/theme.tsx` and
+  `src/default/ErrorAlert.tsx` are deleted and their exports (`GdprSkinTheme`,
+  `GdprSkinThemeProps`, `ErrorAlert`) are gone: use `SkinTheme` / `ErrorAlert`
+  from `@stapel/tokens-antd/skin`, which own the ConfigProvider and read the mode
+  from the live document, so a shell's dark toggle repaints a mounted skin. Peer
+  floors move to `@stapel/tokens-antd >=0.6.0` and `@stapel/core >=0.18.0`. The
+  i18n keys `retry` and the five `*Loading` sentences are removed — the substrate
+  owns those arms and their copy is core's floor. Also new: the `./nav-manifest`
+  export alias other pairs already ship.
+
+- 95e8eec: The account-closure confirm is a bottom sheet on a phone; four screens stop
+  offering what they cannot do or hiding what they must say.
+
+  The closure `Modal` now renders through `SkinDialog` with `maskClosable={false}`
+  — a destructive confirm should not be dismissible by a stray tap on the
+  backdrop.
+
+  "Request an archive" stayed enabled while one was already `pending` or
+  `processing`, reacting only after the server answered 429; the status was in
+  the same render all along. It is gated on the in-flight status now, with the
+  reason as visible text.
+
+  Three `Tooltip`s in `PendingDeletions` carried the ONLY copy of what the screen
+  exists to convey — what `timeout` means, which owners have not receipted, what
+  "fully erased by" measures. Hover-only, so on a phone a person reading about
+  their own deletion request got a bare tag and an unexplained column header.
+  That copy is text now.
+
+  `PendingDeletions` and `OwnersHealth` gained `scroll={{ x: true }}`, matching
+  `DsarQueue` one directory over. And DsarQueue's "Save note" no longer offers a
+  PATCH that writes the value already there.
+
+### Patch Changes
+
+- 350f61f: Generated artifacts these pairs were entitled to and never asked for.
+
+  `gen:errors` pinned `ERRORS_LOCALES=ru` for gdpr-react and video-react while every other
+  pair on that line used `ru,es`, so no Spanish bundle was ever emitted — even though
+  `stapel-gdpr/translations/errors.es.json` already carried all 15 module keys and
+  video's core-owned keys were sitting in stapel-core's catalog. One word per pair;
+  `src/i18n/generated/errors.es.gen.ts` now exists in both (gdpr: 57 codes, complete over
+  the registry; video: 51, `Partial` because stapel-video ships no catalog of its own and its
+  keys stay the pair's to author). Reaching them needs an `./i18n/es` subpath, which is the
+  pairs' own `package.json` to add.
+
+  docs-react is enrolled in the root gen drivers for the first time — `gen:api`,
+  `gen:errors` (ru+es), `gen:events`, `gen:flows`, `gen:manifest`. It was the only package in
+  the monorepo that appeared in none of them, so everything the pipeline gives the other 16
+  pairs was hand-written and ungated, and had drifted: `manifest.json` claimed
+  `backend.contract ">=0.1 <0.2"` against stapel-docs 0.3.0 and invented two operationIds the
+  backend has never had. The manifest and llms.txt are generated now (27 operations, 74 error
+  codes with ru and es texts) and stand under the drift gate. The pair's own source said in
+  three files that the backend emitted no contract artifacts; it does, and has for a while.
+  `gen:nav` and `gen:demos` still wait on a `src/nav/manifest.ts` and a `demo/` directory.
+
 ## 0.1.0
 
 ### Minor Changes

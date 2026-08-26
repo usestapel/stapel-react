@@ -1,6 +1,6 @@
 {
   "name": "@stapel/currencies-react",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "React pair for stapel-currencies: the Money layer of the fleet. One formatter (Intl.NumberFormat, per locale, per currency's minor units), one converter (decimal-string BigInt math in parity with the backend's services.convert), and an opt-in /default antd skin — <Price> with its estimate, a CurrencyPicker that is a bottom sheet on a phone, a decimal-string CurrencyField and a RateTable. Prices stop being `${amount} ${code}`.",
   "license": "MIT",
   "repository": {

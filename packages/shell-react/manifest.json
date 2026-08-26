@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/shell-react",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "backend": null,
   "description": "Scripted-fullstack navigation shell (Phase 1 lib-side core): resolveNav merges installed pairs' nav-manifests + a project's override file into a nav tree (pure, no React), and the /default AppShell renders it as a responsive antd Layout (Sider desktop, Drawer phone/tablet) around a react-router <Outlet/>.",
   "flows": {},

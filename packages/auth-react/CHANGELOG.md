@@ -1,5 +1,91 @@
 # @stapel/auth-react
 
+## 0.17.0
+
+### Minor Changes
+
+- 308e3d6: The operator console, the step-up preferences screen, passkey rename, and Spanish — the pair's admin half and its last untranslated locale.
+
+  - **Passkey rename (stapel-auth 0.28.0).** `PATCH /passkey/{id}/` is in the regenerated contract, so `PASSKEY_RENAME_SUPPORTED` is `true` and `<PasskeysManager/>` renders the rename row and its dialog. The compile-time tripwire on `paths[…]["patch"]` stays live in both directions: a regen against a backend without the route fails the build at that one constant rather than shipping a control that answers 405. A **404 from rename or remove is read as "this row is stale"** — the backend scopes both per-credential routes by an ownership _lookup_, so somebody else's id and a deleted id are byte-identical answers and neither is a permission problem; the list is refetched and the sentence says the credential is gone.
+  - **New: `@stapel/auth-react/default/admin`** — five staff-only screens over the admin half of the contract: `SsoOrgsPanel` (organizations, their domain routing, and the identity-provider connection), `ServiceKeysPanel` (issue, switch off, delete; the secret is handed over once, in a dialog that says so), `StaffRolesPanel`, `AdminUsersPanel`, `AdminAuditPanel`. A separate subpath so a consumer shipping only the end-user surface never bundles them; five nav entries under the container-owned `admin.root`, `surface: "member"` declared rather than derived. The identity-provider form states that it **cannot show the current values** — the contract has `PUT`/`PATCH` on an org's config and no `GET` — and saves the whole connection instead of composing a patch against values nobody could read.
+  - **New: `VerificationPreferences`** (`./default`, and a section on `SecuritySettings`). Rows are sparse by contract, so a scope with no preference row renders with **no selection** and the line "Follows this app's default": the client is never told the endpoint's own level, and a switch drawn in the off position would be a confident lie about a security setting. The cost of switching a scope off — it is itself step-up protected — is printed beside the controls, not raised by the 403 that follows.
+  - **Spanish UI copy.** `./i18n/es` carried generated error texts and English screens; it now carries the pair's own 352 keys plus the 33 error codes the pair re-words, so an `es` host reads one language. `ru` gains the same 33 re-worded error texts, which it had been silently falling back to the plainer generated sentence for.
+  - **21 default-skin demos** — every `src/default` export and every nav `component.export` is drawn, each with a phone variant and its states seeded at named steps (empty, refused, blocked, mid-cooldown), replacing stories that photographed the headless debug harness.
+  - Doctrine cleanup: the last three `Popconfirm`s (`AuthenticatorChangePanel`, `TotpManager`, `OAuthLinks`) are `SkinConfirm`; the last three raw `<Empty>`s (`AuditLogPanel`, `OAuthLinks`, `PasswordChangePanel`) are `EmptyState` with a hint; the audit log's suspicious marker is a **named chip** rather than a bare `!` a screen reader announces as nothing, and its timestamps use the app's locale, not the browser's. Per-row destructive and connect controls carry an `aria-label` naming what they act on.
+  - **Breaking (pre-1.0, hence minor):** `SecuritySettings` gained a `verificationScopes` prop and an "Extra verification" section; `OAuthLinks`' disconnect button's accessible name is now `Disconnect {provider}`; peer floors move to `@stapel/core >=0.18.0 <1.0.0` and `@stapel/tokens-antd >=0.6.0`.
+
+- 95e8eec: The passkeys settings row is about a credential, not about signing in.
+
+  It showed a name and a green button whose label is the SIGN-IN button's copy
+  in every locale — offered to someone who is, necessarily, already signed in.
+  That came from the add-journey's success step reusing `auth.ui.submit` as its
+  dismiss button; it says `auth.sec.passkeys.done` now, which is what the button
+  does.
+
+  The row itself answers what a credential-management row has to answer: the
+  device name, WHAT the credential lives in (read from `transports[]` — the
+  fingerprint reader in this laptop, a security key, a phone over Bluetooth: three
+  very different answers to "can I use this right now", and none of them was on
+  screen), when it was added, and when it was last used — or, honestly, that it
+  never has been, which is how a person spots the key they enrolled and lost.
+  "Add a passkey" becomes "Add another" once one exists.
+
+  Removal confirms in the fleet's `SkinDialog` instead of a `Popconfirm`: a
+  popover anchored to a small link button renders off-viewport on a phone with
+  Ok/Cancel below the touch minimum, and this particular Ok permanently deletes
+  a sign-in credential.
+
+  "Add" is now BLOCKED, with its reason printed beside it as text, where the
+  browser has no WebAuthn and no binding is injected. The screen always knew that
+  fact; it used to spend it only after the click, from inside a ceremony that can
+  never complete.
+
+  RENAME IS DELIBERATELY ABSENT and not faked: the contract is `GET /passkey/`,
+  `POST /passkey/register/{begin,complete}/` and `DELETE /passkey/{id}/`, so
+  `device_name` is writable exactly once, at register-complete. A rename button
+  here would be the same defect as the sign-in button it replaced. The backend
+  needs one additive route — `PATCH /passkey/{id}/ {"device_name": …}` — and the
+  row is shaped so that adding it is a button, not a redesign.
+
+  Also in this package: `AuthPanel`, `QrDeviceLinkPanel` and `TotpManager`'s two
+  dialogs now render through `@stapel/tokens-antd/skin`'s `SkinDialog`, so they
+  are bottom sheets on a phone. The TOTP pair mattered most — a QR code and a
+  six-digit field are the worst possible content for a centred desktop modal on a
+  phone.
+
+- 95e8eec: The passkey flow is inverted: the system prompt is the first screen, and our
+  sheet appears only when the ceremony did not sign the person in.
+
+  Clicking "Passkey" used to open OUR dialog, which contained a "Use a passkey"
+  button, which raised the browser's WebAuthn prompt. Two screens of ours in
+  front of the one screen that decides anything, on neither of which the person
+  had a choice to make. `pick("passkey")` now calls
+  `navigator.credentials.get()` immediately and renders nothing; the button
+  carries the pending state, because with no dialog of ours it is the only place
+  anything can be seen to be happening.
+
+  **Five outcomes, five sentences.** A ceremony rejection is a `DOMException`,
+  not a `StapelApiError`, so `toFlowError` folded cancelled / no-credential /
+  timed-out / insecure-origin / authenticator-refused into one shrug —
+  "Something went wrong. Please try again." — which is wrong for four of them
+  and worst for the most common, where "try again" is advice to repeat what
+  cannot work. `classifyWebauthnError` reads the `DOMException` name,
+  `toPasskeyFlowError` maps it to its own i18n key, and the fallback sheet
+  branches on `passkeyFailureOf` to decide which ACTION to show: a retry for a
+  timeout, the other methods for a decline, and nothing to retry at all for a
+  browser that cannot do this. Cancelled and no-credential stay ONE outcome
+  whose copy says both — WebAuthn refuses to separate them, because reporting
+  the difference would make the prompt an oracle for whether an account exists
+  on the device.
+
+  A browser with no WebAuthn now starts no ceremony at all, where it used to run
+  a `begin` round trip and park on `awaitingAssertion` behind a spinner.
+
+  New public surface: `usePasskeyLogin()` (the hook `<PasskeyLogin>` is now a
+  thin wrapper over — a render prop cannot be driven from outside the subtree it
+  renders, and the button that starts this is outside), `classifyWebauthnError`,
+  `WebauthnFailure`, `toPasskeyFlowError`, `passkeyFailureOf`.
+
 ## 0.16.1
 
 ### Patch Changes

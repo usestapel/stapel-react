@@ -1,5 +1,67 @@
 # @stapel/docs-react
 
+## 0.4.0
+
+### Minor Changes
+
+- 80617e9: Wire the pair to the contract, and ship the product: generated schema + the 74-code error map, ru/es, nav, demos, and the shared skin substrate.
+
+  **Contract.** `api/types.ts` is now derived from `api/generated/schema.ts` (regenerated from `stapel-docs/docs/schema.json`) instead of hand-written: `collab` is the discipline string `"crdt" | "snapshot"` the wire actually sends (it was typed `boolean`, so `if (doc.collab)` was true for a snapshot document), `DocRevision` carries `created_by` / `kind` / `size_bytes` / `document_id` (`author_id` was a field name the server has never sent), and `PostUpdateRequest` is the journal's real `{updates[], client_id?, client_seq?}` batch rather than an invented `{payload}`. `emptyTrash` and `postUpdate` now answer their typed results. Two shapes stay hand-authored WITH the reason on them — the trash listing and the `?since=` resync branch, both absent from the backend's schema.
+
+  **Refusals have sentences.** `DOCS_ERRORS` was `{}` against a backend that declares 74 codes, so a lost save race and an exhausted workspace quota rendered as the same "Something went wrong". It is now the generated map, and `error.409.docs_seq_conflict` / `error.507.docs_workspace_quota` are named refusals in en, ru and es.
+
+  **BREAKING (pre-1.0 = minor).** `/default` no longer exports `DocsSkinTheme` or its own `ErrorAlert`: the surfaces render through `SkinTheme` and `ErrorAlert` from `@stapel/tokens-antd/skin`, so the reactive-theme fix and the 44px phone controls are inherited rather than re-copied. `SaveContentResult.revisionId` is `string | null` (the wire's `revision_id` is nullable). Peer floors are `@stapel/core >=0.18.0` and `@stapel/tokens-antd >=0.6.0`.
+
+  **New document.** `useCreateDocument` had no consumer — a documents product with no way to create a document. `FileManager` now carries it beside Upload, with a title + type dialog (`NewDocumentDialog`, exported), and hands the created document to the host's route.
+
+  **Mobile.** The folder tree's fixed 240px column left ~150px for the list on a phone. The panes now stack into one at a time under the tablet breakpoint, measured off the CONTAINER's width (`useSplitLayout`, exported), so a file manager in a 380px desktop panel lays out like a phone too.
+
+  **Reachable controls.** `Popconfirm` → `SkinConfirm` (a bottom sheet on a phone) for emptying the trash, purging one item and rolling back. Every boolean `disabled` → `GatedButton`, so an empty name, an unchanged move destination, a URL that could not be minted and an already-current revision each state their reason beside the control. Every row and folder gained a visible, focusable actions trigger — the menus were right-click only, i.e. unreachable by keyboard and on touch. "Open" is no longer offered when the host passes no `onOpenDocument`.
+
+  **Honest crdt.** A `crdt`-discipline document with no registered collaborative editor gets a stated reason and its bytes instead of a snapshot Save the journal would refuse.
+
+  **Also:** `src/nav/manifest.ts` + `nav-manifest.json` (`docs.files` at `/files`, `docs.document` at `/files/:id`); `./i18n/ru`, `./i18n/es` and `./nav-manifest` export subpaths; a `demo/` directory (10 demos, 27 variants, every one of the 15 `/default` exports drawn at phone width); dates and sizes through the APP locale (`model/format.ts`) instead of the browser's; raw dimension literals onto `@stapel/tokens`. Lint doctrine warnings: 24 → 0.
+
+- 95e8eec: Every dialog is a bottom sheet on a phone, and two controls that offered
+  nothing are gone.
+
+  `RevisionsModal`, `NameDialog` and `MoveDialog` render through
+  `@stapel/tokens-antd/skin`'s `SkinDialog`, so the fleet's surface rule reaches
+  them without this package restating it.
+
+  Rollback was offered on EVERY revision including the current head — restoring
+  the head writes a new, identical revision, an action the document's own state
+  makes meaningless. The head row's rollback is now blocked with the reason
+  printed beside it. And `loading` was not keyed to the revision being restored,
+  so one rollback spun every row's button.
+
+  `MoveDialog`'s confirm was enabled when the chosen destination was the folder
+  the document is already in; it is disabled now, consistent with `NameDialog`
+  next to it, which already refused an unusable value.
+
+### Patch Changes
+
+- 350f61f: Generated artifacts these pairs were entitled to and never asked for.
+
+  `gen:errors` pinned `ERRORS_LOCALES=ru` for gdpr-react and video-react while every other
+  pair on that line used `ru,es`, so no Spanish bundle was ever emitted — even though
+  `stapel-gdpr/translations/errors.es.json` already carried all 15 module keys and
+  video's core-owned keys were sitting in stapel-core's catalog. One word per pair;
+  `src/i18n/generated/errors.es.gen.ts` now exists in both (gdpr: 57 codes, complete over
+  the registry; video: 51, `Partial` because stapel-video ships no catalog of its own and its
+  keys stay the pair's to author). Reaching them needs an `./i18n/es` subpath, which is the
+  pairs' own `package.json` to add.
+
+  docs-react is enrolled in the root gen drivers for the first time — `gen:api`,
+  `gen:errors` (ru+es), `gen:events`, `gen:flows`, `gen:manifest`. It was the only package in
+  the monorepo that appeared in none of them, so everything the pipeline gives the other 16
+  pairs was hand-written and ungated, and had drifted: `manifest.json` claimed
+  `backend.contract ">=0.1 <0.2"` against stapel-docs 0.3.0 and invented two operationIds the
+  backend has never had. The manifest and llms.txt are generated now (27 operations, 74 error
+  codes with ru and es texts) and stand under the drift gate. The pair's own source said in
+  three files that the backend emitted no contract artifacts; it does, and has for a while.
+  `gen:nav` and `gen:demos` still wait on a `src/nav/manifest.ts` and a `demo/` directory.
+
 ## 0.3.2
 
 ### Patch Changes

@@ -1,5 +1,89 @@
 # @stapel/tokens-antd
 
+## 0.6.0
+
+### Minor Changes
+
+- 350f61f: `/skin` becomes the shared skin substrate: the rules every antd default skin inherits instead of re-deciding.
+
+  Nine pairs carried a copied `src/default/theme.tsx`; fifteen carried a copied `ErrorAlert.tsx` in six flavours; nine sites rendered a `Popconfirm` on a phone; blocked controls explained themselves in tooltips nobody can hover. Each of those is a design-system decision re-taken per component, and a decision re-taken is not a decision. This release states each one once, in the package every antd skin already depends on.
+
+  - **`SkinTheme` + `useThemeMode()`** — the ONE self-theming wrapper. `mode` defaults to the document's LIVE `data-theme` (reactive: `useSyncExternalStore` + a MutationObserver), never `"light"`, so a runtime toggle re-themes mounted skins and a dark deployment is dark on the first frame. It paints its own surface (`raised` by default, `base`, or `bare` to opt out) so typography never lands on a host page of the other side, and on a phone it raises antd's `controlHeight` to 44px so every control in every pair is a touch target.
+  - **`SkinConfirm`** — a confirmation is a dialog: a bottom sheet on a phone, a small modal on desktop, through `SkinDialog`. Controlled (`open`, `confirming`), `danger` variant (red, cancel focused first, backdrop does not answer), labels from core's floor unless the action names itself.
+  - **`ErrorAlert`, `EmptyState`, `LoadBoundary`, `LoadList`** — the union of the fifteen copies' props (`error` described, `thrown` raw, `message`, `onRetry`, `onDismiss`, `action`, `variant="block"|"inline"`), a designed empty state (icon, title, hint, action), and `matchLoad`/`matchList` as components with default loading/failed/empty arms.
+  - **`GatedControl` / `GatedButton`** — a control plus its `ActionAvailability` reason as visible text beside it, linked by `aria-describedby`. Never a tooltip: a disabled button is not hoverable or focusable.
+  - `useDialogSurface` documents why a DIALOG reads the viewport while everything inside a box measures the box.
+  - `THEME_ATTRIBUTE` is exported from the root.
+
+  Peer: `@stapel/core >=0.17.0` (the substrate's copy comes from core's `stapel.ui.*` floor in en/ru/es). `@stapel/eslint-plugin`'s `no-bare-dialog` gains `Popconfirm` in its own release.
+
+- 407a6e3: `SkinConfirm` — a confirmation is a dialog, not an anchored popover.
+
+  `Popconfirm` is the same defect the sheet rule was written for, in a smaller
+  hat: it positions itself beside its trigger and sizes itself to desktop prose,
+  so on a 390px phone it renders half off-screen or on top of the row being
+  confirmed, with its Ok/Cancel targets under the touch minimum — and two of the
+  fleet's thirteen sites had one floating over a bottom sheet.
+
+  `SkinConfirm` is a `SkinDialog` with a question, a body and two answers, so it
+  is a sheet on a phone for free and needs no second decision about shape. A
+  destructive answer sets `maskClosable={false}`, because on a phone the backdrop
+  is most of the screen and that particular dismissal is permanent. The
+  destructive verb takes its own label rather than reusing the trigger's:
+  "Remove" on a row and "Remove" as the irreversible answer are one word doing
+  two jobs.
+
+- 308e3d6: `SkinTheme` stops charging per instance, and the design-system scale rides the edge a skin already declares.
+
+  **The cost.** `forms-react` reported its one full-skin test going ~1.8s → past vitest's 30s default on migrating to `SkinTheme`, and guessed the antd theme scope was being regenerated every render. It was not the renders — the memo was already there — it was the boundary: the memo was per COMPONENT, so ten skinned parts on a screen built ten deep-equal-but-distinct `ThemeConfig` objects (fifteen `getComputedStyle` reads each), and a list whose rows wrap themselves built one per row. Every distinct config is a fresh antd `ConfigProvider`, measured at ~9ms of mount apiece in jsdom. The doctrine tells pairs that "parts may wrap themselves AND be wrapped" costs nothing extra, so the substrate now makes that true instead of the pairs paying for it:
+
+  - one config object per distinct answer (mode × phone × the host's live token scope), shared process-wide, keyed on the host's own `--stapel-brand` so a customized or late-arriving `tokens.css` still wins;
+  - a nested `SkinTheme` whose answer is the one already applied above it renders its painted root and **no provider at all** — it never touches the cache or the DOM to decide. A nested skin pinning the other `mode` still gets its own, as it must;
+  - `toAntdTheme` resolves all fifteen roles through ONE `getComputedStyle` handle instead of fifteen;
+  - `useDialogSurface` keeps one `MediaQueryList` instead of building one per render of every consumer — `useSyncExternalStore` asks for the snapshot on every render, and `SkinTheme` is a consumer.
+
+  Measured in `test/skinThemePerf.test.tsx`: 200 self-wrapping rows went 1.8s → 83ms of mount, and the regression is held by counting theme BUILDS (a whole number that does not move with the machine), not by a stopwatch.
+
+  One behaviour nuance: a foreign `ConfigProvider` deliberately interposed between two `SkinTheme`s is no longer overridden by the inner one. `src/default/**` has no such providers by doctrine; a skin that means to override declares it on its own `mode`.
+
+  **The scale.** `@stapel/tokens` is a runtime import of `src/default/**` in twenty packages — `stapel/no-raw-dimensions`' autofix writes it, 274 times this wave — and not one pair declares it; it resolves only because this package depends on it and the tree happens to hoist. Rather than a twenty-first declaration, `spacing`, `radii`, `fontSize`, `fontWeight`, `breakpoints`, `breakpointForWidth`, `mediaQuery` and `cssVar` (plus their types) are re-exported from the root here — the census of what skins actually use. A pair's design-system dependency list stays exactly `@stapel/tokens-antd`, and the `@stapel/tokens` version in play is the one this bridge's colour mapping was built against. `colors`, `elevation`, `typography` and the raw ramps stay where they are: a skin reaching for a hex has left the bridge. The reasoning, and the two rejected alternatives, are in the root export's docblock.
+
+  Also new: `hostBrandFingerprint(mode)`, the one-property probe of the host's live token scope that makes the theme cache safe.
+
+- 95e8eec: A new `/skin` subpath: `SkinDialog`, the one dialog surface the fleet renders through.
+
+  The owner's ruling — on a phone a modal is a bottom sheet; modals are
+  tablet/desktop only. That is a design-system decision, and a design-system
+  decision re-taken in every component is not a decision: of the eleven `Modal`
+  sites in the pairs' default skins, eight rendered a centred desktop modal on a
+  390px phone, and the three that got it right had each hand-written their own
+  `isPhone ? <Drawer> : <Modal>` branch, giving the fleet three different sheets.
+
+  This package is the only one every antd default skin already depends on, so it
+  is the only place the rule can be stated once and inherited by all of them
+  without inverting the dependency graph. The root export is unchanged — still
+  pure functions, no components; a host that only wants the theme mapping never
+  loads a component.
+
+  The sheet is a sheet, not a drawer that comes from the bottom: swipe-to-dismiss
+  with a distance threshold and a flick floor, a real `<button>` grab handle so
+  the gesture has a keyboard and screen-reader equivalent, safe-area inset
+  padding, `overscroll-behavior: contain`, and a `dvh` height cap (mobile
+  Safari's `vh` is the tallest the viewport ever gets, so a `90vh` sheet hides
+  its own footer under the browser chrome). `dismissible={false}` draws no way
+  out at all — for the one shape that genuinely has none — rather than an
+  affordance that is offered and inert.
+
+  The surface is read through `useSyncExternalStore` on one `matchMedia` against
+  `@stapel/tokens`' own `tablet` breakpoint, so the FIRST client render is
+  already right; `useBreakpoint()` returns `undefined` until an effect runs,
+  which painted a desktop modal for a frame on every phone. `useDialogSurface()`
+  is exported for a skin that cannot use the component (an imperative
+  `Modal.confirm`) and must still obey the same rule from the same source.
+
+  Geometry sits on `.ant-drawer-content-wrapper`, the one panel element antd 5
+  and antd 6 name identically (`styles.content` is deprecated in 6 and warns).
+
 ## 0.5.0
 
 ### Minor Changes

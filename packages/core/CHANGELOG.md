@@ -1,5 +1,42 @@
 # @stapel/core
 
+## 0.18.0
+
+### Minor Changes
+
+- 350f61f: The runtime half of the shared skin substrate: a UI floor in three locales, a synchronous `useBreakpoint`, a slot placeholder, and an optional i18n seam.
+
+  - **UI floor (`stapel.ui.*`, en/ru/es)** — `STAPEL_UI_KEYS` (retry, dismiss, confirm, cancel, loading, the empty-state title, the unfilled-slot sentence), seeded by `createI18n` under every locale exactly like the error floor, so `@stapel/tokens-antd/skin` renders a real sentence with zero host wiring and a host overrides any key by registering it later. The error floor gains **`es`** alongside `en`/`ru`; `CORE_ERROR_LOCALES` now lists all three.
+  - **`useBreakpoint()` is right on the first client render.** It reads through `useSyncExternalStore` (window width, subscribed to `resize` and to the two breakpoint media queries) instead of an effect, so `AppShell`/`PublicShell` no longer paint the phone drawer on a desktop for one frame. `undefined` is returned only on the server and the hydration pass that must agree with it. The return type is unchanged.
+  - **`SlotPlaceholder`** — an unfilled render slot renders a visible, named, dashed box in development and nothing in production, never silent nothing. Design-system-free (tokens custom properties only) so the headless layer that declares a slot can stand in for it. `isDevBuild()` is the switch, readable by anyone.
+  - **`useOptionalI18n()`** — the nearest engine or `null`, for a component that owns its copy props and merely floors them when a host is present.
+
+### Patch Changes
+
+- 308e3d6: `toFlowError` is idempotent, and `isFlowError` is exported.
+
+  It recognised `StapelApiError` and collapsed everything else to the fallback code — including a `FlowError` it had produced itself. A flow machine's refusal state carries a `FlowError`, not the thrown value, so every screen that reads a refusal OFF A MACHINE and hands it to the pair's own fold before asking a code predicate about it got the fallback code back: `isErrorCode(refused, "moderation.report.already_reported")` answered `false` for every refusal, and the screen silently rendered the generic sentence instead of the one written for that situation. Invisible wherever a pair's copy reads like the backend's own text, which is why it survived until moderation-react's wave-D screens, whose two refusal sentences differ from the backend's.
+
+  A `FlowError` now passes through unchanged (same object identity); a `StapelApiError` still goes down the real fold, so its `message` and `language` are read the way `formatFlowError` needs them; anything else still collapses to `fallbackCode`. The guard excludes `Error` instances on purpose — `StapelApiError` carries `code`/`params`/`status` too — and is exported as `isFlowError` for pairs that need the same question answered.
+
+  Pairs carrying a local idempotence wrapper in `src/flows/errors.ts` (moderation-react) can delete it and call core's directly.
+
+- 308e3d6: The i18n engine grows formatters: dates, relative times, durations and numbers, at the APP's locale.
+
+  Sixteen pairs had independently written the same `src/model/format.ts` — `useWorkspaceFormat`, `formatInstant`/`formatDuration`, `formatReviewDate`, `useAuthDateFormat`, and a dozen more — and nine of wave B's request files asked, in nearly the same words, for it to live here. The brief's own rule ("dates through core's i18n helpers **if they exist**") was satisfied by nothing existing: the engine shipped `t`/`tPlural` and nothing numeric.
+
+  The copies did not all decide alike, which is the real cost: an unreadable instant rendered as `null`, as `undefined`, as the raw ISO string or as an empty span depending on the pair; a "date" was `dateStyle: "medium"` here and `{year, month: "short", day}` there; the relative/absolute cutoff moved; and a malformed locale tag threw in some and was caught in others.
+
+  - `formatDate` / `formatDateTime` — month named, never `08/09`; per-call shape override.
+  - `formatRelative` — `Intl.RelativeTimeFormat` with `numeric: "auto"`, `now` injectable so a test is not a race, and a cutoff (default one year) past which it hands back to a date, because "in 4 years" is not something anyone can act on.
+  - `formatDuration` — seconds, as a `clock` timecode (`1:02:03`) or in the reader's `units`.
+  - `formatNumber` — thousands separated the way the reader's language separates them.
+  - `createFormat(locale)` and `useFormat()` — every method bound to one locale; the hook follows a runtime language switch, so dates move with the sentences. It uses `useOptionalI18n`, so it renders outside a provider instead of throwing: a date is not a translated string.
+
+  Every function answers `null` for an instant or a number it cannot read, and degrades an unknown locale tag to the runtime default instead of throwing — the contract `pluralCategory` already held. `Intl` instances are cached per locale and shape, so a 200-row list constructs one, not 200.
+
+  Deliberately not here, and why, in the module header: money (a currency contract, `@stapel/currencies-react`'s), bytes (a two-line caller of `formatNumber`), and anything that returns a sentence (those are keys). Migration for the per-pair copies: `SCRATCH/wave-b/SHARED-API.md` §9.
+
 ## 0.17.0
 
 ### Minor Changes

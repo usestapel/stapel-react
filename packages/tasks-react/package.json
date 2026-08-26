@@ -1,6 +1,6 @@
 {
   "name": "@stapel/tasks-react",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "React pair for stapel-tasks: typed API client, TanStack Query hooks, the board assembly and move state machine, headless bags, i18n keys, and an opt-in AntD kanban skin (dnd-kit drag with keyboard and touch sensors) behind the /default subpath.",
   "license": "MIT",
   "repository": {

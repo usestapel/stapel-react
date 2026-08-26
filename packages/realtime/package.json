@@ -1,6 +1,6 @@
 {
   "name": "@stapel/realtime",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "The client half of stapel-realtime: ONE reconnect/resume WebSocket runtime for every Stapel pair. Wire envelope v1 ({v,type,stream,payload,seq}) with the two sequences kept apart by name — `envelopeSeq` is the resume cursor, `payloadSeq` is the module's ordering key. Answers the server's heartbeat so 4408 never fires, resumes by hello{last_seq} per stream, dedups the replay/live overlap, multiplexes several streams over one socket, and reads close codes as the fleet canon does: 4403/4404/4410 are refusals (never retried), 4401 in cookie mode is a session that needs refreshing (core's SessionManager seam, then ONE reconnect, then a visible refusal), everything else is exponential backoff with full jitter and no silent give-up. Framework-free at the root; `./react` adds RealtimeProvider/useStream/useRealtimeState.",
   "license": "MIT",
   "repository": {

@@ -1,6 +1,6 @@
 {
   "name": "@stapel/forms-react",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Headless React pair for stapel-forms: typed API client, TanStack Query hooks, LoadState-disciplined headless bags (fill / builder / responses / list / settings), a per-kind field-widget registry over the stapel-attributes vocabulary, client-side validation that mirrors the server's own error keys, the captcha_token seam and the X-Forms-Next-Before CSV export cursor. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin over the shared @stapel/tokens-antd/skin substrate (StapelForm, FormBuilderPane, ResponsesPane, FormsListPane, FormSettingsPane) — every field widget and skin slot swappable without a fork.",
   "license": "MIT",
   "repository": {

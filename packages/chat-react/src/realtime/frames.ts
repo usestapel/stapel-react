@@ -1,159 +1,163 @@
 /**
- * The stapel-chat WebSocket protocol, typed.
+ * CHAT'S PAYLOADS, on the substrate's envelope.
  *
- * This is a MIRROR of the module's own contract, not an invention:
- * `stapel_chat/consumers.py` (`ChatConsumer`) and `stapel_chat/realtime.py`
- * (`message_frame`) are the source, and `MODULE.md` §"Realtime protocol"
- * states it in one line:
+ * `@stapel/realtime` owns the wire: `{v, type, stream, payload, seq}`, the
+ * resume handshake, the heartbeat, the close codes. What is left for a pair —
+ * and all that is left — is what its own payloads MEAN. That is this file.
  *
- * ```
- * client → server:  hello{last_seq} / send{body,attachments,reply_to} / ack{seq} / ping
- * server → client:  welcome{server_seq} / message{…seq} / replay_done{up_to_seq} / error{code,message} / pong
- * ```
+ * ── The two sequences ───────────────────────────────────────────────────────
  *
- * The WS surface is invisible to `schema.json` (OpenAPI describes HTTP), so
- * these types cannot be generated today — the realtime spec (§8) parks the
- * frame contract in the `events.json` family for later. Until then this file
- * is the pair's declared mirror and `test/frames.test.ts` pins it against the
- * shapes the consumer actually sends.
+ * The substrate hands a decoded frame with the two numbers kept apart by name,
+ * and chat is the module that taught the fleet why:
  *
- * Nothing here imports React or `@stapel/core`: it is plain protocol, so the
- * future `@stapel/realtime` substrate can subsume it without dragging the UI.
+ *   `frame.envelopeSeq`  →  the message's `rev_seq` — the RESUME CURSOR.
+ *                           Bumped by every edit and every delete.
+ *   `frame.payloadSeq`   →  the message's `seq` — its PLACE IN THE THREAD.
+ *                           Immutable, gapless, the sort key.
+ *
+ * `stapel_chat/consumers.py` says it in one line: *"Frame sequence is not
+ * message sequence… Getting this backwards makes edits reorder the thread."*
+ * The pre-substrate client in this package sent `hello{last_seq: <thread
+ * seq>}`, which is the wrong number in the wrong slot: it asked the server to
+ * replay from a revision that has nothing to do with what the client holds.
+ *
+ * ── Frame types this module adds ────────────────────────────────────────────
+ *
+ * Journal frames (`replay` / `live`) carry {@link ChatMessagePayload} — the
+ * one shape `stapel_chat.realtime.message_payload` builds for the REST
+ * serializer, the journal frame and the Action alike.
+ *
+ * Signals carry their OWN type (`chat.read`, `chat.delivered`,
+ * `chat.activity`, `chat.inbox`) and structurally cannot carry a `seq`,
+ * because nothing persisted them.
+ *
+ * ── One field the wire and the REST body do not share ───────────────────────
+ *
+ * `attachments`. REST renders each one through `attachment_to_dto` (an
+ * `AttachmentResponse` with CDN geometry); the socket sends
+ * `list(msg.attachments or [])`, the raw stored descriptors. So a socket
+ * payload is NOT an `AttachmentResponse[]` and is typed here as opaque. It is
+ * also the reason a live message is fetched over REST rather than pushed into
+ * the thread cache — see `flows/freshness.ts`.
  */
+import type { RealtimeFrame } from "@stapel/realtime";
+import { FRAME_LIVE, FRAME_REPLAY } from "@stapel/realtime";
+
+// ── signal types (`stapel_chat.realtime`) ────────────────────────────────────
+
+/** A participant's read marker moved. */
+export const CHAT_SIGNAL_READ = "chat.read";
+/** A participant's delivery marker moved. */
+export const CHAT_SIGNAL_DELIVERED = "chat.delivered";
+/** A participant is typing / recording / uploading. */
+export const CHAT_SIGNAL_ACTIVITY = "chat.activity";
+/** Something moved in a conversation this user takes part in (inbox stream). */
+export const CHAT_SIGNAL_INBOX = "chat.inbox";
+
+// ── client → server frame types (`stapel_chat.consumers`) ────────────────────
 
 /**
- * Widest resume gap the server replays inline (`consumers.REPLAY_LIMIT`).
- * Past it the server answers `error{resync}` instead, and the client
- * re-hydrates from the REST history. Mirrored here so the client can SAY that
- * before the server has to.
- */
-export const CHAT_WS_REPLAY_LIMIT = 500;
-
-// The close codes and their meanings live in `closePolicy.ts` — one table,
-// one place that branches on them. Re-exported here because this file is the
-// pair's declared protocol mirror and a mirror with the close codes missing
-// is an incomplete one.
-export {
-  CHAT_WS_CLOSE_DATA_HOME_UNAVAILABLE,
-  CHAT_WS_CLOSE_FORBIDDEN,
-  CHAT_WS_CLOSE_HEARTBEAT_TIMEOUT,
-  CHAT_WS_CLOSE_NOT_PARTICIPANT,
-  CHAT_WS_CLOSE_OVERFLOW,
-  CHAT_WS_CLOSE_PROTOCOL_ERROR,
-  CHAT_WS_CLOSE_REVOKED,
-  CHAT_WS_CLOSE_STREAM_UNKNOWN,
-  CHAT_WS_CLOSE_UNAUTHENTICATED,
-} from "./closePolicy.js";
-
-// ── client → server ──────────────────────────────────────────────────────────
-
-/** Resume: replay everything after `last_seq`, then go live. */
-export interface ChatHelloFrame {
-  readonly type: "hello";
-  readonly last_seq: number;
-}
-
-/**
- * Append a message over the socket.
+ * Chat's six write frames.
  *
- * TYPED BUT NEVER SENT BY THIS CLIENT, on purpose. The frame is part of the
- * module's contract, so a mirror that omitted it would be an incomplete
- * mirror; but this pair posts messages over REST (`ChatApi.sendMessage`),
- * where the answer is the persisted row and a refusal is a real error
- * envelope. Over the socket a refusal is an `error` frame with a
- * socket-local code (`empty` / `too_long` / `attachments_disabled` /
- * `invalid_reply`) that is NOT in the module's error registry, so it has no
- * i18n key and no remediation — the UI could not tell the person what went
- * wrong. `createChatSocket` exposes no method that emits this.
+ * The substrate's default posture is that writes go over REST; chat is its
+ * ONE documented exception, and a deliberate one — the backend's words: *"a
+ * compose box whose Enter key takes a different transport than the messages
+ * it produces is the seam where 'realtime was built' stops being true."* Every
+ * one of them goes through the same service layer the REST view calls, and
+ * carries a `client_msg_id` so a retry after a dropped socket is idempotent
+ * rather than a second bubble.
  */
-export interface ChatSendFrame {
-  readonly type: "send";
-  readonly body?: string;
-  readonly attachments?: readonly string[];
-  readonly reply_to?: string | null;
-}
-
-/** Delivery acknowledgement — the server tracks it, nothing depends on it. */
-export interface ChatAckFrame {
-  readonly type: "ack";
-  readonly seq: number;
-}
-
-/** Liveness probe; answered with `pong`. */
-export interface ChatPingFrame {
-  readonly type: "ping";
-}
-
-export type ChatClientFrame =
-  | ChatHelloFrame
-  | ChatSendFrame
-  | ChatAckFrame
-  | ChatPingFrame;
-
-// ── server → client ──────────────────────────────────────────────────────────
-
-/** Answer to `hello`: the conversation's high-water mark right now. */
-export interface ChatWelcomeFrame {
-  readonly type: "welcome";
-  readonly conversation_id: string;
-  readonly server_seq: number;
-}
+export const CHAT_FRAME_SEND = "send";
+export const CHAT_FRAME_EDIT = "edit";
+export const CHAT_FRAME_DELETE = "delete";
+export const CHAT_FRAME_READ = "read";
+export const CHAT_FRAME_DELIVERED = "delivered";
+export const CHAT_FRAME_ACTIVITY = "activity";
 
 /**
- * A message, replayed or live — the same frame either way (that is what makes
- * the overlap after a resume harmless: it is seq-deduped on both ends).
- * Field-for-field `stapel_chat.realtime.message_frame`.
+ * `error{code}` values chat adds to the substrate's three.
+ *
+ * They are SOCKET-LOCAL: none of them is an `error.<status>.<code>` key from
+ * the module's registry, so none has an i18n key or a remediation. A surface
+ * that shows a person one of these strings is showing them a protocol
+ * fragment — which is exactly why {@link ChatWriteRefusal} exists and why the
+ * REST path stays the default for a composer.
  */
-export interface ChatMessageFrame {
-  readonly type: "message";
+export const CHAT_WS_ERRORS = {
+  empty: "empty",
+  tooLong: "too_long",
+  attachmentsDisabled: "attachments_disabled",
+  invalidAttachment: "invalid_attachment",
+  unknownAttachmentType: "unknown_attachment_type",
+  invalidReply: "invalid_reply",
+  notFound: "not_found",
+  notAuthor: "not_author",
+  notEditable: "not_editable",
+  deleted: "deleted",
+  unknownActivity: "unknown_activity",
+  sendRefused: "send_refused",
+  unavailable: "unavailable",
+} as const;
+
+/** One socket-local refusal code. */
+export type ChatWriteRefusal = (typeof CHAT_WS_ERRORS)[keyof typeof CHAT_WS_ERRORS];
+
+/** Activity states `stapel_chat.activity` registers. */
+export const CHAT_ACTIVITY_STATES = ["typing", "recording", "uploading"] as const;
+export type ChatActivityState = (typeof CHAT_ACTIVITY_STATES)[number];
+
+// ── payloads (server → client) ───────────────────────────────────────────────
+
+/**
+ * `stapel_chat.realtime.message_payload`, field for field.
+ *
+ * A tombstone keeps `message_id`, `seq`, `sender_id` and `created_at` and
+ * loses everything else — the id keeps arriving so a cache knows which row to
+ * purge.
+ */
+export interface ChatMessagePayload {
   readonly message_id: string;
   readonly conversation_id: string;
   readonly sender_id: string | null;
+  /** Place in the thread. The SORT KEY — never a resume cursor. */
   readonly seq: number;
+  /** Place in the revision journal. The RESUME CURSOR — never a sort key. */
+  readonly rev_seq: number;
   readonly kind: string;
   readonly body: string;
   readonly reply_to: string | null;
-  readonly attachments: readonly string[];
+  /** Raw stored descriptors — NOT the REST `AttachmentResponse` shape. */
+  readonly attachments: readonly unknown[];
+  /** The sender's own idempotency key, echoed back. */
+  readonly client_msg_id: string | null;
+  readonly edited: boolean;
+  readonly edited_at: string | null;
+  readonly deleted: boolean;
+  readonly deleted_at: string | null;
   readonly created_at: string;
 }
 
-/** End of the replay window — everything up to `up_to_seq` has been sent. */
-export interface ChatReplayDoneFrame {
-  readonly type: "replay_done";
-  readonly up_to_seq: number;
+/** `chat.read` / `chat.delivered` — a participant's marker moved. */
+export interface ChatMarkerPayload {
+  readonly conversation_id: string;
+  readonly user_id: string;
+  readonly seq: number;
 }
 
-/**
- * A protocol-level refusal. `code` is a SOCKET-LOCAL vocabulary
- * (`resync` / `bad_type` / the send-path codes), NOT a `error.<status>.<code>`
- * key from the module's error registry — which is exactly why the only one
- * this pair acts on is `resync`.
- */
-export interface ChatErrorFrame {
-  readonly type: "error";
-  readonly code: string;
-  readonly message: string;
+/** `chat.activity` — "typing…", with the client's own expiry hint. */
+export interface ChatActivityPayload {
+  readonly conversation_id: string;
+  readonly user_id: string;
+  readonly state: string;
+  readonly ttl_s: number;
 }
 
-/** Answer to `ping`. */
-export interface ChatPongFrame {
-  readonly type: "pong";
-}
-
-export type ChatServerFrame =
-  | ChatWelcomeFrame
-  | ChatMessageFrame
-  | ChatReplayDoneFrame
-  | ChatErrorFrame
-  | ChatPongFrame;
-
-/** The one error code that means "stop replaying, re-read the journal". */
-export const CHAT_WS_RESYNC = "resync";
-
-// ── parsing (the wire is untrusted structured text) ──────────────────────────
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+/** `chat.inbox` — a conversation this user takes part in moved. */
+export interface ChatInboxPayload {
+  readonly conversation_id: string;
+  readonly conversation_kind: string;
+  readonly last_seq: number;
+  readonly message: ChatMessagePayload | null;
 }
 
 function str(value: unknown): string | null {
@@ -164,77 +168,160 @@ function num(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-/**
- * Narrow one decoded server frame, or `null` for anything this build does not
- * understand (an unknown `type`, a missing field, a `seq` that is not a
- * number). Unknown is DROPPED, never coerced: a frame this client cannot read
- * must not advance the seq cursor, or the gap it leaves is invisible.
- */
-export function parseServerFrame(value: unknown): ChatServerFrame | null {
-  if (!isRecord(value)) return null;
-  switch (value.type) {
-    case "welcome": {
-      const conversationId = str(value.conversation_id);
-      const serverSeq = num(value.server_seq);
-      if (conversationId === null || serverSeq === null) return null;
-      return {
-        type: "welcome",
-        conversation_id: conversationId,
-        server_seq: serverSeq,
-      };
-    }
-    case "message": {
-      const seq = num(value.seq);
-      const messageId = str(value.message_id);
-      const conversationId = str(value.conversation_id);
-      const createdAt = str(value.created_at);
-      if (
-        seq === null ||
-        messageId === null ||
-        conversationId === null ||
-        createdAt === null
-      ) {
-        return null;
-      }
-      const attachments = Array.isArray(value.attachments)
-        ? value.attachments.filter((a): a is string => typeof a === "string")
-        : [];
-      return {
-        type: "message",
-        message_id: messageId,
-        conversation_id: conversationId,
-        sender_id: str(value.sender_id),
-        seq,
-        kind: str(value.kind) ?? "text",
-        body: str(value.body) ?? "",
-        reply_to: str(value.reply_to),
-        attachments,
-        created_at: createdAt,
-      };
-    }
-    case "replay_done": {
-      const upTo = num(value.up_to_seq);
-      if (upTo === null) return null;
-      return { type: "replay_done", up_to_seq: upTo };
-    }
-    case "error": {
-      const code = str(value.code);
-      if (code === null) return null;
-      return { type: "error", code, message: str(value.message) ?? "" };
-    }
-    case "pong":
-      return { type: "pong" };
-    default:
-      return null;
-  }
+function flag(value: unknown): boolean {
+  return value === true;
 }
 
-/** Decode a socket payload (JSON text) into a frame, or `null`. */
-export function decodeServerFrame(data: unknown): ChatServerFrame | null {
-  if (typeof data !== "string") return null;
-  try {
-    return parseServerFrame(JSON.parse(data));
-  } catch {
+function record(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+/** True for the two journal frame types that carry a message. */
+export function isChatMessageFrame(frame: RealtimeFrame): boolean {
+  return frame.type === FRAME_LIVE || frame.type === FRAME_REPLAY;
+}
+
+/**
+ * Read a message payload, or `null` when the object is not one.
+ *
+ * `null` is a decision, not laziness — the same one the substrate makes about
+ * an unreadable envelope. A payload this build cannot read must not be turned
+ * into a half-message: the store would then hold a row nobody can reconcile
+ * with the REST answer for the same id.
+ *
+ * `rev_seq` falls back to the ENVELOPE's seq when the payload omits it,
+ * because on a journal frame they are the same number by construction
+ * (`deliver_frame(..., seq=msg.rev_seq)`) — and never to `seq`, which is the
+ * confusion this whole file exists to prevent.
+ */
+export function readChatMessagePayload(
+  payload: Readonly<Record<string, unknown>>,
+  envelopeSeq?: number | undefined
+): ChatMessagePayload | null {
+  const messageId = str(payload["message_id"]);
+  const conversationId = str(payload["conversation_id"]);
+  const seq = num(payload["seq"]);
+  const createdAt = str(payload["created_at"]);
+  if (messageId === null || conversationId === null || seq === null || createdAt === null) {
     return null;
   }
+  const revSeq = num(payload["rev_seq"]) ?? envelopeSeq;
+  if (revSeq === undefined) return null;
+  const attachments = payload["attachments"];
+  return {
+    message_id: messageId,
+    conversation_id: conversationId,
+    sender_id: str(payload["sender_id"]),
+    seq,
+    rev_seq: revSeq,
+    kind: str(payload["kind"]) ?? "text",
+    body: str(payload["body"]) ?? "",
+    reply_to: str(payload["reply_to"]),
+    attachments: Array.isArray(attachments) ? [...attachments] : [],
+    client_msg_id: str(payload["client_msg_id"]),
+    edited: flag(payload["edited"]),
+    edited_at: str(payload["edited_at"]),
+    deleted: flag(payload["deleted"]),
+    deleted_at: str(payload["deleted_at"]),
+    created_at: createdAt,
+  };
+}
+
+/** The message on a `replay`/`live` frame, or `null` for anything else. */
+export function readChatMessageFrame(frame: RealtimeFrame): ChatMessagePayload | null {
+  if (!isChatMessageFrame(frame)) return null;
+  return readChatMessagePayload(frame.payload, frame.envelopeSeq);
+}
+
+/**
+ * A read/delivery marker. The two signals differ only in which field carries
+ * the number, so both are normalized onto `seq` here.
+ */
+export function readChatMarkerFrame(frame: RealtimeFrame): ChatMarkerPayload | null {
+  if (frame.type !== CHAT_SIGNAL_READ && frame.type !== CHAT_SIGNAL_DELIVERED) {
+    return null;
+  }
+  const conversationId = str(frame.payload["conversation_id"]);
+  const userId = str(frame.payload["user_id"]);
+  const seq =
+    num(frame.payload["last_read_seq"]) ?? num(frame.payload["last_delivered_seq"]);
+  if (conversationId === null || userId === null || seq === null) return null;
+  return { conversation_id: conversationId, user_id: userId, seq };
+}
+
+/** A `chat.activity` signal. */
+export function readChatActivityFrame(frame: RealtimeFrame): ChatActivityPayload | null {
+  if (frame.type !== CHAT_SIGNAL_ACTIVITY) return null;
+  const conversationId = str(frame.payload["conversation_id"]);
+  const userId = str(frame.payload["user_id"]);
+  const state = str(frame.payload["state"]);
+  if (conversationId === null || userId === null || state === null) return null;
+  return {
+    conversation_id: conversationId,
+    user_id: userId,
+    state,
+    ttl_s: num(frame.payload["ttl_s"]) ?? 0,
+  };
+}
+
+/** A `chat.inbox` signal — the conversation-list stream's only frame. */
+export function readChatInboxFrame(frame: RealtimeFrame): ChatInboxPayload | null {
+  if (frame.type !== CHAT_SIGNAL_INBOX) return null;
+  const conversationId = str(frame.payload["conversation_id"]);
+  if (conversationId === null) return null;
+  const message = record(frame.payload["message"]);
+  return {
+    conversation_id: conversationId,
+    conversation_kind: str(frame.payload["conversation_kind"]) ?? "",
+    last_seq: num(frame.payload["last_seq"]) ?? 0,
+    message: message === null ? null : readChatMessagePayload(message),
+  };
+}
+
+// ── write frames (client → server) ───────────────────────────────────────────
+
+/** The `send` frame's payload. `client_msg_id` is what makes a retry safe. */
+export interface ChatSendPayload {
+  readonly body: string;
+  readonly client_msg_id: string;
+  readonly reply_to?: string;
+  readonly attachments?: readonly unknown[];
+}
+
+export interface ChatEditPayload {
+  readonly message_id: string;
+  readonly body: string;
+}
+
+export interface ChatDeletePayload {
+  readonly message_id: string;
+}
+
+/** `read` and `delivered` share one payload (`consumers._do_marker`). */
+export interface ChatMarkerFramePayload {
+  readonly upto_seq: number;
+}
+
+export interface ChatActivityFramePayload {
+  readonly state: string;
+}
+
+/**
+ * A client-generated idempotency key.
+ *
+ * `crypto.randomUUID` where the environment has it (every browser this pair
+ * supports, and node ≥ 19), and a time-plus-entropy fallback where it does
+ * not — a key that is merely unlikely to collide is still a working
+ * idempotency key, and refusing to send without `crypto` would take the
+ * socket path away from an environment that can otherwise use it.
+ */
+export function chatClientMessageId(): string {
+  const cryptoRef: Crypto | undefined =
+    typeof globalThis.crypto === "undefined" ? undefined : globalThis.crypto;
+  if (cryptoRef !== undefined && typeof cryptoRef.randomUUID === "function") {
+    return cryptoRef.randomUUID();
+  }
+  return `cmid-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }

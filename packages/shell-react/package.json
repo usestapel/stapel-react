@@ -1,6 +1,6 @@
 {
   "name": "@stapel/shell-react",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Scripted-fullstack navigation shell (Phase 1 lib-side core): resolveNav merges installed pairs' nav-manifests + a project's override file into a nav tree (pure, no React), and the /default AppShell renders it as a responsive antd Layout (Sider desktop, Drawer phone/tablet) around a react-router <Outlet/>.",
   "license": "MIT",
   "repository": {
@@ -53,17 +53,17 @@
   },
   "size-limit": [
     {
-      "name": "index \u2014 resolveNav must stay pure: no React, no antd, no react-router",
+      "name": "index — resolveNav must stay pure: no React, no antd, no react-router",
       "path": "dist/index.js",
       "limit": "2 KB"
     },
     {
-      "name": "default \u2014 the antd + react-router chrome must stay out of the main bundle",
+      "name": "default — the antd + react-router chrome must stay out of the main bundle",
       "path": "dist/default/index.js",
       "limit": "12 KB"
     },
     {
-      "name": "theme \u2014 plain DOM + inline SVG chrome: the mode READER is @stapel/tokens-antd/skin's (one implementation, tree-shaken away from antd), no react-router, no CSS file",
+      "name": "theme — plain DOM + inline SVG chrome: the mode READER is @stapel/tokens-antd/skin's (one implementation, tree-shaken away from antd), no react-router, no CSS file",
       "path": "dist/theme/index.js",
       "limit": "4 KB"
     }

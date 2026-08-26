@@ -1,6 +1,6 @@
 {
   "name": "@stapel/image",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Stapel image rendering: tier/branch math for the CDN variant ladder (pickTier, limitingAxis, chooseVariant), slot measurement hook (useImageSlot), and a blur-up <Image> component with upgrade-only tier fetching.",
   "license": "MIT",
   "repository": {

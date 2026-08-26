@@ -1,5 +1,72 @@
 # @stapel/video-react
 
+## 0.2.0
+
+### Minor Changes
+
+- 80617e9: The meeting client, not just the report about it.
+
+  Six browser-callable operations had no frontend at all: `POST /rooms`,
+  `GET /rooms/{join_code}`, `POST …/join`, `POST …/lobby/{admit,deny}` and
+  `GET …/participants`. The pair shipped the workspace-admin usage table and
+  nothing else — a package named `@stapel/video-react` that could not join a call.
+
+  **Added.** `useMeeting` (open a room / ask to join, holding the three-armed
+  outcome), `useLobby` (the queue, the two verdicts, and the live overlay merged
+  onto the REST page), `useRoom`, the lobby's frame vocabulary
+  (`decodeLobbyEvent`, `lobbyStreamKey`, `lobbySocketPath`, `lobbyLiveness`) and
+  the model that folds a `200 {status}` body and a `403 video_join_denied` throw
+  into ONE `JoinOutcome` — so a host's sticky refusal never renders as a generic
+  failure with a retry beside it. Default skins for all of it: `<RoomsPane>` (new
+  top-level nav entry `video.rooms`), `<MeetingPane>`, `<JoinGate>`,
+  `<LobbyPanel>`, `<ParticipantsList>`, `<CallStage>`.
+
+  The lobby socket is consumed through `@stapel/realtime` (new OPTIONAL peer), so
+  the 4401/4403 close-code table is the fleet's one reviewed copy. With no
+  provider or no `wsOrigin` the lobby renders a visible `offline` state and a
+  "Check again" — never the silent poll §83.1 records. `livekit-client` is a new
+  OPTIONAL peer loaded by `import()`; its absence is a designed screen naming the
+  package, and `<MeetingPane renderCallStage>` replaces the surface outright.
+
+  **Breaking (pre-1.0 ⇒ minor).** `src/default/theme.tsx` and
+  `src/default/ErrorAlert.tsx` are deleted: `VideoSkinTheme` and the pair's local
+  `ErrorAlert` are no longer exported from `/default`. Use `SkinTheme` /
+  `ErrorAlert` from `@stapel/tokens-antd/skin`. Peer floors raised to
+  `@stapel/core >=0.18.0` and `@stapel/tokens-antd >=0.6.0`.
+
+  **Fixed.** The `attendances` explanation is visible text instead of a `<Tooltip>`
+  (keyboard- and touch-unreachable); the four-column usage table becomes one card
+  per person below the tablet edge, measured on the pane's own box rather than the
+  viewport, so a narrow sidebar on a desktop is handled too; `months` is clamped to
+  the 1..36 the view accepts and the clamp is stated, with an `invalid period` arm
+  on the table — both predicates existed since 0.1.0 and reached no screen; counted
+  copy goes through `useTPlural` (`{count} people` was not a plural); `src/i18n/es.ts`
+  and the `./i18n/es` subpath ship, and the eight `video_*` error codes are authored
+  in all three locales instead of only ru, closing the locale-parity gap.
+
+### Patch Changes
+
+- 350f61f: Generated artifacts these pairs were entitled to and never asked for.
+
+  `gen:errors` pinned `ERRORS_LOCALES=ru` for gdpr-react and video-react while every other
+  pair on that line used `ru,es`, so no Spanish bundle was ever emitted — even though
+  `stapel-gdpr/translations/errors.es.json` already carried all 15 module keys and
+  video's core-owned keys were sitting in stapel-core's catalog. One word per pair;
+  `src/i18n/generated/errors.es.gen.ts` now exists in both (gdpr: 57 codes, complete over
+  the registry; video: 51, `Partial` because stapel-video ships no catalog of its own and its
+  keys stay the pair's to author). Reaching them needs an `./i18n/es` subpath, which is the
+  pairs' own `package.json` to add.
+
+  docs-react is enrolled in the root gen drivers for the first time — `gen:api`,
+  `gen:errors` (ru+es), `gen:events`, `gen:flows`, `gen:manifest`. It was the only package in
+  the monorepo that appeared in none of them, so everything the pipeline gives the other 16
+  pairs was hand-written and ungated, and had drifted: `manifest.json` claimed
+  `backend.contract ">=0.1 <0.2"` against stapel-docs 0.3.0 and invented two operationIds the
+  backend has never had. The manifest and llms.txt are generated now (27 operations, 74 error
+  codes with ru and es texts) and stand under the drift gate. The pair's own source said in
+  three files that the backend emitted no contract artifacts; it does, and has for a while.
+  `gen:nav` and `gen:demos` still wait on a `src/nav/manifest.ts` and a `demo/` directory.
+
 ## 0.1.0
 
 ### Minor Changes

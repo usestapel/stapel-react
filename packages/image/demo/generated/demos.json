@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/image",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "demos": [
     {
       "id": "image.element-width",

@@ -1,5 +1,78 @@
 # @stapel/eslint-plugin
 
+## 0.11.0
+
+### Minor Changes
+
+- 350f61f: Doctrine tier: nine new rules, one extended, and a `strict` preset.
+
+  The design rulings the fleet kept re-taking by hand are now stated mechanically.
+  New rules: `no-tooltip-in-skin` (touch has no hover, and a disabled antd Button
+  never fires the events a tooltip needs), `icon-button-needs-label` (its other
+  half — removing the hover without adding a name leaves the control unnamed),
+  `no-hardcoded-theme-mode` and `no-local-skin-theme` (CF-1: three `mode = "light"`
+  defaults rendered light inputs under `data-theme="dark"`, and nine pairs carry a
+  copy of the same `theme.tsx`, so the fix has to land nine times),
+  `no-raw-dimensions` (**autofixable** — `padding: 16` → `spacing[4]`, import
+  written too — the px twin of `no-raw-colors`), `i18n-locale-parity` (missing
+  locale files and untranslated copies, anchored on each pair's `src/i18n/keys.ts`
+  so it runs with zero per-pair wiring), `no-adhoc-socket` (one socket client for
+  the fleet; the TS twin of core's RT001-RT003), `no-silent-slot` (an unfilled slot
+  renders a hole, and a hole looks like a finished page), and `no-boolean-disabled`
+  (a grey button with no reason — heuristic, with its limits documented in the
+  rule header). `no-bare-dialog` gains the confirm surface (`Popconfirm` →
+  `SkinConfirm`).
+
+  Wiring: the tier ships at **`warn`** in `recommended` — a worklist, so `eslint .`
+  stays green while the pairs migrate — and at **`error`** in the new
+  `strict` preset, which a pair opts into once its migration has landed. `strict`
+  is built by appending to `recommended`, so the two cannot disagree about a
+  carve-out. Two lines marked `← WAVE-B SWITCH` in `index.js` flip the tier to
+  `error` and enable the confirm surface when the wave is done.
+
+- 95e8eec: New rule `stapel/no-bare-dialog`, on in `recommended`: inside a package's
+  `src/default` tree, `Modal` and `Drawer` are not importable from antd.
+
+  The dialog surface is a fleet rule now (`@stapel/tokens-antd/skin`'s
+  `SkinDialog` — a bottom sheet on a phone, a modal above the tablet
+  breakpoint), and this is what stops the twelfth dialog from being hand-rolled
+  the old way. Deliberately narrow: a host app's dialogs are the host's
+  business, a pair's headless layer renders no chrome, and a `Drawer` used as
+  NAVIGATION is not a dialog — the shell's menus are named in the preset's
+  `allowNavigationDrawer` option rather than disabled inline. A rule that fired
+  everywhere would be switched off everywhere.
+
+### Patch Changes
+
+- 308e3d6: New autofixable rule `stapel/antd-alert-title`: antd 6 renamed `<Alert message>` to `<Alert title>`
+
+  A prop a major version stops reading does not fail loudly — it renders an alert
+  with no heading, on the one component whose entire job is to be read. Every site
+  is a rename, so the rule ships autofixable and at `error` in `recommended`: it
+  states no doctrine and has no migration to sequence, which is why it does not
+  join the warn-level worklist tier.
+
+  It fires only on an `Alert` imported from antd in the same file (named, aliased,
+  or through a namespace import), so a local or design-system `Alert` that still
+  takes `message` is untouched. An element that already passes `title` is reported
+  WITHOUT a fix — renaming would pass the same prop twice and let source order
+  pick the heading.
+
+- 308e3d6: `no-raw-dimensions` autofix imports from the module the file is allowed to depend on
+
+  Inside `src/default/**` the fix now writes `from "@stapel/tokens-antd"` (which
+  re-exports `spacing`/`radii`/`fontSize`/`cssVar`/`breakpoints` for exactly this
+  reason), so a pair's only design-system dependency stays the antd bridge it
+  already declares. Outside a default skin the fix keeps writing
+  `from "@stapel/tokens"` — there is no antd leg to route through.
+
+  This closes a real hole rather than a stylistic one: the fix wrote a bare
+  `@stapel/tokens` import into 274 sites across twenty pairs, and not one of those
+  pairs DECLARES that package — it resolved only because the consumer's tree
+  happened to hoist. A binding the file already imports from either module is not
+  imported a second time (a duplicate declaration is a syntax error, produced by
+  an autofix); an existing import of the target module is extended in place.
+
 ## 0.10.0
 
 ### Minor Changes
