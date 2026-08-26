@@ -18,12 +18,23 @@
  * registering the same key later — and from the English floor where there is
  * no provider at all (see `./floor.ts`).
  */
-import { useId } from "react";
+import { useId, useRef } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Alert, Button, Empty, Skeleton, Space, Typography, theme as antdTheme } from "antd";
 import { STAPEL_UI_KEYS, matchList, matchLoad } from "@stapel/core";
 import type { FlowErrorDisplay, LoadState, NonEmptyArray } from "@stapel/core";
+import { useDialogSurface } from "./dialog.js";
+import { useElementWidth } from "./elementWidth.js";
+import { PANE_MEASURES } from "./pane.js";
 import { useSubstrateI18n } from "./floor.js";
+
+/**
+ * The element width under which the block alert's actions stack under the
+ * message instead of sitting in a column beside it. The `narrow` measure —
+ * the width of a form column — because that is the point at which a message
+ * and an action column stop fitting on one line together.
+ */
+export const ACTION_STACK_BELOW: number = PANE_MEASURES.narrow;
 
 export interface ErrorAlertProps {
   /**
@@ -76,6 +87,15 @@ export interface ErrorAlertProps {
 export function ErrorAlert(props: ErrorAlertProps): ReactElement | null {
   const { t, describe } = useSubstrateI18n();
   const { token } = antdTheme.useToken();
+  const box = useRef<HTMLDivElement | null>(null);
+  // antd puts `action` in a COLUMN beside the message. In a narrow box that
+  // column takes the room the sentence needs: at 390px the visual pass
+  // measured the message squeezed to ~110px, breaking a word per line, with
+  // "Try again" beside it (VC-B6). The question is the BOX's width — the
+  // shop's failed panel is equally narrow in a 380px side panel on a desktop
+  // — so the actions move UNDER the message below the narrow measure.
+  const { below } = useElementWidth(box, { thresholds: { stack: ACTION_STACK_BELOW } });
+  const phone = useDialogSurface() === "sheet";
   const shown = resolveShown(props, describe);
   if (shown === undefined) return null;
 
@@ -153,15 +173,33 @@ export function ErrorAlert(props: ErrorAlertProps): ReactElement | null {
       </Space>
     ) : undefined;
 
+  // Unmeasured (first paint, a server render, no observer) is seeded from the
+  // dialog-surface rule: on a phone the stacked arm is the one that fits.
+  const stacked = actions !== undefined && (below.stack ?? phone);
+  const description =
+    stacked || detailNode !== null ? (
+      <>
+        {detailNode}
+        {stacked && (
+          <div style={{ marginTop: detailNode !== null ? token.paddingXS : 0 }}>{actions}</div>
+        )}
+      </>
+    ) : null;
+
   return (
+    <div
+      ref={box}
+      data-stapel-error-actions={stacked ? "stacked" : "inline"}
+      style={{ minWidth: 0 }}
+    >
     <Alert
       type="error"
       showIcon
       role="alert"
       data-stapel-error="block"
       title={shown.message}
-      {...(detailNode !== null ? { description: detailNode } : {})}
-      {...(actions !== undefined ? { action: actions } : {})}
+      {...(description !== null ? { description } : {})}
+      {...(actions !== undefined && !stacked ? { action: actions } : {})}
       {...(props.onDismiss !== undefined
         ? { closable: { closeIcon: true, "aria-label": dismissLabel }, onClose: props.onDismiss }
         : { closable: false })}
@@ -169,6 +207,7 @@ export function ErrorAlert(props: ErrorAlertProps): ReactElement | null {
       {...(props.className !== undefined ? { className: props.className } : {})}
       {...(props.testId !== undefined ? { "data-testid": props.testId } : {})}
     />
+    </div>
   );
 }
 

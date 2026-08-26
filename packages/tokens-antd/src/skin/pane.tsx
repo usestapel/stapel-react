@@ -10,15 +10,19 @@
  *
  * `Pane` is the box: a named measure, centred, with the padding scale for
  * its width. `Page` is a screen: a `Pane` on the layout surface with the one
- * title/actions header a page has. Neither decides its layout from the
- * viewport — a pane inside a 390px column on a desktop is the same pane —
- * except for the padding step, which follows the same phone rule as the
- * control height (`useDialogSurface`), because gutters are about thumbs.
+ * title/actions header a page has. Neither decides anything from the
+ * viewport — a pane inside a 390px column on a desktop is the same pane, and
+ * the gutter step is chosen from the pane's OWN measured width
+ * (`useElementWidth`), with the viewport's phone rule only as the seed for
+ * the frame before the box has been measured.
  */
+import { useRef } from "react";
 import type { CSSProperties, ElementType, ReactElement, ReactNode } from "react";
 import { Typography, theme as antdTheme } from "antd";
+import type { GlobalToken } from "antd";
 import { breakpoints } from "@stapel/tokens";
 import { useDialogSurface } from "./dialog.js";
+import { useElementWidth } from "./elementWidth.js";
 import { SkinTheme } from "./theme.js";
 import type { SkinThemeProps } from "./theme.js";
 import { CardHeader } from "./listRow.js";
@@ -64,19 +68,18 @@ export interface PaneProps {
   readonly "aria-label"?: string;
 }
 
-/** The padding for a step, on a phone or not, from the antd token layer. */
-function usePanePadding(step: PanePadding): number {
-  const { token } = antdTheme.useToken();
-  const phone = useDialogSurface() === "sheet";
+/** The padding for a step in a narrow box or a wide one, from the antd
+ * token layer. */
+function panePadding(step: PanePadding, narrow: boolean, token: GlobalToken): number {
   switch (step) {
     case "none":
       return 0;
     case "compact":
-      return phone ? token.paddingSM : token.padding;
+      return narrow ? token.paddingSM : token.padding;
     case "roomy":
-      return phone ? token.paddingLG : token.paddingXL;
+      return narrow ? token.paddingLG : token.paddingXL;
     default:
-      return phone ? token.padding : token.paddingLG;
+      return narrow ? token.padding : token.paddingLG;
   }
 }
 
@@ -89,7 +92,16 @@ function usePanePadding(step: PanePadding): number {
  */
 export function Pane(props: PaneProps): ReactElement {
   const measure = props.measure ?? "reading";
-  const padding = usePanePadding(props.padding ?? "regular");
+  const { token } = antdTheme.useToken();
+  const ref = useRef<HTMLElement | null>(null);
+  // The gutter follows the BOX, not the window: a pane in a 360px column on a
+  // desktop is as tight as one on a phone, and a tablet-wide pane inside a
+  // phone-width app shell (a landscape split view) is not. Until the box has
+  // been measured the viewport's own phone rule is the seed, so the first
+  // paint on a phone is never the desktop gutter.
+  const { below } = useElementWidth(ref, { thresholds: { narrow: breakpoints.tablet } });
+  const phone = useDialogSurface() === "sheet";
+  const padding = panePadding(props.padding ?? "regular", below.narrow ?? phone, token);
   const Element: ElementType = props.as ?? "div";
   const style: CSSProperties = {
     boxSizing: "border-box",
@@ -103,6 +115,7 @@ export function Pane(props: PaneProps): ReactElement {
   };
   return (
     <Element
+      ref={ref}
       data-stapel-pane={measure}
       {...(props.className !== undefined ? { className: props.className } : {})}
       {...(props.testId !== undefined ? { "data-testid": props.testId } : {})}

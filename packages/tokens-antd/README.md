@@ -76,7 +76,7 @@ the theme mapping never loads a component.
 | `useThemeMode()` / `subscribeThemeMode()` | The reactive mode read (`useSyncExternalStore` + MutationObserver on `data-theme`), SSR-safe. |
 | `SkinDialog` / `useDialogSurface()` | On a phone a dialog is a bottom sheet; modals are tablet/desktop only. |
 | `SkinConfirm` | A confirmation is a dialog (so: a sheet on a phone), never an anchored `Popconfirm`. Controlled; `danger` variant; `confirming` holds both arms. |
-| `ErrorAlert` | The one error surface: `error` (described), `thrown` (raw), or `message`; `onRetry`, `onDismiss`, `action`; `variant="block"` (Alert) or `"inline"`. |
+| `ErrorAlert` | The one error surface: `error` (described), `thrown` (raw), or `message`; `onRetry`, `onDismiss`, `action`; `variant="block"` (Alert) or `"inline"`. In a box narrower than `ACTION_STACK_BELOW` the actions stack under the message instead of taking a column beside it. |
 | `EmptyState` | Icon, title, hint, action. Reachable only from a load that succeeded. |
 | `LoadBoundary` / `LoadList` | `matchLoad` / `matchList` as components with designed loading / failed / empty arms; the skin writes only the ready arm. |
 | `GatedControl` / `GatedButton` | A control plus its `ActionAvailability` reason as visible text beside it (`aria-describedby`), never a tooltip. Inside a `PaneGate`, identical reasons are pooled into one sentence. |
@@ -86,6 +86,7 @@ the theme mapping never loads a component.
 | `RowActions` | A row's actions: buttons that wrap between themselves and never inside a word; on a phone the primary stays inline and the rest open in a sheet. Gated actions carry their reason. |
 | `ListRow` / `CardHeader` | A row and a header whose text column is `min-width: 0` and wraps (no ellipsis unless `truncate`), with a badge slot that reserves its space and an actions slot that wraps under the title. |
 | `DataTable` | A table where the box is wide, a stack of cards where it is not — decided by the element's width, never the viewport's. Columns declare their card role (`title` / `badge` / `field` / `hidden`). |
+| `useElementWidth(ref, { thresholds })` | The fleet's one element-width measurement (`ResizeObserver`), read by `DataTable` and `Pane`. A zero width is ignored (a hidden box measures nothing); an unmeasured box answers `undefined` for the width **and** every threshold, so the caller states its own seed — `below.cards ?? phone`. |
 
 Phone (viewport below the tablet breakpoint): `SkinTheme` applies `PHONE_TOUCH_FLOOR`
 — `controlHeight` **and** `controlHeightSM` at 44px, `Rate` stars on a 44px

@@ -16,12 +16,13 @@
  * rule: geometry from element width), seeded from the dialog-surface rule so
  * the first client paint is already right on a phone.
  */
-import { useEffect, useRef, useState } from "react";
-import type { CSSProperties, ReactElement, ReactNode, RefObject } from "react";
+import { useRef } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Table, Typography, theme as antdTheme } from "antd";
 import type { TableColumnsType } from "antd";
 import { breakpoints } from "@stapel/tokens";
 import { useDialogSurface } from "./dialog.js";
+import { useElementWidth } from "./elementWidth.js";
 import { CardHeader } from "./listRow.js";
 import { RowActions } from "./rowActions.js";
 import type { RowAction } from "./rowActions.js";
@@ -63,26 +64,6 @@ export interface DataTableProps<T> {
   readonly testId?: string | undefined;
 }
 
-/** The wrapper's live inline width, or `undefined` until measured. */
-function useElementWidth(ref: RefObject<HTMLDivElement | null>): number | undefined {
-  const [width, setWidth] = useState<number | undefined>(undefined);
-  useEffect(() => {
-    const el = ref.current;
-    if (el === null || typeof ResizeObserver === "undefined") return undefined;
-    const read = (): void => {
-      const w = el.getBoundingClientRect().width;
-      if (w > 0) setWidth(w);
-    };
-    read();
-    const observer = new ResizeObserver(read);
-    observer.observe(el);
-    return () => {
-      observer.disconnect();
-    };
-  }, [ref]);
-  return width;
-}
-
 /**
  * Stamped `data-stapel-datatable="table|cards"`. Cards are `<article>`s
  * stamped `data-stapel-datatable-card`; each field is a `<dt>`/`<dd>` pair.
@@ -100,19 +81,19 @@ function useElementWidth(ref: RefObject<HTMLDivElement | null>): number | undefi
 export function DataTable<T>(props: DataTableProps<T>): ReactElement {
   const { token } = antdTheme.useToken();
   const ref = useRef<HTMLDivElement | null>(null);
-  const measured = useElementWidth(ref);
+  const { below } = useElementWidth(ref, {
+    thresholds: { cards: props.cardsBelow ?? breakpoints.tablet },
+  });
   const phone = useDialogSurface() === "sheet";
-  const threshold = props.cardsBelow ?? breakpoints.tablet;
+  // Unmeasured (first paint, a server render, no observer) is seeded from the
+  // dialog-surface rule, so a phone never paints a table for one frame.
+  const cards = below.cards ?? phone;
   const layout =
     props.layout !== undefined && props.layout !== "auto"
       ? props.layout
-      : measured !== undefined
-        ? measured < threshold
-          ? "cards"
-          : "table"
-        : phone
-          ? "cards"
-          : "table";
+      : cards
+        ? "cards"
+        : "table";
 
   const attrs = {
     ...(props.className !== undefined ? { className: props.className } : {}),

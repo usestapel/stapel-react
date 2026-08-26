@@ -41,6 +41,8 @@
  *    and wrap; actions and badges have slots of their own.
  *  - {@link DataTable} — a table where the box is wide, cards where it is
  *    not, by element width.
+ *  - {@link useElementWidth} — the one element-width measurement: geometry
+ *    comes from the box a thing is in, never from the viewport.
  *
  * Copy the substrate needs for itself (retry, dismiss, confirm, cancel, the
  * empty-state default) comes from `@stapel/core`'s UI floor
@@ -70,7 +72,9 @@ export {
   phoneTouchFloorCss,
 } from "./skin/theme.js";
 export type { SkinThemeProps, SkinSurface } from "./skin/theme.js";
-export { ErrorAlert, EmptyState, LoadBoundary, LoadList } from "./skin/states.js";
+export { useElementWidth } from "./skin/elementWidth.js";
+export type { ElementWidthOptions, ElementWidthReading } from "./skin/elementWidth.js";
+export { ErrorAlert, EmptyState, LoadBoundary, LoadList, ACTION_STACK_BELOW } from "./skin/states.js";
 export type {
   ErrorAlertProps,
   EmptyStateProps,
