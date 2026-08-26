@@ -1,6 +1,6 @@
 {
   "package": "@stapel/recordings-react",
-  "version": "0.5.1",
+  "version": "0.6.1",
   "entries": [
     {
       "id": "recordings.list",
