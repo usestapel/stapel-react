@@ -193,7 +193,7 @@ function FieldEditor(props: BuilderFieldRowSlotProps): ReactElement {
             // carry this kind at all, versus it carries it and it simply has
             // no options. Collapsing them would tell an admin their schema is
             // fine when the deployment cannot render the field.
-            message={t(
+            title={t(
               entry.kindInfo === undefined || entry.kindInfo.registered === false
                 ? FORMS_I18N_KEYS.builderKindUnregistered
                 : FORMS_I18N_KEYS.builderBuilderLess

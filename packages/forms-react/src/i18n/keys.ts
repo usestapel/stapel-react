@@ -23,6 +23,10 @@ export const FORMS_I18N_KEYS = {
   unknownError: "forms.error.unknown",
   /** A routed admin screen reached a host that declared no workspace. */
   noWorkspace: "forms.error.no_workspace",
+  /** A control switched off because the caller does not hold `{capability}`.
+   * The projection is stapel-forms' own (`docs/capabilities.json`), so the
+   * sentence can name the permission rather than saying "you may not". */
+  blockedCapability: "forms.blocked.capability",
 
   // ── nav (the three routable admin surfaces) ──────────────────────────────
   navList: "forms.nav.list",
@@ -138,6 +142,12 @@ export const FORMS_I18N_KEYS = {
   responsesClose: "forms.responses.close",
   responsesRefresh: "forms.responses.refresh",
   responsesPollingNote: "forms.responses.polling_note",
+  /** 403 — a VERDICT about this caller. Since stapel-forms 0.4.0 it is never
+   * also an outage, so it is stated as a decision and offers no retry. */
+  responsesForbidden: "forms.responses.forbidden",
+  /** 503 — the workspaces service could not be asked. On OUR side, and the
+   * one arm of the two that is worth retrying. */
+  responsesGateUnavailable: "forms.responses.gate_unavailable",
 
   // ── form list ────────────────────────────────────────────────────────────
   listTitle: "forms.list.title",
@@ -194,6 +204,8 @@ export const formsI18nBundleEn: I18nDictionary = {
 
   // forms-react UI
   "forms.error.unknown": "Something went wrong. Please try again.",
+  "forms.blocked.capability":
+    "You do not hold {capability}, the permission this needs. A workspace admin can grant it.",
   "forms.error.no_workspace":
     "This screen needs a workspace. Pass `workspaceId`, or declare one on the runtime with `createFormsRuntime({ workspaceId })`.",
 
@@ -324,6 +336,10 @@ export const formsI18nBundleEn: I18nDictionary = {
   "forms.responses.refresh": "Check for new responses",
   "forms.responses.polling_note":
     "This list does not update on its own — check again to see responses that arrived since it loaded.",
+  "forms.responses.forbidden":
+    "You may not see this form's responses. That is a decision, not a fault: ask a workspace admin for the forms.responses.view permission.",
+  "forms.responses.gate_unavailable":
+    "This one is on us: we could not reach the service that checks your permissions, so nothing was refused and nothing was read. Try again.",
 
   "forms.list.title": "Forms",
   "forms.list.empty": "No forms in this workspace yet.",

@@ -199,7 +199,7 @@
     {
       "id": "forms.responses-pane",
       "title": "Responses (default skin)",
-      "description": "Answers as their own version asked them: a submission records WHICH schema it answered, so reviewing an old response shows the questions that were actually put, not today's. Deleting and resending are not pre-gated on a guessed capability — the contract exposes none, and a guessed 'you may not' is the same defect as a dead button — but an ERASED row is gated, with the reason beside both controls.",
+      "description": "Answers as their own version asked them: a submission records WHICH schema it answered, so reviewing an old response shows the questions that were actually put, not today's. Deleting and resending sit behind forms.responses.manage — the capability stapel-forms projects — so a host that declares the caller's grants gets the write block switched off with the permission NAMED beside it, and a host that declares nothing keeps it live and lets the server answer. An ERASED row is gated the same way. A refusal and an outage are drawn as different states: a 403 is a decision and offers no retry, a 503 says it is on our side and does.",
       "component": "ResponsesPane",
       "covers": [
         "ResponsesTable"

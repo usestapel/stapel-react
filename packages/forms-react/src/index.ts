@@ -93,6 +93,23 @@ export {
 } from "./model/context.js";
 export { formsQueryKeys } from "./model/queryKeys.js";
 
+// ── capabilities (who may act, and which refusal this is) ────────────────────
+export {
+  FORMS_CAPABILITIES,
+  FORMS_FORBIDDEN,
+  FORMS_WORKSPACES_UNAVAILABLE,
+  capabilityMatches,
+  classifyGateRefusal,
+  judgeCapability,
+  useFormsCapability,
+  useFormsCapabilityGate,
+} from "./model/capabilities.js";
+export type {
+  CapabilityVerdict,
+  FormsCapability,
+  GateRefusal,
+} from "./model/capabilities.js";
+
 export {
   useFieldKinds,
   useForm,

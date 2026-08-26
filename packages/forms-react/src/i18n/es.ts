@@ -36,6 +36,8 @@ export const formsI18nBundleEs: I18nDictionary = {
   ...ATTRIBUTES_ERRORS_ES,
 
   "forms.error.unknown": "Algo salió mal. Inténtalo de nuevo.",
+  "forms.blocked.capability":
+    "No tienes {capability}, el permiso que esto necesita. Un administrador del espacio de trabajo puede concederlo.",
   "forms.error.no_workspace":
     "Esta pantalla necesita un espacio de trabajo. Pasa `workspaceId` o decláralo en el runtime con `createFormsRuntime({ workspaceId })`.",
 
@@ -165,6 +167,10 @@ export const formsI18nBundleEs: I18nDictionary = {
   "forms.responses.refresh": "Buscar respuestas nuevas",
   "forms.responses.polling_note":
     "Esta lista no se actualiza sola: vuelve a comprobarla para ver las respuestas llegadas desde que se cargó.",
+  "forms.responses.forbidden":
+    "No puedes ver las respuestas de este formulario. Es una decisión, no un fallo: pide a un administrador del espacio de trabajo el permiso forms.responses.view.",
+  "forms.responses.gate_unavailable":
+    "Esto es cosa nuestra: no pudimos contactar con el servicio que comprueba tus permisos, así que no se ha denegado ni leído nada. Vuelve a intentarlo.",
 
   "forms.list.title": "Formularios",
   "forms.list.empty": "Todavía no hay formularios en este espacio de trabajo.",

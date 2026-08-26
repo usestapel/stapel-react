@@ -214,6 +214,56 @@ the screen renders a named notice and issues no request: rendering an empty
 list would blame the workspace for a wiring mistake, and throwing would render
 a blank route explaining nothing.
 
+## Who may act, and which refusal this is
+
+stapel-forms **projects** the capability that gates each route — 0.3.0 added
+`docs/capabilities.json` and stamped `x-stapel-capability` on all sixteen gated
+operations — but no payload carries the caller's own grants. So this pair takes
+the grants the way `@stapel/core` takes the mandate axis: **provided, not
+computed.**
+
+```tsx
+createFormsRuntime({ baseUrl, workspaceId, capabilities: myCapabilities });
+```
+
+`judgeCapability` therefore has three answers, and collapsing any two of them
+is the defect this exists to avoid:
+
+| declared | verdict | what the surface does |
+| --- | --- | --- |
+| contains the string (or `"forms.*"` / `"*"`) | `granted` | offer the control |
+| declared, string absent | `denied` | switch it off, **name** the capability |
+| `undefined` | `unknown` | leave it live; the server answers |
+
+`<ResponsesPane>` spends this on `forms.responses.manage`: the override field
+and both write buttons sit under ONE `GatedControl`, so the sentence renders
+once and `aria-describedby` links all three to it. Naming the string is the
+point — a person told which permission they lack can go and ask for it.
+
+A client-side gate is a courtesy. The backend re-checks every capability on
+every request, and `capabilityMatches` is a port of the backend's own matcher
+kept semantically in sync with it.
+
+### A verdict and an outage are no longer the same byte
+
+Through stapel-forms 0.3.0 a `403` from a gated route meant EITHER "not
+granted" OR "the workspaces service rendered no verdict", and every
+`capabilities[].gates.behavior` in the contract published that caveat. Core
+0.47.0 gave `require_capability` a third answer, forms 0.4.0's `unavailable`
+branch fires, and **the caveat left the contract**.
+
+So this pair stops hedging too. `classifyGateRefusal(error)` reads the code
+first (`error.403.forms_forbidden` vs
+`error.503.forms_workspaces_unavailable`) and the status second, and returns
+`null` for everything that is not the gate — a 500 relabelled as a permission
+problem would send someone to ask an admin for something they already hold.
+`<ResponsesPane>` draws the two apart:
+
+- **403** — a decision. Says which permission to ask for, and offers **no**
+  retry: re-asking a question that has been answered is noise.
+- **503** — on our side. Says nothing was refused and nothing was read, and
+  offers the retry.
+
 ## Where a form's notifications are configured
 
 `PATCH /forms/<id>` is the ONLY writer of `Form.settings`, and `Form.settings`

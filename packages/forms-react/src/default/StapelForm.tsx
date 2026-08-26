@@ -99,7 +99,7 @@ function UnsupportedField(props: UnsupportedFieldSlotProps): ReactElement {
       type="warning"
       showIcon
       data-testid="forms-unsupported-field"
-      message={props.field.name ?? props.field.slug}
+      title={props.field.name ?? props.field.slug}
       description={t(FORMS_I18N_KEYS.fillUnsupportedField, {
         kind: props.field.kind,
       })}
@@ -178,7 +178,7 @@ function Confirmation(props: ConfirmationSlotProps): ReactElement {
       type="success"
       showIcon
       data-testid="forms-confirmation"
-      message={
+      title={
         props.confirmation.length > 0
           ? props.confirmation
           : t(FORMS_I18N_KEYS.fillThanks)
@@ -267,7 +267,7 @@ export function StapelForm(props: StapelFormProps): ReactElement {
                       type="error"
                       showIcon
                       data-testid="forms-not-found"
-                      message={t(FORMS_I18N_KEYS.fillNotFound)}
+                      title={t(FORMS_I18N_KEYS.fillNotFound)}
                     />
                   );
                 }
@@ -277,7 +277,7 @@ export function StapelForm(props: StapelFormProps): ReactElement {
                       type="info"
                       showIcon
                       data-testid="forms-closed"
-                      message={t(FORMS_I18N_KEYS.fillClosed)}
+                      title={t(FORMS_I18N_KEYS.fillClosed)}
                     />
                   );
                 }
@@ -322,7 +322,7 @@ export function StapelForm(props: StapelFormProps): ReactElement {
                         showIcon
                         style={{ marginBottom: spacing[4] }}
                         data-testid="forms-superseded"
-                        message={t(FORMS_I18N_KEYS.fillSuperseded)}
+                        title={t(FORMS_I18N_KEYS.fillSuperseded)}
                       />
                     )}
 

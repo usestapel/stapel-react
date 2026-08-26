@@ -99,14 +99,18 @@ export function FormsDemoHarness(props: {
   /** The workspace the admin screens act in when a screen is not given one.
    * This is the ROUTABLE case: a nav-mounted screen has only the address. */
   workspaceId?: string;
+  /** The caller's forms capabilities, as a host would hand them over. Omit
+   * for the "nobody said" case, which gates nothing client-side. */
+  capabilities?: readonly string[];
   children: ReactNode;
 }): ReactElement {
-  const { handlers, seed, workspaceId } = props;
+  const { handlers, seed, workspaceId, capabilities } = props;
   const { runtime, queryClient, i18n } = useMemo(() => {
     const rt = createFormsRuntime({
       baseUrl: DEMO_BASE,
       fetch: mockFetch(handlers ?? {}),
       ...(workspaceId !== undefined ? { workspaceId } : {}),
+      ...(capabilities !== undefined ? { capabilities } : {}),
     });
     const engine = createI18n({ locale: "en" });
     registerFormsI18n(engine);
@@ -116,7 +120,7 @@ export function FormsDemoHarness(props: {
     });
     for (const [key, data] of seed ?? []) client.setQueryData(key, data);
     return { runtime: rt, queryClient: client, i18n: engine };
-  }, [handlers, seed, workspaceId]);
+  }, [handlers, seed, workspaceId, capabilities]);
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>

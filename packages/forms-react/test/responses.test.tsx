@@ -4,7 +4,14 @@
  * surface — which shape it takes on which viewport, and what it refuses to
  * offer on a row that was already erased.
  */
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ResponsesTable } from "../src/index.js";
 import type { ResponsesTableBag } from "../src/index.js";
@@ -199,16 +206,29 @@ function setViewportWidth(width: number): void {
  */
 function renderPane(
   routes: Parameters<typeof mockServer>[0],
-  viewportWidth: number
+  viewportWidth: number,
+  /** The caller's grants. OMITTED means "the host said nothing" — a third
+   * answer, and the reason the writes stay live in most of these cases. */
+  capabilities?: readonly string[]
 ): MockServer {
   setViewportWidth(viewportWidth);
   const server = mockServer(routes);
   render(
-    <TestHarness server={server}>
+    <TestHarness
+      server={server}
+      {...(capabilities !== undefined ? { capabilities } : {})}
+    >
       <ResponsesPane workspaceId={WORKSPACE_ID} formId={FORM_ID} />
     </TestHarness>
   );
   return server;
+}
+
+/** The one reason the write block renders, whatever switched it off. */
+function writeGateReason(): HTMLElement | null {
+  return screen
+    .getByTestId("forms-responses-write-gate")
+    .querySelector("[data-stapel-gated-reason]");
 }
 
 /** Open the detail surface by clicking the row whose `submitted_at` this is. */
@@ -239,26 +259,26 @@ describe("the detail surface obeys the fleet dialog rule", () => {
   });
 });
 
-describe("an erased response", () => {
-  const ERASED_AT = "2026-08-22T09:00:00+00:00";
-  const ERASED_SUBMITTED_AT = "2026-08-20T08:15:00+00:00";
-  const ERASED_ROUTES = {
-    "GET /versions": { body: VERSIONS },
-    "GET /submissions": {
-      body: [
-        {
-          ...(SUBMISSIONS[0] as object),
-          id: "33333333-3333-4333-8333-333333333333",
-          // Erasure keeps the row so the counts stay truthful, and empties the
-          // answers — which is exactly why there is nothing left to resend.
-          answers: {},
-          submitted_at: ERASED_SUBMITTED_AT,
-          erased_at: ERASED_AT,
-        },
-      ],
-    },
-  };
+const ERASED_AT = "2026-08-22T09:00:00+00:00";
+const ERASED_SUBMITTED_AT = "2026-08-20T08:15:00+00:00";
+const ERASED_ROUTES = {
+  "GET /versions": { body: VERSIONS },
+  "GET /submissions": {
+    body: [
+      {
+        ...(SUBMISSIONS[0] as object),
+        id: "33333333-3333-4333-8333-333333333333",
+        // Erasure keeps the row so the counts stay truthful, and empties the
+        // answers — which is exactly why there is nothing left to resend.
+        answers: {},
+        submitted_at: ERASED_SUBMITTED_AT,
+        erased_at: ERASED_AT,
+      },
+    ],
+  },
+};
 
+describe("an erased response", () => {
   afterEach(() => {
     setViewportWidth(JSDOM_WIDTH);
   });
@@ -276,16 +296,17 @@ describe("an erased response", () => {
 
     // The reason is READABLE, beside the controls — a disabled button gets no
     // pointer events, so a tooltip would be a reason nobody can reach. It is
-    // the shared substrate that renders it (GatedButton), and it wires the
-    // sentence to the button with aria-describedby.
-    const gate = screen.getByTestId("forms-delete-gate");
-    const reason = gate.querySelector("[data-stapel-gated-reason]");
+    // the shared substrate that renders it (GatedControl), ONCE for the whole
+    // write block, and all three controls point at that one sentence.
+    const reason = writeGateReason();
     expect(reason?.textContent).toBe(
       "This response was erased, so it can no longer be resent or deleted."
     );
-    expect(
-      screen.getByTestId("forms-delete").getAttribute("aria-describedby")
-    ).toBe(reason?.id);
+    for (const id of ["forms-delete", "forms-resend", "forms-resend-override"]) {
+      expect(screen.getByTestId(id).getAttribute("aria-describedby")).toBe(
+        reason?.id
+      );
+    }
   });
 
   it("does not even offer the delete CONFIRMATION", async () => {
@@ -303,11 +324,7 @@ describe("an erased response", () => {
     await openRow("2026-08-21T11:00:00+00:00");
     expect(screen.getByTestId("forms-resend")).toHaveProperty("disabled", false);
     expect(screen.getByTestId("forms-delete")).toHaveProperty("disabled", false);
-    expect(
-      screen
-        .getByTestId("forms-delete-gate")
-        .querySelector("[data-stapel-gated-reason]")
-    ).toBeNull();
+    expect(writeGateReason()).toBeNull();
   });
 });
 
@@ -323,5 +340,135 @@ describe("delete", () => {
     expect(bag().selected).not.toBeNull();
     act(() => bag().remove(row));
     await waitFor(() => expect(bag().selected).toBeNull());
+  });
+});
+
+/**
+ * `forms.responses.manage` — the capability stapel-forms 0.3.0 started
+ * projecting and 0.4.0 made unambiguous. Reading responses and ACTING on them
+ * are separate grants, so a reviewer who holds only the first must be told
+ * which permission the buttons want, not shown two dead rectangles.
+ */
+describe("the responses.manage capability", () => {
+  const OPEN_ROW = "2026-08-21T11:00:00+00:00";
+
+  afterEach(() => {
+    setViewportWidth(JSDOM_WIDTH);
+  });
+
+  it("switches both writes off and NAMES the capability when it is not granted", async () => {
+    renderPane(BASE_ROUTES, JSDOM_WIDTH, ["forms.view", "forms.responses.view"]);
+    await openRow(OPEN_ROW);
+
+    expect(screen.getByTestId("forms-resend")).toHaveProperty("disabled", true);
+    expect(screen.getByTestId("forms-delete")).toHaveProperty("disabled", true);
+    expect(screen.getByTestId("forms-resend-override")).toHaveProperty(
+      "disabled",
+      true
+    );
+    // Naming the string is the whole point: a person told WHICH permission
+    // they lack can go and ask for it. "You may not" cannot be acted on.
+    expect(writeGateReason()?.textContent).toContain("forms.responses.manage");
+  });
+
+  it("leaves them live when the grant IS held", async () => {
+    renderPane(BASE_ROUTES, JSDOM_WIDTH, ["forms.responses.manage"]);
+    await openRow(OPEN_ROW);
+    expect(screen.getByTestId("forms-delete")).toHaveProperty("disabled", false);
+    expect(writeGateReason()).toBeNull();
+  });
+
+  it("honours a prefix wildcard the way the backend matcher does", async () => {
+    renderPane(BASE_ROUTES, JSDOM_WIDTH, ["forms.*"]);
+    await openRow(OPEN_ROW);
+    // `forms.*` matches the DEEPER `forms.responses.manage`, exactly as
+    // stapel-workspaces' capability_matches does. A client that refused here
+    // would hide a control the server would have honoured.
+    expect(screen.getByTestId("forms-delete")).toHaveProperty("disabled", false);
+  });
+
+  it("does NOT guess a refusal when the host declared nothing", async () => {
+    renderPane(BASE_ROUTES, JSDOM_WIDTH);
+    await openRow(OPEN_ROW);
+    // The contract projects which capability gates the route, never the
+    // caller's grants. With no host declaration the honest answer is "ask the
+    // server", and a guessed "you may not" is the same defect as a dead button.
+    expect(screen.getByTestId("forms-delete")).toHaveProperty("disabled", false);
+    expect(writeGateReason()).toBeNull();
+  });
+
+  it("says the capability first when a row is ALSO erased", async () => {
+    renderPane(ERASED_ROUTES, JSDOM_WIDTH, ["forms.responses.view"]);
+    await openRow(ERASED_SUBMITTED_AT);
+    // One control, one reason: the permission holds for every row, so it is
+    // the sentence to lead with. Printing both would answer one question twice.
+    const reason = writeGateReason()?.textContent ?? "";
+    expect(reason).toContain("forms.responses.manage");
+    expect(reason).not.toContain("erased");
+  });
+});
+
+/**
+ * A denial and an outage, told apart.
+ *
+ * Until stapel-forms 0.4.0 both were `403` and every `gates.behavior` in the
+ * contract warned that a refusal "might mean no verdict was reached". Core
+ * 0.47.0 closed that, the caveat left the contract, and the two are now
+ * different statuses — so they get different pictures here, and only one of
+ * them gets a retry.
+ */
+describe("a refusal and an outage are different states", () => {
+  const REFUSED = {
+    "GET /versions": { body: VERSIONS },
+    "GET /submissions": {
+      status: 403,
+      body: { localizable_error: "error.403.forms_forbidden" },
+    },
+  };
+  const OUTAGE = {
+    "GET /versions": { body: VERSIONS },
+    "GET /submissions": {
+      status: 503,
+      body: { localizable_error: "error.503.forms_workspaces_unavailable" },
+    },
+  };
+
+  afterEach(() => {
+    setViewportWidth(JSDOM_WIDTH);
+  });
+
+  it("renders the 503 as OUR problem, with a way to ask again", async () => {
+    renderPane(OUTAGE, JSDOM_WIDTH);
+    const alert = await screen.findByTestId("forms-responses-failed-unavailable");
+    expect(alert.textContent).toContain("on us");
+    // The retryable arm is the one that gets a retry: nothing was decided, so
+    // asking again is the correct next act.
+    expect(within(alert).getByRole("button", { name: "Try again" })).toBeDefined();
+    // And it is NOT the generic "we could not load the responses" state, which
+    // would blame the read for a permission service that never answered.
+    expect(screen.queryByTestId("forms-responses-failed")).toBeNull();
+  });
+
+  it("renders the 403 as a VERDICT, naming the permission and offering no retry", async () => {
+    renderPane(REFUSED, JSDOM_WIDTH);
+    const alert = await screen.findByTestId("forms-responses-failed-forbidden");
+    expect(alert.textContent).toContain("forms.responses.view");
+    // Retrying a decision re-asks a question that has already been answered.
+    expect(within(alert).queryByRole("button", { name: "Try again" })).toBeNull();
+    expect(screen.queryByTestId("forms-responses-failed-unavailable")).toBeNull();
+  });
+
+  it("leaves every OTHER failure with its own sentence", async () => {
+    renderPane(
+      {
+        "GET /versions": { body: VERSIONS },
+        "GET /submissions": { status: 500, body: {} },
+      },
+      JSDOM_WIDTH
+    );
+    // Not every failure is the gate. A 500 relabelled as a permission problem
+    // sends a person to ask an admin for something they already hold.
+    const alert = await screen.findByTestId("forms-responses-failed");
+    expect(alert.textContent).toContain("We could not load the responses.");
   });
 });

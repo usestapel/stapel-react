@@ -8,16 +8,30 @@
  *
  * ── Who may delete or resend ───────────────────────────────────────────────
  *
- * The server does. `forms.responses.manage` is enforced BACKEND-side and the
- * published contract (`docs/schema.json` → `src/api/generated/schema.ts`)
- * exposes no projection of it: every admin route is documented
- * `IsNotAnonymousUser`, and neither `SubmissionPresenterDTO` nor
- * `FormPresenterDTO` carries a per-principal capability field. So this surface
- * does NOT pre-gate the two writes on a capability — a client-side gate would
- * have to guess, and a guessed "you may not" is the same defect as a dead
- * button. A refusal arrives as the mutation's own error and is rendered by
- * `<ErrorAlert>`. The one thing that IS knowable here is the ROW's state, and
- * that is gated below.
+ * `forms.responses.manage` — the capability stapel-forms 0.3.0 started
+ * PROJECTING (`docs/capabilities.json`, and `x-stapel-capability` on
+ * `DELETE /submissions/<id>` and `POST /submissions/<id>/resend`). It is the
+ * destructive half of response handling and is granted separately from
+ * reading, so a reviewer may legitimately hold `forms.responses.view` and
+ * nothing else.
+ *
+ * When the host declares the caller's grants on the runtime, the write block
+ * is switched off with the capability NAMED beside it: one `GatedControl`
+ * over the override field and both buttons, so the sentence is rendered once
+ * and `aria-describedby` links all three to it. When the host declares
+ * nothing the controls stay live and the server answers — an unknown grant is
+ * not a refusal, and a guessed "you may not" is the same defect as a dead
+ * button.
+ *
+ * ── A denial and an outage are different pictures ───────────────────────────
+ *
+ * stapel-forms 0.4.0 (on stapel-core 0.47.0) split them: a 403 is a VERDICT
+ * that may be treated as one, and a workspaces outage is
+ * `503 error.503.forms_workspaces_unavailable`. The contract's old warning
+ * that a 403 "might mean no verdict was reached" is gone, so this surface
+ * stops hedging too — `classifyGateRefusal` picks the arm, the denial says
+ * which permission to ask for and offers no retry, and the outage says it is
+ * on our side and does.
  *
  * ── Freshness: POLLING, declared ───────────────────────────────────────────
  *
@@ -49,6 +63,7 @@ import {
   EmptyState,
   ErrorAlert,
   GatedButton,
+  GatedControl,
   LoadBoundary,
   SkinConfirm,
   SkinDialog,
@@ -57,12 +72,17 @@ import {
 import {
   actionAvailable,
   actionBlocked,
+  firstBlock,
   matchLoad,
-  useActionGate,
   useT,
 } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
 import type { Submission } from "../api/types.js";
+import {
+  FORMS_CAPABILITIES,
+  classifyGateRefusal,
+  useFormsCapabilityGate,
+} from "../model/capabilities.js";
 import { ResponsesTable } from "../headless/ResponsesTable.js";
 import type {
   ResponseColumn,
@@ -198,16 +218,20 @@ function DetailDialog(props: { bag: ResponsesTableBag }): ReactElement {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const row = bag.selected;
 
-  // An erased row has no answers left. Resending it would deliver an empty
-  // letter and deleting it would erase what the retention job already erased —
-  // both are refusals waiting to happen, so both are switched off HERE, with
-  // the reason printed as text beside them (a disabled control receives no
-  // pointer events, so a tooltip is a reason nobody can read).
-  const writeGate =
+  // Two independent reasons a write can be off, ordered the way you would
+  // explain the situation to a person: the CAPABILITY is a property of the
+  // caller and holds for every row, so it is said first; the erasure is a
+  // property of THIS row. `firstBlock` shows exactly one, and there is no way
+  // to spell "blocked, reason unknown".
+  //
+  // An erased row has no answers left: resending it would deliver an empty
+  // letter and deleting it would erase what the retention job already erased.
+  const manageGate = useFormsCapabilityGate(FORMS_CAPABILITIES.responsesManage);
+  const erasedGate =
     row !== null && row.erased_at != null
       ? actionBlocked(FORMS_I18N_KEYS.responsesErasedNoWrite)
       : actionAvailable();
-  const writeView = useActionGate(writeGate);
+  const writeGate = firstBlock(manageGate, erasedGate);
 
   return (
     <SkinDialog
@@ -236,47 +260,57 @@ function DetailDialog(props: { bag: ResponsesTableBag }): ReactElement {
           <Typography.Text type="secondary">
             {t(FORMS_I18N_KEYS.responsesResendOverrideHint)}
           </Typography.Text>
-          <Input
-            aria-label={t(FORMS_I18N_KEYS.responsesResendOverride)}
-            placeholder={t(FORMS_I18N_KEYS.responsesResendOverride)}
-            value={override}
-            disabled={writeView.disabled}
-            data-disabled-reason="erased row; the reason is printed under the action row"
-            onChange={(event) => setOverride(event.target.value)}
-            data-testid="forms-resend-override"
-          />
-          <Space wrap>
-            <GatedButton
-              gate={writeGate}
-              loading={bag.isResending}
-              data-analytics="flow"
-              testId="forms-resend"
-              onClick={() => {
-                const recipients = override
-                  .split(",")
-                  .map((entry) => entry.trim())
-                  .filter((entry) => entry.length > 0);
-                // Only send an override when the operator typed one: an empty
-                // list would REPLACE the form's targets with nothing.
-                bag.resend(
-                  row.id,
-                  recipients.length > 0 ? { recipients } : undefined
-                );
-              }}
-            >
-              {t(FORMS_I18N_KEYS.responsesResend)}
-            </GatedButton>
-            <GatedButton
-              gate={writeGate}
-              danger
-              data-analytics="none"
-              data-analytics-reason="opens the delete confirmation; the DELETE inside it is the tracked step"
-              testId="forms-delete"
-              onClick={() => setConfirmingDelete(true)}
-            >
-              {t(FORMS_I18N_KEYS.responsesDelete)}
-            </GatedButton>
-          </Space>
+          {/* ONE gate over the whole write block. Three controls share one
+              reason and one `aria-describedby` target — repeating the same
+              sentence under each would be three answers to one question, and
+              the override field had no readable reason at all before. */}
+          <GatedControl gate={writeGate} testId="forms-responses-write-gate">
+            {(bind) => (
+              <Flex vertical gap={spacing[3]}>
+                <Input
+                  aria-label={t(FORMS_I18N_KEYS.responsesResendOverride)}
+                  placeholder={t(FORMS_I18N_KEYS.responsesResendOverride)}
+                  value={override}
+                  onChange={(event) => setOverride(event.target.value)}
+                  data-testid="forms-resend-override"
+                  {...bind}
+                />
+                <Space wrap>
+                  <Button
+                    loading={bag.isResending}
+                    data-analytics="flow"
+                    data-testid="forms-resend"
+                    onClick={() => {
+                      const recipients = override
+                        .split(",")
+                        .map((entry) => entry.trim())
+                        .filter((entry) => entry.length > 0);
+                      // Only send an override when the operator typed one: an
+                      // empty list would REPLACE the form's targets with
+                      // nothing.
+                      bag.resend(
+                        row.id,
+                        recipients.length > 0 ? { recipients } : undefined
+                      );
+                    }}
+                    {...bind}
+                  >
+                    {t(FORMS_I18N_KEYS.responsesResend)}
+                  </Button>
+                  <Button
+                    danger
+                    data-analytics="none"
+                    data-analytics-reason="opens the delete confirmation; the DELETE inside it is the tracked step"
+                    data-testid="forms-delete"
+                    onClick={() => setConfirmingDelete(true)}
+                    {...bind}
+                  >
+                    {t(FORMS_I18N_KEYS.responsesDelete)}
+                  </Button>
+                </Space>
+              </Flex>
+            )}
+          </GatedControl>
           {bag.lastResendCount !== null && (
             <Typography.Text type="success" data-testid="forms-resend-sent">
               {t(FORMS_I18N_KEYS.responsesResendSent, {
@@ -302,6 +336,54 @@ function DetailDialog(props: { bag: ResponsesTableBag }): ReactElement {
       )}
     </SkinDialog>
   );
+}
+
+/**
+ * A failure from a gated route, drawn as ONE of three pictures.
+ *
+ * The split is what stapel-forms 0.4.0 bought: a 403 is a decision about this
+ * caller (say which permission to ask for; a retry would just re-ask the same
+ * question and get the same answer), a 503 is the workspaces service failing
+ * to answer (say it is on our side, and offer the retry), and anything else
+ * keeps the caller's own sentence. Before 0.4.0 the first two were the same
+ * byte on the wire and this component could not have existed honestly.
+ */
+function GateAwareError(props: {
+  readonly thrown: unknown;
+  readonly testId: string;
+  /** The sentence for a failure that is not the gate's. */
+  readonly message?: string;
+  readonly onRetry: () => void;
+}): ReactElement {
+  const t = useT();
+  switch (classifyGateRefusal(props.thrown)) {
+    case "unavailable":
+      return (
+        <ErrorAlert
+          testId={`${props.testId}-unavailable`}
+          message={t(FORMS_I18N_KEYS.responsesGateUnavailable)}
+          thrown={props.thrown}
+          onRetry={props.onRetry}
+        />
+      );
+    case "denied":
+      return (
+        <ErrorAlert
+          testId={`${props.testId}-forbidden`}
+          message={t(FORMS_I18N_KEYS.responsesForbidden)}
+          thrown={props.thrown}
+        />
+      );
+    default:
+      return (
+        <ErrorAlert
+          testId={props.testId}
+          {...(props.message !== undefined ? { message: props.message } : {})}
+          thrown={props.thrown}
+          onRetry={props.onRetry}
+        />
+      );
+  }
 }
 
 export interface ResponsesPaneProps extends ThemeModeProp {
@@ -336,10 +418,13 @@ export function ResponsesPane(props: ResponsesPaneProps): ReactElement {
               {t(FORMS_I18N_KEYS.responsesTitle)}
             </Typography.Title>
             <Toolbar bag={bag} />
-            <ErrorAlert
-              testId="forms-responses-error"
-              {...(bag.error !== null ? { thrown: bag.error } : {})}
-            />
+            {bag.error !== null && (
+              <GateAwareError
+                thrown={bag.error}
+                testId="forms-responses-error"
+                onRetry={bag.refetch}
+              />
+            )}
             <LoadBoundary
               state={bag.state}
               onRetry={bag.refetch}
@@ -347,10 +432,10 @@ export function ResponsesPane(props: ResponsesPaneProps): ReactElement {
               // "We could not load the responses" — never an empty grid,
               // which would read as "nobody answered".
               failed={(thrown) => (
-                <ErrorAlert
+                <GateAwareError
+                  thrown={thrown}
                   testId="forms-responses-failed"
                   message={t(FORMS_I18N_KEYS.responsesLoadFailed)}
-                  thrown={thrown}
                   onRetry={bag.refetch}
                 />
               )}

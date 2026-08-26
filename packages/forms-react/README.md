@@ -170,6 +170,39 @@ has only the address — finds it. Passing the prop still wins, so a host drivin
 two workspaces on one page keeps working. With neither declared, the screen says
 so rather than rendering an empty list.
 
+### Telling the caller which permission they lack
+
+stapel-forms projects **which capability gates which route**
+(`docs/capabilities.json`, `x-stapel-capability` on every gated operation) —
+but no payload carries the caller's own grants. So hand them over, the way
+core's mandate axis is provided rather than computed:
+
+```tsx
+const { data } = useWorkspace(workspaceId);            // @stapel/workspaces-react
+createFormsRuntime({ baseUrl, workspaceId, capabilities: data?.my_capabilities });
+```
+
+With grants declared, `<ResponsesPane>`'s delete/resend block is switched off
+for a caller who lacks `forms.responses.manage`, with the capability **named**
+in the sentence beside it. With `capabilities` **omitted** nothing is gated
+client-side and the server answers — an unknown grant is not a refusal, and a
+guessed "you may not" is the same defect as a dead button. Wildcards match the
+backend's own rule (`"forms.*"`, `"*"`).
+
+A client-side gate is a courtesy, never an access decision: every capability is
+re-checked server-side on every request.
+
+### A refusal and an outage are different answers
+
+Since stapel-forms **0.4.0** (on stapel-core 0.47.0) a `403` from a gated route
+is a **verdict** — workspaces was asked and said no — and an outage is its own
+status, `503 error.503.forms_workspaces_unavailable`. The contract's former
+warning that a 403 "might mean no verdict was reached" is gone, so this pair
+stops hedging: `classifyGateRefusal(error)` names which of the two you have, and
+`<ResponsesPane>` draws them differently — the denial says which permission to
+ask for and offers **no** retry, the outage says it is on our side and offers
+one. A 403 may be cached as a decision; a 503 means ask again.
+
 `<FormBuilderPane>` is **data-driven**: a field's options come from
 `GET /field-kinds`, which serves the config declarations `stapel_attributes`
 publishes per type. There is no hand-written form per kind and no mirrored table

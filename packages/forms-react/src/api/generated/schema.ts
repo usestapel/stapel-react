@@ -26,6 +26,8 @@ export interface paths {
          *     form has no use for the builder's dictionary.
          *
          *     **Permissions:** `IsNotAnonymousUser`
+         *
+         *     **Capability:** `forms.manage`
          */
         get: operations["forms_api_v1_field_kinds_retrieve"];
         put?: never;
@@ -47,6 +49,8 @@ export interface paths {
          * @description List the workspace's forms, or create one.
          *
          *     **Permissions:** `IsNotAnonymousUser`
+         *
+         *     **Capability:** `forms.view`
          */
         get: operations["forms_api_v1_forms_list"];
         put?: never;
@@ -54,6 +58,8 @@ export interface paths {
          * @description List the workspace's forms, or create one.
          *
          *     **Permissions:** `IsNotAnonymousUser`
+         *
+         *     **Capability:** `forms.manage`
          */
         post: operations["forms_api_v1_forms_create"];
         delete?: never;
@@ -73,6 +79,8 @@ export interface paths {
          * @description Read, rename or soft-delete one form.
          *
          *     **Permissions:** `IsNotAnonymousUser`
+         *
+         *     **Capability:** `forms.view`
          */
         get: operations["forms_api_v1_forms_retrieve"];
         put?: never;
@@ -81,6 +89,8 @@ export interface paths {
          * @description Read, rename or soft-delete one form.
          *
          *     **Permissions:** `IsNotAnonymousUser`
+         *
+         *     **Capability:** `forms.manage`
          */
         delete: operations["forms_api_v1_forms_destroy"];
         options?: never;
@@ -89,6 +99,8 @@ export interface paths {
          * @description Read, rename or soft-delete one form.
          *
          *     **Permissions:** `IsNotAnonymousUser`
+         *
+         *     **Capability:** `forms.manage`
          */
         patch: operations["forms_api_v1_forms_partial_update"];
         trace?: never;
@@ -105,6 +117,8 @@ export interface paths {
          * @description Replace the builder's scratchpad.
          *
          *     **Permissions:** `IsNotAnonymousUser`
+         *
+         *     **Capability:** `forms.manage`
          */
         put: operations["forms_api_v1_forms_draft_update"];
         post?: never;
@@ -127,6 +141,8 @@ export interface paths {
          * @description Freeze the draft as the next immutable version.
          *
          *     **Permissions:** `IsNotAnonymousUser`
+         *
+         *     **Capability:** `forms.manage`
          */
         post: operations["forms_api_v1_forms_publish_create"];
         delete?: never;
@@ -148,6 +164,8 @@ export interface paths {
          * @description Mint a new public handle, invalidating every distributed link.
          *
          *     **Permissions:** `IsNotAnonymousUser`
+         *
+         *     **Capability:** `forms.manage`
          */
         post: operations["forms_api_v1_forms_rotate_link_create"];
         delete?: never;
@@ -169,6 +187,8 @@ export interface paths {
          * @description Open or close the form for submissions.
          *
          *     **Permissions:** `IsNotAnonymousUser`
+         *
+         *     **Capability:** `forms.manage`
          */
         post: operations["forms_api_v1_forms_state_create"];
         delete?: never;
@@ -188,6 +208,8 @@ export interface paths {
          * @description Keyset page of a form's responses, newest first.
          *
          *     **Permissions:** `IsNotAnonymousUser`
+         *
+         *     **Capability:** `forms.responses.view`
          */
         get: operations["forms_api_v1_forms_submissions_list"];
         put?: never;
@@ -214,6 +236,8 @@ export interface paths {
          *     the CSV inherits it.
          *
          *     **Permissions:** `IsNotAnonymousUser`
+         *
+         *     **Capability:** `forms.responses.view`
          */
         get: operations["forms_api_v1_forms_submissions_export_retrieve"];
         put?: never;
@@ -235,6 +259,8 @@ export interface paths {
          * @description The form's published versions, newest first.
          *
          *     **Permissions:** `IsNotAnonymousUser`
+         *
+         *     **Capability:** `forms.view`
          */
         get: operations["forms_api_v1_forms_versions_list"];
         put?: never;
@@ -298,6 +324,8 @@ export interface paths {
          * @description Read or delete one response.
          *
          *     **Permissions:** `IsNotAnonymousUser`
+         *
+         *     **Capability:** `forms.responses.view`
          */
         get: operations["forms_api_v1_submissions_retrieve"];
         put?: never;
@@ -306,6 +334,8 @@ export interface paths {
          * @description Read or delete one response.
          *
          *     **Permissions:** `IsNotAnonymousUser`
+         *
+         *     **Capability:** `forms.responses.manage`
          */
         delete: operations["forms_api_v1_submissions_destroy"];
         options?: never;
@@ -330,6 +360,8 @@ export interface paths {
          *     for one letter is not one.
          *
          *     **Permissions:** `IsNotAnonymousUser`
+         *
+         *     **Capability:** `forms.responses.manage`
          */
         post: operations["forms_api_v1_submissions_resend_create"];
         delete?: never;

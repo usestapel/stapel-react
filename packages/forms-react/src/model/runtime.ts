@@ -34,16 +34,36 @@ import type { FormsApi } from "../api/formsApi.js";
  * of the address. Declaring it once on the runtime is what lets the three
  * admin screens be routable at all; passing `workspaceId` to a screen still
  * wins, so a host driving two workspaces on one page keeps working.
+ *
+ * ── The caller's capabilities, provided rather than computed ────────────────
+ *
+ * stapel-forms projects WHICH capability gates which route (0.3.0's
+ * `docs/capabilities.json` + `x-stapel-capability`), and no forms payload
+ * carries the caller's grants. So the grants arrive the way core's mandate
+ * axis does: the host hands over what it already knows — `my_capabilities`
+ * off `@stapel/workspaces-react`'s workspace detail in a tenant app, a
+ * session claim elsewhere — and this pair never learns what a membership is.
+ * Declaring nothing is a third answer, not an empty list: the admin surfaces
+ * stay live and let the server refuse. See `model/capabilities.ts`.
  */
 export type FormsRuntime = ModuleRuntime<FormsApi> & {
   /** The workspace the admin screens act in when a screen is not given one. */
   readonly workspaceId?: string;
+  /**
+   * The forms capabilities this caller holds in that workspace, verbatim
+   * registry strings (wildcards included). OMIT when the host cannot say —
+   * absent grants leave every control live rather than guessing a refusal.
+   */
+  readonly capabilities?: readonly string[];
 };
 
 export type CreateFormsRuntimeOptions = CreateModuleRuntimeOptions & {
   /** Default workspace for the admin surface. Omit for the anonymous embed —
    * `<StapelForm>` and `<FormFill>` never read it. */
   readonly workspaceId?: string;
+  /** The caller's grants in that workspace. Omit to gate nothing client-side
+   * and let the server answer — see the note above. */
+  readonly capabilities?: readonly string[];
 };
 
 export function createFormsRuntime(
@@ -66,6 +86,9 @@ export function createFormsRuntime(
     ...base,
     ...(options.workspaceId !== undefined
       ? { workspaceId: options.workspaceId }
+      : {}),
+    ...(options.capabilities !== undefined
+      ? { capabilities: options.capabilities }
       : {}),
   };
 }

@@ -113,6 +113,9 @@ export function TestHarness(props: {
   /** The runtime's default workspace — the ROUTABLE case, where a screen is
    * mounted from a nav manifest with nothing but the address. */
   workspaceId?: string;
+  /** The caller's forms capabilities, as a host declares them. OMITTING this
+   * is the third answer ("nobody said"), not an empty grant list. */
+  capabilities?: readonly string[];
   children: ReactNode;
 }): ReactElement {
   const runtime = createFormsRuntime({
@@ -120,6 +123,9 @@ export function TestHarness(props: {
     fetch: props.server.fetch,
     ...(props.workspaceId !== undefined
       ? { workspaceId: props.workspaceId }
+      : {}),
+    ...(props.capabilities !== undefined
+      ? { capabilities: props.capabilities }
       : {}),
   });
   const i18n = createI18n({ locale: props.locale ?? "en" });

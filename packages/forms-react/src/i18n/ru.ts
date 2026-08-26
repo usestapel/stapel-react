@@ -45,6 +45,8 @@ export const formsI18nBundleRu: I18nDictionary = {
   ...ATTRIBUTES_ERRORS_RU,
 
   "forms.error.unknown": "Что-то пошло не так. Попробуйте ещё раз.",
+  "forms.blocked.capability":
+    "У вас нет права {capability}, которое требуется для этого действия. Его может выдать администратор рабочего пространства.",
   "forms.error.no_workspace":
     "Этому экрану нужно рабочее пространство. Передайте `workspaceId` или объявите его в рантайме: `createFormsRuntime({ workspaceId })`.",
 
@@ -175,6 +177,10 @@ export const formsI18nBundleRu: I18nDictionary = {
   "forms.responses.refresh": "Проверить новые ответы",
   "forms.responses.polling_note":
     "Список не обновляется сам — проверьте ещё раз, чтобы увидеть ответы, пришедшие после загрузки.",
+  "forms.responses.forbidden":
+    "Вам не разрешено смотреть ответы этой формы. Это решение, а не сбой: попросите администратора рабочего пространства выдать право forms.responses.view.",
+  "forms.responses.gate_unavailable":
+    "Это на нашей стороне: не удалось обратиться к сервису, который проверяет права, поэтому ничего не запрещено и ничего не прочитано. Попробуйте ещё раз.",
 
   "forms.list.title": "Формы",
   "forms.list.empty": "В этом рабочем пространстве пока нет форм.",
