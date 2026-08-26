@@ -73,7 +73,7 @@ import {
   Typography,
 } from "antd";
 import { actionBlocked, useI18n, useT } from "@stapel/core";
-import { GatedControl } from "@stapel/tokens-antd/skin";
+import { GatedControl, PHONE_CONTROL_HEIGHT, SkinTheme } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 import type { ValueEditor, ValueEditorProps } from "../registry.js";
 import { featureConfig, featureName } from "../types.js";
@@ -82,6 +82,7 @@ import { SIMPLE_COLORS, codePointLength } from "../validate.js";
 import { formatFeatureValue } from "../format.js";
 import { ATTRIBUTES_I18N_KEYS } from "../i18n/keys.js";
 import { configLabel, optionLabel } from "./labels.js";
+import { useTouchFloor } from "./touchFloor.js";
 
 /** At or below this many choices an inline single-select renders as a
  * `Segmented` — the profiles-react / forms-react threshold, kept identical on
@@ -92,6 +93,38 @@ const SEGMENTED_MAX_OPTIONS = 4;
  * never a word — so its width is measured in characters, not pixels: it
  * follows the type scale instead of contradicting it. */
 const UNIT_SELECT_WIDTH = "12ch";
+
+/**
+ * The height a chip's LABEL is held to inside a narrow column.
+ *
+ * antd derives a `Segmented` item from `controlHeight`, and `SkinTheme` only
+ * raises that to 44px on a phone VIEWPORT — so the same chips in a composer
+ * column a few hundred pixels wide on a desktop measured ~27px in the visual
+ * pass. The label is the one part of the control a caller can size, and
+ * growing it grows the item: the track adds its own padding on each side,
+ * `spacing[1]` in total, so a 40px label is a 44px chip.
+ */
+const CHIP_LABEL_FLOOR: number = PHONE_CONTROL_HEIGHT - spacing[1];
+
+/** A chip as antd takes it once its label is a node rather than a string. */
+interface ChipOption {
+  readonly value: string;
+  readonly label: ReactNode;
+}
+
+/** {@link CHIP_LABEL_FLOOR}, applied to one choice. */
+function touchChip(choice: Choice): ChipOption {
+  return {
+    value: choice.value,
+    label: (
+      <span
+        style={{ display: "inline-flex", alignItems: "center", minHeight: CHIP_LABEL_FLOOR }}
+      >
+        {choice.label}
+      </span>
+    ),
+  };
+}
 
 /**
  * antd's `status` prop under `exactOptionalPropertyTypes` does not accept
@@ -436,6 +469,7 @@ function uiStyleOf(config: FeatureConfig): "dropdown" | "checkboxes" | "chips" {
 const SelectEditor: ValueEditor = (props: ValueEditorProps) => {
   const t = useT();
   const cfg = configOf(props);
+  const touchFloor = useTouchFloor();
   const choices = useChoices(cfg);
   const maxSelected = numberish(cfg["maxSelected"]);
   const minSelected = numberish(cfg["minSelected"]) ?? 0;
@@ -472,7 +506,10 @@ const SelectEditor: ValueEditor = (props: ValueEditorProps) => {
             {...(bind["aria-describedby"] !== undefined
               ? { "aria-describedby": bind["aria-describedby"] }
               : {})}
-            options={options}
+            // A narrow column is a touched one: the chips carry the 44px
+            // floor the viewport rule alone would not give them here.
+            {...(touchFloor ? { "data-attributes-touch-floor": "" } : {})}
+            options={touchFloor ? options.map(touchChip) : options}
             value={current[0] ?? ""}
             disabled={bind.disabled}
             onChange={(next) => emit(next.length > 0 ? [next] : [])}
@@ -1044,21 +1081,42 @@ const ConvertibleUnitEditor: ValueEditor = (props: ValueEditorProps) => {
 };
 
 /**
+ * Every builtin is its OWN skin root.
+ *
+ * A host may take one editor out of this table and render it in its own form
+ * — that is what the registry is for — and on a dark document with no
+ * `ConfigProvider` above it antd falls back to its light algorithm: a light
+ * input on a dark page. `<FeatureFields/>` already wraps the column, and
+ * nested `SkinTheme`s are free (the inner one reuses the applied config and
+ * renders no second provider), so the editor pays nothing for being correct
+ * on its own. `"bare"` throughout: a control paints no surface of its own.
+ */
+function skinned(name: string, Editor: ValueEditor): ValueEditor {
+  const Skinned = (props: ValueEditorProps): ReactElement => (
+    <SkinTheme surface="bare">
+      <Editor {...props} />
+    </SkinTheme>
+  );
+  Skinned.displayName = `${name}ValueEditor`;
+  return Skinned;
+}
+
+/**
  * The skin's builtin editor per value type — the second rung of the ladder.
  * A type absent from this table has no default drawing and reaches
  * `<UnsupportedValueEditor/>`.
  */
 export const BUILTIN_VALUE_EDITORS: Readonly<Record<string, ValueEditor>> = {
-  string: StringEditor,
-  int: makeNumberEditor(true),
-  float: makeNumberEditor(false),
-  bool: BoolEditor,
-  select: SelectEditor,
-  date: DateEditor,
-  header: HeaderEditor,
-  hex_color: HexColorEditor,
-  hierarchical_select: HierarchicalSelectEditor,
-  convertible_unit: ConvertibleUnitEditor,
+  string: skinned("String", StringEditor),
+  int: skinned("Int", makeNumberEditor(true)),
+  float: skinned("Float", makeNumberEditor(false)),
+  bool: skinned("Bool", BoolEditor),
+  select: skinned("Select", SelectEditor),
+  date: skinned("Date", DateEditor),
+  header: skinned("Header", HeaderEditor),
+  hex_color: skinned("HexColor", HexColorEditor),
+  hierarchical_select: skinned("HierarchicalSelect", HierarchicalSelectEditor),
+  convertible_unit: skinned("ConvertibleUnit", ConvertibleUnitEditor),
 };
 
 /** The types this skin can draw — handed to `unsupportedTypes` so the

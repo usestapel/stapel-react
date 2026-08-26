@@ -12,10 +12,17 @@
  *  - **`show_as_badge` / `show_at_title` are the CATEGORY's decision**, made
  *    by whoever configured the feature, and this component honours it instead
  *    of picking its own first three values.
+ *
+ * Both are their own skin roots (`SkinTheme surface="bare"`): a card or a
+ * detail page that draws them on a dark document with no `ConfigProvider`
+ * above used to get antd's light algorithm — a light `Tag` and a
+ * near-invisible secondary line on a dark surface. `"bare"` because a spec
+ * table is inset in a surface its host already painted.
  */
 import type { ReactElement } from "react";
 import { Descriptions, Flex, Tag, Typography } from "antd";
 import { useI18n, useT } from "@stapel/core";
+import { SkinTheme } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 import type { FeatureDef, FeaturesDto } from "../types.js";
 import { featureName, featureType } from "../types.js";
@@ -92,17 +99,19 @@ export function FeatureBadges(props: FeatureDisplayProps): ReactElement {
   const rows = useRows(props, (feature) => feature.show_as_badge === true);
   const shown = rows.filter((row) => row.text !== undefined);
   return (
-    <Flex gap={spacing[1]} wrap data-testid="attributes-badges">
-      {shown.map((row) => (
-        <Tag
-          key={row.feature.slug}
-          {...(row.swatch ? { color: row.swatch } : {})}
-          data-testid={`attributes-badge-${row.feature.slug}`}
-        >
-          {row.text}
-        </Tag>
-      ))}
-    </Flex>
+    <SkinTheme surface="bare">
+      <Flex gap={spacing[1]} wrap data-testid="attributes-badges">
+        {shown.map((row) => (
+          <Tag
+            key={row.feature.slug}
+            {...(row.swatch ? { color: row.swatch } : {})}
+            data-testid={`attributes-badge-${row.feature.slug}`}
+          >
+            {row.text}
+          </Tag>
+        ))}
+      </Flex>
+    </SkinTheme>
   );
 }
 
@@ -110,21 +119,23 @@ export function FeatureBadges(props: FeatureDisplayProps): ReactElement {
 export function FeatureValueList(props: FeatureDisplayProps): ReactElement {
   const rows = useRows(props);
   return (
-    <Descriptions
-      column={1}
-      size="small"
-      data-testid="attributes-value-list"
-      items={rows.map((row) => ({
-        key: row.feature.slug,
-        label: featureName(row.feature),
-        children: (
-          <ValueText
-            feature={row.feature}
-            text={row.text}
-            hasValue={props.values[row.feature.slug] !== undefined}
-          />
-        ),
-      }))}
-    />
+    <SkinTheme surface="bare">
+      <Descriptions
+        column={1}
+        size="small"
+        data-testid="attributes-value-list"
+        items={rows.map((row) => ({
+          key: row.feature.slug,
+          label: featureName(row.feature),
+          children: (
+            <ValueText
+              feature={row.feature}
+              text={row.text}
+              hasValue={props.values[row.feature.slug] !== undefined}
+            />
+          ),
+        }))}
+      />
+    </SkinTheme>
   );
 }

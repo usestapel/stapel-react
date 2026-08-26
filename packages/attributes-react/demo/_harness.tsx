@@ -7,11 +7,17 @@
  * It carries NO chrome of its own: no debug card, no class-name heading, no
  * `state.step` chip. That shape is exactly how twenty packages shipped
  * showcases in which the antd skin on disk had never been photographed once.
- * This file's whole job is to supply the two things the editors need in order
- * to be themselves — a translator (option labels, `prefix`/`postfix` and
- * `trueLabel`/`falseLabel` are catalogue KEYS, not copy) and the shared
- * `SkinTheme`, which is what puts the surface on the same side of light/dark
- * as the page around it.
+ * Its whole job is to supply the one thing the editors cannot supply
+ * themselves — a translator (option labels, `prefix`/`postfix` and
+ * `trueLabel`/`falseLabel` are catalogue KEYS, not copy) — plus the PAGE's
+ * paint, which is a host's job and never the component's.
+ *
+ * The `SkinTheme` below is that paint and nothing more: every surface in
+ * `src/default/**` is its own `SkinTheme surface="bare"` root now, so the
+ * editors are on the document's side of light/dark with or without this
+ * wrapper. `test/responsive.test.tsx` renders them with NO skin above them
+ * and asserts exactly that, so this harness cannot go back to being the thing
+ * that makes the shots look right while the shipped component is broken.
  *
  * This package is an L0 library, not a pair: no runtime, no queries, no
  * `fetch`. Feature definitions arrive inside the responses of the modules that

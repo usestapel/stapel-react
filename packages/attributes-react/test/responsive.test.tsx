@@ -18,10 +18,9 @@
  */
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { I18nProvider, createI18n } from "@stapel/core";
-import { SkinTheme } from "@stapel/tokens-antd/skin";
 import type { ReactNode } from "react";
 import { registerAttributesI18n } from "../src/i18n/keys.js";
 import {
@@ -37,6 +36,7 @@ import {
   BOOL_FEATURE,
   HEX_COLOR_FEATURE,
   INT_FEATURE,
+  SELECT_FEATURE,
   STRING_FEATURE,
   UNKNOWN_TYPE_FEATURE,
 } from "./fixtures.js";
@@ -88,19 +88,20 @@ async function setDocumentTheme(mode: "light" | "dark" | null): Promise<void> {
 }
 
 /**
- * The frame a host puts these controls in: a translator plus the shared
- * `SkinTheme`. This package draws form rows, not pages, so it self-themes
- * nowhere and must be legible inside whatever surface the host painted —
- * which is exactly what is asserted below.
+ * The frame a host puts these controls in — and NOTHING else.
+ *
+ * Deliberately no `SkinTheme`: a wrapper here would supply the very thing
+ * these tests exist to prove the surfaces carry themselves. That is how the
+ * defect survived a green suite the first time — every case rendered inside a
+ * `SkinTheme surface="base"`, so the assertion below found a skin root that
+ * the TEST had put there while `src/default/**` had none anywhere. A host
+ * that wraps too is still correct (nested `SkinTheme`s merge); a host that
+ * does not must be, which is what is asserted from here on.
  */
 function Skinned(props: { children: ReactNode }): ReactElement {
   const i18n = createI18n({ locale: "en" });
   registerAttributesI18n(i18n);
-  return (
-    <I18nProvider i18n={i18n}>
-      <SkinTheme surface="base">{props.children}</SkinTheme>
-    </I18nProvider>
-  );
+  return <I18nProvider i18n={i18n}>{props.children}</I18nProvider>;
 }
 
 /** A stateful `<FeatureFields/>`: the component owns no draft by design. */
@@ -182,9 +183,11 @@ describe.each([
         await waitFor(() => {
           expect(surface.find()).toBeTruthy();
         });
-        // The skin painted ITS OWN surface on the side the document declares —
-        // the defect this replaces was a light-themed control on a dark page.
+        // The surface is on the side the DOCUMENT declares, with no skin
+        // wrapper above it — the defect this replaces was a light-themed
+        // control on a dark page whenever the host forgot to wrap.
         const root = container.querySelector("[data-stapel-skin-root]");
+        expect(root, `<${surface.name}> rendered no skin root of its own`).toBeTruthy();
         expect(root?.getAttribute("data-stapel-skin-mode")).toBe(mode);
       });
     }
@@ -207,7 +210,7 @@ describe("the phone shape is a different shape, not a narrower one", () => {
     // `controlHeight`. The evidence a jsdom test can see is the token the
     // provider handed down, so assert the wrapper is on the phone branch and
     // that the controls mounted inside it.
-    expect(container.querySelector("[data-stapel-skin-root]")).toBeTruthy();
+    expect(container.querySelector("[data-stapel-skin-phone]")).toBeTruthy();
     expect(screen.getByLabelText("year")).toBeTruthy();
   });
 
@@ -233,5 +236,74 @@ describe("the phone shape is a different shape, not a narrower one", () => {
       }
       unmount();
     }
+  });
+});
+
+// ── the COLUMN's width, not the viewport's ──────────────────────────────────
+
+/**
+ * The listings composer draws these rows in a form column a few hundred
+ * pixels wide on a full desktop. antd's `controlHeight` is a viewport answer,
+ * so the segmented feature chips measured ~27px there — the defect this block
+ * pins. The measurement is `useElementWidth`'s, so the environment edge to
+ * mock is `getBoundingClientRect`, exactly as the viewport one above is
+ * `matchMedia` over a real `innerWidth`.
+ */
+const realRect = Element.prototype.getBoundingClientRect;
+
+function installColumnWidth(width: number): void {
+  // jsdom lays nothing out, so every box is already zero — only the width the
+  // hook reads has to be real.
+  Element.prototype.getBoundingClientRect = function rect(): DOMRect {
+    return {
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      bottom: 0,
+      right: width,
+      width,
+      height: 0,
+      toJSON: () => ({}),
+    } as DOMRect;
+  };
+}
+
+afterAll(() => {
+  Element.prototype.getBoundingClientRect = realRect;
+});
+
+describe("a narrow COLUMN on a wide viewport", () => {
+  afterEach(() => {
+    Element.prototype.getBoundingClientRect = realRect;
+  });
+
+  it("raises the segmented chips to the touch floor", async () => {
+    setViewport(DESKTOP_WIDTH);
+    installColumnWidth(360);
+    await setDocumentTheme("light");
+    const { container } = render(
+      <Skinned>
+        <FeatureFields features={[SELECT_FEATURE]} values={{}} onChange={() => {}} />
+      </Skinned>
+    );
+    await waitFor(() => {
+      expect(container.querySelector("[data-attributes-touch-floor]")).toBeTruthy();
+    });
+  });
+
+  it("leaves a wide column on antd's own control height", async () => {
+    setViewport(DESKTOP_WIDTH);
+    installColumnWidth(DESKTOP_WIDTH);
+    await setDocumentTheme("light");
+    const { container } = render(
+      <Skinned>
+        <FeatureFields features={[SELECT_FEATURE]} values={{}} onChange={() => {}} />
+      </Skinned>
+    );
+    await waitFor(() => {
+      expect(screen.getByLabelText("fuel")).toBeTruthy();
+    });
+    expect(container.querySelector("[data-attributes-touch-floor]")).toBeNull();
   });
 });

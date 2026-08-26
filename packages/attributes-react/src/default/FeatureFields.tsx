@@ -10,10 +10,12 @@
  * the drawing takes `useFeatureFields` from the main entry and feeds it
  * straight in; the hook is the headless half of exactly this component (§54).
  */
+import { useRef } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Alert, Form } from "antd";
 import { useFormatFlowError, useT } from "@stapel/core";
 import type { FlowError } from "@stapel/core";
+import { SkinTheme, useElementWidth } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 import type { FeatureDef } from "../types.js";
 import { featureName, featureType } from "../types.js";
@@ -21,6 +23,7 @@ import { featureAnswerRequired } from "../validate.js";
 import { resolveValueEditor } from "../registry.js";
 import { BUILTIN_VALUE_EDITORS } from "./editors.js";
 import { ATTRIBUTES_I18N_KEYS } from "../i18n/keys.js";
+import { TOUCH_FLOOR_BELOW, TouchFloorProvider } from "./touchFloor.js";
 
 /** Stable per-feature DOM id, so `<label for>` reaches the control. Slugs are
  * `[a-z0-9_]`-shaped by the engine, so this needs no further escaping. */
@@ -52,18 +55,20 @@ export function UnsupportedValueEditor(
   const t = useT();
   const type = featureType(props.feature);
   return (
-    <Alert
-      type="warning"
-      showIcon
-      data-testid="attributes-unsupported-type"
-      data-attributes-type={type ?? "(none)"}
-      title={featureName(props.feature)}
-      description={
-        type === undefined
-          ? t(ATTRIBUTES_I18N_KEYS.untypedFeature)
-          : t(ATTRIBUTES_I18N_KEYS.unsupportedType)
-      }
-    />
+    <SkinTheme surface="bare">
+      <Alert
+        type="warning"
+        showIcon
+        data-testid="attributes-unsupported-type"
+        data-attributes-type={type ?? "(none)"}
+        title={featureName(props.feature)}
+        description={
+          type === undefined
+            ? t(ATTRIBUTES_I18N_KEYS.untypedFeature)
+            : t(ATTRIBUTES_I18N_KEYS.unsupportedType)
+        }
+      />
+    </SkinTheme>
   );
 }
 
@@ -127,47 +132,67 @@ function FeatureRow(props: FeatureRowProps): ReactElement {
   );
 }
 
-/** A category's features as form rows, each drawn by the ladder's winner. */
+/**
+ * A category's features as form rows, each drawn by the ladder's winner.
+ *
+ * It is its OWN skin root (`SkinTheme surface="bare"`): a composer that
+ * renders this on a dark page without a `ConfigProvider` above it used to get
+ * antd's light algorithm — light inputs and near-invisible text on a dark
+ * form. `"bare"` because these are form ROWS inset in a surface the host
+ * already painted; the theme applies, the paint stays the host's. Nested
+ * `SkinTheme`s cost nothing, so a host that wraps the composer too is free.
+ *
+ * The same root is the column whose WIDTH decides the touch floor — see
+ * {@link TOUCH_FLOOR_BELOW}.
+ */
 export function FeatureFields(props: FeatureFieldsProps): ReactElement {
   const errors = props.errors ?? {};
+  const column = useRef<HTMLDivElement>(null);
+  const { below } = useElementWidth(column, {
+    thresholds: { touch: TOUCH_FLOOR_BELOW },
+  });
   return (
-    <>
-      {props.features.map((feature) => {
-        const controlId = featureControlId(feature.slug);
-        const type = featureType(feature);
-        // The ladder: a host's explicit registration outranks the skin's
-        // builtin, and nothing at all is a NOTICE, never an omission.
-        const Editor =
-          (type === undefined ? null : resolveValueEditor(type)) ??
-          (type === undefined ? undefined : BUILTIN_VALUE_EDITORS[type]);
-        const unsupported = Editor === undefined || Editor === null;
-        const required = featureAnswerRequired(feature);
-        const control = Editor === undefined || Editor === null ? (
-          <UnsupportedValueEditor feature={feature} />
-        ) : (
-          <Editor
-            id={controlId}
-            feature={feature}
-            value={props.values[feature.slug]}
-            onChange={(value) => props.onChange(feature.slug, value)}
-            error={errors[feature.slug]}
-            disabled={props.disabled === true}
-            required={required}
-          />
-        );
-        const comment = typeof feature.comment === "string" ? feature.comment.trim() : "";
-        const row: FeatureRowProps = {
-          feature,
-          controlId,
-          control,
-          error: errors[feature.slug],
-          required,
-          help: comment.length > 0 ? comment : undefined,
-          unsupported,
-        };
-        if (props.renderRow) return <div key={feature.slug}>{props.renderRow(row)}</div>;
-        return <FeatureRow key={feature.slug} {...row} />;
-      })}
-    </>
+    <SkinTheme surface="bare">
+      <TouchFloorProvider value={below.touch ?? false}>
+        <div ref={column}>
+          {props.features.map((feature) => {
+            const controlId = featureControlId(feature.slug);
+            const type = featureType(feature);
+            // The ladder: a host's explicit registration outranks the skin's
+            // builtin, and nothing at all is a NOTICE, never an omission.
+            const Editor =
+              (type === undefined ? null : resolveValueEditor(type)) ??
+              (type === undefined ? undefined : BUILTIN_VALUE_EDITORS[type]);
+            const unsupported = Editor === undefined || Editor === null;
+            const required = featureAnswerRequired(feature);
+            const control = Editor === undefined || Editor === null ? (
+              <UnsupportedValueEditor feature={feature} />
+            ) : (
+              <Editor
+                id={controlId}
+                feature={feature}
+                value={props.values[feature.slug]}
+                onChange={(value) => props.onChange(feature.slug, value)}
+                error={errors[feature.slug]}
+                disabled={props.disabled === true}
+                required={required}
+              />
+            );
+            const comment = typeof feature.comment === "string" ? feature.comment.trim() : "";
+            const row: FeatureRowProps = {
+              feature,
+              controlId,
+              control,
+              error: errors[feature.slug],
+              required,
+              help: comment.length > 0 ? comment : undefined,
+              unsupported,
+            };
+            if (props.renderRow) return <div key={feature.slug}>{props.renderRow(row)}</div>;
+            return <FeatureRow key={feature.slug} {...row} />;
+          })}
+        </div>
+      </TouchFloorProvider>
+    </SkinTheme>
   );
 }
