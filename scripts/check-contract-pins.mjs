@@ -21,6 +21,8 @@
 //   node scripts/check-contract-pins.mjs
 //   pnpm check:contract-pins
 import { readFile, readdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -57,7 +59,41 @@ function parseVersion(text) {
 
 const show = (v) => v.join(".");
 
+/**
+ * A pin is a 40-hex commit sha copied from `git rev-parse <tag>^{commit}`. Two
+ * ways to write one that LOOKS right and is not: a short hash "expanded" by
+ * hand (the 2026-08-26 stapel-geo pin shared 7 chars with the release commit
+ * and nothing else — CI died on "not our ref"), and the sha of an annotated
+ * tag OBJECT instead of the commit it points at. Both are caught here, against
+ * the sibling checkout on disk, so they fail at the desk instead of on the
+ * runner. Unlike a stale range this is never a listing matter: a pin nobody
+ * can fetch is not a pin.
+ */
+function checkPinsResolve(pins) {
+  const bad = [];
+  for (const [module, entry] of Object.entries(pins.modules ?? {})) {
+    const ref = String(entry?.ref ?? "");
+    if (!/^[0-9a-f]{40}$/.test(ref)) {
+      bad.push(`${module}: ref "${ref}" is not a 40-hex commit sha`);
+      continue;
+    }
+    const dir = resolve(ROOT, SIBLING_ROOT, module);
+    if (!existsSync(resolve(dir, ".git"))) continue; // not checked out here — CI fetches it
+    try {
+      execFileSync("git", ["-C", dir, "cat-file", "-e", `${ref}^{commit}`], { stdio: "ignore" });
+    } catch {
+      bad.push(`${module}: ${ref} does not resolve to a commit in ${dir} (fabricated, or a tag object)`);
+    }
+  }
+  if (bad.length > 0) {
+    console.error(`✖ contract-pins: ${bad.length} pin(s) cannot be fetched:\n` + bad.map((b) => `    - ${b}`).join("\n") +
+      `\n  A pin is the output of \`git -C <sibling> rev-parse <tag>^{commit}\`, pasted, never typed.`);
+    process.exit(1);
+  }
+}
+
 async function main() {
+  checkPinsResolve(JSON.parse(await readFile(resolve(ROOT, "contract-pins.json"), "utf8")));
   const dirs = (await readdir(resolve(ROOT, "packages"), { withFileTypes: true }))
     .filter((e) => e.isDirectory())
     .map((e) => e.name)
