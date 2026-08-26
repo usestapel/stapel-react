@@ -4,7 +4,7 @@
   "version": "0.3.1",
   "backend": {
     "module": "stapel-chat",
-    "contract": ">=0.2 <0.3"
+    "contract": ">=0.6 <0.7"
   },
   "layers": [
     "api",
@@ -16,6 +16,13 @@
   "flows": {},
   "machines": [],
   "operations": {
+    "chat_api_v1_conversations_activity_create": {
+      "method": "POST",
+      "path": "/chat/api/v1/conversations/{conversation_id}/activity",
+      "tag": "Chat",
+      "request": "ActivityRequest",
+      "response": null
+    },
     "chat_api_v1_conversations_create": {
       "method": "POST",
       "path": "/chat/api/v1/conversations",
@@ -37,12 +44,26 @@
       "request": "SendMessageRequest",
       "response": "MessageResponse"
     },
+    "chat_api_v1_conversations_messages_destroy": {
+      "method": "DELETE",
+      "path": "/chat/api/v1/conversations/{conversation_id}/messages/{message_id}",
+      "tag": "Chat",
+      "request": null,
+      "response": "MessageResponse"
+    },
     "chat_api_v1_conversations_messages_list": {
       "method": "GET",
       "path": "/chat/api/v1/conversations/{conversation_id}/messages",
       "tag": "Chat",
       "request": null,
       "response": "PaginatedMessageResponseList"
+    },
+    "chat_api_v1_conversations_messages_partial_update": {
+      "method": "PATCH",
+      "path": "/chat/api/v1/conversations/{conversation_id}/messages/{message_id}",
+      "tag": "Chat",
+      "request": "PatchedEditMessageRequest",
+      "response": "MessageResponse"
     },
     "chat_api_v1_conversations_read_create": {
       "method": "POST",
@@ -184,6 +205,16 @@
       "params": [],
       "remediation": "fix_input"
     },
+    "error.400.chat_incomplete_subject": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.chat_invalid_attachment": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
     "error.400.chat_invalid_direct": {
       "status": 400,
       "params": [],
@@ -204,7 +235,32 @@
       "params": [],
       "remediation": "fix_input"
     },
+    "error.400.chat_message_deleted": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.chat_not_editable": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
     "error.400.chat_not_support": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.chat_unknown_activity_state": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.chat_unknown_attachment_type": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.chat_unknown_subject_type": {
       "status": 400,
       "params": [],
       "remediation": "fix_input"
@@ -325,12 +381,22 @@
       "params": [],
       "remediation": "retry"
     },
+    "error.403.chat_not_author": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.403.chat_not_operator": {
       "status": 403,
       "params": [],
       "remediation": "retry"
     },
     "error.403.chat_not_participant": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.chat_send_refused": {
       "status": 403,
       "params": [],
       "remediation": "retry"
@@ -361,6 +427,11 @@
       "remediation": "retry"
     },
     "error.404.chat_conversation_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.chat_message_not_found": {
       "status": 404,
       "params": [],
       "remediation": "retry"
@@ -447,6 +518,11 @@
       "params": [],
       "remediation": "contact_support"
     },
+    "error.503.chat_blocks_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.503.mandate_unavailable": {
       "status": 503,
       "params": [],
@@ -458,6 +534,42 @@
     "flows": []
   },
   "demos": [
+    {
+      "id": "chat.conversation-list-panel",
+      "title": "Inbox (default skin)",
+      "description": "The shipped inbox: threads newest-first, an unread count that carries its own accessible sentence rather than a hover, and a load-more control that becomes a stated end. The failed arm owns the failure on its own — an outage can never render here as `No conversations yet`.",
+      "component": "ConversationListPanel",
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted",
+        "border-subtle"
+      ],
+      "variants": [
+        "default",
+        "more-to-load",
+        "empty"
+      ],
+      "source": "demo/ConversationListPanelSkin.demo.tsx"
+    },
+    {
+      "id": "chat.conversation-thread-panel",
+      "title": "Conversation (default skin)",
+      "description": "The shipped thread: replay plus live tail, the reader's own lines aligned to the trailing edge, a composer that states its own limit, and a transport tag that says WHY it is not live instead of only that it is refreshing. The same component renders a socket-fed thread and a polled one — that is the seam holding.",
+      "component": "ConversationThreadPanel",
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted",
+        "border-subtle"
+      ],
+      "variants": [
+        "default",
+        "earlier-history",
+        "no-messages-yet"
+      ],
+      "source": "demo/ConversationThreadPanelSkin.demo.tsx"
+    },
     {
       "id": "chat.conversations",
       "title": "Conversation list",
@@ -476,6 +588,22 @@
       "source": "demo/ConversationList.demo.tsx"
     },
     {
+      "id": "chat.sign-in-link",
+      "title": "Sign-in door (default skin)",
+      "description": "The link that turns a stated reason into an action a visitor can take. Renders core's `SignInCta` — `{href}` or `{onSignIn}`, never both — and renders NOTHING when the host has no sign-in route, so a reason with no door is exactly its own sentence and not a dead affordance.",
+      "component": "SignInLink",
+      "tokens": [
+        "link",
+        "text-muted"
+      ],
+      "variants": [
+        "default",
+        "host-routed",
+        "no-route"
+      ],
+      "source": "demo/SignInLinkSkin.demo.tsx"
+    },
+    {
       "id": "chat.start",
       "title": "Message the seller",
       "description": "The headless StartDirectChat opens the direct thread with a person — get-or-create, keyed by the participant pair, so pressing twice cannot fan out into two threads. Blocked states carry a readable reason instead of a grey button.",
@@ -490,6 +618,24 @@
         "own-listing"
       ],
       "source": "demo/StartDirectChat.demo.tsx"
+    },
+    {
+      "id": "chat.start-chat-button",
+      "title": "Message the seller (default skin)",
+      "description": "The shipped listing-card control. Pressable, or switched off WITH the sentence that says why — and, when the host supplies a sign-in route, with the door beside the sentence. Opening is get-or-create by participant pair, so pressing twice cannot fan out into two threads.",
+      "component": "StartChatButton",
+      "tokens": [
+        "brand",
+        "text-on-accent",
+        "text-muted"
+      ],
+      "variants": [
+        "default",
+        "signed-out",
+        "own-listing",
+        "no-seller"
+      ],
+      "source": "demo/StartChatButtonSkin.demo.tsx"
     },
     {
       "id": "chat.thread",
@@ -541,6 +687,13 @@
     "chat.thread.loading",
     "chat.thread.retry",
     "chat.thread.system",
+    "chat.transport.degraded.forbidden",
+    "chat.transport.degraded.no_socket",
+    "chat.transport.degraded.reconnecting",
+    "chat.transport.degraded.renewing",
+    "chat.transport.degraded.sign_in_required",
+    "chat.transport.degraded.unreachable",
+    "chat.transport.degraded.unsupported",
     "chat.transport.idle",
     "chat.transport.live",
     "chat.transport.polling",
@@ -550,11 +703,18 @@
     "error.400.chat_attachments_disabled",
     "error.400.chat_body_too_long",
     "error.400.chat_empty_message",
+    "error.400.chat_incomplete_subject",
+    "error.400.chat_invalid_attachment",
     "error.400.chat_invalid_direct",
     "error.400.chat_invalid_kind",
     "error.400.chat_invalid_reply",
     "error.400.chat_kind_disabled",
+    "error.400.chat_message_deleted",
+    "error.400.chat_not_editable",
     "error.400.chat_not_support",
+    "error.400.chat_unknown_activity_state",
+    "error.400.chat_unknown_attachment_type",
+    "error.400.chat_unknown_subject_type",
     "error.400.expected_list",
     "error.400.field.blank",
     "error.400.field.does_not_exist",
@@ -573,14 +733,17 @@
     "error.400.verification_invalid_factor",
     "error.401.unauthorized",
     "error.402.payment_required",
+    "error.403.chat_not_author",
     "error.403.chat_not_operator",
     "error.403.chat_not_participant",
+    "error.403.chat_send_refused",
     "error.403.forbidden",
     "error.403.network_blocked",
     "error.403.verification_enrollment_required",
     "error.403.verification_required",
     "error.404.ad_not_found",
     "error.404.chat_conversation_not_found",
+    "error.404.chat_message_not_found",
     "error.404.not_found",
     "error.404.verification_challenge_not_found",
     "error.405.method_not_allowed",
@@ -597,6 +760,7 @@
     "error.429.rate_limit",
     "error.429.too_many_requests",
     "error.500.internal",
+    "error.503.chat_blocks_unavailable",
     "error.503.mandate_unavailable"
   ],
   "exports": {
@@ -606,10 +770,19 @@
       "CHAT_ERROR_CODES",
       "CHAT_FLOWS",
       "CHAT_I18N_KEYS",
+      "CHAT_WS_BEARER_SUBPROTOCOL",
+      "CHAT_WS_CLOSE_DATA_HOME_UNAVAILABLE",
+      "CHAT_WS_CLOSE_FORBIDDEN",
+      "CHAT_WS_CLOSE_HEARTBEAT_TIMEOUT",
       "CHAT_WS_CLOSE_NOT_PARTICIPANT",
+      "CHAT_WS_CLOSE_OVERFLOW",
+      "CHAT_WS_CLOSE_PROTOCOL_ERROR",
+      "CHAT_WS_CLOSE_REVOKED",
+      "CHAT_WS_CLOSE_STREAM_UNKNOWN",
       "CHAT_WS_CLOSE_UNAUTHENTICATED",
       "CHAT_WS_REPLAY_LIMIT",
       "CHAT_WS_RESYNC",
+      "CHAT_WS_TOKEN_QUERY_PARAM",
       "CONVERSATION_LIST_INTERVAL_MS",
       "ChatProvider",
       "ChatRuntimeContext",
@@ -622,11 +795,14 @@
       "THREAD_PAGE",
       "browserWebSocketFactory",
       "canOpenWebSocket",
+      "chatClosePolicy",
       "chatConversationStream",
+      "chatDegradation",
       "chatErrorBundleEn",
       "chatI18nBundleEn",
       "chatInboxStream",
       "chatQueryKeys",
+      "chatSocketTarget",
       "chatSocketUrl",
       "chatStreamId",
       "createChatApi",
@@ -667,8 +843,16 @@
       "ChatAckFrame",
       "ChatApi",
       "ChatClientFrame",
+      "ChatCloseAction",
+      "ChatClosePolicy",
+      "ChatCloseReason",
       "ChatConnectionState",
       "ChatConversationStream",
+      "ChatCredentialRenewal",
+      "ChatCredentialRenewalOutcome",
+      "ChatCredentialSource",
+      "ChatDegraded",
+      "ChatDegradedReason",
       "ChatErrorCode",
       "ChatErrorFrame",
       "ChatErrorSpec",
@@ -694,10 +878,12 @@
       "ChatSignalKeyMap",
       "ChatSocket",
       "ChatSocketConnection",
+      "ChatSocketCredential",
       "ChatSocketHandlers",
       "ChatSocketOptions",
       "ChatSocketRefusal",
       "ChatSocketStatus",
+      "ChatSocketTarget",
       "ChatStreamKey",
       "ChatThreadWindow",
       "ChatTransport",

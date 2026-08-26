@@ -8,16 +8,16 @@ export default { title: "geo-react / Search-as-you-type, and the five ways it ca
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"results"} };
 export const Empty = (): ReactElement => renderDemoVariant(demo, "empty");
 Empty.storyName = "empty";
-Empty.parameters = { stapel: {"viewport":"phone"} };
+Empty.parameters = { stapel: {"viewport":"phone","step":"empty"} };
 export const Unauthorized = (): ReactElement => renderDemoVariant(demo, "unauthorized");
 Unauthorized.storyName = "unauthorized";
-Unauthorized.parameters = { stapel: {"viewport":"phone"} };
+Unauthorized.parameters = { stapel: {"viewport":"phone","step":"unauthorized"} };
 export const Throttled = (): ReactElement => renderDemoVariant(demo, "throttled");
 Throttled.storyName = "throttled";
-Throttled.parameters = { stapel: {"viewport":"phone"} };
+Throttled.parameters = { stapel: {"viewport":"phone","step":"throttled"} };
 export const Unavailable = (): ReactElement => renderDemoVariant(demo, "unavailable");
 Unavailable.storyName = "unavailable";
-Unavailable.parameters = { stapel: {"viewport":"phone"} };
+Unavailable.parameters = { stapel: {"viewport":"phone","step":"unavailable"} };

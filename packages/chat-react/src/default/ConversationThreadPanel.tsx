@@ -7,6 +7,7 @@
  * branches on it. That is the seam holding — the same component renders a
  * socket-fed thread and a polled one.
  */
+import { fontSize, spacing } from "@stapel/tokens-antd";
 import type { CSSProperties, ReactElement } from "react";
 import { Button, Card, Empty, Flex, Input, Space, Spin, Tag, Typography } from "antd";
 import {
@@ -83,7 +84,7 @@ function MessageRow(props: {
       <Typography.Paragraph style={{ marginBottom: 0 }}>
         {message.body}
       </Typography.Paragraph>
-      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+      <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
         {stamp}
       </Typography.Text>
     </div>
@@ -142,7 +143,7 @@ function ComposerBody(props: {
         autoSize={{ minRows: 2, maxRows: 6 }}
         data-testid="chat-composer-input"
       />
-      <Flex align="center" gap={12} wrap="wrap">
+      <Flex align="center" gap={spacing[3]} wrap="wrap">
         <Button
           type="primary"
           disabled={gate.disabled}
@@ -194,7 +195,21 @@ export function ConversationThreadPanel(
         degraded,
       }) => (
         <Card data-testid="chat-thread">
-          <Flex justify="space-between" align="center" style={{ marginBottom: 12 }}>
+          {/* WRAPS, and the tag's own text wraps inside it. The degradation
+              copy is a full sentence ("Live messages stopped — sign in again
+              to get them back"), and in a nowrap row at 390px it had nowhere
+              to go: the flex line could not shrink below its content, so the
+              header pushed the card sideways and the one thing on this screen
+              a person can ACT on was the part that went off the edge. Mobile
+              first is not a width the desktop layout survives — it is the
+              width the layout is decided at. */}
+          <Flex
+            justify="space-between"
+            align="center"
+            wrap="wrap"
+            gap={spacing[2]}
+            style={{ marginBottom: spacing[3] }}
+          >
             <Typography.Title level={4} style={{ margin: 0 }}>
               {t(CHAT_I18N_KEYS.listTitle)}
             </Typography.Title>
@@ -205,6 +220,11 @@ export function ConversationThreadPanel(
             <Tag
               data-testid="chat-transport"
               data-transport={transport}
+              // antd's Tag is `white-space: nowrap` by default; a degradation
+              // is a sentence, not a word, so it is allowed to take two lines
+              // instead of one very long one. `marginInlineEnd: 0` because the
+              // Flex gap owns the spacing now.
+              style={{ whiteSpace: "normal", marginInlineEnd: 0 }}
               {...(degraded
                 ? {
                     "data-degraded": degraded.reason,
@@ -222,7 +242,7 @@ export function ConversationThreadPanel(
               <div data-testid="chat-thread-error">
                 <ErrorAlert error={errorDisplay(error)} />
                 <Button
-                  style={{ marginTop: 12 }}
+                  style={{ marginTop: spacing[3] }}
                   onClick={refetch}
                   data-analytics="none"
                   data-analytics-reason="recovery affordance for a failed read — host app wraps with its own tracked()"
@@ -254,7 +274,7 @@ export function ConversationThreadPanel(
                     {t(CHAT_I18N_KEYS.threadBeginning)}
                   </Typography.Text>
                 )}
-                <Flex vertical gap={8} style={{ width: "100%" }}>
+                <Flex vertical gap={spacing[2]} style={{ width: "100%" }}>
                   {messages.map((message) => (
                     <MessageRow
                       key={message.id}
@@ -268,7 +288,7 @@ export function ConversationThreadPanel(
             ),
           })}
 
-          <div style={{ marginTop: 16 }}>
+          <div style={{ marginTop: spacing[4] }}>
             <Composer
               conversationId={props.conversationId}
               maxLength={props.maxLength}

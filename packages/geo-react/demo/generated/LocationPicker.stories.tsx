@@ -8,13 +8,16 @@ export default { title: "geo-react / The location picker a product mounts once" 
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"desktop"} };
+Default.parameters = { stapel: {"viewport":"desktop","step":"resolved"} };
 export const Sheet = (): ReactElement => renderDemoVariant(demo, "sheet");
 Sheet.storyName = "sheet";
-Sheet.parameters = { stapel: {"viewport":"phone"} };
+Sheet.parameters = { stapel: {"viewport":"phone","step":"idle"} };
 export const Anonymous = (): ReactElement => renderDemoVariant(demo, "anonymous");
 Anonymous.storyName = "anonymous";
-Anonymous.parameters = { stapel: {"viewport":"phone"} };
+Anonymous.parameters = { stapel: {"viewport":"phone","step":"unauthorized"} };
 export const ConfigFailed = (): ReactElement => renderDemoVariant(demo, "config-failed");
 ConfigFailed.storyName = "config-failed";
-ConfigFailed.parameters = { stapel: {"viewport":"phone"} };
+ConfigFailed.parameters = { stapel: {"viewport":"phone","step":"config-failed"} };
+export const Dark = (): ReactElement => renderDemoVariant(demo, "dark");
+Dark.storyName = "dark";
+Dark.parameters = { stapel: {"viewport":"phone","step":"dark"} };

@@ -8,7 +8,7 @@ export default { title: "geo-react / A basemap with no map library" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"desktop"} };
+Default.parameters = { stapel: {"viewport":"desktop","step":"ready"} };
 export const Narrow = (): ReactElement => renderDemoVariant(demo, "narrow");
 Narrow.storyName = "narrow";
-Narrow.parameters = { stapel: {"viewport":"phone"} };
+Narrow.parameters = { stapel: {"viewport":"phone","step":"ready"} };

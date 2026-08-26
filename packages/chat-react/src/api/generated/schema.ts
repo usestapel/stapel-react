@@ -49,6 +49,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/chat/api/v1/conversations/{conversation_id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Announce "typing…" (or any registered activity) to the conversation.
+         *
+         *     Nothing is stored and nothing is returned but the resolved TTL. The
+         *     endpoint exists for parity — a client whose socket is momentarily down can
+         *     still say it is typing — and it is explicitly *not* the intended path:
+         *     an activity state is worth less than the round trip that carries it, which
+         *     is why the socket's ``activity`` frame is the one a UI should use.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["chat_api_v1_conversations_activity_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/chat/api/v1/conversations/{conversation_id}/messages": {
         parameters: {
             query?: never;
@@ -75,6 +102,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/chat/api/v1/conversations/{conversation_id}/messages/{message_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * @description Edit or delete one message. Author only.
+         *
+         *     The HTTP twin of the socket's ``edit`` / ``delete`` frames — same service
+         *     calls, same emits, same fan-out. It exists so a client that has just
+         *     rehydrated over REST is not obliged to open a socket to correct a typo,
+         *     not because REST is the intended path: the socket is.
+         *
+         *     ``DELETE`` leaves a **tombstone** and answers ``200`` with the stripped
+         *     message, not ``204``. The body is the point — the caller (and every other
+         *     subscriber, over the socket) is handed the exact row shape that says "this
+         *     id is now empty", which is what a local cache purges against.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        delete: operations["chat_api_v1_conversations_messages_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description Edit or delete one message. Author only.
+         *
+         *     The HTTP twin of the socket's ``edit`` / ``delete`` frames — same service
+         *     calls, same emits, same fan-out. It exists so a client that has just
+         *     rehydrated over REST is not obliged to open a socket to correct a typo,
+         *     not because REST is the intended path: the socket is.
+         *
+         *     ``DELETE`` leaves a **tombstone** and answers ``200`` with the stripped
+         *     message, not ``204``. The body is the point — the caller (and every other
+         *     subscriber, over the socket) is handed the exact row shape that says "this
+         *     id is now empty", which is what a local cache purges against.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        patch: operations["chat_api_v1_conversations_messages_partial_update"];
+        trace?: never;
+    };
     "/chat/api/v1/conversations/{conversation_id}/read": {
         parameters: {
             query?: never;
@@ -85,7 +158,13 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Advance the requesting user's read marker in a conversation.
+         * @description Advance the requesting user's read and delivery markers.
+         *
+         *     Both markers are durable rows and both fan out a live receipt when they
+         *     move — ``chat.read`` / ``chat.delivered`` on the conversation stream. The
+         *     receipt is a Signal, not an event: the truth is on the participant row and
+         *     comes back with the conversation, so nobody who was offline is owed a
+         *     replay of a tick mark.
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -184,6 +263,67 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Announce what the caller is doing right now. */
+        ActivityRequest: {
+            /** @description A name from the open activity registry — ``typing``, */
+            state: string;
+        };
+        /**
+         * @description One attachment, carrying everything a bubble needs to paint on first
+         *     frame — no second round trip, and no reflow when the asset lands.
+         *
+         *     Every field is present on every attachment, ``null`` where it does not
+         *     apply or the CDN has not produced it yet; which of them a given ``type``
+         *     is expected to populate is declared by the attachment-type registry
+         *     (:mod:`stapel_chat.attachments`), which is open — a sticker is a settings
+         *     line, not a release.
+         *
+         *     The names are **stapel-cdn's** (`cdn.describe`), because they name the
+         *     same things and two vocabularies for one thing is how a seam rots.
+         */
+        AttachmentResponse: {
+            /** @description Opaque CDN ref (``<type>/<hash>``). The only field this module */
+            key: string;
+            /** @description Registry type, and the CDN's media ``kind``: ``image`` / ``gif`` */
+            type: string;
+            /** @description Content type */
+            mime?: string | null;
+            /** @description Byte size of the original */
+            bytes?: number | null;
+            /** @description Original filename (documents) */
+            name?: string | null;
+            /** @description Lowercase extension (documents) */
+            ext?: string | null;
+            /** @description Pixel width (image/gif/video) */
+            width?: number | null;
+            /** @description Pixel height (image/gif/video) */
+            height?: number | null;
+            /**
+             * Format: double
+             * @description ``width / height`` — the number that reserves the box before
+             */
+            aspect?: number | null;
+            /** @description Whether the asset is square within a pixel */
+            square?: boolean | null;
+            /** @description Whether it moves, so a UI offers a play affordance rather */
+            animated?: boolean | null;
+            /** @description Playback length (audio/video). ``null`` means */
+            duration_ms?: number | null;
+            /** @description The inline placeholder as a ``data:image/webp;base64,…`` */
+            preview_b64?: string | null;
+            /** @description What ``preview_b64`` depicts — ``blur`` (a 16px LQIP), */
+            preview_kind?: string | null;
+            /** @description A video's full poster image, present only once the poster */
+            poster_url?: string | null;
+            /** @description ``ok`` / ``partial`` / ``missing`` */
+            meta_status?: string;
+            /** @description Why, whenever the status is not ``ok`` */
+            meta_reason?: string | null;
+            /** @description Per-tier CDN geometry ``[{tier, branch, url, width, */
+            variants?: {
+                [key: string]: unknown;
+            }[];
+        };
         /** @description A conversation (thread). */
         ConversationResponse: {
             /** @description Conversation id (UUID) */
@@ -208,8 +348,14 @@ export interface components {
              * @description Last-activity time
              */
             updated_at: string;
+            /** @description The realtime stream this conversation lives on */
+            stream_key?: string;
+            /** @description Where to open it (``ws/chat/<id>``), relative to the */
+            socket_path?: string;
             /** @description Assigned support operator, if any */
             assigned_operator_id?: string | null;
+            /** @description What the thread is about, with its rendered card inlined — */
+            subject?: components["schemas"]["SubjectResponse"] | null;
             /** @description The conversation's participants */
             participants?: components["schemas"]["ParticipantResponse"][];
         };
@@ -219,25 +365,40 @@ export interface components {
             kind?: string;
             /** @description Other participants to add (the requesting user is */
             participant_ids?: string[];
+            /** @description What this thread is about, by registered type. Supply */
+            subject_type?: string;
+            /** @description The opaque key within that type. Never parsed here */
+            subject_key?: string;
             /** @description Ignored — the scope is resolved server-side from the */
             scope_key?: string;
         };
-        /** @description Advance the requesting user's read marker. */
+        /** @description Advance the requesting user's read/delivery markers. */
         MarkReadRequest: {
             /** @description seq of the newest message now considered read */
             upto_seq: number;
+            /** @description seq of the newest message the client holds. Omit */
+            delivered_upto_seq?: number;
         };
-        /** @description A single message. */
+        /**
+         * @description A single message — or its tombstone.
+         *
+         *     A deleted message is still returned: same ``id``, same ``seq``, empty
+         *     ``body``, empty ``attachments``, ``deleted=true``. That is deliberate, and
+         *     it is what a client cache needs — an id that stops arriving is an id
+         *     nobody can purge.
+         */
         MessageResponse: {
             /** @description Message id (UUID) */
             id: string;
             /** @description Owning conversation id */
             conversation_id: string;
-            /** @description Monotonic per-conversation order key */
+            /** @description Position in the thread. Immutable — sort by this */
             seq: number;
+            /** @description Position in the conversation's revision journal; changes on */
+            rev_seq: number;
             /** @description ``text`` or ``system`` */
             kind: string;
-            /** @description Message text (may be empty when only attachments are present) */
+            /** @description Message text (empty when only attachments are present, and */
             body: string;
             /**
              * Format: date-time
@@ -248,8 +409,24 @@ export interface components {
             sender_id?: string | null;
             /** @description Quoted message id, if any */
             reply_to?: string | null;
-            /** @description Opaque attachment keys (files live in the host CDN) */
-            attachments?: string[];
+            /** @description Render descriptors (see :class:`AttachmentResponse`) */
+            attachments?: components["schemas"]["AttachmentResponse"][];
+            /** @description The sender's own idempotency key, echoed back so an */
+            client_msg_id?: string | null;
+            /** @description Whether the body was changed after posting */
+            edited?: boolean;
+            /**
+             * Format: date-time
+             * @description When it was changed (null if never)
+             */
+            edited_at?: string | null;
+            /** @description Whether this is a tombstone */
+            deleted?: boolean;
+            /**
+             * Format: date-time
+             * @description When it was deleted (null if live)
+             */
+            deleted_at?: string | null;
         };
         PaginatedConversationResponseList: {
             items: components["schemas"]["ConversationResponse"][];
@@ -285,15 +462,58 @@ export interface components {
             role: string;
             /** @description seq of the newest message this participant has read */
             last_read_seq: number;
+            /** @description seq of the newest message their client */
+            last_delivered_seq?: number;
         };
-        /** @description Post a message. */
+        /** @description Replace a message's body. Author only. */
+        PatchedEditMessageRequest: {
+            /** @description The new text. An edit cannot empty a message — deleting is the */
+            body?: string;
+        };
+        /**
+         * @description Post a message.
+         *
+         *     There is deliberately **no draft**. A compose box is client state; the
+         *     server has one verb, and it is "send". A server-side draft concept would
+         *     put a save round trip between the Enter key and the message, which is
+         *     precisely the thing that must not exist.
+         */
         SendMessageRequest: {
             /** @description Message text (required unless attachments are supplied) */
             body?: string;
-            /** @description Opaque attachment keys (host CDN references) */
-            attachments?: string[];
+            attachments?: (({
+                key: string;
+                /** @description Attachment type from the OPEN registry — image / gif / video / voice / file out of the box, plus whatever STAPEL_CHAT['ATTACHMENT_TYPES'] adds. */
+                type: string;
+            } & {
+                [key: string]: unknown;
+            }) | string)[];
             /** @description Message id being replied to (must be in this conversation) */
             reply_to?: string | null;
+            /** @description Sender-generated idempotency key. Retrying the same */
+            client_msg_id?: string;
+        };
+        /**
+         * @description What a conversation is about, and the card somebody else rendered.
+         *
+         *     The ``(type, key)`` pair is this module's; the ``card`` is not — it is
+         *     whatever the subject type's ``card_function`` answered, passed through
+         *     untouched. Chat does not know what a listing is and never will, so it
+         *     stores a name and asks the owner.
+         */
+        SubjectResponse: {
+            /** @description Registered subject type (``listing``, …) */
+            type: string;
+            /** @description Opaque key within that type */
+            key: string;
+            /** @description The provider's card, or ``null`` when there is none to show */
+            card?: {
+                [key: string]: unknown;
+            } | null;
+            /** @description ``ok`` / ``partial`` / ``missing`` — the attachment */
+            meta_status?: string;
+            /** @description ``subject_type_unregistered`` / */
+            meta_reason?: string | null;
         };
     };
     responses: never;
@@ -376,6 +596,32 @@ export interface operations {
             };
         };
     };
+    chat_api_v1_conversations_activity_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivityRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ActivityRequest"];
+                "multipart/form-data": components["schemas"]["ActivityRequest"];
+            };
+        };
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     chat_api_v1_conversations_messages_list: {
         parameters: {
             query?: {
@@ -422,6 +668,56 @@ export interface operations {
         };
         responses: {
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+        };
+    };
+    chat_api_v1_conversations_messages_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+                message_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+        };
+    };
+    chat_api_v1_conversations_messages_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+                message_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedEditMessageRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedEditMessageRequest"];
+                "multipart/form-data": components["schemas"]["PatchedEditMessageRequest"];
+            };
+        };
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

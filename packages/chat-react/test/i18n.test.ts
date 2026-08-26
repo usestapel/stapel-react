@@ -1,13 +1,21 @@
 /**
- * Three locales, and the twelve keys that only exist because this pair wrote
- * them.
+ * Three locales, and the keys that only exist because this pair wrote them.
  *
  * stapel-chat ships English only — no `translations/` directory at all — so
  * the generated ru/es bundles are PARTIAL by construction and the module's own
- * twelve error keys are absent from them. The pair fills that gap in its
- * locale modules, and this file is what stops the gap from silently
- * reappearing: a `StapelApiError.code` from this module must render as a
- * sentence in every locale the pair ships, never as a raw key.
+ * error keys are absent from them. The pair fills that gap in its locale
+ * modules, and this file is what stops the gap from silently reappearing: a
+ * `StapelApiError.code` from this module must render as a sentence in every
+ * locale the pair ships, never as a raw key.
+ *
+ * THE COUNT IS THE CONTRACT'S, NOT THIS FILE'S. It was twelve against
+ * stapel-chat 0.2.2. Regenerating against 0.6.0 brought eleven more — the
+ * moderation verbs (edit/delete and their refusals), attachments and activity
+ * states, subjects, and the two the block check added: `error.403.
+ * chat_send_refused` and `error.503.chat_blocks_unavailable`. The number is
+ * asserted rather than derived precisely so that the NEXT contract bump lands
+ * here, in a test that names what is missing, instead of on a Russian host
+ * reading English.
  */
 import { describe, expect, it } from "vitest";
 import { createI18n } from "@stapel/core";
@@ -29,9 +37,9 @@ const UI_KEYS = Object.values(CHAT_I18N_KEYS).filter(
   (key) => !key.startsWith("error.")
 );
 
-describe("the twelve keys upstream does not localize", () => {
-  it("there are twelve of them, and the generated bundles do not carry them", () => {
-    expect(CHAT_OWNED).toHaveLength(12);
+describe("the keys upstream does not localize", () => {
+  it("there are 23 of them, and the generated bundles do not carry them", () => {
+    expect(CHAT_OWNED).toHaveLength(23);
     for (const code of CHAT_OWNED) {
       expect(chatErrorBundleRu, code).not.toHaveProperty(code);
       expect(chatErrorBundleEs, code).not.toHaveProperty(code);

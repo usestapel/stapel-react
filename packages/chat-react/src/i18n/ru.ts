@@ -32,16 +32,39 @@ export const chatI18nBundleRu: I18nDictionary = {
   "error.400.chat_invalid_direct":
     "В личной переписке должен быть ровно один собеседник",
   "error.400.chat_invalid_kind": "Неизвестный тип диалога",
+  "error.400.chat_incomplete_subject": "У темы должны быть и тип, и ключ",
+  "error.400.chat_invalid_attachment":
+    "Вложение повреждено или его превью слишком большое",
   "error.400.chat_invalid_reply":
     "Сообщение, на которое вы отвечаете, не из этого диалога",
   "error.400.chat_kind_disabled": "Этот тип диалога отключён в этой установке",
+  "error.400.chat_message_deleted": "Это сообщение удалено",
+  "error.400.chat_not_editable": "Это сообщение больше нельзя изменить",
   "error.400.chat_not_support":
     "Это действие применимо только к обращениям в поддержку",
+  "error.400.chat_unknown_activity_state":
+    "Этот вид активности не зарегистрирован в этой установке",
+  "error.400.chat_unknown_attachment_type":
+    "Этот тип вложений не зарегистрирован в этой установке",
+  "error.400.chat_unknown_subject_type":
+    "Этот тип темы не зарегистрирован в этой установке",
+  "error.403.chat_not_author":
+    "Изменить или удалить сообщение может только его автор",
   "error.403.chat_not_operator":
     "Это действие доступно только оператору поддержки",
   "error.403.chat_not_participant": "Вы не участник этого диалога",
+  // Deliberately says nothing about WHY. Upstream refuses a send and a new
+  // direct thread with one and the same code precisely so a block cannot be
+  // detected from the outside; a translation that named the block would leak
+  // what the contract is built to withhold.
+  "error.403.chat_send_refused": "Это сообщение не удалось отправить",
   "error.404.chat_conversation_not_found": "Диалог не найден",
+  "error.404.chat_message_not_found": "Сообщение в этом диалоге не найдено",
   "error.409.chat_already_assigned": "Это обращение уже взято в работу",
+  // A 503: the block check could not be reached, which is NOT a refusal. The
+  // copy has to invite another try, or a transient outage reads as a ban.
+  "error.503.chat_blocks_unavailable":
+    "Отправка сообщений временно недоступна, попробуйте ещё раз",
 
   // chat-react UI (hand-written ru mirror of the en copy in keys.ts)
   "chat.error.unknown": "Что-то пошло не так. Попробуйте ещё раз.",

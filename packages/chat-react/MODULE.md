@@ -30,10 +30,62 @@ complete) and never emitted: its refusals carry socket-local codes
 have no i18n key and no remediation. `POST …/messages` answers with the
 persisted row and a real error envelope.
 
-**When `@stapel/realtime` phase 1 lands**, `src/flows/freshness.ts` is the whole
-migration: `createChatSocket` goes away, `useSignalInvalidate` takes its place,
-and this pair's tests must stay green with no edits. Nothing above that file
-imports `realtime/`, so the blast radius is checkable rather than promised.
+> ### ⚠️ THE SOCKET HALF DOES NOT WORK AGAINST ANY CURRENTLY-RELEASED BACKEND
+>
+> This is stated at the top of the file because it is the single most important
+> fact about this pair, and because everything written below it about the
+> credential channel, the close-code table and the named degradations describes
+> a client that is CORRECT and TALKING TO NOBODY.
+>
+> `src/realtime/` implements stapel-chat's own pre-0.3.0 wire: flat frames
+> (`{type:"message", seq, …}`), a bare `hello{last_seq}`, `error{resync}`.
+> **stapel-chat 0.3.0 deleted that protocol.** Since then the module's
+> consumers are `stapel_realtime`'s (`stapel_chat/consumers.py` imports
+> `stapel_realtime.envelope`), and the wire is the substrate's versioned
+> envelope `{v, type, stream, payload, seq}` with `live`/`replay`/`ping`/
+> `kick`/`resync` frame types.
+>
+> This pair's own decoder was run against the frames a 0.6.0 server actually
+> sends. It returns `null` for every one of them:
+>
+> ```
+> live -> null   replay -> null   welcome -> null   ping -> null   resync -> null
+> ```
+>
+> The consequences, in order of severity:
+>
+> 1. **No message ever arrives over the socket.** Unknown frames are dropped by
+>    design (an unreadable frame must not advance the seq cursor), so the
+>    failure is silent.
+> 2. **`ping -> null` means the heartbeat is never answered**, so the server
+>    closes 4408 every 35 s. `closePolicy` correctly reads 4408 as retryable,
+>    so this is a permanent reconnect loop that spends the retry budget and
+>    lands on `degraded.reason === "unreachable"` — polling, forever.
+> 3. **The resume cursor is the wrong number.** `hello{last_seq}` is sent
+>    `threadLastSeq()`, the message `seq`; the journal cursor is `rev_seq`
+>    (`MessageResponse.rev_seq`, required since 0.6.0). Conflating them drops
+>    every edit and every tombstone across a resume.
+> 4. **The inbox socket is declared not to exist.** `realtime/streams.ts` says
+>    the module mounts no socket for the conversation list. Since 0.4.0
+>    `routing.py` mounts `ws/chat/inbox` (stream `chat:user:<id>`, ephemeral).
+>
+> The REST half is fine and is regenerated against 0.6.0 — which is exactly why
+> `manifest.json` says `contract: ">=0.6 <0.7"`. **Read that pin as a statement
+> about the HTTP surface only.**
+>
+> **The migration, and why it is not a rename.** `@stapel/realtime` exists now
+> and is the right target: it answers the heartbeat, keeps `envelopeSeq` and
+> `payloadSeq` apart, routes 4401 once through core's single-flight
+> `SessionManager.refresh()` (keeping all three of core's outcomes apart), and
+> splits 4403 into `origin` and `forbidden`. But this is a wire-protocol
+> cutover, not the "delete `createChatSocket`, call `useSignalInvalidate`"
+> swap this section used to promise: the stream keys change
+> (`chat:conv:<id>`, `chat:user:<id>`), the cursor changes to `rev_seq`, the
+> inbox gains a socket, and chat is the substrate's one documented socket-WRITE
+> exception (`send`/`edit`/`delete`/`read`/`delivered`/`activity`, carrying
+> `client_msg_id`). It is tracked as **CHAT-RT-CUTOVER**; until it lands,
+> `stapel/no-adhoc-socket` carries this package in its `allowPackages` with
+> that ticket named.
 
 ## Layers
 

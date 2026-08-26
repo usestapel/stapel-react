@@ -443,7 +443,8 @@
       "covers": [
         "AddressSearchField",
         "TileMap",
-        "GeoSkinTheme"
+        "GeoSkinTheme",
+        "GeoProvider"
       ],
       "flow": "geo.pick_location",
       "tokens": [
@@ -455,7 +456,8 @@
         "default",
         "sheet",
         "anonymous",
-        "config-failed"
+        "config-failed",
+        "dark"
       ],
       "source": "demo/LocationPicker.demo.tsx"
     },

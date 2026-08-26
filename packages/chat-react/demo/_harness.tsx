@@ -16,6 +16,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider, createI18n, useT } from "@stapel/core";
 import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
 import { ChatProvider, createChatRuntime, registerChatI18n } from "../src/index.js";
+import { chatQueryKeys } from "../src/model/queryKeys.js";
+import type { ChatThreadWindow } from "../src/model/threadWindow.js";
+import type { ChatMessage, Conversation, ConversationPage } from "../src/api/types.js";
 
 /** The base every mock handler mounts on (mirrors stapel-chat `/chat/api/v1`). */
 export const DEMO_BASE = "https://chat.demo.stapel.dev/chat/api/v1";
@@ -62,12 +65,70 @@ const demoBundleEn: Record<string, string> = {
   "demo.action.refresh": "Refresh",
 };
 
+/**
+ * Prime the query cache before the first paint.
+ *
+ * A demo whose data arrives over `fetch` renders a SPINNER on its first frame,
+ * and a static shot runner never gets a second one — so four variants named for
+ * four different states photograph the same spinner, and the catalogue claims
+ * coverage it does not have (that is exactly what `assertVariantsRenderDistinctly`
+ * exists to catch). Seeding puts the state on screen synchronously, which is
+ * also what a person opening the viewer wants to see.
+ */
+export type DemoSeed = (queryClient: QueryClient) => void;
+
+/** Seed the inbox with one page of conversations. */
+export function seedInbox(
+  rows: readonly Conversation[],
+  options?: { readonly hasNext?: boolean }
+): DemoSeed {
+  const page: ConversationPage = {
+    items: [...rows],
+    next_anchor: options?.hasNext === true ? "2026-08-21T18:00:00Z" : null,
+    prev_anchor: null,
+    has_next: options?.hasNext === true,
+    has_prev: false,
+    count: rows.length,
+  };
+  return (queryClient) => {
+    queryClient.setQueryData(chatQueryKeys.conversations(), {
+      pages: [page],
+      pageParams: [undefined],
+    });
+  };
+}
+
+/** Seed one thread's window (ascending by `seq`, as the store holds it). */
+export function seedThread(
+  conversationId: string,
+  messages: readonly ChatMessage[],
+  options?: { readonly hasOlder?: boolean }
+): DemoSeed {
+  const window: ChatThreadWindow = {
+    messages: [...messages].sort((a, b) => a.seq - b.seq),
+    hasOlder: options?.hasOlder ?? false,
+    olderAnchor: options?.hasOlder === true ? "1" : null,
+  };
+  return (queryClient) => {
+    queryClient.setQueryData(chatQueryKeys.thread(conversationId), window);
+  };
+}
+
+/** Run several seeds as one. */
+export function seedAll(...seeds: readonly DemoSeed[]): DemoSeed {
+  return (queryClient) => {
+    for (const seed of seeds) seed(queryClient);
+  };
+}
+
 /** Provider frame every chat demo variant renders inside. */
 export function ChatDemoHarness(props: {
   handlers?: DemoHandlers;
+  /** Cache primed before the first render — see {@link DemoSeed}. */
+  seed?: DemoSeed;
   children: ReactNode;
 }): ReactElement {
-  const { handlers } = props;
+  const { handlers, seed } = props;
   const { runtime, queryClient, i18n } = useMemo(() => {
     const rt = createChatRuntime({
       baseUrl: DEMO_BASE,
@@ -77,14 +138,13 @@ export function ChatDemoHarness(props: {
     const engine = createI18n({ locale: "en" });
     registerChatI18n(engine);
     engine.registerBundle("en", demoBundleEn);
-    return {
-      runtime: rt,
-      queryClient: new QueryClient({
-        defaultOptions: { queries: { retry: false } },
-      }),
-      i18n: engine,
-    };
-  }, [handlers]);
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    // Before the provider mounts, so the first render is already the state.
+    seed?.(client);
+    return { runtime: rt, queryClient: client, i18n: engine };
+  }, [handlers, seed]);
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
@@ -190,6 +250,85 @@ export const DEMO_CONVERSATION_PAGE = {
   has_prev: false,
   count: 1,
 };
+
+// ── typed fixtures for the seeded (default-skin) demos ───────────────────────
+//
+// These are `Conversation` / `ChatMessage` proper — the generated wire types —
+// so a field the 0.6 contract added or renamed breaks the demo at compile time
+// rather than rendering a screen that no server produces.
+
+function conversation(
+  id: string,
+  overrides: Partial<Conversation> = {}
+): Conversation {
+  return {
+    id,
+    kind: "direct",
+    scope_key: "global",
+    support_status: "",
+    last_seq: 3,
+    unread_count: 0,
+    created_at: "2026-08-20T09:00:00Z",
+    updated_at: "2026-08-21T18:12:00Z",
+    participants: [
+      { user_id: "u-buyer", role: "member", last_read_seq: 3 },
+      { user_id: "u-seller", role: "member", last_read_seq: 3 },
+    ],
+    ...overrides,
+  };
+}
+
+/** A busy inbox: one thread with news, one caught up, one support case. */
+export const DEMO_INBOX: readonly Conversation[] = [
+  conversation("8f14e45f-ceea-467a-9b58-2f0b0b1a6b21", { unread_count: 2 }),
+  conversation("1c3d5e7f-2b4a-4c6d-8e0f-1a2b3c4d5e6f", {
+    updated_at: "2026-08-21T11:40:00Z",
+  }),
+  conversation("aa11bb22-cc33-4d44-9e55-ff6677889900", {
+    kind: "support",
+    support_status: "open",
+    updated_at: "2026-08-20T16:05:00Z",
+  }),
+];
+
+/** The thread the panel demos open, ascending by `seq`. */
+export const DEMO_THREAD_ID = DEMO_INBOX[0]?.id ?? "";
+
+function message(
+  seq: number,
+  body: string,
+  overrides: Partial<ChatMessage> = {}
+): ChatMessage {
+  return {
+    id: `m-${String(seq)}`,
+    conversation_id: DEMO_THREAD_ID,
+    seq,
+    // The journal cursor the socket resumes on. It equals `seq` until
+    // something is edited or deleted — that divergence is the whole reason
+    // the two numbers have different names.
+    rev_seq: seq,
+    kind: "text",
+    body,
+    created_at: "2026-08-21T18:10:00Z",
+    sender_id: "u-buyer",
+    reply_to: null,
+    attachments: [],
+    ...overrides,
+  };
+}
+
+export const DEMO_THREAD_MESSAGES: readonly ChatMessage[] = [
+  message(1, "Conversation started.", {
+    kind: "system",
+    sender_id: null,
+    created_at: "2026-08-20T09:00:00Z",
+  }),
+  message(2, "Hello! Is the bicycle still available?"),
+  message(3, "It is still available — when would you like to pick it up?", {
+    sender_id: "u-seller",
+    created_at: "2026-08-21T18:12:00Z",
+  }),
+];
 
 /** History pages arrive NEWEST-first for `direction=next` (the default). */
 export const DEMO_MESSAGE_PAGE = {

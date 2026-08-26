@@ -3,13 +3,13 @@
 // Regenerate: pnpm gen:errors   ·   Drift gate: pnpm gen:errors:check
 // Locale source: backend translations/errors.es.json (locale catalog
 // beside the canonical errors.json — i18n-shipping.md §1).
-import type { ChatErrorCode } from "./errors.gen.js";
+import type { GeoErrorCode } from "./errors.gen.js";
 
 /**
  * `es` texts for the backend error codes this catalog carries.
  *
- * PARTIAL, and deliberately typed to say so: 23 key(s) owned by
- * stapel_chat are absent, because that owner ships no locale catalog
+ * PARTIAL, and deliberately typed to say so: 8 key(s) owned by
+ * stapel_geo are absent, because that owner ships no locale catalog
  * (ERRORS_LOCALE_EXEMPT_OWNERS). English for them still comes from the registry
  * artifact via the en bundle; the pair layers its own authored `es`
  * strings over this one until upstream ships translations. `Partial` is what
@@ -18,7 +18,7 @@ import type { ChatErrorCode } from "./errors.gen.js";
  * Import from the pair's `./i18n/es` subpath, NOT the main entry, so
  * the locale stays out of hosts that don't ship it.
  */
-export const chatErrorBundleEs: Partial<Record<ChatErrorCode, string>> = {
+export const geoErrorBundleEs: Partial<Record<GeoErrorCode, string>> = {
   "error.400.bad_request": "Solicitud incorrecta",
   "error.400.captcha_invalid": "La verificación del captcha ha fallado. Inténtalo de nuevo.",
   "error.400.captcha_required": "Se requiere el token del captcha.",

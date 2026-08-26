@@ -29,17 +29,42 @@ export const chatI18nBundleEs: I18nDictionary = {
   "error.400.chat_invalid_direct":
     "Una conversación directa necesita exactamente un interlocutor",
   "error.400.chat_invalid_kind": "Tipo de conversación desconocido",
+  "error.400.chat_incomplete_subject":
+    "Un asunto necesita tanto un tipo como una clave",
+  "error.400.chat_invalid_attachment":
+    "Un archivo adjunto está dañado o su vista previa es demasiado grande",
   "error.400.chat_invalid_reply":
     "El mensaje al que respondes no pertenece a esta conversación",
   "error.400.chat_kind_disabled":
     "Este tipo de conversación no está habilitado en esta instalación",
+  "error.400.chat_message_deleted": "Este mensaje ha sido eliminado",
+  "error.400.chat_not_editable": "Este mensaje ya no se puede editar",
   "error.400.chat_not_support":
     "Esta acción solo se aplica a conversaciones de soporte",
+  "error.400.chat_unknown_activity_state":
+    "Este estado de actividad no está registrado en esta instalación",
+  "error.400.chat_unknown_attachment_type":
+    "Este tipo de archivo adjunto no está registrado en esta instalación",
+  "error.400.chat_unknown_subject_type":
+    "Este tipo de asunto no está registrado en esta instalación",
+  "error.403.chat_not_author":
+    "Solo el autor puede editar o eliminar este mensaje",
   "error.403.chat_not_operator":
     "Solo un operador de soporte puede realizar esta acción",
   "error.403.chat_not_participant": "No participas en esta conversación",
+  // Deliberately says nothing about WHY. Upstream refuses a send and a new
+  // direct thread with one and the same code precisely so a block cannot be
+  // detected from the outside; a translation that named the block would leak
+  // what the contract is built to withhold.
+  "error.403.chat_send_refused": "No se ha podido enviar este mensaje",
   "error.404.chat_conversation_not_found": "Conversación no encontrada",
+  "error.404.chat_message_not_found":
+    "Mensaje no encontrado en esta conversación",
   "error.409.chat_already_assigned": "Esta conversación de soporte ya está asignada",
+  // A 503: the block check could not be reached, which is NOT a refusal. The
+  // copy has to invite another try, or a transient outage reads as a ban.
+  "error.503.chat_blocks_unavailable":
+    "La mensajería no está disponible temporalmente, inténtalo de nuevo",
 
   // chat-react UI (hand-written es mirror of the en copy in keys.ts)
   "chat.error.unknown": "Algo ha salido mal. Inténtalo de nuevo.",

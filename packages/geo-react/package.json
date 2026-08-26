@@ -25,6 +25,10 @@
       "types": "./dist/i18n/ru.d.ts",
       "default": "./dist/i18n/ru.js"
     },
+    "./i18n/es": {
+      "types": "./dist/i18n/es.d.ts",
+      "default": "./dist/i18n/es.js"
+    },
     "./manifest": "./manifest.json",
     "./manifest.json": "./manifest.json",
     "./llms.txt": "./llms.txt",
@@ -61,6 +65,11 @@
     {
       "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",
       "path": "dist/i18n/ru.js",
+      "limit": "3.5 KB"
+    },
+    {
+      "name": "i18n/es — the Spanish bundle is opt-in, not carried by the main entry",
+      "path": "dist/i18n/es.js",
       "limit": "3.5 KB"
     }
   ],

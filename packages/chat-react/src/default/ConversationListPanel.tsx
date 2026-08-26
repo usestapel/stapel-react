@@ -5,6 +5,7 @@
  * Built entirely on the headless `<ConversationList>`: this file makes visual
  * decisions and nothing else.
  */
+import { spacing } from "@stapel/tokens-antd";
 import type { ReactElement } from "react";
 import { Badge, Button, Card, Empty, List, Space, Spin, Typography } from "antd";
 import { matchList, useErrorDisplay, useI18n, useT } from "@stapel/core";
@@ -63,8 +64,19 @@ export function ConversationListPanel(
           row.unread_count > 0 ? (
             <Badge
               count={row.unread_count}
-              // The badge is a number; the accessible sentence is the key.
-              title={t(CHAT_I18N_KEYS.listUnread, { count: row.unread_count })}
+              // A bare number is not information: read aloud, this row was
+              // "Direct, 2". The sentence used to travel in `title=`, which is
+              // a browser hover — absent on every phone, unreachable by
+              // keyboard, and announced inconsistently (some readers say it
+              // INSTEAD of the label). So it is the badge's accessible NAME
+              // instead. `role="img"` is what makes the name computable: an
+              // `aria-label` on a bare `<span>` names nothing, because a span
+              // has no role for a name to attach to. `img` is the right one —
+              // a graphic standing in for a sentence, opaque to the reader,
+              // with a text alternative — and it is not `status`, which would
+              // make every refetch announce itself over whatever is being read.
+              role="img"
+              aria-label={t(CHAT_I18N_KEYS.listUnread, { count: row.unread_count })}
             />
           ) : null
         }
@@ -108,14 +120,14 @@ export function ConversationListPanel(
           </Typography.Title>
 
           {matchList(state, {
-            loading: () => <Spin style={{ marginTop: 16 }} />,
+            loading: () => <Spin style={{ marginTop: spacing[4] }} />,
             // One arm owns the failure; the empty copy is unreachable from
             // here, so an outage can never render as "no conversations yet".
             failed: (error) => (
-              <div style={{ marginTop: 16 }} data-testid="chat-conversation-list-error">
+              <div style={{ marginTop: spacing[4] }} data-testid="chat-conversation-list-error">
                 <ErrorAlert error={errorDisplay(error)} />
                 <Button
-                  style={{ marginTop: 12 }}
+                  style={{ marginTop: spacing[3] }}
                   onClick={refetch}
                   data-analytics="none"
                   data-analytics-reason="recovery affordance for a failed read — host app wraps with its own tracked()"
@@ -126,7 +138,7 @@ export function ConversationListPanel(
             ),
             empty: () => (
               <Empty
-                style={{ marginTop: 16 }}
+                style={{ marginTop: spacing[4] }}
                 data-testid="chat-conversation-list-empty"
                 description={t(CHAT_I18N_KEYS.listEmpty)}
               />
@@ -134,7 +146,7 @@ export function ConversationListPanel(
             ready: (rows) => (
               <Space direction="vertical" style={{ width: "100%" }}>
                 <List<Conversation>
-                  style={{ marginTop: 16 }}
+                  style={{ marginTop: spacing[4] }}
                   dataSource={[...rows]}
                   rowKey={(row) => row.id}
                   renderItem={renderRow}

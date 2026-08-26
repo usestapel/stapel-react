@@ -12,6 +12,7 @@
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
 import { LocationPickerField } from "../src/default/LocationPickerField.js";
+import { GeoSkinTheme } from "../src/default/theme.js";
 import {
   DEMO_RESOLVE,
   DEMO_SEARCH,
@@ -77,6 +78,27 @@ function ConfigFailedPicker(): ReactElement {
   );
 }
 
+/**
+ * The skin's own theme root, pinned to the dark side.
+ *
+ * `<GeoSkinTheme/>` normally reads the mode REACTIVELY off the document and
+ * every `/default` surface mounts it without being asked — which is exactly
+ * why it had never been photographed. It exists because of tracker #26: a skin
+ * set with no internal provider inherited a host theme bridge serving
+ * light-mode values inside a dark document, and rendered text on background at
+ * 1.00:1. Pinning the mode is the one use the prop is FOR ("a demo showing
+ * both"), and it is what makes that failure visible if it ever comes back.
+ */
+function DarkPicker(): ReactElement {
+  return (
+    <GeoDemoHarness handlers={WORKING}>
+      <GeoSkinTheme mode="dark" surface="raised">
+        <LocationPickerField mode="inline" height={320} />
+      </GeoSkinTheme>
+    </GeoDemoHarness>
+  );
+}
+
 export default defineDemo({
   id: "geo.location-picker",
   title: "The location picker a product mounts once",
@@ -130,6 +152,17 @@ export default defineDemo({
       render: () => (
         <DemoFrame>
           <ConfigFailedPicker />
+        </DemoFrame>
+      ),
+    },
+    dark: {
+      description:
+        "The same picker under the skin's own theme root, pinned dark. The wrapper is not decoration: without it a skin inherits whatever theme bridge the host mounted, which once meant light-mode values inside a dark document and text at 1.00:1 contrast.",
+      viewport: "phone",
+      step: "dark",
+      render: () => (
+        <DemoFrame>
+          <DarkPicker />
         </DemoFrame>
       ),
     },

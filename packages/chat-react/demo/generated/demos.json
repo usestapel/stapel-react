@@ -4,6 +4,80 @@
   "version": "0.3.1",
   "demos": [
     {
+      "id": "chat.conversation-list-panel",
+      "title": "Inbox (default skin)",
+      "description": "The shipped inbox: threads newest-first, an unread count that carries its own accessible sentence rather than a hover, and a load-more control that becomes a stated end. The failed arm owns the failure on its own — an outage can never render here as `No conversations yet`.",
+      "component": "ConversationListPanel",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted",
+        "border-subtle"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Phone width, the state almost every inbox is in: three threads, the top one with news. The unread badge is a number to the eye and a sentence to a screen reader — it names itself with `aria-label`, because a `title` tooltip is unreachable on the device this variant is drawn for.",
+          "viewport": "phone",
+          "step": "ready"
+        },
+        {
+          "id": "more-to-load",
+          "description": "A deeper inbox at desk width: the server says there is another page, so the end-of-list sentence is replaced by the control that fetches it.",
+          "viewport": "desktop",
+          "step": "paged"
+        },
+        {
+          "id": "empty",
+          "description": "No conversations yet — reachable only when the read SUCCEEDED and returned nothing.",
+          "viewport": "phone",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/ConversationListPanelSkin.demo.tsx",
+        "line": 37
+      }
+    },
+    {
+      "id": "chat.conversation-thread-panel",
+      "title": "Conversation (default skin)",
+      "description": "The shipped thread: replay plus live tail, the reader's own lines aligned to the trailing edge, a composer that states its own limit, and a transport tag that says WHY it is not live instead of only that it is refreshing. The same component renders a socket-fed thread and a polled one — that is the seam holding.",
+      "component": "ConversationThreadPanel",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted",
+        "border-subtle"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Phone width, a thread with a system line and both sides talking. The header carries the named degradation for a deployment with no socket, and it WRAPS onto its own line rather than squeezing the title — the sentence is the part a person may act on.",
+          "viewport": "phone",
+          "step": "ready"
+        },
+        {
+          "id": "earlier-history",
+          "description": "The same thread with history behind it: the beginning-of-conversation sentence is replaced by the control that pages older messages onto the front.",
+          "viewport": "phone",
+          "step": "has-older"
+        },
+        {
+          "id": "no-messages-yet",
+          "description": "A thread that exists but has nothing in it — the composer is the whole screen, at desk width.",
+          "viewport": "desktop",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/ConversationThreadPanelSkin.demo.tsx",
+        "line": 42
+      }
+    },
+    {
       "id": "chat.conversations",
       "title": "Conversation list",
       "description": "The headless ConversationList renders the caller's threads with server-computed unread counts, behind a LoadState a skin cannot flatten. Covers the provider that wires the runtime.",
@@ -23,6 +97,41 @@
       "source": {
         "file": "demo/ConversationList.demo.tsx",
         "line": 97
+      }
+    },
+    {
+      "id": "chat.sign-in-link",
+      "title": "Sign-in door (default skin)",
+      "description": "The link that turns a stated reason into an action a visitor can take. Renders core's `SignInCta` — `{href}` or `{onSignIn}`, never both — and renders NOTHING when the host has no sign-in route, so a reason with no door is exactly its own sentence and not a dead affordance.",
+      "component": "SignInLink",
+      "covers": [],
+      "tokens": [
+        "link",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Phone width, the storefront arm: the reason and a real anchor back to the listing. This is the pairing a signed-out visitor meets on a listing card.",
+          "viewport": "phone",
+          "step": "href"
+        },
+        {
+          "id": "host-routed",
+          "description": "The `{onSignIn}` arm — a tenant app that opens its own sign-in surface instead of navigating away.",
+          "viewport": "phone",
+          "step": "on_sign_in"
+        },
+        {
+          "id": "no-route",
+          "description": "No sign-in route configured: the sentence stands alone, with no dead link and no trailing space after it.",
+          "viewport": "desktop",
+          "step": "absent"
+        }
+      ],
+      "source": {
+        "file": "demo/SignInLinkSkin.demo.tsx",
+        "line": 61
       }
     },
     {
@@ -52,6 +161,48 @@
       }
     },
     {
+      "id": "chat.start-chat-button",
+      "title": "Message the seller (default skin)",
+      "description": "The shipped listing-card control. Pressable, or switched off WITH the sentence that says why — and, when the host supplies a sign-in route, with the door beside the sentence. Opening is get-or-create by participant pair, so pressing twice cannot fan out into two threads.",
+      "component": "StartChatButton",
+      "covers": [],
+      "tokens": [
+        "brand",
+        "text-on-accent",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A signed-in member, phone width, full-bleed as a listing card mounts it: a seller to write to and nothing in the way.",
+          "viewport": "phone",
+          "step": "ready"
+        },
+        {
+          "id": "signed-out",
+          "description": "An anonymous visitor: the refusal that has a next action. The reason and the door, on the page, one tap apart — never a hover, and never a button that simply vanishes (a control that disappears teaches nobody that messaging the seller is possible at all).",
+          "viewport": "phone",
+          "step": "sign_in"
+        },
+        {
+          "id": "own-listing",
+          "description": "Your own listing. A reason with no door, because there is nothing for the visitor to do — and the sentence renders alone, with no stray space where a link would have been.",
+          "viewport": "phone",
+          "step": "self"
+        },
+        {
+          "id": "no-seller",
+          "description": "A listing with nobody attached to write to, at desk width.",
+          "viewport": "desktop",
+          "step": "unknown_seller"
+        }
+      ],
+      "source": {
+        "file": "demo/StartChatButtonSkin.demo.tsx",
+        "line": 58
+      }
+    },
+    {
       "id": "chat.thread",
       "title": "Conversation thread",
       "description": "The headless ConversationThread renders a contiguous, seq-ordered window over the message journal, and MessageComposer appends to it over REST with a stated reason whenever sending is blocked.",
@@ -70,7 +221,7 @@
       ],
       "source": {
         "file": "demo/ConversationThread.demo.tsx",
-        "line": 155
+        "line": 161
       }
     }
   ]

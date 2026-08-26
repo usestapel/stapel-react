@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
-import { renderDemoVariant, variantIds } from "@stapel/showcase";
+import { renderToStaticMarkup } from "react-dom/server";
+import {
+  assertVariantsRenderDistinctly,
+  renderDemoVariant,
+  variantIds,
+} from "@stapel/showcase";
 import type { DemoDef } from "@stapel/showcase";
 
 /**
@@ -29,6 +34,18 @@ describe("chat-react demos", () => {
       if (!first) return;
       const { container } = render(renderDemoVariant(demo, first));
       expect(container.firstChild).not.toBeNull();
+    });
+
+    // The runtime half of the C-SAMESHOT guard. `viewport`/`step` are static
+    // claims the demo gate can read; whether the render closure actually
+    // REACHES the state it declares is only answerable by rendering it. A
+    // variant whose state arrives over fetch paints a spinner on its first
+    // frame — which is the frame a shot runner keeps — so this is what forces
+    // the demos to seed their cache instead of documenting three spinners.
+    it(`renders each variant of ${demo.id} distinctly`, () => {
+      assertVariantsRenderDistinctly(demo, (element) =>
+        renderToStaticMarkup(element)
+      );
     });
   }
 });

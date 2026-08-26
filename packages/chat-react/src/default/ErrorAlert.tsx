@@ -11,6 +11,7 @@
  * `undefined` in — including a `detail` core left `undefined` because there
  * was nothing worth quoting — renders nothing rather than an empty muted line.
  */
+import { fontSize } from "@stapel/tokens-antd";
 import { Alert, Typography } from "antd";
 import type { CSSProperties, ReactElement } from "react";
 import type { FlowErrorDisplay } from "@stapel/core";
@@ -28,11 +29,11 @@ export function ErrorAlert(props: {
       showIcon
       {...(props.style ? { style: props.style } : {})}
       {...(props.testId ? { "data-testid": props.testId } : {})}
-      message={error.message}
+      title={error.message}
       {...(error.detail
         ? {
             description: (
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
                 {error.detail}
               </Typography.Text>
             ),

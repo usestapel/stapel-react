@@ -42,6 +42,20 @@
     "en": "A message must carry a body or at least one attachment"
   },
   {
+    "code": "error.400.chat_incomplete_subject",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "A subject needs both a type and a key"
+  },
+  {
+    "code": "error.400.chat_invalid_attachment",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "An attachment is malformed or its preview is too large"
+  },
+  {
     "code": "error.400.chat_invalid_direct",
     "status": 400,
     "params": [],
@@ -70,11 +84,46 @@
     "en": "This conversation kind is not enabled in this deployment"
   },
   {
+    "code": "error.400.chat_message_deleted",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "This message has been deleted"
+  },
+  {
+    "code": "error.400.chat_not_editable",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "This message can no longer be edited"
+  },
+  {
     "code": "error.400.chat_not_support",
     "status": 400,
     "params": [],
     "remediation": "fix_input",
     "en": "This operation applies only to support conversations"
+  },
+  {
+    "code": "error.400.chat_unknown_activity_state",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "This activity state is not registered in this deployment"
+  },
+  {
+    "code": "error.400.chat_unknown_attachment_type",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "This attachment type is not registered in this deployment"
+  },
+  {
+    "code": "error.400.chat_unknown_subject_type",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "This subject type is not registered in this deployment"
   },
   {
     "code": "error.400.expected_list",
@@ -229,6 +278,13 @@
     "en": "Payment required"
   },
   {
+    "code": "error.403.chat_not_author",
+    "status": 403,
+    "params": [],
+    "remediation": "retry",
+    "en": "Only the author may edit or delete this message"
+  },
+  {
     "code": "error.403.chat_not_operator",
     "status": 403,
     "params": [],
@@ -241,6 +297,13 @@
     "params": [],
     "remediation": "retry",
     "en": "You are not a participant of this conversation"
+  },
+  {
+    "code": "error.403.chat_send_refused",
+    "status": 403,
+    "params": [],
+    "remediation": "retry",
+    "en": "This message could not be sent"
   },
   {
     "code": "error.403.forbidden",
@@ -283,6 +346,13 @@
     "params": [],
     "remediation": "retry",
     "en": "Conversation not found"
+  },
+  {
+    "code": "error.404.chat_message_not_found",
+    "status": 404,
+    "params": [],
+    "remediation": "retry",
+    "en": "Message not found in this conversation"
   },
   {
     "code": "error.404.not_found",
@@ -397,6 +467,13 @@
     "params": [],
     "remediation": "contact_support",
     "en": "Something went wrong"
+  },
+  {
+    "code": "error.503.chat_blocks_unavailable",
+    "status": 503,
+    "params": [],
+    "remediation": "retry",
+    "en": "Messaging is temporarily unavailable, please try again"
   },
   {
     "code": "error.503.mandate_unavailable",

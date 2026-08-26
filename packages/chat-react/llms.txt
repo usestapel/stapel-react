@@ -1,6 +1,6 @@
 # @stapel/chat-react 0.3.1
 
-Headless React flow pair for stapel-chat (contract >=0.2 <0.3) — business + state, zero visual opinion.
+Headless React flow pair for stapel-chat (contract >=0.6 <0.7) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -21,10 +21,13 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 ## Operations (typed; use the named op, never a path string)
 Request/response schema names are in manifest.json + the generated types.
 Paths are relative to `/chat/api/v1/`.
+- chat_api_v1_conversations_activity_create: POST /conversations/{conversation_id}/activity
 - chat_api_v1_conversations_create: POST /conversations
 - chat_api_v1_conversations_list: GET /conversations
 - chat_api_v1_conversations_messages_create: POST /conversations/{conversation_id}/messages
+- chat_api_v1_conversations_messages_destroy: DELETE /conversations/{conversation_id}/messages/{message_id}
 - chat_api_v1_conversations_messages_list: GET /conversations/{conversation_id}/messages
+- chat_api_v1_conversations_messages_partial_update: PATCH /conversations/{conversation_id}/messages/{message_id}
 - chat_api_v1_conversations_read_create: POST /conversations/{conversation_id}/read
 - chat_api_v1_conversations_retrieve: GET /conversations/{conversation_id}
 - chat_api_v1_support_conversations_assign_create: POST /support/conversations/{conversation_id}/assign
@@ -41,7 +44,7 @@ Paths are relative to `/chat/api/v1/`.
 - useThread (query) → messages
 
 ## Errors (render t(code, params); UX from remediation)
-54 keys (full catalog: manifest.json §errors). By remediation: fix_input 25 · retry 16 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+65 keys (full catalog: manifest.json §errors). By remediation: fix_input 32 · retry 20 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -76,8 +79,12 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- chat.conversation-list-panel → <ConversationListPanel> [default|more-to-load|empty]  demo/ConversationListPanelSkin.demo.tsx
+- chat.conversation-thread-panel → <ConversationThreadPanel> [default|earlier-history|no-messages-yet]  demo/ConversationThreadPanelSkin.demo.tsx
 - chat.conversations → <ConversationList> [default]  demo/ConversationList.demo.tsx
+- chat.sign-in-link → <SignInLink> [default|host-routed|no-route]  demo/SignInLinkSkin.demo.tsx
 - chat.start → <StartDirectChat> [default|no-seller|own-listing]  demo/StartDirectChat.demo.tsx
+- chat.start-chat-button → <StartChatButton> [default|signed-out|own-listing|no-seller]  demo/StartChatButtonSkin.demo.tsx
 - chat.thread → <ConversationThread> [default]  demo/ConversationThread.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 

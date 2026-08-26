@@ -78,7 +78,7 @@ const { tracked } = useTracked();
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - geo.address-search → <AddressSearchField> [default|empty|unauthorized|throttled|unavailable]  demo/AddressSearch.demo.tsx
-- geo.location-picker → <LocationPickerField> [default|sheet|anonymous|config-failed]  demo/LocationPicker.demo.tsx
+- geo.location-picker → <LocationPickerField> [default|sheet|anonymous|config-failed|dark]  demo/LocationPicker.demo.tsx
 - geo.tile-map → <TileMap> [default|narrow]  demo/TileMap.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
