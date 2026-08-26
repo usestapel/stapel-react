@@ -22,7 +22,7 @@ function PhoneVariant(): ReactElement {
 
 export default defineDemo({
   id: "recordings.uploader-skin",
-  title: "Uploader (create → upload → finalize)",
+  title: "Uploader (create, upload, finalize)",
   description:
     "One surface for the whole upload act, so a half-uploaded recording cannot be stranded between three host-wired controls.",
   component: RecordingUploader,

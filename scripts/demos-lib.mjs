@@ -382,6 +382,16 @@ export function renderStory(demo, demoImport, groupPrefix) {
   L.push('import { renderDemoVariant } from "@stapel/showcase";');
   L.push(`import demo from "${demoImport}";`);
   L.push("");
+  // Ladle turns the title into a JavaScript identifier for its virtual story
+  // list; a non-ASCII character in it ("create → upload") breaks the viewer
+  // BUILD while the stale bundle keeps serving — 1,200 screenshots of "Story
+  // not found" on 2026-08-26. Refuse here, where the author can see it.
+  if (/[^\x20-\x7e]/.test(demo.title)) {
+    throw new Error(
+      `demo "${demo.id}" (${demo.source.file}): title ${JSON.stringify(demo.title)} contains a non-ASCII ` +
+        `character — Ladle derives an identifier from it and the showcase build fails. Use ASCII punctuation.`
+    );
+  }
   L.push(`export default { title: ${JSON.stringify(`${groupPrefix} / ${demo.title}`)} };`);
   L.push("");
   const used = new Set();

@@ -4,7 +4,7 @@ import type { ReactElement } from "react";
 import { renderDemoVariant } from "@stapel/showcase";
 import demo from "../RecordingUploaderSkin.demo.js";
 
-export default { title: "recordings-react / Uploader (create → upload → finalize)" };
+export default { title: "recordings-react / Uploader (create, upload, finalize)" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
