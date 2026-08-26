@@ -117,6 +117,15 @@ export {
 } from "./model/occurrences.js";
 export type { CalendarInstance, DedupedRange } from "./model/occurrences.js";
 export {
+  CalendarPeopleProvider,
+  useUserName,
+  nameInitials,
+} from "./model/people.js";
+export type {
+  UserNameResolver,
+  CalendarPeopleProviderProps,
+} from "./model/people.js";
+export {
   formatTime,
   formatDateTime,
   formatDayHeading,

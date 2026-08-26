@@ -241,14 +241,14 @@ function IntervalList(props: {
                       key="pick"
                       size="small"
                       type="primary"
-                      aria-label={label}
+                      aria-label={`${t(CALENDAR_I18N_KEYS.availabilityPick)} — ${label}`}
                       data-analytics="none"
                       data-analytics-reason="hands the slot to the host's booking flow; the host wraps with its own tracked()"
                       onClick={() => {
                         props.onPick?.(interval);
                       }}
                     >
-                      {t(CALENDAR_I18N_KEYS.availabilitySlots)}
+                      {t(CALENDAR_I18N_KEYS.availabilityPick)}
                     </Button>,
                   ],
                 }

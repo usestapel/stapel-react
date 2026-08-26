@@ -23,19 +23,22 @@
  */
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Button, Descriptions, Flex, List, Typography } from "antd";
+import { Alert, Avatar, Button, Descriptions, Flex, List, Typography } from "antd";
 import {
   ErrorAlert,
   GatedButton,
   LoadBoundary,
   SkinDialog,
+  SkinTheme,
 } from "@stapel/tokens-antd/skin";
+import type { ThemeMode } from "@stapel/tokens-antd";
 import { useI18n, useT } from "@stapel/core";
 import { fontSize, spacing } from "@stapel/tokens";
 import type { CalendarEvent, ParticipantRsvp } from "../api/types.js";
 import { EventDetail } from "../headless/EventDetail.js";
 import { CALENDAR_I18N_KEYS } from "../i18n/keys.js";
-import { formatDateTime, formatTimeRange } from "../model/format.js";
+import { formatDateTime, formatTime } from "../model/format.js";
+import { nameInitials, useUserName } from "../model/people.js";
 import { isMandateDenied, isMandateUnavailable } from "../model/refusals.js";
 import { DeleteEventAction } from "./DeleteEventAction.js";
 import { EventEditorSheet } from "./EventEditorSheet.js";
@@ -58,16 +61,28 @@ export interface EventSheetProps {
   /** The runtime's base URL, so "Add to calendar" can point at the `.ics`. */
   readonly baseUrl?: string;
   readonly onDeleted?: () => void;
+  /** Pin a theme side. Omitted, the document's live mode wins. */
+  readonly mode?: ThemeMode;
   readonly "data-testid"?: string;
 }
 
 export function EventSheet(props: EventSheetProps): ReactElement {
   const t = useT();
   const { locale } = useI18n();
+  const userName = useUserName();
   const testId = props["data-testid"] ?? "calendar-event";
   const [editing, setEditing] = useState(false);
 
   return (
+    // A dialog renders into a portal, so it inherits a theme only from the
+    // React tree it is DECLARED in — and a sheet is declared beside the
+    // trigger, not inside the screen's painted panel. Without this wrapper
+    // the sheet fell back to antd's compiled-in light theme and drew a white
+    // panel over a black page in every dark shot (audit CF-1 / N-1).
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
     <EventDetail
       eventId={props.eventId}
       {...(props.viewerId !== undefined ? { viewerId: props.viewerId } : {})}
@@ -113,17 +128,22 @@ export function EventSheet(props: EventSheetProps): ReactElement {
                     items={[
                       {
                         key: "when",
-                        label: t(CALENDAR_I18N_KEYS.editorStart),
-                        children: `${formatDateTime(event.start, locale)} · ${formatTimeRange(
-                          event.start,
-                          event.end,
-                          locale
-                        )}`,
+                        label: t(CALENDAR_I18N_KEYS.detailWhen),
+                        // The start, once. It used to be printed twice in one
+                        // line — a full instant, then the same clock time
+                        // again as the left half of a range.
+                        children:
+                          event.start === event.end
+                            ? formatDateTime(event.start, locale)
+                            : `${formatDateTime(event.start, locale)} – ${formatTime(
+                                event.end,
+                                locale
+                              )}`,
                       },
                       {
                         key: "organizer",
                         label: t(CALENDAR_I18N_KEYS.detailOrganizer),
-                        children: event.owner_id,
+                        children: userName(event.owner_id),
                       },
                     ]}
                   />
@@ -199,11 +219,13 @@ export function EventSheet(props: EventSheetProps): ReactElement {
             }}
             {...(bag.state.status === "ready" ? { event: bag.state.data } : {})}
             canEdit={bag.canEdit}
+            {...(props.mode !== undefined ? { mode: props.mode } : {})}
             data-testid={`${testId}-editor`}
           />
         </>
       )}
     </EventDetail>
+    </SkinTheme>
   );
 }
 
@@ -277,17 +299,37 @@ function Participants(props: {
           size="small"
           dataSource={[...participants]}
           renderItem={(participant) => (
-            <List.Item>
-              <Flex gap={spacing["2"]} wrap>
-                <span>{participant.user_id}</span>
-                <Typography.Text type="secondary">
-                  {t(STATE_KEY[participant.rsvp as ParticipantRsvp])}
-                </Typography.Text>
-              </Flex>
-            </List.Item>
+            <ParticipantRow
+              userId={participant.user_id}
+              rsvp={participant.rsvp as ParticipantRsvp}
+            />
           )}
         />
       )}
     </Flex>
+  );
+}
+
+/** One invitee: who they are, and what they answered. */
+function ParticipantRow(props: {
+  readonly userId: string;
+  readonly rsvp: ParticipantRsvp;
+}): ReactElement {
+  const t = useT();
+  const { locale } = useI18n();
+  const userName = useUserName();
+  const name = userName(props.userId);
+  return (
+    <List.Item>
+      <Flex gap={spacing["2"]} align="center" wrap>
+        <Avatar size="small" aria-hidden="true">
+          {nameInitials(name, locale)}
+        </Avatar>
+        <span>{name}</span>
+        <Typography.Text type="secondary">
+          {t(STATE_KEY[props.rsvp])}
+        </Typography.Text>
+      </Flex>
+    </List.Item>
   );
 }

@@ -48,15 +48,14 @@ export default defineDemo({
   covers: ["RevisionHistory"],
   variants: {
     default: {
+      // Deliberately ONE variant for the populated history: the surface is
+      // width-driven (`useSplitLayout` stacks the list over the preview in a
+      // narrow box), so the shot runner photographing this story at phone and
+      // desktop already covers both shapes. A second `desktop` variant added
+      // no pixels its sibling did not have (visual pass M-6).
       viewport: "phone",
       step: "history",
-      description: "Two revisions; the head's rollback is off with its reason.",
-      render: () => <History handlers={HISTORY} documentId={DOC_NOTES.id} />,
-    },
-    desktop: {
-      viewport: "desktop",
-      step: "history-wide",
-      description: "The modal: list beside preview.",
+      description: "Two revisions; the head's rollback is off with its reason. The list sits beside the preview once the box is wide enough.",
       render: () => <History handlers={HISTORY} documentId={DOC_NOTES.id} />,
     },
     empty: {

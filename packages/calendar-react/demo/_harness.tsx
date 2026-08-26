@@ -3,11 +3,14 @@
  * are first-class code — compiled, linted with the PRODUCT ruleset, smoke-rendered
  * — so this file obeys the same guardrails as `src/`:
  *
- *  - no raw colours: every colour is a token via `cssVar()`.
- *  - no hardcoded text: every label is an i18n key rendered with `t()`.
- *  - clickable-needs-event: {@link DemoButton} carries `data-analytics="none"` with a `data-analytics-reason` — honest, because this scaffold ships no flow machines yet (only the provider), so the button steps nothing auto-instrumented. Switch to `data-analytics="flow"` once a bag action drives a real machine. The
- *    action prop is named `run` (not `onClick`) so the CALL site is not itself an
- *    untracked clickable — the tracked point is the real `<button>` in here.
+ *  - no raw colours and no hardcoded text: the harness renders no chrome of
+ *    its own at all — it wires providers and hands the SKIN the stage.
+ *
+ * The scaffold's chip-dump apparatus (a titled card, a `state.step` badge, a
+ * bare action button) is gone with the four legacy stories that used it: the
+ * showcase photographs the SKIN, and a card printing a component name over a
+ * flow token documents the headless twin, not the product (§83, visual pass
+ * N-4).
  *
  * The mock runtime injects a canned `fetch` (no MSW worker needed) so a demo
  * renders identically in Ladle (interactive) and in vitest (smoke). Themes are
@@ -25,12 +28,35 @@
  * stays for the writes and for a re-read a reader triggers by hand.
  */
 import { useMemo } from "react";
-import type { CSSProperties, ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { I18nProvider, StapelApiError, createI18n, useT } from "@stapel/core";
-import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
+import { I18nProvider, StapelApiError, createI18n } from "@stapel/core";
 import { createCalendarRuntime } from "../src/index.js";
-import { CalendarProvider, registerCalendarI18n } from "../src/index.js";
+import {
+  CalendarPeopleProvider,
+  CalendarProvider,
+  registerCalendarI18n,
+} from "../src/index.js";
+
+/**
+ * The demo deployment's user directory.
+ *
+ * stapel-calendar stores participation as ids and nothing else, so a host
+ * registers the names (`CalendarPeopleProvider`). Every demo runs with one
+ * registered, because a screen that prints `u-1` where a person belongs is
+ * the product a host would ship if the pair offered no seam — and the
+ * showcase photographs the product, not the seam's absence.
+ */
+const DEMO_PEOPLE: Readonly<Record<string, string>> = {
+  "u-1": "Dana Reyes",
+  "u-2": "Sam Okafor",
+  "u-3": "Priya Nandi",
+  "u-4": "Léa Fontaine",
+};
+
+function demoUserName(userId: string): string | undefined {
+  return DEMO_PEOPLE[userId];
+}
 
 /** The base every mock handler mounts on (mirrors stapel-calendar `/calendar/api/`). */
 export const DEMO_BASE = "https://calendar.demo.stapel.dev/calendar/api/";
@@ -79,15 +105,6 @@ export function mockFetch(handlers: DemoHandlers): typeof globalThis.fetch {
     );
   }) as typeof globalThis.fetch;
 }
-
-/** i18n copy for the demo chrome — a `demo.*` (unmanaged) namespace, so the
- * i18n-key-exists lint treats it as app-local and never false-positives. */
-const demoBundleEn: Record<string, string> = {
-  "demo.action.start": "Start",
-  "demo.action.submit": "Submit",
-  "demo.action.reset": "Reset",
-  "demo.label.step": "state.step",
-};
 
 /**
  * One READ a variant OPENS with: a namespaced key from `calendarQueryKeys`
@@ -168,7 +185,6 @@ export function CalendarDemoHarness(props: {
     });
     const engine = createI18n({ locale: "en" });
     registerCalendarI18n(engine);
-    engine.registerBundle("en", demoBundleEn);
     const client = new QueryClient({
       defaultOptions: {
         queries: {
@@ -191,98 +207,12 @@ export function CalendarDemoHarness(props: {
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
-        <CalendarProvider runtime={runtime}>{props.children}</CalendarProvider>
+        <CalendarProvider runtime={runtime}>
+          <CalendarPeopleProvider resolveUserName={demoUserName}>
+            {props.children}
+          </CalendarPeopleProvider>
+        </CalendarProvider>
       </I18nProvider>
     </QueryClientProvider>
-  );
-}
-
-// ── shared demo UI (token-driven; no raw colours, no literal prose) ───────────
-
-const cardStyle: CSSProperties = {
-  background: cssVar("surface-raised"),
-  color: cssVar("text"),
-  border: `1px solid ${cssVar("border-subtle")}`,
-  borderRadius: radii.lg,
-  padding: spacing["5"],
-  display: "flex",
-  flexDirection: "column",
-  gap: spacing["3"],
-  maxWidth: "24rem",
-  fontSize: fontSize.md.fontSize,
-};
-
-/** A titled card wrapper for a demo body. `heading` (not `title`) keeps the
- * no-hardcoded-text rule from treating a technical component name as prose. */
-export function DemoCard(props: {
-  heading: ReactNode;
-  children: ReactNode;
-}): ReactElement {
-  return (
-    <div style={cardStyle} data-theme-surface>
-      <strong style={{ fontSize: fontSize.lg.fontSize }}>{props.heading}</strong>
-      {props.children}
-    </div>
-  );
-}
-
-/** Renders the current flow step (a technical token, never user prose). */
-export function StepBadge(props: { step: string }): ReactElement {
-  const t = useT();
-  return (
-    <div style={{ display: "flex", gap: spacing["2"], alignItems: "center" }}>
-      <span style={{ color: cssVar("text-muted") }}>
-        {t("demo.label.step")}
-      </span>
-      <code
-        style={{
-          background: cssVar("surface-sunken"),
-          color: cssVar("link"),
-          borderRadius: radii.sm,
-          // Size tokens are unitless numbers; React only auto-appends `px` to
-          // single numeric values, so multi-value shorthands spell the unit.
-          padding: `${spacing["1"]}px ${spacing["2"]}px`,
-        }}
-      >
-        {props.step}
-      </code>
-    </div>
-  );
-}
-
-const buttonStyle: CSSProperties = {
-  background: cssVar("brand"),
-  color: cssVar("text-on-accent"),
-  border: "none",
-  borderRadius: radii.md,
-  // See StepBadge: unitless tokens need an explicit unit in shorthands.
-  padding: `${spacing["2"]}px ${spacing["4"]}px`,
-  cursor: "pointer",
-  fontSize: fontSize.sm.fontSize,
-};
-
-/**
- * A demo action button. The interactive prop is `run` (not `onClick`) so the
- * call site is not an untracked clickable; the real `<button>` here declares
- * `data-analytics="none"` with a `data-analytics-reason` — honest, because this scaffold ships no flow machines yet (only the provider), so the button steps nothing auto-instrumented. Switch to `data-analytics="flow"` once a bag action drives a real machine.
- */
-export function DemoButton(props: {
-  run: () => void;
-  labelKey: string;
-}): ReactElement {
-  const t = useT();
-  return (
-    <button style={buttonStyle} data-analytics="none" data-analytics-reason="no-flow-machines" onClick={props.run}>
-      {t(props.labelKey)}
-    </button>
-  );
-}
-
-/** A row of demo action buttons. */
-export function DemoActions(props: { children: ReactNode }): ReactElement {
-  return (
-    <div style={{ display: "flex", gap: spacing["2"], flexWrap: "wrap" }}>
-      {props.children}
-    </div>
   );
 }

@@ -239,14 +239,8 @@
       "variants": [
         {
           "id": "default",
-          "description": "Two panes, three documents, two folders.",
+          "description": "Two panes, three documents, two folders — and one pane at a time with a Folders/Documents switch once the container is narrow.",
           "viewport": "desktop",
-          "step": "populated"
-        },
-        {
-          "id": "phone",
-          "description": "One pane at a time with a Folders/Files switch; 44px controls.",
-          "viewport": "phone",
           "step": "populated"
         },
         {
@@ -319,15 +313,9 @@
       "variants": [
         {
           "id": "default",
-          "description": "Two revisions; the head's rollback is off with its reason.",
+          "description": "Two revisions; the head's rollback is off with its reason. The list sits beside the preview once the box is wide enough.",
           "viewport": "phone",
           "step": "history"
-        },
-        {
-          "id": "desktop",
-          "description": "The modal: list beside preview.",
-          "viewport": "desktop",
-          "step": "history-wide"
         },
         {
           "id": "empty",

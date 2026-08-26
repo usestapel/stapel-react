@@ -98,6 +98,27 @@ export function Calendar(props: CalendarProps): ReactElement {
     >
       <div ref={ref} data-testid={testId} data-layout={wide ? "grid" : "agenda"}>
         <Flex vertical gap={spacing["3"]}>
+          {/* Two clusters, not three. The heading and the one primary action
+              own the first line; everything that CHANGES what is shown —
+              paging and the view switch — sits together on the second, so a
+              phone wraps a pair of groups instead of stacking three
+              ungrouped ones (visual pass M-5). */}
+          <Flex gap={spacing["2"]} align="center" wrap justify="space-between">
+            <Typography.Title level={4} style={{ marginBottom: spacing["0"] }}>
+              {heading}
+            </Typography.Title>
+            <Button
+              type="primary"
+              data-testid={`${testId}-new`}
+              data-analytics="none"
+              data-analytics-reason="opens the editor sheet; the write is tracked there"
+              onClick={() => {
+                setComposing(true);
+              }}
+            >
+              {t(CALENDAR_I18N_KEYS.viewNewEvent)}
+            </Button>
+          </Flex>
           <Flex gap={spacing["2"]} align="center" wrap justify="space-between">
             <Flex gap={spacing["2"]} align="center">
               <Button
@@ -133,9 +154,6 @@ export function Calendar(props: CalendarProps): ReactElement {
                 {t(CALENDAR_I18N_KEYS.viewNext)}
               </Button>
             </Flex>
-            <Typography.Title level={4} style={{ marginBottom: spacing["0"] }}>
-              {heading}
-            </Typography.Title>
             <Flex gap={spacing["2"]} align="center" wrap>
               <Segmented
                 value={view}
@@ -146,17 +164,17 @@ export function Calendar(props: CalendarProps): ReactElement {
                 }}
                 options={MODES.map((m) => ({ value: m, label: t(MODE_KEY[m]) }))}
               />
-              <Button
-                type="primary"
-                data-testid={`${testId}-new`}
-                data-analytics="none"
-                data-analytics-reason="opens the editor sheet; the write is tracked there"
-                onClick={() => {
-                  setComposing(true);
-                }}
-              >
-                {t(CALENDAR_I18N_KEYS.viewNewEvent)}
-              </Button>
+              {/* The switch names the RANGE; this names the SHAPE. Without it
+                  the control reads "Month" while the content is a day-grouped
+                  list, which is the control lying about what is on screen. */}
+              {!wide && view === "month" ? (
+                <Typography.Text
+                  type="secondary"
+                  data-testid={`${testId}-layout-note`}
+                >
+                  {t(CALENDAR_I18N_KEYS.viewAgendaLayout)}
+                </Typography.Text>
+              ) : null}
             </Flex>
           </Flex>
 
@@ -225,6 +243,7 @@ export function Calendar(props: CalendarProps): ReactElement {
             }}
             {...(props.viewerId !== undefined ? { viewerId: props.viewerId } : {})}
             {...(props.baseUrl !== undefined ? { baseUrl: props.baseUrl } : {})}
+            {...(props.mode !== undefined ? { mode: props.mode } : {})}
             data-testid={`${testId}-event`}
           />
         ) : null}
@@ -235,6 +254,7 @@ export function Calendar(props: CalendarProps): ReactElement {
             setComposing(false);
           }}
           defaultStart={anchor}
+          {...(props.mode !== undefined ? { mode: props.mode } : {})}
           data-testid={`${testId}-composer`}
         />
       </div>

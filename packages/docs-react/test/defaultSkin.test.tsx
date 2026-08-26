@@ -153,7 +153,9 @@ describe("SkinTheme — self-theming with computed colors (tracker #26)", () => 
 
     const { color, background } = skinRootComputed();
     expect(color).toBe(toRgbTriplet(colors.text.light));
-    expect(background).toBe(toRgbTriplet(colors["surface-raised"].light));
+    // `<FileManager/>` is a full SCREEN, so its skin root paints the page
+    // surface and its panes are the raised things on it (`surface="base"`).
+    expect(background).toBe(toRgbTriplet(colors.surface.light));
     // The 1.00:1 regression gate: text on its own background must differ.
     expect(color).not.toBe(background);
   });
@@ -166,7 +168,7 @@ describe("SkinTheme — self-theming with computed colors (tracker #26)", () => 
 
     const { color, background } = skinRootComputed();
     expect(color).toBe(toRgbTriplet(colors.text.dark));
-    expect(background).toBe(toRgbTriplet(colors["surface-raised"].dark));
+    expect(background).toBe(toRgbTriplet(colors.surface.dark));
     expect(color).not.toBe(background);
     // And the two modes are actually different palettes.
     expect(color).not.toBe(toRgbTriplet(colors.text.light));
@@ -222,7 +224,9 @@ describe("<FileManager/> — the composed default surface", () => {
 
     const input = await screen.findByTestId("docs-name-input");
     fireEvent.change(input, { target: { value: "Roadmap 2027" } });
-    fireEvent.click(screen.getByText("OK"));
+    // The dialog's affirmative names its action, so "Rename" is now on the
+    // menu item AND on the confirm — address the confirm by its test id.
+    fireEvent.click(screen.getByTestId("docs-name-confirm"));
 
     await waitFor(() => expect(patched).toEqual({ title: "Roadmap 2027" }));
   });
@@ -249,7 +253,8 @@ describe("<FileManager/> — the composed default surface", () => {
     fireEvent.mouseDown(combobox);
     const option = await screen.findByTitle("Q3");
     fireEvent.click(option);
-    fireEvent.click(screen.getByText("OK"));
+    // The affirmative names its own action — never "OK".
+    fireEvent.click(screen.getByText("Move"));
 
     await waitFor(() => expect(patched).toEqual({ folder_id: "f-child" }));
   });

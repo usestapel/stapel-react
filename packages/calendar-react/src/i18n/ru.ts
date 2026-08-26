@@ -83,7 +83,7 @@ export const calendarI18nBundleRu: I18nDictionary = {
   "calendar.view.mode.day": "День",
   "calendar.view.new_event": "Новая встреча",
   "calendar.view.cancelled": "Отменена",
-  "calendar.view.repeats": "Повторяется",
+  "calendar.view.repeats": "Часть серии",
   "calendar.view.marker": "Метка",
   "calendar.view.open_event": "Открыть встречу",
   "calendar.view.more_count.one": "ещё {count}",
@@ -91,6 +91,7 @@ export const calendarI18nBundleRu: I18nDictionary = {
   "calendar.view.more_count.many": "ещё {count}",
   "calendar.view.more_count.other": "ещё {count}",
   "calendar.view.untitled": "Встреча без названия",
+  "calendar.view.agenda_layout": "Список",
 
   "calendar.agenda.heading": "Расписание",
   "calendar.agenda.empty": "Ничего не запланировано.",
@@ -100,6 +101,7 @@ export const calendarI18nBundleRu: I18nDictionary = {
   "calendar.detail.heading": "Встреча",
   "calendar.detail.no_description": "Без описания",
   "calendar.detail.organizer": "Организатор",
+  "calendar.detail.when": "Когда",
   "calendar.detail.participants": "Приглашённые",
   "calendar.detail.no_participants": "Пока никого не пригласили.",
   "calendar.detail.rsvp_summary":
@@ -198,6 +200,7 @@ export const calendarI18nBundleRu: I18nDictionary = {
   "calendar.availability.heading": "Свободное время",
   "calendar.availability.slot_length": "Длительность слота (минуты)",
   "calendar.availability.slots": "Свободные слоты",
+  "calendar.availability.pick": "Забронировать слот",
   "calendar.availability.busy": "Занято",
   "calendar.availability.no_busy": "На этот период ничего не занято.",
   "calendar.availability.no_windows": "На этот период нет времени для записи.",
@@ -205,7 +208,7 @@ export const calendarI18nBundleRu: I18nDictionary = {
     "Свободные слоты берутся из окон доступности. Их не задали, поэтому записываться пока не на что — это не значит, что время занято.",
   "calendar.availability.truncated": "Этот ответ неполный.",
   "calendar.availability.truncated_hint":
-    "Повторяющаяся серия оказалась слишком длинной, чтобы развернуть её целиком, поэтому дальнее время здесь только ВЫГЛЯДИТ свободным. Сузьте период, чтобы получить полный ответ.",
+    "Повторяющаяся серия оказалась слишком длинной, чтобы развернуть её целиком, поэтому дальнее время здесь может быть уже занято, хотя выглядит свободным. Сузьте период, чтобы получить полный ответ.",
   "calendar.availability.refresh": "Обновить",
   "calendar.availability.loading": "Смотрим ваше свободное время…",
 };

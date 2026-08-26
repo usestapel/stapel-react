@@ -23,7 +23,8 @@
  */
 import type { ReactElement, ReactNode } from "react";
 import { Button, Flex, Typography } from "antd";
-import { EmptyState, LoadList } from "@stapel/tokens-antd/skin";
+import { EmptyState, LoadList, SkinTheme } from "@stapel/tokens-antd/skin";
+import type { ThemeMode } from "@stapel/tokens-antd";
 import { useI18n, useT } from "@stapel/core";
 import { cssVar, fontSize, radii, spacing } from "@stapel/tokens";
 import { EventList } from "../headless/EventList.js";
@@ -32,7 +33,7 @@ import { formatDayHeading, formatTimeRange } from "../model/format.js";
 import { instancesFromEvents } from "../model/occurrences.js";
 import type { CalendarInstance } from "../model/occurrences.js";
 import { groupByDay } from "../model/range.js";
-import { instanceLabel } from "./CalendarMonthGrid.js";
+import { instanceLabel } from "./instanceLabel.js";
 
 export interface CalendarAgendaProps {
   /**
@@ -49,10 +50,29 @@ export interface CalendarAgendaProps {
   readonly onSelect?: (instance: CalendarInstance) => void;
   /** Offered inside the empty state — usually "New event". */
   readonly emptyAction?: ReactNode;
+  /**
+   * Pin a theme side. Omitted, the document's live mode wins — the part
+   * self-themes (`SkinTheme`), because a `src/default` part is dropped into
+   * host pages and into this pair's own dialogs, and an untended antd
+   * `ConfigProvider` serves the compiled-in LIGHT theme: the visual pass
+   * photographed this list as black text on a black page.
+   */
+  readonly mode?: ThemeMode;
   readonly "data-testid"?: string;
 }
 
 export function CalendarAgenda(props: CalendarAgendaProps): ReactElement {
+  return (
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
+      <AgendaSwitch {...props} />
+    </SkinTheme>
+  );
+}
+
+function AgendaSwitch(props: CalendarAgendaProps): ReactElement {
   if (props.instances !== undefined) {
     return (
       <AgendaRows

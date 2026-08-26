@@ -25,17 +25,20 @@
  */
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { Button, Flex, Input, List, Typography } from "antd";
-import { ErrorAlert, GatedButton } from "@stapel/tokens-antd/skin";
+import { Avatar, Button, Flex, Input, List, Typography } from "antd";
+import { ErrorAlert, GatedButton, SkinTheme } from "@stapel/tokens-antd/skin";
+import type { ThemeMode } from "@stapel/tokens-antd";
 import {
   actionAvailable,
   actionBlocked,
+  useI18n,
   useT,
   useTPlural,
 } from "@stapel/core";
 import { fontSize, spacing } from "@stapel/tokens";
 import type { Participant } from "../api/types.js";
 import { ParticipantsEditor } from "../headless/ParticipantsEditor.js";
+import { nameInitials, useUserName } from "../model/people.js";
 import { CALENDAR_I18N_KEYS } from "../i18n/keys.js";
 
 export interface ParticipantsFieldProps {
@@ -48,10 +51,27 @@ export interface ParticipantsFieldProps {
   /** Controlled mode: the draft changed. */
   readonly onChange?: (next: readonly string[]) => void;
   readonly onSaved?: () => void;
+  /**
+   * Pin a theme side. Omitted, the document's live mode wins — the part
+   * self-themes (`SkinTheme`), because a `src/default` part is dropped into
+   * host pages and into this pair's own dialogs, and an untended antd
+   * `ConfigProvider` serves the compiled-in LIGHT theme: the visual pass
+   * photographed these fields as black text on a black page.
+   */
+  readonly mode?: ThemeMode;
   readonly "data-testid"?: string;
 }
 
 export function ParticipantsField(props: ParticipantsFieldProps): ReactElement {
+  const themeProps = props.mode !== undefined ? { mode: props.mode } : {};
+  return (
+    <SkinTheme surface="bare" {...themeProps}>
+      <ParticipantsBody {...props} />
+    </SkinTheme>
+  );
+}
+
+function ParticipantsBody(props: ParticipantsFieldProps): ReactElement {
   const t = useT();
   const testId = props["data-testid"] ?? "calendar-participants";
   if (props.eventId !== undefined) {
@@ -158,27 +178,11 @@ function ListEditor(props: {
           data-testid={`${props.testId}-list`}
           dataSource={[...props.ids]}
           renderItem={(id) => (
-            <List.Item
-              actions={[
-                <Button
-                  key="remove"
-                  size="small"
-                  danger
-                  type="text"
-                  aria-label={`${t(CALENDAR_I18N_KEYS.participantsRemove)} ${id}`}
-                  data-testid={`${props.testId}-remove-${id}`}
-                  data-analytics="none"
-                  data-analytics-reason="edits an unsent draft; nothing is written until save"
-                  onClick={() => {
-                    props.onRemove(id);
-                  }}
-                >
-                  {t(CALENDAR_I18N_KEYS.participantsRemove)}
-                </Button>,
-              ]}
-            >
-              {id}
-            </List.Item>
+            <InviteeRow
+              userId={id}
+              testId={props.testId}
+              onRemove={props.onRemove}
+            />
           )}
         />
       )}
@@ -210,6 +214,53 @@ function ListEditor(props: {
         </Button>
       </Flex>
     </Flex>
+  );
+}
+
+/**
+ * One invitee in the draft: who they are, and one way out.
+ *
+ * The row used to be the raw id with a RED "Remove" beside it, three of them
+ * stacked — no name, no face, and destructive styling on an edit that writes
+ * nothing (the replace-set is not sent until "Save invitees"). So: the name
+ * the host's resolver gives, an avatar carrying its initials, and a plain
+ * text button. Red is reserved for what cannot be undone.
+ */
+function InviteeRow(props: {
+  readonly userId: string;
+  readonly testId: string;
+  readonly onRemove: (id: string) => void;
+}): ReactElement {
+  const t = useT();
+  const { locale } = useI18n();
+  const userName = useUserName();
+  const name = userName(props.userId);
+  return (
+    <List.Item
+      actions={[
+        <Button
+          key="remove"
+          size="small"
+          type="text"
+          aria-label={`${t(CALENDAR_I18N_KEYS.participantsRemove)} ${name}`}
+          data-testid={`${props.testId}-remove-${props.userId}`}
+          data-analytics="none"
+          data-analytics-reason="edits an unsent draft; nothing is written until save"
+          onClick={() => {
+            props.onRemove(props.userId);
+          }}
+        >
+          {t(CALENDAR_I18N_KEYS.participantsRemove)}
+        </Button>,
+      ]}
+    >
+      <Flex gap={spacing["2"]} align="center">
+        <Avatar size="small" aria-hidden="true">
+          {nameInitials(name, locale)}
+        </Avatar>
+        <span>{name}</span>
+      </Flex>
+    </List.Item>
   );
 }
 

@@ -29,7 +29,8 @@
  */
 import type { ReactElement } from "react";
 import { Button, Flex, Typography } from "antd";
-import { ErrorAlert, GatedControl } from "@stapel/tokens-antd/skin";
+import { ErrorAlert, GatedControl, SkinTheme } from "@stapel/tokens-antd/skin";
+import type { ThemeMode } from "@stapel/tokens-antd";
 import { actionAvailable, useT } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
@@ -57,6 +58,14 @@ export interface RsvpControlProps {
   readonly current?: ParticipantRsvp | null;
   /** May this person answer? Defaults to available. */
   readonly gate?: ActionAvailability;
+  /**
+   * Pin a theme side. Omitted, the document's live mode wins — the part
+   * self-themes (`SkinTheme`), because a `src/default` part is dropped into
+   * host pages and into this pair's own dialogs, and an untended antd
+   * `ConfigProvider` serves the compiled-in LIGHT theme: the visual pass
+   * photographed this control as black text on a black page.
+   */
+  readonly mode?: ThemeMode;
   readonly onResponded?: () => void;
   readonly "data-testid"?: string;
 }
@@ -68,6 +77,10 @@ export function RsvpControl(props: RsvpControlProps): ReactElement {
   const current = props.current ?? null;
 
   return (
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
     <EventRsvp eventId={props.eventId}>
       {(bag) => (
         <Flex vertical gap={spacing["2"]} data-testid={testId}>
@@ -127,5 +140,6 @@ export function RsvpControl(props: RsvpControlProps): ReactElement {
         </Flex>
       )}
     </EventRsvp>
+    </SkinTheme>
   );
 }

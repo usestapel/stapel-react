@@ -74,12 +74,13 @@ export const calendarI18nBundleEs: I18nDictionary = {
   "calendar.view.mode.day": "Día",
   "calendar.view.new_event": "Nuevo evento",
   "calendar.view.cancelled": "Cancelado",
-  "calendar.view.repeats": "Se repite",
+  "calendar.view.repeats": "Parte de una serie",
   "calendar.view.marker": "Marca",
   "calendar.view.open_event": "Abrir evento",
   "calendar.view.more_count.one": "{count} más",
   "calendar.view.more_count.other": "{count} más",
   "calendar.view.untitled": "Evento sin título",
+  "calendar.view.agenda_layout": "Agenda",
 
   "calendar.agenda.heading": "Agenda",
   "calendar.agenda.empty": "No hay nada previsto.",
@@ -89,6 +90,7 @@ export const calendarI18nBundleEs: I18nDictionary = {
   "calendar.detail.heading": "Evento",
   "calendar.detail.no_description": "Sin descripción",
   "calendar.detail.organizer": "Organizador",
+  "calendar.detail.when": "Cuándo",
   "calendar.detail.participants": "Invitados",
   "calendar.detail.no_participants": "Todavía no hay nadie invitado.",
   "calendar.detail.rsvp_summary":
@@ -183,6 +185,7 @@ export const calendarI18nBundleEs: I18nDictionary = {
   "calendar.availability.heading": "Tiempo libre",
   "calendar.availability.slot_length": "Duración del hueco (minutos)",
   "calendar.availability.slots": "Huecos libres",
+  "calendar.availability.pick": "Reservar este hueco",
   "calendar.availability.busy": "Ocupado",
   "calendar.availability.no_busy": "No hay nada ocupado en este periodo.",
   "calendar.availability.no_windows":
@@ -191,7 +194,7 @@ export const calendarI18nBundleEs: I18nDictionary = {
     "Los huecos libres salen de las ventanas de disponibilidad. No hay ninguna configurada, así que todavía no hay nada que reservar: esto no significa que el tiempo esté ocupado.",
   "calendar.availability.truncated": "Esta respuesta está incompleta.",
   "calendar.availability.truncated_hint":
-    "Una serie repetida era demasiado larga para desplegarla entera, así que las horas más lejanas solo PARECEN libres. Acota el periodo para obtener una respuesta completa.",
+    "Una serie repetida era demasiado larga para desplegarla entera, así que las horas más lejanas pueden estar ya ocupadas aunque parezcan libres. Acota el periodo para obtener una respuesta completa.",
   "calendar.availability.refresh": "Actualizar",
   "calendar.availability.loading": "Comprobando tu tiempo libre…",
 };

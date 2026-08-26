@@ -28,7 +28,9 @@ import {
   GatedButton,
   LoadBoundary,
   SkinConfirm,
+  SkinTheme,
 } from "@stapel/tokens-antd/skin";
+import type { ThemeMode } from "@stapel/tokens-antd";
 import {
   actionAvailable,
   actionBlocked,
@@ -40,9 +42,15 @@ import { TrashBin } from "../headless/TrashBin.js";
 import type { TrashBag } from "../headless/TrashBin.js";
 import type { TrashListing } from "../api/types.js";
 import { DOCS_I18N_KEYS } from "../i18n/keys.js";
+import { RowActions } from "./RowActions.js";
+import { READING_MEASURE } from "./measure.js";
 
 export interface TrashPaneProps {
   readonly workspaceId: string;
+  /** Pin a theme side. Omitted, the document's live mode wins — the pane
+   * self-themes, and its confirmations are dialogs, which portal out of this
+   * tree and would otherwise be served antd's compiled-in light palette. */
+  readonly mode?: ThemeMode;
 }
 
 interface TrashRow {
@@ -64,9 +72,14 @@ function toRows(listing: TrashListing): TrashRow[] {
 
 export function TrashPane(props: TrashPaneProps): ReactElement {
   return (
-    <TrashBin workspaceId={props.workspaceId}>
-      {(bag) => <TrashPaneBody bag={bag} />}
-    </TrashBin>
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
+      <TrashBin workspaceId={props.workspaceId}>
+        {(bag) => <TrashPaneBody bag={bag} />}
+      </TrashBin>
+    </SkinTheme>
   );
 }
 
@@ -116,16 +129,12 @@ function TrashPaneBody(props: { readonly bag: TrashBag }): ReactElement {
         <List.Item
           data-docs-trash-item={row.id}
           actions={[
-            <Dropdown key="actions" trigger={["click"]} menu={menu}>
-              <Typography.Link
-                aria-label={t(DOCS_I18N_KEYS.menuActions)}
-                data-docs-trash-actions={row.id}
-                data-analytics="none"
-                data-analytics-reason="opens a menu — the chosen item carries the tracked action"
-              >
-                {t(DOCS_I18N_KEYS.menuActions)}
-              </Typography.Link>
-            </Dropdown>,
+            <RowActions
+              key="actions"
+              menu={menu}
+              label={t(DOCS_I18N_KEYS.menuActions)}
+              dataAttribute={{ "data-docs-trash-actions": row.id }}
+            />,
           ]}
         >
           <List.Item.Meta
@@ -147,11 +156,15 @@ function TrashPaneBody(props: { readonly bag: TrashBag }): ReactElement {
   }
 
   return (
-    <Flex vertical gap="small" data-testid="docs-trash-pane">
+    <Flex
+      vertical
+      gap="small"
+      data-testid="docs-trash-pane"
+      style={{ maxWidth: READING_MEASURE, width: "100%" }}
+    >
       <Flex justify="flex-end" align="center" gap="small" wrap>
         <GatedButton
           gate={emptyTrash}
-          layout="inline"
           danger
           loading={bag.isEmptying}
           onClick={() => {

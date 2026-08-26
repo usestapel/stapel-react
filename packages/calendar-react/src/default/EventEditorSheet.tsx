@@ -32,21 +32,29 @@
  */
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { Button, Flex, Form, Input, Typography } from "antd";
+import { Alert, Button, Flex, Form, Input, Typography } from "antd";
 import {
   ErrorAlert,
   GatedButton,
   SkinConfirm,
   SkinDialog,
+  SkinTheme,
 } from "@stapel/tokens-antd/skin";
-import { actionAvailable, firstBlock, useT } from "@stapel/core";
+import type { ThemeMode } from "@stapel/tokens-antd";
+import {
+  actionAvailable,
+  firstBlock,
+  useActionGate,
+  useI18n,
+  useT,
+} from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
-import { spacing } from "@stapel/tokens";
+import { fontSize, spacing } from "@stapel/tokens";
 import type { CalendarEvent, EventCreateRequest } from "../api/types.js";
 import { EventComposer } from "../headless/EventComposer.js";
 import { EventEditor } from "../headless/EventEditor.js";
 import { CALENDAR_I18N_KEYS } from "../i18n/keys.js";
-import { fromLocalInput, toLocalInput } from "../model/format.js";
+import { formatDateTime, fromLocalInput, toLocalInput } from "../model/format.js";
 import {
   NO_RECURRENCE,
   recurrenceEndPatch,
@@ -68,6 +76,8 @@ export interface EventEditorSheetProps {
   /** Override the offered recurrence presets (an open registry upstream). */
   readonly presets?: readonly RecurrencePreset[];
   readonly onSaved?: (event: CalendarEvent) => void;
+  /** Pin a theme side. Omitted, the document's live mode wins. */
+  readonly mode?: ThemeMode;
   readonly "data-testid"?: string;
 }
 
@@ -77,6 +87,12 @@ export function EventEditorSheet(props: EventEditorSheetProps): ReactElement {
   const editing = props.event !== undefined;
 
   return (
+    // The sheet portals out of this tree, so its theme has to be declared
+    // around it — see the note in `<EventSheet>`.
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
     <SkinDialog
       open={props.open}
       onClose={props.onClose}
@@ -133,6 +149,7 @@ export function EventEditorSheet(props: EventEditorSheetProps): ReactElement {
         </EventComposer>
       )}
     </SkinDialog>
+    </SkinTheme>
   );
 }
 
@@ -176,10 +193,25 @@ function EditorForm(props: {
     checkTitle(title),
     checkInterval(start, end)
   );
+  // The PERMISSION half of that gate, on its own. A viewer who may not write
+  // this event at all is not told so by a sentence under a submit button
+  // three scrolls down a sheet — on a phone that reason was below the fold,
+  // which is why the `edit` and `not-owner` shots came out identical. The
+  // refusal belongs at the top, where it is read before anything is typed.
+  const permission = useActionGate(props.gate);
   const isMarker = start === end;
 
   return (
     <Flex vertical gap={spacing["3"]} data-testid={`${props.testId}-form`}>
+      {permission.disabled && permission.reason !== undefined ? (
+        <Alert
+          type="info"
+          showIcon
+          role="status"
+          data-testid={`${props.testId}-blocked`}
+          title={permission.reason}
+        />
+      ) : null}
       <Form layout="vertical" component="div">
         <Form.Item label={t(CALENDAR_I18N_KEYS.editorTitle)} required>
           <Input
@@ -204,28 +236,18 @@ function EditorForm(props: {
           />
         </Form.Item>
         <Flex gap={spacing["3"]} wrap>
-          <Form.Item label={t(CALENDAR_I18N_KEYS.editorStart)}>
-            <Input
-              type="datetime-local"
-              value={toLocalInput(start)}
-              aria-label={t(CALENDAR_I18N_KEYS.editorStart)}
-              data-testid={`${props.testId}-start`}
-              onChange={(e) => {
-                setStart(fromLocalInput(e.target.value));
-              }}
-            />
-          </Form.Item>
-          <Form.Item label={t(CALENDAR_I18N_KEYS.editorEnd)}>
-            <Input
-              type="datetime-local"
-              value={toLocalInput(end)}
-              aria-label={t(CALENDAR_I18N_KEYS.editorEnd)}
-              data-testid={`${props.testId}-end`}
-              onChange={(e) => {
-                setEnd(fromLocalInput(e.target.value));
-              }}
-            />
-          </Form.Item>
+          <DateTimeField
+            label={t(CALENDAR_I18N_KEYS.editorStart)}
+            value={start}
+            testId={`${props.testId}-start`}
+            onChange={setStart}
+          />
+          <DateTimeField
+            label={t(CALENDAR_I18N_KEYS.editorEnd)}
+            value={end}
+            testId={`${props.testId}-end`}
+            onChange={setEnd}
+          />
         </Flex>
         {isMarker ? (
           <Typography.Text type="secondary" data-testid={`${props.testId}-marker-hint`}>
@@ -324,5 +346,55 @@ function EditorForm(props: {
         }}
       />
     </Flex>
+  );
+}
+
+/**
+ * A date-and-time field that says what it holds in the SAME words the rest of
+ * the product uses.
+ *
+ * The control is the platform's `datetime-local` — it is the accessible,
+ * zero-dependency, locale-correct way to pick an instant on every device, and
+ * on a phone it opens the native wheel. What it will NOT do is render its
+ * value in the format the screens around it use: the browser prints
+ * `13.07.2026, 13:00` while the detail sheet two taps away says
+ * `Jul 13, 2026, 2:00 PM`, and the visual pass counted that as a third date
+ * format inside one product (N-5). So the field echoes its own value
+ * underneath, through the pair's one formatter — the picker stays native, the
+ * SENTENCE is ours.
+ */
+function DateTimeField(props: {
+  readonly label: string;
+  readonly value: string;
+  readonly testId: string;
+  readonly onChange: (iso: string) => void;
+}): ReactElement {
+  const { locale } = useI18n();
+  const local = toLocalInput(props.value);
+  return (
+    <Form.Item
+      label={props.label}
+      extra={
+        local.length > 0 ? (
+          <Typography.Text
+            type="secondary"
+            style={{ fontSize: fontSize.xs.fontSize }}
+            data-testid={`${props.testId}-echo`}
+          >
+            {formatDateTime(props.value, locale)}
+          </Typography.Text>
+        ) : null
+      }
+    >
+      <Input
+        type="datetime-local"
+        value={local}
+        aria-label={props.label}
+        data-testid={props.testId}
+        onChange={(event) => {
+          props.onChange(fromLocalInput(event.target.value));
+        }}
+      />
+    </Form.Item>
   );
 }

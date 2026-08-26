@@ -53,13 +53,13 @@ export default defineDemo({
     default: {
       viewport: "desktop",
       step: "populated",
-      description: "Two panes, three documents, two folders.",
-      render: () => <Manager handlers={POPULATED} />,
-    },
-    phone: {
-      viewport: "phone",
-      step: "populated",
-      description: "One pane at a time with a Folders/Files switch; 44px controls.",
+      // No separate `phone` variant: `useSplitLayout` decides from the
+      // CONTAINER's width, so the shot runner photographing this story at 390px
+      // already draws the one-pane-at-a-time shape with its Folders/Documents
+      // switch. A second variant rendering the identical tree added a name, not
+      // a picture (visual pass M-6).
+      description:
+        "Two panes, three documents, two folders — and one pane at a time with a Folders/Documents switch once the container is narrow.",
       render: () => <Manager handlers={POPULATED} />,
     },
     empty: {

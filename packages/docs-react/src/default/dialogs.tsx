@@ -3,13 +3,31 @@
  * folder), a destination picker (move), and the "New document" prompt
  * (name + type). Controlled components: the owning pane opens them from an
  * action and runs the mutation in `onConfirm`; the dialogs render form state
- * only. All three live inside the pane's own `<SkinTheme>` (the dialog
- * surface inherits the `ConfigProvider` theme through context, portal or not).
+ * only.
  *
  * Every one renders through `@stapel/tokens-antd/skin`'s `<SkinDialog>` — a
  * bottom sheet on a phone, a centred modal on tablet/desktop (owner ruling
- * 2026-08-24). `SkinDialog` owns no action row, so the OK/Cancel pair is
+ * 2026-08-24). `SkinDialog` owns no action row, so the confirm/cancel pair is
  * rendered here.
+ *
+ * ── Each one wraps ITSELF in `SkinTheme` ──────────────────────────────────
+ *
+ * A dialog renders into a portal at the end of `<body>`, so it inherits a
+ * theme only from the React tree it is DECLARED in — and these are declared
+ * beside the control that opens them, which in the showcase (and in any host
+ * that mounts a pane on its own) is not inside anybody's `ConfigProvider`.
+ * The header comment here used to claim the pane's `SkinTheme` covered them;
+ * the visual pass photographed the result — a WHITE sheet over a black page
+ * in every dark shot (CF-1 / N-1). Nested `SkinTheme`s cost nothing (the
+ * substrate reuses an identical applied theme and renders no second
+ * provider), so self-theming is free and inheriting is a bug waiting.
+ *
+ * ── The confirm names its action ──────────────────────────────────────────
+ *
+ * "OK" is what a button says when nobody decided what it does. Each dialog
+ * takes the verb from its caller (`confirmKey`) — Rename, Create folder,
+ * Move, Create — and the blocked REASON stacks under the button instead of
+ * trailing off the right edge of a 390px sheet.
  *
  * The OK button is a `<GatedButton>`, not a `disabled={...}` boolean: a grey
  * button with no sentence beside it is one bit short of what the person needs
@@ -20,17 +38,68 @@
 import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import { Button, Flex, Input, Select } from "antd";
-import { GatedButton, SkinDialog } from "@stapel/tokens-antd/skin";
+import { GatedButton, SkinDialog, SkinTheme } from "@stapel/tokens-antd/skin";
+import type { ThemeMode } from "@stapel/tokens-antd";
 import { actionAvailable, actionBlocked, useT } from "@stapel/core";
+import type { ActionAvailability } from "@stapel/core";
 import type { DocFolder } from "../api/types.js";
 import type { DocumentTypeOption } from "../model/documentTypes.js";
 import { DEFAULT_DOCUMENT_TYPES } from "../model/documentTypes.js";
 import { DOCS_I18N_KEYS } from "../i18n/keys.js";
 
-export interface NameDialogProps {
+/** Props every one of these dialogs shares. */
+interface DialogChromeProps {
+  /** Pin a theme side. Omitted, the document's live mode wins. */
+  readonly mode?: ThemeMode;
+}
+
+/**
+ * Cancel and the affirmative, with the affirmative's blocked reason UNDER it.
+ *
+ * `layout="inline"` put the sentence beside the button, which on a phone sheet
+ * meant it ran past the right edge; stacked, it sits under the control it
+ * explains and the row still reads Cancel-then-confirm.
+ */
+function DialogFooter(props: {
+  readonly cancelLabel: string;
+  readonly confirmLabel: string;
+  readonly gate: ActionAvailability;
+  readonly busy: boolean;
+  readonly testId: string;
+  readonly onCancel: () => void;
+  readonly onConfirm: () => void;
+}): ReactElement {
+  return (
+    <Flex justify="end" align="flex-start" gap="small" wrap>
+      <Button
+        onClick={props.onCancel}
+        data-analytics="none"
+        data-analytics-reason="local UI dismissal — closing a form is not a business action"
+      >
+        {props.cancelLabel}
+      </Button>
+      <GatedButton
+        gate={props.gate}
+        type="primary"
+        loading={props.busy}
+        onClick={props.onConfirm}
+        testId={props.testId}
+        data-analytics="none"
+        data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+      >
+        {props.confirmLabel}
+      </GatedButton>
+    </Flex>
+  );
+}
+
+export interface NameDialogProps extends DialogChromeProps {
   readonly open: boolean;
   /** i18n key for the dialog title (rename vs new-folder). */
   readonly titleKey: string;
+  /** i18n key for the affirmative's verb. Default: the generic "OK", which
+   * every caller in this package overrides. */
+  readonly confirmKey?: string;
   /** Prefilled value (the current name when renaming; empty when creating). */
   readonly initialValue: string;
   readonly busy?: boolean;
@@ -58,6 +127,10 @@ export function NameDialog(props: NameDialogProps): ReactElement {
     if (trimmed.length > 0) props.onConfirm(trimmed);
   };
   return (
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
     <SkinDialog
       open={props.open}
       title={t(props.titleKey)}
@@ -66,29 +139,15 @@ export function NameDialog(props: NameDialogProps): ReactElement {
         props.onClose();
       }}
       footer={
-        <Flex justify="end" align="center" gap="small" wrap>
-          <Button
-            onClick={() => {
-              props.onClose();
-            }}
-            data-analytics="none"
-            data-analytics-reason="local UI dismissal — closing a form is not a business action"
-          >
-            {t(DOCS_I18N_KEYS.dialogCancel)}
-          </Button>
-          <GatedButton
-            gate={gate}
-            layout="inline"
-            type="primary"
-            loading={props.busy ?? false}
-            onClick={confirm}
-            testId="docs-name-confirm"
-            data-analytics="none"
-            data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-          >
-            {t(DOCS_I18N_KEYS.dialogOk)}
-          </GatedButton>
-        </Flex>
+        <DialogFooter
+          cancelLabel={t(DOCS_I18N_KEYS.dialogCancel)}
+          confirmLabel={t(props.confirmKey ?? DOCS_I18N_KEYS.dialogOk)}
+          gate={gate}
+          busy={props.busy ?? false}
+          testId="docs-name-confirm"
+          onCancel={props.onClose}
+          onConfirm={confirm}
+        />
       }
     >
       <Input
@@ -102,10 +161,11 @@ export function NameDialog(props: NameDialogProps): ReactElement {
         onPressEnter={confirm}
       />
     </SkinDialog>
+    </SkinTheme>
   );
 }
 
-export interface MoveDialogProps {
+export interface MoveDialogProps extends DialogChromeProps {
   readonly open: boolean;
   /** The workspace's folders, flat (the same list the tree reads). */
   readonly folders: readonly DocFolder[];
@@ -153,6 +213,10 @@ export function MoveDialog(props: MoveDialogProps): ReactElement {
       : actionAvailable();
 
   return (
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
     <SkinDialog
       open={props.open}
       title={t(DOCS_I18N_KEYS.dialogMoveTitle)}
@@ -161,31 +225,17 @@ export function MoveDialog(props: MoveDialogProps): ReactElement {
         props.onClose();
       }}
       footer={
-        <Flex justify="end" align="center" gap="small" wrap>
-          <Button
-            onClick={() => {
-              props.onClose();
-            }}
-            data-analytics="none"
-            data-analytics-reason="local UI dismissal — closing a form is not a business action"
-          >
-            {t(DOCS_I18N_KEYS.dialogCancel)}
-          </Button>
-          <GatedButton
-            gate={gate}
-            layout="inline"
-            type="primary"
-            loading={props.busy ?? false}
-            onClick={() => {
-              props.onConfirm(destination);
-            }}
-            testId="docs-move-confirm"
-            data-analytics="none"
-            data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-          >
-            {t(DOCS_I18N_KEYS.dialogOk)}
-          </GatedButton>
-        </Flex>
+        <DialogFooter
+          cancelLabel={t(DOCS_I18N_KEYS.dialogCancel)}
+          confirmLabel={t(DOCS_I18N_KEYS.dialogMoveConfirm)}
+          gate={gate}
+          busy={props.busy ?? false}
+          testId="docs-move-confirm"
+          onCancel={props.onClose}
+          onConfirm={() => {
+            props.onConfirm(destination);
+          }}
+        />
       }
     >
       <Select
@@ -199,10 +249,11 @@ export function MoveDialog(props: MoveDialogProps): ReactElement {
         }}
       />
     </SkinDialog>
+    </SkinTheme>
   );
 }
 
-export interface NewDocumentDialogProps {
+export interface NewDocumentDialogProps extends DialogChromeProps {
   readonly open: boolean;
   /** Creatable types, in the order they are offered. Default: the three
    * editable builtins (see `model/documentTypes.ts`). */
@@ -242,6 +293,10 @@ export function NewDocumentDialog(props: NewDocumentDialogProps): ReactElement {
   };
 
   return (
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
     <SkinDialog
       open={props.open}
       title={t(DOCS_I18N_KEYS.dialogNewDocumentTitle)}
@@ -250,29 +305,15 @@ export function NewDocumentDialog(props: NewDocumentDialogProps): ReactElement {
         props.onClose();
       }}
       footer={
-        <Flex justify="end" align="center" gap="small" wrap>
-          <Button
-            onClick={() => {
-              props.onClose();
-            }}
-            data-analytics="none"
-            data-analytics-reason="local UI dismissal — closing a form is not a business action"
-          >
-            {t(DOCS_I18N_KEYS.dialogCancel)}
-          </Button>
-          <GatedButton
-            gate={gate}
-            layout="inline"
-            type="primary"
-            loading={props.busy ?? false}
-            onClick={confirm}
-            testId="docs-new-document-confirm"
-            data-analytics="none"
-            data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-          >
-            {t(DOCS_I18N_KEYS.dialogOk)}
-          </GatedButton>
-        </Flex>
+        <DialogFooter
+          cancelLabel={t(DOCS_I18N_KEYS.dialogCancel)}
+          confirmLabel={t(DOCS_I18N_KEYS.dialogCreateDocumentConfirm)}
+          gate={gate}
+          busy={props.busy ?? false}
+          testId="docs-new-document-confirm"
+          onCancel={props.onClose}
+          onConfirm={confirm}
+        />
       }
     >
       <Flex vertical gap="small">
@@ -301,5 +342,6 @@ export function NewDocumentDialog(props: NewDocumentDialogProps): ReactElement {
         />
       </Flex>
     </SkinDialog>
+    </SkinTheme>
   );
 }

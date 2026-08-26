@@ -143,6 +143,24 @@ export function dedupeCalendarRange(
     if (typeof id === "string" && id.length > 0) materializedIds.add(id);
   }
 
+  // What a series is CALLED. A virtual instant carries no title of its own —
+  // the backend expands times, not rows — and the series master never reaches
+  // `events[]` (the view filters it out by `rrule=""`), so the only title in
+  // the body is on the series' materialized siblings. Without this every
+  // expanded instant drew as "Untitled event" beside its own concrete twin.
+  const seriesTitles = new Map<string, string>();
+  for (const event of events) {
+    const parent = event.recurrence_parent_id;
+    if (
+      typeof parent === "string" &&
+      parent.length > 0 &&
+      event.title.length > 0 &&
+      !seriesTitles.has(parent)
+    ) {
+      seriesTitles.set(parent, event.title);
+    }
+  }
+
   const cancelled: CalendarEvent[] = [];
   const standalone: CalendarEvent[] = [];
   for (const event of events) {
@@ -168,7 +186,11 @@ export function dedupeCalendarRange(
       key: row?.id ?? `${occurrence.event_id}@${occurrence.start}`,
       eventId: row?.id ?? occurrence.event_id,
       seriesId: occurrence.event_id,
-      title: row?.title ?? "",
+      title:
+        row?.title ??
+        byId.get(occurrence.event_id)?.title ??
+        seriesTitles.get(occurrence.event_id) ??
+        "",
       start: occurrence.start,
       end: occurrence.end,
       status: row !== undefined ? asStatus(row.status) : "confirmed",

@@ -49,6 +49,7 @@ import { formatDateTime } from "../model/format.js";
 import type { DocRevision } from "../api/types.js";
 import { DOCS_I18N_KEYS } from "../i18n/keys.js";
 import { useSplitLayout } from "./useSplitLayout.js";
+import { ROW_REASON_MEASURE } from "./measure.js";
 
 export interface RevisionsModalProps {
   readonly documentId: string;
@@ -175,7 +176,6 @@ export function RevisionsModal(props: RevisionsModalProps): ReactElement {
                 />
                 <GatedButton
                   gate={pinGate}
-                  layout="inline"
                   loading={isCreating}
                   onClick={() => {
                     createRevision(trimmedPin);
@@ -330,6 +330,13 @@ export function RevisionsModal(props: RevisionsModalProps): ReactElement {
  * reason beside it — a disabled control receives no pointer events, so a
  * tooltip on it is a reason nobody can read.
  */
+/**
+ * "Restore", with the one reason it can be off under it.
+ *
+ * Stacked, not inline: this button lives in a `List.Item`'s action slot, and
+ * an inline reason there ran "This is the document's current version." past
+ * the right edge of a 390px sheet and cut the row in half (visual pass M-4).
+ */
 function RevisionRollback(props: {
   readonly isHead: boolean;
   /** True only while THIS revision is the one being restored. */
@@ -344,7 +351,7 @@ function RevisionRollback(props: {
           ? actionBlocked(DOCS_I18N_KEYS.revisionsRollbackBlockedHead)
           : actionAvailable()
       }
-      layout="inline"
+      wrapperStyle={{ flexWrap: "nowrap", maxWidth: ROW_REASON_MEASURE }}
       loading={props.restoring}
       onClick={props.onAsk}
       testId="docs-revision-rollback"

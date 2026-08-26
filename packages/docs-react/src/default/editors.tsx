@@ -21,7 +21,7 @@
 import { useState } from "react";
 import type { KeyboardEvent, ReactElement, ReactNode } from "react";
 import { Alert, Button, Flex, Input, Skeleton, Tag, Typography } from "antd";
-import { ErrorAlert } from "@stapel/tokens-antd/skin";
+import { ErrorAlert, SkinTheme } from "@stapel/tokens-antd/skin";
 import { useT } from "@stapel/core";
 import { fontSize, spacing } from "@stapel/tokens";
 import type { DocEditorBag } from "../headless/DocEditor.js";
@@ -45,6 +45,11 @@ export function EditorChrome(props: {
   }
 
   return (
+    // Self-theming, like every other part of this skin: an editor is mounted
+    // standalone (a host route, this package's own showcase) as often as
+    // inside `<DocSurface>`, and an unthemed antd draws a light textarea on a
+    // dark page.
+    <SkinTheme surface="bare">
     <Flex
       vertical
       gap="small"
@@ -114,6 +119,7 @@ export function EditorChrome(props: {
         props.children
       )}
     </Flex>
+    </SkinTheme>
   );
 }
 

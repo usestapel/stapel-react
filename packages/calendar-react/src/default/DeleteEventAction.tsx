@@ -21,7 +21,13 @@
  */
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { ErrorAlert, GatedButton, SkinConfirm } from "@stapel/tokens-antd/skin";
+import {
+  ErrorAlert,
+  GatedButton,
+  SkinConfirm,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
+import type { ThemeMode } from "@stapel/tokens-antd";
 import { actionAvailable, useT } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
 import { EventDelete } from "../headless/EventDelete.js";
@@ -48,6 +54,8 @@ export interface DeleteEventActionProps {
   /** The confirmation asked to open or close (controlled mode). */
   readonly onOpenChange?: (open: boolean) => void;
   readonly onDeleted?: () => void;
+  /** Pin a theme side. Omitted, the document's live mode wins. */
+  readonly mode?: ThemeMode;
   readonly "data-testid"?: string;
 }
 
@@ -66,6 +74,13 @@ export function DeleteEventAction(
   const gate = props.gate ?? actionAvailable();
 
   return (
+    // The confirmation is a dialog, and a dialog portals out of this tree —
+    // its theme has to be declared around it or antd serves the compiled-in
+    // light one (audit CF-1 / N-1).
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
     <EventDelete eventId={props.eventId}>
       {(bag) => (
         <>
@@ -112,5 +127,6 @@ export function DeleteEventAction(
         </>
       )}
     </EventDelete>
+    </SkinTheme>
   );
 }

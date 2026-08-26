@@ -17,20 +17,29 @@
  *  - **outside the anchored month** — the leading/trailing cells are muted.
  *    They are drawn because they are on screen and inside the queried range.
  *
- * Geometry is the BOX's, not the viewport's: `dense` (from `<Calendar>`'s
- * `useElementWidth`) drops the titles for dots when the columns get too narrow
- * to read a title anyway. Below `GRID_MIN_WIDTH` there is no grid at all —
- * `<Calendar>` renders `<CalendarAgenda>` instead. A month grid that scrolls
- * sideways is not a month grid.
+ * Geometry is the BOX's, not the viewport's, and this component measures its
+ * OWN box: `dense` (which `<Calendar>` can also set from its measurement)
+ * drops the titles for dots when the columns get too narrow to read a title
+ * anyway, and below `GRID_MIN_WIDTH` there is no grid at all — it renders
+ * `<CalendarAgenda>` over the same instants instead. A month grid that
+ * scrolls sideways, or whose every entry clips to `2:0…`, is not a month
+ * grid. The fallback lives here rather than only in `<Calendar>` so a host
+ * that mounts the part directly, or drops it into a 380px side panel, gets
+ * the readable shape too.
  */
 import type { CSSProperties, ReactElement } from "react";
 import { Button, Typography } from "antd";
+import { SkinTheme } from "@stapel/tokens-antd/skin";
+import type { ThemeMode } from "@stapel/tokens-antd";
 import { useI18n, useT, useTPlural } from "@stapel/core";
 import { cssVar, fontSize, radii, spacing } from "@stapel/tokens";
 import { CALENDAR_I18N_KEYS } from "../i18n/keys.js";
-import { formatDayNumber, formatTime, weekdayNames } from "../model/format.js";
+import { formatDayNumber, weekdayNames } from "../model/format.js";
 import type { CalendarInstance } from "../model/occurrences.js";
 import { groupByDay, isOutsideMonth, isSameDay } from "../model/range.js";
+import { CalendarAgenda } from "./CalendarAgenda.js";
+import { instanceLabel } from "./instanceLabel.js";
+import { GRID_MIN_WIDTH, useElementWidth } from "./useElementWidth.js";
 
 /** How many instances a cell lists before collapsing the rest into "+N more". */
 const MAX_PER_CELL = 3;
@@ -46,6 +55,14 @@ export interface CalendarMonthGridProps {
   readonly onSelect?: (instance: CalendarInstance) => void;
   /** Drop titles for dots — set by the container from its measured width. */
   readonly dense?: boolean;
+  /**
+   * Pin a theme side. Omitted, the document's live mode wins — the part
+   * self-themes (`SkinTheme`), because a `src/default` part is dropped into
+   * host pages and into this pair's own dialogs, and an untended antd
+   * `ConfigProvider` serves the compiled-in LIGHT theme: the visual pass
+   * photographed this grid as black text on a black page.
+   */
+  readonly mode?: ThemeMode;
   readonly "data-testid"?: string;
 }
 
@@ -64,6 +81,42 @@ const headerCellStyle: CSSProperties = {
 };
 
 export function CalendarMonthGrid(props: CalendarMonthGridProps): ReactElement {
+  const { ref, width } = useElementWidth<HTMLDivElement>();
+  // Narrow until measured, and narrow means AGENDA: seven columns in 390px
+  // clip every title to "2:0…", which is a grid that carries none of the
+  // information a grid exists for. `<Calendar>` already switched at this
+  // threshold; the grid itself did not, so a host that mounted this part
+  // directly — or dropped it in a side panel — got the crammed version.
+  // The rule belongs to the component that cannot be drawn, not to one of
+  // its callers.
+  const narrow = width === undefined || width < GRID_MIN_WIDTH;
+
+  return (
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
+    <div
+      ref={ref}
+      data-testid={props["data-testid"]}
+      data-stapel-calendar-grid={narrow ? "agenda" : "month"}
+    >
+      {narrow ? (
+        <CalendarAgenda
+          instances={props.instances}
+          days={props.days}
+          {...(props.onSelect !== undefined ? { onSelect: props.onSelect } : {})}
+        />
+      ) : (
+        <MonthCells {...props} />
+      )}
+    </div>
+    </SkinTheme>
+  );
+}
+
+/** The six-week grid itself, drawn only where it fits. */
+function MonthCells(props: CalendarMonthGridProps): ReactElement {
   const t = useT();
   const tPlural = useTPlural();
   const { locale } = useI18n();
@@ -71,7 +124,7 @@ export function CalendarMonthGrid(props: CalendarMonthGridProps): ReactElement {
   const todayIso = new Date().toISOString();
 
   return (
-    <div data-testid={props["data-testid"]} data-stapel-calendar-grid="month">
+    <>
       <div style={gridStyle} aria-hidden="true">
         {weekdayNames(locale).map((name) => (
           <div key={name} style={headerCellStyle}>
@@ -135,31 +188,8 @@ export function CalendarMonthGrid(props: CalendarMonthGridProps): ReactElement {
           );
         })}
       </div>
-    </div>
+    </>
   );
-}
-
-/**
- * The full sentence a cell entry says, whether or not it has room to show it:
- * the title, the time, and the two facts a glyph would otherwise carry alone
- * (cancelled, repeats). It is the chip's accessible name in every density —
- * a strike-through and a dot are invisible to a screen reader.
- */
-export function instanceLabel(
-  instance: CalendarInstance,
-  locale: string,
-  t: (key: string) => string
-): string {
-  const title =
-    instance.title.length > 0
-      ? instance.title
-      : t(CALENDAR_I18N_KEYS.viewUntitled);
-  const parts = [formatTime(instance.start, locale), title];
-  if (instance.isVirtual) parts.push(t(CALENDAR_I18N_KEYS.viewRepeats));
-  if (instance.status === "cancelled") {
-    parts.push(t(CALENDAR_I18N_KEYS.viewCancelled));
-  }
-  return parts.join(" · ");
 }
 
 /** One instant inside a cell. Cancelled is struck through AND named. */

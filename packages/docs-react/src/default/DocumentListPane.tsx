@@ -32,8 +32,14 @@
  */
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Dropdown, Flex, List, Typography } from "antd";
-import { EmptyState, ErrorAlert, LoadList } from "@stapel/tokens-antd/skin";
+import { Button, Dropdown, Flex, List, Typography } from "antd";
+import {
+  EmptyState,
+  ErrorAlert,
+  LoadList,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
+import type { ThemeMode } from "@stapel/tokens-antd";
 import {
   loadStateFromQuery,
   loadedRowsOrEmpty,
@@ -53,6 +59,8 @@ import { formatBytes, formatDate } from "../model/format.js";
 import type { DocDocument } from "../api/types.js";
 import { DOCS_I18N_KEYS } from "../i18n/keys.js";
 import { MoveDialog, NameDialog } from "./dialogs.js";
+import { RowActions } from "./RowActions.js";
+import { READING_MEASURE } from "./measure.js";
 
 export interface DocumentListPaneProps {
   readonly workspaceId: string;
@@ -65,6 +73,11 @@ export interface DocumentListPaneProps {
   /** "Version history" on a row (the composing surface owns the modal);
    * omitted → the menu item is not offered. */
   onShowHistory?(doc: DocDocument): void;
+  /** Pin a theme side. Omitted, the document's live mode wins — the pane
+   * self-themes, because it is mounted on its own as often as inside
+   * `<FileManager>` and an unthemed antd serves the compiled-in LIGHT
+   * palette (which is where this package's second brand blue came from). */
+  readonly mode?: ThemeMode;
 }
 
 type DialogState =
@@ -73,6 +86,17 @@ type DialogState =
   | null;
 
 export function DocumentListPane(props: DocumentListPaneProps): ReactElement {
+  return (
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
+      <DocumentListPaneBody {...props} />
+    </SkinTheme>
+  );
+}
+
+function DocumentListPaneBody(props: DocumentListPaneProps): ReactElement {
   const t = useT();
   const { locale } = useI18n();
   const [dialog, setDialog] = useState<DialogState>(null);
@@ -153,24 +177,39 @@ export function DocumentListPane(props: DocumentListPaneProps): ReactElement {
           data-analytics="none"
           data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
           actions={[
-            <Dropdown key="actions" trigger={["click"]} menu={menu}>
-              <Typography.Link
-                aria-label={t(DOCS_I18N_KEYS.menuActions)}
-                data-docs-row-actions={doc.id}
-                onClick={(event) => {
-                  // The row itself may open the document; the menu must not.
-                  event.stopPropagation();
-                }}
-                data-analytics="none"
-                data-analytics-reason="opens a menu — the chosen item carries the tracked action"
-              >
-                {t(DOCS_I18N_KEYS.menuActions)}
-              </Typography.Link>
-            </Dropdown>,
+            <RowActions
+              key="actions"
+              menu={menu}
+              label={t(DOCS_I18N_KEYS.menuActions)}
+              dataAttribute={{ "data-docs-row-actions": doc.id }}
+              stopPropagation
+            />,
           ]}
         >
           <List.Item.Meta
-            title={doc.title}
+            // A row that OPENS says so. Without a visible affordance the
+            // openable and the not-openable list were the same picture, and
+            // the §83 rule the `no-open-route` variant exists to prove was
+            // invisible (visual pass M-6).
+            title={
+              openable ? (
+                // A `Button type="link"`, not `Typography.Link`: antd's list
+                // rule (`.ant-list-item-meta-title > a`) repaints an anchor in
+                // here to the plain text colour, which is how the affordance
+                // stayed invisible the first time.
+                <Button
+                  type="link"
+                  data-docs-document-title={doc.id}
+                  style={{ padding: 0, height: "auto", textAlign: "start" }}
+                  data-analytics="none"
+                  data-analytics-reason="the row's own onClick carries the open; this is its visible affordance"
+                >
+                  {doc.title}
+                </Button>
+              ) : (
+                doc.title
+              )
+            }
             description={
               <Typography.Text
                 type="secondary"
@@ -194,7 +233,15 @@ export function DocumentListPane(props: DocumentListPaneProps): ReactElement {
       {...(props.q !== undefined ? { q: props.q } : {})}
     >
       {({ state, refetch }) => (
-        <Flex vertical gap="small" data-testid="docs-document-list-pane">
+        <Flex
+          vertical
+          gap="small"
+          data-testid="docs-document-list-pane"
+          // A file list is READ, so it gets a measure. Full-bleed on a 1900px
+          // desktop put the name at one edge and its actions at the other,
+          // with ~1400px of nothing between them (visual pass M-5).
+          style={{ maxWidth: READING_MEASURE, width: "100%" }}
+        >
           <ErrorAlert thrown={mutationError} testId="docs-list-error" />
 
           <LoadList
@@ -226,6 +273,7 @@ export function DocumentListPane(props: DocumentListPaneProps): ReactElement {
           <NameDialog
             open={dialog?.kind === "rename"}
             titleKey={DOCS_I18N_KEYS.dialogRenameTitle}
+            confirmKey={DOCS_I18N_KEYS.dialogRenameConfirm}
             initialValue={dialog?.kind === "rename" ? dialog.doc.title : ""}
             busy={busy}
             onConfirm={(title) => {

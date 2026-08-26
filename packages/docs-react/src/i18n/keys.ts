@@ -81,7 +81,15 @@ export const DOCS_I18N_KEYS = {
   dialogMoveTarget: "docs.dialog.moveTarget",
   dialogNewFolderTitle: "docs.dialog.newFolderTitle",
   dialogNamePlaceholder: "docs.dialog.namePlaceholder",
+  /** Affirmative verbs. A dialog's confirm names the ACTION it performs —
+   * "OK" is what a control says when nobody decided what it does, and the
+   * visual pass found it on the create-document sheet where "Create"
+   * belonged. `dialogOk` remains for a host prompt with no better verb. */
   dialogOk: "docs.dialog.ok",
+  dialogRenameConfirm: "docs.dialog.renameConfirm",
+  dialogCreateFolderConfirm: "docs.dialog.createFolderConfirm",
+  dialogMoveConfirm: "docs.dialog.moveConfirm",
+  dialogCreateDocumentConfirm: "docs.dialog.createDocumentConfirm",
   dialogCancel: "docs.dialog.cancel",
   /** Accessible name of a dialog's dismissal affordance — the modal's close
    * button and the bottom sheet's grab handle (`SkinDialog.dismissLabel`).
@@ -126,6 +134,9 @@ export const DOCS_I18N_KEYS = {
   /** Why "Empty trash" is off when the trash loaded and holds nothing —
    * core's floor covers the loading/failed reasons (`useActionGate`). */
   trashEmptyBlocked: "docs.trash.emptyBlocked",
+  /** The download link is still being minted. A bare skeleton could not be
+   * told from a stuck screen (visual pass M-3). */
+  mediaMinting: "docs.media.minting",
   /** What an empty document list invites the person to do. */
   listEmptyHint: "docs.list.emptyHint",
   /** What an empty trash means (nothing was deleted). */
@@ -183,6 +194,7 @@ export const docsI18nBundleEn: I18nDictionary = {
   "docs.upload.done": "Upload finished.",
   "docs.upload.failed": "Upload failed.",
   "docs.media.download": "Download",
+  "docs.media.minting": "Preparing the download link…",
   "docs.manager.filesView": "Files",
   "docs.manager.trashView": "Trash",
   "docs.manager.newFolder": "New folder",
@@ -190,7 +202,7 @@ export const docsI18nBundleEn: I18nDictionary = {
   "docs.manager.foldersEmpty": "No folders yet.",
   "docs.manager.newDocument": "New document",
   "docs.manager.foldersPane": "Folders",
-  "docs.manager.filesPane": "Files",
+  "docs.manager.filesPane": "Documents",
   "docs.manager.nameColumn": "Name",
   "docs.manager.updatedColumn": "Updated",
   "docs.manager.sizeColumn": "Size",
@@ -210,6 +222,10 @@ export const docsI18nBundleEn: I18nDictionary = {
   "docs.dialog.newFolderTitle": "New folder",
   "docs.dialog.namePlaceholder": "Name",
   "docs.dialog.ok": "OK",
+  "docs.dialog.renameConfirm": "Rename",
+  "docs.dialog.createFolderConfirm": "Create folder",
+  "docs.dialog.moveConfirm": "Move",
+  "docs.dialog.createDocumentConfirm": "Create",
   "docs.dialog.cancel": "Cancel",
   "docs.dialog.close": "Close",
   "docs.dialog.rootFolder": "All documents",

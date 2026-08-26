@@ -18,7 +18,13 @@ import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Button, Dropdown, Flex, Tree, Typography } from "antd";
 import type { TreeDataNode } from "antd";
-import { EmptyState, ErrorAlert, LoadBoundary } from "@stapel/tokens-antd/skin";
+import {
+  EmptyState,
+  ErrorAlert,
+  LoadBoundary,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
+import type { ThemeMode } from "@stapel/tokens-antd";
 import { useT } from "@stapel/core";
 import { FolderTree } from "../headless/FolderTree.js";
 import type { FolderTreeView } from "../headless/FolderTree.js";
@@ -31,12 +37,16 @@ import {
 import type { DocFolder } from "../api/types.js";
 import { DOCS_I18N_KEYS } from "../i18n/keys.js";
 import { MoveDialog, NameDialog } from "./dialogs.js";
+import { RowActions } from "./RowActions.js";
 
 export interface FolderTreePaneProps {
   readonly workspaceId: string;
   /** The selected folder, `null` for the workspace root. */
   readonly selectedFolderId: string | null;
   onSelectFolder(folderId: string | null): void;
+  /** Pin a theme side. Omitted, the document's live mode wins — the pane
+   * self-themes, and its dialogs portal out of this tree. */
+  readonly mode?: ThemeMode;
 }
 
 type DialogState =
@@ -64,6 +74,17 @@ function findNode(
 }
 
 export function FolderTreePane(props: FolderTreePaneProps): ReactElement {
+  return (
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
+      <FolderTreePaneBody {...props} />
+    </SkinTheme>
+  );
+}
+
+function FolderTreePaneBody(props: FolderTreePaneProps): ReactElement {
   const t = useT();
   const [dialog, setDialog] = useState<DialogState>(null);
   const createFolder = useCreateFolder();
@@ -106,20 +127,12 @@ export function FolderTreePane(props: FolderTreePaneProps): ReactElement {
           <Typography.Text data-docs-folder={folder.id}>
             {folder.name}
           </Typography.Text>
-          <Dropdown trigger={["click"]} menu={menu}>
-            <Typography.Link
-              aria-label={t(DOCS_I18N_KEYS.menuActions)}
-              data-docs-folder-actions={folder.id}
-              onClick={(event) => {
-                // Selecting the folder and opening its menu are two things.
-                event.stopPropagation();
-              }}
-              data-analytics="none"
-              data-analytics-reason="opens a menu — the chosen item carries the tracked action"
-            >
-              {t(DOCS_I18N_KEYS.menuActions)}
-            </Typography.Link>
-          </Dropdown>
+          <RowActions
+            menu={menu}
+            label={t(DOCS_I18N_KEYS.menuActions)}
+            dataAttribute={{ "data-docs-folder-actions": folder.id }}
+            stopPropagation
+          />
         </Flex>
       </Dropdown>
     );
@@ -196,6 +209,11 @@ export function FolderTreePane(props: FolderTreePaneProps): ReactElement {
                 dialog?.kind === "newFolder"
                   ? DOCS_I18N_KEYS.dialogNewFolderTitle
                   : DOCS_I18N_KEYS.dialogRenameTitle
+              }
+              confirmKey={
+                dialog?.kind === "newFolder"
+                  ? DOCS_I18N_KEYS.dialogCreateFolderConfirm
+                  : DOCS_I18N_KEYS.dialogRenameConfirm
               }
               initialValue={dialog?.kind === "rename" ? dialog.folder.name : ""}
               busy={busy}

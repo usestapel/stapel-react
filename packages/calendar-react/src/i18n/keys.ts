@@ -60,6 +60,10 @@ export const CALENDAR_I18N_KEYS = {
   /** PLURAL FAMILY — the "+N more" chip in a full month cell. */
   viewMoreCount: "calendar.view.more_count",
   viewUntitled: "calendar.view.untitled",
+  /** Names the SHAPE on screen when a month range is drawn as a day-grouped
+   * list because the box is too narrow for a grid — the range switch names
+   * the range, and on its own it lied about what the reader is looking at. */
+  viewAgendaLayout: "calendar.view.agenda_layout",
 
   // ── agenda / list ───────────────────────────────────────────────────────
   agendaHeading: "calendar.agenda.heading",
@@ -71,6 +75,10 @@ export const CALENDAR_I18N_KEYS = {
   detailHeading: "calendar.detail.heading",
   detailNoDescription: "calendar.detail.no_description",
   detailOrganizer: "calendar.detail.organizer",
+  /** The event's single time fact, start and end together. Not "Starts": the
+   * value is a range, and labelling a range "Starts" is what made the sheet
+   * print the start time twice on one line. */
+  detailWhen: "calendar.detail.when",
   detailParticipants: "calendar.detail.participants",
   detailNoParticipants: "calendar.detail.no_participants",
   detailRsvpSummary: "calendar.detail.rsvp_summary",
@@ -162,6 +170,10 @@ export const CALENDAR_I18N_KEYS = {
   availabilityHeading: "calendar.availability.heading",
   availabilitySlotLength: "calendar.availability.slot_length",
   availabilitySlots: "calendar.availability.slots",
+  /** The button on a slot row. The section heading ("Open slots") was being
+   * reused as the label of the button under it — a caption repeated as its
+   * own control (visual pass M-10). */
+  availabilityPick: "calendar.availability.pick",
   availabilityBusy: "calendar.availability.busy",
   availabilityNoBusy: "calendar.availability.no_busy",
   availabilityNoWindows: "calendar.availability.no_windows",
@@ -240,12 +252,13 @@ export const calendarI18nBundleEn: I18nDictionary = {
   "calendar.view.mode.day": "Day",
   "calendar.view.new_event": "New event",
   "calendar.view.cancelled": "Cancelled",
-  "calendar.view.repeats": "Repeats",
+  "calendar.view.repeats": "Part of a series",
   "calendar.view.marker": "Marker",
   "calendar.view.open_event": "Open event",
   "calendar.view.more_count.one": "{count} more",
   "calendar.view.more_count.other": "{count} more",
   "calendar.view.untitled": "Untitled event",
+  "calendar.view.agenda_layout": "Agenda",
 
   "calendar.agenda.heading": "Agenda",
   "calendar.agenda.empty": "Nothing scheduled.",
@@ -255,6 +268,7 @@ export const calendarI18nBundleEn: I18nDictionary = {
   "calendar.detail.heading": "Event",
   "calendar.detail.no_description": "No description",
   "calendar.detail.organizer": "Organizer",
+  "calendar.detail.when": "When",
   "calendar.detail.participants": "Invitees",
   "calendar.detail.no_participants": "Nobody is invited yet.",
   "calendar.detail.rsvp_summary":
@@ -348,6 +362,7 @@ export const calendarI18nBundleEn: I18nDictionary = {
   "calendar.availability.heading": "Free time",
   "calendar.availability.slot_length": "Slot length (minutes)",
   "calendar.availability.slots": "Open slots",
+  "calendar.availability.pick": "Book this slot",
   "calendar.availability.busy": "Busy",
   "calendar.availability.no_busy": "Nothing booked in this range.",
   "calendar.availability.no_windows": "No bookable time in this range.",
@@ -355,7 +370,7 @@ export const calendarI18nBundleEn: I18nDictionary = {
     "Open slots come from availability windows. None are set, so there is nothing to book yet — this does not mean the time is taken.",
   "calendar.availability.truncated": "This answer is incomplete.",
   "calendar.availability.truncated_hint":
-    "A repeating series was too long to expand in full, so later times here only LOOK free. Narrow the range to get a complete answer.",
+    "A repeating series was too long to expand in full, so later times here may already be taken even though they look free. Narrow the range to get a complete answer.",
   "calendar.availability.refresh": "Refresh",
   "calendar.availability.loading": "Checking your free time…",
 };

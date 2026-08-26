@@ -863,7 +863,6 @@
       ],
       "variants": [
         "default",
-        "phone",
         "empty",
         "loading",
         "outage"
@@ -895,7 +894,6 @@
       ],
       "variants": [
         "default",
-        "desktop",
         "empty",
         "binary"
       ],
@@ -920,8 +918,11 @@
   "i18nKeys": [
     "docs.dialog.cancel",
     "docs.dialog.close",
+    "docs.dialog.createDocumentConfirm",
+    "docs.dialog.createFolderConfirm",
     "docs.dialog.documentType",
     "docs.dialog.moveBlockedUnchanged",
+    "docs.dialog.moveConfirm",
     "docs.dialog.moveTarget",
     "docs.dialog.moveTitle",
     "docs.dialog.nameBlockedEmpty",
@@ -929,6 +930,7 @@
     "docs.dialog.newDocumentTitle",
     "docs.dialog.newFolderTitle",
     "docs.dialog.ok",
+    "docs.dialog.renameConfirm",
     "docs.dialog.renameTitle",
     "docs.dialog.rootFolder",
     "docs.editor.addColumn",
@@ -962,6 +964,7 @@
     "docs.manager.updatedColumn",
     "docs.manager.upload",
     "docs.media.download",
+    "docs.media.minting",
     "docs.menu.actions",
     "docs.menu.deleteForever",
     "docs.menu.download",

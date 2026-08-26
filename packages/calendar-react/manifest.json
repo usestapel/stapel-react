@@ -470,23 +470,6 @@
       "source": "demo/AvailabilityPane.demo.tsx"
     },
     {
-      "id": "calendar.composer",
-      "title": "Event composer",
-      "description": "The headless EventComposer wraps the create-event mutation; on success the pair invalidates the calendar reads. Bring your own form UI — the component is renderless.",
-      "component": "EventComposer",
-      "covers": [
-        "EventEditor",
-        "ParticipantsEditor"
-      ],
-      "tokens": [
-        "card-bg"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/EventComposer.demo.tsx"
-    },
-    {
       "id": "calendar.delete-event",
       "title": "Delete event",
       "description": "The destructive verb, confirmed on a bottom sheet on a phone (never a popover under somebody's thumb) with a confirm button that NAMES the action instead of saying OK. Deleting one time in a series is a different consequence from deleting a standalone event, so it is a different sentence.",
@@ -572,19 +555,6 @@
       "source": "demo/ParticipantsField.demo.tsx"
     },
     {
-      "id": "calendar.provider",
-      "title": "Calendar provider",
-      "description": "The headless calendar root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
-      "component": "CalendarProvider",
-      "tokens": [
-        "card-bg"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/Calendar.demo.tsx"
-    },
-    {
       "id": "calendar.recurrence-field",
       "title": "Repeat",
       "description": "The repeat rule as a single question. `until` and `count` are mutually exclusive in RRULE, so the end is one three-way choice and only the chosen field is drawn — a form that offered both would present a combination the backend must then refuse. The presets are read from a list, not hardcoded, because upstream they are an open merge registry a deployment can extend.",
@@ -600,23 +570,6 @@
         "custom"
       ],
       "source": "demo/RecurrenceField.demo.tsx"
-    },
-    {
-      "id": "calendar.rsvp",
-      "title": "Event RSVP",
-      "description": "The headless EventRsvp wraps the respond mutation for one event (accepted/tentative/declined). Bring your own control UI — the component is renderless.",
-      "component": "EventRsvp",
-      "covers": [
-        "EventDetail",
-        "EventDelete"
-      ],
-      "tokens": [
-        "card-bg"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/EventRsvp.demo.tsx"
     },
     {
       "id": "calendar.rsvp-control",
@@ -664,20 +617,6 @@
         "failed"
       ],
       "source": "demo/CalendarScreen.demo.tsx"
-    },
-    {
-      "id": "calendar.view",
-      "title": "Calendar view",
-      "description": "The headless CalendarView reads the user's events + expanded series occurrences over a range. Bring your own month/week/day grid — the component is renderless.",
-      "component": "CalendarView",
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/CalendarView.demo.tsx"
     }
   ],
   "i18nKeys": [
@@ -691,6 +630,7 @@
     "calendar.availability.no_busy",
     "calendar.availability.no_windows",
     "calendar.availability.no_windows_hint",
+    "calendar.availability.pick",
     "calendar.availability.refresh",
     "calendar.availability.slot_length",
     "calendar.availability.slots",
@@ -723,6 +663,7 @@
     "calendar.detail.participants",
     "calendar.detail.rsvp_summary",
     "calendar.detail.series_note",
+    "calendar.detail.when",
     "calendar.editor.cancel_body",
     "calendar.editor.cancel_confirm",
     "calendar.editor.cancel_event",
@@ -789,6 +730,7 @@
     "calendar.validation.range_incomplete",
     "calendar.validation.slot_minutes",
     "calendar.validation.title_required",
+    "calendar.view.agenda_layout",
     "calendar.view.cancelled",
     "calendar.view.empty",
     "calendar.view.empty_hint",
@@ -868,6 +810,7 @@
       "CALENDAR_FLOWS",
       "CALENDAR_I18N_KEYS",
       "CALENDAR_RECURRENCE_PRESETS",
+      "CalendarPeopleProvider",
       "CalendarProvider",
       "CalendarRuntimeContext",
       "CalendarView",
@@ -914,6 +857,7 @@
       "isRecurring",
       "isSameDay",
       "isSubmittableRsvp",
+      "nameInitials",
       "navEntries",
       "recurrenceEndPatch",
       "recurrenceLabelKey",
@@ -935,6 +879,7 @@
       "useReplaceParticipants",
       "useRespondToEvent",
       "useUpdateEvent",
+      "useUserName",
       "viewDays",
       "viewRange",
       "weekdayIndex",
@@ -953,6 +898,7 @@
       "CalendarFlowSpec",
       "CalendarI18nKey",
       "CalendarInstance",
+      "CalendarPeopleProviderProps",
       "CalendarRange",
       "CalendarRangeData",
       "CalendarRangeParams",
@@ -993,7 +939,8 @@
       "Rsvp",
       "RsvpRollUp",
       "Schemas",
-      "UpdateEventVariables"
+      "UpdateEventVariables",
+      "UserNameResolver"
     ]
   }
 }

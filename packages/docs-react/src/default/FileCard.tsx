@@ -13,8 +13,14 @@
  * `registerDocsSkinComponent("fileCard", …)`.
  */
 import type { ReactElement } from "react";
-import { Card, Flex, Typography } from "antd";
-import { ErrorAlert, GatedButton, LoadBoundary } from "@stapel/tokens-antd/skin";
+import { Card, Flex, Skeleton, Typography } from "antd";
+import {
+  ErrorAlert,
+  GatedButton,
+  LoadBoundary,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
+import type { ThemeMode } from "@stapel/tokens-antd";
 import { actionAvailable, requireLoaded, useI18n, useT } from "@stapel/core";
 import { MediaViewer } from "../headless/MediaViewer.js";
 import type { MediaViewerBag } from "../headless/MediaViewer.js";
@@ -23,13 +29,20 @@ import { DOCS_I18N_KEYS } from "../i18n/keys.js";
 
 export interface FileCardProps {
   readonly documentId: string;
+  /** Pin a theme side. Omitted, the document's live mode wins. */
+  readonly mode?: ThemeMode;
 }
 
 export function FileCard(props: FileCardProps): ReactElement {
   return (
-    <MediaViewer documentId={props.documentId}>
-      {(bag) => <FileCardBody bag={bag} />}
-    </MediaViewer>
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
+      <MediaViewer documentId={props.documentId}>
+        {(bag) => <FileCardBody bag={bag} />}
+      </MediaViewer>
+    </SkinTheme>
   );
 }
 
@@ -77,6 +90,24 @@ function FileCardBody(props: { readonly bag: MediaViewerBag }): ReactElement {
                 state={bag.urlState}
                 onRetry={bag.refreshUrl}
                 testId="docs-file-url"
+                // Minting a signed URL took four unlabelled skeleton bars,
+                // which reads the same as a stuck screen. Say what is being
+                // waited for (visual pass M-3).
+                loading={
+                  <Flex
+                    vertical
+                    gap="small"
+                    role="status"
+                    aria-busy
+                    data-stapel-load-state="loading"
+                    data-testid="docs-file-url-loading"
+                  >
+                    <Typography.Text type="secondary">
+                      {t(DOCS_I18N_KEYS.mediaMinting)}
+                    </Typography.Text>
+                    <Skeleton.Button active size="small" />
+                  </Flex>
+                }
                 // The URL failed on its own — the document is fine, so the
                 // title stays, the failure is stated, and only the download
                 // is blocked, with the gate's own reason beside it.

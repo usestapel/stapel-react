@@ -99,11 +99,13 @@ export function FileManager(props: FileManagerProps): ReactElement {
     setPane("files");
   }
 
+  const themeProps = props.mode !== undefined ? { mode: props.mode } : {};
   const treePane = (
     <TreePane
       workspaceId={props.workspaceId}
       selectedFolderId={folderId}
       onSelectFolder={selectFolder}
+      {...themeProps}
     />
   );
   const listPane = (
@@ -113,13 +115,21 @@ export function FileManager(props: FileManagerProps): ReactElement {
       {...(props.q !== undefined ? { q: props.q } : {})}
       {...(props.onOpenDocument ? { onOpenDocument: props.onOpenDocument } : {})}
       onShowHistory={setHistoryDoc}
+      {...themeProps}
     />
   );
 
   return (
+    // `base`, not the default `raised`: this is a full screen whose children
+    // are the raised things. As a raised panel it painted a slightly lighter
+    // box that stopped at content height with a hard edge over the page's own
+    // background, and the segmented controls inside it — designed against a
+    // layout background — read as holes punched in the panel (visual pass
+    // N-1).
     <SkinTheme
-      {...(props.mode !== undefined ? { mode: props.mode } : {})}
-      style={{ padding: spacing[3] }}
+      {...themeProps}
+      surface="base"
+      style={{ padding: spacing[3], minHeight: "100%" }}
     >
       <Flex vertical gap="middle" data-testid="docs-file-manager">
         <Flex gap="small" align="center" justify="space-between" wrap>
@@ -197,6 +207,7 @@ export function FileManager(props: FileManagerProps): ReactElement {
               workspaceId={props.workspaceId}
               folderId={folderId}
               onSelectFolder={selectFolder}
+              {...themeProps}
             />
             {stacked && (
               <Segmented<StackedPane>
@@ -231,11 +242,12 @@ export function FileManager(props: FileManagerProps): ReactElement {
             </div>
           </>
         ) : (
-          <Trash workspaceId={props.workspaceId} />
+          <Trash workspaceId={props.workspaceId} {...themeProps} />
         )}
 
         <NewDocumentDialog
           open={creating}
+          {...themeProps}
           {...(props.documentTypes !== undefined
             ? { documentTypes: props.documentTypes }
             : {})}
@@ -270,7 +282,7 @@ export function FileManager(props: FileManagerProps): ReactElement {
             onClose={() => {
               setHistoryDoc(null);
             }}
-            {...(props.mode !== undefined ? { mode: props.mode } : {})}
+            {...themeProps}
           />
         )}
       </Flex>

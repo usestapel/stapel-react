@@ -24,6 +24,8 @@
  */
 import type { ReactElement } from "react";
 import { Checkbox, Flex, Form, Input, InputNumber, Radio, Select, Typography } from "antd";
+import { SkinTheme } from "@stapel/tokens-antd/skin";
+import type { ThemeMode } from "@stapel/tokens-antd";
 import { useI18n, useT } from "@stapel/core";
 import { fontSize, spacing } from "@stapel/tokens";
 import { CALENDAR_I18N_KEYS } from "../i18n/keys.js";
@@ -46,6 +48,14 @@ export interface RecurrenceFieldProps {
   readonly onChange: (next: RecurrenceValue) => void;
   /** Override the offered presets for a deployment with its own registry. */
   readonly presets?: readonly RecurrencePreset[];
+  /**
+   * Pin a theme side. Omitted, the document's live mode wins — the part
+   * self-themes (`SkinTheme`), because a `src/default` part is dropped into
+   * host pages and into this pair's own dialogs, and an untended antd
+   * `ConfigProvider` serves the compiled-in LIGHT theme: the visual pass
+   * photographed these fields as black text on a black page.
+   */
+  readonly mode?: ThemeMode;
   readonly "data-testid"?: string;
 }
 
@@ -59,6 +69,10 @@ export function RecurrenceField(props: RecurrenceFieldProps): ReactElement {
   const custom = preset?.custom === true;
 
   return (
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
     <Flex vertical gap={spacing["2"]} data-testid={testId}>
       <Form.Item label={t(CALENDAR_I18N_KEYS.recurrenceLabel)} style={{ marginBottom: spacing["0"] }}>
         <Select
@@ -168,5 +182,6 @@ export function RecurrenceField(props: RecurrenceFieldProps): ReactElement {
         </>
       ) : null}
     </Flex>
+    </SkinTheme>
   );
 }

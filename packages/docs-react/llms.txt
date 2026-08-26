@@ -114,9 +114,9 @@ const { tracked } = useTracked();
 - docs.document-list → <DocumentListPane> [default|no-open-route|empty]  demo/DocumentListPane.demo.tsx
 - docs.editors → <DefaultTextEditor> [default|markdown|csv]  demo/editors.demo.tsx
 - docs.file-card → <FileCard> [default|minting|mint-failed]  demo/FileCard.demo.tsx
-- docs.file-manager → <FileManager> [default|phone|empty|loading|outage]  demo/FileManager.demo.tsx
+- docs.file-manager → <FileManager> [default|empty|loading|outage]  demo/FileManager.demo.tsx
 - docs.folder-tree → <FolderTreePane> [default|empty|failed]  demo/FolderTreePane.demo.tsx
-- docs.revisions → <RevisionsModal> [default|desktop|empty|binary]  demo/RevisionsModal.demo.tsx
+- docs.revisions → <RevisionsModal> [default|empty|binary]  demo/RevisionsModal.demo.tsx
 - docs.trash → <TrashPane> [default|empty|failed]  demo/TrashPane.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
