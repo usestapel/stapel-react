@@ -30,14 +30,19 @@ const pkg = JSON.parse(
 const INTROSPECTION_ONLY = ["@stapel/showcase", "@stapel/showcase-viewer"];
 
 describe("prod bundle carries no showcase/demo code (§5.1)", () => {
-  it("no showcase package is a dependency in ANY group (none needed until demos exist)", () => {
-    const everywhere = {
+  it("no showcase package is a runtime (deps) or peer dependency", () => {
+    const runtime = {
       ...(pkg.dependencies ?? {}),
       ...(pkg.peerDependencies ?? {}),
-      ...(pkg.devDependencies ?? {}),
     };
-    const leaked = INTROSPECTION_ONLY.filter((name) => name in everywhere);
+    const leaked = INTROSPECTION_ONLY.filter((name) => name in runtime);
     expect(leaked).toEqual([]);
+  });
+
+  it("@stapel/showcase is present, but only as a devDependency", () => {
+    // It IS used (to author the demos this pair now ships) — assert the
+    // intended location, not just absence, to catch a promotion to dependencies.
+    expect(pkg.devDependencies ?? {}).toHaveProperty("@stapel/showcase");
   });
 
   it("the published `files` allowlist excludes demo/", () => {
