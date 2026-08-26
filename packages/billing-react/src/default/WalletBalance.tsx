@@ -96,7 +96,7 @@ function DebtBlock(props: { wallet: WalletData }): ReactElement | null {
       type="warning"
       showIcon
       data-testid="billing-wallet-debt"
-      message={
+      title={
         <Typography.Text strong>
           {tPlural(BILLING_I18N_KEYS.walletDebtTotal, {
             count: outstanding,
@@ -182,7 +182,7 @@ export function WalletBalance(props: { wallet: WalletData }): ReactElement {
                 type="warning"
                 showIcon
                 data-testid="billing-wallet-expiring"
-                message={
+                title={
                   relative === null
                     ? t(BILLING_I18N_KEYS.walletExpiring, {
                         credits: formatCreditCount(locale, expiring.credits),

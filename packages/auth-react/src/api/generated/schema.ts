@@ -885,7 +885,13 @@ export interface paths {
         delete: operations["auth_api_v1_passkey_destroy"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Rename a passkey
+         * @description Change the human-readable label of one of the *caller's own* credentials. Scoped by ownership at lookup time: a credential belonging to another user answers 404, exactly as an unknown id does. Only `device_name` is writable — the attested identity (`aaguid`, `transports`) and the observed history (`created_at`, `last_used_at`) are server-owned.
+         *
+         *     **Permissions:** `IsServiceRequest, IsSuperUser`
+         */
+        patch: operations["auth_api_v1_passkey_partial_update"];
         trace?: never;
     };
     "/auth/api/v1/passkey/authenticate/begin/": {
@@ -3559,6 +3565,21 @@ export interface components {
             note?: string;
             user_id?: string;
         };
+        /**
+         * @description Body of ``PATCH /passkey/{id}/`` — the label, and nothing else.
+         *
+         *     ``device_name`` was writable exactly once, at register-complete, so a user
+         *     who accepted the browser's default (or mistyped) was stuck with it. Only
+         *     the label is writable here: the credential's identity (``id``,
+         *     ``credential_id``, ``aaguid``, ``transports``) is what the authenticator
+         *     attested, and its history (``created_at``, ``last_used_at``,
+         *     ``sign_count``) is what the server observed — neither is the client's to
+         *     edit, so neither is in this serializer.
+         */
+        PatchedPasskeyRename: {
+            /** @description Human-readable label for this credential, e.g. "Work laptop". */
+            device_name?: string;
+        };
         /** @description Serializer for Service API Keys */
         PatchedServiceAPIKey: {
             readonly id?: number;
@@ -5620,6 +5641,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    auth_api_v1_passkey_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedPasskeyRename"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedPasskeyRename"];
+                "multipart/form-data": components["schemas"]["PatchedPasskeyRename"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyItem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
             };
         };
     };

@@ -3,7 +3,12 @@
  * them, so a demo exercises the same parsing a stand would.
  */
 import type { FeatureDef } from "@stapel/attributes-react";
-import type { RankingResponse, SearchResponse } from "../src/index.js";
+import type {
+  RankingResponse,
+  SearchItem,
+  SearchResponse,
+  SuggestResponse,
+} from "../src/index.js";
 
 export const DEMO_TYPE = "listing";
 
@@ -57,6 +62,71 @@ export const DEMO_SEARCH_RESPONSE: SearchResponse = {
   took_ms: 41,
 };
 
+/**
+ * A search that ran and matched nothing — the arm `LoadList` draws its empty
+ * state from. Distinct from a FAILED search on purpose: the counts, the
+ * cursors and the honesty flags are all present and all say "zero".
+ */
+export const DEMO_EMPTY_RESPONSE: SearchResponse = {
+  ...DEMO_SEARCH_RESPONSE,
+  items: [],
+  facets: {},
+  facet_meta: { approximate: false, candidates: 0, counted: [], skipped: [] },
+  next_anchor: null,
+  prev_anchor: null,
+  has_next: false,
+  has_prev: false,
+  count: 0,
+  count_is_lower_bound: false,
+  exact_total: true,
+  degraded: [],
+};
+
+/**
+ * A drawing rather than a photograph: an inline SVG data URI, so the card demo
+ * has a picture in every environment — a shot runner with no network, a
+ * reviewer offline — and pulls nothing from a host this package does not own.
+ */
+const DEMO_PHOTO_URI =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">' +
+      '<rect width="400" height="300" fill="#d9d9d9"/>' +
+      '<circle cx="140" cy="120" r="44" fill="#bfbfbf"/>' +
+      '<path d="M40 260 L160 150 L250 230 L310 190 L360 260 Z" fill="#a6a6a6"/>' +
+      "</svg>"
+  );
+
+/** The one item the DSA marking is about: promoted, with a photo. */
+export const DEMO_PROMOTED_ITEM: SearchItem = {
+  key: "l-1001",
+  score: 1.42,
+  promoted: true,
+  distance_km: 3.4,
+  card: {
+    title: "Bosch GSB 13 RE",
+    price: "3200",
+    currency: "RUB",
+    location: "Moscow",
+    image_url: DEMO_PHOTO_URI,
+  },
+};
+
+/** An ordinary row: no marking, no photo, no distance — the common case. */
+export const DEMO_PLAIN_ITEM: SearchItem = {
+  key: "l-1003",
+  score: 0.8,
+  promoted: false,
+  distance_km: null,
+  card: { title: "Interskol DU-13", price: "1800", currency: "RUB" },
+};
+
+/** Title prefixes out of the INDEX — never a query log (`services.suggest`). */
+export const DEMO_SUGGEST: SuggestResponse = {
+  items: ["Bosch GSB 13 RE", "Bosch GBH 2-26", "Bosch PSR 18"],
+  backend: "postgres",
+};
+
 /** The category schema the facet panel resolves labels from. */
 export const DEMO_FEATURES: readonly FeatureDef[] = [
   {
@@ -81,6 +151,16 @@ export const DEMO_FEATURES: readonly FeatureDef[] = [
         { value: "used", label: "demo.condition.used" },
       ],
     },
+  },
+  // The numeric one — this is the feature a RANGE row is drawn for
+  // (`RANGE_FEATURE_TYPES`), and the reason the panel demo shows a range at
+  // all. `power_w` is also the slug the response reports as `skipped`, so the
+  // same fixture documents both halves: a slug can be filterable by range and
+  // uncounted as a facet at the same time.
+  {
+    slug: "power_w",
+    name: "demo.feature.power",
+    config: { type: "int", min: 0, max: 2000, postfix: "W" },
   },
 ];
 

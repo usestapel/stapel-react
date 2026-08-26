@@ -42,9 +42,9 @@ export function Root({ children }: { children: React.ReactNode }) {
 }
 ```
 
-Hooks and headless components work anywhere below `<WebhooksProvider>`
-(`useWebhooksApi`, the query/mutation hooks you add in `model/`, the
-render-prop components — see `MODULE.md`). Already wired a `<StapelProvider>`
+Hooks and skin components work anywhere below `<WebhooksProvider>`
+(`useEventCatalog`, `useSubscriptions`, `useSubscriptionForm`,
+`useSecretRotation`, `useDeliveries` — see `MODULE.md`). Already wired a `<StapelProvider>`
 for another pair (or auth-react)? Keep the ONE provider: pass this runtime's
 client as a per-module override — `clients={{ webhooks: runtime.client }}` —
 and nest `<WebhooksProvider>` next to your other pair providers. The
@@ -65,15 +65,43 @@ src/
 demo/         first-class demos (compiled, product-linted, smoke-rendered)
 ```
 
-`./default` is the pair's **shipped** half: `<WebhooksPanel/>`, themed through
-`SkinTheme` from `@stapel/tokens-antd/skin` (one bridge for the whole fleet — a
-pair never mounts its own `ConfigProvider` and never defaults a theme mode).
-Importing it is the opt-in that pulls `antd`; a host with its own design system
-keeps importing the root entry and draws its own screens.
+`./default` is the pair's **shipped** half — the whole developer-settings tab,
+themed through `SkinTheme` from `@stapel/tokens-antd/skin` (one bridge for the
+whole fleet — a pair never mounts its own `ConfigProvider` and never defaults a
+theme mode). Importing it is the opt-in that pulls `antd`; a host with its own
+design system keeps importing the root entry and draws its own screens.
 
 ```tsx
-import { WebhooksPanel } from "@stapel/webhooks-react/default";
+import { WebhooksSettingsPane } from "@stapel/webhooks-react/default";
 import { registerWebhooksI18nRu } from "@stapel/webhooks-react/i18n/ru";
+```
+
+| Component | What it is |
+|---|---|
+| `WebhooksSettingsPane` | the page the `account.webhooks` nav entry mounts |
+| `SubscriptionsPane` | the rules: table on a desktop, cards on a phone; create / edit / on-off / delete |
+| `SubscriptionSheet` | write or edit one rule — event picker read from the deployment, per-type target fields, live filter validation |
+| `SecretReveal` / `SecretRotation` | the signing secret, shown once, and the rotation that breaks the old one with no overlap |
+| `DeliveriesPane` / `DeliveryDetailSheet` | the delivery log, its retention, and the replay that only a dead letter accepts |
+| `MandateNotice` | the 503 every mandate-scoped route can answer |
+
+### Two things the HTTP surface does not serve
+
+`createWebhooksRuntime` takes them, because the screens need them and the API has
+no field for either:
+
+```tsx
+const runtime = createWebhooksRuntime({
+  // Where YOUR docs explain `X-Stapel-Signature: t=…,v1=HMAC-SHA256(secret,
+  // "{t}.{body}")`, the 300-second tolerance, and the `X-Stapel-Delivery` /
+  // `-Event` / `-Event-Id` / `-Attempt` headers. Omit it and no link is drawn —
+  // never a dead control.
+  docsHref: "https://docs.example.com/webhooks/verify",
+  // `SUCCEEDED_RETENTION_DAYS` / `DEAD_RETENTION_DAYS` from your settings. The
+  // log says them out loud, because "my delivery disappeared" and "my delivery
+  // was never recorded" are otherwise the same screen. Defaults: 7 and 90.
+  retention: { succeededDays: 7, deadDays: 90 },
+});
 ```
 
 Locales ship as subpaths (`./i18n/ru`, `./i18n/es`) so a host carries only the
@@ -86,6 +114,7 @@ en and not in ru/es. Product rules for this pair: `docs/guidelines.md`.
 |---|---|---|
 | Typed API schema | `src/api/generated/schema.ts`, from stapel-webhooks's own `docs/schema.json` | `pnpm gen:api:check` |
 | Flow registry | none — zero-flow module (`src/flows/registry.ts` shim); `gen:flows` emits `src/flows/generated/` once the backend documents flows | `pnpm gen:flows:check` |
+| Nav manifest | `nav-manifest.json` (one entry: `account.webhooks`) | `pnpm gen:nav:check` |
 | Backend error map + en bundle | `src/i18n/generated/` | `pnpm gen:errors:check` |
 | Typed-event registry | `src/analytics/generated/events.json` | `pnpm gen:events:check` |
 | Demos → Ladle stories | `demo/generated/` | `pnpm gen:demos:check` |

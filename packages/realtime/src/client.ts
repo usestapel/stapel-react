@@ -45,6 +45,14 @@
  *   state the skin must render; a client that quietly stops and lets the pair
  *   fall back to polling is indistinguishable from a working one, and that is
  *   the defect this package exists to end.
+ * - **A socket that never worked is not "reconnecting".** A deployment can sit
+ *   for months with a socket that is configured and never usable (an origin
+ *   allowlist nobody filled in, a WebSocket the ingress does not upgrade). A
+ *   skin that shows "reconnecting…" forever for that is telling the truth
+ *   about the retry loop and lying about the product. So the runtime tracks
+ *   whether this client has EVER been open, and publishes a
+ *   {@link RealtimeDegradation} a pair can name out loud — see
+ *   {@link RealtimeState.degradation}.
  *
  * ## Topology
  *
@@ -124,7 +132,14 @@ export type RealtimeRefusal =
   | "revoked"
   | "unsupported";
 
-/** Per-stream state. `resync` is a state, not an error — see the file header. */
+/**
+ * Per-stream state. `resync` is a state, not an error — see the file header.
+ *
+ * Every member here describes a SOCKET. "There is no provider above this
+ * component" is deliberately not one of them — see `NoProviderStatus` in
+ * `@stapel/realtime/react`, which is a separate type precisely so that a
+ * missing provider cannot be quietly rendered as a socket problem.
+ */
 export type RealtimeStreamState =
   | "idle"
   | "connecting"
@@ -155,6 +170,56 @@ export interface RealtimeStreamStatus {
   readonly serverSeq: number | undefined;
 }
 
+/**
+ * The three shapes of "live updates are not working, and here is the honest
+ * name for it". A skin renders the KIND; it must never render all three as one
+ * spinner.
+ *
+ * | kind | what it means | what a person should be told |
+ * |---|---|---|
+ * | `never_connected` | this client has never had an open socket — the thing may never have worked here | "live updates unavailable — polling" |
+ * | `reconnecting_long` | it worked, then went away and has stayed away | "reconnecting since HH:MM — showing cached data" |
+ * | `refused` | the server gave a verdict; retrying will not change it | the refusal's own words (see {@link RealtimeRefusal}) |
+ *
+ * `never_connected` and `reconnecting_long` are different products of the same
+ * spinner: the first says the deployment is probably misconfigured (an
+ * operator has to act), the second says the network went away (waiting is
+ * reasonable). Collapsing them is what let a socket that had never once opened
+ * be reported as a transient reconnect for months.
+ */
+export interface RealtimeDegradation {
+  readonly kind: "never_connected" | "reconnecting_long" | "refused";
+  /**
+   * When this degradation began, on the client's own clock: the first connect
+   * attempt (`never_connected`), the moment the socket went down
+   * (`reconnecting_long`), or the moment the refusal landed (`refused`). It is
+   * what lets a skin say "since 14:02" instead of "for a while".
+   */
+  readonly since: number;
+  /** Consecutive failed connects behind it (0 when nothing ever answered). */
+  readonly attempts: number;
+  /** The server's words when it gave any, else the refusal kind. */
+  readonly reason?: string;
+}
+
+/**
+ * When silence becomes a thing worth naming. Defaults are deliberately dull:
+ * long enough that an ordinary reconnect never trips them, short enough that a
+ * person staring at a stale screen is told before they start doubting the data.
+ */
+export interface RealtimeDegradationThresholds {
+  /** Failed connects before a never-opened socket is named. Default 3. */
+  readonly neverConnectedAttempts?: number;
+  /** Time since the first attempt without ever opening. Default 30 000 ms. */
+  readonly neverConnectedMs?: number;
+  /** Time down after having been open. Default 60 000 ms. */
+  readonly reconnectingLongMs?: number;
+}
+
+export const DEFAULT_NEVER_CONNECTED_ATTEMPTS = 3;
+export const DEFAULT_NEVER_CONNECTED_MS = 30_000;
+export const DEFAULT_RECONNECTING_LONG_MS = 60_000;
+
 export interface RealtimeState {
   readonly state: RealtimeConnectionState;
   readonly connected: boolean;
@@ -170,6 +235,23 @@ export interface RealtimeState {
    * {@link RealtimeClient.cursors}.
    */
   readonly cursors: Readonly<Record<string, number>>;
+  /**
+   * This client has had an open socket at least once. `false` with a socket
+   * configured is the state a whole deployment can sit in for months, and the
+   * one a generic "reconnecting" indicator makes invisible.
+   */
+  readonly everConnected: boolean;
+  /** First connect attempt this client ever made. `undefined` before one. */
+  readonly firstAttemptAt: number | undefined;
+  /** When the socket last opened. `undefined` while `everConnected` is false. */
+  readonly lastOpenAt: number | undefined;
+  /**
+   * The named degradation, or `null` while nothing is wrong (and while nothing
+   * is subscribed — an idle client is not degraded, it is idle). Derived, and
+   * re-derived on a timer, so a socket that neither opens nor closes still
+   * crosses its threshold out loud rather than hanging on the last event.
+   */
+  readonly degradation: RealtimeDegradation | null;
 }
 
 /**
@@ -222,6 +304,14 @@ export interface RealtimeClientOptions {
   readonly schedule?: Schedule;
   /** Injectable jitter source (tests pin the draw). */
   readonly random?: () => number;
+  /**
+   * Injectable clock for the degradation timestamps. Defaults to `Date.now`.
+   * A test pins it so "30 seconds without a first open" is an assertion rather
+   * than a wait.
+   */
+  readonly now?: () => number;
+  /** When silence gets named. See {@link RealtimeDegradationThresholds}. */
+  readonly degradation?: RealtimeDegradationThresholds;
   readonly onState?: (state: RealtimeState) => void;
 }
 
@@ -365,6 +455,13 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
   const usingBrowserTransport = options.webSocket === undefined;
   const schedule = options.schedule ?? defaultSchedule;
   const random = options.random ?? Math.random;
+  const now = options.now ?? Date.now;
+  const neverConnectedAttempts =
+    options.degradation?.neverConnectedAttempts ?? DEFAULT_NEVER_CONNECTED_ATTEMPTS;
+  const neverConnectedMs =
+    options.degradation?.neverConnectedMs ?? DEFAULT_NEVER_CONNECTED_MS;
+  const reconnectingLongMs =
+    options.degradation?.reconnectingLongMs ?? DEFAULT_RECONNECTING_LONG_MS;
   const heartbeatMs = options.heartbeat?.intervalMs ?? DEFAULT_HEARTBEAT_MS;
   const heartbeatTimeoutMs = options.heartbeat?.timeoutMs ?? DEFAULT_HEARTBEAT_TIMEOUT_MS;
   const session = options.session ?? null;
@@ -373,6 +470,15 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
   const connections = new Map<string, Connection>();
   const stateListeners = new Set<(state: RealtimeState) => void>();
   let disposed = false;
+  /** Facts about this client's history, not about the current socket. */
+  let everConnected = false;
+  let firstAttemptAt: number | undefined;
+  let lastOpenAt: number | undefined;
+  /** When the client stopped being open (or started trying and never was). */
+  let downSince: number | undefined;
+  let refusedAt: number | undefined;
+  /** Re-derivation timer: silence produces no events, so it must be asked. */
+  let cancelDegradationWatch: Cancel | null = null;
   let snapshot: RealtimeState = {
     state: "idle",
     connected: false,
@@ -382,6 +488,10 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
     reason: undefined,
     attempt: 0,
     cursors: {},
+    everConnected: false,
+    firstAttemptAt: undefined,
+    lastOpenAt: undefined,
+    degradation: null,
   };
   if (options.onState) stateListeners.add(options.onState);
 
@@ -400,6 +510,117 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
     const out: Record<string, number> = {};
     for (const record of streams.values()) out[record.stream] = record.cursor;
     return out;
+  }
+
+  /**
+   * Name the silence, or say there is none.
+   *
+   * `refused` wins over everything: a verdict is not a slow reconnect, and
+   * putting a countdown on it would tell an operator to wait for something
+   * that is never coming. Below it the split is on ONE question — has this
+   * client ever been open — because that is the difference between "your
+   * network went away" and "this was never wired up here".
+   */
+  function deriveDegradation(
+    state: RealtimeConnectionState,
+    connected: boolean,
+    attempt: number,
+    refusal: RealtimeRefusal | undefined,
+    reason: string | undefined,
+    at: number
+  ): RealtimeDegradation | null {
+    if (disposed) return null;
+    if (state === "refused") {
+      const words = reason ?? refusal;
+      return {
+        kind: "refused",
+        since: refusedAt ?? at,
+        attempts: attempt,
+        ...(words !== undefined ? { reason: words } : {}),
+      };
+    }
+    // Nothing subscribed is not a degradation. A host that has opened no
+    // socket at all is idle, and calling that "unavailable" would make every
+    // page that never watches anything report a fault.
+    if (connected || connections.size === 0) return null;
+    if (!everConnected) {
+      if (firstAttemptAt === undefined) return null;
+      const named =
+        attempt >= neverConnectedAttempts || at - firstAttemptAt >= neverConnectedMs;
+      return named
+        ? { kind: "never_connected", since: firstAttemptAt, attempts: attempt }
+        : null;
+    }
+    if (downSince === undefined || at - downSince < reconnectingLongMs) return null;
+    return { kind: "reconnecting_long", since: downSince, attempts: attempt };
+  }
+
+  /**
+   * The degradation is DERIVED, so a reader always gets the truth for the
+   * current instant — {@link RealtimeClient.getState} re-derives it, and keeps
+   * the snapshot's identity when the answer has not changed (a store whose
+   * getSnapshot returned a fresh object every call would spin React's
+   * `useSyncExternalStore`).
+   */
+  function currentState(): RealtimeState {
+    const fresh = deriveDegradation(
+      snapshot.state,
+      snapshot.connected,
+      snapshot.attempt,
+      snapshot.refusal,
+      snapshot.reason,
+      now()
+    );
+    const held = snapshot.degradation;
+    const same =
+      fresh === null
+        ? held === null
+        : held !== null &&
+          fresh.kind === held.kind &&
+          fresh.since === held.since &&
+          fresh.attempts === held.attempts &&
+          fresh.reason === held.reason;
+    if (same) return snapshot;
+    snapshot = { ...snapshot, degradation: fresh };
+    return snapshot;
+  }
+
+  /**
+   * A socket that is opened and simply never answered produces no event, ever.
+   * Deriving on read covers whoever asks, but a SUBSCRIBER has to be told, and
+   * silence will not tell it — so the remaining wait is scheduled explicitly.
+   *
+   * The timer exists only to notify: with nobody listening there is nothing to
+   * wake, and the next reader derives the same answer anyway. That is why a
+   * client nobody subscribed to holds no timer at all — a runtime that armed
+   * one regardless would leave a pending timer behind every state a test, or a
+   * host, thought it had quiesced.
+   */
+  function armDegradationWatch(): void {
+    cancelDegradationWatch?.();
+    cancelDegradationWatch = null;
+    if (disposed || connections.size === 0 || stateListeners.size === 0) return;
+    const state = currentState();
+    // Already named, already open, or a verdict that no amount of waiting
+    // changes: nothing left to wake up for. A timer that outlives its question
+    // is also how a refusal came to look like it was still trying.
+    if (state.connected || state.state === "refused" || state.degradation !== null) {
+      return;
+    }
+    const deadline = everConnected
+      ? downSince === undefined
+        ? undefined
+        : downSince + reconnectingLongMs
+      : firstAttemptAt === undefined
+        ? undefined
+        : firstAttemptAt + neverConnectedMs;
+    if (deadline === undefined) return;
+    const at = now();
+    if (deadline <= at) return;
+    cancelDegradationWatch = schedule(() => {
+      cancelDegradationWatch = null;
+      publish();
+    }, deadline - at);
   }
 
   function publish(): void {
@@ -429,6 +650,23 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
     else if (refusal !== undefined) state = "refused";
     else state = "idle";
 
+    const at = now();
+    // "Down since" is the moment it stopped being open — NOT the moment it was
+    // last open. A socket that stayed up for an hour and then dropped is one
+    // second down, and measuring from `lastOpenAt` would report it as an hour.
+    if (connected) downSince = undefined;
+    else if (downSince === undefined && connections.size > 0) downSince = at;
+    if (state === "refused") refusedAt ??= at;
+    else refusedAt = undefined;
+
+    const degradation = deriveDegradation(
+      state,
+      connected,
+      attempt,
+      state === "refused" ? refusal : undefined,
+      state === "refused" ? reason : undefined,
+      at
+    );
     snapshot = {
       state,
       connected,
@@ -438,7 +676,12 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
       reason: state === "refused" ? reason : undefined,
       attempt,
       cursors: liveCursors(),
+      everConnected,
+      firstAttemptAt,
+      lastOpenAt,
+      degradation,
     };
+    armDegradationWatch();
     for (const listener of stateListeners) listener(snapshot);
   }
 
@@ -706,6 +949,11 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
       return;
     }
     clearTimers(connection);
+    // The clock for `never_connected` starts at the FIRST attempt this client
+    // ever made, and never restarts: a deployment that has been retrying for a
+    // week is not thirty seconds old, and a threshold that reset on every
+    // retry would never be reached.
+    firstAttemptAt ??= now();
     for (const record of streamsOf(connection)) {
       if (record.status.state === "refused") continue;
       setStreamStatus(record, {
@@ -729,6 +977,11 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
           if (!isCurrent() || connection.socket === null) return;
           connection.opened = true;
           connection.everOpened = true;
+          // An open socket is what clears `never_connected` — before any
+          // `welcome`, because "the deployment can carry a WebSocket at all"
+          // is the question that state was asking.
+          everConnected = true;
+          lastOpenAt = now();
           // `hello` per stream IS the subscribe: the server re-runs
           // `authorize()` on every one of them.
           for (const record of streamsOf(connection)) {
@@ -903,11 +1156,16 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
 
   return {
     subscribe,
-    getState: () => snapshot,
+    getState: () => currentState(),
     streamStatus: (stream) => streams.get(stream)?.status,
     cursors: () => liveCursors(),
     onState(listener) {
       stateListeners.add(listener);
+      // The first subscriber is what makes a degradation deadline worth
+      // waking for — and it usually arrives AFTER the socket was opened, so
+      // arming only inside publish() would leave the one deployment this
+      // feature exists to name with no timer at all.
+      armDegradationWatch();
       return () => {
         stateListeners.delete(listener);
       };
@@ -939,6 +1197,14 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
     close() {
       if (disposed) return;
       disposed = true;
+      cancelDegradationWatch?.();
+      cancelDegradationWatch = null;
+      // `everConnected`/`lastOpenAt` are history and survive a teardown — a
+      // StrictMode remount must not re-report a socket that demonstrably works
+      // as one that has never connected. The down-clock does restart, because
+      // nothing is down while nothing is subscribed.
+      downSince = undefined;
+      refusedAt = undefined;
       for (const connection of [...connections.values()]) dropConnection(connection);
       streams.clear();
       publish();

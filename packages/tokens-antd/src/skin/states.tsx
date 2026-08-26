@@ -159,7 +159,7 @@ export function ErrorAlert(props: ErrorAlertProps): ReactElement | null {
       showIcon
       role="alert"
       data-stapel-error="block"
-      message={shown.message}
+      title={shown.message}
       {...(detailNode !== null ? { description: detailNode } : {})}
       {...(actions !== undefined ? { action: actions } : {})}
       {...(props.onDismiss !== undefined

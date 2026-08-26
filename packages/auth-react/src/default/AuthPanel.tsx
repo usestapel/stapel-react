@@ -424,7 +424,7 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
           {props.notice && (
             <Alert
               type={props.notice.type}
-              message={t(props.notice.key)}
+              title={t(props.notice.key)}
               showIcon
             />
           )}
@@ -647,7 +647,7 @@ function PasskeyFallbackBody(props: {
       <Alert
         type={retryable ? "warning" : "info"}
         showIcon
-        message={message}
+        title={message}
         data-passkey-failure={failure ?? "failed"}
       />
       <Flex gap="small" wrap>

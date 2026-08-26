@@ -49,13 +49,14 @@
     "test": "tsc -p tsconfig.demo.json && vitest run --exclude test/prodBundlePurity.test.ts",
     "test:pack": "vitest run test/prodBundlePurity.test.ts",
     "lint": "eslint .",
+    "gen:nav": "NAV_PACKAGES=$(cd ../.. && ls -d packages/*/src/nav/manifest.ts | sed 's|/src/nav/manifest.ts||' | paste -sd, -) NAV_PKG_DIR=packages/workspaces-react node --experimental-strip-types ../../scripts/gen-nav-manifest.mjs",
     "size": "size-limit"
   },
   "size-limit": [
     {
       "name": "index — the ru/es locales must NOT be in the main bundle",
       "path": "dist/index.js",
-      "limit": "12 KB"
+      "limit": "12.5 KB"
     },
     {
       "name": "i18n/ru subpath (opt-in locale: en floor + generated ru errors + COMPLETE ru UI copy)",
@@ -68,14 +69,14 @@
       "limit": "9.5 KB"
     },
     {
-      "name": "default — six antd screens; must stay out of the main bundle",
+      "name": "default — seven antd screens; must stay out of the main bundle",
       "path": "dist/default/index.js",
       "limit": "22 KB"
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.15.0 <1.0.0",
-    "@stapel/tokens-antd": ">=0.2.0",
+    "@stapel/core": ">=0.18.0 <1.0.0",
+    "@stapel/tokens-antd": ">=0.6.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"

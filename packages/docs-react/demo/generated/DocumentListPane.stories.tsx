@@ -8,10 +8,10 @@ export default { title: "docs-react / Document list" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"populated"} };
 export const NoOpenRoute = (): ReactElement => renderDemoVariant(demo, "no-open-route");
 NoOpenRoute.storyName = "no-open-route";
-NoOpenRoute.parameters = { stapel: {"viewport":"phone"} };
+NoOpenRoute.parameters = { stapel: {"viewport":"phone","step":"populated-not-openable"} };
 export const Empty = (): ReactElement => renderDemoVariant(demo, "empty");
 Empty.storyName = "empty";
-Empty.parameters = { stapel: {"viewport":"phone"} };
+Empty.parameters = { stapel: {"viewport":"phone","step":"empty"} };

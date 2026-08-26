@@ -8,5 +8,10 @@ export default { title: "auth-react / Sign-in screen (default skin)" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
+Default.parameters = { stapel: {"step":"chooseMethod"} };
 export const Register = (): ReactElement => renderDemoVariant(demo, "register");
 Register.storyName = "register";
+Register.parameters = { stapel: {"step":"register"} };
+export const SessionRevoked = (): ReactElement => renderDemoVariant(demo, "session-revoked");
+SessionRevoked.storyName = "session-revoked";
+SessionRevoked.parameters = { stapel: {"viewport":"phone","step":"notice"} };

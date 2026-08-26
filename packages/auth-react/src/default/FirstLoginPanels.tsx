@@ -264,7 +264,7 @@ function MfaEnrollBody(props: {
   if (s.step === "exchangeError" || s.step === "completeError") {
     return (
       <Flex vertical gap="middle" data-testid="mfa-enroll-panel">
-        <Alert type="error" showIcon message={formatError(s.error)} />
+        <Alert type="error" showIcon title={formatError(s.error)} />
         <Typography.Text type="secondary">
           {t(AUTH_I18N_KEYS.mfaEnrollRestartHint)}
         </Typography.Text>
@@ -338,7 +338,7 @@ function MfaEnrollBody(props: {
                   {t(AUTH_I18N_KEYS.mfaEnrollMethodPasskey)}
                 </Button>
                 {err && (
-                  <Alert type="error" showIcon message={formatError(err)} />
+                  <Alert type="error" showIcon title={formatError(err)} />
                 )}
               </Flex>
             );
@@ -380,7 +380,7 @@ function EnrollTotpJourney(props: {
     const error: FlowError | undefined = s.error;
     return (
       <Flex vertical gap="middle" align="center">
-        {error && <Alert type="error" showIcon message={formatError(error)} />}
+        {error && <Alert type="error" showIcon title={formatError(error)} />}
         <Button type="primary" onClick={() => setupBag.start()} data-analytics="flow">
           {t(AUTH_I18N_KEYS.secTotpSetUp)}
         </Button>

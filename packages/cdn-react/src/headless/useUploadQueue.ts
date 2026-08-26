@@ -29,7 +29,13 @@ import {
   toStapelApiError,
 } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
-import type { CdnFileKind, CdnImage, CdnMediaRow, CdnRef } from "../api/types.js";
+import type {
+  CdnFileKind,
+  CdnImage,
+  CdnMediaRow,
+  CdnRef,
+  CdnVariantsStatus,
+} from "../api/types.js";
 import { useCdnRuntime } from "../model/context.js";
 import type { CdnIntakeLimits } from "../model/limits.js";
 import { acceptAttribute, validateFile } from "../model/limits.js";
@@ -65,6 +71,13 @@ export interface UploadItem {
   readonly dedupSkipped: DedupSkipReason | undefined;
   /** Whether the variant ladder existed by the time the flow stopped waiting. */
   readonly variantsReady: boolean;
+  /**
+   * The row's `variants_status` — `"pending"` while the ladder's URLs are
+   * still a prediction, `"ready"` once they resolve, `null` for a model that
+   * publishes no ladder. This is the field the contract says to read before
+   * rendering a variant URL; `variantsReady` above is derived from it.
+   */
+  readonly variantsStatus: CdnVariantsStatus | null;
   readonly error: StapelApiError | null;
 }
 
@@ -166,6 +179,7 @@ const RESTORED: Omit<UploadItem, "id" | "ref"> = {
   deduped: false,
   dedupSkipped: undefined,
   variantsReady: false,
+  variantsStatus: null,
   error: null,
 };
 
@@ -257,6 +271,7 @@ export function useUploadQueue(options: UseUploadQueueOptions): UploadQueueBag {
             deduped: outcome.deduped,
             dedupSkipped: outcome.dedupSkipped,
             variantsReady: outcome.variantsReady,
+            variantsStatus: outcome.variantsStatus,
             error: null,
           });
         },
@@ -347,6 +362,7 @@ export function useUploadQueue(options: UseUploadQueueOptions): UploadQueueBag {
             deduped: false,
             dedupSkipped: undefined,
             variantsReady: false,
+            variantsStatus: null,
             error: refusal,
           });
         }

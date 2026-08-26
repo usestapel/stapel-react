@@ -1,8 +1,8 @@
 /**
  * `<PasskeysManager/>` — default skin for the security-settings passkeys
- * screen (owner directive point 5; auth-sa.md §17). List + remove use the
- * pair's existing `usePasskeys`/`useRemovePasskey` hooks; adding one uses the
- * existing `PasskeyRegistration` headless flow. No new backend surface.
+ * screen (owner directive point 5; auth-sa.md §17). List, rename and remove
+ * use the pair's `usePasskeys`/`useRenamePasskey`/`useRemovePasskey` hooks;
+ * adding one uses the `PasskeyRegistration` headless flow.
  *
  * ## The row is about a CREDENTIAL, not about signing in
  *
@@ -23,16 +23,20 @@
  *    when it was last used — or, honestly, that it never has been — and the
  *    two actions that exist against the contract.
  *
- * **RENAME IS WRITTEN HERE AND SWITCHED OFF BY THE CONTRACT.** The pair's
- * whole passkey surface today is `GET /passkey/`, `POST /passkey/register/
- * {begin,complete}/` and `DELETE /passkey/{id}/`; `device_name` is writable
- * exactly once, at register-complete. A rename control against that is a
- * button that cannot do its job — the same defect as the LOG IN button one
- * paragraph up — so the affordance is NOT RENDERED rather than rendered
- * greyed out. `PASSKEY_RENAME_SUPPORTED` (src/api/authApi.ts) is a
- * compile-time tripwire on the generated contract: the regen that brings
- * `PATCH /passkey/{id}/` in fails the build at that one constant, it flips to
- * true, and this UI lights up with no further edit.
+ * **RENAME IS CONTRACT-GATED, NOT GREYED OUT.** `PASSKEY_RENAME_SUPPORTED`
+ * (src/api/authApi.ts) is a compile-time tripwire on the generated contract;
+ * stapel-auth 0.28.0 shipped `PATCH /passkey/{id}/`, so it is true and the
+ * rename row and its dialog render. Against an older contract the affordance
+ * is not rendered at all rather than rendered disabled — a control that
+ * cannot do its job is the same defect as the LOG IN button one paragraph up.
+ *
+ * **A 404 FROM RENAME OR REMOVE MEANS GONE, NOT FORBIDDEN.** The backend
+ * scopes both per-credential routes by an ownership *lookup*, so somebody
+ * else's credential id and an id that never existed answer identically —
+ * `error.404.passkey_not_found`, never a 403. Reading that as a permission
+ * problem would put "you are not allowed" in front of a person looking at
+ * their own settings page. It is read as *this row is stale*: the list is
+ * refetched and the sentence says the credential is no longer on the account.
  *
  * INTERACTION CANON — passkey = direct trigger, NEVER a modal (owner
  * directive 2026-07-17, folded into frontend-guidelines.md §8): the
@@ -65,6 +69,7 @@ import {
 import {
   actionAvailable,
   actionBlocked,
+  hasErrorCode,
   loadStateFromQuery,
   useT,
 } from "@stapel/core";
@@ -102,6 +107,15 @@ function inferDeviceName(): string {
   if (/Windows/.test(ua)) return "Windows PC";
   return "Passkey";
 }
+
+/**
+ * The only error either per-credential route raises about the ROW itself.
+ * Ownership is a lookup predicate on the backend, so this code covers both
+ * "somebody removed it from another tab" and "this id was never yours" — from
+ * the client there is no difference, and the honest sentence for both is that
+ * the credential is not on the account any more.
+ */
+const PASSKEY_GONE_CODE = "error.404.passkey_not_found";
 
 /**
  * WHAT this credential actually is, from the transports the authenticator
@@ -314,6 +328,18 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
   const state = loadStateFromQuery(passkeys);
   const hasAny = passkeys.data !== undefined && passkeys.data.length > 0;
 
+  // A stale row: the id is not on the account any more. Refetch so the list
+  // stops offering actions against something that is gone, and say so once —
+  // the raw registry sentence ("Passkey not found.") is true but leaves the
+  // person looking at a row that is still on screen.
+  const gone =
+    hasErrorCode(remove.error, PASSKEY_GONE_CODE) ||
+    hasErrorCode(rename.error, PASSKEY_GONE_CODE);
+  const refetchPasskeys = passkeys.refetch;
+  useEffect(() => {
+    if (gone) void refetchPasskeys();
+  }, [gone, refetchPasskeys]);
+
   return (
     <SkinTheme surface="bare">
       <Card
@@ -388,8 +414,17 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
           )}
         </LoadList>
 
-        <ErrorAlert thrown={remove.error} />
-        <ErrorAlert thrown={rename.error} />
+        {gone ? (
+          <ErrorAlert
+            message={t(AUTH_I18N_KEYS.secPasskeysGone)}
+            testId="passkey-gone"
+          />
+        ) : (
+          <>
+            <ErrorAlert thrown={remove.error} />
+            <ErrorAlert thrown={rename.error} />
+          </>
+        )}
 
         {adding && (
           <PasskeyRegistration
@@ -433,7 +468,11 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
             dismissLabel={t(AUTH_I18N_KEYS.uiClose)}
             data-testid="passkey-rename-dialog"
           >
+            {/* Keyed by the credential: antd reads `initialValues` once per
+                Form instance, so one long-lived instance would open on the
+                previous row's name every time after the first. */}
             <Form
+              key={renaming?.id ?? "none"}
               layout="vertical"
               initialValues={{ deviceName: renaming?.device_name ?? "" }}
               onFinish={(v: { deviceName?: string }) => {

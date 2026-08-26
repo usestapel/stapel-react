@@ -35,8 +35,9 @@
  * 409 — and NOT the 400, which now means only what it says: an unknown outcome
  * word, i.e. a bug in this client.
  */
-import { isErrorCode, toFlowError } from "@stapel/core";
+import { isErrorCode } from "@stapel/core";
 import type { FlowError } from "@stapel/core";
+import { toFlowError } from "../flows/errors.js";
 
 // ── report intake ───────────────────────────────────────────────────────────
 /** You cannot report your own content. A **400**, not a 403: nothing about
@@ -143,9 +144,16 @@ export const CORE_ERROR_RATE_LIMIT = "error.429.rate_limit";
 /** @see CORE_ERROR_RATE_LIMIT */
 export const CORE_ERROR_TOO_MANY_REQUESTS = "error.429.too_many_requests";
 
-/** Fold any thrown value into this pair's error dialect. */
+/**
+ * Fold any thrown value into this pair's error dialect.
+ *
+ * Goes through `flows/errors.ts` rather than core directly, because that
+ * wrapper is IDEMPOTENT: a refusal read off a flow machine's `refused` state is
+ * already a `FlowError`, and core's fold would collapse it to the unknown
+ * fallback — silently turning every predicate below into `false`.
+ */
 export function toModerationError(error: unknown): FlowError {
-  return toFlowError(error, "moderation.error.unknown");
+  return toFlowError(error);
 }
 
 const is = (error: unknown, code: string): boolean =>

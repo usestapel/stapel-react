@@ -8,13 +8,13 @@ export default { title: "shell-react / App shell" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"desktop"} };
+Default.parameters = { stapel: {"viewport":"desktop","step":"sider"} };
 export const AdminBlocked = (): ReactElement => renderDemoVariant(demo, "admin-blocked");
 AdminBlocked.storyName = "admin-blocked";
-AdminBlocked.parameters = { stapel: {"viewport":"desktop"} };
+AdminBlocked.parameters = { stapel: {"viewport":"desktop","step":"admin-blocked"} };
 export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
 Phone.storyName = "phone";
-Phone.parameters = { stapel: {"viewport":"phone"} };
+Phone.parameters = { stapel: {"viewport":"phone","step":"collapsed"} };
 export const PhoneDrawer = (): ReactElement => renderDemoVariant(demo, "phone-drawer");
 PhoneDrawer.storyName = "phone-drawer";
-PhoneDrawer.parameters = { stapel: {"viewport":"phone"} };
+PhoneDrawer.parameters = { stapel: {"viewport":"phone","step":"drawer-open"} };

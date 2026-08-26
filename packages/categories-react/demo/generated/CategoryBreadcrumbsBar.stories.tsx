@@ -8,13 +8,13 @@ export default { title: "categories-react / Category breadcrumbs" };
 
 export const Deep = (): ReactElement => renderDemoVariant(demo, "deep");
 Deep.storyName = "deep";
-Deep.parameters = { stapel: {"viewport":"phone"} };
+Deep.parameters = { stapel: {"viewport":"phone","step":"ready"} };
 export const InARouter = (): ReactElement => renderDemoVariant(demo, "in a router");
 InARouter.storyName = "in a router";
-InARouter.parameters = { stapel: {"viewport":"desktop"} };
+InARouter.parameters = { stapel: {"viewport":"desktop","step":"ready-routed"} };
 export const TheLinkItself = (): ReactElement => renderDemoVariant(demo, "the link itself");
 TheLinkItself.storyName = "the link itself";
-TheLinkItself.parameters = { stapel: {"viewport":"desktop"} };
+TheLinkItself.parameters = { stapel: {"viewport":"desktop","step":"link"} };
 export const StaleLink = (): ReactElement => renderDemoVariant(demo, "stale link");
 StaleLink.storyName = "stale link";
-StaleLink.parameters = { stapel: {"viewport":"desktop"} };
+StaleLink.parameters = { stapel: {"viewport":"desktop","step":"unknown-slug"} };

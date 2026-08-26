@@ -19,9 +19,17 @@ import {
   SearchProvider,
   SearchStateProvider,
   createSearchRuntime,
+  parseSearchState,
   registerSearchI18n,
+  searchQueryKeys,
+  searchQueryParams,
 } from "../src/index.js";
-import type { SearchParamsAdapter } from "../src/index.js";
+import type {
+  RankingResponse,
+  SearchParamsAdapter,
+  SearchResponse,
+  SuggestResponse,
+} from "../src/index.js";
 import { DEMO_TYPE } from "./fixtures.js";
 
 /** The base every mock handler mounts on (mirrors `/search/api/v1/`). */
@@ -66,6 +74,7 @@ const demoBundleEn: Record<string, string> = {
   "demo.action.reset": "Reset",
   "demo.feature.brand": "Brand",
   "demo.feature.condition": "Condition",
+  "demo.feature.power": "Power",
   "demo.brand.bosch": "Bosch",
   "demo.brand.makita": "Makita",
   "demo.brand.interskol": "Interskol",
@@ -74,6 +83,73 @@ const demoBundleEn: Record<string, string> = {
   "search.scorer.relevance": "Text relevance",
   "search.scorer.geo": "Distance",
 };
+
+/**
+ * What a variant is SEEDED with.
+ *
+ * A demo whose answer arrives from the mocked `fetch` renders its LOADING arm
+ * on the first frame, so a static shot photographs a skeleton however the
+ * variant is named — the C-SAMESHOT defect, and the reason
+ * `assertVariantsRenderDistinctly` exists. Seeding writes the answer straight
+ * into the query cache under the key the request would have used, so the
+ * variant OPENS in the state it documents and the shot runner has something to
+ * photograph. `handlers` stays for what only the wire can produce (a refusal,
+ * a second page fetched by a click in the live viewer).
+ */
+export interface DemoSeed {
+  /** The `GET /query` answer, keyed on the state {@link DemoSeed.search} parses to. */
+  readonly page?: SearchResponse;
+  /** The `GET /ranking` answer. `rankingType` must match the pane's `type` prop. */
+  readonly ranking?: RankingResponse;
+  readonly rankingType?: string;
+  /** A `GET /suggest` answer for one prefix (the typeahead's cache). */
+  readonly suggest?: SuggestResponse;
+  readonly suggestPrefix?: string;
+}
+
+/**
+ * Write a seed into a fresh client. `search` is the query string the surface
+ * is mounted with: the page key is derived from it through the pair's OWN
+ * codec, so a demo cannot seed a key the component would not ask for.
+ */
+function seedQueryClient(client: QueryClient, seed: DemoSeed, search: string): void {
+  if (seed.page !== undefined) {
+    const { state } = parseSearchState(new URLSearchParams(search), {
+      defaultType: DEMO_TYPE,
+    });
+    client.setQueryData(searchQueryKeys.query(searchQueryParams(state)), seed.page);
+  }
+  if (seed.ranking !== undefined) {
+    client.setQueryData(searchQueryKeys.ranking(seed.rankingType), seed.ranking);
+  }
+  if (seed.suggest !== undefined) {
+    client.setQueryData(
+      searchQueryKeys.suggest(DEMO_TYPE, seed.suggestPrefix ?? ""),
+      seed.suggest
+    );
+  }
+}
+
+/**
+ * The narrow frame a phone variant is drawn in — 390px, the iPhone width the
+ * visual pass shoots at, as a named constant rather than a bare number.
+ */
+export const PHONE_FRAME_WIDTH = 390;
+
+/** A phone-width or full-width box around a surface. */
+export function DemoFrame(props: {
+  phone?: boolean;
+  children: ReactNode;
+}): ReactElement {
+  return (
+    <div
+      data-demo-frame={props.phone === true ? "phone" : "desktop"}
+      style={props.phone === true ? { maxWidth: PHONE_FRAME_WIDTH } : undefined}
+    >
+      {props.children}
+    </div>
+  );
+}
 
 /** An in-memory {@link SearchParamsAdapter} — no router, no history. */
 export function useMemoryParams(initial = ""): SearchParamsAdapter & {
@@ -95,9 +171,12 @@ export function useMemoryParams(initial = ""): SearchParamsAdapter & {
 /** Provider frame every search demo variant renders inside. */
 export function SearchDemoHarness(props: {
   handlers?: DemoHandlers;
+  seed?: DemoSeed;
+  /** The query string the seed's page key is derived from. */
+  seedSearch?: string;
   children: ReactNode;
 }): ReactElement {
-  const { handlers } = props;
+  const { handlers, seed, seedSearch } = props;
   const { runtime, queryClient, i18n } = useMemo(() => {
     const rt = createSearchRuntime({
       baseUrl: DEMO_BASE,
@@ -106,18 +185,53 @@ export function SearchDemoHarness(props: {
     const engine = createI18n({ locale: "en" });
     registerSearchI18n(engine);
     engine.registerBundle("en", demoBundleEn);
-    return {
-      runtime: rt,
-      queryClient: new QueryClient({ defaultOptions: { queries: { retry: false } } }),
-      i18n: engine,
-    };
-  }, [handlers]);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    if (seed !== undefined) {
+      seedQueryClient(client, seed, seedSearch ?? `type=${DEMO_TYPE}`);
+    }
+    return { runtime: rt, queryClient: client, i18n: engine };
+  }, [handlers, seed, seedSearch]);
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
         <SearchProvider runtime={runtime}>{props.children}</SearchProvider>
       </I18nProvider>
     </QueryClientProvider>
+  );
+}
+
+/**
+ * The frame a `/default` SKIN demo renders inside: providers, the URL state,
+ * and a phone-width box when the variant is the phone one.
+ *
+ * No demo chrome — no card, no URL line, no state badges. A skin demo is a
+ * photograph of the PRODUCT, and everything the harness draws around it is
+ * something a reviewer has to mentally subtract before answering "does this
+ * screen work". The headless demos keep the chrome, because there the state
+ * IS the subject.
+ */
+export function SearchSkinHarness(props: {
+  handlers?: DemoHandlers;
+  seed?: DemoSeed;
+  /** The query string the surface opens on — and the seed's page key. */
+  search?: string;
+  phone?: boolean;
+  children: ReactNode;
+}): ReactElement {
+  const search = props.search ?? `type=${DEMO_TYPE}`;
+  const adapter = useMemoryParams(search);
+  return (
+    <SearchDemoHarness
+      seedSearch={search}
+      {...(props.handlers !== undefined ? { handlers: props.handlers } : {})}
+      {...(props.seed !== undefined ? { seed: props.seed } : {})}
+    >
+      <SearchStateProvider adapter={adapter} defaultType={DEMO_TYPE}>
+        <DemoFrame {...(props.phone === true ? { phone: true } : {})}>
+          {props.children}
+        </DemoFrame>
+      </SearchStateProvider>
+    </SearchDemoHarness>
   );
 }
 

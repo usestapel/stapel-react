@@ -8,13 +8,13 @@ export default { title: "notifications-react / Notifications page" };
 
 export const Polling = (): ReactElement => renderDemoVariant(demo, "polling");
 Polling.storyName = "polling";
-Polling.parameters = { stapel: {"viewport":"phone"} };
+Polling.parameters = { stapel: {"viewport":"phone","step":"ready/polling"} };
 export const Live = (): ReactElement => renderDemoVariant(demo, "live");
 Live.storyName = "live";
-Live.parameters = { stapel: {"viewport":"phone"} };
+Live.parameters = { stapel: {"viewport":"phone","step":"ready/live"} };
 export const Desktop = (): ReactElement => renderDemoVariant(demo, "desktop");
 Desktop.storyName = "desktop";
-Desktop.parameters = { stapel: {"viewport":"desktop"} };
+Desktop.parameters = { stapel: {"viewport":"desktop","step":"ready/paged"} };
 export const Empty = (): ReactElement => renderDemoVariant(demo, "empty");
 Empty.storyName = "empty";
-Empty.parameters = { stapel: {"viewport":"phone"} };
+Empty.parameters = { stapel: {"viewport":"phone","step":"empty"} };

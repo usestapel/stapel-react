@@ -6,7 +6,6 @@ import demo from "../ImageUpload.demo.js";
 
 export default { title: "cdn-react / Single image slot" };
 
-export const Default = (): ReactElement => renderDemoVariant(demo, "default");
-Default.storyName = "default";
 export const AlreadyStored = (): ReactElement => renderDemoVariant(demo, "already-stored");
 AlreadyStored.storyName = "already-stored";
+AlreadyStored.parameters = { stapel: {"viewport":"phone","step":"deduped"} };

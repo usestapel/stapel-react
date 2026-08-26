@@ -32,7 +32,7 @@ export function PaymentRequiredNotice(props: {
       type="warning"
       showIcon
       icon={<CreditIcon />}
-      message={t(RECORDINGS_I18N_KEYS.paymentTitle)}
+      title={t(RECORDINGS_I18N_KEYS.paymentTitle)}
       description={
         <div style={{ ...stackStyle, gap: spacing["2"] }}>
           <Typography.Text type="secondary">

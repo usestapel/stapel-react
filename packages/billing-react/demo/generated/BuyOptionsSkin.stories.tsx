@@ -8,9 +8,10 @@ export default { title: "billing-react / Two ways to buy (default skin)" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"ready"} };
 export const Subscribed = (): ReactElement => renderDemoVariant(demo, "subscribed");
 Subscribed.storyName = "subscribed";
+Subscribed.parameters = { stapel: {"step":"current-plan"} };
 export const SettlingADebt = (): ReactElement => renderDemoVariant(demo, "settling-a-debt");
 SettlingADebt.storyName = "settling-a-debt";
-SettlingADebt.parameters = { stapel: {"viewport":"phone"} };
+SettlingADebt.parameters = { stapel: {"viewport":"phone","step":"debt"} };

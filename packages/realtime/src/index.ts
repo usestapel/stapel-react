@@ -17,6 +17,7 @@
  * | answer the heartbeat or die every 35 s | the runtime replies `pong` to every `ping` |
  * | a refusal is not a retry | {@link closeDisposition} |
  * | 4401 in a browser is a stale SESSION, not a refusal | {@link RealtimeSessionSeam} |
+ * | a socket that never worked is not "reconnecting" | {@link RealtimeDegradation} |
  */
 export {
   WIRE_VERSION,
@@ -86,12 +87,17 @@ export type { BackoffOptions, Cancel, Schedule } from "./backoff.js";
 export {
   DEFAULT_HEARTBEAT_MS,
   DEFAULT_HEARTBEAT_TIMEOUT_MS,
+  DEFAULT_NEVER_CONNECTED_ATTEMPTS,
+  DEFAULT_NEVER_CONNECTED_MS,
+  DEFAULT_RECONNECTING_LONG_MS,
   createRealtimeClient,
 } from "./client.js";
 export type {
   RealtimeClient,
   RealtimeClientOptions,
   RealtimeConnectionState,
+  RealtimeDegradation,
+  RealtimeDegradationThresholds,
   RealtimeRefusal,
   RealtimeSessionSeam,
   RealtimeState,

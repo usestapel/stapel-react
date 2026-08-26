@@ -8,10 +8,10 @@ export default { title: "currencies-react / Rate table (default skin)" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"ready"} };
 export const Empty = (): ReactElement => renderDemoVariant(demo, "empty");
 Empty.storyName = "empty";
-Empty.parameters = { stapel: {"viewport":"desktop"} };
+Empty.parameters = { stapel: {"viewport":"desktop","step":"empty"} };
 export const Failed = (): ReactElement => renderDemoVariant(demo, "failed");
 Failed.storyName = "failed";
-Failed.parameters = { stapel: {"viewport":"desktop"} };
+Failed.parameters = { stapel: {"viewport":"desktop","step":"failed"} };

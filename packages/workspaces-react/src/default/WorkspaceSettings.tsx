@@ -62,10 +62,17 @@ import type {
   WorkspaceSecuritySettings,
 } from "../api/types.js";
 import { WORKSPACES_I18N_KEYS } from "../i18n/keys.js";
+import { ActiveWorkspaceBoundary } from "./ActiveWorkspace.js";
 import { Muted, StatusTag, SCREEN_STACK, FIELD_STACK } from "./parts.js";
 
 export interface WorkspaceSettingsProps {
-  workspaceId: string;
+  /**
+   * The workspace being configured. OPTIONAL: omitted (the way the nav
+   * contract mounts this screen — a route, never an ambient scope), the
+   * active workspace comes from the runtime selection, and a screen with none
+   * renders the designed "choose a workspace" state rather than a blank.
+   */
+  workspaceId?: string;
   /** Called after a successful delete — the host navigates away / switches
    * to another workspace. Not called on cancel or failure. */
   onDeleted?(): void;
@@ -116,29 +123,48 @@ function mayUse(workspace: Workspace, capability: string): boolean {
 }
 
 export function WorkspaceSettings(props: WorkspaceSettingsProps): ReactElement {
-  const query = useWorkspace(props.workspaceId);
   return (
     <SkinTheme surface="base" data-testid="workspace-settings">
-      <LoadBoundary
-        state={loadStateFromQuery(query)}
-        testId="workspace-settings-load"
-        onRetry={() => {
-          void query.refetch();
-        }}
+      <ActiveWorkspaceBoundary
+        workspaceId={props.workspaceId}
+        testId="workspace-settings-workspace"
       >
-        {(workspace) => (
-          <div style={SCREEN_STACK}>
-            <GeneralCard workspace={workspace} workspaceId={props.workspaceId} />
-            <SecurityCard workspace={workspace} workspaceId={props.workspaceId} />
-            <DangerZone
-              workspace={workspace}
-              workspaceId={props.workspaceId}
-              {...(props.onDeleted !== undefined ? { onDeleted: props.onDeleted } : {})}
-            />
-          </div>
+        {(workspaceId) => (
+          <SettingsBody
+            workspaceId={workspaceId}
+            {...(props.onDeleted !== undefined ? { onDeleted: props.onDeleted } : {})}
+          />
         )}
-      </LoadBoundary>
+      </ActiveWorkspaceBoundary>
     </SkinTheme>
+  );
+}
+
+function SettingsBody(props: {
+  readonly workspaceId: string;
+  readonly onDeleted?: (() => void) | undefined;
+}): ReactElement {
+  const query = useWorkspace(props.workspaceId);
+  return (
+    <LoadBoundary
+      state={loadStateFromQuery(query)}
+      testId="workspace-settings-load"
+      onRetry={() => {
+        void query.refetch();
+      }}
+    >
+      {(workspace) => (
+        <div style={SCREEN_STACK}>
+          <GeneralCard workspace={workspace} workspaceId={props.workspaceId} />
+          <SecurityCard workspace={workspace} workspaceId={props.workspaceId} />
+          <DangerZone
+            workspace={workspace}
+            workspaceId={props.workspaceId}
+            {...(props.onDeleted !== undefined ? { onDeleted: props.onDeleted } : {})}
+          />
+        </div>
+      )}
+    </LoadBoundary>
   );
 }
 

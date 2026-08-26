@@ -8,10 +8,10 @@ export default { title: "docs-react / Breadcrumbs" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"nested"} };
 export const Root = (): ReactElement => renderDemoVariant(demo, "root");
 Root.storyName = "root";
-Root.parameters = { stapel: {"viewport":"phone"} };
+Root.parameters = { stapel: {"viewport":"phone","step":"root"} };
 export const Loading = (): ReactElement => renderDemoVariant(demo, "loading");
 Loading.storyName = "loading";
-Loading.parameters = { stapel: {"viewport":"phone"} };
+Loading.parameters = { stapel: {"viewport":"phone","step":"loading"} };

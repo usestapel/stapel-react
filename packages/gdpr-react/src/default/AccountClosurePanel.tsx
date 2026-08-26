@@ -205,14 +205,14 @@ function IdleState(props: {
           type="success"
           showIcon
           data-testid="gdpr-closure-cancelled"
-          message={t(GDPR_I18N_KEYS.closureCancelled)}
+          title={t(GDPR_I18N_KEYS.closureCancelled)}
         />
       ) : null}
       <Alert
         type="success"
         showIcon
         data-testid="gdpr-closure-none"
-        message={t(GDPR_I18N_KEYS.closureNone)}
+        title={t(GDPR_I18N_KEYS.closureNone)}
       />
       <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
         {t(GDPR_I18N_KEYS.closureExplain)}
@@ -222,7 +222,7 @@ function IdleState(props: {
           type="warning"
           showIcon
           data-testid="gdpr-closure-legal-hold"
-          message={t(GDPR_I18N_KEYS.errorLegalHold)}
+          title={t(GDPR_I18N_KEYS.errorLegalHold)}
         />
       ) : (
         <ErrorAlert testId="gdpr-closure-initiate-failed" thrown={props.error} />
@@ -262,7 +262,7 @@ function ScheduledState(props: {
         type={erasing ? "error" : "warning"}
         showIcon
         data-testid="gdpr-closure-banner"
-        message={
+        title={
           props.erased
             ? t(GDPR_I18N_KEYS.closureDeleted)
             : props.date !== undefined

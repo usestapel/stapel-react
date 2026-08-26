@@ -19,3 +19,8 @@ export { AuthenticatorChangePanel } from "./AuthenticatorChangePanel.js";
 export { EmailChangePanel } from "./EmailChangePanel.js";
 export { PhoneChangePanel } from "./PhoneChangePanel.js";
 export { AuditLogPanel } from "./AuditLogPanel.js";
+export {
+  SETTINGS_SCOPE,
+  VerificationPreferences,
+} from "./VerificationPreferences.js";
+export type { VerificationPreferencesProps } from "./VerificationPreferences.js";

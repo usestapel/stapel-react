@@ -1,0 +1,290 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/moderation-react",
+  "version": "0.0.0",
+  "demos": [
+    {
+      "id": "moderation.appeal-panel",
+      "title": "Appeal a decision",
+      "description": "DSA Art. 20, and the one arm that is an EXPLANATION rather than a shrug: without a `?case=` in the link there is nothing to appeal against, and this pair cannot look one up — `GET cases` and `GET cases/{id}` are both behind the moderation mandate, so the id travels exactly one way, in the notification's deep link. Drawing the composer anyway would give somebody a submit button that could never light up. The appeals already sent are the person's own read and are listed regardless, with the outcome the moderator wrote back.",
+      "component": "AppealPanel",
+      "covers": [],
+      "tokens": [
+        "surface-base",
+        "surface-raised",
+        "success"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Opened without the link: what an appeal needs, and where the reference lives.",
+          "viewport": "phone",
+          "step": "no_case"
+        },
+        {
+          "id": "writing",
+          "description": "Opened from the notification — the composer, gated until it says something.",
+          "viewport": "phone",
+          "step": "writing"
+        },
+        {
+          "id": "with-history",
+          "description": "Two appeals already sent: one decided with the moderator's answer, one still waiting.",
+          "viewport": "desktop",
+          "step": "list"
+        }
+      ],
+      "source": {
+        "file": "demo/AppealPanel.demo.tsx",
+        "line": 25
+      }
+    },
+    {
+      "id": "moderation.appeals-queue",
+      "title": "Appeals (staff)",
+      "description": "Overturning is the module's single backward edge — `resolved → queued`, the case is reopened and decided again — so the outcome choices carry a line of meaning each rather than three bare words. Two refusals share this screen and mean opposite things: `same_actor` says you decided the case so a colleague must hear the appeal (nothing is broken), while `appeal_resolved` says there is nothing left to decide. Both are read from the write's own answer rather than guessed from the row, because a colleague can decide an appeal between this page being drawn and the sheet being submitted.",
+      "component": "AppealsQueue",
+      "covers": [],
+      "tokens": [
+        "surface-base",
+        "surface-raised",
+        "success"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "One appeal waiting, with the way into the resolve sheet.",
+          "viewport": "desktop",
+          "step": "open"
+        },
+        {
+          "id": "decided",
+          "description": "An appeal that has already been heard: the control is shut and names the reason, rather than being hidden or lit and then refused.",
+          "viewport": "phone",
+          "step": "decided"
+        },
+        {
+          "id": "empty",
+          "description": "Nobody has appealed anything — said, not left blank.",
+          "viewport": "phone",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/AppealsQueue.demo.tsx",
+        "line": 23
+      }
+    },
+    {
+      "id": "moderation.case",
+      "title": "Case card (staff)",
+      "description": "`ContentDTO.available` is explicit on the wire so this card can draw a failed read as a failed read: 'this app serves no content for this kind of item' and 'the post is blank' are different findings that lead to opposite decisions, and a moderator must never be handed an empty box that looks like empty content. Claim, release, rescan and the verdict are all gated by the LEASE the server enforces silently — it takes a case back when `claimed_until` passes — and each shut control states its own reason beside it rather than in a tooltip a disabled button would never fire. A verdict that also sanctions the author goes through a confirmation whose button says what it does.",
+      "component": "CaseDetail",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "border",
+        "warning",
+        "error"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Content read live, one complaint, and a machine verdict that punted to a person.",
+          "viewport": "desktop",
+          "step": "content_available"
+        },
+        {
+          "id": "no-content",
+          "description": "The host registered this target type without a content function — the card says so instead of showing nothing.",
+          "viewport": "phone",
+          "step": "no_content_function"
+        },
+        {
+          "id": "held-by-another",
+          "description": "A colleague holds the lease: every write is shut and each one says why. An active sanction is already on the author, and lifting it is confirmed with the note that goes on the record.",
+          "viewport": "phone",
+          "step": "lease_other"
+        }
+      ],
+      "source": {
+        "file": "demo/CaseDetail.demo.tsx",
+        "line": 37
+      }
+    },
+    {
+      "id": "moderation.policy",
+      "title": "Content rules (public)",
+      "description": "DSA Art. 15, rendered rather than written: `GET policy` builds its answer from the live configuration — the registered reasons, the screening stages actually wired, the confidence floor actually applied, whether an appeal really goes to a different moderator. Turning the screener off changes this page on the next load with no copy change anywhere, which is the only version of a transparency page that cannot go stale. It is the module's one anonymous route, because a rules page that demanded a session would be the page nobody could check the rules on.",
+      "component": "PolicyDisclosurePane",
+      "covers": [],
+      "tokens": [
+        "surface-base",
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Screening on: the stages, the floor, and what happens when it cannot run.",
+          "viewport": "phone",
+          "step": "automated"
+        },
+        {
+          "id": "human-only",
+          "description": "The same page for a deployment that screens nothing — one sentence, and no floor to disclose.",
+          "viewport": "desktop",
+          "step": "human_only"
+        },
+        {
+          "id": "failed",
+          "description": "The disclosure could not be read: a retry, not a page that quietly claims there are no rules.",
+          "viewport": "phone",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/PolicyDisclosurePane.demo.tsx",
+        "line": 19
+      }
+    },
+    {
+      "id": "moderation.provider",
+      "title": "Moderation provider",
+      "description": "The headless moderation root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "ModerationProvider",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/Moderation.demo.tsx",
+        "line": 24
+      }
+    },
+    {
+      "id": "moderation.queue",
+      "title": "Moderation queue (staff)",
+      "description": "Table where there is room, cards where there is not — decided by the ELEMENT's width, not the viewport's, because a console lives in an admin shell's content column as often as on a full page and antd's grid breakpoints would give a 380px panel on a 1920px desktop the eight-column table. The target column shows `type:key` and nothing else unless the host fills `renderTarget`: the module is domain-blind and the backend serves content on the case card only, so a thumbnail here can only come from whoever owns the target. The mandate refusal is named, not rendered as a failed read — the nav axis has no 'staff' value, so the screen does the explaining.",
+      "component": "ModerationQueue",
+      "covers": [],
+      "tokens": [
+        "surface-base",
+        "surface-raised",
+        "warning",
+        "success"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Two cases, one of them held by a colleague, with the counters above.",
+          "viewport": "desktop",
+          "step": "populated"
+        },
+        {
+          "id": "phone",
+          "description": "The same queue as cards: the state, the severity, the complaint count and the way in.",
+          "viewport": "phone",
+          "step": "cards"
+        },
+        {
+          "id": "empty",
+          "description": "Nothing matches — the good empty, said rather than left blank.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "not-staff",
+          "description": "A signed-in person without the mandate. The door is visible and explains itself, instead of an operations error nobody can act on.",
+          "viewport": "phone",
+          "step": "forbidden"
+        }
+      ],
+      "source": {
+        "file": "demo/ModerationQueue.demo.tsx",
+        "line": 51
+      }
+    },
+    {
+      "id": "moderation.report-button",
+      "title": "Report button (embeddable)",
+      "description": "The slot other pairs mount beside their own actions — a listing card, a review, a chat message menu. It has no nav entry on purpose: it is a control with a target, not a screen. A signed-out visitor gets the SAME button, because hiding it hides the fact that this platform accepts complaints at all; the sheet it opens carries the rules and the sign-in door together. The sheet itself is mounted only after the first press, so a listing page with twenty of these does not open twenty policy reads.",
+      "component": "ReportButton",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "border"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Icon and word, at the design width.",
+          "viewport": "phone",
+          "step": "idle"
+        },
+        {
+          "id": "compact",
+          "description": "Icon only, for a card action row where the word does not fit — the accessible name moves to `aria-label` rather than disappearing.",
+          "viewport": "desktop",
+          "step": "compact"
+        },
+        {
+          "id": "block",
+          "description": "Full width, for a phone action sheet's own list of actions.",
+          "viewport": "phone",
+          "step": "block"
+        }
+      ],
+      "source": {
+        "file": "demo/ReportButton.demo.tsx",
+        "line": 29
+      }
+    },
+    {
+      "id": "moderation.report-sheet",
+      "title": "Report sheet",
+      "description": "A bottom sheet on a phone and a modal above it, from the shared dialog rule. The description box is always visible and only its REQUIREMENT changes with the reason — a box that materialises under the radio somebody just tapped moves the submit out from under their thumb. The automated-screening line is Art. 15(1)(e) transparency and is rendered from the policy, so a deployment with its screener off simply does not show it. There is no evidence field: the one consumer stopped registering evidence-based target types in 0.3.x, and the moderator reads the message itself on the case card.",
+      "component": "ReportSheet",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "border",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Three reasons, one of which demands an explanation, plus the screening notice.",
+          "viewport": "phone",
+          "step": "choosing_reason"
+        },
+        {
+          "id": "no-automation",
+          "description": "A deployment that screens nothing: the notice is absent because the claim would be false, not because the copy was removed.",
+          "viewport": "desktop",
+          "step": "no_automation"
+        },
+        {
+          "id": "no-reasons",
+          "description": "A registry with nothing in it — said out loud, rather than an empty radio group.",
+          "viewport": "phone",
+          "step": "empty_policy"
+        },
+        {
+          "id": "policy-failed",
+          "description": "The rules could not be read. The form is not drawn from a failed load: an empty list and a broken list are different, and only one of them means 'nothing can be reported'.",
+          "viewport": "phone",
+          "step": "policy_failed"
+        }
+      ],
+      "source": {
+        "file": "demo/ReportSheet.demo.tsx",
+        "line": 25
+      }
+    }
+  ]
+}

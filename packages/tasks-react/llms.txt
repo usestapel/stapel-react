@@ -17,6 +17,9 @@ verification-403 interception, i18n engine, analytics facade, TanStack Query lay
 api (typed client) · model (hooks, session) · flows (machines) · headless · i18n
 
 ## Documented flows (flows.json — canonical id, steps, endpoints)
+- tasks.board_setup: GET /tasks/api/v1/boards/presets, POST /tasks/api/v1/boards, POST /tasks/api/v1/boards/<uuid:board_id>/columns, POST /tasks/api/v1/boards/<uuid:board_id>/columns/reorder
+- tasks.card_lifecycle: GET /tasks/api/v1/boards, GET /tasks/api/v1/boards/<uuid:board_id>/cards, POST /tasks/api/v1/boards/<uuid:board_id>/tasks, GET /tasks/api/v1/tasks/<uuid:task_id>, PATCH /tasks/api/v1/tasks/<uuid:task_id>, POST /tasks/api/v1/tasks/<uuid:task_id>/assign, POST /tasks/api/v1/tasks/<uuid:task_id>/comments, POST /tasks/api/v1/tasks/<uuid:task_id>/checklist/<uuid:item_id>/state, DELETE /tasks/api/v1/tasks/<uuid:task_id>
+- tasks.card_move: POST /tasks/api/v1/tasks/<uuid:task_id>/move
 
 ## Operations (typed; use the named op, never a path string)
 Request/response schema names are in manifest.json + the generated types.
@@ -44,6 +47,28 @@ Paths are relative to `/tasks/api/v1/`.
 - tasks_api_v1_tasks_partial_update: PATCH /tasks/{task_id}
 - tasks_api_v1_tasks_retrieve: GET /tasks/{task_id}
 
+## Query hooks (server state; keys come only from the key factory)
+- useAddChecklistItem (mutation) → addChecklistItem
+- useAddColumn (mutation) → addColumn
+- useAddComment (mutation) → addComment
+- useArchiveBoard (mutation) → archiveBoard
+- useArchiveTask (mutation) → archiveTask
+- useAssign (mutation) → assign
+- useBoardCardsQuery (query) → boardCards
+- useBoardQuery (query) → board
+- useBoardsQuery (query) → boards
+- useChecklistQuery (query) → checklist
+- useCommentsQuery (query) → comments
+- useCreateBoard (mutation) → createBoard
+- useCreateTaskMutation (mutation) → createTask
+- useMoveTask (mutation) → moveTask
+- useReorderColumns (mutation) → reorderColumns
+- useSetChecklistState (mutation) → setChecklistState
+- useTaskQuery (query) → task
+- useUpdateBoard (mutation) → updateBoard
+- useUpdateTask (mutation) → updateTask
+- useVocabularyQuery (query) → presets
+
 ## Errors (render t(code, params); UX from remediation)
 57 keys (full catalog: manifest.json §errors). By remediation: fix_input 24 · retry 20 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
@@ -65,6 +90,9 @@ Param-bearing keys (interpolation slots matter):
   auto-instrumented flow funnels below)
 
 ## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+- flow.tasks.board_setup.<step> — 5 documented step(s)
+- flow.tasks.card_lifecycle.<step> — 11 documented step(s)
+- flow.tasks.card_move.<step> — 4 documented step(s)
 
 ```tsx
 // Typed event + tracked() click (the one right way; §3.1).
@@ -78,6 +106,15 @@ const { tracked } = useTracked();
 // A click that STEPS a flow machine is already instrumented — mark it
 // data-analytics="flow" instead; tracked() on top double-counts (§3.2).
 ```
+
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- tasks.board-create-sheet → <BoardCreateSheet> [default|phone|scope-blocked]  demo/BoardCreateSheet.demo.tsx
+- tasks.boards-pane → <BoardsPane> [default|phone|empty|failed|no-navigation]  demo/BoardsPane.demo.tsx
+- tasks.column-manager → <ColumnManager> [default|phone|duplicate]  demo/ColumnManager.demo.tsx
+- tasks.headless → <TasksProvider> [default|phone]  demo/Tasks.demo.tsx
+- tasks.kanban-board → <KanbanBoard> [default|phone|empty|truncated]  demo/KanbanBoard.demo.tsx
+- tasks.task-sheet → <TaskSheet> [default|phone|archived|features]  demo/TaskSheet.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets
 ```tsx

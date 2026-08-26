@@ -11,8 +11,8 @@
 import { spacing } from "@stapel/tokens";
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Button, Card, Empty, Flex, Form, Input, Result, Tabs, Typography } from "antd";
-import { ErrorAlert } from "@stapel/tokens-antd/skin";
+import { Alert, Button, Card, Flex, Form, Input, Result, Skeleton, Tabs, Typography } from "antd";
+import { EmptyState, ErrorAlert } from "@stapel/tokens-antd/skin";
 import type { ReactNode } from "react";
 import {
   loadStateFromQuery,
@@ -59,7 +59,7 @@ function OldPasswordTab(props: { bag: PasswordChangeBag }): ReactElement {
         bag.changeWithPassword(v.oldPassword ?? "", v.newPassword ?? "")
       }
     >
-      {err && <Alert type="error" showIcon style={{ marginBottom: spacing[4] }} message={formatError(err)} />}
+      {err && <Alert type="error" showIcon style={{ marginBottom: spacing[4] }} title={formatError(err)} />}
       <Form.Item name="oldPassword" label={t(AUTH_I18N_KEYS.secPasswordOldLabel)}>
         <Input.Password autoFocus autoComplete="current-password" />
       </Form.Item>
@@ -121,7 +121,7 @@ function OtpTab(props: { bag: PasswordChangeBag; channel: OtpChannel; target: st
           bag.submitOtp(v.code ?? "", v.newPassword ?? "")
         }
       >
-        {err && <Alert type="error" showIcon style={{ marginBottom: spacing[4] }} message={formatError(err)} />}
+        {err && <Alert type="error" showIcon style={{ marginBottom: spacing[4] }} title={formatError(err)} />}
         <Typography.Text type="secondary">
           {t(AUTH_I18N_KEYS.secPasswordViaOtpHint, { target: s.target })}
         </Typography.Text>
@@ -209,9 +209,9 @@ export function PasswordChangePanel(): ReactElement {
   return matchList(entries, {
     loading: () => (
       <PanelCard>
-        <Flex justify="center">
-          <Typography.Text type="secondary">…</Typography.Text>
-        </Flex>
+        <div role="status" aria-busy="true" data-testid="password-methods-loading">
+            <Skeleton active />
+          </div>
       </PanelCard>
     ),
     failed: (error) => (
@@ -221,7 +221,10 @@ export function PasswordChangePanel(): ReactElement {
     ),
     empty: () => (
       <PanelCard>
-        <Empty description={t(AUTH_I18N_KEYS.secPasswordNoMethods)} />
+        <EmptyState
+          title={t(AUTH_I18N_KEYS.secPasswordNoMethods)}
+          hint={t(AUTH_I18N_KEYS.secPasswordNoMethodsHint)}
+        />
       </PanelCard>
     ),
     ready: (rows) => <LoadedPanel entries={rows} />,
@@ -251,7 +254,10 @@ function LoadedPanel(props: { entries: readonly PasswordMethodEntry[] }): ReactE
   if (tabIds.length === 0) {
     return (
       <PanelCard>
-        <Empty description={t(AUTH_I18N_KEYS.secPasswordNoMethods)} />
+        <EmptyState
+          title={t(AUTH_I18N_KEYS.secPasswordNoMethods)}
+          hint={t(AUTH_I18N_KEYS.secPasswordNoMethodsHint)}
+        />
       </PanelCard>
     );
   }

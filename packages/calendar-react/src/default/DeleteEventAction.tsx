@@ -36,6 +36,17 @@ export interface DeleteEventActionProps {
    * then says what deleting an occurrence actually does.
    */
   readonly isOccurrence?: boolean;
+  /**
+   * Is the confirmation open? Omitted, the button owns that state.
+   *
+   * Supplying it makes the control CONTROLLED, which is what a host needs to
+   * put "Delete" in its own overflow menu and still get this pair's
+   * confirmation copy — and what lets the showcase photograph the two
+   * confirmation bodies, a state no static render reaches through a click.
+   */
+  readonly open?: boolean;
+  /** The confirmation asked to open or close (controlled mode). */
+  readonly onOpenChange?: (open: boolean) => void;
   readonly onDeleted?: () => void;
   readonly "data-testid"?: string;
 }
@@ -44,7 +55,13 @@ export function DeleteEventAction(
   props: DeleteEventActionProps
 ): ReactElement {
   const t = useT();
-  const [asking, setAsking] = useState(false);
+  const [selfAsking, setSelfAsking] = useState(false);
+  const { open, onOpenChange } = props;
+  const asking = open ?? selfAsking;
+  const setAsking = (next: boolean): void => {
+    if (open === undefined) setSelfAsking(next);
+    onOpenChange?.(next);
+  };
   const testId = props["data-testid"] ?? "calendar-delete";
   const gate = props.gate ?? actionAvailable();
 

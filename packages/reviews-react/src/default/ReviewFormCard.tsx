@@ -59,7 +59,7 @@ function FormBody(props: {
         type="success"
         showIcon
         data-testid="reviews-form-sent"
-        message={t(sentKey(bag))}
+        title={t(sentKey(bag))}
       />
     );
   }

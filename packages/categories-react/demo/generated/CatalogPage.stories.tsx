@@ -8,13 +8,13 @@ export default { title: "categories-react / Catalogue page" };
 
 export const Browse = (): ReactElement => renderDemoVariant(demo, "browse");
 Browse.storyName = "browse";
-Browse.parameters = { stapel: {"viewport":"phone"} };
+Browse.parameters = { stapel: {"viewport":"phone","step":"ready"} };
 export const NoIcons = (): ReactElement => renderDemoVariant(demo, "no icons");
 NoIcons.storyName = "no icons";
-NoIcons.parameters = { stapel: {"viewport":"desktop"} };
+NoIcons.parameters = { stapel: {"viewport":"desktop","step":"ready-without-icons"} };
 export const EmptyCatalogue = (): ReactElement => renderDemoVariant(demo, "empty catalogue");
 EmptyCatalogue.storyName = "empty catalogue";
-EmptyCatalogue.parameters = { stapel: {"viewport":"desktop"} };
+EmptyCatalogue.parameters = { stapel: {"viewport":"desktop","step":"empty"} };
 export const Outage = (): ReactElement => renderDemoVariant(demo, "outage");
 Outage.storyName = "outage";
-Outage.parameters = { stapel: {"viewport":"desktop"} };
+Outage.parameters = { stapel: {"viewport":"desktop","step":"failed"} };

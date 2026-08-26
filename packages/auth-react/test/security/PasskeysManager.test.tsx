@@ -11,7 +11,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { delay, http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement, ReactNode } from "react";
 import { I18nProvider, createI18n } from "@stapel/core";
@@ -354,5 +354,79 @@ describe("<PasskeysManager/> — loading vs empty vs failed", () => {
 
     await waitFor(() => expect(screen.getByText("MacBook Touch ID")).toBeDefined());
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+/**
+ * `PATCH /passkey/{id}/` — stapel-auth 0.28.0. `device_name` used to be
+ * writable exactly once, at register-complete, so the row offered no rename
+ * at all rather than a control that answers 405. These tests pin the three
+ * facts that changed: the affordance exists, it sends the rename the contract
+ * describes, and a 404 is read as "this row is stale", never as a permission
+ * problem — the backend scopes by an ownership LOOKUP, so a stranger's id and
+ * a deleted id are byte-identical answers.
+ */
+describe("<PasskeysManager/> — renaming a credential", () => {
+  it("renames through PATCH /passkey/:id/ and shows the new label", async () => {
+    let name = "MacBook Touch ID";
+    let patched: unknown = null;
+    server.use(
+      http.get(`${BASE}/passkey/`, () =>
+        HttpResponse.json({ passkeys: [passkey({ device_name: name })] })
+      ),
+      http.patch(`${BASE}/passkey/:id/`, async ({ request }) => {
+        patched = await request.json();
+        name = (patched as { device_name: string }).device_name;
+        return HttpResponse.json(passkey({ device_name: name }));
+      })
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PasskeysManager />));
+    await waitFor(() => expect(screen.getByText("MacBook Touch ID")).toBeDefined());
+
+    // The row's control NAMES the credential it acts on: a list of buttons all
+    // called "Rename" is a list a screen-reader user cannot navigate.
+    screen.getByRole("button", { name: "Rename MacBook Touch ID" }).click();
+    const dialog = await screen.findByTestId("passkey-rename-dialog");
+    const field = dialog.querySelector("input") as HTMLInputElement;
+    // The dialog opens ON the current name — a rename box that starts empty
+    // makes the person retype what they are only editing.
+    expect(field.value).toBe("MacBook Touch ID");
+    fireEvent.change(field, { target: { value: "Work laptop" } });
+    fireEvent.submit(field.closest("form") as HTMLFormElement);
+
+    await waitFor(() => expect(patched).toEqual({ device_name: "Work laptop" }));
+    await waitFor(() => expect(screen.getByText("Work laptop")).toBeDefined());
+  });
+
+  it("a 404 says the credential is GONE and refetches — never 'you may not'", async () => {
+    let reads = 0;
+    server.use(
+      http.get(`${BASE}/passkey/`, () => {
+        reads += 1;
+        return HttpResponse.json({ passkeys: reads > 1 ? [] : [passkey()] });
+      }),
+      http.patch(`${BASE}/passkey/:id/`, () =>
+        HttpResponse.json(
+          { localizable_error: "error.404.passkey_not_found" },
+          { status: 404 }
+        )
+      )
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <PasskeysManager />));
+    await waitFor(() => expect(screen.getByText("MacBook Touch ID")).toBeDefined());
+
+    screen.getByRole("button", { name: "Rename MacBook Touch ID" }).click();
+    const dialog = await screen.findByTestId("passkey-rename-dialog");
+    const field = dialog.querySelector("input") as HTMLInputElement;
+    fireEvent.change(field, { target: { value: "Anything" } });
+    fireEvent.submit(field.closest("form") as HTMLFormElement);
+
+    const gone = await screen.findByTestId("passkey-gone");
+    expect(gone.textContent).toContain("no longer on your account");
+    // The stale row is not left on screen offering actions against something
+    // that is not there: the list is re-read.
+    await waitFor(() => expect(reads).toBeGreaterThan(1));
   });
 });

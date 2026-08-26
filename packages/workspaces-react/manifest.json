@@ -4,7 +4,7 @@
   "version": "0.17.0",
   "backend": {
     "module": "stapel-workspaces",
-    "contract": ">=0.29 <0.30"
+    "contract": ">=0.30 <0.31"
   },
   "layers": [
     "api",
@@ -934,6 +934,17 @@
       "source": "demo/AcceptInvitation.demo.tsx"
     },
     {
+      "id": "workspaces.audit-trail",
+      "title": "Membership history (default skin)",
+      "description": "The shipped audit trail: who let this person in, who took them out and when, filtered by action from the closed backend vocabulary, walked by anchor. An action the client does not know is title-cased from its key — never a dotted i18n key on the glass.",
+      "component": "AuditTrailPane",
+      "variants": [
+        "default",
+        "empty"
+      ],
+      "source": "demo/AuditTrailPaneSkin.demo.tsx"
+    },
+    {
       "id": "workspaces.can",
       "title": "Capability gate",
       "description": "The headless Can gates UI on the caller's my_capabilities in a workspace, with the backend's wildcard matcher (* and prefix.*) ported client-side. Static children render only when allowed; the render-prop variant hands the verdict out for disabled-state UI. UI convenience only — the backend re-checks every operation.",
@@ -948,6 +959,18 @@
       "source": "demo/Can.demo.tsx"
     },
     {
+      "id": "workspaces.invitations-pane",
+      "title": "Invitations (default skin)",
+      "description": "The shipped invitation console: who has been invited and has not joined, filtered by what became of the invitation, searchable by address, with revoke / resend / rename each gated on the invitation's own state — and a confirm that says a resend rotates the token, so the earlier link stops working.",
+      "component": "InvitationsPane",
+      "variants": [
+        "default",
+        "terminal",
+        "empty"
+      ],
+      "source": "demo/InvitationsPaneSkin.demo.tsx"
+    },
+    {
       "id": "workspaces.invite-accept",
       "title": "Invite accept flow",
       "description": "The headless InviteAcceptFlow drives the /invite/{token} journey: public preview routing (accept prompt / wrong account / login / claim), the grant_token hand-off seam to auth (onLoginGrant), the basic-data slot, and accept/decline. Every screen is the host's; InviteAcceptPage is the reference skin.",
@@ -960,6 +983,18 @@
         "default"
       ],
       "source": "demo/InviteAcceptFlow.demo.tsx"
+    },
+    {
+      "id": "workspaces.invite-accept-page",
+      "title": "Invitation page (default skin)",
+      "description": "The shipped /invite/{token} screen: the workspace and the role being offered, one primary action per block (Join is the primary; Decline is a danger link behind a confirm that states what it costs), the wrong-account branch with a switch CTA, and the terminal states — expired, revoked, already used — as sentences rather than an error box.",
+      "component": "InviteAcceptPage",
+      "variants": [
+        "default",
+        "wrong-account",
+        "expired"
+      ],
+      "source": "demo/InviteAcceptPageSkin.demo.tsx"
     },
     {
       "id": "workspaces.list",
@@ -990,6 +1025,19 @@
       "source": "demo/Members.demo.tsx"
     },
     {
+      "id": "workspaces.members-manager",
+      "title": "Members (default skin)",
+      "description": "The shipped roster: who is here, the role each one holds (from the effective registry, not a hardcoded four), the three states of two-factor evidence, an invite, a rename, an administrative password reset and a removal — each switched off with the server's reason where the server would refuse it, including on the viewer's own row.",
+      "component": "MembersManager",
+      "variants": [
+        "default",
+        "read-only",
+        "empty",
+        "no-workspace"
+      ],
+      "source": "demo/MembersManagerSkin.demo.tsx"
+    },
+    {
       "id": "workspaces.provider",
       "title": "Workspaces provider",
       "description": "The headless workspaces root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
@@ -1015,6 +1063,40 @@
         "default"
       ],
       "source": "demo/RoleSelect.demo.tsx"
+    },
+    {
+      "id": "workspaces.role-select-field",
+      "title": "Role picker (default skin)",
+      "description": "The shipped role field: an accessible name of its own (a roster renders one per row, and 'combobox, combobox, combobox' is what a screen reader says otherwise), the effective registry as options with each role's rank as the caption, and a stated refusal instead of a picker when the registry cannot be read.",
+      "component": "RoleSelectField",
+      "variants": [
+        "default",
+        "no-registry"
+      ],
+      "source": "demo/RoleSelectFieldSkin.demo.tsx"
+    },
+    {
+      "id": "workspaces.workspace-settings",
+      "title": "Workspace settings (default skin)",
+      "description": "The shipped settings screen: the name and slug, the two-factor policy with the live enforcement counts (checked / missing / unverified — the last is the number to get to zero), the first-login demands for provisioned accounts, and a danger zone whose Delete is drawn from the server's own verdict.",
+      "component": "WorkspaceSettings",
+      "variants": [
+        "default",
+        "delete-refused"
+      ],
+      "source": "demo/WorkspaceSettingsSkin.demo.tsx"
+    },
+    {
+      "id": "workspaces.workspaces-page",
+      "title": "Workspaces page (default skin)",
+      "description": "The shipped roster: every workspace the caller belongs to with its owner and member count, the home workspace set and cleared in place, and a create control gated on the installation's policy — with the reason printed beside it rather than the button silently missing.",
+      "component": "WorkspacesPage",
+      "variants": [
+        "default",
+        "empty",
+        "failed"
+      ],
+      "source": "demo/WorkspacesPageSkin.demo.tsx"
     }
   ],
   "i18nKeys": [
@@ -1095,6 +1177,10 @@
     "workspaces.accept.accept",
     "workspaces.accept.accepted",
     "workspaces.accept.accepting",
+    "workspaces.active.choose.hint",
+    "workspaces.active.choose.title",
+    "workspaces.active.none.hint",
+    "workspaces.active.none.title",
     "workspaces.audit.action.account_created_by_invitation",
     "workspaces.audit.action.deleted",
     "workspaces.audit.action.invitation_accepted",
@@ -1238,6 +1324,16 @@
     "workspaces.members.rename_dialog.placeholder",
     "workspaces.members.rename_dialog.submit",
     "workspaces.members.rename_dialog.title",
+    "workspaces.members.reset_password",
+    "workspaces.members.reset_password.blocked.self",
+    "workspaces.members.reset_password_dialog.body",
+    "workspaces.members.reset_password_dialog.done",
+    "workspaces.members.reset_password_dialog.generated",
+    "workspaces.members.reset_password_dialog.generated_hint",
+    "workspaces.members.reset_password_dialog.not_notified",
+    "workspaces.members.reset_password_dialog.step_up",
+    "workspaces.members.reset_password_dialog.submit",
+    "workspaces.members.reset_password_dialog.title",
     "workspaces.members.role.admin",
     "workspaces.members.role.member",
     "workspaces.members.role.owner",
@@ -1372,6 +1468,7 @@
       "useMandateSource",
       "useMandateState",
       "useMembers",
+      "useOptionalWorkspaceSelection",
       "useRemoveMember",
       "useRenameInvitation",
       "useRenameMember",

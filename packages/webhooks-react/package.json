@@ -31,6 +31,7 @@
     },
     "./manifest": "./manifest.json",
     "./manifest.json": "./manifest.json",
+    "./nav-manifest": "./nav-manifest.json",
     "./nav-manifest.json": "./nav-manifest.json",
     "./llms.txt": "./llms.txt",
     "./package.json": "./package.json"
@@ -54,28 +55,28 @@
   },
   "size-limit": [
     {
-      "name": "index — the skin and the ru/es locales must NOT be in the main bundle",
+      "name": "index — the headless pair (ten operations, the filter grammar, the reads): no antd",
       "path": "dist/index.js",
-      "limit": "12 KB"
-    },
-    {
-      "name": "default skin subpath (opt-in: antd + the token bridge)",
-      "path": "dist/default/index.js",
       "limit": "10 KB"
     },
     {
-      "name": "i18n/ru subpath (opt-in locale: en floor + ru UI)",
+      "name": "default — the developer-settings skin (list, sheet, secret, delivery log)",
+      "path": "dist/default/index.js",
+      "limit": "14 KB"
+    },
+    {
+      "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",
       "path": "dist/i18n/ru.js",
       "limit": "8 KB"
     },
     {
-      "name": "i18n/es subpath (opt-in locale: en floor + es UI)",
+      "name": "i18n/es — same deal for Spanish: a host pays for the locales it ships",
       "path": "dist/i18n/es.js",
-      "limit": "8 KB"
+      "limit": "7 KB"
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.17.0 <1.0.0",
+    "@stapel/core": ">=0.18.0 <1.0.0",
     "@stapel/tokens-antd": ">=0.6.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
@@ -91,7 +92,7 @@
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
-    "antd": "^5.20.0",
+    "antd": "^6.5.0",
     "jsdom": "^26.1.0",
     "msw": "^2.10.2",
     "react": "^19.1.0",

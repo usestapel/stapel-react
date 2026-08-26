@@ -404,6 +404,48 @@
   },
   "demos": [
     {
+      "id": "search.box",
+      "title": "Search box",
+      "description": "Types into a draft and searches after a pause, so the address bar does not chase the keyboard; the URL still wins whenever it moves on its own, so the box can never show a word the results are not about. Capped at the server's own MAX_QUERY_CHARS, which makes 'query too long' a refusal this control cannot cause.",
+      "component": "SearchBox",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "empty",
+        "typed"
+      ],
+      "source": "demo/SearchBox.demo.tsx"
+    },
+    {
+      "id": "search.degradation-notice",
+      "title": "Degradation notice",
+      "description": "What the engine could not do for THIS query, in words: the typo pass it skipped, the facet counts it sampled rather than counted, the scorer it could not evaluate. An unknown degradation still renders — with its raw literal — because a build that predates a limitation should say 'the engine reported something we have no wording for', not nothing.",
+      "component": "DegradationNotice",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "banner",
+        "inline"
+      ],
+      "source": "demo/DegradationNotice.demo.tsx"
+    },
+    {
+      "id": "search.facet-panel-pane",
+      "title": "Filter panel",
+      "description": "The drill-down facet panel with every count beside its option — including the options you have not chosen, which is what makes them drill-down rather than naive — plus the server's honesty flags said in words: 'these counts are approximate' and the slugs it did not count at all, whose options read 'not counted' and never a zero that looks like an answer.",
+      "component": "FacetPanelPane",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "open-search",
+        "narrowed"
+      ],
+      "source": "demo/FacetPanelPane.demo.tsx"
+    },
+    {
       "id": "search.facets",
       "title": "Facet panel",
       "description": "Counts are computed with each facet's own filter removed, so picking one value does not zero its siblings. Labels come from the category schema through @stapel/attributes-react; a slug the server skipped shows 'not counted', never 0.",
@@ -415,6 +457,20 @@
         "default"
       ],
       "source": "demo/FacetPanel.demo.tsx"
+    },
+    {
+      "id": "search.language-select",
+      "title": "Language filter",
+      "description": "The languages a deployment indexes, each named the way THIS reader would name it. With nothing offered and nothing applied the control does not render at all: a select whose only option is 'any' is a dead control, and the panel is thinner without it.",
+      "component": "LanguageSelect",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "offered",
+        "from-a-link"
+      ],
+      "source": "demo/LanguageSelect.demo.tsx"
     },
     {
       "id": "search.page",
@@ -437,6 +493,34 @@
       "source": "demo/SearchPage.demo.tsx"
     },
     {
+      "id": "search.page-size-select",
+      "title": "Page size control",
+      "description": "A short ladder around the server's DEFAULT_PAGE_SIZE. Choosing a size REPLACES the history entry rather than pushing one: a page size is a preference, not a step through the results, and Back should still undo the last filter.",
+      "component": "PageSizeSelect",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "ladder",
+        "off-ladder"
+      ],
+      "source": "demo/PageSizeSelect.demo.tsx"
+    },
+    {
+      "id": "search.range-filter-row",
+      "title": "Numeric range filter",
+      "description": "A range row per numeric feature of the category schema, plus any slug the URL already constrains — because a constraint that is active must always have a control that removes it, even when the schema no longer explains it. Bounds and step come from the schema; the unit is shown in the field's accessible name.",
+      "component": "RangeFilterRow",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "untouched",
+        "applied"
+      ],
+      "source": "demo/RangeFilterRow.demo.tsx"
+    },
+    {
       "id": "search.ranking",
       "title": "Ranking disclosure",
       "description": "Which parameters order the results and how much each weighs, straight from the scorer registry. Parameters the configured engine cannot evaluate are listed with their reason rather than filtered out.",
@@ -448,6 +532,37 @@
         "default"
       ],
       "source": "demo/RankingDisclosure.demo.tsx"
+    },
+    {
+      "id": "search.ranking-pane",
+      "title": "Ranking disclosure",
+      "description": "The statutory ranking page in the default skin: every scorer with its weight, the sorts it applies to, and — for a scorer the deployment's engine cannot evaluate — the reason it is inactive, so the disclosure describes the ranking that actually ran rather than the one that was configured.",
+      "component": "RankingDisclosurePane",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "desktop",
+        "phone"
+      ],
+      "source": "demo/RankingDisclosurePane.demo.tsx"
+    },
+    {
+      "id": "search.result-card",
+      "title": "Result card",
+      "description": "The default card a doc type gets for free: a 4:3 photo well drawn before the network answers (via @stapel/image, so a dead URL is a named placeholder rather than a torn-page icon), the title, the price with its currency, the location and distance — and the promoted marking painted from a token role rather than an antd preset, with its explanation as ordinary text beneath it.",
+      "component": "SearchResultCard",
+      "tokens": [
+        "warning-bg",
+        "warning-on",
+        "warning-border",
+        "surface-sunken"
+      ],
+      "variants": [
+        "promoted",
+        "plain"
+      ],
+      "source": "demo/SearchResultCard.demo.tsx"
     },
     {
       "id": "search.results",
@@ -465,6 +580,50 @@
         "default"
       ],
       "source": "demo/SearchResults.demo.tsx"
+    },
+    {
+      "id": "search.results-pane",
+      "title": "Results pane",
+      "description": "One keyset page in the default skin: a counted heading (a capped count reads 'N+', never a flat number the server did not promise), the degradation banner, an auto-fill card grid, and a pager that is ABSENT when there is nothing to page rather than disabled with its reason in a tooltip.",
+      "component": "SearchResultsPane",
+      "tokens": [
+        "surface-raised",
+        "warning-bg"
+      ],
+      "variants": [
+        "desktop",
+        "phone",
+        "empty"
+      ],
+      "source": "demo/SearchResultsPane.demo.tsx"
+    },
+    {
+      "id": "search.sort-select",
+      "title": "Sort control",
+      "description": "The five shipped sorts, plus whatever unknown sort a shared link already carries — offered rather than silently reset, because resetting it would rewrite the meaning of somebody's link on load and the server is the one entitled to refuse an unknown sort by name.",
+      "component": "SortSelect",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "no-centre",
+        "with-centre"
+      ],
+      "source": "demo/SortSelect.demo.tsx"
+    },
+    {
+      "id": "search.url-issue-notice",
+      "title": "Unreadable link notice",
+      "description": "The parameters a shared link carried that the codec could not read, named one by one. The alternative is not 'no notice' but a quietly WIDER search than the one that was shared, which is the difference between a page that is wrong and a page that says which part of the link it lost.",
+      "component": "UrlIssueNotice",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "two-issues",
+        "one-issue"
+      ],
+      "source": "demo/UrlIssueNotice.demo.tsx"
     }
   ],
   "i18nKeys": [

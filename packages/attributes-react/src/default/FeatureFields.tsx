@@ -57,7 +57,7 @@ export function UnsupportedValueEditor(
       showIcon
       data-testid="attributes-unsupported-type"
       data-attributes-type={type ?? "(none)"}
-      message={featureName(props.feature)}
+      title={featureName(props.feature)}
       description={
         type === undefined
           ? t(ATTRIBUTES_I18N_KEYS.untypedFeature)

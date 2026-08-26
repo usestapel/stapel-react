@@ -1,0 +1,6 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/attributes-react",
+  "version": "0.2.0",
+  "demos": []
+}

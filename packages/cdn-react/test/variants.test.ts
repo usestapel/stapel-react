@@ -138,7 +138,17 @@ describe("handing the row to @stapel/image", () => {
   it("stringifies the tier — the two contracts spell it differently", () => {
     const row = imageRow({ hash: "a".repeat(64) }) as unknown as CdnImage;
     const meta = toStapelImage(row);
-    expect(meta.variants.map((variant) => variant.tier)).toEqual(["120", "480"]);
+    // `original` is here because the LADDER READ NOW PREFERS `render_meta`,
+    // which is the only list carrying that rung — past the top of the ladder no
+    // tier avoids an upscale, so a hero rendered from `variants_meta` alone
+    // could never be served. Both spellings of `tier` arrive in that one array
+    // (an int for the rungs, the string sentinel for `original`) and both come
+    // out as the decimal string `@stapel/image` wants.
+    expect(meta.variants.map((variant) => variant.tier)).toEqual([
+      "120",
+      "480",
+      "original",
+    ]);
     expect(meta.variants[0]?.branch).toBeNull();
     expect(meta.variants[1]?.branch).toBe("w");
   });
@@ -149,6 +159,10 @@ describe("handing the row to @stapel/image", () => {
     expect(meta.source).toBe("cdn");
     expect(meta.aspect).toBeCloseTo(1600 / 1200);
     expect(meta.square).toBe(false);
-    expect(meta.preview_b64).toBeNull();
+    // D-1, the blocker: this used to be a hardcoded `null` under a comment
+    // claiming stapel-cdn generated no placeholder — false since 0.16, and
+    // false at the ONE boundary the whole fleet renders images through.
+    expect(meta.preview_b64).toBe("data:image/webp;base64,UklGRg==");
+    expect(meta.preview_kind).toBe("blur");
   });
 });

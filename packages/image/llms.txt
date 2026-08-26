@@ -1,0 +1,68 @@
+# @stapel/image 0.3.1
+
+Stapel image rendering: tier/branch math for the CDN variant ladder (pickTier, limitingAxis, chooseVariant), slot measurement hook (useImageSlot), and a blur-up <Image> component with upgrade-only tier fetching.
+
+No backend Django module of its own — this is the frontend RUNTIME every @stapel/<module>-react pair is built on top of: client + error envelope, session/refresh seam, TanStack Query layer, i18n engine, analytics seam, flow-machine primitive, encrypted repositories. A pair depends on this and never re-implements what is exported here.
+
+## Exports (call these, never hand-roll the equivalent) — see full
+signatures/JSDoc in the package README and src/index.ts.
+### runtime
+- Image
+- PREVIEW_KIND_ASPECT
+- chooseVariant
+- limitingAxis
+- numericTier
+- pickTier
+- useDevicePixelRatio
+- useImageSlot
+
+### types
+- Branch
+- ChooseVariantArgs
+- Fit
+- ImageErrorInfo
+- ImageProps
+- ImageSlot
+- ImageSlotOptions
+- ImageSlotSize
+- MediaKind
+- MetaStatus
+- PreviewKind
+- StapelImage
+- VariantMeta
+
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- image.element-width → <Image> [default|fluid|preview-kinds|reserved-box|dead-url|no-ladder]  demo/Image.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
+
+## Snippets
+```tsx
+// One-provider setup (StapelConfigProvider + QueryClientProvider + I18nProvider).
+const client = createStapelClient({ baseUrl, getAccessToken });
+<StapelProvider client={client} queryClient={queryClient} i18n={i18n}>
+  <App />
+</StapelProvider>
+```
+```tsx
+// Error narrowing — never a cast (stapel/no-raw-error-shape).
+if (isStapelApiError(err)) return <Alert>{t(err.code, err.params)}</Alert>;
+```

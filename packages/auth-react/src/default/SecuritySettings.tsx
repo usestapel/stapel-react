@@ -12,7 +12,8 @@
  *   (c) Two-factor      — TotpManager, PasskeysManager
  *   (d) Devices & sessions — SessionsList, QrDeviceLinkPanel
  *   (e) Connected      — OAuthLinks
- *   (f) Security log — AuditLogPanel
+ *   (f) Extra verification — VerificationPreferences
+ *   (g) Security log — AuditLogPanel
  *
  * Composed rather than left as ungrouped tabs because a host wiring
  * `@stapel/shell-react`'s nav needs ONE component per menu item — this reads
@@ -40,6 +41,7 @@ import { PhoneChangePanel } from "./security/PhoneChangePanel.js";
 import { QrDeviceLinkPanel } from "./security/QrDeviceLinkPanel.js";
 import { SessionsList } from "./security/SessionsList.js";
 import { TotpManager } from "./security/TotpManager.js";
+import { VerificationPreferences } from "./security/VerificationPreferences.js";
 
 /** Element-relative page padding — never a viewport measurement. */
 const PAGE_STYLE: CSSProperties = {
@@ -62,6 +64,9 @@ export interface SecuritySettingsProps {
   /** Shared empty-state glyph override, applied to every sub-widget that
    * accepts one (sessions, passkeys, oauth). */
   readonly emptyIcon?: ReactNode;
+  /** Extra step-up scopes to offer a decision about, beyond the one
+   * stapel-auth protects itself — see `VerificationPreferencesProps.scopes`. */
+  readonly verificationScopes?: readonly string[];
 }
 
 /** One grouped section: a heading + its widgets, stacked with `gap="middle"`
@@ -165,6 +170,14 @@ export function SecuritySettings(props: SecuritySettingsProps = {}): ReactElemen
           />
         </Section>
       )}
+
+      <Section heading={t(AUTH_I18N_KEYS.secGroupVerification)}>
+        <VerificationPreferences
+          {...(props.verificationScopes !== undefined
+            ? { scopes: props.verificationScopes }
+            : {})}
+        />
+      </Section>
 
       <Section heading={t(AUTH_I18N_KEYS.secGroupAudit)}>
           <AuditLogPanel />

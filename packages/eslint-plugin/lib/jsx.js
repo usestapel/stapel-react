@@ -29,6 +29,26 @@ export function isDefaultSkin(path) {
   return /\/src\/default\//.test(path);
 }
 
+/**
+ * WHICH design-system module a fixer must import from, for a file at `path`.
+ *
+ * A default skin declares exactly ONE design-system dependency —
+ * `@stapel/tokens-antd`, the antd leg of the token bridge — and
+ * `@stapel/tokens-antd` re-exports the scale (`spacing`, `radii`, `fontSize`,
+ * `fontWeight`, `breakpoints`, `breakpointForWidth`, `mediaQuery`, `cssVar`)
+ * for exactly this reason. An autofix that writes `from "@stapel/tokens"`
+ * inside `src/default/**` adds a bare import of a package the pair does not
+ * declare: it resolves today only because the consumer's tree happens to
+ * hoist, and a published tarball is one hoisting change away from breaking
+ * every skin at once.
+ *
+ * Everywhere else — a host app, a headless layer, a build script — there is
+ * no antd leg to route through, and `@stapel/tokens` is the direct answer.
+ */
+export function tokensModuleFor(path) {
+  return isDefaultSkin(path) ? "@stapel/tokens-antd" : "@stapel/tokens";
+}
+
 /** True for a test / fixture path — the preset carves these out too, but the
  * rules that name test files in their own contract (no-adhoc-socket) must not
  * depend on preset wiring to be correct. */

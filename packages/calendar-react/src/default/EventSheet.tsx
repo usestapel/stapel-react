@@ -102,7 +102,7 @@ export function EventSheet(props: EventSheetProps): ReactElement {
                       showIcon
                       role="status"
                       data-testid={`${testId}-cancelled`}
-                      message={t(CALENDAR_I18N_KEYS.detailCancelledBanner)}
+                      title={t(CALENDAR_I18N_KEYS.detailCancelledBanner)}
                     />
                   ) : null}
 

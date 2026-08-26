@@ -32,6 +32,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - coreErrorKeyCandidates
 - coreUiBundle
 - createFlowMachine
+- createFormat
 - createI18n
 - createMeCachePersister
 - createModuleContext
@@ -47,7 +48,12 @@ signatures/JSDoc in the package README and src/index.ts.
 - errorStatus
 - extractVerificationChallenge
 - firstBlock
+- formatDate
+- formatDateTime
+- formatDuration
 - formatFlowError
+- formatNumber
+- formatRelative
 - getActiveSessionManager
 - hasErrorCode
 - idbStorage
@@ -55,6 +61,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - isDevBuild
 - isErrorCode
 - isErrorEnvelope
+- isFlowError
 - isLoadFailed
 - isLoadLoading
 - isLoadReady
@@ -80,6 +87,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - pluralCategory
 - putToForeignOrigin
 - requireLoaded
+- toDate
 - toFlowError
 - toStapelApiError
 - trackFlowStep
@@ -92,6 +100,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - useErrorDisplay
 - useErrorText
 - useFlow
+- useFormat
 - useFormatFlowError
 - useI18n
 - useMandate
@@ -120,6 +129,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - CreateI18nOptions
 - CreateModuleRuntimeOptions
 - CreateSessionManagerOptions
+- DurationStyle
 - EventDef
 - EventDefInput
 - EventProps
@@ -129,10 +139,12 @@ signatures/JSDoc in the package README and src/index.ts.
 - FlowMachineOptions
 - FlowStateBase
 - FlowStepPhase
+- Format
 - FormatFlowErrorOptions
 - HttpMethod
 - I18nDictionary
 - I18nEngine
+- Instant
 - LinkComponent
 - LinkComponentProps
 - LoadFailed
@@ -170,6 +182,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - PutToForeignOriginOptions
 - QueryLike
 - RefreshOutcome
+- RelativeOptions
 - Repository
 - RepositoryOptions
 - ResolveProps

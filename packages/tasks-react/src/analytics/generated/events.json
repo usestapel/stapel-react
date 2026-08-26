@@ -3,5 +3,166 @@
   "package": "@stapel/tasks-react",
   "version": "0.0.0",
   "defined": [],
-  "flows": []
+  "flows": [
+    {
+      "flow": "tasks.board_setup",
+      "event": "flow.tasks.board_setup.<step>",
+      "titleKey": "flow.tasks.board_setup.title",
+      "descriptionKey": "flow.tasks.board_setup.description",
+      "props": {
+        "phase": {
+          "type": "string",
+          "description": "Transition phase of the funnel step",
+          "options": [
+            "started",
+            "completed",
+            "failed"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "order": 0,
+          "kind": "human",
+          "noteKey": "flow.tasks.board_setup.step.0.note"
+        },
+        {
+          "order": 1,
+          "kind": "http",
+          "noteKey": "flow.tasks.board_setup.step.1.note"
+        },
+        {
+          "order": 2,
+          "kind": "http",
+          "noteKey": "flow.tasks.board_setup.step.2.note"
+        },
+        {
+          "order": 3,
+          "kind": "http",
+          "noteKey": "flow.tasks.board_setup.step.3.note"
+        },
+        {
+          "order": 4,
+          "kind": "http",
+          "noteKey": "flow.tasks.board_setup.step.4.note"
+        }
+      ],
+      "source": "flows.json"
+    },
+    {
+      "flow": "tasks.card_lifecycle",
+      "event": "flow.tasks.card_lifecycle.<step>",
+      "titleKey": "flow.tasks.card_lifecycle.title",
+      "descriptionKey": "flow.tasks.card_lifecycle.description",
+      "props": {
+        "phase": {
+          "type": "string",
+          "description": "Transition phase of the funnel step",
+          "options": [
+            "started",
+            "completed",
+            "failed"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "order": 1,
+          "kind": "http",
+          "noteKey": "flow.tasks.card_lifecycle.step.1.note"
+        },
+        {
+          "order": 2,
+          "kind": "http",
+          "noteKey": "flow.tasks.card_lifecycle.step.2.note"
+        },
+        {
+          "order": 3,
+          "kind": "http",
+          "noteKey": "flow.tasks.card_lifecycle.step.3.note"
+        },
+        {
+          "order": 4,
+          "kind": "http",
+          "noteKey": "flow.tasks.card_lifecycle.step.4.note"
+        },
+        {
+          "order": 5,
+          "kind": "http",
+          "noteKey": "flow.tasks.card_lifecycle.step.5.note"
+        },
+        {
+          "order": 6,
+          "kind": "http",
+          "noteKey": "flow.tasks.card_lifecycle.step.6.note"
+        },
+        {
+          "order": 7,
+          "kind": "http",
+          "noteKey": "flow.tasks.card_lifecycle.step.7.note"
+        },
+        {
+          "order": 8,
+          "kind": "http",
+          "noteKey": "flow.tasks.card_lifecycle.step.8.note"
+        },
+        {
+          "order": 12,
+          "kind": "http",
+          "noteKey": "flow.tasks.card_lifecycle.step.12.note"
+        },
+        {
+          "order": 20,
+          "kind": "action",
+          "noteKey": "flow.tasks.card_lifecycle.step.20.note"
+        },
+        {
+          "order": 21,
+          "kind": "action",
+          "noteKey": "flow.tasks.card_lifecycle.step.21.note"
+        }
+      ],
+      "source": "flows.json"
+    },
+    {
+      "flow": "tasks.card_move",
+      "event": "flow.tasks.card_move.<step>",
+      "titleKey": "flow.tasks.card_move.title",
+      "descriptionKey": "flow.tasks.card_move.description",
+      "props": {
+        "phase": {
+          "type": "string",
+          "description": "Transition phase of the funnel step",
+          "options": [
+            "started",
+            "completed",
+            "failed"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "order": 0,
+          "kind": "human",
+          "noteKey": "flow.tasks.card_move.step.0.note"
+        },
+        {
+          "order": 1,
+          "kind": "http",
+          "noteKey": "flow.tasks.card_move.step.1.note"
+        },
+        {
+          "order": 2,
+          "kind": "function",
+          "noteKey": "flow.tasks.card_move.step.2.note"
+        },
+        {
+          "order": 3,
+          "kind": "action",
+          "noteKey": "flow.tasks.card_move.step.3.note"
+        }
+      ],
+      "source": "flows.json"
+    }
+  ]
 }

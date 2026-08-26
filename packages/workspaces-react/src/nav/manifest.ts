@@ -7,11 +7,14 @@
  * `packages/workspaces-react/nav-manifest.json` plus this package's slice of
  * the root aggregate.
  *
- * Two entries, and the reason there are only two:
+ * ## The six doors
  *
  *  - `workspaces.list` — the workspace roster (`<WorkspacesPage/>`), under the
  *    container-synthesised `account.root` submenu, next to privacy and
- *    billing. It needs no props: everything it shows is the caller's own.
+ *    billing. Everything it shows is the caller's own.
+ *  - `workspaces.settings` / `.members` / `.invitations` / `.audit` — the four
+ *    workspace-scoped admin screens, siblings of the roster under the same
+ *    account section, on paths RELATIVE to it (`workspaces/members`, …).
  *  - `workspaces.invite` — the public `/invite/:token` route
  *    (`<InviteAcceptPage/>`). `surface: "public"` and `requiresAuth: false`
  *    because the invitee usually has no account here at all — that is the
@@ -19,15 +22,23 @@
  *    secret. `menuVisibleDefault: false`: it is an address a letter sends
  *    somebody to, never a menu item.
  *
- * `<WorkspaceSettings/>`, `<MembersManager/>`, `<InvitationsPane/>` and
- * `<AuditTrailPane/>` are deliberately NOT declared. Each needs a
- * `workspaceId`, and the nav contract has no way to hand a mounted screen the
- * ACTIVE workspace — `route.path` params reach a component the way
- * `listings.detail`'s `:id` does, but "which workspace am I in" is host state
- * (this pair's own `WorkspaceSelectionProvider`), not a path segment of a
- * settings URL. Declaring them anyway would put four doors in the shell that
- * open on a screen with no workspace. Raised for the nav contract in
- * `SCRATCH/wave-b/REQUESTS-workspaces-react.md`.
+ * ## Where the four scoped screens get their workspace (architecture verdict)
+ *
+ * They do NOT get it from the route. The active workspace is RUNTIME state —
+ * the same state the container writes when a person switches workspaces
+ * (`WorkspaceSelection.switchTo`) — not a path param of a settings URL, so
+ * these entries declare no `:workspaceId` segment and the screens read the
+ * selection themselves (`useOptionalWorkspaceSelection`, see
+ * `src/default/ActiveWorkspace.tsx`). A host that mounts the same components
+ * outside the shell keeps passing `workspaceId` explicitly; the prop stayed,
+ * it only became optional.
+ *
+ * The failure mode that made this a question at all — four doors opening on a
+ * screen with no workspace — is answered by the screens rather than by the
+ * contract: with no active workspace they render a designed "choose a
+ * workspace" state (and "you are not in a workspace yet" for a person who
+ * belongs to none), never a blank page and never a crash from a selection
+ * provider a shell forgot to wire.
  */
 import type { NavEntry } from "@stapel/core";
 
@@ -43,6 +54,54 @@ export const navEntries: readonly NavEntry[] = [
     requiresAuth: true,
     surface: "member",
     order: 10,
+  },
+  {
+    id: "workspaces.settings",
+    labelKey: "workspaces.nav.settings",
+    icon: "ProfileOutlined",
+    route: { path: "workspaces/settings" },
+    component: { export: "WorkspaceSettings", subpath: "default" },
+    placement: { level: "submenu", parentId: "account.root" },
+    menuVisibleDefault: true,
+    requiresAuth: true,
+    surface: "member",
+    order: 11,
+  },
+  {
+    id: "workspaces.members",
+    labelKey: "workspaces.nav.members",
+    icon: "UserOutlined",
+    route: { path: "workspaces/members" },
+    component: { export: "MembersManager", subpath: "default" },
+    placement: { level: "submenu", parentId: "account.root" },
+    menuVisibleDefault: true,
+    requiresAuth: true,
+    surface: "member",
+    order: 12,
+  },
+  {
+    id: "workspaces.invitations",
+    labelKey: "workspaces.nav.invitations",
+    icon: "MessageOutlined",
+    route: { path: "workspaces/invitations" },
+    component: { export: "InvitationsPane", subpath: "default" },
+    placement: { level: "submenu", parentId: "account.root" },
+    menuVisibleDefault: true,
+    requiresAuth: true,
+    surface: "member",
+    order: 13,
+  },
+  {
+    id: "workspaces.audit",
+    labelKey: "workspaces.nav.audit",
+    icon: "AuditOutlined",
+    route: { path: "workspaces/audit" },
+    component: { export: "AuditTrailPane", subpath: "default" },
+    placement: { level: "submenu", parentId: "account.root" },
+    menuVisibleDefault: true,
+    requiresAuth: true,
+    surface: "member",
+    order: 14,
   },
   {
     id: "workspaces.invite",

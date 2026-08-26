@@ -30,9 +30,16 @@
  *    "owner"` does not make the caller the user in `owner_id` once more than
  *    one membership can hold the role — guessing would grey out somebody
  *    else's row. So the row is gated on `MemberResponse.is_self`, the
- *    server-derived flag, and on nothing else: a build talking to a backend
- *    that does not send it claims nothing rather than guessing. See
- *    {@link isSelf}.
+ *    server-derived flag (stapel-workspaces 0.30.0), and on nothing else: a
+ *    build talking to a backend that does not send it claims nothing rather
+ *    than guessing. See {@link isSelf}.
+ *
+ * `is_self` gates TWO controls, not one. `MemberPasswordResetView` refuses
+ * the caller's own row with the byte-identical 404 it gives for a stranger —
+ * correct on the server (one refusal shape, nothing to learn from the
+ * difference) and invisible to a client without this flag: an ungated "Reset
+ * password" on your own row comes back with a 404 that reads as "this member
+ * has been removed". Both controls therefore ask {@link isSelf} first.
  *
  * ## Two-factor evidence
  *
@@ -65,13 +72,22 @@ import { spacing } from "@stapel/tokens";
 import { Members } from "../headless/Members.js";
 import type { MembersBag } from "../headless/Members.js";
 import type { Member, MembersParams } from "../api/types.js";
+import { useResetMemberPassword } from "../model/mutations.js";
+import { ActiveWorkspaceBoundary } from "./ActiveWorkspace.js";
 import { useWorkspaceFormat } from "../model/format.js";
 import { WORKSPACES_I18N_KEYS } from "../i18n/keys.js";
 import { AnchorPager, Muted, PersonLine, StatusTag } from "./parts.js";
 import { RoleSelectField } from "./RoleSelectField.js";
 
 export interface MembersManagerProps {
-  workspaceId: string;
+  /**
+   * The workspace whose roster this is. OPTIONAL: omitted (the way the nav
+   * contract mounts this screen — it routes, it does not hand over an ambient
+   * scope), the active workspace is read from the runtime selection
+   * (`WorkspaceSelection`), and a screen with none renders the designed
+   * "choose a workspace" state rather than a blank.
+   */
+  workspaceId?: string;
   /**
    * Whether the caller may invite, change roles, rename and remove members.
    * The host already knows the caller's own verdict in this workspace (e.g.
@@ -120,7 +136,26 @@ function splitEmails(text: string): readonly string[] {
 }
 
 export function MembersManager(props: MembersManagerProps): ReactElement {
-  const canManage = props.canManage ?? true;
+  return (
+    <SkinTheme data-testid="members-manager">
+      <ActiveWorkspaceBoundary
+        workspaceId={props.workspaceId}
+        testId="members-manager-workspace"
+      >
+        {(workspaceId) => (
+          <Roster workspaceId={workspaceId} canManage={props.canManage ?? true} />
+        )}
+      </ActiveWorkspaceBoundary>
+    </SkinTheme>
+  );
+}
+
+/** The roster once the workspace is known — the walk and the filter live here
+ * because the cursor belongs to this screen's state, not to the bag's. */
+function Roster(props: {
+  readonly workspaceId: string;
+  readonly canManage: boolean;
+}): ReactElement {
   const [walk, setWalk] = useState<Walk>(FIRST_PAGE);
   const [search, setSearch] = useState("");
 
@@ -131,30 +166,30 @@ export function MembersManager(props: MembersManagerProps): ReactElement {
   };
 
   return (
-    <SkinTheme data-testid="members-manager">
-      <Members workspaceId={props.workspaceId} params={params}>
-        {(bag) => (
-          <RosterCard
-            bag={bag}
-            canManage={canManage}
-            walk={walk}
-            search={search}
-            onSearch={(value) => {
-              // A new filter is a new walk: an anchor from the old one points
-              // into a list that no longer exists.
-              setSearch(value);
-              setWalk(FIRST_PAGE);
-            }}
-            onWalk={setWalk}
-          />
-        )}
-      </Members>
-    </SkinTheme>
+    <Members workspaceId={props.workspaceId} params={params}>
+      {(bag) => (
+        <RosterCard
+          bag={bag}
+          workspaceId={props.workspaceId}
+          canManage={props.canManage}
+          walk={walk}
+          search={search}
+          onSearch={(value) => {
+            // A new filter is a new walk: an anchor from the old one points
+            // into a list that no longer exists.
+            setSearch(value);
+            setWalk(FIRST_PAGE);
+          }}
+          onWalk={setWalk}
+        />
+      )}
+    </Members>
   );
 }
 
 function RosterCard(props: {
   readonly bag: MembersBag;
+  readonly workspaceId: string;
   readonly canManage: boolean;
   readonly walk: Walk;
   readonly search: string;
@@ -167,6 +202,7 @@ function RosterCard(props: {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [removing, setRemoving] = useState<Member | null>(null);
   const [renaming, setRenaming] = useState<Member | null>(null);
+  const [resetting, setResetting] = useState<Member | null>(null);
 
   const page = bag.page;
 
@@ -264,6 +300,7 @@ function RosterCard(props: {
                   canManage={canManage}
                   onRename={() => setRenaming(member)}
                   onRemove={() => setRemoving(member)}
+                  onResetPassword={() => setResetting(member)}
                 />
               ))}
             </div>
@@ -317,6 +354,12 @@ function RosterCard(props: {
         }}
       />
 
+      <PasswordResetDialog
+        workspaceId={props.workspaceId}
+        member={resetting}
+        onClose={() => setResetting(null)}
+      />
+
       {/* ONE confirm for the list, keyed by the pending row — not one per
           row, which is N dialogs mounted to answer a question about one. */}
       <SkinConfirm
@@ -341,18 +384,18 @@ function RosterCard(props: {
 }
 
 /**
- * Is this row the READER? The server's answer (`MemberResponse.is_self`) and
- * only the server's.
+ * Is this row the READER? The server's answer (`MemberResponse.is_self`,
+ * stapel-workspaces 0.30.0) and only the server's.
  *
- * Read defensively rather than off the generated type because the field is
- * additive and a deployment on an older stapel-workspaces sends nothing: the
- * absence must read as "the server did not say", which is what a missing
- * property gives, and never as "no". A comparison against a session id would
- * be the client re-deriving an identity it does not hold — the exact shape of
- * the `my_role` defect `can_delete` was added to close.
+ * The field is OPTIONAL in the contract, and the `=== true` is the whole
+ * point of reading it that way: a deployment on an older backend sends
+ * nothing, and the absence must read as "the server did not say" — never as
+ * "no". A comparison against a session id would be the client re-deriving an
+ * identity it does not hold, which is the shape of the `my_role` defect
+ * `can_delete` was added to close.
  */
 function isSelf(member: Member): boolean {
-  return (member as { readonly is_self?: boolean }).is_self === true;
+  return member.is_self === true;
 }
 
 /**
@@ -374,6 +417,22 @@ function removeAvailability(
     : actionAvailable();
 }
 
+/**
+ * Whether "Reset password" is offerable on THIS row. One rule, and it is the
+ * server's: `MemberPasswordResetView` refuses the caller's own row with the
+ * byte-identical 404 it gives for a stranger ("Yourself is not in the set
+ * this endpoint acts on"), so an ungated button here would read the backend's
+ * correct refusal as "this member has been removed" and say so to an admin
+ * looking at their own name. Everything else — the owner-target rule, the
+ * privileged-account refusal, the step-up — the backend answers, and this
+ * screen states rather than predicts.
+ */
+function resetPasswordAvailability(member: Member): ActionAvailability {
+  return isSelf(member)
+    ? actionBlocked(WORKSPACES_I18N_KEYS.membersResetBlockedSelf)
+    : actionAvailable();
+}
+
 function MemberRow(props: {
   readonly member: Member;
   readonly rows: readonly Member[];
@@ -381,6 +440,7 @@ function MemberRow(props: {
   readonly canManage: boolean;
   readonly onRename: () => void;
   readonly onRemove: () => void;
+  readonly onResetPassword: () => void;
 }): ReactElement {
   const t = useT();
   const format = useWorkspaceFormat();
@@ -461,6 +521,17 @@ function MemberRow(props: {
             >
               {t(WORKSPACES_I18N_KEYS.membersRename)}
             </Button>
+            <GatedButton
+              gate={resetPasswordAvailability(member)}
+              type="link"
+              size="small"
+              onClick={props.onResetPassword}
+              testId={`member-reset-password-${member.user_id}`}
+              data-analytics="none"
+              data-analytics-reason="opens the password-reset confirm"
+            >
+              {t(WORKSPACES_I18N_KEYS.membersResetPassword)}
+            </GatedButton>
             <GatedButton
               gate={removeAvailability(member, props.rows, bag.rosterComplete)}
               danger
@@ -663,6 +734,119 @@ function RenameDialog(props: {
           data-testid="members-rename-input"
         />
         <Muted>{t(WORKSPACES_I18N_KEYS.membersRenameHint)}</Muted>
+      </Flex>
+    </SkinDialog>
+  );
+}
+
+/**
+ * Reset a member's password on the organization's order — an account takeover
+ * performed on purpose, so the dialog states every part of it before the
+ * click and once more after.
+ *
+ * Three things this surface has to get right, all of them the backend's own
+ * rules stated on the glass rather than re-derived:
+ *
+ *  - **The step-up is announced, not discovered.** The capability is declared
+ *    `high`, so `@requires_verification(scope="sensitive")` will demand a
+ *    fresh confirmation; core's client drives the challenge and replays the
+ *    call. A person who reads "you will be asked to confirm" before pressing
+ *    the button experiences a step, not a refusal.
+ *  - **The generated password is shown ONCE.** It comes back only when the
+ *    request omitted one, is never re-fetchable, and the hook deliberately
+ *    keeps it out of the query cache (`gcTime: 0`). Closing the dialog resets
+ *    the mutation, so the credential leaves the screen with it.
+ *  - **`notified: false` is said out loud.** It means the account had no
+ *    channel to be told on, which makes the admin the only person who can
+ *    tell them — silence there is how a reset becomes indistinguishable from
+ *    a takeover.
+ */
+function PasswordResetDialog(props: {
+  readonly workspaceId: string;
+  readonly member: Member | null;
+  readonly onClose: () => void;
+}): ReactElement {
+  const t = useT();
+  const reset = useResetMemberPassword(props.workspaceId);
+  const { member } = props;
+  const who = member?.display_name ?? member?.email ?? "";
+  const result = reset.data;
+
+  const close = (): void => {
+    // The result carries a live credential: it goes when the dialog goes.
+    reset.reset();
+    props.onClose();
+  };
+
+  return (
+    <SkinDialog
+      open={member !== null}
+      onClose={close}
+      title={t(WORKSPACES_I18N_KEYS.membersResetDialogTitle, { member: who })}
+      dismissLabel={t(WORKSPACES_I18N_KEYS.dialogClose)}
+      data-testid="members-reset-dialog"
+      footer={
+        result === undefined ? (
+          <Button
+            type="primary"
+            danger
+            loading={reset.isPending}
+            onClick={() => {
+              if (member !== null) reset.mutate({ userId: member.user_id });
+            }}
+            data-testid="members-reset-submit"
+            data-analytics="none"
+            data-analytics-reason="business action — host app wraps with its own tracked()"
+          >
+            {t(WORKSPACES_I18N_KEYS.membersResetSubmit)}
+          </Button>
+        ) : (
+          <Button
+            type="primary"
+            onClick={close}
+            data-testid="members-reset-done"
+            data-analytics="none"
+            data-analytics-reason="local-ui-close-dialog"
+          >
+            {t(WORKSPACES_I18N_KEYS.dialogClose)}
+          </Button>
+        )
+      }
+    >
+      <Flex vertical gap={spacing["3"]}>
+        {result === undefined ? (
+          <>
+            <Typography.Text>
+              {t(WORKSPACES_I18N_KEYS.membersResetDialogBody)}
+            </Typography.Text>
+            <Muted testId="members-reset-stepup">
+              {t(WORKSPACES_I18N_KEYS.membersResetStepUp)}
+            </Muted>
+            <ErrorAlert thrown={reset.error} testId="members-reset-error" />
+          </>
+        ) : (
+          <Flex vertical gap={spacing["2"]} data-testid="members-reset-result">
+            <Typography.Text>
+              {t(WORKSPACES_I18N_KEYS.membersResetDone, { member: who })}
+            </Typography.Text>
+            {typeof result.generated_password === "string" && (
+              <>
+                <Typography.Text>
+                  {t(WORKSPACES_I18N_KEYS.membersResetGenerated)}
+                </Typography.Text>
+                <Typography.Text code data-testid="members-reset-password">
+                  {result.generated_password}
+                </Typography.Text>
+                <Muted>{t(WORKSPACES_I18N_KEYS.membersResetGeneratedHint)}</Muted>
+              </>
+            )}
+            {result.notified === false && (
+              <Muted testId="members-reset-not-notified">
+                {t(WORKSPACES_I18N_KEYS.membersResetNotNotified)}
+              </Muted>
+            )}
+          </Flex>
+        )}
       </Flex>
     </SkinDialog>
   );

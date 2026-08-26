@@ -1,0 +1,125 @@
+{
+  "package": "@stapel/workspaces-react",
+  "version": "0.17.0",
+  "entries": [
+    {
+      "id": "workspaces.list",
+      "labelKey": "workspaces.nav.workspaces",
+      "icon": "AppstoreOutlined",
+      "route": {
+        "path": "workspaces"
+      },
+      "component": {
+        "export": "WorkspacesPage",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "account.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 10
+    },
+    {
+      "id": "workspaces.settings",
+      "labelKey": "workspaces.nav.settings",
+      "icon": "ProfileOutlined",
+      "route": {
+        "path": "workspaces/settings"
+      },
+      "component": {
+        "export": "WorkspaceSettings",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "account.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 11
+    },
+    {
+      "id": "workspaces.members",
+      "labelKey": "workspaces.nav.members",
+      "icon": "UserOutlined",
+      "route": {
+        "path": "workspaces/members"
+      },
+      "component": {
+        "export": "MembersManager",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "account.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 12
+    },
+    {
+      "id": "workspaces.invitations",
+      "labelKey": "workspaces.nav.invitations",
+      "icon": "MessageOutlined",
+      "route": {
+        "path": "workspaces/invitations"
+      },
+      "component": {
+        "export": "InvitationsPane",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "account.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 13
+    },
+    {
+      "id": "workspaces.audit",
+      "labelKey": "workspaces.nav.audit",
+      "icon": "AuditOutlined",
+      "route": {
+        "path": "workspaces/audit"
+      },
+      "component": {
+        "export": "AuditTrailPane",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "account.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 14
+    },
+    {
+      "id": "workspaces.invite",
+      "labelKey": "workspaces.nav.invite",
+      "icon": "MessageOutlined",
+      "route": {
+        "path": "/invite/:token"
+      },
+      "component": {
+        "export": "InviteAcceptPage",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": false,
+      "surface": "public",
+      "order": 0
+    }
+  ]
+}

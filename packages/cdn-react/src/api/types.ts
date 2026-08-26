@@ -149,6 +149,18 @@ export type CdnPreviewKind = NonNullable<CdnRenderMeta["preview_kind"]>;
 export type CdnMetaStatus = CdnRenderMeta["meta_status"];
 
 /**
+ * Whether the variant ladder behind a row's `variant_<n>_url` fields is a
+ * RESOURCE or a PREDICTION.
+ *
+ * Every `variant_<n>_url` is derived from `<type>/<hash>`, so all of them are
+ * well-formed in the 201 that creates the row — before the background task has
+ * written a single file. The schema says it in as many words: "read it before
+ * you render a variant URL"; a `pending` payload's variant URLs 404, and a 404
+ * thumbnail reads to the person as "my upload was rejected".
+ */
+export type CdnVariantsStatus = Schemas["VariantsStatusEnum"];
+
+/**
  * The three rows an upload can produce. `file/exists/` returns the same union
  * under `file`, discriminated by its sibling `type` — never by sniffing which
  * fields a row happens to have.

@@ -92,8 +92,59 @@ function checkPinsResolve(pins) {
   }
 }
 
+/**
+ * A pin that RESOLVES can still lie about the world: a ref four minors behind
+ * the library regenerates a pair that typechecks, looks plausible, and goes
+ * silent against the wire the library actually speaks (stapel-chat 0.2-era
+ * pin vs 0.6.x, 2026-08-26). Compare the pinned pyproject version with the
+ * sibling's newest release tag: one minor behind is a deliberate hold and is
+ * listed; two or more is an artifact nobody chose, and fails.
+ */
+function checkPinsFresh(pins) {
+  const notes = [];
+  const stale = [];
+  for (const [module, entry] of Object.entries(pins.modules ?? {})) {
+    const dir = resolve(ROOT, SIBLING_ROOT, module);
+    if (!existsSync(resolve(dir, ".git"))) continue;
+    if (typeof entry.hold === "string" && entry.hold.trim()) {
+      // A recorded hold is a decision, not an oversight: list it, keep going.
+      notes.push(`${module}: HELD — ${entry.hold}`);
+      continue;
+    }
+    let pinned;
+    let newest;
+    try {
+      const py = execFileSync("git", ["-C", dir, "show", `${entry.ref}:pyproject.toml`], { encoding: "utf8" });
+      pinned = parseVersion(py);
+      const tags = execFileSync("git", ["-C", dir, "tag", "--list", "v*"], { encoding: "utf8" })
+        .split("\n")
+        .map((t) => t.trim().replace(/^v/, ""))
+        .filter((t) => /^\d+\.\d+\.\d+$/.test(t))
+        .map((t) => t.split(".").map(Number))
+        .sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+      newest = tags.at(-1) ?? null;
+    } catch {
+      continue;
+    }
+    if (!pinned || !newest) continue;
+    const behind = newest[0] - pinned[0] > 0 ? Infinity : newest[1] - pinned[1];
+    if (behind >= 2) stale.push(`${module}: pinned ${show(pinned)}, newest tag v${newest.join(".")} (${behind === Infinity ? "a major" : behind + " minors"} behind)`);
+    else if (behind === 1) notes.push(`${module}: pinned ${show(pinned)}, newest tag v${newest.join(".")}`);
+  }
+  for (const n of notes) console.error(`  ~ pin one minor behind (a deliberate hold, or the next bump): ${n}`);
+  if (stale.length > 0) {
+    console.error(`✖ contract-pins: ${stale.length} pin(s) are two or more minors behind the library they pin:\n` +
+      stale.map((s) => `    - ${s}`).join("\n") +
+      `\n  A pair regenerated from such a pin is internally consistent and wrong about the wire. Bump the pin\n` +
+      `  to the release the pair is built for and regenerate it (pnpm gen:pinned), or record the hold in the note.`);
+    process.exit(1);
+  }
+}
+
 async function main() {
-  checkPinsResolve(JSON.parse(await readFile(resolve(ROOT, "contract-pins.json"), "utf8")));
+  const pins = JSON.parse(await readFile(resolve(ROOT, "contract-pins.json"), "utf8"));
+  checkPinsResolve(pins);
+  checkPinsFresh(pins);
   const dirs = (await readdir(resolve(ROOT, "packages"), { withFileTypes: true }))
     .filter((e) => e.isDirectory())
     .map((e) => e.name)

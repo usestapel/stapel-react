@@ -90,7 +90,7 @@ export function DegradationNotice(
       showIcon
       data-testid="search-degraded"
       data-variant="banner"
-      message={t(SEARCH_I18N_KEYS.degradedTitle)}
+      title={t(SEARCH_I18N_KEYS.degradedTitle)}
       description={
         <ul style={{ margin: 0, paddingInlineStart: spacing[5] }}>{lines}</ul>
       }

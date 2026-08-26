@@ -8,13 +8,13 @@ export default { title: "docs-react / Dialogs" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"rename-prefilled"} };
 export const NameEmpty = (): ReactElement => renderDemoVariant(demo, "name-empty");
 NameEmpty.storyName = "name-empty";
-NameEmpty.parameters = { stapel: {"viewport":"phone"} };
+NameEmpty.parameters = { stapel: {"viewport":"phone","step":"rename-empty"} };
 export const MoveUnchanged = (): ReactElement => renderDemoVariant(demo, "move-unchanged");
 MoveUnchanged.storyName = "move-unchanged";
-MoveUnchanged.parameters = { stapel: {"viewport":"phone"} };
+MoveUnchanged.parameters = { stapel: {"viewport":"phone","step":"move-unchanged"} };
 export const NewDocument = (): ReactElement => renderDemoVariant(demo, "new-document");
 NewDocument.storyName = "new-document";
-NewDocument.parameters = { stapel: {"viewport":"phone"} };
+NewDocument.parameters = { stapel: {"viewport":"phone","step":"create"} };

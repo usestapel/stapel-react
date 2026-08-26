@@ -17,32 +17,38 @@
         {
           "id": "default",
           "description": "Three fixed boxes, three different files, one descriptor.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "measured"
         },
         {
           "id": "fluid",
           "description": "One full-width element: resize the viewer and it upgrades, and once a tier is painted it is never replaced by a smaller one.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "measured"
         },
         {
           "id": "preview-kinds",
           "description": "The placeholder is branched on preview_kind: a photo blurs up, a video poster is a real frame and is not smeared, a waveform is drawn whole.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "preview"
         },
         {
           "id": "reserved-box",
           "description": "preview_kind is known while preview_b64 is still null, so the box is reserved in the right shape now instead of collapsing and jumping later.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "not_generated"
         },
         {
           "id": "dead-url",
           "description": "A variant that will not load renders the neutral error box with the caller's alt — never the browser's torn-page glyph, never an empty slot.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "failed"
         },
         {
           "id": "no-ladder",
           "description": "A link image has one url and no rungs: it is shown immediately, with the aspect box still preventing the layout shift.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "link"
         }
       ],
       "source": {

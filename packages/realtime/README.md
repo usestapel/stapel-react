@@ -27,6 +27,7 @@ that together put a whole product on polling for months:
 | no `pong` | a reconnect + full replay every 35 s | answers every server `ping` immediately |
 | one `seq` for two jobs | edits and tombstones silently dropped on resume | `envelopeSeq` (resume cursor) and `payloadSeq` (ordering key) are different fields |
 | a six-attempt retry budget | fell back to polling and said nothing | no budget; `reconnecting` is a first-class state a skin must render |
+| a socket that never once worked | "reconnecting…", for months | `degradation.kind === "never_connected"` — see [Naming degradation](#naming-degradation) |
 
 ---
 
@@ -60,8 +61,13 @@ function Thread(): ReactElement {
 A shell indicator reads the aggregate:
 
 ```tsx
-const { connected, reconnecting, refused, refusal, reason, cursors } = useRealtimeState();
+const { connected, reconnecting, refused, refusal, reason, cursors, degradation } =
+  useRealtimeState();
 ```
+
+`degradation` is the one a shell must actually render when the socket has been
+down for a while — it carries the NAME of the failure ("never connected" is not
+"reconnecting"). See [Naming degradation](#naming-degradation).
 
 `RealtimeProvider url="wss://host/ws/mux"` (a plain string) puts **every**
 stream on ONE socket, routed by `envelope.stream`. Same code path; the shipped
@@ -106,6 +112,99 @@ sends `error{code=unauthorized}` first). "Did this socket ever open" is the one
 honest signal, and it is what the client splits on. An `origin` refusal is a
 deployment misconfiguration identical for every user — it never spends a session
 refresh, and it retries once and then holds so an operator actually sees it.
+
+---
+
+## Naming degradation
+
+A deployment can sit for months with a socket that is **configured and never
+usable** — an origin allowlist nobody filled in, an ingress that does not
+upgrade, a firewall that swallows the handshake. The socket opens, nothing
+answers, nothing closes, and a generic indicator says "reconnecting…" until the
+tab is closed. That sentence is true about the retry loop and false about the
+product, and it is why a whole pair ran on polling without anyone filing a bug.
+
+So the aggregate state carries the **name** of the silence:
+
+```ts
+const { degradation, everConnected, firstAttemptAt, lastOpenAt } = useRealtimeState();
+
+degradation; // null | { kind, since, attempts, reason? }
+```
+
+| `kind` | when | what a person should be told |
+|---|---|---|
+| `never_connected` | this client has **never** had an open socket: 3 failed attempts, **or** 30 s since the first attempt | live updates unavailable — polling |
+| `reconnecting_long` | it was open, and has been down for 60 s | reconnecting since 14:02 — showing cached data |
+| `refused` | the server gave a verdict (`origin`, `session`, `forbidden`, …) | the refusal's own words, plus who fixes it |
+
+`never_connected` and `reconnecting_long` are two products of one spinner and
+they go to two different people: the first says an operator has to change
+deployment config, the second says the network went away and waiting is
+reasonable. `refused` outranks both — a verdict is not a slow reconnect, and
+the runtime holds no countdown behind one.
+
+Thresholds are configurable, the clock is injectable, and the whole thing is
+derived (`getState()` re-derives on read; subscribers are woken by a timer,
+because silence produces no events):
+
+```tsx
+<RealtimeProvider
+  url={resolve}
+  degradation={{ neverConnectedAttempts: 3, neverConnectedMs: 30_000, reconnectingLongMs: 60_000 }}
+/>
+```
+
+A pair renders it beside the content it affects — never in a tooltip, because a
+reason nobody hovers is a reason nobody reads:
+
+```tsx
+function LiveBadge(): ReactElement | null {
+  const { degradation, connected } = useRealtimeState();
+  const { reconnect } = useStream(streamKey, { optional: true });
+  if (connected || degradation === null) return null;
+
+  const line = {
+    never_connected: t("realtime.degraded.never"),      // "Live updates unavailable — polling"
+    reconnecting_long: t("realtime.degraded.long", {    // "Reconnecting since {since} — showing cached data"
+      since: formatTime(degradation.since),
+    }),
+    refused: t("realtime.degraded.refused", { reason: degradation.reason ?? "" }),
+  }[degradation.kind];
+
+  return (
+    <Banner tone="warning">
+      {line}
+      {degradation.kind !== "refused" || degradation.reason !== "origin" ? (
+        <Button onClick={reconnect}>{t("realtime.retry")}</Button>
+      ) : null}
+    </Banner>
+  );
+}
+```
+
+`everConnected` is the same fact in its rawest form — `false` with a socket
+configured is the state that hid for months. `firstAttemptAt` and `lastOpenAt`
+are what let a badge say *since when* instead of *for a while*; note that
+`reconnecting_long` is timed from the **drop**, not from `lastOpenAt`, so an
+hour of healthy uptime does not report as an hour of outage the instant it
+blinks.
+
+### `no_provider` is not a socket state
+
+`useStream(key, { optional: true })` returns `status.state === "no_provider"`
+when there is no `<RealtimeProvider>` above it: nothing is retrying, nothing
+was refused, and no retry button will help.
+
+It is a separate type (`NoProviderStatus`), **not** an extra member of
+`RealtimeStreamState`, and the compiler keeps them apart — a skin that folded
+this into a socket state would render "reconnecting…" for a page that never had
+a socket. `RealtimeStreamStatus` still describes only sockets, so every
+existing exhaustive `switch` over `status.state` compiles untouched.
+
+Without `optional` the hook still **throws** — a socket hook that silently does
+nothing is the failure this package exists to end, so the quiet version has to
+be asked for by name.
 
 ---
 

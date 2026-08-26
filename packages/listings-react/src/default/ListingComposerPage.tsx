@@ -349,7 +349,7 @@ export function ListingComposerPage(
             type="warning"
             showIcon
             data-testid="listings-composer-draft-unreadable"
-            message={t(LISTINGS_I18N_KEYS.composeBlockedNoDraft)}
+            title={t(LISTINGS_I18N_KEYS.composeBlockedNoDraft)}
           />
         ) : null}
 
@@ -359,7 +359,7 @@ export function ListingComposerPage(
             showIcon
             data-testid="listings-composer-published"
             data-outcome={bag.outcome}
-            message={t(
+            title={t(
               bag.outcome === "live_edit_under_review"
                 ? LISTINGS_I18N_KEYS.composePublishedLive
                 : LISTINGS_I18N_KEYS.composePublishedFirst
@@ -390,7 +390,7 @@ export function ListingComposerPage(
               type="info"
               showIcon
               data-testid="listings-composer-dropped"
-              message={t(LISTINGS_I18N_KEYS.composeCategoryChangedDropped, {
+              title={t(LISTINGS_I18N_KEYS.composeCategoryChangedDropped, {
                 count: bag.droppedOnCategoryChange.length,
               })}
             />

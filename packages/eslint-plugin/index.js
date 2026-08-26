@@ -37,6 +37,7 @@ import i18nLocaleParity from "./rules/i18n-locale-parity.js";
 import noAdhocSocket from "./rules/no-adhoc-socket.js";
 import noSilentSlot from "./rules/no-silent-slot.js";
 import noBooleanDisabled from "./rules/no-boolean-disabled.js";
+import antdAlertTitle from "./rules/antd-alert-title.js";
 
 const rules = {
   "no-raw-colors": noRawColors,
@@ -98,6 +99,11 @@ const rules = {
   "no-adhoc-socket": noAdhocSocket,
   "no-silent-slot": noSilentSlot,
   "no-boolean-disabled": noBooleanDisabled,
+  // A mechanical vendor deprecation, not doctrine: antd 6 renamed
+  // `<Alert message>` to `<Alert title>`. Autofixable, at `error` in
+  // `recommended` — there is no migration to sequence, only a rename, and a
+  // prop a major version stops reading renders an alert with no heading.
+  "antd-alert-title": antdAlertTitle,
 };
 
 // Read from package.json rather than typed: this is the version ESLint prints
@@ -259,7 +265,7 @@ const LOAD_STATE_ALLOWED = [
 // `DOCTRINE_LEVEL` below from "warn" to "error" and delete `confirmComponents:
 // []` from the no-bare-dialog block. That is the whole flip; the coordinator
 // owns it.
-const DOCTRINE_LEVEL = "warn"; // ← WAVE-B SWITCH: flip to "error" after the migration wave.
+const DOCTRINE_LEVEL = "error"; // the migration wave (2026-08-24..26) put every pair on the substrate; doctrine is a gate now
 
 /** Doctrine rules that apply to every source file (.ts included). */
 const DOCTRINE_TS = [
@@ -354,12 +360,6 @@ const recommended = [
         "error",
         {
           allowNavigationDrawer: ["AppShell.tsx", "PublicShell.tsx"],
-          // ← WAVE-B SWITCH: delete this line once the nine Popconfirm sites
-          // are on SkinConfirm. Until then the confirm surface is covered at
-          // ERROR only in `strict`, because turning it on here would fail the
-          // lint of five packages that are mid-migration — and a preset that
-          // fails on arrival is a preset that gets pinned to the old version.
-          confirmComponents: [],
         },
       ],
     },
@@ -370,6 +370,10 @@ const recommended = [
       "stapel/no-hardcoded-text": "error",
       // Clickable-without-an-outcome is a JSX concern (§3.2).
       "stapel/clickable-needs-event": "error",
+      // antd 6's Alert rename. Not a doctrine rule — a vendor deprecation
+      // whose every site is `message` → `title`, autofixed, so it ships at
+      // ERROR straight away instead of joining the worklist tier.
+      "stapel/antd-alert-title": "error",
     },
   },
   {

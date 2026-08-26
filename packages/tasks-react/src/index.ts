@@ -1,18 +1,66 @@
 /**
  * `@stapel/tasks-react` — the headless React flow pair for stapel-tasks
- * (frontend-standard §2). Business + state only, zero visual opinion. Built on
- * `@stapel/core`'s StapelClient (verification-403 interception, token refresh,
- * i18n, analytics, query layer).
+ * (frontend-standard §2). Business + state only, zero visual opinion; the
+ * shipped AntD board lives behind the `./default` subpath so a host that brings
+ * its own design system never pulls antd or dnd-kit into its bundle.
  *
- * Scaffolded by `stapel-new-react-lib`. Layers: api → model → flows → headless
- * → i18n. Generated surfaces (flows registry, error map, manifest, llms.txt)
- * are produced by the monorepo `gen:*` drivers and stand under drift gates.
+ * Layers: api → model → flows → headless → i18n. Generated surfaces (the
+ * OpenAPI schema, the flow registry, the error map, the manifest, llms.txt)
+ * are produced by the monorepo `gen:*` drivers from stapel-tasks's OWN contract
+ * triad and stand under drift gates — nothing here is hand-typed from `dto.py`.
  */
 
 // ── api ──────────────────────────────────────────────────────────────────────
 export { createTasksApi } from "./api/tasksApi.js";
-export type { TasksApi } from "./api/tasksApi.js";
-export type { Schemas } from "./api/types.js";
+export type {
+  TasksApi,
+  RequestExtras,
+  BoardCardsFilters,
+  TaskFeedParams,
+} from "./api/tasksApi.js";
+export { isMoveResponseBody, deniedMove } from "./api/extensions.js";
+export {
+  COLUMN_CATEGORIES,
+  CHECKLIST_STATES,
+  MOVE_RESULTS,
+  isColumnCategory,
+  isChecklistState,
+  isMoveResult,
+} from "./api/enums.js";
+export type {
+  ColumnCategory,
+  ChecklistState,
+  MoveResult,
+} from "./api/enums.js";
+export type {
+  Schemas,
+  ArchivedResponse,
+  Board,
+  BoardCards,
+  BoardCreateBody,
+  BoardCreateColumnSpec,
+  BoardPreset,
+  BoardUpdateBody,
+  BoardVocabulary,
+  ChecklistItem,
+  ChecklistItemCreateBody,
+  ChecklistItemStateBody,
+  Column,
+  ColumnCreateBody,
+  ColumnReorderBody,
+  Comment,
+  CommentCreateBody,
+  MoveResponse,
+  PresetColumn,
+  PriorityLevel,
+  Task,
+  TaskAssignBody,
+  TaskCreateBody,
+  TaskMoveBody,
+  TaskPage,
+  TaskUpdateBody,
+  VocabularyTerm,
+} from "./api/types.js";
 
 // ── flows ────────────────────────────────────────────────────────────────────
 // The flow-machine primitive lives in `@stapel/core` (one reviewed copy for
@@ -32,11 +80,13 @@ export type {
   FlowEndpoint,
 } from "./flows/registry.js";
 
-// ── model (runtime wiring, query keys, context) ──────────────────────────────
-export { createTasksRuntime } from "./model/runtime.js";
+// ── model (runtime wiring, query keys, board assembly, the move machine) ─────
+export { createTasksRuntime, DEFAULT_PRIORITY_SCALE } from "./model/runtime.js";
 export type {
   TasksRuntime,
   CreateTasksRuntimeOptions,
+  PriorityStep,
+  UserPickerSeam,
 } from "./model/runtime.js";
 export {
   TasksRuntimeContext,
@@ -44,10 +94,56 @@ export {
   useTasksApi,
   useTasksAnalytics,
 } from "./model/context.js";
-export { tasksQueryKeys } from "./model/queryKeys.js";
+export { tasksQueryKeys, filtersKey } from "./model/queryKeys.js";
+export {
+  assembleBoard,
+  orderedColumns,
+  applyMove,
+  filterByText,
+  compareCards,
+  scaledPosition,
+  cardCount,
+  columnOf,
+  findCard,
+  checklistProgress,
+} from "./model/board.js";
+export type { BoardMap } from "./model/board.js";
+export {
+  moveReducer,
+  initialMoveState,
+  keepsOptimisticPlacement,
+  outcomeOf,
+} from "./model/move.js";
+export type { MoveState, MoveStep, MoveEvent, MoveOutcome } from "./model/move.js";
+export { isOverdue, shortId, idInitials } from "./model/format.js";
+export {
+  useBoardsQuery,
+  useVocabularyQuery,
+  useBoardQuery,
+  useBoardCardsQuery,
+  useTaskQuery,
+  useCommentsQuery,
+  useChecklistQuery,
+} from "./model/queries.js";
 
-// ── headless (renderless components) ─────────────────────────────────────────
+// ── analytics vocabulary (emitted through the host's Analytics seam) ─────────
+export { TASKS_EVENTS } from "./analytics/events.js";
+export type { TasksEventName } from "./analytics/events.js";
+
+// ── headless (hooks + renderless components) ─────────────────────────────────
 export { TasksProvider } from "./headless/TasksProvider.js";
+export { useBoards } from "./headless/useBoards.js";
+export type { BoardsBag } from "./headless/useBoards.js";
+export { useBoard } from "./headless/useBoard.js";
+export type { BoardBag, BoardFilters } from "./headless/useBoard.js";
+export { useTask } from "./headless/useTask.js";
+export type { TaskBag, EditableField } from "./headless/useTask.js";
+export { useCreateTask } from "./headless/useCreateTask.js";
+export type { CreateTaskBag } from "./headless/useCreateTask.js";
+export { BoardView } from "./headless/BoardView.js";
+export type { BoardViewProps } from "./headless/BoardView.js";
+export { TaskView } from "./headless/TaskView.js";
+export type { TaskViewProps } from "./headless/TaskView.js";
 
 // ── i18n ─────────────────────────────────────────────────────────────────────
 export {
@@ -69,3 +165,6 @@ export type {
   TasksErrorSpec,
   Remediation,
 } from "./i18n/errorsMap.js";
+
+// ── nav ──────────────────────────────────────────────────────────────────────
+export { navEntries } from "./nav/manifest.js";

@@ -160,12 +160,12 @@ function QrJourney(props: {
       )}
 
       {s.step === "fulfilled" && (
-        <Alert type="success" showIcon message={t(AUTH_I18N_KEYS.secQrFulfilled)} />
+        <Alert type="success" showIcon title={t(AUTH_I18N_KEYS.secQrFulfilled)} />
       )}
 
       {s.step === "rejected" && (
         <Flex vertical align="center" gap="small">
-          <Alert type="warning" showIcon message={t(AUTH_I18N_KEYS.secQrRejected)} />
+          <Alert type="warning" showIcon title={t(AUTH_I18N_KEYS.secQrRejected)} />
           <Button onClick={regenerate} data-analytics="flow">
             {t(AUTH_I18N_KEYS.secQrRetry)}
           </Button>
@@ -174,7 +174,7 @@ function QrJourney(props: {
 
       {s.step === "error" && (
         <Flex vertical align="center" gap="small">
-          <Alert type="error" showIcon message={formatError(s.error)} />
+          <Alert type="error" showIcon title={formatError(s.error)} />
           <Button onClick={regenerate} data-analytics="flow">
             {t(AUTH_I18N_KEYS.secQrRetry)}
           </Button>

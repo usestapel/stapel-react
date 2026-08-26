@@ -20,6 +20,45 @@ import { registerSearchI18nRu } from "../src/i18n/ru.js";
 
 export const BASE = "https://search.test/search/api/v1/";
 
+/** The phone the mobile-first rule is written against (iPhone-class width). */
+export const PHONE_WIDTH = 390;
+/** jsdom's own default, and the desktop the two-column layout is for. */
+export const DESKTOP_WIDTH = 1024;
+
+/**
+ * Point the `matchMedia` stub (see `vitest.setup.ts`) at a viewport.
+ *
+ * The stub EVALUATES `(min-width: N)` against `window.innerWidth`, which is
+ * what makes a suite able to render the phone surface at all — the naive
+ * `matches: false` polyfill answers "narrower than everything", i.e. every
+ * test renders the phone layout and the desktop one is never exercised.
+ *
+ * Call it BEFORE `render`: the substrate reads the viewport on its first
+ * render (core's `useBreakpoint` is correct from frame one), and jsdom fires
+ * no media-query change events of its own.
+ */
+export function setViewport(width: number): void {
+  Object.defineProperty(window, "innerWidth", {
+    value: width,
+    configurable: true,
+    writable: true,
+  });
+}
+
+/**
+ * Put the document in a theme, the way a host does — the shared `SkinTheme`
+ * reads this same attribute, so a surface that stays light under it has a
+ * `mode="light"` literal somewhere (the defect class the substrate deleted).
+ * `resetTheme()` belongs in an `afterEach`.
+ */
+export function setDocumentTheme(mode: "light" | "dark"): void {
+  document.documentElement.setAttribute("data-theme", mode);
+}
+
+export function resetTheme(): void {
+  document.documentElement.removeAttribute("data-theme");
+}
+
 export interface RecordedCall {
   readonly url: string;
   readonly method: string;

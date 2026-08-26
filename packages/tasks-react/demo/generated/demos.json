@@ -4,54 +4,218 @@
   "version": "0.0.0",
   "demos": [
     {
-      "id": "tasks.panel-skin",
-      "title": "Tasks panel (default skin)",
-      "description": "The shipped tasks surface: one themed card with the empty and loading states a screen owes a person. Replace the body as the pair grows read hooks; keep the frame.",
-      "component": "TasksPanel",
+      "id": "tasks.board-create-sheet",
+      "title": "Board create sheet (default skin)",
+      "description": "Name plus a shape: the preset list is the server's own vocabulary, and 'custom columns' switches to an explicit column editor whose keys are slugged from the names.",
+      "component": "BoardCreateSheet",
       "covers": [],
       "tokens": [],
       "variants": [
         {
           "id": "default",
-          "description": "Desktop width, nothing to show yet.",
+          "description": "Desktop modal, presets discovered from GET boards/presets.",
           "viewport": "desktop",
-          "step": "empty"
+          "step": "idle"
         },
         {
           "id": "phone",
-          "description": "The same surface at 390px — the design width.",
+          "description": "390px: the same form as a bottom sheet.",
+          "viewport": "phone",
+          "step": "idle-phone"
+        },
+        {
+          "id": "scope-blocked",
+          "description": "The deployment could not resolve a workspace: the refusal names the action that fixes it.",
+          "viewport": "phone",
+          "step": "refused"
+        }
+      ],
+      "source": {
+        "file": "demo/BoardCreateSheet.demo.tsx",
+        "line": 37
+      }
+    },
+    {
+      "id": "tasks.boards-pane",
+      "title": "Boards (default skin)",
+      "description": "The boards list: name, column count, creation date, an archive confirm that is a bottom sheet on a phone, and a create sheet that discovers its presets from the server.",
+      "component": "BoardsPane",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Two boards, desktop width.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "The same list at 390px, where the archive question is a sheet.",
+          "viewport": "phone",
+          "step": "ready-phone"
+        },
+        {
+          "id": "empty",
+          "description": "No boards yet: the empty arm carries the create button, so the state is not a dead end.",
           "viewport": "phone",
           "step": "empty"
         },
         {
-          "id": "loading",
-          "description": "Data in flight: the panel says so instead of drawing an empty box.",
-          "viewport": "phone",
-          "step": "loading"
+          "id": "failed",
+          "description": "The deployment cannot resolve a workspace: a refusal with a retry, never 'you have no boards'.",
+          "viewport": "desktop",
+          "step": "failed"
+        },
+        {
+          "id": "no-navigation",
+          "description": "A host that wired no board navigation: the Open control states the reason beside itself.",
+          "viewport": "desktop",
+          "step": "gated"
         }
       ],
       "source": {
-        "file": "demo/TasksSkin.demo.tsx",
-        "line": 23
+        "file": "demo/BoardsPane.demo.tsx",
+        "line": 37
       }
     },
     {
-      "id": "tasks.provider",
-      "title": "Tasks provider",
-      "description": "The headless tasks root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
-      "component": "TasksProvider",
+      "id": "tasks.column-manager",
+      "title": "Column manager (default skin)",
+      "description": "Drag the columns into order (keyboard sensor included) and add one. Renaming and deleting are not in this API, so the screen explains their absence instead of drawing two controls that cannot work.",
+      "component": "ColumnManager",
       "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Three columns, desktop width.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "390px: the same list, thumb-sized handles.",
+          "viewport": "phone",
+          "step": "ready-phone"
+        },
+        {
+          "id": "duplicate",
+          "description": "The key is already on the board: a named 409, with the fix beside it.",
+          "viewport": "phone",
+          "step": "refused"
+        }
+      ],
+      "source": {
+        "file": "demo/ColumnManager.demo.tsx",
+        "line": 38
+      }
+    },
+    {
+      "id": "tasks.headless",
+      "title": "Tasks headless bags",
+      "description": "The renderless layer: TasksProvider wires the runtime, BoardView hands over the assembled board (columns, cards, the move machine's step) and TaskView hands over one card with its canEdit gate. No visual opinion at all.",
+      "component": "TasksProvider",
+      "covers": [
+        "BoardView",
+        "TaskView"
+      ],
       "tokens": [
         "surface-raised"
       ],
       "variants": [
         {
-          "id": "default"
+          "id": "default",
+          "description": "Desktop width, the board and one card resolved.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "The same bags at 390px — the layer has no geometry of its own.",
+          "viewport": "phone",
+          "step": "ready-phone"
         }
       ],
       "source": {
         "file": "demo/Tasks.demo.tsx",
-        "line": 24
+        "line": 63
+      }
+    },
+    {
+      "id": "tasks.kanban-board",
+      "title": "Kanban board (default skin)",
+      "description": "Columns with WIP counters, cards carrying priority, due date, checklist progress and a blocked glyph, dnd-kit drag with keyboard and touch sensors, and an optimistic move that rolls itself back on a refusal.",
+      "component": "KanbanBoard",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Three columns, six cards, desktop width.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "390px: one column, a switcher strip whose other chips accept a drop.",
+          "viewport": "phone",
+          "step": "ready-phone"
+        },
+        {
+          "id": "empty",
+          "description": "Every column empty — each says so on its own.",
+          "viewport": "desktop",
+          "step": "empty"
+        },
+        {
+          "id": "truncated",
+          "description": "The server's cap cut the board short: the banner says how many are shown and what to do.",
+          "viewport": "desktop",
+          "step": "truncated"
+        }
+      ],
+      "source": {
+        "file": "demo/KanbanBoard.demo.tsx",
+        "line": 38
+      }
+    },
+    {
+      "id": "tasks.task-sheet",
+      "title": "Task sheet (default skin)",
+      "description": "One card: title and description saved on blur, column/priority/due controls, assignees through the host seam, a checklist with a three-state overflow menu, and comments where Enter sends and Shift+Enter breaks a line.",
+      "component": "TaskSheet",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Editable card, modal at desktop width.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "390px: the same card as a bottom sheet.",
+          "viewport": "phone",
+          "step": "ready-phone"
+        },
+        {
+          "id": "archived",
+          "description": "An archived card: read-only, with one reason stated beside every control.",
+          "viewport": "desktop",
+          "step": "archived"
+        },
+        {
+          "id": "features",
+          "description": "A board with custom fields but no attributes editors wired: the slot names itself instead of leaving a hole.",
+          "viewport": "phone",
+          "step": "features"
+        }
+      ],
+      "source": {
+        "file": "demo/TaskSheet.demo.tsx",
+        "line": 48
       }
     }
   ]

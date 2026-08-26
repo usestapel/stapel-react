@@ -130,7 +130,7 @@ export function OwnersHealth(props: OwnersHealthProps): ReactElement {
                   type="info"
                   showIcon
                   data-testid="gdpr-owners-staff-only"
-                  message={t(GDPR_I18N_KEYS.staffOnly)}
+                  title={t(GDPR_I18N_KEYS.staffOnly)}
                 />
               ) : (
                 <ErrorAlert
@@ -157,7 +157,7 @@ export function OwnersHealth(props: OwnersHealthProps): ReactElement {
                     type="warning"
                     showIcon
                     data-testid="gdpr-owners-silent-summary"
-                    message={t(GDPR_I18N_KEYS.ownersSilentCount, {
+                    title={t(GDPR_I18N_KEYS.ownersSilentCount, {
                       count: bag.silent.length,
                       total: rows.length,
                     })}

@@ -8,10 +8,10 @@ export default { title: "shell-react / Theme mode control" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"desktop"} };
+Default.parameters = { stapel: {"viewport":"desktop","step":"system"} };
 export const Pinned = (): ReactElement => renderDemoVariant(demo, "pinned");
 Pinned.storyName = "pinned";
-Pinned.parameters = { stapel: {"viewport":"desktop"} };
+Pinned.parameters = { stapel: {"viewport":"desktop","step":"dark"} };
 export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
 Phone.storyName = "phone";
-Phone.parameters = { stapel: {"viewport":"phone"} };
+Phone.parameters = { stapel: {"viewport":"phone","step":"light"} };

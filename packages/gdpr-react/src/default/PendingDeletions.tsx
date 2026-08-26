@@ -205,7 +205,7 @@ export function PendingDeletions(props: PendingDeletionsProps): ReactElement {
                   type="warning"
                   showIcon
                   data-testid="gdpr-deletions-overdue"
-                  message={t(GDPR_I18N_KEYS.deletionsTimeoutHint)}
+                  title={t(GDPR_I18N_KEYS.deletionsTimeoutHint)}
                 />
               ) : null}
               <Table

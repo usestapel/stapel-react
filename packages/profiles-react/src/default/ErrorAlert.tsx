@@ -33,7 +33,7 @@ export function ErrorAlert(props: {
       showIcon
       {...(props.style ? { style: props.style } : {})}
       {...(props.testId ? { "data-testid": props.testId } : {})}
-      message={error.message}
+      title={error.message}
       {...(error.detail
         ? {
             description: (

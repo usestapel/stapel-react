@@ -153,6 +153,27 @@ export const WORKSPACES_I18N_KEYS = {
    * by the server (`MemberResponse.is_self`), never by comparing a session id
    * this pair does not have. */
   membersRemoveBlockedSelf: "workspaces.members.remove.blocked.self",
+  /**
+   * Reset a member's password on the organization's order. The endpoint is
+   * declared `high`, so the confirm says a step-up is coming BEFORE the
+   * click, and the one-shot credential is labelled as one — it is shown
+   * exactly once and can never be fetched again.
+   */
+  membersResetPassword: "workspaces.members.reset_password",
+  /** Why "Reset password" is switched off on the READER's own row: the server
+   * answers a self-target with the same 404 it gives for a stranger, so an
+   * ungated button here reads its own refusal as "this member is gone". */
+  membersResetBlockedSelf: "workspaces.members.reset_password.blocked.self",
+  membersResetDialogTitle: "workspaces.members.reset_password_dialog.title",
+  membersResetDialogBody: "workspaces.members.reset_password_dialog.body",
+  membersResetStepUp: "workspaces.members.reset_password_dialog.step_up",
+  membersResetSubmit: "workspaces.members.reset_password_dialog.submit",
+  membersResetDone: "workspaces.members.reset_password_dialog.done",
+  membersResetGenerated: "workspaces.members.reset_password_dialog.generated",
+  membersResetGeneratedHint:
+    "workspaces.members.reset_password_dialog.generated_hint",
+  membersResetNotNotified:
+    "workspaces.members.reset_password_dialog.not_notified",
   membersRename: "workspaces.members.rename",
   membersRenameDialogTitle: "workspaces.members.rename_dialog.title",
   membersRenameLabel: "workspaces.members.rename_dialog.label",
@@ -275,6 +296,18 @@ export const WORKSPACES_I18N_KEYS = {
   inviteBasicDataTitle: "workspaces.invite.basicDataTitle",
   inviteBasicDataContinueCta: "workspaces.invite.basicDataContinueCta",
   inviteBlockedBusy: "workspaces.invite.blocked.busy",
+  /**
+   * A workspace-scoped screen mounted from the nav manifest, with no active
+   * workspace to be about. The active workspace is runtime state (the
+   * selection the container writes), not a route param, so "there is none
+   * yet" is a state every such screen can reach — and it is drawn, never
+   * blank. Two different sentences, because they are two different
+   * situations: nothing is SELECTED vs the person belongs to nothing.
+   */
+  activeChooseTitle: "workspaces.active.choose.title",
+  activeChooseHint: "workspaces.active.choose.hint",
+  activeNoneTitle: "workspaces.active.none.title",
+  activeNoneHint: "workspaces.active.none.hint",
   // Nav manifest labels (the scripted-fullstack nav contract)
   navWorkspaces: "workspaces.nav.workspaces",
   navSettings: "workspaces.nav.settings",
@@ -428,6 +461,21 @@ export const workspacesI18nBundleEn: I18nDictionary = {
     "This is the workspace's only owner. Give someone else the owner role first.",
   "workspaces.members.remove.blocked.self":
     "This is you. Ask another owner or admin to remove you from the workspace.",
+  "workspaces.members.reset_password": "Reset password",
+  "workspaces.members.reset_password.blocked.self":
+    "This is you. Change your own password in your account settings — this acts on somebody else's account.",
+  "workspaces.members.reset_password_dialog.title": "Reset the password of {member}?",
+  "workspaces.members.reset_password_dialog.body":
+    "Their current password stops working straight away, and they are told you did it. The letter never carries the new password.",
+  "workspaces.members.reset_password_dialog.step_up":
+    "You will be asked to confirm it is you before this goes through.",
+  "workspaces.members.reset_password_dialog.submit": "Reset password",
+  "workspaces.members.reset_password_dialog.done": "{member} has a new password.",
+  "workspaces.members.reset_password_dialog.generated": "One-time password",
+  "workspaces.members.reset_password_dialog.generated_hint":
+    "Shown once and never again. Hand it over through a channel you trust; they set their own the first time they sign in.",
+  "workspaces.members.reset_password_dialog.not_notified":
+    "There was no channel to tell them on, so tell them yourself.",
   "workspaces.members.rename": "Rename",
   "workspaces.members.rename_dialog.title": "Correct the name",
   "workspaces.members.rename_dialog.label": "Display name",
@@ -567,6 +615,14 @@ export const workspacesI18nBundleEn: I18nDictionary = {
   "workspaces.invite.basicDataTitle": "Set up your profile",
   "workspaces.invite.basicDataContinueCta": "Continue",
   "workspaces.invite.blocked.busy": "Finishing the step already under way…",
+
+  // A workspace-scoped screen with no active workspace
+  "workspaces.active.choose.title": "Choose a workspace",
+  "workspaces.active.choose.hint":
+    "This screen manages one workspace at a time. Pick one on the Workspaces page and come back.",
+  "workspaces.active.none.title": "You are not in a workspace yet",
+  "workspaces.active.none.hint":
+    "Create one, or ask an owner to invite you — then there will be something to manage here.",
 
   // Nav manifest labels
   "workspaces.nav.workspaces": "Workspaces",

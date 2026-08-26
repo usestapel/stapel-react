@@ -57,6 +57,106 @@
       "menuVisibleDefault": true,
       "requiresAuth": true,
       "order": 10
+    },
+    {
+      "id": "admin.sso_orgs",
+      "labelKey": "auth.nav.admin_sso",
+      "icon": "AppstoreOutlined",
+      "route": {
+        "path": "sso"
+      },
+      "component": {
+        "export": "SsoOrgsPanel",
+        "subpath": "default/admin"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "admin.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 40
+    },
+    {
+      "id": "admin.service_keys",
+      "labelKey": "auth.nav.admin_service_keys",
+      "icon": "SafetyCertificateOutlined",
+      "route": {
+        "path": "service-keys"
+      },
+      "component": {
+        "export": "ServiceKeysPanel",
+        "subpath": "default/admin"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "admin.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 41
+    },
+    {
+      "id": "admin.staff_roles",
+      "labelKey": "auth.nav.admin_staff_roles",
+      "icon": "UserOutlined",
+      "route": {
+        "path": "staff-roles"
+      },
+      "component": {
+        "export": "StaffRolesPanel",
+        "subpath": "default/admin"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "admin.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 42
+    },
+    {
+      "id": "admin.users_create",
+      "labelKey": "auth.nav.admin_users",
+      "icon": "PlusOutlined",
+      "route": {
+        "path": "create-account"
+      },
+      "component": {
+        "export": "AdminUsersPanel",
+        "subpath": "default/admin"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "admin.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 43
+    },
+    {
+      "id": "admin.auth_audit",
+      "labelKey": "auth.nav.admin_audit",
+      "icon": "AuditOutlined",
+      "route": {
+        "path": "auth-audit"
+      },
+      "component": {
+        "export": "AdminAuditPanel",
+        "subpath": "default/admin"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "admin.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 44
     }
   ]
 }

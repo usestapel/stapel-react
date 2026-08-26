@@ -86,6 +86,23 @@ function AuthPanelSkinDemo(): ReactElement {
   );
 }
 
+/**
+ * The screen as a person meets it after being signed out mid-session — the
+ * zone-A notice is a PROP, so this closure genuinely starts in that state
+ * rather than reaching it by a click a static shot never performs.
+ */
+function AuthPanelRevokedDemo(): ReactElement {
+  return (
+    <AuthDemoHarness handlers={handlers}>
+      <div style={{ maxWidth: 420, margin: "0 auto" }}>
+        <AuthPanel
+          notice={{ type: "warning", key: "error.401.refresh_revoked" }}
+        />
+      </div>
+    </AuthDemoHarness>
+  );
+}
+
 function AuthPanelRegisterDemo(): ReactElement {
   return (
     <AuthDemoHarness handlers={handlers}>
@@ -106,11 +123,20 @@ export default defineDemo({
     default: {
       description:
         "Email/phone tabs, a bottom row (QR + passkey), and the overflow menu that opens the shared dialog.",
+      step: "chooseMethod",
       render: () => <AuthPanelSkinDemo />,
     },
     register: {
       description: "The registration surface: only the channels that deanonymize.",
+      step: "register",
       render: () => <AuthPanelRegisterDemo />,
+    },
+    "session-revoked": {
+      description:
+        "Phone width, arrived at from a session that ended: the reason is stated above the form instead of leaving a person to wonder why they are here.",
+      step: "notice",
+      viewport: "phone",
+      render: () => <AuthPanelRevokedDemo />,
     },
   },
 });

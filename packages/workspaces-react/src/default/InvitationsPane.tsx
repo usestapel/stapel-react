@@ -55,10 +55,17 @@ import { useWorkspaceFormat } from "../model/format.js";
 import type { Invitation, InvitationStatusFilter, InvitationsParams } from "../api/types.js";
 import { WORKSPACES_I18N_KEYS } from "../i18n/keys.js";
 import { AnchorPager, Muted, PersonLine, StatusTag } from "./parts.js";
+import { ActiveWorkspaceBoundary } from "./ActiveWorkspace.js";
 import { RoleLabel } from "./RoleSelectField.js";
 
 export interface InvitationsPaneProps {
-  workspaceId: string;
+  /**
+   * The workspace whose invitations these are. OPTIONAL: omitted (the way the
+   * nav contract mounts this screen), the active workspace comes from the
+   * runtime selection, and a screen with none renders the designed "choose a
+   * workspace" state.
+   */
+  workspaceId?: string;
   /**
    * Whether the caller may administer invitations (capability
    * `members.invite`). The host knows its own verdict — pass `false` for a
@@ -94,9 +101,30 @@ interface Walk {
 const FIRST_PAGE: Walk = { anchor: undefined, direction: undefined, index: 1 };
 
 export function InvitationsPane(props: InvitationsPaneProps): ReactElement {
+  return (
+    <SkinTheme data-testid="invitations-pane">
+      <ActiveWorkspaceBoundary
+        workspaceId={props.workspaceId}
+        testId="invitations-pane-workspace"
+      >
+        {(workspaceId) => (
+          <InvitationsBody
+            workspaceId={workspaceId}
+            canManage={props.canManage ?? true}
+          />
+        )}
+      </ActiveWorkspaceBoundary>
+    </SkinTheme>
+  );
+}
+
+function InvitationsBody(props: {
+  readonly workspaceId: string;
+  readonly canManage: boolean;
+}): ReactElement {
   const t = useT();
   const tPlural = useTPlural();
-  const canManage = props.canManage ?? true;
+  const canManage = props.canManage;
   const [status, setStatus] = useState<InvitationStatusFilter>("pending");
   const [search, setSearch] = useState("");
   const [walk, setWalk] = useState<Walk>(FIRST_PAGE);
@@ -124,166 +152,164 @@ export function InvitationsPane(props: InvitationsPaneProps): ReactElement {
   }
 
   return (
-    <SkinTheme data-testid="invitations-pane">
-      <Card>
-        <Flex vertical gap={spacing["1"]}>
-          <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 0 }}>
-            {t(WORKSPACES_I18N_KEYS.invitationsTitle)}
-          </Typography.Title>
-          <Typography.Text type="secondary">
-            {t(WORKSPACES_I18N_KEYS.invitationsSubtitle)}
-          </Typography.Text>
-          {page !== null && (
-            <Muted testId="invitations-count">
-              {tPlural(WORKSPACES_I18N_KEYS.invitationsCount, { count: page.count })}
-            </Muted>
-          )}
-        </Flex>
-
-        <Flex gap={spacing["3"]} wrap align="center" style={{ marginTop: spacing["4"] }}>
-          <Segmented<InvitationStatusFilter>
-            value={status}
-            onChange={(next) => restart(() => setStatus(next))}
-            aria-label={t(WORKSPACES_I18N_KEYS.invitationsFilterLabel)}
-            data-testid="invitations-filter"
-            options={[
-              { value: "pending", label: t(WORKSPACES_I18N_KEYS.invitationsFilterPending) },
-              {
-                value: "never_accepted",
-                label: t(WORKSPACES_I18N_KEYS.invitationsFilterNeverAccepted),
-              },
-              { value: "all", label: t(WORKSPACES_I18N_KEYS.invitationsFilterAll) },
-            ]}
-          />
-          <Input
-            value={search}
-            onChange={(event) => restart(() => setSearch(event.target.value))}
-            placeholder={t(WORKSPACES_I18N_KEYS.invitationsSearchPlaceholder)}
-            aria-label={t(WORKSPACES_I18N_KEYS.invitationsSearchPlaceholder)}
-            allowClear
-            style={{ flex: "1 1 12rem" }}
-            data-testid="invitations-search"
-          />
-        </Flex>
-
-        <ErrorAlert
-          thrown={revokeMutation.error ?? resendMutation.error ?? renameMutation.error}
-          style={{ marginTop: spacing["3"] }}
-          testId="invitations-write-error"
-        />
-
-        {!canManage && (
-          <div style={{ marginTop: spacing["2"] }}>
-            <Muted testId="invitations-read-only">
-              {t(WORKSPACES_I18N_KEYS.membersBlockedReadOnly)}
-            </Muted>
-          </div>
-        )}
-
-        <div style={{ marginTop: spacing["4"] }}>
-          <LoadList
-            state={mapLoad(loadStateFromQuery(query), (loaded) => loaded.items)}
-            testId="invitations-list"
-            onRetry={() => {
-              void query.refetch();
-            }}
-            empty={
-              <EmptyState
-                title={t(WORKSPACES_I18N_KEYS.invitationsEmpty)}
-                testId="invitations-list-empty"
-              />
-            }
-          >
-            {(invitations) => (
-              <div role="list" data-testid="invitations-rows">
-                {invitations.map((invitation) => (
-                  <InvitationRow
-                    key={invitation.id}
-                    invitation={invitation}
-                    canManage={canManage}
-                    onRename={() => setRenaming(invitation)}
-                    onResend={() => setResending(invitation)}
-                    onRevoke={() => setRevoking(invitation)}
-                  />
-                ))}
-              </div>
-            )}
-          </LoadList>
-        </div>
-
+    <Card>
+      <Flex vertical gap={spacing["1"]}>
+        <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 0 }}>
+          {t(WORKSPACES_I18N_KEYS.invitationsTitle)}
+        </Typography.Title>
+        <Typography.Text type="secondary">
+          {t(WORKSPACES_I18N_KEYS.invitationsSubtitle)}
+        </Typography.Text>
         {page !== null && (
-          <AnchorPager
-            hasPrev={page.has_prev}
-            hasNext={page.has_next}
-            prevLabel={t(WORKSPACES_I18N_KEYS.pagerPrev)}
-            nextLabel={t(WORKSPACES_I18N_KEYS.pagerNext)}
-            position={t(WORKSPACES_I18N_KEYS.pagerPosition, { page: walk.index })}
-            testId="invitations-pager"
-            onPrev={() =>
-              setWalk({
-                anchor: page.prev_anchor ?? undefined,
-                direction: "prev",
-                index: Math.max(1, walk.index - 1),
-              })
-            }
-            onNext={() =>
-              setWalk({
-                anchor: page.next_anchor ?? undefined,
-                direction: "next",
-                index: walk.index + 1,
-              })
-            }
-          />
+          <Muted testId="invitations-count">
+            {tPlural(WORKSPACES_I18N_KEYS.invitationsCount, { count: page.count })}
+          </Muted>
         )}
+      </Flex>
 
-        <SkinConfirm
-          open={revoking !== null}
-          danger
-          title={t(WORKSPACES_I18N_KEYS.invitationsRevokeConfirm)}
-          body={t(WORKSPACES_I18N_KEYS.invitationsRevokeConfirmBody, {
-            email: revoking?.email ?? "",
-          })}
-          confirmLabel={t(WORKSPACES_I18N_KEYS.invitationsRevoke)}
-          cancelLabel={t(WORKSPACES_I18N_KEYS.cancel)}
-          confirming={revokeMutation.isPending}
-          onConfirm={() => {
-            if (revoking !== null) revokeMutation.mutate(revoking.id);
-            setRevoking(null);
-          }}
-          onCancel={() => setRevoking(null)}
-          data-testid="invitations-revoke-confirm"
+      <Flex gap={spacing["3"]} wrap align="center" style={{ marginTop: spacing["4"] }}>
+        <Segmented<InvitationStatusFilter>
+          value={status}
+          onChange={(next) => restart(() => setStatus(next))}
+          aria-label={t(WORKSPACES_I18N_KEYS.invitationsFilterLabel)}
+          data-testid="invitations-filter"
+          options={[
+            { value: "pending", label: t(WORKSPACES_I18N_KEYS.invitationsFilterPending) },
+            {
+              value: "never_accepted",
+              label: t(WORKSPACES_I18N_KEYS.invitationsFilterNeverAccepted),
+            },
+            { value: "all", label: t(WORKSPACES_I18N_KEYS.invitationsFilterAll) },
+          ]}
         />
+        <Input
+          value={search}
+          onChange={(event) => restart(() => setSearch(event.target.value))}
+          placeholder={t(WORKSPACES_I18N_KEYS.invitationsSearchPlaceholder)}
+          aria-label={t(WORKSPACES_I18N_KEYS.invitationsSearchPlaceholder)}
+          allowClear
+          style={{ flex: "1 1 12rem" }}
+          data-testid="invitations-search"
+        />
+      </Flex>
 
-        <SkinConfirm
-          open={resending !== null}
-          title={t(WORKSPACES_I18N_KEYS.invitationsResendConfirm)}
-          body={t(WORKSPACES_I18N_KEYS.invitationsResendConfirmBody, {
-            email: resending?.email ?? "",
-          })}
-          confirmLabel={t(WORKSPACES_I18N_KEYS.invitationsResend)}
-          cancelLabel={t(WORKSPACES_I18N_KEYS.cancel)}
-          confirming={resendMutation.isPending}
-          onConfirm={() => {
-            if (resending !== null) resendMutation.mutate(resending.id);
-            setResending(null);
-          }}
-          onCancel={() => setResending(null)}
-          data-testid="invitations-resend-confirm"
-        />
+      <ErrorAlert
+        thrown={revokeMutation.error ?? resendMutation.error ?? renameMutation.error}
+        style={{ marginTop: spacing["3"] }}
+        testId="invitations-write-error"
+      />
 
-        <RenameInvitationDialog
-          invitation={renaming}
-          onClose={() => setRenaming(null)}
-          isRenaming={renameMutation.isPending}
-          onRename={(displayName) => {
-            if (renaming !== null) {
-              renameMutation.mutate({ invitationId: renaming.id, displayName });
-            }
-            setRenaming(null);
+      {!canManage && (
+        <div style={{ marginTop: spacing["2"] }}>
+          <Muted testId="invitations-read-only">
+            {t(WORKSPACES_I18N_KEYS.membersBlockedReadOnly)}
+          </Muted>
+        </div>
+      )}
+
+      <div style={{ marginTop: spacing["4"] }}>
+        <LoadList
+          state={mapLoad(loadStateFromQuery(query), (loaded) => loaded.items)}
+          testId="invitations-list"
+          onRetry={() => {
+            void query.refetch();
           }}
+          empty={
+            <EmptyState
+              title={t(WORKSPACES_I18N_KEYS.invitationsEmpty)}
+              testId="invitations-list-empty"
+            />
+          }
+        >
+          {(invitations) => (
+            <div role="list" data-testid="invitations-rows">
+              {invitations.map((invitation) => (
+                <InvitationRow
+                  key={invitation.id}
+                  invitation={invitation}
+                  canManage={canManage}
+                  onRename={() => setRenaming(invitation)}
+                  onResend={() => setResending(invitation)}
+                  onRevoke={() => setRevoking(invitation)}
+                />
+              ))}
+            </div>
+          )}
+        </LoadList>
+      </div>
+
+      {page !== null && (
+        <AnchorPager
+          hasPrev={page.has_prev}
+          hasNext={page.has_next}
+          prevLabel={t(WORKSPACES_I18N_KEYS.pagerPrev)}
+          nextLabel={t(WORKSPACES_I18N_KEYS.pagerNext)}
+          position={t(WORKSPACES_I18N_KEYS.pagerPosition, { page: walk.index })}
+          testId="invitations-pager"
+          onPrev={() =>
+            setWalk({
+              anchor: page.prev_anchor ?? undefined,
+              direction: "prev",
+              index: Math.max(1, walk.index - 1),
+            })
+          }
+          onNext={() =>
+            setWalk({
+              anchor: page.next_anchor ?? undefined,
+              direction: "next",
+              index: walk.index + 1,
+            })
+          }
         />
-      </Card>
-    </SkinTheme>
+      )}
+
+      <SkinConfirm
+        open={revoking !== null}
+        danger
+        title={t(WORKSPACES_I18N_KEYS.invitationsRevokeConfirm)}
+        body={t(WORKSPACES_I18N_KEYS.invitationsRevokeConfirmBody, {
+          email: revoking?.email ?? "",
+        })}
+        confirmLabel={t(WORKSPACES_I18N_KEYS.invitationsRevoke)}
+        cancelLabel={t(WORKSPACES_I18N_KEYS.cancel)}
+        confirming={revokeMutation.isPending}
+        onConfirm={() => {
+          if (revoking !== null) revokeMutation.mutate(revoking.id);
+          setRevoking(null);
+        }}
+        onCancel={() => setRevoking(null)}
+        data-testid="invitations-revoke-confirm"
+      />
+
+      <SkinConfirm
+        open={resending !== null}
+        title={t(WORKSPACES_I18N_KEYS.invitationsResendConfirm)}
+        body={t(WORKSPACES_I18N_KEYS.invitationsResendConfirmBody, {
+          email: resending?.email ?? "",
+        })}
+        confirmLabel={t(WORKSPACES_I18N_KEYS.invitationsResend)}
+        cancelLabel={t(WORKSPACES_I18N_KEYS.cancel)}
+        confirming={resendMutation.isPending}
+        onConfirm={() => {
+          if (resending !== null) resendMutation.mutate(resending.id);
+          setResending(null);
+        }}
+        onCancel={() => setResending(null)}
+        data-testid="invitations-resend-confirm"
+      />
+
+      <RenameInvitationDialog
+        invitation={renaming}
+        onClose={() => setRenaming(null)}
+        isRenaming={renameMutation.isPending}
+        onRename={(displayName) => {
+          if (renaming !== null) {
+            renameMutation.mutate({ invitationId: renaming.id, displayName });
+          }
+          setRenaming(null);
+        }}
+      />
+    </Card>
   );
 }
 

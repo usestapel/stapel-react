@@ -45,7 +45,12 @@ button can each say why they are off — "this gallery holds at most 10 photos",
 The antd skin over the same bag is one import away:
 
 ```tsx
-import { MediaGalleryField, ImageUploadField } from "@stapel/cdn-react/default";
+import {
+  ImageUploadField,
+  MediaGalleryField,
+  MediaUploadField,
+  MediaAttachment,
+} from "@stapel/cdn-react/default";
 ```
 
 ### Whose queue is it
@@ -76,6 +81,41 @@ const { upload, previewUrl, phase, error } = useUploadImage({
 });
 ```
 
+## Video and documents
+
+The same flow over the other two intakes, with the ceilings and the `accept`
+string for **that** intake rather than the image ones (100 MB and five container
+extensions for a clip; 50 MB plus a MIME allowlist for a document):
+
+```tsx
+<MediaUploadField kind="video" onUploaded={(ref) => form.set("clip", ref)} />
+<MediaUploadField kind="file" onUploaded={(ref) => form.set("attachment", ref)} />
+```
+
+## Rendering a reference somebody else uploaded
+
+```tsx
+// one bubble
+<MediaAttachment mediaRef={ref} />
+
+// a whole thread: ONE request for thirty refs, then draw from the answers
+const described = useDescribe(message.attachments);
+{message.attachments.map((ref) => (
+  <MediaAttachment key={ref} mediaRef={ref} meta={described.get(ref) ?? null} />
+))}
+```
+
+`MediaAttachment` branches on the snapshot's `kind`, so a video shows its poster
+still and its length (an `<img>` cannot load an mp4), an audio row shows the
+waveform that *is* its render, and a document shows its extension and size
+because no pixels for it exist. A reference that resolves to nothing renders
+"this attachment is no longer available" — data, with a 200 behind it, which is
+a different sentence from "we could not ask" (that one carries a retry).
+
+A describe snapshot carries no canonical URL, so a document is drawn without a
+link unless you supply one (`href`). This pair does not build URLs out of
+references; a reference is opaque.
+
 ## What the flow does, in order
 
 ```
@@ -100,13 +140,16 @@ guest can upload but cannot pre-check. A page served over plain `http://` has no
 `crypto.subtle` at all. Both fall through to the POST (the server deduplicates
 on its own side regardless) and report `dedupSkipped` so a skin can explain it.
 
-**Reading somebody else's reference is not possible here, and that is upstream's
-gap, not this pair's.** `file/exists/` filters on `uploaded_by=request.user`
-unconditionally, so `useCdnRef` resolves the caller's OWN references — which is
-what a reopened draft needs and what a buyer looking at a seller's gallery does
-not. stapel-cdn exposes no public read-by-reference endpoint; a storefront
-renders a listing's photos from what the listings API hands it. Recorded here
-rather than worked around with a URL convention this pair would have invented.
+**Two reads, and they answer different questions.** `useCdnRef` goes through
+`file/exists/`, which filters on `uploaded_by=request.user` unconditionally — so
+it resolves the caller's OWN references, which is what a reopened draft needs.
+`useDescribe` goes through `POST /describe/` (stapel-cdn 0.17.0), which resolves
+ANY reference to the metadata needed to draw it: geometry, mime, the inline
+micro-preview, the variant ladder, a video's poster, a clip's length. That is
+the read a chat bubble needs and the reason an attachment renderer is possible
+at all. Requests raised in one tick coalesce into as few POSTs as the 50-ref
+ceiling allows, and the cache unit is the ref — thirty bubbles sharing
+references cost one request.
 
 ## Layers
 

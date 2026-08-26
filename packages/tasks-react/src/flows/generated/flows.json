@@ -1,0 +1,243 @@
+[
+  {
+    "id": "tasks.board_setup",
+    "titleKey": "flow.tasks.board_setup.title",
+    "descriptionKey": "flow.tasks.board_setup.description",
+    "actors": [
+      "Workspace admin"
+    ],
+    "steps": [
+      {
+        "kind": "human",
+        "order": 0,
+        "noteKey": "flow.tasks.board_setup.step.0.note",
+        "ref": "",
+        "endpoints": []
+      },
+      {
+        "kind": "http",
+        "order": 1,
+        "noteKey": "flow.tasks.board_setup.step.1.note",
+        "ref": "stapel_tasks.views.BoardVocabularyView.get",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/tasks/api/v1/boards/presets"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 2,
+        "noteKey": "flow.tasks.board_setup.step.2.note",
+        "ref": "stapel_tasks.views.BoardListCreateView.post",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/tasks/api/v1/boards"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 3,
+        "noteKey": "flow.tasks.board_setup.step.3.note",
+        "ref": "stapel_tasks.views.ColumnListCreateView.post",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/tasks/api/v1/boards/<uuid:board_id>/columns"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 4,
+        "noteKey": "flow.tasks.board_setup.step.4.note",
+        "ref": "stapel_tasks.views.ColumnReorderView.post",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/tasks/api/v1/boards/<uuid:board_id>/columns/reorder"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tasks.card_lifecycle",
+    "titleKey": "flow.tasks.card_lifecycle.title",
+    "descriptionKey": "flow.tasks.card_lifecycle.description",
+    "actors": [
+      "Workspace member"
+    ],
+    "steps": [
+      {
+        "kind": "http",
+        "order": 1,
+        "noteKey": "flow.tasks.card_lifecycle.step.1.note",
+        "ref": "stapel_tasks.views.BoardListCreateView.get",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/tasks/api/v1/boards"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 2,
+        "noteKey": "flow.tasks.card_lifecycle.step.2.note",
+        "ref": "stapel_tasks.views.BoardCardsView.get",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/tasks/api/v1/boards/<uuid:board_id>/cards"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 3,
+        "noteKey": "flow.tasks.card_lifecycle.step.3.note",
+        "ref": "stapel_tasks.views.TaskListCreateView.post",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/tasks/api/v1/boards/<uuid:board_id>/tasks"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 4,
+        "noteKey": "flow.tasks.card_lifecycle.step.4.note",
+        "ref": "stapel_tasks.views.TaskDetailView.get",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/tasks/api/v1/tasks/<uuid:task_id>"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 5,
+        "noteKey": "flow.tasks.card_lifecycle.step.5.note",
+        "ref": "stapel_tasks.views.TaskDetailView.patch",
+        "endpoints": [
+          {
+            "method": "PATCH",
+            "path": "/tasks/api/v1/tasks/<uuid:task_id>"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 6,
+        "noteKey": "flow.tasks.card_lifecycle.step.6.note",
+        "ref": "stapel_tasks.views.TaskAssignView.post",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/tasks/api/v1/tasks/<uuid:task_id>/assign"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 7,
+        "noteKey": "flow.tasks.card_lifecycle.step.7.note",
+        "ref": "stapel_tasks.views.CommentListCreateView.post",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/tasks/api/v1/tasks/<uuid:task_id>/comments"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 8,
+        "noteKey": "flow.tasks.card_lifecycle.step.8.note",
+        "ref": "stapel_tasks.views.ChecklistItemStateView.post",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/tasks/api/v1/tasks/<uuid:task_id>/checklist/<uuid:item_id>/state"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 12,
+        "noteKey": "flow.tasks.card_lifecycle.step.12.note",
+        "ref": "stapel_tasks.views.TaskDetailView.delete",
+        "endpoints": [
+          {
+            "method": "DELETE",
+            "path": "/tasks/api/v1/tasks/<uuid:task_id>"
+          }
+        ]
+      },
+      {
+        "kind": "action",
+        "order": 20,
+        "noteKey": "flow.tasks.card_lifecycle.step.20.note",
+        "ref": "task.created",
+        "endpoints": []
+      },
+      {
+        "kind": "action",
+        "order": 21,
+        "noteKey": "flow.tasks.card_lifecycle.step.21.note",
+        "ref": "task.completed",
+        "endpoints": []
+      }
+    ]
+  },
+  {
+    "id": "tasks.card_move",
+    "titleKey": "flow.tasks.card_move.title",
+    "descriptionKey": "flow.tasks.card_move.description",
+    "actors": [
+      "Workspace member",
+      "External orchestrator (MOVE_POLICY)"
+    ],
+    "steps": [
+      {
+        "kind": "human",
+        "order": 0,
+        "noteKey": "flow.tasks.card_move.step.0.note",
+        "ref": "",
+        "endpoints": []
+      },
+      {
+        "kind": "http",
+        "order": 1,
+        "noteKey": "flow.tasks.card_move.step.1.note",
+        "ref": "stapel_tasks.views.TaskMoveView.post",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/tasks/api/v1/tasks/<uuid:task_id>/move"
+          }
+        ]
+      },
+      {
+        "kind": "function",
+        "order": 2,
+        "noteKey": "flow.tasks.card_move.step.2.note",
+        "ref": "tasks.move",
+        "endpoints": []
+      },
+      {
+        "kind": "action",
+        "order": 3,
+        "noteKey": "flow.tasks.card_move.step.3.note",
+        "ref": "task.moved",
+        "endpoints": []
+      }
+    ]
+  }
+]

@@ -8,13 +8,13 @@ export default { title: "categories-react / Category carousel" };
 
 export const Tiles = (): ReactElement => renderDemoVariant(demo, "tiles");
 Tiles.storyName = "tiles";
-Tiles.parameters = { stapel: {"viewport":"phone"} };
+Tiles.parameters = { stapel: {"viewport":"phone","step":"ready"} };
 export const TextOnly = (): ReactElement => renderDemoVariant(demo, "text only");
 TextOnly.storyName = "text only";
-TextOnly.parameters = { stapel: {"viewport":"desktop"} };
+TextOnly.parameters = { stapel: {"viewport":"desktop","step":"ready-without-icons"} };
 export const NothingFeatured = (): ReactElement => renderDemoVariant(demo, "nothing featured");
 NothingFeatured.storyName = "nothing featured";
-NothingFeatured.parameters = { stapel: {"viewport":"desktop"} };
+NothingFeatured.parameters = { stapel: {"viewport":"desktop","step":"empty"} };
 export const Outage = (): ReactElement => renderDemoVariant(demo, "outage");
 Outage.storyName = "outage";
-Outage.parameters = { stapel: {"viewport":"desktop"} };
+Outage.parameters = { stapel: {"viewport":"desktop","step":"failed"} };

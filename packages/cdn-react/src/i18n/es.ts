@@ -41,6 +41,9 @@ export const cdnI18nBundleEs: I18nDictionary = {
   "cdn.pick.replace": "Reemplazar",
   "cdn.pick.hint": "{formats} · hasta {maxMb} MB",
   "cdn.pick.drop_hint": "Arrastra archivos aquí o haz clic para elegirlos",
+  "cdn.pick.drop_active": "Suelta para añadirlos",
+  "cdn.pick.video": "Elige un vídeo",
+  "cdn.pick.file": "Elige un documento",
 
   "cdn.phase.hashing": "Leyendo el archivo…",
   "cdn.phase.checking": "Comprobando si ya lo tenemos…",
@@ -69,10 +72,31 @@ export const cdnI18nBundleEs: I18nDictionary = {
   "cdn.item.cover": "Foto principal",
   "cdn.item.alt": "Foto subida",
 
-  "cdn.gallery.count": "{used} de {max} fotos",
+  // FAMILIA DE PLURAL: el sustantivo concuerda con `{max}`.
+  "cdn.gallery.count.one": "{used} de {max} foto",
+  "cdn.gallery.count.other": "{used} de {max} fotos",
   "cdn.gallery.empty": "Todavía no hay fotos",
+  "cdn.gallery.empty_hint": "La primera que añadas será la principal.",
 
-  "cdn.upload.blocked.full": "Esta galería admite como máximo {max} fotos",
+  "cdn.attachment.image_alt": "Foto adjunta",
+  "cdn.attachment.video_alt": "Vídeo adjunto",
+  "cdn.attachment.audio_alt": "Audio adjunto",
+  "cdn.attachment.file_label": "Documento {ext}",
+  "cdn.attachment.missing": "Este adjunto ya no está disponible",
+  "cdn.attachment.open": "Abrir",
+  "cdn.attachment.download": "Descargar",
+  "cdn.attachment.duration_unmeasured": "No se ha medido la duración",
+  "cdn.attachment.meta_partial": "No se han podido leer algunos datos de este archivo",
+  "cdn.attachment.meta_missing": "No se ha podido leer ningún dato de este archivo",
+  "cdn.attachment.variants_pending":
+    "Las vistas previas de este adjunto se están generando",
+
+  "cdn.bytes.b": "{value} B",
+  "cdn.bytes.kb": "{value} kB",
+  "cdn.bytes.mb": "{value} MB",
+  "cdn.bytes.gb": "{value} GB",
+
+  "cdn.upload.blocked.full": "Esta galería está llena: el máximo es {max}",
   "cdn.upload.blocked.pending": "Espera a que terminen las subidas",
   "cdn.upload.blocked.failed": "Quita o reintenta las fotos que han fallado",
 };

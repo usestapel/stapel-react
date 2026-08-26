@@ -30,16 +30,45 @@ export interface FlowError {
 }
 
 /**
+ * Is this value already a folded {@link FlowError}?
+ *
+ * `Error` instances are excluded on purpose: {@link StapelApiError} carries
+ * `code`/`params`/`status` too, and it must go down the real fold so its
+ * `message` and `language` are read the way {@link toFlowError} reads them.
+ */
+export function isFlowError(value: unknown): value is FlowError {
+  if (typeof value !== "object" || value === null) return false;
+  if (value instanceof Error) return false;
+  const candidate = value as Partial<FlowError>;
+  return (
+    typeof candidate.code === "string" &&
+    "params" in value &&
+    "status" in value &&
+    "message" in value
+  );
+}
+
+/**
  * Fold any thrown value into a {@link FlowError} for a flow error state. A
  * {@link StapelApiError} carries its own i18n key + params; anything else
  * (network fault, bug) collapses to `fallbackCode`. Pairs pass their own
  * module-scoped fallback (e.g. auth-react uses `"auth.error.unknown"`), which
  * ships an en string in the pair's i18n bundle so the raw key is never seen.
+ *
+ * **Idempotent**: a `FlowError` passes through unchanged. A flow machine's
+ * `refused` state carries a `FlowError`, not the thrown value, so anything
+ * reading a refusal OFF A MACHINE hands a folded error back in. Without the
+ * pass-through the second fold erased the very `code` the refusal predicates
+ * exist to read: every `isErrorCode(...)` downstream of a machine answered
+ * `false` and the screen fell back to the generic sentence instead of the one
+ * written for that situation (found by moderation-react, wave D — invisible
+ * wherever a pair's copy reads like the backend's own).
  */
 export function toFlowError(
   error: unknown,
   fallbackCode = "stapel.error.unknown"
 ): FlowError {
+  if (isFlowError(error)) return error;
   if (error instanceof StapelApiError) {
     return {
       code: error.code,

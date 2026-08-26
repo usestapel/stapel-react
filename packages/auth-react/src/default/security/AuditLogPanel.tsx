@@ -8,8 +8,8 @@
 import { fontSize } from "@stapel/tokens";
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { Card, Empty, List, Spin, Tag, Typography } from "antd";
-import { ErrorAlert } from "@stapel/tokens-antd/skin";
+import { Card, List, Skeleton, Tag, Typography } from "antd";
+import { EmptyState, ErrorAlert, SkinTheme } from "@stapel/tokens-antd/skin";
 import {
   isLoadReady,
   loadStateFromQuery,
@@ -19,6 +19,7 @@ import {
   useT,
 } from "@stapel/core";
 import { useAuditLog } from "../../model/queries.js";
+import { useAuthDateFormat } from "../../model/formatDate.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import { SecurityEmptyIcon } from "./icons.js";
 
@@ -31,11 +32,6 @@ function humanizeEventType(eventType: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
-function formatWhen(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
-}
-
 /** Full audit-log security screen: a page of recent events, "Load more" for
  * the next one. */
 export function AuditLogPanel(): ReactElement {
@@ -44,6 +40,9 @@ export function AuditLogPanel(): ReactElement {
   // is the transport's own "Request failed with status 500" (owner report
   // 2026-08-09). `useErrorText` folds any thrown value into the one dialect.
   const errorDisplay = useErrorDisplay(AUTH_I18N_KEYS.unknownError);
+  // The APP's locale, not the browser's — `toLocaleString()` printed a US
+  // date into a Spanish interface (visual pass C6).
+  const when = useAuthDateFormat();
   const [page, setPage] = useState(1);
   const audit = useAuditLog(page);
   const pageState = loadStateFromQuery(audit);
@@ -52,14 +51,27 @@ export function AuditLogPanel(): ReactElement {
   const nextPage = isLoadReady(pageState) ? pageState.data.next : null;
 
   return (
-    <Card title={t(AUTH_I18N_KEYS.secAuditTitle)} data-testid="audit-log-panel" style={{ width: "100%" }}>
+    <SkinTheme surface="bare">
+      <Card
+        title={t(AUTH_I18N_KEYS.secAuditTitle)}
+        data-testid="audit-log-panel"
+        style={{ width: "100%" }}
+      >
       {matchList(entries, {
-        loading: () => <Spin />,
+        loading: () => (
+          <div role="status" aria-busy="true" data-testid="audit-loading">
+            <Skeleton active />
+          </div>
+        ),
         failed: (error) => (
           <ErrorAlert error={errorDisplay(error)} onRetry={() => void audit.refetch()} />
         ),
         empty: () => (
-          <Empty image={<SecurityEmptyIcon />} description={t(AUTH_I18N_KEYS.secAuditEmpty)} />
+          <EmptyState
+            icon={<SecurityEmptyIcon />}
+            title={t(AUTH_I18N_KEYS.secAuditEmpty)}
+            hint={t(AUTH_I18N_KEYS.secAuditEmptyHint)}
+          />
         ),
         ready: (results) => (
           <List
@@ -71,14 +83,21 @@ export function AuditLogPanel(): ReactElement {
                   title={humanizeEventType(entry.event_type)}
                   description={
                     <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
-                      {formatWhen(entry.created_at)}
+                      {when.dateTime(entry.created_at)}
                       {entry.ip_address
                         ? ` — ${t(AUTH_I18N_KEYS.secAuditIp, { ip: entry.ip_address })}`
                         : ""}
                     </Typography.Text>
                   }
                 />
-                {entry.event_type.includes("suspicious") && <Tag color="warning">!</Tag>}
+                {/* A bare "!" is a glyph with no accessible name — a screen
+                    reader announced the row's most important fact as nothing.
+                    The chip carries the words. */}
+                {entry.event_type.includes("suspicious") && (
+                  <Tag color="warning" data-testid="audit-suspicious">
+                    {t(AUTH_I18N_KEYS.secAuditSuspiciousLabel)}
+                  </Tag>
+                )}
               </List.Item>
             )}
             loadMore={
@@ -95,6 +114,7 @@ export function AuditLogPanel(): ReactElement {
           />
         ),
       })}
-    </Card>
+      </Card>
+    </SkinTheme>
   );
 }

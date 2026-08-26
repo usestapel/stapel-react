@@ -51,6 +51,38 @@ per-module override — `clients={{ workspaces: runtime.client }}` — and nest
 providers (`StapelConfigProvider` + `QueryClientProvider` + `I18nProvider`)
 remain exported for bespoke composition.
 
+## The default skin (`/default`)
+
+The pair ships the screens, not only the hooks (§83): seven antd surfaces
+behind a separate entry point, so a host that brings its own visuals never
+pulls `antd` into its bundle.
+
+```tsx
+import {
+  WorkspacesPage, WorkspaceSettings, MembersManager,
+  InvitationsPane, AuditTrailPane, RoleSelectField, InviteAcceptPage,
+} from "@stapel/workspaces-react/default";
+```
+
+Each one self-themes (light/dark from the live document), is a bottom sheet on
+a phone and a modal above it, and states every refusal the backend would give
+instead of offering a control that leads to one.
+
+**Which workspace a screen is about.** `WorkspaceSettings`, `MembersManager`,
+`InvitationsPane` and `AuditTrailPane` take an OPTIONAL `workspaceId`. Pass it
+and they use it. Omit it — which is how the nav manifest mounts them, because
+the nav contract routes a screen and does not hand it an ambient scope — and
+they read the ACTIVE workspace from the runtime selection
+(`<WorkspaceSelectionProvider>`, the same seam `switchTo` writes). With no
+active workspace they render a designed "choose a workspace" state; they never
+render blank and never throw at a host that has not wired the provider.
+
+```tsx
+<WorkspaceSelectionProvider urlWorkspaceId={params.get("workspace")}>
+  <MembersManager />          {/* the workspace comes from the selection */}
+</WorkspaceSelectionProvider>
+```
+
 ## Layers
 
 ```
@@ -100,13 +132,13 @@ Backend error texts are generated from stapel-workspaces's
 pair's UI keys carry hand-written ru copy. Register your own bundle AFTER the
 pair's to override any key — registration order is override priority.
 
-### Spanish locale (opt-in subpath — backend errors today, UI copy later)
+### Spanish locale (opt-in subpath)
 
-The `es` bundle ships as its own subpath on the same terms as `ru`, with one
-difference stated up front: **it translates the 67 backend error codes, not
-the pair's own UI copy.** `registerWorkspacesI18nEs` registers the en floor UNDER the
-Spanish texts, so a Spanish-speaking user reads Spanish error messages and
-English UI copy — never a raw key.
+The `es` bundle ships as its own subpath on the same terms as `ru`, and it is
+complete on both halves: the generated backend error texts AND hand-written
+Spanish for every UI key the pair owns. `registerWorkspacesI18nEs` registers
+the en floor UNDER the Spanish texts, so a key added tomorrow degrades to
+English rather than to a raw key.
 
 ```tsx
 import { registerWorkspacesI18nEs } from "@stapel/workspaces-react/i18n/es";
@@ -119,8 +151,7 @@ await i18n.setLocale("es");    // live switch; untranslated UI keys read English
 Error texts are generated from stapel-workspaces's `translations/errors.es.json`
 catalog (`pnpm gen:errors`, drift-gated) and are complete over the error
 registry by construction. The coverage boundary is asserted in
-`test/i18nEs.test.ts`; when hand-written Spanish UI copy lands, it lands
-additively — this subpath and `workspacesI18nBundleEs` keep their names.
+`test/i18nEs.test.ts`, which asserts parity with the en bundle key for key.
 
 ## Guardrails
 

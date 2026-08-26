@@ -409,6 +409,23 @@
   },
   "demos": [
     {
+      "id": "cdn.attachment",
+      "title": "Media attachment",
+      "description": "One reference, drawn by its KIND: a photo picks its tier from this element, a video shows the poster still with the clip's length (an <img> cannot load an mp4), an audio row shows the waveform that IS its render, and a document shows facts because no pixels for it exist. A reference that resolves to nothing says so — data, with a 200 behind it, not a failure.",
+      "component": "MediaAttachment",
+      "tokens": [
+        "surface-sunken"
+      ],
+      "variants": [
+        "photo",
+        "video",
+        "audio",
+        "document",
+        "gone"
+      ],
+      "source": "demo/MediaAttachment.demo.tsx"
+    },
+    {
       "id": "cdn.gallery",
       "title": "Photo gallery queue",
       "description": "The headless MediaUploader bounds a gallery at max references and hands a composer the ordered <type>/<hash> list to store. canAdd and settled are ActionAvailability, so a full gallery and an unfinished upload are two different sentences rather than one grey button.",
@@ -428,6 +445,58 @@
       "source": "demo/MediaUploader.demo.tsx"
     },
     {
+      "id": "cdn.gallery-field",
+      "title": "Photo gallery (default skin)",
+      "description": "Up to ten photos, each with its own step, its own refusal and its own controls, inside one drop target. The order IS the meaning — the first reference is what a search card shows — so reordering is drag-and-drop AND a pair of move buttons, because drag is unreachable by keyboard and unusable on a touch screen.",
+      "component": "MediaGalleryField",
+      "covers": [
+        "MediaUploader"
+      ],
+      "tokens": [
+        "border-subtle",
+        "surface-sunken"
+      ],
+      "variants": [
+        "empty",
+        "three photos",
+        "full"
+      ],
+      "source": "demo/MediaGalleryField.demo.tsx"
+    },
+    {
+      "id": "cdn.image-field",
+      "title": "Image slot (default skin)",
+      "description": "One image, skinned: a bordered region that takes a drop, a label that makes the whole rectangle open the picker, and a focusable button beside it for the keyboard. The picked or stored image is drawn INSIDE the frame, so an empty slot still looks like a slot — the affordance the shipped control did not have at all.",
+      "component": "ImageUploadField",
+      "covers": [
+        "ImageUpload"
+      ],
+      "tokens": [
+        "border-subtle",
+        "surface-sunken"
+      ],
+      "variants": [
+        "empty",
+        "stored"
+      ],
+      "source": "demo/ImageUploadField.demo.tsx"
+    },
+    {
+      "id": "cdn.media-intake",
+      "title": "Video and document intake",
+      "description": "The same control over the two non-image endpoints. The `accept` string is built from the deployment's own allowlist — the same one the client-side refusal is built from — so the picker and the gate cannot disagree, and the ceilings that apply are the ones for THIS intake (100 MB for a clip, 50 MB for a document), not the image ones.",
+      "component": "MediaUploadField",
+      "tokens": [
+        "border-subtle",
+        "surface-sunken"
+      ],
+      "variants": [
+        "video",
+        "document"
+      ],
+      "source": "demo/MediaUploadField.demo.tsx"
+    },
+    {
       "id": "cdn.single",
       "title": "Single image slot",
       "description": "The headless ImageUpload runs the dedup-first flow for one slot: validate against the deployment's own ceilings, hash, ask file/exists/, and only then POST. The bag reports the PHASE, never a fabricated percentage — fetch cannot observe request-body progress.",
@@ -437,7 +506,6 @@
         "card-border"
       ],
       "variants": [
-        "default",
         "already-stored"
       ],
       "source": "demo/ImageUpload.demo.tsx"
@@ -458,9 +526,27 @@
     }
   ],
   "i18nKeys": [
+    "cdn.attachment.audio_alt",
+    "cdn.attachment.download",
+    "cdn.attachment.duration_unmeasured",
+    "cdn.attachment.file_label",
+    "cdn.attachment.image_alt",
+    "cdn.attachment.meta_missing",
+    "cdn.attachment.meta_partial",
+    "cdn.attachment.missing",
+    "cdn.attachment.open",
+    "cdn.attachment.variants_pending",
+    "cdn.attachment.video_alt",
+    "cdn.bytes.b",
+    "cdn.bytes.gb",
+    "cdn.bytes.kb",
+    "cdn.bytes.mb",
     "cdn.error.unknown",
     "cdn.gallery.count",
+    "cdn.gallery.count.one",
+    "cdn.gallery.count.other",
     "cdn.gallery.empty",
+    "cdn.gallery.empty_hint",
     "cdn.item.alt",
     "cdn.item.cancel",
     "cdn.item.cover",
@@ -481,11 +567,14 @@
     "cdn.phase.processing",
     "cdn.phase.queued",
     "cdn.phase.uploading",
+    "cdn.pick.drop_active",
     "cdn.pick.drop_hint",
+    "cdn.pick.file",
     "cdn.pick.hint",
     "cdn.pick.image",
     "cdn.pick.images",
     "cdn.pick.replace",
+    "cdn.pick.video",
     "cdn.upload.blocked.failed",
     "cdn.upload.blocked.full",
     "cdn.upload.blocked.pending",
@@ -572,7 +661,9 @@
       "explainCdnError",
       "fileExtension",
       "flowEndpoints",
+      "formatBytes",
       "formatCdnRef",
+      "formatDurationMs",
       "imageRowOf",
       "isRateLimited",
       "isUploadCanceled",
@@ -596,9 +687,12 @@
       "useUploadImage",
       "useUploadPreview",
       "useUploadQueue",
-      "validateFile"
+      "validateFile",
+      "variantsReadyAtOf",
+      "variantsStatusOf"
     ],
     "types": [
+      "ByteUnit",
       "CdnApi",
       "CdnDescribeResponse",
       "CdnErrorCode",
@@ -625,6 +719,7 @@
       "CdnUploadTarget",
       "CdnVariantMeta",
       "CdnVariantWaitOptions",
+      "CdnVariantsStatus",
       "CdnVideo",
       "CdnVideoUploadResponse",
       "CreateCdnRuntimeOptions",
@@ -634,6 +729,7 @@
       "DescribeLoaderOptions",
       "DescribeResult",
       "FlowEndpoint",
+      "FormattedBytes",
       "ParsedCdnRef",
       "Remediation",
       "RunUploadOptions",

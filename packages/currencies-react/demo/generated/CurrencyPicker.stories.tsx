@@ -8,13 +8,13 @@ export default { title: "currencies-react / Currency picker (default skin)" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"desktop"} };
+Default.parameters = { stapel: {"viewport":"desktop","step":"ready"} };
 export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
 Phone.storyName = "phone";
-Phone.parameters = { stapel: {"viewport":"phone"} };
+Phone.parameters = { stapel: {"viewport":"phone","step":"sheet"} };
 export const Empty = (): ReactElement => renderDemoVariant(demo, "empty");
 Empty.storyName = "empty";
-Empty.parameters = { stapel: {"viewport":"phone"} };
+Empty.parameters = { stapel: {"viewport":"phone","step":"empty"} };
 export const Failed = (): ReactElement => renderDemoVariant(demo, "failed");
 Failed.storyName = "failed";
-Failed.parameters = { stapel: {"viewport":"phone"} };
+Failed.parameters = { stapel: {"viewport":"phone","step":"failed"} };

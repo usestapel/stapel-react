@@ -4,35 +4,66 @@
   "version": "0.0.0",
   "demos": [
     {
-      "id": "translate.panel-skin",
-      "title": "Translate panel (default skin)",
-      "description": "The shipped translate surface: one themed card with the empty and loading states a screen owes a person. Replace the body as the pair grows read hooks; keep the frame.",
-      "component": "TranslatePanel",
-      "covers": [],
+      "id": "translate.language-settings",
+      "title": "Language settings (default skin)",
+      "description": "The switcher, one sentence saying what the choice affects, and the status line an operator needs when a translated screen looks wrong. Mounted by the `account.language` nav entry.",
+      "component": "LanguageSettingsPane",
+      "covers": [
+        "LanguageSwitcher",
+        "TranslationStatus"
+      ],
       "tokens": [],
       "variants": [
         {
           "id": "default",
-          "description": "Desktop width, nothing to show yet.",
+          "description": "Desktop, translations downloaded.",
           "viewport": "desktop",
-          "step": "empty"
+          "step": "ready"
         },
         {
-          "id": "phone",
-          "description": "The same surface at 390px — the design width.",
+          "id": "offline",
+          "description": "At 390px, with the copy saved on the device in effect — the screen says which, rather than looking identical to a healthy one.",
           "viewport": "phone",
-          "step": "empty"
-        },
-        {
-          "id": "loading",
-          "description": "Data in flight: the panel says so instead of drawing an empty box.",
-          "viewport": "phone",
-          "step": "loading"
+          "step": "offline"
         }
       ],
       "source": {
-        "file": "demo/TranslateSkin.demo.tsx",
-        "line": 23
+        "file": "demo/LanguageSettingsPane.demo.tsx",
+        "line": 19
+      }
+    },
+    {
+      "id": "translate.language-switcher",
+      "title": "Language switcher (default skin)",
+      "description": "The control this pair exists to put on screen: a searchable select on desktop, a bottom sheet on a phone, and a compact globe for the app header. When the bundle could not be downloaded it says so beside itself instead of pretending the switch was complete.",
+      "component": "LanguageSwitcher",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Desktop: a searchable select over the deployment's languages.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "compact",
+          "description": "The header form at 390px — a globe and the current code, opening a bottom sheet.",
+          "viewport": "phone",
+          "step": "sheet"
+        },
+        {
+          "id": "partial",
+          "description": "The bundle could not be downloaded: the switch applied, and the control says some texts will read in English.",
+          "viewport": "phone",
+          "step": "partial"
+        }
+      ],
+      "source": {
+        "file": "demo/LanguageSwitcher.demo.tsx",
+        "line": 29
       }
     },
     {
@@ -52,6 +83,116 @@
       "source": {
         "file": "demo/Translate.demo.tsx",
         "line": 24
+      }
+    },
+    {
+      "id": "translate.translate-button",
+      "title": "Translate button (default skin)",
+      "description": "Ask for somebody else's writing in your own language. Absent — not greyed — where the deployment offers no content translation; every refusal folded by code into a sentence, with a retry only where retrying can work.",
+      "component": "TranslateButton",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Nothing asked for yet.",
+          "viewport": "desktop",
+          "step": "idle"
+        },
+        {
+          "id": "translated",
+          "description": "The answer is in hand and came from the cache: the control becomes the way back to the original.",
+          "viewport": "phone",
+          "step": "translated"
+        },
+        {
+          "id": "throttled",
+          "description": "429: too many translations just now. The sentence says to wait; the retry is offered because a later attempt can succeed.",
+          "viewport": "phone",
+          "step": "failed"
+        },
+        {
+          "id": "blocked",
+          "description": "Over the per-text ceiling: the button is gated and the limit is IN the reason beside it.",
+          "viewport": "desktop",
+          "step": "blocked"
+        },
+        {
+          "id": "unavailable",
+          "description": "The deployment offers no content translation — the control is ABSENT, not disabled. This shot is meant to be empty.",
+          "viewport": "phone",
+          "step": "unavailable"
+        }
+      ],
+      "source": {
+        "file": "demo/TranslateButton.demo.tsx",
+        "line": 60
+      }
+    },
+    {
+      "id": "translate.translated-text",
+      "title": "Translated text (default skin)",
+      "description": "A listing description with a translate control beside it. Once translated, a quiet second line says which language it came from, that a machine produced it, and whether the answer came from a cache — the same honesty a converted price owes with 'approx.'.",
+      "component": "TranslatedText",
+      "covers": [
+        "TranslateButton"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "One description, not yet translated.",
+          "viewport": "desktop",
+          "step": "original"
+        },
+        {
+          "id": "batched",
+          "description": "Three of them at 390px: one request, one provider call, one consistent tone.",
+          "viewport": "phone",
+          "step": "batched"
+        },
+        {
+          "id": "hostControl",
+          "description": "A host that draws its own control mounts the text without one (`showControl={false}`) and renders `<TranslateButton/>` wherever its layout wants it.",
+          "viewport": "phone",
+          "step": "no-control"
+        }
+      ],
+      "source": {
+        "file": "demo/TranslatedText.demo.tsx",
+        "line": 58
+      }
+    },
+    {
+      "id": "translate.translation-status",
+      "title": "Translation status (default skin)",
+      "description": "The revision in effect and how many texts it carries — or which rung of the loader's fallback ladder answered. Small on purpose: a settings screen puts it under the switcher, a host may put it in a footer.",
+      "component": "TranslationStatus",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Downloaded from the server: revision and key count.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "offline",
+          "description": "The server could not be reached; the copy saved on this device is in effect and the chip names that.",
+          "viewport": "phone",
+          "step": "offline"
+        },
+        {
+          "id": "loading",
+          "description": "The switch is in flight — the chip says so, never a blank line.",
+          "viewport": "phone",
+          "step": "loading"
+        }
+      ],
+      "source": {
+        "file": "demo/TranslationStatus.demo.tsx",
+        "line": 26
       }
     }
   ]

@@ -174,7 +174,7 @@ export function DataExportPanel(props: DataExportPanelProps): ReactElement {
                   type="info"
                   showIcon
                   data-testid="gdpr-export-none"
-                  message={t(GDPR_I18N_KEYS.exportNone)}
+                  title={t(GDPR_I18N_KEYS.exportNone)}
                 />
               ) : (
                 <Flex vertical gap={spacing[2]} data-testid="gdpr-export-status">
@@ -206,7 +206,7 @@ export function DataExportPanel(props: DataExportPanelProps): ReactElement {
                       type="warning"
                       showIcon
                       data-testid="gdpr-export-partial"
-                      message={t(GDPR_I18N_KEYS.exportPartial, {
+                      title={t(GDPR_I18N_KEYS.exportPartial, {
                         services: bag.missingServices.join(", "),
                       })}
                     />
@@ -238,7 +238,7 @@ export function DataExportPanel(props: DataExportPanelProps): ReactElement {
               type="success"
               showIcon
               data-testid="gdpr-export-requested"
-              message={t(GDPR_I18N_KEYS.exportRequested)}
+              title={t(GDPR_I18N_KEYS.exportRequested)}
             />
           ) : null}
 
@@ -253,7 +253,7 @@ export function DataExportPanel(props: DataExportPanelProps): ReactElement {
                     ? "gdpr-export-expired"
                     : "gdpr-export-download-failed"
               }
-              message={describe(toFlowError(downloadError)).message}
+              title={describe(toFlowError(downloadError)).message}
             />
           ) : null}
 

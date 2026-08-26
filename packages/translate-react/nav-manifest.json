@@ -3,23 +3,24 @@
   "version": "0.0.0",
   "entries": [
     {
-      "id": "translate.overview",
-      "labelKey": "translate.nav.overview",
-      "icon": "AppstoreOutlined",
+      "id": "account.language",
+      "labelKey": "translate.nav.language",
+      "icon": "MessageOutlined",
       "route": {
-        "path": "translate"
+        "path": "language"
       },
       "component": {
-        "export": "TranslatePanel",
+        "export": "LanguageSettingsPane",
         "subpath": "default"
       },
       "placement": {
-        "level": "top"
+        "level": "submenu",
+        "parentId": "account.root"
       },
       "menuVisibleDefault": true,
       "requiresAuth": true,
       "surface": "member",
-      "order": 50
+      "order": 40
     }
   ]
 }

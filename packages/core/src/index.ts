@@ -137,6 +137,27 @@ export type {
   CreateI18nOptions,
 } from "./i18n.js";
 
+// i18n formatters (i18n/format.ts): dates, relative times, durations and
+// numbers at the APP's locale rather than the browser's. The ONE home for the
+// `src/model/format.ts` sixteen pairs each wrote for themselves — see that
+// module's header for what is deliberately not here (money, bytes, sentences).
+export {
+  formatDate,
+  formatDateTime,
+  formatRelative,
+  formatDuration,
+  formatNumber,
+  createFormat,
+  useFormat,
+  toDate,
+} from "./i18n/format.js";
+export type {
+  Format,
+  Instant,
+  RelativeOptions,
+  DurationStyle,
+} from "./i18n/format.js";
+
 // analytics TYPE seam + context plumbing (analytics-standard §2). The facade
 // IMPLEMENTATION (createAnalytics, the console/Stapel-collector providers,
 // defineEvent/prop, tracked/useTracked) lives in `@stapel/analytics`
@@ -288,6 +309,7 @@ export type {
 export { useFlow } from "./flows/useFlow.js";
 export {
   toFlowError,
+  isFlowError,
   isErrorCode,
   formatFlowError,
   describeFlowError,

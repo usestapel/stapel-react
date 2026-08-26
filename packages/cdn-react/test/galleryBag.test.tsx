@@ -64,7 +64,7 @@ describe("<MediaGalleryField bag>", () => {
 
     expect(screen.getByTestId("composer-refs").textContent).toBe("");
 
-    fireEvent.change(screen.getByTestId("cdn-gallery-input"), {
+    fireEvent.change(screen.getByTestId("cdn-gallery-drop-input"), {
       target: { files: [imageFile()] },
     });
 
@@ -95,7 +95,7 @@ describe("<MediaGalleryField bag>", () => {
       </TestHarness>
     );
 
-    fireEvent.change(screen.getByTestId("cdn-gallery-input"), {
+    fireEvent.change(screen.getByTestId("cdn-gallery-drop-input"), {
       target: { files: [imageFile()] },
     });
 
@@ -115,7 +115,7 @@ describe("<MediaGalleryField bag>", () => {
       </TestHarness>
     );
 
-    fireEvent.change(screen.getByTestId("cdn-gallery-input"), {
+    fireEvent.change(screen.getByTestId("cdn-gallery-drop-input"), {
       target: { files: [imageFile()] },
     });
 

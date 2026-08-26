@@ -4,35 +4,116 @@
   "version": "0.0.0",
   "demos": [
     {
-      "id": "webhooks.panel-skin",
-      "title": "Webhooks panel (default skin)",
-      "description": "The shipped webhooks surface: one themed card with the empty and loading states a screen owes a person. Replace the body as the pair grows read hooks; keep the frame.",
-      "component": "WebhooksPanel",
+      "id": "webhooks.deliveries",
+      "title": "Delivery log",
+      "description": "The retention line at the top is load-bearing: successful rows are swept after a week and dead letters after ninety days, and without that sentence 'my delivery disappeared' is indistinguishable from 'my delivery was never recorded'. Replay is on every row and refused with a reason on every row that is not a dead letter — the backend answers 409 for anything else, and a button that appears and disappears per row teaches nobody the rule. There is no stream anywhere in this module, so while something is still in flight the log re-reads every fifteen seconds and says so, rather than changing silently under somebody's cursor.",
+      "component": "DeliveriesPane",
       "covers": [],
-      "tokens": [],
+      "tokens": [
+        "success",
+        "error",
+        "warning",
+        "text-muted"
+      ],
       "variants": [
         {
           "id": "default",
-          "description": "Desktop width, nothing to show yet.",
+          "description": "One delivered, one on its retry ladder — the poll is running and the log admits it.",
           "viewport": "desktop",
-          "step": "empty"
+          "step": "mixed"
         },
         {
           "id": "phone",
-          "description": "The same surface at 390px — the design width.",
+          "description": "390px: cards with the status, the attempt count and the last error, and the two controls under them.",
           "viewport": "phone",
-          "step": "empty"
+          "step": "cards"
         },
         {
-          "id": "loading",
-          "description": "Data in flight: the panel says so instead of drawing an empty box.",
+          "id": "dead-letter",
+          "description": "The only status a replay accepts. Six attempts, no response at all, and the transport error kept verbatim — a truncated timeout message is the one thing on this screen that cannot be reconstructed from anywhere else.",
+          "viewport": "desktop",
+          "step": "dead"
+        },
+        {
+          "id": "empty",
+          "description": "Nothing has matched this rule yet — said out loud, with the retention note still visible so the emptiness is not read as a sweep.",
           "viewport": "phone",
-          "step": "loading"
+          "step": "empty"
         }
       ],
       "source": {
-        "file": "demo/WebhooksSkin.demo.tsx",
-        "line": 23
+        "file": "demo/DeliveriesPane.demo.tsx",
+        "line": 36
+      }
+    },
+    {
+      "id": "webhooks.delivery-detail",
+      "title": "Delivery detail",
+      "description": "The envelope and the headers are REBUILT from the stored event, and the sheet says so above them. The module keeps the matched payload and the identifiers; the transport assembles the envelope at send time from exactly those fields, so this is what a replay would send rather than a recording of the original request — and a screen that implied otherwise would send somebody hunting for a difference that is an artefact of the reconstruction. The signature line is deliberately absent: it is an HMAC over the body with a secret this client does not hold, and a fabricated one would be the single most misleading row on the page.",
+      "component": "DeliveryDetailSheet",
+      "covers": [],
+      "tokens": [
+        "error",
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A dead letter: six attempts, no response status at all, the connect timeout kept whole, and the replay this row is the only kind that accepts.",
+          "viewport": "desktop",
+          "step": "dead"
+        },
+        {
+          "id": "phone",
+          "description": "390px as a bottom sheet. The JSON blocks scroll inside themselves — one long URL in a payload must never widen the page.",
+          "viewport": "phone",
+          "step": "dead_phone"
+        },
+        {
+          "id": "succeeded",
+          "description": "A delivery that worked: 200, one attempt, nothing to replay — and the replay control says why rather than disappearing.",
+          "viewport": "desktop",
+          "step": "succeeded"
+        }
+      ],
+      "source": {
+        "file": "demo/DeliveryDetailSheet.demo.tsx",
+        "line": 35
+      }
+    },
+    {
+      "id": "webhooks.mandate-notice",
+      "title": "Workspace mandate unavailable",
+      "description": "Every route of stapel-webhooks is guarded by the workspace-mandate check, and in a tenant deployment that guard can answer 503 `mandate_unavailable`: we could not verify whether you belong to this workspace. It is not a permission failure and not a fault in anybody's webhook configuration — which is exactly the conclusion a red error banner invites on a developer-settings tab. So it has an arm of its own, in the voice that fits: this is on our side, it is temporary, here is the retry. Every read in the pair routes its failed arm through this component.",
+      "component": "MandateNotice",
+      "covers": [],
+      "tokens": [
+        "info",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "With the retry, which is the only action that makes sense.",
+          "viewport": "desktop",
+          "step": "with_retry"
+        },
+        {
+          "id": "phone",
+          "description": "390px — the notice a person meets on a phone when the mandate source blinked.",
+          "viewport": "phone",
+          "step": "phone"
+        },
+        {
+          "id": "no-retry",
+          "description": "Embedded where the host owns the refresh: the sentence stays, the control does not appear twice.",
+          "viewport": "desktop",
+          "step": "no_retry"
+        }
+      ],
+      "source": {
+        "file": "demo/MandateNotice.demo.tsx",
+        "line": 19
       }
     },
     {
@@ -52,6 +133,201 @@
       "source": {
         "file": "demo/Webhooks.demo.tsx",
         "line": 24
+      }
+    },
+    {
+      "id": "webhooks.secret-reveal",
+      "title": "Signing secret (shown once)",
+      "description": "The backend keeps a hash; the 201 of a create and the 200 of a rotate are the only two responses that ever carry the plaintext, and no read returns it. So this is the last place the value exists outside the receiver that will verify with it — which is why the warning is ABOVE the value rather than under it, why copying is a real button with an aria-label instead of a decorative glyph, and why the exit is an explicit acknowledgement rather than a ✕ somebody can hit before reading. Acknowledging drops the value from memory: nothing in the page keeps a copy after the person says they have it.",
+      "component": "SecretReveal",
+      "covers": [],
+      "tokens": [
+        "warning",
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "With the host's verification docs linked — the half of the contract that lives in the backend's signing module and is served nowhere.",
+          "viewport": "desktop",
+          "step": "with_docs"
+        },
+        {
+          "id": "phone",
+          "description": "390px, where the value wraps and the copy button is the only realistic way to take it.",
+          "viewport": "phone",
+          "step": "phone"
+        },
+        {
+          "id": "no-docs",
+          "description": "A host that has not passed `docsHref`: the link is simply absent. A dead 'read the docs' pointing nowhere would be worse than none.",
+          "viewport": "desktop",
+          "step": "no_docs"
+        }
+      ],
+      "source": {
+        "file": "demo/SecretReveal.demo.tsx",
+        "line": 24
+      }
+    },
+    {
+      "id": "webhooks.secret-rotation",
+      "title": "Rotate signing secret",
+      "description": "There is no overlap window: the old secret stops verifying the instant the new one is issued, so every delivery to a receiver that has not been updated fails from that moment — and enough failures switch the webhook off. That is a live integration going down as the direct consequence of one click, which is what the confirm's BODY says instead of asking 'are you sure?'. For a delivery type that carries no signature at all the control is gated with that as its stated reason, beside it: the backend's answer there is a 400 nobody can act on, and a button whose only outcome is a refusal should not be offered.",
+      "component": "SecretRotation",
+      "covers": [],
+      "tokens": [
+        "error",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A signed webhook: rotation is available, and the confirm names the break rather than hiding it.",
+          "viewport": "desktop",
+          "step": "signed"
+        },
+        {
+          "id": "phone",
+          "description": "390px, where the confirm is a bottom sheet.",
+          "viewport": "phone",
+          "step": "signed_phone"
+        },
+        {
+          "id": "unsigned",
+          "description": "A notification rule carries no signature, so there is nothing to rotate — the control states that instead of vanishing. A control that disappears teaches nobody the rule.",
+          "viewport": "desktop",
+          "step": "unsigned_gate"
+        }
+      ],
+      "source": {
+        "file": "demo/SecretRotation.demo.tsx",
+        "line": 32
+      }
+    },
+    {
+      "id": "webhooks.settings-page",
+      "title": "Webhooks (developer settings)",
+      "description": "The tab under account settings, beside two-factor and sessions — because a webhook is something you configure about your own account, not a third of the product's navigation. The page adds exactly two things to the list: one sentence saying what a webhook is, and the host's link to its receiver documentation. Both matter on the first visit, which for this feature is the visit that decides whether anybody uses it: the signature scheme, the header names and the 300-second tolerance live in the backend's `signing.py` and are served nowhere, so without that link a person leaves here holding a secret they have no way to verify with.",
+      "component": "WebhooksSettingsPane",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "surface-base",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Three rules: one healthy signed webhook, one notification, one the backend switched off after repeated failures.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "The same page at 390px — the table becomes cards, and the switch keeps its 44px target.",
+          "viewport": "phone",
+          "step": "ready_phone"
+        },
+        {
+          "id": "empty",
+          "description": "Nobody has made one yet: the empty state explains what a webhook IS before offering the button, because the person who reaches this screen with nothing on it is the person who does not know yet.",
+          "viewport": "phone",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/WebhooksSettingsPane.demo.tsx",
+        "line": 29
+      }
+    },
+    {
+      "id": "webhooks.subscription-sheet",
+      "title": "New webhook",
+      "description": "A bottom sheet on a phone and a modal above 768px, because it is the same dialog either way. The event list comes from `GET event-catalog` — generated from the modules actually installed here — so the picker can never offer an event nothing emits or hide one a host's own module does. Everything decidable in the browser is decided in the browser: a missing target key, an http:// URL, a predicate outside the grammar. The backend answers each of those with a single code that names no position, so the sheet answers them beside the field instead.",
+      "component": "SubscriptionSheet",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "error"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A fresh webhook: pick the event, pick the delivery, fill the destination. The submit states its own reason for being unavailable rather than sitting grey.",
+          "viewport": "desktop",
+          "step": "empty_form"
+        },
+        {
+          "id": "phone",
+          "description": "The same form as a bottom sheet at 390px.",
+          "viewport": "phone",
+          "step": "sheet"
+        },
+        {
+          "id": "notification",
+          "description": "A delivery type with a different target shape entirely: a notification needs a type AND at least one recipient, and the backend refuses one that addresses nobody at subscription time rather than at delivery time — so the form does too.",
+          "viewport": "desktop",
+          "step": "notification_target"
+        },
+        {
+          "id": "invalid-filter",
+          "description": "`$regex` is not an operator this module runs — deliberately: a predicate is evaluated once per matching event inside the dispatcher, and a regex there is a backtracking lever pointed at every other subscriber. The sentence names the operator and the path, which is exactly what the backend's single `invalid_filter` code cannot.",
+          "viewport": "desktop",
+          "step": "filter_refused"
+        },
+        {
+          "id": "at-cap",
+          "description": "The refusal the browser cannot predict: you are at the per-owner ceiling. Nothing to retry — something has to be deleted first — so it arrives as a named server refusal rather than a validation hint.",
+          "viewport": "phone",
+          "step": "cap_409"
+        }
+      ],
+      "source": {
+        "file": "demo/SubscriptionSheet.demo.tsx",
+        "line": 57
+      }
+    },
+    {
+      "id": "webhooks.subscriptions",
+      "title": "Webhook rules",
+      "description": "Event, delivery, destination, on/off, failures. The destination is a SUMMARY — the host of a URL, the recipient of a notification — because the full target is unreadable at list width and one row-open away in the sheet. The switch carries its own copy: re-activating a rule resets its failure counter server-side, so the person is told it gets the full run of retries again rather than one more attempt.",
+      "component": "SubscriptionsPane",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "error",
+        "warning"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Three rules, one of them already switched off by the backend.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "390px: cards, not a table with a horizontal scrollbar over the one screen somebody opens on their phone to turn a broken integration off.",
+          "viewport": "phone",
+          "step": "cards"
+        },
+        {
+          "id": "auto-disabled",
+          "description": "The row that needs a person: `disabled_at` is set, so the backend switched it off after repeated dead letters — not somebody's own decision. The threshold is a deployment setting the API does not serve, so the copy says 'after repeated failures' instead of inventing a number.",
+          "viewport": "desktop",
+          "step": "auto_disabled"
+        },
+        {
+          "id": "mandate-unavailable",
+          "description": "Every route of this module is mandate-scoped and can answer 503 `mandate_unavailable`. Drawn as an ordinary red failure it would tell a developer their integration settings are broken; it is named instead, in the only voice that fits — this is on our side, it is temporary, here is the retry.",
+          "viewport": "phone",
+          "step": "mandate_503"
+        }
+      ],
+      "source": {
+        "file": "demo/SubscriptionsPane.demo.tsx",
+        "line": 41
       }
     }
   ]

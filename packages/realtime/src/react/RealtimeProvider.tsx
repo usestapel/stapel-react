@@ -68,6 +68,8 @@ export function RealtimeProvider(props: RealtimeProviderProps): ReactElement {
     webSocket,
     schedule,
     random,
+    now,
+    degradation,
     onState,
   } = props;
 
@@ -110,6 +112,8 @@ export function RealtimeProvider(props: RealtimeProviderProps): ReactElement {
       ...(webSocket !== undefined ? { webSocket } : {}),
       ...(schedule !== undefined ? { schedule } : {}),
       ...(random !== undefined ? { random } : {}),
+      ...(now !== undefined ? { now } : {}),
+      ...(degradation !== undefined ? { degradation } : {}),
       ...(onState !== undefined ? { onState } : {}),
     };
     held.current = { key, client: createRealtimeClient(options) };

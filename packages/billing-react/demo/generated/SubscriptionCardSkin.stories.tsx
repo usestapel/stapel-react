@@ -8,11 +8,13 @@ export default { title: "billing-react / Subscription (default skin)" };
 
 export const Active = (): ReactElement => renderDemoVariant(demo, "active");
 Active.storyName = "active";
-Active.parameters = { stapel: {"viewport":"phone"} };
+Active.parameters = { stapel: {"viewport":"phone","step":"active"} };
 export const Free = (): ReactElement => renderDemoVariant(demo, "free");
 Free.storyName = "free";
-Free.parameters = { stapel: {"viewport":"phone"} };
+Free.parameters = { stapel: {"viewport":"phone","step":"free"} };
 export const PastDue = (): ReactElement => renderDemoVariant(demo, "past-due");
 PastDue.storyName = "past-due";
+PastDue.parameters = { stapel: {"step":"past_due"} };
 export const Cancelled = (): ReactElement => renderDemoVariant(demo, "cancelled");
 Cancelled.storyName = "cancelled";
+Cancelled.parameters = { stapel: {"step":"cancelled"} };

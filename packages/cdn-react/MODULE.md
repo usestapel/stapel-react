@@ -55,11 +55,77 @@ reports what this client observed, never a claim about what the server did.
 | `model/hash.ts` | SHA-256 over the file, and the honest answer when the platform cannot compute one. |
 | `model/upload.ts` | The flow. No React. |
 | `model/refs.ts` | `<type>/<hash>` and the single conversion to `@stapel/image`'s ladder. |
-| `model/queries.ts` | `useCdnRef` — the pair's one cached read. |
-| `headless/` | `useUploadQueue` / `useUploadImage` and their render-prop components. |
-| `default/` | The antd skin, behind its own subpath. |
+| `model/queries.ts` | `useCdnRef` — the caller's OWN reference, through `file/exists/`. |
+| `model/describe.ts` | The batching loader behind `useDescribe`: the batch is transport, the cache unit is the ref. |
+| `model/format.ts` | A clock reading and a byte count — a number plus a UNIT NAME, never a string with an English abbreviation in it. |
+| `headless/` | `useUploadQueue` / `useUploadImage` / `useDescribe` and their render-prop components. |
+| `default/` | The antd skin, behind its own subpath: two upload fields, the video/document intake, and the attachment renderer. |
 | `i18n/` | Keys + the generated error bundles + authored ru/es. |
 | `flows/registry.ts` | The zero-flow shim: stapel-cdn annotates no `@flow_step`. |
+
+## The read side: `describe`, and why an attachment renderer needs it
+
+Until stapel-cdn 0.17.0 a browser holding a `<type>/<hash>` it had not itself
+uploaded could not find out what it WAS. That is the structural reason this
+fleet had no attachment renderer anywhere — not an oversight, an impossibility.
+`POST /describe/` answers it in batches of up to 50, and returns unknown refs in
+`missing` **inside a 200**.
+
+Three decisions follow from the shape of that endpoint, and they are the whole
+of `model/describe.ts`:
+
+1. **The batch is a transport detail; the cache unit is the ref.** The consumer
+   is a LIST — thirty bubbles, ten tiles — each of which knows one ref and
+   nothing about its neighbours. One request per ref hits the rate limiter while
+   a page is drawing itself; one query keyed on "the list this component happened
+   to hold" re-fetches thirty refs to add a thirty-first. So callers ask per ref
+   and a microtask-windowed loader coalesces.
+2. **Missing is data.** A deleted, never-stored or malformed ref resolves to
+   `null`, never a rejection. One dead attachment must not cost a page its other
+   thirty-nine — that is what the endpoint was designed around, and a client that
+   turned a 200 into a throw would give it away.
+3. **The rate limiter is the one failure worth re-asking, and the server says
+   when.** `retry_after` off the refusal's own params, clamped. Everything else
+   (a 403 from a deployment that keeps describe service-side, a 400) is a settled
+   answer that a retry would only repeat.
+
+`<MediaAttachment>` is the skin over it, and it branches on `render_meta.kind`:
+an `<img>` cannot load an mp4, so a video renders its `poster_url`, an audio row
+renders the waveform that IS its render, and a document renders facts because no
+pixels for it exist. A snapshot handed in (`meta={…}`) makes NO request, which is
+what lets a thread resolve thirty refs once and hand each bubble its answer.
+
+## `render_meta` is read, not recomputed
+
+`toStapelImage` is the one boundary the whole fleet renders images through.
+Until 0.3.1 it recomputed `aspect` from the row's own width and height — a second
+answer to a question the server had already answered, rounded differently — and
+hardcoded `preview_b64: null` under a comment claiming stapel-cdn generated no
+inline placeholder. That comment had been false since 0.16, so the micro-preview
+the backend produced in the same pass that stored the bytes was discarded at the
+one line that could discard it for everything.
+
+It now reads the snapshot and falls back to the local arithmetic only for a
+server that has not shipped one (a host on 0.15). The four §83.2 facts —
+`kind`, `preview_kind`, `duration_ms`, `meta_status`/`meta_reason` — travel
+through to `@stapel/image`, which is what makes a box reservable in the right
+SHAPE while `preview_b64` is still null.
+
+`refOf` reads `render_meta.ref` — the backend's own `media_ref()` — before
+falling back to `prefix`, and only builds `<kind>/<hash>` for the video row, the
+one serializer that publishes neither. Video references were unreachable before.
+
+## `variants_status`, not `is_processed`
+
+Every `variant_<n>_url` on an image row is derived from `<type>/<hash>`, so all
+of them are present and well-formed in the 201 that creates the row — before the
+background task has written a single file. The contract says so in as many
+words: "read `variants_status` before you render a variant URL". The pair polled
+`is_processed` instead, which is equivalent TODAY by derivation and is also the
+field whose meaning the release notes moved ("Video.is_processed now means
+measured facts exist" — a statement about a probe, not about a ladder). The read
+is now `variants_status` first, `is_processed` as the fallback, and `null` for
+the two models that publish no ladder rather than a guessed `"ready"`.
 
 ## Two widenings of the generated types, and why
 
@@ -118,9 +184,15 @@ against the props declaration so that cannot recur.
 
 ## Upstream notes (recorded, not worked around)
 
-- **No public read-by-reference.** `file/exists/` is owner-scoped, so nothing in
-  this contract resolves a stranger's `<type>/<hash>` to URLs. A storefront
-  renders a listing's photos from the listings API's own payload.
+- **A describe snapshot carries no canonical URL.** It answers geometry, mime,
+  the ladder, a video's poster and a clip's length — but a DOCUMENT has an empty
+  ladder and no `url` field, so nothing in the response points at the file. A
+  document attachment is therefore drawn without a link unless the host supplies
+  one; building one out of the reference is the one thing this pair refuses to
+  do, because a reference is opaque.
+- **`file/exists/` is still owner-scoped**, which is why it remains the read for
+  the caller's OWN references (a reopened draft) and `describe` is the read for
+  anybody else's.
 - **`refs/sync/` is `IsServiceRequest`** and unreachable from a browser: the
   consuming module's server syncs references. Not on this pair's API surface.
 - **`GET /images/{type}/random/` is `IsStaffUser`** — an admin convenience, not

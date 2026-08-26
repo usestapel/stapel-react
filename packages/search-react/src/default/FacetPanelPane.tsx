@@ -328,7 +328,7 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 type="info"
                 showIcon
                 data-testid="facets-approximate"
-                message={t(SEARCH_I18N_KEYS.facetsApproximate)}
+                title={t(SEARCH_I18N_KEYS.facetsApproximate)}
               />
             )}
             {bag.skipped.length > 0 && (
@@ -336,7 +336,7 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 type="warning"
                 showIcon
                 data-testid="facets-skipped"
-                message={t(SEARCH_I18N_KEYS.facetsSkipped, {
+                title={t(SEARCH_I18N_KEYS.facetsSkipped, {
                   slugs: bag.skipped.join(", "),
                 })}
               />

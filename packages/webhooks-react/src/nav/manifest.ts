@@ -1,28 +1,28 @@
 /**
- * @stapel/webhooks-react's contribution to the scripted-fullstack navigation contract
- * (`@stapel/core`'s `NavEntry` / `PackageNavManifest`).
+ * @stapel/webhooks-react's contribution to the scripted-fullstack navigation
+ * contract (`@stapel/core`'s `NavEntry` / `PackageNavManifest`).
  *
- * `scripts/gen-nav-manifest.mjs` reads `navEntries` below, stamps
- * `package`/`version` from this package's own `package.json`, and writes
- * `packages/webhooks-react/nav-manifest.json` plus this package's slice of the
- * monorepo's root aggregate. `resolveNav` (`@stapel/shell-react`) is what
- * turns that aggregate plus a host's override file into the tree a shell
- * renders and a container mounts routes from.
+ * ── One entry, and it is a SUBMENU under settings ─────────────────────────
  *
- * ── The one entry below ────────────────────────────────────────────────────
+ * Webhooks are developer settings: a thing you configure about your own
+ * account or workspace, like sessions and two-factor. So the entry nests under
+ * `profiles.settings` exactly as `auth.security` does, rather than claiming a
+ * top-level slot in a product's main navigation — a marketplace whose primary
+ * nav reads "Listings · Messages · Webhooks" has told every visitor that a
+ * developer feature is a third of the product. `resolveNav` degrades
+ * gracefully when no `profiles.settings` is installed (the entry is dropped,
+ * nothing throws), which is the right failure for a host that does not ship a
+ * settings area at all.
  *
- * It names `WebhooksPanel` from `./default` — a component that exists, which
- * is the whole rule: an entry naming a component that does not exist passes
- * the generator's structural validation and fails at the CONTAINER's import,
- * two repositories away from the mistake.
- *
- * `surface` is DECLARED, not left to the `requiresAuth ? "member" : "public"`
- * derivation: a screen that later gains `requiresAuth` for an unrelated reason
- * must not silently drop out of a public container's tree.
+ * The delivery log has NO entry of its own on purpose: it is per-subscription
+ * and is reached from a row, so a route to it would be a route with no way to
+ * know which webhook it was about.
  *
  * `icon` must be a name the shell's registry knows
- * (`shell-react/src/default/icons.tsx`) — an unknown name renders a generic
- * glyph, and stapel-tools' scaffold refuses one at generation time.
+ * (`shell-react/src/default/icons.tsx`); `ApiOutlined` — the natural glyph for
+ * an integration surface — is NOT in it, and that registry is another
+ * package's file. `AppstoreOutlined` is the closest name the registry does
+ * resolve; adding `ApiOutlined` is filed in REQUESTS-webhooks-react.md.
  *
  * Adding the next screen: ship the component from `./default`, add an entry
  * here, then `pnpm gen:nav` — never hand-edit `nav-manifest.json`.
@@ -30,23 +30,24 @@
 import type { NavEntry } from "@stapel/core";
 
 export const navEntries: readonly NavEntry[] = [
-    {
-      "id": "webhooks.overview",
-      "labelKey": "webhooks.nav.overview",
-      "icon": "AppstoreOutlined",
-      "route": {
-        "path": "webhooks"
-      },
-      "component": {
-        "export": "WebhooksPanel",
-        "subpath": "default"
-      },
-      "placement": {
-        "level": "top"
-      },
-      "menuVisibleDefault": true,
-      "requiresAuth": true,
-      "surface": "member",
-      "order": 50
-    }
-  ];
+  {
+    id: "account.webhooks",
+    labelKey: "webhooks.nav.webhooks",
+    icon: "AppstoreOutlined",
+    route: {
+      path: "webhooks",
+    },
+    component: {
+      export: "WebhooksSettingsPane",
+      subpath: "default",
+    },
+    placement: {
+      level: "submenu",
+      parentId: "profiles.settings",
+    },
+    menuVisibleDefault: true,
+    requiresAuth: true,
+    surface: "member",
+    order: 40,
+  },
+];

@@ -8,13 +8,13 @@ export default { title: "shell-react / Public shell" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"desktop"} };
+Default.parameters = { stapel: {"viewport":"desktop","step":"anonymous"} };
 export const SignedIn = (): ReactElement => renderDemoVariant(demo, "signed-in");
 SignedIn.storyName = "signed-in";
-SignedIn.parameters = { stapel: {"viewport":"desktop"} };
+SignedIn.parameters = { stapel: {"viewport":"desktop","step":"account-slot"} };
 export const NothingToBrowse = (): ReactElement => renderDemoVariant(demo, "nothing-to-browse");
 NothingToBrowse.storyName = "nothing-to-browse";
-NothingToBrowse.parameters = { stapel: {"viewport":"phone"} };
+NothingToBrowse.parameters = { stapel: {"viewport":"phone","step":"no-browse"} };
 export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
 Phone.storyName = "phone";
-Phone.parameters = { stapel: {"viewport":"phone"} };
+Phone.parameters = { stapel: {"viewport":"phone","step":"collapsed"} };

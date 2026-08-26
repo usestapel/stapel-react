@@ -67,26 +67,56 @@ describe("backend error codes", () => {
 });
 
 describe("the pair's own UI keys", () => {
-  const uiKeys = Object.values(CDN_I18N_KEYS).filter(
+  const declared = Object.values(CDN_I18N_KEYS).filter(
     (key) => !key.startsWith("error.")
   );
+  /**
+   * A key catalogued as a PLURAL FAMILY has no flat entry: `tPlural` resolves
+   * `<key>.<CLDR category>`, then `<key>.other`. Which categories a language
+   * defines is a fact about the language (ru has a paucal, es does not), so the
+   * floor a test may demand is `other` — everywhere — plus `one` in the two
+   * locales that have it.
+   */
+  const families = declared.filter(
+    (key) => `${key}.other` in cdnI18nBundleEn
+  );
+  const flatKeys = declared.filter((key) => !families.includes(key));
+
+  it("at least one key is catalogued as a plural family", () => {
+    // The counted noun this pair renders most is "photos"; before it was a
+    // family the gallery said "1 of 1 photos" in all three locales.
+    expect(families).toContain(CDN_I18N_KEYS.galleryCount);
+  });
 
   for (const [locale, bundle] of Object.entries(LOCALES)) {
     it(`${locale}: every UI key has copy`, () => {
-      const missing = uiKeys.filter(
+      const missing = flatKeys.filter(
         (key) => typeof bundle[key] !== "string" || bundle[key].length === 0
       );
       expect(missing).toEqual([]);
+    });
+
+    it(`${locale}: every plural family ships its CLDR categories`, () => {
+      for (const family of families) {
+        expect(bundle[`${family}.other`], family).toBeTruthy();
+        // `en`, `ru` and `es` all define `one`; a locale that did not would be
+        // exempt here rather than forced to invent a form it has no use for.
+        expect(bundle[`${family}.one`], family).toBeTruthy();
+      }
     });
   }
 
   it("the interpolation slots match across locales", () => {
     const slots = (text: string): string[] =>
       [...text.matchAll(/\{(\w+)\}/g)].map((match) => match[1] ?? "").sort();
-    for (const key of uiKeys) {
+    const compared = [
+      ...flatKeys,
+      ...families.flatMap((family) => [`${family}.one`, `${family}.other`]),
+    ];
+    for (const key of compared) {
       const en = slots(String(cdnI18nBundleEn[key]));
-      expect(slots(String(cdnI18nBundleRu[key]))).toEqual(en);
-      expect(slots(String(cdnI18nBundleEs[key]))).toEqual(en);
+      expect(slots(String(cdnI18nBundleRu[key])), key).toEqual(en);
+      expect(slots(String(cdnI18nBundleEs[key])), key).toEqual(en);
     }
   });
 

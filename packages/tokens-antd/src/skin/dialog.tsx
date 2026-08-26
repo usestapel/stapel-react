@@ -73,11 +73,36 @@ export type DialogSurface = "sheet" | "modal";
  */
 export const MODAL_MEDIA_QUERY: string = `(min-width: ${String(breakpoints.tablet)}px)`;
 
-function subscribe(onChange: () => void): () => void {
+/**
+ * One `MediaQueryList` for the whole process, not one per call.
+ *
+ * `useSyncExternalStore` calls its snapshot on EVERY render of every
+ * consumer, and `SkinTheme` is a consumer — so a screen of a hundred skinned
+ * parts was asking the platform to parse and evaluate the same media query a
+ * hundred times per render pass, plus one live query object per `subscribe`.
+ * `matchMedia` returns a live object: one handle answers forever and keeps
+ * reporting the current viewport.
+ *
+ * Keyed on the `matchMedia` function itself so a test that installs its own
+ * (`test/env.tsx`) is never answered by a handle the previous one made.
+ */
+let cachedMatcher: typeof window.matchMedia | null = null;
+let cachedQuery: MediaQueryList | null = null;
+
+function modalQuery(): MediaQueryList | null {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-    return () => undefined;
+    return null;
   }
-  const query = window.matchMedia(MODAL_MEDIA_QUERY);
+  if (cachedQuery === null || cachedMatcher !== window.matchMedia) {
+    cachedMatcher = window.matchMedia;
+    cachedQuery = window.matchMedia(MODAL_MEDIA_QUERY);
+  }
+  return cachedQuery;
+}
+
+function subscribe(onChange: () => void): () => void {
+  const query = modalQuery();
+  if (query === null) return () => undefined;
   query.addEventListener("change", onChange);
   return () => {
     query.removeEventListener("change", onChange);
@@ -85,10 +110,9 @@ function subscribe(onChange: () => void): () => void {
 }
 
 function readSurface(): DialogSurface {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-    return "modal";
-  }
-  return window.matchMedia(MODAL_MEDIA_QUERY).matches ? "modal" : "sheet";
+  const query = modalQuery();
+  if (query === null) return "modal";
+  return query.matches ? "modal" : "sheet";
 }
 
 /** `"modal"` where there is no DOM to ask (SSR): the server cannot know the

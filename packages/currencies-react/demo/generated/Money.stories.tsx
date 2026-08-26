@@ -8,7 +8,7 @@ export default { title: "currencies-react / Money (render prop)" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"converted"} };
 export const Same = (): ReactElement => renderDemoVariant(demo, "same");
 Same.storyName = "same";
-Same.parameters = { stapel: {"viewport":"desktop"} };
+Same.parameters = { stapel: {"viewport":"desktop","step":"same-currency"} };

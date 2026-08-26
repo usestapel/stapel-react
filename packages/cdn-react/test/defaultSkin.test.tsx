@@ -106,10 +106,13 @@ describe("<MediaGalleryField/>", () => {
       </TestHarness>
     );
 
-    expect(screen.getByTestId("cdn-gallery-add")).toHaveProperty("disabled", true);
-    expect(screen.getByTestId("cdn-gallery-add-blocked").textContent).toBe(
-      "This gallery holds at most 1 photos"
-    );
+    expect(screen.getByTestId("cdn-gallery-drop-pick")).toHaveProperty("disabled", true);
+    // The reason is TEXT beside the control (GatedControl), and it names the
+    // ceiling without a counted noun — `useActionGate` resolves a block's code
+    // with `t`, which cannot select a plural form.
+    expect(
+      screen.getByTestId("cdn-gallery-drop-pick-gate").textContent
+    ).toContain("This gallery is full");
   });
 
   it("labels the first tile as the cover — the order is the meaning", async () => {
@@ -153,7 +156,7 @@ describe("<MediaGalleryField/>", () => {
       </TestHarness>
     );
 
-    fireEvent.change(screen.getByTestId("cdn-gallery-input"), {
+    fireEvent.change(screen.getByTestId("cdn-gallery-drop-input"), {
       target: { files: [imageFile()] },
     });
 

@@ -86,6 +86,15 @@ const { tracked } = useTracked();
 // data-analytics="flow" instead; tracked() on top double-counts (§3.2).
 ```
 
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- translate.language-settings → <LanguageSettingsPane> [default|offline]  demo/LanguageSettingsPane.demo.tsx
+- translate.language-switcher → <LanguageSwitcher> [default|compact|partial]  demo/LanguageSwitcher.demo.tsx
+- translate.provider → <TranslateProvider> [default]  demo/Translate.demo.tsx
+- translate.translate-button → <TranslateButton> [default|translated|throttled|blocked|unavailable]  demo/TranslateButton.demo.tsx
+- translate.translated-text → <TranslatedText> [default|batched|hostControl]  demo/TranslatedText.demo.tsx
+- translate.translation-status → <TranslationStatus> [default|offline|loading]  demo/TranslationStatus.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
+
 ## Snippets
 ```tsx
 // Error rendering + remediation branch (one pattern for every pair).

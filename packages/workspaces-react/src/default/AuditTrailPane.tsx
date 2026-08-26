@@ -35,9 +35,16 @@ import { titleCaseKey, useWorkspaceFormat } from "../model/format.js";
 import type { AuditEvent, AuditParams } from "../api/types.js";
 import { WORKSPACES_I18N_KEYS } from "../i18n/keys.js";
 import { AnchorPager, Muted, PersonLine, StatusTag } from "./parts.js";
+import { ActiveWorkspaceBoundary } from "./ActiveWorkspace.js";
 
 export interface AuditTrailPaneProps {
-  workspaceId: string;
+  /**
+   * The workspace whose membership history this is. OPTIONAL: omitted (the
+   * way the nav contract mounts this screen), the active workspace comes from
+   * the runtime selection, and a screen with none renders the designed
+   * "choose a workspace" state.
+   */
+  workspaceId?: string;
 }
 
 /**
@@ -85,6 +92,19 @@ function toneFor(action: string): "neutral" | "success" | "warning" | "danger" {
 }
 
 export function AuditTrailPane(props: AuditTrailPaneProps): ReactElement {
+  return (
+    <SkinTheme data-testid="audit-trail">
+      <ActiveWorkspaceBoundary
+        workspaceId={props.workspaceId}
+        testId="audit-trail-workspace"
+      >
+        {(workspaceId) => <AuditTrailBody workspaceId={workspaceId} />}
+      </ActiveWorkspaceBoundary>
+    </SkinTheme>
+  );
+}
+
+function AuditTrailBody(props: { readonly workspaceId: string }): ReactElement {
   const t = useT();
   const i18n = useI18n();
   const [action, setAction] = useState<string | null>(null);
@@ -106,86 +126,84 @@ export function AuditTrailPane(props: AuditTrailPaneProps): ReactElement {
     bundle[`workspaces.audit.action.${value}`] ?? titleCaseKey(value);
 
   return (
-    <SkinTheme data-testid="audit-trail">
-      <Card>
-        <Flex vertical gap={spacing["1"]}>
-          <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 0 }}>
-            {t(WORKSPACES_I18N_KEYS.auditTitle)}
-          </Typography.Title>
-          <Typography.Text type="secondary">
-            {t(WORKSPACES_I18N_KEYS.auditSubtitle)}
-          </Typography.Text>
-        </Flex>
+    <Card>
+      <Flex vertical gap={spacing["1"]}>
+        <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 0 }}>
+          {t(WORKSPACES_I18N_KEYS.auditTitle)}
+        </Typography.Title>
+        <Typography.Text type="secondary">
+          {t(WORKSPACES_I18N_KEYS.auditSubtitle)}
+        </Typography.Text>
+      </Flex>
 
-        <Flex gap={spacing["2"]} align="center" style={{ marginTop: spacing["4"] }} wrap>
-          <Muted>{t(WORKSPACES_I18N_KEYS.auditFilterLabel)}</Muted>
-          <Select<string>
-            value={action ?? ""}
-            onChange={(next) => {
-              // A new filter is a new walk: the anchor belongs to the old one.
-              setAction(next === "" ? null : next);
-              setWalk(FIRST_PAGE);
-            }}
-            aria-label={t(WORKSPACES_I18N_KEYS.auditFilterLabel)}
-            style={{ flex: "1 1 14rem", maxWidth: "20rem" }}
-            data-testid="audit-filter"
-            options={[
-              { value: "", label: t(WORKSPACES_I18N_KEYS.auditFilterAll) },
-              ...ACTIONS.map((value) => ({ value, label: labelForAction(value) })),
-            ]}
-          />
-        </Flex>
+      <Flex gap={spacing["2"]} align="center" style={{ marginTop: spacing["4"] }} wrap>
+        <Muted>{t(WORKSPACES_I18N_KEYS.auditFilterLabel)}</Muted>
+        <Select<string>
+          value={action ?? ""}
+          onChange={(next) => {
+            // A new filter is a new walk: the anchor belongs to the old one.
+            setAction(next === "" ? null : next);
+            setWalk(FIRST_PAGE);
+          }}
+          aria-label={t(WORKSPACES_I18N_KEYS.auditFilterLabel)}
+          style={{ flex: "1 1 14rem", maxWidth: "20rem" }}
+          data-testid="audit-filter"
+          options={[
+            { value: "", label: t(WORKSPACES_I18N_KEYS.auditFilterAll) },
+            ...ACTIONS.map((value) => ({ value, label: labelForAction(value) })),
+          ]}
+        />
+      </Flex>
 
-        <div style={{ marginTop: spacing["4"] }}>
-          <LoadList
-            state={mapLoad(loadStateFromQuery(query), (loaded) => loaded.items)}
-            testId="audit-list"
-            onRetry={() => {
-              void query.refetch();
-            }}
-            empty={
-              <EmptyState
-                title={t(WORKSPACES_I18N_KEYS.auditEmpty)}
-                testId="audit-list-empty"
-              />
-            }
-          >
-            {(events) => (
-              <div role="list" data-testid="audit-rows">
-                {events.map((event) => (
-                  <AuditRow key={event.id} event={event} label={labelForAction(event.action)} />
-                ))}
-              </div>
-            )}
-          </LoadList>
-        </div>
+      <div style={{ marginTop: spacing["4"] }}>
+        <LoadList
+          state={mapLoad(loadStateFromQuery(query), (loaded) => loaded.items)}
+          testId="audit-list"
+          onRetry={() => {
+            void query.refetch();
+          }}
+          empty={
+            <EmptyState
+              title={t(WORKSPACES_I18N_KEYS.auditEmpty)}
+              testId="audit-list-empty"
+            />
+          }
+        >
+          {(events) => (
+            <div role="list" data-testid="audit-rows">
+              {events.map((event) => (
+                <AuditRow key={event.id} event={event} label={labelForAction(event.action)} />
+              ))}
+            </div>
+          )}
+        </LoadList>
+      </div>
 
-        {page !== null && (
-          <AnchorPager
-            hasPrev={page.has_prev}
-            hasNext={page.has_next}
-            prevLabel={t(WORKSPACES_I18N_KEYS.pagerPrev)}
-            nextLabel={t(WORKSPACES_I18N_KEYS.pagerNext)}
-            position={t(WORKSPACES_I18N_KEYS.pagerPosition, { page: walk.index })}
-            testId="audit-pager"
-            onPrev={() =>
-              setWalk({
-                anchor: page.prev_anchor ?? undefined,
-                direction: "prev",
-                index: Math.max(1, walk.index - 1),
-              })
-            }
-            onNext={() =>
-              setWalk({
-                anchor: page.next_anchor ?? undefined,
-                direction: "next",
-                index: walk.index + 1,
-              })
-            }
-          />
-        )}
-      </Card>
-    </SkinTheme>
+      {page !== null && (
+        <AnchorPager
+          hasPrev={page.has_prev}
+          hasNext={page.has_next}
+          prevLabel={t(WORKSPACES_I18N_KEYS.pagerPrev)}
+          nextLabel={t(WORKSPACES_I18N_KEYS.pagerNext)}
+          position={t(WORKSPACES_I18N_KEYS.pagerPosition, { page: walk.index })}
+          testId="audit-pager"
+          onPrev={() =>
+            setWalk({
+              anchor: page.prev_anchor ?? undefined,
+              direction: "prev",
+              index: Math.max(1, walk.index - 1),
+            })
+          }
+          onNext={() =>
+            setWalk({
+              anchor: page.next_anchor ?? undefined,
+              direction: "next",
+              index: walk.index + 1,
+            })
+          }
+        />
+      )}
+    </Card>
   );
 }
 

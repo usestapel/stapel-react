@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toStapelApiError, useObjectUrlPreview } from "@stapel/core";
 import type { StapelApiError } from "@stapel/core";
-import type { CdnImage, CdnRef } from "../api/types.js";
+import type { CdnImage, CdnRef, CdnVariantsStatus } from "../api/types.js";
 import { useCdnRuntime } from "../model/context.js";
 import { isUploadCanceled, runUpload } from "../model/upload.js";
 import type { CdnUploadTarget, UploadPhase } from "../model/upload.js";
@@ -39,6 +39,13 @@ export interface UploadImageBag {
   /** The pre-check hit: nothing was uploaded. */
   readonly deduped: boolean;
   readonly variantsReady: boolean;
+  /**
+   * The row's `variants_status` (`"pending"` | `"ready"`), or `null` when the
+   * row publishes none. The contract's own instruction is to read THIS before
+   * rendering a variant URL, so a skin can say "the previews are still being
+   * made" with the server's word for it rather than with an inference.
+   */
+  readonly variantsStatus: CdnVariantsStatus | null;
   readonly error: StapelApiError | null;
 }
 
@@ -54,6 +61,9 @@ export function useUploadImage(options?: {
   const [image, setImage] = useState<CdnImage | null>(null);
   const [deduped, setDeduped] = useState(false);
   const [variantsReady, setVariantsReady] = useState(false);
+  const [variantsStatus, setVariantsStatus] = useState<CdnVariantsStatus | null>(
+    null
+  );
   const [error, setError] = useState<StapelApiError | null>(null);
   const previewUrl = useObjectUrlPreview(file);
 
@@ -82,6 +92,7 @@ export function useUploadImage(options?: {
     setImage(null);
     setDeduped(false);
     setVariantsReady(false);
+    setVariantsStatus(null);
     setError(null);
     setPhase("hashing");
 
@@ -109,6 +120,7 @@ export function useUploadImage(options?: {
       setImage(outcome.kind === "image" ? (outcome.row as CdnImage) : null);
       setDeduped(outcome.deduped);
       setVariantsReady(outcome.variantsReady);
+      setVariantsStatus(outcome.variantsStatus);
       setPhase("done");
       return outcome.ref;
     } catch (failure) {
@@ -138,6 +150,7 @@ export function useUploadImage(options?: {
     setImage(null);
     setDeduped(false);
     setVariantsReady(false);
+    setVariantsStatus(null);
     setError(null);
   }, []);
 
@@ -156,6 +169,7 @@ export function useUploadImage(options?: {
     image,
     deduped,
     variantsReady,
+    variantsStatus,
     error,
   };
 }

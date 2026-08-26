@@ -26,13 +26,15 @@
  *
  * Nested `ConfigProvider`s merge, so a screen composed of several skinned
  * parts under one `SkinTheme` stays correct, and a pair whose parts each wrap
- * themselves costs nothing extra.
+ * themselves costs nothing extra — see {@link skinThemeConfig} and
+ * {@link AppliedThemeContext} for the two things that had to be true before
+ * that last clause stopped being a lie.
  */
-import { useMemo } from "react";
+import { createContext, useContext, useMemo } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { ConfigProvider } from "antd";
 import type { ThemeConfig } from "antd";
-import { toAntdThemeConfig } from "../index.js";
+import { hostBrandFingerprint, resolveThemeMode, toAntdThemeConfig } from "../index.js";
 import type { ThemeMode } from "../index.js";
 import { useDialogSurface } from "./dialog.js";
 import { useThemeMode } from "./themeMode.js";
@@ -73,6 +75,94 @@ export interface SkinThemeProps {
 }
 
 /**
+ * The theme configs already built, keyed by everything they depend on.
+ *
+ * A `useMemo` inside the component memoized per INSTANCE, which is the wrong
+ * boundary: a screen composed of ten skinned parts built ten configs that
+ * were deep-equal and referentially distinct, and a list whose rows each wrap
+ * themselves built one per row. Every distinct config object is a fresh
+ * `ConfigProvider` value for antd — a benchmark of 200 self-wrapping rows
+ * measured ~1.9s of mount (`test/skinThemePerf.test.tsx`), which is what
+ * `forms-react` was paying when its full-skin test went 1.8s → >30s.
+ *
+ * One object per (mode, phone, live-scope) triple instead, shared by every
+ * `SkinTheme` in the process. Identity is now the thing
+ * {@link AppliedThemeContext} can compare, so a nested skin can tell that the
+ * exact theme it is about to apply is already applied and render no provider
+ * at all.
+ */
+const themeConfigCache = new Map<string, ThemeConfig>();
+
+/**
+ * The config `SkinTheme` applies, built at most once per distinct answer.
+ *
+ * The key carries everything the build reads, so a cache hit is provably the
+ * same object the build would have produced:
+ *
+ *  - the requested `mode` and whether this is a phone (the 44px control
+ *    height is part of the token);
+ *  - the DOCUMENT's mode, because `toAntdThemeConfig` reads the host's live
+ *    custom properties only when the two agree (see `readLiveCssVar`) — a
+ *    `data-theme` flip changes the key and the next build re-reads;
+ *  - {@link hostBrandFingerprint} — the host's live brand value itself. A host
+ *    that customized its tokens, or whose `tokens.css` arrived after the
+ *    first render, keys a different entry rather than being served the
+ *    compiled-in default forever. That is the freshness the per-instance
+ *    `useMemo` used to give (a NEW mount re-read) at the price of a rebuild
+ *    per mount; here it costs one `getComputedStyle` and a `Map` lookup.
+ *
+ * Only the OUTERMOST `SkinTheme` of a tree reaches this function at all —
+ * see {@link AppliedThemeContext}.
+ */
+function skinThemeConfig(mode: ThemeMode, phone: boolean): ThemeConfig {
+  const key = `${mode}|${phone ? "phone" : "wide"}|${resolveThemeMode()}|${hostBrandFingerprint(mode)}`;
+  const hit = themeConfigCache.get(key);
+  if (hit !== undefined) return hit;
+  const base = toAntdThemeConfig(mode);
+  const config: ThemeConfig = phone
+    ? { ...base, token: { ...base.token, controlHeight: PHONE_CONTROL_HEIGHT } }
+    : base;
+  themeConfigCache.set(key, config);
+  return config;
+}
+
+/** What the nearest enclosing `SkinTheme` handed antd, and what it built it
+ * from — so a nested skin can tell whether its own answer would be the same
+ * one without building it. */
+interface AppliedTheme {
+  readonly mode: ThemeMode;
+  readonly phone: boolean;
+  readonly config: ThemeConfig;
+}
+
+/**
+ * The theme the nearest enclosing `SkinTheme` is already applying.
+ *
+ * A skin part that wraps itself AND is wrapped by a screen was rendering a
+ * second `ConfigProvider` with a deep-equal theme — antd merges it, so the
+ * result was right and the work was pure waste. It is not small waste: a
+ * benchmark of 200 self-wrapping rows measured ~1.9s of mount for the
+ * providers alone (`test/skinThemePerf.test.tsx`), which is the shape
+ * `forms-react`'s full-skin test was paying when it went 1.8s → >30s. The
+ * doctrine actively encourages that shape ("parts may wrap themselves AND be
+ * wrapped"), so the substrate has to make it free rather than warn against it.
+ *
+ * When the enclosing skin was built for the same `mode` and the same phone
+ * answer, the inner one reuses that exact config object, renders its painted
+ * root and NO provider — and never touches the cache or the DOM to decide.
+ * A different `mode` (a demo pinning dark inside a light screen) does not
+ * match and gets its own provider, as it must.
+ *
+ * Only a `SkinTheme` publishes here, and it publishes exactly what it handed
+ * antd, so the context cannot claim a theme antd is not on. A foreign
+ * `ConfigProvider` deliberately interposed between two `SkinTheme`s is the
+ * one shape this does not re-assert over; `src/default/**` has no such
+ * providers by doctrine, and a skin that means to override declares it on its
+ * own `mode`.
+ */
+const AppliedThemeContext = createContext<AppliedTheme | null>(null);
+
+/**
  * The self-theming root of a default skin. Stamps `data-stapel-skin-root`,
  * `data-stapel-skin-mode="light|dark"` and `data-stapel-skin-surface` on its
  * element so a package's test can prove which side it rendered on.
@@ -83,12 +173,16 @@ export function SkinTheme(props: SkinThemeProps): ReactElement {
   const surface = props.surface ?? "raised";
   const dialogSurface = useDialogSurface();
   const phone = dialogSurface === "sheet";
-  const theme = useMemo<ThemeConfig>(() => {
-    const base = toAntdThemeConfig(mode);
-    return phone
-      ? { ...base, token: { ...base.token, controlHeight: PHONE_CONTROL_HEIGHT } }
-      : base;
-  }, [mode, phone]);
+  const applied = useContext(AppliedThemeContext);
+  const inherited =
+    applied !== null && applied.mode === mode && applied.phone === phone
+      ? applied
+      : null;
+  const theme = inherited?.config ?? skinThemeConfig(mode, phone);
+  const publish = useMemo<AppliedTheme>(
+    () => ({ mode, phone, config: theme }),
+    [mode, phone, theme]
+  );
   const token = theme.token ?? {};
 
   const paint: CSSProperties =
@@ -100,18 +194,24 @@ export function SkinTheme(props: SkinThemeProps): ReactElement {
             surface === "base" ? token.colorBgLayout : token.colorBgContainer,
         };
 
+  const root = (
+    <div
+      data-stapel-skin-root=""
+      data-stapel-skin-mode={mode}
+      data-stapel-skin-surface={surface}
+      {...(props.className !== undefined ? { className: props.className } : {})}
+      {...(props["data-testid"] !== undefined ? { "data-testid": props["data-testid"] } : {})}
+      style={{ colorScheme: mode, ...paint, ...props.style }}
+    >
+      {props.children}
+    </div>
+  );
+
+  if (inherited !== null) return root;
+
   return (
-    <ConfigProvider theme={theme}>
-      <div
-        data-stapel-skin-root=""
-        data-stapel-skin-mode={mode}
-        data-stapel-skin-surface={surface}
-        {...(props.className !== undefined ? { className: props.className } : {})}
-        {...(props["data-testid"] !== undefined ? { "data-testid": props["data-testid"] } : {})}
-        style={{ colorScheme: mode, ...paint, ...props.style }}
-      >
-        {props.children}
-      </div>
-    </ConfigProvider>
+    <AppliedThemeContext.Provider value={publish}>
+      <ConfigProvider theme={theme}>{root}</ConfigProvider>
+    </AppliedThemeContext.Provider>
   );
 }

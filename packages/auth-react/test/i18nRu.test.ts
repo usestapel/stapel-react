@@ -83,7 +83,14 @@ describe("locale switching through the core engine", () => {
       "Incorrect email or password."
     );
     await i18n.setLocale("ru");
+    // The bundle the pair SHIPS, not the generated floor underneath it: this
+    // key is one the pair re-words in every locale, so the ru text a host
+    // reads is the polish layered over the generated registry text, exactly
+    // as the en side layers its own polish over the generated en.
     expect(i18n.t("error.401.invalid_credentials")).toBe(
+      authI18nBundleRu["error.401.invalid_credentials"]
+    );
+    expect(i18n.t("error.401.invalid_credentials")).not.toBe(
       authErrorBundleRu["error.401.invalid_credentials"]
     );
     expect(i18n.t("auth.password.label")).toBe("Пароль");

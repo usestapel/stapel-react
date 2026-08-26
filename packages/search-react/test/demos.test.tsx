@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
-import { renderDemoVariant, variantIds } from "@stapel/showcase";
+import { renderToStaticMarkup } from "react-dom/server";
+import {
+  assertVariantsRenderDistinctly,
+  renderDemoVariant,
+  variantIds,
+} from "@stapel/showcase";
 import type { DemoDef } from "@stapel/showcase";
 
 /**
@@ -30,5 +35,18 @@ describe("search-react demos", () => {
       const { container } = render(renderDemoVariant(demo, first));
       expect(container.firstChild).not.toBeNull();
     });
+
+    // The C-SAMESHOT guard (the runtime half of the skin gate's `step`
+    // check). A demo declares variants because the STATES differ; when a
+    // state is only reachable by a click, every variant's static render is
+    // the same idle frame and the gallery claims screens it never
+    // photographed. This is why the skin demos SEED the query cache
+    // (`DemoSeed`) instead of letting a mocked fetch resolve: a seeded
+    // variant opens in the state it is named for, on the first frame.
+    if (variantIds(demo).length > 1) {
+      it(`renders each variant of ${demo.id} distinctly`, () => {
+        assertVariantsRenderDistinctly(demo, renderToStaticMarkup);
+      });
+    }
   }
 });

@@ -13,11 +13,21 @@
  * renders identically in Ladle (interactive) and in vitest (smoke). Themes are
  * the viewer's job (data-theme + tokens.css); this only wires the providers a
  * headless component needs: query client, i18n, and the calendar runtime.
+ *
+ * ── `seed` is why the variants are not all the same picture ───────────────
+ *
+ * A read served by `handlers` is a PROMISE: the first painted frame is the
+ * loading arm however the variant is named, so a static shot photographs a
+ * skeleton and every variant of a demo comes out byte-identical (the
+ * C-SAMESHOT defect `assertVariantsRenderDistinctly` exists to catch).
+ * {@link DemoSeed} writes the answer — or the refusal — straight into the
+ * query cache, so the variant OPENS in the state it is named for. `handlers`
+ * stays for the writes and for a re-read a reader triggers by hand.
  */
 import { useMemo } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { I18nProvider, createI18n, useT } from "@stapel/core";
+import { I18nProvider, StapelApiError, createI18n, useT } from "@stapel/core";
 import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
 import { createCalendarRuntime } from "../src/index.js";
 import { CalendarProvider, registerCalendarI18n } from "../src/index.js";
@@ -80,14 +90,77 @@ const demoBundleEn: Record<string, string> = {
 };
 
 /**
+ * One READ a variant OPENS with: a namespaced key from `calendarQueryKeys`
+ * plus the answer already in hand. Exactly one of `data` / `error` is
+ * meaningful — a read either answered or was refused.
+ */
+export interface DemoRead {
+  /** Always `calendarQueryKeys.<kind>(…)`, never a literal array. */
+  readonly key: readonly unknown[];
+  /** The body the read answered with. */
+  readonly data?: unknown;
+  /** The refusal it came back with, for the arms only a failure reaches. */
+  readonly error?: StapelApiError;
+}
+
+/** The reads a variant opens with (see the `seed` note in the file header). */
+export type DemoSeed = readonly DemoRead[];
+
+/**
+ * A canned refusal in the pair's own dialect. `code` is the wire's
+ * `localizable_error`, so the skin's refusal predicates (`isMandateUnavailable`,
+ * `isMandateDenied`) branch on the demo exactly as they do on the backend.
+ */
+export function demoApiError(
+  status: number,
+  code: string,
+  message: string
+): StapelApiError {
+  return new StapelApiError({ code, message, status });
+}
+
+/**
+ * Write the seeded reads into the cache. A refusal cannot be expressed with
+ * `setQueryData` (that API only carries data), so the failed arm builds the
+ * cache entry and sets its state — the supported way to hand a query an error
+ * without a round trip.
+ */
+function seedQueryClient(client: QueryClient, seed: DemoSeed): void {
+  for (const read of seed) {
+    if (read.error !== undefined) {
+      client
+        .getQueryCache()
+        .build(client, { queryKey: read.key })
+        .setState({
+          status: "error",
+          error: read.error,
+          fetchStatus: "idle",
+          // A fixed instant, so two renders of the same variant produce the
+          // same frame (the distinctness check compares markup, not clocks).
+          errorUpdatedAt: SEED_INSTANT,
+          fetchFailureCount: 1,
+          fetchFailureReason: read.error,
+        });
+      continue;
+    }
+    client.setQueryData(read.key, read.data);
+  }
+}
+
+/** The clock every seeded read claims to have answered at. */
+const SEED_INSTANT = 1_768_000_000_000;
+
+/**
  * Provider frame every calendar demo variant renders inside. Builds a fresh mock
  * runtime + query client per mount so variants stay isolated.
  */
 export function CalendarDemoHarness(props: {
   handlers?: DemoHandlers;
+  /** Reads this variant opens with — the answer, not the request. */
+  seed?: DemoSeed;
   children: ReactNode;
 }): ReactElement {
-  const { handlers } = props;
+  const { handlers, seed } = props;
   const { runtime, queryClient, i18n } = useMemo(() => {
     const rt = createCalendarRuntime({
       baseUrl: DEMO_BASE,
@@ -96,14 +169,25 @@ export function CalendarDemoHarness(props: {
     const engine = createI18n({ locale: "en" });
     registerCalendarI18n(engine);
     engine.registerBundle("en", demoBundleEn);
-    return {
-      runtime: rt,
-      queryClient: new QueryClient({
-        defaultOptions: { queries: { retry: false } },
-      }),
-      i18n: engine,
-    };
-  }, [handlers]);
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          // A seeded read is the variant's SUBJECT, so nothing may quietly
+          // re-read over it. Both knobs are load-bearing: without
+          // `staleTime` a seeded body is refetched on mount and replaced by
+          // the canned `{}`, and without `retryOnMount` a seeded REFUSAL is
+          // wiped — react-query resets `status` to pending and clears the
+          // error whenever it starts a fetch on a query that holds no data,
+          // so every failure variant photographed a skeleton instead.
+          staleTime: Number.POSITIVE_INFINITY,
+          retryOnMount: false,
+        },
+      },
+    });
+    seedQueryClient(client, seed ?? []);
+    return { runtime: rt, queryClient: client, i18n: engine };
+  }, [handlers, seed]);
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>

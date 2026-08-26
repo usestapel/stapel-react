@@ -23,7 +23,7 @@ export function UrlIssueNotice(): ReactElement | null {
       type="warning"
       showIcon
       data-testid="search-url-issues"
-      message={t(SEARCH_I18N_KEYS.urlIssuesTitle)}
+      title={t(SEARCH_I18N_KEYS.urlIssuesTitle)}
       description={
         <ul style={{ margin: 0, paddingInlineStart: spacing[5] }}>
           {issues.map((issue) => (

@@ -24,6 +24,7 @@
 import type { CSSProperties, ReactElement } from "react";
 import { useMemo } from "react";
 import { Image } from "@stapel/image";
+import { cssVar } from "@stapel/tokens";
 import type { CdnImage } from "../api/types.js";
 import { toStapelImage } from "../model/refs.js";
 
@@ -82,9 +83,12 @@ export function CdnThumbnail(props: CdnThumbnailProps): ReactElement {
       />
     );
   }
+  // The empty frame takes the BORDER role. `border: "1px dashed"` with no
+  // colour inherits `currentColor` — the TEXT colour — so a placeholder drew
+  // itself at full text contrast, as loud as the copy beside it.
   return (
     <div
-      style={{ ...props.box, border: "1px dashed" }}
+      style={{ ...props.box, border: `1px dashed ${cssVar("border-subtle")}` }}
       {...(props["data-testid"] !== undefined ? { "data-testid": props["data-testid"] } : {})}
     />
   );

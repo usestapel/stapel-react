@@ -81,8 +81,14 @@ const { tracked } = useTracked();
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - calendar.availability → <AvailabilityPane> [default|truncated|no-windows]  demo/AvailabilityPane.demo.tsx
 - calendar.composer → <EventComposer> [default]  demo/EventComposer.demo.tsx
+- calendar.delete-event → <DeleteEventAction> [offered|confirming|confirming-occurrence|not-owner]  demo/DeleteEventAction.demo.tsx
+- calendar.event-editor → <EventEditorSheet> [create|edit|marker|not-owner]  demo/EventEditorSheet.demo.tsx
+- calendar.event-sheet → <EventSheet> [owner|invitee|viewer-unknown|cancelled|mandate-unavailable|forbidden]  demo/EventSheet.demo.tsx
+- calendar.participants-field → <ParticipantsField> [managed|managed-one|controlled|nobody]  demo/ParticipantsField.demo.tsx
 - calendar.provider → <CalendarProvider> [default]  demo/Calendar.demo.tsx
+- calendar.recurrence-field → <RecurrenceField> [none|ends-on-a-date|ends-after-n|custom]  demo/RecurrenceField.demo.tsx
 - calendar.rsvp → <EventRsvp> [default]  demo/EventRsvp.demo.tsx
+- calendar.rsvp-control → <RsvpControl> [no-answer|accepted|not-invited|event-cancelled]  demo/RsvpControl.demo.tsx
 - calendar.screen → <Calendar> [month|agenda-phone|empty|grid-only|agenda-only|failed]  demo/CalendarScreen.demo.tsx
 - calendar.view → <CalendarView> [default]  demo/CalendarView.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).

@@ -46,6 +46,9 @@ export const cdnI18nBundleRu: I18nDictionary = {
   "cdn.pick.replace": "Заменить",
   "cdn.pick.hint": "{formats} · до {maxMb} МБ",
   "cdn.pick.drop_hint": "Перетащите файлы сюда или нажмите, чтобы выбрать",
+  "cdn.pick.drop_active": "Отпустите, чтобы добавить",
+  "cdn.pick.video": "Выберите видео",
+  "cdn.pick.file": "Выберите документ",
 
   "cdn.phase.hashing": "Читаем файл…",
   "cdn.phase.checking": "Проверяем, нет ли такого файла…",
@@ -73,10 +76,34 @@ export const cdnI18nBundleRu: I18nDictionary = {
   "cdn.item.cover": "Главное фото",
   "cdn.item.alt": "Загруженное фото",
 
-  "cdn.gallery.count": "{used} из {max} фото",
+  // PLURAL FAMILY. Russian selects on `{max}` and defines four categories. The
+  // noun here is indeclinable, so all four texts coincide — a fact about the
+  // word, not a missing translation.
+  "cdn.gallery.count.one": "{used} из {max} фото",
+  "cdn.gallery.count.few": "{used} из {max} фото",
+  "cdn.gallery.count.many": "{used} из {max} фото",
+  "cdn.gallery.count.other": "{used} из {max} фото",
   "cdn.gallery.empty": "Фото пока нет",
+  "cdn.gallery.empty_hint": "Первое добавленное станет главным.",
 
-  "cdn.upload.blocked.full": "В галерее не больше {max} фото",
+  "cdn.attachment.image_alt": "Прикреплённое фото",
+  "cdn.attachment.video_alt": "Прикреплённое видео",
+  "cdn.attachment.audio_alt": "Прикреплённое аудио",
+  "cdn.attachment.file_label": "Документ {ext}",
+  "cdn.attachment.missing": "Это вложение больше недоступно",
+  "cdn.attachment.open": "Открыть",
+  "cdn.attachment.download": "Скачать",
+  "cdn.attachment.duration_unmeasured": "Длительность не измерена",
+  "cdn.attachment.meta_partial": "Часть сведений об этом файле прочитать не удалось",
+  "cdn.attachment.meta_missing": "Сведения об этом файле прочитать не удалось",
+  "cdn.attachment.variants_pending": "Превью для этого вложения ещё готовятся",
+
+  "cdn.bytes.b": "{value} Б",
+  "cdn.bytes.kb": "{value} КБ",
+  "cdn.bytes.mb": "{value} МБ",
+  "cdn.bytes.gb": "{value} ГБ",
+
+  "cdn.upload.blocked.full": "Галерея заполнена — максимум {max}",
   "cdn.upload.blocked.pending": "Дождитесь окончания загрузки",
   "cdn.upload.blocked.failed": "Удалите или повторите неудавшиеся фото",
 };

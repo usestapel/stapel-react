@@ -19,27 +19,31 @@
         {
           "id": "deep",
           "description": "Three levels down, only the ancestors linked.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "ready"
         },
         {
           "id": "in a router",
           "description": "The same bar through the host's <Link> — no anchor navigation at all.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "ready-routed"
         },
         {
           "id": "the link itself",
           "description": "CategoryLink on its own: an anchor by default, the host's component when one is handed in.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "link"
         },
         {
           "id": "stale link",
           "description": "A slug the catalogue does not have — said only once the sync succeeded.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "unknown-slug"
         }
       ],
       "source": {
         "file": "demo/CategoryBreadcrumbsBar.demo.tsx",
-        "line": 39
+        "line": 57
       }
     },
     {
@@ -57,22 +61,26 @@
         {
           "id": "tiles",
           "description": "With the host's icon resolver wired.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "ready"
         },
         {
           "id": "text only",
           "description": "No resolver: text tiles, on purpose, rather than a broken image.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "ready-without-icons"
         },
         {
           "id": "nothing featured",
           "description": "A real configuration — a landing page that says so instead of spinning.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "empty"
         },
         {
           "id": "outage",
           "description": "The strip refuses. The skeleton is three tiles wide, so nothing jumps.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "failed"
         }
       ],
       "source": {
@@ -96,22 +104,26 @@
         {
           "id": "browse",
           "description": "A visitor on a phone, catalogue already synced.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "ready"
         },
         {
           "id": "no icons",
           "description": "The same screen where the host resolves no icons — text tiles, by construction rather than by accident.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "ready-without-icons"
         },
         {
           "id": "empty catalogue",
           "description": "A deployment nobody has filled in yet — two different sentences, one per section.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "empty"
         },
         {
           "id": "outage",
           "description": "The catalogue endpoint refuses. A failed sync is never an empty catalogue.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "failed"
         }
       ],
       "source": {
@@ -134,32 +146,37 @@
         {
           "id": "composed",
           "description": "What a wired storefront shows: crumbs, sub-categories, listings.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "ready"
         },
         {
           "id": "unfilled slot",
           "description": "The container forgot renderListings. Development names the gap; production renders nothing.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "slot-unfilled"
         },
         {
           "id": "leaf with its schema",
           "description": "A leaf category has no sub-menu; `showFeatures` turns the feature schema on for an operator view.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "leaf"
         },
         {
           "id": "no such category",
           "description": "A stale link. Said once the catalogue loaded, never before.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "unknown-slug"
         },
         {
           "id": "outage",
           "description": "The sync refused. Crumbs degrade to one line; the body says which read failed.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "failed"
         }
       ],
       "source": {
         "file": "demo/CategoryPage.demo.tsx",
-        "line": 44
+        "line": 46
       }
     },
     {
@@ -177,17 +194,20 @@
         {
           "id": "schema",
           "description": "Required markers, type badges, translator comments — and one type no builtin editor covers.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "ready"
         },
         {
           "id": "no extra details",
           "description": "A category that asks for nothing — common for a root, and not an error.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "empty"
         },
         {
           "id": "outage",
           "description": "The schema read refused. A compose form must not guess the fields.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "failed"
         }
       ],
       "source": {
@@ -210,27 +230,32 @@
         {
           "id": "on a phone",
           "description": "A trigger plus a bottom sheet — the drill-down is not inline.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "sheet-closed"
         },
         {
           "id": "inline",
           "description": "Tablet and desktop: the level is on the page, with the crumb above it.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "blocked-nothing-selected"
         },
         {
           "id": "too general",
           "description": "A chosen category that still has sub-categories — the second reason.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "blocked-not-a-leaf"
         },
         {
           "id": "chosen",
           "description": "A leaf. The control stops blocking and names what was picked.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "selected"
         },
         {
           "id": "outage",
           "description": "The catalogue never arrived, so there is nothing to choose FROM.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "failed"
         }
       ],
       "source": {
@@ -253,27 +278,32 @@
         {
           "id": "roots",
           "description": "The top level, each row saying how many sub-categories it has.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "ready"
         },
         {
           "id": "one level down",
           "description": "The sub-menu of a category, with the heading the page gives it.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "ready-level"
         },
         {
           "id": "leaf",
           "description": "A leaf category. Not an error, and not an empty catalogue — its own sentence.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "empty"
         },
         {
           "id": "partial catalogue",
           "description": "The sync walk hit its page budget: a branch missing here was NOT read, it was not removed.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "truncated"
         },
         {
           "id": "outage",
           "description": "A refusal. A failed sync never degrades to 'the catalogue is empty'.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "failed"
         }
       ],
       "source": {

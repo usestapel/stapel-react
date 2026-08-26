@@ -8,7 +8,7 @@ export default { title: "currencies-react / Currency field (default skin)" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"valid"} };
 export const Invalid = (): ReactElement => renderDemoVariant(demo, "invalid");
 Invalid.storyName = "invalid";
-Invalid.parameters = { stapel: {"viewport":"desktop"} };
+Invalid.parameters = { stapel: {"viewport":"desktop","step":"invalid"} };

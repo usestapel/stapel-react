@@ -1,6 +1,6 @@
 # @stapel/auth-react 0.16.1
 
-Headless React flow pair for stapel-auth (contract >=0.25 <0.26) — business + state, zero visual opinion.
+Headless React flow pair for stapel-auth (contract >=0.28 <0.29) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -85,6 +85,7 @@ Paths are relative to `/auth/api/v1/`.
 - auth_api_v1_passkey_authenticate_begin_create: POST /passkey/authenticate/begin/
 - auth_api_v1_passkey_authenticate_complete_create: POST /passkey/authenticate/complete/
 - auth_api_v1_passkey_destroy: DELETE /passkey/{id}/
+- auth_api_v1_passkey_partial_update: PATCH /passkey/{id}/
 - auth_api_v1_passkey_register_begin_create: POST /passkey/register/begin/
 - auth_api_v1_passkey_register_complete_create: POST /passkey/register/complete/
 - auth_api_v1_passkey_retrieve: GET /passkey/
@@ -166,13 +167,20 @@ Paths are relative to `/auth/api/v1/`.
 - auth_api_v1_verify_create: POST /verify/
 
 ## Query hooks (server state; keys come only from the key factory)
+- useAdminAudit (query) → adminAudit
+- useAssignStaffRole (mutation) → assignStaffRole
 - useAuditLog (query) → auditLog
 - useCancelDelayedChange (mutation) → changeDelayedCancel
 - useCancelTotpDelayedChange (mutation) → totpChangeDelayedCancel
 - useCapabilities (query) → capabilities
 - useConfirmQrLogin (mutation) → qrConfirm
 - useConfirmSession (mutation) → confirmSession
+- useCreateAdminUser (mutation) → createAdminUser
+- useCreateServiceKey (mutation) → createServiceKey
+- useCreateSsoOrg (mutation) → createSsoOrg
 - useDelayedChangeStatus (query) → changeDelayedStatus
+- useDeleteServiceKey (mutation) → deleteServiceKey
+- useDeleteSsoOrg (mutation) → deleteSsoOrg
 - useDisableTotp (mutation) → totpDisable
 - useInitiateDelayedChange (mutation) → changeDelayedInitiate
 - useInitiateTotpDelayedChange (mutation) → totpChangeDelayedInitiate
@@ -184,16 +192,27 @@ Paths are relative to `/auth/api/v1/`.
 - usePasswordMethods (query) → passwordMethods
 - useRejectQrLogin (mutation) → qrReject
 - useRemovePasskey (mutation) → passkeyRemove
+- useRemoveStaffRole (mutation) → removeStaffRole
+- useRenamePasskey (mutation) → passkeyRename
 - useRevokeOtherSessions (mutation) → revokeOtherSessions
 - useRevokeSession (mutation) → revokeSession
+- useSaveSsoOrgConfig (mutation) → patchSsoOrgConfig+putSsoOrgConfig
 - useSecurityStatus (query) → securityStatus
+- useServiceKeys (query) → serviceKeys
 - useSessions (query) → sessions
+- useSetVerificationPreference (mutation) → setVerificationPreference
 - useSsoLookup (query) → ssoLookup
+- useSsoOrg (query) → ssoOrg
+- useSsoOrgs (query) → ssoOrgs
+- useStaffRoles (query) → staffRoles
 - useTotpDelayedChangeStatus (query) → totpChangeDelayedStatus
 - useUnlinkOAuth (mutation) → oauthUnlink
+- useUpdateServiceKey (mutation) → updateServiceKey
+- useUpdateSsoOrg (mutation) → updateSsoOrg
+- useVerificationPreferences (query) → verificationPreferences
 
 ## Errors (render t(code, params); UX from remediation)
-137 keys (full catalog: manifest.json §errors). By remediation: fix_input 60 · retry 38 · reauthenticate 14 · wait_and_retry 9 · contact_support 8 · verify 8.
+138 keys (full catalog: manifest.json §errors). By remediation: fix_input 60 · retry 38 · reauthenticate 14 · verify 9 · wait_and_retry 9 · contact_support 8.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -235,23 +254,42 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- auth.admin-audit-skin → <AdminAuditPanel> [default|no-matches|forbidden]  demo/AdminAuditSkin.demo.tsx
+- auth.admin-service-keys-skin → <ServiceKeysPanel> [default|empty|forbidden]  demo/AdminServiceKeysSkin.demo.tsx
+- auth.admin-sso-orgs-skin → <SsoOrgsPanel> [default|empty|forbidden]  demo/AdminSsoOrgsSkin.demo.tsx
+- auth.admin-staff-roles-skin → <StaffRolesPanel> [default|empty|forbidden]  demo/AdminStaffRolesSkin.demo.tsx
+- auth.admin-users-skin → <AdminUsersPanel> [default|refused]  demo/AdminUsersSkin.demo.tsx
 - auth.anonymous-session → <AnonymousSession> [default]  demo/AnonymousSession.demo.tsx
-- auth.auth-panel-skin → <AuthPanel> [default|register]  demo/AuthPanelSkin.demo.tsx
+- auth.audit-log-skin → <AuditLogPanel> [default|empty|failed]  demo/AuditLogPanelSkin.demo.tsx
+- auth.auth-panel-skin → <AuthPanel> [default|register|session-revoked]  demo/AuthPanelSkin.demo.tsx
 - auth.authenticator-change → <AuthenticatorChange> [default]  demo/AuthenticatorChange.demo.tsx
+- auth.authenticator-change-skin → <AuthenticatorChangePanel> [default|scheduled]  demo/AuthenticatorChangePanelSkin.demo.tsx
+- auth.email-change-skin → <EmailChangePanel> [default|scheduled]  demo/EmailChangePanelSkin.demo.tsx
 - auth.first-login → <ForcedPasswordChange> [forcedChange|mfaEnroll]  demo/FirstLogin.demo.tsx
+- auth.forced-password-change-skin → <ForcedPasswordChangeCard> [default|refused]  demo/ForcedPasswordChangeSkin.demo.tsx
 - auth.magic-link → <MagicLink> [default]  demo/MagicLink.demo.tsx
+- auth.mfa-enroll-skin → <MfaEnrollPanel> [default|totp-only]  demo/MfaEnrollPanelSkin.demo.tsx
+- auth.oauth-links-skin → <OAuthLinks> [default|connect-blocked|no-providers]  demo/OAuthLinksSkin.demo.tsx
 - auth.passkey-login → <PasskeyLogin> [default]  demo/PasskeyLogin.demo.tsx
 - auth.passkey-registration → <PasskeyRegistration> [default]  demo/PasskeyRegistration.demo.tsx
-- auth.passkeys-manager-skin → <PasskeysManager> [default|empty]  demo/PasskeysManagerSkin.demo.tsx
+- auth.passkeys-manager-skin → <PasskeysManager> [default|empty|add-blocked]  demo/PasskeysManagerSkin.demo.tsx
 - auth.password-change → <PasswordChange> [default]  demo/PasswordChange.demo.tsx
+- auth.password-change-skin → <PasswordChangePanel> [default|no-methods|failed]  demo/PasswordChangePanelSkin.demo.tsx
 - auth.password-login → <PasswordLogin> [default]  demo/PasswordLogin.demo.tsx
 - auth.password-register → <PasswordRegister> [default]  demo/PasswordRegister.demo.tsx
 - auth.password-reset → <PasswordReset> [default]  demo/PasswordReset.demo.tsx
 - auth.passwordless-login → <PasswordlessLogin> [default|locked]  demo/PasswordlessLogin.demo.tsx
+- auth.phone-change-skin → <PhoneChangePanel> [default|scheduled]  demo/PhoneChangePanelSkin.demo.tsx
+- auth.qr-confirm-skin → <QrConfirmPanel> [default|no-key]  demo/QrConfirmPanelSkin.demo.tsx
+- auth.qr-device-link-skin → <QrDeviceLinkPanel> [default|custom-landing]  demo/QrDeviceLinkPanelSkin.demo.tsx
 - auth.qr-login → <QrLogin> [default]  demo/QrLogin.demo.tsx
+- auth.security-settings-skin → <SecuritySettings> [default|fresh-account]  demo/SecuritySettingsSkin.demo.tsx
+- auth.sessions-list-skin → <SessionsList> [default|single-device|failed]  demo/SessionsListSkin.demo.tsx
 - auth.sso-discovery → <SsoDiscovery> [default]  demo/SsoDiscovery.demo.tsx
+- auth.totp-manager-skin → <TotpManager> [enabled|off|removal-scheduled]  demo/TotpManagerSkin.demo.tsx
 - auth.totp-setup → <TotpSetup> [default]  demo/TotpSetup.demo.tsx
 - auth.verification-challenge → <VerificationChallenge> [default]  demo/VerificationChallenge.demo.tsx
+- auth.verification-preferences-skin → <VerificationPreferences> [default|undecided|failed]  demo/VerificationPreferencesSkin.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

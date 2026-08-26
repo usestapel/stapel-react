@@ -17,12 +17,14 @@
         {
           "id": "default",
           "description": "This device is registered and active.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "on"
         },
         {
           "id": "not-registered",
           "description": "The account has a device, but not this one.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "off"
         }
       ],
       "source": {
@@ -66,17 +68,20 @@
         {
           "id": "default",
           "description": "Two rows, both with somewhere to go, fully paged.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "ready"
         },
         {
           "id": "refused",
           "description": "The socket will not come back on its own. The reason is stated and Reconnect is right there — never a silent fall back to polling.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "refused/session"
         },
         {
           "id": "paged",
           "description": "More pages behind the first: Load more, and no end footnote.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "ready/has-next"
         }
       ],
       "source": {
@@ -102,22 +107,26 @@
         {
           "id": "polling",
           "description": "No realtime extra on this deployment: the newest page is refetched every 60s while the tab is visible, and the indicator says so.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "ready/polling"
         },
         {
           "id": "live",
           "description": "A socket is carrying the feed — new rows arrive as frames.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "ready/live"
         },
         {
           "id": "desktop",
           "description": "The same page at desktop width: the list fills its container up to a reading measure instead of staying a 340px card.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "ready/paged"
         },
         {
           "id": "empty",
           "description": "Read, and there was nothing. The only state allowed to say so — and it says it alone, not as a footer under rows.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "empty"
         }
       ],
       "source": {
@@ -164,32 +173,38 @@
         {
           "id": "default",
           "description": "This device plus an old phone the push provider rejected — listed and flagged, because hiding it would draw the account as smaller than it is.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "on"
         },
         {
           "id": "no-devices",
           "description": "Nothing registered yet: a designed empty state with the door in it.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "off/empty"
         },
         {
           "id": "unsupported",
           "description": "An insecure origin or a browser without push. The reason sits beside the control and the switch is off-limits, rather than a dead grey rectangle.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "unsupported"
         },
         {
           "id": "desktop",
           "description": "Three devices at desktop width, on a settings column measure.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "on/many"
         },
         {
           "id": "toggle-only",
           "description": "The switch on its own, for a host that puts the registry elsewhere.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "on/toggle"
         },
         {
           "id": "registry-only",
           "description": "The registry on its own — every device the account sends to.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "devices"
         }
       ],
       "source": {

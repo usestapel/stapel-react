@@ -238,7 +238,7 @@ export function DsarQueue(props: DsarQueueProps): ReactElement {
                 type="info"
                 showIcon
                 data-testid="gdpr-queue-staff-only"
-                message={t(GDPR_I18N_KEYS.staffOnly)}
+                title={t(GDPR_I18N_KEYS.staffOnly)}
               />
             ) : (
               <ErrorAlert
@@ -262,7 +262,7 @@ export function DsarQueue(props: DsarQueueProps): ReactElement {
                   type="error"
                   showIcon
                   data-testid="gdpr-queue-ack-overdue"
-                  message={t(GDPR_I18N_KEYS.queueOverdue)}
+                  title={t(GDPR_I18N_KEYS.queueOverdue)}
                   description={t(GDPR_I18N_KEYS.queueAckMissing)}
                 />
               ) : null}

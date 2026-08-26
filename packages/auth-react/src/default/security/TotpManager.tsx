@@ -37,13 +37,12 @@ import {
   Flex,
   Form,
   Input,
-  Popconfirm,
   QRCode,
   Result,
   Spin,
   Typography,
 } from "antd";
-import { SkinDialog } from "@stapel/tokens-antd/skin";
+import { SkinConfirm, SkinDialog } from "@stapel/tokens-antd/skin";
 import { useFormatFlowError, useT } from "@stapel/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { TotpSetup } from "../../headless/TotpSetup.js";
@@ -103,7 +102,7 @@ function DelayedInitiateForm(props: { onStarted: () => void }): ReactElement {
         <Alert
           type="error"
           showIcon
-          message={formatError({
+          title={formatError({
             code: initiate.error.code,
             params: initiate.error.params,
             status: initiate.error.status,
@@ -131,6 +130,7 @@ function PendingBanner(props: { status: DelayedChangeStatus }): ReactElement {
   const t = useT();
   const formatError = useFormatFlowError();
   const cancel = useCancelTotpDelayedChange();
+  const [confirming, setConfirming] = useState(false);
   const s = props.status;
 
   return (
@@ -138,7 +138,7 @@ function PendingBanner(props: { status: DelayedChangeStatus }): ReactElement {
       <Alert
         type="info"
         showIcon
-        message={t(AUTH_I18N_KEYS.secTotpPendingMessage, {
+        title={t(AUTH_I18N_KEYS.secTotpPendingMessage, {
           date: s.scheduled_at ? formatDate(s.scheduled_at) : "",
           days: s.days_remaining ?? 0,
         })}
@@ -148,7 +148,7 @@ function PendingBanner(props: { status: DelayedChangeStatus }): ReactElement {
         <Alert
           type="error"
           showIcon
-          message={formatError({
+          title={formatError({
             code: cancel.error.code,
             params: cancel.error.params,
             status: cancel.error.status,
@@ -158,18 +158,36 @@ function PendingBanner(props: { status: DelayedChangeStatus }): ReactElement {
         />
       )}
       <Flex>
-        <Popconfirm
-          title={t(AUTH_I18N_KEYS.secChangeCancelConfirmTitle)}
-          onConfirm={() => {
-            if (s.change_request_id) cancel.mutate(s.change_request_id);
-          }}
-          okText={t(AUTH_I18N_KEYS.secChangePendingCancel)}
-          okButtonProps={{ danger: true, loading: cancel.isPending }}
+        {/* `SkinConfirm`, not `Popconfirm`: a popover anchored to a button is
+            a desktop shape — on a phone it renders wherever it fits and its
+            OK/Cancel land under the touch minimum. This OK abandons a change
+            request that is days into its cooldown. */}
+        <Button
+          danger
+          onClick={() => setConfirming(true)}
+          data-analytics="none"
+          data-analytics-reason="local-ui-open-cancel-change-confirm"
         >
-          <Button danger data-analytics="flow">
-            {t(AUTH_I18N_KEYS.secChangePendingCancel)}
-          </Button>
-        </Popconfirm>
+          {t(AUTH_I18N_KEYS.secChangePendingCancel)}
+        </Button>
+        <SkinConfirm
+          open={confirming}
+          danger
+          title={t(AUTH_I18N_KEYS.secChangeCancelConfirmTitle)}
+          confirmLabel={t(AUTH_I18N_KEYS.secChangePendingCancel)}
+          confirming={cancel.isPending}
+          data-testid="change-cancel-confirm"
+          onConfirm={() => {
+            if (s.change_request_id) {
+              cancel.mutate(s.change_request_id, {
+                onSettled: () => setConfirming(false),
+              });
+              return;
+            }
+            setConfirming(false);
+          }}
+          onCancel={() => setConfirming(false)}
+        />
       </Flex>
     </Flex>
   );
@@ -208,7 +226,7 @@ function ProofForm(props: {
           type="error"
           showIcon
           style={{ margin: "12px 0" }}
-          message={formatError(props.error)}
+          title={formatError(props.error)}
         />
       )}
       <Form.Item
@@ -299,7 +317,7 @@ function SetupJourney(props: {
   if (s.step === "startError") {
     return (
       <Flex vertical gap="middle" align="center">
-        <Alert type="error" showIcon message={formatError(s.error)} />
+        <Alert type="error" showIcon title={formatError(s.error)} />
         <Button type="primary" onClick={() => bag.start()} data-analytics="flow">
           {t(AUTH_I18N_KEYS.secTotpSetUp)}
         </Button>
@@ -415,7 +433,7 @@ function DisableDialogBody(props: { onDisabled: () => void }): ReactElement {
           type="error"
           showIcon
           style={{ marginBottom: spacing[4] }}
-          message={formatError({
+          title={formatError({
             code: disable.error.code,
             params: disable.error.params,
             status: disable.error.status,

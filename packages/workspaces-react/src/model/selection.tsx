@@ -434,11 +434,29 @@ export function WorkspaceSelectionProvider(
  * prevent.
  */
 export function useWorkspaceSelection(): WorkspaceSelection {
-  const value = useContext(SelectionContext);
+  const value = useOptionalWorkspaceSelection();
   if (!value) {
     throw new Error(
       "useWorkspaceSelection must be used inside <WorkspaceSelectionProvider>"
     );
   }
   return value;
+}
+
+/**
+ * The same resolution, for a component that must still RENDER when no
+ * provider is above it — `null` means "this app has not wired the selection",
+ * which is a state to draw, not a crash.
+ *
+ * The nav contract hands a mounted screen a route, never an ambient scope, so
+ * the four workspace-scoped admin screens read the active workspace from HERE
+ * (the seam the container writes through `switchTo`) rather than from a path
+ * segment. A screen mounted in a shell that never wrapped the tree would then
+ * be a white page — this accessor is what lets it be a designed "choose a
+ * workspace" instead. Application code that legitimately requires the
+ * provider should keep using {@link useWorkspaceSelection}: a silent `null`
+ * read as "no workspace yet" is the blank screen this pair exists to prevent.
+ */
+export function useOptionalWorkspaceSelection(): WorkspaceSelection | null {
+  return useContext(SelectionContext);
 }

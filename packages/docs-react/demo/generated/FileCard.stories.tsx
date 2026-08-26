@@ -8,10 +8,10 @@ export default { title: "docs-react / File card" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"url-ready"} };
 export const Minting = (): ReactElement => renderDemoVariant(demo, "minting");
 Minting.storyName = "minting";
-Minting.parameters = { stapel: {"viewport":"phone"} };
+Minting.parameters = { stapel: {"viewport":"phone","step":"url-loading"} };
 export const MintFailed = (): ReactElement => renderDemoVariant(demo, "mint-failed");
 MintFailed.storyName = "mint-failed";
-MintFailed.parameters = { stapel: {"viewport":"desktop"} };
+MintFailed.parameters = { stapel: {"viewport":"desktop","step":"url-failed"} };

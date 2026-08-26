@@ -86,7 +86,7 @@ export function EditorChrome(props: {
           type="warning"
           showIcon
           data-testid="docs-editor-conflict"
-          message={t(DOCS_I18N_KEYS.editorConflict)}
+          title={t(DOCS_I18N_KEYS.editorConflict)}
           action={
             <Button
               size="small"

@@ -557,7 +557,7 @@ function QrPanelBody(props: {
           panel suggested. */}
       {state.step === "error" ? (
         <Flex vertical align="center" gap="small">
-          <Alert type="error" showIcon message={formatError(state.error)} />
+          <Alert type="error" showIcon title={formatError(state.error)} />
           <Button onClick={onStart} data-analytics="flow">
             {props.retryLabel}
           </Button>
@@ -600,7 +600,7 @@ export function PasskeyPanel(): ReactElement {
               <Alert
                 type="warning"
                 showIcon
-                message={t(AUTH_I18N_KEYS.passkeyUnsupported)}
+                title={t(AUTH_I18N_KEYS.passkeyUnsupported)}
               />
             )}
             <ErrorAlert error={errorShown(err)} />

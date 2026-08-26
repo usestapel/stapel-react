@@ -93,7 +93,15 @@ export function createDescribeLoader(
     if (batch.size === 0) return;
 
     for (const refs of chunk([...batch.keys()], maxRefs)) {
-      void api.describe(refs).then(
+      // `Promise.resolve().then(…)` and not a bare `api.describe(refs)`: a
+      // client that throws SYNCHRONOUSLY (a misconfigured transport, a stubbed
+      // api in a host's test) would otherwise escape past the rejection handler
+      // below, and every waiter in this batch would hang forever on a promise
+      // nothing can settle. A batch belongs to several callers at once, so a
+      // failure that reaches none of them is the worst shape this can take.
+      void Promise.resolve()
+        .then(() => api.describe(refs))
+        .then(
         (response) => {
           for (const ref of refs) {
             const meta = response.items[ref];

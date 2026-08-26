@@ -14,12 +14,14 @@
         {
           "id": "default",
           "description": "A valid amount at 390px, with the picker sharing the control group.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "valid"
         },
         {
           "id": "invalid",
           "description": "An amount the converter cannot read. The message says what a good one looks like instead of the word 'invalid'.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "invalid"
         }
       ],
       "source": {
@@ -40,12 +42,14 @@
         {
           "id": "default",
           "description": "A euro price shown to a viewer whose display currency is USD.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "converted"
         },
         {
           "id": "same",
           "description": "Same currency on both sides: there is nothing to convert, and no estimate is invented.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "same-currency"
         }
       ],
       "source": {
@@ -64,22 +68,26 @@
         {
           "id": "default",
           "description": "Desktop: a searchable Select — symbol, code and the translated name.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "ready"
         },
         {
           "id": "phone",
           "description": "390px: the same picker as a sheet trigger. Tap it in the viewer to see the sheet.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "sheet"
         },
         {
           "id": "empty",
           "description": "The deployment configured no currencies. That is a fact about the site, stated plainly — not an error.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "empty"
         },
         {
           "id": "failed",
           "description": "The catalogue read failed: the shared error surface, with a retry.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "failed"
         }
       ],
       "source": {
@@ -98,22 +106,26 @@
         {
           "id": "default",
           "description": "Converted: EUR price, USD viewer. The estimate is marked as one.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "converted"
         },
         {
           "id": "same",
           "description": "The display currency IS the price's currency — no second line, no conversion.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "same-currency"
         },
         {
           "id": "rate",
           "description": "showRate: the rate as VISIBLE text, not a tooltip. A hover explanation does not exist on the device most prices are read on.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "rate-visible"
         },
         {
           "id": "unavailable",
           "description": "The catalogue is configured with nothing, so no rate exists. The price still renders; the estimate says it is unavailable rather than showing a blank.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "unavailable"
         }
       ],
       "source": {
@@ -132,17 +144,20 @@
         {
           "id": "default",
           "description": "The seeded catalogue at 390px — the table scrolls, the page does not.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "ready"
         },
         {
           "id": "empty",
           "description": "No currencies configured: the shared empty state, not an empty grid.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "empty"
         },
         {
           "id": "failed",
           "description": "The read failed: the shared error surface with its retry.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "failed"
         }
       ],
       "source": {

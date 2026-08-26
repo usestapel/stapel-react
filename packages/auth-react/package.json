@@ -21,6 +21,10 @@
       "types": "./dist/default/index.d.ts",
       "default": "./dist/default/index.js"
     },
+    "./default/admin": {
+      "types": "./dist/default/admin/index.d.ts",
+      "default": "./dist/default/admin/index.js"
+    },
     "./i18n/ru": {
       "types": "./dist/i18n/ru.d.ts",
       "default": "./dist/i18n/ru.js"
@@ -56,24 +60,24 @@
   },
   "size-limit": [
     {
-      "name": "index — the ru/es locales must NOT be in the main bundle",
+      "name": "index — the ru/es locales must NOT be in the main bundle (en floor only; the operator console's copy rides here too until a subpath can register its own bundle — see REQUESTS)",
       "path": "dist/index.js",
-      "limit": "20 KB"
+      "limit": "24 KB"
     },
     {
       "name": "i18n/ru subpath (opt-in locale: en floor + generated ru + ru UI)",
       "path": "dist/i18n/ru.js",
-      "limit": "13 KB"
+      "limit": "19 KB"
     },
     {
-      "name": "i18n/es subpath (opt-in locale: en floor + generated es errors; no es UI copy yet)",
+      "name": "i18n/es subpath (opt-in locale: en floor + generated es errors + es UI)",
       "path": "dist/i18n/es.js",
-      "limit": "8.5 KB"
+      "limit": "16 KB"
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.13.0 <1.0.0",
-    "@stapel/tokens-antd": ">=0.2.0",
+    "@stapel/core": ">=0.18.0 <1.0.0",
+    "@stapel/tokens-antd": ">=0.6.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"

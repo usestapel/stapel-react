@@ -66,31 +66,28 @@ const CSRF_HEADERS: Record<string, string> = {
 /**
  * Does the PINNED contract carry `PATCH /passkey/{id}/` — the rename route?
  *
- * A passkey row has to answer "what can I do to it", and today the honest
- * answer is remove-only: `device_name` is writable exactly once, at
- * register-complete, and nothing updates it afterwards. `PasskeysManager`
- * therefore renders NO rename affordance rather than a control that cannot do
- * its job (which is the same defect as the "log in" button the owner found on
- * that screen). {@link AuthApi.passkeyRename} is written and ready; only this
- * flag holds it back.
+ * A passkey row has to answer "what can I do to it". stapel-auth 0.28.0 made
+ * `device_name` writable after enrolment, so the honest answer now includes
+ * rename; before it, the row was remove-only and the skin rendered no rename
+ * affordance rather than a control that could not do its job.
  *
- * The type below is the tripwire. `paths[…]["patch"]` is `undefined` while the
- * operation is absent (the generator writes `patch?: never`) and an operation
- * object once it lands, so the day `pnpm gen:api` picks up the new backend the
- * annotation stops accepting `false` and the build fails HERE, at the one line
- * that has to change, instead of quietly shipping a screen that is a release
- * behind. Flip it to `true` in the same commit as that regen.
+ * The type below is the tripwire, and it is live in BOTH directions.
+ * `paths[…]["patch"]` is `undefined` while the operation is absent (the
+ * generator writes `patch?: never`) and an operation object once it lands, so
+ * a regen against a backend that dropped the route again stops accepting
+ * `true` and fails the build HERE, at the one line that has to change, rather
+ * than shipping a control that answers 405.
  */
 type PasskeyRenameInContract =
   undefined extends paths["/auth/api/v1/passkey/{id}/"]["patch"] ? false : true;
 
-const PASSKEY_RENAME_IN_CONTRACT: PasskeyRenameInContract = false;
+const PASSKEY_RENAME_IN_CONTRACT: PasskeyRenameInContract = true;
 
 /**
  * Whether this build's contract supports renaming a passkey. Typed `boolean`
  * (not the literal) on purpose: the skin BRANCHES on it, and a literal type
  * would narrow the branch away and take the rename UI out of type-checking
- * altogether — the code would rot unseen until the flag flipped.
+ * altogether — the code would rot unseen if the flag ever flipped back.
  */
 export const PASSKEY_RENAME_SUPPORTED: boolean = PASSKEY_RENAME_IN_CONTRACT;
 
@@ -234,10 +231,10 @@ export interface AuthApi {
   passkeyAuthenticateComplete(sessionKey: string, credential: unknown): Promise<AuthResponse>;
   passkeyRemove(id: string): Promise<void>;
   /**
-   * Rename a stored credential. Guarded by {@link PASSKEY_RENAME_SUPPORTED} —
-   * calling it against a backend that has not shipped `PATCH /passkey/{id}/`
-   * answers 405, which is exactly why the skin does not offer the control
-   * there.
+   * Rename a stored credential (stapel-auth >= 0.28.0). Ownership is a lookup
+   * predicate on the backend, so another account's id answers 404 exactly as
+   * an unknown one does. Guarded by {@link PASSKEY_RENAME_SUPPORTED} so the
+   * skin never offers the control against an older contract.
    */
   passkeyRename(id: string, deviceName: string): Promise<Passkey>;
 

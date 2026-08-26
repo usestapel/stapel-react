@@ -22,8 +22,8 @@
 import { spacing } from "@stapel/tokens";
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Button, Card, Flex, Form, Input, Popconfirm, Result, Spin, Typography } from "antd";
-import { ErrorAlert } from "@stapel/tokens-antd/skin";
+import { Alert, Button, Card, Flex, Form, Input, Result, Spin, Typography } from "antd";
+import { ErrorAlert, SkinConfirm } from "@stapel/tokens-antd/skin";
 import { useErrorDisplay, useFormatFlowError, useT } from "@stapel/core";
 import type { AuthenticatorChangeBag } from "../../headless/misc.js";
 import { AuthenticatorChange } from "../../headless/misc.js";
@@ -93,7 +93,7 @@ function DelayedRequestForm(props: { channel: OtpChannel; onStarted: () => void 
           type="error"
           showIcon
           style={{ margin: "12px 0" }}
-          message={formatError({
+          title={formatError({
             code: initiate.error.code,
             params: initiate.error.params,
             status: initiate.error.status,
@@ -122,6 +122,7 @@ function PendingBanner(props: { channel: OtpChannel; status: DelayedChangeStatus
   const t = useT();
   const formatError = useFormatFlowError();
   const cancel = useCancelDelayedChange(props.channel);
+  const [confirming, setConfirming] = useState(false);
   const s = props.status;
   const channelLabel = t(CHANNEL_LABEL[props.channel]);
 
@@ -130,7 +131,7 @@ function PendingBanner(props: { channel: OtpChannel; status: DelayedChangeStatus
       <Alert
         type="info"
         showIcon
-        message={t(AUTH_I18N_KEYS.secChangePendingMessage, {
+        title={t(AUTH_I18N_KEYS.secChangePendingMessage, {
           value: s.new_value_masked ?? "",
           date: s.scheduled_at ? formatDate(s.scheduled_at) : "",
           days: s.days_remaining ?? 0,
@@ -141,7 +142,7 @@ function PendingBanner(props: { channel: OtpChannel; status: DelayedChangeStatus
         <Alert
           type="error"
           showIcon
-          message={formatError({
+          title={formatError({
             code: cancel.error.code,
             params: cancel.error.params,
             status: cancel.error.status,
@@ -151,18 +152,36 @@ function PendingBanner(props: { channel: OtpChannel; status: DelayedChangeStatus
         />
       )}
       <Flex>
-        <Popconfirm
-          title={t(AUTH_I18N_KEYS.secChangeCancelConfirmTitle)}
-          onConfirm={() => {
-            if (s.change_request_id) cancel.mutate(s.change_request_id);
-          }}
-          okText={t(AUTH_I18N_KEYS.secChangePendingCancel)}
-          okButtonProps={{ danger: true, loading: cancel.isPending }}
+        {/* `SkinConfirm`, not `Popconfirm`: a popover anchored to a button is
+            a desktop shape — on a phone it renders wherever it fits and its
+            OK/Cancel land under the touch minimum. This OK abandons a change
+            request that is days into its cooldown. */}
+        <Button
+          danger
+          onClick={() => setConfirming(true)}
+          data-analytics="none"
+          data-analytics-reason="local-ui-open-cancel-change-confirm"
         >
-          <Button danger data-analytics="flow">
-            {t(AUTH_I18N_KEYS.secChangePendingCancel)}
-          </Button>
-        </Popconfirm>
+          {t(AUTH_I18N_KEYS.secChangePendingCancel)}
+        </Button>
+        <SkinConfirm
+          open={confirming}
+          danger
+          title={t(AUTH_I18N_KEYS.secChangeCancelConfirmTitle)}
+          confirmLabel={t(AUTH_I18N_KEYS.secChangePendingCancel)}
+          confirming={cancel.isPending}
+          data-testid="change-cancel-confirm"
+          onConfirm={() => {
+            if (s.change_request_id) {
+              cancel.mutate(s.change_request_id, {
+                onSettled: () => setConfirming(false),
+              });
+              return;
+            }
+            setConfirming(false);
+          }}
+          onCancel={() => setConfirming(false)}
+        />
       </Flex>
     </Flex>
   );
@@ -210,7 +229,7 @@ function ChangeJourney(props: {
   if (s.step === "error") {
     return (
       <Flex vertical gap="middle" align="center">
-        <Alert type="error" showIcon message={formatError(s.error)} />
+        <Alert type="error" showIcon title={formatError(s.error)} />
         <Button onClick={bag.reset} data-analytics="flow">
           {t(AUTH_I18N_KEYS.secChangeRetry)}
         </Button>

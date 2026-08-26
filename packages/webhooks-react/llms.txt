@@ -32,6 +32,16 @@ Paths are relative to `/webhooks/api/v1/`.
 - webhooks_api_v1_subscriptions_retrieve: GET /subscriptions/{subscription_id}
 - webhooks_api_v1_subscriptions_secret_create: POST /subscriptions/{subscription_id}/secret
 
+## Query hooks (server state; keys come only from the key factory)
+- useCreateSubscription (mutation) → createSubscription
+- useDeliveries (mutation) → deliveries+replay
+- useDelivery (query) → delivery
+- useEventCatalog (query) → eventCatalog
+- useSecretRotation (mutation) → rotateSecret
+- useSubscription (query) → subscription
+- useSubscriptions (mutation) → deleteSubscription+subscriptions+updateSubscription
+- useUpdateSubscription (mutation) → updateSubscription
+
 ## Errors (render t(code, params); UX from remediation)
 53 keys (full catalog: manifest.json §errors). By remediation: fix_input 22 · retry 13 · verify 8 · wait_and_retry 5 · contact_support 4 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
@@ -68,6 +78,18 @@ const { tracked } = useTracked();
 // A click that STEPS a flow machine is already instrumented — mark it
 // data-analytics="flow" instead; tracked() on top double-counts (§3.2).
 ```
+
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- webhooks.deliveries → <DeliveriesPane> [default|phone|dead-letter|empty]  demo/DeliveriesPane.demo.tsx
+- webhooks.delivery-detail → <DeliveryDetailSheet> [default|phone|succeeded]  demo/DeliveryDetailSheet.demo.tsx
+- webhooks.mandate-notice → <MandateNotice> [default|phone|no-retry]  demo/MandateNotice.demo.tsx
+- webhooks.provider → <WebhooksProvider> [default]  demo/Webhooks.demo.tsx
+- webhooks.secret-reveal → <SecretReveal> [default|phone|no-docs]  demo/SecretReveal.demo.tsx
+- webhooks.secret-rotation → <SecretRotation> [default|phone|unsigned]  demo/SecretRotation.demo.tsx
+- webhooks.settings-page → <WebhooksSettingsPane> [default|phone|empty]  demo/WebhooksSettingsPane.demo.tsx
+- webhooks.subscription-sheet → <SubscriptionSheet> [default|phone|notification|invalid-filter|at-cap]  demo/SubscriptionSheet.demo.tsx
+- webhooks.subscriptions → <SubscriptionsPane> [default|phone|auto-disabled|mandate-unavailable]  demo/SubscriptionsPane.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets
 ```tsx

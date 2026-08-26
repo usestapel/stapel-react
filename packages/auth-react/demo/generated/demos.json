@@ -4,6 +4,151 @@
   "version": "0.16.1",
   "demos": [
     {
+      "id": "auth.admin-audit-skin",
+      "title": "Audit log (operator console)",
+      "description": "Security activity across every account, newest first, filtered by event type, account and date range. Unrecognized activity carries a named chip; dates are formatted in the operator's app locale.",
+      "component": "AdminAuditPanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "42 events, the first page, with the filters unset.",
+          "step": "ready"
+        },
+        {
+          "id": "no-matches",
+          "description": "The filters match nothing. The empty state says what to do about it — widen the dates, or clear them.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "forbidden",
+          "description": "The read is refused, stated as a refusal rather than a quiet empty log.",
+          "step": "forbidden"
+        }
+      ],
+      "source": {
+        "file": "demo/AdminAuditSkin.demo.tsx",
+        "line": 29
+      }
+    },
+    {
+      "id": "auth.admin-service-keys-skin",
+      "title": "Service keys (operator console)",
+      "description": "Credentials for machines: what each is for, whether it is live, what it may reach, and when it was last actually used. 'Never used' is printed, because that is how an operator spots a key issued for something that never shipped.",
+      "component": "ServiceKeysPanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A live key scoped to two endpoints, and a switched-off one that has never been used.",
+          "step": "ready"
+        },
+        {
+          "id": "empty",
+          "description": "No keys yet, with the reason to issue the first one.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "forbidden",
+          "description": "The read is refused, and the screen says so rather than showing no keys.",
+          "step": "forbidden"
+        }
+      ],
+      "source": {
+        "file": "demo/AdminServiceKeysSkin.demo.tsx",
+        "line": 33
+      }
+    },
+    {
+      "id": "auth.admin-sso-orgs-skin",
+      "title": "Enterprise SSO (operator console)",
+      "description": "Organizations whose people sign in through their own identity provider: the domain each claims, whether SSO is required on it, and the four operator actions. Removing one takes every account on that domain off its SSO route, so it confirms by name.",
+      "component": "SsoOrgsPanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Two organizations — one enforcing SSO, one where it is optional.",
+          "step": "ready"
+        },
+        {
+          "id": "empty",
+          "description": "No organizations yet, with the one action that creates the first.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "forbidden",
+          "description": "The caller holds no staff role. The screen states the refusal — a staff surface must never render a 403 as an empty list.",
+          "step": "forbidden"
+        }
+      ],
+      "source": {
+        "file": "demo/AdminSsoOrgsSkin.demo.tsx",
+        "line": 29
+      }
+    },
+    {
+      "id": "auth.admin-staff-roles-skin",
+      "title": "Staff roles (operator console)",
+      "description": "Every elevated grant on the deployment and its provenance. Accounts are named by the id the contract carries — a resolved display name here would be a guess printed beside a permission.",
+      "component": "StaffRolesPanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A moderator granted by a colleague, and a support role the system assigned.",
+          "step": "ready"
+        },
+        {
+          "id": "empty",
+          "description": "Nobody holds a staff role yet.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "forbidden",
+          "description": "The read is refused. An empty roles list would read as 'nobody has access', which is the opposite of what happened.",
+          "step": "forbidden"
+        }
+      ],
+      "source": {
+        "file": "demo/AdminStaffRolesSkin.demo.tsx",
+        "line": 30
+      }
+    },
+    {
+      "id": "auth.admin-users-skin",
+      "title": "Create an account (operator console)",
+      "description": "Provision an account with no sign-up and no code. The two switches that affect somebody else state their consequence beside them, and the result is the created account's id, kept on screen because it is what gets used next.",
+      "component": "AdminUsersPanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The form as it opens, with the contract's own defaults.",
+          "viewport": "phone",
+          "step": "form"
+        },
+        {
+          "id": "refused",
+          "description": "The address is already on an account. The backend's own sentence, translated, beside the form that produced it.",
+          "step": "error"
+        }
+      ],
+      "source": {
+        "file": "demo/AdminUsersSkin.demo.tsx",
+        "line": 41
+      }
+    },
+    {
       "id": "auth.anonymous-session",
       "title": "Anonymous session",
       "description": "Headless guest session: create(deviceId) mints an anonymous user you can later upgrade to a full account.",
@@ -25,6 +170,36 @@
       }
     },
     {
+      "id": "auth.audit-log-skin",
+      "title": "Security log (default skin)",
+      "description": "Recent activity on this account, newest first, a page at a time. Unrecognized activity carries a named chip; dates are formatted in the app's locale, not the browser's.",
+      "component": "AuditLogPanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A sign-in, an unrecognized sign-in, and a passkey rename.",
+          "viewport": "phone",
+          "step": "ready"
+        },
+        {
+          "id": "empty",
+          "description": "A new account with no history — stated, with what will appear here.",
+          "step": "empty"
+        },
+        {
+          "id": "failed",
+          "description": "The read fails: the refusal is stated with a retry, never an empty log.",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/AuditLogPanelSkin.demo.tsx",
+        "line": 33
+      }
+    },
+    {
       "id": "auth.auth-panel-skin",
       "title": "Sign-in screen (default skin)",
       "description": "The shipped sign-in surface. Picking an alt method opens the fleet's dialog — a bottom sheet under 768px, a centred modal at or above it. Picking Passkey raises the system prompt immediately and opens nothing of ours unless the ceremony fails.",
@@ -34,16 +209,24 @@
       "variants": [
         {
           "id": "default",
-          "description": "Email/phone tabs, a bottom row (QR + passkey), and the overflow menu that opens the shared dialog."
+          "description": "Email/phone tabs, a bottom row (QR + passkey), and the overflow menu that opens the shared dialog.",
+          "step": "chooseMethod"
         },
         {
           "id": "register",
-          "description": "The registration surface: only the channels that deanonymize."
+          "description": "The registration surface: only the channels that deanonymize.",
+          "step": "register"
+        },
+        {
+          "id": "session-revoked",
+          "description": "Phone width, arrived at from a session that ended: the reason is stated above the form instead of leaving a person to wonder why they are here.",
+          "viewport": "phone",
+          "step": "notice"
         }
       ],
       "source": {
         "file": "demo/AuthPanelSkin.demo.tsx",
-        "line": 99
+        "line": 116
       }
     },
     {
@@ -65,6 +248,56 @@
       "source": {
         "file": "demo/AuthenticatorChange.demo.tsx",
         "line": 40
+      }
+    },
+    {
+      "id": "auth.authenticator-change-skin",
+      "title": "Authenticator change (default skin)",
+      "description": "One implementation, either channel. Instant when the current authenticator can be proved; a scheduled change with a cooldown when it cannot — and calling that off goes through the fleet's confirm, not a popover.",
+      "component": "AuthenticatorChangePanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Nothing scheduled: the instant route, mounted for the email channel.",
+          "viewport": "phone",
+          "step": "idle"
+        },
+        {
+          "id": "scheduled",
+          "description": "A change in its cooldown, and the one control that stops it.",
+          "step": "pendingDelayed"
+        }
+      ],
+      "source": {
+        "file": "demo/AuthenticatorChangePanelSkin.demo.tsx",
+        "line": 44
+      }
+    },
+    {
+      "id": "auth.email-change-skin",
+      "title": "Change email (default skin)",
+      "description": "The email half of the authenticator-change surface: prove the current address and swap now, or start the scheduled change when you cannot reach it any more.",
+      "component": "EmailChangePanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The instant route: prove the address you have, then name the new one.",
+          "viewport": "phone",
+          "step": "idle"
+        },
+        {
+          "id": "scheduled",
+          "description": "A scheduled change is 6 days out. The card is the banner: what is coming, when, and the one way to stop it.",
+          "step": "pendingDelayed"
+        }
+      ],
+      "source": {
+        "file": "demo/EmailChangePanelSkin.demo.tsx",
+        "line": 44
       }
     },
     {
@@ -94,6 +327,31 @@
       }
     },
     {
+      "id": "auth.forced-password-change-skin",
+      "title": "Forced password change (default skin)",
+      "description": "The first-login gate: a new password and its confirmation, one primary action, and no route around it. On an account that also owes a second factor, finishing here chains straight into enrollment.",
+      "component": "ForcedPasswordChangeCard",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The gate as it opens.",
+          "viewport": "phone",
+          "step": "idle"
+        },
+        {
+          "id": "refused",
+          "description": "The deployment's password policy refuses. The sentence is the backend's own, translated, not 'something went wrong'.",
+          "step": "error"
+        }
+      ],
+      "source": {
+        "file": "demo/ForcedPasswordChangeSkin.demo.tsx",
+        "line": 43
+      }
+    },
+    {
       "id": "auth.magic-link",
       "title": "Magic link",
       "description": "Headless magic-link request: request(email, redirectUrl) sends a one-tap sign-in link; the redirect is open-redirect-guarded.",
@@ -112,6 +370,61 @@
       "source": {
         "file": "demo/MagicLink.demo.tsx",
         "line": 34
+      }
+    },
+    {
+      "id": "auth.mfa-enroll-skin",
+      "title": "Enroll a second factor (default skin)",
+      "description": "The first-login MFA gate: pick an authenticator app or a passkey and finish the enrollment inside an enroll-scoped session. Completing a factor is what turns that session into a full one.",
+      "component": "MfaEnrollPanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Both factors offered — the picker before a choice is made.",
+          "viewport": "phone",
+          "step": "choosing"
+        },
+        {
+          "id": "totp-only",
+          "description": "A deployment that only allows an authenticator app: one journey, stated as the route rather than dressed up as a choice.",
+          "step": "totp"
+        }
+      ],
+      "source": {
+        "file": "demo/MfaEnrollPanelSkin.demo.tsx",
+        "line": 40
+      }
+    },
+    {
+      "id": "auth.oauth-links-skin",
+      "title": "Connected accounts (default skin)",
+      "description": "Providers this deployment offers, which of them this account is connected to, and the two controls that exist. Connect states its own blocker in text when the host has wired no provider SDK.",
+      "component": "OAuthLinks",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Google connected, GitHub available — both controls live.",
+          "step": "linked"
+        },
+        {
+          "id": "connect-blocked",
+          "description": "No provider SDK is wired, so Connect is off and says why, right beside itself.",
+          "viewport": "phone",
+          "step": "blocked"
+        },
+        {
+          "id": "no-providers",
+          "description": "This deployment configured no providers: an empty state with a reason, not a blank card.",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/OAuthLinksSkin.demo.tsx",
+        "line": 52
       }
     },
     {
@@ -169,16 +482,24 @@
       "variants": [
         {
           "id": "default",
-          "description": "A platform credential never used, and a security key that has been."
+          "description": "A platform credential never used, and a security key that has been.",
+          "step": "list"
         },
         {
           "id": "empty",
-          "description": "No passkeys yet — an empty state, not a failure."
+          "description": "No passkeys yet — an empty state with the way out inside it, not a failure and not a dead card.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "add-blocked",
+          "description": "A browser with no WebAuthn: Add is blocked and the reason is printed beside it, before the click, not after a ceremony that can never finish.",
+          "step": "blocked"
         }
       ],
       "source": {
         "file": "demo/PasskeysManagerSkin.demo.tsx",
-        "line": 64
+        "line": 83
       }
     },
     {
@@ -200,6 +521,36 @@
       "source": {
         "file": "demo/PasswordChange.demo.tsx",
         "line": 38
+      }
+    },
+    {
+      "id": "auth.password-change-skin",
+      "title": "Change password (default skin)",
+      "description": "One tab per route the backend says this account can actually take: the current password, or a code to a verified contact. Never a form that is going to be refused.",
+      "component": "PasswordChangePanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Current password or an emailed code.",
+          "viewport": "phone",
+          "step": "methods"
+        },
+        {
+          "id": "no-methods",
+          "description": "No route exists yet — said plainly, with what would create one, instead of an unusable form.",
+          "step": "empty"
+        },
+        {
+          "id": "failed",
+          "description": "The methods read fails: the refusal is stated, with a retry.",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/PasswordChangePanelSkin.demo.tsx",
+        "line": 45
       }
     },
     {
@@ -297,6 +648,81 @@
       }
     },
     {
+      "id": "auth.phone-change-skin",
+      "title": "Change phone (default skin)",
+      "description": "The phone half of the authenticator-change surface. Same machine as email, different channel — the code length comes from the deployment, never from a constant in the skin.",
+      "component": "PhoneChangePanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Prove the current number, then name the new one.",
+          "viewport": "phone",
+          "step": "idle"
+        },
+        {
+          "id": "scheduled",
+          "description": "A scheduled swap already running, with its cooldown and its way out.",
+          "step": "pendingDelayed"
+        }
+      ],
+      "source": {
+        "file": "demo/PhoneChangePanelSkin.demo.tsx",
+        "line": 44
+      }
+    },
+    {
+      "id": "auth.qr-confirm-skin",
+      "title": "Confirm a sign-in (default skin)",
+      "description": "The scanner's screen: approve or decline a sign-in on a device you are not looking at. Both answers are equally reachable, and a missing code is stated rather than rendered as a form.",
+      "component": "QrConfirmPanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A real code to approve or decline.",
+          "viewport": "phone",
+          "step": "pending"
+        },
+        {
+          "id": "no-key",
+          "description": "The address carries no code. The screen states the problem instead of pretending to work.",
+          "step": "missingKey"
+        }
+      ],
+      "source": {
+        "file": "demo/QrConfirmPanelSkin.demo.tsx",
+        "line": 33
+      }
+    },
+    {
+      "id": "auth.qr-device-link-skin",
+      "title": "Sign in another device (default skin)",
+      "description": "A settings row that opens the QR journey in the fleet's dialog. Idle until triggered — no code is minted, and nothing is polled, until somebody opens it.",
+      "component": "QrDeviceLinkPanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The row at rest: what it does, and the one control that starts it.",
+          "viewport": "phone",
+          "step": "idle"
+        },
+        {
+          "id": "custom-landing",
+          "description": "The same row handing the scanning device off to a specific page rather than the app root.",
+          "step": "idle-custom"
+        }
+      ],
+      "source": {
+        "file": "demo/QrDeviceLinkPanelSkin.demo.tsx",
+        "line": 37
+      }
+    },
+    {
       "id": "auth.qr-login",
       "title": "QR login (cross-device)",
       "description": "Headless QR authentication with background polling: start() yields a scanUrl to render as a QR image; delivered tokens adopt into the session.",
@@ -320,6 +746,61 @@
       }
     },
     {
+      "id": "auth.security-settings-skin",
+      "title": "Security settings page (default skin)",
+      "description": "The composed page a host mounts behind one menu item: contact details, password, two-factor, devices, connected accounts, extra verification and the security log — as sections, on a page that paints its own ground.",
+      "component": "SecuritySettings",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A well-protected account: two-factor on, two passkeys, three sessions, one connected provider.",
+          "step": "ready"
+        },
+        {
+          "id": "fresh-account",
+          "description": "Nothing set up yet. Every section is present and says what it is for — this is the page most people see first.",
+          "viewport": "phone",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/SecuritySettingsSkin.demo.tsx",
+        "line": 29
+      }
+    },
+    {
+      "id": "auth.sessions-list-skin",
+      "title": "Devices and sessions (default skin)",
+      "description": "Every session on the account: what it is, where from, how long ago, and which one is this device. The unrecognized sign-in carries its own badge and a 'that was me' beside the sign-out, because confirming and revoking are different decisions.",
+      "component": "SessionsList",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "This device, a recognized phone, and one unrecognized sign-in from another country.",
+          "step": "ready"
+        },
+        {
+          "id": "single-device",
+          "description": "Only this device — there is nothing to sign out, so the bulk action is not offered.",
+          "viewport": "phone",
+          "step": "single"
+        },
+        {
+          "id": "failed",
+          "description": "The read fails. The card states the refusal and offers a retry; it never renders as 'no other devices'.",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/SessionsListSkin.demo.tsx",
+        "line": 33
+      }
+    },
+    {
       "id": "auth.sso-discovery",
       "title": "SSO discovery",
       "description": "Headless enterprise SSO: lookup(domain) resolves whether a work email must use SSO; beginLogin(orgSlug) redirects to the IdP.",
@@ -338,6 +819,36 @@
       "source": {
         "file": "demo/SsoDiscovery.demo.tsx",
         "line": 36
+      }
+    },
+    {
+      "id": "auth.totp-manager-skin",
+      "title": "Two-factor authentication (default skin)",
+      "description": "The authenticator-app card: on or off stated first, the backup codes left, and only the actions that state allows. A scheduled removal replaces the whole body — while one is in flight there is nothing else to decide here except whether to call it off.",
+      "component": "TotpManager",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "enabled",
+          "description": "Two-factor is on with 8 backup codes: replace or switch off.",
+          "step": "enabled"
+        },
+        {
+          "id": "off",
+          "description": "Never set up — one primary action, and nothing else pretending to be one.",
+          "viewport": "phone",
+          "step": "disabled"
+        },
+        {
+          "id": "removal-scheduled",
+          "description": "A 'lost my authenticator' removal is 6 days into its cooldown. The banner says when it lands and offers the one way to stop it.",
+          "step": "pendingDelayed"
+        }
+      ],
+      "source": {
+        "file": "demo/TotpManagerSkin.demo.tsx",
+        "line": 52
       }
     },
     {
@@ -379,6 +890,36 @@
       "source": {
         "file": "demo/VerificationChallenge.demo.tsx",
         "line": 38
+      }
+    },
+    {
+      "id": "auth.verification-preferences-skin",
+      "title": "Extra verification (default skin)",
+      "description": "One decision per scope, sparse by contract. An undecided scope shows no selection and says it follows the app's default; switching one off is itself step-up protected, and the screen says so before the press.",
+      "component": "VerificationPreferences",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Two decisions taken: settings changes ask, a host scope has been switched off.",
+          "step": "decided"
+        },
+        {
+          "id": "undecided",
+          "description": "Nothing decided yet: no selection, and the row says what it is following instead.",
+          "viewport": "phone",
+          "step": "undecided"
+        },
+        {
+          "id": "failed",
+          "description": "The read fails — stated, with a retry, not an empty list of choices.",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/VerificationPreferencesSkin.demo.tsx",
+        "line": 52
       }
     }
   ]

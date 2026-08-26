@@ -21,6 +21,10 @@
       "types": "./dist/default/index.d.ts",
       "default": "./dist/default/index.js"
     },
+    "./default/admin": {
+      "types": "./dist/default/admin/index.d.ts",
+      "default": "./dist/default/admin/index.js"
+    },
     "./i18n/ru": {
       "types": "./dist/i18n/ru.d.ts",
       "default": "./dist/i18n/ru.js"
@@ -56,24 +60,29 @@
   },
   "size-limit": [
     {
-      "name": "index — the skin and the ru/es locales must NOT be in the main bundle",
+      "name": "index — the headless pair (18 operations, the bags and their gates): no antd",
       "path": "dist/index.js",
+      "limit": "14 KB"
+    },
+    {
+      "name": "default — the member-facing skin (report button + sheet, appeals, the public policy page)",
+      "path": "dist/default/index.js",
+      "limit": "14 KB"
+    },
+    {
+      "name": "default/admin — the console must not ride in a storefront's bundle",
+      "path": "dist/default/admin/index.js",
+      "limit": "18 KB"
+    },
+    {
+      "name": "i18n/ru — 271 hand-written keys plus the 70-code backend catalogue; opt-in",
+      "path": "dist/i18n/ru.js",
       "limit": "12 KB"
     },
     {
-      "name": "default skin subpath (opt-in: antd + the token bridge)",
-      "path": "dist/default/index.js",
-      "limit": "10 KB"
-    },
-    {
-      "name": "i18n/ru subpath (opt-in locale: en floor + ru UI)",
-      "path": "dist/i18n/ru.js",
-      "limit": "8 KB"
-    },
-    {
-      "name": "i18n/es subpath (opt-in locale: en floor + es UI)",
+      "name": "i18n/es — same deal for Spanish: a host pays for the locales it ships",
       "path": "dist/i18n/es.js",
-      "limit": "8 KB"
+      "limit": "10 KB"
     }
   ],
   "peerDependencies": {

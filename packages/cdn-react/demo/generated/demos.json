@@ -4,6 +4,52 @@
   "version": "0.3.0",
   "demos": [
     {
+      "id": "cdn.attachment",
+      "title": "Media attachment",
+      "description": "One reference, drawn by its KIND: a photo picks its tier from this element, a video shows the poster still with the clip's length (an <img> cannot load an mp4), an audio row shows the waveform that IS its render, and a document shows facts because no pixels for it exist. A reference that resolves to nothing says so — data, with a 200 behind it, not a failure.",
+      "component": "MediaAttachment",
+      "covers": [],
+      "tokens": [
+        "surface-sunken"
+      ],
+      "variants": [
+        {
+          "id": "photo",
+          "description": "The ladder, and the server's own micro-preview under it.",
+          "viewport": "phone",
+          "step": "image"
+        },
+        {
+          "id": "video",
+          "description": "The poster, with a measured length. `duration_ms` null would read 'not measured' — which is a different fact from an empty clip.",
+          "viewport": "desktop",
+          "step": "video"
+        },
+        {
+          "id": "audio",
+          "description": "No still exists for an audio row, ever. The waveform is drawn whole — cropping an amplitude strip removes the amplitudes.",
+          "viewport": "desktop",
+          "step": "audio"
+        },
+        {
+          "id": "document",
+          "description": "The extension, the size, and a link the HOST supplied — a snapshot carries none.",
+          "viewport": "desktop",
+          "step": "file"
+        },
+        {
+          "id": "gone",
+          "description": "Deleted, never stored, or malformed. One dead attachment must not cost a thread its other thirty-nine.",
+          "viewport": "phone",
+          "step": "missing"
+        }
+      ],
+      "source": {
+        "file": "demo/MediaAttachment.demo.tsx",
+        "line": 76
+      }
+    },
+    {
       "id": "cdn.gallery",
       "title": "Photo gallery queue",
       "description": "The headless MediaUploader bounds a gallery at max references and hands a composer the ordered <type>/<hash> list to store. canAdd and settled are ActionAvailability, so a full gallery and an unfinished upload are two different sentences rather than one grey button.",
@@ -32,6 +78,103 @@
       }
     },
     {
+      "id": "cdn.gallery-field",
+      "title": "Photo gallery (default skin)",
+      "description": "Up to ten photos, each with its own step, its own refusal and its own controls, inside one drop target. The order IS the meaning — the first reference is what a search card shows — so reordering is drag-and-drop AND a pair of move buttons, because drag is unreachable by keyboard and unusable on a touch screen.",
+      "component": "MediaGalleryField",
+      "covers": [
+        "MediaUploader"
+      ],
+      "tokens": [
+        "border-subtle",
+        "surface-sunken"
+      ],
+      "variants": [
+        {
+          "id": "empty",
+          "description": "Nothing added yet: a designed empty state inside the target, not two lines of grey text.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "three photos",
+          "description": "A reopened draft. The first tile is labelled as the cover, and only it has no 'move earlier'.",
+          "viewport": "desktop",
+          "step": "restored"
+        },
+        {
+          "id": "full",
+          "description": "The shot that used to read '1 of 1 photos' and 'at most 1 photos'. The count is a plural family now, and the blocked reason names the ceiling without a counted noun — the gate resolves a code with `t`, which cannot select a form.",
+          "viewport": "desktop",
+          "step": "blocked-full"
+        }
+      ],
+      "source": {
+        "file": "demo/MediaGalleryField.demo.tsx",
+        "line": 39
+      }
+    },
+    {
+      "id": "cdn.image-field",
+      "title": "Image slot (default skin)",
+      "description": "One image, skinned: a bordered region that takes a drop, a label that makes the whole rectangle open the picker, and a focusable button beside it for the keyboard. The picked or stored image is drawn INSIDE the frame, so an empty slot still looks like a slot — the affordance the shipped control did not have at all.",
+      "component": "ImageUploadField",
+      "covers": [
+        "ImageUpload"
+      ],
+      "tokens": [
+        "border-subtle",
+        "surface-sunken"
+      ],
+      "variants": [
+        {
+          "id": "empty",
+          "description": "Nothing chosen yet: the drop target IS the affordance.",
+          "viewport": "phone",
+          "step": "idle"
+        },
+        {
+          "id": "stored",
+          "description": "A reference already stored, drawn inside the frame it will be replaced in — and the button now says Replace.",
+          "viewport": "desktop",
+          "step": "stored"
+        }
+      ],
+      "source": {
+        "file": "demo/ImageUploadField.demo.tsx",
+        "line": 44
+      }
+    },
+    {
+      "id": "cdn.media-intake",
+      "title": "Video and document intake",
+      "description": "The same control over the two non-image endpoints. The `accept` string is built from the deployment's own allowlist — the same one the client-side refusal is built from — so the picker and the gate cannot disagree, and the ceilings that apply are the ones for THIS intake (100 MB for a clip, 50 MB for a document), not the image ones.",
+      "component": "MediaUploadField",
+      "covers": [],
+      "tokens": [
+        "border-subtle",
+        "surface-sunken"
+      ],
+      "variants": [
+        {
+          "id": "video",
+          "description": "100 MB, five container extensions, and a poster when it lands.",
+          "viewport": "phone",
+          "step": "video-idle"
+        },
+        {
+          "id": "document",
+          "description": "50 MB, and the one intake that narrows on MIME as well as extension — deliberately without `application/octet-stream`.",
+          "viewport": "desktop",
+          "step": "file-idle"
+        }
+      ],
+      "source": {
+        "file": "demo/MediaUploadField.demo.tsx",
+        "line": 31
+      }
+    },
+    {
       "id": "cdn.single",
       "title": "Single image slot",
       "description": "The headless ImageUpload runs the dedup-first flow for one slot: validate against the deployment's own ceilings, hash, ask file/exists/, and only then POST. The bag reports the PHASE, never a fabricated percentage — fetch cannot observe request-body progress.",
@@ -43,15 +186,15 @@
       ],
       "variants": [
         {
-          "id": "default"
-        },
-        {
-          "id": "already-stored"
+          "id": "already-stored",
+          "description": "A pre-check HIT, run on mount against the harness's canned server: the reference came back having sent NOTHING, and the control says so instead of pretending to upload.",
+          "viewport": "phone",
+          "step": "deduped"
         }
       ],
       "source": {
         "file": "demo/ImageUpload.demo.tsx",
-        "line": 60
+        "line": 81
       }
     },
     {
@@ -67,12 +210,14 @@
         {
           "id": "default",
           "description": "Three fixed boxes, three different requests.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "measured"
         },
         {
           "id": "fluid",
           "description": "One full-width element: resize the viewer and it upgrades, never downgrades once a tier is painted.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "measured"
         }
       ],
       "source": {

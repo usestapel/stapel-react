@@ -625,7 +625,142 @@
     "defined": [],
     "flows": []
   },
-  "demos": [],
+  "demos": [
+    {
+      "id": "moderation.appeal-panel",
+      "title": "Appeal a decision",
+      "description": "DSA Art. 20, and the one arm that is an EXPLANATION rather than a shrug: without a `?case=` in the link there is nothing to appeal against, and this pair cannot look one up — `GET cases` and `GET cases/{id}` are both behind the moderation mandate, so the id travels exactly one way, in the notification's deep link. Drawing the composer anyway would give somebody a submit button that could never light up. The appeals already sent are the person's own read and are listed regardless, with the outcome the moderator wrote back.",
+      "component": "AppealPanel",
+      "tokens": [
+        "surface-base",
+        "surface-raised",
+        "success"
+      ],
+      "variants": [
+        "default",
+        "writing",
+        "with-history"
+      ],
+      "source": "demo/AppealPanel.demo.tsx"
+    },
+    {
+      "id": "moderation.appeals-queue",
+      "title": "Appeals (staff)",
+      "description": "Overturning is the module's single backward edge — `resolved → queued`, the case is reopened and decided again — so the outcome choices carry a line of meaning each rather than three bare words. Two refusals share this screen and mean opposite things: `same_actor` says you decided the case so a colleague must hear the appeal (nothing is broken), while `appeal_resolved` says there is nothing left to decide. Both are read from the write's own answer rather than guessed from the row, because a colleague can decide an appeal between this page being drawn and the sheet being submitted.",
+      "component": "AppealsQueue",
+      "tokens": [
+        "surface-base",
+        "surface-raised",
+        "success"
+      ],
+      "variants": [
+        "default",
+        "decided",
+        "empty"
+      ],
+      "source": "demo/AppealsQueue.demo.tsx"
+    },
+    {
+      "id": "moderation.case",
+      "title": "Case card (staff)",
+      "description": "`ContentDTO.available` is explicit on the wire so this card can draw a failed read as a failed read: 'this app serves no content for this kind of item' and 'the post is blank' are different findings that lead to opposite decisions, and a moderator must never be handed an empty box that looks like empty content. Claim, release, rescan and the verdict are all gated by the LEASE the server enforces silently — it takes a case back when `claimed_until` passes — and each shut control states its own reason beside it rather than in a tooltip a disabled button would never fire. A verdict that also sanctions the author goes through a confirmation whose button says what it does.",
+      "component": "CaseDetail",
+      "tokens": [
+        "surface-raised",
+        "border",
+        "warning",
+        "error"
+      ],
+      "variants": [
+        "default",
+        "no-content",
+        "held-by-another"
+      ],
+      "source": "demo/CaseDetail.demo.tsx"
+    },
+    {
+      "id": "moderation.policy",
+      "title": "Content rules (public)",
+      "description": "DSA Art. 15, rendered rather than written: `GET policy` builds its answer from the live configuration — the registered reasons, the screening stages actually wired, the confidence floor actually applied, whether an appeal really goes to a different moderator. Turning the screener off changes this page on the next load with no copy change anywhere, which is the only version of a transparency page that cannot go stale. It is the module's one anonymous route, because a rules page that demanded a session would be the page nobody could check the rules on.",
+      "component": "PolicyDisclosurePane",
+      "tokens": [
+        "surface-base",
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "human-only",
+        "failed"
+      ],
+      "source": "demo/PolicyDisclosurePane.demo.tsx"
+    },
+    {
+      "id": "moderation.provider",
+      "title": "Moderation provider",
+      "description": "The headless moderation root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "ModerationProvider",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/Moderation.demo.tsx"
+    },
+    {
+      "id": "moderation.queue",
+      "title": "Moderation queue (staff)",
+      "description": "Table where there is room, cards where there is not — decided by the ELEMENT's width, not the viewport's, because a console lives in an admin shell's content column as often as on a full page and antd's grid breakpoints would give a 380px panel on a 1920px desktop the eight-column table. The target column shows `type:key` and nothing else unless the host fills `renderTarget`: the module is domain-blind and the backend serves content on the case card only, so a thumbnail here can only come from whoever owns the target. The mandate refusal is named, not rendered as a failed read — the nav axis has no 'staff' value, so the screen does the explaining.",
+      "component": "ModerationQueue",
+      "tokens": [
+        "surface-base",
+        "surface-raised",
+        "warning",
+        "success"
+      ],
+      "variants": [
+        "default",
+        "phone",
+        "empty",
+        "not-staff"
+      ],
+      "source": "demo/ModerationQueue.demo.tsx"
+    },
+    {
+      "id": "moderation.report-button",
+      "title": "Report button (embeddable)",
+      "description": "The slot other pairs mount beside their own actions — a listing card, a review, a chat message menu. It has no nav entry on purpose: it is a control with a target, not a screen. A signed-out visitor gets the SAME button, because hiding it hides the fact that this platform accepts complaints at all; the sheet it opens carries the rules and the sign-in door together. The sheet itself is mounted only after the first press, so a listing page with twenty of these does not open twenty policy reads.",
+      "component": "ReportButton",
+      "tokens": [
+        "surface-raised",
+        "border"
+      ],
+      "variants": [
+        "default",
+        "compact",
+        "block"
+      ],
+      "source": "demo/ReportButton.demo.tsx"
+    },
+    {
+      "id": "moderation.report-sheet",
+      "title": "Report sheet",
+      "description": "A bottom sheet on a phone and a modal above it, from the shared dialog rule. The description box is always visible and only its REQUIREMENT changes with the reason — a box that materialises under the radio somebody just tapped moves the submit out from under their thumb. The automated-screening line is Art. 15(1)(e) transparency and is rendered from the policy, so a deployment with its screener off simply does not show it. There is no evidence field: the one consumer stopped registering evidence-based target types in 0.3.x, and the moderator reads the message itself on the case card.",
+      "component": "ReportSheet",
+      "tokens": [
+        "surface-raised",
+        "border",
+        "text-muted"
+      ],
+      "variants": [
+        "default",
+        "no-automation",
+        "no-reasons",
+        "policy-failed"
+      ],
+      "source": "demo/ReportSheet.demo.tsx"
+    }
+  ],
   "i18nKeys": [
     "error.400.bad_request",
     "error.400.captcha_invalid",
@@ -1040,7 +1175,10 @@
       "shortId",
       "toFlowError",
       "triageRefused",
+      "useAppeal",
       "useAppealQueueQuery",
+      "useAppealsQueue",
+      "useCase",
       "useCaseDetailQuery",
       "useCaseEventsQuery",
       "useCasesQuery",
@@ -1050,11 +1188,14 @@
       "useLiftSanction",
       "useModerationAnalytics",
       "useModerationApi",
+      "useModerationQueue",
       "useModerationRuntime",
       "useMyAppealsQuery",
       "useMyReportsQuery",
       "usePolicy",
       "useReleaseCase",
+      "useReport",
+      "useReportPolicy",
       "useRescanCase",
       "useResolveAppeal",
       "useSanctionsQuery",
@@ -1066,13 +1207,16 @@
     ],
     "types": [
       "Appeal",
+      "AppealBag",
       "AppealFlowOptions",
       "AppealFlowState",
       "AppealOutcome",
       "AppealQueueFilters",
       "AppealState",
+      "AppealsQueueBag",
       "BuiltinReasonCode",
       "Case",
+      "CaseBag",
       "CaseDetail",
       "CaseEvent",
       "CaseEventKind",
@@ -1101,6 +1245,7 @@
       "ModerationFlowSpec",
       "ModerationHostSeams",
       "ModerationI18nKey",
+      "ModerationQueueBag",
       "ModerationRuntime",
       "PagedRows",
       "PolicyAutomatedMeans",
@@ -1108,16 +1253,21 @@
       "PolicyHumanReview",
       "PolicyReason",
       "PolicyRule",
+      "QueueAccess",
+      "QueueFilters",
       "Remediation",
       "Report",
+      "ReportBag",
       "ReportFlowOptions",
       "ReportFlowState",
+      "ReportPolicyBag",
       "ReportResult",
       "RequestExtras",
       "RescanResult",
       "ResolveAppealBody",
       "ResolveAppealVariables",
       "Sanction",
+      "SanctionDurationMode",
       "SanctionFilters",
       "SanctionKind",
       "SanctionState",
@@ -1128,8 +1278,12 @@
       "SystemReasonCode",
       "TriageFlowOptions",
       "TriageFlowState",
+      "UseAppealOptions",
+      "UseCaseOptions",
+      "UseReportOptions",
       "Verdict",
       "VerdictBody",
+      "VerdictDraft",
       "VerdictSanction",
       "VerdictSource",
       "VerdictVariables"

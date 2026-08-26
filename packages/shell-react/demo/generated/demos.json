@@ -20,22 +20,26 @@
         {
           "id": "default",
           "description": "Desktop: sidebar, nested submenu, routed content.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "sider"
         },
         {
           "id": "admin-blocked",
           "description": "The admin section, listed and closed, with the reason under it.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "admin-blocked"
         },
         {
           "id": "phone",
           "description": "Phone: the chrome collapses to a header and a hamburger.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "collapsed"
         },
         {
           "id": "phone-drawer",
           "description": "The same phone chrome with the nav sheet open.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "drawer-open"
         }
       ],
       "source": {
@@ -57,22 +61,26 @@
         {
           "id": "default",
           "description": "Desktop: brand, search, browse bar, and the default sign-in CTA.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "anonymous"
         },
         {
           "id": "signed-in",
           "description": "A host's own account menu steps in for the CTA.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "account-slot"
         },
         {
           "id": "nothing-to-browse",
           "description": "No nav and no categories: no hamburger onto an empty sheet.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "no-browse"
         },
         {
           "id": "phone",
           "description": "Phone: the header and its search stay; browse collapses.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "collapsed"
         }
       ],
       "source": {
@@ -95,17 +103,20 @@
         {
           "id": "default",
           "description": "Following the device.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "system"
         },
         {
           "id": "pinned",
           "description": "Pinned to dark — the same colour as system-resolved-to-dark, a different mark.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "dark"
         },
         {
           "id": "phone",
           "description": "At phone width, where the 44px target and the absent tooltip matter.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "light"
         }
       ],
       "source": {

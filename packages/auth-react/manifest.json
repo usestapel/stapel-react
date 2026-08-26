@@ -4,7 +4,7 @@
   "version": "0.16.1",
   "backend": {
     "module": "stapel-auth",
-    "contract": ">=0.25 <0.26"
+    "contract": ">=0.28 <0.29"
   },
   "layers": [
     "api",
@@ -506,6 +506,13 @@
       "tag": "Passkeys",
       "request": null,
       "response": null
+    },
+    "auth_api_v1_passkey_partial_update": {
+      "method": "PATCH",
+      "path": "/auth/api/v1/passkey/{id}/",
+      "tag": "Passkeys",
+      "request": "PatchedPasskeyRename",
+      "response": "PasskeyItem"
     },
     "auth_api_v1_passkey_register_begin_create": {
       "method": "POST",
@@ -1062,6 +1069,27 @@
     }
   },
   "hooks": {
+    "useAdminAudit": {
+      "kind": "query",
+      "operation": "adminAudit",
+      "queryKey": [
+        "auth",
+        "admin",
+        "audit",
+        "{query}"
+      ]
+    },
+    "useAssignStaffRole": {
+      "kind": "mutation",
+      "operation": "assignStaffRole",
+      "invalidates": [
+        [
+          "auth",
+          "admin",
+          "staff-roles"
+        ]
+      ]
+    },
     "useAuditLog": {
       "kind": "query",
       "operation": "auditLog",
@@ -1117,6 +1145,33 @@
         ]
       ]
     },
+    "useCreateAdminUser": {
+      "kind": "mutation",
+      "operation": "createAdminUser"
+    },
+    "useCreateServiceKey": {
+      "kind": "mutation",
+      "operation": "createServiceKey",
+      "invalidates": [
+        [
+          "auth",
+          "admin",
+          "service-keys"
+        ]
+      ]
+    },
+    "useCreateSsoOrg": {
+      "kind": "mutation",
+      "operation": "createSsoOrg",
+      "invalidates": [
+        [
+          "auth",
+          "admin",
+          "sso",
+          "orgs"
+        ]
+      ]
+    },
     "useDelayedChangeStatus": {
       "kind": "query",
       "operation": "changeDelayedStatus",
@@ -1125,6 +1180,29 @@
         "change",
         "delayed",
         "{channel}"
+      ]
+    },
+    "useDeleteServiceKey": {
+      "kind": "mutation",
+      "operation": "deleteServiceKey",
+      "invalidates": [
+        [
+          "auth",
+          "admin",
+          "service-keys"
+        ]
+      ]
+    },
+    "useDeleteSsoOrg": {
+      "kind": "mutation",
+      "operation": "deleteSsoOrg",
+      "invalidates": [
+        [
+          "auth",
+          "admin",
+          "sso",
+          "orgs"
+        ]
       ]
     },
     "useDisableTotp": {
@@ -1240,6 +1318,27 @@
         ]
       ]
     },
+    "useRemoveStaffRole": {
+      "kind": "mutation",
+      "operation": "removeStaffRole",
+      "invalidates": [
+        [
+          "auth",
+          "admin",
+          "staff-roles"
+        ]
+      ]
+    },
+    "useRenamePasskey": {
+      "kind": "mutation",
+      "operation": "passkeyRename",
+      "invalidates": [
+        [
+          "auth",
+          "passkeys"
+        ]
+      ]
+    },
     "useRevokeOtherSessions": {
       "kind": "mutation",
       "operation": "revokeOtherSessions",
@@ -1265,6 +1364,29 @@
         ]
       ]
     },
+    "useSaveSsoOrgConfig": {
+      "kind": "mutation",
+      "operations": [
+        "patchSsoOrgConfig",
+        "putSsoOrgConfig"
+      ],
+      "invalidates": [
+        [
+          "auth",
+          "admin",
+          "sso",
+          "orgs",
+          "{slug}",
+          "config"
+        ],
+        [
+          "auth",
+          "admin",
+          "sso",
+          "orgs"
+        ]
+      ]
+    },
     "useSecurityStatus": {
       "kind": "query",
       "operation": "securityStatus",
@@ -1272,6 +1394,15 @@
         "auth",
         "security",
         "status"
+      ]
+    },
+    "useServiceKeys": {
+      "kind": "query",
+      "operation": "serviceKeys",
+      "queryKey": [
+        "auth",
+        "admin",
+        "service-keys"
       ]
     },
     "useSessions": {
@@ -1282,6 +1413,17 @@
         "sessions"
       ]
     },
+    "useSetVerificationPreference": {
+      "kind": "mutation",
+      "operation": "setVerificationPreference",
+      "invalidates": [
+        [
+          "auth",
+          "verification",
+          "preferences"
+        ]
+      ]
+    },
     "useSsoLookup": {
       "kind": "query",
       "operation": "ssoLookup",
@@ -1290,6 +1432,37 @@
         "sso",
         "lookup",
         "{domain}"
+      ]
+    },
+    "useSsoOrg": {
+      "kind": "query",
+      "operation": "ssoOrg",
+      "queryKey": [
+        "auth",
+        "admin",
+        "sso",
+        "orgs",
+        "{slug}"
+      ]
+    },
+    "useSsoOrgs": {
+      "kind": "query",
+      "operation": "ssoOrgs",
+      "queryKey": [
+        "auth",
+        "admin",
+        "sso",
+        "orgs"
+      ]
+    },
+    "useStaffRoles": {
+      "kind": "query",
+      "operation": "staffRoles",
+      "queryKey": [
+        "auth",
+        "admin",
+        "staff-roles",
+        "{userId}"
       ]
     },
     "useTotpDelayedChangeStatus": {
@@ -1316,6 +1489,45 @@
           "security",
           "status"
         ]
+      ]
+    },
+    "useUpdateServiceKey": {
+      "kind": "mutation",
+      "operation": "updateServiceKey",
+      "invalidates": [
+        [
+          "auth",
+          "admin",
+          "service-keys"
+        ]
+      ]
+    },
+    "useUpdateSsoOrg": {
+      "kind": "mutation",
+      "operation": "updateSsoOrg",
+      "invalidates": [
+        [
+          "auth",
+          "admin",
+          "sso",
+          "orgs",
+          "{slug}"
+        ],
+        [
+          "auth",
+          "admin",
+          "sso",
+          "orgs"
+        ]
+      ]
+    },
+    "useVerificationPreferences": {
+      "kind": "query",
+      "operation": "verificationPreferences",
+      "queryKey": [
+        "auth",
+        "verification",
+        "preferences"
       ]
     }
   },
@@ -1718,6 +1930,11 @@
       "params": [],
       "remediation": "retry"
     },
+    "error.403.change_requires_current": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
     "error.403.forbidden": {
       "status": 403,
       "params": [],
@@ -2067,6 +2284,65 @@
   },
   "demos": [
     {
+      "id": "auth.admin-audit-skin",
+      "title": "Audit log (operator console)",
+      "description": "Security activity across every account, newest first, filtered by event type, account and date range. Unrecognized activity carries a named chip; dates are formatted in the operator's app locale.",
+      "component": "AdminAuditPanel",
+      "variants": [
+        "default",
+        "no-matches",
+        "forbidden"
+      ],
+      "source": "demo/AdminAuditSkin.demo.tsx"
+    },
+    {
+      "id": "auth.admin-service-keys-skin",
+      "title": "Service keys (operator console)",
+      "description": "Credentials for machines: what each is for, whether it is live, what it may reach, and when it was last actually used. 'Never used' is printed, because that is how an operator spots a key issued for something that never shipped.",
+      "component": "ServiceKeysPanel",
+      "variants": [
+        "default",
+        "empty",
+        "forbidden"
+      ],
+      "source": "demo/AdminServiceKeysSkin.demo.tsx"
+    },
+    {
+      "id": "auth.admin-sso-orgs-skin",
+      "title": "Enterprise SSO (operator console)",
+      "description": "Organizations whose people sign in through their own identity provider: the domain each claims, whether SSO is required on it, and the four operator actions. Removing one takes every account on that domain off its SSO route, so it confirms by name.",
+      "component": "SsoOrgsPanel",
+      "variants": [
+        "default",
+        "empty",
+        "forbidden"
+      ],
+      "source": "demo/AdminSsoOrgsSkin.demo.tsx"
+    },
+    {
+      "id": "auth.admin-staff-roles-skin",
+      "title": "Staff roles (operator console)",
+      "description": "Every elevated grant on the deployment and its provenance. Accounts are named by the id the contract carries — a resolved display name here would be a guess printed beside a permission.",
+      "component": "StaffRolesPanel",
+      "variants": [
+        "default",
+        "empty",
+        "forbidden"
+      ],
+      "source": "demo/AdminStaffRolesSkin.demo.tsx"
+    },
+    {
+      "id": "auth.admin-users-skin",
+      "title": "Create an account (operator console)",
+      "description": "Provision an account with no sign-up and no code. The two switches that affect somebody else state their consequence beside them, and the result is the created account's id, kept on screen because it is what gets used next.",
+      "component": "AdminUsersPanel",
+      "variants": [
+        "default",
+        "refused"
+      ],
+      "source": "demo/AdminUsersSkin.demo.tsx"
+    },
+    {
       "id": "auth.anonymous-session",
       "title": "Anonymous session",
       "description": "Headless guest session: create(deviceId) mints an anonymous user you can later upgrade to a full account.",
@@ -2082,13 +2358,26 @@
       "source": "demo/AnonymousSession.demo.tsx"
     },
     {
+      "id": "auth.audit-log-skin",
+      "title": "Security log (default skin)",
+      "description": "Recent activity on this account, newest first, a page at a time. Unrecognized activity carries a named chip; dates are formatted in the app's locale, not the browser's.",
+      "component": "AuditLogPanel",
+      "variants": [
+        "default",
+        "empty",
+        "failed"
+      ],
+      "source": "demo/AuditLogPanelSkin.demo.tsx"
+    },
+    {
       "id": "auth.auth-panel-skin",
       "title": "Sign-in screen (default skin)",
       "description": "The shipped sign-in surface. Picking an alt method opens the fleet's dialog — a bottom sheet under 768px, a centred modal at or above it. Picking Passkey raises the system prompt immediately and opens nothing of ours unless the ceremony fails.",
       "component": "AuthPanel",
       "variants": [
         "default",
-        "register"
+        "register",
+        "session-revoked"
       ],
       "source": "demo/AuthPanelSkin.demo.tsx"
     },
@@ -2106,6 +2395,28 @@
         "default"
       ],
       "source": "demo/AuthenticatorChange.demo.tsx"
+    },
+    {
+      "id": "auth.authenticator-change-skin",
+      "title": "Authenticator change (default skin)",
+      "description": "One implementation, either channel. Instant when the current authenticator can be proved; a scheduled change with a cooldown when it cannot — and calling that off goes through the fleet's confirm, not a popover.",
+      "component": "AuthenticatorChangePanel",
+      "variants": [
+        "default",
+        "scheduled"
+      ],
+      "source": "demo/AuthenticatorChangePanelSkin.demo.tsx"
+    },
+    {
+      "id": "auth.email-change-skin",
+      "title": "Change email (default skin)",
+      "description": "The email half of the authenticator-change surface: prove the current address and swap now, or start the scheduled change when you cannot reach it any more.",
+      "component": "EmailChangePanel",
+      "variants": [
+        "default",
+        "scheduled"
+      ],
+      "source": "demo/EmailChangePanelSkin.demo.tsx"
     },
     {
       "id": "auth.first-login",
@@ -2127,6 +2438,17 @@
       "source": "demo/FirstLogin.demo.tsx"
     },
     {
+      "id": "auth.forced-password-change-skin",
+      "title": "Forced password change (default skin)",
+      "description": "The first-login gate: a new password and its confirmation, one primary action, and no route around it. On an account that also owes a second factor, finishing here chains straight into enrollment.",
+      "component": "ForcedPasswordChangeCard",
+      "variants": [
+        "default",
+        "refused"
+      ],
+      "source": "demo/ForcedPasswordChangeSkin.demo.tsx"
+    },
+    {
       "id": "auth.magic-link",
       "title": "Magic link",
       "description": "Headless magic-link request: request(email, redirectUrl) sends a one-tap sign-in link; the redirect is open-redirect-guarded.",
@@ -2140,6 +2462,29 @@
         "default"
       ],
       "source": "demo/MagicLink.demo.tsx"
+    },
+    {
+      "id": "auth.mfa-enroll-skin",
+      "title": "Enroll a second factor (default skin)",
+      "description": "The first-login MFA gate: pick an authenticator app or a passkey and finish the enrollment inside an enroll-scoped session. Completing a factor is what turns that session into a full one.",
+      "component": "MfaEnrollPanel",
+      "variants": [
+        "default",
+        "totp-only"
+      ],
+      "source": "demo/MfaEnrollPanelSkin.demo.tsx"
+    },
+    {
+      "id": "auth.oauth-links-skin",
+      "title": "Connected accounts (default skin)",
+      "description": "Providers this deployment offers, which of them this account is connected to, and the two controls that exist. Connect states its own blocker in text when the host has wired no provider SDK.",
+      "component": "OAuthLinks",
+      "variants": [
+        "default",
+        "connect-blocked",
+        "no-providers"
+      ],
+      "source": "demo/OAuthLinksSkin.demo.tsx"
     },
     {
       "id": "auth.passkey-login",
@@ -2179,7 +2524,8 @@
       "component": "PasskeysManager",
       "variants": [
         "default",
-        "empty"
+        "empty",
+        "add-blocked"
       ],
       "source": "demo/PasskeysManagerSkin.demo.tsx"
     },
@@ -2197,6 +2543,18 @@
         "default"
       ],
       "source": "demo/PasswordChange.demo.tsx"
+    },
+    {
+      "id": "auth.password-change-skin",
+      "title": "Change password (default skin)",
+      "description": "One tab per route the backend says this account can actually take: the current password, or a code to a verified contact. Never a form that is going to be refused.",
+      "component": "PasswordChangePanel",
+      "variants": [
+        "default",
+        "no-methods",
+        "failed"
+      ],
+      "source": "demo/PasswordChangePanelSkin.demo.tsx"
     },
     {
       "id": "auth.password-login",
@@ -2265,6 +2623,39 @@
       "source": "demo/PasswordlessLogin.demo.tsx"
     },
     {
+      "id": "auth.phone-change-skin",
+      "title": "Change phone (default skin)",
+      "description": "The phone half of the authenticator-change surface. Same machine as email, different channel — the code length comes from the deployment, never from a constant in the skin.",
+      "component": "PhoneChangePanel",
+      "variants": [
+        "default",
+        "scheduled"
+      ],
+      "source": "demo/PhoneChangePanelSkin.demo.tsx"
+    },
+    {
+      "id": "auth.qr-confirm-skin",
+      "title": "Confirm a sign-in (default skin)",
+      "description": "The scanner's screen: approve or decline a sign-in on a device you are not looking at. Both answers are equally reachable, and a missing code is stated rather than rendered as a form.",
+      "component": "QrConfirmPanel",
+      "variants": [
+        "default",
+        "no-key"
+      ],
+      "source": "demo/QrConfirmPanelSkin.demo.tsx"
+    },
+    {
+      "id": "auth.qr-device-link-skin",
+      "title": "Sign in another device (default skin)",
+      "description": "A settings row that opens the QR journey in the fleet's dialog. Idle until triggered — no code is minted, and nothing is polled, until somebody opens it.",
+      "component": "QrDeviceLinkPanel",
+      "variants": [
+        "default",
+        "custom-landing"
+      ],
+      "source": "demo/QrDeviceLinkPanelSkin.demo.tsx"
+    },
+    {
       "id": "auth.qr-login",
       "title": "QR login (cross-device)",
       "description": "Headless QR authentication with background polling: start() yields a scanUrl to render as a QR image; delivered tokens adopt into the session.",
@@ -2281,6 +2672,29 @@
       "source": "demo/QrLogin.demo.tsx"
     },
     {
+      "id": "auth.security-settings-skin",
+      "title": "Security settings page (default skin)",
+      "description": "The composed page a host mounts behind one menu item: contact details, password, two-factor, devices, connected accounts, extra verification and the security log — as sections, on a page that paints its own ground.",
+      "component": "SecuritySettings",
+      "variants": [
+        "default",
+        "fresh-account"
+      ],
+      "source": "demo/SecuritySettingsSkin.demo.tsx"
+    },
+    {
+      "id": "auth.sessions-list-skin",
+      "title": "Devices and sessions (default skin)",
+      "description": "Every session on the account: what it is, where from, how long ago, and which one is this device. The unrecognized sign-in carries its own badge and a 'that was me' beside the sign-out, because confirming and revoking are different decisions.",
+      "component": "SessionsList",
+      "variants": [
+        "default",
+        "single-device",
+        "failed"
+      ],
+      "source": "demo/SessionsListSkin.demo.tsx"
+    },
+    {
       "id": "auth.sso-discovery",
       "title": "SSO discovery",
       "description": "Headless enterprise SSO: lookup(domain) resolves whether a work email must use SSO; beginLogin(orgSlug) redirects to the IdP.",
@@ -2294,6 +2708,18 @@
         "default"
       ],
       "source": "demo/SsoDiscovery.demo.tsx"
+    },
+    {
+      "id": "auth.totp-manager-skin",
+      "title": "Two-factor authentication (default skin)",
+      "description": "The authenticator-app card: on or off stated first, the backup codes left, and only the actions that state allows. A scheduled removal replaces the whole body — while one is in flight there is nothing else to decide here except whether to call it off.",
+      "component": "TotpManager",
+      "variants": [
+        "enabled",
+        "off",
+        "removal-scheduled"
+      ],
+      "source": "demo/TotpManagerSkin.demo.tsx"
     },
     {
       "id": "auth.totp-setup",
@@ -2323,9 +2749,139 @@
         "default"
       ],
       "source": "demo/VerificationChallenge.demo.tsx"
+    },
+    {
+      "id": "auth.verification-preferences-skin",
+      "title": "Extra verification (default skin)",
+      "description": "One decision per scope, sparse by contract. An undecided scope shows no selection and says it follows the app's default; switching one off is itself step-up protected, and the screen says so before the press.",
+      "component": "VerificationPreferences",
+      "variants": [
+        "default",
+        "undecided",
+        "failed"
+      ],
+      "source": "demo/VerificationPreferencesSkin.demo.tsx"
     }
   ],
   "i18nKeys": [
+    "auth.admin.audit.actor",
+    "auth.admin.audit.apply",
+    "auth.admin.audit.clear",
+    "auth.admin.audit.count",
+    "auth.admin.audit.empty",
+    "auth.admin.audit.empty_hint",
+    "auth.admin.audit.filter_event",
+    "auth.admin.audit.filter_from",
+    "auth.admin.audit.filter_to",
+    "auth.admin.audit.filter_user",
+    "auth.admin.audit.subtitle",
+    "auth.admin.audit.title",
+    "auth.admin.keys.active",
+    "auth.admin.keys.cancel",
+    "auth.admin.keys.created_on",
+    "auth.admin.keys.delete",
+    "auth.admin.keys.delete_confirm_body",
+    "auth.admin.keys.delete_confirm_title",
+    "auth.admin.keys.delete_label",
+    "auth.admin.keys.description_label",
+    "auth.admin.keys.disable",
+    "auth.admin.keys.empty",
+    "auth.admin.keys.empty_hint",
+    "auth.admin.keys.enable",
+    "auth.admin.keys.endpoints_all",
+    "auth.admin.keys.endpoints_count",
+    "auth.admin.keys.endpoints_hint",
+    "auth.admin.keys.endpoints_label",
+    "auth.admin.keys.inactive",
+    "auth.admin.keys.issue",
+    "auth.admin.keys.last_used",
+    "auth.admin.keys.name_label",
+    "auth.admin.keys.never_used",
+    "auth.admin.keys.secret_copied",
+    "auth.admin.keys.secret_copy",
+    "auth.admin.keys.secret_done",
+    "auth.admin.keys.secret_hint",
+    "auth.admin.keys.secret_title",
+    "auth.admin.keys.subtitle",
+    "auth.admin.keys.title",
+    "auth.admin.roles.assign",
+    "auth.admin.roles.assigned_by",
+    "auth.admin.roles.assigned_by_system",
+    "auth.admin.roles.assigned_on",
+    "auth.admin.roles.cancel",
+    "auth.admin.roles.empty",
+    "auth.admin.roles.empty_hint",
+    "auth.admin.roles.filter_clear",
+    "auth.admin.roles.filter_label",
+    "auth.admin.roles.remove",
+    "auth.admin.roles.remove_confirm_body",
+    "auth.admin.roles.remove_confirm_title",
+    "auth.admin.roles.remove_label",
+    "auth.admin.roles.role_hint",
+    "auth.admin.roles.role_label",
+    "auth.admin.roles.subtitle",
+    "auth.admin.roles.title",
+    "auth.admin.roles.user_hint",
+    "auth.admin.roles.user_label",
+    "auth.admin.roles.user_row",
+    "auth.admin.sso.active_label",
+    "auth.admin.sso.add",
+    "auth.admin.sso.attr_email",
+    "auth.admin.sso.attr_first_name",
+    "auth.admin.sso.attr_last_name",
+    "auth.admin.sso.cancel",
+    "auth.admin.sso.config_new",
+    "auth.admin.sso.config_title",
+    "auth.admin.sso.configure",
+    "auth.admin.sso.created_on",
+    "auth.admin.sso.delete",
+    "auth.admin.sso.delete_confirm_body",
+    "auth.admin.sso.delete_confirm_title",
+    "auth.admin.sso.delete_label",
+    "auth.admin.sso.domain_hint",
+    "auth.admin.sso.domain_label",
+    "auth.admin.sso.edit",
+    "auth.admin.sso.edit_label",
+    "auth.admin.sso.empty",
+    "auth.admin.sso.empty_hint",
+    "auth.admin.sso.enforced_label",
+    "auth.admin.sso.enforced_off",
+    "auth.admin.sso.enforced_on",
+    "auth.admin.sso.name_label",
+    "auth.admin.sso.oidc_client_id",
+    "auth.admin.sso.oidc_client_secret",
+    "auth.admin.sso.oidc_discovery",
+    "auth.admin.sso.oidc_scopes",
+    "auth.admin.sso.protocol_label",
+    "auth.admin.sso.protocol_oidc",
+    "auth.admin.sso.protocol_saml",
+    "auth.admin.sso.saml_cert",
+    "auth.admin.sso.saml_entity_id",
+    "auth.admin.sso.saml_name_id",
+    "auth.admin.sso.saml_slo_url",
+    "auth.admin.sso.saml_sso_url",
+    "auth.admin.sso.save",
+    "auth.admin.sso.slug_hint",
+    "auth.admin.sso.slug_label",
+    "auth.admin.sso.subtitle",
+    "auth.admin.sso.title",
+    "auth.admin.users.another",
+    "auth.admin.users.created",
+    "auth.admin.users.created_id",
+    "auth.admin.users.display_name_label",
+    "auth.admin.users.email_label",
+    "auth.admin.users.mark_verified",
+    "auth.admin.users.mark_verified_hint",
+    "auth.admin.users.needs_contact",
+    "auth.admin.users.password_hint",
+    "auth.admin.users.password_label",
+    "auth.admin.users.phone_label",
+    "auth.admin.users.send_welcome",
+    "auth.admin.users.send_welcome_hint",
+    "auth.admin.users.submit",
+    "auth.admin.users.subtitle",
+    "auth.admin.users.title",
+    "auth.admin.users.username_label",
     "auth.error.unknown",
     "auth.forcedChange.confirm_label",
     "auth.forcedChange.hint",
@@ -2343,6 +2899,11 @@
     "auth.mfaEnroll.restart_hint",
     "auth.mfaEnroll.success",
     "auth.mfaEnroll.title",
+    "auth.nav.admin_audit",
+    "auth.nav.admin_service_keys",
+    "auth.nav.admin_sso",
+    "auth.nav.admin_staff_roles",
+    "auth.nav.admin_users",
     "auth.nav.login",
     "auth.nav.qr_confirm",
     "auth.nav.security",
@@ -2367,8 +2928,10 @@
     "auth.qr.confirm.title",
     "auth.qr.error.session_not_adopted",
     "auth.sec.audit.empty",
+    "auth.sec.audit.empty_hint",
     "auth.sec.audit.ip",
     "auth.sec.audit.load_more",
+    "auth.sec.audit.suspicious_label",
     "auth.sec.audit.title",
     "auth.sec.change.cancel_confirm_title",
     "auth.sec.change.confirm_cta",
@@ -2394,17 +2957,20 @@
     "auth.sec.group.devices",
     "auth.sec.group.password",
     "auth.sec.group.two_factor",
+    "auth.sec.group.verification",
     "auth.sec.method_cap.both",
     "auth.sec.method_cap.login",
     "auth.sec.method_cap.portable_anon",
     "auth.sec.method_cap.register",
     "auth.sec.oauth.empty",
+    "auth.sec.oauth.empty_hint",
     "auth.sec.oauth.link",
     "auth.sec.oauth.link_unavailable",
     "auth.sec.oauth.linked",
     "auth.sec.oauth.title",
     "auth.sec.oauth.unlink",
     "auth.sec.oauth.unlink_confirm_title",
+    "auth.sec.oauth.unlink_label",
     "auth.sec.oauth.unlink_unavailable",
     "auth.sec.page.subtitle",
     "auth.sec.page.title",
@@ -2416,6 +2982,8 @@
     "auth.sec.passkeys.awaiting_ceremony",
     "auth.sec.passkeys.done",
     "auth.sec.passkeys.empty",
+    "auth.sec.passkeys.empty_hint",
+    "auth.sec.passkeys.gone",
     "auth.sec.passkeys.kind_device",
     "auth.sec.passkeys.kind_phone",
     "auth.sec.passkeys.kind_security_key",
@@ -2424,12 +2992,18 @@
     "auth.sec.passkeys.never_used",
     "auth.sec.passkeys.remove",
     "auth.sec.passkeys.remove_confirm_title",
+    "auth.sec.passkeys.remove_label",
+    "auth.sec.passkeys.rename",
+    "auth.sec.passkeys.rename_field",
+    "auth.sec.passkeys.rename_label",
+    "auth.sec.passkeys.rename_save",
     "auth.sec.passkeys.title",
     "auth.sec.password.change_cta",
     "auth.sec.password.confirm_label",
     "auth.sec.password.mismatch",
     "auth.sec.password.new_label",
     "auth.sec.password.no_methods",
+    "auth.sec.password.no_methods_hint",
     "auth.sec.password.old_label",
     "auth.sec.password.success",
     "auth.sec.password.title",
@@ -2446,6 +3020,7 @@
     "auth.sec.qr.title",
     "auth.sec.sessions.confirm_me",
     "auth.sec.sessions.empty",
+    "auth.sec.sessions.empty_hint",
     "auth.sec.sessions.last_used",
     "auth.sec.sessions.sign_out",
     "auth.sec.sessions.sign_out_all",
@@ -2482,6 +3057,18 @@
     "auth.sec.totp.setup_title",
     "auth.sec.totp.title",
     "auth.sec.totp.use_backup_toggle",
+    "auth.sec.verify.default",
+    "auth.sec.verify.disable_note",
+    "auth.sec.verify.empty",
+    "auth.sec.verify.empty_hint",
+    "auth.sec.verify.off",
+    "auth.sec.verify.on",
+    "auth.sec.verify.scope.other",
+    "auth.sec.verify.scope.settings",
+    "auth.sec.verify.scope.settings_hint",
+    "auth.sec.verify.subtitle",
+    "auth.sec.verify.title",
+    "auth.sec.verify.toggle_label",
     "auth.session.suspicious",
     "auth.session.this_device",
     "auth.totp.enter_code",
@@ -2525,6 +3112,8 @@
     "auth.ui.sso_domain_label",
     "auth.ui.sso_domain_placeholder",
     "auth.ui.submit",
+    "auth.ui.switch_to_login",
+    "auth.ui.switch_to_register",
     "auth.verification.choose_factor",
     "auth.verification.success",
     "error.400.bad_request",
@@ -2601,6 +3190,7 @@
     "error.401.unauthorized",
     "error.401.user_not_found",
     "error.402.payment_required",
+    "error.403.change_requires_current",
     "error.403.forbidden",
     "error.403.gdpr.account_closed",
     "error.403.gdpr.erasure_forbidden",

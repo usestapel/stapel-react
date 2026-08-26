@@ -99,7 +99,7 @@ export function DsarForm(props: DsarFormProps): ReactElement {
             <Alert
               type="success"
               showIcon
-              message={t(GDPR_I18N_KEYS.dsarSubmitted)}
+              title={t(GDPR_I18N_KEYS.dsarSubmitted)}
             />
             <Typography.Text strong data-testid="gdpr-dsar-reference">
               {t(GDPR_I18N_KEYS.dsarReference, { id: submitted.request_id })}
@@ -178,7 +178,7 @@ export function DsarForm(props: DsarFormProps): ReactElement {
               type="warning"
               showIcon
               data-testid="gdpr-dsar-email-required"
-              message={t(GDPR_I18N_KEYS.dsarEmailRequired)}
+              title={t(GDPR_I18N_KEYS.dsarEmailRequired)}
             />
           ) : null}
 
@@ -189,7 +189,7 @@ export function DsarForm(props: DsarFormProps): ReactElement {
               data-testid={
                 isCaptchaRefusal(error) ? "gdpr-dsar-captcha" : "gdpr-dsar-failed"
               }
-              message={describe(toFlowError(error)).message}
+              title={describe(toFlowError(error)).message}
             />
           ) : null}
 

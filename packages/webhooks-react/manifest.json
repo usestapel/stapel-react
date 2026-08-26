@@ -87,7 +87,128 @@
       "response": "SubscriptionSecretDTO"
     }
   },
-  "hooks": {},
+  "hooks": {
+    "useCreateSubscription": {
+      "kind": "mutation",
+      "operation": "createSubscription",
+      "invalidates": [
+        [
+          "webhooks",
+          "subscriptions"
+        ]
+      ]
+    },
+    "useDeliveries": {
+      "kind": "mutation",
+      "operations": [
+        "deliveries",
+        "replay"
+      ],
+      "invalidates": [
+        [
+          "webhooks",
+          "deliveries"
+        ],
+        [
+          "webhooks",
+          "deliveries",
+          "one",
+          "{deliveryId}"
+        ],
+        [
+          "webhooks",
+          "deliveries",
+          "list",
+          "{subscriptionId}",
+          "{status}"
+        ]
+      ]
+    },
+    "useDelivery": {
+      "kind": "query",
+      "operation": "delivery",
+      "queryKey": [
+        "webhooks",
+        "deliveries",
+        "one",
+        "{deliveryId}"
+      ]
+    },
+    "useEventCatalog": {
+      "kind": "query",
+      "operation": "eventCatalog",
+      "queryKey": [
+        "webhooks",
+        "catalog"
+      ]
+    },
+    "useSecretRotation": {
+      "kind": "mutation",
+      "operation": "rotateSecret",
+      "invalidates": [
+        [
+          "webhooks",
+          "subscriptions"
+        ]
+      ]
+    },
+    "useSubscription": {
+      "kind": "query",
+      "operation": "subscription",
+      "queryKey": [
+        "webhooks",
+        "subscriptions",
+        "one",
+        "{subscriptionId}"
+      ]
+    },
+    "useSubscriptions": {
+      "kind": "mutation",
+      "operations": [
+        "deleteSubscription",
+        "subscriptions",
+        "updateSubscription"
+      ],
+      "invalidates": [
+        [
+          "webhooks",
+          "deliveries"
+        ],
+        [
+          "webhooks",
+          "subscriptions",
+          "one",
+          "{subscriptionId}"
+        ],
+        [
+          "webhooks",
+          "subscriptions",
+          "list",
+          "{filtersKey}"
+        ],
+        [
+          "webhooks",
+          "subscriptions"
+        ]
+      ]
+    },
+    "useUpdateSubscription": {
+      "kind": "mutation",
+      "operation": "updateSubscription",
+      "invalidates": [
+        [
+          "webhooks",
+          "subscriptions",
+          "one",
+          "{subscriptionId}"
+        ],
+        [
+          "webhooks",
+          "subscriptions"
+        ]
+      ]
+    }
+  },
   "errors": {
     "error.400.bad_request": {
       "status": 400,
@@ -391,7 +512,157 @@
     "defined": [],
     "flows": []
   },
-  "demos": [],
+  "demos": [
+    {
+      "id": "webhooks.deliveries",
+      "title": "Delivery log",
+      "description": "The retention line at the top is load-bearing: successful rows are swept after a week and dead letters after ninety days, and without that sentence 'my delivery disappeared' is indistinguishable from 'my delivery was never recorded'. Replay is on every row and refused with a reason on every row that is not a dead letter — the backend answers 409 for anything else, and a button that appears and disappears per row teaches nobody the rule. There is no stream anywhere in this module, so while something is still in flight the log re-reads every fifteen seconds and says so, rather than changing silently under somebody's cursor.",
+      "component": "DeliveriesPane",
+      "tokens": [
+        "success",
+        "error",
+        "warning",
+        "text-muted"
+      ],
+      "variants": [
+        "default",
+        "phone",
+        "dead-letter",
+        "empty"
+      ],
+      "source": "demo/DeliveriesPane.demo.tsx"
+    },
+    {
+      "id": "webhooks.delivery-detail",
+      "title": "Delivery detail",
+      "description": "The envelope and the headers are REBUILT from the stored event, and the sheet says so above them. The module keeps the matched payload and the identifiers; the transport assembles the envelope at send time from exactly those fields, so this is what a replay would send rather than a recording of the original request — and a screen that implied otherwise would send somebody hunting for a difference that is an artefact of the reconstruction. The signature line is deliberately absent: it is an HMAC over the body with a secret this client does not hold, and a fabricated one would be the single most misleading row on the page.",
+      "component": "DeliveryDetailSheet",
+      "tokens": [
+        "error",
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "phone",
+        "succeeded"
+      ],
+      "source": "demo/DeliveryDetailSheet.demo.tsx"
+    },
+    {
+      "id": "webhooks.mandate-notice",
+      "title": "Workspace mandate unavailable",
+      "description": "Every route of stapel-webhooks is guarded by the workspace-mandate check, and in a tenant deployment that guard can answer 503 `mandate_unavailable`: we could not verify whether you belong to this workspace. It is not a permission failure and not a fault in anybody's webhook configuration — which is exactly the conclusion a red error banner invites on a developer-settings tab. So it has an arm of its own, in the voice that fits: this is on our side, it is temporary, here is the retry. Every read in the pair routes its failed arm through this component.",
+      "component": "MandateNotice",
+      "tokens": [
+        "info",
+        "text-muted"
+      ],
+      "variants": [
+        "default",
+        "phone",
+        "no-retry"
+      ],
+      "source": "demo/MandateNotice.demo.tsx"
+    },
+    {
+      "id": "webhooks.provider",
+      "title": "Webhooks provider",
+      "description": "The headless webhooks root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "WebhooksProvider",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/Webhooks.demo.tsx"
+    },
+    {
+      "id": "webhooks.secret-reveal",
+      "title": "Signing secret (shown once)",
+      "description": "The backend keeps a hash; the 201 of a create and the 200 of a rotate are the only two responses that ever carry the plaintext, and no read returns it. So this is the last place the value exists outside the receiver that will verify with it — which is why the warning is ABOVE the value rather than under it, why copying is a real button with an aria-label instead of a decorative glyph, and why the exit is an explicit acknowledgement rather than a ✕ somebody can hit before reading. Acknowledging drops the value from memory: nothing in the page keeps a copy after the person says they have it.",
+      "component": "SecretReveal",
+      "tokens": [
+        "warning",
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "phone",
+        "no-docs"
+      ],
+      "source": "demo/SecretReveal.demo.tsx"
+    },
+    {
+      "id": "webhooks.secret-rotation",
+      "title": "Rotate signing secret",
+      "description": "There is no overlap window: the old secret stops verifying the instant the new one is issued, so every delivery to a receiver that has not been updated fails from that moment — and enough failures switch the webhook off. That is a live integration going down as the direct consequence of one click, which is what the confirm's BODY says instead of asking 'are you sure?'. For a delivery type that carries no signature at all the control is gated with that as its stated reason, beside it: the backend's answer there is a 400 nobody can act on, and a button whose only outcome is a refusal should not be offered.",
+      "component": "SecretRotation",
+      "tokens": [
+        "error",
+        "text-muted"
+      ],
+      "variants": [
+        "default",
+        "phone",
+        "unsigned"
+      ],
+      "source": "demo/SecretRotation.demo.tsx"
+    },
+    {
+      "id": "webhooks.settings-page",
+      "title": "Webhooks (developer settings)",
+      "description": "The tab under account settings, beside two-factor and sessions — because a webhook is something you configure about your own account, not a third of the product's navigation. The page adds exactly two things to the list: one sentence saying what a webhook is, and the host's link to its receiver documentation. Both matter on the first visit, which for this feature is the visit that decides whether anybody uses it: the signature scheme, the header names and the 300-second tolerance live in the backend's `signing.py` and are served nowhere, so without that link a person leaves here holding a secret they have no way to verify with.",
+      "component": "WebhooksSettingsPane",
+      "tokens": [
+        "surface-raised",
+        "surface-base",
+        "text-muted"
+      ],
+      "variants": [
+        "default",
+        "phone",
+        "empty"
+      ],
+      "source": "demo/WebhooksSettingsPane.demo.tsx"
+    },
+    {
+      "id": "webhooks.subscription-sheet",
+      "title": "New webhook",
+      "description": "A bottom sheet on a phone and a modal above 768px, because it is the same dialog either way. The event list comes from `GET event-catalog` — generated from the modules actually installed here — so the picker can never offer an event nothing emits or hide one a host's own module does. Everything decidable in the browser is decided in the browser: a missing target key, an http:// URL, a predicate outside the grammar. The backend answers each of those with a single code that names no position, so the sheet answers them beside the field instead.",
+      "component": "SubscriptionSheet",
+      "tokens": [
+        "surface-raised",
+        "error"
+      ],
+      "variants": [
+        "default",
+        "phone",
+        "notification",
+        "invalid-filter",
+        "at-cap"
+      ],
+      "source": "demo/SubscriptionSheet.demo.tsx"
+    },
+    {
+      "id": "webhooks.subscriptions",
+      "title": "Webhook rules",
+      "description": "Event, delivery, destination, on/off, failures. The destination is a SUMMARY — the host of a URL, the recipient of a notification — because the full target is unreadable at list width and one row-open away in the sheet. The switch carries its own copy: re-activating a rule resets its failure counter server-side, so the person is told it gets the full run of retries again rather than one more attempt.",
+      "component": "SubscriptionsPane",
+      "tokens": [
+        "surface-raised",
+        "error",
+        "warning"
+      ],
+      "variants": [
+        "default",
+        "phone",
+        "auto-disabled",
+        "mandate-unavailable"
+      ],
+      "source": "demo/SubscriptionsPane.demo.tsx"
+    }
+  ],
   "i18nKeys": [
     "error.400.bad_request",
     "error.400.captcha_invalid",
@@ -446,15 +717,159 @@
     "error.429.too_many_requests",
     "error.500.internal",
     "error.503.mandate_unavailable",
+    "webhooks.active.label",
+    "webhooks.active.off",
+    "webhooks.active.on",
+    "webhooks.active.reactivatedNote",
+    "webhooks.autoDisabled",
+    "webhooks.col.actions",
+    "webhooks.col.active",
+    "webhooks.col.delivery",
+    "webhooks.col.event",
+    "webhooks.col.lastDelivery",
+    "webhooks.col.strikes",
+    "webhooks.col.target",
+    "webhooks.delivery.custom",
+    "webhooks.delivery.notification",
+    "webhooks.delivery.unknown",
+    "webhooks.delivery.webhook",
+    "webhooks.delivery.ws",
+    "webhooks.detail.envelope",
+    "webhooks.detail.headers",
+    "webhooks.detail.lastError",
+    "webhooks.detail.noResponse",
+    "webhooks.detail.reconstructed",
+    "webhooks.detail.response",
+    "webhooks.detail.title",
+    "webhooks.dialog.dismiss",
+    "webhooks.disabledAt",
+    "webhooks.docs",
+    "webhooks.edit",
+    "webhooks.empty",
+    "webhooks.emptyHint",
     "webhooks.error.unknown",
-    "webhooks.nav.overview",
-    "webhooks.panel.empty",
-    "webhooks.panel.loading"
+    "webhooks.failed",
+    "webhooks.filter.badKey",
+    "webhooks.filter.badPath",
+    "webhooks.filter.emptyMatcher",
+    "webhooks.filter.groupNeedsList",
+    "webhooks.filter.notJson",
+    "webhooks.filter.notObject",
+    "webhooks.filter.opNeedsBoolean",
+    "webhooks.filter.opNeedsList",
+    "webhooks.filter.opNeedsNumber",
+    "webhooks.filter.opNeedsString",
+    "webhooks.filter.tooDeep",
+    "webhooks.filter.unknownFieldOp",
+    "webhooks.filter.unknownGroupOp",
+    "webhooks.filter.valid",
+    "webhooks.form.delivery",
+    "webhooks.form.description",
+    "webhooks.form.editTitle",
+    "webhooks.form.event",
+    "webhooks.form.eventHint",
+    "webhooks.form.eventPlaceholder",
+    "webhooks.form.filter",
+    "webhooks.form.filterHint",
+    "webhooks.form.needsDelivery",
+    "webhooks.form.needsEvent",
+    "webhooks.form.noChanges",
+    "webhooks.form.notificationType",
+    "webhooks.form.path",
+    "webhooks.form.recipient",
+    "webhooks.form.save",
+    "webhooks.form.stream",
+    "webhooks.form.submit",
+    "webhooks.form.target",
+    "webhooks.form.targetField",
+    "webhooks.form.title",
+    "webhooks.form.unknownDeliveryTarget",
+    "webhooks.form.url",
+    "webhooks.form.urlHint",
+    "webhooks.intro",
+    "webhooks.loading",
+    "webhooks.log.attempts",
+    "webhooks.log.empty",
+    "webhooks.log.emptyHint",
+    "webhooks.log.error",
+    "webhooks.log.last",
+    "webhooks.log.next",
+    "webhooks.log.openDetail",
+    "webhooks.log.payload",
+    "webhooks.log.polling",
+    "webhooks.log.replay",
+    "webhooks.log.replayOnlyDead",
+    "webhooks.log.replayed",
+    "webhooks.log.response",
+    "webhooks.log.retention",
+    "webhooks.log.status",
+    "webhooks.log.status.all",
+    "webhooks.log.status.dead",
+    "webhooks.log.status.pending",
+    "webhooks.log.status.retrying",
+    "webhooks.log.status.succeeded",
+    "webhooks.log.status.unknown",
+    "webhooks.log.title",
+    "webhooks.mandate",
+    "webhooks.mandateHint",
+    "webhooks.nav.webhooks",
+    "webhooks.never",
+    "webhooks.new",
+    "webhooks.openLog",
+    "webhooks.remove",
+    "webhooks.removeConfirm",
+    "webhooks.removeConfirmBody",
+    "webhooks.secret.absent",
+    "webhooks.secret.ack",
+    "webhooks.secret.close",
+    "webhooks.secret.copied",
+    "webhooks.secret.copy",
+    "webhooks.secret.docs",
+    "webhooks.secret.present",
+    "webhooks.secret.rotate",
+    "webhooks.secret.rotateConfirm",
+    "webhooks.secret.rotateConfirmBody",
+    "webhooks.secret.rotateUnsaved",
+    "webhooks.secret.rotateUnsigned",
+    "webhooks.secret.shownOnce",
+    "webhooks.secret.title",
+    "webhooks.strikes",
+    "webhooks.target.insecure",
+    "webhooks.target.missing",
+    "webhooks.target.noRecipient",
+    "webhooks.title"
   ],
   "exports": {
     "runtime": [
+      "BUILTIN_DELIVERY_TYPES",
+      "DEFAULT_RETENTION",
+      "DEFAULT_WEBHOOKS_BASE_URL",
+      "DELIVERY_CUSTOM",
+      "DELIVERY_NOTIFICATION",
+      "DELIVERY_POLL_INTERVAL_MS",
+      "DELIVERY_STATUSES",
+      "DELIVERY_WEBHOOK",
+      "DELIVERY_WS",
+      "FILTER_FIELD_OPS",
+      "FILTER_GROUP_OPS",
+      "FILTER_MESSAGE_KEYS",
+      "MAX_FILTER_DEPTH",
+      "SUBSCRIPTION_LIST_LIMIT",
       "WEBHOOKS_ERRORS",
       "WEBHOOKS_ERROR_CODES",
+      "WEBHOOKS_ERROR_DELIVERY_NOT_FOUND",
+      "WEBHOOKS_ERROR_FORBIDDEN",
+      "WEBHOOKS_ERROR_INSECURE_TARGET",
+      "WEBHOOKS_ERROR_INVALID_FILTER",
+      "WEBHOOKS_ERROR_INVALID_TARGET",
+      "WEBHOOKS_ERROR_MANDATE_UNAVAILABLE",
+      "WEBHOOKS_ERROR_NOT_REPLAYABLE",
+      "WEBHOOKS_ERROR_NOT_SIGNED_TYPE",
+      "WEBHOOKS_ERROR_SUBSCRIPTION_CAP",
+      "WEBHOOKS_ERROR_SUBSCRIPTION_NOT_FOUND",
+      "WEBHOOKS_ERROR_UNKNOWN_DELIVERY",
+      "WEBHOOKS_ERROR_UNKNOWN_EVENT",
+      "WEBHOOKS_EVENTS",
       "WEBHOOKS_FLOWS",
       "WEBHOOKS_I18N_KEYS",
       "WebhooksProvider",
@@ -462,31 +877,96 @@
       "createFlowMachine",
       "createWebhooksApi",
       "createWebhooksRuntime",
+      "deliveryEnvelope",
+      "deliveryHeaders",
+      "deliveryTypeSpec",
       "explainWebhooksError",
       "flowEndpoints",
+      "formatDate",
+      "formatInstant",
+      "formatJson",
+      "formatOptionalInstant",
+      "isDeliveryNotFound",
+      "isDeliveryStatus",
       "isErrorCode",
+      "isInsecureTarget",
+      "isInvalidFilter",
+      "isInvalidTarget",
+      "isMandateUnavailable",
+      "isNotReplayable",
+      "isNotSignedType",
+      "isSignedDelivery",
+      "isSubscriptionCap",
+      "isSubscriptionNotFound",
+      "isUnknownDelivery",
+      "isUnknownEvent",
+      "isWebhooksForbidden",
+      "navEntries",
       "registerWebhooksI18n",
+      "subscriptionFiltersKey",
+      "targetKeysFor",
+      "targetSummary",
       "toFlowError",
+      "toWebhooksError",
+      "useCreateSubscription",
+      "useDeliveries",
+      "useDelivery",
+      "useEventCatalog",
       "useFlow",
+      "useSecretRotation",
+      "useSubscription",
+      "useSubscriptionForm",
+      "useSubscriptions",
+      "useUpdateSubscription",
       "useWebhooksAnalytics",
       "useWebhooksApi",
       "useWebhooksRuntime",
+      "validateFilterText",
+      "validateFilterValue",
+      "validateTarget",
       "webhooksErrorBundleEn",
       "webhooksI18nBundleEn",
       "webhooksQueryKeys"
     ],
     "types": [
+      "CatalogEvent",
+      "CatalogGroup",
+      "CreateSubscriptionBody",
       "CreateWebhooksRuntimeOptions",
+      "DeliveriesBag",
+      "Delivery",
+      "DeliveryFilters",
+      "DeliveryStatus",
+      "DeliveryTarget",
+      "DeliveryTypeSpec",
+      "EventCatalog",
+      "EventCatalogBag",
+      "FilterMessageKeys",
+      "FilterProblem",
+      "FilterValidation",
       "FlowEndpoint",
       "FlowError",
       "FlowMachine",
       "FlowMachineOptions",
       "FlowStateBase",
       "Remediation",
+      "ReplayResult",
+      "RetentionWindow",
       "Schemas",
+      "SecretRotationBag",
+      "Subscription",
+      "SubscriptionCreate",
+      "SubscriptionFilters",
+      "SubscriptionFormBag",
+      "SubscriptionFormFields",
+      "SubscriptionPatch",
+      "SubscriptionSecret",
+      "SubscriptionsBag",
+      "TargetProblem",
       "WebhooksApi",
       "WebhooksErrorCode",
       "WebhooksErrorSpec",
+      "WebhooksEventName",
       "WebhooksFlowId",
       "WebhooksFlowSpec",
       "WebhooksI18nKey",

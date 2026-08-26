@@ -16,6 +16,7 @@ import { defineDemo } from "@stapel/showcase";
 import { PasskeysManager } from "../src/default/security/PasskeysManager.js";
 import { AuthDemoHarness } from "./_harness.js";
 import type { DemoHandlers } from "./_harness.js";
+import { NoWebauthn } from "./NoWebauthn.js";
 
 const PASSKEYS = {
   passkeys: [
@@ -61,6 +62,24 @@ function PasskeysEmptyDemo(): ReactElement {
   );
 }
 
+/**
+ * WebAuthn absent. `isWebauthnSupported()` reads the real `navigator`, and a
+ * viewer usually HAS it — so the demo asserts the state it documents by
+ * rendering the manager with no injected binding inside a frame where the API
+ * has been taken away for the duration of the mount.
+ */
+function PasskeysBlockedDemo(): ReactElement {
+  return (
+    <AuthDemoHarness handlers={emptyHandlers}>
+      <NoWebauthn>
+        <div style={{ maxWidth: 560, margin: "0 auto" }}>
+          <PasskeysManager />
+        </div>
+      </NoWebauthn>
+    </AuthDemoHarness>
+  );
+}
+
 export default defineDemo({
   id: "auth.passkeys-manager-skin",
   title: "Passkeys (default skin)",
@@ -70,11 +89,21 @@ export default defineDemo({
   variants: {
     default: {
       description: "A platform credential never used, and a security key that has been.",
+      step: "list",
       render: () => <PasskeysManagerDemo />,
     },
     empty: {
-      description: "No passkeys yet — an empty state, not a failure.",
+      description:
+        "No passkeys yet — an empty state with the way out inside it, not a failure and not a dead card.",
+      step: "empty",
+      viewport: "phone",
       render: () => <PasskeysEmptyDemo />,
+    },
+    "add-blocked": {
+      description:
+        "A browser with no WebAuthn: Add is blocked and the reason is printed beside it, before the click, not after a ceremony that can never finish.",
+      step: "blocked",
+      render: () => <PasskeysBlockedDemo />,
     },
   },
 });

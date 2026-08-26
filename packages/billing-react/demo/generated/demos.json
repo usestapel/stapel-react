@@ -14,16 +14,19 @@
         {
           "id": "default",
           "description": "No subscription: both columns open, the cheaper side carrying the ribbon and the saving stated per credit.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "ready"
         },
         {
           "id": "subscribed",
-          "description": "The caller is on Team. That card says so and its button is off, with the reason beside it."
+          "description": "The caller is on Team. That card says so and its button is off, with the reason beside it.",
+          "step": "current-plan"
         },
         {
           "id": "settling-a-debt",
           "description": "The wallet owes 180 credits, so every offer states how many of its credits are already spoken for.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "debt"
         }
       ],
       "source": {
@@ -101,20 +104,24 @@
         {
           "id": "active",
           "description": "A live Team plan renewing on 1 September. Press Cancel to open the sheet.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "active"
         },
         {
           "id": "free",
           "description": "The auto-created free row: no paid plan, stated as such, with no dead controls beside it.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "free"
         },
         {
           "id": "past-due",
-          "description": "The last payment bounced — what that costs, and what fixes it, above the buttons."
+          "description": "The last payment bounced — what that costs, and what fixes it, above the buttons.",
+          "step": "past_due"
         },
         {
           "id": "cancelled",
-          "description": "Already cancelled: 'Runs until' replaces 'Renews on', and cancelling again is off with its reason."
+          "description": "Already cancelled: 'Runs until' replaces 'Renews on', and cancelling again is off with its reason.",
+          "step": "cancelled"
         }
       ],
       "source": {
@@ -133,11 +140,13 @@
         {
           "id": "default",
           "description": "A first page of four movements with 'Show older' offering the server's next cursor.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "ready"
         },
         {
           "id": "empty",
-          "description": "An answered ledger with nothing in it — the empty state, reachable only from a read that succeeded."
+          "description": "An answered ledger with nothing in it — the empty state, reachable only from a read that succeeded.",
+          "step": "empty"
         }
       ],
       "source": {
@@ -175,21 +184,25 @@
       "variants": [
         {
           "id": "default",
-          "description": "840 bought credits and 400 that die on the 1st, a live Team plan, and the shop below."
+          "description": "840 bought credits and 400 that die on the 1st, a live Team plan, and the shop below.",
+          "step": "ready"
         },
         {
           "id": "in-debt",
           "description": "The wallet owes 180 credits. Each offer says how many of its credits go straight to the debt.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "debt"
         },
         {
           "id": "empty",
           "description": "A brand-new account: nothing held, no paid plan, no history — and a door out of every one of those.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "empty"
         },
         {
           "id": "shop-down",
-          "description": "The catalogue read fails. The shop states the refusal; it never renders as 'nothing is on sale'."
+          "description": "The catalogue read fails. The shop states the refusal; it never renders as 'nothing is on sale'.",
+          "step": "failed"
         }
       ],
       "source": {
@@ -208,11 +221,13 @@
         {
           "id": "auto-on",
           "description": "Auto-recharge already on and pointed at a package the shop sells.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "enabled"
         },
         {
           "id": "no-packages",
-          "description": "The shop sells only plans, so there is nothing to buy automatically — and the switch says so."
+          "description": "The shop sells only plans, so there is nothing to buy automatically — and the switch says so.",
+          "step": "blocked"
         }
       ],
       "source": {

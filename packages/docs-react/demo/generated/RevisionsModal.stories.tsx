@@ -8,13 +8,13 @@ export default { title: "docs-react / Version history" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"history"} };
 export const Desktop = (): ReactElement => renderDemoVariant(demo, "desktop");
 Desktop.storyName = "desktop";
-Desktop.parameters = { stapel: {"viewport":"desktop"} };
+Desktop.parameters = { stapel: {"viewport":"desktop","step":"history-wide"} };
 export const Empty = (): ReactElement => renderDemoVariant(demo, "empty");
 Empty.storyName = "empty";
-Empty.parameters = { stapel: {"viewport":"phone"} };
+Empty.parameters = { stapel: {"viewport":"phone","step":"empty"} };
 export const Binary = (): ReactElement => renderDemoVariant(demo, "binary");
 Binary.storyName = "binary";
-Binary.parameters = { stapel: {"viewport":"phone"} };
+Binary.parameters = { stapel: {"viewport":"phone","step":"binary"} };

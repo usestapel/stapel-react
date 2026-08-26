@@ -1,4 +1,6 @@
+import { describe, it, expect } from "vitest";
 import rule from "../rules/no-raw-dimensions.js";
+import { tokensModuleFor } from "../lib/jsx.js";
 import { tsxTester, SCALE_SETTINGS } from "./helpers.js";
 
 const tester = tsxTester();
@@ -65,19 +67,49 @@ tester.run("no-raw-dimensions", rule, {
       settings: s,
       code: "const A = () => <div style={{ padding: 16 }}/>;",
       output:
-        'import { spacing } from "@stapel/tokens";\n' +
+        'import { spacing } from "@stapel/tokens-antd";\n' +
         "const A = () => <div style={{ padding: spacing[4] }}/>;",
       errors: [{ messageId: "rawDimension" }],
     },
     {
-      // An existing @stapel/tokens import is EXTENDED, not duplicated.
+      // An existing import of the file's token module is EXTENDED, not duplicated.
+      filename: SKIN,
+      settings: s,
+      code:
+        'import { cssVar } from "@stapel/tokens-antd";\n' +
+        "const A = () => <div style={{ gap: 8 }}/>;",
+      output:
+        'import { cssVar, spacing } from "@stapel/tokens-antd";\n' +
+        "const A = () => <div style={{ gap: spacing[2] }}/>;",
+      errors: [{ messageId: "rawDimension" }],
+    },
+    {
+      // A skin that still imports the LEGACY module gets a tokens-antd import
+      // of its own — the whole point of the module split. Extending the
+      // `@stapel/tokens` line instead would deepen a dependency the pair
+      // does not declare.
       filename: SKIN,
       settings: s,
       code:
         'import { cssVar } from "@stapel/tokens";\n' +
         "const A = () => <div style={{ gap: 8 }}/>;",
       output:
-        'import { cssVar, spacing } from "@stapel/tokens";\n' +
+        'import { spacing } from "@stapel/tokens-antd";\n' +
+        'import { cssVar } from "@stapel/tokens";\n' +
+        "const A = () => <div style={{ gap: spacing[2] }}/>;",
+      errors: [{ messageId: "rawDimension" }],
+    },
+    {
+      // …but a binding the legacy module ALREADY provides is not imported a
+      // second time: two `spacing` declarations is a syntax error, produced
+      // by an autofix, which is the worst way to learn about a module split.
+      filename: SKIN,
+      settings: s,
+      code:
+        'import { spacing } from "@stapel/tokens";\n' +
+        "const A = () => <div style={{ gap: 8 }}/>;",
+      output:
+        'import { spacing } from "@stapel/tokens";\n' +
         "const A = () => <div style={{ gap: spacing[2] }}/>;",
       errors: [{ messageId: "rawDimension" }],
     },
@@ -86,10 +118,10 @@ tester.run("no-raw-dimensions", rule, {
       filename: SKIN,
       settings: s,
       code:
-        'import { spacing } from "@stapel/tokens";\n' +
+        'import { spacing } from "@stapel/tokens-antd";\n' +
         "const A = () => <div style={{ marginTop: 24 }}/>;",
       output:
-        'import { spacing } from "@stapel/tokens";\n' +
+        'import { spacing } from "@stapel/tokens-antd";\n' +
         "const A = () => <div style={{ marginTop: spacing[5] }}/>;",
       errors: [{ messageId: "rawDimension" }],
     },
@@ -98,9 +130,9 @@ tester.run("no-raw-dimensions", rule, {
       // and the KEY is what decides.
       filename: SKIN,
       settings: s,
-      code: 'import { spacing } from "@stapel/tokens";\nconst cardStyle = { borderRadius: 8 };',
+      code: 'import { spacing } from "@stapel/tokens-antd";\nconst cardStyle = { borderRadius: 8 };',
       output:
-        'import { spacing, radii } from "@stapel/tokens";\nconst cardStyle = { borderRadius: radii.md };',
+        'import { spacing, radii } from "@stapel/tokens-antd";\nconst cardStyle = { borderRadius: radii.md };',
       errors: [{ messageId: "rawDimension" }],
     },
     {
@@ -109,7 +141,7 @@ tester.run("no-raw-dimensions", rule, {
       settings: s,
       code: "const textStyle = { fontSize: 12 };",
       output:
-        'import { fontSize } from "@stapel/tokens";\n' +
+        'import { fontSize } from "@stapel/tokens-antd";\n' +
         "const textStyle = { fontSize: fontSize.xs.fontSize };",
       errors: [{ messageId: "rawDimension" }],
     },
@@ -119,7 +151,7 @@ tester.run("no-raw-dimensions", rule, {
       settings: s,
       code: "const headingStyle = { fontSize: 28 };",
       output:
-        'import { fontSize } from "@stapel/tokens";\n' +
+        'import { fontSize } from "@stapel/tokens-antd";\n' +
         'const headingStyle = { fontSize: fontSize["2xl"].fontSize };',
       errors: [{ messageId: "rawDimension" }],
     },
@@ -130,7 +162,7 @@ tester.run("no-raw-dimensions", rule, {
       settings: s,
       code: "const A = () => <Space size={12}/>;",
       output:
-        'import { spacing } from "@stapel/tokens";\n' +
+        'import { spacing } from "@stapel/tokens-antd";\n' +
         "const A = () => <Space size={spacing[3]}/>;",
       errors: [{ messageId: "rawDimension" }],
     },
@@ -140,7 +172,7 @@ tester.run("no-raw-dimensions", rule, {
       settings: s,
       code: "const styles = { root: { padding: 32 } };",
       output:
-        'import { spacing } from "@stapel/tokens";\n' +
+        'import { spacing } from "@stapel/tokens-antd";\n' +
         "const styles = { root: { padding: spacing[6] } };",
       errors: [{ messageId: "rawDimension" }],
     },
@@ -177,9 +209,35 @@ tester.run("no-raw-dimensions", rule, {
       settings: s,
       code: "const shell: CSSProperties = { paddingInline: 4 };",
       output:
-        'import { spacing } from "@stapel/tokens";\n' +
+        'import { spacing } from "@stapel/tokens-antd";\n' +
         "const shell: CSSProperties = { paddingInline: spacing[1] };",
       errors: [{ messageId: "rawDimension" }],
     },
   ],
+});
+
+// ── WHICH module the fix writes ──────────────────────────────────────────────
+//
+// The rule itself only runs inside `src/default/**` (a host app's chrome is
+// the host's business), so the RuleTester cases above can only ever assert the
+// skin answer. The policy has two sides, though, and the other side is what a
+// future fixer outside the skin scope will read — asserted directly here so it
+// cannot be quietly inverted.
+describe("tokensModuleFor", () => {
+  it("routes a default skin through the antd bridge it already depends on", () => {
+    expect(tokensModuleFor("/repo/packages/auth-react/src/default/AuthPanel.tsx")).toBe(
+      "@stapel/tokens-antd"
+    );
+    expect(tokensModuleFor("/repo/apps/storefront/src/default/Panel.tsx")).toBe(
+      "@stapel/tokens-antd"
+    );
+  });
+
+  it("keeps @stapel/tokens everywhere else — there is no antd leg to route through", () => {
+    expect(tokensModuleFor("/repo/packages/auth-react/src/headless/AuthProvider.tsx")).toBe(
+      "@stapel/tokens"
+    );
+    expect(tokensModuleFor("/repo/apps/storefront/src/Header.tsx")).toBe("@stapel/tokens");
+    expect(tokensModuleFor("/repo/packages/tokens-antd/src/skin.tsx")).toBe("@stapel/tokens");
+  });
 });

@@ -49,6 +49,7 @@ import type {
   CdnImage,
   CdnMediaRow,
   CdnRef,
+  CdnVariantsStatus,
 } from "../api/types.js";
 import { canHashLocally, sha256Hex } from "./hash.js";
 import { validateFile } from "./limits.js";
@@ -175,6 +176,15 @@ export interface UploadOutcome {
    * should show the original (or its own placeholder) for now.
    */
   readonly variantsReady: boolean;
+  /**
+   * The row's OWN word for the state above, when it publishes one
+   * (`"pending"` | `"ready"`), or `null` for the two models that have no
+   * ladder. A skin shows the difference between "the server says the previews
+   * are still being made" and "this kind never had any".
+   */
+  readonly variantsStatus: CdnVariantsStatus | null;
+  /** When the ladder finished, from the row; `null` while pending. */
+  readonly variantsReadyAt: string | null;
 }
 
 export interface RunUploadOptions {
@@ -306,6 +316,8 @@ export async function runUpload(
             deduped: true,
             dedupSkipped: undefined,
             variantsReady: isProcessed(row),
+            variantsStatus: variantsStatusOf(row),
+            variantsReadyAt: variantsReadyAtOf(row),
           };
         }
       }
@@ -351,17 +363,49 @@ export async function runUpload(
     deduped: false,
     dedupSkipped,
     variantsReady: isProcessed(settled),
+    variantsStatus: variantsStatusOf(settled),
+    variantsReadyAt: variantsReadyAtOf(settled),
   };
+}
+
+/**
+ * The row's own statement about its variant ladder, when it makes one.
+ *
+ * `variants_status` is the field the CONTRACT tells a client to read ("read it
+ * before you render a variant URL"): `"pending"` means every `variant_<n>_url`
+ * in the payload is a derived path with no file behind it yet, `"ready"` means
+ * they resolve. Only the image row publishes it — a video has no ladder and a
+ * document has no derived work at all — so this is `null` for the other two
+ * rather than a guessed `"ready"`.
+ */
+export function variantsStatusOf(row: CdnMediaRow): CdnVariantsStatus | null {
+  return "variants_status" in row ? row.variants_status : null;
+}
+
+/** When the ladder finished, ISO-8601; `null` while pending or unpublished. */
+export function variantsReadyAtOf(row: CdnMediaRow): string | null {
+  return "variants_ready_at" in row ? row.variants_ready_at : null;
 }
 
 /**
  * Whether the derived work on a row is done.
  *
- * A document has none — no ladder, no probe, nothing to wait for — so it is
+ * READS `variants_status` FIRST, and that is the point of D-6. The two fields
+ * agree today by derivation (`stapel_cdn/models.py` computes `variants_status`
+ * FROM `is_processed`), so this is not a behaviour change for an image — but
+ * `is_processed` is the field whose meaning the release notes moved ("Video.
+ * is_processed now means measured facts exist", which is a statement about a
+ * probe, not about a ladder), while `variants_status` is the one the contract
+ * documents as the answer to "may I render a variant URL". Reading the derived
+ * field and calling it the ladder is how the two drift apart silently.
+ *
+ * A document has neither — no ladder, no probe, nothing to wait for — so it is
  * born settled, and reporting `false` for it would make a file upload look
- * permanently unfinished. Images and videos carry the flag.
+ * permanently unfinished.
  */
 function isProcessed(row: CdnMediaRow): boolean {
+  const status = variantsStatusOf(row);
+  if (status !== null) return status === "ready";
   return "is_processed" in row ? row.is_processed : true;
 }
 

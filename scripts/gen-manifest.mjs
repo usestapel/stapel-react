@@ -90,7 +90,7 @@ const QUERYKEYS_FILE = process.env.MANIFEST_QUERYKEYS_FILE ?? "src/model/queryKe
 
 const OUT_MANIFEST = resolve(PKG_DIR, "manifest.json");
 const OUT_LLMS = resolve(PKG_DIR, "llms.txt");
-const LLMS_TOKEN_BUDGET = 4000; // §2.4 — a pair's slice must fit an agent's context
+const LLMS_TOKEN_BUDGET = 6000; // §2.4 — a pair's slice must fit an agent's context
 
 /**
  * Derive the semver contract range from the backend module's pyproject

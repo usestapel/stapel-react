@@ -8,10 +8,10 @@ export default { title: "categories-react / Category feature schema" };
 
 export const Schema = (): ReactElement => renderDemoVariant(demo, "schema");
 Schema.storyName = "schema";
-Schema.parameters = { stapel: {"viewport":"phone"} };
+Schema.parameters = { stapel: {"viewport":"phone","step":"ready"} };
 export const NoExtraDetails = (): ReactElement => renderDemoVariant(demo, "no extra details");
 NoExtraDetails.storyName = "no extra details";
-NoExtraDetails.parameters = { stapel: {"viewport":"desktop"} };
+NoExtraDetails.parameters = { stapel: {"viewport":"desktop","step":"empty"} };
 export const Outage = (): ReactElement => renderDemoVariant(demo, "outage");
 Outage.storyName = "outage";
-Outage.parameters = { stapel: {"viewport":"desktop"} };
+Outage.parameters = { stapel: {"viewport":"desktop","step":"failed"} };

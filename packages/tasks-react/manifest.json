@@ -13,7 +13,194 @@
     "headless",
     "i18n"
   ],
-  "flows": {},
+  "flows": {
+    "tasks.board_setup": {
+      "titleKey": "flow.tasks.board_setup.title",
+      "descriptionKey": "flow.tasks.board_setup.description",
+      "steps": [
+        {
+          "kind": "human",
+          "order": 0,
+          "noteKey": "flow.tasks.board_setup.step.0.note",
+          "endpoints": []
+        },
+        {
+          "kind": "http",
+          "order": 1,
+          "noteKey": "flow.tasks.board_setup.step.1.note",
+          "endpoints": [
+            "GET /tasks/api/v1/boards/presets"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 2,
+          "noteKey": "flow.tasks.board_setup.step.2.note",
+          "endpoints": [
+            "POST /tasks/api/v1/boards"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 3,
+          "noteKey": "flow.tasks.board_setup.step.3.note",
+          "endpoints": [
+            "POST /tasks/api/v1/boards/<uuid:board_id>/columns"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 4,
+          "noteKey": "flow.tasks.board_setup.step.4.note",
+          "endpoints": [
+            "POST /tasks/api/v1/boards/<uuid:board_id>/columns/reorder"
+          ]
+        }
+      ],
+      "endpoints": [
+        "GET /tasks/api/v1/boards/presets",
+        "POST /tasks/api/v1/boards",
+        "POST /tasks/api/v1/boards/<uuid:board_id>/columns",
+        "POST /tasks/api/v1/boards/<uuid:board_id>/columns/reorder"
+      ]
+    },
+    "tasks.card_lifecycle": {
+      "titleKey": "flow.tasks.card_lifecycle.title",
+      "descriptionKey": "flow.tasks.card_lifecycle.description",
+      "steps": [
+        {
+          "kind": "http",
+          "order": 1,
+          "noteKey": "flow.tasks.card_lifecycle.step.1.note",
+          "endpoints": [
+            "GET /tasks/api/v1/boards"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 2,
+          "noteKey": "flow.tasks.card_lifecycle.step.2.note",
+          "endpoints": [
+            "GET /tasks/api/v1/boards/<uuid:board_id>/cards"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 3,
+          "noteKey": "flow.tasks.card_lifecycle.step.3.note",
+          "endpoints": [
+            "POST /tasks/api/v1/boards/<uuid:board_id>/tasks"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 4,
+          "noteKey": "flow.tasks.card_lifecycle.step.4.note",
+          "endpoints": [
+            "GET /tasks/api/v1/tasks/<uuid:task_id>"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 5,
+          "noteKey": "flow.tasks.card_lifecycle.step.5.note",
+          "endpoints": [
+            "PATCH /tasks/api/v1/tasks/<uuid:task_id>"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 6,
+          "noteKey": "flow.tasks.card_lifecycle.step.6.note",
+          "endpoints": [
+            "POST /tasks/api/v1/tasks/<uuid:task_id>/assign"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 7,
+          "noteKey": "flow.tasks.card_lifecycle.step.7.note",
+          "endpoints": [
+            "POST /tasks/api/v1/tasks/<uuid:task_id>/comments"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 8,
+          "noteKey": "flow.tasks.card_lifecycle.step.8.note",
+          "endpoints": [
+            "POST /tasks/api/v1/tasks/<uuid:task_id>/checklist/<uuid:item_id>/state"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 12,
+          "noteKey": "flow.tasks.card_lifecycle.step.12.note",
+          "endpoints": [
+            "DELETE /tasks/api/v1/tasks/<uuid:task_id>"
+          ]
+        },
+        {
+          "kind": "action",
+          "order": 20,
+          "noteKey": "flow.tasks.card_lifecycle.step.20.note",
+          "endpoints": []
+        },
+        {
+          "kind": "action",
+          "order": 21,
+          "noteKey": "flow.tasks.card_lifecycle.step.21.note",
+          "endpoints": []
+        }
+      ],
+      "endpoints": [
+        "GET /tasks/api/v1/boards",
+        "GET /tasks/api/v1/boards/<uuid:board_id>/cards",
+        "POST /tasks/api/v1/boards/<uuid:board_id>/tasks",
+        "GET /tasks/api/v1/tasks/<uuid:task_id>",
+        "PATCH /tasks/api/v1/tasks/<uuid:task_id>",
+        "POST /tasks/api/v1/tasks/<uuid:task_id>/assign",
+        "POST /tasks/api/v1/tasks/<uuid:task_id>/comments",
+        "POST /tasks/api/v1/tasks/<uuid:task_id>/checklist/<uuid:item_id>/state",
+        "DELETE /tasks/api/v1/tasks/<uuid:task_id>"
+      ]
+    },
+    "tasks.card_move": {
+      "titleKey": "flow.tasks.card_move.title",
+      "descriptionKey": "flow.tasks.card_move.description",
+      "steps": [
+        {
+          "kind": "human",
+          "order": 0,
+          "noteKey": "flow.tasks.card_move.step.0.note",
+          "endpoints": []
+        },
+        {
+          "kind": "http",
+          "order": 1,
+          "noteKey": "flow.tasks.card_move.step.1.note",
+          "endpoints": [
+            "POST /tasks/api/v1/tasks/<uuid:task_id>/move"
+          ]
+        },
+        {
+          "kind": "function",
+          "order": 2,
+          "noteKey": "flow.tasks.card_move.step.2.note",
+          "endpoints": []
+        },
+        {
+          "kind": "action",
+          "order": 3,
+          "noteKey": "flow.tasks.card_move.step.3.note",
+          "endpoints": []
+        }
+      ],
+      "endpoints": [
+        "POST /tasks/api/v1/tasks/<uuid:task_id>/move"
+      ]
+    }
+  },
   "machines": [],
   "operations": {
     "tasks_api_v1_boards_cards_retrieve": {
@@ -171,7 +358,174 @@
       "response": "TaskResponse"
     }
   },
-  "hooks": {},
+  "hooks": {
+    "useAddChecklistItem": {
+      "kind": "mutation",
+      "operation": "addChecklistItem",
+      "invalidates": [
+        [
+          "tasks",
+          "checklist",
+          "{taskId}"
+        ],
+        [
+          "tasks",
+          "task",
+          "{taskId}"
+        ]
+      ]
+    },
+    "useAddColumn": {
+      "kind": "mutation",
+      "operation": "addColumn"
+    },
+    "useAddComment": {
+      "kind": "mutation",
+      "operation": "addComment",
+      "invalidates": [
+        [
+          "tasks",
+          "comments",
+          "{taskId}"
+        ]
+      ]
+    },
+    "useArchiveBoard": {
+      "kind": "mutation",
+      "operation": "archiveBoard"
+    },
+    "useArchiveTask": {
+      "kind": "mutation",
+      "operation": "archiveTask",
+      "invalidates": [
+        [
+          "tasks",
+          "task",
+          "{taskId}"
+        ]
+      ]
+    },
+    "useAssign": {
+      "kind": "mutation",
+      "operation": "assign",
+      "invalidates": [
+        [
+          "tasks",
+          "task",
+          "{taskId}"
+        ]
+      ]
+    },
+    "useBoardCardsQuery": {
+      "kind": "query",
+      "operation": "boardCards",
+      "queryKey": [
+        "tasks",
+        "cards",
+        "{boardId}",
+        "{…}"
+      ]
+    },
+    "useBoardQuery": {
+      "kind": "query",
+      "operation": "board",
+      "queryKey": [
+        "tasks",
+        "board",
+        "{boardId}"
+      ]
+    },
+    "useBoardsQuery": {
+      "kind": "query",
+      "operation": "boards",
+      "queryKey": [
+        "tasks",
+        "boards"
+      ]
+    },
+    "useChecklistQuery": {
+      "kind": "query",
+      "operation": "checklist",
+      "queryKey": [
+        "tasks",
+        "checklist",
+        "{taskId}"
+      ]
+    },
+    "useCommentsQuery": {
+      "kind": "query",
+      "operation": "comments",
+      "queryKey": [
+        "tasks",
+        "comments",
+        "{taskId}"
+      ]
+    },
+    "useCreateBoard": {
+      "kind": "mutation",
+      "operation": "createBoard"
+    },
+    "useCreateTaskMutation": {
+      "kind": "mutation",
+      "operation": "createTask"
+    },
+    "useMoveTask": {
+      "kind": "mutation",
+      "operation": "moveTask"
+    },
+    "useReorderColumns": {
+      "kind": "mutation",
+      "operation": "reorderColumns"
+    },
+    "useSetChecklistState": {
+      "kind": "mutation",
+      "operation": "setChecklistState",
+      "invalidates": [
+        [
+          "tasks",
+          "checklist",
+          "{taskId}"
+        ],
+        [
+          "tasks",
+          "task",
+          "{taskId}"
+        ]
+      ]
+    },
+    "useTaskQuery": {
+      "kind": "query",
+      "operation": "task",
+      "queryKey": [
+        "tasks",
+        "task",
+        "{taskId}"
+      ]
+    },
+    "useUpdateBoard": {
+      "kind": "mutation",
+      "operation": "updateBoard"
+    },
+    "useUpdateTask": {
+      "kind": "mutation",
+      "operation": "updateTask",
+      "invalidates": [
+        [
+          "tasks",
+          "task",
+          "{taskId}"
+        ]
+      ]
+    },
+    "useVocabularyQuery": {
+      "kind": "query",
+      "operation": "presets",
+      "queryKey": [
+        "tasks",
+        "presets"
+      ]
+    }
+  },
   "errors": {
     "error.400.bad_request": {
       "status": 400,
@@ -489,9 +843,108 @@
   },
   "events": {
     "defined": [],
-    "flows": []
+    "flows": [
+      {
+        "flow": "tasks.board_setup",
+        "event": "flow.tasks.board_setup.<step>",
+        "steps": 5
+      },
+      {
+        "flow": "tasks.card_lifecycle",
+        "event": "flow.tasks.card_lifecycle.<step>",
+        "steps": 11
+      },
+      {
+        "flow": "tasks.card_move",
+        "event": "flow.tasks.card_move.<step>",
+        "steps": 4
+      }
+    ]
   },
-  "demos": [],
+  "demos": [
+    {
+      "id": "tasks.board-create-sheet",
+      "title": "Board create sheet (default skin)",
+      "description": "Name plus a shape: the preset list is the server's own vocabulary, and 'custom columns' switches to an explicit column editor whose keys are slugged from the names.",
+      "component": "BoardCreateSheet",
+      "variants": [
+        "default",
+        "phone",
+        "scope-blocked"
+      ],
+      "source": "demo/BoardCreateSheet.demo.tsx"
+    },
+    {
+      "id": "tasks.boards-pane",
+      "title": "Boards (default skin)",
+      "description": "The boards list: name, column count, creation date, an archive confirm that is a bottom sheet on a phone, and a create sheet that discovers its presets from the server.",
+      "component": "BoardsPane",
+      "variants": [
+        "default",
+        "phone",
+        "empty",
+        "failed",
+        "no-navigation"
+      ],
+      "source": "demo/BoardsPane.demo.tsx"
+    },
+    {
+      "id": "tasks.column-manager",
+      "title": "Column manager (default skin)",
+      "description": "Drag the columns into order (keyboard sensor included) and add one. Renaming and deleting are not in this API, so the screen explains their absence instead of drawing two controls that cannot work.",
+      "component": "ColumnManager",
+      "variants": [
+        "default",
+        "phone",
+        "duplicate"
+      ],
+      "source": "demo/ColumnManager.demo.tsx"
+    },
+    {
+      "id": "tasks.headless",
+      "title": "Tasks headless bags",
+      "description": "The renderless layer: TasksProvider wires the runtime, BoardView hands over the assembled board (columns, cards, the move machine's step) and TaskView hands over one card with its canEdit gate. No visual opinion at all.",
+      "component": "TasksProvider",
+      "covers": [
+        "BoardView",
+        "TaskView"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/Tasks.demo.tsx"
+    },
+    {
+      "id": "tasks.kanban-board",
+      "title": "Kanban board (default skin)",
+      "description": "Columns with WIP counters, cards carrying priority, due date, checklist progress and a blocked glyph, dnd-kit drag with keyboard and touch sensors, and an optimistic move that rolls itself back on a refusal.",
+      "component": "KanbanBoard",
+      "variants": [
+        "default",
+        "phone",
+        "empty",
+        "truncated"
+      ],
+      "source": "demo/KanbanBoard.demo.tsx"
+    },
+    {
+      "id": "tasks.task-sheet",
+      "title": "Task sheet (default skin)",
+      "description": "One card: title and description saved on blur, column/priority/due controls, assignees through the host seam, a checklist with a three-state overflow menu, and comments where Enter sends and Shift+Enter breaks a line.",
+      "component": "TaskSheet",
+      "variants": [
+        "default",
+        "phone",
+        "archived",
+        "features"
+      ],
+      "source": "demo/TaskSheet.demo.tsx"
+    }
+  ],
   "i18nKeys": [
     "error.400.bad_request",
     "error.400.captcha_invalid",
@@ -550,51 +1003,282 @@
     "error.500.internal",
     "error.503.mandate_unavailable",
     "error.503.tasks_scope_unresolved",
+    "flow.tasks.board_setup.description",
+    "flow.tasks.board_setup.step.0.note",
+    "flow.tasks.board_setup.step.1.note",
+    "flow.tasks.board_setup.step.2.note",
+    "flow.tasks.board_setup.step.3.note",
+    "flow.tasks.board_setup.step.4.note",
+    "flow.tasks.board_setup.title",
+    "flow.tasks.card_lifecycle.description",
+    "flow.tasks.card_lifecycle.step.1.note",
+    "flow.tasks.card_lifecycle.step.12.note",
+    "flow.tasks.card_lifecycle.step.2.note",
+    "flow.tasks.card_lifecycle.step.20.note",
+    "flow.tasks.card_lifecycle.step.21.note",
+    "flow.tasks.card_lifecycle.step.3.note",
+    "flow.tasks.card_lifecycle.step.4.note",
+    "flow.tasks.card_lifecycle.step.5.note",
+    "flow.tasks.card_lifecycle.step.6.note",
+    "flow.tasks.card_lifecycle.step.7.note",
+    "flow.tasks.card_lifecycle.step.8.note",
+    "flow.tasks.card_lifecycle.title",
+    "flow.tasks.card_move.description",
+    "flow.tasks.card_move.step.0.note",
+    "flow.tasks.card_move.step.1.note",
+    "flow.tasks.card_move.step.2.note",
+    "flow.tasks.card_move.step.3.note",
+    "flow.tasks.card_move.title",
+    "tasks.board.addCard",
+    "tasks.board.addCardPlaceholder",
+    "tasks.board.addCardSubmit",
+    "tasks.board.create.addColumn",
+    "tasks.board.create.category",
+    "tasks.board.create.columnKey",
+    "tasks.board.create.columnName",
+    "tasks.board.create.columns",
+    "tasks.board.create.name",
+    "tasks.board.create.namePlaceholder",
+    "tasks.board.create.preset",
+    "tasks.board.create.presetCustom",
+    "tasks.board.create.removeColumn",
+    "tasks.board.create.submit",
+    "tasks.board.create.title",
+    "tasks.board.create.wipLimit",
+    "tasks.board.empty",
+    "tasks.board.emptyColumn",
+    "tasks.board.filters.any",
+    "tasks.board.filters.assignee",
+    "tasks.board.filters.category",
+    "tasks.board.filters.clear",
+    "tasks.board.filters.text",
+    "tasks.board.filters.title",
+    "tasks.board.manageColumns",
+    "tasks.board.noBoard",
+    "tasks.board.noBoardHint",
+    "tasks.board.phone.columnSwitcher",
+    "tasks.board.truncated",
+    "tasks.board.wip",
+    "tasks.board.wipExceeded",
+    "tasks.boards.archive",
+    "tasks.boards.archiveBody",
+    "tasks.boards.archiveQuestion",
+    "tasks.boards.columnCount",
+    "tasks.boards.create",
+    "tasks.boards.created",
+    "tasks.boards.empty",
+    "tasks.boards.emptyHint",
+    "tasks.boards.failed",
+    "tasks.boards.loading",
+    "tasks.boards.open",
+    "tasks.boards.title",
+    "tasks.card.blocked",
+    "tasks.card.checklist",
+    "tasks.card.dragHandle",
+    "tasks.card.due",
+    "tasks.card.open",
+    "tasks.card.overdue",
+    "tasks.category.active",
+    "tasks.category.backlog",
+    "tasks.category.done",
+    "tasks.category.review",
+    "tasks.category.waiting",
+    "tasks.checklist.add",
+    "tasks.checklist.empty",
+    "tasks.checklist.markDone",
+    "tasks.checklist.markFailed",
+    "tasks.checklist.markPending",
+    "tasks.checklist.more",
+    "tasks.checklist.placeholder",
+    "tasks.checklist.stateFailed",
+    "tasks.column.done",
+    "tasks.column.in_progress",
+    "tasks.column.todo",
+    "tasks.columns.dragHandle",
+    "tasks.columns.existsHint",
+    "tasks.columns.noRename",
+    "tasks.columns.reorderHint",
+    "tasks.columns.saveOrder",
+    "tasks.columns.title",
+    "tasks.comment.empty",
+    "tasks.comment.hint",
+    "tasks.comment.placeholder",
+    "tasks.comment.send",
+    "tasks.dialog.dismiss",
     "tasks.error.unknown",
-    "tasks.nav.overview",
-    "tasks.panel.empty",
-    "tasks.panel.loading"
+    "tasks.gate.archived",
+    "tasks.gate.columnsRequired",
+    "tasks.gate.commentEmpty",
+    "tasks.gate.nameRequired",
+    "tasks.gate.noColumn",
+    "tasks.gate.noColumnChange",
+    "tasks.gate.noNavigation",
+    "tasks.gate.noPicker",
+    "tasks.gate.titleRequired",
+    "tasks.move.applied",
+    "tasks.move.deferred",
+    "tasks.move.denied",
+    "tasks.move.failed",
+    "tasks.move.pendingBadge",
+    "tasks.nav.board",
+    "tasks.nav.boards",
+    "tasks.priority.high",
+    "tasks.priority.low",
+    "tasks.priority.normal",
+    "tasks.priority.urgent",
+    "tasks.scope.unresolved",
+    "tasks.task.archive",
+    "tasks.task.archiveQuestion",
+    "tasks.task.archived",
+    "tasks.task.assignees",
+    "tasks.task.assigneesEmpty",
+    "tasks.task.assigneesReadOnly",
+    "tasks.task.checklist",
+    "tasks.task.column",
+    "tasks.task.comments",
+    "tasks.task.completed",
+    "tasks.task.created",
+    "tasks.task.description",
+    "tasks.task.descriptionPlaceholder",
+    "tasks.task.due",
+    "tasks.task.features",
+    "tasks.task.loading",
+    "tasks.task.priority",
+    "tasks.task.priorityNone",
+    "tasks.task.save",
+    "tasks.task.saving",
+    "tasks.task.title"
   ],
   "exports": {
     "runtime": [
+      "BoardView",
+      "CHECKLIST_STATES",
+      "COLUMN_CATEGORIES",
+      "DEFAULT_PRIORITY_SCALE",
+      "MOVE_RESULTS",
       "TASKS_ERRORS",
       "TASKS_ERROR_CODES",
+      "TASKS_EVENTS",
       "TASKS_FLOWS",
       "TASKS_I18N_KEYS",
+      "TaskView",
       "TasksProvider",
       "TasksRuntimeContext",
+      "applyMove",
+      "assembleBoard",
+      "cardCount",
+      "checklistProgress",
+      "columnOf",
+      "compareCards",
       "createFlowMachine",
       "createTasksApi",
       "createTasksRuntime",
+      "deniedMove",
       "explainTasksError",
+      "filterByText",
+      "filtersKey",
+      "findCard",
       "flowEndpoints",
+      "idInitials",
+      "initialMoveState",
+      "isChecklistState",
+      "isColumnCategory",
       "isErrorCode",
+      "isMoveResponseBody",
+      "isMoveResult",
+      "isOverdue",
+      "keepsOptimisticPlacement",
+      "moveReducer",
+      "navEntries",
+      "orderedColumns",
+      "outcomeOf",
       "registerTasksI18n",
+      "scaledPosition",
+      "shortId",
       "tasksErrorBundleEn",
       "tasksI18nBundleEn",
       "tasksQueryKeys",
       "toFlowError",
+      "useBoard",
+      "useBoardCardsQuery",
+      "useBoardQuery",
+      "useBoards",
+      "useBoardsQuery",
+      "useChecklistQuery",
+      "useCommentsQuery",
+      "useCreateTask",
       "useFlow",
+      "useTask",
+      "useTaskQuery",
       "useTasksAnalytics",
       "useTasksApi",
-      "useTasksRuntime"
+      "useTasksRuntime",
+      "useVocabularyQuery"
     ],
     "types": [
+      "ArchivedResponse",
+      "Board",
+      "BoardBag",
+      "BoardCards",
+      "BoardCardsFilters",
+      "BoardCreateBody",
+      "BoardCreateColumnSpec",
+      "BoardFilters",
+      "BoardMap",
+      "BoardPreset",
+      "BoardUpdateBody",
+      "BoardViewProps",
+      "BoardVocabulary",
+      "BoardsBag",
+      "ChecklistItem",
+      "ChecklistItemCreateBody",
+      "ChecklistItemStateBody",
+      "ChecklistState",
+      "Column",
+      "ColumnCategory",
+      "ColumnCreateBody",
+      "ColumnReorderBody",
+      "Comment",
+      "CommentCreateBody",
+      "CreateTaskBag",
       "CreateTasksRuntimeOptions",
+      "EditableField",
       "FlowEndpoint",
       "FlowError",
       "FlowMachine",
       "FlowMachineOptions",
       "FlowStateBase",
+      "MoveEvent",
+      "MoveOutcome",
+      "MoveResponse",
+      "MoveResult",
+      "MoveState",
+      "MoveStep",
+      "PresetColumn",
+      "PriorityLevel",
+      "PriorityStep",
       "Remediation",
+      "RequestExtras",
       "Schemas",
+      "Task",
+      "TaskAssignBody",
+      "TaskBag",
+      "TaskCreateBody",
+      "TaskFeedParams",
+      "TaskMoveBody",
+      "TaskPage",
+      "TaskUpdateBody",
+      "TaskViewProps",
       "TasksApi",
       "TasksErrorCode",
       "TasksErrorSpec",
+      "TasksEventName",
       "TasksFlowId",
       "TasksFlowSpec",
       "TasksI18nKey",
-      "TasksRuntime"
+      "TasksRuntime",
+      "UserPickerSeam",
+      "VocabularyTerm"
     ]
   }
 }

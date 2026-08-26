@@ -48,13 +48,21 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Overridable serializer seams for API views.
+         * @description Overridable request/response serializer seam for an API view.
          *
-         *     Subclasses (or downstream projects) can swap the request/response
-         *     serializers without copying method bodies:
+         *     Declare the classes as attributes, read them through the getters::
          *
-         *         class MyWorkspaceDetailView(WorkspaceDetailView):
-         *             response_serializer_class = MyWorkspaceResponseSerializer
+         *         class WalletView(SerializerSeamMixin, APIView):
+         *             response_serializer_class = WalletResponseSerializer
+         *
+         *             def get(self, request):
+         *                 response_cls = self.get_response_serializer_class()
+         *                 return StapelResponse(response_cls(wallet_to_dto(...)))
+         *
+         *     A host project swaps either direction by subclassing and setting the
+         *     attribute, or overrides the getter for a per-request decision — no HTTP
+         *     method body is ever copied. ``None`` means the direction carries no
+         *     serializer (raw ``request.FILES``, an empty 204 body).
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -76,13 +84,21 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * @description Overridable serializer seams for API views.
+         * @description Overridable request/response serializer seam for an API view.
          *
-         *     Subclasses (or downstream projects) can swap the request/response
-         *     serializers without copying method bodies:
+         *     Declare the classes as attributes, read them through the getters::
          *
-         *         class MyWorkspaceDetailView(WorkspaceDetailView):
-         *             response_serializer_class = MyWorkspaceResponseSerializer
+         *         class WalletView(SerializerSeamMixin, APIView):
+         *             response_serializer_class = WalletResponseSerializer
+         *
+         *             def get(self, request):
+         *                 response_cls = self.get_response_serializer_class()
+         *                 return StapelResponse(response_cls(wallet_to_dto(...)))
+         *
+         *     A host project swaps either direction by subclassing and setting the
+         *     attribute, or overrides the getter for a per-request decision — no HTTP
+         *     method body is ever copied. ``None`` means the direction carries no
+         *     serializer (raw ``request.FILES``, an empty 204 body).
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -292,13 +308,21 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Overridable serializer seams for API views.
+         * @description Overridable request/response serializer seam for an API view.
          *
-         *     Subclasses (or downstream projects) can swap the request/response
-         *     serializers without copying method bodies:
+         *     Declare the classes as attributes, read them through the getters::
          *
-         *         class MyWorkspaceDetailView(WorkspaceDetailView):
-         *             response_serializer_class = MyWorkspaceResponseSerializer
+         *         class WalletView(SerializerSeamMixin, APIView):
+         *             response_serializer_class = WalletResponseSerializer
+         *
+         *             def get(self, request):
+         *                 response_cls = self.get_response_serializer_class()
+         *                 return StapelResponse(response_cls(wallet_to_dto(...)))
+         *
+         *     A host project swaps either direction by subclassing and setting the
+         *     attribute, or overrides the getter for a per-request decision — no HTTP
+         *     method body is ever copied. ``None`` means the direction carries no
+         *     serializer (raw ``request.FILES``, an empty 204 body).
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -322,13 +346,21 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * @description Overridable serializer seams for API views.
+         * @description Overridable request/response serializer seam for an API view.
          *
-         *     Subclasses (or downstream projects) can swap the request/response
-         *     serializers without copying method bodies:
+         *     Declare the classes as attributes, read them through the getters::
          *
-         *         class MyWorkspaceDetailView(WorkspaceDetailView):
-         *             response_serializer_class = MyWorkspaceResponseSerializer
+         *         class WalletView(SerializerSeamMixin, APIView):
+         *             response_serializer_class = WalletResponseSerializer
+         *
+         *             def get(self, request):
+         *                 response_cls = self.get_response_serializer_class()
+         *                 return StapelResponse(response_cls(wallet_to_dto(...)))
+         *
+         *     A host project swaps either direction by subclassing and setting the
+         *     attribute, or overrides the getter for a per-request decision — no HTTP
+         *     method body is ever copied. ``None`` means the direction carries no
+         *     serializer (raw ``request.FILES``, an empty 204 body).
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -336,13 +368,21 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * @description Overridable serializer seams for API views.
+         * @description Overridable request/response serializer seam for an API view.
          *
-         *     Subclasses (or downstream projects) can swap the request/response
-         *     serializers without copying method bodies:
+         *     Declare the classes as attributes, read them through the getters::
          *
-         *         class MyWorkspaceDetailView(WorkspaceDetailView):
-         *             response_serializer_class = MyWorkspaceResponseSerializer
+         *         class WalletView(SerializerSeamMixin, APIView):
+         *             response_serializer_class = WalletResponseSerializer
+         *
+         *             def get(self, request):
+         *                 response_cls = self.get_response_serializer_class()
+         *                 return StapelResponse(response_cls(wallet_to_dto(...)))
+         *
+         *     A host project swaps either direction by subclassing and setting the
+         *     attribute, or overrides the getter for a per-request decision — no HTTP
+         *     method body is ever copied. ``None`` means the direction carries no
+         *     serializer (raw ``request.FILES``, an empty 204 body).
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -1185,6 +1225,8 @@ export interface components {
              * @example true
              */
             mfa_compliant?: boolean | null;
+            /** @description Whether this row IS the caller. Server-derived — the client is never asked to compare ids it may not have. Always false on the service-to-service membership read, where the caller is a service and not a member of anything */
+            is_self?: boolean;
         };
         PaginatedAuditEventResponseList: {
             items: components["schemas"]["AuditEventResponse"][];

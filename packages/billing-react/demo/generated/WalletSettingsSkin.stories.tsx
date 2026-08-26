@@ -8,6 +8,7 @@ export default { title: "billing-react / Automatic top-up (default skin)" };
 
 export const AutoOn = (): ReactElement => renderDemoVariant(demo, "auto-on");
 AutoOn.storyName = "auto-on";
-AutoOn.parameters = { stapel: {"viewport":"phone"} };
+AutoOn.parameters = { stapel: {"viewport":"phone","step":"enabled"} };
 export const NoPackages = (): ReactElement => renderDemoVariant(demo, "no-packages");
 NoPackages.storyName = "no-packages";
+NoPackages.parameters = { stapel: {"step":"blocked"} };

@@ -14,5 +14,21 @@ export {
 } from "./RealtimeProvider.js";
 export type { RealtimeProviderProps } from "./RealtimeProvider.js";
 export { useStream } from "./useStream.js";
-export type { UseStreamOptions, UseStreamResult } from "./useStream.js";
+export type {
+  NoProviderStatus,
+  UseStreamOptions,
+  UseStreamOptionalResult,
+  UseStreamResult,
+} from "./useStream.js";
 export { useRealtimeState } from "./useRealtimeState.js";
+/**
+ * The shapes a skin types its props with. They live in the framework-free
+ * entry; they are re-exported here so a component that only imports
+ * `@stapel/realtime/react` can name what it renders.
+ */
+export type {
+  RealtimeDegradation,
+  RealtimeDegradationThresholds,
+  RealtimeState,
+  RealtimeStreamStatus,
+} from "../client.js";

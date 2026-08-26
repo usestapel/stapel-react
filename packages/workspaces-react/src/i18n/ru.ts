@@ -170,6 +170,21 @@ export const workspacesI18nBundleRu: I18nDictionary = {
     "Это единственный владелец рабочего пространства. Сначала назначьте владельцем кого-то ещё.",
   "workspaces.members.remove.blocked.self":
     "Это вы. Попросите другого владельца или администратора удалить вас из пространства.",
+  "workspaces.members.reset_password": "Сбросить пароль",
+  "workspaces.members.reset_password.blocked.self":
+    "Это вы. Свой пароль меняют в настройках аккаунта — здесь действие выполняется над чужим.",
+  "workspaces.members.reset_password_dialog.title": "Сбросить пароль участника {member}?",
+  "workspaces.members.reset_password_dialog.body":
+    "Текущий пароль перестанет работать сразу, и участник узнает, что это сделали вы. Новый пароль в письме не отправляется.",
+  "workspaces.members.reset_password_dialog.step_up":
+    "Перед выполнением мы попросим подтвердить, что это вы.",
+  "workspaces.members.reset_password_dialog.submit": "Сбросить пароль",
+  "workspaces.members.reset_password_dialog.done": "У участника {member} новый пароль.",
+  "workspaces.members.reset_password_dialog.generated": "Одноразовый пароль",
+  "workspaces.members.reset_password_dialog.generated_hint":
+    "Показывается один раз и больше никогда. Передайте его по каналу, которому доверяете; свой пароль участник задаст при первом входе.",
+  "workspaces.members.reset_password_dialog.not_notified":
+    "Сообщить было некуда — передайте пароль сами.",
   "workspaces.members.rename": "Переименовать",
   "workspaces.members.rename_dialog.title": "Исправить имя",
   "workspaces.members.rename_dialog.label": "Отображаемое имя",
@@ -314,6 +329,14 @@ export const workspacesI18nBundleRu: I18nDictionary = {
   "workspaces.invite.basicDataTitle": "Настройте профиль",
   "workspaces.invite.basicDataContinueCta": "Продолжить",
   "workspaces.invite.blocked.busy": "Заканчиваем начатый шаг…",
+
+  // A workspace-scoped screen with no active workspace
+  "workspaces.active.choose.title": "Выберите пространство",
+  "workspaces.active.choose.hint":
+    "Этот экран управляет одним пространством за раз. Выберите его на странице «Рабочие пространства» и вернитесь сюда.",
+  "workspaces.active.none.title": "Вы пока не состоите ни в одном пространстве",
+  "workspaces.active.none.hint":
+    "Создайте пространство или попросите владельца пригласить вас — тогда здесь появится чем управлять.",
 
   // Nav manifest labels
   "workspaces.nav.workspaces": "Рабочие пространства",

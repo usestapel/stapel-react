@@ -37,7 +37,7 @@
       ],
       "source": {
         "file": "demo/AvailabilityPane.demo.tsx",
-        "line": 40
+        "line": 54
       }
     },
     {
@@ -63,6 +63,193 @@
       }
     },
     {
+      "id": "calendar.delete-event",
+      "title": "Delete event",
+      "description": "The destructive verb, confirmed on a bottom sheet on a phone (never a popover under somebody's thumb) with a confirm button that NAMES the action instead of saying OK. Deleting one time in a series is a different consequence from deleting a standalone event, so it is a different sentence.",
+      "component": "DeleteEventAction",
+      "covers": [
+        "EventDelete"
+      ],
+      "tokens": [
+        "danger",
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "offered",
+          "description": "The owner's control, closed: one danger button, and nothing destroyed until it is answered.",
+          "viewport": "phone",
+          "step": "idle"
+        },
+        {
+          "id": "confirming",
+          "description": "The confirmation as a bottom sheet: what deleting this event does, in words, with the action named on the button.",
+          "viewport": "phone",
+          "step": "asking"
+        },
+        {
+          "id": "confirming-occurrence",
+          "description": "The same question about ONE time in a series — a different consequence, so a different sentence, because the backend tombstones rather than hard-deletes here.",
+          "viewport": "phone",
+          "step": "asking.occurrence"
+        },
+        {
+          "id": "not-owner",
+          "description": "An invitee: the control is off WITH the reason beside it, rather than hidden (which teaches nothing) or lit and then refused (which is worse).",
+          "viewport": "desktop",
+          "step": "blocked.not_owner"
+        }
+      ],
+      "source": {
+        "file": "demo/DeleteEventAction.demo.tsx",
+        "line": 40
+      }
+    },
+    {
+      "id": "calendar.event-editor",
+      "title": "New event",
+      "description": "One form for create and edit, on the shared dialog surface (a bottom sheet below the tablet breakpoint, a centred modal above it). The two documented 400s are answered locally and rendered as the submit button's blocked reason; cancelling an event is a different verb from deleting it and lives here, with copy that names what it does.",
+      "component": "EventEditorSheet",
+      "covers": [
+        "EventComposer",
+        "EventEditor"
+      ],
+      "tokens": [
+        "surface-raised",
+        "brand",
+        "danger"
+      ],
+      "variants": [
+        {
+          "id": "create",
+          "description": "A new event on a phone: the form opens with an empty title, so the submit button is off and says why before anybody presses it.",
+          "viewport": "phone",
+          "step": "create.blocked_title"
+        },
+        {
+          "id": "edit",
+          "description": "Editing an existing event: the same fields, the save verb, and the cancel-event arm that create has nothing to offer.",
+          "viewport": "phone",
+          "step": "edit"
+        },
+        {
+          "id": "marker",
+          "description": "A zero-duration marker (`end == start`). Valid, so it is not blocked — the form states what it means instead of silently adding an hour.",
+          "viewport": "phone",
+          "step": "edit.marker"
+        },
+        {
+          "id": "not-owner",
+          "description": "An invitee opened the editor: the fields stay readable, the write is off with the owner-only reason beside it.",
+          "viewport": "desktop",
+          "step": "blocked.not_owner"
+        }
+      ],
+      "source": {
+        "file": "demo/EventEditorSheet.demo.tsx",
+        "line": 67
+      }
+    },
+    {
+      "id": "calendar.event-sheet",
+      "title": "Event",
+      "description": "The detail sheet: a bottom sheet on a phone, a centred modal above the tablet breakpoint, with owner-only controls switched off WITH their reason instead of hidden. `viewerId` is the host's to supply — when it is absent the sheet says it cannot tell whose event this is rather than guessing either way.",
+      "component": "EventSheet",
+      "covers": [
+        "EventDetail"
+      ],
+      "tokens": [
+        "surface-raised",
+        "warning-bg",
+        "danger"
+      ],
+      "variants": [
+        {
+          "id": "owner",
+          "description": "The owner's view: edit, add-to-calendar and delete are live, and the invitee list is the replace-set editor.",
+          "viewport": "phone",
+          "step": "ready.owner"
+        },
+        {
+          "id": "invitee",
+          "description": "An invitee's view: RSVP is the live control, the owner-only buttons are off with the sentence beside them, and the invitee list is a read-only roll-up.",
+          "viewport": "phone",
+          "step": "ready.invitee"
+        },
+        {
+          "id": "viewer-unknown",
+          "description": "No `viewerId` from the host: every identity-dependent control reports that it cannot tell, which is not the same answer as 'no'.",
+          "viewport": "phone",
+          "step": "ready.viewer_unknown"
+        },
+        {
+          "id": "cancelled",
+          "description": "A cancelled time in a series: the banner is above the facts, answering is blocked with its own reason, and the series note says the row belongs to a rule.",
+          "viewport": "phone",
+          "step": "ready.cancelled"
+        },
+        {
+          "id": "mandate-unavailable",
+          "description": "The mandate service could not be reached. 'We could not ask' gets a RETRY — rendering it as a denial is the same lie as rendering a failed load as an empty list.",
+          "viewport": "desktop",
+          "step": "failed.mandate_unavailable"
+        },
+        {
+          "id": "forbidden",
+          "description": "We asked, and the answer is no: this calendar belongs to a workspace the viewer is not in. A settled refusal, so no retry is offered.",
+          "viewport": "desktop",
+          "step": "failed.mandate_denied"
+        }
+      ],
+      "source": {
+        "file": "demo/EventSheet.demo.tsx",
+        "line": 85
+      }
+    },
+    {
+      "id": "calendar.participants-field",
+      "title": "Invitees",
+      "description": "The complete invitee set, shown whole before it is sent. The write is replace-set — anybody missing from the array is removed — so the surface is not an 'add invitee' button but 'here is exactly who will be invited after you save', with the warning stated and the save gated while nothing has changed.",
+      "component": "ParticipantsField",
+      "covers": [
+        "ParticipantsEditor"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "managed",
+          "description": "The event's invitees as the server has them: nothing to save yet, and the save button says so instead of sitting lit.",
+          "viewport": "phone",
+          "step": "managed.unchanged"
+        },
+        {
+          "id": "managed-one",
+          "description": "The same editor on an event with a single invitee — the list is drawn whole either way, because the array IS the request.",
+          "viewport": "phone",
+          "step": "managed.one"
+        },
+        {
+          "id": "controlled",
+          "description": "Create mode: the ids travel inside POST /events, so there is nothing to save separately and no save button is drawn.",
+          "viewport": "phone",
+          "step": "controlled"
+        },
+        {
+          "id": "nobody",
+          "description": "An empty set, named — 'nobody is invited' is an answer, and a blank area is not.",
+          "viewport": "desktop",
+          "step": "controlled.empty"
+        }
+      ],
+      "source": {
+        "file": "demo/ParticipantsField.demo.tsx",
+        "line": 60
+      }
+    },
+    {
       "id": "calendar.provider",
       "title": "Calendar provider",
       "description": "The headless calendar root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
@@ -79,6 +266,47 @@
       "source": {
         "file": "demo/Calendar.demo.tsx",
         "line": 24
+      }
+    },
+    {
+      "id": "calendar.recurrence-field",
+      "title": "Repeat",
+      "description": "The repeat rule as a single question. `until` and `count` are mutually exclusive in RRULE, so the end is one three-way choice and only the chosen field is drawn — a form that offered both would present a combination the backend must then refuse. The presets are read from a list, not hardcoded, because upstream they are an open merge registry a deployment can extend.",
+      "component": "RecurrenceField",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "none",
+          "description": "A one-off event: the preset alone, no end question at all.",
+          "viewport": "phone",
+          "step": "none"
+        },
+        {
+          "id": "ends-on-a-date",
+          "description": "Weekly until a date — the date field, and no count field beside it.",
+          "viewport": "phone",
+          "step": "weekly.until"
+        },
+        {
+          "id": "ends-after-n",
+          "description": "Weekly for a number of times — the count field, and no date field beside it.",
+          "viewport": "phone",
+          "step": "weekly.count"
+        },
+        {
+          "id": "custom",
+          "description": "The custom preset: interval and weekdays appear, on a width that can hold seven checkboxes.",
+          "viewport": "desktop",
+          "step": "custom"
+        }
+      ],
+      "source": {
+        "file": "demo/RecurrenceField.demo.tsx",
+        "line": 57
       }
     },
     {
@@ -101,6 +329,49 @@
       "source": {
         "file": "demo/EventRsvp.demo.tsx",
         "line": 78
+      }
+    },
+    {
+      "id": "calendar.rsvp-control",
+      "title": "Your answer",
+      "description": "Accept / Maybe / Decline with ONE primary, the answer on record marked rather than recoloured, and every refusal stated beside the buttons instead of hidden behind a disabled control. `invited` is the server's initial state and is deliberately absent from the row — a control offering a meaningless option is the same defect as one offering none.",
+      "component": "RsvpControl",
+      "covers": [
+        "EventRsvp"
+      ],
+      "tokens": [
+        "brand",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "no-answer",
+          "description": "Invited and yet to answer: the row says so in words above the buttons.",
+          "viewport": "phone",
+          "step": "ready.no_answer"
+        },
+        {
+          "id": "accepted",
+          "description": "An answer is on record — Accept is pressed, and the sentence above names it.",
+          "viewport": "phone",
+          "step": "ready.accepted"
+        },
+        {
+          "id": "not-invited",
+          "description": "A viewer who is not on the invitee list: the buttons are off WITH the reason under them, never a tooltip a disabled control could not show anyway.",
+          "viewport": "phone",
+          "step": "blocked.not_invited"
+        },
+        {
+          "id": "event-cancelled",
+          "description": "The event was cancelled: answering it would mean nothing, and the reason says which of the three refusals this is.",
+          "viewport": "desktop",
+          "step": "blocked.event_cancelled"
+        }
+      ],
+      "source": {
+        "file": "demo/RsvpControl.demo.tsx",
+        "line": 38
       }
     },
     {
@@ -160,7 +431,7 @@
       ],
       "source": {
         "file": "demo/CalendarScreen.demo.tsx",
-        "line": 130
+        "line": 142
       }
     },
     {

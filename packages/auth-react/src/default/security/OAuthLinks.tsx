@@ -14,19 +14,24 @@
  *    `access_token` obtained by running that provider's OAuth SDK/popup in
  *    the browser — a host-specific integration this pair cannot perform
  *    itself. Supply `getAccessToken(providerId)`; without it, "Connect" is
- *    disabled and the reason is printed beside it (`useActionGate`) — a
- *    disabled button receives no pointer events, so a tooltip on it is a
- *    reason no keyboard or touch user can reach.
+ *    blocked and the reason is printed beside it (`GatedButton`) — a disabled
+ *    button receives no pointer events, so a tooltip on it is a reason no
+ *    keyboard or touch user can reach.
  *
  * All three calls will 404 against the currently-pinned stapel-auth release —
  * this component is ready for the day the pin bumps to a commit that has
  * them, not a claim that it works against today's released contract.
  */
-import { spacing, fontSize } from "@stapel/tokens";
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Alert, Avatar, Button, Card, Empty, Flex, Popconfirm, Spin, Tag, Typography } from "antd";
-import { ErrorAlert } from "@stapel/tokens-antd/skin";
+import { Avatar, Button, Card, Flex, Skeleton, Tag, Typography } from "antd";
+import {
+  EmptyState,
+  ErrorAlert,
+  GatedButton,
+  SkinConfirm,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
 import {
   actionAvailable,
   actionBlocked,
@@ -34,9 +39,7 @@ import {
   loadStateFromQuery,
   mapLoad,
   matchList,
-  useActionGate,
   useErrorDisplay,
-  useFormatFlowError,
   useT,
 } from "@stapel/core";
 import type { Capabilities, LinkedOAuthAccount } from "../../api/types.js";
@@ -59,13 +62,14 @@ type OAuthProvider = Capabilities["registration"]["oauth"][number];
 /** Full connected-accounts screen: real read + unlink; link needs `getAccessToken`. */
 export function OAuthLinks(props: OAuthLinksProps): ReactElement {
   const t = useT();
-  const formatError = useFormatFlowError();
   const errorDisplay = useErrorDisplay(AUTH_I18N_KEYS.unknownError);
   const caps = useCapabilities();
   const links = useOAuthLinks();
   const link = useLinkOAuth();
   const unlink = useUnlinkOAuth();
   const [pending, setPending] = useState<string | null>(null);
+  // ONE confirm for the whole list, keyed by the provider waiting on it.
+  const [unlinking, setUnlinking] = useState<OAuthProvider | null>(null);
 
   // Both reads or nothing: a provider row rendered without its links answer
   // would show "not connected" for an account that IS connected, which is the
@@ -85,9 +89,9 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
   // "Connect" needs a host-supplied token getter; when there is none the
   // button is off AND says so in text next to it — a disabled button gets no
   // pointer events, so a tooltip would be a reason nobody can read.
-  const connectGate = useActionGate(
-    props.getAccessToken ? actionAvailable() : actionBlocked(AUTH_I18N_KEYS.secOauthLinkUnavailable)
-  );
+  const connectGate = props.getAccessToken
+    ? actionAvailable()
+    : actionBlocked(AUTH_I18N_KEYS.secOauthLinkUnavailable);
 
   async function handleConnect(providerId: string): Promise<void> {
     if (!props.getAccessToken) return;
@@ -104,9 +108,18 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
   }
 
   return (
-    <Card title={t(AUTH_I18N_KEYS.secOauthTitle)} data-testid="oauth-links" style={{ width: "100%" }}>
+    <SkinTheme surface="bare">
+      <Card
+        title={t(AUTH_I18N_KEYS.secOauthTitle)}
+        data-testid="oauth-links"
+        style={{ width: "100%" }}
+      >
       {matchList(rows, {
-        loading: () => <Spin />,
+        loading: () => (
+          <div role="status" aria-busy="true" data-testid="oauth-loading">
+            <Skeleton active />
+          </div>
+        ),
         failed: (error) => (
           <ErrorAlert
             error={errorDisplay(error)}
@@ -117,9 +130,10 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
           />
         ),
         empty: () => (
-          <Empty
-            image={props.emptyIcon ?? <SecurityEmptyIcon />}
-            description={t(AUTH_I18N_KEYS.secOauthEmpty)}
+          <EmptyState
+            icon={props.emptyIcon ?? <SecurityEmptyIcon />}
+            title={t(AUTH_I18N_KEYS.secOauthEmpty)}
+            hint={t(AUTH_I18N_KEYS.secOauthEmptyHint)}
           />
         ),
         ready: (list) => (
@@ -132,35 +146,28 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
                   {linked && <Tag color="green">{t(AUTH_I18N_KEYS.secOauthLinked)}</Tag>}
                 </Flex>
                 {linked ? (
-                  <Popconfirm
-                    title={t(AUTH_I18N_KEYS.secOauthUnlinkConfirmTitle)}
-                    onConfirm={() => unlink.mutate(p.id)}
-                    okText={t(AUTH_I18N_KEYS.secOauthUnlink)}
-                    okButtonProps={{
-                      danger: true,
-                      loading: unlink.isPending && unlink.variables === p.id,
-                    }}
+                  /* `type="text"`, not a red outline: the danger weight lives
+                     on the confirm, where the decision is taken. */
+                  <Button
+                    type="text"
+                    danger
+                    onClick={() => setUnlinking(p)}
+                    aria-label={t(AUTH_I18N_KEYS.secOauthUnlinkLabel, { name: p.name })}
+                    data-analytics="none"
+                    data-analytics-reason="local-ui-open-unlink-confirm"
                   >
-                    <Button type="link" danger data-analytics="flow">
-                      {t(AUTH_I18N_KEYS.secOauthUnlink)}
-                    </Button>
-                  </Popconfirm>
+                    {t(AUTH_I18N_KEYS.secOauthUnlink)}
+                  </Button>
                 ) : (
-                  <Flex vertical align="flex-end" gap={spacing[1]}>
-                    <Button
-                      disabled={connectGate.disabled}
-                      loading={pending === p.id}
-                      onClick={() => void handleConnect(p.id)}
-                      data-analytics="flow"
-                    >
-                      {t(AUTH_I18N_KEYS.secOauthLink)}
-                    </Button>
-                    {connectGate.reason && (
-                      <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
-                        {connectGate.reason}
-                      </Typography.Text>
-                    )}
-                  </Flex>
+                  <GatedButton
+                    gate={connectGate}
+                    testId={`oauth-connect-${p.id}`}
+                    {...(pending === p.id ? { loading: true } : {})}
+                    onClick={() => void handleConnect(p.id)}
+                    data-analytics="flow"
+                  >
+                    {t(AUTH_I18N_KEYS.secOauthLink)}
+                  </GatedButton>
                 )}
               </Flex>
             ))}
@@ -168,20 +175,27 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
         ),
       })}
 
-      {link.isError && <Alert type="error" showIcon message={formatError({
-        code: link.error.code,
-        params: link.error.params,
-        status: link.error.status,
-        message: link.error.message,
-        language: link.error.language,
-      })} />}
-      {unlink.isError && <Alert type="error" showIcon message={formatError({
-        code: unlink.error.code,
-        params: unlink.error.params,
-        status: unlink.error.status,
-        message: unlink.error.message,
-        language: unlink.error.language,
-      })} />}
-    </Card>
+      <ErrorAlert thrown={link.error} />
+      <ErrorAlert thrown={unlink.error} />
+
+      {/* A popover anchored to a small link button is a desktop shape; this
+          OK disconnects a sign-in route the person may be relying on. */}
+      <SkinConfirm
+        open={unlinking !== null}
+        danger
+        title={t(AUTH_I18N_KEYS.secOauthUnlinkConfirmTitle)}
+        {...(unlinking !== null ? { body: unlinking.name } : {})}
+        confirmLabel={t(AUTH_I18N_KEYS.secOauthUnlink)}
+        confirming={unlink.isPending}
+        data-testid="oauth-unlink-confirm"
+        onConfirm={() => {
+          const target = unlinking;
+          if (target === null) return;
+          unlink.mutate(target.id, { onSettled: () => setUnlinking(null) });
+        }}
+        onCancel={() => setUnlinking(null)}
+      />
+      </Card>
+    </SkinTheme>
   );
 }

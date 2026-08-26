@@ -21,6 +21,7 @@ function Wrapper(props: { children: ReactNode }): ReactElement {
       webSocket={transport.factory}
       schedule={clock.schedule}
       random={() => 1}
+      now={clock.now}
       session={null}
     >
       {props.children}
@@ -41,6 +42,8 @@ function Panel(props: { onFrame?: (frame: RealtimeFrame) => void }): ReactElemen
       <output data-testid="connection">{connection.state}</output>
       <output data-testid="refused">{String(connection.refused)}</output>
       <output data-testid="cursors">{JSON.stringify(connection.cursors)}</output>
+      <output data-testid="degradation">{connection.degradation?.kind ?? "-"}</output>
+      <output data-testid="ever">{String(connection.everConnected)}</output>
     </div>
   );
 }
@@ -164,6 +167,53 @@ describe("RealtimeProvider + useStream + useRealtimeState", () => {
     }
     render(<Bare />);
     expect(screen.getByTestId("bare").textContent).toBe("idle");
+  });
+
+  it("names a socket that never opened, instead of spinning forever", () => {
+    // The fake never accepts and never closes — the deployment that sits for
+    // months with a socket configured and never usable. No event will arrive
+    // to move this indicator, so the runtime has to reach the threshold on its
+    // own and the tree has to hear about it.
+    render(
+      <Wrapper>
+        <Panel />
+      </Wrapper>
+    );
+    expect(screen.getByTestId("degradation").textContent).toBe("-");
+    expect(screen.getByTestId("stream").textContent).toBe("connecting");
+
+    act(() => {
+      clock.advance(30_000);
+    });
+    expect(screen.getByTestId("degradation").textContent).toBe("never_connected");
+    expect(screen.getByTestId("ever").textContent).toBe("false");
+
+    act(() => {
+      transport.last().accept();
+    });
+    expect(screen.getByTestId("degradation").textContent).toBe("-");
+    expect(screen.getByTestId("ever").textContent).toBe("true");
+  });
+
+  it("says `no_provider` rather than inventing a socket that is not there", () => {
+    // A different sentence from every socket state: nothing is retrying,
+    // nothing was refused, and no retry button will help.
+    function Optional(): ReactElement {
+      const { status, send, reconnect } = useStream(STREAM, { optional: true });
+      return (
+        <div>
+          <output data-testid="opt">{status.state}</output>
+          <output data-testid="opt-send">{String(send("chat.read"))}</output>
+          <button type="button" onClick={reconnect}>
+            retry
+          </button>
+        </div>
+      );
+    }
+    render(<Optional />);
+    expect(screen.getByTestId("opt").textContent).toBe("no_provider");
+    expect(screen.getByTestId("opt-send").textContent).toBe("false");
+    expect(transport.sockets).toHaveLength(0);
   });
 
   it("refuses to pretend a stream hook works without a provider", () => {

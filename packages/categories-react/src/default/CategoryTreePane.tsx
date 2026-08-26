@@ -68,7 +68,7 @@ export function CategoryTreePane(props: CategoryTreePaneProps): ReactElement {
                 type="warning"
                 showIcon
                 data-testid="categories-tree-truncated"
-                message={t(CATEGORIES_I18N_KEYS.catalogTruncated)}
+                title={t(CATEGORIES_I18N_KEYS.catalogTruncated)}
               />
             ) : null}
 

@@ -110,7 +110,7 @@ export function QrConfirmPanel(props: QrConfirmPanelProps): ReactElement {
     return (
       <QrConfirmSurface>
         <Card title={title} data-testid="qr-confirm-panel" style={{ width: "100%" }}>
-          <Alert type="warning" showIcon message={t(AUTH_I18N_KEYS.qrConfirmNoKey)} />
+          <Alert type="warning" showIcon title={t(AUTH_I18N_KEYS.qrConfirmNoKey)} />
         </Card>
       </QrConfirmSurface>
     );
@@ -136,7 +136,7 @@ export function QrConfirmPanel(props: QrConfirmPanelProps): ReactElement {
           <Alert
             type="success"
             showIcon
-            message={t(AUTH_I18N_KEYS.qrConfirmApproved)}
+            title={t(AUTH_I18N_KEYS.qrConfirmApproved)}
           />
         )}
 
@@ -144,12 +144,12 @@ export function QrConfirmPanel(props: QrConfirmPanelProps): ReactElement {
           <Alert
             type="info"
             showIcon
-            message={t(AUTH_I18N_KEYS.qrConfirmDeclined)}
+            title={t(AUTH_I18N_KEYS.qrConfirmDeclined)}
           />
         )}
 
         {failure !== null && settled === null && (
-          <Alert type="error" showIcon message={formatError(toFlowError(failure))} />
+          <Alert type="error" showIcon title={formatError(toFlowError(failure))} />
         )}
 
         {settled === null && (

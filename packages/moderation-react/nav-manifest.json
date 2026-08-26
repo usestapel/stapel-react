@@ -3,23 +3,83 @@
   "version": "0.0.0",
   "entries": [
     {
-      "id": "moderation.console",
+      "id": "moderation.policy",
+      "labelKey": "moderation.nav.policy",
+      "icon": "SafetyCertificateOutlined",
+      "route": {
+        "path": "policy"
+      },
+      "component": {
+        "export": "PolicyDisclosurePane",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": false,
+      "surface": "public",
+      "order": 90
+    },
+    {
+      "id": "account.appeals",
+      "labelKey": "moderation.nav.appeals",
+      "icon": "AuditOutlined",
+      "route": {
+        "path": "appeals"
+      },
+      "component": {
+        "export": "AppealPanel",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "account.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 40
+    },
+    {
+      "id": "admin.moderation",
       "labelKey": "moderation.nav.moderation",
       "icon": "SafetyCertificateOutlined",
       "route": {
         "path": "moderation"
       },
       "component": {
-        "export": "ModerationPanel",
-        "subpath": "default"
+        "export": "ModerationQueue",
+        "subpath": "default/admin"
       },
       "placement": {
-        "level": "top"
+        "level": "submenu",
+        "parentId": "admin.root"
       },
       "menuVisibleDefault": true,
       "requiresAuth": true,
       "surface": "member",
-      "order": 50
+      "order": 20
+    },
+    {
+      "id": "admin.moderation-appeals",
+      "labelKey": "moderation.nav.appeals",
+      "icon": "AuditOutlined",
+      "route": {
+        "path": "moderation-appeals"
+      },
+      "component": {
+        "export": "AppealsQueue",
+        "subpath": "default/admin"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "admin.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 21
     }
   ]
 }

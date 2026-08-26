@@ -56,6 +56,7 @@ export { workspacesQueryKeys } from "./model/queryKeys.js";
 export {
   WorkspaceSelectionProvider,
   useWorkspaceSelection,
+  useOptionalWorkspaceSelection,
 } from "./model/selection.js";
 export type {
   WorkspaceSelection,

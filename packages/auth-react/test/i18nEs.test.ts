@@ -18,12 +18,13 @@ import {
 } from "../src/i18n/es.js";
 
 /**
- * The es locale contour of the pair (i18n-shipping.md §2/§3). Mirrors the ru
- * contour with ONE deliberate inversion: Spanish covers the backend error
- * registry but NOT the pair-owned UI keys, so the UI-coverage suite asserts
- * that those keys resolve to their ENGLISH text under locale `es` — partial
- * coverage as a declared, tested state rather than an accident. Whoever adds
- * hand-written Spanish UI copy flips that suite on purpose.
+ * The es locale contour of the pair (i18n-shipping.md §2/§3), the same shape as
+ * the ru contour: the generated `errors.es.gen.ts` bundle covers the whole
+ * backend registry with `{param}` slots intact, the hand-written Spanish UI copy
+ * covers every pair-owned key on top of it, the `./i18n/es` subpath layers per
+ * the merge-priority convention (en floor under es — degradation to English,
+ * never to a raw key), locale switching is live through core's i18n engine, and
+ * the locale stays OUT of the main entry's module graph.
  */
 
 const PKG_DIR = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
@@ -85,7 +86,7 @@ describe("generated es error bundle", () => {
   });
 });
 
-describe("declared coverage: Spanish errors, English UI (no raw keys)", () => {
+describe("declared coverage: Spanish errors AND Spanish UI (no raw keys)", () => {
   it("every registry code resolves to its SPANISH text under locale es", async () => {
     const i18n = createI18n({ locale: "en" });
     registerAuthI18nEs(i18n);
@@ -94,28 +95,29 @@ describe("declared coverage: Spanish errors, English UI (no raw keys)", () => {
     expect(i18n.t(code)).toBe(authErrorBundleEs[code]);
   });
 
-  it("pair-owned UI keys fall back to ENGLISH under locale es — not to a raw key", async () => {
-    // The inversion of the ru suite: Spanish UI copy does not exist yet, so the
-    // en floor under the locale is what a host reads. When Spanish UI copy
-    // lands, this assertion is the one that must be updated.
+  it("every pair-owned UI key resolves to its SPANISH text under locale es — never a raw key", async () => {
     const i18n = createI18n({ locale: "en" });
     registerAuthI18n(i18n);
     registerAuthI18nEs(i18n);
     await i18n.setLocale("es");
     for (const key of Object.values(AUTH_I18N_KEYS)) {
-      const en = authI18nBundleEn[key] ?? "";
-      expect(i18n.t(key), key).toBe(en);
-      expect(i18n.t(key), key).not.toBe(key);
+      const resolved = i18n.t(key);
+      expect(resolved, key).not.toBe(key);
+      expect(resolved.length, key).toBeGreaterThan(0);
+      expect(resolved, key).toBe(authI18nBundleEs[key]);
     }
   });
 
-  it("the es bundle carries exactly the error codes and no UI keys (yet)", () => {
-    const uiKeys = new Set<string>(Object.values(AUTH_I18N_KEYS));
-    const carried = Object.keys(authI18nBundleEs).filter((k) => uiKeys.has(k));
-    expect(carried).toEqual([]);
-    expect(Object.keys(authI18nBundleEs).sort()).toEqual(
-      [...AUTH_ERROR_CODES].sort()
+  it("the es bundle carries every UI key, with the en {param} slots intact", () => {
+    const missing = Object.values(AUTH_I18N_KEYS).filter(
+      (key) => !(key in authI18nBundleEs)
     );
+    expect(missing).toEqual([]);
+    for (const key of Object.values(AUTH_I18N_KEYS)) {
+      expect(paramsOf(authI18nBundleEs[key] ?? "").sort(), key).toEqual(
+        paramsOf(authI18nBundleEn[key] ?? "").sort()
+      );
+    }
   });
 });
 

@@ -8,10 +8,10 @@ export default { title: "docs-react / Editors" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"text-loaded"} };
 export const Markdown = (): ReactElement => renderDemoVariant(demo, "markdown");
 Markdown.storyName = "markdown";
-Markdown.parameters = { stapel: {"viewport":"phone"} };
+Markdown.parameters = { stapel: {"viewport":"phone","step":"markdown-loaded"} };
 export const Csv = (): ReactElement => renderDemoVariant(demo, "csv");
 Csv.storyName = "csv";
-Csv.parameters = { stapel: {"viewport":"desktop"} };
+Csv.parameters = { stapel: {"viewport":"desktop","step":"csv-loaded"} };

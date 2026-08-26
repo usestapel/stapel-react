@@ -230,14 +230,14 @@ const SAMPLES = [
   ],
 ];
 
-describe("recommended preset — the doctrine tier is a WORKLIST, not a wall", () => {
-  it.each(SAMPLES)("%s warns (never errors) in recommended", async (ruleId, path, code) => {
+describe("recommended preset — the doctrine tier is a GATE since the migration wave", () => {
+  it.each(SAMPLES)("%s errors in recommended", async (ruleId, path, code) => {
     const messages = await lintUnder(recommended, path, code);
     const mine = messages.filter((m) => m.ruleId === ruleId);
     expect(mine.length).toBeGreaterThan(0);
-    // severity 1 = warn. `eslint .` stays green, `pnpm turbo run lint` prints
-    // the migration list — which is the whole point of shipping them this way.
-    expect(mine.every((m) => m.severity === 1)).toBe(true);
+    // severity 2 = error. Every pair migrated onto the substrate on
+    // 2026-08-24..26; a doctrine finding is a defect now, not a worklist row.
+    expect(mine.every((m) => m.severity === 2)).toBe(true);
   });
 
   it("no-bare-dialog stays at ERROR for Modal/Drawer", async () => {
@@ -251,16 +251,17 @@ describe("recommended preset — the doctrine tier is a WORKLIST, not a wall", (
     expect(mine[0].severity).toBe(2);
   });
 
-  it("…and the confirm surface is NOT on in recommended this release", async () => {
-    // The wave-B switch. When the nine Popconfirm sites are on SkinConfirm,
-    // `confirmComponents: []` comes out of the preset and this expectation
-    // flips to the one in the `strict` block below.
+  it("…and the confirm surface is on in recommended too", async () => {
+    // The wave-B switch flipped: every Popconfirm site is on SkinConfirm, so
+    // the confirm surface is covered wherever the dialog surface is.
     const messages = await lintUnder(
       recommended,
       "src/default/Panel.tsx",
       'import { Popconfirm } from "antd";\nexport const x = Popconfirm;\n'
     );
-    expect(messages.filter((m) => m.ruleId === "stapel/no-bare-dialog")).toHaveLength(0);
+    const mine = messages.filter((m) => m.ruleId === "stapel/no-bare-dialog");
+    expect(mine).toHaveLength(1);
+    expect(mine[0].severity).toBe(2);
   });
 });
 
@@ -312,5 +313,33 @@ describe("plugin registry", () => {
 
   it("no-raw-dimensions is the fixable one", () => {
     expect(plugin.rules["no-raw-dimensions"].meta.fixable).toBe("code");
+  });
+});
+
+// ── A vendor deprecation is not doctrine ────────────────────────────────────
+//
+// `antd-alert-title` deliberately does NOT join the worklist tier: there is
+// nothing to sequence, only a rename, and `--fix` closes every site. That
+// distinction lives in the preset wiring, so it is asserted here.
+describe("recommended preset — antd 6's Alert rename", () => {
+  const ALERT = 'import { Alert } from "antd";\nexport const A = () => <Alert message={m}/>;\n';
+
+  it("errors (not warns) and carries a fix", async () => {
+    const messages = await lintUnder(recommended, "src/default/Panel.tsx", ALERT);
+    const mine = messages.filter((m) => m.ruleId === "stapel/antd-alert-title");
+    expect(mine).toHaveLength(1);
+    expect(mine[0].severity).toBe(2);
+    expect(mine[0].fix).toBeDefined();
+  });
+
+  it("is not scoped to default skins — a host app renders antd Alerts too", async () => {
+    const messages = await lintUnder(recommended, "src/Header.tsx", ALERT);
+    expect(messages.map((m) => m.ruleId)).toContain("stapel/antd-alert-title");
+  });
+
+  it("is registered, documented and fixable", () => {
+    expect(plugin.rules["antd-alert-title"]).toBeDefined();
+    expect(plugin.rules["antd-alert-title"].meta.docs.description).toBeTruthy();
+    expect(plugin.rules["antd-alert-title"].meta.fixable).toBe("code");
   });
 });

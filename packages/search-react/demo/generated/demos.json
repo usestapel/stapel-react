@@ -4,6 +4,90 @@
   "version": "0.5.0",
   "demos": [
     {
+      "id": "search.box",
+      "title": "Search box",
+      "description": "Types into a draft and searches after a pause, so the address bar does not chase the keyboard; the URL still wins whenever it moves on its own, so the box can never show a word the results are not about. Capped at the server's own MAX_QUERY_CHARS, which makes 'query too long' a refusal this control cannot cause.",
+      "component": "SearchBox",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "empty",
+          "description": "Nothing searched for yet: the placeholder, the visible Search button (a phone keyboard does not always offer one), and the labelled field.",
+          "viewport": "desktop",
+          "step": "empty"
+        },
+        {
+          "id": "typed",
+          "description": "Opened on a link that already carries a query, at 390px: the box shows what the results are about, not an empty field over somebody else's search.",
+          "viewport": "phone",
+          "step": "typed"
+        }
+      ],
+      "source": {
+        "file": "demo/SearchBox.demo.tsx",
+        "line": 39
+      }
+    },
+    {
+      "id": "search.degradation-notice",
+      "title": "Degradation notice",
+      "description": "What the engine could not do for THIS query, in words: the typo pass it skipped, the facet counts it sampled rather than counted, the scorer it could not evaluate. An unknown degradation still renders — with its raw literal — because a build that predates a limitation should say 'the engine reported something we have no wording for', not nothing.",
+      "component": "DegradationNotice",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "banner",
+          "description": "A catalogue page has room for the warning box, and a catalogue page is where the caveat changes what the results MEAN.",
+          "viewport": "desktop",
+          "step": "banner"
+        },
+        {
+          "id": "inline",
+          "description": "A landing page showing six cards under a hero has no room for a box: the same sentences as quiet secondary text at 390px.",
+          "viewport": "phone",
+          "step": "inline"
+        }
+      ],
+      "source": {
+        "file": "demo/DegradationNotice.demo.tsx",
+        "line": 41
+      }
+    },
+    {
+      "id": "search.facet-panel-pane",
+      "title": "Filter panel",
+      "description": "The drill-down facet panel with every count beside its option — including the options you have not chosen, which is what makes them drill-down rather than naive — plus the server's honesty flags said in words: 'these counts are approximate' and the slugs it did not count at all, whose options read 'not counted' and never a zero that looks like an answer.",
+      "component": "FacetPanelPane",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "open-search",
+          "description": "Nothing narrowed yet: the category and location slots are visible, named holes (dev builds only) rather than a silent absence, and the numeric range row comes from the category schema.",
+          "viewport": "desktop",
+          "step": "open"
+        },
+        {
+          "id": "narrowed",
+          "description": "A shared link that already narrows by category, brand, power and a 25km radius — at 390px. Every one of those constraints has a control that removes it, including the two whose slots no host filled.",
+          "viewport": "phone",
+          "step": "narrowed"
+        }
+      ],
+      "source": {
+        "file": "demo/FacetPanelPane.demo.tsx",
+        "line": 40
+      }
+    },
+    {
       "id": "search.facets",
       "title": "Facet panel",
       "description": "Counts are computed with each facet's own filter removed, so picking one value does not zero its siblings. Labels come from the category schema through @stapel/attributes-react; a slug the server skipped shows 'not counted', never 0.",
@@ -19,6 +103,34 @@
       ],
       "source": {
         "file": "demo/FacetPanel.demo.tsx",
+        "line": 38
+      }
+    },
+    {
+      "id": "search.language-select",
+      "title": "Language filter",
+      "description": "The languages a deployment indexes, each named the way THIS reader would name it. With nothing offered and nothing applied the control does not render at all: a select whose only option is 'any' is a dead control, and the panel is thinner without it.",
+      "component": "LanguageSelect",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "offered",
+          "description": "The three languages this deployment indexes, plus the 'any' option that widens the search back out.",
+          "viewport": "desktop",
+          "step": "offered"
+        },
+        {
+          "id": "from-a-link",
+          "description": "The host named no languages, but a shared link narrows to one: the control appears anyway, at 390px, purely so the constraint can be removed. A link that narrows must always leave a door out.",
+          "viewport": "phone",
+          "step": "from-a-link"
+        }
+      ],
+      "source": {
+        "file": "demo/LanguageSelect.demo.tsx",
         "line": 38
       }
     },
@@ -57,7 +169,63 @@
       ],
       "source": {
         "file": "demo/SearchPage.demo.tsx",
-        "line": 60
+        "line": 58
+      }
+    },
+    {
+      "id": "search.page-size-select",
+      "title": "Page size control",
+      "description": "A short ladder around the server's DEFAULT_PAGE_SIZE. Choosing a size REPLACES the history entry rather than pushing one: a page size is a preference, not a step through the results, and Back should still undo the last filter.",
+      "component": "PageSizeSelect",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "ladder",
+          "description": "The shipped ladder with the server's default selected.",
+          "viewport": "desktop",
+          "step": "default"
+        },
+        {
+          "id": "off-ladder",
+          "description": "A link carrying limit=37 at 390px: the size is offered as its own option and kept, rather than the person being moved to 24 without being told.",
+          "viewport": "phone",
+          "step": "off-ladder"
+        }
+      ],
+      "source": {
+        "file": "demo/PageSizeSelect.demo.tsx",
+        "line": 31
+      }
+    },
+    {
+      "id": "search.range-filter-row",
+      "title": "Numeric range filter",
+      "description": "A range row per numeric feature of the category schema, plus any slug the URL already constrains — because a constraint that is active must always have a control that removes it, even when the schema no longer explains it. Bounds and step come from the schema; the unit is shown in the field's accessible name.",
+      "component": "RangeFilterRow",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "untouched",
+          "description": "An empty row from the category schema: Apply is the primary action, and there is nothing to clear yet.",
+          "viewport": "desktop",
+          "step": "untouched"
+        },
+        {
+          "id": "applied",
+          "description": "The bounds a shared link carries, at 390px: the row reads them from the URL, Apply steps back to the secondary style and a Clear control appears beside it.",
+          "viewport": "phone",
+          "step": "applied"
+        }
+      ],
+      "source": {
+        "file": "demo/RangeFilterRow.demo.tsx",
+        "line": 53
       }
     },
     {
@@ -80,6 +248,65 @@
       }
     },
     {
+      "id": "search.ranking-pane",
+      "title": "Ranking disclosure",
+      "description": "The statutory ranking page in the default skin: every scorer with its weight, the sorts it applies to, and — for a scorer the deployment's engine cannot evaluate — the reason it is inactive, so the disclosure describes the ranking that actually ran rather than the one that was configured.",
+      "component": "RankingDisclosurePane",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "desktop",
+          "description": "The column capped at the reading measure: past that a statutory text stops being a paragraph and becomes a banner.",
+          "viewport": "desktop",
+          "step": "disclosure"
+        },
+        {
+          "id": "phone",
+          "description": "The same text at 390px — the weight tag stays beside the parameter it weighs rather than wrapping away from it.",
+          "viewport": "phone",
+          "step": "disclosure-phone"
+        }
+      ],
+      "source": {
+        "file": "demo/RankingDisclosurePane.demo.tsx",
+        "line": 28
+      }
+    },
+    {
+      "id": "search.result-card",
+      "title": "Result card",
+      "description": "The default card a doc type gets for free: a 4:3 photo well drawn before the network answers (via @stapel/image, so a dead URL is a named placeholder rather than a torn-page icon), the title, the price with its currency, the location and distance — and the promoted marking painted from a token role rather than an antd preset, with its explanation as ordinary text beneath it.",
+      "component": "SearchResultCard",
+      "covers": [],
+      "tokens": [
+        "warning-bg",
+        "warning-on",
+        "warning-border",
+        "surface-sunken"
+      ],
+      "variants": [
+        {
+          "id": "promoted",
+          "description": "A paid placement with a photo: the marking, and the sentence that makes the marking mean something, both visible without a pointer.",
+          "viewport": "desktop",
+          "step": "promoted"
+        },
+        {
+          "id": "plain",
+          "description": "An ordinary row at 390px — no marking, no photo field stored, no distance: the card shows what it finds and reserves no space for what it does not.",
+          "viewport": "phone",
+          "step": "plain"
+        }
+      ],
+      "source": {
+        "file": "demo/SearchResultCard.demo.tsx",
+        "line": 31
+      }
+    },
+    {
       "id": "search.results",
       "title": "Search results",
       "description": "One keyset page, rendered through matchList so 'nothing found' can only be said about a search that actually ran. The count is marked as an estimate when the envelope says so, and degraded[] is surfaced rather than swallowed.",
@@ -99,6 +326,97 @@
       "source": {
         "file": "demo/SearchResults.demo.tsx",
         "line": 40
+      }
+    },
+    {
+      "id": "search.results-pane",
+      "title": "Results pane",
+      "description": "One keyset page in the default skin: a counted heading (a capped count reads 'N+', never a flat number the server did not promise), the degradation banner, an auto-fill card grid, and a pager that is ABSENT when there is nothing to page rather than disabled with its reason in a tooltip.",
+      "component": "SearchResultsPane",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "warning-bg"
+      ],
+      "variants": [
+        {
+          "id": "desktop",
+          "description": "A found page on a desktop: as many card columns as fit, capped at the reading measure so the status row stays beside the controls that act on it.",
+          "viewport": "desktop",
+          "step": "results"
+        },
+        {
+          "id": "phone",
+          "description": "The same page at 390px — the grid collapses to one column with no breakpoint to maintain.",
+          "viewport": "phone",
+          "step": "results-phone"
+        },
+        {
+          "id": "empty",
+          "description": "A search that RAN and matched nothing: the designed empty state, and no pager under it — two dead buttons below an empty page is the C-DEADPAGER defect.",
+          "viewport": "phone",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/SearchResultsPane.demo.tsx",
+        "line": 42
+      }
+    },
+    {
+      "id": "search.sort-select",
+      "title": "Sort control",
+      "description": "The five shipped sorts, plus whatever unknown sort a shared link already carries — offered rather than silently reset, because resetting it would rewrite the meaning of somebody's link on load and the server is the one entitled to refuse an unknown sort by name.",
+      "component": "SortSelect",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "no-centre",
+          "description": "No location in the search: 'Distance' is disabled and the reason stands beside the control as ordinary text, with the select's aria-describedby pointing at it.",
+          "viewport": "desktop",
+          "step": "blocked"
+        },
+        {
+          "id": "with-centre",
+          "description": "A link carrying a centre and a radius, at 390px: the gate is open, the reason is gone, and the sort the person most wants on a phone is the one they can pick.",
+          "viewport": "phone",
+          "step": "available"
+        }
+      ],
+      "source": {
+        "file": "demo/SortSelect.demo.tsx",
+        "line": 33
+      }
+    },
+    {
+      "id": "search.url-issue-notice",
+      "title": "Unreadable link notice",
+      "description": "The parameters a shared link carried that the codec could not read, named one by one. The alternative is not 'no notice' but a quietly WIDER search than the one that was shared, which is the difference between a page that is wrong and a page that says which part of the link it lost.",
+      "component": "UrlIssueNotice",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "two-issues",
+          "description": "A location and a price range, both unreadable: each parameter is named, because 'something in this link was broken' is not actionable.",
+          "viewport": "desktop",
+          "step": "two-issues"
+        },
+        {
+          "id": "one-issue",
+          "description": "Only the coordinate is broken — one line at 390px.",
+          "viewport": "phone",
+          "step": "one-issue"
+        }
+      ],
+      "source": {
+        "file": "demo/UrlIssueNotice.demo.tsx",
+        "line": 34
       }
     }
   ]

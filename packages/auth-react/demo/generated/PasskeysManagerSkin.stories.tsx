@@ -8,5 +8,10 @@ export default { title: "auth-react / Passkeys (default skin)" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
+Default.parameters = { stapel: {"step":"list"} };
 export const Empty = (): ReactElement => renderDemoVariant(demo, "empty");
 Empty.storyName = "empty";
+Empty.parameters = { stapel: {"viewport":"phone","step":"empty"} };
+export const AddBlocked = (): ReactElement => renderDemoVariant(demo, "add-blocked");
+AddBlocked.storyName = "add-blocked";
+AddBlocked.parameters = { stapel: {"step":"blocked"} };

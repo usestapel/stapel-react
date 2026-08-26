@@ -25,6 +25,17 @@ import { SkinTheme } from "@stapel/tokens-antd/skin";
 import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
 import { createTasksRuntime } from "../src/index.js";
 import { TasksProvider, registerTasksI18n } from "../src/index.js";
+import {
+  DEMO_BOARD_ID,
+  DEMO_TASK_ID,
+  boards,
+  cards,
+  checklist,
+  columns,
+  comments,
+  task,
+  vocabulary,
+} from "./fixtures.js";
 
 /** The base every mock handler mounts on (mirrors stapel-tasks `/tasks/api/v1/`). */
 export const DEMO_BASE = "https://tasks.demo.stapel.dev/tasks/api/v1/";
@@ -72,6 +83,29 @@ export function mockFetch(handlers: DemoHandlers): typeof globalThis.fetch {
       })
     );
   }) as typeof globalThis.fetch;
+}
+
+/**
+ * The whole board contract as one handler map, in MATCH ORDER (the mock walks
+ * the map and takes the first suffix the URL contains, so the specific routes
+ * have to come before `boards`). Overrides are merged on top, which is how a
+ * variant swaps ONE answer — an empty board, a truncated one, a denied move —
+ * without restating the other eleven.
+ */
+export function boardHandlers(overrides: DemoHandlers = {}): DemoHandlers {
+  return {
+    "boards/presets": vocabulary,
+    [`boards/${DEMO_BOARD_ID}/cards`]: cards,
+    [`boards/${DEMO_BOARD_ID}/columns/reorder`]: columns,
+    [`boards/${DEMO_BOARD_ID}/columns`]: columns,
+    [`tasks/${DEMO_TASK_ID}/comments`]: comments,
+    [`tasks/${DEMO_TASK_ID}/checklist`]: checklist,
+    [`tasks/${DEMO_TASK_ID}/move`]: { result: "applied", reason_key: null },
+    [`tasks/${DEMO_TASK_ID}`]: task,
+    [`boards/${DEMO_BOARD_ID}`]: boards[0],
+    boards,
+    ...overrides,
+  };
 }
 
 /** i18n copy for the demo chrome — a `demo.*` (unmanaged) namespace, so the

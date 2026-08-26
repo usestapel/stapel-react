@@ -475,7 +475,92 @@
     "defined": [],
     "flows": []
   },
-  "demos": [],
+  "demos": [
+    {
+      "id": "translate.language-settings",
+      "title": "Language settings (default skin)",
+      "description": "The switcher, one sentence saying what the choice affects, and the status line an operator needs when a translated screen looks wrong. Mounted by the `account.language` nav entry.",
+      "component": "LanguageSettingsPane",
+      "covers": [
+        "LanguageSwitcher",
+        "TranslationStatus"
+      ],
+      "variants": [
+        "default",
+        "offline"
+      ],
+      "source": "demo/LanguageSettingsPane.demo.tsx"
+    },
+    {
+      "id": "translate.language-switcher",
+      "title": "Language switcher (default skin)",
+      "description": "The control this pair exists to put on screen: a searchable select on desktop, a bottom sheet on a phone, and a compact globe for the app header. When the bundle could not be downloaded it says so beside itself instead of pretending the switch was complete.",
+      "component": "LanguageSwitcher",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "compact",
+        "partial"
+      ],
+      "source": "demo/LanguageSwitcher.demo.tsx"
+    },
+    {
+      "id": "translate.provider",
+      "title": "Translate provider",
+      "description": "The headless translate root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "TranslateProvider",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/Translate.demo.tsx"
+    },
+    {
+      "id": "translate.translate-button",
+      "title": "Translate button (default skin)",
+      "description": "Ask for somebody else's writing in your own language. Absent — not greyed — where the deployment offers no content translation; every refusal folded by code into a sentence, with a retry only where retrying can work.",
+      "component": "TranslateButton",
+      "variants": [
+        "default",
+        "translated",
+        "throttled",
+        "blocked",
+        "unavailable"
+      ],
+      "source": "demo/TranslateButton.demo.tsx"
+    },
+    {
+      "id": "translate.translated-text",
+      "title": "Translated text (default skin)",
+      "description": "A listing description with a translate control beside it. Once translated, a quiet second line says which language it came from, that a machine produced it, and whether the answer came from a cache — the same honesty a converted price owes with 'approx.'.",
+      "component": "TranslatedText",
+      "covers": [
+        "TranslateButton"
+      ],
+      "variants": [
+        "default",
+        "batched",
+        "hostControl"
+      ],
+      "source": "demo/TranslatedText.demo.tsx"
+    },
+    {
+      "id": "translate.translation-status",
+      "title": "Translation status (default skin)",
+      "description": "The revision in effect and how many texts it carries — or which rung of the loader's fallback ladder answered. Small on purpose: a settings screen puts it under the switcher, a host may put it in a footer.",
+      "component": "TranslationStatus",
+      "variants": [
+        "default",
+        "offline",
+        "loading"
+      ],
+      "source": "demo/TranslationStatus.demo.tsx"
+    }
+  ],
   "i18nKeys": [
     "error.400.bad_request",
     "error.400.captcha_invalid",
@@ -525,51 +610,124 @@
     "error.500.internal",
     "error.502.translate.provider_unavailable",
     "error.503.mandate_unavailable",
+    "translate.button.batchRefused",
+    "translate.button.cached",
+    "translate.button.failed",
+    "translate.button.label",
+    "translate.button.machine",
+    "translate.button.nothing",
+    "translate.button.retry",
+    "translate.button.sameLanguage",
+    "translate.button.showOriginal",
+    "translate.button.showTranslation",
+    "translate.button.signIn",
+    "translate.button.throttled",
+    "translate.button.tooLong",
+    "translate.button.translatedFrom",
+    "translate.button.translating",
+    "translate.button.unavailable",
+    "translate.button.unsupported",
+    "translate.dialog.dismiss",
+    "translate.dialog.target",
     "translate.error.unknown",
-    "translate.nav.overview",
-    "translate.panel.empty",
-    "translate.panel.loading"
+    "translate.nav.language",
+    "translate.settings.heading",
+    "translate.settings.hint",
+    "translate.status.fallback",
+    "translate.status.loading",
+    "translate.status.offline",
+    "translate.status.revision",
+    "translate.switcher.label",
+    "translate.switcher.open",
+    "translate.switcher.partial",
+    "translate.switcher.placeholder",
+    "translate.switcher.switching"
   ],
   "exports": {
     "runtime": [
+      "DEFAULT_LANGUAGE_CODES",
+      "LANGUAGES_REVISION_PATH",
+      "LANGUAGE_NAMES",
+      "TEXT_LIMITS",
+      "TEXT_PATH",
+      "TEXT_TOO_LONG_CODE",
       "TRANSLATE_ERRORS",
       "TRANSLATE_ERROR_CODES",
+      "TRANSLATE_EVENTS",
       "TRANSLATE_FLOWS",
       "TRANSLATE_I18N_KEYS",
       "TranslateProvider",
       "TranslateRuntimeContext",
+      "UNSUPPORTED_LANGUAGE_CODE",
+      "chunkTexts",
       "createFlowMachine",
+      "createLanguagePreferenceStore",
+      "createRemoteLocaleLoader",
+      "createTextBatcher",
       "createTranslateApi",
       "createTranslateRuntime",
       "explainTranslateError",
       "flowEndpoints",
+      "foldTranslateRefusal",
       "isErrorCode",
+      "isLanguageBundle",
+      "languageDataPath",
+      "languageKey",
       "registerTranslateI18n",
       "toFlowError",
       "translateErrorBundleEn",
       "translateI18nBundleEn",
       "translateQueryKeys",
+      "useCurrentLocale",
       "useFlow",
+      "useLanguage",
+      "useLocaleStatus",
+      "useRemoteLocale",
       "useTranslateAnalytics",
       "useTranslateApi",
-      "useTranslateRuntime"
+      "useTranslateRuntime",
+      "useTranslateText"
     ],
     "types": [
+      "CachedBundle",
+      "CreateRemoteLocaleLoaderOptions",
+      "CreateTextBatcherOptions",
       "CreateTranslateRuntimeOptions",
       "FlowEndpoint",
       "FlowError",
       "FlowMachine",
       "FlowMachineOptions",
       "FlowStateBase",
+      "LanguageBag",
+      "LanguageBundle",
+      "LanguageOption",
+      "LanguagePreferenceStore",
+      "LanguageRevision",
       "Remediation",
+      "RemoteLocaleLoader",
+      "RemoteLocaleSource",
+      "RemoteLocaleStatus",
       "Schemas",
+      "TextBatchInput",
+      "TextBatcher",
+      "TextLimits",
+      "TextTranslateInput",
+      "TextTranslation",
+      "TextTranslationRequest",
+      "TextTranslationResult",
       "TranslateApi",
+      "TranslateCapabilities",
       "TranslateErrorCode",
       "TranslateErrorSpec",
+      "TranslateEventName",
       "TranslateFlowId",
       "TranslateFlowSpec",
       "TranslateI18nKey",
-      "TranslateRuntime"
+      "TranslateRefusal",
+      "TranslateRuntime",
+      "TranslateTextBag",
+      "TranslateTextStatus",
+      "UseTranslateTextOptions"
     ]
   }
 }

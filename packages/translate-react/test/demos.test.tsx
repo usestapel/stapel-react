@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { render } from "@testing-library/react";
-import { renderDemoVariant, variantIds } from "@stapel/showcase";
+import { afterEach, describe, expect, it } from "vitest";
+import { act, cleanup, render } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
+import {
+  assertVariantsRenderDistinctly,
+  renderDemoVariant,
+  variantIds,
+} from "@stapel/showcase";
 import type { DemoDef } from "@stapel/showcase";
 
 /**
@@ -13,6 +18,18 @@ const modules = import.meta.glob("../demo/*.demo.tsx", { eager: true }) as Recor
   string,
   { default: DemoDef }
 >;
+
+/**
+ * Mounted demos keep working after the assertion: a variant may still have a
+ * request in flight, and React schedules its resolution on a later tick. Left
+ * mounted, that tick lands after vitest has torn the jsdom `window` down.
+ */
+afterEach(async () => {
+  cleanup();
+  await act(async () => {
+    await Promise.resolve();
+  });
+});
 
 describe("translate-react demos", () => {
   const entries = Object.entries(modules);
@@ -30,5 +47,17 @@ describe("translate-react demos", () => {
       const { container } = render(renderDemoVariant(demo, first));
       expect(container.firstChild).not.toBeNull();
     });
+
+    // The C-SAMESHOT guard (the runtime half of the skin gate's `step` check).
+    // A demo declares variants because the STATES differ; when a state is only
+    // reachable by a click, every variant's static render is the same idle
+    // frame and the gallery claims screens it never photographed. This is why
+    // the skin demos SEED their state (a literal bag, a published loader
+    // status) instead of waiting for a mocked fetch.
+    if (variantIds(demo).length > 1) {
+      it(`renders each variant of ${demo.id} distinctly`, () => {
+        assertVariantsRenderDistinctly(demo, renderToStaticMarkup);
+      });
+    }
   }
 });

@@ -6,8 +6,9 @@
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
 import { AvailabilityPane } from "../src/default/index.js";
+import { DEFAULT_SLOT_MINUTES, calendarQueryKeys } from "../src/index.js";
 import { CalendarDemoHarness } from "./_harness.js";
-import type { DemoHandlers } from "./_harness.js";
+import type { DemoSeed } from "./_harness.js";
 
 const SLOTS = {
   busy: [{ start: "2026-07-13T10:00:00Z", end: "2026-07-13T11:00:00Z" }],
@@ -26,13 +27,26 @@ const TRUNCATED = { ...SLOTS, truncated: true };
  * different thing from a week that is full. */
 const NO_WINDOWS = { busy: [], slots: [], truncated: false };
 
-function Pane(props: { readonly handlers: DemoHandlers }): ReactElement {
+const WINDOW = { start: "2026-07-13T00:00:00Z", end: "2026-07-20T00:00:00Z" };
+
+/** The availability read this pane opens on, on the pane's own default
+ * granularity — the key `<Availability>` will ask for. */
+function seedSlots(body: unknown): DemoSeed {
+  return [
+    {
+      key: calendarQueryKeys.availability({
+        ...WINDOW,
+        slotMinutes: DEFAULT_SLOT_MINUTES,
+      }),
+      data: body,
+    },
+  ];
+}
+
+function Pane(props: { readonly seed: DemoSeed }): ReactElement {
   return (
-    <CalendarDemoHarness handlers={props.handlers}>
-      <AvailabilityPane
-        start="2026-07-13T00:00:00Z"
-        end="2026-07-20T00:00:00Z"
-      />
+    <CalendarDemoHarness seed={props.seed}>
+      <AvailabilityPane start={WINDOW.start} end={WINDOW.end} />
     </CalendarDemoHarness>
   );
 }
@@ -50,19 +64,19 @@ export default defineDemo({
       description: "Windows are set: open slots, and what is already booked.",
       viewport: "phone",
       step: "ready",
-      render: () => <Pane handlers={{ "/availability": SLOTS }} />,
+      render: () => <Pane seed={seedSlots(SLOTS)} />,
     },
     truncated: {
       description: "The expansion hit its cap: the banner says the answer is incomplete before anyone books off it.",
       viewport: "phone",
       step: "ready.truncated",
-      render: () => <Pane handlers={{ "/availability": TRUNCATED }} />,
+      render: () => <Pane seed={seedSlots(TRUNCATED)} />,
     },
     "no-windows": {
       description: "No availability windows — its own named arm, with the reason.",
       viewport: "desktop",
       step: "ready.no_windows",
-      render: () => <Pane handlers={{ "/availability": NO_WINDOWS }} />,
+      render: () => <Pane seed={seedSlots(NO_WINDOWS)} />,
     },
   },
 });

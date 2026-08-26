@@ -60,6 +60,106 @@
           "menuVisibleDefault": true,
           "requiresAuth": true,
           "order": 10
+        },
+        {
+          "id": "admin.sso_orgs",
+          "labelKey": "auth.nav.admin_sso",
+          "icon": "AppstoreOutlined",
+          "route": {
+            "path": "sso"
+          },
+          "component": {
+            "export": "SsoOrgsPanel",
+            "subpath": "default/admin"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "admin.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 40
+        },
+        {
+          "id": "admin.service_keys",
+          "labelKey": "auth.nav.admin_service_keys",
+          "icon": "SafetyCertificateOutlined",
+          "route": {
+            "path": "service-keys"
+          },
+          "component": {
+            "export": "ServiceKeysPanel",
+            "subpath": "default/admin"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "admin.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 41
+        },
+        {
+          "id": "admin.staff_roles",
+          "labelKey": "auth.nav.admin_staff_roles",
+          "icon": "UserOutlined",
+          "route": {
+            "path": "staff-roles"
+          },
+          "component": {
+            "export": "StaffRolesPanel",
+            "subpath": "default/admin"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "admin.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 42
+        },
+        {
+          "id": "admin.users_create",
+          "labelKey": "auth.nav.admin_users",
+          "icon": "PlusOutlined",
+          "route": {
+            "path": "create-account"
+          },
+          "component": {
+            "export": "AdminUsersPanel",
+            "subpath": "default/admin"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "admin.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 43
+        },
+        {
+          "id": "admin.auth_audit",
+          "labelKey": "auth.nav.admin_audit",
+          "icon": "AuditOutlined",
+          "route": {
+            "path": "auth-audit"
+          },
+          "component": {
+            "export": "AdminAuditPanel",
+            "subpath": "default/admin"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "admin.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 44
         }
       ]
     },
@@ -472,23 +572,83 @@
       "version": "0.0.0",
       "entries": [
         {
-          "id": "moderation.console",
+          "id": "moderation.policy",
+          "labelKey": "moderation.nav.policy",
+          "icon": "SafetyCertificateOutlined",
+          "route": {
+            "path": "policy"
+          },
+          "component": {
+            "export": "PolicyDisclosurePane",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": false,
+          "requiresAuth": false,
+          "surface": "public",
+          "order": 90
+        },
+        {
+          "id": "account.appeals",
+          "labelKey": "moderation.nav.appeals",
+          "icon": "AuditOutlined",
+          "route": {
+            "path": "appeals"
+          },
+          "component": {
+            "export": "AppealPanel",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "account.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 40
+        },
+        {
+          "id": "admin.moderation",
           "labelKey": "moderation.nav.moderation",
           "icon": "SafetyCertificateOutlined",
           "route": {
             "path": "moderation"
           },
           "component": {
-            "export": "ModerationPanel",
-            "subpath": "default"
+            "export": "ModerationQueue",
+            "subpath": "default/admin"
           },
           "placement": {
-            "level": "top"
+            "level": "submenu",
+            "parentId": "admin.root"
           },
           "menuVisibleDefault": true,
           "requiresAuth": true,
           "surface": "member",
-          "order": 50
+          "order": 20
+        },
+        {
+          "id": "admin.moderation-appeals",
+          "labelKey": "moderation.nav.appeals",
+          "icon": "AuditOutlined",
+          "route": {
+            "path": "moderation-appeals"
+          },
+          "component": {
+            "export": "AppealsQueue",
+            "subpath": "default/admin"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "admin.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 21
         }
       ]
     },
@@ -747,14 +907,14 @@
       "version": "0.0.0",
       "entries": [
         {
-          "id": "tasks.overview",
-          "labelKey": "tasks.nav.overview",
-          "icon": "AppstoreOutlined",
+          "id": "tasks.boards",
+          "labelKey": "tasks.nav.boards",
+          "icon": "ProfileOutlined",
           "route": {
             "path": "tasks"
           },
           "component": {
-            "export": "TasksPanel",
+            "export": "BoardsPane",
             "subpath": "default"
           },
           "placement": {
@@ -763,7 +923,26 @@
           "menuVisibleDefault": true,
           "requiresAuth": true,
           "surface": "member",
-          "order": 50
+          "order": 30
+        },
+        {
+          "id": "tasks.board",
+          "labelKey": "tasks.nav.board",
+          "icon": "AppstoreOutlined",
+          "route": {
+            "path": "tasks/:boardId"
+          },
+          "component": {
+            "export": "KanbanBoard",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "top"
+          },
+          "menuVisibleDefault": false,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 31
         }
       ]
     },
@@ -772,23 +951,24 @@
       "version": "0.0.0",
       "entries": [
         {
-          "id": "translate.overview",
-          "labelKey": "translate.nav.overview",
-          "icon": "AppstoreOutlined",
+          "id": "account.language",
+          "labelKey": "translate.nav.language",
+          "icon": "MessageOutlined",
           "route": {
-            "path": "translate"
+            "path": "language"
           },
           "component": {
-            "export": "TranslatePanel",
+            "export": "LanguageSettingsPane",
             "subpath": "default"
           },
           "placement": {
-            "level": "top"
+            "level": "submenu",
+            "parentId": "account.root"
           },
           "menuVisibleDefault": true,
           "requiresAuth": true,
           "surface": "member",
-          "order": 50
+          "order": 40
         }
       ]
     },
@@ -842,23 +1022,24 @@
       "version": "0.0.0",
       "entries": [
         {
-          "id": "webhooks.overview",
-          "labelKey": "webhooks.nav.overview",
+          "id": "account.webhooks",
+          "labelKey": "webhooks.nav.webhooks",
           "icon": "AppstoreOutlined",
           "route": {
             "path": "webhooks"
           },
           "component": {
-            "export": "WebhooksPanel",
+            "export": "WebhooksSettingsPane",
             "subpath": "default"
           },
           "placement": {
-            "level": "top"
+            "level": "submenu",
+            "parentId": "profiles.settings"
           },
           "menuVisibleDefault": true,
           "requiresAuth": true,
           "surface": "member",
-          "order": 50
+          "order": 40
         }
       ]
     },
@@ -885,6 +1066,86 @@
           "requiresAuth": true,
           "surface": "member",
           "order": 10
+        },
+        {
+          "id": "workspaces.settings",
+          "labelKey": "workspaces.nav.settings",
+          "icon": "ProfileOutlined",
+          "route": {
+            "path": "workspaces/settings"
+          },
+          "component": {
+            "export": "WorkspaceSettings",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "account.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 11
+        },
+        {
+          "id": "workspaces.members",
+          "labelKey": "workspaces.nav.members",
+          "icon": "UserOutlined",
+          "route": {
+            "path": "workspaces/members"
+          },
+          "component": {
+            "export": "MembersManager",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "account.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 12
+        },
+        {
+          "id": "workspaces.invitations",
+          "labelKey": "workspaces.nav.invitations",
+          "icon": "MessageOutlined",
+          "route": {
+            "path": "workspaces/invitations"
+          },
+          "component": {
+            "export": "InvitationsPane",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "account.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 13
+        },
+        {
+          "id": "workspaces.audit",
+          "labelKey": "workspaces.nav.audit",
+          "icon": "AuditOutlined",
+          "route": {
+            "path": "workspaces/audit"
+          },
+          "component": {
+            "export": "AuditTrailPane",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "account.root"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "surface": "member",
+          "order": 14
         },
         {
           "id": "workspaces.invite",

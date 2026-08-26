@@ -8,13 +8,13 @@ export default { title: "docs-react / Document" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"markdown-loaded"} };
 export const DownloadOnly = (): ReactElement => renderDemoVariant(demo, "download-only");
 DownloadOnly.storyName = "download-only";
-DownloadOnly.parameters = { stapel: {"viewport":"phone"} };
+DownloadOnly.parameters = { stapel: {"viewport":"phone","step":"file"} };
 export const CrdtUnsupported = (): ReactElement => renderDemoVariant(demo, "crdt-unsupported");
 CrdtUnsupported.storyName = "crdt-unsupported";
-CrdtUnsupported.parameters = { stapel: {"viewport":"phone"} };
+CrdtUnsupported.parameters = { stapel: {"viewport":"phone","step":"collab-unsupported"} };
 export const NotFound = (): ReactElement => renderDemoVariant(demo, "not-found");
 NotFound.storyName = "not-found";
-NotFound.parameters = { stapel: {"viewport":"desktop"} };
+NotFound.parameters = { stapel: {"viewport":"desktop","step":"failed"} };

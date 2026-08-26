@@ -16,17 +16,20 @@
         {
           "id": "default",
           "description": "All documents › Specifications › Drafts.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "nested"
         },
         {
           "id": "root",
           "description": "At the workspace root: one crumb, and it is the truth.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "root"
         },
         {
           "id": "loading",
           "description": "The folder read has not landed — the root crumb, not a guessed trail.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "loading"
         }
       ],
       "source": {
@@ -48,22 +51,26 @@
         {
           "id": "default",
           "description": "Rename, prefilled with the current name — the confirm is live.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "rename-prefilled"
         },
         {
           "id": "name-empty",
           "description": "Nothing typed: the confirm is off WITH the reason.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "rename-empty"
         },
         {
           "id": "move-unchanged",
           "description": "Opened on the folder the document is already in — off, and it says why.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "move-unchanged"
         },
         {
           "id": "new-document",
           "description": "The primary action of a documents product: a title and a type.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "create"
         }
       ],
       "source": {
@@ -84,22 +91,26 @@
         {
           "id": "default",
           "description": "A markdown document on the If-Match snapshot path.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "markdown-loaded"
         },
         {
           "id": "download-only",
           "description": "editor_hint '' — the file card, with the download.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "file"
         },
         {
           "id": "crdt-unsupported",
           "description": "A crdt-discipline type with no registered collaborative editor.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "collab-unsupported"
         },
         {
           "id": "not-found",
           "description": "The head read answered 404 — the sentence and a retry.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "failed"
         }
       ],
       "source": {
@@ -120,17 +131,20 @@
         {
           "id": "default",
           "description": "Three unfiled documents with their per-row actions menu.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "populated"
         },
         {
           "id": "no-open-route",
           "description": "No onOpenDocument: no Open item, no clickable row.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "populated-not-openable"
         },
         {
           "id": "empty",
           "description": "The designed empty state with the sentence that says what to do next.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "empty"
         }
       ],
       "source": {
@@ -154,17 +168,20 @@
         {
           "id": "default",
           "description": "Plain text, saved, nothing dirty.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "text-loaded"
         },
         {
           "id": "markdown",
           "description": "Markdown source in a monospace field.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "markdown-loaded"
         },
         {
           "id": "csv",
           "description": "A CSV snapshot as a table of cells: add row / add column / delete row.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "csv-loaded"
         }
       ],
       "source": {
@@ -185,17 +202,20 @@
         {
           "id": "default",
           "description": "The opaque URL minted; the download is live.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "url-ready"
         },
         {
           "id": "minting",
           "description": "The URL is still being minted — off, and it says so.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "url-loading"
         },
         {
           "id": "mint-failed",
           "description": "Storage cannot mint links: the title survives, only the download is blocked.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "url-failed"
         }
       ],
       "source": {
@@ -220,27 +240,32 @@
         {
           "id": "default",
           "description": "Two panes, three documents, two folders.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "populated"
         },
         {
           "id": "phone",
           "description": "One pane at a time with a Folders/Files switch; 44px controls.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "populated"
         },
         {
           "id": "empty",
           "description": "A workspace with nothing in it — said only about a read that succeeded.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "empty"
         },
         {
           "id": "loading",
           "description": "Both reads still in flight: skeletons, and no claim about emptiness.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "loading"
         },
         {
           "id": "outage",
           "description": "Both reads answered 500 — the failure is stated, never dressed as an empty workspace.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "failed"
         }
       ],
       "source": {
@@ -261,17 +286,20 @@
         {
           "id": "default",
           "description": "Two folders, one nested, with the per-folder actions menu.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "populated"
         },
         {
           "id": "empty",
           "description": "No folders yet — beside a live New folder button.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "empty"
         },
         {
           "id": "failed",
           "description": "The folder read failed: the sentence and a retry, not an empty tree.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "failed"
         }
       ],
       "source": {
@@ -292,22 +320,26 @@
         {
           "id": "default",
           "description": "Two revisions; the head's rollback is off with its reason.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "history"
         },
         {
           "id": "desktop",
           "description": "The modal: list beside preview.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "history-wide"
         },
         {
           "id": "empty",
           "description": "A document nobody has saved twice yet.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "empty"
         },
         {
           "id": "binary",
           "description": "A binary document's revisions offer a download, not a garbled preview.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "binary"
         }
       ],
       "source": {
@@ -328,17 +360,20 @@
         {
           "id": "default",
           "description": "One trashed folder and one trashed document; Empty trash is live.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "populated"
         },
         {
           "id": "empty",
           "description": "Genuinely empty: the button is off WITH the empty reason.",
-          "viewport": "phone"
+          "viewport": "phone",
+          "step": "empty"
         },
         {
           "id": "failed",
           "description": "The read answered 404: the button is off with the LOAD-FAILURE reason, not the empty one.",
-          "viewport": "desktop"
+          "viewport": "desktop",
+          "step": "failed"
         }
       ],
       "source": {

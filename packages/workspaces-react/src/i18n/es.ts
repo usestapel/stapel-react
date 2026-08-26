@@ -160,6 +160,23 @@ export const workspacesI18nBundleEs: I18nDictionary = {
     "Es el único propietario del espacio de trabajo. Dé antes el rol de propietario a otra persona.",
   "workspaces.members.remove.blocked.self":
     "Este es usted. Pida a otro propietario o administrador que le quite del espacio de trabajo.",
+  "workspaces.members.reset_password": "Restablecer la contraseña",
+  "workspaces.members.reset_password.blocked.self":
+    "Este es usted. Cambie su propia contraseña en los ajustes de su cuenta — esto actúa sobre la cuenta de otra persona.",
+  "workspaces.members.reset_password_dialog.title":
+    "¿Restablecer la contraseña de {member}?",
+  "workspaces.members.reset_password_dialog.body":
+    "Su contraseña actual deja de funcionar de inmediato y se le avisa de que ha sido usted. La carta nunca lleva la nueva contraseña.",
+  "workspaces.members.reset_password_dialog.step_up":
+    "Le pediremos que confirme su identidad antes de continuar.",
+  "workspaces.members.reset_password_dialog.submit": "Restablecer la contraseña",
+  "workspaces.members.reset_password_dialog.done":
+    "{member} ya tiene una contraseña nueva.",
+  "workspaces.members.reset_password_dialog.generated": "Contraseña de un solo uso",
+  "workspaces.members.reset_password_dialog.generated_hint":
+    "Se muestra una vez y nunca más. Entréguela por un canal de confianza; la persona elegirá la suya al iniciar sesión por primera vez.",
+  "workspaces.members.reset_password_dialog.not_notified":
+    "No había ningún canal para avisarle, así que dígaselo usted.",
   "workspaces.members.rename": "Cambiar el nombre",
   "workspaces.members.rename_dialog.title": "Corregir el nombre",
   "workspaces.members.rename_dialog.label": "Nombre visible",
@@ -299,6 +316,14 @@ export const workspacesI18nBundleEs: I18nDictionary = {
   "workspaces.invite.basicDataTitle": "Configure su perfil",
   "workspaces.invite.basicDataContinueCta": "Continuar",
   "workspaces.invite.blocked.busy": "Terminando el paso que ya está en marcha…",
+
+  // A workspace-scoped screen with no active workspace
+  "workspaces.active.choose.title": "Elija un espacio de trabajo",
+  "workspaces.active.choose.hint":
+    "Esta pantalla gestiona un espacio de trabajo cada vez. Elija uno en la página Espacios de trabajo y vuelva.",
+  "workspaces.active.none.title": "Todavía no pertenece a ningún espacio de trabajo",
+  "workspaces.active.none.hint":
+    "Cree uno o pida a un propietario que le invite — entonces habrá algo que gestionar aquí.",
 
   // Nav manifest labels
   "workspaces.nav.workspaces": "Espacios de trabajo",

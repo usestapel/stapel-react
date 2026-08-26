@@ -165,7 +165,7 @@ function AvailabilityBody(props: {
           showIcon
           role="status"
           data-testid={`${testId}-truncated`}
-          message={t(CALENDAR_I18N_KEYS.availabilityTruncated)}
+          title={t(CALENDAR_I18N_KEYS.availabilityTruncated)}
           description={t(CALENDAR_I18N_KEYS.availabilityTruncatedHint)}
         />
       ) : null}

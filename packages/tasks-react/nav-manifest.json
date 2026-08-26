@@ -3,14 +3,14 @@
   "version": "0.0.0",
   "entries": [
     {
-      "id": "tasks.overview",
-      "labelKey": "tasks.nav.overview",
-      "icon": "AppstoreOutlined",
+      "id": "tasks.boards",
+      "labelKey": "tasks.nav.boards",
+      "icon": "ProfileOutlined",
       "route": {
         "path": "tasks"
       },
       "component": {
-        "export": "TasksPanel",
+        "export": "BoardsPane",
         "subpath": "default"
       },
       "placement": {
@@ -19,7 +19,26 @@
       "menuVisibleDefault": true,
       "requiresAuth": true,
       "surface": "member",
-      "order": 50
+      "order": 30
+    },
+    {
+      "id": "tasks.board",
+      "labelKey": "tasks.nav.board",
+      "icon": "AppstoreOutlined",
+      "route": {
+        "path": "tasks/:boardId"
+      },
+      "component": {
+        "export": "KanbanBoard",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 31
     }
   ]
 }

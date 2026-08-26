@@ -1,35 +1,102 @@
 {
-  "$generated": "hand-authored, not scripts/gen-manifest.mjs (that driver derives backend.contract from a sibling Django module's pyproject.toml — this package has none; see backend: null below)",
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/shell-react",
-  "version": "0.4.0",
+  "version": "0.6.0",
   "backend": null,
-  "layers": ["headless", "default", "theme", "i18n"],
+  "description": "Scripted-fullstack navigation shell (Phase 1 lib-side core): resolveNav merges installed pairs' nav-manifests + a project's override file into a nav tree (pure, no React), and the /default AppShell renders it as a responsive antd Layout (Sider desktop, Drawer phone/tablet) around a react-router <Outlet/>.",
+  "flows": {},
+  "machines": [],
+  "operations": {},
+  "hooks": {},
+  "errors": {},
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "shell.app",
+      "title": "App shell",
+      "description": "The chrome around every signed-in screen. It renders an already-resolved nav and owns no nav logic: a Sider at desktop width, a hamburger sheet below it, decided by @stapel/core's useBreakpoint — which now answers on the FIRST client render, so the phone branch is never painted on a desktop and swapped out a frame later. The admin section is the one a pair hangs a staff screen from and nobody declares; it is synthesised, LISTED for everyone, and switched off with its reason beside it when the staff capability is absent, because an entry that vanishes teaches nobody the screen exists.",
+      "component": "AppShell",
+      "covers": [
+        "ADMIN_ROOT_ID",
+        "ADMIN_ROOT_ENTRY"
+      ],
+      "tokens": [
+        "surface",
+        "text"
+      ],
+      "variants": [
+        "default",
+        "admin-blocked",
+        "phone",
+        "phone-drawer"
+      ],
+      "source": "demo/AppShell.demo.tsx"
+    },
+    {
+      "id": "shell.public",
+      "title": "Public shell",
+      "description": "A storefront's chrome, and a sibling of AppShell rather than a flag on it: top bar, browse bar, measured content, footer — and never a Sider. On a phone the browse bar collapses into a sheet while the header and its search box stay, because a storefront whose search disappears on a phone is a storefront nobody searches. Omit accountSlot and a sign-in link renders anyway: the absence of a sign-in button on a public page is not clean, it is a dead end for the one person the page exists to convert.",
+      "component": "PublicShell",
+      "tokens": [
+        "surface",
+        "text"
+      ],
+      "variants": [
+        "default",
+        "signed-in",
+        "nothing-to-browse",
+        "phone"
+      ],
+      "source": "demo/PublicShell.demo.tsx"
+    },
+    {
+      "id": "shell.theme-mode",
+      "title": "Theme mode control",
+      "description": "Sun, moon, half-disc — a real ARIA radio group: one tab stop, arrow keys move the choice, and no tooltip anywhere (the accessible name carries what the icon means, and hover does not exist on a phone). `system` is a RULE, not a colour: it resolves to light or dark and keeps resolving, so the distinction lives in WHICH button is marked, and — for a reader who cannot see the mark — in the half-disc's name, which appends what it currently resolves to. Plain DOM and inline currentColor SVG, sized in em: the fleet's two consumers render nothing alike.",
+      "component": "ThemeModeControl",
+      "tokens": [
+        "text",
+        "text-muted",
+        "surface-overlay"
+      ],
+      "variants": [
+        "default",
+        "pinned",
+        "phone"
+      ],
+      "source": "demo/ThemeModeControl.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "shell.nav.admin",
+    "shell.nav.admin_staff_only",
+    "shell.nav.open_menu",
+    "shell.public.sign_in",
+    "shell.theme.dark",
+    "shell.theme.group",
+    "shell.theme.light",
+    "shell.theme.system"
+  ],
   "exports": {
     "runtime": [
-      "resolveNav",
-      "resolvePublicNav",
-      "resolveMemberNav",
+      "ADMIN_ROOT_ENTRY",
+      "ADMIN_ROOT_ID",
       "SHELL_I18N_KEYS",
+      "adminNavIds",
       "registerShellI18n",
-      "AppShell",
-      "PublicShell"
+      "resolveMemberNav",
+      "resolveNav",
+      "resolvePublicNav"
     ],
     "types": [
-      "ResolvedNavEntry",
       "NavOverrideEntry",
       "NavOverridesFile",
       "ResolveNavOptions",
-      "ShellI18nKey",
-      "AppShellProps",
-      "PublicShellProps"
+      "ResolvedNavEntry",
+      "ShellI18nKey"
     ]
-  },
-  "i18nKeys": [
-    "shell.nav.open_menu",
-    "shell.public.sign_in",
-    "shell.theme.group",
-    "shell.theme.light",
-    "shell.theme.dark",
-    "shell.theme.system"
-  ]
+  }
 }

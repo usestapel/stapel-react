@@ -23,6 +23,9 @@ signatures/JSDoc in the package README and src/index.ts.
 - DEFAULT_HEARTBEAT_MS
 - DEFAULT_HEARTBEAT_TIMEOUT_MS
 - DEFAULT_MAX_DELAY_MS
+- DEFAULT_NEVER_CONNECTED_ATTEMPTS
+- DEFAULT_NEVER_CONNECTED_MS
+- DEFAULT_RECONNECTING_LONG_MS
 - ERROR_BAD_ENVELOPE
 - ERROR_BAD_TYPE
 - ERROR_UNAUTHORIZED
@@ -63,6 +66,8 @@ signatures/JSDoc in the package README and src/index.ts.
 - RealtimeClient
 - RealtimeClientOptions
 - RealtimeConnectionState
+- RealtimeDegradation
+- RealtimeDegradationThresholds
 - RealtimeFrame
 - RealtimeRefusal
 - RealtimeSessionSeam

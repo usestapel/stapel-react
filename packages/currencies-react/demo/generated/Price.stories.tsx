@@ -8,13 +8,13 @@ export default { title: "currencies-react / Price (default skin)" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"converted"} };
 export const Same = (): ReactElement => renderDemoVariant(demo, "same");
 Same.storyName = "same";
-Same.parameters = { stapel: {"viewport":"phone"} };
+Same.parameters = { stapel: {"viewport":"phone","step":"same-currency"} };
 export const Rate = (): ReactElement => renderDemoVariant(demo, "rate");
 Rate.storyName = "rate";
-Rate.parameters = { stapel: {"viewport":"desktop"} };
+Rate.parameters = { stapel: {"viewport":"desktop","step":"rate-visible"} };
 export const Unavailable = (): ReactElement => renderDemoVariant(demo, "unavailable");
 Unavailable.storyName = "unavailable";
-Unavailable.parameters = { stapel: {"viewport":"phone"} };
+Unavailable.parameters = { stapel: {"viewport":"phone","step":"unavailable"} };

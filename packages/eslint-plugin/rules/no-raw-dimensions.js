@@ -27,10 +27,17 @@
 //      from `@stapel/tokens/theme.default.json` — the same JSON that generates
 //      `spacing`/`radii`/`fontSize`, so the rule cannot drift from the values
 //      it rewrites to). 15 is not "nearly 16"; it is reported without a fix.
-//   2. The fix ALSO writes the import — extending an existing
-//      `import { … } from "@stapel/tokens"` or inserting one. An autofix that
-//      leaves an undefined identifier behind is worse than no autofix, because
-//      it converts a lint warning into a build error and blames the wrong line.
+//   2. The fix ALSO writes the import — extending the file's existing import
+//      of the design-system module or inserting one. An autofix that leaves an
+//      undefined identifier behind is worse than no autofix, because it
+//      converts a lint warning into a build error and blames the wrong line.
+//      WHICH module is a property of the file, not of the rule: inside
+//      `src/default/**` it is `@stapel/tokens-antd` (which re-exports the
+//      whole scale precisely so a pair's only design-system dependency is the
+//      bridge it already depends on), everywhere else `@stapel/tokens` — see
+//      `tokensModuleFor`. Writing `@stapel/tokens` into a skin was a real
+//      hole: 274 fixed sites across twenty pairs, not one of which DECLARES
+//      that package.
 //   3. It refuses to fix when the target name is already bound in the module
 //      to something else (a local `const spacing = …`), where the rewrite
 //      would silently mean something different.
@@ -53,7 +60,7 @@
 // Scope: `src/default/**` (the skins), like its sibling skin-tier rules. The
 // shared layer's own raw px (AppShell 5, PublicShell 7, skin.tsx 5) is real
 // debt, but it lives outside a pair's `src/default/` and is tracked as G8.
-import { isDefaultSkin, normalizedFilename } from "../lib/jsx.js";
+import { isDefaultSkin, normalizedFilename, tokensModuleFor } from "../lib/jsx.js";
 import { loadScaleCatalog, stapelSettings } from "../lib/data.js";
 
 /** Style keys whose numeric value is a LENGTH from the spacing scale. */
@@ -85,7 +92,13 @@ const FONT_KEYS = new Set(["fontSize"]);
 /** JSX props that are pixels by component contract. */
 const DEFAULT_PIXEL_PROPS = ["size", "width", "height", "gap", "minWidth", "maxWidth"];
 
-const TOKENS_MODULE = "@stapel/tokens";
+/**
+ * The modules a scale binding can legitimately already come from. The fix
+ * WRITES `tokensModuleFor(file)`, but it must recognise a binding imported
+ * from either one, or it would re-import a name the module already has (a
+ * duplicate declaration — a syntax error, from an autofix).
+ */
+const TOKENS_MODULES = new Set(["@stapel/tokens", "@stapel/tokens-antd"]);
 
 function scaleFor(key) {
   if (RADIUS_KEYS.has(key)) return "radii";
@@ -188,7 +201,7 @@ export default {
     fixable: "code",
     docs: {
       description:
-        "Disallow raw numeric dimensions (padding/margin/gap/width/fontSize/radius and px-valued JSX props) in default skins; take them from @stapel/tokens' spacing/radii/type scales.",
+        "Disallow raw numeric dimensions (padding/margin/gap/width/fontSize/radius and px-valued JSX props) in default skins; take them from the spacing/radii/type scales, imported from @stapel/tokens-antd inside src/default (@stapel/tokens elsewhere).",
     },
     schema: [
       {
@@ -204,14 +217,18 @@ export default {
     ],
     messages: {
       rawDimension:
-        '`{{key}}: {{value}}` is a hardcoded dimension. It is the same decision as a hardcoded colour, taken where nothing can re-take it: rescale the design system and every `{{fix}}` follows, while every literal {{value}} stays {{value}} in forty files forever. Use `{{fix}}` from "@stapel/tokens" — this one is autofixable (the import is written too).',
+        '`{{key}}: {{value}}` is a hardcoded dimension. It is the same decision as a hardcoded colour, taken where nothing can re-take it: rescale the design system and every `{{fix}}` follows, while every literal {{value}} stays {{value}} in forty files forever. Use `{{fix}}` from "{{module}}" — this one is autofixable (the import is written too).',
       offScale:
-        '`{{key}}: {{value}}` is a hardcoded dimension, and {{value}} is on NO {{scale}} step — it was picked by eye, which is why two numbers picked by eye a month apart never line up. Nearest steps: {{nearest}}. Move to one of them (`{{scale}}`, from "@stapel/tokens"), or, if this really is a one-off geometry (a QR code side, an avatar in a fixed row), lift it to a named exported constant so the next person changes it once.',
+        '`{{key}}: {{value}}` is a hardcoded dimension, and {{value}} is on NO {{scale}} step — it was picked by eye, which is why two numbers picked by eye a month apart never line up. Nearest steps: {{nearest}}. Move to one of them (`{{scale}}`, from "{{module}}"), or, if this really is a one-off geometry (a QR code side, an avatar in a fixed row), lift it to a named exported constant so the next person changes it once.',
     },
   },
   create(context) {
     const path = normalizedFilename(context);
     if (!isDefaultSkin(path)) return {};
+
+    // The module the fix imports from is a property of WHERE the file is, so
+    // a skin's only design-system dependency stays the bridge it declares.
+    const tokensModule = tokensModuleFor(path);
 
     const options = context.options[0] ?? {};
     const pixelProps = new Set(options.pixelProps ?? DEFAULT_PIXEL_PROPS);
@@ -221,10 +238,12 @@ export default {
 
     const sourceCode = context.sourceCode ?? context.getSourceCode();
 
-    /** Module-scope names bound to something OTHER than a @stapel/tokens import. */
+    /** Module-scope names bound to something OTHER than a token-module import. */
     let foreignBindings = null;
-    /** The existing `import … from "@stapel/tokens"`, if any. */
-    let tokensImport = null;
+    /** The existing import of THIS file's token module, if any. */
+    let targetImport = null;
+    /** Every value import from either token module (see TOKENS_MODULES). */
+    let tokenImports = [];
     let importsScanned = false;
 
     function scanProgram() {
@@ -236,9 +255,10 @@ export default {
         if (statement.type !== "ImportDeclaration") continue;
         // `importKind` is "value" on a normal import under the TS parser and
         // undefined under espree — only a `import type { … }` is excluded.
-        if (statement.source.value === TOKENS_MODULE && statement.importKind !== "type") {
-          tokensImport = statement;
-        }
+        if (statement.importKind === "type") continue;
+        if (!TOKENS_MODULES.has(statement.source.value)) continue;
+        tokenImports.push(statement);
+        if (statement.source.value === tokensModule) targetImport = statement;
       }
       const scope = sourceCode.scopeManager?.globalScope?.childScopes?.[0];
       for (const variable of scope?.variables ?? []) {
@@ -246,34 +266,36 @@ export default {
           (d) =>
             d.type === "ImportBinding" &&
             d.parent?.type === "ImportDeclaration" &&
-            d.parent.source.value === TOKENS_MODULE
+            TOKENS_MODULES.has(d.parent.source.value)
         );
         if (!fromTokens) foreignBindings.add(variable.name);
       }
     }
 
-    /** Already imported from @stapel/tokens under its own name? */
+    /** Already imported from a token module under its own name? */
     function alreadyImported(name) {
-      return (tokensImport?.specifiers ?? []).some(
-        (s) =>
-          s.type === "ImportSpecifier" &&
-          (s.imported.name ?? s.imported.value) === name &&
-          s.local.name === name
+      return tokenImports.some((statement) =>
+        statement.specifiers.some(
+          (s) =>
+            s.type === "ImportSpecifier" &&
+            (s.imported.name ?? s.imported.value) === name &&
+            s.local.name === name
+        )
       );
     }
 
     function importFix(fixer, name) {
       if (alreadyImported(name)) return [];
-      if (tokensImport) {
-        const specifiers = tokensImport.specifiers.filter(
+      if (targetImport) {
+        const specifiers = targetImport.specifiers.filter(
           (s) => s.type === "ImportSpecifier"
         );
         const last = specifiers[specifiers.length - 1];
         if (last) return [fixer.insertTextAfter(last, `, ${name}`)];
-        return []; // `import "@stapel/tokens"` / default-only — leave it alone
+        return []; // side-effect / default-only import — leave it alone
       }
       const first = sourceCode.ast.body[0];
-      const line = `import { ${name} } from "${TOKENS_MODULE}";\n`;
+      const line = `import { ${name} } from "${tokensModule}";\n`;
       return first ? [fixer.insertTextBefore(first, line)] : [];
     }
 
@@ -301,7 +323,13 @@ export default {
           context.report({
             node,
             messageId: "offScale",
-            data: { key, value: String(value), scale, nearest: nearestSteps(scale, value) },
+            data: {
+              key,
+              value: String(value),
+              scale,
+              nearest: nearestSteps(scale, value),
+              module: tokensModule,
+            },
           });
         }
         return;
@@ -313,7 +341,7 @@ export default {
       context.report({
         node,
         messageId: "rawDimension",
-        data: { key, value: String(value), fix: expression },
+        data: { key, value: String(value), fix: expression, module: tokensModule },
         fix: fixable
           ? (fixer) => [
               fixer.replaceText(valueNode, expression),

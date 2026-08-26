@@ -123,27 +123,66 @@ export function resolveThemeMode(): ThemeMode {
  * defaults to.
  */
 function readLiveCssVar(
+  live: CSSStyleDeclaration | null,
   name: CoreTokenName,
-  mode: ThemeMode,
   fallback: string
 ): string {
-  if (typeof document === "undefined") return fallback;
-  if (resolveThemeMode() !== mode) return fallback;
+  if (live === null) return fallback;
   // `getPropertyValue` wants the BARE custom-property name (`--stapel-x`);
   // `cssVar()` deliberately returns the `var(--stapel-x)` wrapper for
   // embedding in a CSS value, which `getPropertyValue` would never match —
   // stripped back off here rather than duplicating the `--stapel-` prefix.
   const propertyName = cssVar(name).slice("var(".length, -1);
-  const value = getComputedStyle(document.documentElement)
-    .getPropertyValue(propertyName)
-    .trim();
+  const value = live.getPropertyValue(propertyName).trim();
   return value.length > 0 ? value : fallback;
+}
+
+/**
+ * The host's live custom-property scope for `mode`, or `null` where the
+ * compiled-in defaults are the only honest answer (no DOM; or the document
+ * is in the OTHER mode, where reading live values would blend two themes —
+ * see {@link readLiveCssVar}).
+ *
+ * ONE `getComputedStyle` call per theme build. It used to be one per role —
+ * fifteen style resolutions to build a single token map, paid again by every
+ * `SkinTheme` that mounted. `getComputedStyle` returns a LIVE declaration, so
+ * one handle answers all fifteen roles and stays correct if the host restyles
+ * between reads.
+ */
+function liveScope(mode: ThemeMode): CSSStyleDeclaration | null {
+  if (typeof document === "undefined") return null;
+  if (resolveThemeMode() !== mode) return null;
+  return getComputedStyle(document.documentElement);
+}
+
+/**
+ * The host's LIVE `--stapel-brand`, or `""` where {@link toAntdTheme} would
+ * not read live values at all (no DOM, or the document is in the other mode)
+ * or where the host's generated `tokens.css` has not reached the document.
+ *
+ * A one-property probe of the same scope the full build reads, for a caller
+ * that CACHES a built theme and needs a cheap key that changes whenever the
+ * build would. `brand` is the role a host actually customizes (the whole
+ * point of `readLiveCssVar`), and it moves with the rest of the ramp: a
+ * stylesheet arriving late, a host swapping its theme file, or a
+ * customization landing after first paint all change this string, so a cache
+ * keyed on it cannot serve a stale brand.
+ */
+export function hostBrandFingerprint(mode: ThemeMode = resolveThemeMode()): string {
+  const live = liveScope(mode);
+  if (live === null) return "";
+  const propertyName = cssVar("brand").slice("var(".length, -1);
+  return live.getPropertyValue(propertyName).trim();
 }
 
 /** Resolve a §68 colour role to its hex for `mode`, preferring the host's
  * live CSS custom property over the compiled-in default. */
-function role(name: CoreTokenName, mode: ThemeMode): string {
-  return readLiveCssVar(name, mode, colors[name][mode]);
+function role(
+  live: CSSStyleDeclaration | null,
+  name: CoreTokenName,
+  mode: ThemeMode
+): string {
+  return readLiveCssVar(live, name, colors[name][mode]);
 }
 
 /** The flat antd token map (`ThemeConfig["token"]`), never undefined. */
@@ -159,22 +198,23 @@ export type AntdThemeToken = NonNullable<ThemeConfig["token"]>;
  * pinning a side.
  */
 export function toAntdTheme(mode: ThemeMode = resolveThemeMode()): AntdThemeToken {
+  const live = liveScope(mode);
   return {
-    colorPrimary: role("brand", mode),
-    colorLink: role("link", mode),
-    colorLinkHover: role("link-hover", mode),
-    colorSuccess: role("success", mode),
-    colorWarning: role("warning", mode),
-    colorError: role("error", mode),
-    colorInfo: role("info", mode),
-    colorText: role("text", mode),
-    colorTextSecondary: role("text-muted", mode),
-    colorTextTertiary: role("text-subtle", mode),
-    colorBgLayout: role("surface", mode),
-    colorBgContainer: role("surface-raised", mode),
-    colorBgElevated: role("surface-overlay", mode),
-    colorBorder: role("border", mode),
-    colorBorderSecondary: role("border-subtle", mode),
+    colorPrimary: role(live, "brand", mode),
+    colorLink: role(live, "link", mode),
+    colorLinkHover: role(live, "link-hover", mode),
+    colorSuccess: role(live, "success", mode),
+    colorWarning: role(live, "warning", mode),
+    colorError: role(live, "error", mode),
+    colorInfo: role(live, "info", mode),
+    colorText: role(live, "text", mode),
+    colorTextSecondary: role(live, "text-muted", mode),
+    colorTextTertiary: role(live, "text-subtle", mode),
+    colorBgLayout: role(live, "surface", mode),
+    colorBgContainer: role(live, "surface-raised", mode),
+    colorBgElevated: role(live, "surface-overlay", mode),
+    colorBorder: role(live, "border", mode),
+    colorBorderSecondary: role(live, "border-subtle", mode),
     borderRadius: radii[bridgeRadiusRole],
     fontSize: fontSize[bridgeFontSizeRole].fontSize,
     fontFamily: fontFamily.sans,
@@ -199,3 +239,70 @@ export function toAntdThemeConfig(mode: ThemeMode = resolveThemeMode()): ThemeCo
     token: toAntdTheme(mode),
   };
 }
+
+/**
+ * ── The design-system scale, re-exported ────────────────────────────────────
+ *
+ * ANSWERS the fleet question filed five times in wave B (`REQUESTS-`
+ * categories §4, reviews R3, billing §7, listings §5, search): `src/default/**`
+ * imports `spacing` / `fontSize` from `@stapel/tokens` in twenty packages —
+ * `stapel/no-raw-dimensions`' autofix writes exactly that import, 274 times
+ * this wave — and not one pair DECLARES `@stapel/tokens`. It resolves today
+ * only because this package has a hard `dependencies` entry on it and the
+ * consumer's tree happens to hoist. A published tarball with a bare import of
+ * an undeclared package is one hoisting change from breaking every skin at
+ * once.
+ *
+ * The answer is NOT to add a twenty-first declaration. A default skin already
+ * declares exactly one design-system dependency — this one — and that is the
+ * property worth keeping: `@stapel/tokens-antd` IS the antd leg of the token
+ * bridge, so the scale a skin lays out with belongs on the same edge as the
+ * colours it paints with. Re-exported here, a pair's dependency list stays
+ * `@stapel/core` + `@stapel/tokens-antd` + `antd`, and the version of
+ * `@stapel/tokens` in play is the one this package was built against — which
+ * is the version its own colour mapping already assumes. A per-pair peer range
+ * could disagree with it; a re-export cannot.
+ *
+ * The two alternatives were weighed and rejected:
+ *
+ *  - **`dependencies` in every pair** — twenty declarations of a package whose
+ *    only job is to be the same everywhere, and twenty chances for a duplicate
+ *    copy at a different version, which is how a fleet gets two spacing scales.
+ *  - **an optional peer in every pair** — honest about the shape, but it makes
+ *    every consumer resolve a floor by hand for constants they never chose.
+ *
+ * A host or a non-antd skin that wants the tokens directly still depends on
+ * `@stapel/tokens` and imports from it; nothing here forbids that. This is
+ * for the skins, which already depend on this package by construction.
+ *
+ * Only what `src/default/**` actually uses is re-exported — a census of the
+ * fleet's imports: `spacing` (130 sites), `fontSize` (34), `radii` (14),
+ * `cssVar` (11), `breakpoints` (5), `breakpointForWidth` (1). `colors` is
+ * deliberately absent: a skin that reaches for a hex has left the bridge, and
+ * `toAntdTheme` is the supported way to get one. `elevation`, `typography`
+ * and the raw ramps stay on `@stapel/tokens` for the same reason.
+ *
+ * Follow-up NOT in this package's gift: `stapel/no-raw-dimensions`' autofix
+ * still writes `from "@stapel/tokens"`. It should write
+ * `from "@stapel/tokens-antd"` under `src/default/**` — filed for
+ * `@stapel/eslint-plugin`'s owner in SHARED-API §9.
+ */
+export {
+  spacing,
+  radii,
+  fontSize,
+  fontWeight,
+  breakpoints,
+  breakpointForWidth,
+  mediaQuery,
+  cssVar,
+} from "@stapel/tokens";
+export type {
+  SpacingStep,
+  RadiusName,
+  FontSizeName,
+  FontWeightName,
+  Breakpoint,
+  CoreTokenName,
+  StapelVar,
+} from "@stapel/tokens";

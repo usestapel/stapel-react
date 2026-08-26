@@ -487,6 +487,91 @@
       "source": "demo/EventComposer.demo.tsx"
     },
     {
+      "id": "calendar.delete-event",
+      "title": "Delete event",
+      "description": "The destructive verb, confirmed on a bottom sheet on a phone (never a popover under somebody's thumb) with a confirm button that NAMES the action instead of saying OK. Deleting one time in a series is a different consequence from deleting a standalone event, so it is a different sentence.",
+      "component": "DeleteEventAction",
+      "covers": [
+        "EventDelete"
+      ],
+      "tokens": [
+        "danger",
+        "surface-raised"
+      ],
+      "variants": [
+        "offered",
+        "confirming",
+        "confirming-occurrence",
+        "not-owner"
+      ],
+      "source": "demo/DeleteEventAction.demo.tsx"
+    },
+    {
+      "id": "calendar.event-editor",
+      "title": "New event",
+      "description": "One form for create and edit, on the shared dialog surface (a bottom sheet below the tablet breakpoint, a centred modal above it). The two documented 400s are answered locally and rendered as the submit button's blocked reason; cancelling an event is a different verb from deleting it and lives here, with copy that names what it does.",
+      "component": "EventEditorSheet",
+      "covers": [
+        "EventComposer",
+        "EventEditor"
+      ],
+      "tokens": [
+        "surface-raised",
+        "brand",
+        "danger"
+      ],
+      "variants": [
+        "create",
+        "edit",
+        "marker",
+        "not-owner"
+      ],
+      "source": "demo/EventEditorSheet.demo.tsx"
+    },
+    {
+      "id": "calendar.event-sheet",
+      "title": "Event",
+      "description": "The detail sheet: a bottom sheet on a phone, a centred modal above the tablet breakpoint, with owner-only controls switched off WITH their reason instead of hidden. `viewerId` is the host's to supply — when it is absent the sheet says it cannot tell whose event this is rather than guessing either way.",
+      "component": "EventSheet",
+      "covers": [
+        "EventDetail"
+      ],
+      "tokens": [
+        "surface-raised",
+        "warning-bg",
+        "danger"
+      ],
+      "variants": [
+        "owner",
+        "invitee",
+        "viewer-unknown",
+        "cancelled",
+        "mandate-unavailable",
+        "forbidden"
+      ],
+      "source": "demo/EventSheet.demo.tsx"
+    },
+    {
+      "id": "calendar.participants-field",
+      "title": "Invitees",
+      "description": "The complete invitee set, shown whole before it is sent. The write is replace-set — anybody missing from the array is removed — so the surface is not an 'add invitee' button but 'here is exactly who will be invited after you save', with the warning stated and the save gated while nothing has changed.",
+      "component": "ParticipantsField",
+      "covers": [
+        "ParticipantsEditor"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text-muted"
+      ],
+      "variants": [
+        "managed",
+        "managed-one",
+        "controlled",
+        "nobody"
+      ],
+      "source": "demo/ParticipantsField.demo.tsx"
+    },
+    {
       "id": "calendar.provider",
       "title": "Calendar provider",
       "description": "The headless calendar root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
@@ -498,6 +583,23 @@
         "default"
       ],
       "source": "demo/Calendar.demo.tsx"
+    },
+    {
+      "id": "calendar.recurrence-field",
+      "title": "Repeat",
+      "description": "The repeat rule as a single question. `until` and `count` are mutually exclusive in RRULE, so the end is one three-way choice and only the chosen field is drawn — a form that offered both would present a combination the backend must then refuse. The presets are read from a list, not hardcoded, because upstream they are an open merge registry a deployment can extend.",
+      "component": "RecurrenceField",
+      "tokens": [
+        "surface-raised",
+        "text-muted"
+      ],
+      "variants": [
+        "none",
+        "ends-on-a-date",
+        "ends-after-n",
+        "custom"
+      ],
+      "source": "demo/RecurrenceField.demo.tsx"
     },
     {
       "id": "calendar.rsvp",
@@ -515,6 +617,26 @@
         "default"
       ],
       "source": "demo/EventRsvp.demo.tsx"
+    },
+    {
+      "id": "calendar.rsvp-control",
+      "title": "Your answer",
+      "description": "Accept / Maybe / Decline with ONE primary, the answer on record marked rather than recoloured, and every refusal stated beside the buttons instead of hidden behind a disabled control. `invited` is the server's initial state and is deliberately absent from the row — a control offering a meaningless option is the same defect as one offering none.",
+      "component": "RsvpControl",
+      "covers": [
+        "EventRsvp"
+      ],
+      "tokens": [
+        "brand",
+        "text-muted"
+      ],
+      "variants": [
+        "no-answer",
+        "accepted",
+        "not-invited",
+        "event-cancelled"
+      ],
+      "source": "demo/RsvpControl.demo.tsx"
     },
     {
       "id": "calendar.screen",

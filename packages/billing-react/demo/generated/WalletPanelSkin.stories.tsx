@@ -8,11 +8,13 @@ export default { title: "billing-react / Billing page (default skin)" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
+Default.parameters = { stapel: {"step":"ready"} };
 export const InDebt = (): ReactElement => renderDemoVariant(demo, "in-debt");
 InDebt.storyName = "in-debt";
-InDebt.parameters = { stapel: {"viewport":"phone"} };
+InDebt.parameters = { stapel: {"viewport":"phone","step":"debt"} };
 export const Empty = (): ReactElement => renderDemoVariant(demo, "empty");
 Empty.storyName = "empty";
-Empty.parameters = { stapel: {"viewport":"phone"} };
+Empty.parameters = { stapel: {"viewport":"phone","step":"empty"} };
 export const ShopDown = (): ReactElement => renderDemoVariant(demo, "shop-down");
 ShopDown.storyName = "shop-down";
+ShopDown.parameters = { stapel: {"step":"failed"} };

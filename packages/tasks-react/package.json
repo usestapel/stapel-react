@@ -1,7 +1,7 @@
 {
   "name": "@stapel/tasks-react",
   "version": "0.0.0",
-  "description": "Headless React flow pair for stapel-tasks: typed API client, TanStack Query hooks, flow machines, headless components, and i18n keys. Zero visual opinion.",
+  "description": "React pair for stapel-tasks: typed API client, TanStack Query hooks, the board assembly and move state machine, headless bags, i18n keys, and an opt-in AntD kanban skin (dnd-kit drag with keyboard and touch sensors) behind the /default subpath.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -59,9 +59,14 @@
       "limit": "12 KB"
     },
     {
-      "name": "default skin subpath (opt-in: antd + the token bridge)",
+      "name": "default skin subpath (opt-in: antd + the token bridge). @dnd-kit is ignored: it is the board's drag engine, declared here so a host gets it automatically, and measuring a vendored engine as this pair's own weight would report a number no change to this package can move.",
       "path": "dist/default/index.js",
-      "limit": "10 KB"
+      "limit": "20 KB",
+      "ignore": [
+        "@dnd-kit/core",
+        "@dnd-kit/sortable",
+        "@dnd-kit/utilities"
+      ]
     },
     {
       "name": "i18n/ru subpath (opt-in locale: en floor + ru UI)",
@@ -75,7 +80,8 @@
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.17.0 <1.0.0",
+    "@stapel/core": ">=0.18.0 <1.0.0",
+    "@stapel/tokens": ">=0.5.0",
     "@stapel/tokens-antd": ">=0.6.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
@@ -91,7 +97,7 @@
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
-    "antd": "^5.20.0",
+    "antd": "^6.5.0",
     "jsdom": "^26.1.0",
     "msw": "^2.10.2",
     "react": "^19.1.0",
@@ -110,5 +116,16 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2"
+  },
+  "peerDependenciesMeta": {
+    "@stapel/tokens": {
+      "optional": true
+    },
+    "@stapel/tokens-antd": {
+      "optional": true
+    },
+    "antd": {
+      "optional": true
+    }
   }
 }

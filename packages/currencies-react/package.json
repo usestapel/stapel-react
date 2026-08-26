@@ -1,7 +1,7 @@
 {
   "name": "@stapel/currencies-react",
   "version": "0.0.0",
-  "description": "React pair for stapel-currencies: the Money layer of the fleet. One formatter (Intl.NumberFormat, per locale, per currency's minor units), one converter (decimal-string BigInt math in parity with the backend's services.convert), and an opt-in /default antd skin \u2014 <Price> with its estimate, a CurrencyPicker that is a bottom sheet on a phone, a decimal-string CurrencyField and a RateTable. Prices stop being `${amount} ${code}`.",
+  "description": "React pair for stapel-currencies: the Money layer of the fleet. One formatter (Intl.NumberFormat, per locale, per currency's minor units), one converter (decimal-string BigInt math in parity with the backend's services.convert), and an opt-in /default antd skin — <Price> with its estimate, a CurrencyPicker that is a bottom sheet on a phone, a decimal-string CurrencyField and a RateTable. Prices stop being `${amount} ${code}`.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -54,7 +54,7 @@
   },
   "size-limit": [
     {
-      "name": "index \u2014 the Money layer and the hooks: no antd, no locale bundles",
+      "name": "index — the Money layer and the hooks: no antd, no locale bundles",
       "path": "dist/index.js",
       "limit": "9 KB"
     },
@@ -91,7 +91,7 @@
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
-    "antd": "^5.20.0",
+    "antd": "^6.5.0",
     "jsdom": "^26.1.0",
     "msw": "^2.10.2",
     "react": "^19.1.0",

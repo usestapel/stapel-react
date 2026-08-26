@@ -24,6 +24,31 @@
       }
     },
     {
+      "id": "workspaces.audit-trail",
+      "title": "Membership history (default skin)",
+      "description": "The shipped audit trail: who let this person in, who took them out and when, filtered by action from the closed backend vocabulary, walked by anchor. An action the client does not know is title-cased from its key — never a dotted i18n key on the glass.",
+      "component": "AuditTrailPane",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "An invitation, a join, a promotion, and a suspension nobody performed — the policy sweep, attributed to the system.",
+          "step": "history"
+        },
+        {
+          "id": "empty",
+          "description": "A workspace where nothing has happened yet.",
+          "viewport": "phone",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/AuditTrailPaneSkin.demo.tsx",
+        "line": 24
+      }
+    },
+    {
       "id": "workspaces.can",
       "title": "Capability gate",
       "description": "The headless Can gates UI on the caller's my_capabilities in a workspace, with the backend's wildcard matcher (* and prefix.*) ported client-side. Static children render only when allowed; the render-prop variant hands the verdict out for disabled-state UI. UI convenience only — the backend re-checks every operation.",
@@ -44,6 +69,36 @@
       }
     },
     {
+      "id": "workspaces.invitations-pane",
+      "title": "Invitations (default skin)",
+      "description": "The shipped invitation console: who has been invited and has not joined, filtered by what became of the invitation, searchable by address, with revoke / resend / rename each gated on the invitation's own state — and a confirm that says a resend rotates the token, so the earlier link stops working.",
+      "component": "InvitationsPane",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Two waiting invitations, one of them never sent a letter yet.",
+          "step": "pending"
+        },
+        {
+          "id": "terminal",
+          "description": "Expired, accepted and revoked rows: resend is still offered on the expired one, everything else is off with the endpoint's own reason.",
+          "viewport": "phone",
+          "step": "terminal"
+        },
+        {
+          "id": "empty",
+          "description": "Nobody is waiting — the state an admin wants to see.",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/InvitationsPaneSkin.demo.tsx",
+        "line": 30
+      }
+    },
+    {
       "id": "workspaces.invite-accept",
       "title": "Invite accept flow",
       "description": "The headless InviteAcceptFlow drives the /invite/{token} journey: public preview routing (accept prompt / wrong account / login / claim), the grant_token hand-off seam to auth (onLoginGrant), the basic-data slot, and accept/decline. Every screen is the host's; InviteAcceptPage is the reference skin.",
@@ -61,6 +116,36 @@
       "source": {
         "file": "demo/InviteAcceptFlow.demo.tsx",
         "line": 83
+      }
+    },
+    {
+      "id": "workspaces.invite-accept-page",
+      "title": "Invitation page (default skin)",
+      "description": "The shipped /invite/{token} screen: the workspace and the role being offered, one primary action per block (Join is the primary; Decline is a danger link behind a confirm that states what it costs), the wrong-account branch with a switch CTA, and the terminal states — expired, revoked, already used — as sentences rather than an error box.",
+      "component": "InviteAcceptPage",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The signed-in account is the invited one: the join prompt, with decline behind a confirm.",
+          "step": "acceptPrompt"
+        },
+        {
+          "id": "wrong-account",
+          "description": "Signed in as somebody else. The page says whose invitation it is (masked) and offers the switch — it never silently accepts on the wrong account.",
+          "viewport": "phone",
+          "step": "wrongAccount"
+        },
+        {
+          "id": "expired",
+          "description": "The link outlived its TTL: one sentence saying so and what to do, no dead Join button.",
+          "step": "unavailable"
+        }
+      ],
+      "source": {
+        "file": "demo/InviteAcceptPageSkin.demo.tsx",
+        "line": 35
       }
     },
     {
@@ -104,6 +189,42 @@
       }
     },
     {
+      "id": "workspaces.members-manager",
+      "title": "Members (default skin)",
+      "description": "The shipped roster: who is here, the role each one holds (from the effective registry, not a hardcoded four), the three states of two-factor evidence, an invite, a rename, an administrative password reset and a removal — each switched off with the server's reason where the server would refuse it, including on the viewer's own row.",
+      "component": "MembersManager",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Four kinds of row: the viewer's own (both self-refused controls off), a suspended admin missing a second factor, a provisioned member nobody has checked yet, and the overlay role a deployment added.",
+          "step": "roster"
+        },
+        {
+          "id": "read-only",
+          "description": "A caller who may look and not touch: the controls are gone and the screen SAYS so, rather than silently rendering a shorter row.",
+          "viewport": "phone",
+          "step": "read-only"
+        },
+        {
+          "id": "empty",
+          "description": "A workspace with nobody in it yet — with the invite door in the empty state.",
+          "step": "empty"
+        },
+        {
+          "id": "no-workspace",
+          "description": "Mounted from the nav manifest with no active workspace resolved: a designed chooser, never a blank screen.",
+          "viewport": "phone",
+          "step": "choose-workspace"
+        }
+      ],
+      "source": {
+        "file": "demo/MembersManagerSkin.demo.tsx",
+        "line": 36
+      }
+    },
+    {
       "id": "workspaces.provider",
       "title": "Workspaces provider",
       "description": "The headless workspaces root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
@@ -140,6 +261,86 @@
       "source": {
         "file": "demo/RoleSelect.demo.tsx",
         "line": 79
+      }
+    },
+    {
+      "id": "workspaces.role-select-field",
+      "title": "Role picker (default skin)",
+      "description": "The shipped role field: an accessible name of its own (a roster renders one per row, and 'combobox, combobox, combobox' is what a screen reader says otherwise), the effective registry as options with each role's rank as the caption, and a stated refusal instead of a picker when the registry cannot be read.",
+      "component": "RoleSelectField",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The builtin four plus a deployment's own `secretary`, which has no translation and is title-cased rather than printed as a slug.",
+          "step": "ready"
+        },
+        {
+          "id": "no-registry",
+          "description": "GET /roles is down. The role the member holds is still shown; there is no menu, and the reason says why.",
+          "viewport": "phone",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/RoleSelectFieldSkin.demo.tsx",
+        "line": 51
+      }
+    },
+    {
+      "id": "workspaces.workspace-settings",
+      "title": "Workspace settings (default skin)",
+      "description": "The shipped settings screen: the name and slug, the two-factor policy with the live enforcement counts (checked / missing / unverified — the last is the number to get to zero), the first-login demands for provisioned accounts, and a danger zone whose Delete is drawn from the server's own verdict.",
+      "component": "WorkspaceSettings",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "An owner who may delete, and a workspace with no MFA policy on.",
+          "step": "ready"
+        },
+        {
+          "id": "delete-refused",
+          "description": "The same owner, refused: this is the instance's default workspace. Delete is off and the server's refusal is the sentence beside it; the security card shows the enforcement sweep mid-flight.",
+          "viewport": "phone",
+          "step": "delete-blocked"
+        }
+      ],
+      "source": {
+        "file": "demo/WorkspaceSettingsSkin.demo.tsx",
+        "line": 31
+      }
+    },
+    {
+      "id": "workspaces.workspaces-page",
+      "title": "Workspaces page (default skin)",
+      "description": "The shipped roster: every workspace the caller belongs to with its owner and member count, the home workspace set and cleared in place, and a create control gated on the installation's policy — with the reason printed beside it rather than the button silently missing.",
+      "component": "WorkspacesPage",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Two workspaces, one of them home, on an installation that lets people create more.",
+          "step": "ready"
+        },
+        {
+          "id": "empty",
+          "description": "Nobody has invited this person anywhere, and the installation hands out no workspaces — so the empty state says who to ask instead of offering a button that would be refused.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "failed",
+          "description": "The list read fails. 'We could not load your workspaces' with a retry — never 'you have none'.",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/WorkspacesPageSkin.demo.tsx",
+        "line": 34
       }
     }
   ]

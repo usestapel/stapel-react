@@ -164,23 +164,34 @@ interface Task {
   readonly id: number;
   readonly fn: () => void;
   readonly ms: number;
+  /** Virtual time this task comes due at — `now()` when it was queued + `ms`. */
+  readonly at: number;
   cancelled: boolean;
 }
 
 export interface ManualClock {
   readonly schedule: Schedule;
   readonly pending: Task[];
+  /** The virtual wall clock, for the runtime's `now` seam. */
+  now(): number;
+  /**
+   * Move virtual time forward and run everything that comes due, in due order.
+   * Tasks queued by those tasks are run too when they fall inside the window —
+   * which is what makes "sit here for thirty seconds" a single call.
+   */
+  advance(ms: number): void;
   /** Run every task queued right now (tasks they queue in turn are not run). */
   flush(): void;
   /** Run the task queued with a delay of at least `ms`, ignoring the rest. */
   runNext(): number;
 }
 
-export function manualClock(): ManualClock {
+export function manualClock(start = 1_000_000): ManualClock {
   let nextId = 0;
+  let time = start;
   const pending: Task[] = [];
   const schedule: Schedule = (fn, ms): Cancel => {
-    const task: Task = { id: (nextId += 1), fn, ms, cancelled: false };
+    const task: Task = { id: (nextId += 1), fn, ms, at: time + ms, cancelled: false };
     pending.push(task);
     return () => {
       task.cancelled = true;
@@ -189,6 +200,27 @@ export function manualClock(): ManualClock {
   return {
     schedule,
     pending,
+    now: () => time,
+    advance(ms) {
+      const target = time + ms;
+      for (;;) {
+        let due: Task | undefined;
+        let index = -1;
+        for (let i = 0; i < pending.length; i += 1) {
+          const task = pending[i];
+          if (task === undefined || task.cancelled || task.at > target) continue;
+          if (due === undefined || task.at < due.at) {
+            due = task;
+            index = i;
+          }
+        }
+        if (due === undefined) break;
+        pending.splice(index, 1);
+        time = Math.max(time, due.at);
+        due.fn();
+      }
+      time = target;
+    },
     flush() {
       const batch = pending.splice(0, pending.length);
       for (const task of batch) if (!task.cancelled) task.fn();

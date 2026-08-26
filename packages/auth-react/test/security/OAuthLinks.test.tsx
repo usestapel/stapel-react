@@ -144,9 +144,13 @@ describe("<OAuthLinks/>", () => {
     render(wrap(runtime, <OAuthLinks />));
     await waitFor(() => expect(screen.getByText("Connected")).toBeDefined());
 
-    screen.getByRole("button", { name: "Disconnect" }).click();
-    const confirmButtons = await screen.findAllByRole("button", { name: "Disconnect" });
-    confirmButtons[confirmButtons.length - 1]?.click();
+    // The ROW's control names the provider it acts on ("Disconnect Google"):
+    // a row of identically-named buttons is a list a screen-reader user
+    // cannot navigate. The CONFIRM's button is the plain verb, because inside
+    // the dialog the subject is already stated in the title and body.
+    screen.getByRole("button", { name: "Disconnect Google" }).click();
+    const confirmButton = await screen.findByTestId("stapel-confirm-ok");
+    confirmButton.click();
 
     await waitFor(() => expect(screen.queryByText("Connected")).toBeNull());
   });

@@ -17,6 +17,9 @@ export const CDN_I18N_KEYS = {
   pickReplace: "cdn.pick.replace",
   pickHint: "cdn.pick.hint",
   pickDropHint: "cdn.pick.drop_hint",
+  pickDropActive: "cdn.pick.drop_active",
+  pickVideo: "cdn.pick.video",
+  pickFile: "cdn.pick.file",
 
   // Phases. The upload reports which STEP is running, never a percentage —
   // see model/upload.ts for why there is no honest number to show.
@@ -46,14 +49,43 @@ export const CDN_I18N_KEYS = {
   itemAlt: "cdn.item.alt",
 
   // The gallery
+  /**
+   * PLURAL FAMILY — render with `tPlural`, never `t`. The counted noun is the
+   * gallery's CAPACITY (`max`), which is what "1 of 1 photo" agrees with; the
+   * shipped copy said "1 of 1 photos" in every locale because a `{max}` was
+   * interpolated into a sentence whose noun was frozen in the plural.
+   */
   galleryCount: "cdn.gallery.count",
   galleryEmpty: "cdn.gallery.empty",
+  galleryEmptyHint: "cdn.gallery.empty_hint",
 
   // Blocked controls — every one of these is the `code` of an
   // ActionAvailability, so a switched-off button always has a sentence.
   blockedFull: "cdn.upload.blocked.full",
   blockedPending: "cdn.upload.blocked.pending",
   blockedFailed: "cdn.upload.blocked.failed",
+
+  // The attachment renderer — what a ref looks like to somebody who did not
+  // upload it (chat bubbles, listing detail).
+  attachmentImageAlt: "cdn.attachment.image_alt",
+  attachmentVideoAlt: "cdn.attachment.video_alt",
+  attachmentAudioAlt: "cdn.attachment.audio_alt",
+  attachmentFileLabel: "cdn.attachment.file_label",
+  attachmentMissing: "cdn.attachment.missing",
+  attachmentOpen: "cdn.attachment.open",
+  attachmentDownload: "cdn.attachment.download",
+  attachmentDurationUnmeasured: "cdn.attachment.duration_unmeasured",
+  attachmentMetaPartial: "cdn.attachment.meta_partial",
+  attachmentMetaMissing: "cdn.attachment.meta_missing",
+  attachmentVariantsPending: "cdn.attachment.variants_pending",
+
+  // Byte units. A NUMBER is formatted by `Intl`; its UNIT is copy — the
+  // abbreviation differs by language, and every helper that returned the string
+  // "1.4 MB" put an English abbreviation into a non-English sentence.
+  bytesB: "cdn.bytes.b",
+  bytesKb: "cdn.bytes.kb",
+  bytesMb: "cdn.bytes.mb",
+  bytesGb: "cdn.bytes.gb",
 
   // Backend error keys the pair OWNS the localization of. stapel-cdn ships
   // English only (no `translations/` directory at all), so its 11 keys are
@@ -90,6 +122,9 @@ export const cdnI18nBundleEn: I18nDictionary = {
   "cdn.pick.replace": "Replace",
   "cdn.pick.hint": "{formats} · up to {maxMb} MB",
   "cdn.pick.drop_hint": "Drop files here, or click to choose",
+  "cdn.pick.drop_active": "Release to add",
+  "cdn.pick.video": "Choose a video",
+  "cdn.pick.file": "Choose a document",
 
   "cdn.phase.hashing": "Reading the file…",
   "cdn.phase.checking": "Checking whether we already have it…",
@@ -118,10 +153,35 @@ export const cdnI18nBundleEn: I18nDictionary = {
   "cdn.item.cover": "Cover photo",
   "cdn.item.alt": "Uploaded photo",
 
-  "cdn.gallery.count": "{used} of {max} photos",
+  // PLURAL FAMILY (see the key comment): `{max}` is what the noun agrees with.
+  "cdn.gallery.count.one": "{used} of {max} photo",
+  "cdn.gallery.count.other": "{used} of {max} photos",
   "cdn.gallery.empty": "No photos yet",
+  "cdn.gallery.empty_hint": "The first one you add becomes the cover.",
 
-  "cdn.upload.blocked.full": "This gallery holds at most {max} photos",
+  "cdn.attachment.image_alt": "Attached photo",
+  "cdn.attachment.video_alt": "Attached video",
+  "cdn.attachment.audio_alt": "Attached audio",
+  "cdn.attachment.file_label": "{ext} document",
+  "cdn.attachment.missing": "This attachment is no longer available",
+  "cdn.attachment.open": "Open",
+  "cdn.attachment.download": "Download",
+  "cdn.attachment.duration_unmeasured": "Length was not measured",
+  "cdn.attachment.meta_partial": "Some details of this file could not be read",
+  "cdn.attachment.meta_missing": "None of this file's details could be read",
+  "cdn.attachment.variants_pending":
+    "Previews are still being generated for this attachment",
+
+  "cdn.bytes.b": "{value} B",
+  "cdn.bytes.kb": "{value} KB",
+  "cdn.bytes.mb": "{value} MB",
+  "cdn.bytes.gb": "{value} GB",
+
+  // No counted noun on purpose: this sentence is rendered by `useActionGate`,
+  // which resolves an ActionAvailability's code with `t` and cannot select a
+  // plural form. Wording it without one is correct in every locale; wording it
+  // as "at most {max} photos" was correct in none of them at max = 1.
+  "cdn.upload.blocked.full": "This gallery is full — {max} is the maximum",
   "cdn.upload.blocked.pending": "Wait for the uploads to finish",
   "cdn.upload.blocked.failed": "Remove or retry the photos that failed",
 };

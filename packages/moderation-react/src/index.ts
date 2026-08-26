@@ -179,8 +179,34 @@ export {
   shortId,
 } from "./model/format.js";
 
-// ── headless (renderless components) ─────────────────────────────────────────
+// ── headless (renderless components + the screen bags) ───────────────────────
+// Every bag hands out `ActionAvailability` gates rather than booleans: a host
+// building its own skin inherits the reason beside every switched-off control,
+// not just the fact that it is off.
 export { ModerationProvider } from "./headless/ModerationProvider.js";
+export { useReport, useReportPolicy } from "./headless/useReport.js";
+export type {
+  ReportBag,
+  ReportPolicyBag,
+  UseReportOptions,
+} from "./headless/useReport.js";
+export { useAppeal } from "./headless/useAppeal.js";
+export type { AppealBag, UseAppealOptions } from "./headless/useAppeal.js";
+export { useModerationQueue } from "./headless/useModerationQueue.js";
+export type {
+  ModerationQueueBag,
+  QueueAccess,
+  QueueFilters,
+} from "./headless/useModerationQueue.js";
+export { useCase } from "./headless/useCase.js";
+export type {
+  CaseBag,
+  SanctionDurationMode,
+  UseCaseOptions,
+  VerdictDraft,
+} from "./headless/useCase.js";
+export { useAppealsQueue } from "./headless/useAppealsQueue.js";
+export type { AppealsQueueBag } from "./headless/useAppealsQueue.js";
 
 // ── i18n ─────────────────────────────────────────────────────────────────────
 export {

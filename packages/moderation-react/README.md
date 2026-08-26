@@ -51,6 +51,54 @@ and nest `<ModerationProvider>` next to your other pair providers. The
 individual core providers (`StapelConfigProvider` + `QueryClientProvider` +
 `I18nProvider`) remain exported for bespoke composition.
 
+## The screens, and the two subpaths
+
+`./default` is the member-facing skin; `./default/admin` is the moderator
+console, a subpath of its own so a storefront bundle never carries it.
+
+| import from | component | what it is |
+|---|---|---|
+| `./default` | `ReportButton` | the embeddable control other pairs mount (see below) |
+| `./default` | `ReportSheet` | the Art. 16(2) complaint form — a bottom sheet on a phone |
+| `./default` | `AppealPanel` | `/account/appeals?case=<uuid>` — the Art. 20 composer plus the appeals already sent |
+| `./default` | `PolicyDisclosurePane` | the public Art. 15 rules page (anonymous-safe) |
+| `./default/admin` | `ModerationQueue` | the triage list, with filters, counters and the case card |
+| `./default/admin` | `CaseDetail` | one case: the live content, the trail, claim/release/rescan, the verdict |
+| `./default/admin` | `AppealsQueue` | the appeal desk |
+
+The console takes `viewerId` — the signed-in moderator's id. This module has no
+`/me` and every actor on its wire is an opaque UUID, so without it the card
+cannot tell your own lease from a colleague's and says the case is held by
+somebody else (which is the safe answer, not a good one). `userLabel` and
+`renderTarget` on `createModerationRuntime` are the other two host seams: no
+endpoint resolves an actor to a name, and none previews a target on a list row.
+
+## Embedding the report control in another pair
+
+`<ReportButton>` is a SLOT, not a screen — it has no nav entry on purpose. A
+host passes it into whatever action slot the owning pair exposes:
+
+```tsx
+import { ReportButton } from "@stapel/moderation-react/default";
+
+<ListingDetailPane
+  listingId={id}
+  renderActions={(listing) => (
+    <ReportButton targetType="listing" targetKey={String(listing.id)} />
+  )}
+/>
+```
+
+`targetType` must be a type the deployment REGISTERED with stapel-moderation
+(`stapel-classified`'s preset registers `listing` and `review`). A type nobody
+registered answers `400 moderation_unknown_target_type`, and the sheet says so
+rather than pretending the report was filed. `chat` is not a registered target
+type today, so the message-menu embedding waits on the backend.
+
+Pass `signIn` so a signed-out visitor gets a door beside the reason; pass
+`compact` for an icon-only button in a card's action row (the accessible name
+moves to `aria-label` — it does not disappear).
+
 ## Layers
 
 ```

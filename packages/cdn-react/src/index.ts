@@ -76,6 +76,7 @@ export type {
   CdnRenderMeta,
   CdnRenderMetaVariant,
   CdnVariantMeta,
+  CdnVariantsStatus,
   CdnVideo,
   CdnVideoUploadResponse,
   ParsedCdnRef,
@@ -100,6 +101,8 @@ export {
   targetAssetType,
   targetFileKind,
   UploadCanceled,
+  variantsReadyAtOf,
+  variantsStatusOf,
 } from "./model/upload.js";
 export {
   createDescribeLoader,
@@ -142,6 +145,8 @@ export {
   toStapelImage,
 } from "./model/refs.js";
 export { canHashLocally, sha256Hex } from "./model/hash.js";
+export { formatBytes, formatDurationMs } from "./model/format.js";
+export type { ByteUnit, FormattedBytes } from "./model/format.js";
 
 // ── headless ─────────────────────────────────────────────────────────────────
 export { CdnProvider } from "./headless/CdnProvider.js";

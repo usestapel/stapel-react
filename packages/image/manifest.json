@@ -1,0 +1,65 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/image",
+  "version": "0.3.1",
+  "backend": null,
+  "description": "Stapel image rendering: tier/branch math for the CDN variant ladder (pickTier, limitingAxis, chooseVariant), slot measurement hook (useImageSlot), and a blur-up <Image> component with upgrade-only tier fetching.",
+  "flows": {},
+  "machines": [],
+  "operations": {},
+  "hooks": {},
+  "errors": {},
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "image.element-width",
+      "title": "The variant comes from the element",
+      "description": "One image descriptor rendered at several sizes. Each box asks for the smallest ladder rung that does not upscale for ITS measured width at the live device pixel ratio — never a size derived from the viewport — and every rung is a picture of its own tier, so the number in the frame is the file that was fetched. Resizing upgrades; it never downgrades something already painted.",
+      "component": "Image",
+      "tokens": [
+        "surface-sunken",
+        "text-muted"
+      ],
+      "variants": [
+        "default",
+        "fluid",
+        "preview-kinds",
+        "reserved-box",
+        "dead-url",
+        "no-ladder"
+      ],
+      "source": "demo/Image.demo.tsx"
+    }
+  ],
+  "i18nKeys": [],
+  "exports": {
+    "runtime": [
+      "Image",
+      "PREVIEW_KIND_ASPECT",
+      "chooseVariant",
+      "limitingAxis",
+      "numericTier",
+      "pickTier",
+      "useDevicePixelRatio",
+      "useImageSlot"
+    ],
+    "types": [
+      "Branch",
+      "ChooseVariantArgs",
+      "Fit",
+      "ImageErrorInfo",
+      "ImageProps",
+      "ImageSlot",
+      "ImageSlotOptions",
+      "ImageSlotSize",
+      "MediaKind",
+      "MetaStatus",
+      "PreviewKind",
+      "StapelImage",
+      "VariantMeta"
+    ]
+  }
+}

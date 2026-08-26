@@ -43,5 +43,27 @@ reviewer's memory.
 _(Record product decisions here: what a screen refuses to render and why, which
 slot a container must fill, which state was deliberately left out.)_
 
-- 2026-.. — scaffolded; `TasksPanel` is a skeleton (themed frame +
-  empty/loading states). No product decisions yet.
+- 2026-08-26 — the board reads `GET boards/{id}/cards`, never the `-created_at`
+  feed. One request, one sort authority, and the server's `truncated` flag is
+  rendered as a banner instead of being silently absorbed.
+- 2026-08-26 — a move has FOUR endings and the skin keeps them four. `deferred`
+  keeps the card where it was dropped and badges it: snapping it back would say
+  "refused", which is not what the server said.
+- 2026-08-26 — the phone board is one column plus a switcher strip whose chips
+  are drop targets, not the desktop board narrowed. Five columns at 390px is
+  five unusable columns.
+- 2026-08-26 — `ColumnManager` offers reorder and add only, and SAYS that
+  rename and delete are not in this API. The endpoints do not exist
+  (`urls_v1.py`); two dead controls would be worse than one sentence.
+- 2026-08-26 — assignees are read-only unless the host fills `userPicker`.
+  stapel-tasks resolves no user ids and has no member search, so a "type a UUID"
+  box would be a control nobody could use.
+- 2026-08-26 — `features` is the `renderFeatures` SLOT, not a re-implementation
+  of stapel-attributes' editors. Unfilled with `feature_defs` present it renders
+  a named `SlotPlaceholder`; with none it renders nothing at all.
+- 2026-08-26 — `wip_limit` is displayed and never enforced: the server stores it
+  without acting on it, and a client that blocked a drop the server would accept
+  would be inventing a rule.
+- 2026-08-26 — the truncation banner and the move-outcome status use a local
+  `Notice`, not antd `Alert`: news is neither a failure nor an emptiness, and
+  `Alert`'s heading prop is mid-rename between antd majors.

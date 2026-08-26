@@ -9,9 +9,10 @@
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
 import { Calendar, CalendarAgenda, CalendarMonthGrid } from "../src/default/index.js";
-import { dedupeCalendarRange } from "../src/index.js";
-import { CalendarDemoHarness } from "./_harness.js";
-import type { DemoHandlers } from "./_harness.js";
+import { calendarQueryKeys, dedupeCalendarRange, viewRange } from "../src/index.js";
+import type { CalendarViewMode } from "../src/index.js";
+import { CalendarDemoHarness, demoApiError } from "./_harness.js";
+import type { DemoSeed } from "./_harness.js";
 
 const ANCHOR = "2026-07-13T09:00:00Z";
 
@@ -83,12 +84,23 @@ const RANGE = {
 
 const EMPTY_RANGE = { events: [], occurrences: [] };
 
+/**
+ * The range read this screen opens on, already answered.
+ *
+ * The window is the view's own (`viewRange`), so the seed lands on the exact
+ * key the screen asks for — a canned `fetch` would only paint after a round
+ * trip the shot runner never waits for.
+ */
+function seedRange(view: CalendarViewMode, body: unknown): DemoSeed {
+  return [{ key: calendarQueryKeys.range(viewRange(view, ANCHOR)), data: body }];
+}
+
 function Screen(props: {
-  readonly handlers: DemoHandlers;
+  readonly seed: DemoSeed;
   readonly view?: "month" | "week" | "day";
 }): ReactElement {
   return (
-    <CalendarDemoHarness handlers={props.handlers}>
+    <CalendarDemoHarness seed={props.seed}>
       <Calendar
         defaultAnchor={ANCHOR}
         defaultView={props.view ?? "month"}
@@ -146,19 +158,19 @@ export default defineDemo({
       description: "Desktop month grid: a standalone event, a materialized occurrence drawn once, a virtual instance, a cancelled row struck through.",
       viewport: "desktop",
       step: "ready.month",
-      render: () => <Screen handlers={{ "/calendar": RANGE }} />,
+      render: () => <Screen seed={seedRange("month", RANGE)} />,
     },
     "agenda-phone": {
       description: "A phone: the same deduped instants as a day-grouped agenda. No sideways scroll, no six-week grid squeezed into 390px.",
       viewport: "phone",
       step: "ready.agenda",
-      render: () => <Screen handlers={{ "/calendar": RANGE }} view="day" />,
+      render: () => <Screen seed={seedRange("day", RANGE)} view="day" />,
     },
     empty: {
       description: "A quiet month — reachable only from a read that ANSWERED, with the way to fill it beside the sentence.",
       viewport: "phone",
       step: "empty",
-      render: () => <Screen handlers={{ "/calendar": EMPTY_RANGE }} />,
+      render: () => <Screen seed={seedRange("month", EMPTY_RANGE)} />,
     },
     "grid-only": {
       description: "The grid alone: one week of cells over the deduped instants — the materialized occurrence appears once.",
@@ -176,7 +188,20 @@ export default defineDemo({
       description: "The range read failed. An outage renders as an outage with a retry, never as an empty calendar.",
       viewport: "desktop",
       step: "failed",
-      render: () => <Screen handlers={{ "/calendar": [503, { localizable_error: "error.503.mandate_unavailable" }] }} />,
+      render: () => (
+        <Screen
+          seed={[
+            {
+              key: calendarQueryKeys.range(viewRange("month", ANCHOR)),
+              error: demoApiError(
+                503,
+                "error.503.mandate_unavailable",
+                "mandate service unavailable"
+              ),
+            },
+          ]}
+        />
+      ),
     },
   },
 });
