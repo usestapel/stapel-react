@@ -693,6 +693,7 @@
     "chat.transport.degraded.origin_not_allowed",
     "chat.transport.degraded.reconnecting",
     "chat.transport.degraded.reconnecting_long",
+    "chat.transport.degraded.renewing_credential",
     "chat.transport.degraded.revoked",
     "chat.transport.degraded.sign_in_required",
     "chat.transport.degraded.unsupported",
@@ -793,6 +794,7 @@
       "ConversationThread",
       "EMPTY_THREAD_WINDOW",
       "MessageComposer",
+      "RENEWING_CREDENTIAL_DEBOUNCE_MS",
       "StartDirectChat",
       "THREAD_INTERVAL_MS",
       "THREAD_PAGE",
@@ -847,7 +849,8 @@
       "useMarkRead",
       "useSendMessage",
       "useStartDirectChat",
-      "useThread"
+      "useThread",
+      "withRenewingCredential"
     ],
     "types": [
       "AnchorDirection",

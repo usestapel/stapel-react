@@ -44,6 +44,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { useStream, useRealtimeState } from "@stapel/realtime/react";
+import { defaultSchedule } from "@stapel/realtime";
 import type { RealtimeFrame, RealtimeStreamStatus } from "@stapel/realtime";
 import type { NoProviderStatus } from "@stapel/realtime/react";
 import { useChatRuntime } from "../model/context.js";
@@ -57,7 +58,11 @@ import {
   readChatMessageFrame,
 } from "../realtime/frames.js";
 import type { ChatMessagePayload } from "../realtime/frames.js";
-import { chatDegradation } from "../realtime/degradation.js";
+import {
+  RENEWING_CREDENTIAL_DEBOUNCE_MS,
+  chatDegradation,
+  withRenewingCredential,
+} from "../realtime/degradation.js";
 import type { ChatDegraded } from "../realtime/degradation.js";
 import { chatSocketUrl } from "../realtime/streams.js";
 import type { ChatStream } from "../realtime/streams.js";
@@ -394,9 +399,39 @@ export function useChatFreshness(
     onState,
   });
 
-  // Client-wide facts — `never_connected`, `reconnecting_long`. Consulted
-  // only to sharpen a stream already known to be down (see `chatDegradation`).
+  // Client-wide facts — `never_connected`, `reconnecting_long`, and a session
+  // refresh in flight. Consulted only to sharpen a stream already known to be
+  // down (see `chatDegradation` and `withRenewingCredential`).
   const clientState = useRealtimeState();
+
+  // ── the credential question, debounced ─────────────────────────────────────
+  //
+  // `RealtimeState.refreshing` is what the cutover did not have: a 4401 is
+  // inside core's single-flight refresh RIGHT NOW. Nothing else knows that.
+  // The stream reads `reconnecting` here — the same word an ordinary network
+  // blip gets — and a person whose credential is being renewed and a person
+  // on a flaky train deserve different sentences.
+  //
+  // This timer is the whole debounce mechanism, and the only timer this hook
+  // owns for the purpose: `refreshing.since` is a timestamp, and a timestamp
+  // does not re-render, so a refresh that hangs would never cross its
+  // threshold on screen without something waking the hook. It is armed for
+  // exactly the moment it crosses and torn down the instant the refresh
+  // lands, so nothing outlives the question — which is what lets
+  // `withRenewingCredential` stay a pure read of the CURRENT state instead of
+  // a latch that remembers a renewal and starts implying its outcome.
+  const clock = runtime.realtime.client.now ?? Date.now;
+  const schedule = runtime.realtime.client.schedule ?? defaultSchedule;
+  const refreshingSince = clientState.refreshing?.since ?? null;
+  const [, setDebounceTick] = useState(0);
+  useEffect(() => {
+    if (refreshingSince === null) return;
+    const remaining = RENEWING_CREDENTIAL_DEBOUNCE_MS - (clock() - refreshingSince);
+    if (remaining <= 0) return;
+    return schedule(() => {
+      setDebounceTick((tick) => tick + 1);
+    }, remaining);
+  }, [refreshingSince, clock, schedule]);
 
   // ── the polling half ───────────────────────────────────────────────────────
   //
@@ -450,10 +485,20 @@ export function useChatFreshness(
   // `transport` says WHAT is carrying the stream; this says why it is not the
   // socket. The pair is the whole point: "polling" alone is the label that
   // made a broken handshake look like a product decision.
-  const degradation = chatDegradation(status, clientState.degradation, {
-    hasSocket,
-    attempted: enabled && socketEnabled,
-  });
+  //
+  // The refresh overlay goes on LAST and changes nothing but the name of a
+  // silence that is already being reported. It cannot invent a degradation
+  // where there was none, it cannot speak over a refusal, and it disappears
+  // by itself when the field clears — the three landings below it are read
+  // exactly as they were before it existed.
+  const degradation = withRenewingCredential(
+    chatDegradation(status, clientState.degradation, {
+      hasSocket,
+      attempted: enabled && socketEnabled,
+    }),
+    clientState.refreshing,
+    clock()
+  );
   const degradedReason = degradation?.reason ?? null;
   const degradedAttempt = degradation?.attempt ?? 0;
   const degradedSince = degradation?.since;

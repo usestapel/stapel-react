@@ -109,6 +109,10 @@ export const chatI18nBundleEs: I18nDictionary = {
   "chat.transport.idle": "En pausa",
 
   "chat.transport.degraded.reconnecting": "Reconectando…",
+  // A question, not a result: the refresh has not landed, and one of its
+  // three outcomes is being signed out.
+  "chat.transport.degraded.renewing_credential":
+    "Comprobando tu sesión: los mensajes en directo esperan la respuesta.",
   "chat.transport.degraded.reconnecting_long":
     "Seguimos reconectando: mostrando los mensajes de tu última actualización.",
   "chat.transport.degraded.never_connected":

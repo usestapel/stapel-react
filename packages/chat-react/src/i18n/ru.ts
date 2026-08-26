@@ -109,6 +109,10 @@ export const chatI18nBundleRu: I18nDictionary = {
   "chat.transport.idle": "Приостановлено",
 
   "chat.transport.degraded.reconnecting": "Переподключение…",
+  // A question, not a result: the refresh has not landed, and one of its
+  // three outcomes is being signed out.
+  "chat.transport.degraded.renewing_credential":
+    "Проверяем вашу сессию — живые сообщения ждут ответа.",
   "chat.transport.degraded.reconnecting_long":
     "Всё ещё переподключаемся — показываем сообщения на момент последнего обновления.",
   "chat.transport.degraded.never_connected":

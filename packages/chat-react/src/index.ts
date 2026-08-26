@@ -98,7 +98,16 @@ export type { ChatStream } from "./realtime/streams.js";
 // with its i18n key. A degraded transport that cannot say why is
 // indistinguishable from a working product, which is how this pair's own
 // defect survived for months.
-export { chatDegradation, chatDegraded } from "./realtime/degradation.js";
+// `withRenewingCredential` is the one that names a QUESTION: a 4401 is inside
+// core's single-flight refresh and nobody yet knows which of its three
+// landings is coming. Exported with its threshold so a host skin that
+// replaces the tag debounces on the same number the pair does.
+export {
+  RENEWING_CREDENTIAL_DEBOUNCE_MS,
+  chatDegradation,
+  chatDegraded,
+  withRenewingCredential,
+} from "./realtime/degradation.js";
 export type { ChatDegraded, ChatDegradedReason } from "./realtime/degradation.js";
 
 // ── flows (the transport seam + the error fold) ──────────────────────────────

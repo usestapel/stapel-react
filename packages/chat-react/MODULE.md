@@ -154,6 +154,11 @@ The one-shot renewal is re-armed on `welcome`, so a token that expires an hour
 into a live socket renews again; a second 4401 with no `welcome` between them
 is the verdict, not a renewal loop.
 
+The WINDOW before any of those three lands has a name of its own now —
+`renewing_credential`, debounced so a healthy refresh never shows it, and
+outranked by every one of the three the moment it arrives. It is a question,
+not a fourth outcome; see below and `test/refreshWindow.test.tsx`.
+
 ## A degraded transport is never silent
 
 `useChatFreshness` (and both headless bags) returns `degraded: ChatDegraded |
@@ -165,6 +170,7 @@ read as a product decision for months.
 | reason | what it means | who acts |
 |---|---|---|
 | `reconnecting` | it dropped; a retry is scheduled | nobody — wait |
+| **`renewing_credential`** | a 4401 is inside core's single-flight refresh, and the answer has not landed | nobody yet — it is a question |
 | `reconnecting_long` | it worked, went away, and stayed away | nobody, but say so |
 | **`never_connected`** | configured, tried, and never once open | an operator |
 | `sign_in_required` | 4401 survived a session refresh | the person |
@@ -181,11 +187,48 @@ which no amount of watching a spinner can. It was verified against the built
 substrate before being depended on (`test/degradation.test.tsx` drives a socket
 that never opens, and the substrate's own suite covers it in 11 cases).
 
-Two reasons the old vocabulary had are gone. `unreachable` meant "the retry
-budget is spent" and there is no budget any more. `renewing_credential` is not
-observable through the substrate — it reports a stream mid-refresh as
-`reconnecting` — so the pair does not claim to know; the three OUTCOMES above
-are all still named. (Upstream note, below.)
+One reason from the old vocabulary is gone: `unreachable` meant "the retry
+budget is spent", and there is no budget any more.
+
+### `renewing_credential` is back, and this time it is honest
+
+The cutover **dropped** this name, and was right to. The substrate reported a
+stream mid-refresh as plain `reconnecting`, so the pair had no way to tell a
+credential renewal from a network blip, and a module that cannot know a thing
+must not print a sentence claiming it.
+
+`@stapel/realtime` publishes **`RealtimeState.refreshing: { since } | null`**
+now — set when a 4401 enters core's single-flight `refresh()`, cleared when it
+lands, **for all three outcomes alike**. So the pair reads it, and the name is
+back with three properties that keep it truthful:
+
+- **It renders off `refreshing`, never off a state.** The aggregate reads
+  `reconnecting` in this window — the substrate makes sure it is never `idle`
+  — but `reconnecting` is also what an ordinary drop reads, and those two
+  deserve different words. `refreshing` is the only thing that knows which one
+  is happening.
+- **It is debounced on `since`.** `RENEWING_CREDENTIAL_DEBOUNCE_MS` is **750
+  ms**, in one constant in `realtime/degradation.ts` with the reasoning beside
+  it: a healthy refresh answers well inside that, and flashing a sentence
+  about someone's sign-in for 80 ms is worse than saying nothing. Below the
+  threshold the rendering is byte-for-byte what it was before. The hook arms
+  ONE timer, from the same constant, for the moment the window crosses it.
+- **It never implies an outcome.** `withRenewingCredential` is pure and reads
+  only the CURRENT field — no latch, no "was refreshing". An ANSWER outranks
+  the question, so it can never speak over `sign_in_required`, `forbidden`,
+  `revoked`, `origin_not_allowed`, `unsupported` or `no_socket`; it can only
+  sharpen a silence that is already being reported (`reconnecting`,
+  `reconnecting_long`, `never_connected`). The moment the field clears, the
+  three landings below read exactly as they did before this existed.
+
+The copy is a QUESTION in all three locales — "Checking your session — live
+messages are waiting on the answer." — because at the moment it is on screen
+nobody knows, and one of the three things it can land on is being signed out.
+`test/refreshWindow.test.tsx` pins all of it, including the trap: during the
+window there is no socket and no timer, so the seam's own `transport` is
+`idle`, whose copy is "Paused" — a person reads that as "all is well" at the
+exact moment their credential is being renewed, and the test asserts the tag
+says neither that nor "Live".
 
 ## Upstream notes (reported, not worked around)
 
@@ -194,10 +237,13 @@ are all still named. (Upstream note, below.)
   serves. The generated type therefore makes them optional and every consumer
   must handle an absence the server never produces.
   `chatStreamForConversation` reads them when present and derives when not.
-- **A session refresh is invisible to a consumer.** `@stapel/realtime` reports
-  a stream as `reconnecting` while core's refresh is in flight, so a pair
-  cannot tell "renewing your session" from "the network blipped". The three
-  outcomes are distinguishable; the transient state is not.
+- ~~**A session refresh is invisible to a consumer.**~~ **Fixed upstream.**
+  It was true: `@stapel/realtime` reported a stream as `reconnecting` while
+  core's refresh was in flight, so a pair could not tell "renewing your
+  session" from "the network blipped", and this pair dropped
+  `renewing_credential` over it. The substrate now publishes
+  `RealtimeState.refreshing: { since } | null` — the question, never an
+  outcome — and the name is back, debounced. See above.
 
 ## Layers
 

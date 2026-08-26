@@ -66,6 +66,13 @@ export const CHAT_I18N_KEYS = {
   // handshake was being refused — a degraded mode nobody could tell from a
   // design decision. One key per named reason (`flows/freshness.ts`).
   transportReconnecting: "chat.transport.degraded.reconnecting",
+  /**
+   * A 4401 is waiting on core's single-flight refresh. The one key here that
+   * names a QUESTION — the copy must not read as "it worked", because at the
+   * moment it is on screen nobody knows. Debounced; see
+   * `RENEWING_CREDENTIAL_DEBOUNCE_MS`.
+   */
+  transportRenewingCredential: "chat.transport.degraded.renewing_credential",
   /** Down long enough to be worth naming — and still trying, always. */
   transportReconnectingLong: "chat.transport.degraded.reconnecting_long",
   /** Configured, tried, never once open. The state the defect lived in. */
@@ -159,6 +166,11 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.transport.idle": "Paused",
 
   "chat.transport.degraded.reconnecting": "Reconnecting…",
+  // A question, deliberately. "Renewing your session" would be read as "and
+  // it will work" — at this moment the refresh has not landed, and one of the
+  // three things it can land on is being signed out.
+  "chat.transport.degraded.renewing_credential":
+    "Checking your session — live messages are waiting on the answer.",
   "chat.transport.degraded.reconnecting_long":
     "Still reconnecting — showing messages from your last update.",
   "chat.transport.degraded.never_connected":

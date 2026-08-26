@@ -36,9 +36,16 @@ const TRANSPORT_KEYS: Record<ChatTransport, string> = {
  * misconfigured, and the person reading this is rarely the person who can fix
  * it, so it must be visible enough to be reported and not so loud that it
  * reads as their fault.
+ *
+ * `renewing_credential` is `processing` — the in-flight preset — and NOT a
+ * warning, because it is a question and not yet anything to act on. If the
+ * answer is one the person must act on, the tag becomes `sign_in_required`
+ * and goes to `warning` on its own; colouring the question that loudly would
+ * be the tag guessing which of the three outcomes is coming.
  */
 const DEGRADED_TAG_COLORS: Record<ChatDegradedReason, string> = {
   reconnecting: "default",
+  renewing_credential: "processing",
   no_socket: "default",
   reconnecting_long: "warning",
   never_connected: "warning",

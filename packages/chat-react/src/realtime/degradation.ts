@@ -21,19 +21,24 @@
  *    deployment config; reading it as "you are not a participant" sends them
  *    hunting for a permissions bug that does not exist.
  *
- * One name went the other way. `renewing_credential` is gone: the substrate
- * runs the 4401 → `SessionManager.refresh()` path itself and reports the
- * stream as `reconnecting` while it is in flight, so a pair cannot honestly
- * claim to know a renewal is happening. Its three OUTCOMES are all still
- * visible — an immediate reconnect, a backoff, or `sign_in_required` — which
- * is the part a person can act on. (Upstream note in MODULE.md.)
+ *  - **`renewing_credential`** — back, and for the first time honestly. The
+ *    cutover dropped it because the substrate could not express a refresh in
+ *    flight: the stream just read `reconnecting`, and a pair that cannot tell
+ *    a credential renewal from a network blip must not name one. The
+ *    substrate publishes `RealtimeState.refreshing` now, so the pair can, and
+ *    the word is a QUESTION — see {@link withRenewingCredential}.
  *
- * `unreachable` is gone too, and its absence is a correction: it meant "the
- * retry budget is spent", and the substrate deliberately has no budget. What
- * used to end there now ends in `reconnecting_long`, which says the true
- * thing — it has been down since a time we can name, and it is still trying.
+ * `unreachable` did go the other way, and its absence is a correction: it
+ * meant "the retry budget is spent", and the substrate deliberately has no
+ * budget. What used to end there now ends in `reconnecting_long`, which says
+ * the true thing — it has been down since a time we can name, and it is still
+ * trying.
  */
-import type { RealtimeDegradation, RealtimeStreamStatus } from "@stapel/realtime";
+import type {
+  RealtimeDegradation,
+  RealtimeSessionRefresh,
+  RealtimeStreamStatus,
+} from "@stapel/realtime";
 import type { NoProviderStatus } from "@stapel/realtime/react";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 
@@ -42,6 +47,10 @@ import { CHAT_I18N_KEYS } from "../i18n/keys.js";
  * every one of them reaches the UI.
  *
  *  - `reconnecting` — it dropped; a retry is scheduled. Transient.
+ *  - `renewing_credential` — a 4401 sent the session through core's
+ *    single-flight refresh and the answer has not landed. The only reason
+ *    here that names a QUESTION rather than a state of the socket, and the
+ *    only one that is debounced (`RENEWING_CREDENTIAL_DEBOUNCE_MS`).
  *  - `reconnecting_long` — it worked, went away, and has stayed away. Still
  *    trying (there is no give-up), but long enough that a person staring at a
  *    stale screen deserves to be told.
@@ -63,6 +72,7 @@ import { CHAT_I18N_KEYS } from "../i18n/keys.js";
  */
 export type ChatDegradedReason =
   | "reconnecting"
+  | "renewing_credential"
   | "reconnecting_long"
   | "never_connected"
   | "sign_in_required"
@@ -93,6 +103,7 @@ export interface ChatDegraded {
 
 const DEGRADED_KEYS: Readonly<Record<ChatDegradedReason, string>> = {
   reconnecting: CHAT_I18N_KEYS.transportReconnecting,
+  renewing_credential: CHAT_I18N_KEYS.transportRenewingCredential,
   reconnecting_long: CHAT_I18N_KEYS.transportReconnectingLong,
   never_connected: CHAT_I18N_KEYS.transportNeverConnected,
   sign_in_required: CHAT_I18N_KEYS.transportSignInRequired,
@@ -206,4 +217,81 @@ function named(
     );
   }
   return chatDegraded("reconnecting", attempt);
+}
+
+/**
+ * HOW LONG A REFRESH HAS TO BE IN FLIGHT BEFORE A PERSON IS TOLD ABOUT IT.
+ *
+ * This is the whole reason `RealtimeState.refreshing` carries a `since` and
+ * not just a flag. A session refresh is one round trip to the session
+ * endpoint, and a healthy one lands in well under half a second — so a signal
+ * that flipped on the field directly would flash a sentence about the
+ * person's credentials at every routine token renewal, several times a day,
+ * for a fifth of a second each time. That is not information, it is a twitch,
+ * and a twitch about your sign-in is alarming in a way "Reconnecting…" is
+ * not. Saying nothing is strictly better than that.
+ *
+ * 750 ms, chosen from both ends:
+ *
+ *  - ABOVE a healthy refresh even on a bad link. On a slow mobile connection
+ *    the round trip alone can be 300–500 ms, so a 500 ms threshold would
+ *    still flash on refreshes that worked perfectly — the exact case the
+ *    debounce exists to suppress.
+ *  - BELOW the ~1 s at which a stalled screen stops reading as latency and
+ *    starts reading as broken. Past that point silence is the worse lie, and
+ *    the person deserves the word.
+ *
+ * ONE constant, read by everything that debounces this signal:
+ * `flows/freshness.ts` compares against it AND arms its wake-up timer from it,
+ * so "when it appears" and "how long until then" cannot drift apart.
+ */
+export const RENEWING_CREDENTIAL_DEBOUNCE_MS = 750;
+
+/**
+ * The silences a QUESTION is allowed to speak over. All three mean the same
+ * thing — the socket is down and something is still trying — which is exactly
+ * what a credential renewal sharpens into a specific sentence.
+ *
+ * Everything not in this list is an ANSWER (`sign_in_required`, `forbidden`,
+ * `revoked`, `origin_not_allowed`, `unsupported`) or a statement about the
+ * build (`no_socket`), and an answer outranks a question: the substrate lets
+ * a verdict win over the refresh window for the same reason, and a refusal
+ * held behind a spinner would be a new lie.
+ */
+const RENEWABLE_SILENCES: readonly ChatDegradedReason[] = [
+  "reconnecting",
+  "reconnecting_long",
+  "never_connected",
+];
+
+/**
+ * A REFRESH IN FLIGHT IS A QUESTION, NOT AN OUTCOME.
+ *
+ * Sharpen a still-trying silence into `renewing_credential` when a session
+ * refresh has been in flight longer than {@link
+ * RENEWING_CREDENTIAL_DEBOUNCE_MS} — and do nothing at all otherwise.
+ *
+ * The function is PURE and reads only the CURRENT `refreshing`. There is no
+ * latch, no "was refreshing", no memory of a question that has been answered:
+ * the instant the substrate clears the field this returns `degraded`
+ * untouched, which is precisely today's behaviour for all three landings — a
+ * renewed credential reconnects, no verdict backs off, a refusal says
+ * `sign_in_required`. A renewal that has started is not a renewal that will
+ * work, and nothing here may render as if it were.
+ *
+ * `since` on the result is the refresh's own start, not the socket's: what a
+ * skin can honestly say is "we have been asking since 14:02".
+ */
+export function withRenewingCredential(
+  degraded: ChatDegraded | null,
+  refreshing: RealtimeSessionRefresh | null,
+  now: number
+): ChatDegraded | null {
+  if (refreshing === null) return degraded;
+  // A live stream is not degraded, and a refresh on some OTHER stream of a
+  // shared client must not put a sentence on this one.
+  if (degraded === null) return null;
+  if (!RENEWABLE_SILENCES.includes(degraded.reason)) return degraded;
+  if (now - refreshing.since < RENEWING_CREDENTIAL_DEBOUNCE_MS) return degraded;
+  return chatDegraded("renewing_credential", degraded.attempt, refreshing.since);
 }
