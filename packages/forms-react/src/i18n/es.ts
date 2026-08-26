@@ -105,6 +105,7 @@ export const formsI18nBundleEs: I18nDictionary = {
   "forms.builder.state_open": "Abierto",
   "forms.builder.state_closed": "Cerrado",
   "forms.builder.state_draft": "Borrador",
+  "forms.builder.state": "Estado del formulario",
   "forms.builder.rotate_link": "Renovar el enlace público",
   "forms.builder.public_link": "Enlace público",
   "forms.builder.blocked.first_field": "Ya es el primer campo.",
@@ -123,7 +124,7 @@ export const formsI18nBundleEs: I18nDictionary = {
   "forms.settings.add_destination": "Escribe un destino y pulsa Intro",
   "forms.settings.retention": "Eliminar las respuestas después de",
   "forms.settings.retention_hint":
-    "Días. Una excepción solo puede ACORTAR el periodo de conservación de esta instalación; déjalo vacío para usar el suyo.",
+    "Días. Una excepción solo puede acortar el periodo de conservación de esta instalación; vacío usa el suyo.",
   "forms.settings.retention_default": "Periodo de la instalación",
   "forms.settings.no_destination":
     "No hay ningún destino configurado: una respuesta nueva se guardará y nadie recibirá aviso.",
@@ -188,6 +189,7 @@ export const formsI18nBundleEs: I18nDictionary = {
   "forms.list.delete_body_open":
     "Este formulario está ABIERTO. Al eliminarlo se cierra: el enlace público dejará de funcionar de inmediato y sus {count} respuesta(s) dejarán de estar accesibles.",
   "forms.list.state_filter": "Filtrar por estado",
+  "forms.list.state_all": "Todas",
 };
 
 /** Register the es bundle. Call AFTER `registerFormsI18n` so it layers over

@@ -8,20 +8,42 @@ import { defineDemo } from "@stapel/showcase";
 import { StapelForm } from "../src/default/index.js";
 import { formsQueryKeys } from "../src/index.js";
 import { FormsDemoHarness, SkinFrame } from "./_harness.js";
-import type { DemoSeed } from "./_harness.js";
+import type { DemoHandlers, DemoSeed } from "./_harness.js";
 import {
   DEMO_PUBLIC_FORM,
   DEMO_PUBLIC_FORM_UNSUPPORTED,
   DEMO_PUBLIC_ID,
 } from "./fixtures.js";
 
-function seedFor(form: unknown): readonly DemoSeed[] {
-  return [[formsQueryKeys.publicForm(DEMO_PUBLIC_ID), form]];
+/**
+ * One variant's data, built ONCE at module scope: the harness memoizes its
+ * runtime and query client on the identity of `seed`/`handlers`, so a fixture
+ * rebuilt per render would drop the seeded cache on the floor.
+ *
+ * The seed is what the story photographs; the handlers answer the SAME data,
+ * so a refetch in Ladle confirms the story instead of replacing it.
+ */
+interface Fixture {
+  readonly seed: readonly DemoSeed[];
+  readonly handlers: DemoHandlers;
 }
 
-function Form(props: { form: unknown }): ReactElement {
+function fixture(form: unknown): Fixture {
+  return {
+    seed: [[formsQueryKeys.publicForm(DEMO_PUBLIC_ID), form]],
+    handlers: { [`/public/${DEMO_PUBLIC_ID}/`]: form },
+  };
+}
+
+const PUBLISHED = fixture(DEMO_PUBLIC_FORM);
+const UNSUPPORTED = fixture(DEMO_PUBLIC_FORM_UNSUPPORTED);
+
+function Form(props: { fixture: Fixture }): ReactElement {
   return (
-    <FormsDemoHarness seed={seedFor(props.form)}>
+    <FormsDemoHarness
+      seed={props.fixture.seed}
+      handlers={props.fixture.handlers}
+    >
       <SkinFrame maxWidth="34rem">
         <StapelForm publicId={DEMO_PUBLIC_ID} />
       </SkinFrame>
@@ -43,14 +65,14 @@ export default defineDemo({
       step: "ready",
       description:
         "Seven kinds at once — header, text, long text, select, number, boolean, date.",
-      render: () => <Form form={DEMO_PUBLIC_FORM} />,
+      render: () => <Form fixture={PUBLISHED} />,
     },
     "unsupported-kind": {
       viewport: "phone",
       step: "submit_blocked",
       description:
         "The LOUD fallback: a kind this build cannot draw gets a notice in the field's place AND blocks the submit, naming the kind. Dropping a possibly-required field silently is the failure this replaces.",
-      render: () => <Form form={DEMO_PUBLIC_FORM_UNSUPPORTED} />,
+      render: () => <Form fixture={UNSUPPORTED} />,
     },
   },
 });

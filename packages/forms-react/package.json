@@ -55,9 +55,9 @@
   },
   "size-limit": [
     {
-      "name": "index — headless forms pair (client + hooks + bags + widget registry + i18n)",
+      "name": "index — headless forms pair (client + hooks + bags + widget registry + i18n; the en fallback bundle rides here, so a new user-visible label costs ~25 B)",
       "path": "dist/index.js",
-      "limit": "12 KB"
+      "limit": "13 KB"
     },
     {
       "name": "default — the antd skin (form renderer, builder, responses) must stay out of the main bundle",

@@ -109,14 +109,9 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
-- forms.builder → <FormBuilder> [default]  demo/FormBuilder.demo.tsx
 - forms.builder-pane → <FormBuilderPane> [default|empty-draft]  demo/FormBuilderPaneSkin.demo.tsx
 - forms.config-field → <ConfigField> [number|string-options|unimplemented]  demo/ConfigFieldSkin.demo.tsx
-- forms.fill → <FormFill> [default]  demo/FormFill.demo.tsx
-- forms.list → <FormList> [default]  demo/FormList.demo.tsx
 - forms.list-pane → <FormsListPane> [default|empty]  demo/FormsListPaneSkin.demo.tsx
-- forms.provider → <FormsProvider> [default]  demo/Forms.demo.tsx
-- forms.responses → <ResponsesTable> [default]  demo/ResponsesTable.demo.tsx
 - forms.responses-pane → <ResponsesPane> [default|empty]  demo/ResponsesPaneSkin.demo.tsx
 - forms.settings-pane → <FormSettingsPane> [configured|no-destination]  demo/FormSettingsPaneSkin.demo.tsx
 - forms.stapel-form → <StapelForm> [default|unsupported-kind]  demo/StapelFormSkin.demo.tsx

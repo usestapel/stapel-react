@@ -4,25 +4,6 @@
   "version": "0.3.0",
   "demos": [
     {
-      "id": "forms.builder",
-      "title": "Form builder",
-      "description": "Headless authoring: a draft schema, per-kind config forms served by GET /field-kinds, and the save-before-publish gate.",
-      "component": "FormBuilder",
-      "covers": [],
-      "tokens": [
-        "surface-raised"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/FormBuilder.demo.tsx",
-        "line": 45
-      }
-    },
-    {
       "id": "forms.builder-pane",
       "title": "Form builder (default skin)",
       "description": "Draft editing, publish, lifecycle state and the public link, plus the door to the form's settings. Reorder buttons at the ends of the list are gated with the reason beside them rather than greyed out for no stated cause, and a kind the deployment does not recognise stays listed and says why it cannot be configured — dropping it would silently delete a field from a stored schema.",
@@ -50,7 +31,7 @@
       ],
       "source": {
         "file": "demo/FormBuilderPaneSkin.demo.tsx",
-        "line": 44
+        "line": 72
       }
     },
     {
@@ -88,52 +69,13 @@
       }
     },
     {
-      "id": "forms.fill",
-      "title": "Form fill",
-      "description": "Headless anonymous fill: the schema load as a three-state LoadState, the unsupported-kind guard, and the submit gate's reason.",
-      "component": "FormFill",
-      "covers": [],
-      "tokens": [
-        "surface-raised"
-      ],
-      "variants": [
-        {
-          "id": "default",
-          "description": "Schema loaded — the headless bag a host renders its own visuals over",
-          "step": "ready"
-        }
-      ],
-      "source": {
-        "file": "demo/FormFill.demo.tsx",
-        "line": 36
-      }
-    },
-    {
-      "id": "forms.list",
-      "title": "Forms list",
-      "description": "Headless list of a workspace's forms, rendered through matchList so 'no forms yet' can only be said about a load that succeeded.",
-      "component": "FormList",
-      "covers": [],
-      "tokens": [
-        "surface-raised"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/FormList.demo.tsx",
-        "line": 32
-      }
-    },
-    {
       "id": "forms.list-pane",
       "title": "Forms list (default skin)",
       "description": "The workspace's forms with the two acts the builder does not own: configure who gets told about a response, and delete. The delete confirmation is one SkinConfirm for the whole list — a bottom sheet on a phone — and it names the consequence, because deleting an open form stops its public link resolving immediately.",
       "component": "FormsListPane",
       "covers": [
-        "FormList"
+        "FormList",
+        "FormsProvider"
       ],
       "tokens": [
         "surface-raised"
@@ -154,46 +96,7 @@
       ],
       "source": {
         "file": "demo/FormsListPaneSkin.demo.tsx",
-        "line": 44
-      }
-    },
-    {
-      "id": "forms.provider",
-      "title": "Forms provider",
-      "description": "The headless forms root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
-      "component": "FormsProvider",
-      "covers": [],
-      "tokens": [
-        "surface-raised"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/Forms.demo.tsx",
-        "line": 24
-      }
-    },
-    {
-      "id": "forms.responses",
-      "title": "Responses table",
-      "description": "Headless response review: columns taken from the version each response answered, keyset paging, resend and CSV export.",
-      "component": "ResponsesTable",
-      "covers": [],
-      "tokens": [
-        "surface-raised"
-      ],
-      "variants": [
-        {
-          "id": "default",
-          "step": "ready"
-        }
-      ],
-      "source": {
-        "file": "demo/ResponsesTable.demo.tsx",
-        "line": 43
+        "line": 60
       }
     },
     {
@@ -223,7 +126,7 @@
       ],
       "source": {
         "file": "demo/ResponsesPaneSkin.demo.tsx",
-        "line": 44
+        "line": 67
       }
     },
     {
@@ -253,7 +156,7 @@
       ],
       "source": {
         "file": "demo/FormSettingsPaneSkin.demo.tsx",
-        "line": 38
+        "line": 61
       }
     },
     {
@@ -283,7 +186,7 @@
       ],
       "source": {
         "file": "demo/StapelFormSkin.demo.tsx",
-        "line": 32
+        "line": 54
       }
     }
   ]

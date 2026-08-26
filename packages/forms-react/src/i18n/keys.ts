@@ -86,6 +86,7 @@ export const FORMS_I18N_KEYS = {
   builderStateOpen: "forms.builder.state_open",
   builderStateClosed: "forms.builder.state_closed",
   builderStateDraft: "forms.builder.state_draft",
+  builderState: "forms.builder.state",
   builderRotateLink: "forms.builder.rotate_link",
   builderPublicLink: "forms.builder.public_link",
   builderReorderBlockedFirst: "forms.builder.blocked.first_field",
@@ -163,6 +164,7 @@ export const FORMS_I18N_KEYS = {
   listDeleteBody: "forms.list.delete_body",
   listDeleteBodyOpen: "forms.list.delete_body_open",
   listStateFilter: "forms.list.state_filter",
+  listStateAll: "forms.list.state_all",
 } as const;
 
 export type FormsI18nKey =
@@ -273,6 +275,7 @@ export const formsI18nBundleEn: I18nDictionary = {
   "forms.builder.state_open": "Open",
   "forms.builder.state_closed": "Closed",
   "forms.builder.state_draft": "Draft",
+  "forms.builder.state": "Form state",
   "forms.builder.rotate_link": "Rotate public link",
   "forms.builder.public_link": "Public link",
   "forms.builder.blocked.first_field": "Already the first field.",
@@ -291,7 +294,7 @@ export const formsI18nBundleEn: I18nDictionary = {
   "forms.settings.add_destination": "Type a destination and press Enter",
   "forms.settings.retention": "Delete responses after",
   "forms.settings.retention_hint":
-    "Days. An override may only SHORTEN this deployment's retention period; leave it empty to use the deployment's own.",
+    "Days. An override can only shorten this deployment's retention period; empty uses the deployment's own.",
   "forms.settings.retention_default": "Deployment default",
   "forms.settings.no_destination":
     "No destination is configured, so a new response will be stored and nobody will be notified.",
@@ -357,6 +360,7 @@ export const formsI18nBundleEn: I18nDictionary = {
   "forms.list.delete_body_open":
     "This form is OPEN. Deleting it closes it: the public link stops working immediately and its {count} response(s) stop being reachable.",
   "forms.list.state_filter": "Filter by state",
+  "forms.list.state_all": "All",
 };
 
 /**

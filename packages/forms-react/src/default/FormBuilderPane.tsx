@@ -232,6 +232,10 @@ function FieldEditor(props: BuilderFieldRowSlotProps): ReactElement {
   );
 }
 
+/** Ties the visible state label to the selector it names. One toolbar per
+ * pane, so a constant id is stable and unique on the screen. */
+const STATE_SELECT_LABEL_ID = "forms-builder-state-label";
+
 function Toolbar(props: BuilderToolbarSlotProps): ReactElement {
   const t = useT();
   const Slot = resolveFormsSkinComponent<BuilderToolbarSlotProps>(
@@ -269,16 +273,26 @@ function Toolbar(props: BuilderToolbarSlotProps): ReactElement {
         >
           {t(FORMS_I18N_KEYS.builderPublish)}
         </GatedButton>
-        <Select<FormState>
-          aria-label={t(FORMS_I18N_KEYS.listStateFilter)}
-          style={{ width: FORM_STATE_SELECT_WIDTH }}
-          value={row.state as FormState}
-          onChange={(next) => bag.setState(next)}
-          options={(["draft", "open", "closed"] as const).map((s) => ({
-            value: s,
-            label: stateLabel[s],
-          }))}
-        />
+        {/* Labelled, and with its OWN label: this selector CHANGES the form's
+            lifecycle state, so borrowing the list's "Filter by state" told a
+            screen reader the opposite of what the control does — and left the
+            sighted reader a dropdown between two buttons with no purpose on
+            screen at all. */}
+        <Flex vertical gap={spacing[1]}>
+          <Typography.Text type="secondary" id={STATE_SELECT_LABEL_ID}>
+            {t(FORMS_I18N_KEYS.builderState)}
+          </Typography.Text>
+          <Select<FormState>
+            aria-labelledby={STATE_SELECT_LABEL_ID}
+            style={{ width: FORM_STATE_SELECT_WIDTH }}
+            value={row.state as FormState}
+            onChange={(next) => bag.setState(next)}
+            options={(["draft", "open", "closed"] as const).map((s) => ({
+              value: s,
+              label: stateLabel[s],
+            }))}
+          />
+        </Flex>
         <Button
           data-analytics="flow"
           data-testid="forms-builder-rotate"

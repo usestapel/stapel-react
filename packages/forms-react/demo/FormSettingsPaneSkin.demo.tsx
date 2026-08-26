@@ -13,7 +13,7 @@ import { defineDemo } from "@stapel/showcase";
 import { FormSettingsPane } from "../src/default/index.js";
 import { formsQueryKeys } from "../src/index.js";
 import { FormsDemoHarness, SkinFrame } from "./_harness.js";
-import type { DemoSeed } from "./_harness.js";
+import type { DemoHandlers, DemoSeed } from "./_harness.js";
 import {
   DEMO_FORM_ID,
   DEMO_FORM_ROW,
@@ -21,13 +21,36 @@ import {
   DEMO_WORKSPACE_ID,
 } from "./fixtures.js";
 
-function seedFor(row: unknown): readonly DemoSeed[] {
-  return [[formsQueryKeys.form(DEMO_WORKSPACE_ID, DEMO_FORM_ID), row]];
+/**
+ * One variant's data, built ONCE at module scope: the harness memoizes its
+ * runtime and query client on the identity of `seed`/`handlers`, so a fixture
+ * rebuilt per render would drop the seeded cache on the floor.
+ *
+ * The seed is what the story photographs; the handlers answer the SAME data,
+ * so a refetch in Ladle confirms the story instead of replacing it.
+ */
+interface Fixture {
+  readonly seed: readonly DemoSeed[];
+  readonly handlers: DemoHandlers;
 }
 
-function Pane(props: { row: unknown }): ReactElement {
+function fixture(row: unknown): Fixture {
+  return {
+    seed: [[formsQueryKeys.form(DEMO_WORKSPACE_ID, DEMO_FORM_ID), row]],
+    handlers: { [`/forms/${DEMO_FORM_ID}`]: row },
+  };
+}
+
+const CONFIGURED = fixture(DEMO_FORM_ROW);
+const NO_DESTINATION = fixture(DEMO_FORM_ROW_NO_DESTINATION);
+
+function Pane(props: { fixture: Fixture }): ReactElement {
   return (
-    <FormsDemoHarness seed={seedFor(props.row)} workspaceId={DEMO_WORKSPACE_ID}>
+    <FormsDemoHarness
+      seed={props.fixture.seed}
+      handlers={props.fixture.handlers}
+      workspaceId={DEMO_WORKSPACE_ID}
+    >
       <SkinFrame maxWidth="34rem">
         <FormSettingsPane formId={DEMO_FORM_ID} />
       </SkinFrame>
@@ -48,14 +71,14 @@ export default defineDemo({
       viewport: "phone",
       step: "has_destination",
       description: "A form whose responses reach a real inbox.",
-      render: () => <Pane row={DEMO_FORM_ROW} />,
+      render: () => <Pane fixture={CONFIGURED} />,
     },
     "no-destination": {
       viewport: "phone",
       step: "no_destination",
       description:
         "Nothing configured: the pane states the consequence — responses stored, nobody told — instead of leaving two empty inputs that look finished.",
-      render: () => <Pane row={DEMO_FORM_ROW_NO_DESTINATION} />,
+      render: () => <Pane fixture={NO_DESTINATION} />,
     },
   },
 });

@@ -10,7 +10,7 @@ import { defineDemo } from "@stapel/showcase";
 import { FormBuilderPane } from "../src/default/index.js";
 import { formsQueryKeys } from "../src/index.js";
 import { FormsDemoHarness, SkinFrame } from "./_harness.js";
-import type { DemoSeed } from "./_harness.js";
+import type { DemoHandlers, DemoSeed } from "./_harness.js";
 import {
   DEMO_FIELD_KINDS,
   DEMO_FORM_ID,
@@ -24,16 +24,44 @@ const CATALOGUE = {
   configWidgets: DEMO_FIELD_KINDS.config_widgets,
 };
 
-function seedFor(row: unknown): readonly DemoSeed[] {
-  return [
-    [formsQueryKeys.form(DEMO_WORKSPACE_ID, DEMO_FORM_ID), row],
-    [formsQueryKeys.fieldKinds(DEMO_WORKSPACE_ID), CATALOGUE],
-  ];
+/**
+ * One variant's data, built ONCE at module scope: the harness memoizes its
+ * runtime and query client on the identity of `seed`/`handlers`, so a fixture
+ * rebuilt per render would drop the seeded cache on the floor.
+ *
+ * The seed is what the story photographs; the handlers answer the SAME data,
+ * so a refetch in Ladle confirms the story instead of replacing it.
+ */
+interface Fixture {
+  readonly seed: readonly DemoSeed[];
+  readonly handlers: DemoHandlers;
 }
 
-function Pane(props: { row: unknown }): ReactElement {
+function fixture(row: unknown): Fixture {
+  return {
+    seed: [
+      [formsQueryKeys.form(DEMO_WORKSPACE_ID, DEMO_FORM_ID), row],
+      [formsQueryKeys.fieldKinds(DEMO_WORKSPACE_ID), CATALOGUE],
+    ],
+    // Order matters: the harness takes the first substring hit, so
+    // "/field-kinds" must win before the broader form route.
+    handlers: {
+      "/field-kinds": DEMO_FIELD_KINDS,
+      [`/forms/${DEMO_FORM_ID}`]: row,
+    },
+  };
+}
+
+const DRAFTED = fixture(DEMO_FORM_ROW);
+const EMPTY_DRAFT = fixture(DEMO_FORM_ROW_EMPTY_DRAFT);
+
+function Pane(props: { fixture: Fixture }): ReactElement {
   return (
-    <FormsDemoHarness seed={seedFor(props.row)} workspaceId={DEMO_WORKSPACE_ID}>
+    <FormsDemoHarness
+      seed={props.fixture.seed}
+      handlers={props.fixture.handlers}
+      workspaceId={DEMO_WORKSPACE_ID}
+    >
       <SkinFrame>
         <FormBuilderPane formId={DEMO_FORM_ID} />
       </SkinFrame>
@@ -54,14 +82,14 @@ export default defineDemo({
       viewport: "phone",
       step: "ready",
       description: "A draft with two fields and the catalogue loaded.",
-      render: () => <Pane row={DEMO_FORM_ROW} />,
+      render: () => <Pane fixture={DRAFTED} />,
     },
     "empty-draft": {
       viewport: "phone",
       step: "empty_schema",
       description:
         "A form nobody has started: the designed empty state, with the add-a-field row underneath it.",
-      render: () => <Pane row={DEMO_FORM_ROW_EMPTY_DRAFT} />,
+      render: () => <Pane fixture={EMPTY_DRAFT} />,
     },
   },
 });

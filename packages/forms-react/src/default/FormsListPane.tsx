@@ -99,7 +99,10 @@ export function FormsListPane(props: FormsListPaneProps): ReactElement {
                     options={[
                       {
                         value: "all",
-                        label: t(FORMS_I18N_KEYS.responsesAllVersions),
+                        // "All states" — NOT the responses screen's "All
+                        // versions", which this filter borrowed and which
+                        // named a concept this screen has nothing to do with.
+                        label: t(FORMS_I18N_KEYS.listStateAll),
                       },
                       {
                         value: "draft",
