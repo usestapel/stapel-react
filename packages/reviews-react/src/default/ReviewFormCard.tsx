@@ -17,7 +17,12 @@ import type { ReactElement } from "react";
 import { Alert, Card, Flex, Input, Rate, Typography } from "antd";
 import { useT } from "@stapel/core";
 import type { SignInCta, SignInCtaProp } from "@stapel/core";
-import { ErrorAlert, GatedButton, SkinTheme } from "@stapel/tokens-antd/skin";
+import {
+  ErrorAlert,
+  GatedButton,
+  PHONE_CONTROL_HEIGHT,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 import type { ReviewTarget } from "../api/types.js";
 import { ReviewForm } from "../headless/ReviewForm.js";
@@ -25,6 +30,13 @@ import type { ReviewFormBag } from "../headless/ReviewForm.js";
 import { REVIEWS_I18N_KEYS } from "../i18n/keys.js";
 import { SignInLink } from "./SignInLink.js";
 import type { ThemeModeProp } from "./types.js";
+
+/**
+ * Five stars per row at the phone touch floor: `PHONE_CONTROL_HEIGHT` is the
+ * pitch the substrate gives a star, so five of them plus their gaps is the
+ * width at which a 1–10 scale wraps 5 + 5.
+ */
+const STAR_ROW_MEASURE = `${String(PHONE_CONTROL_HEIGHT * 5)}px`;
 
 export interface ReviewFormCardProps extends ThemeModeProp, SignInCtaProp {
   readonly target: ReviewTarget;
@@ -73,23 +85,45 @@ function FormBody(props: {
   }
 
   if (bag.signInRequired) {
+    // The only thing left to do on this card, so it looks like it: the reason
+    // as a sentence and the door as the card's primary, not a 24px text link
+    // trailing the sentence with no punctuation between them.
     return (
-      <Typography.Text type="secondary" data-testid="reviews-form-sign-in">
-        {t(REVIEWS_I18N_KEYS.formSignInRequired)}
-        <SignInLink cta={props.signIn} testId="reviews-form-sign-in-cta" />
-      </Typography.Text>
+      <Flex vertical align="flex-start" gap={spacing[2]} data-testid="reviews-form-sign-in">
+        <Typography.Text type="secondary">
+          {t(REVIEWS_I18N_KEYS.formSignInRequired)}
+        </Typography.Text>
+        <SignInLink
+          cta={props.signIn}
+          variant="primary"
+          testId="reviews-form-sign-in-cta"
+        />
+      </Flex>
     );
   }
 
   return (
     <Flex vertical gap={spacing[2]}>
       <Typography.Text>{t(REVIEWS_I18N_KEYS.formRatingLabel)}</Typography.Text>
-      <Rate
-        count={bag.bounds.max}
-        value={bag.rating ?? 0}
-        onChange={bag.setRating}
-        data-testid="reviews-form-rate"
-      />
+      {/* The one interaction in the package. The substrate's phone branch
+          gives the stars the touch floor; the measure here is what keeps a
+          max of 10 from breaking 8 + 2 across two ragged rows — five per row,
+          so the second row reads as a continuation of a scale rather than as
+          two leftover stars. */}
+      <div style={{ maxWidth: STAR_ROW_MEASURE }}>
+        <Rate
+          count={bag.bounds.max}
+          value={bag.rating ?? 0}
+          onChange={bag.setRating}
+          data-testid="reviews-form-rate"
+        />
+      </div>
+      <Typography.Text type="secondary" data-testid="reviews-form-rate-hint">
+        {t(REVIEWS_I18N_KEYS.formRatingHint, {
+          min: bag.bounds.min,
+          max: bag.bounds.max,
+        })}
+      </Typography.Text>
       <Typography.Text>{t(REVIEWS_I18N_KEYS.formBodyLabel)}</Typography.Text>
       <Input.TextArea
         value={bag.body}

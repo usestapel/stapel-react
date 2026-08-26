@@ -27,8 +27,10 @@ export const currenciesI18nBundleEs: I18nDictionary = {
   "currencies.picker.placeholder": "Elige una moneda",
   "currencies.picker.search": "Buscar por código o nombre",
   "currencies.picker.loading": "Cargando monedas…",
-  "currencies.picker.empty": "Este sitio no tiene ninguna moneda configurada.",
-  "currencies.picker.failed": "No se pudieron cargar las monedas.",
+  "currencies.catalog.empty": "Este sitio no tiene ninguna moneda configurada.",
+  "currencies.catalog.emptyHint":
+    "Hasta que se añada una, los precios se quedan en la moneda que indicó cada vendedor.",
+  "currencies.catalog.failed": "No se pudieron cargar las monedas.",
   "currencies.picker.retry": "Reintentar",
 
   "currencies.field.amount": "Importe",
@@ -37,10 +39,8 @@ export const currenciesI18nBundleEs: I18nDictionary = {
   "currencies.table.code": "Código",
   "currencies.table.name": "Nombre",
   "currencies.table.rate": "Tipo de cambio",
-  "currencies.table.symbol": "Símbolo",
   "currencies.table.baseNote":
     "Los tipos son relativos a {base}. El catálogo no envía la hora de actualización, así que estos son los últimos valores guardados, no una cotización.",
-  "currencies.table.empty": "Este sitio no tiene ninguna moneda configurada.",
 
   "currencies.dialog.dismiss": "Cerrar",
 

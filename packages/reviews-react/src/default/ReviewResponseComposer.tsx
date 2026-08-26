@@ -22,7 +22,12 @@ import type { ReactElement } from "react";
 import { Card, Flex, Input, Typography } from "antd";
 import { useT } from "@stapel/core";
 import type { SignInCta, SignInCtaProp } from "@stapel/core";
-import { ErrorAlert, GatedButton, SkinTheme } from "@stapel/tokens-antd/skin";
+import {
+  ErrorAlert,
+  GatedButton,
+  PaneGate,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 import type { Review, ReviewTarget } from "../api/types.js";
 import { ReviewResponseForm } from "../headless/ReviewResponseForm.js";
@@ -78,6 +83,14 @@ function ExistingReply(props: {
   );
 }
 
+/**
+ * The composer, or the ONE sentence that says why there is none.
+ *
+ * `PaneGate` on `canWrite`: a viewer who does not own the item saw a
+ * live-looking textarea, a switched-off Send and a 12px caption — a form that
+ * invites typing and then refuses it. A refusal that is about the VIEWER
+ * belongs to the whole composer, said once, with the door beside it.
+ */
 function Composer(props: {
   bag: ReviewResponseBag;
   signIn: SignInCta | undefined;
@@ -85,7 +98,20 @@ function Composer(props: {
   const t = useT();
   const { bag } = props;
   return (
-    <Flex vertical gap={spacing[2]} data-testid="reviews-response-composer">
+    <PaneGate
+      gate={bag.canWrite}
+      testId="reviews-response-gate"
+      action={
+        bag.signInRequired ? (
+          <SignInLink
+            cta={props.signIn}
+            variant="primary"
+            testId="reviews-response-sign-in"
+          />
+        ) : undefined
+      }
+    >
+      <Flex vertical gap={spacing[2]} data-testid="reviews-response-composer">
       <Typography.Text strong>
         {t(REVIEWS_I18N_KEYS.responseComposeLabel)}
       </Typography.Text>
@@ -118,11 +144,9 @@ function Composer(props: {
         >
           {t(REVIEWS_I18N_KEYS.responseSubmit)}
         </GatedButton>
-        {bag.signInRequired ? (
-          <SignInLink cta={props.signIn} testId="reviews-response-sign-in" />
-        ) : null}
       </Flex>
-    </Flex>
+      </Flex>
+    </PaneGate>
   );
 }
 

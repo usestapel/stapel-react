@@ -176,7 +176,7 @@
       ],
       "source": {
         "file": "demo/CategoryPage.demo.tsx",
-        "line": 46
+        "line": 54
       }
     },
     {
@@ -229,7 +229,13 @@
       "variants": [
         {
           "id": "on a phone",
-          "description": "A trigger plus a bottom sheet — the drill-down is not inline.",
+          "description": "The sheet itself, open: a full-width drill-down with rows on the touch floor, an up-button, the crumb and Done.",
+          "viewport": "phone",
+          "step": "sheet-open"
+        },
+        {
+          "id": "the closed trigger",
+          "description": "After the tap, on a phone: a labelled field carrying the chosen leaf, with a caret at the end — not a centred block of text that reads as read-only.",
           "viewport": "phone",
           "step": "sheet-closed"
         },

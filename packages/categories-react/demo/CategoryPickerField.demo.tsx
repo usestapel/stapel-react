@@ -30,12 +30,24 @@ export default defineDemo({
   tokens: ["surface-raised"],
   variants: {
     "on a phone": {
-      description: "A trigger plus a bottom sheet — the drill-down is not inline.",
+      description:
+        "The sheet itself, open: a full-width drill-down with rows on the touch floor, an up-button, the crumb and Done.",
+      viewport: "phone",
+      step: "sheet-open",
+      render: () => (
+        <CategoriesDemoHarness seed={SEEDED}>
+          <CategoryPickerField value={null} surface="sheet" defaultOpen />
+        </CategoriesDemoHarness>
+      ),
+    },
+    "the closed trigger": {
+      description:
+        "After the tap, on a phone: a labelled field carrying the chosen leaf, with a caret at the end — not a centred block of text that reads as read-only.",
       viewport: "phone",
       step: "sheet-closed",
       render: () => (
         <CategoriesDemoHarness seed={SEEDED}>
-          <CategoryPickerField value={null} surface="sheet" />
+          <CategoryPickerField value={3} surface="sheet" />
         </CategoriesDemoHarness>
       ),
     },

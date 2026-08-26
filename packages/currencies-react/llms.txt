@@ -66,7 +66,7 @@ const { tracked } = useTracked();
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - currencies.field → <CurrencyField> [default|invalid]  demo/CurrencyField.demo.tsx
 - currencies.money → <Money> [default|same]  demo/Money.demo.tsx
-- currencies.picker → <CurrencyPicker> [default|phone|empty|failed]  demo/CurrencyPicker.demo.tsx
+- currencies.picker → <CurrencyPicker> [default|phone|phone-closed|empty|failed]  demo/CurrencyPicker.demo.tsx
 - currencies.price → <Price> [default|same|rate|unavailable]  demo/Price.demo.tsx
 - currencies.rate-table → <RateTable> [default|empty|failed]  demo/RateTable.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).

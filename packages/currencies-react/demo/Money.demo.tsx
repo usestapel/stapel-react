@@ -5,6 +5,8 @@
  */
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
+import { useT } from "@stapel/core";
+import { cssVar, spacing } from "@stapel/tokens";
 import { Money } from "../src/index.js";
 import {
   CurrenciesDemoHarness,
@@ -13,15 +15,37 @@ import {
   StepBadge,
 } from "./_harness.js";
 
+/** A labelled row, so the bag's fields read as facts rather than as a dump. */
+function Row(props: { label: string; children: ReactElement | string }): ReactElement {
+  const t = useT();
+  return (
+    <div style={{ display: "flex", gap: spacing["2"], alignItems: "baseline" }}>
+      <span style={{ color: cssVar("text-muted") }}>{t(props.label)}</span>
+      <span>{props.children}</span>
+    </div>
+  );
+}
+
+/** An absent estimate is a sentence, not a bare em dash: the two are
+ * indistinguishable exactly when the render is what is on trial. */
+function Estimate(props: { converted: string | undefined }): ReactElement {
+  const t = useT();
+  return (
+    <Row label="demo.label.estimate">
+      {props.converted ?? t("demo.label.noEstimate")}
+    </Row>
+  );
+}
+
 function Bag(props: { display: string }): ReactElement {
   return (
     <CurrenciesDemoHarness handlers={HANDLERS_READY}>
       <DemoCard heading="Money">
         <Money amount="1500.00" currency="EUR" displayCurrency={props.display}>
           {(bag) => (
-            <div>
-              <div>{bag.original}</div>
-              <div>{bag.converted ?? "—"}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: spacing["2"] }}>
+              <Row label="demo.label.price">{bag.original}</Row>
+              <Estimate converted={bag.converted} />
               <StepBadge step={bag.state} />
             </div>
           )}

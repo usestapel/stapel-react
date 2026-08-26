@@ -60,7 +60,14 @@ export function Price(props: PriceProps): ReactElement {
     }
     if (price.state === "unavailable") {
       return (
-        <Typography.Text type="secondary" data-stapel-price="unavailable">
+        // Not the same muted grey as a successful estimate: an absent
+        // conversion and a conversion are different facts and must not read
+        // as the same line at the same weight.
+        <Typography.Text
+          type="warning"
+          data-stapel-price="unavailable"
+          style={{ fontSize: token.fontSizeSM }}
+        >
           {t(CURRENCIES_I18N_KEYS.priceUnavailable)}
         </Typography.Text>
       );
@@ -93,7 +100,13 @@ export function Price(props: PriceProps): ReactElement {
         : {})}
     >
       <Space direction="vertical" size={0} data-stapel-price-state={price.state}>
-        <Typography.Text strong data-stapel-price="original">
+        {/* A price is display type. Set at body size it competed with the
+            heading above it and read as one more line of prose. */}
+        <Typography.Text
+          strong
+          data-stapel-price="original"
+          style={{ fontSize: token.fontSizeHeading4, lineHeight: 1.2 }}
+        >
           {price.original}
         </Typography.Text>
         {secondary()}

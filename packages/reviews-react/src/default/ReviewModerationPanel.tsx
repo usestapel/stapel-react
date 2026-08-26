@@ -29,12 +29,13 @@
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Card, Flex, Input, Rate, Segmented, Typography } from "antd";
-import { useT } from "@stapel/core";
+import { actionAvailable, actionBlocked, useT } from "@stapel/core";
 import {
   EmptyState,
   ErrorAlert,
   GatedButton,
   LoadList,
+  PaneGate,
   SkinConfirm,
   SkinTheme,
 } from "@stapel/tokens-antd/skin";
@@ -137,21 +138,17 @@ function ModerationRow(props: {
           </Typography.Paragraph>
         ) : null}
 
-        <Flex vertical gap={spacing[1]}>
-          <Typography.Text type="secondary">
-            {t(REVIEWS_I18N_KEYS.moderationReasonLabel)}
-          </Typography.Text>
-          <Input
-            value={bag.reason}
-            onChange={(event) => bag.setReason(event.target.value)}
-            placeholder={t(REVIEWS_I18N_KEYS.moderationReasonPlaceholder)}
-            aria-label={t(REVIEWS_I18N_KEYS.moderationReasonLabel)}
-            data-testid="reviews-moderation-reason"
-          />
-          <Typography.Text type="secondary">
-            {t(REVIEWS_I18N_KEYS.moderationReasonHint)}
-          </Typography.Text>
-        </Flex>
+        {/* One line, not three: the label became the accessible name and the
+            placeholder, and the hint is a fact about the queue, so the pane
+            states it once instead of every row repeating it. Rows were three
+            times taller than the review inside them. */}
+        <Input
+          value={bag.reason}
+          onChange={(event) => bag.setReason(event.target.value)}
+          placeholder={t(REVIEWS_I18N_KEYS.moderationReasonPlaceholder)}
+          aria-label={t(REVIEWS_I18N_KEYS.moderationReasonLabel)}
+          data-testid="reviews-moderation-reason"
+        />
 
         <ErrorAlert thrown={bag.error} testId="reviews-moderation-failed" />
 
@@ -306,8 +303,22 @@ export function ReviewModerationPanel(
             <Typography.Title level={5} style={{ margin: 0 }}>
               {t(REVIEWS_I18N_KEYS.moderationHeading)}
             </Typography.Title>
+
+            {/* Not a moderator is a fact about the PANE, not about each of
+                six rows: it used to be printed once beside every verdict —
+                six live Reason inputs, twelve dead buttons and the same
+                sentence three times over. Said once, and nothing under it. */}
+            <PaneGate
+              gate={
+                canModerate
+                  ? actionAvailable()
+                  : actionBlocked(REVIEWS_I18N_KEYS.moderateBlockedNotModerator)
+              }
+              testId="reviews-moderation-gate"
+            >
             <Typography.Text type="secondary">
-              {t(REVIEWS_I18N_KEYS.moderationHint)}
+              {t(REVIEWS_I18N_KEYS.moderationHint)}{" "}
+              {t(REVIEWS_I18N_KEYS.moderationReasonHint)}
             </Typography.Text>
 
             <ScopeNotice scope={bag.scope} testId="reviews-moderation-narrowed" />
@@ -334,6 +345,7 @@ export function ReviewModerationPanel(
             />
 
             <MoreButton bag={bag} />
+            </PaneGate>
           </Flex>
         )}
       </ReviewList>

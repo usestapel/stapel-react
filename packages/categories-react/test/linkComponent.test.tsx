@@ -74,7 +74,10 @@ describe("<CategoryTreePane>", () => {
     expect(routed(container)).toContain("/c/electronics");
     // The row's slug still reaches the DOM through the host's component.
     expect(
-      screen.getByText("category.electronics").getAttribute("data-category-slug")
+      screen
+        .getByText("category.electronics")
+        .closest("[data-category-slug]")
+        ?.getAttribute("data-category-slug")
     ).toBe("electronics");
   });
 });

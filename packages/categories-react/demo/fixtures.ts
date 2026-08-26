@@ -115,7 +115,7 @@ export const DEMO_FEATURES: readonly FeatureDef[] = [
     slug: "warranty",
     // `translate: "none"` — the stored string IS the label, and the demo shows
     // the pair rendering it as one instead of running it through `t`.
-    name: "Warranty (raw label)",
+    name: "Warranty",
     comment: "Tick it if the box says so",
     translate: "none",
     config: { type: "bool" },

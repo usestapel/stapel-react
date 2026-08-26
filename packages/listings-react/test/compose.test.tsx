@@ -68,10 +68,18 @@ function chooseCategory(): void {
   fireEvent.click(screen.getByTestId("listings-composer-category-pick"));
 }
 
-/** The publish button's reason, wherever the shared `<GatedButton>` puts it. */
+/**
+ * The publish button's reason, followed the way a screen reader follows it.
+ *
+ * The footer is a `PaneGate` scope, so two controls blocked for the SAME
+ * reason share one sentence instead of printing it twice; the link between a
+ * control and its reason is `aria-describedby`, which is what this reads.
+ */
 function publishReason(): string {
-  const gate = screen.getByTestId("listings-composer-publish-gate");
-  return gate.querySelector("[data-stapel-gated-reason]")?.textContent ?? "";
+  const button = screen.getByTestId("listings-composer-publish");
+  const id = button.getAttribute("aria-describedby");
+  if (id === null) return "";
+  return document.getElementById(id)?.textContent ?? "";
 }
 
 const GALLERY = { refs: ["image/9f2c1a"], settled: actionAvailable() };
@@ -361,7 +369,7 @@ describe("every blocked publish states which reason it is", () => {
     ).toContain("photos");
   });
 
-  it("blocks on a value type this build cannot draw, naming the type", async () => {
+  it("blocks on a value type this build cannot draw — without naming it", async () => {
     // A category can legally carry a type this build has no editor for.
     // Drawing nothing would silently drop a possibly-MANDATORY attribute and
     // the person would be refused for a field they never saw.
@@ -379,7 +387,11 @@ describe("every blocked publish states which reason it is", () => {
     );
     chooseCategory();
     const blocked = publishReason();
-    expect(blocked).toContain("size_grid");
+    // The refusal is real and specific about what a seller can DO. The editor
+    // type is this build's identifier — a seller can act on "finish it
+    // somewhere else", never on `size_grid`.
+    expect(blocked).toContain("cannot show yet");
+    expect(blocked).not.toContain("size_grid");
     // …and the field itself is drawn loudly rather than skipped.
     expect(screen.getByTestId("attributes-unsupported-type")).toBeTruthy();
   });

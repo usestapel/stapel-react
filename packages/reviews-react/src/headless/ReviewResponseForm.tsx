@@ -22,6 +22,13 @@ export interface ReviewResponseBag {
   /** Send it. A no-op while {@link canSubmit} is blocked. */
   readonly submit: () => void;
   readonly canSubmit: ActionAvailability;
+  /**
+   * May this viewer write a reply to this review AT ALL — ownership, an
+   * existing reply, the module's switch, the session. Independent of what is
+   * in the box, so a screen can refuse the whole composer once instead of
+   * disabling a button under a textarea nobody may use.
+   */
+  readonly canWrite: ActionAvailability;
   readonly submitting: boolean;
   /**
    * The reply as it now stands: the one loaded with the review, or the one
@@ -102,7 +109,12 @@ export function ReviewResponseForm(
   const response = sent?.response ?? review.response ?? null;
   const alreadyResponded = response !== null || conflicted;
 
-  const canSubmit = firstBlock(
+  // Two gates, because they answer two different questions and belong on two
+  // different levels. `canWrite` is about the VIEWER and the review — nothing
+  // they type changes it — so a screen that fails it should show one refusal
+  // instead of a live-looking textarea over a switched-off button. `canSubmit`
+  // adds what is true only of the text in the box.
+  const canWrite = firstBlock(
     canRespond
       ? actionAvailable()
       : actionBlocked(REVIEWS_I18N_KEYS.respondBlockedNotOwner),
@@ -118,7 +130,11 @@ export function ReviewResponseForm(
     forbidden
       ? actionBlocked(REVIEWS_I18N_KEYS.respondBlockedForbidden)
       : actionAvailable(),
-    gone ? actionBlocked(REVIEWS_I18N_KEYS.respondBlockedGone) : actionAvailable(),
+    gone ? actionBlocked(REVIEWS_I18N_KEYS.respondBlockedGone) : actionAvailable()
+  );
+
+  const canSubmit = firstBlock(
+    canWrite,
     mutation.isPending
       ? actionBlocked(REVIEWS_I18N_KEYS.respondBlockedPending)
       : actionAvailable(),
@@ -141,6 +157,7 @@ export function ReviewResponseForm(
         setBody,
         submit,
         canSubmit,
+        canWrite,
         submitting: mutation.isPending,
         response,
         justSent: sent !== null,

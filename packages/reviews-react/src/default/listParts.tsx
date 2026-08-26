@@ -5,9 +5,9 @@
  * to status treatments elsewhere in this fleet.
  */
 import type { ReactElement } from "react";
-import { Flex, Tag, Typography } from "antd";
+import { Flex, Typography } from "antd";
 import { useT } from "@stapel/core";
-import { GatedButton } from "@stapel/tokens-antd/skin";
+import { GatedButton, StatusTag } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 import type { ReviewListBag, ReviewListScope } from "../headless/ReviewList.js";
 import { REVIEWS_I18N_KEYS } from "../i18n/keys.js";
@@ -30,31 +30,31 @@ export function VisibilityTag(props: {
   const visibility = reviewVisibility(props.status);
   if (visibility === "published") {
     return props.alwaysShow === true ? (
-      <Tag color="success" data-testid="reviews-row-published">
+      <StatusTag status="success" testId="reviews-row-published">
         {t(REVIEWS_I18N_KEYS.moderationDonePublished)}
-      </Tag>
+      </StatusTag>
     ) : null;
   }
   if (visibility === "pending") {
     return (
-      <Tag color="warning" data-testid="reviews-row-pending">
+      <StatusTag status="warning" testId="reviews-row-pending">
         {t(REVIEWS_I18N_KEYS.statusPending)}
-      </Tag>
+      </StatusTag>
     );
   }
   if (visibility === "hidden") {
     return (
-      <Tag color="error" data-testid="reviews-row-hidden">
+      <StatusTag status="error" testId="reviews-row-hidden">
         {t(REVIEWS_I18N_KEYS.statusHidden)}
-      </Tag>
+      </StatusTag>
     );
   }
   // A state this build does not know. Naming it beats rendering it as an
   // ordinary review (it may be one the server hides) and beats crashing.
   return (
-    <Tag data-testid="reviews-row-unknown">
-      {t(REVIEWS_I18N_KEYS.statusUnknown, { status: props.status })}
-    </Tag>
+    <StatusTag status="neutral" testId="reviews-row-unknown">
+      {t(REVIEWS_I18N_KEYS.statusUnknown)}
+    </StatusTag>
   );
 }
 
@@ -88,8 +88,12 @@ export function ScopeNotice(props: {
  * "Show more", with the reason it is off when it is off — the end of the run
  * and a page in flight are different facts and get different sentences.
  */
-export function MoreButton(props: { bag: ReviewListBag }): ReactElement {
+export function MoreButton(props: { bag: ReviewListBag }): ReactElement | null {
   const t = useT();
+  // Nothing to page through: "Show more" plus "That is all of them" under an
+  // empty list is a disabled control and a caption restating it.
+  const { state } = props.bag;
+  if (state.status !== "ready" || state.data.length === 0) return null;
   return (
     <Flex justify="center" style={{ marginTop: spacing[1] }}>
       <GatedButton

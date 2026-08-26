@@ -329,7 +329,12 @@ export function formatMoney(
       currencyDisplay: display,
       ...fractionOptions(options),
     });
-    return asStringCapable(formatter).format(normalized);
+    if (display === "code") return asStringCapable(formatter).format(normalized);
+    return withPreferredGlyph(
+      asStringCapable(formatter).formatToParts(normalized),
+      code,
+      options.fallbackSymbol
+    );
   } catch (error) {
     if (!(error instanceof RangeError)) throw error;
     return formatUnknownCurrency(normalized, code, options);
@@ -367,6 +372,72 @@ function formatUnknownCurrency(
     // A locale tag so malformed that even the placeholder pass refuses it.
     // The number and its token, in that order, is still a price.
     return `${normalized} ${token}`;
+  }
+}
+
+/**
+ * A price tag wants a GLYPH. `Intl` only has one where the locale ships one:
+ * `en-US` renders `RUB 1,500.00` for roubles while it renders `€1,500.00` for
+ * euros, so the same catalogue produced `€`, `$` and a bare ISO code on one
+ * screen. When `Intl` fell back to the code and the catalogue carries the real
+ * glyph (`₽`), the glyph goes in — in the SLOT the locale chose, so placement,
+ * spacing and grouping stay the locale's decision and only the token changes.
+ *
+ * Nothing is substituted when the caller asked for `"code"`, when the
+ * catalogue has no symbol, or when `Intl` already found one.
+ */
+function withPreferredGlyph(
+  parts: readonly Intl.NumberFormatPart[],
+  code: string,
+  fallbackSymbol: string | undefined
+): string {
+  const glyph = fallbackSymbol ?? "";
+  if (glyph.length === 0) return parts.map((part) => part.value).join("");
+  const upper = code.toUpperCase();
+  return parts
+    .map((part) =>
+      part.type === "currency" && part.value.toUpperCase() === upper ? glyph : part.value
+    )
+    .join("");
+}
+
+export interface FormatRateOptions {
+  /** BCP-47 tag — grouping and the decimal separator are the locale's. */
+  readonly locale: string;
+  /** Most decimal places to keep. Default {@link RATE_DECIMAL_PLACES}. */
+  readonly maximumFractionDigits?: number;
+  /** Fewest, so a column of rates keeps its decimal points aligned. Default 2. */
+  readonly minimumFractionDigits?: number;
+}
+
+/**
+ * A stored exchange rate, formatted for a person to read.
+ *
+ * The wire spells rates as `Decimal(20, 8)`, so the catalogue answers
+ * `92.59000000` and `1.00000000`. Eight trailing zeros are precision the
+ * column does not have and nobody reads; a rate table that prints them is
+ * unscannable. This trims to at most {@link RATE_DECIMAL_PLACES} places while
+ * keeping at least two, so `1.00`, `0.93` and `92.59` line up under each other
+ * — and it is grouping-aware, because a rate can be `1 234,56`.
+ *
+ * Not `formatMoney`: a rate is a ratio, not an amount of money, and attaching
+ * a currency symbol to it would claim the wrong thing.
+ */
+export function formatRate(value: string, options: FormatRateOptions): string {
+  const parsed = parseDecimal(value);
+  if (parsed === undefined) return value;
+  const max = options.maximumFractionDigits ?? RATE_DECIMAL_PLACES;
+  const min = Math.min(options.minimumFractionDigits ?? 2, max);
+  const normalized = formatDecimal(quantize(parsed, max));
+  try {
+    const formatter = new Intl.NumberFormat(options.locale, {
+      style: "decimal",
+      minimumFractionDigits: min,
+      maximumFractionDigits: max,
+    });
+    return asStringCapable(formatter).format(normalized);
+  } catch {
+    return normalized;
   }
 }
 

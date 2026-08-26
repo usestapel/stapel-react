@@ -24,6 +24,11 @@ import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
 import { registerAttributesI18n } from "@stapel/attributes-react";
 import type { StapelImage } from "@stapel/image";
 import {
+  CurrenciesProvider,
+  createCurrenciesRuntime,
+  registerCurrenciesI18n,
+} from "@stapel/currencies-react";
+import {
   ListingsProvider,
   createListingsRuntime,
   registerListingsI18n,
@@ -31,6 +36,16 @@ import {
 
 /** The base every mock handler mounts on (mirrors `/listings/api/v1/`). */
 export const DEMO_BASE = "https://listings.demo.stapel.dev/listings/api/v1/";
+
+/** The currency catalogue's base, and the rows a deployment seeds. The demos
+ * mount `<CurrenciesProvider>` because that is what a container does: a price
+ * is `4 500 ₽` only when the catalogue is on the page to supply the glyph. */
+const CURRENCIES_BASE = "https://currencies.demo.stapel.dev/currencies/api/v1/";
+const DEMO_CURRENCIES: readonly Record<string, unknown>[] = [
+  { code: "USD", display_name: "currency.usd", symbol: "$", value: "1.00000000", is_active: true },
+  { code: "EUR", display_name: "currency.eur", symbol: "€", value: "0.93000000", is_active: true },
+  { code: "RUB", display_name: "currency.rub", symbol: "₽", value: "92.59000000", is_active: true },
+];
 
 export type DemoResponse = unknown | readonly [number, unknown];
 /** A handler may be a body, a `[status, body]` pair, or a function of the
@@ -151,7 +166,7 @@ export function ListingsDemoHarness(props: {
   children: ReactNode;
 }): ReactElement {
   const { handlers, principal } = props;
-  const { runtime, queryClient, i18n } = useMemo(() => {
+  const { runtime, currencies, queryClient, i18n } = useMemo(() => {
     const rt = createListingsRuntime({
       baseUrl: DEMO_BASE,
       fetch: mockFetch(handlers ?? {}),
@@ -160,9 +175,14 @@ export function ListingsDemoHarness(props: {
     const engine = createI18n({ locale: "en" });
     registerListingsI18n(engine);
     registerAttributesI18n(engine);
+    registerCurrenciesI18n(engine);
     engine.registerBundle("en", demoBundleEn);
     return {
       runtime: rt,
+      currencies: createCurrenciesRuntime({
+        baseUrl: CURRENCIES_BASE,
+        fetch: mockFetch({ "api/v1/": DEMO_CURRENCIES }),
+      }),
       queryClient: new QueryClient({
         defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
       }),
@@ -173,7 +193,9 @@ export function ListingsDemoHarness(props: {
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
         <MandateProvider source={{ state: mandateResolved(principal ?? "member") }}>
-          <ListingsProvider runtime={runtime}>{props.children}</ListingsProvider>
+          <CurrenciesProvider runtime={currencies}>
+            <ListingsProvider runtime={runtime}>{props.children}</ListingsProvider>
+          </CurrenciesProvider>
         </MandateProvider>
       </I18nProvider>
     </QueryClientProvider>

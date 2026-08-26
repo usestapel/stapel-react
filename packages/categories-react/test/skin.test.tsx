@@ -50,8 +50,10 @@ describe("<CategoryTreePane>", () => {
     await waitFor(() => {
       expect(screen.getByTestId("categories-tree-list")).toBeTruthy();
     });
-    const link = screen.getByText("category.electronics");
-    expect(link.getAttribute("href")).toBe("/c/electronics");
+    // The WHOLE row is the link now (a 24px word inside a 41px row was a
+    // target a thumb missed), so the label sits inside the anchor.
+    const link = screen.getByText("category.electronics").closest("a");
+    expect(link?.getAttribute("href")).toBe("/c/electronics");
   });
 
   it("says 'no subcategories' for a leaf and 'empty catalogue' for nothing", async () => {

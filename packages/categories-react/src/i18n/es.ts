@@ -47,14 +47,15 @@ export const categoriesI18nBundleEs: I18nDictionary = {
   "categories.catalog.empty": "Este catálogo todavía no tiene categorías.",
   "categories.catalog.retry": "Reintentar",
   "categories.catalog.truncated":
-    "Solo se cargó parte del catálogo. Una categoría que falte aquí aún no se ha leído: no se ha eliminado.",
+    "Esto es parte del catálogo: aún faltan categorías por llegar.",
   "categories.catalog.refreshing": "Comprobando cambios en el catálogo…",
   "categories.catalog.as_of": "Catálogo a la revisión {revision}",
 
   "categories.category.title": "Categoría",
   "categories.category.unknown_slug": "No hay ninguna categoría en esta dirección.",
   "categories.category.unknown_slug_hint":
-    "Puede que el enlace esté obsoleto. Empieza por el catálogo.",
+    "Puede que la dirección esté desactualizada.",
+  "categories.category.back_to_catalog": "Volver al catálogo",
   "categories.category.subcategories": "Subcategorías",
   "categories.category.subcategories_count.one": "{count} subcategoría",
   "categories.category.subcategories_count.other": "{count} subcategorías",
@@ -87,7 +88,17 @@ export const categoriesI18nBundleEs: I18nDictionary = {
   "categories.features.load_failed": "No pudimos cargar los datos.",
   "categories.features.empty": "Esta categoría no pide datos adicionales.",
   "categories.features.mandatory": "Obligatorio",
-  "categories.features.type": "{type}",
+  "categories.features.type.string": "Texto",
+  "categories.features.type.int": "Número entero",
+  "categories.features.type.float": "Número",
+  "categories.features.type.bool": "Sí o no",
+  "categories.features.type.select": "Opción",
+  "categories.features.type.date": "Fecha",
+  "categories.features.type.header": "Título de sección",
+  "categories.features.type.hex_color": "Color",
+  "categories.features.type.hierarchical_select": "Opción anidada",
+  "categories.features.type.convertible_unit": "Medida con unidad",
+  "categories.features.type.other": "Otro tipo de dato",
   "categories.features.untyped": "Este dato no tiene tipo y no se puede mostrar.",
 };
 

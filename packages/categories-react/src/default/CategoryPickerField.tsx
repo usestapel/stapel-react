@@ -25,7 +25,7 @@
  * inline list, where there is room for it. The state lives in the headless
  * bag either way, so the sheet is a container and not a second picker.
  */
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { ReactElement } from "react";
 import { Breadcrumb, Button, Flex, Input, List, Typography } from "antd";
 import { STAPEL_UI_KEYS, useT } from "@stapel/core";
@@ -35,6 +35,7 @@ import {
   EmptyState,
   ErrorAlert,
   LoadList,
+  PHONE_CONTROL_HEIGHT,
   SkinDialog,
   SkinTheme,
   useDialogSurface,
@@ -63,6 +64,12 @@ export interface CategoryPickerFieldProps extends ThemeModeProp {
    * escape hatch for "I prefer the inline list on phones".
    */
   readonly surface?: "sheet" | "inline";
+  /**
+   * Mount with the phone sheet already open. For a host that routes straight
+   * to the choice — and for the showcase, whose phone story photographed a
+   * closed trigger because the sheet it documents needs a tap to exist.
+   */
+  readonly defaultOpen?: boolean;
 }
 
 export function CategoryPickerField(
@@ -74,7 +81,8 @@ export function CategoryPickerField(
     props.surface !== undefined
       ? props.surface === "sheet"
       : dialogSurface === "sheet";
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(props.defaultOpen ?? false);
+  const labelId = useId();
 
   return (
     <SkinTheme
@@ -104,8 +112,25 @@ export function CategoryPickerField(
             <Flex vertical gap={spacing[2]} data-testid="categories-picker">
               {sheet ? (
                 <>
+                  {/* A FIELD, not a centred block of text: a visible label,
+                      the value leading, a caret at the end and the touch
+                      floor for a height. Centred with no affordance, it read
+                      as a read-only value. */}
+                  <Typography.Text id={labelId}>
+                    {t(CATEGORIES_I18N_KEYS.pickerTitle)}
+                  </Typography.Text>
                   <Button
                     block
+                    aria-labelledby={labelId}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: spacing[2],
+                      textAlign: "start",
+                      height: "auto",
+                      minHeight: PHONE_CONTROL_HEIGHT,
+                    }}
                     data-testid="categories-picker-open"
                     data-analytics="none"
                     data-analytics-reason="opens the local drill-down; the host tracks the SUBMIT that consumes the chosen category"
@@ -113,12 +138,21 @@ export function CategoryPickerField(
                       setOpen(true);
                     }}
                   >
-                    {bag.selected === null
-                      ? t(CATEGORIES_I18N_KEYS.pickerChoose)
-                      : renderCategoryLabel(
-                          categoryLabel(bag.selected.category),
-                          t
-                        )}
+                    <span>
+                      {bag.selected === null
+                        ? t(CATEGORIES_I18N_KEYS.pickerChoose)
+                        : renderCategoryLabel(
+                            categoryLabel(bag.selected.category),
+                            t
+                          )}
+                    </span>
+                    <Typography.Text
+                      type="secondary"
+                      aria-hidden="true"
+                      style={{ fontSize: fontSize.sm.fontSize }}
+                    >
+                      ›
+                    </Typography.Text>
                   </Button>
                   {verdict}
                   <SkinDialog
@@ -235,7 +269,22 @@ function DrillDown(props: {
                 <Button
                   block
                   type="text"
-                  style={{ textAlign: "start" }}
+                  // The flex lives on the BUTTON, not on a `<Flex>` inside it:
+                  // antd centres a button's content and an inner flex box
+                  // shrink-wraps, so `justify="space-between"` had nothing to
+                  // space and every option row came out centred with the
+                  // chevron hugging the label. Height is the touch floor,
+                  // because this is a list row people tap.
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: spacing[2],
+                    textAlign: "start",
+                    width: "100%",
+                    height: "auto",
+                    minHeight: PHONE_CONTROL_HEIGHT,
+                  }}
                   data-category-leaf={option.isLeaf ? "true" : "false"}
                   data-testid={`categories-picker-option-${String(option.node.id)}`}
                   data-analytics="none"
@@ -247,18 +296,16 @@ function DrillDown(props: {
                     if (option.isLeaf) props.onSelected();
                   }}
                 >
-                  <Flex justify="space-between" align="center" gap={spacing[2]}>
-                    <span>{renderCategoryLabel(option.label, t)}</span>
-                    {option.isLeaf ? null : (
-                      <Typography.Text
-                        type="secondary"
-                        aria-hidden="true"
-                        style={{ fontSize: fontSize.sm.fontSize }}
-                      >
-                        ›
-                      </Typography.Text>
-                    )}
-                  </Flex>
+                  <span>{renderCategoryLabel(option.label, t)}</span>
+                  {option.isLeaf ? null : (
+                    <Typography.Text
+                      type="secondary"
+                      aria-hidden="true"
+                      style={{ fontSize: fontSize.sm.fontSize }}
+                    >
+                      ›
+                    </Typography.Text>
+                  )}
                 </Button>
               </List.Item>
             )}

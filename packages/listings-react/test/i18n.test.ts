@@ -124,11 +124,11 @@ describe("the blocked-submit key split (spec §13.2, note 3)", () => {
       "listings.compose.blocked.unsupported_type"
     );
     const engine = engineFor("en");
-    expect(
-      engine.t(LISTINGS_I18N_KEYS.composeBlockedUnsupportedType, {
-        types: "size_grid",
-      })
-    ).toContain("size_grid");
+    const sentence = engine.t(LISTINGS_I18N_KEYS.composeBlockedUnsupportedType);
+    expect(sentence).not.toBe(LISTINGS_I18N_KEYS.composeBlockedUnsupportedType);
+    // The pair's sentence carries no `{types}` slot: the editor type is this
+    // build's vocabulary and reached a seller's screen as `size_grid`.
+    expect(sentence).not.toContain("{types}");
     // And the attributes key still resolves — both spellings say the same
     // thing to the same person; neither invents a silent third behaviour.
     expect(

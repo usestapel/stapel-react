@@ -14,6 +14,8 @@ import { Card, Flex, Typography } from "antd";
 import { useT } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
 import { CategoryPage } from "../src/default/index.js";
+import { categoryLabel, renderCategoryLabel } from "../src/catalog/labels.js";
+import type { Category } from "../src/api/types.js";
 import { CategoriesDemoHarness } from "./_harness.js";
 import type { DemoHandlers, DemoSeed } from "./_harness.js";
 import { DEMO_FEATURES, DEMO_ROWS } from "./fixtures.js";
@@ -26,13 +28,19 @@ const OUTAGE: DemoHandlers = {
   "/categories/": [503, { code: "stapel.http.503", message: "unavailable" }],
 };
 
-/** What a container hands in: search's results pane, standing in here. */
-function Listings(props: { readonly slug: string }): ReactElement {
+/** What a container hands in: search's results pane, standing in here.
+ *
+ * It is handed the resolved CATEGORY, so the heading says "Listings in
+ * Electronics" — the slug (`electronics`) is an address, and an address in a
+ * sentence is the machine's vocabulary on a shopper's page. */
+function Listings(props: { readonly category: Category }): ReactElement {
   const t = useT();
   return (
-    <Flex vertical gap={spacing[2]} data-demo-listings={props.slug}>
+    <Flex vertical gap={spacing[2]} data-demo-listings={props.category.slug}>
       <Typography.Title level={5} style={{ margin: 0 }}>
-        {t("demo.listings.title", { category: props.slug })}
+        {t("demo.listings.title", {
+          category: renderCategoryLabel(categoryLabel(props.category), t),
+        })}
       </Typography.Title>
       {["Bosch GSB 18V", "Makita DHP484", "Bosch UniversalImpact"].map((name) => (
         <Card key={name} size="small">
@@ -60,7 +68,7 @@ export default defineDemo({
         <CategoriesDemoHarness seed={SEEDED}>
           <CategoryPage
             slug="electronics"
-            renderListings={(category) => <Listings slug={category.slug} />}
+            renderListings={(category) => <Listings category={category} />}
           />
         </CategoriesDemoHarness>
       ),
@@ -86,7 +94,7 @@ export default defineDemo({
           <CategoryPage
             slug="laptops"
             showFeatures
-            renderListings={(category) => <Listings slug={category.slug} />}
+            renderListings={(category) => <Listings category={category} />}
           />
         </CategoriesDemoHarness>
       ),

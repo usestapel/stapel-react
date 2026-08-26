@@ -49,6 +49,7 @@ import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { HeartIcon } from "./icons.js";
 import { SignInLink } from "./SignInLink.js";
 import { ListingPhoto } from "./ListingPhoto.js";
+import { ListingPrice } from "./ListingPrice.js";
 import type { ThemeModeProp } from "./types.js";
 
 /**
@@ -203,10 +204,6 @@ export function ListingCard(props: ListingCardProps): ReactElement {
   const titleDaos = asFeatureDaoList(listing.features_title);
 
   const status = listing.status === undefined ? undefined : lifecycleCaption(listing.status);
-  const price =
-    listing.price !== undefined && listing.price.length > 0
-      ? `${listing.price} ${listing.currency ?? ""}`.trim()
-      : t(LISTINGS_I18N_KEYS.cardPriceAbsent);
 
   const favoriteGate = useActionGate(favorite.gate);
   const blockedReason = props.blockedReason ?? "text";
@@ -241,7 +238,10 @@ export function ListingCard(props: ListingCardProps): ReactElement {
           {props.badge}
 
           <Typography.Text strong data-testid="listings-card-price">
-            {price}
+            <ListingPrice
+              amount={listing.price}
+              {...(listing.currency !== undefined ? { currency: listing.currency } : {})}
+            />
           </Typography.Text>
 
           <Typography.Text ellipsis data-testid="listings-card-title">

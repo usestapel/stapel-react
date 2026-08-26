@@ -48,8 +48,16 @@ import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
 import { CategoryBreadcrumbsBar } from "./CategoryBreadcrumbsBar.js";
 import { CategoryFeatureList } from "./CategoryFeatureList.js";
 import { CategoryTreePane } from "./CategoryTreePane.js";
+import { CategoryLink } from "./CategoryLink.js";
 import type { LinkComponentProp } from "./CategoryLink.js";
 import type { ThemeModeProp } from "./types.js";
+
+/**
+ * How wide a catalogue screen may get. Without one, a 1280px window put the
+ * "2 subcategories" chip ~2,300px from the label it counts and left more than
+ * 90% of the page empty.
+ */
+export const CATEGORY_MEASURE = "64rem";
 
 export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
   /** The `:slug` segment of `/c/:slug`. */
@@ -82,10 +90,18 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
           <Flex
             vertical
             gap={spacing[4]}
-            style={{ padding: spacing[4] }}
+            style={{ padding: spacing[4], maxWidth: CATEGORY_MEASURE }}
             data-testid="categories-category-page"
           >
-            <CategoryBreadcrumbsBar slug={props.slug} basePath={base} {...link} />
+            {/* The page owns the outage and the dead address; the bar under
+                the same read must not state either a second time in a second
+                visual language. */}
+            <CategoryBreadcrumbsBar
+              slug={props.slug}
+              basePath={base}
+              onAbsent="quiet"
+              {...link}
+            />
 
             <LoadBoundary
               state={bag.catalog}
@@ -110,6 +126,18 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
                     testId="categories-category-unknown"
                     title={t(CATEGORIES_I18N_KEYS.categoryUnknownSlug)}
                     hint={t(CATEGORIES_I18N_KEYS.categoryUnknownSlugHint)}
+                    // A dead end that only says "start again from the
+                    // catalogue" without a way there is still a dead end.
+                    action={
+                      <CategoryLink
+                        {...(props.linkComponent !== undefined
+                          ? { linkComponent: props.linkComponent }
+                          : {})}
+                        href={base}
+                      >
+                        {t(CATEGORIES_I18N_KEYS.categoryBackToCatalog)}
+                      </CategoryLink>
+                    }
                   />
                 ) : (
                   <Flex vertical gap={spacing[4]}>

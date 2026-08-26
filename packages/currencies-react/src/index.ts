@@ -58,6 +58,7 @@ export {
   convert,
   crossRate,
   formatMoney,
+  formatRate,
   minorUnitsOf,
   isValidAmount,
   parseDecimal,
@@ -71,6 +72,7 @@ export type {
   CurrencyCatalog,
   Decimal,
   FormatMoneyOptions,
+  FormatRateOptions,
   SymbolDisplay,
 } from "./model/money.js";
 

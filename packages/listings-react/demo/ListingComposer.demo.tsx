@@ -186,7 +186,11 @@ function Wired(): ReactElement {
 function Unwired(): ReactElement {
   return (
     <ListingsDemoHarness handlers={HANDLERS}>
-      <ListingComposerPage features={[]} />
+      {/* `slotVisibility="visible"` because the showcase is a PRODUCTION
+          build: in production an unfilled slot is nothing at all — and so is
+          its label, since this pass — so the story that documents the named
+          placeholders has to ask for the development view explicitly. */}
+      <ListingComposerPage features={[]} slotVisibility="visible" />
     </ListingsDemoHarness>
   );
 }
@@ -251,7 +255,7 @@ export default defineDemo({
       viewport: "phone",
       step: "choosing_category_slots_empty",
       description:
-        "Nothing wired: four named placeholders where four invented controls used to be.",
+        "Nothing wired, shown as a developer sees it: four named placeholders where four invented controls used to be. In production the placeholder AND its label are absent — a labelled void is a promise of a control that never comes.",
       render: () => <Unwired />,
     },
     "photos-in-flight": {

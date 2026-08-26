@@ -4,6 +4,7 @@ import {
   convert,
   crossRate,
   formatMoney,
+  formatRate,
   isValidAmount,
   minorUnitsOf,
   parseDecimal,
@@ -189,11 +190,62 @@ describe("formatMoney — the locale is the point", () => {
     expect(formatMoney("10", "PTS1", { locale: "en-US" })).toContain("PTS1");
   });
 
+  it("prefers the catalogue's glyph where the locale has no symbol of its own", () => {
+    // en-US has no ₽: Intl renders the ISO code for RUB while rendering € for
+    // euros, so one screen printed `€1,500.00` beside `RUB 1,500.00`. The
+    // catalogue carries the glyph; the LOCALE still decides the slot.
+    const shown = formatMoney("1500", "RUB", { locale: "en-US", fallbackSymbol: "₽" });
+    expect(shown).toContain("₽");
+    expect(shown).not.toContain("RUB");
+    expect(shown).toContain("1,500.00");
+  });
+
+  it("leaves a glyph Intl already knows alone", () => {
+    expect(formatMoney("10", "EUR", { locale: "en-US", fallbackSymbol: "E" })).toBe(
+      "€10.00"
+    );
+  });
+
+  it("still spells the code when the caller asked for the code", () => {
+    expect(
+      formatMoney("1500", "RUB", {
+        locale: "en-US",
+        symbolDisplay: "code",
+        fallbackSymbol: "₽",
+      })
+    ).toContain("RUB");
+  });
+
   it("returns an amount it cannot parse verbatim rather than inventing one", () => {
     expect(formatMoney("about ten", "USD", { locale: "en-US" })).toBe("about ten");
   });
 
   it("has no minor units for a code Intl does not know", () => {
     expect(minorUnitsOf("PTS1")).toBeUndefined();
+  });
+});
+
+describe("formatRate — a rate is read, not stored", () => {
+  it("trims the wire's Decimal(20, 8) to places a person reads", () => {
+    expect(formatRate("92.59000000", { locale: "en-US" })).toBe("92.59");
+    expect(formatRate("1.00000000", { locale: "en-US" })).toBe("1.00");
+    expect(formatRate("0.93000000", { locale: "en-US" })).toBe("0.93");
+  });
+
+  it("keeps four places where the rate needs them, and groups", () => {
+    expect(formatRate("0.00270000", { locale: "en-US" })).toBe("0.0027");
+    expect(formatRate("1234.50000000", { locale: "en-US" })).toBe("1,234.50");
+  });
+
+  it("is the locale's grouping, not en's", () => {
+    expect(formatRate("1234.50000000", { locale: "ru-RU" })).toMatch(/1\s?234,50/);
+  });
+
+  it("attaches no currency token — a ratio is not an amount of money", () => {
+    expect(formatRate("92.59000000", { locale: "en-US" })).not.toMatch(/[$€₽]/);
+  });
+
+  it("returns a value it cannot parse verbatim", () => {
+    expect(formatRate("n/a", { locale: "en-US" })).toBe("n/a");
   });
 });

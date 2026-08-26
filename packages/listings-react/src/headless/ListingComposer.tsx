@@ -378,18 +378,26 @@ export function useListingComposer(
     mandate,
     categoryGate,
     schemaGate,
+    // The type names (`size_grid`) are this build's vocabulary, not copy: a
+    // seller can act on "finish it somewhere else", never on the identifier.
     unsupported.length > 0
-      ? actionBlocked(LISTINGS_I18N_KEYS.composeBlockedUnsupportedType, {
-          types: unsupported.join(", "),
-        })
+      ? actionBlocked(LISTINGS_I18N_KEYS.composeBlockedUnsupportedType)
       : actionAvailable(),
     options.images?.settled ?? actionAvailable(),
     busyGate,
     publishListing.isPending
       ? actionBlocked(LISTINGS_I18N_KEYS.composeBlockedBusy)
       : actionAvailable(),
+    // "Fix the highlighted fields first" is only true once something IS
+    // highlighted — the mirror reaches the fields only after `showErrors`.
+    // Before that the same block has to say what is actually missing.
     Object.keys(mirror).length > 0
-      ? actionBlocked(LISTINGS_I18N_KEYS.composeBlockedMirror)
+      ? actionBlocked(
+          showErrors
+            ? LISTINGS_I18N_KEYS.composeBlockedMirror
+            : LISTINGS_I18N_KEYS.composeBlockedIncomplete,
+          showErrors ? undefined : { count: Object.keys(mirror).length }
+        )
       : actionAvailable()
   );
 

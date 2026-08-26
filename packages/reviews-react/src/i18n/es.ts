@@ -44,15 +44,14 @@ export const reviewsI18nBundleEs: I18nDictionary = {
   "reviews.list.refresh": "Actualizar",
   "reviews.list.more.blocked.end": "Eso es todo",
   "reviews.list.more.blocked.pending": "Cargando…",
-  "reviews.list.scope.narrowed":
-    "Solo reseñas publicadas. Las pendientes y las ocultas las ve quien modera este objeto, y aquí nada confirma que seas tú.",
+  "reviews.list.scope.narrowed": "Solo reseñas publicadas.",
 
   "reviews.review.author_fallback": "Un cliente",
   "reviews.review.response_heading": "Respuesta del vendedor",
 
   "reviews.status.pending": "Pendiente de moderación",
   "reviews.status.hidden": "Oculta por moderación",
-  "reviews.status.unknown": "Estado desconocido: {status}",
+  "reviews.status.unknown": "Todavía sin publicar",
 
   "reviews.rating.none": "Todavía no hay valoración",
   "reviews.rating.value": "{avg} de {max}",
@@ -62,6 +61,7 @@ export const reviewsI18nBundleEs: I18nDictionary = {
 
   "reviews.form.heading": "Valora esto",
   "reviews.form.rating_label": "Tu valoración",
+  "reviews.form.rating_hint": "Toca una estrella: {min} es malo, {max} es excelente.",
   "reviews.form.body_label": "Tu reseña",
   "reviews.form.body_placeholder": "¿Qué tal fue el trato? (opcional)",
   "reviews.form.submit": "Enviar",

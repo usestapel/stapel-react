@@ -57,6 +57,7 @@ import { asFeatureDaoList, featuresDtoFromDaoList } from "../model/features.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { HeartIcon } from "./icons.js";
 import { ListingPhoto } from "./ListingPhoto.js";
+import { ListingPrice } from "./ListingPrice.js";
 import { ListingStatusBlock } from "./StatusTags.js";
 import type { ThemeModeProp } from "./types.js";
 
@@ -222,9 +223,12 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
               ) : null}
 
               <Typography.Title level={4} data-testid="listings-detail-price">
-                {listing.price !== undefined && listing.price.length > 0
-                  ? `${listing.price} ${listing.currency ?? ""}`.trim()
-                  : t(LISTINGS_I18N_KEYS.cardPriceAbsent)}
+                <ListingPrice
+                  amount={listing.price}
+                  {...(listing.currency !== undefined
+                    ? { currency: listing.currency }
+                    : {})}
+                />
               </Typography.Title>
 
               {/* The buy box. One primary, and which one depends on who is

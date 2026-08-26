@@ -3,7 +3,7 @@ import { useOptionalI18n } from "@stapel/core";
 import type { LoadState } from "@stapel/core";
 import { useCurrenciesRuntime } from "../model/context.js";
 import { useCurrencies } from "../model/queries.js";
-import { convert, crossRate, formatMoney } from "../model/money.js";
+import { convert, crossRate, formatMoney, formatRate } from "../model/money.js";
 import type { FormatMoneyOptions, SymbolDisplay } from "../model/money.js";
 import type { Currency } from "../api/types.js";
 
@@ -23,6 +23,12 @@ export interface MoneyBag {
   convert: (amount: string, from: string, to: string) => string | undefined;
   /** One unit of `from` in `to`, for the visible rate line. */
   rate: (from: string, to: string) => string | undefined;
+  /**
+   * A stored rate (`Decimal(20, 8)` off the wire) as a person reads it —
+   * grouped, trimmed to four places, in the viewer's locale. A ratio, so no
+   * currency token is attached.
+   */
+  formatRate: (value: string) => string;
   /** The catalogue load itself, for a surface that renders its own states. */
   readonly rates: LoadState<readonly Currency[]>;
   /** The deployment's base currency. */
@@ -84,6 +90,11 @@ export function useMoney(): MoneyBag {
     [catalog, baseCurrency, decimalPlaces]
   );
 
+  const displayRate = useCallback(
+    (value: string) => formatRate(value, { locale }),
+    [locale]
+  );
+
   const rate = useCallback(
     (from: string, to: string) =>
       crossRate(from, to, catalog, {
@@ -98,10 +109,11 @@ export function useMoney(): MoneyBag {
       format,
       convert: convertAmount,
       rate,
+      formatRate: displayRate,
       rates: state,
       base: baseCurrency,
       refetch,
     }),
-    [format, convertAmount, rate, state, baseCurrency, refetch]
+    [format, convertAmount, rate, displayRate, state, baseCurrency, refetch]
   );
 }

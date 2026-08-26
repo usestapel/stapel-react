@@ -64,11 +64,13 @@ describe("renderCategoryPicker", () => {
 
     // Nothing chosen: the publish button says so rather than going grey.
     expect(screen.getByTestId("picker").getAttribute("data-value")).toBe("");
-    expect(
-      screen
-        .getByTestId("listings-composer-publish-gate")
-        .querySelector("[data-stapel-gated-reason]")?.textContent
-    ).toBeTruthy();
+    // The footer pools identical reasons, so the sentence is followed the way
+    // a screen reader follows it — through `aria-describedby`.
+    const reasonId = screen
+      .getByTestId("listings-composer-publish")
+      .getAttribute("aria-describedby");
+    expect(reasonId).toBeTruthy();
+    expect(document.getElementById(reasonId ?? "")?.textContent).toBeTruthy();
 
     fireEvent.click(screen.getByTestId("picker"));
 

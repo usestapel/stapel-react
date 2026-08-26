@@ -146,12 +146,13 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.compose.blocked.no_category":
     "Elige una categoría — el resto del formulario depende de ella",
   "listings.compose.blocked.unsupported_type":
-    "Esta categoría pide un tipo de detalle que la aplicación todavía no sabe mostrar ({types}), así que aquí no se puede rellenar",
+    "Esta categoría pide un tipo de detalle que la aplicación todavía no sabe mostrar, así que el anuncio no se puede completar aquí",
   "listings.compose.blocked.photos_pending":
     "Espera a que terminen de subirse las fotos",
   "listings.compose.blocked.no_draft": "El borrador todavía no está creado",
   "listings.compose.blocked.busy":
     "Un momento — el último cambio se está guardando",
+  "listings.compose.blocked.incomplete": "Faltan {count} datos obligatorios",
   "listings.compose.blocked.mirror": "Corrige primero los campos marcados",
   "listings.compose.blocked.details_unavailable":
     "No pudimos cargar lo que pide esta categoría, así que no podemos revisar el formulario",
@@ -170,6 +171,8 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.mine.empty.archived": "Nada archivado, pausado, caducado ni vendido todavía",
   "listings.mine.blocked.title":
     "Moderación retiró {count} de tus anuncios",
+  "listings.mine.blocked.title.one": "Moderación retiró uno de tus anuncios",
+  "listings.mine.blocked.title.other": "Moderación retiró {count} de tus anuncios",
   "listings.mine.blocked.load_failed":
     "No pudimos comprobar si alguno de tus anuncios fue retirado",
   "listings.mine.live_under_review": "Publicado, cambios en revisión",
@@ -205,6 +208,7 @@ export const listingsI18nBundleEs: I18nDictionary = {
 
   "listings.page.prev": "Anterior",
   "listings.page.next": "Siguiente",
+  "listings.page.indicator": "Página {page}",
 
   "listings.nav.detail": "Anuncio",
   "listings.nav.compose": "Poner un anuncio",

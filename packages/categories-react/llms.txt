@@ -116,7 +116,7 @@ const { tracked } = useTracked();
 - categories.catalog → <CatalogPage> [browse|no icons|empty catalogue|outage]  demo/CatalogPage.demo.tsx
 - categories.category → <CategoryPage> [composed|unfilled slot|leaf with its schema|no such category|outage]  demo/CategoryPage.demo.tsx
 - categories.features → <CategoryFeatureList> [schema|no extra details|outage]  demo/CategoryFeatureList.demo.tsx
-- categories.picker → <CategoryPickerField> [on a phone|inline|too general|chosen|outage]  demo/CategoryPickerField.demo.tsx
+- categories.picker → <CategoryPickerField> [on a phone|the closed trigger|inline|too general|chosen|outage]  demo/CategoryPickerField.demo.tsx
 - categories.tree → <CategoryTreePane> [roots|one level down|leaf|partial catalogue|outage]  demo/CategoryTreePane.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 

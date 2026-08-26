@@ -26,6 +26,18 @@ export interface CategoryBreadcrumbsBarProps
   readonly categoryId?: number | null;
   /** Path prefix for a crumb's link. Default `/c`. */
   readonly basePath?: string;
+  /**
+   * What the bar does when the catalogue could not be read, or when the slug
+   * resolves to nothing.
+   *
+   * `"state"` (default): say so — this bar is sometimes mounted alone, in a
+   * header, and a silent header is a silent failure. `"quiet"`: render
+   * nothing, for a PAGE that states the same fact under it. `<CategoryPage>`
+   * passes `"quiet"`, which is why one outage no longer produces a bare red
+   * sentence with a blue link on top of a designed error panel, and why an
+   * unknown slug is not announced twice.
+   */
+  readonly onAbsent?: "state" | "quiet";
 }
 
 export function CategoryBreadcrumbsBar(
@@ -33,6 +45,7 @@ export function CategoryBreadcrumbsBar(
 ): ReactElement {
   const t = useT();
   const base = props.basePath ?? "/c";
+  const quiet = props.onAbsent === "quiet";
 
   /** A crumb's title: `href` on the ITEM would make antd render its own
    * anchor, which is exactly the full page load this seam removes. So the
@@ -75,24 +88,28 @@ export function CategoryBreadcrumbsBar(
                 data-testid="categories-breadcrumbs-loading"
               />
             }
-            failed={(error) => (
-              <ErrorAlert
-                testId="categories-breadcrumbs-failed"
-                variant="inline"
-                thrown={error}
-                message={t(CATEGORIES_I18N_KEYS.catalogLoadFailed)}
-                onRetry={bag.refetch}
-              />
-            )}
+            failed={(error) =>
+              quiet ? null : (
+                <ErrorAlert
+                  testId="categories-breadcrumbs-failed"
+                  variant="inline"
+                  thrown={error}
+                  message={t(CATEGORIES_I18N_KEYS.catalogLoadFailed)}
+                  onRetry={bag.refetch}
+                />
+              )
+            }
           >
             {(crumbs) =>
               bag.unknownSlug ? (
-                <Typography.Text
-                  type="secondary"
-                  data-testid="categories-breadcrumbs-unknown"
-                >
-                  {t(CATEGORIES_I18N_KEYS.categoryUnknownSlug)}
-                </Typography.Text>
+                quiet ? null : (
+                  <Typography.Text
+                    type="secondary"
+                    data-testid="categories-breadcrumbs-unknown"
+                  >
+                    {t(CATEGORIES_I18N_KEYS.categoryUnknownSlug)}
+                  </Typography.Text>
+                )
               ) : (
                 <Breadcrumb
                   data-testid="categories-breadcrumbs"

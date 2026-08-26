@@ -1,6 +1,7 @@
 /** The door beside a blocked control. */
 import type { ReactElement } from "react";
 import { Typography } from "antd";
+import { SkinTheme } from "@stapel/tokens-antd/skin";
 import { defineDemo } from "@stapel/showcase";
 import { useT } from "@stapel/core";
 import type { SignInCta } from "@stapel/core";
@@ -15,11 +16,16 @@ import { ReviewsDemoHarness } from "./_harness.js";
  */
 function Door(props: { cta: SignInCta | undefined }): ReactElement {
   const t = useT();
+  // `SkinTheme` because that is how a pair's own card mounts it: the reason
+  // is the CALLER's typography, and a caller outside the bridge keeps antd's
+  // light tokens — which is what made this sentence dark grey on near-black.
   return (
-    <Typography.Text type="secondary">
-      {t(REVIEWS_I18N_KEYS.formSignInRequired)}
-      <SignInLink cta={props.cta} testId="reviews-demo-sign-in" />
-    </Typography.Text>
+    <SkinTheme surface="bare">
+      <Typography.Text type="secondary">
+        {t(REVIEWS_I18N_KEYS.formSignInRequired)}
+        <SignInLink cta={props.cta} testId="reviews-demo-sign-in" />
+      </Typography.Text>
+    </SkinTheme>
   );
 }
 

@@ -859,6 +859,9 @@ importers:
       '@stapel/core':
         specifier: workspace:^
         version: link:../core
+      '@stapel/currencies-react':
+        specifier: workspace:^
+        version: link:../currencies-react
       '@stapel/image':
         specifier: workspace:^
         version: link:../image

@@ -19,13 +19,18 @@
  * The pager obeys the same rule. `Previous`/`Next` were rendered disabled in
  * every state including empty, failed and blocked — two controls that meant
  * nothing, three times over. They render when there is a page to go to.
+ *
+ * And each one renders only when ITS page exists. The keyset gates name the
+ * missing page with the button's own label key, so a blocked `Previous` drew
+ * the word twice — once as a dead button, once as its own "reason". A pager
+ * does not explain itself: the page indicator says where you are, and a
+ * direction with nowhere to go is simply not drawn.
  */
-import type { ReactElement } from "react";
-import { Flex, Typography } from "antd";
+import type { ReactElement, ReactNode } from "react";
+import { Button, Flex, Typography } from "antd";
 import {
   EmptyState,
   ErrorAlert,
-  GatedButton,
   SkinTheme,
 } from "@stapel/tokens-antd/skin";
 import { matchList, useT } from "@stapel/core";
@@ -42,6 +47,11 @@ import type { ThemeModeProp } from "./types.js";
  * element-relative rule the detail gallery uses. It was `width: 240`, which
  * left two cards floating in a 2560px pane and overflowed a 390px one. */
 export const FAVORITES_CARD_MIN = "15rem";
+
+/** How wide the saved grid may get before it stops being a grid and becomes
+ * three cards adrift in a 1280px window. A measure, not a breakpoint: the
+ * cards keep filling it, and past it the page centres. */
+export const FAVORITES_MEASURE = "72rem";
 
 /** How a card in this grid opens — the same one-contract union `<ListingCard>`
  * takes, one level up, so a pane cannot re-introduce the double navigation the
@@ -65,8 +75,20 @@ export type FavoritesPaneOpenProps =
       readonly linkComponent?: undefined;
     };
 
+/** The way OUT of an empty favourites list. */
+export interface FavoritesBrowseCtaProp {
+  /**
+   * What a person with nothing saved can do next — a "Browse listings"
+   * button, supplied by the container because only it knows where the
+   * catalogue lives. An empty state without one is a dead end, and this
+   * screen was one of four sharing a single stock illustration and no exit.
+   */
+  readonly browseCta?: ReactNode;
+}
+
 export type FavoritesPaneProps = ThemeModeProp &
   SignInCtaProp &
+  FavoritesBrowseCtaProp &
   FavoritesPaneOpenProps;
 
 /** The card's own open props for one row. One arm, never two. */
@@ -92,7 +114,7 @@ export function FavoritesPane(props: FavoritesPaneProps): ReactElement {
   return (
     <SkinTheme
       surface="base"
-      style={{ padding: spacing[4] }}
+      style={{ padding: spacing[4], maxWidth: FAVORITES_MEASURE }}
       {...(props.mode !== undefined ? { mode: props.mode } : {})}
     >
       <Flex vertical gap={spacing[4]} data-testid="listings-favorites">
@@ -137,6 +159,9 @@ export function FavoritesPane(props: FavoritesPaneProps): ReactElement {
                   testId="listings-favorites-empty"
                   title={t(LISTINGS_I18N_KEYS.favoritesEmpty)}
                   hint={t(LISTINGS_I18N_KEYS.favoritesEmptyHint)}
+                  {...(props.browseCta !== undefined
+                    ? { action: props.browseCta }
+                    : {})}
                 />
               ),
               ready: (rows) => (
@@ -162,29 +187,35 @@ export function FavoritesPane(props: FavoritesPaneProps): ReactElement {
             })}
 
             {paged ? (
-              <Flex gap={spacing[2]} wrap>
-                <GatedButton
-                  gate={bag.prevPage}
-                  size="small"
-                  layout="inline"
-                  testId="listings-favorites-prev"
-                  data-analytics="none"
-                  data-analytics-reason="paging a list the person is already reading; not a business action"
-                  onClick={bag.goPrev}
+              <Flex gap={spacing[3]} wrap align="center">
+                {bag.prevPage.available ? (
+                  <Button
+                    size="small"
+                    data-testid="listings-favorites-prev"
+                    data-analytics="none"
+                    data-analytics-reason="paging a list the person is already reading; not a business action"
+                    onClick={bag.goPrev}
+                  >
+                    {t(LISTINGS_I18N_KEYS.pagePrev)}
+                  </Button>
+                ) : null}
+                <Typography.Text
+                  type="secondary"
+                  data-testid="listings-favorites-page"
                 >
-                  {t(LISTINGS_I18N_KEYS.pagePrev)}
-                </GatedButton>
-                <GatedButton
-                  gate={bag.nextPage}
-                  size="small"
-                  layout="inline"
-                  testId="listings-favorites-next"
-                  data-analytics="none"
-                  data-analytics-reason="paging a list the person is already reading; not a business action"
-                  onClick={bag.goNext}
-                >
-                  {t(LISTINGS_I18N_KEYS.pageNext)}
-                </GatedButton>
+                  {t(LISTINGS_I18N_KEYS.pageIndicator, { page: bag.pageNumber })}
+                </Typography.Text>
+                {bag.nextPage.available ? (
+                  <Button
+                    size="small"
+                    data-testid="listings-favorites-next"
+                    data-analytics="none"
+                    data-analytics-reason="paging a list the person is already reading; not a business action"
+                    onClick={bag.goNext}
+                  >
+                    {t(LISTINGS_I18N_KEYS.pageNext)}
+                  </Button>
+                ) : null}
               </Flex>
             ) : null}
           </>

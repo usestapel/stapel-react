@@ -18,37 +18,59 @@
  * few navigations a full load costs nothing.
  */
 import type { ReactElement } from "react";
-import { Typography } from "antd";
+import { Button, Typography } from "antd";
 import { useT } from "@stapel/core";
 import type { SignInCta } from "@stapel/core";
+import { SkinTheme } from "@stapel/tokens-antd/skin";
 import { REVIEWS_I18N_KEYS } from "../i18n/keys.js";
 
 export interface SignInLinkProps {
   /** Absent: no link — a host with no sign-in route shows the reason alone. */
   readonly cta: SignInCta | undefined;
   readonly testId: string;
+  /**
+   * `"inline"` (default): a link inside the sentence that states the reason.
+   * `"primary"`: a filled button on its own line — for a screen where signing
+   * in is the ONLY thing left to do, which is what a blocked review form is.
+   * A 24px text link was the sole route into the product on three screens.
+   */
+  readonly variant?: "inline" | "primary";
 }
 
 export function SignInLink(props: SignInLinkProps): ReactElement | null {
   const t = useT();
   const { cta } = props;
   if (cta === undefined) return null;
+  const action = {
+    "data-testid": props.testId,
+    "data-analytics": "none" as const,
+    "data-analytics-reason":
+      "business action — host app wraps with its own tracked()",
+    ...(cta.href !== undefined ? { href: cta.href } : { onClick: cta.onSignIn }),
+  };
+
+  // Self-theming, like every other surface in this pair. Without it this one
+  // component kept antd's LIGHT tokens under `data-theme="dark"`, so the only
+  // door on the screen rendered dark grey on near-black.
+  if (props.variant === "primary") {
+    return (
+      <SkinTheme surface="bare">
+        <Button type="primary" {...action}>
+          {t(REVIEWS_I18N_KEYS.formSignIn)}
+        </Button>
+      </SkinTheme>
+    );
+  }
+
   // The separating space belongs HERE, not at the call site: a reason with no
   // door must render as exactly its own sentence, and a `{" "}` left behind by
   // an absent link is a trailing space in every caller's assertion.
   return (
-    <>
+    <SkinTheme surface="bare" style={{ display: "inline" }}>
       {" "}
-      <Typography.Link
-        data-testid={props.testId}
-        data-analytics="none"
-        data-analytics-reason="business action — host app wraps with its own tracked()"
-        {...(cta.href !== undefined
-          ? { href: cta.href }
-          : { onClick: cta.onSignIn })}
-      >
+      <Typography.Link {...action}>
         {t(REVIEWS_I18N_KEYS.formSignIn)}
       </Typography.Link>
-    </>
+    </SkinTheme>
   );
 }

@@ -80,7 +80,10 @@ const demoBundleEn: Record<string, string> = {
   "demo.action.start": "Start",
   "demo.action.submit": "Submit",
   "demo.action.reset": "Reset",
-  "demo.label.step": "state.step",
+  "demo.label.step": "State",
+  "demo.label.price": "Price",
+  "demo.label.estimate": "Estimate",
+  "demo.label.noEstimate": "Same currency — nothing to convert.",
 };
 
 /**

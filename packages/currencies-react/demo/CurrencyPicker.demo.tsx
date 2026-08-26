@@ -20,19 +20,28 @@ import {
 } from "./_harness.js";
 import type { DemoHandlers } from "./_harness.js";
 
-function Picker(): ReactElement {
+function Picker(props: { defaultOpen?: boolean }): ReactElement {
   const { state, refetch } = useCurrencies();
   const [code, setCode] = useState("USD");
   return (
-    <CurrencyPicker value={code} onChange={setCode} options={state} onRetry={refetch} />
+    <CurrencyPicker
+      value={code}
+      onChange={setCode}
+      options={state}
+      onRetry={refetch}
+      {...(props.defaultOpen === true ? { defaultOpen: true } : {})}
+    />
   );
 }
 
-function Framed(props: { handlers: DemoHandlers }): ReactElement {
+function Framed(props: {
+  handlers: DemoHandlers;
+  defaultOpen?: boolean;
+}): ReactElement {
   return (
     <CurrenciesDemoHarness handlers={props.handlers}>
       <DemoCard heading="CurrencyPicker">
-        <Picker />
+        <Picker {...(props.defaultOpen === true ? { defaultOpen: true } : {})} />
       </DemoCard>
     </CurrenciesDemoHarness>
   );
@@ -53,9 +62,16 @@ export default defineDemo({
     },
     phone: {
       description:
-        "390px: the same picker as a sheet trigger. Tap it in the viewer to see the sheet.",
+        "390px: the sheet itself, open. A full-width list with rows on the touch floor — not a 16-row dropdown anchored to a control near the bottom of the screen.",
       viewport: "phone",
       step: "sheet",
+      render: () => <Framed handlers={HANDLERS_READY} defaultOpen />,
+    },
+    "phone-closed": {
+      description:
+        "The same control before the sheet opens: a field with its label leading and a caret at the end, on the 44px touch floor.",
+      viewport: "phone",
+      step: "trigger",
       render: () => <Framed handlers={HANDLERS_READY} />,
     },
     empty: {

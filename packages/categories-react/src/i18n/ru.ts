@@ -63,14 +63,15 @@ export const categoriesI18nBundleRu: I18nDictionary = {
   "categories.catalog.empty": "В каталоге пока нет категорий.",
   "categories.catalog.retry": "Повторить",
   "categories.catalog.truncated":
-    "Каталог загружен не полностью. Категории, которой здесь нет, ещё не прочитали — её не удаляли.",
+    "Это часть каталога — остальные категории ещё загружаются.",
   "categories.catalog.refreshing": "Проверяем изменения в каталоге…",
   "categories.catalog.as_of": "Каталог на ревизию {revision}",
 
   "categories.category.title": "Категория",
   "categories.category.unknown_slug": "По этому адресу нет категории.",
   "categories.category.unknown_slug_hint":
-    "Возможно, ссылка устарела. Начните с каталога.",
+    "Возможно, адрес устарел.",
+  "categories.category.back_to_catalog": "Вернуться в каталог",
   "categories.category.subcategories": "Подкатегории",
   "categories.category.subcategories_count.one": "{count} подкатегория",
   "categories.category.subcategories_count.few": "{count} подкатегории",
@@ -106,7 +107,17 @@ export const categoriesI18nBundleRu: I18nDictionary = {
   "categories.features.empty":
     "В этой категории не нужно заполнять дополнительные характеристики.",
   "categories.features.mandatory": "Обязательно",
-  "categories.features.type": "{type}",
+  "categories.features.type.string": "Текст",
+  "categories.features.type.int": "Целое число",
+  "categories.features.type.float": "Число",
+  "categories.features.type.bool": "Да или нет",
+  "categories.features.type.select": "Выбор",
+  "categories.features.type.date": "Дата",
+  "categories.features.type.header": "Заголовок раздела",
+  "categories.features.type.hex_color": "Цвет",
+  "categories.features.type.hierarchical_select": "Вложенный выбор",
+  "categories.features.type.convertible_unit": "Величина с единицей",
+  "categories.features.type.other": "Другая характеристика",
   "categories.features.untyped":
     "У этой характеристики нет типа, показать её нельзя.",
 };

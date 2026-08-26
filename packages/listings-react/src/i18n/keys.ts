@@ -134,6 +134,10 @@ export const LISTINGS_I18N_KEYS = {
   composeBlockedNoDraft: "listings.compose.blocked.no_draft",
   composeBlockedBusy: "listings.compose.blocked.busy",
   composeBlockedMirror: "listings.compose.blocked.mirror",
+  /** The same refusal BEFORE anything is marked: "fix the highlighted fields"
+   * pointed at nothing highlighted, because the mirror only becomes visible
+   * once the person has tried to publish. */
+  composeBlockedIncomplete: "listings.compose.blocked.incomplete",
   composeBlockedDetailsUnavailable: "listings.compose.blocked.details_unavailable",
 
   // ── the owner's dashboard ────────────────────────────────────────────────
@@ -190,6 +194,7 @@ export const LISTINGS_I18N_KEYS = {
   // ── keyset pagination ────────────────────────────────────────────────────
   pagePrev: "listings.page.prev",
   pageNext: "listings.page.next",
+  pageIndicator: "listings.page.indicator",
 
   // ── nav labels ───────────────────────────────────────────────────────────
   navDetail: "listings.nav.detail",
@@ -314,14 +319,18 @@ export const listingsI18nBundleEn: Record<string, string> = {
 
   "listings.compose.blocked.no_category":
     "Choose a category — the rest of the form depends on it",
+  // No `{types}`: the editor type is this build's vocabulary (`size_grid`),
+  // and a seller can do nothing with it. The fact they CAN act on is that
+  // this listing has to be finished somewhere else.
   "listings.compose.blocked.unsupported_type":
-    "This category asks for a kind of detail this app cannot show yet ({types}), so it cannot fill it in for you",
+    "This category asks for a kind of detail this app cannot show yet, so the listing cannot be completed here",
   "listings.compose.blocked.photos_pending":
     "Wait for the photos to finish uploading",
   "listings.compose.blocked.no_draft": "The draft has not been created yet",
   "listings.compose.blocked.busy": "One moment — the last change is still saving",
   "listings.compose.blocked.mirror":
     "Fix the highlighted fields first",
+  "listings.compose.blocked.incomplete": "{count} required details are still empty",
   "listings.compose.blocked.details_unavailable":
     "We could not load what this category asks for, so we cannot check the form",
 
@@ -338,6 +347,10 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.mine.empty.drafts": "No drafts — anything you start appears here",
   "listings.mine.empty.archived": "Nothing archived, paused, expired or sold yet",
   "listings.mine.blocked.title":
+    "{count} of your listings were taken down by moderation",
+  "listings.mine.blocked.title.one":
+    "One of your listings was taken down by moderation",
+  "listings.mine.blocked.title.other":
     "{count} of your listings were taken down by moderation",
   "listings.mine.blocked.load_failed":
     "We could not check whether any of your listings were taken down",
@@ -375,6 +388,7 @@ export const listingsI18nBundleEn: Record<string, string> = {
 
   "listings.page.prev": "Previous",
   "listings.page.next": "Next",
+  "listings.page.indicator": "Page {page}",
 
   "listings.nav.detail": "Listing",
   "listings.nav.compose": "Post a listing",

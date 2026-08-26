@@ -573,6 +573,7 @@
     "reviews.form.body_label",
     "reviews.form.body_placeholder",
     "reviews.form.heading",
+    "reviews.form.rating_hint",
     "reviews.form.rating_label",
     "reviews.form.sent.hidden",
     "reviews.form.sent.pending",

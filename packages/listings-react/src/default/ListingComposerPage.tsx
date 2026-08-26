@@ -31,6 +31,17 @@
  * refusing to fold failed into empty. A slot was the last place absence could
  * still be silent, and `stapel/no-silent-slot` now says so at lint time.
  *
+ * ── …and its LABEL goes with it ────────────────────────────────────────────
+ *
+ * The placeholder is nothing in production — but the `Form.Item` around it
+ * still drew its label, so a production composer with three unfilled slots
+ * rendered three labelled voids: "Category", "Currency", "Where it is" over
+ * empty space, and a "Photos" heading over air. A label is a promise that a
+ * control follows it. {@link SlotField} therefore renders the WHOLE field —
+ * label, help text and control — or nothing at all, and the `Photos` section
+ * does the same with its heading. `slotVisibility` pins the dev view on so a
+ * production-built showcase can still photograph the named placeholders.
+ *
  * ── Why the pickers are slots and not dependencies ─────────────────────────
  *
  * A category tree, a geocoder and a currency vocabulary are all DEPLOYMENT
@@ -63,9 +74,17 @@ import {
 import {
   ErrorAlert,
   GatedButton,
+  PaneGate,
   SkinTheme,
 } from "@stapel/tokens-antd/skin";
-import { SlotPlaceholder, useDescribeFlowError, useI18n, useT } from "@stapel/core";
+import {
+  SlotPlaceholder,
+  actionAvailable,
+  isDevBuild,
+  useDescribeFlowError,
+  useI18n,
+  useT,
+} from "@stapel/core";
 import { spacing } from "@stapel/tokens";
 import type { FeatureDef } from "@stapel/attributes-react";
 import {
@@ -255,7 +274,48 @@ export interface ListingComposerPageProps extends ThemeModeProp {
   /** `useUploadQueue()`'s bag from `@stapel/cdn-react` — `refs` becomes
    * `images_draft`, `settled` gates the submit. */
   readonly images?: ListingImagesBag;
+  /**
+   * Whether an unfilled slot shows its named placeholder. `"auto"` (default)
+   * follows the build: named in development, the whole field absent in
+   * production. `"visible"` pins it on — for a showcase built in production
+   * mode, which is the only way to photograph an integration defect.
+   */
+  readonly slotVisibility?: "auto" | "visible";
   readonly onPublished?: (listingId: number) => void;
+}
+
+/**
+ * A labelled field whose control comes from a slot — or NOTHING.
+ *
+ * The composer's orphan-field bug in one component: a `Form.Item` renders its
+ * label unconditionally, so an unfilled slot (which is `null` in a production
+ * build) left the label standing over empty space. Here the label and the
+ * control are one decision. `named` says whether the dev placeholder will
+ * draw; when it will not and the host filled nothing, the field is not part of
+ * the form at all.
+ */
+function SlotField(props: {
+  readonly label: string;
+  readonly extra?: string;
+  readonly slot: string;
+  readonly named: boolean;
+  readonly control: ReactNode | undefined;
+  readonly status: { help: ReactNode; validateStatus: "error" } | Record<string, never>;
+  readonly testId: string;
+}): ReactElement | null {
+  const filled = props.control !== undefined;
+  if (!filled && !props.named) return null;
+  return (
+    <Form.Item
+      label={props.label}
+      {...(props.extra !== undefined ? { extra: props.extra } : {})}
+      {...props.status}
+    >
+      <div data-testid={props.testId}>
+        {props.control ?? <SlotPlaceholder name={props.slot} visibility="visible" />}
+      </div>
+    </Form.Item>
+  );
 }
 
 /** A decimal string → the number a picker works in, or `null`. */
@@ -320,6 +380,9 @@ export function ListingComposerPage(
   );
 
   const LocationPicker = props.locationPicker;
+  // Whether an unfilled slot draws its named placeholder — and therefore
+  // whether the field it belongs to exists at all.
+  const namedSlots = props.slotVisibility === "visible" || isDevBuild();
 
   return (
     <SkinTheme
@@ -368,22 +431,18 @@ export function ListingComposerPage(
         ) : null}
 
         <Form layout="vertical" data-testid="listings-composer-form">
-          <Form.Item
+          <SlotField
             label={t(LISTINGS_I18N_KEYS.composeCategory)}
             extra={t(LISTINGS_I18N_KEYS.composeCategoryHelp)}
-            {...errorOf(CATEGORY_FIELD)}
-          >
-            <div data-testid="listings-composer-category">
-              {props.renderCategoryPicker !== undefined ? (
-                props.renderCategoryPicker({
-                  value: bag.values.categoryId,
-                  setCategory: bag.setCategory,
-                })
-              ) : (
-                <SlotPlaceholder name="renderCategoryPicker" />
-              )}
-            </div>
-          </Form.Item>
+            slot="renderCategoryPicker"
+            named={namedSlots}
+            status={errorOf(CATEGORY_FIELD)}
+            testId="listings-composer-category"
+            control={props.renderCategoryPicker?.({
+              value: bag.values.categoryId,
+              setCategory: bag.setCategory,
+            })}
+          />
 
           {bag.droppedOnCategoryChange.length > 0 ? (
             <Alert
@@ -427,10 +486,12 @@ export function ListingComposerPage(
             />
           </Form.Item>
 
-          {/* Price and currency are ONE question. The currency is not a text
-              box: the vocabulary is the deployment's (stapel-currencies), so
-              the code rides along as the field's addon and a container that
-              lets the seller change it fills the slot beside it. */}
+          {/* Price and currency are ONE question, asked ONCE. The currency is
+              not a text box: the vocabulary is the deployment's
+              (stapel-currencies). With no chooser the code rides along as the
+              field's addon so the price still says what it is in; with one,
+              the addon would be a second currency control saying the same
+              thing beside the first. */}
           <Form.Item
             label={t(LISTINGS_I18N_KEYS.composePriceLabel)}
             {...errorOf(PRICE_FIELD)}
@@ -438,7 +499,9 @@ export function ListingComposerPage(
             <Input
               inputMode="decimal"
               value={bag.values.price}
-              addonAfter={bag.values.currency}
+              {...(props.renderCurrencyPicker === undefined
+                ? { addonAfter: bag.values.currency }
+                : {})}
               aria-label={t(LISTINGS_I18N_KEYS.composePriceLabel)}
               data-testid="listings-composer-price"
               onChange={(event) => {
@@ -448,21 +511,20 @@ export function ListingComposerPage(
             />
           </Form.Item>
 
-          <Form.Item label={t(LISTINGS_I18N_KEYS.composeCurrencyLabel)}>
-            <div data-testid="listings-composer-currency">
-              {props.renderCurrencyPicker !== undefined ? (
-                props.renderCurrencyPicker({
-                  value: bag.values.currency,
-                  setCurrency: (code) => {
-                    bag.setValue("currency", code);
-                    bag.saveSoon();
-                  },
-                })
-              ) : (
-                <SlotPlaceholder name="renderCurrencyPicker" />
-              )}
-            </div>
-          </Form.Item>
+          <SlotField
+            label={t(LISTINGS_I18N_KEYS.composeCurrencyLabel)}
+            slot="renderCurrencyPicker"
+            named={namedSlots}
+            status={{}}
+            testId="listings-composer-currency"
+            control={props.renderCurrencyPicker?.({
+              value: bag.values.currency,
+              setCurrency: (code) => {
+                bag.setValue("currency", code);
+                bag.saveSoon();
+              },
+            })}
+          />
 
           {/* WHERE, asked once, by whoever can resolve places.
               A seller does not know their latitude — two decimal boxes are a
@@ -472,13 +534,15 @@ export function ListingComposerPage(
               (`@stapel/geo-react` over stapel-geo, on this fleet). So the
               question is a slot, and an unfilled slot says its own name
               instead of improvising a control nobody can use. */}
-          <Form.Item
+          <SlotField
             label={t(LISTINGS_I18N_KEYS.composeLocationLabel)}
             extra={t(LISTINGS_I18N_KEYS.composeLocationHelp)}
-            {...errorOf("location")}
-          >
-            <div data-testid="listings-composer-location">
-              {props.renderLocationPicker !== undefined ? (
+            slot="locationPicker"
+            named={namedSlots}
+            status={errorOf("location")}
+            testId="listings-composer-location"
+            control={
+              props.renderLocationPicker !== undefined ? (
                 <div data-testid="listings-composer-location-slot">
                   {props.renderLocationPicker({
                     value: bag.values.location,
@@ -511,22 +575,27 @@ export function ListingComposerPage(
                     }}
                   />
                 </div>
-              ) : (
-                <SlotPlaceholder name="locationPicker" />
+              ) : undefined
+            }
+          />
+
+          {/* A heading is a promise that something follows it. With no gallery
+              and no named placeholder there is nothing to head. */}
+          {props.gallerySlot !== undefined || namedSlots ? (
+            <>
+              <Divider />
+              <Typography.Title level={5}>
+                {t(LISTINGS_I18N_KEYS.composePhotos)}
+              </Typography.Title>
+              {props.gallerySlot ?? (
+                <SlotPlaceholder name="gallerySlot" visibility="visible" />
               )}
-            </div>
-          </Form.Item>
-
-          <Divider />
-
-          <Typography.Title level={5}>
-            {t(LISTINGS_I18N_KEYS.composePhotos)}
-          </Typography.Title>
-          {props.gallerySlot ?? <SlotPlaceholder name="gallerySlot" />}
-          {bag.fieldErrors[IMAGES_FIELD] ? (
-            <Typography.Text type="danger" data-testid="listings-composer-images-error">
-              {describe(bag.fieldErrors[IMAGES_FIELD]).message}
-            </Typography.Text>
+              {bag.fieldErrors[IMAGES_FIELD] ? (
+                <Typography.Text type="danger" data-testid="listings-composer-images-error">
+                  {describe(bag.fieldErrors[IMAGES_FIELD]).message}
+                </Typography.Text>
+              ) : null}
+            </>
           ) : null}
 
           <Divider />
@@ -627,23 +696,21 @@ export function ListingComposerPage(
           />
         ) : null}
 
-        {/* Two buttons of two weights, each carrying its own reason. Publish is
-            the primary and the only one; "Save draft" is the quiet way out. */}
-        <Flex gap={spacing[3]} wrap align="flex-start">
-          <GatedButton
-            gate={bag.saveGate}
-            loading={bag.saving}
-            testId="listings-composer-save"
-            data-analytics="none"
-            data-analytics-reason="business action — host app wraps with its own tracked()"
-            onClick={bag.save}
-          >
-            {t(bag.saving ? LISTINGS_I18N_KEYS.composeSaving : LISTINGS_I18N_KEYS.composeSave)}
-          </GatedButton>
-
+        {/* One primary, and it LEADS. Two same-weight boxes side by side, the
+            filled one second, is a footer with no primary in it — which is
+            how it read on a phone, where the eye takes the first control as
+            the action. `Save draft` is the quiet way out, so it is quiet.
+            Each keeps its own reason directly under it, never a grey slab
+            under the pair. */}
+        {/* The footer is one SCOPE, so the reason both buttons are off is
+            written once and both point at it. "Choose a category" under
+            Publish and again under Save draft is one fact printed twice. */}
+        <PaneGate gate={actionAvailable()} testId="listings-composer-footer">
+        <Flex vertical gap={spacing[3]} align="flex-start">
           <GatedButton
             gate={bag.publishGate}
             type="primary"
+            size="large"
             loading={bag.publishing}
             testId="listings-composer-publish"
             data-analytics="none"
@@ -653,12 +720,27 @@ export function ListingComposerPage(
             {bag.publishing ? t(LISTINGS_I18N_KEYS.composePublishing) : publishLabel}
           </GatedButton>
 
-          {bag.saved ? (
-            <Typography.Text type="success" data-testid="listings-composer-saved">
-              {t(LISTINGS_I18N_KEYS.composeSaved)}
-            </Typography.Text>
-          ) : null}
+          <Flex gap={spacing[3]} wrap align="flex-start">
+            <GatedButton
+              gate={bag.saveGate}
+              type="text"
+              loading={bag.saving}
+              testId="listings-composer-save"
+              data-analytics="none"
+              data-analytics-reason="business action — host app wraps with its own tracked()"
+              onClick={bag.save}
+            >
+              {t(bag.saving ? LISTINGS_I18N_KEYS.composeSaving : LISTINGS_I18N_KEYS.composeSave)}
+            </GatedButton>
+
+            {bag.saved ? (
+              <Typography.Text type="success" data-testid="listings-composer-saved">
+                {t(LISTINGS_I18N_KEYS.composeSaved)}
+              </Typography.Text>
+            ) : null}
+          </Flex>
         </Flex>
+        </PaneGate>
       </Flex>
     </SkinTheme>
   );

@@ -138,7 +138,10 @@ describe("<ReviewListPanel>", () => {
       expect(screen.getByTestId("reviews-row-pending")).toBeTruthy();
     });
     expect(screen.getByTestId("reviews-row-hidden")).toBeTruthy();
-    expect(screen.getByText("Unknown state: quarantined")).toBeTruthy();
+    // The state this build does not know is BADGED, but never by printing
+    // the server's own token at a moderator.
+    const unknown = screen.getByTestId("reviews-row-unknown");
+    expect(unknown.textContent).not.toContain("quarantined");
   });
 
   it("shows the empty state only for a READY empty list", async () => {
@@ -346,26 +349,28 @@ describe("<ReviewModerationPanel>", () => {
     expect(screen.getByText("Already hidden")).toBeTruthy();
   });
 
-  it("switches both verdicts off with a reason when the host declares no moderator", async () => {
+  it("refuses the whole pane ONCE when the host declares no moderator", async () => {
     render(
       <TestProviders
-        server={mockServer({ "/reviews": { body: page([review()]) } })}
+        server={mockServer({
+          "/reviews": { body: page([review({ id: "a" }), review({ id: "b" })]) },
+        })}
       >
         <ReviewModerationPanel target={TARGET} canModerate={false} />
       </TestProviders>
     );
-    await waitFor(() => {
-      expect(screen.getByTestId("reviews-moderation-rows")).toBeTruthy();
-    });
-    // Not removed: a moderator whose can_moderate callback is mis-wired needs
-    // to see the control refused, not a pane with no buttons on it.
-    expect(screen.getByTestId("reviews-moderation-hide")).toBeTruthy();
+    const gate = await screen.findByTestId("reviews-moderation-gate");
+    expect(gate.getAttribute("data-stapel-pane-gate")).toBe("blocked");
+    // The refusal is a fact about the VIEWER, so it is stated once — not
+    // beside every verdict of every row (it was printed six times in three).
     expect(
       screen.getAllByText(
         "Only a moderator of this item can hide or publish reviews"
-      ).length
-    ).toBeGreaterThan(0);
-    expect(screen.getByTestId("reviews-moderation-narrowed")).toBeTruthy();
+      )
+    ).toHaveLength(1);
+    // And nothing that invites an act the viewer may not perform.
+    expect(screen.queryByTestId("reviews-moderation-hide")).toBeNull();
+    expect(screen.queryByTestId("reviews-moderation-reason")).toBeNull();
   });
 
   it("publishes a pending row and reports the status the SERVER answered with", async () => {
@@ -433,14 +438,25 @@ describe("<ReviewModerationPanel>", () => {
     });
     fireEvent.click(screen.getByTestId("reviews-moderation-publish"));
     await waitFor(() => {
-      // BOTH verdicts on that row carry it: the 403 is a statement about the
-      // actor, not about the button that happened to provoke it.
+      // BOTH verdicts on that row carry it — the 403 is a statement about the
+      // actor, not about the button that happened to provoke it — but the
+      // pane pools identical reasons, so the SENTENCE is written once and
+      // both controls point at it.
       expect(
         screen.getAllByText(
           "The server does not accept you as a moderator of this item"
         )
-      ).toHaveLength(2);
+      ).toHaveLength(1);
     });
+    const reason = screen.getByText(
+      "The server does not accept you as a moderator of this item"
+    );
+    for (const id of ["reviews-moderation-hide", "reviews-moderation-publish"]) {
+      expect(
+        screen.getByTestId(id).getAttribute("aria-describedby"),
+        id
+      ).toBe(reason.id);
+    }
     expect(screen.queryByTestId("reviews-moderation-failed")).toBeNull();
   });
 

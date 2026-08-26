@@ -163,12 +163,13 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.compose.blocked.no_category":
     "Выберите категорию — от неё зависит остальная форма",
   "listings.compose.blocked.unsupported_type":
-    "Эта категория спрашивает характеристику, которую приложение пока не умеет показывать ({types}), поэтому заполнить её здесь нельзя",
+    "Эта категория спрашивает характеристику, которую приложение пока не умеет показывать, поэтому закончить объявление здесь нельзя",
   "listings.compose.blocked.photos_pending":
     "Дождитесь окончания загрузки фотографий",
   "listings.compose.blocked.no_draft": "Черновик ещё не создан",
   "listings.compose.blocked.busy":
     "Секунду — предыдущее изменение ещё сохраняется",
+  "listings.compose.blocked.incomplete": "Не заполнено обязательных деталей: {count}",
   "listings.compose.blocked.mirror": "Сначала поправьте отмеченные поля",
   "listings.compose.blocked.details_unavailable":
     "Не удалось загрузить характеристики категории, поэтому проверить форму нельзя",
@@ -187,6 +188,10 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.mine.empty.archived": "Пока ничего не в архиве, не снято, не истекло и не продано",
   "listings.mine.blocked.title":
     "Модерация сняла ваших объявлений: {count}",
+  "listings.mine.blocked.title.one": "Модерация сняла одно ваше объявление",
+  "listings.mine.blocked.title.few": "Модерация сняла {count} ваших объявления",
+  "listings.mine.blocked.title.many": "Модерация сняла {count} ваших объявлений",
+  "listings.mine.blocked.title.other": "Модерация сняла ваших объявлений: {count}",
   "listings.mine.blocked.load_failed":
     "Не удалось проверить, снимала ли модерация ваши объявления",
   "listings.mine.live_under_review": "Опубликовано, правки на проверке",
@@ -222,6 +227,7 @@ export const listingsI18nBundleRu: I18nDictionary = {
 
   "listings.page.prev": "Назад",
   "listings.page.next": "Дальше",
+  "listings.page.indicator": "Страница {page}",
 
   "listings.nav.detail": "Объявление",
   "listings.nav.compose": "Подать объявление",

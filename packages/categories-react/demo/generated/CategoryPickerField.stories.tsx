@@ -8,7 +8,10 @@ export default { title: "categories-react / Category picker" };
 
 export const OnAPhone = (): ReactElement => renderDemoVariant(demo, "on a phone");
 OnAPhone.storyName = "on a phone";
-OnAPhone.parameters = { stapel: {"viewport":"phone","step":"sheet-closed"} };
+OnAPhone.parameters = { stapel: {"viewport":"phone","step":"sheet-open"} };
+export const TheClosedTrigger = (): ReactElement => renderDemoVariant(demo, "the closed trigger");
+TheClosedTrigger.storyName = "the closed trigger";
+TheClosedTrigger.parameters = { stapel: {"viewport":"phone","step":"sheet-closed"} };
 export const Inline = (): ReactElement => renderDemoVariant(demo, "inline");
 Inline.storyName = "inline";
 Inline.parameters = { stapel: {"viewport":"desktop","step":"blocked-nothing-selected"} };

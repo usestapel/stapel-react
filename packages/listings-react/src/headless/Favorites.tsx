@@ -71,6 +71,12 @@ export function useFavoriteToggle(
 export interface FavoritesBag {
   readonly rows: LoadState<readonly ListingCard[]>;
   readonly page: ListingPageParams;
+  /**
+   * Which page is on screen, 1-based. Keyset paging has no offset to read a
+   * number off, so it is counted: a pager with no indicator leaves a person
+   * unable to tell a second page from a reloaded first one.
+   */
+  readonly pageNumber: number;
   readonly nextPage: ActionAvailability;
   readonly prevPage: ActionAvailability;
   goNext(): void;
@@ -90,6 +96,7 @@ export function useFavorites(options: UseFavoritesOptions = {}): FavoritesBag {
   const [page, setPage] = useState<ListingPageParams>(
     options.limit !== undefined ? { limit: options.limit } : {}
   );
+  const [pageNumber, setPageNumber] = useState(1);
   const query = useMyFavorites(page, { enabled: gate.available });
   const envelope = query.data;
 
@@ -101,6 +108,7 @@ export function useFavorites(options: UseFavoritesOptions = {}): FavoritesBag {
           ? loadReady(envelope.items)
           : loadLoading(),
     page,
+    pageNumber,
     nextPage:
       envelope?.has_next === true && envelope.next_anchor != null
         ? actionAvailable()
@@ -113,11 +121,13 @@ export function useFavorites(options: UseFavoritesOptions = {}): FavoritesBag {
       const anchor = envelope?.next_anchor;
       if (anchor == null) return;
       setPage((current) => ({ ...current, anchor, direction: "next" }));
+      setPageNumber((current) => current + 1);
     },
     goPrev: () => {
       const anchor = envelope?.prev_anchor;
       if (anchor == null) return;
       setPage((current) => ({ ...current, anchor, direction: "prev" }));
+      setPageNumber((current) => Math.max(1, current - 1));
     },
     gate,
     refetch: () => {

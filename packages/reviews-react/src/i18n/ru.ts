@@ -48,15 +48,14 @@ export const reviewsI18nBundleRu: I18nDictionary = {
   "reviews.list.refresh": "Обновить",
   "reviews.list.more.blocked.end": "Это все отзывы",
   "reviews.list.more.blocked.pending": "Загружаем…",
-  "reviews.list.scope.narrowed":
-    "Только опубликованные отзывы. Скрытые и ожидающие модерации видит модератор этого объекта, а подтверждения, что это вы, здесь нет.",
+  "reviews.list.scope.narrowed": "Только опубликованные отзывы.",
 
   "reviews.review.author_fallback": "Покупатель",
   "reviews.review.response_heading": "Ответ продавца",
 
   "reviews.status.pending": "Ожидает модерации",
   "reviews.status.hidden": "Скрыт модерацией",
-  "reviews.status.unknown": "Неизвестное состояние: {status}",
+  "reviews.status.unknown": "Ещё не опубликован",
 
   "reviews.rating.none": "Оценок пока нет",
   "reviews.rating.value": "{avg} из {max}",
@@ -71,6 +70,7 @@ export const reviewsI18nBundleRu: I18nDictionary = {
 
   "reviews.form.heading": "Оцените",
   "reviews.form.rating_label": "Ваша оценка",
+  "reviews.form.rating_hint": "Нажмите на звезду: {min} — плохо, {max} — отлично.",
   "reviews.form.body_label": "Ваш отзыв",
   "reviews.form.body_placeholder": "Как прошла сделка? (необязательно)",
   "reviews.form.submit": "Отправить",

@@ -27,6 +27,7 @@ import {
   EmptyState,
   ErrorAlert,
   LoadList,
+  PHONE_CONTROL_HEIGHT,
   SkinTheme,
 } from "@stapel/tokens-antd/skin";
 import type { ThemeModeProp } from "./types.js";
@@ -102,40 +103,54 @@ export function CategoryTreePane(props: CategoryTreePaneProps): ReactElement {
                   size="small"
                   dataSource={[...nodes]}
                   renderItem={(node) => (
-                    <List.Item key={node.id} data-category-id={node.id}>
-                      <Flex
-                        justify="space-between"
-                        align="center"
-                        gap={spacing[2]}
-                        style={{ width: "100%" }}
+                    <List.Item
+                      key={node.id}
+                      data-category-id={node.id}
+                      style={{ paddingInline: 0 }}
+                    >
+                      {/* The whole ROW is the link, on the touch floor, with
+                          a chevron for a branch: a 24px word inside a 41px
+                          row is a target a thumb misses and an affordance an
+                          eye cannot see. */}
+                      <CategoryLink
+                        {...(props.linkComponent !== undefined
+                          ? { linkComponent: props.linkComponent }
+                          : {})}
+                        href={`${base}/${node.category.slug}`}
+                        slug={node.category.slug}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: spacing[2],
+                          width: "100%",
+                          minHeight: PHONE_CONTROL_HEIGHT,
+                          paddingInline: spacing[2],
+                        }}
                       >
-                        <CategoryLink
-                          {...(props.linkComponent !== undefined
-                            ? { linkComponent: props.linkComponent }
-                            : {})}
-                          href={`${base}/${node.category.slug}`}
-                          slug={node.category.slug}
-                        >
-                          {renderCategoryLabel(
-                            categoryLabel(node.category),
-                            t
-                          )}
-                        </CategoryLink>
-                        {node.children.length > 0 ? (
-                          // The count SAYS what it counts. It used to be a
-                          // bare number with a `title=` — meaning available
-                          // to a mouse pointer and to nothing else.
-                          <Tag
-                            variant="filled"
-                            data-category-children={node.children.length}
-                          >
-                            {tPlural(
-                              CATEGORIES_I18N_KEYS.categorySubcategoriesCount,
-                              { count: node.children.length }
-                            )}
-                          </Tag>
-                        ) : null}
-                      </Flex>
+                        <span>
+                          {renderCategoryLabel(categoryLabel(node.category), t)}
+                        </span>
+                        <Flex align="center" gap={spacing[2]}>
+                          {node.children.length > 0 ? (
+                            // The count SAYS what it counts. It used to be a
+                            // bare number with a `title=` — meaning available
+                            // to a mouse pointer and to nothing else.
+                            <Tag
+                              variant="filled"
+                              data-category-children={node.children.length}
+                            >
+                              {tPlural(
+                                CATEGORIES_I18N_KEYS.categorySubcategoriesCount,
+                                { count: node.children.length }
+                              )}
+                            </Tag>
+                          ) : null}
+                          <span aria-hidden="true">
+                            {node.children.length > 0 ? "\u203a" : ""}
+                          </span>
+                        </Flex>
+                      </CategoryLink>
                     </List.Item>
                   )}
                 />

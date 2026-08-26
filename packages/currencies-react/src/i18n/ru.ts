@@ -28,8 +28,10 @@ export const currenciesI18nBundleRu: I18nDictionary = {
   "currencies.picker.placeholder": "Выберите валюту",
   "currencies.picker.search": "Поиск по коду или названию",
   "currencies.picker.loading": "Загрузка валют…",
-  "currencies.picker.empty": "Для этого сайта не настроена ни одна валюта.",
-  "currencies.picker.failed": "Не удалось загрузить валюты.",
+  "currencies.catalog.empty": "Для этого сайта не настроена ни одна валюта.",
+  "currencies.catalog.emptyHint":
+    "Пока валюту не добавят, цены остаются в той, которую указал продавец.",
+  "currencies.catalog.failed": "Не удалось загрузить валюты.",
   "currencies.picker.retry": "Повторить",
 
   "currencies.field.amount": "Сумма",
@@ -38,10 +40,8 @@ export const currenciesI18nBundleRu: I18nDictionary = {
   "currencies.table.code": "Код",
   "currencies.table.name": "Название",
   "currencies.table.rate": "Курс",
-  "currencies.table.symbol": "Символ",
   "currencies.table.baseNote":
     "Курсы указаны относительно {base}. Каталог не передаёт время обновления, поэтому это последние сохранённые значения, а не котировка.",
-  "currencies.table.empty": "Для этого сайта не настроена ни одна валюта.",
 
   "currencies.dialog.dismiss": "Закрыть",
 

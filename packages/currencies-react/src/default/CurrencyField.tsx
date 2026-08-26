@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useId } from "react";
 import type { ReactElement } from "react";
 import { Input, Space, Typography } from "antd";
 import { useT } from "@stapel/core";
@@ -41,6 +41,7 @@ export interface CurrencyFieldProps extends ThemeModeProp {
  */
 export function CurrencyField(props: CurrencyFieldProps): ReactElement {
   const t = useT();
+  const labelId = useId();
   const { value, onChange } = props;
   const invalid = value.amount.length > 0 && !isValidAmount(value.amount);
 
@@ -66,12 +67,17 @@ export function CurrencyField(props: CurrencyFieldProps): ReactElement {
         ? { "data-testid": props["data-testid"] }
         : {})}
     >
-      <Space direction="vertical" style={{ width: "100%" }}>
+      <Space direction="vertical" size="small" style={{ width: "100%" }}>
+        {/* A visible label, not only an aria one: a field whose name lives in
+            the placeholder loses its name the moment someone types. */}
+        <Typography.Text id={labelId}>
+          {t(CURRENCIES_I18N_KEYS.fieldAmount)}
+        </Typography.Text>
         <Space.Compact style={{ width: "100%" }}>
           <Input
             value={value.amount}
             inputMode="decimal"
-            aria-label={t(CURRENCIES_I18N_KEYS.fieldAmount)}
+            aria-labelledby={labelId}
             placeholder={t(CURRENCIES_I18N_KEYS.fieldAmount)}
             status={invalid ? "error" : ""}
             {...(props.disabled === true ? { disabled: true } : {})}
@@ -81,6 +87,7 @@ export function CurrencyField(props: CurrencyFieldProps): ReactElement {
             data-testid="currencies-field-amount"
           />
           <CurrencyPicker
+            compact
             value={value.currency}
             onChange={setCurrency}
             options={props.options}

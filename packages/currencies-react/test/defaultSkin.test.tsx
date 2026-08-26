@@ -141,6 +141,37 @@ describe("<CurrencyPicker> — the surface follows the viewport", () => {
 });
 
 describe("<RateTable>", () => {
+  it("formats the stored rate instead of printing the wire's eight zeros", () => {
+    setViewport(DESKTOP);
+    const { container } = render(
+      <Harness>
+        <RateTable rates={loadReady(rows)} base="USD" />
+      </Harness>
+    );
+    expect(container.textContent).toContain("92.59");
+    expect(container.textContent).not.toContain("92.59000000");
+    // The one column the table exists for is right-aligned with tabular
+    // figures, or no two decimal points line up.
+    const cell = container.querySelector<HTMLElement>(
+      "tbody td:last-child span"
+    );
+    expect(cell?.style.fontVariantNumeric).toBe("tabular-nums");
+  });
+
+  it("states a failed read in the pair's own voice, never the server's string", () => {
+    setViewport(DESKTOP);
+    const { container } = render(
+      <Harness>
+        <RateTable
+          rates={{ status: "failed", error: new Error("Something went wrong") }}
+          base="USD"
+        />
+      </Harness>
+    );
+    expect(container.textContent).toContain("Currencies could not be loaded.");
+    expect(container.textContent).not.toContain("Something went wrong");
+  });
+
   it("draws the shared empty state, not an empty grid", () => {
     setViewport(DESKTOP);
     const { container } = render(

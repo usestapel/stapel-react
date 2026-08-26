@@ -49,6 +49,8 @@ export const CATEGORIES_I18N_KEYS = {
   categoryUnknownSlug: "categories.category.unknown_slug",
   /** What to do about an address that resolves to nothing. */
   categoryUnknownSlugHint: "categories.category.unknown_slug_hint",
+  /** The way OUT of a dead address — the link the hint promises. */
+  categoryBackToCatalog: "categories.category.back_to_catalog",
   categorySubcategories: "categories.category.subcategories",
   /**
    * "N subcategories" beside a tree row. A PLURAL FAMILY: render with
@@ -92,10 +94,42 @@ export const CATEGORIES_I18N_KEYS = {
   featuresLoadFailed: "categories.features.load_failed",
   featuresEmpty: "categories.features.empty",
   featuresMandatory: "categories.features.mandatory",
-  featuresType: "categories.features.type",
+  /** A feature's value TYPE as a word. `int`, `bool` and a host's own
+   * `holo_signature` are this build's vocabulary, and they were reaching a
+   * public category page as the badge's copy. Every known type has a word;
+   * anything else says "another kind of detail" rather than its identifier. */
+  featuresTypeString: "categories.features.type.string",
+  featuresTypeInt: "categories.features.type.int",
+  featuresTypeFloat: "categories.features.type.float",
+  featuresTypeBool: "categories.features.type.bool",
+  featuresTypeSelect: "categories.features.type.select",
+  featuresTypeDate: "categories.features.type.date",
+  featuresTypeHeader: "categories.features.type.header",
+  featuresTypeColor: "categories.features.type.hex_color",
+  featuresTypeNestedSelect: "categories.features.type.hierarchical_select",
+  featuresTypeMeasurement: "categories.features.type.convertible_unit",
+  featuresTypeOther: "categories.features.type.other",
   /** A feature whose `config` carries no `type` at all. */
   featuresUntyped: "categories.features.untyped",
 } as const;
+
+/**
+ * Value type (as `config.type` spells it) → the key for its human word.
+ * A type absent from this table is not a bug and not copy: it is a build the
+ * catalogue is ahead of, and it renders {@link CATEGORIES_I18N_KEYS.featuresTypeOther}.
+ */
+export const FEATURE_TYPE_LABEL_KEYS: Readonly<Record<string, string>> = {
+  string: CATEGORIES_I18N_KEYS.featuresTypeString,
+  int: CATEGORIES_I18N_KEYS.featuresTypeInt,
+  float: CATEGORIES_I18N_KEYS.featuresTypeFloat,
+  bool: CATEGORIES_I18N_KEYS.featuresTypeBool,
+  select: CATEGORIES_I18N_KEYS.featuresTypeSelect,
+  date: CATEGORIES_I18N_KEYS.featuresTypeDate,
+  header: CATEGORIES_I18N_KEYS.featuresTypeHeader,
+  hex_color: CATEGORIES_I18N_KEYS.featuresTypeColor,
+  hierarchical_select: CATEGORIES_I18N_KEYS.featuresTypeNestedSelect,
+  convertible_unit: CATEGORIES_I18N_KEYS.featuresTypeMeasurement,
+};
 
 export type CategoriesI18nKey =
   (typeof CATEGORIES_I18N_KEYS)[keyof typeof CATEGORIES_I18N_KEYS];
@@ -130,8 +164,10 @@ export const categoriesI18nBundleEn: Record<string, string> = {
   "categories.catalog.load_failed": "We could not load the catalogue",
   "categories.catalog.empty": "This catalogue has no categories yet",
   "categories.catalog.retry": "Try again",
+  // Cache semantics are ours, not a shopper's. What they can act on is that
+  // the list is short and that more arrives, not that a walk hit a budget.
   "categories.catalog.truncated":
-    "Only part of the catalogue was loaded. A category missing here has not been read yet — it has not been removed.",
+    "This is part of the catalogue — more categories are still on the way.",
   "categories.catalog.refreshing": "Checking for catalogue changes…",
   "categories.catalog.as_of": "Catalogue as of revision {revision}",
 
@@ -139,7 +175,8 @@ export const categoriesI18nBundleEn: Record<string, string> = {
   "categories.category.unknown_slug":
     "There is no category at this address",
   "categories.category.unknown_slug_hint":
-    "The address may be out of date. Start again from the catalogue.",
+    "The address may be out of date.",
+  "categories.category.back_to_catalog": "Back to the catalogue",
   "categories.category.subcategories": "Subcategories",
   "categories.category.subcategories_count.one": "{count} subcategory",
   "categories.category.subcategories_count.other": "{count} subcategories",
@@ -172,7 +209,17 @@ export const categoriesI18nBundleEn: Record<string, string> = {
   "categories.features.load_failed": "We could not load the details",
   "categories.features.empty": "This category asks for no extra details",
   "categories.features.mandatory": "Required",
-  "categories.features.type": "{type}",
+  "categories.features.type.string": "Text",
+  "categories.features.type.int": "Whole number",
+  "categories.features.type.float": "Number",
+  "categories.features.type.bool": "Yes or no",
+  "categories.features.type.select": "Choice",
+  "categories.features.type.date": "Date",
+  "categories.features.type.header": "Section heading",
+  "categories.features.type.hex_color": "Colour",
+  "categories.features.type.hierarchical_select": "Nested choice",
+  "categories.features.type.convertible_unit": "Measurement",
+  "categories.features.type.other": "Another kind of detail",
   "categories.features.untyped": "This detail has no type and cannot be shown",
 };
 

@@ -84,13 +84,12 @@ describe("ownership of the nine un-catalogued keys", () => {
 });
 
 describe("interpolation slots survive translation", () => {
-  it("keeps {avg}/{max}, {count} and {status} in every locale", () => {
+  it("keeps {avg}/{max}, {count} and {index} in every locale", () => {
     const slots: Record<string, readonly string[]> = {
       "reviews.rating.value": ["{avg}", "{max}"],
       // The count is a plural FAMILY now, so `other` — the one category every
       // CLDR locale defines — is what a cross-locale check may demand.
       "reviews.rating.count.other": ["{count}"],
-      "reviews.status.unknown": ["{status}"],
       "reviews.rating.star_label": ["{index}", "{max}"],
     };
     for (const bundle of [
@@ -104,6 +103,18 @@ describe("interpolation slots survive translation", () => {
           expect(text, `${key} in one of the bundles`).toContain(slot);
         }
       }
+    }
+  });
+
+  it("does NOT put the raw status in the unknown-state chip", () => {
+    // `quarantined` is the server's vocabulary. It stays on the element as a
+    // data attribute; the chip says something a moderator can act on.
+    for (const bundle of [
+      reviewsI18nBundleEn,
+      reviewsI18nBundleRu,
+      reviewsI18nBundleEs,
+    ]) {
+      expect(String(bundle["reviews.status.unknown"])).not.toContain("{status}");
     }
   });
 });

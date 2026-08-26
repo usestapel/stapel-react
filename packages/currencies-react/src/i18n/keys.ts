@@ -29,9 +29,14 @@ export const CURRENCIES_I18N_KEYS = {
   pickerPlaceholder: "currencies.picker.placeholder",
   pickerSearch: "currencies.picker.search",
   pickerLoading: "currencies.picker.loading",
-  pickerEmpty: "currencies.picker.empty",
-  pickerFailed: "currencies.picker.failed",
   pickerRetry: "currencies.picker.retry",
+
+  /** One catalogue, one voice: the picker and the rate table state the same
+   * two situations with the same sentences, and neither ever renders the
+   * server's own `error` string. */
+  catalogEmpty: "currencies.catalog.empty",
+  catalogEmptyHint: "currencies.catalog.emptyHint",
+  catalogFailed: "currencies.catalog.failed",
 
   fieldAmount: "currencies.field.amount",
   fieldInvalidAmount: "currencies.field.invalidAmount",
@@ -39,9 +44,7 @@ export const CURRENCIES_I18N_KEYS = {
   tableCode: "currencies.table.code",
   tableName: "currencies.table.name",
   tableRate: "currencies.table.rate",
-  tableSymbol: "currencies.table.symbol",
   tableBaseNote: "currencies.table.baseNote",
-  tableEmpty: "currencies.table.empty",
 
   dialogDismiss: "currencies.dialog.dismiss",
 } as const;
@@ -88,9 +91,12 @@ export const currenciesI18nBundleEn: I18nDictionary = {
   "currencies.picker.placeholder": "Choose a currency",
   "currencies.picker.search": "Search by code or name",
   "currencies.picker.loading": "Loading currencies…",
-  "currencies.picker.empty": "No currencies are configured for this site.",
-  "currencies.picker.failed": "Currencies could not be loaded.",
   "currencies.picker.retry": "Try again",
+
+  "currencies.catalog.empty": "No currencies are configured for this site.",
+  "currencies.catalog.emptyHint":
+    "Prices stay in the currency each seller quoted until one is added.",
+  "currencies.catalog.failed": "Currencies could not be loaded.",
 
   "currencies.field.amount": "Amount",
   "currencies.field.invalidAmount": "Enter an amount like 1500 or 1500.00.",
@@ -98,10 +104,8 @@ export const currenciesI18nBundleEn: I18nDictionary = {
   "currencies.table.code": "Code",
   "currencies.table.name": "Name",
   "currencies.table.rate": "Rate",
-  "currencies.table.symbol": "Symbol",
   "currencies.table.baseNote":
     "Rates are relative to {base}. The catalogue serves no update time, so these are the latest the site holds — not a quote.",
-  "currencies.table.empty": "No currencies are configured for this site.",
 
   "currencies.dialog.dismiss": "Close",
 

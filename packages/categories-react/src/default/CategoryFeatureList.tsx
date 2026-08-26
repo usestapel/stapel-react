@@ -22,7 +22,7 @@ import { BUILTIN_VALUE_EDITOR_TYPES } from "@stapel/attributes-react/default";
 import { featureCommentLabel, renderCategoryLabel } from "../catalog/labels.js";
 import { CategoryFeatures } from "../headless/CategoryFeatures.js";
 import type { CategoryFeatureEntry } from "../headless/CategoryFeatures.js";
-import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
+import { CATEGORIES_I18N_KEYS, FEATURE_TYPE_LABEL_KEYS } from "../i18n/keys.js";
 import {
   EmptyState,
   ErrorAlert,
@@ -108,8 +108,11 @@ export function CategoryFeatureList(
                             ) : null}
                           </Flex>
                           <Flex gap={spacing[1]} align="center">
+                            {/* "Required" is a fact about the field, not a
+                                failure: the danger token made every mandatory
+                                row read as an error. */}
                             {entry.mandatory ? (
-                              <Tag color="red">
+                              <Tag>
                                 {t(CATEGORIES_I18N_KEYS.featuresMandatory)}
                               </Tag>
                             ) : null}
@@ -118,15 +121,21 @@ export function CategoryFeatureList(
                                 {t(CATEGORIES_I18N_KEYS.featuresUntyped)}
                               </Tag>
                             ) : (
+                              // The WORD, never the identifier: `int`, `bool`
+                              // and a host's own `holo_signature` were the
+                              // badge's copy on a public category page. The
+                              // machine name stays on the element, where a
+                              // test can read it and a person cannot.
                               <Tag
                                 {...(drawable.has(entry.type)
                                   ? {}
                                   : { color: "warning" })}
                                 data-feature-type={entry.type}
                               >
-                                {t(CATEGORIES_I18N_KEYS.featuresType, {
-                                  type: entry.type,
-                                })}
+                                {t(
+                                  FEATURE_TYPE_LABEL_KEYS[entry.type] ??
+                                    CATEGORIES_I18N_KEYS.featuresTypeOther
+                                )}
                               </Tag>
                             )}
                           </Flex>

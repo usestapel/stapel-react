@@ -14,7 +14,7 @@
  * one line. Absent, an anchor renders exactly as before, so nothing that
  * worked stops working.
  */
-import type { ReactElement, ReactNode } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Typography } from "antd";
 import type { LinkComponent } from "@stapel/core";
 
@@ -25,11 +25,17 @@ export interface CategoryLinkProps {
   readonly children: ReactNode;
   /** The row's slug, kept on the DOM for hosts and tests that key on it. */
   readonly slug?: string;
+  /** Inline styles for the anchor — how a list row makes the WHOLE row the
+   * target instead of a 24px word inside it. */
+  readonly style?: CSSProperties;
 }
 
 export function CategoryLink(props: CategoryLinkProps): ReactElement {
   const Link = props.linkComponent;
-  const attributes = props.slug === undefined ? {} : { "data-category-slug": props.slug };
+  const attributes = {
+    ...(props.slug === undefined ? {} : { "data-category-slug": props.slug }),
+    ...(props.style === undefined ? {} : { style: props.style }),
+  };
   return Link !== undefined ? (
     <Link href={props.href} {...attributes}>
       {props.children}

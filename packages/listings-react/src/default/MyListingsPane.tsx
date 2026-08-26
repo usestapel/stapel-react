@@ -52,7 +52,7 @@ import {
   SkinConfirm,
   SkinTheme,
 } from "@stapel/tokens-antd/skin";
-import { matchList, matchLoad, useT } from "@stapel/core";
+import { matchList, matchLoad, useT, useTPlural } from "@stapel/core";
 import type { SignInCtaProp } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
 import type { MyListingCard } from "../api/types.js";
@@ -86,6 +86,11 @@ const TAB_EMPTY: Readonly<Record<MyListingsTab, string>> = {
  * a fixed measure because the column must not reflow per row. */
 const THUMB_WIDTH = "4.5rem";
 
+/** How wide a dashboard row may get. A 1280px window gave the four wrapped
+ * action buttons ~560px of empty space to split across, stranding the reason
+ * text between them. */
+const MINE_MEASURE = "60rem";
+
 function MyListingRow(props: {
   listing: MyListingCard;
   onEdit?: ((id: number) => void) | undefined;
@@ -110,7 +115,13 @@ function MyListingRow(props: {
   // one shape §83 forbids: with no `onEdit` — which is exactly how the
   // scripted scaffold mounts this pane — the button used to be enabled,
   // clickable and inert. It is now switched off WITH the reason.
-  const editGate = actions.editGate(onEdit !== undefined);
+  //
+  // "This app has no editing screen" is a fact about the BUILD, not about the
+  // row, so with six rows it printed six identical refusals down one column.
+  // A build-wide refusal is stated once, by the pane, and the button it
+  // refuses is not drawn at all.
+  const editGate = actions.editGate(true);
+  const hasEditor = onEdit !== undefined;
   const cover = props.listing.images?.[0] ?? props.listing.images_draft?.[0];
 
   return (
@@ -149,18 +160,20 @@ function MyListingRow(props: {
           {/* Wrap, never overflow: four actions do not fit across 390px and a
               clipped "Delete" is a control that is not there. */}
           <Flex wrap gap={spacing[2]} align="flex-start">
-            <GatedButton
-              gate={editGate}
-              size="small"
-              testId="listings-mine-edit"
-              data-analytics="none"
-              data-analytics-reason="business action — host app wraps with its own tracked()"
-              onClick={() => {
-                onEdit?.(props.listing.id);
-              }}
-            >
-              {t(LISTINGS_I18N_KEYS.mineEdit)}
-            </GatedButton>
+            {hasEditor ? (
+              <GatedButton
+                gate={editGate}
+                size="small"
+                testId="listings-mine-edit"
+                data-analytics="none"
+                data-analytics-reason="business action — host app wraps with its own tracked()"
+                onClick={() => {
+                  onEdit?.(props.listing.id);
+                }}
+              >
+                {t(LISTINGS_I18N_KEYS.mineEdit)}
+              </GatedButton>
+            ) : null}
             <GatedButton
               gate={actions.complete}
               size="small"
@@ -215,6 +228,7 @@ export interface MyListingsPaneProps extends ThemeModeProp, SignInCtaProp {
 
 export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
   const t = useT();
+  const tPlural = useTPlural();
   const bag = useMyListings(
     props.source !== undefined ? { source: props.source } : {}
   );
@@ -241,7 +255,7 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
   return (
     <SkinTheme
       surface="base"
-      style={{ padding: spacing[4] }}
+      style={{ padding: spacing[4], maxWidth: MINE_MEASURE }}
       {...(props.mode !== undefined ? { mode: props.mode } : {})}
     >
       <Flex vertical gap={spacing[4]} data-testid="listings-mine">
@@ -249,7 +263,11 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
           {t(LISTINGS_I18N_KEYS.mineTitle)}
         </Typography.Title>
 
+
         {!bag.gate.available ? (
+          // A refused pane is ONE state, not a banner above a live-looking
+          // dashboard: the tabs still advertised "Active 2 · Drafts 3" to a
+          // visitor who could not read a single row.
           <EmptyState
             testId="listings-mine-blocked"
             title={t(bag.gate.block.code, bag.gate.block.params)}
@@ -257,8 +275,8 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
               <SignInLink cta={props.signIn} testId="listings-mine-sign-in" />
             }
           />
-        ) : null}
-
+        ) : (
+          <>
         {/* The rows no tab folds in — see the header, point 2. Rendered
             only when there are some: an empty takedown section is a scare,
             and a failure to CHECK is not the same as "none", so it says so. */}
@@ -276,7 +294,9 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
           ready: (rows) => (
             <Flex vertical gap={spacing[2]} data-testid="listings-mine-takedowns">
               <Typography.Text type="warning" strong>
-                {t(LISTINGS_I18N_KEYS.mineBlockedTitle, { count: rows.length })}
+                {tPlural(LISTINGS_I18N_KEYS.mineBlockedTitle, {
+                  count: rows.length,
+                })}
               </Typography.Text>
               <List
                 dataSource={[...rows]}
@@ -323,13 +343,26 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
 
         {matchLoad(bag.counters, {
           loading: () => null,
+          // One failure, one treatment: the rows' failure is an ErrorAlert, so
+          // the counters' is one too — inline, because it costs a number, not
+          // the screen.
           failed: () => (
-            <Typography.Text type="secondary" data-testid="listings-mine-counters-failed">
-              {t(LISTINGS_I18N_KEYS.mineCountersFailed)}
-            </Typography.Text>
+            <ErrorAlert
+              variant="inline"
+              testId="listings-mine-counters-failed"
+              message={t(LISTINGS_I18N_KEYS.mineCountersFailed)}
+            />
           ),
           ready: () => null,
         })}
+
+        {/* A build-wide refusal, said once. It used to be printed beside a
+            switched-off Edit button on every row. */}
+        {props.onEdit === undefined ? (
+          <Typography.Text type="secondary" data-testid="listings-mine-no-editor">
+            {t(LISTINGS_I18N_KEYS.blockedNoEditor)}
+          </Typography.Text>
+        ) : null}
 
         {matchList(bag.rows, {
           loading: () => (
@@ -396,6 +429,9 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
             </GatedButton>
           </Flex>
         ) : null}
+
+          </>
+        )}
 
         <SkinConfirm
           open={removingId !== null}

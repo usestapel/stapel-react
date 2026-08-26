@@ -91,8 +91,10 @@ const demoBundleEn: Record<string, string> = {
   "demo.brand.makita": "Makita",
   "demo.unit.watt": "W",
   "demo.listings.title": "Listings in {category}",
-  "demo.link.plain": "Phones (plain anchor)",
-  "demo.link.router": "Phones (host router)",
+  // Demo copy is photographed copy: an API note in a link label is the same
+  // defect as an API note in product copy.
+  "demo.link.plain": "Phones",
+  "demo.link.router": "Phones",
 };
 
 /**

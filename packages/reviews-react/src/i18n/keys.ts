@@ -52,6 +52,9 @@ export const REVIEWS_I18N_KEYS = {
   // the content.
   formHeading: "reviews.form.heading",
   formRatingLabel: "reviews.form.rating_label",
+  /** The scale, said out loud: a row of stars alone does not say what the
+   * ends mean, and on a 1-10 scale it does not even say how many there are. */
+  formRatingHint: "reviews.form.rating_hint",
   formBodyLabel: "reviews.form.body_label",
   formBodyPlaceholder: "reviews.form.body_placeholder",
   formSubmit: "reviews.form.submit",
@@ -175,15 +178,16 @@ export const reviewsI18nBundleEn: I18nDictionary = {
   "reviews.list.refresh": "Refresh",
   "reviews.list.more.blocked.end": "That is all of them",
   "reviews.list.more.blocked.pending": "Loading…",
-  "reviews.list.scope.narrowed":
-    "Published reviews only. Pending and hidden ones are shown to a moderator of this item, and nothing here says you are one.",
+  "reviews.list.scope.narrowed": "Published reviews only.",
 
   "reviews.review.author_fallback": "A customer",
   "reviews.review.response_heading": "Reply from the seller",
 
   "reviews.status.pending": "Awaiting moderation",
   "reviews.status.hidden": "Hidden by moderation",
-  "reviews.status.unknown": "Unknown state: {status}",
+  // The raw status (`quarantined`) is the server's vocabulary and a
+  // moderator can do nothing with it; the machine name stays on the element.
+  "reviews.status.unknown": "Not yet published",
 
   "reviews.rating.none": "No rating yet",
   "reviews.rating.value": "{avg} out of {max}",
@@ -193,6 +197,7 @@ export const reviewsI18nBundleEn: I18nDictionary = {
 
   "reviews.form.heading": "Rate this",
   "reviews.form.rating_label": "Your rating",
+  "reviews.form.rating_hint": "Tap a star: {min} is poor, {max} is excellent.",
   "reviews.form.body_label": "Your review",
   "reviews.form.body_placeholder": "What was the deal like? (optional)",
   "reviews.form.submit": "Send",

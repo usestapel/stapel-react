@@ -65,7 +65,7 @@
         },
         {
           "id": "unwired",
-          "description": "Nothing wired: four named placeholders where four invented controls used to be.",
+          "description": "Nothing wired, shown as a developer sees it: four named placeholders where four invented controls used to be. In production the placeholder AND its label are absent — a labelled void is a promise of a control that never comes.",
           "viewport": "phone",
           "step": "choosing_category_slots_empty"
         },
@@ -84,7 +84,7 @@
       ],
       "source": {
         "file": "demo/ListingComposer.demo.tsx",
-        "line": 235
+        "line": 239
       }
     },
     {
