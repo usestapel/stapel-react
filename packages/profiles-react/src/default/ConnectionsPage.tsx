@@ -27,6 +27,7 @@ import { spacing } from "@stapel/tokens";
 import type { ConnectionKind } from "../headless/ConnectionList.js";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
 import { ConnectionList } from "./ConnectionList.js";
+import { SEGMENTED_TRACK } from "./parts.js";
 
 /** The page's own comfortable measure. A length in `rem`, so it scales with
  * the root type rather than pinning a pixel width. */
@@ -68,7 +69,11 @@ export function ConnectionsPage(props: ConnectionsPageProps): ReactElement {
       <Flex
         vertical
         gap={spacing[5]}
-        style={{ width: "100%", maxWidth: CONNECTIONS_MAX_WIDTH }}
+        style={{
+          width: "100%",
+          maxWidth: CONNECTIONS_MAX_WIDTH,
+          marginInline: "auto",
+        }}
       >
         <div>
           <Typography.Title level={3} style={{ marginTop: 0 }}>
@@ -86,6 +91,7 @@ export function ConnectionsPage(props: ConnectionsPageProps): ReactElement {
           // in a narrow container; the 44px control height comes from
           // SkinTheme on a phone, not from a literal here.
           block
+          style={SEGMENTED_TRACK}
           aria-label={t(PROFILES_I18N_KEYS.connectionsKindLabel)}
           options={KINDS.map((k) => ({ value: k, label: t(KIND_LABEL[k]) }))}
           data-testid="connections-kind"

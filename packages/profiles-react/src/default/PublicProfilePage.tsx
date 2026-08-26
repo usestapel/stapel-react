@@ -29,7 +29,7 @@
  * `categories-react`'s `<CategoryPage slug=…>` uses.
  */
 import type { ReactElement } from "react";
-import { Card, Flex, Typography } from "antd";
+import { Card, Flex, Rate, Typography } from "antd";
 import { LoadBoundary, SkinTheme } from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
 import { loadStateFromQuery, useT, useTPlural } from "@stapel/core";
@@ -42,6 +42,13 @@ import type { PublicProfile } from "../api/types.js";
 
 /** The page's comfortable measure — a `rem` length, not a pinned pixel box. */
 export const PUBLIC_PROFILE_MAX_WIDTH = "42rem";
+
+/**
+ * The top of the rating scale (`stapel_profiles`' `rating` is a 0-5 mean).
+ * A bare "4.8" is not a rating — it is a number that could be out of five, ten
+ * or a hundred, which is what the visual pass found on this screen.
+ */
+export const PUBLIC_RATING_MAX = 5;
 
 export interface PublicProfilePageProps {
   /** Whose profile. The `:userId` segment of the host's `/u/:userId` route. */
@@ -98,8 +105,13 @@ function PublicProfileBody(props: {
                   count: profile.followers_count,
                 })}
               />
+              {/* THIRD person. `countFollowing` is the caller's own list copy
+                  ("31 people you follow") and reading it on somebody else's
+                  profile told the visitor a fact about themselves that was not
+                  even true. Followers needs no such split — "128 followers" is
+                  already about whoever the page is about. */}
               <Stat
-                value={tPlural(PROFILES_I18N_KEYS.countFollowing, {
+                value={tPlural(PROFILES_I18N_KEYS.publicCountFollowing, {
                   count: profile.following_count,
                 })}
               />
@@ -130,11 +142,26 @@ function PublicProfileBody(props: {
             <Typography.Text type="secondary">
               {t(PROFILES_I18N_KEYS.publicRating)}
             </Typography.Text>
-            <Typography.Text data-testid="public-profile-rating">
-              {profile.rating.toLocaleString(undefined, {
-                maximumFractionDigits: 1,
-              })}
-            </Typography.Text>
+            {/* A number needs its scale to mean anything: stars carry it at a
+                glance, the sentence carries it for a screen reader and for
+                anybody the stars do not reach. */}
+            <Flex align="center" gap={spacing[2]}>
+              <Rate
+                disabled
+                allowHalf
+                count={PUBLIC_RATING_MAX}
+                value={profile.rating}
+                aria-hidden
+              />
+              <Typography.Text data-testid="public-profile-rating">
+                {t(PROFILES_I18N_KEYS.publicRatingValue, {
+                  value: profile.rating.toLocaleString(undefined, {
+                    maximumFractionDigits: 1,
+                  }),
+                  max: String(PUBLIC_RATING_MAX),
+                })}
+              </Typography.Text>
+            </Flex>
           </Flex>
         )}
 
@@ -158,7 +185,13 @@ export function PublicProfilePage(props: PublicProfilePageProps): ReactElement {
       {...(props.mode !== undefined ? { mode: props.mode } : {})}
       data-testid="public-profile-page"
     >
-      <div style={{ width: "100%", maxWidth: PUBLIC_PROFILE_MAX_WIDTH }}>
+      <div
+        style={{
+          width: "100%",
+          maxWidth: PUBLIC_PROFILE_MAX_WIDTH,
+          marginInline: "auto",
+        }}
+      >
         <LoadBoundary
           state={loadStateFromQuery(query)}
           onRetry={() => {

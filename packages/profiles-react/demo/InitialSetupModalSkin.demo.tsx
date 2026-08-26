@@ -44,6 +44,9 @@ export default defineDemo({
   description:
     "The first-run prompt: display name, theme and app language in the same row canon the settings screen uses, committed in ONE PATCH carrying initial_setup_passed. Save states why it is off, as text beside it, because a disabled button fires no pointer events and a tooltip there is a reason nobody can read.",
   component: InitialSetupModal,
+  // The headless prompt this skin is the face of — covered here rather
+  // than by the `state.step` card that used to ship beside it.
+  covers: ["InitialSetupPrompt"],
   tokens: ["surface-raised", "text"],
   variants: {
     "first-run": {

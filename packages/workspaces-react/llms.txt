@@ -121,17 +121,10 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
-- workspaces.accept → <AcceptInvitation> [default]  demo/AcceptInvitation.demo.tsx
 - workspaces.audit-trail → <AuditTrailPane> [default|empty]  demo/AuditTrailPaneSkin.demo.tsx
-- workspaces.can → <Can> [default]  demo/Can.demo.tsx
 - workspaces.invitations-pane → <InvitationsPane> [default|terminal|empty]  demo/InvitationsPaneSkin.demo.tsx
-- workspaces.invite-accept → <InviteAcceptFlow> [default]  demo/InviteAcceptFlow.demo.tsx
 - workspaces.invite-accept-page → <InviteAcceptPage> [default|wrong-account|expired]  demo/InviteAcceptPageSkin.demo.tsx
-- workspaces.list → <WorkspaceList> [default]  demo/WorkspaceList.demo.tsx
-- workspaces.members → <Members> [default]  demo/Members.demo.tsx
 - workspaces.members-manager → <MembersManager> [default|read-only|empty|no-workspace]  demo/MembersManagerSkin.demo.tsx
-- workspaces.provider → <WorkspacesProvider> [default]  demo/Workspaces.demo.tsx
-- workspaces.role-select → <RoleSelect> [default]  demo/RoleSelect.demo.tsx
 - workspaces.role-select-field → <RoleSelectField> [default|no-registry]  demo/RoleSelectFieldSkin.demo.tsx
 - workspaces.workspace-settings → <WorkspaceSettings> [default|delete-refused]  demo/WorkspaceSettingsSkin.demo.tsx
 - workspaces.workspaces-page → <WorkspacesPage> [default|empty|failed]  demo/WorkspacesPageSkin.demo.tsx

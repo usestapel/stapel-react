@@ -15,7 +15,7 @@
  * headless component needs: query client, i18n, and the gdpr runtime.
  */
 import { useMemo } from "react";
-import type { CSSProperties, ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider, createI18n, useT } from "@stapel/core";
 import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
@@ -73,11 +73,9 @@ export function mockFetch(handlers: DemoHandlers): typeof globalThis.fetch {
 /** i18n copy for the demo chrome — a `demo.*` (unmanaged) namespace, so the
  * i18n-key-exists lint treats it as app-local and never false-positives. */
 const demoBundleEn: Record<string, string> = {
-  "demo.action.start": "Start",
-  "demo.action.submit": "Submit",
-  "demo.action.reset": "Reset",
-  "demo.label.step": "state.step",
-  "demo.label.captcha": "Your captcha widget renders here",
+  "demo.captcha.title": "Confirm you are a person",
+  "demo.captcha.checkbox": "I am not a robot",
+  "demo.captcha.provider": "Protected by your captcha provider",
 };
 
 /**
@@ -116,113 +114,44 @@ export function GdprDemoHarness(props: {
 
 // ── shared demo UI (token-driven; no raw colours, no literal prose) ───────────
 
-const cardStyle: CSSProperties = {
-  background: cssVar("surface-raised"),
-  color: cssVar("text"),
-  border: `1px solid ${cssVar("border-subtle")}`,
-  borderRadius: radii.lg,
-  padding: spacing["5"],
-  display: "flex",
-  flexDirection: "column",
-  gap: spacing["3"],
-  maxWidth: "24rem",
-  fontSize: fontSize.md.fontSize,
-};
-
-/** A titled card wrapper for a demo body. `heading` (not `title`) keeps the
- * no-hardcoded-text rule from treating a technical component name as prose. */
-export function DemoCard(props: {
-  heading: ReactNode;
-  children: ReactNode;
-}): ReactElement {
-  return (
-    <div style={cardStyle} data-theme-surface>
-      <strong style={{ fontSize: fontSize.lg.fontSize }}>{props.heading}</strong>
-      {props.children}
-    </div>
-  );
-}
-
-/** Renders the current flow step (a technical token, never user prose). */
-export function StepBadge(props: { step: string }): ReactElement {
-  const t = useT();
-  return (
-    <div style={{ display: "flex", gap: spacing["2"], alignItems: "center" }}>
-      <span style={{ color: cssVar("text-muted") }}>
-        {t("demo.label.step")}
-      </span>
-      <code
-        style={{
-          background: cssVar("surface-sunken"),
-          color: cssVar("link"),
-          borderRadius: radii.sm,
-          // Size tokens are unitless numbers; React only auto-appends `px` to
-          // single numeric values, so multi-value shorthands spell the unit.
-          padding: `${spacing["1"]}px ${spacing["2"]}px`,
-        }}
-      >
-        {props.step}
-      </code>
-    </div>
-  );
-}
-
-const buttonStyle: CSSProperties = {
-  background: cssVar("brand"),
-  color: cssVar("text-on-accent"),
-  border: "none",
-  borderRadius: radii.md,
-  // See StepBadge: unitless tokens need an explicit unit in shorthands.
-  padding: `${spacing["2"]}px ${spacing["4"]}px`,
-  cursor: "pointer",
-  fontSize: fontSize.sm.fontSize,
-};
-
-/**
- * A demo action button. The interactive prop is `run` (not `onClick`) so the
- * call site is not an untracked clickable; the real `<button>` here declares
- * `data-analytics="none"` with a `data-analytics-reason` — honest, because this scaffold ships no flow machines yet (only the provider), so the button steps nothing auto-instrumented. Switch to `data-analytics="flow"` once a bag action drives a real machine.
- */
-export function DemoButton(props: {
-  run: () => void;
-  labelKey: string;
-}): ReactElement {
-  const t = useT();
-  return (
-    <button style={buttonStyle} data-analytics="none" data-analytics-reason="no-flow-machines" onClick={props.run}>
-      {t(props.labelKey)}
-    </button>
-  );
-}
-
 /**
  * Stand-in for the challenge widget a host renders into the public intake
- * page's `captcha` slot. It is a STAND-IN and says so: this package ships no
- * captcha and cannot know which provider a deployment uses, so the demo shows
- * the shape of the seam rather than pretending to a provider.
+ * page's `captcha` slot.
+ *
+ * It looks like a CAPTCHA, because this is a photograph of a public page that
+ * a stranger reaches from a privacy policy: the slot used to render a dashed
+ * dev outline captioned "your captcha widget renders here", which is a note to
+ * the developer shipped as the product. A slot's stand-in has to render a
+ * plausible default. It is inert — this package ships no captcha and cannot
+ * know a deployment's provider — and the demo threads a fixed token to the
+ * form, exactly as a real widget would.
  */
 export function DemoCaptcha(): ReactElement {
   const t = useT();
   return (
     <div
       style={{
-        border: `1px dashed ${cssVar("border-subtle")}`,
+        border: `1px solid ${cssVar("border-subtle")}`,
         borderRadius: radii.md,
+        background: cssVar("surface-raised"),
         padding: spacing["3"],
-        color: cssVar("text-muted"),
+        display: "flex",
+        flexDirection: "column",
+        gap: spacing["2"],
         fontSize: fontSize.sm.fontSize,
+        color: cssVar("text"),
       }}
     >
-      {t("demo.label.captcha")}
-    </div>
-  );
-}
-
-/** A row of demo action buttons. */
-export function DemoActions(props: { children: ReactNode }): ReactElement {
-  return (
-    <div style={{ display: "flex", gap: spacing["2"], flexWrap: "wrap" }}>
-      {props.children}
+      <span style={{ color: cssVar("text-muted"), fontSize: fontSize.xs.fontSize }}>
+        {t("demo.captcha.title")}
+      </span>
+      <label style={{ display: "flex", alignItems: "center", gap: spacing["2"] }}>
+        <input type="checkbox" defaultChecked readOnly />
+        {t("demo.captcha.checkbox")}
+      </label>
+      <span style={{ color: cssVar("text-muted"), fontSize: fontSize.xs.fontSize }}>
+        {t("demo.captcha.provider")}
+      </span>
     </div>
   );
 }

@@ -54,7 +54,7 @@ import {
 import { useWorkspaceFormat } from "../model/format.js";
 import type { Invitation, InvitationStatusFilter, InvitationsParams } from "../api/types.js";
 import { WORKSPACES_I18N_KEYS } from "../i18n/keys.js";
-import { AnchorPager, Muted, PersonLine, StatusTag } from "./parts.js";
+import { AnchorPager, Muted, PersonLine, RowActions, StatusTag } from "./parts.js";
 import { ActiveWorkspaceBoundary } from "./ActiveWorkspace.js";
 import { RoleLabel } from "./RoleSelectField.js";
 
@@ -328,6 +328,25 @@ function resendable(invitation: Invitation): ActionAvailability {
     : actionBlocked(WORKSPACES_I18N_KEYS.invitationsBlockedResendTerminal);
 }
 
+/**
+ * The row's refusal as ONE sentence, or `null` when nothing on it is refused.
+ *
+ * Both gates above answer the same question — what became of this invitation —
+ * and the row's status tag has already named it. So a row states the
+ * consequence once, in the shape a person reads it ("nothing more can be done
+ * with it" / "only resending is left"), instead of repeating a four-way
+ * disjunction under every button.
+ */
+function rowReasonKey(invitation: Invitation): string | null {
+  const liveRefused = !pendingOnly(invitation).available;
+  const resendRefused = !resendable(invitation).available;
+  if (liveRefused && resendRefused) {
+    return WORKSPACES_I18N_KEYS.invitationsBlockedRowClosed;
+  }
+  if (liveRefused) return WORKSPACES_I18N_KEYS.invitationsBlockedRowResendOnly;
+  return null;
+}
+
 function InvitationRow(props: {
   readonly invitation: Invitation;
   readonly canManage: boolean;
@@ -342,6 +361,7 @@ function InvitationRow(props: {
   const statusKey = STATUS_KEY[invitation.status];
   const expires = format.relative(invitation.expires_at);
   const lastSent = format.relative(invitation.last_sent_at);
+  const reasonKey = rowReasonKey(invitation);
 
   return (
     <div
@@ -386,42 +406,34 @@ function InvitationRow(props: {
         }
       />
       {props.canManage && (
-        <Flex gap={spacing["2"]} align="flex-start" wrap>
-          <GatedButton
-            gate={pendingOnly(invitation)}
-            type="link"
-            size="small"
-            onClick={props.onRename}
-            testId={`invitation-rename-${invitation.id}`}
-            data-analytics="none"
-            data-analytics-reason="opens the rename dialog"
-          >
-            {t(WORKSPACES_I18N_KEYS.invitationsRename)}
-          </GatedButton>
-          <GatedButton
-            gate={resendable(invitation)}
-            type="link"
-            size="small"
-            onClick={props.onResend}
-            testId={`invitation-resend-${invitation.id}`}
-            data-analytics="none"
-            data-analytics-reason="opens the resend confirm"
-          >
-            {t(WORKSPACES_I18N_KEYS.invitationsResend)}
-          </GatedButton>
-          <GatedButton
-            gate={pendingOnly(invitation)}
-            danger
-            type="link"
-            size="small"
-            onClick={props.onRevoke}
-            testId={`invitation-revoke-${invitation.id}`}
-            data-analytics="none"
-            data-analytics-reason="opens the revoke confirm"
-          >
-            {t(WORKSPACES_I18N_KEYS.invitationsRevoke)}
-          </GatedButton>
-        </Flex>
+        <RowActions
+          testId={`invitation-blocked-${invitation.id}`}
+          {...(reasonKey !== null ? { reason: t(reasonKey) } : {})}
+          actions={[
+            {
+              key: "rename",
+              gate: pendingOnly(invitation),
+              label: t(WORKSPACES_I18N_KEYS.invitationsRename),
+              onClick: props.onRename,
+              testId: `invitation-rename-${invitation.id}`,
+            },
+            {
+              key: "resend",
+              gate: resendable(invitation),
+              label: t(WORKSPACES_I18N_KEYS.invitationsResend),
+              onClick: props.onResend,
+              testId: `invitation-resend-${invitation.id}`,
+            },
+            {
+              key: "revoke",
+              gate: pendingOnly(invitation),
+              label: t(WORKSPACES_I18N_KEYS.invitationsRevoke),
+              onClick: props.onRevoke,
+              danger: true,
+              testId: `invitation-revoke-${invitation.id}`,
+            },
+          ]}
+        />
       )}
     </div>
   );

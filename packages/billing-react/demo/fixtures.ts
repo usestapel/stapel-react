@@ -191,17 +191,27 @@ export const DEMO_SUBSCRIPTION_CANCELLED = {
   cancelled_at: "2026-08-20T10:00:00Z",
 };
 
-/** A ledger page carrying every shape a row can take: a purchase, two
- * charges, the plan's monthly grant, and credits that died of old age. */
+/**
+ * A ledger page carrying every shape a row can take: a purchase, a charge,
+ * the plan's monthly grant, and credits that died of old age.
+ *
+ * THE COLUMN RECONCILES, newest first, and it lands on the wallet's own
+ * `balance`. Read bottom-up: 0 → +1,000 (the plan's grant) → −40 (a lot
+ * expired) → −120 (an interview) → +400 (a top-up) = 1,240, which is exactly
+ * what {@link DEMO_WALLET} holds. The previous fixture ended on
+ * "Balance after: −40" beside a stated balance of 1,240 — a running total
+ * that is arithmetic nonsense is worse than no running total, because a
+ * customer checking our sums against theirs finds ours broken.
+ */
 export const DEMO_TRANSACTIONS = {
   transactions: [
     {
       id: "1a000000-0000-4000-8000-000000000001",
       type: "credit_purchase",
-      amount_cents: 1800,
-      credits_delta: 2000,
-      balance_after: 2840,
-      description: "2000 credits",
+      amount_cents: 400,
+      credits_delta: 400,
+      balance_after: 1240,
+      description: "400 credits",
       metadata: {},
       created_at: "2026-08-23T09:12:00Z",
     },
@@ -217,23 +227,23 @@ export const DEMO_TRANSACTIONS = {
     },
     {
       id: "1a000000-0000-4000-8000-000000000003",
-      type: "subscription_bonus",
-      amount_cents: null,
-      credits_delta: 1000,
-      balance_after: 960,
-      description: null,
-      metadata: {},
-      created_at: "2026-08-01T00:00:00Z",
-    },
-    {
-      id: "1a000000-0000-4000-8000-000000000004",
       type: "expiration",
       amount_cents: null,
       credits_delta: -40,
-      balance_after: -40,
+      balance_after: 960,
       description: null,
       metadata: {},
-      created_at: "2026-07-31T23:59:00Z",
+      created_at: "2026-08-02T00:05:00Z",
+    },
+    {
+      id: "1a000000-0000-4000-8000-000000000004",
+      type: "subscription_bonus",
+      amount_cents: null,
+      credits_delta: 1000,
+      balance_after: 1000,
+      description: null,
+      metadata: {},
+      created_at: "2026-08-01T00:00:00Z",
     },
   ],
   next_cursor: "cursor-page-2",

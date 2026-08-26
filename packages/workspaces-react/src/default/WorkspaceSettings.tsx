@@ -279,6 +279,9 @@ function SecurityCard(props: {
     [stored]
   );
 
+  /** What is SAVED, not what the person has just toggled: the enforcement
+   * block describes the policy the server is acting on. */
+  const storedRequireMfa = stored.require_mfa === true;
   const [requireMfa, setRequireMfa] = useState(stored.require_mfa === true);
   const [policies, setPolicies] = useState<readonly ProvisionedUserPolicy[]>(storedPolicies);
 
@@ -404,8 +407,18 @@ function SecurityCard(props: {
         </Typography.Text>
         {enforcement === null ? (
           <div style={{ marginTop: spacing["2"] }}>
+            {/* The note and the switch read the SAME value. Deriving "not
+                required in this workspace" from the absence of an enforcement
+                status instead put that sentence under a switch that was ON —
+                a screen contradicting itself two lines apart. The absence
+                means the sweep has not reported, which is a different fact
+                and is what it now says. */}
             <Muted testId="workspace-mfa-off">
-              {t(WORKSPACES_I18N_KEYS.mfaOffNotice)}
+              {t(
+                storedRequireMfa
+                  ? WORKSPACES_I18N_KEYS.mfaNoStatusYet
+                  : WORKSPACES_I18N_KEYS.mfaOffNotice
+              )}
             </Muted>
           </div>
         ) : (

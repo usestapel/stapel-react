@@ -36,6 +36,7 @@ import type { AuditEvent, AuditParams } from "../api/types.js";
 import { WORKSPACES_I18N_KEYS } from "../i18n/keys.js";
 import { AnchorPager, Muted, PersonLine, StatusTag } from "./parts.js";
 import { ActiveWorkspaceBoundary } from "./ActiveWorkspace.js";
+import { useRoleLabel } from "./RoleSelectField.js";
 
 export interface AuditTrailPaneProps {
   /**
@@ -91,6 +92,28 @@ function toneFor(action: string): "neutral" | "success" | "warning" | "danger" {
   return "neutral";
 }
 
+/**
+ * Consecutive events under the day they happened on.
+ *
+ * The wire returns the page already ordered, so grouping is a fold over
+ * neighbours — never a re-sort, which would put a client's opinion of the
+ * order above the server's cursor. An instant the formatter cannot read keeps
+ * its own group rather than being folded into the previous day.
+ */
+function groupByDay(
+  events: readonly AuditEvent[],
+  dateOf: (iso: string | null | undefined) => string | null
+): readonly { readonly label: string; readonly events: readonly AuditEvent[] }[] {
+  const groups: { label: string; events: AuditEvent[] }[] = [];
+  for (const event of events) {
+    const label = dateOf(event.created_at) ?? "";
+    const current = groups[groups.length - 1];
+    if (current !== undefined && current.label === label) current.events.push(event);
+    else groups.push({ label, events: [event] });
+  }
+  return groups;
+}
+
 export function AuditTrailPane(props: AuditTrailPaneProps): ReactElement {
   return (
     <SkinTheme data-testid="audit-trail">
@@ -107,6 +130,7 @@ export function AuditTrailPane(props: AuditTrailPaneProps): ReactElement {
 function AuditTrailBody(props: { readonly workspaceId: string }): ReactElement {
   const t = useT();
   const i18n = useI18n();
+  const format = useWorkspaceFormat();
   const [action, setAction] = useState<string | null>(null);
   const [walk, setWalk] = useState<Walk>(FIRST_PAGE);
 
@@ -171,8 +195,23 @@ function AuditTrailBody(props: { readonly workspaceId: string }): ReactElement {
         >
           {(events) => (
             <div role="list" data-testid="audit-rows">
-              {events.map((event) => (
-                <AuditRow key={event.id} event={event} label={labelForAction(event.action)} />
+              {groupByDay(events, format.date).map((day) => (
+                <section key={day.label} data-testid={`audit-day-${day.label}`}>
+                  {/* The DAY is said once, above its events. A journal that
+                      repeats "22 Aug 2026, 09:00" on every line of a burst
+                      spends its widest column on the one thing every row in
+                      the group has in common. */}
+                  <div style={{ marginTop: spacing["4"], marginBottom: spacing["1"] }}>
+                    <Typography.Text strong>{day.label}</Typography.Text>
+                  </div>
+                  {day.events.map((event) => (
+                    <AuditRow
+                      key={event.id}
+                      event={event}
+                      label={labelForAction(event.action)}
+                    />
+                  ))}
+                </section>
               ))}
             </div>
           )}
@@ -213,6 +252,7 @@ function AuditRow(props: {
 }): ReactElement {
   const t = useT();
   const format = useWorkspaceFormat();
+  const labelForRole = useRoleLabel();
   const { token } = antdTheme.useToken();
   const { event } = props;
   const actor = event.actor_display_name?.trim();
@@ -249,12 +289,21 @@ function AuditRow(props: {
                   : t(WORKSPACES_I18N_KEYS.auditActorUnknown),
             })}
             {event.role !== null && event.role !== undefined && event.role !== "" && (
-              <> · {t(WORKSPACES_I18N_KEYS.auditRoleLine, { role: event.role })}</>
+              <>
+                {" · "}
+                {/* The registry's word, not the wire's key: `admin` lowercase
+                    beside the title-cased roles the picker shows two screens
+                    over reads as broken data. */}
+                {t(WORKSPACES_I18N_KEYS.auditRoleLine, {
+                  role: labelForRole(event.role),
+                })}
+              </>
             )}
           </>
         }
       />
-      <Muted testId={`audit-when-${event.id}`}>{format.timestamp(event.created_at)}</Muted>
+      {/* The day is the group's heading; the row carries only the clock. */}
+      <Muted testId={`audit-when-${event.id}`}>{format.time(event.created_at)}</Muted>
     </div>
   );
 }

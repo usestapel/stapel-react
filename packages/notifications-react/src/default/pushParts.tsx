@@ -200,12 +200,24 @@ function DeviceRow(props: {
       >
         <Flex vertical gap={spacing[1]} style={{ minWidth: 0 }}>
           <Flex gap={spacing[2]} align="center" wrap>
+            {/* A platform the backend adds later has no label yet. The raw
+                wire value is still worth showing — it is the spelling a
+                support agent would be quoting — but as a CAPTION under a human
+                title, never as the title itself. */}
             <Typography.Text strong>
-              {/* A platform the backend adds later has no label yet; the raw
-                  value beats an empty cell, and it is the spelling a support
-                  agent would be quoting anyway. */}
-              {platformKey !== undefined ? t(platformKey) : device.platform}
+              {platformKey !== undefined
+                ? t(platformKey)
+                : t(NOTIFICATIONS_I18N_KEYS.devicesPlatformOther)}
             </Typography.Text>
+            {platformKey === undefined && (
+              <Typography.Text
+                type="secondary"
+                style={{ fontSize: token.fontSizeSM }}
+                data-testid="push-device-platform-raw"
+              >
+                {device.platform}
+              </Typography.Text>
+            )}
             {props.isThisDevice && (
               <Tag color="blue" data-testid="push-device-current">
                 {t(NOTIFICATIONS_I18N_KEYS.devicesThisDevice)}
@@ -223,9 +235,14 @@ function DeviceRow(props: {
             })}
           </Typography.Text>
         </Flex>
+        {/* Red TEXT, not a red outlined button: that is how every other pair in
+            the fleet draws a destructive action on a list row, and a row that
+            spends the only outlined control on its screen on "Remove" makes
+            deletion the loudest thing on a settings page. `size` is left alone
+            so the control keeps the phone touch floor `SkinTheme` sets. */}
         <Button
+          type="text"
           danger
-          size="small"
           disabled={props.busy}
           onClick={() => {
             props.onRemove(device.id);

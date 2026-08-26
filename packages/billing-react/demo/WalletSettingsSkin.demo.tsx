@@ -34,6 +34,8 @@ export default defineDemo({
   description:
     "The auto-recharge and low-balance settings over PATCH /wallet: a trigger balance, the package bought when it is crossed, and an alert threshold — with both switched-off states explained in words beside the control.",
   component: WalletSettings,
+  // The skin over the `Wallet` headless bag's write half (`useUpdateWallet`).
+  covers: ["Wallet"],
   variants: {
     "auto-on": {
       description:

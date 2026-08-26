@@ -43,7 +43,11 @@ export function NotificationsPage(props: NotificationsPageProps = {}): ReactElem
         paddingInline: spacing[4],
       }}
     >
-      <Flex vertical align="stretch">
+      {/* The list caps itself at a reading measure, so on a wide monitor the
+          page frame has to say where that measure SITS. Left-aligned it read
+          as a half-empty canvas with everything hugging one edge; centred, the
+          same measure reads as a page. */}
+      <Flex vertical align="center">
         <NotificationFeedList
           heading
           surface="bare"

@@ -134,6 +134,11 @@ export function DataExportPanel(props: DataExportPanelProps): ReactElement {
   const cooldown = requestError != null && isExportCooldown(requestError);
   const downloadError = bag.download.error;
 
+  // The archive can actually be taken: the SERVER says the single-use token is
+  // still unspent, and the host routed a page carrying that token. Both, or
+  // there is nothing to press.
+  const downloadToken = bag.downloadAvailable ? token : undefined;
+
   // A job is already running for this person. `cooldown` only learns that
   // AFTER the server answers 429/409 — by which time a second archive of
   // everything the product knows about somebody has already been asked for.
@@ -170,34 +175,52 @@ export function DataExportPanel(props: DataExportPanelProps): ReactElement {
           >
             {(row) =>
               row === null ? (
-                <Alert
-                  type="info"
-                  showIcon
+                // A NON-EVENT is not news. "You have not requested a data
+                // export yet" in a full-width info banner announces, in the
+                // loudest surface the card has, that nothing has happened —
+                // which is true of almost every account that ever opens this
+                // screen. Quiet body text, and the button below it is the
+                // thing to look at.
+                <Typography.Text
+                  type="secondary"
                   data-testid="gdpr-export-none"
-                  title={t(GDPR_I18N_KEYS.exportNone)}
-                />
+                >
+                  {t(GDPR_I18N_KEYS.exportNone)}
+                </Typography.Text>
               ) : (
                 <Flex vertical gap={spacing[2]} data-testid="gdpr-export-status">
                   <Typography.Text data-testid="gdpr-export-state">
                     {t(stateKeyFor(row.status))}
                   </Typography.Text>
-                  {/* Sections done / expected — the server's own two numbers,
-                      never a percentage this panel invented from one of them. */}
-                  <Progress
-                    percent={
-                      row.parts_total > 0
-                        ? Math.round((row.parts_done / row.parts_total) * 100)
-                        : 0
-                    }
-                    size="small"
-                    data-testid="gdpr-export-progress"
-                  />
-                  <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
-                    {t(GDPR_I18N_KEYS.exportProgress, {
-                      done: row.parts_done,
-                      total: row.parts_total,
-                    })}
-                  </Typography.Text>
+                  {/* Only while it is being BUILT. A finished archive shown at
+                      "80%" beside the word "Ready" states two different things
+                      about the same object; the four-of-five is not progress
+                      any more, it is the partial-archive finding, and it is
+                      named as that by the alert below. */}
+                  {bag.building ? (
+                    <>
+                      {/* Sections done / expected — the server's own two
+                          numbers, never a percentage invented from one. */}
+                      <Progress
+                        percent={
+                          row.parts_total > 0
+                            ? Math.round((row.parts_done / row.parts_total) * 100)
+                            : 0
+                        }
+                        size="small"
+                        data-testid="gdpr-export-progress"
+                      />
+                      <Typography.Text
+                        type="secondary"
+                        style={{ fontSize: fontSize.xs.fontSize }}
+                      >
+                        {t(GDPR_I18N_KEYS.exportProgress, {
+                          done: row.parts_done,
+                          total: row.parts_total,
+                        })}
+                      </Typography.Text>
+                    </>
+                  ) : null}
                   {/* A partial archive is still handed over — the deadline does
                       not pause for one silent section — but the person is told
                       WHICH parts are missing rather than finding the hole. */}
@@ -263,9 +286,26 @@ export function DataExportPanel(props: DataExportPanelProps): ReactElement {
                 is a reason nobody can read. `GatedButton` wires that text to
                 the button's `aria-describedby`, so a screen reader hears the
                 reason with the control rather than after hunting for it. */}
+            {/* ONE primary, and when an archive is sitting there ready it is
+                the one that hands it over. Requesting a second copy of
+                everything the product knows about somebody was the loud
+                indigo button while "Download archive" was the quiet outline
+                beside it — the wrong control shouted. */}
+            {downloadToken !== undefined ? (
+              <Button
+                type="primary"
+                loading={bag.download.isPending}
+                onClick={() => bag.download.mutate(downloadToken)}
+                data-testid="gdpr-export-download"
+                data-analytics="none"
+                data-analytics-reason="spends a single-use token — host app wraps with its own tracked()"
+              >
+                {t(GDPR_I18N_KEYS.exportDownload)}
+              </Button>
+            ) : null}
             <GatedButton
               gate={requestGate}
-              type="primary"
+              {...(downloadToken !== undefined ? {} : { type: "primary" as const })}
               loading={bag.request.isPending}
               onClick={() => bag.request.mutate()}
               testId="gdpr-export-request"
@@ -274,17 +314,7 @@ export function DataExportPanel(props: DataExportPanelProps): ReactElement {
             >
               {t(GDPR_I18N_KEYS.exportRequest)}
             </GatedButton>
-            {bag.downloadAvailable && token !== undefined ? (
-              <Button
-                loading={bag.download.isPending}
-                onClick={() => bag.download.mutate(token)}
-                data-testid="gdpr-export-download"
-                data-analytics="none"
-                data-analytics-reason="spends a single-use token — host app wraps with its own tracked()"
-              >
-                {t(GDPR_I18N_KEYS.exportDownload)}
-              </Button>
-            ) : bag.downloadAvailable ? (
+            {downloadToken === undefined && bag.downloadAvailable ? (
               <Typography.Text type="secondary" data-testid="gdpr-export-token-hint">
                 {t(GDPR_I18N_KEYS.exportTokenHint)}
               </Typography.Text>

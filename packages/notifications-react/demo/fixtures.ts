@@ -17,15 +17,14 @@ export const DEMO_NOW: Date = new Date("2026-03-19T10:30:00Z");
  * {@link DEMO_THIS_DEVICE}, which is how the toggle finds its own row. */
 export const DEMO_TOKEN = "demo-web-push-token";
 
+/**
+ * The rows, NEWEST FIRST — the order `GET /feed/` documents ("ordered by
+ * created_at desc") and therefore the only order a fixture standing in for it
+ * may use. The previous order put a two-day-old row above a ninety-minute-old
+ * one, which the visual pass read as a sort bug in the skin: a fixture that
+ * contradicts its own endpoint makes the screen lie about the component.
+ */
 const FEED_ITEMS: readonly FeedItem[] = [
-  {
-    id: "550e8400-e29b-41d4-a716-446655440000",
-    notification_type: "listing_blocked",
-    title: "Your listing has been blocked",
-    body: "“Vintage road bike” was blocked for guideline violations.",
-    data: { listing_url: "https://example.test/listings/9" },
-    created_at: "2026-03-17T10:30:00Z",
-  },
   {
     id: "550e8400-e29b-41d4-a716-446655440001",
     notification_type: "new_message",
@@ -33,6 +32,14 @@ const FEED_ITEMS: readonly FeedItem[] = [
     body: "Is the bike still available?",
     data: { chat_url: "https://example.test/chat/17" },
     created_at: "2026-03-19T08:55:00Z",
+  },
+  {
+    id: "550e8400-e29b-41d4-a716-446655440000",
+    notification_type: "listing_blocked",
+    title: "Your listing has been blocked",
+    body: "“Vintage road bike” was blocked for guideline violations.",
+    data: { listing_url: "https://example.test/listings/9" },
+    created_at: "2026-03-17T10:30:00Z",
   },
   {
     id: "550e8400-e29b-41d4-a716-446655440002",

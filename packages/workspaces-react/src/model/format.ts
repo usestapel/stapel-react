@@ -39,6 +39,12 @@ export interface WorkspaceFormat {
   /** Date only, no clock: `23 Sept 2026`. For a day-grained fact (joined). */
   date(iso: string | null | undefined): string | null;
   /**
+   * Clock only: `09:00`. For a row inside a list already grouped under its
+   * day — repeating the date on every line of a journal is how three events
+   * an hour apart end up printing one timestamp three times.
+   */
+  time(iso: string | null | undefined): string | null;
+  /**
    * How long ago / how far ahead, in words: `3 days ago`, `in 2 hours`.
    * Anything under a minute is "now" in every language `Intl` knows, which is
    * what `second`'s own formatting says less well.
@@ -84,6 +90,7 @@ export function createWorkspaceFormat(
     timeStyle: "short",
   });
   const dateFormat = new Intl.DateTimeFormat(safeLocale, { dateStyle: "medium" });
+  const timeFormat = new Intl.DateTimeFormat(safeLocale, { timeStyle: "short" });
   const relativeFormat = new Intl.RelativeTimeFormat(safeLocale, { numeric: "auto" });
 
   function relative(iso: string | null | undefined): string | null {
@@ -108,6 +115,10 @@ export function createWorkspaceFormat(
     date: (iso) => {
       const date = parse(iso);
       return date === null ? null : dateFormat.format(date);
+    },
+    time: (iso) => {
+      const date = parse(iso);
+      return date === null ? null : timeFormat.format(date);
     },
     relative,
     timestamp: (iso) => {

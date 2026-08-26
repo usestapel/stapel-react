@@ -29,11 +29,6 @@ export const notificationsErrorBundleRu: Record<NotificationsErrorCode, string> 
   "error.400.field.unique": "Значение поля «{field}» должно быть уникальным",
   "error.400.invalid_ad_id": "Недопустимый идентификатор объявления",
   "error.400.invalid_platform": "Платформа должна быть одной из: ios, android, web.",
-  "error.400.translate.batch_too_large": "В одном запросе допускается не более {max_items} текстов",
-  "error.400.translate.batch_too_long": "Суммарная длина текстов превышает {max_chars} символов",
-  "error.400.translate.text_required": "Укажите либо текст, либо непустой список текстов",
-  "error.400.translate.text_too_long": "Текст длиннее {max_chars} символов",
-  "error.400.translate.unsupported_language": "Язык {language} здесь не настроен",
   "error.400.validation_error": "Ошибка валидации",
   "error.400.verification_failed": "Проверка не пройдена",
   "error.400.verification_invalid_factor": "Этот способ подтверждения недоступен",
@@ -61,6 +56,5 @@ export const notificationsErrorBundleRu: Record<NotificationsErrorCode, string> 
   "error.429.rate_limit": "Слишком много попыток. Повторите попытку через {retry_after_minutes} мин.",
   "error.429.too_many_requests": "Слишком много запросов. Пожалуйста, повторите попытку позже.",
   "error.500.internal": "Что-то пошло не так",
-  "error.502.translate.provider_unavailable": "Сервис перевода недоступен",
   "error.503.mandate_unavailable": "Не удалось проверить доступ к рабочему пространству",
 };

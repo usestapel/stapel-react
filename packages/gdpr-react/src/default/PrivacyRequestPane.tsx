@@ -26,17 +26,21 @@
  * `POST /dsar` is `AllowAny` and requires a captcha token whenever the
  * deployment has a captcha backend configured. This package ships no captcha
  * and cannot know the provider, so the host renders its own challenge widget
- * into `captcha` and hands the token it produces to `captchaToken`. An
- * unfilled slot is a `SlotPlaceholder` — visible in a dev build, nothing in
- * production — so a deployment that HAS a captcha backend and forgot to wire
- * the widget finds out while building the page instead of when every public
- * submission starts answering `error.400.captcha_required`.
+ * into `captcha` and hands the token it produces to `captchaToken`.
+ *
+ * An unfilled slot renders NOTHING. It used to render a `SlotPlaceholder` — a
+ * dashed dev outline — and this is the one screen in the fleet where that is
+ * unacceptable: the page has no session, no chrome and no menu, so a stranger
+ * who followed a link from a privacy policy met a dashed box captioned with a
+ * note addressed to the developer. A deployment that forgot to wire the widget
+ * still finds out immediately, because the first submission answers
+ * `error.400.captcha_required` and the form renders that refusal by name.
  */
 import type { ReactElement, ReactNode } from "react";
 import { Flex, Typography } from "antd";
 import { spacing } from "@stapel/tokens";
 import { SkinTheme } from "@stapel/tokens-antd/skin";
-import { SlotPlaceholder, useT } from "@stapel/core";
+import { useT } from "@stapel/core";
 import type { DsarKind } from "../api/types.js";
 import { GDPR_I18N_KEYS } from "../i18n/keys.js";
 import { DsarForm } from "./DsarForm.js";
@@ -73,7 +77,7 @@ export function PrivacyRequestPane(
             {t(GDPR_I18N_KEYS.publicExplain)}
           </Typography.Paragraph>
         </Flex>
-        {captcha ?? <SlotPlaceholder name="captcha" />}
+        {captcha ?? null}
         <DsarForm
           variant="anonymous"
           {...modeProp}

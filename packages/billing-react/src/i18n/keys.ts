@@ -25,11 +25,13 @@ export const BILLING_I18N_KEYS = {
   walletThreshold: "billing.wallet.threshold",
   walletPackage: "billing.wallet.package",
   walletPackagePlaceholder: "billing.wallet.package_placeholder",
+  walletPackageNone: "billing.wallet.package_none",
   walletLowBalanceAlert: "billing.wallet.low_balance_alert",
   walletSettingsNoPackages: "billing.wallet.settings_no_packages",
   walletSettingsNeedsPackage: "billing.wallet.settings_needs_package",
   // Wallet lots + holds (stapel-billing 0.8.0; /default WalletPanel)
   walletHeading: "billing.wallet.heading",
+  walletSectionsLabel: "billing.wallet.sections_label",
   walletExpiring: "billing.wallet.expiring",
   walletExpiringRelative: "billing.wallet.expiring_relative",
   walletHeld: "billing.wallet.held",
@@ -77,7 +79,9 @@ export const BILLING_I18N_KEYS = {
   pricingCurrentPlan: "billing.pricing.current_plan",
   pricingBlockedCurrentPlan: "billing.pricing.blocked_current_plan",
   /** PLURAL FAMILY. */
-  pricingSettlesDebt: "billing.pricing.settles_debt",
+  pricingDebtNote: "billing.pricing.debt_note",
+  /** PLURAL FAMILY. */
+  pricingSpendableAfterDebt: "billing.pricing.spendable_after_debt",
   // Subscription (Subscription headless)
   subActive: "billing.subscription.active",
   subInactive: "billing.subscription.inactive",
@@ -154,12 +158,14 @@ export const billingI18nBundleEn: I18nDictionary = {
   "billing.wallet.threshold": "Top up when the balance falls below",
   "billing.wallet.package": "Package to buy",
   "billing.wallet.package_placeholder": "Choose a package",
+  "billing.wallet.package_none": "No packages to choose from",
   "billing.wallet.low_balance_alert": "Warn me when the balance falls below",
   "billing.wallet.settings_no_packages":
     "The shop sells no credit packages, so there is nothing to buy automatically.",
   "billing.wallet.settings_needs_package":
     "Choose the package to buy before switching automatic top-up on.",
   "billing.wallet.heading": "Credits & billing",
+  "billing.wallet.sections_label": "Billing sections",
   "billing.wallet.expiring": "{credits} credits expire on {date}",
   "billing.wallet.expiring_relative": "{credits} credits expire on {date} — {relative}",
   "billing.wallet.held": "{credits} credits reserved",
@@ -209,9 +215,15 @@ export const billingI18nBundleEn: I18nDictionary = {
   "billing.pricing.empty": "Nothing is on sale right now.",
   "billing.pricing.current_plan": "Your plan",
   "billing.pricing.blocked_current_plan": "This is the plan you are on.",
-  "billing.pricing.settles_debt": "{credits} of these settle what you owe",
-  "billing.pricing.settles_debt.one": "{credits} of these settles what you owe",
-  "billing.pricing.settles_debt.other": "{credits} of these settle what you owe",
+  "billing.pricing.debt_note":
+    "You owe {credits} credits. Whatever you buy next settles those first.",
+  "billing.pricing.debt_note.one":
+    "You owe {credits} credit. Whatever you buy next settles it first.",
+  "billing.pricing.debt_note.other":
+    "You owe {credits} credits. Whatever you buy next settles those first.",
+  "billing.pricing.spendable_after_debt": "{credits} left to spend",
+  "billing.pricing.spendable_after_debt.one": "{credits} left to spend",
+  "billing.pricing.spendable_after_debt.other": "{credits} left to spend",
   "billing.subscription.active": "Active",
   "billing.subscription.inactive": "Inactive",
   "billing.subscription.cancel": "Cancel subscription",

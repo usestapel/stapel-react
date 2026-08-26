@@ -79,12 +79,8 @@ const { tracked } = useTracked();
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - billing.buy-options → <BuyOptions> [default|subscribed|settling-a-debt]  demo/BuyOptionsSkin.demo.tsx
-- billing.pricing_table → <PricingTable> [default]  demo/PricingTable.demo.tsx
-- billing.provider → <BillingProvider> [default]  demo/Billing.demo.tsx
-- billing.subscription → <Subscription> [default]  demo/Subscription.demo.tsx
 - billing.subscription-card → <SubscriptionCard> [active|free|past-due|cancelled]  demo/SubscriptionCardSkin.demo.tsx
 - billing.transaction-history → <TransactionHistory> [default|empty]  demo/TransactionHistorySkin.demo.tsx
-- billing.wallet → <Wallet> [default]  demo/Wallet.demo.tsx
 - billing.wallet-panel → <WalletPanel> [default|in-debt|empty|shop-down]  demo/WalletPanelSkin.demo.tsx
 - billing.wallet-settings → <WalletSettings> [auto-on|no-packages]  demo/WalletSettingsSkin.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).

@@ -75,13 +75,27 @@ export function FeedItemRow(props: FeedItemRowProps): ReactElement {
         <NotificationTypeIcon type={item.notification_type} />
       </span>
       <Flex vertical gap={spacing[1]} style={{ minWidth: 0, flex: 1 }}>
-        <Flex gap={spacing[3]} justify="space-between" align="baseline" wrap>
-          <Typography.Text strong style={{ color: token.colorText }}>
+        {/* ONE anatomy, at every width. This line used to `wrap`, so a title
+            long enough to crowd the time pushed it onto a second line — and a
+            list of mixed-length titles rendered two different rows, some with
+            the time inline at the right and some with it underneath. The title
+            now truncates and the time keeps its own column, so every row in
+            the list has the same shape. */}
+        <Flex gap={spacing[3]} justify="space-between" align="baseline">
+          <Typography.Text
+            strong
+            ellipsis
+            style={{ color: token.colorText, minWidth: 0, flex: 1 }}
+          >
             {item.title}
           </Typography.Text>
           <Typography.Text
             type="secondary"
-            style={{ fontSize: token.fontSizeSM, whiteSpace: "nowrap" }}
+            style={{
+              fontSize: token.fontSizeSM,
+              whiteSpace: "nowrap",
+              flex: "0 0 auto",
+            }}
           >
             <time dateTime={item.created_at}>{when}</time>
           </Typography.Text>

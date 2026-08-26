@@ -47,6 +47,8 @@ export const gdprI18nBundleEs: I18nDictionary = {
     "Esta pantalla es para el personal. Has iniciado sesión con una cuenta que no tiene acceso a ella.",
 
   "gdpr.privacy.heading": "Privacidad y tus datos",
+  "gdpr.privacy.explain":
+    "Consigue una copia de lo que guardamos, mira qué se está borrando ya y pídenos que borremos el resto.",
   "gdpr.admin.heading": "Privacidad: operaciones",
   "gdpr.public.heading": "Solicitudes de privacidad",
   "gdpr.public.explain":
@@ -56,6 +58,11 @@ export const gdprI18nBundleEs: I18nDictionary = {
   "gdpr.closure.explain":
     "Al eliminar tu cuenta empieza un periodo de gracia de 30 días. Se cierra tu sesión en todos los dispositivos de inmediato y puedes cambiar de opinión hasta que termine ese periodo.",
   "gdpr.closure.none": "Tu cuenta no está programada para eliminarse",
+  "gdpr.closure.grace_left": "Quedan {count} días",
+  "gdpr.closure.grace_left.one": "Queda {count} día",
+  "gdpr.closure.grace_left.few": "Quedan {count} días",
+  "gdpr.closure.grace_left.many": "Quedan {count} días",
+  "gdpr.closure.grace_left.other": "Quedan {count} días",
   "gdpr.closure.initiate": "Eliminar mi cuenta",
   "gdpr.closure.confirm_title": "¿Eliminar esta cuenta?",
   "gdpr.closure.confirm_body":
@@ -85,6 +92,8 @@ export const gdprI18nBundleEs: I18nDictionary = {
   "gdpr.deletions.timeout_hint":
     "Un sistema que guarda parte de este elemento no ha confirmado. Se ha avisado al equipo de soporte; el elemento no se ha perdido de vista.",
   "gdpr.deletions.expand": "Ver qué sistemas han confirmado",
+  "gdpr.deletions.overdue_count": "Borrados a la espera de un sistema: {count}",
+  "gdpr.deletions.reference": "Ref. {reference}",
   "gdpr.deletions.parts_heading": "Sistemas que lo guardan",
   "gdpr.deletions.parts_empty": "Ningún sistema ha reclamado todavía este elemento",
   "gdpr.deletions.part.done": "Confirmado",
@@ -142,7 +151,6 @@ export const gdprI18nBundleEs: I18nDictionary = {
 
   "gdpr.queue.heading": "Solicitudes de protección de datos",
   "gdpr.queue.empty": "No hay solicitudes de protección de datos",
-  "gdpr.queue.column.reference": "Ref.",
   "gdpr.queue.column.kind": "Pide",
   "gdpr.queue.column.channel": "Llegó por",
   "gdpr.queue.column.subject": "Solicitante",
@@ -152,8 +160,13 @@ export const gdprI18nBundleEs: I18nDictionary = {
   "gdpr.queue.overdue": "Fuera de plazo",
   "gdpr.queue.ack_sent": "Confirmada el {date}",
   "gdpr.queue.ack_missing": "Sin confirmar",
+  "gdpr.queue.reference": "Ref. {reference}",
+  "gdpr.queue.ack_overdue_count":
+    "Fuera del plazo de confirmación: {count}",
+  "gdpr.queue.ack_automated":
+    "La confirmación se envía automáticamente, así que si falta es que el envío de avisos está roto, no que alguien se haya retrasado.",
   "gdpr.queue.save_note": "Guardar la nota",
-  "gdpr.queue.note_unchanged": "No hay ningún cambio que guardar",
+  "gdpr.queue.note_unchanged": "La nota se guarda en cuanto la cambias.",
   "gdpr.queue.state.received": "Recibida",
   "gdpr.queue.state.acknowledged": "Confirmada",
   "gdpr.queue.state.in_progress": "En curso",
@@ -175,9 +188,10 @@ export const gdprI18nBundleEs: I18nDictionary = {
   "gdpr.owners.alive": "Responde",
   "gdpr.owners.silent": "En silencio",
   "gdpr.owners.never_answered": "No ha respondido nunca",
-  "gdpr.owners.silent_count": "{count} de {total} sistemas no responden",
-  "gdpr.owners.subject_mismatch":
-    "Declara {declared}, responde por {answered}",
+  "gdpr.owners.silent_count": "Sin responder: {count} de {total} sistemas",
+  "gdpr.owners.subject_mismatch": "No responde por {subjects}",
+  "gdpr.owners.subject_undeclared":
+    "Responde por {subjects}, que no declara",
 };
 
 /** Register the Spanish bundle into a core i18n engine. */

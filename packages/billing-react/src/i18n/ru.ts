@@ -37,12 +37,14 @@ export const billingI18nBundleRu: I18nDictionary = {
   "billing.wallet.threshold": "Пополнять, когда баланс ниже",
   "billing.wallet.package": "Какой пакет покупать",
   "billing.wallet.package_placeholder": "Выберите пакет",
+  "billing.wallet.package_none": "Пакетов на выбор нет",
   "billing.wallet.low_balance_alert": "Предупредить, когда баланс ниже",
   "billing.wallet.settings_no_packages":
     "В магазине нет пакетов кредитов, поэтому покупать автоматически нечего.",
   "billing.wallet.settings_needs_package":
     "Выберите пакет, прежде чем включать автопополнение.",
   "billing.wallet.heading": "Кредиты и оплата",
+  "billing.wallet.sections_label": "Разделы страницы оплаты",
   "billing.wallet.expiring": "{credits} кредитов сгорают {date}",
   "billing.wallet.expiring_relative": "{credits} кредитов сгорают {date} — {relative}",
   "billing.wallet.held": "{credits} кредитов зарезервировано",
@@ -100,11 +102,21 @@ export const billingI18nBundleRu: I18nDictionary = {
   "billing.pricing.empty": "Сейчас ничего не продаётся.",
   "billing.pricing.current_plan": "Ваш тариф",
   "billing.pricing.blocked_current_plan": "Этот тариф у вас уже подключён.",
-  "billing.pricing.settles_debt": "{credits} из них уйдут в счёт долга",
-  "billing.pricing.settles_debt.one": "{credits} из них уйдёт в счёт долга",
-  "billing.pricing.settles_debt.few": "{credits} из них уйдут в счёт долга",
-  "billing.pricing.settles_debt.many": "{credits} из них уйдут в счёт долга",
-  "billing.pricing.settles_debt.other": "{credits} из них уйдут в счёт долга",
+  "billing.pricing.debt_note":
+    "За вами {credits} кредитов долга. Ближайшая покупка сперва погасит их.",
+  "billing.pricing.debt_note.one":
+    "За вами {credits} кредит долга. Ближайшая покупка сперва погасит его.",
+  "billing.pricing.debt_note.few":
+    "За вами {credits} кредита долга. Ближайшая покупка сперва погасит их.",
+  "billing.pricing.debt_note.many":
+    "За вами {credits} кредитов долга. Ближайшая покупка сперва погасит их.",
+  "billing.pricing.debt_note.other":
+    "За вами {credits} кредитов долга. Ближайшая покупка сперва погасит их.",
+  "billing.pricing.spendable_after_debt": "{credits} останется на расходы",
+  "billing.pricing.spendable_after_debt.one": "{credits} останется на расходы",
+  "billing.pricing.spendable_after_debt.few": "{credits} останется на расходы",
+  "billing.pricing.spendable_after_debt.many": "{credits} останется на расходы",
+  "billing.pricing.spendable_after_debt.other": "{credits} останется на расходы",
   "billing.subscription.active": "Активна",
   "billing.subscription.inactive": "Неактивна",
   "billing.subscription.cancel": "Отменить подписку",

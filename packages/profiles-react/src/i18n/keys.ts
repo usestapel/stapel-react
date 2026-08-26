@@ -31,6 +31,9 @@ export const PROFILES_I18N_KEYS = {
   profileNoChanges: "profiles.profile.no_changes",
   // Relationship (Relationship headless + default skin)
   relFollow: "profiles.relationship.follow",
+  /** The offer on the Followers list, where the target already follows the
+   * caller — a different offer from a cold "Follow", and the word for it. */
+  relFollowBack: "profiles.relationship.follow_back",
   relFollowing: "profiles.relationship.following",
   relUnfollow: "profiles.relationship.unfollow",
   relBlock: "profiles.relationship.block",
@@ -86,6 +89,17 @@ export const PROFILES_I18N_KEYS = {
   publicUnwritten: "profiles.public.unwritten",
   publicLocation: "profiles.public.location",
   publicRating: "profiles.public.rating",
+  /**
+   * The following count in the THIRD person. `countFollowing` is the caller's
+   * own-list copy ("31 people you follow") and it was being rendered on other
+   * people's profiles, where it stated a fact about the visitor that was not
+   * true. Followers needs no twin: "128 followers" is already about whoever
+   * the page is about.
+   */
+  publicCountFollowing: "profiles.public.count.following",
+  /** A rating with its scale — `{value}` out of `{max}`. A bare "4.8" is a
+   * number, not a rating. */
+  publicRatingValue: "profiles.public.rating_value",
   // Profile settings (default skin — ProfileSettings)
   settingsTitle: "profiles.settings.title",
   settingsSubtitle: "profiles.settings.subtitle",
@@ -96,6 +110,9 @@ export const PROFILES_I18N_KEYS = {
   // model columns again, never field-manifest entries, so their labels are
   // pair-owned keys rather than backend docstrings).
   fieldDisplayName: "profiles.settings.field.display_name",
+  /** The accessible name of a read-only row's edit control — what activating
+   * it DOES, not the field label the row above already says. */
+  profileEditField: "profiles.settings.field.edit",
   fieldTheme: "profiles.settings.field.theme",
   themeLight: "profiles.settings.theme.light",
   themeDark: "profiles.settings.theme.dark",
@@ -166,6 +183,7 @@ export const profilesI18nBundleEn: I18nDictionary = {
   "profiles.profile.saved": "Profile saved.",
   "profiles.profile.no_changes": "Nothing to save — this is the value already stored.",
   "profiles.relationship.follow": "Follow",
+  "profiles.relationship.follow_back": "Follow back",
   "profiles.relationship.following": "Following",
   "profiles.relationship.unfollow": "Unfollow",
   "profiles.relationship.block": "Block",
@@ -209,12 +227,16 @@ export const profilesI18nBundleEn: I18nDictionary = {
   "profiles.public.unwritten": "This person has not set up their profile yet.",
   "profiles.public.location": "Location",
   "profiles.public.rating": "Rating",
+  "profiles.public.count.following.one": "Follows {count} person",
+  "profiles.public.count.following.other": "Follows {count} people",
+  "profiles.public.rating_value": "{value} out of {max}",
   "profiles.settings.title": "Profile",
   "profiles.settings.subtitle": "Your name, avatar, and general preferences.",
   "profiles.settings.avatar.change": "Change avatar",
   "profiles.settings.avatar.uploading": "Uploading…",
   "profiles.settings.avatar.upload_error": "Couldn't upload that image. Please try again.",
   "profiles.settings.field.display_name": "Display name",
+  "profiles.settings.field.edit": "Edit {field}",
   "profiles.settings.field.theme": "Theme",
   "profiles.settings.theme.light": "Light",
   "profiles.settings.theme.dark": "Dark",

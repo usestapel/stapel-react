@@ -21,13 +21,24 @@ import {
   INVITE_TOKEN,
 } from "./skinFixtures.js";
 
+/** Leaving the page is the HOST's route; inside the viewer it would navigate
+ * the frame away from the story, so the demo swallows it. */
+function stay(): void {
+  return undefined;
+}
+
 function Invite(props: {
   handlers: DemoHandlers;
   sessionEmail: string | null;
+  withExit?: boolean;
 }): ReactElement {
   return (
     <WorkspacesDemoHarness handlers={props.handlers}>
-      <InviteAcceptPage token={INVITE_TOKEN} sessionEmail={props.sessionEmail} />
+      <InviteAcceptPage
+        token={INVITE_TOKEN}
+        sessionEmail={props.sessionEmail}
+        {...(props.withExit === true ? { onExit: stay } : {})}
+      />
     </WorkspacesDemoHarness>
   );
 }
@@ -38,6 +49,9 @@ export default defineDemo({
   description:
     "The shipped /invite/{token} screen: the workspace and the role being offered, one primary action per block (Join is the primary; Decline is a danger link behind a confirm that states what it costs), the wrong-account branch with a switch CTA, and the terminal states — expired, revoked, already used — as sentences rather than an error box.",
   component: InviteAcceptPage,
+  // Mounts the headless journey; joining by token is what the headless
+  // `AcceptInvitation` action does, drawn.
+  covers: ["InviteAcceptFlow", "AcceptInvitation"],
   variants: {
     default: {
       description:
@@ -61,12 +75,13 @@ export default defineDemo({
     },
     expired: {
       description:
-        "The link outlived its TTL: one sentence saying so and what to do, no dead Join button.",
+        "The link outlived its TTL: the warning tone rather than the blue disc a tip uses, one sentence saying so, the next step named (ask for a new one), and the host's way out — never a dead Join button.",
       step: "unavailable",
       render: () => (
         <Invite
           handlers={INVITE_EXPIRED_HANDLERS}
           sessionEmail={INVITE_SESSION_EMAIL}
+          withExit
         />
       ),
     },

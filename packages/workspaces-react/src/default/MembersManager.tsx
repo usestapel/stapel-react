@@ -76,7 +76,7 @@ import { useResetMemberPassword } from "../model/mutations.js";
 import { ActiveWorkspaceBoundary } from "./ActiveWorkspace.js";
 import { useWorkspaceFormat } from "../model/format.js";
 import { WORKSPACES_I18N_KEYS } from "../i18n/keys.js";
-import { AnchorPager, Muted, PersonLine, StatusTag } from "./parts.js";
+import { AnchorPager, Muted, PersonLine, RowActions, StatusTag } from "./parts.js";
 import { RoleSelectField } from "./RoleSelectField.js";
 
 export interface MembersManagerProps {
@@ -205,6 +205,8 @@ function RosterCard(props: {
   const [resetting, setResetting] = useState<Member | null>(null);
 
   const page = bag.page;
+  const rosterEmpty = bag.state.status === "ready" && bag.state.data.length === 0;
+  const showSearch = !rosterEmpty || props.search.trim() !== "";
 
   return (
     <Card data-testid="members-manager-card">
@@ -223,8 +225,10 @@ function RosterCard(props: {
           )}
         </Flex>
         {/* The one primary on this screen. Everything else on a row is a
-            quiet link or a danger link. */}
-        {canManage && (
+            quiet link or a danger link — and on an EMPTY roster the empty
+            state owns the invite door instead, because two solid "Invite"
+            buttons on one screen is not emphasis, it is a coin toss. */}
+        {canManage && !rosterEmpty && (
           <Button
             type="primary"
             onClick={() => setInviteOpen(true)}
@@ -245,16 +249,21 @@ function RosterCard(props: {
         </div>
       )}
 
-      <div style={{ marginTop: spacing["4"] }}>
-        <Input
-          value={props.search}
-          onChange={(event) => props.onSearch(event.target.value)}
-          placeholder={t(WORKSPACES_I18N_KEYS.membersSearchPlaceholder)}
-          aria-label={t(WORKSPACES_I18N_KEYS.membersSearchPlaceholder)}
-          allowClear
-          data-testid="members-search"
-        />
-      </div>
+      {/* A filter over nothing is furniture. It stays while a SEARCH is
+          running (that is how a person clears one that matched nobody) and
+          goes when the roster itself is empty. */}
+      {showSearch && (
+        <div style={{ marginTop: spacing["4"] }}>
+          <Input
+            value={props.search}
+            onChange={(event) => props.onSearch(event.target.value)}
+            placeholder={t(WORKSPACES_I18N_KEYS.membersSearchPlaceholder)}
+            aria-label={t(WORKSPACES_I18N_KEYS.membersSearchPlaceholder)}
+            allowClear
+            data-testid="members-search"
+          />
+        </div>
+      )}
 
       {/* A write that failed — the roster read has its own arm below. */}
       <ErrorAlert
@@ -280,6 +289,7 @@ function RosterCard(props: {
                         onClick={() => setInviteOpen(true)}
                         data-analytics="none"
                         data-analytics-reason="local-ui-open-invite-dialog"
+                        data-testid="members-invite-open"
                       >
                         {t(WORKSPACES_I18N_KEYS.membersInvite)}
                       </Button>
@@ -509,44 +519,42 @@ function MemberRow(props: {
             testId={`member-role-${member.user_id}`}
           />
         </div>
-        {canManage && (
-          <Flex gap={spacing["2"]} align="flex-start" wrap>
-            <Button
-              type="link"
-              size="small"
-              onClick={props.onRename}
-              data-analytics="none"
-              data-analytics-reason="opens the rename dialog"
-              data-testid={`member-rename-${member.user_id}`}
-            >
-              {t(WORKSPACES_I18N_KEYS.membersRename)}
-            </Button>
-            <GatedButton
-              gate={resetPasswordAvailability(member)}
-              type="link"
-              size="small"
-              onClick={props.onResetPassword}
-              testId={`member-reset-password-${member.user_id}`}
-              data-analytics="none"
-              data-analytics-reason="opens the password-reset confirm"
-            >
-              {t(WORKSPACES_I18N_KEYS.membersResetPassword)}
-            </GatedButton>
-            <GatedButton
-              gate={removeAvailability(member, props.rows, bag.rosterComplete)}
-              danger
-              type="link"
-              size="small"
-              onClick={props.onRemove}
-              testId={`member-remove-${member.user_id}`}
-              data-analytics="none"
-              data-analytics-reason="opens the remove confirm"
-            >
-              {t(WORKSPACES_I18N_KEYS.membersRemove)}
-            </GatedButton>
-          </Flex>
-        )}
       </Flex>
+      {/* The controls, and — as a footnote spanning the row, not as
+          paragraphs inside the action column — the refusals behind them. The
+          viewer's OWN row refuses two of the three, and while those reasons
+          lived beside the buttons they widened the column until that one row
+          wrapped to the stacked phone layout in the middle of a desktop
+          table, two geometries deep. */}
+      {canManage && (
+        <RowActions
+          testId={`member-blocked-${member.user_id}`}
+          actions={[
+            {
+              key: "rename",
+              gate: actionAvailable(),
+              label: t(WORKSPACES_I18N_KEYS.membersRename),
+              onClick: props.onRename,
+              testId: `member-rename-${member.user_id}`,
+            },
+            {
+              key: "reset",
+              gate: resetPasswordAvailability(member),
+              label: t(WORKSPACES_I18N_KEYS.membersResetPassword),
+              onClick: props.onResetPassword,
+              testId: `member-reset-password-${member.user_id}`,
+            },
+            {
+              key: "remove",
+              gate: removeAvailability(member, props.rows, bag.rosterComplete),
+              label: t(WORKSPACES_I18N_KEYS.membersRemove),
+              onClick: props.onRemove,
+              danger: true,
+              testId: `member-remove-${member.user_id}`,
+            },
+          ]}
+        />
+      )}
     </div>
   );
 }

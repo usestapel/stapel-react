@@ -41,13 +41,15 @@
  * ── A debt makes the next purchase mean something different ───────────────
  *
  * With `debt_outstanding` in play, buying 100 credits does not add 100
- * spendable credits: the server collects the debt off the top first. Each
- * offer therefore states how many of ITS credits are already spoken for. The
- * number is passed in rather than read here, so a host that mounts the shop
- * alone (a public pricing page) neither needs nor triggers a wallet read.
+ * spendable credits: the server collects the debt off the top first. The DEBT
+ * is stated once, above the offers, because it is a fact about the wallet;
+ * each offer then states what it would LEAVE, because that number is
+ * different on every card. The total is passed in rather than read here, so a
+ * host that mounts the shop alone (a public pricing page) neither needs nor
+ * triggers a wallet read.
  */
 import type { ReactElement } from "react";
-import { Badge, Card, Flex, Tag, Typography } from "antd";
+import { Card, Flex, Tag, Typography } from "antd";
 import {
   EmptyState,
   GatedButton,
@@ -128,6 +130,7 @@ function OfferCard(props: {
   held: boolean;
   debtOutstanding: number;
   disabled: boolean;
+  narrow: boolean;
   onChoose: (selection: CheckoutSelection) => void;
 }): ReactElement {
   const t = useT();
@@ -135,11 +138,17 @@ function OfferCard(props: {
   const { locale } = useI18n();
   const { offer, best, savings, held } = props;
   const recurring = offer.kind === "plan";
+  // What this purchase actually LEAVES. The debt itself is stated once for
+  // the whole shop (see `DebtNote`); repeating "180 of these settle what you
+  // owe" on every card said the same thing three times and answered the
+  // question nobody had. The spendable remainder is different on every offer,
+  // which is what makes it worth a line.
   const settles = collectedFromPurchase(props.debtOutstanding, offer.credits);
+  const spendable = offer.credits - settles;
   const gate: ActionAvailability = held
     ? actionBlocked(BILLING_I18N_KEYS.pricingBlockedCurrentPlan)
     : actionAvailable();
-  const card = (
+  return (
     <Card
       size="small"
       data-testid={`billing-offer-${offer.slug}`}
@@ -148,6 +157,14 @@ function OfferCard(props: {
       title={
         <Flex align="center" gap={spacing[2]} wrap="wrap">
           <span>{offer.name}</span>
+          {/* The badge is INSIDE the card. As an antd `Badge.Ribbon` it hung
+              off the card's right edge and was clipped by a 390px viewport
+              — the recommendation was never visible on a phone. */}
+          {best && !held ? (
+            <Tag color="success" data-testid={`billing-offer-best-${offer.slug}`}>
+              {t(BILLING_I18N_KEYS.pricingBestValue)}
+            </Tag>
+          ) : null}
           {held ? (
             <Tag data-testid={`billing-offer-current-${offer.slug}`}>
               {t(BILLING_I18N_KEYS.pricingCurrentPlan)}
@@ -194,23 +211,30 @@ function OfferCard(props: {
             {t(BILLING_I18N_KEYS.pricingPlanSaves, { percent: savings })}
           </Typography.Text>
         )}
-        {/* What this purchase will actually leave spendable. */}
+        {/* What this purchase will actually leave spendable — the number that
+            differs from offer to offer once a debt is in play. */}
         {settles === 0 ? null : (
           <Typography.Text
             type="warning"
             data-testid={`billing-offer-debt-${offer.slug}`}
           >
-            {tPlural(BILLING_I18N_KEYS.pricingSettlesDebt, {
-              count: settles,
-              credits: formatCreditCount(locale, settles),
+            {tPlural(BILLING_I18N_KEYS.pricingSpendableAfterDebt, {
+              count: spendable,
+              credits: formatCreditCount(locale, spendable),
             })}
           </Typography.Text>
         )}
+        {/* The purchase is the reason this card exists, so it is the biggest
+            target on it — and on a phone it spans the card rather than
+            sitting as a 30px outline in the corner. */}
         <GatedButton
           gate={gate}
           type={best && !held ? "primary" : "default"}
+          size="large"
+          block={props.narrow}
           loading={props.disabled}
           testId={`billing-offer-buy-${offer.slug}`}
+          {...(props.narrow ? { wrapperStyle: { width: "100%" } } : {})}
           data-analytics="none"
           data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
           onClick={() => {
@@ -228,11 +252,27 @@ function OfferCard(props: {
       </Flex>
     </Card>
   );
-  if (!best || held) return card;
+}
+
+/**
+ * The debt, stated ONCE for the whole shop.
+ *
+ * Every offer card used to carry "180 of these settle what you owe", so three
+ * cards printed one sentence three times (visual class VC-B1). The debt is a
+ * fact about the WALLET, not about any particular package, and it belongs
+ * where a fact about the wallet belongs: above the things it applies to.
+ */
+function DebtNote(props: { outstanding: number }): ReactElement | null {
+  const tPlural = useTPlural();
+  const { locale } = useI18n();
+  if (props.outstanding <= 0) return null;
   return (
-    <Badge.Ribbon text={t(BILLING_I18N_KEYS.pricingBestValue)}>
-      {card}
-    </Badge.Ribbon>
+    <Typography.Text type="warning" data-testid="billing-buy-debt">
+      {tPlural(BILLING_I18N_KEYS.pricingDebtNote, {
+        count: props.outstanding,
+        credits: formatCreditCount(locale, props.outstanding),
+      })}
+    </Typography.Text>
   );
 }
 
@@ -245,15 +285,19 @@ function OfferColumn(props: {
   heldSlug: string | null;
   debtOutstanding: number;
   disabled: boolean;
+  narrow: boolean;
   testId: string;
   onChoose: (selection: CheckoutSelection) => void;
 }): ReactElement {
   const t = useT();
   return (
     <Flex vertical gap={spacing[2]} flex="1 1 0" data-testid={props.testId}>
-      <Typography.Title level={5} style={{ margin: 0 }}>
+      {/* A column label, one step BELOW the section heading above it — the
+          audit found page, section and column set in three near-identical
+          weights, which is a hierarchy nobody can read. */}
+      <Typography.Text type="secondary" strong>
         {t(props.headingKey)}
-      </Typography.Title>
+      </Typography.Text>
       {props.offers.map((offer) => (
         <OfferCard
           key={`${offer.kind}:${offer.slug}`}
@@ -263,6 +307,7 @@ function OfferColumn(props: {
           held={offer.kind === "plan" && offer.slug === props.heldSlug}
           debtOutstanding={props.debtOutstanding}
           disabled={props.disabled}
+          narrow={props.narrow}
           onChoose={props.onChoose}
         />
       ))}
@@ -283,9 +328,10 @@ export function BuyOptions(props: BuyOptionsProps): ReactElement {
     <SkinTheme surface="bare" {...(mode !== undefined ? { mode } : {})}>
       <div ref={ref} data-billing-columns={String(columns)}>
         <Flex vertical gap={spacing[2]} data-testid="billing-buy">
-          <Typography.Title level={5} style={{ margin: 0 }}>
+          <Typography.Title level={4} style={{ margin: 0 }}>
             {t(BILLING_I18N_KEYS.walletBuyHeading)}
           </Typography.Title>
+          <DebtNote outstanding={debt} />
           <LoadBoundary
             state={state}
             testId="billing-buy"
@@ -328,6 +374,7 @@ export function BuyOptions(props: BuyOptionsProps): ReactElement {
                     heldSlug={heldPlan}
                     debtOutstanding={debt}
                     disabled={disabled}
+                    narrow={columns === 1}
                     testId="billing-buy-packages"
                     onChoose={onChoose}
                   />
@@ -342,6 +389,7 @@ export function BuyOptions(props: BuyOptionsProps): ReactElement {
                     heldSlug={heldPlan}
                     debtOutstanding={debt}
                     disabled={disabled}
+                    narrow={columns === 1}
                     testId="billing-buy-plans"
                     onChoose={onChoose}
                   />

@@ -46,7 +46,9 @@ export const workspacesI18nBundleRu: I18nDictionary = {
   "workspaces.members.empty": "Пока нет участников.",
   "workspaces.members.load_failed": "Не удалось загрузить список участников.",
   "workspaces.roles.load_failed":
-    "Не удалось загрузить список ролей, поэтому изменить роль сейчас нельзя. Это не рабочее пространство без ролей.",
+    "Не удалось загрузить список ролей, поэтому изменить роль сейчас нельзя. Это не значит, что в рабочем пространстве нет ролей.",
+  "workspaces.roles.empty":
+    "На этой установке роли не заданы, выбирать не из чего.",
   "workspaces.members.invite": "Пригласить",
   "workspaces.members.inviting": "Приглашение…",
   "workspaces.members.update_role": "Изменить роль",
@@ -130,6 +132,8 @@ export const workspacesI18nBundleRu: I18nDictionary = {
     "Пока политика включена, непроверенных участников не пускают. Попросите их добавить второй фактор — число выше нужно довести до нуля.",
   "workspaces.settings.security.mfa.off":
     "Двухфакторная аутентификация в этом рабочем пространстве не требуется.",
+  "workspaces.settings.security.mfa.no_status_yet":
+    "Двухфакторная аутентификация здесь обязательна. Проверка ещё не проходила, поэтому никто не подтверждён.",
   "workspaces.members.title": "Участники",
   "workspaces.members.subtitle": "Управляйте доступом к рабочему пространству.",
   "workspaces.members.count": "Участников: {count}",
@@ -229,7 +233,7 @@ export const workspacesI18nBundleRu: I18nDictionary = {
   "workspaces.list.guest_notice":
     "Вы здесь как гость. Гость открывает то, что ему прислали, но не состоит в рабочем пространстве.",
   "workspaces.list.instance_closed":
-    "На этой установке пространства не раздаются. Попросите приглашение у того, кто ею управляет.",
+    "Попросите приглашение у того, кто управляет этой установкой.",
   "workspaces.list.create_dialog.title": "Новое рабочее пространство",
   "workspaces.list.create_dialog.name_label": "Название",
   "workspaces.list.create_dialog.name_placeholder": "например, «Акме Инжиниринг»",
@@ -274,6 +278,10 @@ export const workspacesI18nBundleRu: I18nDictionary = {
     "Это приглашение уже принято, отклонено, отозвано или истекло.",
   "workspaces.invitations.blocked.resend_terminal":
     "Отправить повторно можно только ожидающее или истёкшее приглашение.",
+  "workspaces.invitations.blocked.row_closed":
+    "Это приглашение закрыто — с ним больше ничего не сделать.",
+  "workspaces.invitations.blocked.row_resend_only":
+    "Срок приглашения истёк. Остаётся только отправить его заново.",
 
   // Membership history
   "workspaces.audit.title": "История участия",
@@ -314,6 +322,9 @@ export const workspacesI18nBundleRu: I18nDictionary = {
   "workspaces.invite.unavailable.revoked": "Приглашение было отозвано.",
   "workspaces.invite.unavailable.accepted": "Приглашение уже использовано.",
   "workspaces.invite.unavailable.declined": "Приглашение было отклонено.",
+  "workspaces.invite.unavailable.next_step":
+    "Попросите администратора «{workspace}» прислать новое приглашение.",
+  "workspaces.invite.exitCta": "К своим рабочим пространствам",
   "workspaces.invite.wrongAccount": "Приглашение для другого аккаунта",
   "workspaces.invite.wrongAccountHint":
     "Вы вошли как {email}, а приглашение отправлено на {invited}. Смените аккаунт, чтобы продолжить.",

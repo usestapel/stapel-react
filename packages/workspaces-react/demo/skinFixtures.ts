@@ -71,16 +71,20 @@ export const WORKSPACE_UNDELETABLE = {
   delete_blocked_reason: "error.409.workspace_is_instance_default",
   settings: {
     security: { require_mfa: true, provisioned_user_policies: ["password_change", "mfa_enroll"] },
-    mfa_enforcement: {
-      state: "partial",
-      checked_members: 4,
-      noncompliant_members: 1,
-      unverified_members: 2,
-      attempts: 6,
-      last_attempt_at: "2026-08-23T21:15:00Z",
-      completed_at: null,
-      last_error: "",
-    },
+  },
+  // TOP-LEVEL on the wire, beside `settings` and not inside it: `settings`
+  // says what was ASKED for, `mfa_enforcement` says how far the sweep got.
+  // Nested here, the screen read no status at all and printed "not required
+  // in this workspace" under a switch that was on.
+  mfa_enforcement: {
+    state: "enforcing",
+    checked_members: 4,
+    noncompliant_members: 1,
+    unverified_members: 2,
+    attempts: 6,
+    last_attempt_at: "2026-08-23T21:15:00Z",
+    completed_at: null,
+    last_error: "",
   },
 };
 

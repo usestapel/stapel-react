@@ -473,51 +473,13 @@
       "source": "demo/BuyOptionsSkin.demo.tsx"
     },
     {
-      "id": "billing.pricing_table",
-      "title": "Pricing table",
-      "description": "The headless PricingTable wraps the catalogue read + Stripe Checkout mutation and exposes packages / plans / checking-out / checkoutUrl / error state. Bring your own pricing cards — the component is renderless.",
-      "component": "PricingTable",
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/PricingTable.demo.tsx"
-    },
-    {
-      "id": "billing.provider",
-      "title": "Billing provider",
-      "description": "The headless billing root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
-      "component": "BillingProvider",
-      "tokens": [
-        "card-bg"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/Billing.demo.tsx"
-    },
-    {
-      "id": "billing.subscription",
-      "title": "Subscription",
-      "description": "The headless Subscription wraps the subscription read + cancel + customer-portal link and exposes plan / status / isActive / cancelling / portalUrl / error state. Bring your own UI — the component is renderless.",
-      "component": "Subscription",
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/Subscription.demo.tsx"
-    },
-    {
       "id": "billing.subscription-card",
       "title": "Subscription (default skin)",
       "description": "Plan, status and the next date, with 'Manage billing' as the primary and 'Cancel subscription' last, quiet, and behind a confirmation that says what cancelling keeps.",
       "component": "SubscriptionCard",
+      "covers": [
+        "Subscription"
+      ],
       "variants": [
         "active",
         "free",
@@ -538,24 +500,14 @@
       "source": "demo/TransactionHistorySkin.demo.tsx"
     },
     {
-      "id": "billing.wallet",
-      "title": "Wallet",
-      "description": "The headless Wallet wraps the read + partial auto-recharge settings update of the caller's wallet and exposes balance / currency / saving / saved / error state. Bring your own UI — the component is renderless.",
-      "component": "Wallet",
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/Wallet.demo.tsx"
-    },
-    {
       "id": "billing.wallet-panel",
       "title": "Billing page (default skin)",
       "description": "The shipped billing screen: the two credit pools stated separately (bought credits that never expire vs plan credits with a deadline — never one sum), any debt with what the next purchase settles, the subscription and its next date, both ways to buy with the price per credit under each, automatic top-up, and the credit ledger.",
       "component": "WalletPanel",
+      "covers": [
+        "BillingProvider",
+        "PricingTable"
+      ],
       "variants": [
         "default",
         "in-debt",
@@ -569,6 +521,9 @@
       "title": "Automatic top-up (default skin)",
       "description": "The auto-recharge and low-balance settings over PATCH /wallet: a trigger balance, the package bought when it is crossed, and an alert threshold — with both switched-off states explained in words beside the control.",
       "component": "WalletSettings",
+      "covers": [
+        "Wallet"
+      ],
       "variants": [
         "auto-on",
         "no-packages"
@@ -585,6 +540,9 @@
     "billing.pricing.credits",
     "billing.pricing.credits_monthly",
     "billing.pricing.current_plan",
+    "billing.pricing.debt_note",
+    "billing.pricing.debt_note.one",
+    "billing.pricing.debt_note.other",
     "billing.pricing.empty",
     "billing.pricing.error",
     "billing.pricing.packages",
@@ -593,9 +551,9 @@
     "billing.pricing.plan_saves",
     "billing.pricing.plans",
     "billing.pricing.retry",
-    "billing.pricing.settles_debt",
-    "billing.pricing.settles_debt.one",
-    "billing.pricing.settles_debt.other",
+    "billing.pricing.spendable_after_debt",
+    "billing.pricing.spendable_after_debt.one",
+    "billing.pricing.spendable_after_debt.other",
     "billing.pricing.subscribe",
     "billing.subscription.active",
     "billing.subscription.cancel",
@@ -655,6 +613,7 @@
     "billing.wallet.loading",
     "billing.wallet.low_balance_alert",
     "billing.wallet.package",
+    "billing.wallet.package_none",
     "billing.wallet.package_placeholder",
     "billing.wallet.pool.expiring",
     "billing.wallet.pool.expiring.one",
@@ -671,6 +630,7 @@
     "billing.wallet.save",
     "billing.wallet.saved",
     "billing.wallet.saving",
+    "billing.wallet.sections_label",
     "billing.wallet.settings_heading",
     "billing.wallet.settings_needs_package",
     "billing.wallet.settings_no_packages",

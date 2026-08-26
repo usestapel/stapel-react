@@ -24,7 +24,7 @@
  * stopped claiming now gets no receipt slot at all. The row shows both sets.
  */
 import type { ReactElement } from "react";
-import { Alert, Card, Flex, Table, Tag, Typography } from "antd";
+import { Alert, Card, Flex, Tag, Typography } from "antd";
 import { fontSize, spacing } from "@stapel/tokens";
 import {
   EmptyState,
@@ -38,6 +38,8 @@ import { GDPR_I18N_KEYS } from "../../i18n/keys.js";
 import { formatInstant } from "../../model/dates.js";
 import { useOwnersHealth } from "../../model/owners.js";
 import { isStaffOnly } from "../../model/refusals.js";
+import { DataTable } from "../DataTable.js";
+import type { DataColumn } from "../DataTable.js";
 import type { ThemeModeProp } from "../types.js";
 
 export type OwnersHealthProps = ThemeModeProp;
@@ -49,16 +51,17 @@ export function OwnersHealth(props: OwnersHealthProps): ReactElement {
 
   const mismatched = new Set(bag.mismatched.map((row) => row.owner));
 
-  const columns = [
+  const columns: readonly DataColumn<DataOwnerHealthRow>[] = [
     {
       key: "owner",
       title: t(GDPR_I18N_KEYS.ownersColumnOwner),
-      render: (_: unknown, row: DataOwnerHealthRow): string => row.owner,
+      primary: true,
+      render: (row: DataOwnerHealthRow): string => row.owner,
     },
     {
       key: "state",
       title: t(GDPR_I18N_KEYS.ownersColumnState),
-      render: (_: unknown, row: DataOwnerHealthRow): ReactElement =>
+      render: (row: DataOwnerHealthRow): ReactElement =>
         row.alive ? (
           <Tag color="green">{t(GDPR_I18N_KEYS.ownersAlive)}</Tag>
         ) : (
@@ -70,7 +73,7 @@ export function OwnersHealth(props: OwnersHealthProps): ReactElement {
     {
       key: "lastAlive",
       title: t(GDPR_I18N_KEYS.ownersColumnLastAlive),
-      render: (_: unknown, row: DataOwnerHealthRow): string =>
+      render: (row: DataOwnerHealthRow): string =>
         // "never" and "a long time ago" are different findings: one is an
         // owner that was never wired at all, the other one that stopped.
         row.last_alive_at != null
@@ -80,9 +83,16 @@ export function OwnersHealth(props: OwnersHealthProps): ReactElement {
     {
       key: "subjects",
       title: t(GDPR_I18N_KEYS.ownersColumnSubjects),
-      render: (_: unknown, row: DataOwnerHealthRow): ReactElement => {
+      render: (row: DataOwnerHealthRow): ReactElement => {
         const declared = row.declared_subject_types ?? [];
         const answered = row.answered_subject_types ?? [];
+        // The FINDING is the delta, not the two lists. An owner that declares
+        // four subjects and answers for three has one subject whose erasures
+        // now get no receipt slot at all — naming that one is the actionable
+        // sentence; printing both lists under a cell that already shows the
+        // declared one is how this grew to eleven lines of two characters.
+        const unanswered = declared.filter((kind) => !answered.includes(kind));
+        const undeclared = answered.filter((kind) => !declared.includes(kind));
         return (
           <Flex vertical>
             <Typography.Text>{declared.join(", ")}</Typography.Text>
@@ -92,10 +102,13 @@ export function OwnersHealth(props: OwnersHealthProps): ReactElement {
                 style={{ fontSize: fontSize.xs.fontSize }}
                 data-testid="gdpr-owners-mismatch"
               >
-                {t(GDPR_I18N_KEYS.ownersSubjectMismatch, {
-                  declared: declared.join(", "),
-                  answered: answered.join(", "),
-                })}
+                {unanswered.length > 0
+                  ? t(GDPR_I18N_KEYS.ownersSubjectMismatch, {
+                      subjects: unanswered.join(", "),
+                    })
+                  : t(GDPR_I18N_KEYS.ownersSubjectUndeclared, {
+                      subjects: undeclared.join(", "),
+                    })}
               </Typography.Text>
             ) : null}
           </Flex>
@@ -163,19 +176,11 @@ export function OwnersHealth(props: OwnersHealthProps): ReactElement {
                     })}
                   />
                 ) : null}
-                <Table
-                  data-testid="gdpr-owners-rows"
-                  size="small"
+                <DataTable
+                  testId="gdpr-owners-rows"
                   rowKey={(row: DataOwnerHealthRow) => row.owner}
-                  dataSource={[...rows]}
+                  rows={rows}
                   columns={columns}
-                  pagination={false}
-                  // Four columns, one of them a list of subject types: on a
-                  // phone the table is unreadable without its own scroller.
-                  scroll={{ x: true }}
-                  rowClassName={(row: DataOwnerHealthRow) =>
-                    row.alive ? "" : "gdpr-owner-silent"
-                  }
                 />
               </Flex>
             )}

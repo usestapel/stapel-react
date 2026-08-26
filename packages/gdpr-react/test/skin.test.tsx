@@ -44,8 +44,11 @@ const DOWNLOAD = "/user/data-export/download";
  * the screen as a date, not that this pair reimplements `Intl`. */
 const asDate = (iso: string): string => formatDeletionDate(iso, "en");
 
-function mount(server: MockServer, ui: React.ReactElement): void {
-  render(<TestProviders server={server}>{ui}</TestProviders>);
+function mount(
+  server: MockServer,
+  ui: React.ReactElement
+): ReturnType<typeof render> {
+  return render(<TestProviders server={server}>{ui}</TestProviders>);
 }
 
 /**
@@ -367,19 +370,36 @@ describe("<PendingDeletions> — silence is surfaced", () => {
  * second date column is are all printed, not hidden behind a pointer.
  */
 describe("<PendingDeletions> — the explanations are text, not tooltips", () => {
-  it("says what an overdue row means, in the row", async () => {
-    const server = mockServer({ "/me/erasures": { body: [ERASURE_TIMEOUT] } });
-    mount(server, <PendingDeletions />);
-    const table = await screen.findByTestId("gdpr-deletions-rows");
-    expect(table.textContent).toContain("has not confirmed");
-    expect(screen.getAllByTestId("gdpr-deletions-state-hint").length).toBe(1);
+  it("says what an overdue row means — as text, and exactly once", async () => {
+    const server = mockServer({
+      // TWO overdue rows: the sentence is the same for both, and printing it
+      // under each of them is the disabled-reason wall in another costume.
+      "/me/erasures": {
+        body: [ERASURE_TIMEOUT, { ...ERASURE_TIMEOUT, request_id: 19 }],
+      },
+    });
+    const { container } = mount(server, <PendingDeletions />);
+    await screen.findByTestId("gdpr-deletions-rows");
+    const banner = screen.getByTestId("gdpr-deletions-overdue");
+    expect(banner.textContent).toContain("has not confirmed");
+    // Said once for the card, not once per row.
+    const occurrences = (container.textContent ?? "").split(
+      "has not confirmed"
+    ).length - 1;
+    expect(occurrences).toBe(1);
+    // And it is TEXT: a phone has no hover, so nothing carries it as a title.
+    expect(container.querySelector("[title*='has not confirmed']")).toBeNull();
+    // The rows still NAME the state — the tag is per row, the essay is not.
+    expect(screen.getAllByText("Overdue").length).toBeGreaterThanOrEqual(2);
   });
 
   it("names the owners a request is still waiting on", async () => {
     const server = mockServer({ "/me/erasures": { body: [ERASURE_ERASING] } });
     mount(server, <PendingDeletions />);
     const table = await screen.findByTestId("gdpr-deletions-rows");
-    // The fixture's one unreceipted owner, printed rather than hovered.
+    // Per-ROW copy stays in the row: which owners this particular request is
+    // waiting on differs row by row, so it is not the banner's to say.
+    expect(screen.queryByTestId("gdpr-deletions-overdue")).toBeNull();
     expect(table.textContent).toContain("media");
   });
 

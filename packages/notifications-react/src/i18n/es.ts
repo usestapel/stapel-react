@@ -35,21 +35,19 @@ export const notificationsI18nBundleEs: I18nDictionary = {
     "Cuando haya algo que requiera tu atención, aparecerá aquí.",
   "notifications.feed.loading": "Cargando notificaciones…",
   "notifications.feed.load_more": "Cargar más",
-  "notifications.feed.end": "Estás al día.",
+  "notifications.feed.end": "Esto es todo lo que tienes.",
   "notifications.feed.open": "Abrir",
 
   "notifications.live.on": "En vivo",
   "notifications.live.connecting": "Conectando…",
   "notifications.live.reconnecting": "Reconectando…",
-  "notifications.live.polling": "Comprobando cada minuto",
-  "notifications.live.polling_hint":
-    "Este sitio no tiene conexión en vivo, así que la lista se actualiza cada minuto mientras esta pestaña esté abierta.",
+  "notifications.live.polling": "Se actualiza en menos de un minuto",
   "notifications.live.stopped": "Las actualizaciones en vivo se detuvieron",
   "notifications.live.reconnect": "Reconectar",
   "notifications.live.refused_session":
     "Tu sesión caducó. Inicia sesión de nuevo para recuperar las actualizaciones en vivo.",
   "notifications.live.refused_origin":
-    "Las actualizaciones en vivo no están configuradas para este sitio. La lista sigue actualizándose cada minuto.",
+    "Aquí no hay actualizaciones instantáneas. Las notificaciones nuevas llegan igualmente en menos de un minuto.",
   "notifications.live.refused_forbidden":
     "Esta cuenta no puede recibir actualizaciones en vivo.",
   "notifications.live.refused_unknown":
@@ -64,7 +62,7 @@ export const notificationsI18nBundleEs: I18nDictionary = {
   "notifications.push.checking": "Comprobando este dispositivo…",
   "notifications.push.on": "Activadas en este dispositivo",
   "notifications.push.off": "Desactivadas en este dispositivo",
-  "notifications.push.inactive": "Registrado, pero no se le entrega nada",
+  "notifications.push.inactive": "Registrado, pero no recibe notificaciones",
   "notifications.push.inactive_hint":
     "El servicio push rechazó el token de este dispositivo. Desactiva y vuelve a activar push para registrarlo otra vez.",
   "notifications.push.unknown": "No podemos saber si push está activo aquí",
@@ -88,7 +86,8 @@ export const notificationsI18nBundleEs: I18nDictionary = {
   "notifications.devices.empty_hint":
     "Activa push arriba para registrar este dispositivo.",
   "notifications.devices.this_device": "Este dispositivo",
-  "notifications.devices.inactive": "Sin entrega",
+  "notifications.devices.inactive": "Entrega detenida",
+  "notifications.devices.platform_other": "Otro dispositivo",
   "notifications.devices.last_seen": "Último registro: {when}",
   "notifications.devices.remove": "Eliminar",
   "notifications.devices.remove_question": "¿Eliminar este dispositivo?",

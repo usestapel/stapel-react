@@ -40,6 +40,7 @@ import {
   InvitationsPane,
   MembersManager,
   RoleSelectField,
+  WorkspaceSettings,
   WorkspacesPage,
 } from "../src/default/index.js";
 
@@ -426,5 +427,132 @@ describe("a nav-mounted screen with no workspace in the route", () => {
 
     expect(await screen.findByTestId("audit-trail-workspace-none")).toBeDefined();
     expect(screen.getByText("You are not in a workspace yet")).toBeDefined();
+  });
+});
+
+// ── 4. the visual pass: one statement per fact ───────────────────────────────
+
+/**
+ * VISUAL3 filed three defects that are all the same mistake — a screen saying
+ * one thing more than once, or saying two things that contradict. They are
+ * counted here, because "printed six times" is a number and a number can be
+ * asserted.
+ */
+describe("a screen states each fact once", () => {
+  /** Three terminal rows × three refused controls printed the SAME sentence
+   * six times, plus a second one twice, on one 390px screen. */
+  it("prints a terminal invitation's refusal once per row, not once per control", async () => {
+    const terminal = (id: string, email: string, status: string) => ({
+      id,
+      workspace_id: WS,
+      email,
+      display_name: null,
+      role: "member",
+      status,
+      expires_at: "2026-08-01T10:00:00Z",
+      last_sent_at: "2026-07-25T10:00:00Z",
+      accepted_at: null,
+      declined_at: null,
+      revoked_at: null,
+      created_at: "2026-07-24T10:00:00Z",
+      invited_by_id: VIEWER,
+    });
+    server.use(
+      http.get(`${BASE}/${WS}/invitations`, () =>
+        HttpResponse.json(
+          page([
+            terminal("0192c000-0000-4000-8000-000000000003", "alan@acme.test", "expired"),
+            terminal("0192c000-0000-4000-8000-000000000004", "margaret@acme.test", "accepted"),
+            terminal("0192c000-0000-4000-8000-000000000005", "john@acme.test", "revoked"),
+          ])
+        )
+      ),
+      ...readHandlers()
+    );
+    render(wrap(<InvitationsPane workspaceId={WS} />));
+
+    await screen.findByTestId("invitation-rename-0192c000-0000-4000-8000-000000000003");
+    // One sentence per row — three rows, three sentences, and never the
+    // per-control repetition the old layout produced.
+    for (const id of [
+      "0192c000-0000-4000-8000-000000000003",
+      "0192c000-0000-4000-8000-000000000004",
+      "0192c000-0000-4000-8000-000000000005",
+    ]) {
+      const block = screen.getByTestId(`invitation-blocked-${id}`);
+      expect(block.textContent?.trim().length ?? 0).toBeGreaterThan(0);
+    }
+    expect(
+      screen.queryAllByText("This invitation is closed — there is nothing left to do with it.")
+    ).toHaveLength(2);
+    expect(
+      screen.queryAllByText(
+        "This invitation has run out. Sending it again is the only thing left to do."
+      )
+    ).toHaveLength(1);
+    // The controls are still switched off, and still say so to a screen reader.
+    const revoke = screen.getByTestId(
+      "invitation-revoke-0192c000-0000-4000-8000-000000000004"
+    ) as HTMLButtonElement;
+    expect(revoke.disabled).toBe(true);
+    expect(revoke.getAttribute("aria-describedby")).toBe(
+      screen.getByTestId("invitation-blocked-0192c000-0000-4000-8000-000000000004").id
+    );
+  });
+
+  /** The failed roster used to state the outage twice, in two wordings, with
+   * two different recoveries — the gate's copy plus `HTTP 503` above the
+   * alert that carries the retry. */
+  it("states a failed roster read once, and never puts a raw status on the glass", async () => {
+    server.use(
+      http.get(`${BASE}/`, () =>
+        HttpResponse.json(
+          { error: { code: "error.503.service_unavailable", message: "Service unavailable" } },
+          { status: 503 }
+        )
+      ),
+      ...readHandlers()
+    );
+    render(wrap(<WorkspacesPage />));
+
+    const failed = await screen.findByTestId("workspaces-list-failed");
+    expect(failed).toBeDefined();
+    // One alert on the screen, and the create control points AT it rather
+    // than carrying a second copy of the news.
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    const create = screen.getByTestId("workspaces-create-open") as HTMLButtonElement;
+    expect(create.disabled).toBe(true);
+    expect(create.getAttribute("aria-describedby")).not.toBeNull();
+    // The status is the alert's own muted support handle and appears exactly
+    // there — once. Twice meant the disabled control had grown a second copy
+    // of the outage above the alert that already stated it.
+    const statusMentions = (document.body.textContent ?? "").split("HTTP 503").length - 1;
+    expect(statusMentions).toBe(1);
+    // The error CODE is never a sentence: it is a key, and the bundle turns
+    // it into one.
+    expect(document.body.textContent).not.toContain("error.503");
+  });
+
+  /** "Require two-factor authentication" read ON while the line under it said
+   * "Two-factor authentication is not required in this workspace." */
+  it("never contradicts the two-factor switch it just drew", async () => {
+    server.use(
+      http.get(`${BASE}/${WS}`, () =>
+        HttpResponse.json({
+          ...WORKSPACE,
+          settings: { security: { require_mfa: true, provisioned_user_policies: [] } },
+        })
+      ),
+      ...readHandlers()
+    );
+    render(wrap(<WorkspaceSettings workspaceId={WS} />));
+
+    const notice = await screen.findByTestId("workspace-mfa-off");
+    expect(notice.textContent).toContain("Two-factor authentication is required here.");
+    expect(document.body.textContent).not.toContain(
+      "Two-factor authentication is not required in this workspace."
+    );
+    const requireMfa = await screen.findByTestId("workspace-require-mfa");
+    expect(requireMfa.getAttribute("aria-checked")).toBe("true");
   });
 });

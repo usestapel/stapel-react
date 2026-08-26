@@ -1,24 +1,19 @@
 /**
- * Shared harness for the workspaces-react demos (frontend-guardrails §4.2). Demos
- * are first-class code — compiled, linted with the PRODUCT ruleset, smoke-rendered
- * — so this file obeys the same guardrails as `src/`:
+ * Shared harness for the workspaces-react demos (frontend-guardrails §4.2) —
+ * the PROVIDER FRAME and nothing else.
  *
- *  - no raw colours: every colour is a token via `cssVar()`.
- *  - no hardcoded text: every label is an i18n key rendered with `t()`.
- *  - clickable-needs-event: {@link DemoButton} carries `data-analytics="none"` with a `data-analytics-reason` — honest, because this scaffold ships no flow machines yet (only the provider), so the button steps nothing auto-instrumented. Switch to `data-analytics="flow"` once a bag action drives a real machine. The
- *    action prop is named `run` (not `onClick`) so the CALL site is not itself an
- *    untracked clickable — the tracked point is the real `<button>` in here.
- *
- * The mock runtime injects a canned `fetch` (no MSW worker needed) so a demo
- * renders identically in Ladle (interactive) and in vitest (smoke). Themes are
- * the viewer's job (data-theme + tokens.css); this only wires the providers a
- * headless component needs: query client, i18n, and the workspaces runtime.
+ * Every story in this package renders a screen out of `src/default/`, so the
+ * harness has no visual vocabulary of its own: no debug card, no `state.step`
+ * chip, no row of naked buttons. What it wires is what a headless component
+ * cannot run without — a query client, an i18n engine, and the workspaces
+ * runtime over a canned `fetch` (no MSW worker needed), so a demo renders
+ * identically in Ladle and in vitest. Themes are the viewer's job (data-theme
+ * + tokens.css).
  */
 import { useMemo } from "react";
-import type { CSSProperties, ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { I18nProvider, createI18n, useT } from "@stapel/core";
-import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
+import { I18nProvider, createI18n } from "@stapel/core";
 import { createWorkspacesRuntime } from "../src/index.js";
 import { WorkspacesProvider, registerWorkspacesI18n } from "../src/index.js";
 
@@ -70,22 +65,6 @@ export function mockFetch(handlers: DemoHandlers): typeof globalThis.fetch {
   }) as typeof globalThis.fetch;
 }
 
-/** i18n copy for the demo chrome — a `demo.*` (unmanaged) namespace, so the
- * i18n-key-exists lint treats it as app-local and never false-positives. */
-const demoBundleEn: Record<string, string> = {
-  "demo.action.start": "Start",
-  "demo.action.submit": "Submit",
-  "demo.action.reset": "Reset",
-  "demo.action.claim": "Create account",
-  "demo.action.exchange": "Grant exchanged",
-  "demo.action.continue": "Continue",
-  "demo.action.accept": "Accept",
-  "demo.action.decline": "Decline",
-  "demo.label.step": "state.step",
-  "demo.label.allowed": "allowed",
-  "demo.label.denied": "denied",
-};
-
 /**
  * Provider frame every workspaces demo variant renders inside. Builds a fresh mock
  * runtime + query client per mount so variants stay isolated.
@@ -102,7 +81,6 @@ export function WorkspacesDemoHarness(props: {
     });
     const engine = createI18n({ locale: "en" });
     registerWorkspacesI18n(engine);
-    engine.registerBundle("en", demoBundleEn);
     return {
       runtime: rt,
       queryClient: new QueryClient({
@@ -117,95 +95,5 @@ export function WorkspacesDemoHarness(props: {
         <WorkspacesProvider runtime={runtime}>{props.children}</WorkspacesProvider>
       </I18nProvider>
     </QueryClientProvider>
-  );
-}
-
-// ── shared demo UI (token-driven; no raw colours, no literal prose) ───────────
-
-const cardStyle: CSSProperties = {
-  background: cssVar("surface-raised"),
-  color: cssVar("text"),
-  border: `1px solid ${cssVar("border-subtle")}`,
-  borderRadius: radii.lg,
-  padding: spacing["5"],
-  display: "flex",
-  flexDirection: "column",
-  gap: spacing["3"],
-  maxWidth: "24rem",
-  fontSize: fontSize.md.fontSize,
-};
-
-/** A titled card wrapper for a demo body. `heading` (not `title`) keeps the
- * no-hardcoded-text rule from treating a technical component name as prose. */
-export function DemoCard(props: {
-  heading: ReactNode;
-  children: ReactNode;
-}): ReactElement {
-  return (
-    <div style={cardStyle} data-theme-surface>
-      <strong style={{ fontSize: fontSize.lg.fontSize }}>{props.heading}</strong>
-      {props.children}
-    </div>
-  );
-}
-
-/** Renders the current flow step (a technical token, never user prose). */
-export function StepBadge(props: { step: string }): ReactElement {
-  const t = useT();
-  return (
-    <div style={{ display: "flex", gap: spacing["2"], alignItems: "center" }}>
-      <span style={{ color: cssVar("text-muted") }}>
-        {t("demo.label.step")}
-      </span>
-      <code
-        style={{
-          background: cssVar("surface-sunken"),
-          color: cssVar("link"),
-          borderRadius: radii.sm,
-          // Size tokens are unitless numbers; React only auto-appends `px` to
-          // single numeric values, so multi-value shorthands spell the unit.
-          padding: `${spacing["1"]}px ${spacing["2"]}px`,
-        }}
-      >
-        {props.step}
-      </code>
-    </div>
-  );
-}
-
-const buttonStyle: CSSProperties = {
-  background: cssVar("brand"),
-  color: cssVar("text-on-accent"),
-  border: "none",
-  borderRadius: radii.md,
-  // See StepBadge: unitless tokens need an explicit unit in shorthands.
-  padding: `${spacing["2"]}px ${spacing["4"]}px`,
-  cursor: "pointer",
-  fontSize: fontSize.sm.fontSize,
-};
-
-/**
- * A demo action button. The interactive prop is `run` (not `onClick`) so the
- * call site is not an untracked clickable; the real `<button>` here declares
- * `data-analytics="none"` with a `data-analytics-reason` — honest, because this scaffold ships no flow machines yet (only the provider), so the button steps nothing auto-instrumented. Switch to `data-analytics="flow"` once a bag action drives a real machine.
- */
-export function DemoButton(props: {
-  run: () => void;
-  labelKey: string;
-}): ReactElement {
-  const t = useT();
-  return (
-    <button style={buttonStyle} data-analytics="none" data-analytics-reason="no-flow-machines" onClick={props.run}>
-      {t(props.labelKey)}
-    </button>
-  );
-}
-
-/** A row of demo action buttons. */
-export function DemoActions(props: { children: ReactNode }): ReactElement {
-  return (
-    <div style={{ display: "flex", gap: spacing["2"], flexWrap: "wrap" }}>
-      {props.children}
-    </div>
   );
 }

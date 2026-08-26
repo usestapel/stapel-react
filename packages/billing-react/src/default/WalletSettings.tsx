@@ -22,6 +22,13 @@
  * price list is unavailable is the failure mode the wallet/catalogue split
  * exists to prevent.
  *
+ * When the shop DID answer and sells nothing, the block reaches the whole
+ * top-up group — switch, trigger and package — and the reason is printed
+ * once, in place of the description of what the feature would do. The card
+ * used to leave all three live beside an empty select and say both sentences
+ * at once: "there is nothing to buy automatically" directly above "we buy
+ * this package for you automatically".
+ *
  * ── The form is re-seeded by the server, not by the user's last keystroke ──
  *
  * The fields are local state seeded from the wallet, keyed on the wallet's
@@ -87,6 +94,12 @@ function SettingsForm(props: {
   const [alertAt, setAlertAt] = useState<number>(wallet.low_balance_alert);
 
   const shopGate = packagesGate(packages, props.catalogAnswered);
+  // A shop with nothing to sell has nothing to sell to a SCHEDULE either, so
+  // the trigger and the package are off with it. The low-balance warning is
+  // deliberately still live: it is a fact about the wallet, it has nothing to
+  // do with the catalogue, and taking it away would leave a card whose only
+  // remaining control is a Save that saves nothing.
+  const shopBlocked = !shopGate.available;
   const saveGate =
     enabled && packageSlug === null
       ? actionBlocked(BILLING_I18N_KEYS.walletSettingsNeedsPackage)
@@ -97,7 +110,13 @@ function SettingsForm(props: {
       <Form layout="vertical" component="div">
         <Form.Item
           label={t(BILLING_I18N_KEYS.walletAutoRecharge)}
-          help={t(BILLING_I18N_KEYS.walletAutoRechargeHint)}
+          // The reason a control is OFF replaces the description of what it
+          // would do when on — printing both left the card saying "there is
+          // nothing to buy automatically" directly above "we buy this package
+          // for you automatically" (visual class VC-B1).
+          {...(shopBlocked
+            ? {}
+            : { help: t(BILLING_I18N_KEYS.walletAutoRechargeHint) })}
         >
           <GatedControl gate={shopGate} layout="stack">
             {(bind) => (
@@ -120,6 +139,7 @@ function SettingsForm(props: {
             min={0}
             precision={0}
             value={threshold}
+            disabled={shopBlocked}
             data-testid="billing-wallet-threshold"
             aria-label={t(BILLING_I18N_KEYS.walletThreshold)}
             onChange={(value) => {
@@ -131,7 +151,12 @@ function SettingsForm(props: {
         <Form.Item label={t(BILLING_I18N_KEYS.walletPackage)}>
           <Select
             value={packageSlug}
-            placeholder={t(BILLING_I18N_KEYS.walletPackagePlaceholder)}
+            disabled={shopBlocked}
+            placeholder={t(
+              shopBlocked
+                ? BILLING_I18N_KEYS.walletPackageNone
+                : BILLING_I18N_KEYS.walletPackagePlaceholder
+            )}
             data-testid="billing-wallet-package"
             aria-label={t(BILLING_I18N_KEYS.walletPackage)}
             options={packages.map((pack) => ({

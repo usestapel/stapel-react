@@ -12,6 +12,10 @@
  * deployment (`stapel-notifications[realtime]` is an optional extra), and
  * dressing a correct configuration as a fault trains people to ignore the
  * indicator — which is how the silent-degradation defect survives its own fix.
+ *
+ * Every line here is phrased as a fact about the reader's notifications, never
+ * about this client's transport: "Updates within a minute", not "no live
+ * connection, so the list refreshes while this tab is open".
  */
 import type { ReactElement } from "react";
 import { Badge, Button, Flex, Typography } from "antd";
@@ -94,17 +98,18 @@ export function DeliveryIndicator(props: {
     );
   }
 
+  // Polling is one line, and it says what is true FOR THE READER — how soon a
+  // new notification shows up. It used to add "This site has no live
+  // connection, so the list refreshes every minute while this tab is open":
+  // the client's own plumbing, narrated to somebody who cannot act on it.
   return (
     <Flex
-      vertical
-      gap={spacing[1]}
+      align="center"
+      gap={spacing[2]}
       data-testid="notification-delivery"
       data-delivery-mode={mode}
     >
       <Badge status="default" text={t(NOTIFICATIONS_I18N_KEYS.livePolling)} />
-      <Typography.Text type="secondary">
-        {t(NOTIFICATIONS_I18N_KEYS.livePollingHint)}
-      </Typography.Text>
     </Flex>
   );
 }

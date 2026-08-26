@@ -54,6 +54,8 @@ export default defineDemo({
   description:
     "The shipped role field: an accessible name of its own (a roster renders one per row, and 'combobox, combobox, combobox' is what a screen reader says otherwise), the effective registry as options with each role's rank as the caption, and a stated refusal instead of a picker when the registry cannot be read.",
   component: RoleSelectField,
+  // The field renders the headless `RoleSelect` and nothing else.
+  covers: ["RoleSelect"],
   variants: {
     default: {
       description:

@@ -46,6 +46,9 @@ export default defineDemo({
   description:
     "Plan, status and the next date, with 'Manage billing' as the primary and 'Cancel subscription' last, quiet, and behind a confirmation that says what cancelling keeps.",
   component: SubscriptionCard,
+  // The skin over the `Subscription` headless bag: these four variants are
+  // that bag's four states, rendered.
+  covers: ["Subscription"],
   variants: {
     active: {
       description:

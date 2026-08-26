@@ -407,35 +407,6 @@
   },
   "demos": [
     {
-      "id": "notifications.device_registration",
-      "title": "Device registration",
-      "description": "The headless DeviceRegistration derives one PushState from GET /devices/ and SHA-256 of the token this device holds — on, off, inactive, unknown, denied, unsupported. Bring your own switch; the bag has no boolean to flip.",
-      "component": "DeviceRegistration",
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        "default",
-        "not-registered"
-      ],
-      "source": "demo/DeviceRegistration.demo.tsx"
-    },
-    {
-      "id": "notifications.feed",
-      "title": "Notification feed",
-      "description": "The headless NotificationFeed renders an anchor-paginated, load-more list from the user's push-notification log. Bring your own row/skeleton/empty UI — the component is renderless.",
-      "component": "NotificationFeed",
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/NotificationFeed.demo.tsx"
-    },
-    {
       "id": "notifications.feed_list",
       "title": "Notification feed list",
       "description": "The feed as a self-contained skin: type glyph, title, one-line body, relative time in a <time> carrying the exact instant, and the whole row as a link when data carries a deep link.",
@@ -459,7 +430,9 @@
       "description": "The page the nav routes to: a heading, the delivery mode (live socket or the documented 60s poll), and the feed with a real row anatomy — type glyph, title, body, relative time, deep link.",
       "component": "NotificationsPage",
       "covers": [
-        "NotificationFeedList"
+        "NotificationFeedList",
+        "NotificationFeed",
+        "NotificationsProvider"
       ],
       "tokens": [
         "surface",
@@ -476,26 +449,14 @@
       "source": "demo/NotificationsPage.demo.tsx"
     },
     {
-      "id": "notifications.provider",
-      "title": "Notifications provider",
-      "description": "The headless notifications root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
-      "component": "NotificationsProvider",
-      "tokens": [
-        "card-bg"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/Notifications.demo.tsx"
-    },
-    {
       "id": "notifications.push_settings",
       "title": "Push notification settings",
       "description": "The push settings surface: a switch whose position comes from GET /devices/ matched on this device's token fingerprint, and the account's registry with an inactive device flagged and removal by row id behind a confirm sheet.",
       "component": "PushSettingsPane",
       "covers": [
         "PushNotificationToggle",
-        "PushDeviceList"
+        "PushDeviceList",
+        "DeviceRegistration"
       ],
       "tokens": [
         "surface",
@@ -571,6 +532,7 @@
     "notifications.devices.empty_hint",
     "notifications.devices.inactive",
     "notifications.devices.last_seen",
+    "notifications.devices.platform_other",
     "notifications.devices.remove",
     "notifications.devices.remove_body",
     "notifications.devices.remove_question",
@@ -589,7 +551,6 @@
     "notifications.live.connecting",
     "notifications.live.on",
     "notifications.live.polling",
-    "notifications.live.polling_hint",
     "notifications.live.reconnect",
     "notifications.live.reconnecting",
     "notifications.live.refused_forbidden",

@@ -35,7 +35,7 @@ export default defineDemo({
   description:
     "The page the nav routes to: a heading, the delivery mode (live socket or the documented 60s poll), and the feed with a real row anatomy — type glyph, title, body, relative time, deep link.",
   component: NotificationsPage,
-  covers: ["NotificationFeedList"],
+  covers: ["NotificationFeedList", "NotificationFeed", "NotificationsProvider"],
   tokens: ["surface", "text", "text-muted", "border-subtle"],
   variants: {
     polling: {

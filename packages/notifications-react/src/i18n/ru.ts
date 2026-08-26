@@ -33,21 +33,19 @@ export const notificationsI18nBundleRu: I18nDictionary = {
     "Когда появится что-то важное, оно окажется здесь.",
   "notifications.feed.loading": "Загрузка уведомлений…",
   "notifications.feed.load_more": "Загрузить ещё",
-  "notifications.feed.end": "Вы всё просмотрели.",
+  "notifications.feed.end": "Это все ваши уведомления.",
   "notifications.feed.open": "Открыть",
 
   "notifications.live.on": "В реальном времени",
   "notifications.live.connecting": "Подключение…",
   "notifications.live.reconnecting": "Переподключение…",
-  "notifications.live.polling": "Обновление раз в минуту",
-  "notifications.live.polling_hint":
-    "На этом сайте нет живого соединения, поэтому список обновляется раз в минуту, пока вкладка открыта.",
+  "notifications.live.polling": "Обновляется в течение минуты",
   "notifications.live.stopped": "Живые обновления остановлены",
   "notifications.live.reconnect": "Переподключиться",
   "notifications.live.refused_session":
     "Сессия истекла. Войдите снова, чтобы вернуть живые обновления.",
   "notifications.live.refused_origin":
-    "Живые обновления не настроены для этого сайта. Список всё равно обновляется раз в минуту.",
+    "Мгновенные обновления здесь недоступны. Новые уведомления всё равно приходят в течение минуты.",
   "notifications.live.refused_forbidden":
     "Этому аккаунту не разрешены живые обновления.",
   "notifications.live.refused_unknown":
@@ -61,7 +59,7 @@ export const notificationsI18nBundleRu: I18nDictionary = {
   "notifications.push.checking": "Проверяем это устройство…",
   "notifications.push.on": "Включены на этом устройстве",
   "notifications.push.off": "Выключены на этом устройстве",
-  "notifications.push.inactive": "Зарегистрировано, но доставка не идёт",
+  "notifications.push.inactive": "Зарегистрировано, но уведомления не приходят",
   "notifications.push.inactive_hint":
     "Push-сервис отклонил токен этого устройства. Выключите и включите push, чтобы зарегистрировать его заново.",
   "notifications.push.unknown": "Не можем определить, включён ли здесь push",
@@ -85,7 +83,8 @@ export const notificationsI18nBundleRu: I18nDictionary = {
   "notifications.devices.empty_hint":
     "Включите push выше, чтобы зарегистрировать это устройство.",
   "notifications.devices.this_device": "Это устройство",
-  "notifications.devices.inactive": "Доставка не идёт",
+  "notifications.devices.inactive": "Доставка остановлена",
+  "notifications.devices.platform_other": "Другое устройство",
   "notifications.devices.last_seen": "Последняя регистрация: {when}",
   "notifications.devices.remove": "Удалить",
   "notifications.devices.remove_question": "Удалить это устройство?",

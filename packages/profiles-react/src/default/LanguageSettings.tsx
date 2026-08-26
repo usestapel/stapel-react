@@ -28,6 +28,7 @@ import { useMyProfile } from "../model/queries.js";
 import { useUpdateMyProfile } from "../model/mutations.js";
 import { useLanguages } from "../model/queries.js";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
+import { SettingRow } from "./parts.js";
 
 const AUTO = "auto";
 
@@ -159,8 +160,7 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
           >
             {(options) => (
               <>
-                <div>
-                  <Typography.Text>{t(PROFILES_I18N_KEYS.fieldAppLanguage)}</Typography.Text>
+                <SettingRow label={t(PROFILES_I18N_KEYS.fieldAppLanguage)}>
                   <Select<string>
                     value={pickerValue}
                     onChange={pickAppLanguage}
@@ -174,18 +174,15 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
                       })),
                     ]}
                   />
-                </div>
+                </SettingRow>
 
-                <div>
-                  <Typography.Text>{t(PROFILES_I18N_KEYS.fieldUnderstands)}</Typography.Text>
-                  <div>
-                    <Checkbox.Group
-                      value={understands}
-                      onChange={(v) => toggleUnderstands(v as string[])}
-                      options={options.map((l) => ({ value: l.code, label: l.name }))}
-                    />
-                  </div>
-                </div>
+                <SettingRow label={t(PROFILES_I18N_KEYS.fieldUnderstands)}>
+                  <Checkbox.Group
+                    value={understands}
+                    onChange={(v) => toggleUnderstands(v as string[])}
+                    options={options.map((l) => ({ value: l.code, label: l.name }))}
+                  />
+                </SettingRow>
               </>
             )}
           </LoadList>

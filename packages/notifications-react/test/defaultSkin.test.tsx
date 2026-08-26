@@ -24,7 +24,10 @@ import { createNotificationsRuntime } from "../src/model/runtime.js";
 import type { NotificationsRuntime } from "../src/model/runtime.js";
 import { NotificationsProvider } from "../src/headless/NotificationsProvider.js";
 import { FeedDeliveryProvider } from "../src/model/delivery.js";
-import { registerNotificationsI18n } from "../src/i18n/keys.js";
+import {
+  notificationsI18nBundleEn,
+  registerNotificationsI18n,
+} from "../src/i18n/keys.js";
 import {
   NotificationFeedList,
   NotificationsPage,
@@ -165,7 +168,9 @@ describe("<PushNotificationToggle/> — the switch draws the server's answer", (
       )
     );
     await waitFor(() =>
-      expect(screen.getByText("Registered, but not being delivered to")).toBeDefined()
+      expect(
+        screen.getByText(notificationsI18nBundleEn["notifications.push.inactive"])
+      ).toBeDefined()
     );
     expect(screen.getByRole("switch").getAttribute("aria-checked")).toBe("false");
   });
@@ -382,13 +387,18 @@ describe("<NotificationFeedList/> — six fields on the wire, six on the glass",
     expect(screen.queryByTestId("notification-feed-link")).toBeNull();
   });
 
-  it("'all caught up' is a footnote under rows, and the empty state stands alone", async () => {
+  it("the end footnote says 'no more' in different words from the empty state", async () => {
     server.use(http.get(`${BASE}/feed/`, () => HttpResponse.json(page([FEED_ITEM]))));
     const { unmount } = render(
       wrap(createNotificationsRuntime({ baseUrl: BASE }), <NotificationFeedList />)
     );
     await waitFor(() => expect(screen.getByTestId("notification-feed-end")).toBeDefined());
     expect(screen.queryByTestId("notification-feed-empty")).toBeNull();
+    // Same words for both claims is the defect, not just same placement: the
+    // footnote under existing rows must not be the empty state's sentence.
+    expect(screen.getByTestId("notification-feed-end").textContent).not.toBe(
+      notificationsI18nBundleEn["notifications.feed.empty"]
+    );
     unmount();
 
     server.use(http.get(`${BASE}/feed/`, () => HttpResponse.json(page([]))));
@@ -446,7 +456,9 @@ describe("the delivery mode is always on screen", () => {
     expect(
       screen.getByTestId("notification-delivery").getAttribute("data-delivery-mode")
     ).toBe("polling");
-    expect(screen.getByText("Checking every minute")).toBeDefined();
+    expect(
+      screen.getByText(notificationsI18nBundleEn["notifications.live.polling"])
+    ).toBeDefined();
   });
 
   it("shows LIVE when a socket is carrying the feed", async () => {

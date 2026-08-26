@@ -29,11 +29,6 @@ export const notificationsErrorBundleEs: Record<NotificationsErrorCode, string> 
   "error.400.field.unique": "{field} debe ser único",
   "error.400.invalid_ad_id": "ID de anuncio no válido",
   "error.400.invalid_platform": "La plataforma debe ser una de las siguientes: ios, android, web.",
-  "error.400.translate.batch_too_large": "Un lote admite como máximo {max_items} textos",
-  "error.400.translate.batch_too_long": "El lote supera los {max_chars} caracteres en total",
-  "error.400.translate.text_required": "Indica un texto o una lista de textos no vacía",
-  "error.400.translate.text_too_long": "El texto supera los {max_chars} caracteres",
-  "error.400.translate.unsupported_language": "El idioma {language} no está configurado aquí",
   "error.400.validation_error": "Error de validación",
   "error.400.verification_failed": "La verificación ha fallado",
   "error.400.verification_invalid_factor": "Este factor de verificación no está disponible",
@@ -61,6 +56,5 @@ export const notificationsErrorBundleEs: Record<NotificationsErrorCode, string> 
   "error.429.rate_limit": "Demasiados intentos. Inténtalo de nuevo en {retry_after_minutes} minutos.",
   "error.429.too_many_requests": "Demasiadas solicitudes. Inténtalo de nuevo más tarde.",
   "error.500.internal": "Algo salió mal",
-  "error.502.translate.provider_unavailable": "El servicio de traducción no está disponible",
   "error.503.mandate_unavailable": "No se puede verificar el mandato del espacio de trabajo",
 };

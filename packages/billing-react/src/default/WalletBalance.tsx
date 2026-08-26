@@ -110,23 +110,31 @@ function DebtBlock(props: { wallet: WalletData }): ReactElement | null {
             {t(BILLING_I18N_KEYS.walletDebtExplain)}
           </Typography.Text>
           {/* Oldest first — the order the server collects them in, kept as
-              sent so the list reads as the queue it is. */}
+              sent so the list reads as the queue it is.
+
+              Two lines, not one `·`-joined run-on: the reason is a sentence
+              and the amount is a number, and gluing them with a middle dot
+              produced a third line of the panel that read as neither. */}
           {debts.map((debt) => (
-            <Typography.Text
+            <Flex
+              vertical
+              gap={spacing[0]}
               key={debt.id}
-              type="secondary"
               data-testid={`billing-wallet-debt-${debt.id}`}
             >
-              {t(
-                debtReasonKey(debt.reason) ??
-                  BILLING_I18N_KEYS.walletDebtReasonOther
-              )}
-              {" · "}
-              {t(BILLING_I18N_KEYS.walletDebtRow, {
-                credits: formatCreditCount(locale, debt.credits_outstanding),
-                initial: formatCreditCount(locale, debt.credits_initial),
-              })}
-            </Typography.Text>
+              <Typography.Text>
+                {t(
+                  debtReasonKey(debt.reason) ??
+                    BILLING_I18N_KEYS.walletDebtReasonOther
+                )}
+              </Typography.Text>
+              <Typography.Text type="secondary">
+                {t(BILLING_I18N_KEYS.walletDebtRow, {
+                  credits: formatCreditCount(locale, debt.credits_outstanding),
+                  initial: formatCreditCount(locale, debt.credits_initial),
+                })}
+              </Typography.Text>
+            </Flex>
           ))}
         </Flex>
       }

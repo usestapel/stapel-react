@@ -53,7 +53,8 @@
 import { useState } from "react";
 import type { ReactElement } from "react";
 import { Flex, Typography } from "antd";
-import { SkinConfirm, ErrorAlert, GatedButton } from "@stapel/tokens-antd/skin";
+import { SkinConfirm, ErrorAlert, GatedButton, SkinTheme } from "@stapel/tokens-antd/skin";
+import type { ThemeMode } from "@stapel/tokens-antd";
 import { actionAvailable, actionBlocked, useT } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
@@ -78,6 +79,31 @@ export interface RelationshipProps {
   /** Hide the block/unblock affordance — a roster that only offers following
    * (the block control still exists on the person's own profile page). */
   readonly showBlock?: boolean;
+  /**
+   * Pin a side; omitted, the control follows the document's LIVE `data-theme`
+   * through its own `SkinTheme`. It carries one because it is a PUBLISHED
+   * export a host mounts on its own (a chat header, a review byline) — the
+   * visual pass caught exactly that: mounted outside a themed page it fell
+   * back to antd's stock palette and drew Follow in iOS blue beside the same
+   * component rendering brand indigo one story over.
+   */
+  readonly mode?: ThemeMode;
+  /**
+   * How loud the follow control is.
+   *
+   * `"page"` (default) is the person's own profile, where following them is
+   * what the screen is FOR, so Follow is the one primary. `"row"` is a roster
+   * line, where a solid primary per row stacks three or ten of them and none
+   * of them means anything (visual pass VC-A6: the Followers tab drew a
+   * column of indigo Follow buttons).
+   */
+  readonly emphasis?: "page" | "row";
+  /**
+   * This person already follows the caller — the Followers list knows it
+   * without asking, because that IS the list. Turns "Follow" into "Follow
+   * back", which is a different offer and the accurate word for it.
+   */
+  readonly followsYou?: boolean;
   readonly testId?: string;
 }
 
@@ -147,7 +173,9 @@ function RelationshipControls(props: {
           gate={followGate}
           layout={layout}
           size={size}
-          type={bag.isFollowing ? "default" : "primary"}
+          type={
+            bag.isFollowing || props.skin.emphasis === "row" ? "default" : "primary"
+          }
           loading={bag.isMutating}
           onClick={() => (bag.isFollowing ? bag.unfollow() : bag.follow())}
           testId="relationship-follow"
@@ -156,7 +184,9 @@ function RelationshipControls(props: {
         >
           {bag.isFollowing
             ? t(PROFILES_I18N_KEYS.relUnfollow)
-            : t(PROFILES_I18N_KEYS.relFollow)}
+            : props.skin.followsYou === true
+              ? t(PROFILES_I18N_KEYS.relFollowBack)
+              : t(PROFILES_I18N_KEYS.relFollow)}
         </GatedButton>
 
         {showBlock && (
@@ -215,8 +245,16 @@ function RelationshipControls(props: {
 
 export function Relationship(props: RelationshipProps): ReactElement {
   return (
-    <HeadlessRelationship userId={props.userId}>
-      {(bag) => <RelationshipControls bag={bag} skin={props} />}
-    </HeadlessRelationship>
+    // `bare`: this control is mounted INSIDE somebody else's surface (a
+    // profile card, a roster row, a chat header), so it must carry the token
+    // palette without painting a second background over the one it sits on.
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
+      <HeadlessRelationship userId={props.userId}>
+        {(bag) => <RelationshipControls bag={bag} skin={props} />}
+      </HeadlessRelationship>
+    </SkinTheme>
   );
 }

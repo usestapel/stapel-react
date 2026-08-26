@@ -571,21 +571,6 @@
       "source": "demo/AccountClosurePanel.demo.tsx"
     },
     {
-      "id": "gdpr.closure",
-      "title": "Account closure",
-      "description": "GET /gdpr/api/v1/user/account/close/status — is this account being deleted? The module answers 404 error.404.gdpr.no_active_closure for the state almost every account is in, so useAccountClosure folds that ONE code (never the status) into a null answer: the ready arm has two shapes and the failed arm keeps meaning 'we could not ask'. The grace variant shows the date the sweep task will act on, straight off the wire, and the pending erasure beside it carries BOTH clocks — due_at is when our systems are done, fully_erased_by is when the last subprocessor's window closes.",
-      "component": "GdprProvider",
-      "tokens": [
-        "surface-raised"
-      ],
-      "variants": [
-        "default",
-        "grace",
-        "erasing"
-      ],
-      "source": "demo/Gdpr.demo.tsx"
-    },
-    {
       "id": "gdpr.data-export",
       "title": "Download your data",
       "description": "Four states that never collapse into each other. While a worker is building the archive the request button is OFF with its reason printed beside it — read from the wire status, not learned from the 409 a second request would earn — and the status re-reads itself every 15s, so a person who asks for their data and waits sees it finish. The download appears only when the server says the single-use token is still unspent AND the host passes the token from the email; without one, the panel says where the link is instead of inventing an input box for it.",
@@ -694,8 +679,11 @@
     {
       "id": "gdpr.privacy-pane",
       "title": "Privacy and your data",
-      "description": "The screen `account.privacy` mounts, in the order a person needs it: what is already on its way out, a copy of your data, a formal request, and only then the account itself. The destructive control is LAST on purpose — nobody should delete an account to answer a question the export would have answered. Each of the four panels runs its own read, so a failure in one never blanks the others.",
+      "description": "The screen `account.privacy` mounts, under its own name, in the order a person needs it: a copy of your data, what is already on its way out, a formal request, and only then the account itself. The export leads because the deletions list is empty for almost every account, and a page should not open by answering a question nobody asked. The destructive control is LAST on purpose — nobody should delete an account to answer a question the export would have answered. Each of the four panels runs its own read, so a failure in one never blanks the others.",
       "component": "PrivacyPane",
+      "covers": [
+        "GdprProvider"
+      ],
       "tokens": [
         "surface",
         "surface-raised",
@@ -797,6 +785,11 @@
     "gdpr.closure.deleted",
     "gdpr.closure.deleting",
     "gdpr.closure.explain",
+    "gdpr.closure.grace_left",
+    "gdpr.closure.grace_left.few",
+    "gdpr.closure.grace_left.many",
+    "gdpr.closure.grace_left.one",
+    "gdpr.closure.grace_left.other",
     "gdpr.closure.heading",
     "gdpr.closure.initiate",
     "gdpr.closure.none",
@@ -811,12 +804,14 @@
     "gdpr.deletions.heading",
     "gdpr.deletions.obligation",
     "gdpr.deletions.obligations_heading",
+    "gdpr.deletions.overdue_count",
     "gdpr.deletions.part.done",
     "gdpr.deletions.part.pending",
     "gdpr.deletions.part.receipt",
     "gdpr.deletions.part.timeout",
     "gdpr.deletions.parts_empty",
     "gdpr.deletions.parts_heading",
+    "gdpr.deletions.reference",
     "gdpr.deletions.state.deleted",
     "gdpr.deletions.state.erasing",
     "gdpr.deletions.state.queued",
@@ -867,10 +862,14 @@
     "gdpr.owners.silent",
     "gdpr.owners.silent_count",
     "gdpr.owners.subject_mismatch",
+    "gdpr.owners.subject_undeclared",
+    "gdpr.privacy.explain",
     "gdpr.privacy.heading",
     "gdpr.public.explain",
     "gdpr.public.heading",
+    "gdpr.queue.ack_automated",
     "gdpr.queue.ack_missing",
+    "gdpr.queue.ack_overdue_count",
     "gdpr.queue.ack_sent",
     "gdpr.queue.channel.app",
     "gdpr.queue.channel.email",
@@ -878,7 +877,6 @@
     "gdpr.queue.column.ack_due",
     "gdpr.queue.column.channel",
     "gdpr.queue.column.kind",
-    "gdpr.queue.column.reference",
     "gdpr.queue.column.resolve_due",
     "gdpr.queue.column.state",
     "gdpr.queue.column.subject",
@@ -886,6 +884,7 @@
     "gdpr.queue.heading",
     "gdpr.queue.note_unchanged",
     "gdpr.queue.overdue",
+    "gdpr.queue.reference",
     "gdpr.queue.save_note",
     "gdpr.queue.state.acknowledged",
     "gdpr.queue.state.in_progress",

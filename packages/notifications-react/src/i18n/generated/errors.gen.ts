@@ -52,11 +52,6 @@ export const NOTIFICATIONS_ERRORS = {
   "error.400.field.unique": { status: 400, params: ["field"], remediation: "fix_input", en: "{field} must be unique" },
   "error.400.invalid_ad_id": { status: 400, params: [], remediation: "fix_input", en: "Invalid advertisement ID" },
   "error.400.invalid_platform": { status: 400, params: [], remediation: "fix_input", en: "Platform must be one of: ios, android, web." },
-  "error.400.translate.batch_too_large": { status: 400, params: ["max_items"], remediation: "fix_input", en: "A batch may hold at most {max_items} texts" },
-  "error.400.translate.batch_too_long": { status: 400, params: ["max_chars"], remediation: "fix_input", en: "The batch holds more than {max_chars} characters in total" },
-  "error.400.translate.text_required": { status: 400, params: [], remediation: "fix_input", en: "Provide either a text or a non-empty list of texts" },
-  "error.400.translate.text_too_long": { status: 400, params: ["max_chars"], remediation: "fix_input", en: "Text is longer than {max_chars} characters" },
-  "error.400.translate.unsupported_language": { status: 400, params: ["language"], remediation: "fix_input", en: "Language {language} is not configured here" },
   "error.400.validation_error": { status: 400, params: [], remediation: "fix_input", en: "Validation error" },
   "error.400.verification_failed": { status: 400, params: [], remediation: "verify", en: "Verification failed" },
   "error.400.verification_invalid_factor": { status: 400, params: [], remediation: "verify", en: "This verification factor is not available" },
@@ -84,7 +79,6 @@ export const NOTIFICATIONS_ERRORS = {
   "error.429.rate_limit": { status: 429, params: ["retry_after_minutes"], remediation: "wait_and_retry", en: "Too many attempts. Try again in {retry_after_minutes} minutes." },
   "error.429.too_many_requests": { status: 429, params: [], remediation: "wait_and_retry", en: "Too many requests. Please try again later." },
   "error.500.internal": { status: 500, params: [], remediation: "contact_support", en: "Something went wrong" },
-  "error.502.translate.provider_unavailable": { status: 502, params: [], remediation: "retry", en: "The translation provider is unavailable" },
   "error.503.mandate_unavailable": { status: 503, params: [], remediation: "retry", en: "Cannot verify workspace mandate right now" },
 } as const;
 
@@ -109,11 +103,6 @@ export const NOTIFICATIONS_ERROR_CODES: readonly NotificationsErrorCode[] = [
   "error.400.field.unique",
   "error.400.invalid_ad_id",
   "error.400.invalid_platform",
-  "error.400.translate.batch_too_large",
-  "error.400.translate.batch_too_long",
-  "error.400.translate.text_required",
-  "error.400.translate.text_too_long",
-  "error.400.translate.unsupported_language",
   "error.400.validation_error",
   "error.400.verification_failed",
   "error.400.verification_invalid_factor",
@@ -141,7 +130,6 @@ export const NOTIFICATIONS_ERROR_CODES: readonly NotificationsErrorCode[] = [
   "error.429.rate_limit",
   "error.429.too_many_requests",
   "error.500.internal",
-  "error.502.translate.provider_unavailable",
   "error.503.mandate_unavailable",
 ];
 
@@ -168,11 +156,6 @@ export const notificationsErrorBundleEn: Record<NotificationsErrorCode, string> 
   "error.400.field.unique": "{field} must be unique",
   "error.400.invalid_ad_id": "Invalid advertisement ID",
   "error.400.invalid_platform": "Platform must be one of: ios, android, web.",
-  "error.400.translate.batch_too_large": "A batch may hold at most {max_items} texts",
-  "error.400.translate.batch_too_long": "The batch holds more than {max_chars} characters in total",
-  "error.400.translate.text_required": "Provide either a text or a non-empty list of texts",
-  "error.400.translate.text_too_long": "Text is longer than {max_chars} characters",
-  "error.400.translate.unsupported_language": "Language {language} is not configured here",
   "error.400.validation_error": "Validation error",
   "error.400.verification_failed": "Verification failed",
   "error.400.verification_invalid_factor": "This verification factor is not available",
@@ -200,6 +183,5 @@ export const notificationsErrorBundleEn: Record<NotificationsErrorCode, string> 
   "error.429.rate_limit": "Too many attempts. Try again in {retry_after_minutes} minutes.",
   "error.429.too_many_requests": "Too many requests. Please try again later.",
   "error.500.internal": "Something went wrong",
-  "error.502.translate.provider_unavailable": "The translation provider is unavailable",
   "error.503.mandate_unavailable": "Cannot verify workspace mandate right now",
 };

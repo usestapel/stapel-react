@@ -48,6 +48,11 @@ export default defineDemo({
   description:
     "The shipped billing screen: the two credit pools stated separately (bought credits that never expire vs plan credits with a deadline — never one sum), any debt with what the next purchase settles, the subscription and its next date, both ways to buy with the price per credit under each, automatic top-up, and the credit ledger.",
   component: WalletPanel,
+  // The billing page mounts the provider and drives the headless pricing
+  // bag, so this one story is the honest coverage for both — the harness
+  // stories that used to claim it printed a `state.step` chip and nothing
+  // a customer could read.
+  covers: ["BillingProvider", "PricingTable"],
   variants: {
     default: {
       description:

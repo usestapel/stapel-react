@@ -7,7 +7,7 @@
  *   loading   — we are asking
  *   failed    — we could not ask                 (retry, never "you're fine")
  *   ready(null)   — nothing is being deleted     (offer the destructive door)
- *   ready(closure) — a DATE, and the way back    (never a countdown)
+ *   ready(closure) — a DATE, the days left beside it, and the way back
  *
  * The loading and failed arms are the design system's, not this panel's
  * (`@stapel/tokens-antd/skin`): one skeleton, one error surface with the
@@ -50,10 +50,10 @@ import type { ReactElement } from "react";
 import { Alert, Button, Card, Flex, Typography } from "antd";
 import { spacing } from "@stapel/tokens";
 import { ErrorAlert, LoadBoundary, SkinDialog, SkinTheme } from "@stapel/tokens-antd/skin";
-import { useI18n, useT } from "@stapel/core";
+import { useI18n, useT, useTPlural } from "@stapel/core";
 import { GDPR_I18N_KEYS } from "../i18n/keys.js";
 import { useAccountClosure } from "../model/closure.js";
-import { formatDeletionDate } from "../model/dates.js";
+import { daysUntil, formatDeletionDate } from "../model/dates.js";
 import { isClosureAlreadyPending, isLegalHold } from "../model/refusals.js";
 import type { ThemeModeProp } from "./types.js";
 
@@ -90,6 +90,9 @@ export function AccountClosurePanel(
     bag.graceEndsAt !== undefined
       ? formatDeletionDate(bag.graceEndsAt, locale)
       : undefined;
+  // The clock BESIDE the date, never instead of it — see `daysUntil`.
+  const graceDaysLeft =
+    bag.graceEndsAt !== undefined ? daysUntil(bag.graceEndsAt) : undefined;
 
   return (
     <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
@@ -120,6 +123,7 @@ export function AccountClosurePanel(
               ) : (
                 <ScheduledState
                   date={graceDate}
+                  daysLeft={graceDaysLeft}
                   erased={closure.status === "deleted"}
                   canCancel={bag.canCancel}
                   busy={bag.cancel.isPending}
@@ -208,12 +212,17 @@ function IdleState(props: {
           title={t(GDPR_I18N_KEYS.closureCancelled)}
         />
       ) : null}
-      <Alert
-        type="success"
-        showIcon
+      {/* A NON-EVENT is not news. "Your account is not scheduled for
+          deletion" is true of every account that has not asked, and a green
+          success banner announcing it made the quiet state look like a
+          result. It is stated, once, as the first line of the explanation. */}
+      <Typography.Paragraph
+        type="secondary"
+        style={{ marginBottom: 0 }}
         data-testid="gdpr-closure-none"
-        title={t(GDPR_I18N_KEYS.closureNone)}
-      />
+      >
+        {t(GDPR_I18N_KEYS.closureNone)}
+      </Typography.Paragraph>
       <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
         {t(GDPR_I18N_KEYS.closureExplain)}
       </Typography.Paragraph>
@@ -246,6 +255,8 @@ function IdleState(props: {
 /** A closure exists: the DATE, and the way back while there is one. */
 function ScheduledState(props: {
   date: string | undefined;
+  /** Whole days from now to the date above, or `undefined` once it is past. */
+  daysLeft: number | undefined;
   erased: boolean;
   canCancel: boolean;
   busy: boolean;
@@ -253,6 +264,7 @@ function ScheduledState(props: {
   error: unknown;
 }): ReactElement {
   const t = useT();
+  const tPlural = useTPlural();
   // Grace is over once the erasure is running: the module stops accepting a
   // cancel, and the panel must stop implying one is possible.
   const erasing = !props.canCancel;
@@ -273,6 +285,14 @@ function ScheduledState(props: {
           erasing && !props.erased ? (
             <Typography.Text type="secondary" data-testid="gdpr-closure-final">
               {t(GDPR_I18N_KEYS.closureDeleting)}
+            </Typography.Text>
+          ) : props.daysLeft !== undefined ? (
+            // The date says WHEN; this says HOW LONG. Both, because on the
+            // one screen where a person may want to change their mind,
+            // "September 23, 2026" leaves the only question they are actually
+            // asking to mental arithmetic.
+            <Typography.Text type="secondary" data-testid="gdpr-closure-days-left">
+              {tPlural(GDPR_I18N_KEYS.closureGraceLeft, { count: props.daysLeft })}
             </Typography.Text>
           ) : undefined
         }

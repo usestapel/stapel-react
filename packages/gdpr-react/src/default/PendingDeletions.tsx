@@ -28,7 +28,7 @@
  * still waiting on, are printed under the tag for the same reason as above.
  */
 import type { ReactElement } from "react";
-import { Alert, Card, Flex, Table, Tag, Typography } from "antd";
+import { Alert, Card, Flex, Tag, Typography } from "antd";
 import { fontSize, spacing } from "@stapel/tokens";
 import {
   EmptyState,
@@ -36,11 +36,13 @@ import {
   LoadList,
   SkinTheme,
 } from "@stapel/tokens-antd/skin";
-import { useI18n, useT } from "@stapel/core";
+import { useI18n, useT, useTPlural } from "@stapel/core";
 import type { ErasurePart, ErasureStatus, SubprocessorObligation } from "../api/types.js";
 import { GDPR_I18N_KEYS } from "../i18n/keys.js";
 import { formatDeletionDate, formatInstant } from "../model/dates.js";
 import { useErasure, useMyErasures } from "../model/erasures.js";
+import { DataTable } from "./DataTable.js";
+import type { DataColumn } from "./DataTable.js";
 import type { ThemeModeProp } from "./types.js";
 
 export interface PendingDeletionsProps extends ThemeModeProp {
@@ -50,11 +52,19 @@ export interface PendingDeletionsProps extends ThemeModeProp {
    *
    * The wire carries the host's own opaque id and nothing else: stapel-gdpr
    * deliberately keeps no copy of the subject's title, because holding one
-   * would mean holding the very data the erasure is deleting. Absent a
-   * resolver the key is printed, which is ugly and true; dropping the row
-   * would be neither.
+   * would mean holding the very data the erasure is deleting.
+   *
+   * Returning `undefined` is the honest answer for a subject the host cannot
+   * name — a recording it has already deleted, an id from another tenant —
+   * and it is a DIFFERENT answer from returning the key: the row then reads
+   * "Workspace / Ref ws-42", the kind of thing on the first line and the
+   * reference underneath, rather than presenting a hex string as the name of
+   * the thing being deleted. Dropping the row would be worse than either.
    */
-  readonly labelFor?: (subjectType: string, subjectKey: string) => string;
+  readonly labelFor?: (
+    subjectType: string,
+    subjectKey: string
+  ) => string | undefined;
 }
 
 /** The i18n key for a known subject type, or `undefined` for a host's own. */
@@ -107,23 +117,39 @@ function stateColor(state: string): string | undefined {
 
 export function PendingDeletions(props: PendingDeletionsProps): ReactElement {
   const t = useT();
+  const tPlural = useTPlural();
   const { locale } = useI18n();
   const bag = useMyErasures();
   const { labelFor } = props;
 
-  const columns = [
+  // Is the "an owner never confirmed" explanation already stated ONCE, as the
+  // banner above the table? Then the rows do not repeat it: the same sentence
+  // under every affected row is the disabled-reason wall in another costume —
+  // three rows became a wall of identical apology on one 390px screen. The tag
+  // still names the state per row, which is what a row has to do.
+  const timeoutExplained = bag.overdue.length > 0;
+
+  const columns: readonly DataColumn<ErasureStatus>[] = [
     {
       key: "subject",
       title: t(GDPR_I18N_KEYS.deletionsColumnSubject),
-      render: (_: unknown, row: ErasureStatus): ReactElement => {
+      primary: true,
+      render: (row: ErasureStatus): ReactElement => {
         const typeKey = subjectKeyFor(row.subject_type);
+        const type = typeKey !== undefined ? t(typeKey) : row.subject_type;
+        const label = labelFor?.(row.subject_type, row.subject_key);
+        // The host's opaque key is a REFERENCE, never a title. With a resolver
+        // the row is "Stand-up, 12 August / Recording"; without one it is
+        // "Recording / ws-42" — the kind a person recognises on the first
+        // line and the id underneath it, rather than a hex string as the name
+        // of the thing being deleted.
         return (
           <Flex vertical>
-            <Typography.Text>
-              {labelFor?.(row.subject_type, row.subject_key) ?? row.subject_key}
-            </Typography.Text>
+            <Typography.Text>{label ?? type}</Typography.Text>
             <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
-              {typeKey !== undefined ? t(typeKey) : row.subject_type}
+              {label !== undefined
+                ? type
+                : t(GDPR_I18N_KEYS.deletionsReference, { reference: row.subject_key })}
             </Typography.Text>
           </Flex>
         );
@@ -132,21 +158,24 @@ export function PendingDeletions(props: PendingDeletionsProps): ReactElement {
     {
       key: "state",
       title: t(GDPR_I18N_KEYS.deletionsColumnState),
-      render: (_: unknown, row: ErasureStatus): ReactElement => {
+      render: (row: ErasureStatus): ReactElement => {
         const color = stateColor(row.state);
         const waiting = row.unreceipted_owners ?? [];
         // What the state MEANS is the whole reason this column exists, so it
         // is printed under the tag rather than hidden behind a hover: on a
         // phone there is no hover, and a bare "Overdue" on a screen about
-        // one's own deletion request explains nothing.
+        // one's own deletion request explains nothing. Said once above, it is
+        // not said again here.
         const hint =
           row.state === "timeout"
-            ? t(GDPR_I18N_KEYS.deletionsTimeoutHint)
+            ? timeoutExplained
+              ? undefined
+              : t(GDPR_I18N_KEYS.deletionsTimeoutHint)
             : waiting.length > 0
               ? t(GDPR_I18N_KEYS.deletionsWaitingOn, { owners: waiting.join(", ") })
               : undefined;
         return (
-          <Flex vertical gap={spacing[1]}>
+          <Flex vertical gap={spacing[1]} align="flex-start">
             <Tag {...(color !== undefined ? { color } : {})}>
               {t(stateKeyFor(row.state))}
             </Tag>
@@ -166,7 +195,7 @@ export function PendingDeletions(props: PendingDeletionsProps): ReactElement {
     {
       key: "due",
       title: t(GDPR_I18N_KEYS.deletionsColumnDue),
-      render: (_: unknown, row: ErasureStatus): string =>
+      render: (row: ErasureStatus): string =>
         formatDeletionDate(row.due_at, locale),
     },
     {
@@ -174,7 +203,7 @@ export function PendingDeletions(props: PendingDeletionsProps): ReactElement {
       // The header is a plain label; what the second clock means is said
       // under the table, in text, where it can be read without a pointer.
       title: t(GDPR_I18N_KEYS.deletionsColumnFullyErased),
-      render: (_: unknown, row: ErasureStatus): string =>
+      render: (row: ErasureStatus): string =>
         formatDeletionDate(row.fully_erased_by, locale),
     },
   ];
@@ -205,29 +234,26 @@ export function PendingDeletions(props: PendingDeletionsProps): ReactElement {
                   type="warning"
                   showIcon
                   data-testid="gdpr-deletions-overdue"
-                  title={t(GDPR_I18N_KEYS.deletionsTimeoutHint)}
+                  title={tPlural(GDPR_I18N_KEYS.deletionsOverdueCount, {
+                    count: bag.overdue.length,
+                  })}
+                  description={t(GDPR_I18N_KEYS.deletionsTimeoutHint)}
                 />
               ) : null}
-              <Table
-                data-testid="gdpr-deletions-rows"
-                size="small"
+              <DataTable
+                testId="gdpr-deletions-rows"
                 rowKey={(row: ErasureStatus) => row.request_id}
-                dataSource={[...rows]}
+                rows={rows}
                 columns={columns}
-                pagination={false}
-                // Four columns of dates do not fit a phone. Without this the
-                // last two are simply unreachable there.
-                scroll={{ x: true }}
                 // Opening a row is what answers "why is this STILL here?" —
                 // the per-owner receipts and the processor windows that push
                 // the second date out. The detail read (`GET /erasures/{id}`)
                 // is issued only for the row a person actually opened.
-                expandable={{
-                  expandedRowRender: (row: ErasureStatus) => (
+                expand={{
+                  label: t(GDPR_I18N_KEYS.deletionsExpand),
+                  render: (row: ErasureStatus) => (
                     <ErasureDetail requestId={row.request_id} />
                   ),
-                  expandRowByClick: false,
-                  columnTitle: t(GDPR_I18N_KEYS.deletionsExpand),
                 }}
               />
               <Typography.Text

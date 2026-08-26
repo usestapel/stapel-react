@@ -4,55 +4,6 @@
   "version": "0.10.0",
   "demos": [
     {
-      "id": "notifications.device_registration",
-      "title": "Device registration",
-      "description": "The headless DeviceRegistration derives one PushState from GET /devices/ and SHA-256 of the token this device holds — on, off, inactive, unknown, denied, unsupported. Bring your own switch; the bag has no boolean to flip.",
-      "component": "DeviceRegistration",
-      "covers": [],
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        {
-          "id": "default",
-          "description": "This device is registered and active.",
-          "viewport": "phone",
-          "step": "on"
-        },
-        {
-          "id": "not-registered",
-          "description": "The account has a device, but not this one.",
-          "viewport": "phone",
-          "step": "off"
-        }
-      ],
-      "source": {
-        "file": "demo/DeviceRegistration.demo.tsx",
-        "line": 69
-      }
-    },
-    {
-      "id": "notifications.feed",
-      "title": "Notification feed",
-      "description": "The headless NotificationFeed renders an anchor-paginated, load-more list from the user's push-notification log. Bring your own row/skeleton/empty UI — the component is renderless.",
-      "component": "NotificationFeed",
-      "covers": [],
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/NotificationFeed.demo.tsx",
-        "line": 127
-      }
-    },
-    {
       "id": "notifications.feed_list",
       "title": "Notification feed list",
       "description": "The feed as a self-contained skin: type glyph, title, one-line body, relative time in a <time> carrying the exact instant, and the whole row as a link when data carries a deep link.",
@@ -95,7 +46,9 @@
       "description": "The page the nav routes to: a heading, the delivery mode (live socket or the documented 60s poll), and the feed with a real row anatomy — type glyph, title, body, relative time, deep link.",
       "component": "NotificationsPage",
       "covers": [
-        "NotificationFeedList"
+        "NotificationFeedList",
+        "NotificationFeed",
+        "NotificationsProvider"
       ],
       "tokens": [
         "surface",
@@ -135,32 +88,14 @@
       }
     },
     {
-      "id": "notifications.provider",
-      "title": "Notifications provider",
-      "description": "The headless notifications root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
-      "component": "NotificationsProvider",
-      "covers": [],
-      "tokens": [
-        "card-bg"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/Notifications.demo.tsx",
-        "line": 24
-      }
-    },
-    {
       "id": "notifications.push_settings",
       "title": "Push notification settings",
       "description": "The push settings surface: a switch whose position comes from GET /devices/ matched on this device's token fingerprint, and the account's registry with an inactive device flagged and removal by row id behind a confirm sheet.",
       "component": "PushSettingsPane",
       "covers": [
         "PushNotificationToggle",
-        "PushDeviceList"
+        "PushDeviceList",
+        "DeviceRegistration"
       ],
       "tokens": [
         "surface",

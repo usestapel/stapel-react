@@ -75,11 +75,8 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
-- notifications.device_registration → <DeviceRegistration> [default|not-registered]  demo/DeviceRegistration.demo.tsx
-- notifications.feed → <NotificationFeed> [default]  demo/NotificationFeed.demo.tsx
 - notifications.feed_list → <NotificationFeedList> [default|refused|paged]  demo/NotificationFeedList.demo.tsx
 - notifications.page → <NotificationsPage> [polling|live|desktop|empty]  demo/NotificationsPage.demo.tsx
-- notifications.provider → <NotificationsProvider> [default]  demo/Notifications.demo.tsx
 - notifications.push_settings → <PushSettingsPane> [default|no-devices|unsupported|desktop|toggle-only|registry-only]  demo/PushSettings.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 

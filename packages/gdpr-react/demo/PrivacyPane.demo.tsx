@@ -50,8 +50,13 @@ export default defineDemo({
   id: "gdpr.privacy-pane",
   title: "Privacy and your data",
   description:
-    "The screen `account.privacy` mounts, in the order a person needs it: what is already on its way out, a copy of your data, a formal request, and only then the account itself. The destructive control is LAST on purpose — nobody should delete an account to answer a question the export would have answered. Each of the four panels runs its own read, so a failure in one never blanks the others.",
+    "The screen `account.privacy` mounts, under its own name, in the order a person needs it: a copy of your data, what is already on its way out, a formal request, and only then the account itself. The export leads because the deletions list is empty for almost every account, and a page should not open by answering a question nobody asked. The destructive control is LAST on purpose — nobody should delete an account to answer a question the export would have answered. Each of the four panels runs its own read, so a failure in one never blanks the others.",
   component: PrivacyPane,
+  // Every variant here mounts the whole pair through `GdprProvider` — the
+  // runtime, the query client and the i18n engine four independent panels
+  // read from. It is covered by the screen it powers rather than by a story
+  // of its own printing one `ready` chip.
+  covers: ["GdprProvider"],
   tokens: ["surface", "surface-raised", "text", "text-muted"],
   variants: {
     default: {

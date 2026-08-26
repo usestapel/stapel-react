@@ -19,9 +19,10 @@
  */
 import type { ReactElement } from "react";
 import { Flex, Select, Typography } from "antd";
-import { matchList, useT } from "@stapel/core";
+import { matchList, useI18n, useT } from "@stapel/core";
 import { spacing, fontSize } from "@stapel/tokens";
 import { RoleSelect } from "../headless/RoleSelect.js";
+import { titleCaseKey } from "../model/format.js";
 import type { RoleInfo } from "../api/types.js";
 import { WORKSPACES_I18N_KEYS } from "../i18n/keys.js";
 import { Muted } from "./parts.js";
@@ -56,12 +57,29 @@ export interface RoleSelectFieldProps {
 }
 
 /**
+ * Role key → the word for it, with no registry read behind it.
+ *
+ * `RoleSelect`'s own `labelFor` is a bundle lookup that never touches the
+ * query, but mounting `<RoleSelect>` to reach it also fires GET /roles — which
+ * on the PUBLIC invitation page is a call an anonymous reader cannot make.
+ * A caption that only needs a word asks for a word.
+ */
+export function useRoleLabel(): (role: string) => string {
+  const i18n = useI18n();
+  // Raw bundle lookup, NOT `t()`: `t` falls back to the key itself, and
+  // `workspaces.role.secretary` is the one thing this must never print.
+  const bundle = i18n.getBundle();
+  return (role) => bundle[`workspaces.role.${role}`] ?? titleCaseKey(role);
+}
+
+/**
  * A role as a WORD, where there is nothing to pick — an invitation's granted
  * role, a read-only roster. The same label resolution as the field, so one
  * screen never calls `admin` "Admin" while its neighbour prints `admin`.
  */
 export function RoleLabel(props: { readonly role: string }): ReactElement {
-  return <RoleSelect>{({ labelFor }) => <>{labelFor(props.role)}</>}</RoleSelect>;
+  const labelFor = useRoleLabel();
+  return <>{labelFor(props.role)}</>;
 }
 
 export function RoleSelectField(props: RoleSelectFieldProps): ReactElement {
@@ -95,10 +113,13 @@ export function RoleSelectField(props: RoleSelectFieldProps): ReactElement {
               </Muted>
             </Flex>
           ),
+          // A registry that came back EMPTY is not a registry that failed —
+          // saying "we could not load the role list" about a successful read
+          // is the same class of lie as an empty state over a failed one.
           empty: () => (
             <Flex vertical gap={spacing["1"]} align="flex-start">
               <Typography.Text>{labelFor(props.value)}</Typography.Text>
-              <Muted>{t(WORKSPACES_I18N_KEYS.rolesLoadFailed)}</Muted>
+              <Muted>{t(WORKSPACES_I18N_KEYS.rolesEmpty)}</Muted>
             </Flex>
           ),
           ready: (roles) => {

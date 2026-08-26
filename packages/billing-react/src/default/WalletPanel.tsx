@@ -27,10 +27,20 @@
  * `lots` arrive in spend order, `expiring_soon` is picked by the backend that
  * will do the expiring, and `debt_outstanding` is totalled by the one that
  * will collect it. Every part renders them as given.
+ *
+ * ── Five sections, reachable in one tap ───────────────────────────────────
+ *
+ * On a phone the five parts are ~5,700px of scroll. They are still five
+ * parts, still all mounted — a person comparing their balance against a
+ * package price needs both on the page at once, which is what rules tabs
+ * out — but a narrow layout gets an anchor row so the ledger is one tap away
+ * rather than seven viewports. The heading levels are the other half of the
+ * same fix: the page is level 3, each section level 4, each column label
+ * plain strong text.
  */
 import { useEffect, useRef } from "react";
-import type { ReactElement } from "react";
-import { Flex, Typography } from "antd";
+import type { ReactElement, ReactNode } from "react";
+import { Flex, Typography, theme as antdTheme } from "antd";
 import {
   EmptyState,
   ErrorAlert,
@@ -48,6 +58,7 @@ import { SubscriptionCard } from "./SubscriptionCard.js";
 import { TransactionHistory } from "./TransactionHistory.js";
 import { WalletBalance } from "./WalletBalance.js";
 import { WalletSettings } from "./WalletSettings.js";
+import { columnsForWidth, useElementWidth } from "./elementWidth.js";
 import type { ThemeModeProp } from "./types.js";
 
 export interface WalletPanelProps extends ThemeModeProp {
@@ -87,12 +98,87 @@ function CheckoutRedirect(props: {
   return null;
 }
 
+/** The five sections, in the order the questions arrive. The id is both the
+ * anchor target and the section's own `id`, so the nav below is ordinary
+ * in-page navigation — no scroll listener, no JS, and it still works in a
+ * printed page or with scripting off. */
+const SECTIONS = [
+  { id: "billing-section-balance", labelKey: BILLING_I18N_KEYS.walletBalance },
+  { id: "billing-section-subscription", labelKey: BILLING_I18N_KEYS.subHeading },
+  { id: "billing-section-buy", labelKey: BILLING_I18N_KEYS.walletBuyHeading },
+  {
+    id: "billing-section-settings",
+    labelKey: BILLING_I18N_KEYS.walletSettingsHeading,
+  },
+  { id: "billing-section-history", labelKey: BILLING_I18N_KEYS.txHeading },
+] as const;
+
+/**
+ * The section jumps, on a narrow screen only.
+ *
+ * The billing page is 5,700px of phone scroll — nearly seven viewports — and
+ * had no way to reach the ledger except the whole thumb-journey past the
+ * shop. Tabs would have unmounted sections a person came here to compare
+ * (the balance against what a package costs), so this is anchors: everything
+ * stays on the page and rendered, and the five headings become reachable in
+ * one tap. The row scrolls sideways rather than wrapping, so it costs one
+ * line at any width.
+ */
+function SectionNav(): ReactElement {
+  const t = useT();
+  const { token } = antdTheme.useToken();
+  return (
+    <nav
+      aria-label={t(BILLING_I18N_KEYS.walletSectionsLabel)}
+      data-testid="billing-sections"
+      style={{
+        display: "flex",
+        gap: token.paddingXS,
+        overflowX: "auto",
+        paddingBottom: token.paddingXXS,
+      }}
+    >
+      {SECTIONS.map((section) => (
+        <a
+          key={section.id}
+          href={`#${section.id}`}
+          data-analytics="none"
+          data-analytics-reason="in-page anchor; navigates nothing and reads nothing"
+          style={{
+            whiteSpace: "nowrap",
+            padding: `${String(token.paddingXXS)}px ${String(token.paddingSM)}px`,
+            borderRadius: token.borderRadiusLG,
+            border: `${String(token.lineWidth)}px solid ${token.colorBorderSecondary}`,
+            color: token.colorText,
+          }}
+        >
+          {t(section.labelKey)}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
+/** One section of the page: an anchor target that a jump lands ON rather
+ * than just above. */
+function Section(props: { id: string; children: ReactNode }): ReactElement {
+  const { token } = antdTheme.useToken();
+  return (
+    <section id={props.id} style={{ scrollMarginTop: token.padding }}>
+      {props.children}
+    </section>
+  );
+}
+
 export function WalletPanel(props: WalletPanelProps = {}): ReactElement {
   const t = useT();
   const wallet = useWallet();
   const { mode } = props;
   const go = props.onCheckoutUrl ?? assignLocation;
   const walletState = loadStateFromQuery(wallet);
+  // The nav earns its line only where the page is a long single column.
+  const { ref, width } = useElementWidth<HTMLDivElement>();
+  const narrow = columnsForWidth(width) === 1;
   // A debt we have not read is not a debt of 0 — but it is the same silence,
   // and the shop's line about it is an addition to a card, not a claim the
   // screen would otherwise make. Loading and failed therefore say nothing.
@@ -108,59 +194,74 @@ export function WalletPanel(props: WalletPanelProps = {}): ReactElement {
       {...(mode !== undefined ? { mode } : {})}
       style={{ padding: spacing[4] }}
     >
-      <Flex vertical gap={spacing[5]} data-testid="billing-wallet">
-        <Typography.Title level={4} style={{ margin: 0 }}>
+      <Flex vertical gap={spacing[5]} data-testid="billing-wallet" ref={ref}>
+        {/* The page's own heading, a full step above the section headings
+            inside it — the audit found page, section and card title set in
+            three near-identical weights. */}
+        <Typography.Title level={3} style={{ margin: 0 }}>
           {t(BILLING_I18N_KEYS.walletHeading)}
         </Typography.Title>
 
-        <LoadBoundary
-          state={walletState}
-          testId="billing-wallet"
-          onRetry={() => {
-            void wallet.refetch();
-          }}
-        >
-          {(data) =>
-            isEmptyWallet(data) ? (
-              <EmptyState
-                testId="billing-wallet-empty"
-                title={t(BILLING_I18N_KEYS.walletEmpty)}
-                hint={t(BILLING_I18N_KEYS.walletEmptyHint)}
-              />
-            ) : (
-              <WalletBalance wallet={data} />
-            )
-          }
-        </LoadBoundary>
+        {narrow ? <SectionNav /> : null}
 
-        <SubscriptionCard
-          {...(mode !== undefined ? { mode } : {})}
-          onPortalUrl={go}
-        />
+        <Section id="billing-section-balance">
+          <LoadBoundary
+            state={walletState}
+            testId="billing-wallet"
+            onRetry={() => {
+              void wallet.refetch();
+            }}
+          >
+            {(data) =>
+              isEmptyWallet(data) ? (
+                <EmptyState
+                  testId="billing-wallet-empty"
+                  title={t(BILLING_I18N_KEYS.walletEmpty)}
+                  hint={t(BILLING_I18N_KEYS.walletEmptyHint)}
+                />
+              ) : (
+                <WalletBalance wallet={data} />
+              )
+            }
+          </LoadBoundary>
+        </Section>
 
-        <PricingTable>
-          {(bag) => (
-            <>
-              <CheckoutRedirect url={bag.checkoutUrl} go={go} />
-              <BuyOptions
-                {...(mode !== undefined ? { mode } : {})}
-                state={bag.state}
-                isCheckingOut={bag.isCheckingOut}
-                debtOutstanding={debt}
-                onChoose={bag.checkout}
-                onRetry={bag.refetch}
-              />
-              <ErrorAlert
-                testId="billing-checkout-failed"
-                thrown={bag.error}
-              />
-            </>
-          )}
-        </PricingTable>
+        <Section id="billing-section-subscription">
+          <SubscriptionCard
+            {...(mode !== undefined ? { mode } : {})}
+            onPortalUrl={go}
+          />
+        </Section>
 
-        <WalletSettings {...(mode !== undefined ? { mode } : {})} />
+        <Section id="billing-section-buy">
+          <PricingTable>
+            {(bag) => (
+              <>
+                <CheckoutRedirect url={bag.checkoutUrl} go={go} />
+                <BuyOptions
+                  {...(mode !== undefined ? { mode } : {})}
+                  state={bag.state}
+                  isCheckingOut={bag.isCheckingOut}
+                  debtOutstanding={debt}
+                  onChoose={bag.checkout}
+                  onRetry={bag.refetch}
+                />
+                <ErrorAlert
+                  testId="billing-checkout-failed"
+                  thrown={bag.error}
+                />
+              </>
+            )}
+          </PricingTable>
+        </Section>
 
-        <TransactionHistory {...(mode !== undefined ? { mode } : {})} />
+        <Section id="billing-section-settings">
+          <WalletSettings {...(mode !== undefined ? { mode } : {})} />
+        </Section>
+
+        <Section id="billing-section-history">
+          <TransactionHistory {...(mode !== undefined ? { mode } : {})} />
+        </Section>
       </Flex>
     </SkinTheme>
   );

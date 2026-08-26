@@ -53,6 +53,7 @@ import { InviteAcceptFlow } from "../headless/InviteAcceptFlow.js";
 import type { InviteAcceptFlowBag } from "../headless/InviteAcceptFlow.js";
 import type { InvitationPreview, Member } from "../api/types.js";
 import { WORKSPACES_I18N_KEYS } from "../i18n/keys.js";
+import { useRoleLabel } from "./RoleSelectField.js";
 
 export interface InviteAcceptPageProps {
   /** The invite token from the route — a bearer secret, never log it. */
@@ -73,6 +74,13 @@ export interface InviteAcceptPageProps {
   readonly renderInitialSetup?: (ctx: { onDone: () => void }) => ReactNode;
   /** Wrong-account CTA (sign out / switch). Omitted → CTA hidden. */
   readonly onSwitchAccount?: () => void;
+  /**
+   * Leave the invitation page — the door out of a terminal state (expired,
+   * revoked, already used), where there is nothing left to do here. The pair
+   * owns no router, so omitting it draws no button and the page states the
+   * next step in words instead of offering one that goes nowhere.
+   */
+  readonly onExit?: () => void;
   readonly onAccepted?: (member: Member) => void;
   readonly onDeclined?: () => void;
 }
@@ -102,6 +110,7 @@ export function InviteAcceptPage(props: InviteAcceptPageProps): ReactElement {
             {...(props.onSwitchAccount !== undefined
               ? { onSwitchAccount: props.onSwitchAccount }
               : {})}
+            {...(props.onExit !== undefined ? { onExit: props.onExit } : {})}
           />
         )}
       </InviteAcceptFlow>
@@ -118,6 +127,7 @@ const UNAVAILABLE_KEY: Record<string, string> = {
 
 function InviteHeader(props: { preview: InvitationPreview }): ReactElement {
   const t = useT();
+  const labelFor = useRoleLabel();
   return (
     <Flex vertical gap={spacing["1"]}>
       <Typography.Title level={3} style={{ margin: 0 }}>
@@ -125,8 +135,13 @@ function InviteHeader(props: { preview: InvitationPreview }): ReactElement {
           workspace: props.preview.workspace_name,
         })}
       </Typography.Title>
+      {/* The registry's word for the role, never the wire's key: `secretary`
+          lowercase beside title-cased builtins is the same defect the roster
+          fixed, and this is the screen a person meets FIRST. */}
       <Typography.Text type="secondary">
-        {t(WORKSPACES_I18N_KEYS.inviteRoleLine, { role: props.preview.role })}
+        {t(WORKSPACES_I18N_KEYS.inviteRoleLine, {
+          role: labelFor(props.preview.role),
+        })}
       </Typography.Text>
       <Typography.Text type="secondary">
         {t(WORKSPACES_I18N_KEYS.inviteEmailLine, {
@@ -146,6 +161,7 @@ function PageBody(props: {
   renderLoginPanel?: (ctx: { onLoggedIn: (email: string) => void }) => ReactNode;
   renderInitialSetup?: (ctx: { onDone: () => void }) => ReactNode;
   onSwitchAccount?: () => void;
+  onExit?: () => void;
 }): ReactElement {
   const t = useT();
   const describeError = useDescribeFlowError();
@@ -204,16 +220,41 @@ function PageBody(props: {
         </Card>
       );
 
+    // A dead end, and drawn as one. It used to be antd's INFO result — a
+    // blue 88px "!" disc, the same pictogram a tip uses — with nothing to do
+    // next. The link cannot be revived from here, so the screen says what
+    // became of it, in the warning tone that means "this did not work", and
+    // names the one thing that does help: asking for another one.
     case "unavailable":
       return (
         <Card data-testid="invite-accept-page">
           <Result
-            status="info"
+            status="warning"
             title={s.preview.workspace_name}
             subTitle={t(
               UNAVAILABLE_KEY[s.status] ??
                 WORKSPACES_I18N_KEYS.inviteUnavailableRevoked
             )}
+            extra={
+              <Flex vertical gap={spacing["3"]} align="center">
+                <Typography.Text type="secondary">
+                  {t(WORKSPACES_I18N_KEYS.inviteUnavailableNextStep, {
+                    workspace: s.preview.workspace_name,
+                  })}
+                </Typography.Text>
+                {props.onExit !== undefined && (
+                  <Button
+                    type="primary"
+                    onClick={props.onExit}
+                    data-analytics="none"
+                    data-analytics-reason="navigation — the host owns the router"
+                    data-testid="invite-exit"
+                  >
+                    {t(WORKSPACES_I18N_KEYS.inviteExitCta)}
+                  </Button>
+                )}
+              </Flex>
+            }
           />
         </Card>
       );

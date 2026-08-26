@@ -85,7 +85,6 @@ const { tracked } = useTracked();
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - gdpr.account-closure → <AccountClosurePanel> [default|grace|erasing]  demo/AccountClosurePanel.demo.tsx
-- gdpr.closure → <GdprProvider> [default|grace|erasing]  demo/Gdpr.demo.tsx
 - gdpr.data-export → <DataExportPanel> [default|building|ready-with-token|ready-desktop]  demo/DataExportPanel.demo.tsx
 - gdpr.dsar-form → <DsarForm> [default|anonymous|erasure-preselected]  demo/DsarForm.demo.tsx
 - gdpr.dsar-queue → <DsarQueue> [default|ack-overdue|empty|not-staff]  demo/DsarQueue.demo.tsx

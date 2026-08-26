@@ -45,7 +45,7 @@ export default defineDemo({
   description:
     "The push settings surface: a switch whose position comes from GET /devices/ matched on this device's token fingerprint, and the account's registry with an inactive device flagged and removal by row id behind a confirm sheet.",
   component: PushSettingsPane,
-  covers: ["PushNotificationToggle", "PushDeviceList"],
+  covers: ["PushNotificationToggle", "PushDeviceList", "DeviceRegistration"],
   tokens: ["surface", "surface-raised", "text", "text-muted", "border-subtle"],
   variants: {
     default: {

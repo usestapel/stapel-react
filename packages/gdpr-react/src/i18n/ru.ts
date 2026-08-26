@@ -45,6 +45,8 @@ export const gdprI18nBundleRu: I18nDictionary = {
     "Этот раздел — для сотрудников. Вы вошли под аккаунтом без доступа к нему.",
 
   "gdpr.privacy.heading": "Приватность и ваши данные",
+  "gdpr.privacy.explain":
+    "Получите копию того, что мы храним, посмотрите, что уже удаляется, и попросите удалить остальное.",
   "gdpr.admin.heading": "Приватность: операции",
   "gdpr.public.heading": "Обращения по защите данных",
   "gdpr.public.explain":
@@ -54,6 +56,11 @@ export const gdprI18nBundleRu: I18nDictionary = {
   "gdpr.closure.explain":
     "Удаление аккаунта запускает 30-дневный период ожидания. Мы сразу завершим все ваши сессии, но до конца этого периода решение можно отменить.",
   "gdpr.closure.none": "Аккаунт не запланирован к удалению",
+  "gdpr.closure.grace_left": "Осталось {count} дней",
+  "gdpr.closure.grace_left.one": "Остался {count} день",
+  "gdpr.closure.grace_left.few": "Осталось {count} дня",
+  "gdpr.closure.grace_left.many": "Осталось {count} дней",
+  "gdpr.closure.grace_left.other": "Осталось {count} дней",
   "gdpr.closure.initiate": "Удалить аккаунт",
   "gdpr.closure.confirm_title": "Удалить этот аккаунт?",
   "gdpr.closure.confirm_body":
@@ -82,6 +89,8 @@ export const gdprI18nBundleRu: I18nDictionary = {
   "gdpr.deletions.timeout_hint":
     "Одна из систем, где хранится часть этих данных, не подтвердила удаление. Поддержка уже уведомлена; объект не потерян из виду.",
   "gdpr.deletions.expand": "Показать, какие системы подтвердили",
+  "gdpr.deletions.overdue_count": "Удалений ждут ответа системы: {count}",
+  "gdpr.deletions.reference": "№ {reference}",
   "gdpr.deletions.parts_heading": "Системы, где это хранится",
   "gdpr.deletions.parts_empty": "Ни одна система пока не заявила права на этот объект",
   "gdpr.deletions.part.done": "Подтвердила",
@@ -138,7 +147,6 @@ export const gdprI18nBundleRu: I18nDictionary = {
 
   "gdpr.queue.heading": "Обращения по защите данных",
   "gdpr.queue.empty": "Обращений нет",
-  "gdpr.queue.column.reference": "№",
   "gdpr.queue.column.kind": "Запрос",
   "gdpr.queue.column.channel": "Канал",
   "gdpr.queue.column.subject": "Заявитель",
@@ -148,8 +156,13 @@ export const gdprI18nBundleRu: I18nDictionary = {
   "gdpr.queue.overdue": "Просрочено",
   "gdpr.queue.ack_sent": "Подтверждено {date}",
   "gdpr.queue.ack_missing": "Подтверждение не отправлено",
+  "gdpr.queue.reference": "№ {reference}",
+  "gdpr.queue.ack_overdue_count":
+    "Просрочен срок подтверждения: {count}",
+  "gdpr.queue.ack_automated":
+    "Подтверждение отправляется автоматически, поэтому его отсутствие означает, что сломана отправка уведомлений, а не что кто-то не успел.",
   "gdpr.queue.save_note": "Сохранить заметку",
-  "gdpr.queue.note_unchanged": "Сохранять нечего",
+  "gdpr.queue.note_unchanged": "Заметка сохраняется после того, как вы её измените.",
   "gdpr.queue.state.received": "Получено",
   "gdpr.queue.state.acknowledged": "Подтверждено",
   "gdpr.queue.state.in_progress": "В работе",
@@ -172,8 +185,9 @@ export const gdprI18nBundleRu: I18nDictionary = {
   "gdpr.owners.silent": "Молчит",
   "gdpr.owners.never_answered": "Не отвечала ни разу",
   "gdpr.owners.silent_count": "Не отвечают систем: {count} из {total}",
-  "gdpr.owners.subject_mismatch":
-    "Объявлено {declared}, отвечает за {answered}",
+  "gdpr.owners.subject_mismatch": "Не отвечает за {subjects}",
+  "gdpr.owners.subject_undeclared":
+    "Отвечает за {subjects}, хотя не объявляет их",
 };
 
 /** Register the Russian bundle into a core i18n engine. */

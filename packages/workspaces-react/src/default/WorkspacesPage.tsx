@@ -19,7 +19,7 @@
  *  - `is_guest` — someone here on a link rather than a membership. An empty
  *    list means something different to them, and the screen says which.
  */
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { ReactElement } from "react";
 import { Button, Card, Flex, Input, Typography, theme as antdTheme } from "antd";
 import {
@@ -41,14 +41,14 @@ import {
 import { spacing } from "@stapel/tokens";
 import { WorkspaceList } from "../headless/WorkspaceList.js";
 import type { WorkspaceListBag } from "../headless/WorkspaceList.js";
-import { useInstanceShape, useWorkspaces } from "../model/queries.js";
+import { useWorkspaces } from "../model/queries.js";
 import {
   useClearPreferredWorkspace,
   useSetPreferredWorkspace,
 } from "../model/mutations.js";
 import type { Workspace } from "../api/types.js";
 import { WORKSPACES_I18N_KEYS } from "../i18n/keys.js";
-import { Muted, StatusTag, SCREEN_STACK } from "./parts.js";
+import { LoadFailure, Muted, StatusTag, SCREEN_STACK } from "./parts.js";
 import { RoleLabel } from "./RoleSelectField.js";
 
 export interface WorkspacesPageProps {
@@ -84,14 +84,23 @@ function PageBody(props: {
   const tPlural = useTPlural();
   const { bag } = props;
   const listQuery = useWorkspaces();
-  const instance = useInstanceShape();
   const [creating, setCreating] = useState(false);
   const list = listQuery.data ?? null;
+  const failureId = useId();
 
   // The create verdict is a property of the LIST response, so it is blocked
-  // while the list is loading or failed — with core's own sentence for each,
-  // not with the policy refusal, which would be a claim we cannot support yet.
-  const createGate = requireLoaded(loadStateFromQuery(listQuery), (loaded) =>
+  // while the list is loading — with core's own sentence — and by the policy
+  // when the list arrived and says no.
+  //
+  // A FAILED read is deliberately not routed through the gate. `requireLoaded`
+  // would hand the button its own copy of the outage ("We could not load what
+  // this needs…" plus `HTTP 503`) directly above the alert that states the
+  // same outage with the retry — the same bad news twice, in two wordings,
+  // with two different recoveries. The read has exactly one failure surface on
+  // this screen, and the button points at it.
+  const listState = loadStateFromQuery(listQuery);
+  const listFailed = listState.status === "failed";
+  const createGate = requireLoaded(listState, (loaded) =>
     loaded.can_create_workspace === true
       ? actionAvailable()
       : actionBlocked(WORKSPACES_I18N_KEYS.listCreateBlockedPolicy)
@@ -117,16 +126,30 @@ function PageBody(props: {
             )}
           </Flex>
           {/* The one primary on the screen. */}
-          <GatedButton
-            gate={createGate}
-            type="primary"
-            onClick={() => setCreating(true)}
-            testId="workspaces-create-open"
-            data-analytics="none"
-            data-analytics-reason="local-ui-open-create-dialog"
-          >
-            {t(WORKSPACES_I18N_KEYS.listCreate)}
-          </GatedButton>
+          {listFailed ? (
+            <Button
+              type="primary"
+              disabled
+              aria-describedby={failureId}
+              data-disabled-reason="the roster read failed; the alert below says so once and carries the retry"
+              data-analytics="none"
+              data-analytics-reason="local-ui-open-create-dialog"
+              data-testid="workspaces-create-open"
+            >
+              {t(WORKSPACES_I18N_KEYS.listCreate)}
+            </Button>
+          ) : (
+            <GatedButton
+              gate={createGate}
+              type="primary"
+              onClick={() => setCreating(true)}
+              testId="workspaces-create-open"
+              data-analytics="none"
+              data-analytics-reason="local-ui-open-create-dialog"
+            >
+              {t(WORKSPACES_I18N_KEYS.listCreate)}
+            </GatedButton>
+          )}
         </Flex>
 
         {list?.is_guest === true && (
@@ -148,17 +171,28 @@ function PageBody(props: {
             state={bag.state}
             testId="workspaces-list"
             onRetry={bag.refetch}
+            failed={(error) => (
+              <div id={failureId}>
+                <LoadFailure
+                  error={error}
+                  onRetry={bag.refetch}
+                  testId="workspaces-list-failed"
+                />
+              </div>
+            )}
             empty={
               <EmptyState
                 title={t(WORKSPACES_I18N_KEYS.listEmpty)}
                 testId="workspaces-list-empty"
+                // The RESTRICTION is stated once, beside the switched-off
+                // control above; this line is the other half — what the person
+                // can actually do about it. Saying "this installation does not
+                // hand out workspaces" here as well was the same fact twice in
+                // two wordings on one 390px screen.
                 hint={
-                  // A closed instance is not an empty list with a missing
-                  // button: nobody here can make a workspace, and the person
-                  // reading it needs an invitation, not encouragement.
-                  instance.data?.landing === "none" || createGate.available !== true
-                    ? t(WORKSPACES_I18N_KEYS.listInstanceClosed)
-                    : t(WORKSPACES_I18N_KEYS.listEmptyHint)
+                  createGate.available === true
+                    ? t(WORKSPACES_I18N_KEYS.listEmptyHint)
+                    : t(WORKSPACES_I18N_KEYS.listInstanceClosed)
                 }
                 {...(createGate.available === true
                   ? {

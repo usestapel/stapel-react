@@ -125,15 +125,19 @@ export function NotificationPreferences(
                           }}
                         >
                           {channels.map((channel) => (
+                            // The switch leads and the label sits against it.
+                            // Pushed apart (`space-between`) they were ~250px
+                            // from each other inside one grid cell on a wide
+                            // card — two columns of unrelated-looking words and
+                            // controls, which is the pairing this row exists to
+                            // make obvious (visual pass, profile-settings
+                            // desktop).
                             <Flex
                               key={channel}
                               align="center"
-                              justify="space-between"
+                              justify="flex-start"
                               gap={spacing[2]}
                             >
-                              <Typography.Text type="secondary">
-                                {t(PROFILES_I18N_KEYS[CHANNEL_KEY[channel]])}
-                              </Typography.Text>
                               <Switch
                                 checked={isEnabled(category, channel)}
                                 onChange={() => toggle(category, channel)}
@@ -143,6 +147,9 @@ export function NotificationPreferences(
                                 })}
                                 data-testid={`notif-toggle-${category}-${channel}`}
                               />
+                              <Typography.Text type="secondary">
+                                {t(PROFILES_I18N_KEYS[CHANNEL_KEY[channel]])}
+                              </Typography.Text>
                             </Flex>
                           ))}
                         </div>

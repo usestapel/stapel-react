@@ -1,6 +1,9 @@
 /** Connections — the DEFAULT SKIN for the caller's own social graph. */
 import type { ReactElement } from "react";
+import { Flex, Typography } from "antd";
 import { defineDemo } from "@stapel/showcase";
+import { useT } from "@stapel/core";
+import { spacing } from "@stapel/tokens";
 import { ConnectionsPage, ConnectionList, PersonRow } from "../src/default/index.js";
 import { ProfilesDemoHarness } from "./_harness.js";
 import {
@@ -34,17 +37,42 @@ function Followers(): ReactElement {
   );
 }
 
-/** The list on its own (a profile tab, a sidebar) plus the identity primitive
- * every roster in this pair draws through. */
+/** A caption over a specimen, so two specimens on one canvas cannot be read
+ * as one list. `demo.*` is the harness's own unmanaged namespace. */
+function Caption(props: { textKey: string }): ReactElement {
+  const t = useT();
+  return (
+    <Typography.Title level={5} style={{ marginBottom: spacing[2] }}>
+      {t(props.textKey)}
+    </Typography.Title>
+  );
+}
+
+/**
+ * The list on its own (a profile tab, a sidebar) plus the identity primitive
+ * every roster in this pair draws through.
+ *
+ * The two are SEPARATED, and that is the story: mounted flush, the loose row
+ * read as a fourth follower under a heading that said three, which is a
+ * broken screen rather than two specimens (visual pass 2026-08-24).
+ */
 function ListAndRow(): ReactElement {
   return (
     <ProfilesDemoHarness handlers={FOLLOWERS}>
-      <ConnectionList kind="followers" rowActions={false} selfUserId={SELF_ID} />
-      <PersonRow
-        userId={ALAN_ID}
-        entry={{ status: "missing", profile: null }}
-        testId="person-row-missing"
-      />
+      <Flex vertical gap={spacing[6]}>
+        <section>
+          <Caption textKey="demo.connections.list_caption" />
+          <ConnectionList kind="followers" rowActions={false} selfUserId={SELF_ID} />
+        </section>
+        <section>
+          <Caption textKey="demo.connections.row_caption" />
+          <PersonRow
+            userId={ALAN_ID}
+            entry={{ status: "missing", profile: null }}
+            testId="person-row-missing"
+          />
+        </section>
+      </Flex>
     </ProfilesDemoHarness>
   );
 }

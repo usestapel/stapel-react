@@ -33,6 +33,9 @@ export const GDPR_I18N_KEYS = {
 
   // Section headings — also the nav labels (see `nav/manifest.ts`).
   privacyHeading: "gdpr.privacy.heading",
+  /** The page's lead sentence. A settings page that opens straight into a
+   * card title never says what the page is. */
+  privacyExplain: "gdpr.privacy.explain",
   adminHeading: "gdpr.admin.heading",
   /** The PUBLIC intake page — no session, so it introduces itself. */
   publicHeading: "gdpr.public.heading",
@@ -55,6 +58,9 @@ export const GDPR_I18N_KEYS = {
   /** Grace is over — the erasure is running and cannot be recalled. */
   closureDeleting: "gdpr.closure.deleting",
   closureDeleted: "gdpr.closure.deleted",
+  /** Days left in the grace period — a PLURAL family, rendered beside the
+   * date and never instead of it (see `model/dates.ts`). */
+  closureGraceLeft: "gdpr.closure.grace_left",
 
   // ── Pending deletions (the caller's own erasures) ────────────────────────
   deletionsHeading: "gdpr.deletions.heading",
@@ -72,6 +78,11 @@ export const GDPR_I18N_KEYS = {
   /** An owner never answered. The person is told, not left with a green tick. */
   deletionsStateTimeout: "gdpr.deletions.state.timeout",
   deletionsTimeoutHint: "gdpr.deletions.timeout_hint",
+  /** How many deletions no owner has confirmed. Said ONCE, above the table —
+   * the rows carry the tag, not a repeat of the explanation. */
+  deletionsOverdueCount: "gdpr.deletions.overdue_count",
+  /** The host's opaque subject key, as a caption under a human title. */
+  deletionsReference: "gdpr.deletions.reference",
 
   // The per-row detail (`GET /erasures/{id}`): which system has confirmed,
   // and which processor window is still open. Opening a row is the only place
@@ -138,7 +149,6 @@ export const GDPR_I18N_KEYS = {
   // ── Staff: the DSAR queue ────────────────────────────────────────────────
   queueHeading: "gdpr.queue.heading",
   queueEmpty: "gdpr.queue.empty",
-  queueColumnReference: "gdpr.queue.column.reference",
   queueColumnKind: "gdpr.queue.column.kind",
   queueColumnChannel: "gdpr.queue.column.channel",
   queueColumnSubject: "gdpr.queue.column.subject",
@@ -148,6 +158,14 @@ export const GDPR_I18N_KEYS = {
   queueOverdue: "gdpr.queue.overdue",
   queueAckSent: "gdpr.queue.ack_sent",
   queueAckMissing: "gdpr.queue.ack_missing",
+  /** The request's primary key, as a caption under what it ASKS FOR — an
+   * operator quotes a reference back, they do not recognise a row by it. */
+  queueReference: "gdpr.queue.reference",
+  /** How many requests are past the statutory acknowledgement deadline. */
+  queueAckOverdueCount: "gdpr.queue.ack_overdue_count",
+  /** WHY that matters: the acknowledgement is automated, so a missing one is
+   * broken wiring rather than a slow operator. */
+  queueAckAutomated: "gdpr.queue.ack_automated",
   /** The triage note's own save control — NOT the intake form's "Send
    * request", which is a different act by a different person. */
   queueSaveNote: "gdpr.queue.save_note",
@@ -178,6 +196,8 @@ export const GDPR_I18N_KEYS = {
   ownersNeverAnswered: "gdpr.owners.never_answered",
   ownersSilentCount: "gdpr.owners.silent_count",
   ownersSubjectMismatch: "gdpr.owners.subject_mismatch",
+  /** The other half of the mismatch: answering for something undeclared. */
+  ownersSubjectUndeclared: "gdpr.owners.subject_undeclared",
 
   // Backend error keys whose registry English is true but useless on a
   // screen. Listed here so `i18n-key-exists` knows them and the i18n suite
@@ -227,6 +247,8 @@ export const gdprI18nBundleEn: I18nDictionary = {
     "This screen is for staff. You are signed in with an account that does not have access to it.",
 
   "gdpr.privacy.heading": "Privacy and your data",
+  "gdpr.privacy.explain":
+    "Get a copy of what we hold, see what is already being deleted, and ask us to delete the rest.",
   "gdpr.admin.heading": "Privacy operations",
   "gdpr.public.heading": "Privacy requests",
   "gdpr.public.explain":
@@ -236,6 +258,16 @@ export const gdprI18nBundleEn: I18nDictionary = {
   "gdpr.closure.explain":
     "Deleting your account starts a 30-day grace period. You are signed out everywhere immediately, and you can change your mind until the grace period ends.",
   "gdpr.closure.none": "Your account is not scheduled for deletion",
+  // A PLURAL family: one flat key per CLDR category (see `useTPlural`). `few`
+  // and `many` never resolve in English — `Intl.PluralRules("en")` does not
+  // have those categories — but the locale-parity suite asserts that every
+  // bundle defines exactly the same keys, so the family is spelled in full in
+  // all three.
+  "gdpr.closure.grace_left": "{count} days left",
+  "gdpr.closure.grace_left.one": "1 day left",
+  "gdpr.closure.grace_left.few": "{count} days left",
+  "gdpr.closure.grace_left.many": "{count} days left",
+  "gdpr.closure.grace_left.other": "{count} days left",
   "gdpr.closure.initiate": "Delete my account",
   "gdpr.closure.confirm_title": "Delete this account?",
   "gdpr.closure.confirm_body":
@@ -265,6 +297,8 @@ export const gdprI18nBundleEn: I18nDictionary = {
   "gdpr.deletions.timeout_hint":
     "A system that holds part of this item has not confirmed. Support has been alerted; the item is not lost track of.",
   "gdpr.deletions.expand": "Show which systems have confirmed",
+  "gdpr.deletions.overdue_count": "Deletions still waiting on a system: {count}",
+  "gdpr.deletions.reference": "Ref {reference}",
   "gdpr.deletions.parts_heading": "Systems that hold it",
   "gdpr.deletions.parts_empty": "No system has claimed this item yet",
   "gdpr.deletions.part.done": "Confirmed",
@@ -321,7 +355,6 @@ export const gdprI18nBundleEn: I18nDictionary = {
 
   "gdpr.queue.heading": "Data-protection requests",
   "gdpr.queue.empty": "No data-protection requests",
-  "gdpr.queue.column.reference": "Ref",
   "gdpr.queue.column.kind": "Asking for",
   "gdpr.queue.column.channel": "Arrived via",
   "gdpr.queue.column.subject": "Subject",
@@ -331,8 +364,13 @@ export const gdprI18nBundleEn: I18nDictionary = {
   "gdpr.queue.overdue": "Overdue",
   "gdpr.queue.ack_sent": "Acknowledged {date}",
   "gdpr.queue.ack_missing": "Not acknowledged",
+  "gdpr.queue.reference": "Ref {reference}",
+  "gdpr.queue.ack_overdue_count":
+    "Past the acknowledgement deadline: {count}",
+  "gdpr.queue.ack_automated":
+    "The acknowledgement is sent automatically, so a missing one means the notification path is broken — not that somebody was slow.",
   "gdpr.queue.save_note": "Save note",
-  "gdpr.queue.note_unchanged": "No change to save",
+  "gdpr.queue.note_unchanged": "A note saves once you have changed it.",
   "gdpr.queue.state.received": "Received",
   "gdpr.queue.state.acknowledged": "Acknowledged",
   "gdpr.queue.state.in_progress": "In progress",
@@ -353,9 +391,10 @@ export const gdprI18nBundleEn: I18nDictionary = {
   "gdpr.owners.alive": "Answering",
   "gdpr.owners.silent": "Silent",
   "gdpr.owners.never_answered": "Never answered",
-  "gdpr.owners.silent_count": "{count} of {total} systems are not answering",
-  "gdpr.owners.subject_mismatch":
-    "Declared {declared}, answers for {answered}",
+  "gdpr.owners.silent_count": "Not answering: {count} of {total} systems",
+  "gdpr.owners.subject_mismatch": "Not answering for {subjects}",
+  "gdpr.owners.subject_undeclared":
+    "Answers for {subjects}, which it does not declare",
 };
 
 /**

@@ -150,18 +150,39 @@ describe("<WalletPanel/> — a debt is what the next purchase will eat", () => {
     expect(debt.textContent).not.toContain("partial_debit");
   });
 
-  it("tells each offer how many of its credits are already spoken for", async () => {
+  it("states the debt ONCE for the shop, not once per offer card", async () => {
     mount(
       billingServer({ "GET /wallet": { body: WALLET_IN_DEBT } }),
       <WalletPanel mode="light" />
     );
-    // 500-credit package against a 180-credit debt: 180 of them settle it.
+    await waitFor(() => expect(screen.getByTestId("billing-buy-debt")).toBeTruthy());
+    // The debt belongs to the wallet, so the shop says it once, above the
+    // offers. Three cards each repeating "180 of these settle what you owe"
+    // was one sentence printed three times (visual class VC-B1).
+    expect(screen.getByTestId("billing-buy-debt").textContent).toContain("180");
+    expect(screen.getAllByTestId("billing-buy-debt")).toHaveLength(1);
+  });
+
+  it("tells each offer what it would LEAVE — a different number on every card", async () => {
+    mount(
+      billingServer({ "GET /wallet": { body: WALLET_IN_DEBT } }),
+      <WalletPanel mode="light" />
+    );
     await waitFor(() =>
       expect(screen.getByTestId("billing-offer-debt-credits-500")).toBeTruthy()
     );
+    // 180 owed: a 500-credit package leaves 320, a 2000-credit one 1,820,
+    // the 5000-credit plan 4,820. THAT is what differs offer to offer, and
+    // it is the number a buyer is actually deciding on.
     expect(
       screen.getByTestId("billing-offer-debt-credits-500").textContent
-    ).toContain("180");
+    ).toContain("320");
+    expect(
+      screen.getByTestId("billing-offer-debt-credits-2000").textContent
+    ).toContain("1,820");
+    expect(screen.getByTestId("billing-offer-debt-team").textContent).toContain(
+      "4,820"
+    );
   });
 
   it("says nothing about debt when nothing is owed", async () => {
@@ -170,7 +191,50 @@ describe("<WalletPanel/> — a debt is what the next purchase will eat", () => {
       expect(screen.getByTestId("billing-wallet-balance")).toBeTruthy()
     );
     expect(screen.queryByTestId("billing-wallet-debt")).toBeNull();
+    expect(screen.queryByTestId("billing-buy-debt")).toBeNull();
     expect(screen.queryByTestId("billing-offer-debt-credits-500")).toBeNull();
+  });
+});
+
+describe("nothing machine-shaped reaches the glass", () => {
+  it("a 503 the pair has no key for renders a SENTENCE, never the error code", async () => {
+    // `error.503.service_unavailable` is not in stapel-billing's registry, and
+    // the shop printed it raw — wrapped mid-token as `service_unava/ilable`.
+    // Core's HTTP status floor answers for any untranslated `error.<status>.*`;
+    // this is the assertion that keeps a raw key off a customer's screen.
+    mount(
+      billingServer({
+        "GET /products": {
+          status: 503,
+          body: { localizable_error: "error.503.service_unavailable" },
+        },
+      }),
+      <WalletPanel mode="light" />
+    );
+    await waitFor(() => expect(screen.getByTestId("billing-buy-failed")).toBeTruthy());
+    const text = screen.getByTestId("billing-buy-failed").textContent ?? "";
+    expect(text).not.toContain("error.503");
+    expect(text).not.toContain("service_unavailable");
+    expect(text).toMatch(/temporarily unavailable/i);
+  });
+
+  it("no rendered surface prints an `error.` key or a snake_case enum", async () => {
+    const { container } = mount(
+      billingServer({
+        "GET /wallet": { body: WALLET_IN_DEBT },
+        "GET /subscription": { body: SUBSCRIPTION_PAST_DUE },
+      }),
+      <WalletPanel mode="light" />
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("billing-subscription-status")).toBeTruthy()
+    );
+    const text = container.textContent ?? "";
+    expect(text).not.toMatch(/\berror\.\d{3}\./);
+    // The enums this page carries, each of which has a label table entry.
+    for (const raw of ["past_due", "partial_debit", "clawback", "credit_purchase"]) {
+      expect(text, raw).not.toContain(raw);
+    }
   });
 });
 
@@ -314,6 +378,30 @@ describe("<BuyOptions/> — the comparison, and the plan you already hold", () =
     ).toBe(false);
   });
 
+  it("keeps the 'Best value' badge INSIDE the card, not hanging off its edge", async () => {
+    shop();
+    await waitFor(() => expect(screen.getByTestId("billing-offer-best-team")).toBeTruthy());
+    // As an antd `Badge.Ribbon` the badge sat outside the card's right edge
+    // and a 390px viewport clipped it away entirely.
+    const badge = screen.getByTestId("billing-offer-best-team");
+    const card = screen.getByTestId("billing-offer-team");
+    expect(card.contains(badge)).toBe(true);
+    // And only the winner carries it.
+    expect(screen.queryByTestId("billing-offer-best-credits-500")).toBeNull();
+  });
+
+  it("makes the purchase the biggest target on the card", async () => {
+    shop();
+    await waitFor(() =>
+      expect(screen.getByTestId("billing-offer-buy-credits-500")).toBeTruthy()
+    );
+    // A commerce screen whose Buy is a 30px outline button in the corner has
+    // its priorities upside down.
+    expect(
+      screen.getByTestId("billing-offer-buy-credits-500").className
+    ).toContain("ant-btn-lg");
+  });
+
   it("buying posts the right slug", async () => {
     const server = billingServer();
     const go = vi.fn();
@@ -420,6 +508,35 @@ describe("<SubscriptionCard/> — four states, and a quiet way out", () => {
     );
   });
 
+  it("draws 'Payment overdue' in the ERROR tone, never the success one", async () => {
+    // The card asked "is it cancelled?" and painted everything else green, so
+    // a bounced payment shipped a green chip over the words "Payment overdue"
+    // (visual class VC-B4). The tone now comes from the state.
+    mount(
+      billingServer({ "GET /subscription": { body: SUBSCRIPTION_PAST_DUE } }),
+      <SubscriptionCard mode="light" />
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("billing-subscription-status")).toBeTruthy()
+    );
+    const tag = screen.getByTestId("billing-subscription-status");
+    expect(tag.getAttribute("data-billing-tone")).toBe("error");
+    expect(tag.className).not.toContain("ant-tag-success");
+  });
+
+  it("an active subscription still reads as a success", async () => {
+    mount(
+      billingServer({ "GET /subscription": { body: SUBSCRIPTION_ACTIVE } }),
+      <SubscriptionCard mode="light" />
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("billing-subscription-status")).toBeTruthy()
+    );
+    expect(
+      screen.getByTestId("billing-subscription-status").getAttribute("data-billing-tone")
+    ).toBe("success");
+  });
+
   it("a bounced payment says what it costs and what fixes it", async () => {
     mount(
       billingServer({ "GET /subscription": { body: SUBSCRIPTION_PAST_DUE } }),
@@ -467,6 +584,32 @@ describe("<WalletSettings/> — auto-recharge, with both refusals in words", () 
     expect(document.getElementById(describedBy ?? "")?.textContent).toMatch(
       /nothing to buy automatically/i
     );
+  });
+
+  it("switches the whole top-up group off, and states the reason ONCE", async () => {
+    mount(
+      billingServer({ "GET /products": { body: { packages: [], plans: CATALOG.plans } } }),
+      <WalletSettings mode="light" />
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("billing-wallet-threshold")).toBeTruthy()
+    );
+    // A live trigger and an empty select beside "there is nothing to buy
+    // automatically" was a form offering a setting it had just refused.
+    expect(
+      (screen.getByTestId("billing-wallet-threshold") as HTMLInputElement).disabled
+    ).toBe(true);
+    // And the description of what auto-recharge WOULD do is gone, so the card
+    // does not contradict itself in consecutive sentences.
+    const card = screen.getByTestId("billing-wallet-settings");
+    expect(card.textContent).not.toMatch(/we buy this package for you/i);
+    expect(
+      card.textContent?.match(/nothing to buy automatically/gi)?.length
+    ).toBe(1);
+    // The low-balance warning is not the shop's business and stays live.
+    expect(
+      (screen.getByTestId("billing-wallet-alert") as HTMLInputElement).disabled
+    ).toBe(false);
   });
 
   it("a catalogue OUTAGE does not switch the form off — the alert threshold is not the shop's business", async () => {

@@ -37,6 +37,9 @@ export default defineDemo({
   description:
     "The shipped roster: every workspace the caller belongs to with its owner and member count, the home workspace set and cleared in place, and a create control gated on the installation's policy — with the reason printed beside it rather than the button silently missing.",
   component: WorkspacesPage,
+  // The roster screen IS the product surface of the headless list and of
+  // the provider that feeds it — both are mounted by this story.
+  covers: ["WorkspaceList", "WorkspacesProvider"],
   variants: {
     default: {
       description:

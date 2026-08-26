@@ -193,17 +193,27 @@ describe("<PrivacyRequestPane> — the page a stranger can reach", () => {
     expect(screen.getByTestId("gdpr-dsar-email")).toBeTruthy();
   });
 
-  it("names the unfilled captcha slot instead of leaving a silent hole", async () => {
+  it("ships no dev scaffolding in the empty captcha slot", async () => {
     const { container } = render(
       <TestProviders server={everyRead()}>
         <PrivacyRequestPane />
       </TestProviders>
     );
     await screen.findByTestId("gdpr-privacy-request");
-    // vitest runs as a dev build, which is where the placeholder is visible: a
-    // deployment WITH a captcha backend that forgot the widget finds out here
-    // rather than when every public submission starts answering 400.
-    expect(container.querySelector("[data-stapel-slot='captcha']")).not.toBeNull();
+    // This is the one page in the pair a STRANGER reaches — no session, no
+    // chrome, arrived from a link in a privacy policy. A dev placeholder is a
+    // note to the developer, and vitest runs as a dev build, which is exactly
+    // where the old `SlotPlaceholder` rendered: a dashed box captioned "your
+    // captcha widget renders here", on the public face of the product.
+    //
+    // A deployment that forgot to wire its widget still finds out at once,
+    // because the first submission answers `error.400.captcha_required` and
+    // the form renders that refusal by name.
+    expect(container.querySelector("[data-stapel-slot='captcha']")).toBeNull();
+    expect(container.textContent).not.toContain("renders here");
+    // The form itself is still there — an empty slot removes scaffolding, not
+    // the intake a regulator expects to exist.
+    expect(screen.getByTestId("gdpr-dsar-email")).toBeTruthy();
   });
 
   it("renders the host's widget when one is supplied, and no placeholder", async () => {

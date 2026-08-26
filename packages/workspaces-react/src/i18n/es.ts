@@ -46,7 +46,9 @@ export const workspacesI18nBundleEs: I18nDictionary = {
   "workspaces.members.empty": "Todavía no hay miembros.",
   "workspaces.members.load_failed": "No hemos podido cargar la lista de miembros.",
   "workspaces.roles.load_failed":
-    "No hemos podido cargar la lista de roles, así que ahora no se pueden cambiar. No es un espacio de trabajo sin roles.",
+    "No hemos podido cargar la lista de roles, así que ahora no se pueden cambiar. Esto no significa que el espacio de trabajo no tenga roles.",
+  "workspaces.roles.empty":
+    "Esta instalación no define ningún rol, así que no hay nada que elegir.",
   "workspaces.members.invite": "Invitar",
   "workspaces.members.inviting": "Enviando invitaciones…",
   "workspaces.members.update_role": "Cambiar el rol",
@@ -122,6 +124,8 @@ export const workspacesI18nBundleEs: I18nDictionary = {
     "Mientras la política esté activa, los miembros sin verificar no entran. Pídales que añadan un segundo factor: la cifra de arriba tiene que llegar a cero.",
   "workspaces.settings.security.mfa.off":
     "En este espacio de trabajo no se exige la autenticación en dos pasos.",
+  "workspaces.settings.security.mfa.no_status_yet":
+    "Aquí se exige la autenticación en dos pasos. Todavía no se ha hecho ninguna comprobación, así que no hay nadie confirmado.",
   "workspaces.members.title": "Miembros",
   "workspaces.members.subtitle": "Gestione quién tiene acceso a este espacio de trabajo.",
   "workspaces.members.count": "Miembros: {count}",
@@ -217,7 +221,7 @@ export const workspacesI18nBundleEs: I18nDictionary = {
   "workspaces.list.guest_notice":
     "Está aquí como invitado. Un invitado abre lo que le han enviado, pero no pertenece a ningún espacio de trabajo.",
   "workspaces.list.instance_closed":
-    "Esta instalación no reparte espacios de trabajo. Pida una invitación a quien la administra.",
+    "Pida una invitación a quien administra esta instalación.",
   "workspaces.list.create_dialog.title": "Nuevo espacio de trabajo",
   "workspaces.list.create_dialog.name_label": "Nombre",
   "workspaces.list.create_dialog.name_placeholder": "por ejemplo, Acme Ingeniería",
@@ -260,6 +264,10 @@ export const workspacesI18nBundleEs: I18nDictionary = {
     "Esta invitación ya se aceptó, se rechazó, se retiró o caducó.",
   "workspaces.invitations.blocked.resend_terminal":
     "Solo se puede reenviar una invitación en espera o caducada.",
+  "workspaces.invitations.blocked.row_closed":
+    "Esta invitación está cerrada: ya no queda nada que hacer con ella.",
+  "workspaces.invitations.blocked.row_resend_only":
+    "Esta invitación ha caducado. Lo único que queda es volver a enviarla.",
 
   // Membership history
   "workspaces.audit.title": "Historial de miembros",
@@ -301,6 +309,9 @@ export const workspacesI18nBundleEs: I18nDictionary = {
   "workspaces.invite.unavailable.revoked": "Esta invitación fue retirada.",
   "workspaces.invite.unavailable.accepted": "Esta invitación ya se ha usado.",
   "workspaces.invite.unavailable.declined": "Esta invitación fue rechazada.",
+  "workspaces.invite.unavailable.next_step":
+    "Pida a un administrador de {workspace} que le envíe una invitación nueva.",
+  "workspaces.invite.exitCta": "Ir a sus espacios de trabajo",
   "workspaces.invite.wrongAccount": "Esta invitación es para otra cuenta",
   "workspaces.invite.wrongAccountHint":
     "Ha entrado como {email}, pero la invitación se envió a {invited}. Cambie de cuenta para continuar.",

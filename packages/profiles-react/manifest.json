@@ -542,20 +542,6 @@
   },
   "demos": [
     {
-      "id": "profiles.connection_list",
-      "title": "Connection list",
-      "description": "The headless ConnectionList selects the followers / following / blocked read by `kind` and normalizes the three response shapes to one LoadState of ids plus a count. Render it with matchList: loading, failed and empty stay three different answers. Bring your own list UI — the component is renderless.",
-      "component": "ConnectionList",
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/ConnectionList.demo.tsx"
-    },
-    {
       "id": "profiles.connections-skin",
       "title": "Connections (skin)",
       "description": "Followers / following / blocked behind one control, mounted at profiles.connections. Rows are people: avatar or monogram, display name, location, and a relationship control whose status the batch already answered. The empty state is per list, because 'nobody follows you yet' and 'you have blocked nobody' are different sentences with different feelings.",
@@ -577,24 +563,13 @@
       "source": "demo/ConnectionsSkin.demo.tsx"
     },
     {
-      "id": "profiles.initial_setup_prompt",
-      "title": "Initial setup",
-      "description": "The headless InitialSetupPrompt wraps the first-run setup form (display name, theme, app language): drafts seeded from the profile, one submit() PATCH that also sets initial_setup_passed, and a skip() that records 'maybe later' without a PATCH. Pair it with useInitialSetupGate to decide when to show it.",
-      "component": "InitialSetupPrompt",
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/InitialSetupPrompt.demo.tsx"
-    },
-    {
       "id": "profiles.initial-setup-skin",
       "title": "First run (skin)",
       "description": "The first-run prompt: display name, theme and app language in the same row canon the settings screen uses, committed in ONE PATCH carrying initial_setup_passed. Save states why it is off, as text beside it, because a disabled button fires no pointer events and a tooltip there is a reason nobody can read.",
       "component": "InitialSetupModal",
+      "covers": [
+        "InitialSetupPrompt"
+      ],
       "tokens": [
         "surface-raised",
         "text"
@@ -604,47 +579,6 @@
         "blocking"
       ],
       "source": "demo/InitialSetupModalSkin.demo.tsx"
-    },
-    {
-      "id": "profiles.my_profile",
-      "title": "My profile",
-      "description": "The headless MyProfile wraps the read + partial-update of the caller's own profile and exposes loading / saving / saved / error state. Bring your own form UI — the component is renderless.",
-      "component": "MyProfile",
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/MyProfile.demo.tsx"
-    },
-    {
-      "id": "profiles.notification_preferences",
-      "title": "Notification preferences",
-      "description": "Headless category (messages/system) x channel (email/push) notification matrix over the caller's profile fields. Bring your own grid — the component is renderless.",
-      "component": "NotificationPreferences",
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/NotificationPreferences.demo.tsx"
-    },
-    {
-      "id": "profiles.provider",
-      "title": "Profiles provider",
-      "description": "The headless profiles root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
-      "component": "ProfilesProvider",
-      "tokens": [
-        "card-bg"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/Profiles.demo.tsx"
     },
     {
       "id": "profiles.public-profile-skin",
@@ -667,27 +601,15 @@
       "source": "demo/PublicProfileSkin.demo.tsx"
     },
     {
-      "id": "profiles.relationship",
-      "title": "Relationship",
-      "description": "The headless Relationship wraps the caller↔target status read and the follow / unfollow / block / unblock actions, exposing the live status plus pending / error state. Bring your own controls — the component is renderless.",
-      "component": "Relationship",
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/Relationship.demo.tsx"
-    },
-    {
       "id": "profiles.settings-skin",
       "title": "Profile settings (skin)",
       "description": "The default skin the nav manifest mounts at profiles.settings: a data-driven profile card whose rows come from GET /field-manifest, with the language picker and the notification matrix composed underneath — the same composition auth-react's SecuritySettings uses. Every field commits on its own (no batched Save); a rejected pick snaps back, because the PATCH is optimistic with rollback.",
       "component": "ProfileSettings",
       "covers": [
         "LanguageSettings",
-        "NotificationPreferences"
+        "NotificationPreferences",
+        "MyProfile",
+        "ProfilesProvider"
       ],
       "tokens": [
         "surface-raised",
@@ -818,8 +740,12 @@
     "profiles.profile.save",
     "profiles.profile.saved",
     "profiles.profile.saving",
+    "profiles.public.count.following",
+    "profiles.public.count.following.one",
+    "profiles.public.count.following.other",
     "profiles.public.location",
     "profiles.public.rating",
+    "profiles.public.rating_value",
     "profiles.public.unwritten",
     "profiles.relationship.block",
     "profiles.relationship.blocked",
@@ -832,6 +758,7 @@
     "profiles.relationship.confirm_unblock.body",
     "profiles.relationship.confirm_unblock.title",
     "profiles.relationship.follow",
+    "profiles.relationship.follow_back",
     "profiles.relationship.following",
     "profiles.relationship.self",
     "profiles.relationship.unblock",
@@ -840,6 +767,7 @@
     "profiles.settings.avatar.upload_error",
     "profiles.settings.avatar.uploading",
     "profiles.settings.field.display_name",
+    "profiles.settings.field.edit",
     "profiles.settings.field.theme",
     "profiles.settings.subtitle",
     "profiles.settings.theme.dark",

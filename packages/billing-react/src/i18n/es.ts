@@ -48,12 +48,14 @@ export const billingI18nBundleEs: I18nDictionary = {
   "billing.wallet.threshold": "Recargar cuando el saldo baje de",
   "billing.wallet.package": "Paquete que se comprará",
   "billing.wallet.package_placeholder": "Elige un paquete",
+  "billing.wallet.package_none": "No hay paquetes que elegir",
   "billing.wallet.low_balance_alert": "Avísame cuando el saldo baje de",
   "billing.wallet.settings_no_packages":
     "La tienda no vende paquetes de créditos, así que no hay nada que comprar automáticamente.",
   "billing.wallet.settings_needs_package":
     "Elige el paquete que se comprará antes de activar la recarga automática.",
   "billing.wallet.heading": "Créditos y facturación",
+  "billing.wallet.sections_label": "Secciones de facturación",
   "billing.wallet.expiring": "{credits} créditos caducan el {date}",
   "billing.wallet.expiring_relative":
     "{credits} créditos caducan el {date} — {relative}",
@@ -107,9 +109,15 @@ export const billingI18nBundleEs: I18nDictionary = {
   "billing.pricing.empty": "Ahora mismo no hay nada a la venta.",
   "billing.pricing.current_plan": "Tu plan",
   "billing.pricing.blocked_current_plan": "Es el plan que ya tienes.",
-  "billing.pricing.settles_debt": "{credits} de estos saldan lo que debes",
-  "billing.pricing.settles_debt.one": "{credits} de estos salda lo que debes",
-  "billing.pricing.settles_debt.other": "{credits} de estos saldan lo que debes",
+  "billing.pricing.debt_note":
+    "Debes {credits} créditos. Lo próximo que compres los saldará primero.",
+  "billing.pricing.debt_note.one":
+    "Debes {credits} crédito. Lo próximo que compres lo saldará primero.",
+  "billing.pricing.debt_note.other":
+    "Debes {credits} créditos. Lo próximo que compres los saldará primero.",
+  "billing.pricing.spendable_after_debt": "Te quedan {credits} para gastar",
+  "billing.pricing.spendable_after_debt.one": "Te queda {credits} para gastar",
+  "billing.pricing.spendable_after_debt.other": "Te quedan {credits} para gastar",
   "billing.subscription.active": "Activa",
   "billing.subscription.inactive": "Inactiva",
   "billing.subscription.cancel": "Cancelar la suscripción",

@@ -31,8 +31,13 @@ const OVERDUE: DemoHandlers = {
 function Panel(props: { handlers: DemoHandlers }): ReactElement {
   return (
     <GdprDemoHarness handlers={props.handlers}>
+      {/* A realistic host resolver: it names the subjects it still holds and
+          answers `undefined` for the rest — never the raw key dressed up as a
+          title. The workspace row is that second case on purpose. */}
       <PendingDeletions
-        labelFor={(_type, key) => (key === "9f1c2d3e" ? "Stand-up, 12 August" : key)}
+        labelFor={(_type, key) =>
+          key === "9f1c2d3e" ? "Stand-up, 12 August" : undefined
+        }
       />
     </GdprDemoHarness>
   );

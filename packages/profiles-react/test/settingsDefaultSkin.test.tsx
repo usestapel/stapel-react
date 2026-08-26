@@ -423,7 +423,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     expect(screen.queryByText("light")).toBeNull();
   });
 
-  it("shows a text field read-only; the pencil opens a dialog that saves on its own", async () => {
+  it("shows a text field read-only; its edit control opens a dialog that saves on its own", async () => {
     let lastPatch: Record<string, unknown> | null = null;
     serveManifestAndProfile((p) => {
       lastPatch = p;
@@ -434,10 +434,13 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     await waitFor(() =>
       expect(screen.getByTestId("profile-field-display_name-value").textContent).toBe("Ada Lovelace")
     );
-    // No inline input for the name pre-edit — read-only + a pencil trigger.
+    // No inline input for the name pre-edit: the row is read-only until its
+    // edit control is activated. That control names what it DOES ("Edit
+    // Display name") rather than repeating the label the row already shows —
+    // it used to be a 14px pencil whose accessible name was the bare field.
     expect(screen.queryByDisplayValue("Ada Lovelace")).toBeNull();
 
-    screen.getByRole("button", { name: "Display name" }).click();
+    screen.getByRole("button", { name: "Edit Display name" }).click();
     const dialogInput = await screen.findByDisplayValue("Ada Lovelace");
     fireEvent.change(dialogInput, { target: { value: "Ada C. Lovelace" } });
     screen.getByText("Save changes").click();
@@ -462,7 +465,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
       expect(screen.getByTestId("profile-field-display_name-value")).toBeDefined()
     );
     expect(dialogSurface()).toBeNull(); // nothing rendered while it is closed
-    screen.getByRole("button", { name: "Display name" }).click();
+    screen.getByRole("button", { name: "Edit Display name" }).click();
     await screen.findByDisplayValue("Ada Lovelace");
     expect(dialogSurface()).toBe("sheet");
     unmount();
@@ -472,7 +475,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     await waitFor(() =>
       expect(screen.getByTestId("profile-field-display_name-value")).toBeDefined()
     );
-    screen.getByRole("button", { name: "Display name" }).click();
+    screen.getByRole("button", { name: "Edit Display name" }).click();
     await screen.findByDisplayValue("Ada Lovelace");
     expect(dialogSurface()).toBe("modal");
   });
@@ -491,7 +494,7 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
     await waitFor(() =>
       expect(screen.getByTestId("profile-field-display_name-value").textContent).toBe("Ada Lovelace")
     );
-    screen.getByRole("button", { name: "Display name" }).click();
+    screen.getByRole("button", { name: "Edit Display name" }).click();
     const dialogInput = await screen.findByDisplayValue("Ada Lovelace");
 
     // Untouched draft: Save is off, and Enter — the keyboard path to the same

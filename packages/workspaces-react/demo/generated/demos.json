@@ -4,26 +4,6 @@
   "version": "0.18.0",
   "demos": [
     {
-      "id": "workspaces.accept",
-      "title": "Accept invitation",
-      "description": "The headless AcceptInvitation wraps joining a workspace by its email-link token, exposing accept() plus accepting / accepted / error state (a dead token surfaces a localizable StapelApiError). Bring your own UI — the component is renderless.",
-      "component": "AcceptInvitation",
-      "covers": [],
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/AcceptInvitation.demo.tsx",
-        "line": 73
-      }
-    },
-    {
       "id": "workspaces.audit-trail",
       "title": "Membership history (default skin)",
       "description": "The shipped audit trail: who let this person in, who took them out and when, filtered by action from the closed backend vocabulary, walked by anchor. An action the client does not know is title-cased from its key — never a dotted i18n key on the glass.",
@@ -46,26 +26,6 @@
       "source": {
         "file": "demo/AuditTrailPaneSkin.demo.tsx",
         "line": 24
-      }
-    },
-    {
-      "id": "workspaces.can",
-      "title": "Capability gate",
-      "description": "The headless Can gates UI on the caller's my_capabilities in a workspace, with the backend's wildcard matcher (* and prefix.*) ported client-side. Static children render only when allowed; the render-prop variant hands the verdict out for disabled-state UI. UI convenience only — the backend re-checks every operation.",
-      "component": "Can",
-      "covers": [],
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/Can.demo.tsx",
-        "line": 63
       }
     },
     {
@@ -99,31 +59,14 @@
       }
     },
     {
-      "id": "workspaces.invite-accept",
-      "title": "Invite accept flow",
-      "description": "The headless InviteAcceptFlow drives the /invite/{token} journey: public preview routing (accept prompt / wrong account / login / claim), the grant_token hand-off seam to auth (onLoginGrant), the basic-data slot, and accept/decline. Every screen is the host's; InviteAcceptPage is the reference skin.",
-      "component": "InviteAcceptFlow",
-      "covers": [],
-      "tokens": [
-        "card-bg",
-        "button-primary-bg"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/InviteAcceptFlow.demo.tsx",
-        "line": 83
-      }
-    },
-    {
       "id": "workspaces.invite-accept-page",
       "title": "Invitation page (default skin)",
       "description": "The shipped /invite/{token} screen: the workspace and the role being offered, one primary action per block (Join is the primary; Decline is a danger link behind a confirm that states what it costs), the wrong-account branch with a switch CTA, and the terminal states — expired, revoked, already used — as sentences rather than an error box.",
       "component": "InviteAcceptPage",
-      "covers": [],
+      "covers": [
+        "InviteAcceptFlow",
+        "AcceptInvitation"
+      ],
       "tokens": [],
       "variants": [
         {
@@ -139,53 +82,13 @@
         },
         {
           "id": "expired",
-          "description": "The link outlived its TTL: one sentence saying so and what to do, no dead Join button.",
+          "description": "The link outlived its TTL: the warning tone rather than the blue disc a tip uses, one sentence saying so, the next step named (ask for a new one), and the host's way out — never a dead Join button.",
           "step": "unavailable"
         }
       ],
       "source": {
         "file": "demo/InviteAcceptPageSkin.demo.tsx",
-        "line": 35
-      }
-    },
-    {
-      "id": "workspaces.list",
-      "title": "Workspace list",
-      "description": "The headless WorkspaceList wraps the read of the caller's workspaces plus an owner-seeded create. The read arrives as a LoadState the skin renders through matchList, so 'no workspaces yet' and 'we could not load them' stay two different screens. Bring your own UI — the component is renderless.",
-      "component": "WorkspaceList",
-      "covers": [],
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/WorkspaceList.demo.tsx",
-        "line": 80
-      }
-    },
-    {
-      "id": "workspaces.members",
-      "title": "Members",
-      "description": "The headless Members wraps a workspace's roster plus invite / role-change / removal controls, exposing members / loading / per-action pending / error state. Bring your own UI — the component is renderless.",
-      "component": "Members",
-      "covers": [],
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/Members.demo.tsx",
-        "line": 101
+        "line": 46
       }
     },
     {
@@ -193,7 +96,10 @@
       "title": "Members (default skin)",
       "description": "The shipped roster: who is here, the role each one holds (from the effective registry, not a hardcoded four), the three states of two-factor evidence, an invite, a rename, an administrative password reset and a removal — each switched off with the server's reason where the server would refuse it, including on the viewer's own row.",
       "component": "MembersManager",
-      "covers": [],
+      "covers": [
+        "Members",
+        "Can"
+      ],
       "tokens": [],
       "variants": [
         {
@@ -225,50 +131,13 @@
       }
     },
     {
-      "id": "workspaces.provider",
-      "title": "Workspaces provider",
-      "description": "The headless workspaces root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
-      "component": "WorkspacesProvider",
-      "covers": [],
-      "tokens": [
-        "card-bg"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/Workspaces.demo.tsx",
-        "line": 24
-      }
-    },
-    {
-      "id": "workspaces.role-select",
-      "title": "Role select (registry)",
-      "description": "The headless RoleSelect reads the effective role registry (builtin four + the deployment's STAPEL_WORKSPACES[\"ROLES\"] overlay) from GET /roles and resolves labels via workspaces.role.<key> with a raw-name fallback — role UI stops hardcoding the builtin four.",
-      "component": "RoleSelect",
-      "covers": [],
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/RoleSelect.demo.tsx",
-        "line": 79
-      }
-    },
-    {
       "id": "workspaces.role-select-field",
       "title": "Role picker (default skin)",
       "description": "The shipped role field: an accessible name of its own (a roster renders one per row, and 'combobox, combobox, combobox' is what a screen reader says otherwise), the effective registry as options with each role's rank as the caption, and a stated refusal instead of a picker when the registry cannot be read.",
       "component": "RoleSelectField",
-      "covers": [],
+      "covers": [
+        "RoleSelect"
+      ],
       "tokens": [],
       "variants": [
         {
@@ -318,7 +187,10 @@
       "title": "Workspaces page (default skin)",
       "description": "The shipped roster: every workspace the caller belongs to with its owner and member count, the home workspace set and cleared in place, and a create control gated on the installation's policy — with the reason printed beside it rather than the button silently missing.",
       "component": "WorkspacesPage",
-      "covers": [],
+      "covers": [
+        "WorkspaceList",
+        "WorkspacesProvider"
+      ],
       "tokens": [],
       "variants": [
         {

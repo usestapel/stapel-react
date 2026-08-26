@@ -35,7 +35,6 @@ export const NOTIFICATIONS_I18N_KEYS = {
   liveConnecting: "notifications.live.connecting",
   liveReconnecting: "notifications.live.reconnecting",
   livePolling: "notifications.live.polling",
-  livePollingHint: "notifications.live.polling_hint",
   liveStopped: "notifications.live.stopped",
   liveReconnect: "notifications.live.reconnect",
   liveRefusedSession: "notifications.live.refused_session",
@@ -69,6 +68,7 @@ export const NOTIFICATIONS_I18N_KEYS = {
   devicesEmptyHint: "notifications.devices.empty_hint",
   devicesThisDevice: "notifications.devices.this_device",
   devicesInactive: "notifications.devices.inactive",
+  devicesPlatformOther: "notifications.devices.platform_other",
   devicesLastSeen: "notifications.devices.last_seen",
   devicesRemove: "notifications.devices.remove",
   devicesRemoveQuestion: "notifications.devices.remove_question",
@@ -107,21 +107,19 @@ export const notificationsI18nBundleEn: I18nDictionary = {
     "When something needs your attention, it will show up here.",
   "notifications.feed.loading": "Loading notifications…",
   "notifications.feed.load_more": "Load more",
-  "notifications.feed.end": "You're all caught up.",
+  "notifications.feed.end": "That's the end of your notifications.",
   "notifications.feed.open": "Open",
 
   "notifications.live.on": "Live",
   "notifications.live.connecting": "Connecting…",
   "notifications.live.reconnecting": "Reconnecting…",
-  "notifications.live.polling": "Checking every minute",
-  "notifications.live.polling_hint":
-    "This site has no live connection, so the list refreshes every minute while this tab is open.",
+  "notifications.live.polling": "Updates within a minute",
   "notifications.live.stopped": "Live updates stopped",
   "notifications.live.reconnect": "Reconnect",
   "notifications.live.refused_session":
     "Your session expired. Sign in again to resume live updates.",
   "notifications.live.refused_origin":
-    "Live updates are not configured for this site. The list still refreshes every minute.",
+    "Instant updates are not available here. New notifications still arrive within a minute.",
   "notifications.live.refused_forbidden":
     "This account is not allowed to receive live updates.",
   "notifications.live.refused_unknown":
@@ -135,7 +133,7 @@ export const notificationsI18nBundleEn: I18nDictionary = {
   "notifications.push.checking": "Checking this device…",
   "notifications.push.on": "On for this device",
   "notifications.push.off": "Off for this device",
-  "notifications.push.inactive": "Registered, but not being delivered to",
+  "notifications.push.inactive": "Registered, but not receiving notifications",
   "notifications.push.inactive_hint":
     "The push service rejected this device's token. Turn push off and on again to re-register.",
   "notifications.push.unknown": "We can't tell whether push is on here",
@@ -158,7 +156,8 @@ export const notificationsI18nBundleEn: I18nDictionary = {
   "notifications.devices.empty": "No devices are registered",
   "notifications.devices.empty_hint": "Turn push on above to register this one.",
   "notifications.devices.this_device": "This device",
-  "notifications.devices.inactive": "Not delivered to",
+  "notifications.devices.inactive": "Delivery stopped",
+  "notifications.devices.platform_other": "Other device",
   "notifications.devices.last_seen": "Last registered {when}",
   "notifications.devices.remove": "Remove",
   "notifications.devices.remove_question": "Remove this device?",

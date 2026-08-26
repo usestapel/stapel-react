@@ -39,6 +39,9 @@ export default defineDemo({
   description:
     "The shipped roster: who is here, the role each one holds (from the effective registry, not a hardcoded four), the three states of two-factor evidence, an invite, a rename, an administrative password reset and a removal — each switched off with the server's reason where the server would refuse it, including on the viewer's own row.",
   component: MembersManager,
+  // Mounts the headless `Members` directly, and is the screen a host puts
+  // the `Can` capability verdict behind (the `canManage` prop).
+  covers: ["Members", "Can"],
   variants: {
     default: {
       description:

@@ -67,7 +67,16 @@ export default defineDemo({
   description:
     "The default skin the nav manifest mounts at profiles.settings: a data-driven profile card whose rows come from GET /field-manifest, with the language picker and the notification matrix composed underneath — the same composition auth-react's SecuritySettings uses. Every field commits on its own (no batched Save); a rejected pick snaps back, because the PATCH is optimistic with rollback.",
   component: ProfileSettings,
-  covers: ["LanguageSettings", "NotificationPreferences"],
+  // The headless twins the deleted `_harness` stories used to stand for:
+  // `MyProfile` is the read this whole card is made of and `ProfilesProvider`
+  // is what mounts it, so they are covered by the screen that USES them
+  // rather than by a debug card that printed their step chip (§54/VC-A1).
+  covers: [
+    "LanguageSettings",
+    "NotificationPreferences",
+    "MyProfile",
+    "ProfilesProvider",
+  ],
   tokens: ["surface-raised", "text", "border-subtle"],
   variants: {
     settings: {

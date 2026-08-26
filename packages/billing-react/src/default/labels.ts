@@ -69,6 +69,53 @@ export function subscriptionStatusKey(status: string): BillingI18nKey {
 }
 
 /**
+ * The TONE a state is drawn in. Named after what the tone means, not after a
+ * colour, so the theme decides the pigment and this table decides the reading.
+ */
+export type StatusTone = "success" | "warning" | "error" | "neutral";
+
+/**
+ * `models.SubscriptionStatus` → tone.
+ *
+ * The visual pass caught "Payment overdue" rendered in GREEN, because the
+ * card asked one question — "is it cancelled?" — and painted everything else
+ * as a success. A bounced payment and a live subscription are not two shades
+ * of the same state, and a green chip over the words "Payment overdue" tells
+ * the customer nothing is wrong at exactly the moment something is. So the
+ * tone comes from the same table the LABEL comes from: five states, five
+ * decided readings, and one place to change any of them.
+ *
+ * `incomplete` is a warning rather than an error: nothing has failed, a
+ * checkout was simply never finished, and the person can still finish it.
+ */
+const SUBSCRIPTION_STATUS_TONES: Readonly<Record<string, StatusTone>> = {
+  active: "success",
+  trialing: "success",
+  past_due: "error",
+  cancelled: "neutral",
+  incomplete: "warning",
+};
+
+/** The tone for a subscription `status`. An unknown status is drawn neutral —
+ * a state we have no word for is a state we have no verdict on, and guessing
+ * "success" is how the past-due chip went green. */
+export function subscriptionStatusTone(status: string): StatusTone {
+  return SUBSCRIPTION_STATUS_TONES[status] ?? "neutral";
+}
+
+/**
+ * A {@link StatusTone} as antd's `<Tag color>`.
+ *
+ * antd's presets are semantic names, not hexes — the palette behind them is
+ * the theme's, so this stays inside the no-hardcoded-colour rule while
+ * keeping the mapping in ONE place instead of at every tag.
+ */
+export function tagColorForTone(tone: StatusTone): string | undefined {
+  if (tone === "neutral") return undefined;
+  return tone;
+}
+
+/**
  * A slug as a last-resort display name — `team_plus` → `Team plus`.
  *
  * The catalogue names its own products and that name is what a screen should

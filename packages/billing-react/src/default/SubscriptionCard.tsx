@@ -63,7 +63,12 @@ import {
   useOpenCustomerPortal,
 } from "../model/mutations.js";
 import { formatExpiryDate } from "../model/money.js";
-import { subscriptionStatusKey, titleCaseSlug } from "./labels.js";
+import {
+  subscriptionStatusKey,
+  subscriptionStatusTone,
+  tagColorForTone,
+  titleCaseSlug,
+} from "./labels.js";
 import type { ThemeModeProp } from "./types.js";
 
 /** The plan the backend hands every caller who has bought nothing. */
@@ -140,6 +145,8 @@ function SubscriptionBody(props: {
   const cancelled = subscription.status === "cancelled";
   const periodEnd = subscription.current_period_end;
   const gate = cancelGate(subscription);
+  const tone = subscriptionStatusTone(subscription.status);
+  const tagColor = tagColorForTone(tone);
 
   return (
     <Flex vertical gap={spacing[3]} data-testid="billing-subscription-active">
@@ -147,9 +154,13 @@ function SubscriptionBody(props: {
         <Typography.Text strong data-testid="billing-subscription-plan">
           {planName}
         </Typography.Text>
+        {/* The tone is decided by the STATE, in one table beside the label —
+            not by "is it cancelled?", which is how "Payment overdue" ended up
+            green (visual class VC-B4). */}
         <Tag
-          color={cancelled ? "default" : "success"}
+          {...(tagColor !== undefined ? { color: tagColor } : {})}
           data-testid="billing-subscription-status"
+          data-billing-tone={tone}
         >
           {t(subscriptionStatusKey(subscription.status))}
         </Tag>

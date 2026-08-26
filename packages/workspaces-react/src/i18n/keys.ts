@@ -51,6 +51,7 @@ export const WORKSPACES_I18N_KEYS = {
   membersEmpty: "workspaces.members.empty",
   membersLoadFailed: "workspaces.members.load_failed",
   rolesLoadFailed: "workspaces.roles.load_failed",
+  rolesEmpty: "workspaces.roles.empty",
   membersInvite: "workspaces.members.invite",
   membersInviting: "workspaces.members.inviting",
   membersUpdateRole: "workspaces.members.update_role",
@@ -115,6 +116,10 @@ export const WORKSPACES_I18N_KEYS = {
   mfaLastError: "workspaces.settings.security.mfa.last_error",
   mfaUnverifiedHint: "workspaces.settings.security.mfa.unverified_hint",
   mfaOffNotice: "workspaces.settings.security.mfa.off",
+  /** The policy IS on and the sweep has not reported yet — a different
+   * fact from "not required here", and the one the screen used to get
+   * wrong by deriving the sentence from the absence of a status. */
+  mfaNoStatusYet: "workspaces.settings.security.mfa.no_status_yet",
   // Members manager (default skin — MembersManager)
   membersTitle: "workspaces.members.title",
   membersSubtitle: "workspaces.members.subtitle",
@@ -242,6 +247,9 @@ export const WORKSPACES_I18N_KEYS = {
   invitationsRenameDialogTitle: "workspaces.invitations.rename_dialog.title",
   invitationsBlockedTerminal: "workspaces.invitations.blocked.terminal",
   invitationsBlockedResendTerminal: "workspaces.invitations.blocked.resend_terminal",
+  /** One sentence for the whole ROW — see `rowReasonKey` in InvitationsPane. */
+  invitationsBlockedRowClosed: "workspaces.invitations.blocked.row_closed",
+  invitationsBlockedRowResendOnly: "workspaces.invitations.blocked.row_resend_only",
   // Membership history (default skin — AuditTrailPane, GET /{ws}/audit)
   auditTitle: "workspaces.audit.title",
   auditSubtitle: "workspaces.audit.subtitle",
@@ -283,6 +291,8 @@ export const WORKSPACES_I18N_KEYS = {
   inviteUnavailableRevoked: "workspaces.invite.unavailable.revoked",
   inviteUnavailableAccepted: "workspaces.invite.unavailable.accepted",
   inviteUnavailableDeclined: "workspaces.invite.unavailable.declined",
+  inviteUnavailableNextStep: "workspaces.invite.unavailable.next_step",
+  inviteExitCta: "workspaces.invite.exitCta",
   inviteWrongAccount: "workspaces.invite.wrongAccount",
   inviteWrongAccountHint: "workspaces.invite.wrongAccountHint",
   inviteSwitchAccountCta: "workspaces.invite.switchAccountCta",
@@ -349,7 +359,9 @@ export const workspacesI18nBundleEn: I18nDictionary = {
   "workspaces.members.empty": "No members yet.",
   "workspaces.members.load_failed": "We could not load the member list.",
   "workspaces.roles.load_failed":
-    "We could not load the role list, so roles cannot be changed right now. It is not a workspace without roles.",
+    "We could not load the role list, so roles cannot be changed right now. This does not mean the workspace has no roles.",
+  "workspaces.roles.empty":
+    "This installation defines no roles, so there is nothing to choose from.",
   "workspaces.members.invite": "Invite",
   "workspaces.members.inviting": "Inviting…",
   "workspaces.members.update_role": "Change role",
@@ -423,6 +435,8 @@ export const workspacesI18nBundleEn: I18nDictionary = {
     "Unverified members are not admitted while the policy is on. Ask them to add a second factor — the number to get to zero is above.",
   "workspaces.settings.security.mfa.off":
     "Two-factor authentication is not required in this workspace.",
+  "workspaces.settings.security.mfa.no_status_yet":
+    "Two-factor authentication is required here. No check has run yet, so nobody has been confirmed.",
   "workspaces.members.title": "Members",
   "workspaces.members.subtitle": "Manage who has access to this workspace.",
   "workspaces.members.count": "{count} members",
@@ -516,7 +530,7 @@ export const workspacesI18nBundleEn: I18nDictionary = {
   "workspaces.list.guest_notice":
     "You are here as a guest. Guests can open what they were sent, but do not belong to a workspace.",
   "workspaces.list.instance_closed":
-    "This installation does not hand out workspaces. Ask whoever runs it for an invitation.",
+    "Ask whoever runs this installation for an invitation.",
   "workspaces.list.create_dialog.title": "New workspace",
   "workspaces.list.create_dialog.name_label": "Name",
   "workspaces.list.create_dialog.name_placeholder": "e.g. Acme Engineering",
@@ -559,6 +573,10 @@ export const workspacesI18nBundleEn: I18nDictionary = {
     "This invitation was already accepted, declined, revoked or expired.",
   "workspaces.invitations.blocked.resend_terminal":
     "Only a waiting or expired invitation can be sent again.",
+  "workspaces.invitations.blocked.row_closed":
+    "This invitation is closed — there is nothing left to do with it.",
+  "workspaces.invitations.blocked.row_resend_only":
+    "This invitation has run out. Sending it again is the only thing left to do.",
 
   // Membership history
   "workspaces.audit.title": "Membership history",
@@ -600,6 +618,9 @@ export const workspacesI18nBundleEn: I18nDictionary = {
   "workspaces.invite.unavailable.revoked": "This invitation was revoked.",
   "workspaces.invite.unavailable.accepted": "This invitation has already been used.",
   "workspaces.invite.unavailable.declined": "This invitation was declined.",
+  "workspaces.invite.unavailable.next_step":
+    "Ask an administrator of {workspace} to send you a new invitation.",
+  "workspaces.invite.exitCta": "Go to your workspaces",
   "workspaces.invite.wrongAccount": "This invitation is for a different account",
   "workspaces.invite.wrongAccountHint":
     "You're signed in as {email}, but the invitation was sent to {invited}. Switch accounts to continue.",

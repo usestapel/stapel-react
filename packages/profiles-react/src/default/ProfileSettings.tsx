@@ -88,6 +88,7 @@ import { Image } from "@stapel/image";
 import type { StapelImage } from "@stapel/image";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
 import { EditPencilIcon } from "./icons.js";
+import { SettingRow, SEGMENTED_TRACK } from "./parts.js";
 import { LanguageSettings, SETTINGS_MAX_WIDTH } from "./LanguageSettings.js";
 import { NotificationPreferences } from "./NotificationPreferences.js";
 import type { MyProfile, ProfileFieldManifestEntry, ProfileUpdate } from "../api/types.js";
@@ -202,27 +203,6 @@ const THEME_VALUES = ["light", "dark", "system"] as const;
 export const SETTINGS_AVATAR = 64;
 
 /**
- * One setting per row (owner UX audit 2026-07-17 — folded into
- * `docs/pending/frontend-guidelines.md` §8): a subtitle-style label ABOVE
- * its own picker, stacked top to bottom — never several pickers crammed
- * side by side into one row. Every row in this screen uses this wrapper.
- * The label text IS `entry.docstring` for manifest-driven rows — the
- * backend's field description doubles as the row's subtitle, so a custom
- * field a host adds to its manifest gets a readable label with zero
- * frontend translation work.
- */
-function SettingRow(props: { label: string; children: ReactNode }): ReactElement {
-  return (
-    <div>
-      <Typography.Text type="secondary" style={{ display: "block", marginBottom: spacing[1] }}>
-        {props.label}
-      </Typography.Text>
-      {props.children}
-    </div>
-  );
-}
-
-/**
  * A read-only text row with an edit affordance (owner UX audit 2026-07-17,
  * "Settings Interactions" canon): click the pencil to open a {@link SkinDialog}
  * with the value editable, instead of a bare `Input` sitting inline in a
@@ -328,22 +308,32 @@ function EditableTextRow(props: {
   );
 
   return (
-    <div>
-      <Typography.Text>{props.label}</Typography.Text>
-      <Flex align="center" gap={spacing[2]}>
-        <Typography.Text strong {...(props.valueTestId ? { "data-testid": props.valueTestId } : {})}>
-          {props.value || "—"}
-        </Typography.Text>
-        <Button
-          type="text"
-          size="small"
-          icon={<EditPencilIcon />}
-          aria-label={props.label}
-          onClick={openEditor}
-          data-analytics="none"
-          data-analytics-reason="local-ui-open-edit-dialog"
-        />
-      </Flex>
+    <SettingRow label={props.label}>
+      {/* The whole value IS the control, not a 14px glyph beside it: the
+          visual pass found the pencil to be the only way to edit a display
+          name and the smallest target on the screen. A full-width button
+          keeps the row's own height (44px on a phone, from SkinTheme) and
+          names what activating it does, rather than repeating the field
+          label a screen reader has already read from the row above. */}
+      <Button
+        block
+        onClick={openEditor}
+        aria-label={t(PROFILES_I18N_KEYS.profileEditField, { field: props.label })}
+        style={{ textAlign: "start", height: "auto", paddingBlock: spacing[2] }}
+        data-analytics="none"
+        data-analytics-reason="local-ui-open-edit-dialog"
+      >
+        <Flex align="center" justify="space-between" gap={spacing[2]}>
+          <Typography.Text
+            strong
+            ellipsis
+            {...(props.valueTestId ? { "data-testid": props.valueTestId } : {})}
+          >
+            {props.value || "—"}
+          </Typography.Text>
+          <EditPencilIcon />
+        </Flex>
+      </Button>
       <SkinDialog
         open={open}
         title={props.label}
@@ -353,7 +343,7 @@ function EditableTextRow(props: {
       >
         {body}
       </SkinDialog>
-    </div>
+    </SettingRow>
   );
 }
 
@@ -402,6 +392,7 @@ function FieldRow(props: {
               value={value}
               onChange={(v) => props.onPatch({ [entry.name]: v } as ProfileUpdate)}
               block
+              style={SEGMENTED_TRACK}
               options={options.map((o) => ({ value: o, label: o }))}
             />
           </SettingRow>
@@ -563,7 +554,19 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
       {...(props.mode !== undefined ? { mode: props.mode } : {})}
       data-testid="profile-settings-page"
     >
-      <Flex vertical gap={spacing[5]} style={{ width: "100%", maxWidth: SETTINGS_MAX_WIDTH }}>
+      {/* The measure is a reading decision and stays; WHERE the column sits is
+          a different one. Pinned to the left it left ~65% of a wide canvas
+          dead beside it (visual pass VC-A3), which reads as a layout that
+          forgot the rest of the page rather than as a deliberate column. */}
+      <Flex
+        vertical
+        gap={spacing[5]}
+        style={{
+          width: "100%",
+          maxWidth: SETTINGS_MAX_WIDTH,
+          marginInline: "auto",
+        }}
+      >
       <Card data-testid="profile-settings" style={{ width: "100%" }}>
         <Typography.Title level={4} style={{ marginTop: 0 }}>
           {t(PROFILES_I18N_KEYS.settingsTitle)}
@@ -647,6 +650,7 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
                   value={themeValue}
                   onChange={(v) => mutation.mutate({ theme: v } as ProfileUpdate)}
                   block
+                  style={SEGMENTED_TRACK}
                   options={[
                     { value: "light", label: t(PROFILES_I18N_KEYS.themeLight) },
                     { value: "dark", label: t(PROFILES_I18N_KEYS.themeDark) },

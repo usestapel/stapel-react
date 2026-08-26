@@ -160,6 +160,12 @@ function ConnectionListBody(props: {
         userId={userId}
         size="small"
         layout="inline"
+        // A roster line, not a profile: one quiet control per row instead of a
+        // column of solid primaries (visual pass VC-A6). And on the FOLLOWERS
+        // list the offer is "follow back" by construction — everybody in it
+        // already follows the caller.
+        emphasis="row"
+        followsYou={bag.kind === "followers"}
         // A roster row is not the place to block someone: that decision
         // belongs on the person's own profile, where the consequence can be
         // spelled out. The blocked LIST is the exception — unblocking is the
