@@ -220,39 +220,6 @@
       "params": [],
       "remediation": "fix_input"
     },
-    "error.400.translate.batch_too_large": {
-      "status": 400,
-      "params": [
-        "max_items"
-      ],
-      "remediation": "fix_input"
-    },
-    "error.400.translate.batch_too_long": {
-      "status": 400,
-      "params": [
-        "max_chars"
-      ],
-      "remediation": "fix_input"
-    },
-    "error.400.translate.text_required": {
-      "status": 400,
-      "params": [],
-      "remediation": "fix_input"
-    },
-    "error.400.translate.text_too_long": {
-      "status": 400,
-      "params": [
-        "max_chars"
-      ],
-      "remediation": "fix_input"
-    },
-    "error.400.translate.unsupported_language": {
-      "status": 400,
-      "params": [
-        "language"
-      ],
-      "remediation": "fix_input"
-    },
     "error.400.validation_error": {
       "status": 400,
       "params": [],
@@ -390,11 +357,6 @@
       "params": [],
       "remediation": "contact_support"
     },
-    "error.502.translate.provider_unavailable": {
-      "status": 502,
-      "params": [],
-      "remediation": "retry"
-    },
     "error.503.mandate_unavailable": {
       "status": 503,
       "params": [],
@@ -494,11 +456,6 @@
     "error.400.field.unique",
     "error.400.invalid_ad_id",
     "error.400.invalid_platform",
-    "error.400.translate.batch_too_large",
-    "error.400.translate.batch_too_long",
-    "error.400.translate.text_required",
-    "error.400.translate.text_too_long",
-    "error.400.translate.unsupported_language",
     "error.400.validation_error",
     "error.400.verification_failed",
     "error.400.verification_invalid_factor",
@@ -526,7 +483,6 @@
     "error.429.rate_limit",
     "error.429.too_many_requests",
     "error.500.internal",
-    "error.502.translate.provider_unavailable",
     "error.503.mandate_unavailable",
     "notifications.devices.empty",
     "notifications.devices.empty_hint",

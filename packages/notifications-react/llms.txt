@@ -36,7 +36,7 @@ Paths are relative to `/notifications/api/v1/`.
 - useUnregisterDeviceById (mutation) → unregisterDeviceById
 
 ## Errors (render t(code, params); UX from remediation)
-51 keys (full catalog: manifest.json §errors). By remediation: fix_input 23 · retry 14 · verify 6 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+45 keys (full catalog: manifest.json §errors). By remediation: fix_input 18 · retry 13 · verify 6 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -49,10 +49,6 @@ Param-bearing keys (interpolation slots matter):
 - error.400.field.null [400] → fix_input {field}
 - error.400.field.required [400] → fix_input {field}
 - error.400.field.unique [400] → fix_input {field}
-- error.400.translate.batch_too_large [400] → fix_input {max_items}
-- error.400.translate.batch_too_long [400] → fix_input {max_chars}
-- error.400.translate.text_too_long [400] → fix_input {max_chars}
-- error.400.translate.unsupported_language [400] → fix_input {language}
 - error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
 
 ## Analytics events (typed; defineEvent → events.json, drift-gated)

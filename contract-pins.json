@@ -10,8 +10,8 @@
       "note": "release v0.28.1 — 2026-08-26 wave D regen. release v0.27.1 — 2026-08-24 pair wave: the pair regenerated schema/errors against this contract. release v0.25.2 — the OTP width stops being two numbers. The backend used to compute the code length twice: generation read MOCK_OTP_CODE, GET /capabilities/ reported OTP_LENGTH. A stand with mocked OTP delivery therefore issued a four-character code while telling this pair, through otp.email_code_length/phone_code_length, that codes are six digits — and <OtpPanel/>, which correctly reads the contract instead of hardcoding, drew six boxes nobody could fill. 0.25.2 makes otp.services.issued_code_length(channel) the single source both the issuing path and the contract consume, so a mocked channel "
     },
     "stapel-notifications": {
-      "ref": "e34631195bf4988872f277b82e452c9696b74711",
-      "note": "release v0.17.1 — 2026-08-24 pair wave: the pair regenerated schema/errors against this contract. release v0.7.1 (on PyPI) — Spanish error catalogue: translations/errors.es.json, 43 keys, complete over the registry. Carries the pair's first errors.es.gen.ts. Contract delta across the span this pin skips is description-only: docs/schema.json restates the push-token register/unregister permission as `IsNotAnonymousUser` instead of `IsAuthenticated` (prose in the OpenAPI description; no path, method, field or type moved). docs/errors.json and docs/flows.json are byte-identical, so no new error key and no flow change. Pin+regen bumped together."
+      "ref": "345bfc056f45fdd48173cb2538cd3d2bde7cb6ee",
+      "note": "release v0.17.3 — 2026-08-26: the owner-scoped error registry (45 keys) the pair bundles. release v0.17.1 — 2026-08-24 pair wave: the pair regenerated schema/errors against this contract. release v0.7.1 (on PyPI) — Spanish error catalogue: translations/errors.es.json, 43 keys, complete over the registry. Carries the pair's first errors.es.gen.ts. Contract delta across the span this pin skips is description-only: docs/schema.json restates the push-token register/unregister permission as"
     },
     "stapel-profiles": {
       "ref": "3cd63f6dc774a4f70c3cfcda798cf10c044aaffa",
