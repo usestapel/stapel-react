@@ -118,7 +118,10 @@ describe("<ScopeUsageTable> — the footer", () => {
 describe("<ScopeUsageTable> — the month selector", () => {
   it("is a plain label when the host offers no options", () => {
     renderTable({ rows: loadReady(ROWS), month: "2026-08" });
-    expect(screen.getByTestId("video-usage-month").textContent).toBe("2026-08");
+    // The wire's month key is a machine value; the screen shows the month.
+    expect(screen.getByTestId("video-usage-month").textContent).toBe(
+      "August 2026"
+    );
     expect(screen.queryByTestId("video-usage-month-select")).toBeNull();
   });
 

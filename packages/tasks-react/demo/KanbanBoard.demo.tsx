@@ -1,11 +1,11 @@
 /**
  * `KanbanBoard` in the viewer.
  *
- * The `phone` variant is the one that matters most here: it is not the desktop
- * board narrowed, it is a different board — one column at a time behind a
- * switcher strip whose chips are also drop targets. A board that had never been
- * drawn at 390px would be a board nobody had checked on the device most people
- * carry.
+ * At 390px this is not the desktop board narrowed, it is a different board —
+ * one column at a time behind a switcher strip whose chips are also drop
+ * targets. That switch is driven by the width, not by a prop, so it is the
+ * viewer's width control that shows it: a second variant rendering the same
+ * tree photographed the identical frame under a second name.
  *
  * The `deferred` and `denied` variants pin the two answers a move can give that
  * are neither success nor failure, each seeded by the mock answering the move
@@ -41,18 +41,17 @@ export default defineDemo({
   description:
     "Columns with WIP counters, cards carrying priority, due date, checklist progress and a blocked glyph, dnd-kit drag with keyboard and touch sensors, and an optimistic move that rolls itself back on a refusal.",
   component: KanbanBoard,
+  // The board screen mounts the renderless layer it is built on: the provider
+  // wires the runtime and `BoardView` hands over the assembled columns. They
+  // used to have a separate `state.step` chip-dump demo of their own, which
+  // photographed the harness rather than the product (visual pass N-4).
+  covers: ["TasksProvider", "BoardView"],
   variants: {
     default: {
-      description: "Three columns, six cards, desktop width.",
-      viewport: "desktop",
-      step: "ready",
-      render: () => <Board handlers={READY} />,
-    },
-    phone: {
       description:
-        "390px: one column, a switcher strip whose other chips accept a drop.",
+        "Three columns, six cards. Below the tablet breakpoint the same board becomes one column behind a switcher strip whose chips are drop targets, so the viewer's width control shows it — a duplicate `phone` variant photographed the identical frame.",
       viewport: "phone",
-      step: "ready-phone",
+      step: "ready",
       render: () => <Board handlers={READY} />,
     },
     empty: {

@@ -107,6 +107,7 @@ export const VIDEO_I18N_KEYS = {
   lobbyConnecting: "video.lobby.connecting",
   lobbyReconnecting: "video.lobby.reconnecting",
   lobbyOffline: "video.lobby.offline",
+  lobbyOfflineHint: "video.lobby.offline_hint",
   lobbyRefusedSession: "video.lobby.refused.session",
   lobbyRefusedOrigin: "video.lobby.refused.origin",
   lobbyRefusedForbidden: "video.lobby.refused.forbidden",
@@ -281,8 +282,8 @@ export const videoI18nBundleEn: I18nDictionary = {
   "video.lobby.live": "Live",
   "video.lobby.connecting": "Connecting…",
   "video.lobby.reconnecting": "Reconnecting…",
-  "video.lobby.offline":
-    "Not live — this list updates when you press Check again",
+  "video.lobby.offline": "Not live",
+  "video.lobby.offline_hint": "This list updates when you press Check again.",
   "video.lobby.refused.session":
     "Your session expired, so live updates stopped. Sign in again.",
   "video.lobby.refused.origin":
@@ -307,9 +308,9 @@ export const videoI18nBundleEn: I18nDictionary = {
   "video.stage.connecting": "Connecting to the call…",
   "video.stage.connected": "You are connected",
   "video.stage.failed": "The call could not be connected",
-  "video.stage.no_peer": "The call itself is not installed",
+  "video.stage.no_peer": "Video is not available on this device",
   "video.stage.no_peer_hint":
-    "This screen carries the room, the lobby and the token; the media session is an optional dependency. Install livekit-client, or fill the callStage slot with your own.",
+    "You are in the room and everyone can see you here, but the picture and sound cannot start. Open the room in another browser, or ask whoever runs this app to turn video on.",
   "video.stage.no_token": "No token for this call",
   "video.stage.no_token_hint":
     "A token is issued only once the host lets you in.",

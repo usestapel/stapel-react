@@ -137,9 +137,15 @@ function LivenessBar(props: {
   return (
     <Flex vertical gap={token.paddingXXS} data-testid="video-lobby-liveness">
       <Flex align="center" gap={token.paddingXS} wrap>
+        {/* A status tag holds a STATE, not a sentence: antd's tag is one
+            unbreakable line with an 8px trailing margin, so the paragraph that
+            used to live in here set the width of the page (390px viewport,
+            392px document — visual pass M-4). The advice moved to the hint
+            below, where it is also no longer the same string printed twice. */}
         <Tag
           color={livenessColor(liveness)}
           data-testid={`video-lobby-liveness-${liveness}`}
+          style={{ whiteSpace: "normal", marginInlineEnd: 0, maxWidth: "100%" }}
         >
           {t(livenessKey(liveness))}
         </Tag>
@@ -177,7 +183,7 @@ function LivenessBar(props: {
           data-testid="video-lobby-not-live"
           style={{ fontSize: token.fontSizeSM }}
         >
-          {t(VIDEO_I18N_KEYS.lobbyOffline)}
+          {t(VIDEO_I18N_KEYS.lobbyOfflineHint)}
         </Typography.Text>
       )}
     </Flex>

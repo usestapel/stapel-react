@@ -50,6 +50,27 @@ export const DEMO_GUEST: ParticipantResponse = {
   joined_at: "2026-08-24T09:15:02Z",
 };
 
+/**
+ * The host seam every skin in this package takes as `nameFor`.
+ *
+ * stapel-video keeps no FK to a user by design (erasure can pseudonymize the
+ * column), so the wire carries `user_id` and nothing else — and a demo that
+ * left the seam unfilled photographed a lobby whose one waiting person was
+ * called `u-4c02` and a usage report whose rows were titled `u-9a1f` (visual
+ * pass M-2). A host resolves these from the roster its page already has; this
+ * is that roster.
+ */
+export const DEMO_USER_NAMES: Readonly<Record<string, string>> = {
+  "u-9a1f": "Dana Reyes",
+  "u-4c02": "Milo Fischer",
+  "u-b7de": "Priya Raman",
+};
+
+/** What a host passes as `nameFor`. */
+export function demoNameFor(userId: string): string {
+  return DEMO_USER_NAMES[userId] ?? userId;
+}
+
 /** The gate a viewer who is not the host sees on the two verdicts. */
 export function actionBlockedForDemo(): ActionAvailability {
   return actionBlocked(VIDEO_I18N_KEYS.lobbyBlockedNotHost);

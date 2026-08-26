@@ -8,10 +8,7 @@ export default { title: "tasks-react / Column manager (default skin)" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"desktop","step":"ready"} };
-export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
-Phone.storyName = "phone";
-Phone.parameters = { stapel: {"viewport":"phone","step":"ready-phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"ready"} };
 export const Duplicate = (): ReactElement => renderDemoVariant(demo, "duplicate");
 Duplicate.storyName = "duplicate";
 Duplicate.parameters = { stapel: {"viewport":"phone","step":"refused"} };

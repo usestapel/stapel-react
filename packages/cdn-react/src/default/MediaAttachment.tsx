@@ -112,11 +112,19 @@ export interface MediaAttachmentProps {
   readonly testId?: string;
 }
 
-/** The sunken box every arm draws inside, so all four are the same object. */
+/**
+ * The sunken box every arm draws inside, so all four are the same object.
+ *
+ * `boxSizing` is not decoration: `width: 100%` plus the document arm's padding
+ * measured content-box made the card 32px wider than the column it sits in, so
+ * the phone shot of the document variant was 398 CSS pixels on a 390 viewport.
+ * An element that declares its own width owns its own padding.
+ */
 function frameStyle(maxWidth: number | string): CSSProperties {
   return {
     width: "100%",
     maxWidth,
+    boxSizing: "border-box",
     borderRadius: radii.md,
     overflow: "hidden",
     background: cssVar("surface-sunken"),
@@ -249,8 +257,10 @@ function Document(props: {
       data-testid="cdn-attachment-document"
     >
       <Flex align="center" gap={spacing[2]} wrap>
+        {/* The badge carries the extension; the label names the medium. Saying
+            the extension in both read as "PDF  PDF document" on every shot. */}
         <Tag data-testid="cdn-attachment-ext">{ext}</Tag>
-        <Typography.Text>{t(CDN_I18N_KEYS.attachmentFileLabel, { ext })}</Typography.Text>
+        <Typography.Text>{t(CDN_I18N_KEYS.attachmentFileLabel)}</Typography.Text>
       </Flex>
       <Size bytes={meta.bytes} />
       <OpenControl

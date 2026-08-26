@@ -41,6 +41,36 @@ function Fact(props: { label: string; value: string }): ReactElement {
   );
 }
 
+/**
+ * A fact whose value is a TECHNICAL token, not product copy.
+ *
+ * `provider_used` is a model id (`whisper-large-v3`) from a vocabulary that
+ * changes with the deployment's pipeline. Printed in the same register as the
+ * date and the duration it read as something the reader was meant to
+ * understand (visual pass M-2); rendered as code, muted, it is what it is —
+ * the line a support conversation needs and an eye skips. Same treatment
+ * `cdn-react` gives a `meta_reason`.
+ */
+function TechnicalFact(props: { label: string; value: string }): ReactElement {
+  return (
+    <div style={{ minWidth: 0 }}>
+      <Typography.Text
+        type="secondary"
+        style={{ display: "block", fontSize: fontSize.sm.fontSize }}
+      >
+        {props.label}
+      </Typography.Text>
+      <Typography.Text
+        code
+        type="secondary"
+        style={{ ...truncateStyle, display: "block", fontSize: fontSize.sm.fontSize }}
+      >
+        {props.value}
+      </Typography.Text>
+    </div>
+  );
+}
+
 function DetailBody(props: {
   recording: Recording;
   isProcessing: boolean;
@@ -96,11 +126,11 @@ function DetailBody(props: {
         />
         <Fact
           label={t(RECORDINGS_I18N_KEYS.detailLanguage)}
-          value={recording.language ?? unknown}
-        />
-        <Fact
-          label={t(RECORDINGS_I18N_KEYS.detailProvider)}
-          value={recording.provider_used ?? unknown}
+          value={
+            recording.language == null || recording.language === ""
+              ? unknown
+              : format.language(recording.language)
+          }
         />
         <Fact
           label={t(RECORDINGS_I18N_KEYS.detailSpeakers)}
@@ -110,6 +140,12 @@ function DetailBody(props: {
           label={t(RECORDINGS_I18N_KEYS.detailWords)}
           value={format.count(recording.word_count)}
         />
+        {recording.provider_used == null || recording.provider_used === "" ? null : (
+          <TechnicalFact
+            label={t(RECORDINGS_I18N_KEYS.detailProvider)}
+            value={recording.provider_used}
+          />
+        )}
       </div>
 
       <RecordingPlayer recording={recording} sync={sync} />

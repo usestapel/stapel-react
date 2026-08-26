@@ -426,31 +426,13 @@
       "source": "demo/MediaAttachment.demo.tsx"
     },
     {
-      "id": "cdn.gallery",
-      "title": "Photo gallery queue",
-      "description": "The headless MediaUploader bounds a gallery at max references and hands a composer the ordered <type>/<hash> list to store. canAdd and settled are ActionAvailability, so a full gallery and an unfinished upload are two different sentences rather than one grey button.",
-      "component": "MediaUploader",
-      "covers": [
-        "CdnProvider"
-      ],
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        "default",
-        "reopened-draft",
-        "full"
-      ],
-      "source": "demo/MediaUploader.demo.tsx"
-    },
-    {
       "id": "cdn.gallery-field",
       "title": "Photo gallery (default skin)",
       "description": "Up to ten photos, each with its own step, its own refusal and its own controls, inside one drop target. The order IS the meaning — the first reference is what a search card shows — so reordering is drag-and-drop AND a pair of move buttons, because drag is unreachable by keyboard and unusable on a touch screen.",
       "component": "MediaGalleryField",
       "covers": [
-        "MediaUploader"
+        "MediaUploader",
+        "CdnProvider"
       ],
       "tokens": [
         "border-subtle",

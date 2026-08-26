@@ -42,15 +42,10 @@ export default defineDemo({
   component: BoardCreateSheet,
   variants: {
     default: {
-      description: "Desktop modal, presets discovered from GET boards/presets.",
-      viewport: "desktop",
-      step: "idle",
-      render: () => <Sheet />,
-    },
-    phone: {
-      description: "390px: the same form as a bottom sheet.",
+      description:
+        "Presets discovered from GET boards/presets, each named by its own columns. A bottom sheet under the tablet breakpoint, a modal above it.",
       viewport: "phone",
-      step: "idle-phone",
+      step: "idle",
       render: () => <Sheet />,
     },
     "scope-blocked": {

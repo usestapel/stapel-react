@@ -8,10 +8,7 @@ export default { title: "tasks-react / Task sheet (default skin)" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"desktop","step":"ready"} };
-export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
-Phone.storyName = "phone";
-Phone.parameters = { stapel: {"viewport":"phone","step":"ready-phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"ready"} };
 export const Archived = (): ReactElement => renderDemoVariant(demo, "archived");
 Archived.storyName = "archived";
 Archived.parameters = { stapel: {"viewport":"desktop","step":"archived"} };

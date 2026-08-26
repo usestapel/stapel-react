@@ -108,6 +108,26 @@ export function formatBytes(bytes: number, locale: string): string {
   }).format(value);
 }
 
+/**
+ * A BCP-47 language tag as a language name in the READER's locale — `en`
+ * becomes "English" for an English reader and "Anglais" for a French one.
+ *
+ * The wire carries the tag stapel-recordings detected or was told, and the
+ * detail pane printed it raw: `Language: en` beside a formatted date and a
+ * formatted duration (visual pass M-2). `Intl.DisplayNames` is the same family
+ * as every other formatter here. A tag it cannot name comes back unchanged —
+ * an unfamiliar tag is still more use to a reader than nothing.
+ */
+export function formatLanguage(tag: string, locale: string): string {
+  try {
+    return new Intl.DisplayNames([locale], { type: "language" }).of(tag) ?? tag;
+  } catch {
+    // `of()` throws on a structurally invalid tag; the wire is not ours to
+    // trust and a report is not worth a blank screen.
+    return tag;
+  }
+}
+
 /** The formatters, bound to one locale. */
 export interface RecordingsFormat {
   readonly locale: string;
@@ -117,6 +137,7 @@ export interface RecordingsFormat {
   date(iso: string): string | undefined;
   count(value: number): string;
   bytes(value: number): string;
+  language(tag: string): string;
 }
 
 /**
@@ -135,5 +156,6 @@ export function useRecordingsFormat(): RecordingsFormat {
     date: (iso) => formatDate(iso, locale),
     count: (value) => formatCount(value, locale),
     bytes: (value) => formatBytes(value, locale),
+    language: (tag) => formatLanguage(tag, locale),
   };
 }

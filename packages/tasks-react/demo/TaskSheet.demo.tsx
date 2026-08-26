@@ -7,7 +7,9 @@
  * greyed-out boxes.
  */
 import type { ReactElement } from "react";
+import { Flex, Input, Typography } from "antd";
 import { defineDemo } from "@stapel/showcase";
+import { spacing } from "@stapel/tokens";
 import { TaskSheet } from "../src/default/index.js";
 import {
   DEMO_TASK_ID,
@@ -18,9 +20,46 @@ import {
 import { TasksDemoHarness, boardHandlers } from "./_harness.js";
 import type { DemoHandlers } from "./_harness.js";
 
+/** A board's custom field, as the demo's stand-in for a real editor. */
+interface DemoFeatureDef {
+  readonly slug: string;
+  readonly name: string;
+}
+
+/**
+ * What a host puts in the `renderFeatures` seam.
+ *
+ * The variant used to pass `featureDefs` and no renderer, which draws
+ * `SlotPlaceholder` — and that is a DEV-only component: in the built showcase
+ * it renders nothing at all, so the variant documenting custom fields
+ * photographed a card with no custom fields on it (visual pass M-6). The seam
+ * is filled here the way a host fills it.
+ */
+function DemoFeatureEditor(props: {
+  features: Readonly<Record<string, unknown>>;
+  featureDefs: readonly unknown[];
+  disabled: boolean;
+}): ReactElement {
+  return (
+    <Flex vertical gap={spacing[2]}>
+      {(props.featureDefs as readonly DemoFeatureDef[]).map((def) => (
+        <label key={def.slug}>
+          <Typography.Text>{def.name}</Typography.Text>
+          <Input
+            readOnly
+            disabled={props.disabled}
+            value={String(props.features[def.slug] ?? "")}
+            data-testid={`demo-feature-${def.slug}`}
+          />
+        </label>
+      ))}
+    </Flex>
+  );
+}
+
 function Sheet(props: {
   handlers: DemoHandlers;
-  featureDefs?: readonly unknown[];
+  featureDefs?: readonly DemoFeatureDef[];
 }): ReactElement {
   return (
     <TasksDemoHarness handlers={props.handlers}>
@@ -35,7 +74,14 @@ function Sheet(props: {
           // Wired in the product by KanbanBoard, which owns the move.
         }}
         {...(props.featureDefs !== undefined
-          ? { featureDefs: props.featureDefs }
+          ? {
+              featureDefs: props.featureDefs,
+              renderFeatures: (args: {
+                features: Readonly<Record<string, unknown>>;
+                featureDefs: readonly unknown[];
+                disabled: boolean;
+              }) => <DemoFeatureEditor {...args} />,
+            }
           : {})}
       />
     </TasksDemoHarness>
@@ -44,6 +90,12 @@ function Sheet(props: {
 
 const READY = boardHandlers({ [`tasks/${DEMO_TASK_ID}`]: task });
 const ARCHIVED = boardHandlers({ [`tasks/${DEMO_TASK_ID}`]: archivedTask });
+const FEATURED = boardHandlers({
+  [`tasks/${DEMO_TASK_ID}`]: {
+    ...task,
+    features: { effort: "3 days", customer: "Northwind" },
+  },
+});
 
 export default defineDemo({
   id: "tasks.task-sheet",
@@ -51,17 +103,15 @@ export default defineDemo({
   description:
     "One card: title and description saved on blur, column/priority/due controls, assignees through the host seam, a checklist with a three-state overflow menu, and comments where Enter sends and Shift+Enter breaks a line.",
   component: TaskSheet,
+  // The sheet IS `TaskView` with a skin on it: one card, its fields and its
+  // `canEdit` gate.
+  covers: ["TaskView"],
   variants: {
     default: {
-      description: "Editable card, modal at desktop width.",
-      viewport: "desktop",
-      step: "ready",
-      render: () => <Sheet handlers={READY} />,
-    },
-    phone: {
-      description: "390px: the same card as a bottom sheet.",
+      description:
+        "Editable card — a bottom sheet under the tablet breakpoint, a modal above it. Both come from the same tree, so the viewer's width control is what shows the difference.",
       viewport: "phone",
-      step: "ready-phone",
+      step: "ready",
       render: () => <Sheet handlers={READY} />,
     },
     archived: {
@@ -73,10 +123,18 @@ export default defineDemo({
     },
     features: {
       description:
-        "A board with custom fields but no attributes editors wired: the slot names itself instead of leaving a hole.",
+        "A board whose schema adds custom fields, drawn by the host through the renderFeatures seam — the pair supplies the section and the gate, never the editor.",
       viewport: "phone",
       step: "features",
-      render: () => <Sheet handlers={READY} featureDefs={[{ slug: "effort" }]} />,
+      render: () => (
+        <Sheet
+          handlers={FEATURED}
+          featureDefs={[
+            { slug: "effort", name: "Effort" },
+            { slug: "customer", name: "Customer" },
+          ]}
+        />
+      ),
     },
   },
 });

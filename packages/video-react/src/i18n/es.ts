@@ -126,8 +126,8 @@ export const videoI18nBundleEs: I18nDictionary = {
   "video.lobby.live": "En directo",
   "video.lobby.connecting": "Conectando…",
   "video.lobby.reconnecting": "Reconectando…",
-  "video.lobby.offline":
-    "No está en directo: la lista se actualiza al pulsar Comprobar otra vez",
+  "video.lobby.offline": "No está en directo",
+  "video.lobby.offline_hint": "La lista se actualiza al pulsar Comprobar otra vez.",
   "video.lobby.refused.session":
     "Tu sesión ha caducado, así que las actualizaciones en directo se han detenido. Vuelve a iniciar sesión.",
   "video.lobby.refused.origin":
@@ -153,9 +153,9 @@ export const videoI18nBundleEs: I18nDictionary = {
   "video.stage.connecting": "Conectando con la llamada…",
   "video.stage.connected": "Ya estás conectado",
   "video.stage.failed": "No se ha podido conectar la llamada",
-  "video.stage.no_peer": "La llamada en sí no está instalada",
+  "video.stage.no_peer": "El vídeo no está disponible en este dispositivo",
   "video.stage.no_peer_hint":
-    "Esta pantalla lleva la sala, la sala de espera y el token; la sesión de medios es una dependencia opcional. Instala livekit-client o rellena el hueco callStage con el tuyo.",
+    "Estás en la sala y ahí se te ve, pero la imagen y el sonido no pueden empezar. Abre la sala en otro navegador o pide que activen el vídeo a quien gestiona esta aplicación.",
   "video.stage.no_token": "No hay token para esta llamada",
   "video.stage.no_token_hint":
     "El token se emite solo cuando el anfitrión te deja entrar.",

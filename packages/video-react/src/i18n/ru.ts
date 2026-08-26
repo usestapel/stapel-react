@@ -135,8 +135,8 @@ export const videoI18nBundleRu: I18nDictionary = {
   "video.lobby.live": "В реальном времени",
   "video.lobby.connecting": "Подключаемся…",
   "video.lobby.reconnecting": "Переподключаемся…",
-  "video.lobby.offline":
-    "Не в реальном времени — список обновится по кнопке «Проверить снова»",
+  "video.lobby.offline": "Не в реальном времени",
+  "video.lobby.offline_hint": "Список обновится по кнопке «Проверить снова».",
   "video.lobby.refused.session":
     "Сессия истекла, поэтому обновления остановились. Войдите заново.",
   "video.lobby.refused.origin":
@@ -161,9 +161,9 @@ export const videoI18nBundleRu: I18nDictionary = {
   "video.stage.connecting": "Подключаемся к звонку…",
   "video.stage.connected": "Вы подключены",
   "video.stage.failed": "Не удалось подключиться к звонку",
-  "video.stage.no_peer": "Сам звонок не установлен",
+  "video.stage.no_peer": "Видео недоступно на этом устройстве",
   "video.stage.no_peer_hint":
-    "Этот экран отвечает за комнату, лобби и токен; медиасессия — необязательная зависимость. Установите livekit-client или заполните слот callStage своим компонентом.",
+    "Вы в комнате, и вас в ней видно, но картинка и звук здесь не запускаются. Откройте комнату в другом браузере или попросите включить видео тех, кто ведёт это приложение.",
   "video.stage.no_token": "Для этого звонка нет токена",
   "video.stage.no_token_hint": "Токен выдают только после того, как вас впустят.",
   "video.stage.no_server": "Адрес медиасервера не настроен",

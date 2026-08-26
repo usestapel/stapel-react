@@ -301,7 +301,7 @@ describe("<BoardsPane> — four states, four sentences", () => {
     );
     expect(gate?.getAttribute("data-stapel-gated")).toBe("blocked");
     const reason = gate?.querySelector("[data-stapel-gated-reason]");
-    expect(reason?.textContent).toContain("has not wired board navigation");
+    expect(reason?.textContent).toContain("Opening a board is not available here");
     // The button points at the reason, so a screen reader gets it too.
     const button = gate?.querySelector("button");
     expect(button?.getAttribute("aria-describedby")).toBe(reason?.id);
@@ -327,7 +327,7 @@ describe("<ColumnManager> — a missing capability is explained, not faked", () 
       </Harness>
     );
     expect(
-      screen.getByText(/Renaming and deleting a column are not part of this API/)
+      screen.getByText(/Renaming and removing one is not available/)
     ).toBeTruthy();
   });
 

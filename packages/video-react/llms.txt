@@ -74,8 +74,8 @@ const { tracked } = useTracked();
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - video.call-stage → <CallStage> [no-peer|no-token]  demo/CallStage.demo.tsx
 - video.lobby → <LobbyPanel> [queue|empty|not-host|roster]  demo/Lobby.demo.tsx
-- video.meeting → <RoomsPane> [default|phone|admitted|waiting|denied]  demo/Meeting.demo.tsx
-- video.usage → <ScopeUsagePane> [default|phone|nobody|invalid-period|unavailable]  demo/Video.demo.tsx
+- video.meeting → <RoomsPane> [default|admitted|waiting|denied]  demo/Meeting.demo.tsx
+- video.usage → <ScopeUsagePane> [default|nobody|invalid-period|unavailable]  demo/Video.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

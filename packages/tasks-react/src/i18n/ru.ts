@@ -95,6 +95,7 @@ export const tasksI18nBundleRu: I18nDictionary = {
   "tasks.move.pendingBadge": "Ждёт подтверждения",
 
   "tasks.task.title": "Название",
+  "tasks.task.sheetTitle": "Карточка",
   "tasks.task.description": "Описание",
   "tasks.task.descriptionPlaceholder": "Что нужно сделать?",
   "tasks.task.column": "Колонка",
@@ -139,7 +140,7 @@ export const tasksI18nBundleRu: I18nDictionary = {
   "tasks.columns.title": "Колонки",
   "tasks.columns.reorderHint": "Перетащите колонку, чтобы изменить её место на доске.",
   "tasks.columns.noRename":
-    "Переименование и удаление колонки пока не входят в этот API, поэтому экран их не предлагает.",
+    "Здесь колонки можно переставлять и добавлять. Переименование и удаление недоступны.",
   "tasks.columns.dragHandle": "Переставить {name}",
   "tasks.columns.saveOrder": "Сохранить порядок",
   "tasks.columns.existsHint": "Выберите ключ, которого на доске ещё нет.",
@@ -148,13 +149,12 @@ export const tasksI18nBundleRu: I18nDictionary = {
   "tasks.gate.columnsRequired": "У доски должна быть хотя бы одна колонка.",
   "tasks.gate.nameRequired": "Сначала дайте доске название.",
   "tasks.gate.archived": "Карточка в архиве.",
-  "tasks.gate.noPicker": "В этом приложении не подключён выбор людей.",
+  "tasks.gate.noPicker": "Выбрать людей здесь нельзя.",
   "tasks.gate.commentEmpty": "Сначала напишите текст.",
   "tasks.gate.noColumn": "На доске нет колонок, куда добавить карточку.",
   "tasks.gate.noColumnChange":
     "Откройте карточку с её доски, чтобы перенести её в другую колонку.",
-  "tasks.gate.noNavigation":
-    "В этом приложении не подключён переход к доске, поэтому кнопке некуда вести.",
+  "tasks.gate.noNavigation": "Открыть доску здесь нельзя.",
 
   "tasks.scope.unresolved":
     "Не удалось определить, какому воркспейсу принадлежит доска. Выберите воркспейс и повторите.",

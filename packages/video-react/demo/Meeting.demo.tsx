@@ -12,6 +12,7 @@ import {
   DEMO_ROOM,
   DEMO_HOST,
   DEMO_GUEST,
+  demoNameFor,
   MeetingFrame as Frame,
 } from "./_meeting.js";
 
@@ -26,22 +27,12 @@ export default defineDemo({
   variants: {
     default: {
       description:
-        "The front door. There is no room list on the wire, and the pane says so rather than drawing an empty one.",
-      viewport: "desktop",
-      step: "idle",
-      render: () => (
-        <Frame>
-          <RoomsPane />
-        </Frame>
-      ),
-    },
-    phone: {
-      description: "The same door at 390px — one column, 44px controls.",
+        "The front door. There is no room list on the wire, and the pane says so rather than drawing an empty one. One column and 44px controls at 390px — the same tree, so the viewer's width control is what shows it.",
       viewport: "phone",
       step: "idle",
       render: () => (
         <Frame>
-          <RoomsPane />
+          <RoomsPane nameFor={demoNameFor} />
         </Frame>
       ),
     },
@@ -54,6 +45,7 @@ export default defineDemo({
         <Frame>
           <MeetingPane
             joinCode={DEMO_ROOM.join_code}
+            nameFor={demoNameFor}
             viewerUserId={DEMO_ROOM.created_by_id}
             meeting={staticMeetingBag({
               kind: "admitted",
@@ -74,6 +66,7 @@ export default defineDemo({
         <Frame>
           <MeetingPane
             joinCode={DEMO_ROOM.join_code}
+            nameFor={demoNameFor}
             meeting={staticMeetingBag({
               kind: "waiting",
               room: DEMO_ROOM,

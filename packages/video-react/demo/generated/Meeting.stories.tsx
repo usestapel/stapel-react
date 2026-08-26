@@ -8,10 +8,7 @@ export default { title: "video-react / The meeting client" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"desktop","step":"idle"} };
-export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
-Phone.storyName = "phone";
-Phone.parameters = { stapel: {"viewport":"phone","step":"idle"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"idle"} };
 export const Admitted = (): ReactElement => renderDemoVariant(demo, "admitted");
 Admitted.storyName = "admitted";
 Admitted.parameters = { stapel: {"viewport":"desktop","step":"admitted"} };

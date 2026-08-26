@@ -14,7 +14,19 @@
  * through one, and antd's `Select` uses it for its dropdown alignment.
  */
 import { afterEach } from "vitest";
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
+
+/**
+ * `waitFor`'s own budget, which `testTimeout` does not raise.
+ *
+ * vitest's `testTimeout` bounds the whole test; testing-library polls its own
+ * 1s `asyncUtilTimeout` inside it and throws first. On a loaded CI runner the
+ * board's first render is slower than that on its own, so two tests here failed
+ * with "Test timed out" against work that was still in flight. Raised together
+ * with the vitest budgets in `vitest.config.ts`; a resolved condition still
+ * returns on the next poll.
+ */
+configure({ asyncUtilTimeout: 10_000 });
 
 // vitest runs without injected globals, so testing-library's automatic
 // afterEach cleanup never registers. Files that declare their own `afterEach`

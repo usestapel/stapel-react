@@ -89,7 +89,7 @@ export const cdnI18nBundleRu: I18nDictionary = {
   "cdn.attachment.image_alt": "Прикреплённое фото",
   "cdn.attachment.video_alt": "Прикреплённое видео",
   "cdn.attachment.audio_alt": "Прикреплённое аудио",
-  "cdn.attachment.file_label": "Документ {ext}",
+  "cdn.attachment.file_label": "Документ",
   "cdn.attachment.missing": "Это вложение больше недоступно",
   "cdn.attachment.open": "Открыть",
   "cdn.attachment.download": "Скачать",

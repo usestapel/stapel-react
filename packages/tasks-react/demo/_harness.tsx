@@ -28,6 +28,7 @@ import { TasksProvider, registerTasksI18n } from "../src/index.js";
 import {
   DEMO_BOARD_ID,
   DEMO_TASK_ID,
+  DEMO_USER_NAMES,
   boards,
   cards,
   checklist,
@@ -130,6 +131,9 @@ export function TasksDemoHarness(props: {
     const rt = createTasksRuntime({
       baseUrl: DEMO_BASE,
       fetch: mockFetch(handlers ?? {}),
+      // The host seam for opaque ids. Unfilled, every assignee chip in the
+      // showcase read two characters of a UUID.
+      userLabel: (userId) => DEMO_USER_NAMES[userId] ?? userId,
     });
     const engine = createI18n({ locale: "en" });
     registerTasksI18n(engine);

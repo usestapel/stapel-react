@@ -519,19 +519,6 @@
   },
   "demos": [
     {
-      "id": "recordings.composer",
-      "title": "Recording composer",
-      "description": "The headless RecordingComposer wraps create-recording and surfaces the opened upload session; on success the pair invalidates the list read. Bring your own form UI — the component is renderless.",
-      "component": "RecordingComposer",
-      "tokens": [
-        "card-bg"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/RecordingComposer.demo.tsx"
-    },
-    {
       "id": "recordings.detail-skin",
       "title": "Recording screen (default skin)",
       "description": "The recording screen: facts through the locale formatters, the player, the summary, the synced transcript, and the two metered actions with their reasons.",
@@ -550,37 +537,14 @@
       "source": "demo/RecordingDetailPaneSkin.demo.tsx"
     },
     {
-      "id": "recordings.finalize",
-      "title": "Upload finalizer",
-      "description": "The headless UploadFinalizer wraps the finalize mutation for one recording (call after the media is uploaded). Bring your own control UI — the component is renderless.",
-      "component": "UploadFinalizer",
-      "tokens": [
-        "card-bg"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/UploadFinalizer.demo.tsx"
-    },
-    {
-      "id": "recordings.list",
-      "title": "Recording list",
-      "description": "The headless RecordingList reads the user's own recordings. Bring your own list/table — the component is renderless.",
-      "component": "RecordingList",
-      "tokens": [
-        "card-bg",
-        "card-border"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/RecordingList.demo.tsx"
-    },
-    {
       "id": "recordings.list-skin",
       "title": "Recordings screen (default skin)",
       "description": "The shipped list: real RecordingStatus pills, dates and lengths through the locale formatters, and a failed arm that never wears the empty copy.",
       "component": "RecordingsList",
+      "covers": [
+        "RecordingList",
+        "RecordingsProvider"
+      ],
       "variants": [
         "default",
         "phone"
@@ -608,19 +572,6 @@
         "phone"
       ],
       "source": "demo/RecordingPlayerSkin.demo.tsx"
-    },
-    {
-      "id": "recordings.provider",
-      "title": "Recordings provider",
-      "description": "The headless recordings root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
-      "component": "RecordingsProvider",
-      "tokens": [
-        "card-bg"
-      ],
-      "variants": [
-        "default"
-      ],
-      "source": "demo/Recordings.demo.tsx"
     },
     {
       "id": "recordings.reprocess-skin",
@@ -719,7 +670,9 @@
       "description": "One surface for the whole upload act, so a half-uploaded recording cannot be stranded between three host-wired controls.",
       "component": "RecordingUploader",
       "covers": [
-        "RecordingUpload"
+        "RecordingUpload",
+        "RecordingComposer",
+        "UploadFinalizer"
       ],
       "variants": [
         "default",

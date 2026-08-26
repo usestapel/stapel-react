@@ -74,7 +74,6 @@ const { tracked } = useTracked();
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - cdn.attachment → <MediaAttachment> [photo|video|audio|document|gone]  demo/MediaAttachment.demo.tsx
-- cdn.gallery → <MediaUploader> [default|reopened-draft|full]  demo/MediaUploader.demo.tsx
 - cdn.gallery-field → <MediaGalleryField> [empty|three photos|full]  demo/MediaGalleryField.demo.tsx
 - cdn.image-field → <ImageUploadField> [empty|stored]  demo/ImageUploadField.demo.tsx
 - cdn.media-intake → <MediaUploadField> [video|document]  demo/MediaUploadField.demo.tsx

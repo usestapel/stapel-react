@@ -26,7 +26,9 @@ export default defineDemo({
   description:
     "One surface for the whole upload act, so a half-uploaded recording cannot be stranded between three host-wired controls.",
   component: RecordingUploader,
-  covers: ["RecordingUpload"],
+  // The uploader is the composer and the finalizer as one screen: pick a
+  // file, name it, and watch the upload finish.
+  covers: ["RecordingUpload", "RecordingComposer", "UploadFinalizer"],
   variants: {
     default: {
       description: "Ready to pick a file, inside a workspace.",

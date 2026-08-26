@@ -63,6 +63,28 @@ export function presetColumnLabel(
 }
 
 /**
+ * A preset's display name.
+ *
+ * Board presets are an OPEN merge registry on the backend (a host registers its
+ * own), so there is no fixed key family to translate, and the served entry
+ * carries nothing but a machine `key` — which is how the "Shape" select came to
+ * offer an option reading `simple` (visual pass M-2). What every preset does
+ * carry is its columns, and each of those has a translatable `name_key`, so the
+ * shape is named by its shape: "To do, In progress, Done". A preset that serves
+ * no columns cannot create a board and has no honest label — callers drop it
+ * rather than falling back to the key.
+ */
+export function presetLabel(
+  t: TranslateFn,
+  locale: string | undefined,
+  columns: readonly { readonly name: string; readonly name_key?: string }[]
+): string {
+  return new Intl.ListFormat(locale, { style: "narrow", type: "unit" }).format(
+    columns.map((column) => presetColumnLabel(t, column))
+  );
+}
+
+/**
  * A machine key from a display name: lowercase, non-alphanumerics collapsed to
  * one underscore, trimmed. `"In review!"` → `"in_review"`. Empty input yields
  * an empty string, which the create form treats as "not ready" rather than

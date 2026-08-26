@@ -108,12 +108,11 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
-- tasks.board-create-sheet → <BoardCreateSheet> [default|phone|scope-blocked]  demo/BoardCreateSheet.demo.tsx
-- tasks.boards-pane → <BoardsPane> [default|phone|empty|failed|no-navigation]  demo/BoardsPane.demo.tsx
-- tasks.column-manager → <ColumnManager> [default|phone|duplicate]  demo/ColumnManager.demo.tsx
-- tasks.headless → <TasksProvider> [default|phone]  demo/Tasks.demo.tsx
-- tasks.kanban-board → <KanbanBoard> [default|phone|empty|truncated]  demo/KanbanBoard.demo.tsx
-- tasks.task-sheet → <TaskSheet> [default|phone|archived|features]  demo/TaskSheet.demo.tsx
+- tasks.board-create-sheet → <BoardCreateSheet> [default|scope-blocked]  demo/BoardCreateSheet.demo.tsx
+- tasks.boards-pane → <BoardsPane> [default|empty|failed|no-navigation]  demo/BoardsPane.demo.tsx
+- tasks.column-manager → <ColumnManager> [default|duplicate]  demo/ColumnManager.demo.tsx
+- tasks.kanban-board → <KanbanBoard> [default|empty|truncated]  demo/KanbanBoard.demo.tsx
+- tasks.task-sheet → <TaskSheet> [default|archived|features]  demo/TaskSheet.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

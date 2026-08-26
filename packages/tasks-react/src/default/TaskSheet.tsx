@@ -40,6 +40,7 @@ import {
   actionAvailable,
   actionBlocked,
   firstBlock,
+  matchLoad,
   useFormat,
   useT,
 } from "@stapel/core";
@@ -99,7 +100,14 @@ export function TaskSheet(props: TaskSheetProps): ReactElement {
       <SkinDialog
         open={props.open}
         onClose={props.onClose}
-        title={t(TASKS_I18N_KEYS.taskTitle)}
+        // The card's own name, not the name of the field that holds it: the
+        // header read "Title" over every card in the fleet (visual pass).
+        title={matchLoad(bag.task, {
+          loading: () => t(TASKS_I18N_KEYS.taskSheetTitle),
+          failed: () => t(TASKS_I18N_KEYS.taskSheetTitle),
+          ready: (row) =>
+            row.title.trim() === "" ? t(TASKS_I18N_KEYS.taskSheetTitle) : row.title,
+        })}
         dismissLabel={t(TASKS_I18N_KEYS.dialogDismiss)}
         width={SHEET_WIDTH}
         data-testid={props["data-testid"] ?? "tasks-task-sheet"}
@@ -262,6 +270,25 @@ function TaskBody(props: TaskBodyProps): ReactElement {
         </GatedControl>
       </label>
 
+      {/* The board's own fields are part of the CARD's content, so they sit
+          with the title and the description — above the workflow controls the
+          board applies to it. Below the assignees they were the last thing in
+          a sheet that scrolls, which on a phone is a section nobody scrolled
+          to (visual pass M-6: the variant documenting them photographed the
+          same frame as the one without them). */}
+      {featureDefs.length > 0 ? (
+        <Flex vertical gap={spacing[2]}>
+          <Typography.Text strong>
+            {t(TASKS_I18N_KEYS.taskFeatures)}
+          </Typography.Text>
+          {props.renderFeatures?.({
+            features,
+            featureDefs,
+            disabled: !canEdit.available,
+          }) ?? <SlotPlaceholder name="renderFeatures" />}
+        </Flex>
+      ) : null}
+
       <Flex gap={spacing[3]} wrap>
         <label style={{ flex: "1 1 12ch" }}>
           <Typography.Text>{t(TASKS_I18N_KEYS.taskColumn)}</Typography.Text>
@@ -372,19 +399,6 @@ function TaskBody(props: TaskBodyProps): ReactElement {
           testId="tasks-task-assign-error"
         />
       </Flex>
-
-      {featureDefs.length > 0 ? (
-        <Flex vertical gap={spacing[2]}>
-          <Typography.Text strong>
-            {t(TASKS_I18N_KEYS.taskFeatures)}
-          </Typography.Text>
-          {props.renderFeatures?.({
-            features,
-            featureDefs,
-            disabled: !canEdit.available,
-          }) ?? <SlotPlaceholder name="renderFeatures" />}
-        </Flex>
-      ) : null}
 
       <ChecklistSection
         bag={bag}

@@ -39,6 +39,7 @@ import {
   mapLoad,
   isLoadLoading,
   matchLoad,
+  useFormat,
   useT,
 } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
@@ -52,7 +53,7 @@ import type { BoardCreateBody, BoardCreateColumnSpec } from "../api/types.js";
 import { TASKS_I18N_KEYS } from "../i18n/keys.js";
 import { useVocabularyQuery } from "../model/queries.js";
 import { CloseGlyph } from "./icons.js";
-import { CATEGORY_ORDER, categoryLabel, slugify } from "./labels.js";
+import { CATEGORY_ORDER, categoryLabel, presetLabel, slugify } from "./labels.js";
 import { CREATE_SHEET_WIDTH } from "./types.js";
 import type { ThemeModeProp } from "./types.js";
 
@@ -93,6 +94,7 @@ function emptyColumn(): DraftColumn {
 
 export function BoardCreateSheet(props: BoardCreateSheetProps): ReactElement {
   const t = useT();
+  const format = useFormat();
   const vocabulary = useVocabularyQuery();
   const [name, setName] = useState("");
   const [preset, setPreset] = useState<string>("simple");
@@ -115,11 +117,16 @@ export function BoardCreateSheet(props: BoardCreateSheetProps): ReactElement {
         loading: () => [],
         failed: () => [],
         ready: (served) =>
-          served.map((entry) => ({ value: entry.key, label: entry.key })),
+          served
+            .filter((entry) => (entry.columns ?? []).length > 0)
+            .map((entry) => ({
+              value: entry.key,
+              label: presetLabel(t, format.locale, entry.columns ?? []),
+            })),
       }),
       { value: CUSTOM, label: t(TASKS_I18N_KEYS.createPresetCustom) },
     ],
-    [presetsState, t]
+    [presetsState, t, format.locale]
   );
 
   const custom = preset === CUSTOM;

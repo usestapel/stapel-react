@@ -113,55 +113,63 @@ export function BoardsPane(props: BoardsPaneProps): ReactElement {
             <List
               dataSource={[...boards]}
               renderItem={(board) => (
-                <List.Item
-                  key={board.id}
-                  actions={[
-                    <GatedButton
-                      key="open"
-                      gate={openGate}
-                      size="small"
-                      onClick={() => {
-                        openBoard(board.id);
-                      }}
-                      testId={`tasks-board-open-${board.id}`}
-                      data-analytics="none"
-                      data-analytics-reason="navigation; the board screen reports its own events"
-                    >
-                      {t(TASKS_I18N_KEYS.boardsOpen)}
-                    </GatedButton>,
-                    <Button
-                      key="archive"
-                      size="small"
-                      danger
-                      onClick={() => {
-                        setArchivingId(board.id);
-                      }}
-                      data-analytics="none"
-                      data-analytics-reason="opens the archive confirm; the archive itself is a board-list refetch"
-                    >
-                      {t(TASKS_I18N_KEYS.boardsArchive)}
-                    </Button>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    title={board.name}
-                    description={
-                      <Flex gap={spacing[3]} wrap>
-                        <Typography.Text type="secondary">
-                          {t(TASKS_I18N_KEYS.boardsColumnCount, {
-                            count: (board.columns ?? []).length,
-                          })}
-                        </Typography.Text>
-                        {board.created_at != null && board.created_at !== "" ? (
+                // Not `List.Item`'s `actions` slot: that renders a
+                // content-sized `<ul>` that neither wraps nor shrinks, so the
+                // sentence beside a blocked "Open board" set the width of the
+                // whole page — 625 CSS pixels on a 390 phone (visual pass
+                // M-4). The row is a stack that owns its own width instead:
+                // meta on top, controls under it, both bounded by the column.
+                <List.Item key={board.id} style={{ display: "block" }}>
+                  <Flex vertical gap={spacing[3]} style={{ minWidth: 0 }}>
+                    <List.Item.Meta
+                      title={board.name}
+                      description={
+                        <Flex gap={spacing[3]} wrap>
                           <Typography.Text type="secondary">
-                            {t(TASKS_I18N_KEYS.boardsCreated, {
-                              date: format.date(board.created_at) ?? board.created_at,
+                            {t(TASKS_I18N_KEYS.boardsColumnCount, {
+                              count: (board.columns ?? []).length,
                             })}
                           </Typography.Text>
-                        ) : null}
-                      </Flex>
-                    }
-                  />
+                          {board.created_at != null && board.created_at !== "" ? (
+                            <Typography.Text type="secondary">
+                              {t(TASKS_I18N_KEYS.boardsCreated, {
+                                date: format.date(board.created_at) ?? board.created_at,
+                              })}
+                            </Typography.Text>
+                          ) : null}
+                        </Flex>
+                      }
+                    />
+                    <Flex gap={spacing[3]} wrap align="flex-start" style={{ minWidth: 0 }}>
+                      <GatedButton
+                        gate={openGate}
+                        size="small"
+                        type="primary"
+                        onClick={() => {
+                          openBoard(board.id);
+                        }}
+                        testId={`tasks-board-open-${board.id}`}
+                        wrapperStyle={{ minWidth: 0, maxWidth: "100%" }}
+                        data-analytics="none"
+                        data-analytics-reason="navigation; the board screen reports its own events"
+                      >
+                        {t(TASKS_I18N_KEYS.boardsOpen)}
+                      </GatedButton>
+                      {/* Archiving is reversible and is not the row's headline
+                          action, so it is a neutral control beside the primary
+                          one rather than a red button of equal weight. */}
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          setArchivingId(board.id);
+                        }}
+                        data-analytics="none"
+                        data-analytics-reason="opens the archive confirm; the archive itself is a board-list refetch"
+                      >
+                        {t(TASKS_I18N_KEYS.boardsArchive)}
+                      </Button>
+                    </Flex>
+                  </Flex>
                 </List.Item>
               )}
             />

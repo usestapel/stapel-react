@@ -42,15 +42,10 @@ export default defineDemo({
   component: BoardsPane,
   variants: {
     default: {
-      description: "Two boards, desktop width.",
-      viewport: "desktop",
-      step: "ready",
-      render: () => <Pane handlers={READY} />,
-    },
-    phone: {
-      description: "The same list at 390px, where the archive question is a sheet.",
+      description:
+        "Two boards. The row is one element-width stack, so the same markup is the phone layout — there is no separate phone variant to photograph.",
       viewport: "phone",
-      step: "ready-phone",
+      step: "ready",
       render: () => <Pane handlers={READY} />,
     },
     empty: {

@@ -43,15 +43,9 @@ export default defineDemo({
   component: ColumnManager,
   variants: {
     default: {
-      description: "Three columns, desktop width.",
-      viewport: "desktop",
-      step: "ready",
-      render: () => <Manager />,
-    },
-    phone: {
-      description: "390px: the same list, thumb-sized handles.",
+      description: "Three columns, with thumb-sized drag handles at every width.",
       viewport: "phone",
-      step: "ready-phone",
+      step: "ready",
       render: () => <Manager />,
     },
     duplicate: {

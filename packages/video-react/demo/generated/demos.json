@@ -70,7 +70,7 @@
       ],
       "source": {
         "file": "demo/Lobby.demo.tsx",
-        "line": 16
+        "line": 17
       }
     },
     {
@@ -90,13 +90,7 @@
       "variants": [
         {
           "id": "default",
-          "description": "The front door. There is no room list on the wire, and the pane says so rather than drawing an empty one.",
-          "viewport": "desktop",
-          "step": "idle"
-        },
-        {
-          "id": "phone",
-          "description": "The same door at 390px — one column, 44px controls.",
+          "description": "The front door. There is no room list on the wire, and the pane says so rather than drawing an empty one. One column and 44px controls at 390px — the same tree, so the viewer's width control is what shows it.",
           "viewport": "phone",
           "step": "idle"
         },
@@ -121,7 +115,7 @@
       ],
       "source": {
         "file": "demo/Meeting.demo.tsx",
-        "line": 18
+        "line": 19
       }
     },
     {
@@ -139,13 +133,7 @@
       "variants": [
         {
           "id": "default",
-          "description": "Two people in the newest month, with the month selector.",
-          "viewport": "desktop",
-          "step": "ready"
-        },
-        {
-          "id": "phone",
-          "description": "The same month at 390px: cards, not a four-column table pushed off the side of the page.",
+          "description": "Two people in the newest month, with the month selector. Under the tablet edge the four-column table becomes one card per person — measured on the pane's own box, so the same variant is both screens.",
           "viewport": "phone",
           "step": "ready"
         },
@@ -170,7 +158,7 @@
       ],
       "source": {
         "file": "demo/Video.demo.tsx",
-        "line": 93
+        "line": 110
       }
     }
   ]

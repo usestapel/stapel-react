@@ -10,6 +10,23 @@ import type { DemoHandlers } from "./_harness.js";
 
 const SCOPE = "acme-7f0c";
 
+/**
+ * The host seam for the person column.
+ *
+ * stapel-video stores no name for a user, so the pane prints the id when this
+ * is unfilled — and every row of this report was titled `u-9a1f` in the
+ * showcase (visual pass M-2). A workspace-admin page resolves them from the
+ * roster it already loaded; this stands in for that.
+ */
+const NAMES: Readonly<Record<string, string>> = {
+  "u-9a1f": "Dana Reyes",
+  "u-4c02": "Milo Fischer",
+};
+
+function nameFor(userId: string): string {
+  return NAMES[userId] ?? userId;
+}
+
 /** A window answer with three people in the newest month. */
 const WITH_ROWS: DemoHandlers = {
   "/usage/": {
@@ -76,7 +93,7 @@ const UNAVAILABLE: DemoHandlers = {
 function Usage(props: { handlers: DemoHandlers }): ReactElement {
   return (
     <VideoDemoHarness handlers={props.handlers}>
-      <ScopeUsagePane scopeKey={SCOPE} tz="Europe/Berlin" />
+      <ScopeUsagePane scopeKey={SCOPE} tz="Europe/Berlin" nameFor={nameFor} />
     </VideoDemoHarness>
   );
 }
@@ -100,14 +117,8 @@ export default defineDemo({
   tokens: ["surface-raised"],
   variants: {
     default: {
-      description: "Two people in the newest month, with the month selector.",
-      viewport: "desktop",
-      step: "ready",
-      render: () => <Usage handlers={WITH_ROWS} />,
-    },
-    phone: {
       description:
-        "The same month at 390px: cards, not a four-column table pushed off the side of the page.",
+        "Two people in the newest month, with the month selector. Under the tablet edge the four-column table becomes one card per person — measured on the pane's own box, so the same variant is both screens.",
       viewport: "phone",
       step: "ready",
       render: () => <Usage handlers={WITH_ROWS} />,

@@ -19,8 +19,22 @@ import type {
 } from "../src/index.js";
 
 const BOARD_ID = "5f5f1a4e-0000-4000-8000-000000000001";
-const ALICE = "11111111-2222-4333-8444-555555555555";
-const BOB = "66666666-7777-4888-8999-000000000000";
+export const ALICE = "11111111-2222-4333-8444-555555555555";
+export const BOB = "66666666-7777-4888-8999-000000000000";
+
+/**
+ * The host seam `createTasksRuntime({ userLabel })` exists for.
+ *
+ * stapel-tasks stores opaque user ids and resolves none of them, so with the
+ * seam unfilled the skin falls back to two characters of the id — which is how
+ * the board photographed assignee chips reading `11` and `66` (visual pass
+ * M-2). A demo that left it unfilled documented the fallback as if it were the
+ * product.
+ */
+export const DEMO_USER_NAMES: Readonly<Record<string, string>> = {
+  [ALICE]: "Alice Nowak",
+  [BOB]: "Ben Ortiz",
+};
 
 export const DEMO_BOARD_ID = BOARD_ID;
 export const DEMO_TASK_ID = "aaaa1111-0000-4000-8000-000000000010";

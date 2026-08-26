@@ -8,10 +8,7 @@ export default { title: "video-react / Scope usage" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"desktop","step":"ready"} };
-export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
-Phone.storyName = "phone";
-Phone.parameters = { stapel: {"viewport":"phone","step":"ready"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"ready"} };
 export const Nobody = (): ReactElement => renderDemoVariant(demo, "nobody");
 Nobody.storyName = "nobody";
 Nobody.parameters = { stapel: {"viewport":"phone","step":"empty"} };

@@ -139,6 +139,20 @@ export function TranscriptPane(props: {
   const t = useT();
   const testId = props["data-testid"] ?? "transcript-pane";
   const { sync } = props;
+  // While a recording is still being transcribed there is no transcript for
+  // the read to return, so a skeleton would promise text that is not on its
+  // way — the pending sentence is true from the first frame and stays true
+  // when the (empty) page arrives. It also makes the state photographable: the
+  // showcase used to shoot the same skeleton for "ready" and "being
+  // transcribed" and call it two states.
+  const pendingArm =
+    props.isProcessing === true ? (
+      <EmptyState
+        title={t(RECORDINGS_I18N_KEYS.transcriptPending)}
+        compact
+        testId={`${testId}-empty`}
+      />
+    ) : undefined;
   return (
     <Transcript recordingId={props.recordingId}>
       {(bag) => (
@@ -154,16 +168,15 @@ export function TranscriptPane(props: {
             state={bag.state}
             onRetry={bag.refetch}
             testId={`${testId}-load`}
+            {...(pendingArm !== undefined ? { loading: pendingArm } : {})}
             empty={
-              <EmptyState
-                title={
-                  props.isProcessing === true
-                    ? t(RECORDINGS_I18N_KEYS.transcriptPending)
-                    : t(RECORDINGS_I18N_KEYS.transcriptEmpty)
-                }
-                compact
-                testId={`${testId}-empty`}
-              />
+              pendingArm ?? (
+                <EmptyState
+                  title={t(RECORDINGS_I18N_KEYS.transcriptEmpty)}
+                  compact
+                  testId={`${testId}-empty`}
+                />
+              )
             }
           >
             {(segments) => {

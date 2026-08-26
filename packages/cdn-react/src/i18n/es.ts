@@ -81,7 +81,7 @@ export const cdnI18nBundleEs: I18nDictionary = {
   "cdn.attachment.image_alt": "Foto adjunta",
   "cdn.attachment.video_alt": "Vídeo adjunto",
   "cdn.attachment.audio_alt": "Audio adjunto",
-  "cdn.attachment.file_label": "Documento {ext}",
+  "cdn.attachment.file_label": "Documento",
   "cdn.attachment.missing": "Este adjunto ya no está disponible",
   "cdn.attachment.open": "Abrir",
   "cdn.attachment.download": "Descargar",

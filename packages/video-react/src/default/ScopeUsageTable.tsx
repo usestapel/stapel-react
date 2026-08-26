@@ -40,7 +40,7 @@
  */
 import type { ReactElement, ReactNode } from "react";
 import { Button, Card, Flex, Select, Skeleton, Table, Typography, theme } from "antd";
-import { matchList, useT, useTPlural } from "@stapel/core";
+import { matchList, useFormat, useT, useTPlural } from "@stapel/core";
 import type { LoadState } from "@stapel/core";
 import {
   EmptyState,
@@ -53,6 +53,7 @@ import {
   formatPresence,
   isInvalidUsagePeriod,
   isScopeUnavailable,
+  usageMonthLabel,
   usageTotals,
 } from "../model/usage.js";
 import type { ThemeModeProp } from "./types.js";
@@ -81,6 +82,7 @@ function MonthPicker(props: {
   onMonthChange: ((month: string) => void) | undefined;
 }): ReactElement | null {
   const t = useT();
+  const format = useFormat();
   const { token } = theme.useToken();
   const { month, months, onMonthChange } = props;
   if (month === undefined && (months === undefined || months.length === 0)) {
@@ -96,7 +98,7 @@ function MonthPicker(props: {
       <Flex align="center" gap={token.paddingXS}>
         {label}
         <Typography.Text strong data-testid="video-usage-month">
-          {month}
+          {month === undefined ? null : usageMonthLabel(month, format.locale)}
         </Typography.Text>
       </Flex>
     );
@@ -109,7 +111,10 @@ function MonthPicker(props: {
         aria-label={t(VIDEO_I18N_KEYS.usageMonthLabel)}
         {...(month !== undefined ? { value: month } : {})}
         onChange={onMonthChange}
-        options={months.map((m) => ({ value: m, label: m }))}
+        options={months.map((m) => ({
+          value: m,
+          label: usageMonthLabel(m, format.locale),
+        }))}
         style={{ minWidth: "8rem" }}
         data-analytics="none"
         data-analytics-reason="switching the reported period is a read — the host app wraps this with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"

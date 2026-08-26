@@ -104,6 +104,7 @@ export const TASKS_I18N_KEYS = {
 
   // the task sheet
   taskTitle: "tasks.task.title",
+  taskSheetTitle: "tasks.task.sheetTitle",
   taskDescription: "tasks.task.description",
   taskDescriptionPlaceholder: "tasks.task.descriptionPlaceholder",
   taskColumn: "tasks.task.column",
@@ -262,6 +263,7 @@ export const tasksI18nBundleEn: I18nDictionary = {
   "tasks.move.pendingBadge": "Pending approval",
 
   "tasks.task.title": "Title",
+  "tasks.task.sheetTitle": "Card",
   "tasks.task.description": "Description",
   "tasks.task.descriptionPlaceholder": "What has to happen?",
   "tasks.task.column": "Column",
@@ -306,7 +308,7 @@ export const tasksI18nBundleEn: I18nDictionary = {
   "tasks.columns.title": "Columns",
   "tasks.columns.reorderHint": "Drag a column to change where it sits on the board.",
   "tasks.columns.noRename":
-    "Renaming and deleting a column are not part of this API yet, so this screen does not offer them.",
+    "Columns can be reordered and added here. Renaming and removing one is not available.",
   "tasks.columns.dragHandle": "Reorder {name}",
   "tasks.columns.saveOrder": "Save order",
   "tasks.columns.existsHint": "Pick a key this board does not already use.",
@@ -315,13 +317,12 @@ export const tasksI18nBundleEn: I18nDictionary = {
   "tasks.gate.columnsRequired": "A board needs at least one column.",
   "tasks.gate.nameRequired": "Give the board a name first.",
   "tasks.gate.archived": "This card is archived.",
-  "tasks.gate.noPicker": "This app has not wired a people picker.",
+  "tasks.gate.noPicker": "Choosing people is not available here.",
   "tasks.gate.commentEmpty": "Write something first.",
   "tasks.gate.noColumn": "This board has no columns to add a card to.",
   "tasks.gate.noColumnChange":
     "Open this card from its board to move it to another column.",
-  "tasks.gate.noNavigation":
-    "This app has not wired board navigation, so this button has nowhere to go.",
+  "tasks.gate.noNavigation": "Opening a board is not available here.",
 
   "tasks.scope.unresolved":
     "This deployment could not work out which workspace the board belongs to. Pick a workspace and try again.",

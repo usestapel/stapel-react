@@ -869,7 +869,6 @@
       "component": "BoardCreateSheet",
       "variants": [
         "default",
-        "phone",
         "scope-blocked"
       ],
       "source": "demo/BoardCreateSheet.demo.tsx"
@@ -881,7 +880,6 @@
       "component": "BoardsPane",
       "variants": [
         "default",
-        "phone",
         "empty",
         "failed",
         "no-navigation"
@@ -895,37 +893,21 @@
       "component": "ColumnManager",
       "variants": [
         "default",
-        "phone",
         "duplicate"
       ],
       "source": "demo/ColumnManager.demo.tsx"
-    },
-    {
-      "id": "tasks.headless",
-      "title": "Tasks headless bags",
-      "description": "The renderless layer: TasksProvider wires the runtime, BoardView hands over the assembled board (columns, cards, the move machine's step) and TaskView hands over one card with its canEdit gate. No visual opinion at all.",
-      "component": "TasksProvider",
-      "covers": [
-        "BoardView",
-        "TaskView"
-      ],
-      "tokens": [
-        "surface-raised"
-      ],
-      "variants": [
-        "default",
-        "phone"
-      ],
-      "source": "demo/Tasks.demo.tsx"
     },
     {
       "id": "tasks.kanban-board",
       "title": "Kanban board (default skin)",
       "description": "Columns with WIP counters, cards carrying priority, due date, checklist progress and a blocked glyph, dnd-kit drag with keyboard and touch sensors, and an optimistic move that rolls itself back on a refusal.",
       "component": "KanbanBoard",
+      "covers": [
+        "TasksProvider",
+        "BoardView"
+      ],
       "variants": [
         "default",
-        "phone",
         "empty",
         "truncated"
       ],
@@ -936,9 +918,11 @@
       "title": "Task sheet (default skin)",
       "description": "One card: title and description saved on blur, column/priority/due controls, assignees through the host seam, a checklist with a three-state overflow menu, and comments where Enter sends and Shift+Enter breaks a line.",
       "component": "TaskSheet",
+      "covers": [
+        "TaskView"
+      ],
       "variants": [
         "default",
-        "phone",
         "archived",
         "features"
       ],
@@ -1147,6 +1131,7 @@
     "tasks.task.priorityNone",
     "tasks.task.save",
     "tasks.task.saving",
+    "tasks.task.sheetTitle",
     "tasks.task.title"
   ],
   "exports": {

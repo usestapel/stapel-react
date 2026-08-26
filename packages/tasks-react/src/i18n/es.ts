@@ -95,6 +95,7 @@ export const tasksI18nBundleEs: I18nDictionary = {
   "tasks.move.pendingBadge": "Pendiente de aprobación",
 
   "tasks.task.title": "Título",
+  "tasks.task.sheetTitle": "Tarjeta",
   "tasks.task.description": "Descripción",
   "tasks.task.descriptionPlaceholder": "¿Qué hay que hacer?",
   "tasks.task.column": "Columna",
@@ -140,7 +141,7 @@ export const tasksI18nBundleEs: I18nDictionary = {
   "tasks.columns.reorderHint":
     "Arrastra una columna para cambiar su sitio en el tablero.",
   "tasks.columns.noRename":
-    "Renombrar y borrar una columna todavía no forman parte de esta API, así que esta pantalla no lo ofrece.",
+    "Aquí las columnas se pueden reordenar y añadir. Renombrarlas o eliminarlas no está disponible.",
   "tasks.columns.dragHandle": "Reordenar {name}",
   "tasks.columns.saveOrder": "Guardar el orden",
   "tasks.columns.existsHint": "Elige una clave que el tablero no use ya.",
@@ -149,13 +150,12 @@ export const tasksI18nBundleEs: I18nDictionary = {
   "tasks.gate.columnsRequired": "Un tablero necesita al menos una columna.",
   "tasks.gate.nameRequired": "Primero ponle un nombre al tablero.",
   "tasks.gate.archived": "Esta tarjeta está archivada.",
-  "tasks.gate.noPicker": "Esta aplicación no ha conectado un selector de personas.",
+  "tasks.gate.noPicker": "Elegir personas no está disponible aquí.",
   "tasks.gate.commentEmpty": "Escribe algo primero.",
   "tasks.gate.noColumn": "El tablero no tiene columnas donde añadir una tarjeta.",
   "tasks.gate.noColumnChange":
     "Abre esta tarjeta desde su tablero para moverla a otra columna.",
-  "tasks.gate.noNavigation":
-    "Esta aplicación no ha conectado la navegación a los tableros, así que el botón no lleva a ninguna parte.",
+  "tasks.gate.noNavigation": "Abrir un tablero no está disponible aquí.",
 
   "tasks.scope.unresolved":
     "Esta instalación no pudo determinar a qué espacio de trabajo pertenece el tablero. Elige uno e inténtalo de nuevo.",

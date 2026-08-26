@@ -10,6 +10,7 @@ import {
   DEMO_HOST,
   DEMO_WAITING,
   DEMO_GUEST,
+  demoNameFor,
   MeetingFrame as Frame,
 } from "./_meeting.js";
 
@@ -30,6 +31,7 @@ export default defineDemo({
         <Frame>
           <LobbyPanel
             joinCode={DEMO_ROOM.join_code}
+            nameFor={demoNameFor}
             isHost
             lobby={staticLobbyBag([DEMO_WAITING, DEMO_HOST])}
           />
@@ -44,6 +46,7 @@ export default defineDemo({
         <Frame>
           <LobbyPanel
             joinCode={DEMO_ROOM.join_code}
+            nameFor={demoNameFor}
             isHost
             lobby={staticLobbyBag([DEMO_HOST])}
           />
@@ -59,6 +62,7 @@ export default defineDemo({
         <Frame>
           <LobbyPanel
             joinCode={DEMO_ROOM.join_code}
+            nameFor={demoNameFor}
             isHost={false}
             lobby={staticLobbyBag([DEMO_WAITING], {
               verdictGate: actionBlockedForDemo(),
@@ -76,6 +80,7 @@ export default defineDemo({
         <Frame>
           <ParticipantsList
             participants={loadReady([DEMO_HOST, DEMO_WAITING, DEMO_GUEST])}
+            nameFor={demoNameFor}
             hasMore
           />
         </Frame>

@@ -150,7 +150,7 @@ describe("<JoinGate> — the field, the reason, and the sticky refusal", () => {
 });
 
 describe("<CallStage> — the optional peer's absence is a screen", () => {
-  it("names the package and the slot when livekit-client is not installed", async () => {
+  it("draws a designed refusal, never the integrator's install instructions", async () => {
     mount(
       <CallStage
         token="tok"
@@ -159,9 +159,13 @@ describe("<CallStage> — the optional peer's absence is a screen", () => {
       />
     );
     await waitFor(() => expect(screen.getByTestId("video-stage-no-peer")).toBeTruthy());
-    expect(screen.getByTestId("video-stage-no-peer").textContent).toContain(
-      "livekit-client"
-    );
+    const shown = screen.getByTestId("video-stage-no-peer").textContent ?? "";
+    // The person in the room is told what is true for them and what to do
+    // about it. Which npm package is missing is a fact about the deployment,
+    // and it used to be printed at them (visual pass M-7).
+    expect(shown).toContain("Video is not available on this device");
+    expect(shown).not.toContain("livekit-client");
+    expect(shown).not.toContain("callStage");
   });
 
   it("a module-not-found throw is the same screen, not a crash", async () => {

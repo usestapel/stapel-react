@@ -204,3 +204,29 @@ export function isUsageMonthsOutOfRange(months: number): boolean {
 export function isInvalidUsagePeriod(error: unknown): boolean {
   return isErrorCode(toFlowError(error), "error.400.video_invalid_usage_period");
 }
+
+/**
+ * `YYYY-MM` as a month a person reads — "August 2026", in their language.
+ *
+ * The wire's month key is a machine value and the selector offered it raw, so
+ * the one control on the usage screen read `2026-08` while every date beside it
+ * was formatted (visual pass M-2, N-5). Formatted at UTC noon: the key names a
+ * calendar month, not an instant, and constructing it at local midnight moves
+ * it to the previous month west of Greenwich. A value that is not a month is
+ * returned unchanged rather than guessed at.
+ */
+export function usageMonthLabel(
+  month: string,
+  locale: string | undefined
+): string {
+  const parts = /^(\d{4})-(\d{2})$/.exec(month);
+  if (parts === null) return month;
+  const year = Number(parts[1]);
+  const index = Number(parts[2]) - 1;
+  if (index < 0 || index > 11) return month;
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, index, 1, 12)));
+}

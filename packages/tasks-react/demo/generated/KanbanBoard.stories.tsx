@@ -8,10 +8,7 @@ export default { title: "tasks-react / Kanban board (default skin)" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"desktop","step":"ready"} };
-export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
-Phone.storyName = "phone";
-Phone.parameters = { stapel: {"viewport":"phone","step":"ready-phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"ready"} };
 export const Empty = (): ReactElement => renderDemoVariant(demo, "empty");
 Empty.storyName = "empty";
 Empty.parameters = { stapel: {"viewport":"desktop","step":"empty"} };

@@ -8,10 +8,7 @@ export default { title: "tasks-react / Board create sheet (default skin)" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"desktop","step":"idle"} };
-export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
-Phone.storyName = "phone";
-Phone.parameters = { stapel: {"viewport":"phone","step":"idle-phone"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"idle"} };
 export const ScopeBlocked = (): ReactElement => renderDemoVariant(demo, "scope-blocked");
 ScopeBlocked.storyName = "scope-blocked";
 ScopeBlocked.parameters = { stapel: {"viewport":"phone","step":"refused"} };

@@ -55,9 +55,16 @@ const frame = (label: string, width: number): ReactElement => (
 
 function Frame(props: { label: string; width: number }): ReactElement {
   const t = useT();
-  const box = { ...PREVIEW_BOX, width: props.width, height: Math.round((props.width * 3) / 4) };
+  // The frame asks for at most the width it was designed at, and never more
+  // than the column it is in. On a phone the 640 frame is the viewport's width,
+  // which is not a compromise but the claim itself: the tier follows THIS
+  // element's measured box. Writing the width as a fixed number instead put a
+  // 640px child on a 390px screen and made the page 664px wide (visual pass
+  // M-4).
+  const width = `min(${String(props.width)}px, 100%)`;
+  const box = { ...PREVIEW_BOX, width: "100%", aspectRatio: "4 / 3", height: "auto" };
   return (
-    <figure style={{ margin: 0, display: "grid", gap: spacing[2] }}>
+    <figure style={{ margin: 0, display: "grid", gap: spacing[2], width, maxWidth: "100%" }}>
       <CdnThumbnail
         localUrl={null}
         image={ladderRow()}

@@ -26,6 +26,11 @@ export default defineDemo({
   description:
     "The shipped list: real RecordingStatus pills, dates and lengths through the locale formatters, and a failed arm that never wears the empty copy.",
   component: RecordingsList,
+  // The list screen IS the headless `RecordingList` with a skin on it, and it
+  // mounts the provider that wires the runtime. Both used to have `state.step`
+  // chip-dump demos of their own, which photographed the harness instead of
+  // the product (visual pass N-4).
+  covers: ["RecordingList", "RecordingsProvider"],
   variants: {
     default: {
       description: "Two recordings: one still transcribing, one finished.",

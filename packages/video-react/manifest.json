@@ -437,7 +437,6 @@
       ],
       "variants": [
         "default",
-        "phone",
         "admitted",
         "waiting",
         "denied"
@@ -458,7 +457,6 @@
       ],
       "variants": [
         "default",
-        "phone",
         "nobody",
         "invalid-period",
         "unavailable"
@@ -536,6 +534,7 @@
     "video.lobby.heading",
     "video.lobby.live",
     "video.lobby.offline",
+    "video.lobby.offline_hint",
     "video.lobby.reconnect",
     "video.lobby.reconnecting",
     "video.lobby.refresh",
