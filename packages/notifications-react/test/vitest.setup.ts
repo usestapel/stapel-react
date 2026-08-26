@@ -45,3 +45,18 @@ if (typeof globalThis.ResizeObserver === "undefined") {
     disconnect(): void {}
   } as unknown as typeof ResizeObserver;
 }
+
+// jsdom implements `getComputedStyle(el)` but throws "Not implemented" for the
+// pseudo-element form, which antd 6's scroll locker calls on every dialog
+// mount. Each throw is emitted as a `jsdomError` carrying a full React stack,
+// so a suite that opens a confirm buries its real output in noise.
+//
+// Answering the element form is the honest degradation, not a silencer: no
+// pseudo-element styles exist in a document with no stylesheets, so an empty
+// declaration IS the correct answer and the element's own declaration is what
+// every caller here actually reads.
+if (typeof window !== "undefined") {
+  const nativeComputedStyle = window.getComputedStyle.bind(window);
+  window.getComputedStyle = ((element: Element, _pseudoElement?: string | null) =>
+    nativeComputedStyle(element)) as typeof window.getComputedStyle;
+}

@@ -13,6 +13,21 @@
  * `ResizeObserver` is the second jsdom gap: dnd-kit measures droppable rects
  * through one, and antd's `Select` uses it for its dropdown alignment.
  */
+import { afterEach } from "vitest";
+import { cleanup } from "@testing-library/react";
+
+// vitest runs without injected globals, so testing-library's automatic
+// afterEach cleanup never registers. Files that declare their own `afterEach`
+// were covered; `demos.test.tsx` was not, so every demo it mounted stayed
+// mounted for the rest of the run and React kept scheduling work into the
+// environment teardown — `ReferenceError: window is not defined`, reported as
+// an unhandled error after a suite whose tests all passed. Unmounting here
+// covers every file at once and keeps each test's render cost flat instead of
+// growing with the trees before it.
+afterEach(() => {
+  cleanup();
+});
+
 const DESKTOP_WIDTH = 1280;
 
 if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
@@ -47,4 +62,20 @@ if (typeof globalThis.ResizeObserver === "undefined") {
       /* see observe */
     }
   } as unknown as typeof ResizeObserver;
+}
+
+// jsdom implements `getComputedStyle(el)` but throws "Not implemented" for the
+// pseudo-element form, which antd 6's scroll locker calls on every dialog
+// mount — and this pair mounts one per `TaskSheet` test. Each throw is emitted
+// as a `jsdomError` carrying a full React stack, so the sheet suite's real
+// output drowns in it.
+//
+// Answering the element form is the honest degradation, not a silencer: no
+// pseudo-element styles exist in a document with no stylesheets, so an empty
+// declaration IS the correct answer, and the element's own declaration is what
+// every caller here actually reads.
+if (typeof window !== "undefined") {
+  const nativeComputedStyle = window.getComputedStyle.bind(window);
+  window.getComputedStyle = ((element: Element, _pseudoElement?: string | null) =>
+    nativeComputedStyle(element)) as typeof window.getComputedStyle;
 }

@@ -8,7 +8,7 @@
  * `mode="light"` literal.
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { BoardsPane, ColumnManager, KanbanBoard } from "../src/default/index.js";
 import { actionAvailable, loadReady } from "@stapel/core";
 import { StapelApiError } from "@stapel/core";
@@ -84,6 +84,10 @@ function boardFetch(overrides: Record<string, unknown> = {}) {
 
 afterEach(() => {
   cleanup();
+  // The theme test drives `<html data-theme>`; clearing it here rather than at
+  // the end of that test means a failure inside it cannot leak a dark document
+  // into every case that follows.
+  document.documentElement.removeAttribute("data-theme");
 });
 
 describe("<KanbanBoard> — the board a person actually gets", () => {
@@ -202,13 +206,18 @@ describe("<KanbanBoard> — the board a person actually gets", () => {
       document.querySelector("[data-stapel-skin-mode]")?.getAttribute("data-stapel-skin-mode")
     ).toBe("light");
     document.documentElement.setAttribute("data-theme", "dark");
-    await act(async () => {
-      await Promise.resolve();
+    // The flip travels `MutationObserver` → `useSyncExternalStore` → render.
+    // Awaiting a fixed number of ticks bets on how many microtasks that takes;
+    // `waitFor` asserts the outcome instead, and still returns on the first
+    // render that carries it. The attribute is cleared in `afterEach`, so a
+    // failure here cannot leave the rest of the file rendering dark.
+    await waitFor(() => {
+      expect(
+        document
+          .querySelector("[data-stapel-skin-mode]")
+          ?.getAttribute("data-stapel-skin-mode")
+      ).toBe("dark");
     });
-    expect(
-      document.querySelector("[data-stapel-skin-mode]")?.getAttribute("data-stapel-skin-mode")
-    ).toBe("dark");
-    document.documentElement.removeAttribute("data-theme");
   });
 
   it("renders the column name from its name_key, translated", async () => {

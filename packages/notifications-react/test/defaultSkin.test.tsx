@@ -302,10 +302,16 @@ describe("<PushDeviceList/> — the account's registry", () => {
       wrap(createNotificationsRuntime({ baseUrl: BASE }), <PushDeviceList currentToken={heldToken} />)
     );
 
-    await waitFor(() =>
-      expect(screen.getAllByTestId("push-device-row")).toHaveLength(2)
-    );
-    expect(screen.getByTestId("push-device-current")).toBeDefined();
+    // TWO independent async chains feed this render: `GET /devices/` produces
+    // the rows, while `currentToken()` → `crypto.subtle.digest` produces the
+    // fingerprint that marks one of them as THIS device. Waiting on the rows
+    // alone and then asserting the marker synchronously assumes the digest
+    // always lands first — it usually does, and under a loaded runner it does
+    // not. Wait for the marker itself, which needs both chains.
+    await waitFor(() => {
+      expect(screen.getAllByTestId("push-device-row")).toHaveLength(2);
+      expect(screen.getByTestId("push-device-current")).toBeDefined();
+    });
     expect(screen.getByTestId("push-device-inactive")).toBeDefined();
     // A row is a platform and a date, never a raw ISO timestamp.
     expect(screen.queryByText("2026-01-09T08:02:11Z")).toBeNull();
