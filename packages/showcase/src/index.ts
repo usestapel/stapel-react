@@ -19,3 +19,12 @@ export {
 export type { DemoStageProps, DemoPlayStatus } from "./render.js";
 export { duplicateVariantGroups, assertVariantsRenderDistinctly } from "./distinct.js";
 export type { MarkupRenderer, DuplicateVariantGroup } from "./distinct.js";
+export { assertVariantsSettleDistinctly, settleVariants } from "./settle.js";
+export type {
+  SettleOptions,
+  SettledVariant,
+  MountedVariant,
+  VariantMounter,
+  VariantSettler,
+  VariantArm,
+} from "./settle.js";
