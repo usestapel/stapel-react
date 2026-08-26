@@ -12,7 +12,12 @@ import { defineDemo } from "@stapel/showcase";
 import { PasswordChangePanel } from "../src/default/security/PasswordChangePanel.js";
 import { AuthDemoHarness } from "./_harness.js";
 import type { DemoHandlers } from "./_harness.js";
-import { CAPABILITIES, ME, PASSWORD_METHODS } from "./fixtures.js";
+import {
+  CAPABILITIES,
+  ME,
+  PASSWORD_METHODS,
+  PASSWORD_METHODS_NONE,
+} from "./fixtures.js";
 
 const METHODS: DemoHandlers = {
   "/capabilities/": CAPABILITIES,
@@ -23,13 +28,13 @@ const METHODS: DemoHandlers = {
 const NO_METHODS: DemoHandlers = {
   "/capabilities/": CAPABILITIES,
   "/me/": ME,
-  "/password/methods/": [],
+  "/password/methods/": PASSWORD_METHODS_NONE,
 };
 
 const FAILED: DemoHandlers = {
   "/capabilities/": CAPABILITIES,
   "/me/": ME,
-  "/password/methods/": [503, { localizable_error: "error.503.unavailable" }],
+  "/password/methods/": [503, { localizable_error: "error.503.mandate_unavailable" }],
 };
 
 function Panel(props: { handlers: DemoHandlers }): ReactElement {
@@ -48,6 +53,7 @@ export default defineDemo({
   description:
     "One tab per route the backend says this account can actually take: the current password, or a code to a verified contact. Never a form that is going to be refused.",
   component: PasswordChangePanel,
+  covers: ["PasswordChange"],
   variants: {
     default: {
       description: "Current password or an emailed code.",

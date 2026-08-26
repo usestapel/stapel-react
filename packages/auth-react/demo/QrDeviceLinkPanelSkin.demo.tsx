@@ -8,6 +8,7 @@
  * minting single-use codes nobody asked for.
  */
 import type { ReactElement } from "react";
+import { useT } from "@stapel/core";
 import { defineDemo } from "@stapel/showcase";
 import { QrDeviceLinkPanel } from "../src/default/security/QrDeviceLinkPanel.js";
 import { AuthDemoHarness } from "./_harness.js";
@@ -22,14 +23,43 @@ const HANDLERS: DemoHandlers = {
   "/status/": { status: "pending" },
 };
 
-function Panel(props: { redirectUrl?: string }): ReactElement {
+function Panel(props: {
+  redirectUrl?: string;
+  title?: string;
+  subtitle?: string;
+}): ReactElement {
   return (
     <AuthDemoHarness handlers={HANDLERS}>
       <div style={{ maxWidth: "35rem", margin: "0 auto" }}>
         <QrDeviceLinkPanel
           {...(props.redirectUrl !== undefined ? { redirectUrl: props.redirectUrl } : {})}
+          {...(props.title !== undefined ? { title: props.title } : {})}
+          {...(props.subtitle !== undefined ? { subtitle: props.subtitle } : {})}
         />
       </div>
+    </AuthDemoHarness>
+  );
+}
+
+/** The host-overridden copy, resolved INSIDE the harness's provider — a demo
+ *  renders its strings through `t()` like the product does. */
+function CustomLanding(): ReactElement {
+  const t = useT();
+  return (
+    <div style={{ maxWidth: "35rem", margin: "0 auto" }}>
+      <QrDeviceLinkPanel
+        redirectUrl="/meetings/today"
+        title={t("demo.qr.custom_title")}
+        subtitle={t("demo.qr.custom_subtitle")}
+      />
+    </div>
+  );
+}
+
+function CustomLandingPanel(): ReactElement {
+  return (
+    <AuthDemoHarness handlers={HANDLERS}>
+      <CustomLanding />
     </AuthDemoHarness>
   );
 }
@@ -40,6 +70,7 @@ export default defineDemo({
   description:
     "A settings row that opens the QR journey in the fleet's dialog. Idle until triggered — no code is minted, and nothing is polled, until somebody opens it.",
   component: QrDeviceLinkPanel,
+  covers: ["QrLogin"],
   variants: {
     default: {
       description: "The row at rest: what it does, and the one control that starts it.",
@@ -49,9 +80,9 @@ export default defineDemo({
     },
     "custom-landing": {
       description:
-        "The same row handing the scanning device off to a specific page rather than the app root.",
+        "The same row handing the scanning device off to a specific page rather than the app root — with the host's own heading and sentence, which is what a deployment actually mounts. A landing URL is invisible in a screenshot; the copy a host overrides is not.",
       step: "idle-custom",
-      render: () => <Panel redirectUrl="/meetings/today" />,
+      render: () => <CustomLandingPanel />,
     },
   },
 });

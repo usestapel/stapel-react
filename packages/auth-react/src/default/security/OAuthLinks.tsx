@@ -24,13 +24,12 @@
  */
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Avatar, Button, Card, Flex, Skeleton, Tag, Typography } from "antd";
+import { Avatar, Button, Flex, Skeleton, Tag, theme as antdTheme } from "antd";
 import {
   EmptyState,
   ErrorAlert,
   GatedButton,
   SkinConfirm,
-  SkinTheme,
 } from "@stapel/tokens-antd/skin";
 import {
   actionAvailable,
@@ -47,6 +46,7 @@ import { useLinkOAuth, useUnlinkOAuth } from "../../model/mutations.js";
 import { useCapabilities, useOAuthLinks } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import { SecurityEmptyIcon } from "./icons.js";
+import { SecurityCard, SecurityList, SecurityListRow } from "./SecurityListRow.js";
 
 export interface OAuthLinksProps {
   /** Runs the provider's OAuth SDK/popup and resolves the resulting
@@ -62,6 +62,7 @@ type OAuthProvider = Capabilities["registration"]["oauth"][number];
 /** Full connected-accounts screen: real read + unlink; link needs `getAccessToken`. */
 export function OAuthLinks(props: OAuthLinksProps): ReactElement {
   const t = useT();
+  const { token } = antdTheme.useToken();
   const errorDisplay = useErrorDisplay(AUTH_I18N_KEYS.unknownError);
   const caps = useCapabilities();
   const links = useOAuthLinks();
@@ -76,7 +77,7 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
   // same lie as an empty list standing in for a failed one.
   const rows = mapLoad(
     bothLoaded(
-      mapLoad(loadStateFromQuery(caps), (c) => c.registration.oauth),
+      mapLoad(loadStateFromQuery(caps), (c) => c.registration?.oauth ?? []),
       loadStateFromQuery(links)
     ),
     ([providers, linked]): readonly { provider: OAuthProvider; link: LinkedOAuthAccount | undefined }[] =>
@@ -108,12 +109,7 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
   }
 
   return (
-    <SkinTheme surface="bare">
-      <Card
-        title={t(AUTH_I18N_KEYS.secOauthTitle)}
-        data-testid="oauth-links"
-        style={{ width: "100%" }}
-      >
+    <SecurityCard title={t(AUTH_I18N_KEYS.secOauthTitle)} data-testid="oauth-links">
       {matchList(rows, {
         loading: () => (
           <div role="status" aria-busy="true" data-testid="oauth-loading">
@@ -137,15 +133,23 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
           />
         ),
         ready: (list) => (
-          <Flex vertical gap="middle">
+          <SecurityList ruleColor={token.colorBorderSecondary}>
             {list.map(({ provider: p, link: linked }) => (
-              <Flex key={p.id} justify="space-between" align="center">
-                <Flex gap="small" align="center">
-                  <Avatar size="small">{p.name.slice(0, 1).toUpperCase()}</Avatar>
-                  <Typography.Text strong>{p.name}</Typography.Text>
-                  {linked && <Tag color="green">{t(AUTH_I18N_KEYS.secOauthLinked)}</Tag>}
-                </Flex>
-                {linked ? (
+              <SecurityListRow
+                key={p.id}
+                data-testid="oauth-provider-row"
+                title={
+                  <Flex gap="small" align="center" style={{ minWidth: 0 }}>
+                    <Avatar size="small" style={{ flex: "none" }}>
+                      {p.name.slice(0, 1).toUpperCase()}
+                    </Avatar>
+                    <span>{p.name}</span>
+                  </Flex>
+                }
+                {...(linked
+                  ? { badges: <Tag color="green">{t(AUTH_I18N_KEYS.secOauthLinked)}</Tag> }
+                  : {})}
+                actions={linked ? (
                   /* `type="text"`, not a red outline: the danger weight lives
                      on the confirm, where the decision is taken. */
                   <Button
@@ -169,9 +173,9 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
                     {t(AUTH_I18N_KEYS.secOauthLink)}
                   </GatedButton>
                 )}
-              </Flex>
+              />
             ))}
-          </Flex>
+          </SecurityList>
         ),
       })}
 
@@ -195,7 +199,6 @@ export function OAuthLinks(props: OAuthLinksProps): ReactElement {
         }}
         onCancel={() => setUnlinking(null)}
       />
-      </Card>
-    </SkinTheme>
+    </SecurityCard>
   );
 }

@@ -35,21 +35,20 @@
  */
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { Card, Flex, Radio, Typography, theme as antdTheme } from "antd";
+import { Flex, Radio, Typography, theme as antdTheme } from "antd";
 import { fontSize } from "@stapel/tokens";
 import { loadStateFromQuery, useT } from "@stapel/core";
 import {
   EmptyState,
   ErrorAlert,
   LoadBoundary,
-  SkinTheme,
 } from "@stapel/tokens-antd/skin";
 import type { VerificationPreferences as PreferencesResponse } from "../../api/types.js";
 import { useVerificationPreferences } from "../../model/queries.js";
 import { useSetVerificationPreference } from "../../model/mutations.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import { SecurityEmptyIcon } from "./icons.js";
-import { SecurityList, SecurityListRow } from "./SecurityListRow.js";
+import { SecurityCard, SecurityList, SecurityListRow } from "./SecurityListRow.js";
 
 /**
  * The one scope stapel-auth protects about itself: changing security settings
@@ -61,9 +60,22 @@ export const SETTINGS_SCOPE = "verification.settings";
 /** A row's decision, or `undefined` while the scope is undecided. */
 type Decision = "on" | "off" | undefined;
 
+/**
+ * `"wallet.withdraw"` → `"Wallet withdraw"`. Best-effort, and deliberately
+ * NOT a translation: the set of step-up scopes is open-ended and belongs to
+ * whichever module declared it, so inventing friendly prose about someone
+ * else's security setting would be worse than making the identifier
+ * readable. The dotted token itself is never what a person reads (visual
+ * pass C3) — the audit log's event types take the same treatment.
+ */
+function humanizeScope(scope: string): string {
+  const spaced = scope.replace(/[._]/g, " ").trim();
+  if (spaced.length === 0) return scope;
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
 /** Human name + supporting line for a scope. Scopes this pair does not own
- *  render their identifier — a made-up friendly name for an unknown scope
- *  would be prose invented about someone else's security setting. */
+ *  render their humanized identifier — see {@link humanizeScope}. */
 function scopeCopy(scope: string): {
   readonly titleKey: string;
   readonly hintKey?: string;
@@ -85,7 +97,7 @@ function ScopeRow(props: {
 }): ReactElement {
   const t = useT();
   const copy = scopeCopy(props.scope);
-  const title = t(copy.titleKey, { scope: props.scope });
+  const title = t(copy.titleKey, { scope: humanizeScope(props.scope) });
   return (
     <SecurityListRow
       data-testid="verify-scope-row"
@@ -157,12 +169,10 @@ export function VerificationPreferences(
   const state = loadStateFromQuery(query);
 
   return (
-    <SkinTheme surface="bare">
-      <Card
-        title={t(AUTH_I18N_KEYS.secVerifyTitle)}
-        data-testid="verification-preferences"
-        style={{ width: "100%" }}
-      >
+    <SecurityCard
+      title={t(AUTH_I18N_KEYS.secVerifyTitle)}
+      data-testid="verification-preferences"
+    >
         <Flex vertical gap="middle" style={{ width: "100%" }}>
           <Typography.Text type="secondary">
             {t(AUTH_I18N_KEYS.secVerifySubtitle)}
@@ -222,7 +232,6 @@ export function VerificationPreferences(
 
           <ErrorAlert thrown={save.error} />
         </Flex>
-      </Card>
-    </SkinTheme>
+    </SecurityCard>
   );
 }

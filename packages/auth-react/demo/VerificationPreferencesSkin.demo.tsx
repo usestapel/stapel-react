@@ -30,7 +30,7 @@ const UNDECIDED: DemoHandlers = {
 const FAILED: DemoHandlers = {
   "/verification/preferences/": [
     500,
-    { localizable_error: "error.500.server" },
+    { localizable_error: "error.500.internal" },
   ],
 };
 

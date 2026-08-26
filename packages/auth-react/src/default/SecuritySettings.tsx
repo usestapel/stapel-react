@@ -105,7 +105,7 @@ export function SecuritySettings(props: SecuritySettingsProps = {}): ReactElemen
   // the section again on that refetch, unmount `<OAuthLinks/>`, and remount
   // it when the refetch fails — a visible flicker and a request loop.
   const verdict = matchList(
-    mapLoad(loadStateFromQuery(caps), (c) => c.registration.oauth),
+    mapLoad(loadStateFromQuery(caps), (c) => c.registration?.oauth ?? []),
     {
       loading: () => null,
       failed: () => true,

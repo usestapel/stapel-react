@@ -69,3 +69,31 @@ export function SecurityOkIcon(): ReactElement {
     </svg>
   );
 }
+
+/**
+ * A closed padlock — the operator console's "refused" glyph. Distinct from
+ * the shield on purpose: the shield says "nothing here yet", and painting the
+ * same outline over a permission denial is how three different states came to
+ * share one picture (visual pass N13).
+ */
+export function ForbiddenIcon(): ReactElement {
+  return (
+    <svg
+      width="64"
+      height="64"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      style={{ opacity: 0.45 }}
+    >
+      <rect x="4" y="10" width="16" height="11" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+      <path d="M12 14v3" />
+    </svg>
+  );
+}

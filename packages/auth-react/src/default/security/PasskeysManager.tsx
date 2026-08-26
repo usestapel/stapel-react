@@ -57,7 +57,6 @@ import { useEffect, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import {
   Button,
-  Card,
   Flex,
   Form,
   Input,
@@ -80,7 +79,6 @@ import {
   LoadList,
   SkinConfirm,
   SkinDialog,
-  SkinTheme,
 } from "@stapel/tokens-antd/skin";
 import { fontSize } from "@stapel/tokens";
 import type { Passkey } from "../../api/types.js";
@@ -93,7 +91,7 @@ import { useAuthDateFormat } from "../../model/formatDate.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import { isWebauthnSupported } from "../../webauthn.js";
 import { SecurityEmptyIcon } from "./icons.js";
-import { SecurityList, SecurityListRow } from "./SecurityListRow.js";
+import { SecurityCard, SecurityList, SecurityListRow } from "./SecurityListRow.js";
 
 /** A generic device name inferred from the user agent — good enough for a
  * first-pass label; the ceremony is never gated on the user typing one. */
@@ -341,12 +339,10 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
   }, [gone, refetchPasskeys]);
 
   return (
-    <SkinTheme surface="bare">
-      <Card
-        title={t(AUTH_I18N_KEYS.secPasskeysTitle)}
-        data-testid="passkeys-manager"
-        style={{ width: "100%" }}
-        extra={
+    <SecurityCard
+      title={t(AUTH_I18N_KEYS.secPasskeysTitle)}
+      data-testid="passkeys-manager"
+      actions={
           <GatedButton
             gate={addGate}
             type="primary"
@@ -364,8 +360,8 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
                 : AUTH_I18N_KEYS.secPasskeysAdd
             )}
           </GatedButton>
-        }
-      >
+      }
+    >
         <LoadList
           state={state}
           testId="passkeys"
@@ -502,7 +498,6 @@ export function PasskeysManager(props: PasskeysManagerProps): ReactElement {
             </Form>
           </SkinDialog>
         )}
-      </Card>
-    </SkinTheme>
+    </SecurityCard>
   );
 }

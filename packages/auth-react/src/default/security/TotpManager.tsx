@@ -31,19 +31,18 @@ import type { FlowError } from "@stapel/core";
 import type { TotpSetupBag } from "../../headless/TotpSetup.js";
 import {
   Alert,
-  Badge,
   Button,
-  Card,
   Flex,
   Form,
   Input,
   QRCode,
   Result,
   Spin,
+  Tag,
   Typography,
 } from "antd";
 import { SkinConfirm, SkinDialog } from "@stapel/tokens-antd/skin";
-import { useFormatFlowError, useT } from "@stapel/core";
+import { useFormat, useFormatFlowError, useT } from "@stapel/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { TotpSetup } from "../../headless/TotpSetup.js";
 import type { DelayedChangeStatus } from "../../api/types.js";
@@ -59,6 +58,7 @@ import {
 } from "../../model/queries.js";
 import { authQueryKeys } from "../../model/queryKeys.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
+import { SecurityCard } from "./SecurityListRow.js";
 
 const LOW_BACKUP_THRESHOLD = 3;
 /** Fallback when the backend omits `otp.totp_code_length` (stapel-auth <0.6.0). */
@@ -66,11 +66,6 @@ const DEFAULT_TOTP_LENGTH = 6;
 /** Backend error code for a delayed-removal initiate with no verified email
  * or phone to notify (stapel-auth ≥0.9.0) — a dead end, not a retry loop. */
 const NO_VERIFIED_CONTACT_CODE = "error.400.no_verified_contact";
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString();
-}
 
 /**
  * Delayed-removal ("lost device") initiate form — no old-proof, no new value
@@ -128,6 +123,7 @@ function DelayedInitiateForm(props: { onStarted: () => void }): ReactElement {
  * delayed removal is in flight. */
 function PendingBanner(props: { status: DelayedChangeStatus }): ReactElement {
   const t = useT();
+  const fmt = useFormat();
   const formatError = useFormatFlowError();
   const cancel = useCancelTotpDelayedChange();
   const [confirming, setConfirming] = useState(false);
@@ -139,7 +135,7 @@ function PendingBanner(props: { status: DelayedChangeStatus }): ReactElement {
         type="info"
         showIcon
         title={t(AUTH_I18N_KEYS.secTotpPendingMessage, {
-          date: s.scheduled_at ? formatDate(s.scheduled_at) : "",
+          date: fmt.date(s.scheduled_at) ?? "",
           days: s.days_remaining ?? 0,
         })}
         description={t(AUTH_I18N_KEYS.secTotpPendingNote)}
@@ -482,11 +478,10 @@ export function TotpManager(): ReactElement {
   }
 
   return (
-    <Card
+    <SecurityCard
       title={t(AUTH_I18N_KEYS.secTotpTitle)}
       data-testid="totp-manager"
-      style={{ width: "100%" }}
-      extra={
+      actions={
         !loading &&
         !hasPendingDelayed &&
         (enabled ? (
@@ -514,11 +509,17 @@ export function TotpManager(): ReactElement {
           <Typography.Text>
             {t(enabled ? AUTH_I18N_KEYS.secTotpEnabled : AUTH_I18N_KEYS.secTotpDisabled)}
           </Typography.Text>
+          {/* A chip, on the palette. antd's `<Badge color="blue">` paints
+              its own `#1677ff` no matter what the theme's brand colour is —
+              which is how a second blue turned up beside the project's indigo
+              in the same security page (visual pass C11). */}
           {enabled && (
-            <Badge
-              count={t(AUTH_I18N_KEYS.secTotpBackupRemaining, { n: backupRemaining })}
-              color={lowBackup ? "orange" : "blue"}
-            />
+            <Tag
+              color={lowBackup ? "warning" : "default"}
+              data-testid="totp-backup-remaining"
+            >
+              {t(AUTH_I18N_KEYS.secTotpBackupRemaining, { n: backupRemaining })}
+            </Tag>
           )}
         </Flex>
       )}
@@ -545,6 +546,6 @@ export function TotpManager(): ReactElement {
       >
         <DisableDialogBody onDisabled={() => setDisableOpen(false)} />
       </SkinDialog>
-    </Card>
+    </SecurityCard>
   );
 }

@@ -80,6 +80,15 @@ export const AUTH_I18N_KEYS = {
   uiSsoContinue: "auth.ui.sso_continue",
   uiChannelEmail: "auth.ui.channel_email",
   uiChannelPhone: "auth.ui.channel_phone",
+  /**
+   * The same two channels, spelled for the MIDDLE of a sentence. "Your old
+   * Phone has been notified of this change" is a heading label interpolated
+   * into prose with its capital intact (visual pass N8); every `{channel}`
+   * placeholder takes the inline pair, and only a card title or a tab takes
+   * the capitalized one above.
+   */
+  uiChannelEmailInline: "auth.ui.channel_email_inline",
+  uiChannelPhoneInline: "auth.ui.channel_phone_inline",
   uiChannelPassword: "auth.ui.channel_password",
   uiChannelPasskey: "auth.ui.channel_passkey",
   uiChannelOauth: "auth.ui.channel_oauth",
@@ -480,6 +489,12 @@ export const AUTH_I18N_KEYS = {
   adminAuditClear: "auth.admin.audit.clear",
   adminAuditActor: "auth.admin.audit.actor",
   adminAuditCount: "auth.admin.audit.count",
+  /** A console read the backend refused — see `default/admin/forbidden.tsx`.
+   *  `reason` is the gate's copy, rendered beside every action the refusal
+   *  switches off; it is a rule, not a fault, so nothing offers a retry. */
+  adminForbiddenTitle: "auth.admin.forbidden.title",
+  adminForbiddenHint: "auth.admin.forbidden.hint",
+  adminForbiddenReason: "auth.admin.forbidden.reason",
 
   // Nav-manifest labels for the operator console (under `admin.root`).
   navAdminSso: "auth.nav.admin_sso",
@@ -562,6 +577,8 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.ui.sso_continue": "Continue with SSO",
   "auth.ui.channel_email": "Email",
   "auth.ui.channel_phone": "Phone",
+  "auth.ui.channel_email_inline": "email",
+  "auth.ui.channel_phone_inline": "phone",
   "auth.ui.channel_password": "Password",
   "auth.ui.channel_passkey": "Passkey",
   "auth.ui.channel_oauth": "Social",
@@ -985,6 +1002,10 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.admin.audit.clear": "Clear filters",
   "auth.admin.audit.actor": "Account {id}",
   "auth.admin.audit.count": "{count} events",
+  "auth.admin.forbidden.title": "This console is not open to your account",
+  "auth.admin.forbidden.hint":
+    "Your role does not include this area, so nothing here can be read or changed. An administrator can grant it — trying again will not change the answer.",
+  "auth.admin.forbidden.reason": "Your role does not include this area.",
   "auth.nav.admin_sso": "Enterprise SSO",
   "auth.nav.admin_service_keys": "Service keys",
   "auth.nav.admin_staff_roles": "Staff roles",

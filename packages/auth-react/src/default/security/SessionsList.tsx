@@ -17,13 +17,12 @@
 import { fontSize } from "@stapel/tokens";
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Badge, Button, Card, Flex, Tag, Typography, theme as antdTheme } from "antd";
+import { Badge, Button, Flex, Tag, Typography, theme as antdTheme } from "antd";
 import {
   EmptyState,
   ErrorAlert,
   LoadList,
   SkinConfirm,
-  SkinTheme,
 } from "@stapel/tokens-antd/skin";
 import { loadStateFromQuery, matchLoad, useT } from "@stapel/core";
 import type { AuthSession } from "../../api/types.js";
@@ -36,7 +35,7 @@ import { useSessions } from "../../model/queries.js";
 import { useAuthDateFormat } from "../../model/formatDate.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import { SecurityEmptyIcon } from "./icons.js";
-import { SecurityList, SecurityListRow } from "./SecurityListRow.js";
+import { SecurityCard, SecurityList, SecurityListRow } from "./SecurityListRow.js";
 
 /** One session row: device identity + this-device/suspicious badges + actions. */
 function SessionRow(props: {
@@ -142,13 +141,11 @@ export function SessionsList(props: SessionsListProps = {}): ReactElement {
   });
 
   return (
-    <SkinTheme surface="bare">
-      <Card
-        title={t(AUTH_I18N_KEYS.secSessionsTitle)}
-        data-testid="sessions-list"
-        style={{ width: "100%" }}
-        extra={signOutOthers}
-      >
+    <SecurityCard
+      title={t(AUTH_I18N_KEYS.secSessionsTitle)}
+      data-testid="sessions-list"
+      {...(signOutOthers !== null ? { actions: signOutOthers } : {})}
+    >
         <Flex vertical gap="middle" style={{ width: "100%" }}>
           <Typography.Text type="secondary">
             {t(AUTH_I18N_KEYS.secSessionsSubtitle)}
@@ -212,7 +209,6 @@ export function SessionsList(props: SessionsListProps = {}): ReactElement {
           }
           onCancel={() => setPendingRevokeAll(false)}
         />
-      </Card>
-    </SkinTheme>
+    </SecurityCard>
   );
 }

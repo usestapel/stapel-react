@@ -34,7 +34,8 @@
  * more expensive way to be less correct.
  */
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { Flex, Typography } from "antd";
+import { Card, Flex, Typography, theme as antdTheme } from "antd";
+import { SkinTheme } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 
 /**
@@ -45,6 +46,7 @@ const STACK_BELOW = "22rem";
 
 const ROW = "stapel-auth-security-row";
 const LIST = "stapel-auth-security-list";
+const CARD = "stapel-auth-security-card";
 
 const ROW_CSS = `
 .${LIST} > * + * {
@@ -67,9 +69,42 @@ const ROW_CSS = `
   align-items: center;
   flex: none;
 }
+.${ROW}-title { min-width: 0; word-break: normal; overflow-wrap: break-word; }
 @container (max-width: ${STACK_BELOW}) {
   .${ROW}-inner { flex-direction: column; align-items: stretch; gap: ${String(spacing[2])}px; }
   .${ROW}-actions { justify-content: flex-start; }
+}
+.${CARD} {
+  display: flex;
+  flex-direction: column;
+  gap: ${String(spacing[4])}px;
+  width: 100%;
+  min-width: 0;
+}
+.${CARD}-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${String(spacing[3])}px;
+  width: 100%;
+  min-width: 0;
+  border-bottom: 1px solid var(--auth-row-rule, currentColor);
+  padding-bottom: ${String(spacing[3])}px;
+}
+.${CARD}-head-title {
+  min-width: 0;
+  flex: 1 1 10rem;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+.${CARD}-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: ${String(spacing[2])}px;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 `;
 
@@ -106,9 +141,11 @@ export function SecurityListRow(props: SecurityListRowProps): ReactElement {
     >
       <RowStyles />
       <div className={`${ROW}-inner`}>
-        <Flex vertical gap={spacing[1]} style={{ minWidth: 0 }}>
-          <Flex align="center" gap="small" wrap>
-            <Typography.Text strong>{props.title}</Typography.Text>
+        <Flex vertical gap={spacing[1]} style={{ minWidth: 0, flex: "1 1 auto" }}>
+          <Flex align="center" gap="small" wrap style={{ minWidth: 0 }}>
+            <Typography.Text strong className={`${ROW}-title`}>
+              {props.title}
+            </Typography.Text>
             {props.badges}
           </Flex>
           {props.meta}
@@ -154,5 +191,73 @@ export function SecurityList(props: SecurityListProps): ReactElement {
       <RowStyles />
       {props.children}
     </div>
+  );
+}
+
+export interface SecurityCardProps {
+  /** The card's heading. Wraps to a second line rather than truncating. */
+  readonly title: ReactNode;
+  /** The card-level controls. A declared slot that reserves its own space and
+   *  drops below the heading when the two no longer fit side by side. */
+  readonly actions?: ReactNode;
+  readonly children: ReactNode;
+  readonly "data-testid"?: string;
+}
+
+/**
+ * `<SecurityCard/>` — the card every security/console widget wears.
+ *
+ * ## The defect this replaces
+ *
+ * antd's own `<Card title extra>` header is one flex row in which the title is
+ * `nowrap` + `text-overflow: ellipsis`: whatever the action slot takes, the
+ * title gives up. The visual pass caught that three times at phone width —
+ * `Active se…` (next to "Sign out everyone else"), `Two-factor au…` (next to
+ * Replace + Disable) — and once as the opposite failure, a `GatedButton` whose
+ * reason text is two lines tall painting straight over the header rule because
+ * the head has a fixed height.
+ *
+ * So the header is ours, not antd's: a wrapping flex row with `min-width: 0`
+ * on the title, an explicit action slot that can drop to its own line, and a
+ * hairline drawn by the same rule the list rows use. A title now wraps; it
+ * never disappears, and nothing paints over the rule.
+ *
+ * It also carries the token layer. `<SkinTheme/>` is INSIDE this component on
+ * purpose: six panels (`TotpManager`, `QrDeviceLinkPanel`, the four
+ * `*ChangePanel`s) shipped antd's stock blue and a light card on a dark page
+ * because each was expected to remember to wrap itself. A widget cannot forget
+ * a provider it does not have to write.
+ */
+export function SecurityCard(props: SecurityCardProps): ReactElement {
+  const { token } = antdTheme.useToken();
+  return (
+    <SkinTheme surface="bare">
+      <Card
+        style={{ width: "100%" }}
+        {...(props["data-testid"] !== undefined
+          ? { "data-testid": props["data-testid"] }
+          : {})}
+      >
+        <RowStyles />
+        <div
+          className={CARD}
+          style={{ "--auth-row-rule": token.colorBorderSecondary } as CSSProperties}
+        >
+          <div className={`${CARD}-head`}>
+            <Typography.Title
+              level={5}
+              className={`${CARD}-head-title`}
+              style={{ margin: 0 }}
+            >
+              {props.title}
+            </Typography.Title>
+            {props.actions !== undefined && (
+              <div className={`${CARD}-head-actions`}>{props.actions}</div>
+            )}
+          </div>
+          {props.children}
+        </div>
+      </Card>
+    </SkinTheme>
   );
 }

@@ -57,7 +57,7 @@ describe("<PhoneChangePanel/>", () => {
     // recognizably" is (+15551234567 → "+1 ••• ••• 45 67").
     await waitFor(() => expect(screen.getByText(/•••.*45 67/)).toBeDefined());
     expect(screen.queryByText("+15551234567")).toBeNull();
-    expect(screen.getByRole("button", { name: "Change Phone" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Change phone" })).toBeDefined();
   });
 
   it("starts a delayed phone change and shows the pending banner with a cancel action", async () => {
@@ -96,14 +96,14 @@ describe("<PhoneChangePanel/>", () => {
     const runtime = createAuthRuntime({ baseUrl: BASE });
     render(wrap(runtime, <PhoneChangePanel />));
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Change Phone" })).toBeDefined());
-    screen.getByRole("button", { name: "Change Phone" }).click();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Change phone" })).toBeDefined());
+    screen.getByRole("button", { name: "Change phone" }).click();
 
-    await screen.findByRole("button", { name: "No access to your old Phone?" });
-    screen.getByRole("button", { name: "No access to your old Phone?" }).click();
+    await screen.findByRole("button", { name: "No access to your old phone?" });
+    screen.getByRole("button", { name: "No access to your old phone?" }).click();
 
-    await screen.findByLabelText("New Phone");
-    fireEvent.change(screen.getByLabelText("New Phone"), { target: { value: "+15559999999" } });
+    await screen.findByLabelText("New phone");
+    fireEvent.change(screen.getByLabelText("New phone"), { target: { value: "+15559999999" } });
     screen.getByRole("button", { name: "Start 14-day change" }).click();
 
     await screen.findByText(/Changing to \+1 ••• ••• 99 99/);
@@ -130,6 +130,6 @@ describe("<PhoneChangePanel/>", () => {
     render(wrap(runtime, <PhoneChangePanel />));
 
     await waitFor(() => expect(screen.getByText(/Changing to \+1 ••• ••• 99 99/)).toBeDefined());
-    expect(screen.queryByRole("button", { name: "Change Phone" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Change phone" })).toBeNull();
   });
 });

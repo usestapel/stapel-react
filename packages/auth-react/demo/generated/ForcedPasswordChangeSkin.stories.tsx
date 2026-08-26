@@ -9,6 +9,3 @@ export default { title: "auth-react / Forced password change (default skin)" };
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
 Default.parameters = { stapel: {"viewport":"phone","step":"idle"} };
-export const Refused = (): ReactElement => renderDemoVariant(demo, "refused");
-Refused.storyName = "refused";
-Refused.parameters = { stapel: {"step":"error"} };

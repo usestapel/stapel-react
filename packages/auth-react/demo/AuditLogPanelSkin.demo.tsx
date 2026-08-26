@@ -17,7 +17,7 @@ import { AUDIT_EMPTY, AUDIT_PAGE } from "./fixtures.js";
 const PAGE: DemoHandlers = { "/security/audit/": AUDIT_PAGE };
 const EMPTY: DemoHandlers = { "/security/audit/": AUDIT_EMPTY };
 const FAILED: DemoHandlers = {
-  "/security/audit/": [500, { localizable_error: "error.500.server" }],
+  "/security/audit/": [500, { localizable_error: "error.500.internal" }],
 };
 
 function Panel(props: { handlers: DemoHandlers }): ReactElement {

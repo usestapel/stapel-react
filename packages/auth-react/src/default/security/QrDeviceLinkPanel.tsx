@@ -27,7 +27,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Button, Card, Flex, Typography } from "antd";
+import { Alert, Button, Flex, Typography } from "antd";
 import { SkinDialog } from "@stapel/tokens-antd/skin";
 import { useFormatFlowError, useT } from "@stapel/core";
 import type { QrLoginBag } from "../../headless/QrLogin.js";
@@ -35,6 +35,7 @@ import type { QrLoginState } from "../../flows/qrLoginFlow.js";
 import { QrLogin } from "../../headless/QrLogin.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import { QrCanvas } from "./QrCanvas.js";
+import { SecurityCard } from "./SecurityListRow.js";
 
 function formatCountdown(seconds: number): string {
   const s = Math.max(0, Math.ceil(seconds));
@@ -244,7 +245,7 @@ export function QrDeviceLinkPanel(props: QrDeviceLinkPanelProps): ReactElement {
   );
 
   return (
-    <Card title={title} data-testid="qr-device-link-panel" style={{ width: "100%" }}>
+    <SecurityCard title={title} data-testid="qr-device-link-panel">
       <Flex vertical gap="middle" style={{ width: "100%" }}>
         <Typography.Text type="secondary">
           {props.subtitle ?? t(AUTH_I18N_KEYS.secQrSubtitle)}
@@ -271,6 +272,6 @@ export function QrDeviceLinkPanel(props: QrDeviceLinkPanelProps): ReactElement {
       >
         {body}
       </SkinDialog>
-    </Card>
+    </SecurityCard>
   );
 }

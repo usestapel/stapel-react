@@ -13,7 +13,7 @@ import { defineDemo } from "@stapel/showcase";
 import { MfaEnrollPanel } from "../src/default/FirstLoginPanels.js";
 import { AuthDemoHarness } from "./_harness.js";
 import type { DemoHandlers } from "./_harness.js";
-import { ME } from "./fixtures.js";
+import { ME, TOTP_SETUP } from "./fixtures.js";
 
 const HANDLERS: DemoHandlers = {
   "/mfa/enroll/exchange/": {
@@ -21,6 +21,9 @@ const HANDLERS: DemoHandlers = {
     access: "enroll-access",
     expires_in: 3600,
   },
+  // The TOTP journey starts itself on mount, so the enrol demo has to answer
+  // `POST /totp/setup/` or its happy path photographs as a failure.
+  "/totp/setup/": TOTP_SETUP,
   "/me/": ME,
 };
 
@@ -43,9 +46,11 @@ export default defineDemo({
   description:
     "The first-login MFA gate: pick an authenticator app or a passkey and finish the enrollment inside an enroll-scoped session. Completing a factor is what turns that session into a full one.",
   component: MfaEnrollPanel,
+  covers: ["MfaEnrollGate", "TotpSetup"],
   variants: {
     default: {
-      description: "Both factors offered — the picker before a choice is made.",
+      description:
+        "Both factors offered, with the authenticator journey already showing the code to scan and the secret to type — the picker plus the route it opens on.",
       step: "choosing",
       viewport: "phone",
       render: () => <Panel />,

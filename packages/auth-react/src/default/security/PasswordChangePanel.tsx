@@ -11,7 +11,7 @@
 import { spacing } from "@stapel/tokens";
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Button, Card, Flex, Form, Input, Result, Skeleton, Tabs, Typography } from "antd";
+import { Alert, Button, Flex, Form, Input, Result, Skeleton, Tabs, Typography } from "antd";
 import { EmptyState, ErrorAlert } from "@stapel/tokens-antd/skin";
 import type { ReactNode } from "react";
 import {
@@ -31,6 +31,7 @@ import { useCapabilities, usePasswordMethods } from "../../model/queries.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import type { AuthI18nKey } from "../../i18n/keys.js";
 import { OtpField } from "../OtpField.js";
+import { SecurityCard } from "./SecurityListRow.js";
 
 const CHANNEL_LABEL: Record<OtpChannel, AuthI18nKey> = {
   email: AUTH_I18N_KEYS.uiChannelEmail,
@@ -189,13 +190,12 @@ function OtpTab(props: { bag: PasswordChangeBag; channel: OtpChannel; target: st
 function PanelCard(props: { children?: ReactNode }): ReactElement {
   const t = useT();
   return (
-    <Card
+    <SecurityCard
       title={t(AUTH_I18N_KEYS.secPasswordTitle)}
       data-testid="password-change-panel"
-      style={{ width: "100%" }}
     >
       {props.children}
-    </Card>
+    </SecurityCard>
   );
 }
 
@@ -204,7 +204,14 @@ export function PasswordChangePanel(): ReactElement {
   const t = useT();
   const errorDisplay = useErrorDisplay(AUTH_I18N_KEYS.unknownError);
   const methods = usePasswordMethods();
-  const entries = mapLoad(loadStateFromQuery(methods), (m) => m.methods);
+  // `?? []` is not defensive noise: a deployment answering this read with a
+  // body that has no `methods` array (an older backend, a proxy that rewrote
+  // the envelope) used to reach `matchList`'s ready arm with `undefined` and
+  // throw INSIDE render — React then unmounted the whole tree, which is how
+  // the composed security page became a silent white rectangle with no
+  // console error (visual pass N1). Absent data is the empty state, which is
+  // designed, and the page around it survives.
+  const entries = mapLoad(loadStateFromQuery(methods), (m) => m.methods ?? []);
 
   return matchList(entries, {
     loading: () => (

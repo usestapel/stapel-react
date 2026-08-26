@@ -60,7 +60,7 @@ describe("<EmailChangePanel/>", () => {
     render(wrap(runtime, <EmailChangePanel />));
 
     await waitFor(() => expect(screen.getByText(/a•••@example.com/)).toBeDefined());
-    expect(screen.getByRole("button", { name: "Change Email" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Change email" })).toBeDefined();
   });
 
   it("drives the instant flow: old code → new value → new code → success", async () => {
@@ -92,8 +92,8 @@ describe("<EmailChangePanel/>", () => {
     const runtime = createAuthRuntime({ baseUrl: BASE });
     render(wrap(runtime, <EmailChangePanel />));
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Change Email" })).toBeDefined());
-    screen.getByRole("button", { name: "Change Email" }).click();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Change email" })).toBeDefined());
+    screen.getByRole("button", { name: "Change email" }).click();
 
     await screen.findByRole("button", { name: "Send code" });
     screen.getByRole("button", { name: "Send code" }).click();
@@ -102,15 +102,15 @@ describe("<EmailChangePanel/>", () => {
     enterOtp("123456");
     screen.getByRole("button", { name: "Confirm" }).click();
 
-    await screen.findByLabelText("New Email");
-    fireEvent.change(screen.getByLabelText("New Email"), { target: { value: "new@example.com" } });
-    screen.getByRole("button", { name: "Send code to new Email" }).click();
+    await screen.findByLabelText("New email");
+    fireEvent.change(screen.getByLabelText("New email"), { target: { value: "new@example.com" } });
+    screen.getByRole("button", { name: "Send code to new email" }).click();
 
     await screen.findByLabelText("OTP Input 1");
     enterOtp("654321");
     screen.getByRole("button", { name: "Confirm" }).click();
 
-    await screen.findByText("Your Email has been changed.");
+    await screen.findByText("Your email has been changed.");
   });
 
   it("the delayed path ('no access to your old email?') starts a 14-day change with no old-channel proof", async () => {
@@ -145,14 +145,14 @@ describe("<EmailChangePanel/>", () => {
     const runtime = createAuthRuntime({ baseUrl: BASE });
     render(wrap(runtime, <EmailChangePanel />));
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Change Email" })).toBeDefined());
-    screen.getByRole("button", { name: "Change Email" }).click();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Change email" })).toBeDefined());
+    screen.getByRole("button", { name: "Change email" }).click();
 
-    await screen.findByRole("button", { name: "No access to your old Email?" });
-    screen.getByRole("button", { name: "No access to your old Email?" }).click();
+    await screen.findByRole("button", { name: "No access to your old email?" });
+    screen.getByRole("button", { name: "No access to your old email?" }).click();
 
-    await screen.findByLabelText("New Email");
-    fireEvent.change(screen.getByLabelText("New Email"), { target: { value: "new@example.com" } });
+    await screen.findByLabelText("New email");
+    fireEvent.change(screen.getByLabelText("New email"), { target: { value: "new@example.com" } });
     screen.getByRole("button", { name: "Start 14-day change" }).click();
 
     // Success re-fetches delayedChangeStatus (now pending) and the panel
@@ -183,9 +183,9 @@ describe("<EmailChangePanel/>", () => {
     render(wrap(runtime, <EmailChangePanel />));
 
     await waitFor(() => expect(screen.getByText(/Changing to n\*\*\*@example.com/)).toBeDefined());
-    // No "Change Email" trigger and no masked-current-value line — the
+    // No "Change email" trigger and no masked-current-value line — the
     // pending banner fully replaces the change UI.
-    expect(screen.queryByRole("button", { name: "Change Email" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Change email" })).toBeNull();
 
     screen.getByRole("button", { name: "Cancel" }).click();
     const confirmButtons = await screen.findAllByRole("button", { name: "Cancel" });

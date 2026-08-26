@@ -8,8 +8,8 @@
 import { fontSize } from "@stapel/tokens";
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { Card, List, Skeleton, Tag, Typography } from "antd";
-import { EmptyState, ErrorAlert, SkinTheme } from "@stapel/tokens-antd/skin";
+import { Flex, Skeleton, Tag, Typography, theme as antdTheme } from "antd";
+import { EmptyState, ErrorAlert } from "@stapel/tokens-antd/skin";
 import {
   isLoadReady,
   loadStateFromQuery,
@@ -22,6 +22,7 @@ import { useAuditLog } from "../../model/queries.js";
 import { useAuthDateFormat } from "../../model/formatDate.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import { SecurityEmptyIcon } from "./icons.js";
+import { SecurityCard, SecurityList, SecurityListRow } from "./SecurityListRow.js";
 
 /** `"user.session_revoked"` → `"User session revoked"` — best-effort, since
  * the set of backend event types is open-ended and not itself an i18n
@@ -36,6 +37,7 @@ function humanizeEventType(eventType: string): string {
  * the next one. */
 export function AuditLogPanel(): ReactElement {
   const t = useT();
+  const { token } = antdTheme.useToken();
   // Never the raw `.message` — for a response with no error envelope that
   // is the transport's own "Request failed with status 500" (owner report
   // 2026-08-09). `useErrorText` folds any thrown value into the one dialect.
@@ -46,17 +48,12 @@ export function AuditLogPanel(): ReactElement {
   const [page, setPage] = useState(1);
   const audit = useAuditLog(page);
   const pageState = loadStateFromQuery(audit);
-  const entries = mapLoad(pageState, (p) => p.results);
+  const entries = mapLoad(pageState, (p) => p.results ?? []);
   // Only ever read inside the `ready` arm below, where the page IS loaded.
   const nextPage = isLoadReady(pageState) ? pageState.data.next : null;
 
   return (
-    <SkinTheme surface="bare">
-      <Card
-        title={t(AUTH_I18N_KEYS.secAuditTitle)}
-        data-testid="audit-log-panel"
-        style={{ width: "100%" }}
-      >
+    <SecurityCard title={t(AUTH_I18N_KEYS.secAuditTitle)} data-testid="audit-log-panel">
       {matchList(entries, {
         loading: () => (
           <div role="status" aria-busy="true" data-testid="audit-loading">
@@ -74,14 +71,26 @@ export function AuditLogPanel(): ReactElement {
           />
         ),
         ready: (results) => (
-          <List
-            // antd's `dataSource` is mutable-typed; the rows are readonly.
-            dataSource={[...results]}
-            renderItem={(entry) => (
-              <List.Item key={entry.id}>
-                <List.Item.Meta
+          <Flex vertical gap="middle" style={{ width: "100%" }}>
+            <SecurityList ruleColor={token.colorBorderSecondary} data-testid="audit-list">
+              {results.map((entry) => (
+                <SecurityListRow
+                  key={entry.id}
+                  data-testid="audit-row"
                   title={humanizeEventType(entry.event_type)}
-                  description={
+                  /* The chip is a GRID cell beside the meta, not a float over
+                     it: right-floating it landed the badge on top of the very
+                     timestamp it annotates (visual pass N6). */
+                  {...(entry.event_type.includes("suspicious")
+                    ? {
+                        badges: (
+                          <Tag color="warning" data-testid="audit-suspicious">
+                            {t(AUTH_I18N_KEYS.secAuditSuspiciousLabel)}
+                          </Tag>
+                        ),
+                      }
+                    : {})}
+                  meta={
                     <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
                       {when.dateTime(entry.created_at)}
                       {entry.ip_address
@@ -90,31 +99,20 @@ export function AuditLogPanel(): ReactElement {
                     </Typography.Text>
                   }
                 />
-                {/* A bare "!" is a glyph with no accessible name — a screen
-                    reader announced the row's most important fact as nothing.
-                    The chip carries the words. */}
-                {entry.event_type.includes("suspicious") && (
-                  <Tag color="warning" data-testid="audit-suspicious">
-                    {t(AUTH_I18N_KEYS.secAuditSuspiciousLabel)}
-                  </Tag>
-                )}
-              </List.Item>
+              ))}
+            </SecurityList>
+            {nextPage != null && (
+              <Typography.Link
+                onClick={() => setPage(nextPage)}
+                data-analytics="none"
+                data-analytics-reason="local-ui-load-more-audit-page"
+              >
+                {t(AUTH_I18N_KEYS.secAuditLoadMore)}
+              </Typography.Link>
             )}
-            loadMore={
-              nextPage != null && (
-                <Typography.Link
-                  onClick={() => setPage(nextPage)}
-                  data-analytics="none"
-                  data-analytics-reason="local-ui-load-more-audit-page"
-                >
-                  {t(AUTH_I18N_KEYS.secAuditLoadMore)}
-                </Typography.Link>
-              )
-            }
-          />
+          </Flex>
         ),
       })}
-      </Card>
-    </SkinTheme>
+    </SecurityCard>
   );
 }

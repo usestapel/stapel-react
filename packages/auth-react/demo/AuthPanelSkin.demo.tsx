@@ -119,6 +119,7 @@ export default defineDemo({
   description:
     "The shipped sign-in surface. Picking an alt method opens the fleet's dialog — a bottom sheet under 768px, a centred modal at or above it. Picking Passkey raises the system prompt immediately and opens nothing of ours unless the ceremony fails.",
   component: AuthPanel,
+  covers: ["AuthProvider", "PasswordlessLogin", "PasswordLogin", "PasswordRegister", "PasskeyLogin", "MagicLink", "SsoDiscovery", "AnonymousSession"],
   variants: {
     default: {
       description:

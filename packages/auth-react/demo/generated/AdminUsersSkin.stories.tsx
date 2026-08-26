@@ -9,6 +9,3 @@ export default { title: "auth-react / Create an account (operator console)" };
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
 Default.parameters = { stapel: {"viewport":"phone","step":"form"} };
-export const Refused = (): ReactElement => renderDemoVariant(demo, "refused");
-Refused.storyName = "refused";
-Refused.parameters = { stapel: {"step":"error"} };

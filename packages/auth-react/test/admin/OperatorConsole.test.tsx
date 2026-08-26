@@ -129,15 +129,29 @@ describe("the operator console — a refusal is a refusal, never an empty list",
   ];
 
   for (const [name, element] of screens) {
-    it(`${name} states a 403 instead of rendering nothing`, async () => {
+    it(`${name} states a 403 as a refusal — no retry, no live CTA`, async () => {
       forbidAll();
       const runtime = createAuthRuntime({ baseUrl: BASE });
       render(wrap(runtime, element()));
-      await waitFor(() => expect(screen.getAllByRole("alert").length).toBeGreaterThan(0));
+      await waitFor(() =>
+        expect(
+          screen.getByText("This console is not open to your account")
+        ).toBeTruthy()
+      );
       // The empty copy must NOT be what a refused operator reads.
       expect(screen.queryByText("No organizations yet")).toBeNull();
       expect(screen.queryByText("No service keys yet")).toBeNull();
       expect(screen.queryByText("Nobody has a staff role")).toBeNull();
+      // A permission denial is not a fault: retrying cannot change a role, so
+      // nothing offers it, and the page's own action is off WITH the reason
+      // beside it rather than enabled over a refusal (visual pass N9).
+      expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+      const gated = document.querySelectorAll('[data-stapel-gated="blocked"]');
+      if (gated.length > 0) {
+        expect(
+          screen.getAllByText("Your role does not include this area.").length
+        ).toBeGreaterThan(0);
+      }
     });
   }
 });

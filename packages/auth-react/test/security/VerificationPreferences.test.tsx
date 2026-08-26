@@ -143,6 +143,10 @@ describe("<VerificationPreferences/>", () => {
       expect(screen.getAllByTestId("verify-scope-row")).toHaveLength(2)
     );
     expect(screen.getByTestId("verify-scope-wallet.withdraw")).toBeDefined();
+    // The row is keyed by the raw scope, but nobody READS a dotted token: the
+    // identifier is made readable (visual pass C3).
+    expect(screen.getByText("Wallet withdraw")).toBeDefined();
+    expect(screen.queryByText("wallet.withdraw")).toBeNull();
   });
 
   it("a failed read is STATED — never an empty set of choices", async () => {

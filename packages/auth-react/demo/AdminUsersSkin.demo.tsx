@@ -26,10 +26,6 @@ const OK: DemoHandlers = {
   },
 };
 
-const TAKEN: DemoHandlers = {
-  "/admin-users/": [400, { localizable_error: "error.400.email_taken" }],
-};
-
 function Screen(props: { handlers: DemoHandlers }): ReactElement {
   return (
     <AuthDemoHarness handlers={props.handlers}>
@@ -45,17 +41,14 @@ export default defineDemo({
     "Provision an account with no sign-up and no code. The two switches that affect somebody else state their consequence beside them, and the result is the created account's id, kept on screen because it is what gets used next.",
   component: AdminUsersPanel,
   variants: {
+    // The "already registered" refusal is a MUTATION outcome — unreachable
+    // without a submit, so a static variant of it photographed identically to
+    // this one (visual pass C4) and is gone.
     default: {
       description: "The form as it opens, with the contract's own defaults.",
       step: "form",
       viewport: "phone",
       render: () => <Screen handlers={OK} />,
-    },
-    refused: {
-      description:
-        "The address is already on an account. The backend's own sentence, translated, beside the form that produced it.",
-      step: "error",
-      render: () => <Screen handlers={TAKEN} />,
     },
   },
 });

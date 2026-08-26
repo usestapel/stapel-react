@@ -86,6 +86,7 @@ export default defineDemo({
   description:
     "Credential-management rows: what the passkey lives in (read from transports), when it was added, when it was last used — or that it never has been — plus remove and add another. Never a sign-in action, and Add is blocked with a printed reason where the browser cannot create passkeys.",
   component: PasskeysManager,
+  covers: ["PasskeyRegistration"],
   variants: {
     default: {
       description: "A platform credential never used, and a security key that has been.",

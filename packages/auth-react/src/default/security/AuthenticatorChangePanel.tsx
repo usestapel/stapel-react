@@ -22,9 +22,9 @@
 import { spacing } from "@stapel/tokens";
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Button, Card, Flex, Form, Input, Result, Spin, Typography } from "antd";
+import { Alert, Button, Flex, Form, Input, Result, Spin, Typography } from "antd";
 import { ErrorAlert, SkinConfirm } from "@stapel/tokens-antd/skin";
-import { useErrorDisplay, useFormatFlowError, useT } from "@stapel/core";
+import { useErrorDisplay, useFormat, useFormatFlowError, useT } from "@stapel/core";
 import type { AuthenticatorChangeBag } from "../../headless/misc.js";
 import { AuthenticatorChange } from "../../headless/misc.js";
 import type { DelayedChangeStatus, OtpChannel } from "../../api/types.js";
@@ -33,10 +33,21 @@ import { useCapabilities, useDelayedChangeStatus, useMe } from "../../model/quer
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import type { AuthI18nKey } from "../../i18n/keys.js";
 import { OtpField } from "../OtpField.js";
+import { SecurityCard } from "./SecurityListRow.js";
 
 const CHANNEL_LABEL: Record<OtpChannel, AuthI18nKey> = {
   email: AUTH_I18N_KEYS.uiChannelEmail,
   phone: AUTH_I18N_KEYS.uiChannelPhone,
+};
+/**
+ * The same channel, spelled for the middle of a sentence. "Your old Phone has
+ * been notified" is a label interpolated into prose with its capital intact
+ * (visual pass N8); every `{channel}` placeholder takes THIS one, and only a
+ * heading or a tab takes {@link CHANNEL_LABEL}.
+ */
+const CHANNEL_INLINE_LABEL: Record<OtpChannel, AuthI18nKey> = {
+  email: AUTH_I18N_KEYS.uiChannelEmailInline,
+  phone: AUTH_I18N_KEYS.uiChannelPhoneInline,
 };
 /** Fallback when the backend omits `otp` metadata (stapel-auth <0.6.0). */
 const DEFAULT_OTP_LENGTH = 6;
@@ -64,11 +75,6 @@ function maskValue(channel: OtpChannel, value: string): string {
   return channel === "email" ? maskEmail(value) : maskPhone(value);
 }
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString();
-}
-
 /** The delayed-strategy request form ("no access to your old {channel}?"):
  * collects the NEW value only — no old-channel proof, by design (the
  * trade-off is the 14-day wait the pending banner then displays). */
@@ -76,7 +82,7 @@ function DelayedRequestForm(props: { channel: OtpChannel; onStarted: () => void 
   const t = useT();
   const formatError = useFormatFlowError();
   const initiate = useInitiateDelayedChange(props.channel);
-  const channelLabel = t(CHANNEL_LABEL[props.channel]);
+  const channelLabel = t(CHANNEL_INLINE_LABEL[props.channel]);
 
   return (
     <Form
@@ -120,11 +126,12 @@ function DelayedRequestForm(props: { channel: OtpChannel; onStarted: () => void 
  * delayed request is in flight. */
 function PendingBanner(props: { channel: OtpChannel; status: DelayedChangeStatus }): ReactElement {
   const t = useT();
+  const fmt = useFormat();
   const formatError = useFormatFlowError();
   const cancel = useCancelDelayedChange(props.channel);
   const [confirming, setConfirming] = useState(false);
   const s = props.status;
-  const channelLabel = t(CHANNEL_LABEL[props.channel]);
+  const channelLabel = t(CHANNEL_INLINE_LABEL[props.channel]);
 
   return (
     <Flex vertical gap="middle">
@@ -133,7 +140,7 @@ function PendingBanner(props: { channel: OtpChannel; status: DelayedChangeStatus
         showIcon
         title={t(AUTH_I18N_KEYS.secChangePendingMessage, {
           value: s.new_value_masked ?? "",
-          date: s.scheduled_at ? formatDate(s.scheduled_at) : "",
+          date: fmt.date(s.scheduled_at) ?? "",
           days: s.days_remaining ?? 0,
         })}
         description={t(AUTH_I18N_KEYS.secChangePendingNote, { channel: channelLabel })}
@@ -203,7 +210,7 @@ function ChangeJourney(props: {
   const [showDelayed, setShowDelayed] = useState(false);
   const { bag, channel } = props;
   const s = bag.state;
-  const channelLabel = t(CHANNEL_LABEL[channel]);
+  const channelLabel = t(CHANNEL_INLINE_LABEL[channel]);
   const otpLength =
     (channel === "email" ? caps.data?.otp?.email_code_length : caps.data?.otp?.phone_code_length) ??
     DEFAULT_OTP_LENGTH;
@@ -342,12 +349,12 @@ export function AuthenticatorChangePanel(props: { readonly channel: OtpChannel }
   const me = useMe();
   const delayedStatus = useDelayedChangeStatus(channel);
   const [open, setOpen] = useState(false);
-  const channelLabel = t(CHANNEL_LABEL[channel]);
+  const channelLabel = t(CHANNEL_INLINE_LABEL[channel]);
   const currentValue = channel === "email" ? me.data?.email : me.data?.phone;
   const testId = channel === "email" ? "email-change-panel" : "phone-change-panel";
 
   return (
-    <Card title={channelLabel} data-testid={testId} style={{ width: "100%" }}>
+    <SecurityCard title={t(CHANNEL_LABEL[channel])} data-testid={testId}>
       <Flex vertical gap="middle" style={{ width: "100%" }}>
         {me.isLoading || delayedStatus.isLoading ? (
           <Spin size="small" />
@@ -390,6 +397,6 @@ export function AuthenticatorChangePanel(props: { readonly channel: OtpChannel }
           </Flex>
         )}
       </Flex>
-    </Card>
+    </SecurityCard>
   );
 }

@@ -17,7 +17,7 @@ import type { DemoHandlers } from "./_harness.js";
 import { SECURITY_HANDLERS, SECURITY_HANDLERS_BARE } from "./fixtures.js";
 
 const FAILED: DemoHandlers = {
-  "/sessions/": [500, { localizable_error: "error.500.server" }],
+  "/sessions/": [500, { localizable_error: "error.500.internal" }],
 };
 
 function Panel(props: { handlers: DemoHandlers }): ReactElement {

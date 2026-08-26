@@ -30,6 +30,7 @@ import { loadStateFromQuery, useT } from "@stapel/core";
 import {
   EmptyState,
   ErrorAlert,
+  GatedButton,
   LoadList,
   SkinConfirm,
   SkinDialog,
@@ -41,6 +42,7 @@ import { useAuthDateFormat } from "../../model/formatDate.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import { SecurityList, SecurityListRow } from "../security/SecurityListRow.js";
 import { AdminScreen } from "./AdminScreen.js";
+import { ForbiddenState, forbiddenGate, isForbidden } from "./forbidden.js";
 
 interface AssignFormValues {
   readonly user_id?: string;
@@ -104,15 +106,19 @@ export function StaffRolesPanel(): ReactElement {
 
   const state = loadStateFromQuery(roles);
 
+  // See `forbidden.tsx`: the read's verdict gates the write.
+  const gate = forbiddenGate(roles.error);
   const assignButton = (
-    <Button
+    <GatedButton
+      gate={gate}
       type="primary"
+      testId="staff-roles-assign"
       onClick={() => setAssigning(true)}
       data-analytics="none"
       data-analytics-reason="local-ui-open-staff-role-assign"
     >
       {t(AUTH_I18N_KEYS.adminRolesAssign)}
-    </Button>
+    </GatedButton>
   );
 
   return (
@@ -157,6 +163,13 @@ export function StaffRolesPanel(): ReactElement {
           </Flex>
 
           <LoadList
+            failed={(error) =>
+              isForbidden(error) ? (
+                <ForbiddenState testId="staff-roles-forbidden" />
+              ) : (
+                <ErrorAlert thrown={error} onRetry={() => void roles.refetch()} />
+              )
+            }
             state={state}
             testId="staff-roles"
             onRetry={() => void roles.refetch()}

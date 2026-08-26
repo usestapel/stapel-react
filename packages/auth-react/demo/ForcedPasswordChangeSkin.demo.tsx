@@ -23,13 +23,6 @@ const OK: DemoHandlers = {
   },
 };
 
-const WEAK: DemoHandlers = {
-  "/password/forced-change/": [
-    400,
-    { localizable_error: "error.400.password_too_weak" },
-  ],
-};
-
 function Panel(props: { handlers: DemoHandlers }): ReactElement {
   return (
     <AuthDemoHarness handlers={props.handlers}>
@@ -46,18 +39,17 @@ export default defineDemo({
   description:
     "The first-login gate: a new password and its confirmation, one primary action, and no route around it. On an account that also owes a second factor, finishing here chains straight into enrollment.",
   component: ForcedPasswordChangeCard,
+  covers: ["ForcedPasswordChange"],
   variants: {
+    // A policy refusal here arrives only AFTER a submit, so no static render
+    // can photograph it: the variant that claimed to was byte-identical to
+    // this one (visual pass C4). The refusals this package CAN seed are the
+    // ones a mount reads — see the panels with a query behind them.
     default: {
       description: "The gate as it opens.",
       step: "idle",
       viewport: "phone",
       render: () => <Panel handlers={OK} />,
-    },
-    refused: {
-      description:
-        "The deployment's password policy refuses. The sentence is the backend's own, translated, not 'something went wrong'.",
-      step: "error",
-      render: () => <Panel handlers={WEAK} />,
     },
   },
 });

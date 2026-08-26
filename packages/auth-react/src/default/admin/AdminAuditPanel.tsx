@@ -9,14 +9,27 @@
  * page 1 because a page number from a different filter set is a different
  * page.
  *
- * Dates are `<input type="date">`: the platform's own picker, localized by
- * the browser, keyboard-operable, and no extra date library in a bundle that
- * ships to operators on phones. It emits `YYYY-MM-DD`, which is what the
- * query parameters take.
+ * Dates go through the design system's `DatePicker`, not a bare
+ * `<input type="date">`. The native control paints the BROWSER's chrome and
+ * the browser's format hint (`dd.mm.yyyy`) beside antd's own text inputs —
+ * two control vocabularies in one filter row, and a hint contradicting the
+ * `Aug 24, 2026` this same card prints as output (visual pass N10). The wire
+ * format the query parameters take (`YYYY-MM-DD`) is produced on submit.
  */
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { Button, Card, Flex, Form, Input, List, Skeleton, Tag, Typography } from "antd";
+import {
+  Button,
+  Card,
+  DatePicker,
+  Flex,
+  Form,
+  Input,
+  Skeleton,
+  Tag,
+  Typography,
+  theme as antdTheme,
+} from "antd";
 import { fontSize } from "@stapel/tokens";
 import { isLoadReady, loadStateFromQuery, mapLoad, matchList, useT } from "@stapel/core";
 import { EmptyState, ErrorAlert } from "@stapel/tokens-antd/skin";
@@ -25,12 +38,34 @@ import { useAdminAudit } from "../../model/queries.js";
 import { useAuthDateFormat } from "../../model/formatDate.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import { AdminScreen } from "./AdminScreen.js";
+import { ForbiddenState, isForbidden } from "./forbidden.js";
+import { SecurityList, SecurityListRow } from "../security/SecurityListRow.js";
+
+/**
+ * The form's DRAFT values. The two date fields hold whatever `DatePicker`
+ * binds (a dayjs instance) — typed structurally, so the pair reads the one
+ * method it needs without taking a dependency on antd's date library.
+ */
+interface DateValue {
+  format(pattern: string): string;
+}
 
 interface FilterFormValues {
   readonly event_type?: string;
   readonly user_id?: string;
-  readonly date_from?: string;
-  readonly date_to?: string;
+  readonly date_from?: DateValue | null;
+  readonly date_to?: DateValue | null;
+}
+
+/** The wire form of a filter value: `YYYY-MM-DD` for a date, trimmed text
+ *  otherwise, and `""` for anything the query has no business carrying. */
+function wireValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value.trim();
+  const candidate = value as Partial<DateValue>;
+  return typeof candidate.format === "function"
+    ? candidate.format("YYYY-MM-DD")
+    : "";
 }
 
 /** `"user.session_revoked"` → `"User session revoked"`. Best-effort: the set
@@ -47,8 +82,8 @@ function humanizeEventType(eventType: string): string {
 function toQuery(values: FilterFormValues, page: number): AdminAuditQuery {
   const query: Record<string, string | number> = { page };
   for (const [key, value] of Object.entries(values)) {
-    const trimmed = (value ?? "").trim();
-    if (trimmed !== "") query[key] = trimmed;
+    const wire = wireValue(value);
+    if (wire !== "") query[key] = wire;
   }
   return query as AdminAuditQuery;
 }
@@ -56,6 +91,7 @@ function toQuery(values: FilterFormValues, page: number): AdminAuditQuery {
 /** The global audit stream with committed filters and page-at-a-time reads. */
 export function AdminAuditPanel(): ReactElement {
   const t = useT();
+  const { token } = antdTheme.useToken();
   const when = useAuthDateFormat();
   const [applied, setApplied] = useState<FilterFormValues>({});
   const [page, setPage] = useState(1);
@@ -63,7 +99,7 @@ export function AdminAuditPanel(): ReactElement {
 
   const audit = useAdminAudit(toQuery(applied, page));
   const pageState = loadStateFromQuery(audit);
-  const entries = mapLoad(pageState, (p) => p.results);
+  const entries = mapLoad(pageState, (p) => p.results ?? []);
   const nextPage = isLoadReady(pageState) ? pageState.data.next : null;
   const total = isLoadReady(pageState) ? pageState.data.count : null;
 
@@ -103,16 +139,16 @@ export function AdminAuditPanel(): ReactElement {
               <Form.Item
                 name="date_from"
                 label={t(AUTH_I18N_KEYS.adminAuditFilterFrom)}
-                style={{ marginBottom: 0 }}
+                style={{ minWidth: "10rem", flex: "1 1 10rem", marginBottom: 0 }}
               >
-                <Input type="date" />
+                <DatePicker style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item
                 name="date_to"
                 label={t(AUTH_I18N_KEYS.adminAuditFilterTo)}
-                style={{ marginBottom: 0 }}
+                style={{ minWidth: "10rem", flex: "1 1 10rem", marginBottom: 0 }}
               >
-                <Input type="date" />
+                <DatePicker style={{ width: "100%" }} />
               </Form.Item>
               <Flex gap="small">
                 <Button type="primary" htmlType="submit" data-analytics="flow">
@@ -145,9 +181,12 @@ export function AdminAuditPanel(): ReactElement {
             <Skeleton active />
           </div>
             ),
-            failed: (error) => (
-              <ErrorAlert thrown={error} onRetry={() => void audit.refetch()} />
-            ),
+            failed: (error) =>
+              isForbidden(error) ? (
+                <ForbiddenState testId="admin-audit-forbidden" />
+              ) : (
+                <ErrorAlert thrown={error} onRetry={() => void audit.refetch()} />
+              ),
             empty: () => (
               <EmptyState
                 title={t(AUTH_I18N_KEYS.adminAuditEmpty)}
@@ -155,15 +194,26 @@ export function AdminAuditPanel(): ReactElement {
               />
             ),
             ready: (results) => (
-              <List
-                // antd's `dataSource` is mutable-typed; the rows are readonly.
-                dataSource={[...results]}
-                data-testid="admin-audit-list"
-                renderItem={(entry) => (
-                  <List.Item key={entry.id}>
-                    <List.Item.Meta
+              <Flex vertical gap="middle" style={{ width: "100%" }}>
+                <SecurityList
+                  ruleColor={token.colorBorderSecondary}
+                  data-testid="admin-audit-list"
+                >
+                  {results.map((entry) => (
+                    <SecurityListRow
+                      key={entry.id}
+                      data-testid="admin-audit-row"
                       title={humanizeEventType(entry.event_type)}
-                      description={
+                      {...(entry.event_type.includes("suspicious")
+                        ? {
+                            badges: (
+                              <Tag color="warning" data-testid="admin-audit-suspicious">
+                                {t(AUTH_I18N_KEYS.secAuditSuspiciousLabel)}
+                              </Tag>
+                            ),
+                          }
+                        : {})}
+                      meta={
                         <Typography.Text
                           type="secondary"
                           style={{ fontSize: fontSize.xs.fontSize }}
@@ -177,25 +227,18 @@ export function AdminAuditPanel(): ReactElement {
                         </Typography.Text>
                       }
                     />
-                    {entry.event_type.includes("suspicious") && (
-                      <Tag color="warning" data-testid="admin-audit-suspicious">
-                        {t(AUTH_I18N_KEYS.secAuditSuspiciousLabel)}
-                      </Tag>
-                    )}
-                  </List.Item>
+                  ))}
+                </SecurityList>
+                {nextPage != null && (
+                  <Typography.Link
+                    onClick={() => setPage(nextPage)}
+                    data-analytics="none"
+                    data-analytics-reason="local-ui-load-more-admin-audit-page"
+                  >
+                    {t(AUTH_I18N_KEYS.secAuditLoadMore)}
+                  </Typography.Link>
                 )}
-                loadMore={
-                  nextPage != null && (
-                    <Typography.Link
-                      onClick={() => setPage(nextPage)}
-                      data-analytics="none"
-                      data-analytics-reason="local-ui-load-more-admin-audit-page"
-                    >
-                      {t(AUTH_I18N_KEYS.secAuditLoadMore)}
-                    </Typography.Link>
-                  )
-                }
-              />
+              </Flex>
             ),
           })}
         </Flex>

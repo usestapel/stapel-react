@@ -136,37 +136,11 @@
           "description": "The form as it opens, with the contract's own defaults.",
           "viewport": "phone",
           "step": "form"
-        },
-        {
-          "id": "refused",
-          "description": "The address is already on an account. The backend's own sentence, translated, beside the form that produced it.",
-          "step": "error"
         }
       ],
       "source": {
         "file": "demo/AdminUsersSkin.demo.tsx",
-        "line": 41
-      }
-    },
-    {
-      "id": "auth.anonymous-session",
-      "title": "Anonymous session",
-      "description": "Headless guest session: create(deviceId) mints an anonymous user you can later upgrade to a full account.",
-      "component": "AnonymousSession",
-      "covers": [],
-      "flow": "auth.anonymous",
-      "tokens": [
-        "card-bg",
-        "button-primary-bg"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/AnonymousSession.demo.tsx",
-        "line": 42
+        "line": 37
       }
     },
     {
@@ -204,7 +178,16 @@
       "title": "Sign-in screen (default skin)",
       "description": "The shipped sign-in surface. Picking an alt method opens the fleet's dialog — a bottom sheet under 768px, a centred modal at or above it. Picking Passkey raises the system prompt immediately and opens nothing of ours unless the ceremony fails.",
       "component": "AuthPanel",
-      "covers": [],
+      "covers": [
+        "AuthProvider",
+        "PasswordlessLogin",
+        "PasswordLogin",
+        "PasswordRegister",
+        "PasskeyLogin",
+        "MagicLink",
+        "SsoDiscovery",
+        "AnonymousSession"
+      ],
       "tokens": [],
       "variants": [
         {
@@ -230,49 +213,30 @@
       }
     },
     {
-      "id": "auth.authenticator-change",
-      "title": "Authenticator change (instant)",
-      "description": "Headless instant email/phone change: verify the old channel, then confirm the new one — a four-step OTP ladder.",
-      "component": "AuthenticatorChange",
-      "covers": [],
-      "flow": "auth.authenticator_change",
-      "tokens": [
-        "card-bg",
-        "button-primary-bg"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/AuthenticatorChange.demo.tsx",
-        "line": 40
-      }
-    },
-    {
       "id": "auth.authenticator-change-skin",
       "title": "Authenticator change (default skin)",
-      "description": "One implementation, either channel. Instant when the current authenticator can be proved; a scheduled change with a cooldown when it cannot — and calling that off goes through the fleet's confirm, not a popover.",
+      "description": "One implementation, either channel — mounted twice so the sameness is visible. Instant when the current authenticator can be proved; a scheduled change with a cooldown when it cannot, and calling that off goes through the fleet's confirm, not a popover.",
       "component": "AuthenticatorChangePanel",
-      "covers": [],
+      "covers": [
+        "AuthenticatorChange"
+      ],
       "tokens": [],
       "variants": [
         {
           "id": "default",
-          "description": "Nothing scheduled: the instant route, mounted for the email channel.",
+          "description": "Nothing scheduled on either channel: the same card, the same instant route, two different contacts.",
           "viewport": "phone",
           "step": "idle"
         },
         {
           "id": "scheduled",
-          "description": "A change in its cooldown, and the one control that stops it.",
+          "description": "The phone half is mid-cooldown while the email half is untouched — the pending banner replaces the change UI for that channel only, and takes the one control that stops it with it.",
           "step": "pendingDelayed"
         }
       ],
       "source": {
         "file": "demo/AuthenticatorChangePanelSkin.demo.tsx",
-        "line": 44
+        "line": 54
       }
     },
     {
@@ -301,37 +265,13 @@
       }
     },
     {
-      "id": "auth.first-login",
-      "title": "First login (forced change / MFA enroll)",
-      "description": "Headless first-login enforcement for org-provisioned accounts: ForcedPasswordChange submits the owed password change against the login intermediate's challenge token; MfaEnrollGate exchanges the mfa_enroll challenge for a limited enroll-only session, scopes the pair's TotpSetup/PasskeyRegistration to it, and commits the full session on completion.",
-      "component": "ForcedPasswordChange",
-      "covers": [
-        "MfaEnrollGate"
-      ],
-      "flow": "auth.first_login",
-      "tokens": [
-        "card-bg",
-        "button-primary-bg"
-      ],
-      "variants": [
-        {
-          "id": "forcedChange"
-        },
-        {
-          "id": "mfaEnroll"
-        }
-      ],
-      "source": {
-        "file": "demo/FirstLogin.demo.tsx",
-        "line": 96
-      }
-    },
-    {
       "id": "auth.forced-password-change-skin",
       "title": "Forced password change (default skin)",
       "description": "The first-login gate: a new password and its confirmation, one primary action, and no route around it. On an account that also owes a second factor, finishing here chains straight into enrollment.",
       "component": "ForcedPasswordChangeCard",
-      "covers": [],
+      "covers": [
+        "ForcedPasswordChange"
+      ],
       "tokens": [],
       "variants": [
         {
@@ -339,37 +279,11 @@
           "description": "The gate as it opens.",
           "viewport": "phone",
           "step": "idle"
-        },
-        {
-          "id": "refused",
-          "description": "The deployment's password policy refuses. The sentence is the backend's own, translated, not 'something went wrong'.",
-          "step": "error"
         }
       ],
       "source": {
         "file": "demo/ForcedPasswordChangeSkin.demo.tsx",
-        "line": 43
-      }
-    },
-    {
-      "id": "auth.magic-link",
-      "title": "Magic link",
-      "description": "Headless magic-link request: request(email, redirectUrl) sends a one-tap sign-in link; the redirect is open-redirect-guarded.",
-      "component": "MagicLink",
-      "covers": [],
-      "flow": "auth.magic_link",
-      "tokens": [
-        "card-bg",
-        "button-primary-bg"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/MagicLink.demo.tsx",
-        "line": 34
+        "line": 36
       }
     },
     {
@@ -377,12 +291,15 @@
       "title": "Enroll a second factor (default skin)",
       "description": "The first-login MFA gate: pick an authenticator app or a passkey and finish the enrollment inside an enroll-scoped session. Completing a factor is what turns that session into a full one.",
       "component": "MfaEnrollPanel",
-      "covers": [],
+      "covers": [
+        "MfaEnrollGate",
+        "TotpSetup"
+      ],
       "tokens": [],
       "variants": [
         {
           "id": "default",
-          "description": "Both factors offered — the picker before a choice is made.",
+          "description": "Both factors offered, with the authenticator journey already showing the code to scan and the secret to type — the picker plus the route it opens on.",
           "viewport": "phone",
           "step": "choosing"
         },
@@ -394,7 +311,7 @@
       ],
       "source": {
         "file": "demo/MfaEnrollPanelSkin.demo.tsx",
-        "line": 40
+        "line": 43
       }
     },
     {
@@ -428,56 +345,13 @@
       }
     },
     {
-      "id": "auth.passkey-login",
-      "title": "Passkey login (WebAuthn)",
-      "description": "Headless passkey sign-in: begin() fetches assertion options; the host performs the credential ceremony and calls submitAssertion().",
-      "component": "PasskeyLogin",
-      "covers": [],
-      "flow": "auth.passkey_login",
-      "tokens": [
-        "card-bg",
-        "button-primary-bg",
-        "text-brand"
-      ],
-      "variants": [
-        {
-          "id": "default",
-          "description": "Begin an assertion; parks at awaitingAssertion (no binding)."
-        }
-      ],
-      "source": {
-        "file": "demo/PasskeyLogin.demo.tsx",
-        "line": 48
-      }
-    },
-    {
-      "id": "auth.passkey-registration",
-      "title": "Passkey registration",
-      "description": "Headless passkey enrolment for a signed-in user: begin() fetches creation options; submitCredential() finishes the ceremony result.",
-      "component": "PasskeyRegistration",
-      "covers": [],
-      "flow": "auth.passkey_registration",
-      "tokens": [
-        "card-bg",
-        "button-primary-bg"
-      ],
-      "variants": [
-        {
-          "id": "default",
-          "description": "Begin enrolment; parks at awaitingCredential (no binding)."
-        }
-      ],
-      "source": {
-        "file": "demo/PasskeyRegistration.demo.tsx",
-        "line": 45
-      }
-    },
-    {
       "id": "auth.passkeys-manager-skin",
       "title": "Passkeys (default skin)",
       "description": "Credential-management rows: what the passkey lives in (read from transports), when it was added, when it was last used — or that it never has been — plus remove and add another. Never a sign-in action, and Add is blocked with a printed reason where the browser cannot create passkeys.",
       "component": "PasskeysManager",
-      "covers": [],
+      "covers": [
+        "PasskeyRegistration"
+      ],
       "tokens": [],
       "variants": [
         {
@@ -503,32 +377,13 @@
       }
     },
     {
-      "id": "auth.password-change",
-      "title": "Password change",
-      "description": "Headless change-password for a signed-in user: directly with the old password, or OTP-verified when no password is set.",
-      "component": "PasswordChange",
-      "covers": [],
-      "flow": "auth.password_change",
-      "tokens": [
-        "card-bg",
-        "button-primary-bg"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/PasswordChange.demo.tsx",
-        "line": 38
-      }
-    },
-    {
       "id": "auth.password-change-skin",
       "title": "Change password (default skin)",
       "description": "One tab per route the backend says this account can actually take: the current password, or a code to a verified contact. Never a form that is going to be refused.",
       "component": "PasswordChangePanel",
-      "covers": [],
+      "covers": [
+        "PasswordChange"
+      ],
       "tokens": [],
       "variants": [
         {
@@ -550,49 +405,7 @@
       ],
       "source": {
         "file": "demo/PasswordChangePanelSkin.demo.tsx",
-        "line": 45
-      }
-    },
-    {
-      "id": "auth.password-login",
-      "title": "Password login",
-      "description": "Headless login/password sign-in; on a TOTP challenge the bag surfaces submitTotp() for the second factor.",
-      "component": "PasswordLogin",
-      "covers": [],
-      "flow": "auth.password_login",
-      "tokens": [
-        "card-bg",
-        "button-primary-bg"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/PasswordLogin.demo.tsx",
-        "line": 34
-      }
-    },
-    {
-      "id": "auth.password-register",
-      "title": "Password registration",
-      "description": "Headless set-password registration — the SET-password counterpart to PasswordLogin. Adopts the resulting session on success: creates a new account, promotes an anonymous session, or just makes an anonymous session portable (adopt()'s user.is_anonymous branch decides).",
-      "component": "PasswordRegister",
-      "covers": [],
-      "flow": "auth.password_register",
-      "tokens": [
-        "card-bg",
-        "button-primary-bg"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/PasswordRegister.demo.tsx",
-        "line": 36
+        "line": 50
       }
     },
     {
@@ -614,37 +427,6 @@
       "source": {
         "file": "demo/PasswordReset.demo.tsx",
         "line": 40
-      }
-    },
-    {
-      "id": "auth.passwordless-login",
-      "title": "Passwordless login (OTP)",
-      "description": "Headless email → code → session. The render-prop bag exposes state.step plus requestCode/submitCode/reset; wire your own markup.",
-      "component": "PasswordlessLogin",
-      "covers": [
-        "AuthProvider"
-      ],
-      "flow": "auth.otp",
-      "tokens": [
-        "card-bg",
-        "card-border",
-        "button-primary-bg",
-        "text-brand"
-      ],
-      "variants": [
-        {
-          "id": "default",
-          "description": "Happy path: request a code, then verify it."
-        },
-        {
-          "id": "locked",
-          "description": "Rate-limited account — the flow reaches its error step.",
-          "mock": "otp-locked"
-        }
-      ],
-      "source": {
-        "file": "demo/PasswordlessLogin.demo.tsx",
-        "line": 60
       }
     },
     {
@@ -702,7 +484,9 @@
       "title": "Sign in another device (default skin)",
       "description": "A settings row that opens the QR journey in the fleet's dialog. Idle until triggered — no code is minted, and nothing is polled, until somebody opens it.",
       "component": "QrDeviceLinkPanel",
-      "covers": [],
+      "covers": [
+        "QrLogin"
+      ],
       "tokens": [],
       "variants": [
         {
@@ -713,36 +497,13 @@
         },
         {
           "id": "custom-landing",
-          "description": "The same row handing the scanning device off to a specific page rather than the app root.",
+          "description": "The same row handing the scanning device off to a specific page rather than the app root — with the host's own heading and sentence, which is what a deployment actually mounts. A landing URL is invisible in a screenshot; the copy a host overrides is not.",
           "step": "idle-custom"
         }
       ],
       "source": {
         "file": "demo/QrDeviceLinkPanelSkin.demo.tsx",
-        "line": 37
-      }
-    },
-    {
-      "id": "auth.qr-login",
-      "title": "QR login (cross-device)",
-      "description": "Headless QR authentication with background polling: start() yields a scanUrl to render as a QR image; delivered tokens adopt into the session.",
-      "component": "QrLogin",
-      "covers": [],
-      "flow": "auth.qr_login",
-      "tokens": [
-        "card-bg",
-        "background-secondary",
-        "button-primary-bg"
-      ],
-      "variants": [
-        {
-          "id": "default",
-          "description": "Generate a QR and poll; parks at awaitingScan (pending)."
-        }
-      ],
-      "source": {
-        "file": "demo/QrLogin.demo.tsx",
-        "line": 66
+        "line": 67
       }
     },
     {
@@ -801,27 +562,6 @@
       }
     },
     {
-      "id": "auth.sso-discovery",
-      "title": "SSO discovery",
-      "description": "Headless enterprise SSO: lookup(domain) resolves whether a work email must use SSO; beginLogin(orgSlug) redirects to the IdP.",
-      "component": "SsoDiscovery",
-      "covers": [],
-      "flow": "auth.sso",
-      "tokens": [
-        "card-bg",
-        "button-primary-bg"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/SsoDiscovery.demo.tsx",
-        "line": 36
-      }
-    },
-    {
       "id": "auth.totp-manager-skin",
       "title": "Two-factor authentication (default skin)",
       "description": "The authenticator-app card: on or off stated first, the backup codes left, and only the actions that state allows. A scheduled removal replaces the whole body — while one is in flight there is nothing else to decide here except whether to call it off.",
@@ -849,27 +589,6 @@
       "source": {
         "file": "demo/TotpManagerSkin.demo.tsx",
         "line": 52
-      }
-    },
-    {
-      "id": "auth.totp-setup",
-      "title": "TOTP setup",
-      "description": "Headless authenticator enrolment: start() returns the secret/otpauth URL to render as a QR; confirm() verifies the first code.",
-      "component": "TotpSetup",
-      "covers": [],
-      "flow": "auth.totp_setup",
-      "tokens": [
-        "card-bg",
-        "button-primary-bg"
-      ],
-      "variants": [
-        {
-          "id": "default"
-        }
-      ],
-      "source": {
-        "file": "demo/TotpSetup.demo.tsx",
-        "line": 39
       }
     },
     {

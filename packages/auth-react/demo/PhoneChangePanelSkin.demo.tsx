@@ -16,7 +16,7 @@ import {
   CAPABILITIES,
   ME,
   NO_DELAYED_CHANGE,
-  PENDING_DELAYED_CHANGE,
+  PENDING_DELAYED_CHANGE_PHONE,
 } from "./fixtures.js";
 
 const IDLE: DemoHandlers = {
@@ -28,7 +28,7 @@ const IDLE: DemoHandlers = {
 const PENDING: DemoHandlers = {
   "/capabilities/": CAPABILITIES,
   "/me/": ME,
-  "/phone/change/delayed/status/": PENDING_DELAYED_CHANGE,
+  "/phone/change/delayed/status/": PENDING_DELAYED_CHANGE_PHONE,
 };
 
 function Panel(props: { handlers: DemoHandlers }): ReactElement {

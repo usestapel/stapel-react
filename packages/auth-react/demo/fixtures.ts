@@ -199,10 +199,35 @@ export const AUDIT_PAGE = {
 
 export const AUDIT_EMPTY = { count: 0, next: null, results: [] };
 
-export const PASSWORD_METHODS = [
-  { method: "password", available: true, masked_target: null },
-  { method: "email", available: true, masked_target: "a•••@example.com" },
-];
+/**
+ * `GET /password/methods/` answers an OBJECT (`PasswordMethodsResponse`), not
+ * a bare array, and each entry names its masked contact in `target`. The
+ * earlier array-shaped fixture made `matchList` read `.length` off
+ * `undefined` mid-render — React unmounted the tree and the composed security
+ * page photographed as a white rectangle with nothing in the console (visual
+ * pass N1). A fixture that does not match the contract is not a fixture.
+ */
+export const PASSWORD_METHODS = {
+  has_password: true,
+  methods: [
+    { method: "password", target: null },
+    { method: "email", target: "a•••@example.com" },
+  ],
+};
+
+/** The same read, for an account with no route to a password change yet. */
+export const PASSWORD_METHODS_NONE = { has_password: false, methods: [] };
+
+/** `POST /totp/setup/` — the enrollment secret and the `otpauth://` URI a
+ *  QR is drawn from. Without it the MFA-enroll skin's HAPPY path renders its
+ *  own start-failure alert (visual pass N7): the demo never answered the one
+ *  call the journey makes on mount. */
+export const TOTP_SETUP = {
+  secret: "JBSWY3DPEHPK3PXP",
+  qr_uri:
+    "otpauth://totp/Stapel:ada@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Stapel&algorithm=SHA1&digits=6&period=30",
+  expires_in: 600,
+};
 
 export const NO_DELAYED_CHANGE = { has_pending_change: false };
 
@@ -212,6 +237,18 @@ export const PENDING_DELAYED_CHANGE = {
   new_value_masked: "a•••@newmail.com",
   scheduled_at: "2026-09-01T09:00:00Z",
   days_remaining: 6,
+  can_cancel: true,
+};
+
+/** The phone channel's own pending change. Sharing the email fixture put an
+ *  email address under a card titled "Phone" (visual pass N8) — a channel's
+ *  pending value has to be a value of that channel. */
+export const PENDING_DELAYED_CHANGE_PHONE = {
+  has_pending_change: true,
+  change_request_id: "cr-11",
+  new_value_masked: "+44 ••• ••• 41 07",
+  scheduled_at: "2026-09-04T09:00:00Z",
+  days_remaining: 9,
   can_cancel: true,
 };
 
@@ -311,6 +348,7 @@ export const SECURITY_HANDLERS_BARE: DemoHandlers = {
   ...SECURITY_HANDLERS,
   "/security/status/": SECURITY_STATUS_BARE,
   "/security/audit/": AUDIT_EMPTY,
+  "/password/methods/": PASSWORD_METHODS_NONE,
   "/sessions/": [SESSIONS[0]],
   "/passkey/": { passkeys: [] },
   "/oauth/links/": { links: [] },

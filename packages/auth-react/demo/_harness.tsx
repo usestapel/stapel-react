@@ -87,6 +87,9 @@ const demoBundleEn: Record<string, string> = {
   "demo.action.reset": "Reset",
   "demo.action.dispose": "Stop",
   "demo.label.step": "state.step",
+  "demo.qr.custom_title": "Join on your phone",
+  "demo.qr.custom_subtitle":
+    "Scan this from the meeting app on your phone and today's room opens there, already signed in.",
 };
 
 /**

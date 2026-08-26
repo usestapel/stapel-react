@@ -35,6 +35,7 @@ import { loadStateFromQuery, useT } from "@stapel/core";
 import {
   EmptyState,
   ErrorAlert,
+  GatedButton,
   LoadList,
   SkinConfirm,
   SkinDialog,
@@ -50,6 +51,7 @@ import { useAuthDateFormat } from "../../model/formatDate.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import { SecurityList, SecurityListRow } from "../security/SecurityListRow.js";
 import { AdminScreen } from "./AdminScreen.js";
+import { ForbiddenState, forbiddenGate, isForbidden } from "./forbidden.js";
 
 interface KeyFormValues {
   readonly name?: string;
@@ -234,15 +236,21 @@ export function ServiceKeysPanel(): ReactElement {
     );
   }
 
+  // The read's verdict gates the write: a console that may not LIST keys may
+  // not issue one either, and an enabled primary over a refusal card is a
+  // dead end one click away (visual pass N9).
+  const gate = forbiddenGate(keys.error);
   const issueButton = (
-    <Button
+    <GatedButton
+      gate={gate}
       type="primary"
+      testId="service-keys-issue"
       onClick={() => setIssuing(true)}
       data-analytics="none"
       data-analytics-reason="local-ui-open-service-key-create"
     >
       {t(AUTH_I18N_KEYS.adminKeysIssue)}
-    </Button>
+    </GatedButton>
   );
 
   return (
@@ -257,6 +265,13 @@ export function ServiceKeysPanel(): ReactElement {
           state={state}
           testId="service-keys"
           onRetry={() => void keys.refetch()}
+          failed={(error) =>
+            isForbidden(error) ? (
+              <ForbiddenState testId="service-keys-forbidden" />
+            ) : (
+              <ErrorAlert thrown={error} onRetry={() => void keys.refetch()} />
+            )
+          }
           empty={
             <EmptyState
               title={t(AUTH_I18N_KEYS.adminKeysEmpty)}

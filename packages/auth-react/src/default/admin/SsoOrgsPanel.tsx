@@ -35,6 +35,7 @@ import { loadStateFromQuery, useT } from "@stapel/core";
 import {
   EmptyState,
   ErrorAlert,
+  GatedButton,
   LoadList,
   SkinConfirm,
   SkinDialog,
@@ -51,6 +52,7 @@ import { useAuthDateFormat } from "../../model/formatDate.js";
 import { AUTH_I18N_KEYS } from "../../i18n/keys.js";
 import { SecurityList, SecurityListRow } from "../security/SecurityListRow.js";
 import { AdminScreen } from "./AdminScreen.js";
+import { ForbiddenState, forbiddenGate, isForbidden } from "./forbidden.js";
 
 interface OrgFormValues {
   readonly name?: string;
@@ -249,14 +251,16 @@ export function SsoOrgsPanel(): ReactElement {
       title={t(AUTH_I18N_KEYS.adminSsoTitle)}
       subtitle={t(AUTH_I18N_KEYS.adminSsoSubtitle)}
       action={
-        <Button
+        <GatedButton
+          gate={forbiddenGate(orgs.error)}
           type="primary"
+          testId="sso-orgs-add"
           onClick={() => setEditing("new")}
           data-analytics="none"
           data-analytics-reason="local-ui-open-sso-create"
         >
           {t(AUTH_I18N_KEYS.adminSsoAdd)}
-        </Button>
+        </GatedButton>
       }
     >
       <Card style={{ width: "100%" }}>
@@ -264,6 +268,13 @@ export function SsoOrgsPanel(): ReactElement {
           state={state}
           testId="sso-orgs"
           onRetry={() => void orgs.refetch()}
+          failed={(error) =>
+            isForbidden(error) ? (
+              <ForbiddenState testId="sso-orgs-forbidden" />
+            ) : (
+              <ErrorAlert thrown={error} onRetry={() => void orgs.refetch()} />
+            )
+          }
           empty={
             <EmptyState
               title={t(AUTH_I18N_KEYS.adminSsoEmpty)}
