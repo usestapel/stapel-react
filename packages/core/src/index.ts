@@ -327,6 +327,7 @@ export {
   codeCarriesTechnicalDetail,
   coreErrorBundle,
   coreErrorKeyCandidates,
+  httpStatusFloorKeys,
 } from "./i18n/coreErrors.js";
 
 // UI floor (i18n/coreUi.ts): the substrate's own copy — retry, dismiss,

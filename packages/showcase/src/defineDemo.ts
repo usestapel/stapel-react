@@ -28,6 +28,31 @@
  */
 import type { ElementType, ReactNode } from "react";
 
+/** What a variant's `play` step is handed after the variant has mounted. */
+export interface DemoPlayContext {
+  /** The element the variant rendered into — query inside it, never `document`. */
+  readonly canvas: HTMLElement;
+  /** Resolve once `predicate` holds, polling until `timeoutMs` (default 4s). */
+  readonly waitFor: (predicate: () => boolean, timeoutMs?: number) => Promise<void>;
+  /** Wait for `selector` inside the canvas (or the document, for a portal —
+   * `{ portal: true }`) and return the element. */
+  readonly find: (selector: string, options?: { readonly portal?: boolean }) => Promise<HTMLElement>;
+  /** Click the first element matching `selector` (canvas, then document). */
+  readonly click: (selector: string) => Promise<void>;
+}
+
+/**
+ * An async step run AFTER the variant mounts: open the sheet, click the
+ * second tab, type into the search box. It exists because a bottom sheet
+ * that is only ever photographed closed has zero visual evidence (visual
+ * pass NC-SHEETSHUT: categories' picker, currencies' picker, geo's map
+ * sheet, search's filter panel). The generated story runs it in an effect
+ * and stamps the stage `data-stapel-play="pending|done|failed"`, so a shot
+ * runner waits for `done` before it photographs; a vitest smoke test runs
+ * it with `runDemoPlay`.
+ */
+export type DemoPlay = (ctx: DemoPlayContext) => Promise<void>;
+
 /**
  * The width a variant is meant to be looked at. The viewer offers 390/768/1280
  * (`showcase-viewer/.ladle/config.mjs`); this says which one a variant was
@@ -68,6 +93,13 @@ export interface DemoVariant {
   readonly mock?: string;
   /** Render this variant. Closes over the concrete component (see file docs). */
   readonly render: () => ReactNode;
+  /**
+   * See {@link DemoPlay}. A variant with a `play` is allowed to render the
+   * same FIRST frame as a sibling (`--phone` = `--default` + open the sheet):
+   * `assertVariantsRenderDistinctly` compares only the variants without one,
+   * because the state this variant documents is reached by the step.
+   */
+  readonly play?: DemoPlay;
 }
 
 /** The literal object passed to {@link defineDemo}. */

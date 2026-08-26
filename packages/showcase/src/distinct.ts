@@ -40,6 +40,11 @@ export function duplicateVariantGroups(
 ): readonly DuplicateVariantGroup[] {
   const byMarkup = new Map<string, string[]>();
   for (const id of variantIds(demo)) {
+    // A variant with a `play` step documents the state the step reaches, not
+    // its first frame — which is legitimately its sibling's (`--phone` is
+    // `--default` plus "open the sheet"). Its distinctness is the shot
+    // runner's to prove, after the step; here it is skipped.
+    if (demo.variants[id]?.play !== undefined) continue;
     const markup = render(renderDemoVariant(demo, id));
     const bucket = byMarkup.get(markup);
     if (bucket) bucket.push(id);
@@ -80,6 +85,7 @@ export function assertVariantsRenderDistinctly(
       `  the same frame under several names:\n` +
       `${detail}\n` +
       `  Seed the state in the render closure (a pre-stepped machine, a bag fixture)\n` +
-      `  and declare it with \`step: "<state>"\`, or drop the variant.`
+      `  and declare it with \`step: "<state>"\`; reach it by interaction with a\n` +
+      `  \`play\` step (open the sheet, click the tab); or drop the variant.`
   );
 }

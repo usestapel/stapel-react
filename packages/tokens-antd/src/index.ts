@@ -215,6 +215,38 @@ export function toAntdTheme(mode: ThemeMode = resolveThemeMode()): AntdThemeToke
     colorBgElevated: role(live, "surface-overlay", mode),
     colorBorder: role(live, "border", mode),
     colorBorderSecondary: role(live, "border-subtle", mode),
+    // The status SURFACES (alert fills, tag fills, their borders) come from
+    // the `*-bg` / `*-border` roles, not from antd's palette derivation of the
+    // status seed. Derived, the light warning fill was `#d9d5c3` (khaki) and
+    // the success fill `#afbab3` (sage) — the token JSON says `#fdf6e7` and
+    // `#eaf7f0` (visual pass VC-B4 / N14, ~20 screens). Hover is pinned to the
+    // same role so a closable alert does not flash khaki on hover.
+    colorSuccessBg: role(live, "success-bg", mode),
+    colorSuccessBgHover: role(live, "success-bg", mode),
+    colorSuccessBorder: role(live, "success-border", mode),
+    colorSuccessBorderHover: role(live, "success-border", mode),
+    colorWarningBg: role(live, "warning-bg", mode),
+    colorWarningBgHover: role(live, "warning-bg", mode),
+    colorWarningBorder: role(live, "warning-border", mode),
+    colorWarningBorderHover: role(live, "warning-border", mode),
+    colorErrorBg: role(live, "error-bg", mode),
+    colorErrorBgHover: role(live, "error-bg", mode),
+    colorErrorBorder: role(live, "error-border", mode),
+    colorErrorBorderHover: role(live, "error-border", mode),
+    colorInfoBg: role(live, "info-bg", mode),
+    colorInfoBgHover: role(live, "info-bg", mode),
+    colorInfoBorder: role(live, "info-border", mode),
+    colorInfoBorderHover: role(live, "info-border", mode),
+    colorPrimaryBg: role(live, "brand-subtle", mode),
+    // Hover/active from the brand ramp's own roles: antd's derived light
+    // hover (`#6e80e6`) put a white label at 3.6:1 mid-press.
+    colorPrimaryHover: role(live, "brand-hover", mode),
+    colorPrimaryActive: role(live, "brand-active", mode),
+    // The label ON a brand/status fill. antd's default is white in both
+    // modes; the dark brand fill is a light lavender, and white on it is
+    // ~2.6:1 (visual pass VC-B2, every dark primary in the fleet). The
+    // `text-on-accent` role is the token JSON's answer — near-black in dark.
+    colorTextLightSolid: role(live, "text-on-accent", mode),
     borderRadius: radii[bridgeRadiusRole],
     fontSize: fontSize[bridgeFontSizeRole].fontSize,
     fontFamily: fontFamily.sans,
@@ -237,6 +269,13 @@ export function toAntdThemeConfig(mode: ThemeMode = resolveThemeMode()): ThemeCo
     algorithm:
       mode === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
     token: toAntdTheme(mode),
+    components: {
+      // A tooltip's fill is antd's dark spotlight in BOTH modes, so its label
+      // must stay light even where `colorTextLightSolid` became near-black
+      // for the lavender dark brand fill. Skins ship no tooltips (house
+      // rule); this keeps antd's own (a table sorter, a slider) legible.
+      Tooltip: { colorTextLightSolid: colors.text.dark },
+    },
   };
 }
 

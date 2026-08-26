@@ -15,7 +15,15 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, configure, fireEvent, render, screen } from "@testing-library/react";
-import { SkinConfirm, SkinDialog, MODAL_MEDIA_QUERY } from "../src/skin.js";
+import {
+  SkinConfirm,
+  SkinDialog,
+  MODAL_MEDIA_QUERY,
+  SHEET_MAX_HEIGHT,
+  SHEET_STYLE_HREF,
+  SHEET_WRAPPER_CLASS,
+  sheetSizingCss,
+} from "../src/skin.js";
 import { breakpoints } from "@stapel/tokens";
 
 configure({ asyncUtilTimeout: 10_000 });
@@ -394,5 +402,37 @@ describe("SkinConfirm — a question is a dialog, not an anchored popover", () =
     );
     fireEvent.click(screen.getByTestId("stapel-confirm-ok"));
     expect(onConfirm).not.toHaveBeenCalled();
+  });
+});
+
+describe("the sheet fits its content up to 90dvh, body scrolls, footer pinned (VC-B5)", () => {
+  beforeEach(() => {
+    installMatchMedia();
+    setViewport(390);
+  });
+  afterEach(() => {
+    cleanup();
+    listeners.clear();
+  });
+
+  it("hoists one sizing stylesheet and classes the panel wrapper it targets", () => {
+    render(
+      <SkinDialog open onClose={() => undefined} dismissLabel="Close" footer={<button>Save</button>}>
+        <p>Body</p>
+      </SkinDialog>
+    );
+    const wrapper = document.querySelector(`.${SHEET_WRAPPER_CLASS}`);
+    expect(wrapper).not.toBeNull();
+    expect(wrapper?.classList.contains("ant-drawer-content-wrapper")).toBe(true);
+    const sheets = [...document.querySelectorAll(`style[data-href="${SHEET_STYLE_HREF}"]`)];
+    expect(sheets).toHaveLength(1);
+    const css = sheets[0]?.textContent ?? "";
+    expect(css).toBe(sheetSizingCss("ant"));
+    expect(css).toContain(`.${SHEET_WRAPPER_CLASS}{height:auto !important;max-height:${SHEET_MAX_HEIGHT}`);
+    expect(css).toContain(`.ant-drawer-section`);
+    expect(css).toContain(`.ant-drawer-footer{flex-shrink:0}`);
+    // The footer is antd's own pinned footer, outside the scrolling body.
+    expect(document.querySelector(".ant-drawer-footer")?.textContent).toBe("Save");
+    expect(document.querySelector(".ant-drawer-body")?.textContent).toContain("Body");
   });
 });

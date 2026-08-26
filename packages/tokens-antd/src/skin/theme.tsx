@@ -34,6 +34,7 @@ import { createContext, useContext, useMemo } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { ConfigProvider } from "antd";
 import type { ThemeConfig } from "antd";
+import { spacing } from "@stapel/tokens";
 import { hostBrandFingerprint, resolveThemeMode, toAntdThemeConfig } from "../index.js";
 import type { ThemeMode } from "../index.js";
 import { useDialogSurface } from "./dialog.js";
@@ -45,6 +46,65 @@ import { useThemeMode } from "./themeMode.js";
  * from.
  */
 export const PHONE_CONTROL_HEIGHT: number = 44;
+
+/**
+ * The touch floor beyond `controlHeight`.
+ *
+ * `controlHeight` reaches buttons, inputs, selects, pagination and the
+ * default `Segmented` — and nothing else. The visual pass measured what it
+ * misses: `Rate` stars at 22px (reviews, the package's one interaction),
+ * `size="small"` controls at 24–33px, checkbox and radio rows at 22px,
+ * clickable tags at 22px, list rows at whatever their text was. Each of
+ * those is an antd token the phone theme can set, so they are set HERE, once:
+ *
+ *  - `controlHeightSM`: antd derives it as `controlHeight × 0.75` (33px);
+ *    on a phone there is no such thing as a small touch target.
+ *  - `Rate.starSize` + `Rate.marginXS`: a 32px glyph on a 44px pitch.
+ *  - `Radio.radioSize`, `Checkbox.controlInteractiveSize`: a 24px box the
+ *    thumb can find; the 44px row comes from {@link phoneTouchFloorCss}.
+ *
+ * Exported so a host theming outside `SkinTheme` (a bespoke `ConfigProvider`)
+ * can apply the same floor.
+ */
+export const PHONE_TOUCH_FLOOR: {
+  readonly token: NonNullable<ThemeConfig["token"]>;
+  readonly components: NonNullable<ThemeConfig["components"]>;
+} = {
+  token: {
+    controlHeight: PHONE_CONTROL_HEIGHT,
+    controlHeightSM: PHONE_CONTROL_HEIGHT,
+  },
+  components: {
+    Rate: { starSize: spacing["6"], marginXS: PHONE_CONTROL_HEIGHT - spacing["6"] },
+    Radio: { radioSize: spacing["5"] },
+    Checkbox: { controlInteractiveSize: spacing["5"] },
+  },
+};
+
+/**
+ * The rows and glyph boxes no antd token reaches, as a stylesheet scoped
+ * under a phone skin root: the hit area of a rate star, a checkbox/radio row,
+ * a clickable tag, a list/menu row. Selector prefixes are antd's default
+ * class prefix, resolved at render time from `ConfigProvider`, so a host with
+ * a custom `prefixCls` gets the same rules.
+ *
+ * Rendered by `SkinTheme` as a React 19 hoistable `<style href precedence>`:
+ * one element in `<head>` for the whole document however many skins mount.
+ */
+export function phoneTouchFloorCss(prefix: string): string {
+  const h = `${String(PHONE_CONTROL_HEIGHT)}px`;
+  const root = `[data-stapel-skin-root][data-stapel-skin-phone]`;
+  return [
+    `${root} .${prefix}-rate .${prefix}-rate-star{display:inline-flex;align-items:center;min-height:${h}}`,
+    `${root} .${prefix}-checkbox-wrapper,${root} .${prefix}-radio-wrapper{min-height:${h};align-items:center}`,
+    `${root} .${prefix}-tag-checkable,${root} .${prefix}-tag[role="button"],${root} a.${prefix}-tag,${root} button.${prefix}-tag{display:inline-flex;align-items:center;min-height:${h}}`,
+    `${root} .${prefix}-list-item,${root} .${prefix}-menu-item,${root} .${prefix}-dropdown-menu-item{min-height:${h}}`,
+    `${root} .${prefix}-segmented{max-width:100%;overflow-x:auto}`,
+  ].join("\n");
+}
+
+/** The `href` the hoisted phone stylesheet is deduplicated by. */
+export const PHONE_TOUCH_FLOOR_STYLE_HREF: string = "stapel-skin-phone-touch-floor";
 
 /**
  * What the wrapper paints under its children.
@@ -120,7 +180,11 @@ function skinThemeConfig(mode: ThemeMode, phone: boolean): ThemeConfig {
   if (hit !== undefined) return hit;
   const base = toAntdThemeConfig(mode);
   const config: ThemeConfig = phone
-    ? { ...base, token: { ...base.token, controlHeight: PHONE_CONTROL_HEIGHT } }
+    ? {
+        ...base,
+        token: { ...base.token, ...PHONE_TOUCH_FLOOR.token },
+        components: { ...base.components, ...PHONE_TOUCH_FLOOR.components },
+      }
     : base;
   themeConfigCache.set(key, config);
   return config;
@@ -169,11 +233,18 @@ const AppliedThemeContext = createContext<AppliedTheme | null>(null);
  */
 export function SkinTheme(props: SkinThemeProps): ReactElement {
   const liveMode = useThemeMode();
-  const mode = props.mode ?? liveMode;
+  const applied = useContext(AppliedThemeContext);
+  // A nested bare `SkinTheme` inherits the PIN of the one above it, not the
+  // document. `props.mode ?? liveMode` re-read the document inside a pinned
+  // parent, so a demo pinning `mode="dark"` around a self-wrapping surface
+  // rendered that surface light (search: 16 of 29 dark shots; reviews' sign-in
+  // door invisible; geo's `--dark` guard guarding nothing). The pin is a
+  // decision the parent already took; the child's job is to apply it.
+  const mode = props.mode ?? applied?.mode ?? liveMode;
   const surface = props.surface ?? "raised";
   const dialogSurface = useDialogSurface();
   const phone = dialogSurface === "sheet";
-  const applied = useContext(AppliedThemeContext);
+  const { getPrefixCls } = useContext(ConfigProvider.ConfigContext);
   const inherited =
     applied !== null && applied.mode === mode && applied.phone === phone
       ? applied
@@ -199,6 +270,7 @@ export function SkinTheme(props: SkinThemeProps): ReactElement {
       data-stapel-skin-root=""
       data-stapel-skin-mode={mode}
       data-stapel-skin-surface={surface}
+      {...(phone ? { "data-stapel-skin-phone": "" } : {})}
       {...(props.className !== undefined ? { className: props.className } : {})}
       {...(props["data-testid"] !== undefined ? { "data-testid": props["data-testid"] } : {})}
       style={{ colorScheme: mode, ...paint, ...props.style }}
@@ -211,6 +283,11 @@ export function SkinTheme(props: SkinThemeProps): ReactElement {
 
   return (
     <AppliedThemeContext.Provider value={publish}>
+      {phone && (
+        <style href={PHONE_TOUCH_FLOOR_STYLE_HREF} precedence="default">
+          {phoneTouchFloorCss(getPrefixCls())}
+        </style>
+      )}
       <ConfigProvider theme={theme}>{root}</ConfigProvider>
     </AppliedThemeContext.Provider>
   );

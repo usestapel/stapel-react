@@ -19,6 +19,7 @@ import {
   DETAIL_ERROR_KEY,
   coreErrorBundle,
   coreErrorKeyCandidates,
+  httpStatusFloorKeys,
 } from "../src/i18n/coreErrors.js";
 
 /** What the wire actually delivers for a Django 500 under DEBUG=False. */
@@ -177,5 +178,53 @@ describe("core's error floor", () => {
     expect(
       formatFlowError(toFlowError(error), engine.getBundle(), { locale: "en" })
     ).toBe("The importer crashed.");
+  });
+});
+
+describe("the HTTP status floor for backend codes nobody translated (VC-B7)", () => {
+  const untranslated503 = (): StapelApiError =>
+    parseErrorEnvelope(503, { localizable_error: "error.503.service_unavailable" });
+
+  it("names the status keys for a code that names its status, and nothing for one that does not", () => {
+    expect(httpStatusFloorKeys("error.503.service_unavailable")).toEqual([
+      "stapel.http.503",
+      "stapel.http.5xx",
+    ]);
+    expect(httpStatusFloorKeys("error.500.server")).toEqual(["stapel.http.500", "stapel.http.5xx"]);
+    // A code that names no status keeps the documented last resort (the key).
+    expect(httpStatusFloorKeys("auth.otp.invalid")).toEqual([]);
+    expect(httpStatusFloorKeys("validation.required")).toEqual([]);
+  });
+
+  it("renders the status floor's sentence instead of the raw key, with the status quotable beside it", () => {
+    const error = untranslated503();
+    expect(error.code).toBe("error.503.service_unavailable");
+    for (const locale of ["en", "ru", "es"]) {
+      const shown = shownFor(error, locale);
+      expect(shown.message, locale).not.toContain("error.503");
+      expect(shown.message, locale).toBe(coreErrorBundle(locale)["stapel.http.503"]);
+      expect(shown.detail, locale).toBe("HTTP 503");
+    }
+  });
+
+  it("never widens a code that IS translated, and quotes no status beside a specific sentence", () => {
+    const engine = createI18n({ locale: "en" });
+    engine.registerBundle("en", { "error.503.service_unavailable": "Search is being reindexed." });
+    const shown = describeFlowError(toFlowError(untranslated503()), engine.getBundle(), {
+      locale: engine.locale,
+    });
+    expect(shown.message).toBe("Search is being reindexed.");
+    expect(shown.detail).toBeUndefined();
+  });
+
+  it("prefers the backend's own message in the host's language over the floor", () => {
+    const error = parseErrorEnvelope(503, {
+      localizable_error: "error.503.service_unavailable",
+      error: "Поиск переиндексируется.",
+      language: "ru",
+    });
+    expect(textFor(error, "ru")).toBe("Поиск переиндексируется.");
+    // In another language the backend's sentence is not usable; the floor is.
+    expect(textFor(error, "en")).toBe(coreErrorBundle("en")["stapel.http.503"]);
   });
 });

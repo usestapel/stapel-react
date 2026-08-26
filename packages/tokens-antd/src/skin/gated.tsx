@@ -15,12 +15,31 @@
  * Never a tooltip. Icons are self-evident plus `aria-label`; reasons are
  * sentences beside controls (house rule, `stapel/no-tooltip-in-skin`).
  */
-import { useId } from "react";
-import type { CSSProperties, ReactElement, ReactNode } from "react";
+import { createContext, useContext, useEffect, useId } from "react";
+import type { Context, CSSProperties, ReactElement, ReactNode } from "react";
 import { Button, Typography, theme as antdTheme } from "antd";
 import type { ButtonProps } from "antd";
 import { useActionGate } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
+
+/**
+ * A scope that renders each distinct reason ONCE for every gated control
+ * inside it (`PaneGate` provides one). The visual pass found the same
+ * sentence printed six times on one screen — once per disabled control per
+ * row (VC-B1). Inside a scope a `GatedControl` registers its reason and
+ * renders no text of its own; its `aria-describedby` points at the scope's
+ * single copy, so assistive tech still reads the sentence with the control.
+ */
+export interface GateReasonScope {
+  /** The id the scope's copy of this reason has — stable per reason. */
+  readonly idFor: (reason: string) => string;
+  /** Register a reason (with its detail) for the scope to render. Returns
+   * the unregister. */
+  readonly register: (reason: string, detail: string | undefined) => () => void;
+}
+
+export const GateReasonScopeContext: Context<GateReasonScope | null> =
+  createContext<GateReasonScope | null>(null);
 
 /** What the render prop hands the control: bind both straight to it. */
 export interface GatedControlBinding {
@@ -55,8 +74,18 @@ export interface GatedControlProps {
 export function GatedControl(props: GatedControlProps): ReactElement {
   const view = useActionGate(props.gate);
   const { token } = antdTheme.useToken();
-  const reasonId = useId();
+  const ownId = useId();
+  const scope = useContext(GateReasonScopeContext);
   const inline = props.layout === "inline";
+  const reason = view.reason;
+  const detail = view.detail;
+  // Inside a scope the reason is the scope's to render, once.
+  useEffect(() => {
+    if (scope === null || reason === undefined) return undefined;
+    return scope.register(reason, detail);
+  }, [scope, reason, detail]);
+  const pooled = scope !== null && reason !== undefined;
+  const reasonId = pooled ? scope.idFor(reason) : ownId;
   return (
     <div
       data-stapel-gated={view.disabled ? "blocked" : "available"}
@@ -75,7 +104,7 @@ export function GatedControl(props: GatedControlProps): ReactElement {
         disabled: view.disabled,
         "aria-describedby": view.disabled ? reasonId : undefined,
       })}
-      {view.reason !== undefined && (
+      {view.reason !== undefined && !pooled && (
         <Typography.Text
           id={reasonId}
           type="secondary"
@@ -85,7 +114,7 @@ export function GatedControl(props: GatedControlProps): ReactElement {
           {view.reason}
         </Typography.Text>
       )}
-      {view.detail !== undefined && (
+      {view.detail !== undefined && !pooled && (
         <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
           {view.detail}
         </Typography.Text>

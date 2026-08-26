@@ -185,6 +185,32 @@ export function coreErrorKeyCandidates(code: string): readonly string[] {
 }
 
 /**
+ * The floor a backend code falls back to when NOBODY translated it — the
+ * status-level sentence (`stapel.http.503`), then its class (`stapel.http.5xx`).
+ *
+ * A real backend code (`error.503.service_unavailable`) is a specific state
+ * and {@link coreErrorKeyCandidates} rightly never widens it while a
+ * translation might exist. But the visual pass found those codes ON THE
+ * GLASS — `error.503.unavailable`, `error.500.server` — in packages whose
+ * catalogue never got the key. Between two untranslated 503 states there is
+ * nothing to keep apart, and "The service is temporarily unavailable" is
+ * true of both; the raw key is true of neither. So this is the LAST resort
+ * before the code itself, consulted only after the exact key and the
+ * backend's own localized message have both failed.
+ *
+ * Only for codes that NAME their status (`error.<status>.<slug>`, the fleet's
+ * backend convention). A code that does not (`auth.otp.invalid`) keeps the
+ * documented last resort — the raw key — because a response status alone
+ * says nothing about which of a screen's states it is, and the key at least
+ * tells a developer what to translate.
+ */
+export function httpStatusFloorKeys(code: string): readonly string[] {
+  const match = /^error\.(\d)(\d{2})(?:\.|$)/.exec(code);
+  if (match === null) return [];
+  return [`stapel.http.${match[1] ?? ""}${match[2] ?? ""}`, `stapel.http.${match[1] ?? ""}xx`];
+}
+
+/**
  * Does this code's copy need a technical detail beside it?
  *
  * Only for the codes core SYNTHESIZES (`stapel.*`), whose copy is

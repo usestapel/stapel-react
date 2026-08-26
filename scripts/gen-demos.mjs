@@ -17,6 +17,11 @@
 //   DEMOS_PKG_DIR   package dir (default packages/auth-react)
 //   DEMOS_GATE      "1" (default) to run the completeness gate; "0" to skip
 //                   (packages with no headless layer, e.g. tokens)
+//   DEMOS_ERRORS_JSON  path to a shot-harness error log (`shoot.mjs` output:
+//                   `{ "<storyId>": { "<tag>": ["<error>", …] } }`). When set,
+//                   the stories of THIS package that threw, failed to mount, or
+//                   painted nothing are listed (`demos:errors`); with
+//                   `--strict` / DEMOS_SKIN_GATE=strict they fail the run.
 //
 //   node scripts/gen-demos.mjs         # generate + gate
 //   pnpm gen:demos                     # generate (root script, all packages)
@@ -33,6 +38,8 @@ import {
   defaultSkinImportNames,
   defaultSkinExports,
   defaultSkinGate,
+  storyErrorsForGroup,
+  renderStoryErrorsReport,
 } from "./demos-lib.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -49,6 +56,8 @@ const RUN_GATE = (process.env.DEMOS_GATE ?? "1") !== "0";
 const SKIN_MODE = process.argv.includes("--strict")
   ? "strict"
   : (process.env.DEMOS_SKIN_GATE ?? "list");
+
+const ERRORS_JSON = process.env.DEMOS_ERRORS_JSON;
 
 const DEMO_DIR = resolve(PKG_DIR, "demo");
 const GEN_DIR = resolve(DEMO_DIR, "generated");
@@ -231,6 +240,24 @@ async function main() {
       }
       gateNote += `, ${covered.length}/${required.length} skin covered`;
     }
+  }
+
+  // demos:errors — the shot log's verdict on this package's stories. A story
+  // whose console errored, never mounted, or painted nothing is a defect.
+  if (ERRORS_JSON) {
+    const log = JSON.parse(await readFile(resolve(ROOT, ERRORS_JSON), "utf8"));
+    const entries = storyErrorsForGroup(log, GROUP);
+    if (entries.length > 0) {
+      const stories = new Set(entries.map((e) => e.story)).size;
+      const verb = SKIN_MODE === "strict" ? "✖" : "⚠";
+      console.error(
+        `${verb} demos:errors [${GROUP}]: ${stories} stor${stories === 1 ? "y" : "ies"} with errors in the shot log\n` +
+          renderStoryErrorsReport(entries).join("\n") +
+          `\n  (${ERRORS_JSON}; a console error, NOT_MOUNTED or BLANK_RENDER is a defect of the story)`
+      );
+      if (SKIN_MODE === "strict") process.exit(1);
+    }
+    gateNote += `, ${entries.length === 0 ? "no" : String(entries.length)} shot error(s)`;
   }
 
   console.error(

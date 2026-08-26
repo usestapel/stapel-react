@@ -28,6 +28,19 @@
  *    "empty" is reachable only from a load that succeeded.
  *  - {@link GatedControl} / {@link GatedButton} — a switched-off control
  *    states its reason as visible text beside it, never in a tooltip.
+ *  - {@link PaneGate} — a pane-level refusal is rendered once for the pane,
+ *    and per-control reasons inside an available pane are pooled, one copy
+ *    per distinct sentence.
+ *  - {@link Pane} / {@link Page} — the measure (`narrow`/`reading`/`wide`)
+ *    and the padding scale, instead of a hand-set `maxWidth` per file.
+ *  - {@link StatusTag} — one treatment per status family
+ *    (success/warning/error/info/neutral), from the theme's status roles.
+ *  - {@link RowActions} — a row's actions wrap between buttons, never inside
+ *    a word; on a phone the overflow is a sheet.
+ *  - {@link ListRow} / {@link CardHeader} — text columns are `min-width: 0`
+ *    and wrap; actions and badges have slots of their own.
+ *  - {@link DataTable} — a table where the box is wide, cards where it is
+ *    not, by element width.
  *
  * Copy the substrate needs for itself (retry, dismiss, confirm, cancel, the
  * empty-state default) comes from `@stapel/core`'s UI floor
@@ -38,10 +51,24 @@
  * fails lint on a bare antd `Modal`/`Drawer`/`Popconfirm` under
  * `src/default/**`.
  */
-export { SkinDialog, useDialogSurface, MODAL_MEDIA_QUERY } from "./skin/dialog.js";
+export {
+  SkinDialog,
+  useDialogSurface,
+  MODAL_MEDIA_QUERY,
+  SHEET_MAX_HEIGHT,
+  SHEET_WRAPPER_CLASS,
+  SHEET_STYLE_HREF,
+  sheetSizingCss,
+} from "./skin/dialog.js";
 export type { SkinDialogProps, DialogSurface } from "./skin/dialog.js";
 export { useThemeMode, subscribeThemeMode } from "./skin/themeMode.js";
-export { SkinTheme, PHONE_CONTROL_HEIGHT } from "./skin/theme.js";
+export {
+  SkinTheme,
+  PHONE_CONTROL_HEIGHT,
+  PHONE_TOUCH_FLOOR,
+  PHONE_TOUCH_FLOOR_STYLE_HREF,
+  phoneTouchFloorCss,
+} from "./skin/theme.js";
 export type { SkinThemeProps, SkinSurface } from "./skin/theme.js";
 export { ErrorAlert, EmptyState, LoadBoundary, LoadList } from "./skin/states.js";
 export type {
@@ -52,5 +79,22 @@ export type {
 } from "./skin/states.js";
 export { SkinConfirm, CONFIRM_OK_TESTID, CONFIRM_CANCEL_TESTID } from "./skin/confirm.js";
 export type { SkinConfirmProps } from "./skin/confirm.js";
-export { GatedControl, GatedButton } from "./skin/gated.js";
-export type { GatedControlProps, GatedControlBinding, GatedButtonProps } from "./skin/gated.js";
+export { GatedControl, GatedButton, GateReasonScopeContext } from "./skin/gated.js";
+export type {
+  GatedControlProps,
+  GatedControlBinding,
+  GatedButtonProps,
+  GateReasonScope,
+} from "./skin/gated.js";
+export { PaneGate } from "./skin/paneGate.js";
+export type { PaneGateProps } from "./skin/paneGate.js";
+export { Pane, Page, PANE_MEASURES } from "./skin/pane.js";
+export type { PaneProps, PageProps, PaneMeasure, PanePadding } from "./skin/pane.js";
+export { StatusTag } from "./skin/status.js";
+export type { StatusTagProps, StatusFamily } from "./skin/status.js";
+export { RowActions } from "./skin/rowActions.js";
+export type { RowActionsProps, RowAction } from "./skin/rowActions.js";
+export { ListRow, CardHeader } from "./skin/listRow.js";
+export type { ListRowProps, CardHeaderProps } from "./skin/listRow.js";
+export { DataTable } from "./skin/dataTable.js";
+export type { DataTableProps, DataTableColumn, DataTableCardRole } from "./skin/dataTable.js";

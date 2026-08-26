@@ -35,6 +35,10 @@ export const STAPEL_UI_KEYS = {
   emptyTitle: "stapel.ui.empty.title",
   /** Dev-only placeholder for a render slot the host left unfilled. */
   slotUnfilled: "stapel.ui.slot.unfilled",
+  /** The overflow control of a row's actions on a phone ("More"). */
+  more: "stapel.ui.more",
+  /** Accessible name / title of an actions sheet ("Actions"). */
+  actions: "stapel.ui.actions",
 } as const;
 
 const CORE_UI_BUNDLES: Readonly<Record<string, I18nDictionary>> = {
@@ -46,6 +50,8 @@ const CORE_UI_BUNDLES: Readonly<Record<string, I18nDictionary>> = {
     [STAPEL_UI_KEYS.loading]: "Loading",
     [STAPEL_UI_KEYS.emptyTitle]: "Nothing here yet",
     [STAPEL_UI_KEYS.slotUnfilled]: "Slot “{name}” is not filled",
+    [STAPEL_UI_KEYS.more]: "More",
+    [STAPEL_UI_KEYS.actions]: "Actions",
   },
   ru: {
     [STAPEL_UI_KEYS.retry]: "Повторить",
@@ -55,6 +61,8 @@ const CORE_UI_BUNDLES: Readonly<Record<string, I18nDictionary>> = {
     [STAPEL_UI_KEYS.loading]: "Загрузка",
     [STAPEL_UI_KEYS.emptyTitle]: "Пока здесь ничего нет",
     [STAPEL_UI_KEYS.slotUnfilled]: "Слот «{name}» не заполнен",
+    [STAPEL_UI_KEYS.more]: "Ещё",
+    [STAPEL_UI_KEYS.actions]: "Действия",
   },
   es: {
     [STAPEL_UI_KEYS.retry]: "Reintentar",
@@ -64,6 +72,8 @@ const CORE_UI_BUNDLES: Readonly<Record<string, I18nDictionary>> = {
     [STAPEL_UI_KEYS.loading]: "Cargando",
     [STAPEL_UI_KEYS.emptyTitle]: "Aún no hay nada aquí",
     [STAPEL_UI_KEYS.slotUnfilled]: "El espacio «{name}» no está relleno",
+    [STAPEL_UI_KEYS.more]: "Más",
+    [STAPEL_UI_KEYS.actions]: "Acciones",
   },
 };
 

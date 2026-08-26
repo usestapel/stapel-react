@@ -7,7 +7,15 @@
  * static projection of these definitions.
  */
 export { defineDemo } from "./defineDemo.js";
-export type { DemoDef, DemoVariant, DemoViewport } from "./defineDemo.js";
-export { renderDemoVariant, variantIds } from "./render.js";
+export type { DemoDef, DemoVariant, DemoViewport, DemoPlay, DemoPlayContext } from "./defineDemo.js";
+export {
+  renderDemoVariant,
+  variantIds,
+  playVariantIds,
+  runDemoPlay,
+  createPlayContext,
+  DemoStage,
+} from "./render.js";
+export type { DemoStageProps, DemoPlayStatus } from "./render.js";
 export { duplicateVariantGroups, assertVariantsRenderDistinctly } from "./distinct.js";
 export type { MarkupRenderer, DuplicateVariantGroup } from "./distinct.js";

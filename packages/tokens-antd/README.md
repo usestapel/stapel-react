@@ -79,7 +79,23 @@ the theme mapping never loads a component.
 | `ErrorAlert` | The one error surface: `error` (described), `thrown` (raw), or `message`; `onRetry`, `onDismiss`, `action`; `variant="block"` (Alert) or `"inline"`. |
 | `EmptyState` | Icon, title, hint, action. Reachable only from a load that succeeded. |
 | `LoadBoundary` / `LoadList` | `matchLoad` / `matchList` as components with designed loading / failed / empty arms; the skin writes only the ready arm. |
-| `GatedControl` / `GatedButton` | A control plus its `ActionAvailability` reason as visible text beside it (`aria-describedby`), never a tooltip. |
+| `GatedControl` / `GatedButton` | A control plus its `ActionAvailability` reason as visible text beside it (`aria-describedby`), never a tooltip. Inside a `PaneGate`, identical reasons are pooled into one sentence. |
+| `PaneGate` | A pane-level refusal rendered ONCE for the pane (no retry, an optional way forward, an optional read-only preview) instead of per-row gated controls. |
+| `Pane` / `Page` | The measure (`narrow` / `reading` / `wide` / `full`, derived from the token breakpoints) and the padding scale, instead of a hand-set `maxWidth` per file. `Page` is a self-themed `base` surface with the one title/actions header a screen has. |
+| `StatusTag` | One treatment per status family — `success` / `warning` / `error` / `info` / `neutral` — from the theme's status roles. |
+| `RowActions` | A row's actions: buttons that wrap between themselves and never inside a word; on a phone the primary stays inline and the rest open in a sheet. Gated actions carry their reason. |
+| `ListRow` / `CardHeader` | A row and a header whose text column is `min-width: 0` and wraps (no ellipsis unless `truncate`), with a badge slot that reserves its space and an actions slot that wraps under the title. |
+| `DataTable` | A table where the box is wide, a stack of cards where it is not — decided by the element's width, never the viewport's. Columns declare their card role (`title` / `badge` / `field` / `hidden`). |
+
+Phone (viewport below the tablet breakpoint): `SkinTheme` applies `PHONE_TOUCH_FLOOR`
+— `controlHeight` **and** `controlHeightSM` at 44px, `Rate` stars on a 44px
+pitch, 24px checkbox/radio boxes — and hoists one stylesheet
+(`phoneTouchFloorCss`) that gives rate stars, checkbox/radio rows, clickable
+tags and list/menu rows a 44px hit area. A nested bare `SkinTheme` inherits
+the **pin** of the one above it (`mode="dark"` on a demo wrapper themes every
+self-wrapping surface inside it dark). The sheet (`SkinDialog` on a phone)
+fits its content up to `90dvh`; past that the body scrolls and the `footer`
+stays pinned — put the primary action in `footer`.
 
 ```tsx
 import { SkinTheme, LoadList, EmptyState, GatedButton, SkinConfirm } from "@stapel/tokens-antd/skin";

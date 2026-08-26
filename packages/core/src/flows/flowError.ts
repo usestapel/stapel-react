@@ -5,6 +5,7 @@ import {
   DETAIL_ERROR_KEY,
   codeCarriesTechnicalDetail,
   coreErrorKeyCandidates,
+  httpStatusFloorKeys,
 } from "../i18n/coreErrors.js";
 import type { I18nDictionary } from "../i18n.js";
 
@@ -121,9 +122,16 @@ export interface FormatFlowErrorOptions {
  *      NOT reached for a bodiless failure: there `message` is the transport's
  *      own `"Request failed with status 500"` and `language` is `undefined`,
  *      which is precisely why this guard exists.
- *   3. `error.code` itself — the last-resort raw key (frontend-standard
- *      §4.2: a raw key at least signals "someone forgot to add this
- *      translation", rather than silently swallowing the error).
+ *   3. The HTTP status floor — `stapel.http.<status>`, then `stapel.http.Nxx`
+ *      — for a backend code nobody translated (`error.503.service_unavailable`
+ *      reaching the glass raw, visual pass VC-B7). Two untranslated 503
+ *      states have nothing to keep apart; the floor's sentence is true of
+ *      both and the raw key of neither. Only for codes that name their
+ *      status; see `httpStatusFloorKeys`.
+ *   4. `error.code` itself — the last-resort raw key (frontend-standard
+ *      §4.2: a raw key at least signals
+ *      "someone forgot to add this translation", rather than silently
+ *      swallowing the error).
  *
  * `{status}` is available to every template on top of `error.params` (a
  * backend param of the same name still wins) — but NO core floor sentence
@@ -189,25 +197,45 @@ export function describeFlowError(
   // `status: 0` is `toStapelApiError`'s "never reached a backend" marker, not
   // an HTTP outcome — quoting `HTTP 0` back at support would be a lie about
   // what the server said.
+  const resolved = flowErrorMessage(error, bundle, opts, params);
+  // A generic sentence is the only case worth quoting a status beside: core's
+  // own synthesized codes, and a backend code that fell back to the status
+  // floor because nobody translated it (the floor's sentence identifies
+  // nothing, so "HTTP 503" is the one thing a person could quote).
   const quotable =
-    error.status !== undefined && error.status > 0 && codeCarriesTechnicalDetail(error.code);
+    error.status !== undefined &&
+    error.status > 0 &&
+    (codeCarriesTechnicalDetail(error.code) || resolved.fromStatusFloor);
   return {
-    message: flowErrorMessage(error, bundle, opts, params),
+    message: resolved.message,
     detail: quotable
       ? interpolate(bundle[DETAIL_ERROR_KEY] ?? DETAIL_ERROR_FALLBACK, params)
       : undefined,
   };
 }
 
+interface ResolvedMessage {
+  readonly message: string;
+  /** The sentence came from `stapel.http.*` for a code that is not core's own. */
+  readonly fromStatusFloor: boolean;
+}
+
+/**
+ * The chain documented on {@link formatFlowError}: exact key (widened only
+ * for core's own codes) → the backend's localized message → the HTTP status
+ * floor → the raw code. The status floor sits AFTER the backend's message on
+ * purpose: a sentence the backend wrote about the specific thing beats a
+ * generic one about the status, and the generic one beats a key.
+ */
 function flowErrorMessage(
   error: FlowError,
   bundle: I18nDictionary,
   opts: FormatFlowErrorOptions,
   params: Record<string, unknown>
-): string {
+): ResolvedMessage {
   for (const key of coreErrorKeyCandidates(error.code)) {
     const template = bundle[key];
-    if (template !== undefined) return interpolate(template, params);
+    if (template !== undefined) return { message: interpolate(template, params), fromStatusFloor: false };
   }
   if (
     error.message !== undefined &&
@@ -215,7 +243,11 @@ function flowErrorMessage(
     opts.locale !== undefined &&
     error.language === opts.locale
   ) {
-    return error.message;
+    return { message: error.message, fromStatusFloor: false };
   }
-  return error.code;
+  for (const key of httpStatusFloorKeys(error.code)) {
+    const template = bundle[key];
+    if (template !== undefined) return { message: interpolate(template, params), fromStatusFloor: true };
+  }
+  return { message: error.code, fromStatusFloor: false };
 }

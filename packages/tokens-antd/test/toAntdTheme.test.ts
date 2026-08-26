@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { theme as antdTheme } from "antd";
 import { bridgeRadiusRole, colors, radii } from "@stapel/tokens";
 import { toAntdTheme, toAntdThemeConfig } from "../src/index.js";
 
@@ -47,5 +48,60 @@ describe("toAntdThemeConfig — full ThemeConfig with the mode algorithm", () =>
     expect(typeof dark.algorithm).toBe("function");
     // The two modes carry different algorithms (default vs dark).
     expect(dark.algorithm).not.toBe(light.algorithm);
+  });
+});
+
+/** WCAG 2.x relative luminance of a `#rrggbb` hex. */
+function luminance(hex: string): number {
+  const channel = (i: number): number => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+}
+
+/** WCAG contrast ratio between two `#rrggbb` hexes. */
+function contrast(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+describe("status surfaces and the on-accent label (VC-B4 / VC-B2)", () => {
+  it.each(["light", "dark"] as const)("fills alerts and tags from the *-bg / *-border roles in %s", (mode) => {
+    const t = antdTheme.getDesignToken(toAntdThemeConfig(mode));
+    expect(t.colorWarningBg).toBe(colors["warning-bg"][mode]);
+    expect(t.colorWarningBorder).toBe(colors["warning-border"][mode]);
+    expect(t.colorSuccessBg).toBe(colors["success-bg"][mode]);
+    expect(t.colorSuccessBorder).toBe(colors["success-border"][mode]);
+    expect(t.colorErrorBg).toBe(colors["error-bg"][mode]);
+    expect(t.colorErrorBorder).toBe(colors["error-border"][mode]);
+    expect(t.colorInfoBg).toBe(colors["info-bg"][mode]);
+    expect(t.colorInfoBorder).toBe(colors["info-border"][mode]);
+    expect(t.colorPrimaryBg).toBe(colors["brand-subtle"][mode]);
+  });
+
+  it.each(["light", "dark"] as const)("keeps every status sentence legible on its own fill in %s (AA)", (mode) => {
+    const t = antdTheme.getDesignToken(toAntdThemeConfig(mode));
+    expect(contrast(t.colorWarning, t.colorWarningBg)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t.colorSuccess, t.colorSuccessBg)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t.colorError, t.colorErrorBg)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t.colorInfo, t.colorInfoBg)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t.colorText, t.colorWarningBg)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each(["light", "dark"] as const)("keeps the label on a primary button at AA in %s", (mode) => {
+    const t = antdTheme.getDesignToken(toAntdThemeConfig(mode));
+    expect(t.colorTextLightSolid).toBe(colors["text-on-accent"][mode]);
+    // antd derives the dark primary fill from the seed (it is not the seed
+    // itself), so the assertion is on what a button actually paints.
+    expect(contrast(t.colorPrimary, t.colorTextLightSolid)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t.colorPrimaryHover, t.colorTextLightSolid)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("keeps a tooltip's label light in both modes — its fill is the dark spotlight either way", () => {
+    for (const mode of ["light", "dark"] as const) {
+      const config = toAntdThemeConfig(mode);
+      expect(config.components?.Tooltip?.colorTextLightSolid).toBe(colors.text.dark);
+    }
   });
 });

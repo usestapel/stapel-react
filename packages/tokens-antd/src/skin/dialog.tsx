@@ -54,9 +54,9 @@
  * `useBreakpoint()` pattern (`undefined` until an effect runs) would paint a
  * desktop modal on a phone for one frame and then swap it for a sheet.
  */
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactElement, ReactNode } from "react";
-import { Drawer, Modal, theme as antdTheme } from "antd";
+import { ConfigProvider, Drawer, Modal, theme as antdTheme } from "antd";
 import { breakpoints } from "@stapel/tokens";
 
 /**
@@ -150,6 +150,40 @@ function serverSurface(): DialogSurface {
  */
 export function useDialogSurface(): DialogSurface {
   return useSyncExternalStore(subscribe, readSurface, serverSurface);
+}
+
+/** The tallest a sheet gets: the rest of the page must stay visible behind it. */
+export const SHEET_MAX_HEIGHT: string = "90dvh";
+
+/** The class the sheet's panel wrapper carries, for {@link sheetSizingCss}. */
+export const SHEET_WRAPPER_CLASS: string = "stapel-sheet-wrapper";
+
+/** The `href` the hoisted sheet stylesheet is deduplicated by. */
+export const SHEET_STYLE_HREF: string = "stapel-skin-sheet-sizing";
+
+/**
+ * A sheet is as tall as its content, up to {@link SHEET_MAX_HEIGHT}; past
+ * that its BODY scrolls while the header and the footer stay put.
+ *
+ * antd's bottom drawer is a fixed 378px (`height` prop) — the "~45% of the
+ * viewport" the visual pass measured (VC-B5) — and everything past it was
+ * reachable only by scrolling a body nothing marked as scrollable, with the
+ * primary action below the fold in five packages. `height: auto` on the
+ * wrapper alone is not enough: antd's panel inside it is `height: 100%`,
+ * and 100% of an auto parent is nothing (jsdom cannot see this; a browser
+ * can). So the wrapper becomes a flex column, the panel a shrinkable item
+ * capped at the same maximum, and antd's own body rule (`flex: 1; min-height:
+ * 0; overflow: auto`) does the scrolling. `!important` beats the inline
+ * `height` rc-drawer writes; `transition`/`transform` are left to rc-motion.
+ */
+export function sheetSizingCss(prefix: string): string {
+  const wrapper = `.${SHEET_WRAPPER_CLASS}`;
+  const panel = `${wrapper} > .${prefix}-drawer-section, ${wrapper} > .${prefix}-drawer-content`;
+  return [
+    `${wrapper}{height:auto !important;max-height:${SHEET_MAX_HEIGHT};display:flex;flex-direction:column}`,
+    `${panel}{height:auto;max-height:${SHEET_MAX_HEIGHT};flex:0 1 auto;min-height:0}`,
+    `${wrapper} .${prefix}-drawer-footer{flex-shrink:0}`,
+  ].join("\n");
 }
 
 /** How far the sheet must be dragged down before letting go dismisses it. */
@@ -322,6 +356,7 @@ interface BottomSheetProps {
  */
 function BottomSheet(props: BottomSheetProps): ReactElement {
   const { open, onClose, radius, handleColor, bodyPadding, dismissible } = props;
+  const { getPrefixCls } = useContext(ConfigProvider.ConfigContext);
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
   const gesture = useRef<{ startY: number; startedAt: number } | null>(null);
@@ -467,8 +502,10 @@ function BottomSheet(props: BottomSheetProps): ReactElement {
   const wrapperStyle: CSSProperties = {
     // `dvh`, not `vh`: on mobile Safari `vh` is the tallest the viewport ever
     // gets, so a `90vh` sheet is taller than the visible page and its own
-    // footer sits under the browser chrome.
-    maxHeight: "90dvh",
+    // footer sits under the browser chrome. The content-fit height itself is
+    // in `sheetSizingCss` (a class rule can `!important` over rc-drawer's
+    // inline height; an inline style here cannot).
+    maxHeight: SHEET_MAX_HEIGHT,
     borderTopLeftRadius: radius,
     borderTopRightRadius: radius,
     // …so the square-cornered panel inside is actually clipped by them.
@@ -482,6 +519,10 @@ function BottomSheet(props: BottomSheetProps): ReactElement {
   };
 
   return (
+    <>
+      <style href={SHEET_STYLE_HREF} precedence="default">
+        {sheetSizingCss(getPrefixCls())}
+      </style>
     <Drawer
       open={open}
       onClose={onClose}
@@ -489,6 +530,7 @@ function BottomSheet(props: BottomSheetProps): ReactElement {
       keyboard={dismissible}
       closable={false}
       title={header}
+      classNames={{ wrapper: SHEET_WRAPPER_CLASS }}
       destroyOnHidden={props.destroyOnHidden}
       {...(dismissible
         ? props.maskClosable !== undefined
@@ -513,5 +555,6 @@ function BottomSheet(props: BottomSheetProps): ReactElement {
     >
       {props.children}
     </Drawer>
+    </>
   );
 }
