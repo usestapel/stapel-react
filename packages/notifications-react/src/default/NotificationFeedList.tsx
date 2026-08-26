@@ -26,7 +26,13 @@
  */
 import type { ReactElement } from "react";
 import { Button, Flex, Typography, theme as antdTheme } from "antd";
-import { EmptyState, LoadList, SkinTheme } from "@stapel/tokens-antd/skin";
+import {
+  EmptyState,
+  ErrorAlert,
+  GatedButton,
+  LoadList,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
 import type { SkinSurface } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 import { useT } from "@stapel/core";
@@ -73,7 +79,20 @@ export function NotificationFeedList(
       style={{ width: "100%", maxWidth: LIST_MEASURE, padding: spacing[4] }}
     >
       <NotificationFeed {...(props.limit !== undefined ? { limit: props.limit } : {})}>
-        {({ state, hasNextPage, isFetchingNextPage, fetchNextPage, refetch, delivery }) => (
+        {({
+          state,
+          hasNextPage,
+          isFetchingNextPage,
+          fetchNextPage,
+          refetch,
+          delivery,
+          unreadCount,
+          markAll,
+          markAllRead,
+          markRead,
+          isMarkingRead,
+          markReadError,
+        }) => (
           <Flex vertical gap={spacing[3]}>
             {heading && (
               <Flex vertical gap={spacing[1]}>
@@ -85,6 +104,57 @@ export function NotificationFeedList(
                 </Typography.Text>
               </Flex>
             )}
+
+            {/* The count and the control that clears it, on one line: the
+                number is what the button acts on, and when the number is 0 the
+                button is off with the sentence that says why sitting beside
+                it — never a live button whose only outcome is `marked: 0`.
+
+                The count is drawn ONLY when there is one. "You're all caught
+                up." on the left beside "Nothing to mark — everything here is
+                read." on the right is the same claim twice, and the gate's
+                sentence is the one that has to be there (it explains a
+                switched-off control). A cleared feed goes quiet instead. */}
+            <Flex
+              gap={spacing[3]}
+              justify={unreadCount > 0 ? "space-between" : "flex-end"}
+              align="baseline"
+              wrap
+              data-testid="notification-feed-readbar"
+            >
+              {unreadCount > 0 && (
+                <Typography.Text strong data-testid="notification-feed-unread-count">
+                  {t(NOTIFICATIONS_I18N_KEYS.feedUnreadCount, { count: unreadCount })}
+                </Typography.Text>
+              )}
+              <GatedButton
+                gate={markAll}
+                layout="inline"
+                size="small"
+                loading={isMarkingRead}
+                onClick={markAllRead}
+                testId="notification-feed-mark-all"
+                data-analytics="none"
+                data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+              >
+                {t(NOTIFICATIONS_I18N_KEYS.feedMarkAllRead)}
+              </GatedButton>
+            </Flex>
+
+            {/* The optimistic stamp has already been rolled back by the time
+                this renders, so the rows a person is looking at are true again
+                and this says what happened to them. `inline` — a boxed alert
+                between the heading and the list would push the feed down for
+                a failure that costs nothing to retry. No `onRetry`: the same
+                failure can come from "mark all" or from one row, and a retry
+                button that could only re-run one of them would re-run the
+                wrong one — the controls that made the request are both still
+                on screen. */}
+            <ErrorAlert
+              thrown={markReadError}
+              variant="inline"
+              testId="notification-feed-mark-error"
+            />
 
             <DeliveryIndicator delivery={delivery} />
 
@@ -113,6 +183,7 @@ export function NotificationFeedList(
                       <FeedItemRow
                         key={item.id}
                         item={item}
+                        onMarkRead={markRead}
                         {...(props.onSelect !== undefined ? { onSelect: props.onSelect } : {})}
                         {...(props.now !== undefined ? { now: props.now } : {})}
                       />

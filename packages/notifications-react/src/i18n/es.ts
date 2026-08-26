@@ -38,6 +38,15 @@ export const notificationsI18nBundleEs: I18nDictionary = {
   "notifications.feed.end": "Esto es todo lo que tienes.",
   "notifications.feed.open": "Abrir",
 
+  "notifications.feed.unread": "Sin leer",
+  "notifications.feed.unread_count": "{count} sin leer",
+  "notifications.feed.mark_read": "Marcar como leída",
+  "notifications.feed.mark_all_read": "Marcar todo como leído",
+  "notifications.feed.mark_all_read.blocked.none":
+    "No hay nada que marcar: aquí ya está todo leído.",
+  "notifications.bell.label": "Notificaciones",
+  "notifications.bell.label_unread": "Notificaciones, {count} sin leer",
+
   "notifications.live.on": "En vivo",
   "notifications.live.connecting": "Conectando…",
   "notifications.live.reconnecting": "Reconectando…",

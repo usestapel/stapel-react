@@ -131,6 +131,35 @@ export function NotificationTypeIcon(props: { type: string }): ReactElement {
   }
 }
 
+/**
+ * The bell itself — the nav entry's glyph, at nav size.
+ *
+ * Same path as the `other` family above, drawn at 20px rather than 18px and
+ * without the family icon's `aria-hidden` justification: this one is the only
+ * content of a button, whose accessible name is the button's `aria-label`, so
+ * the glyph stays decorative here too.
+ */
+export function BellIcon(): ReactElement {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      role="img"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M18 9a6 6 0 1 0-12 0c0 6-2 7-2 7h16s-2-1-2-7" />
+      <path d="M10.5 20a1.8 1.8 0 0 0 3 0" />
+    </svg>
+  );
+}
+
 /** A small chevron marking a row that opens something. */
 export function OpenChevronIcon(): ReactElement {
   return (

@@ -29,6 +29,8 @@ export const notificationsErrorBundleRu: Record<NotificationsErrorCode, string> 
   "error.400.field.unique": "Значение поля «{field}» должно быть уникальным",
   "error.400.invalid_ad_id": "Недопустимый идентификатор объявления",
   "error.400.invalid_platform": "Платформа должна быть одной из: ios, android, web.",
+  "error.400.read_target_required": "Укажите ровно одно: непустой список «ids» или «all»: true.",
+  "error.400.too_many_ids": "Слишком много идентификаторов в одном запросе. Отправьте меньше или «all»: true.",
   "error.400.validation_error": "Ошибка валидации",
   "error.400.verification_failed": "Проверка не пройдена",
   "error.400.verification_invalid_factor": "Этот способ подтверждения недоступен",

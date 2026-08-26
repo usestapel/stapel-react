@@ -31,13 +31,18 @@
  * chevron and no hover affordance, so nothing invites a tap that does nothing.
  */
 import type { MouseEvent, ReactElement } from "react";
-import { Flex, Typography, theme as antdTheme } from "antd";
+import { Button, Flex, Typography, theme as antdTheme } from "antd";
 import { spacing } from "@stapel/tokens";
-import { useI18n } from "@stapel/core";
+import { useI18n, useT } from "@stapel/core";
 import type { FeedItem } from "../api/types.js";
-import { feedItemLink } from "../api/types.js";
+import { feedItemLink, isFeedItemUnread } from "../api/types.js";
 import { formatFeedTime } from "../model/format.js";
+import { NOTIFICATIONS_I18N_KEYS } from "../i18n/keys.js";
 import { NotificationTypeIcon, OpenChevronIcon } from "./icons.js";
+
+/** The unread dot's diameter. A glyph size, not a spacing step — it sits in
+ * the same optical column as the family icon above it. */
+const DOT_SIZE = 8;
 
 export interface FeedItemRowProps {
   readonly item: FeedItem;
@@ -47,17 +52,51 @@ export interface FeedItemRowProps {
    * routing is the host's.
    */
   readonly onSelect?: ((item: FeedItem, url: string) => void) | undefined;
+  /**
+   * Mark this row read. Called when the row is OPENED — including a
+   * ctrl/cmd-click that opens a new tab, because a row somebody opened in a
+   * background tab is a row they have seen.
+   *
+   * A row with no deep link cannot be opened, so it gets an explicit "Mark as
+   * read" control instead (rendered only while it is unread). The alternative
+   * — making the whole linkless row clickable — is the dead affordance this
+   * file already refuses to draw for navigation.
+   */
+  readonly onMarkRead?: ((item: FeedItem) => void) | undefined;
   /** Injected in demos and tests so a rendered "3 days ago" is a fact about
    * the fixture rather than about the day the suite ran. */
   readonly now?: Date | undefined;
 }
 
 export function FeedItemRow(props: FeedItemRowProps): ReactElement {
-  const { item, onSelect } = props;
+  const { item, onSelect, onMarkRead } = props;
   const { locale } = useI18n();
+  const t = useT();
   const { token } = antdTheme.useToken();
   const href = feedItemLink(item);
   const when = formatFeedTime(item.created_at, locale, props.now);
+  const unread = isFeedItemUnread(item);
+
+  // Unread is the state a row is BORN in, so read is the quieter one: the
+  // title drops out of bold and the whole row loses a little contrast. Drawn
+  // as a difference between two rows rather than as a badge on one, because a
+  // feed is read by scanning it.
+  const titleColor = unread ? token.colorText : token.colorTextSecondary;
+
+  const dot = (
+    <span
+      role="img"
+      aria-label={t(NOTIFICATIONS_I18N_KEYS.feedUnread)}
+      data-testid="notification-feed-unread-dot"
+      style={{
+        width: DOT_SIZE,
+        height: DOT_SIZE,
+        borderRadius: "50%",
+        background: token.colorPrimary,
+        flex: "0 0 auto",
+      }}
+    />
+  );
 
   const body = (
     <Flex
@@ -69,11 +108,19 @@ export function FeedItemRow(props: FeedItemRowProps): ReactElement {
         width: "100%",
       }}
     >
-      <span
+      {/* Dot and glyph share one column so every row starts at the same
+          x-position: an unread marker that shifted the icon would make the
+          list ripple as rows are read. */}
+      <Flex
+        align="center"
+        gap={spacing[2]}
         style={{ color: token.colorTextSecondary, lineHeight: 1, paddingTop: spacing[1] }}
       >
+        <span style={{ width: DOT_SIZE, display: "inline-flex", flex: "0 0 auto" }}>
+          {unread && dot}
+        </span>
         <NotificationTypeIcon type={item.notification_type} />
-      </span>
+      </Flex>
       <Flex vertical gap={spacing[1]} style={{ minWidth: 0, flex: 1 }}>
         {/* ONE anatomy, at every width. This line used to `wrap`, so a title
             long enough to crowd the time pushed it onto a second line — and a
@@ -83,9 +130,9 @@ export function FeedItemRow(props: FeedItemRowProps): ReactElement {
             the list has the same shape. */}
         <Flex gap={spacing[3]} justify="space-between" align="baseline">
           <Typography.Text
-            strong
+            strong={unread}
             ellipsis
-            style={{ color: token.colorText, minWidth: 0, flex: 1 }}
+            style={{ color: titleColor, minWidth: 0, flex: 1 }}
           >
             {item.title}
           </Typography.Text>
@@ -115,12 +162,32 @@ export function FeedItemRow(props: FeedItemRowProps): ReactElement {
       <li
         data-testid="notification-feed-item"
         data-notification-type={item.notification_type}
+        data-unread={unread ? "true" : "false"}
         style={{
           listStyle: "none",
           borderBottom: `1px solid ${token.colorSplit}`,
         }}
       >
         {body}
+        {unread && onMarkRead !== undefined && (
+          // The only road to read for a row that goes nowhere. A real control
+          // with a real label, not a hover affordance — a phone has no hover,
+          // and "mark all" is too blunt for one row somebody wants to keep.
+          <Flex justify="flex-end" style={{ paddingBottom: spacing[2] }}>
+            <Button
+              type="link"
+              size="small"
+              data-testid="notification-feed-mark-read"
+              data-analytics="none"
+              data-analytics-reason="business action — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+              onClick={() => {
+                onMarkRead(item);
+              }}
+            >
+              {t(NOTIFICATIONS_I18N_KEYS.feedMarkRead)}
+            </Button>
+          </Flex>
+        )}
       </li>
     );
   }
@@ -129,12 +196,23 @@ export function FeedItemRow(props: FeedItemRowProps): ReactElement {
     <li
       data-testid="notification-feed-item"
       data-notification-type={item.notification_type}
+      data-unread={unread ? "true" : "false"}
       style={{ listStyle: "none", borderBottom: `1px solid ${token.colorSplit}` }}
     >
       <a
         href={href}
         data-testid="notification-feed-link"
         style={{ display: "block", color: "inherit" }}
+        // Opened is read — and this fires for the modified clicks too, which
+        // the router branch below deliberately lets through: a row opened in a
+        // background tab has still been opened.
+        onClickCapture={
+          onMarkRead === undefined
+            ? undefined
+            : () => {
+                onMarkRead(item);
+              }
+        }
         data-analytics="none"
         data-analytics-reason="navigation to the notification's own target — host app wraps with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
         {...(onSelect !== undefined

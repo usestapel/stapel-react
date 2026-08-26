@@ -30,6 +30,18 @@ export const NOTIFICATIONS_I18N_KEYS = {
   feedEnd: "notifications.feed.end",
   feedOpen: "notifications.feed.open",
 
+  // ── Read state (stapel-notifications 0.18.0) ──────────────────────────────
+  feedUnread: "notifications.feed.unread",
+  feedUnreadCount: "notifications.feed.unread_count",
+  feedMarkRead: "notifications.feed.mark_read",
+  feedMarkAllRead: "notifications.feed.mark_all_read",
+  // A gate reason, not a label: `actionBlocked()` takes an i18n key, so the
+  // sentence a switched-off "Mark all as read" shows is a translated string
+  // like every other, never a hardcoded English fallback in a skin.
+  feedMarkAllBlockedNone: "notifications.feed.mark_all_read.blocked.none",
+  bellLabel: "notifications.bell.label",
+  bellLabelUnread: "notifications.bell.label_unread",
+
   // ── Delivery mode (live socket vs the documented poll) ────────────────────
   liveOn: "notifications.live.on",
   liveConnecting: "notifications.live.connecting",
@@ -109,6 +121,15 @@ export const notificationsI18nBundleEn: I18nDictionary = {
   "notifications.feed.load_more": "Load more",
   "notifications.feed.end": "That's the end of your notifications.",
   "notifications.feed.open": "Open",
+
+  "notifications.feed.unread": "Unread",
+  "notifications.feed.unread_count": "{count} unread",
+  "notifications.feed.mark_read": "Mark as read",
+  "notifications.feed.mark_all_read": "Mark all as read",
+  "notifications.feed.mark_all_read.blocked.none":
+    "Nothing to mark — everything here is read.",
+  "notifications.bell.label": "Notifications",
+  "notifications.bell.label_unread": "Notifications, {count} unread",
 
   "notifications.live.on": "Live",
   "notifications.live.connecting": "Connecting…",

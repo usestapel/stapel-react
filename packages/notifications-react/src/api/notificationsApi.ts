@@ -3,10 +3,13 @@ import type {
   DeviceListItem,
   DeviceTokenRequest,
   DeviceTokenResponse,
+  FeedReadResponse,
+  FeedReadTarget,
   NotificationFeedPage,
   NotificationFeedParams,
   Platform,
 } from "./types.js";
+import { feedReadBody } from "./types.js";
 
 /**
  * CSRF rule for cookie-authenticated browser clients (mirrors auth-react): the
@@ -62,6 +65,21 @@ export interface NotificationsApi {
   unregisterDeviceById(deviceId: number): Promise<void>;
   /** A page of the user's notification feed (newest first, anchor-paginated). */
   feed(params?: NotificationFeedParams): Promise<NotificationFeedPage>;
+  /**
+   * Mark feed rows read — named ids, or the whole feed
+   * (stapel-notifications 0.18.0).
+   *
+   * Idempotent by construction: the write is `filter(read_at__isnull=True)`,
+   * so a repeat marks nothing and answers `marked: 0` with the original
+   * timestamps intact. `marked` is what CHANGED, which is the number a client
+   * on a flaky connection can retry against.
+   *
+   * An id belonging to somebody else is indistinguishable from one that never
+   * existed: not matched, `200`, `marked: 0`. That is deliberate — a per-id
+   * 404 would let a caller enumerate which notification ids exist, and the
+   * recovery is the same either way (re-read the feed).
+   */
+  markFeedRead(target: FeedReadTarget): Promise<FeedReadResponse>;
 }
 
 export function createNotificationsApi(client: StapelClient): NotificationsApi {
@@ -90,5 +108,8 @@ export function createNotificationsApi(client: StapelClient): NotificationsApi {
       if (params?.limit !== undefined) query.limit = params.limit;
       return client.get("/feed/", { query });
     },
+
+    markFeedRead: (target) =>
+      client.post("/feed/read/", feedReadBody(target), mutating()),
   };
 }

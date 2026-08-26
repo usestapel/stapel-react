@@ -12,13 +12,22 @@
 // ── api ──────────────────────────────────────────────────────────────────────
 export { createNotificationsApi } from "./api/notificationsApi.js";
 export type { NotificationsApi } from "./api/notificationsApi.js";
-export { FEED_LINK_KEYS, feedItemLink } from "./api/types.js";
+export {
+  FEED_LINK_KEYS,
+  FEED_READ_MAX_IDS,
+  feedItemLink,
+  feedReadBody,
+  isFeedItemUnread,
+} from "./api/types.js";
 export type {
   Schemas,
   DeviceListItem,
   DeviceTokenRequest,
   DeviceTokenResponse,
   FeedItem,
+  FeedReadRequest,
+  FeedReadResponse,
+  FeedReadTarget,
   NotificationFeedPage,
   NotificationFeedParams,
   Platform,
@@ -58,14 +67,31 @@ export { notificationsQueryKeys } from "./model/queryKeys.js";
 export {
   useNotificationFeed,
   useInfiniteNotificationFeed,
+  useUnreadCount,
   useDevices,
 } from "./model/queries.js";
 export {
   useRegisterDevice,
   useUnregisterDevice,
   useUnregisterDeviceById,
+  useMarkFeedRead,
 } from "./model/mutations.js";
-export type { RegisterDeviceVariables } from "./model/mutations.js";
+export type {
+  RegisterDeviceVariables,
+  MarkFeedReadContext,
+} from "./model/mutations.js";
+
+// The feed cache's transforms — one definition shared by the optimistic write,
+// the `notification.read` frame and a host doing either by hand. Exported from
+// the main entry (not only from `/live`) because marking a row read must not
+// cost a polling deployment an import of `@stapel/realtime`.
+export {
+  mergeArrivedItem,
+  markReadLocally,
+  applyReadSignal,
+  unreadCountOf,
+} from "./model/feedCache.js";
+export type { FeedCache, FeedReadSignal } from "./model/feedCache.js";
 
 // how this tab learns that something arrived — a socket, or the documented
 // poll — and the mode a skin must render. The socket ADAPTER lives in

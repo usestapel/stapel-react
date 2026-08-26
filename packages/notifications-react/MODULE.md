@@ -28,10 +28,9 @@ generated `llms.txt` (agent context) and `manifest.json` (machine catalog).
   degrades to English, never a raw key) → host bundle last. The ru subpath is
   opt-in and stays out of the main entry (size-limit budget + module-graph
   test in `test/i18nRu.test.ts`). The `es` subpath
-  (`@stapel/notifications-react/i18n/es`) is the same contour with a DECLARED partial
-  coverage: generated backend error texts only, no hand-written Spanish UI copy
-  yet, so pair-owned keys resolve through the en floor registered beneath it
-  (asserted in `test/i18nEs.test.ts`).
+  (`@stapel/notifications-react/i18n/es`) is the same contour and is complete
+  over the pair's own keys as well as the generated backend errors, asserted
+  key by key in `test/i18nEs.test.ts`.
 - **analytics/** — `generated/events.json`, the typed-event registry projected
   from `defineEvent` call sites + flow funnels (`pnpm gen:events`). Read by the
   analytics lint and embedded into `manifest.json`; nothing to hand-edit.
@@ -40,6 +39,47 @@ generated `llms.txt` (agent context) and `manifest.json` (machine catalog).
   product-linted, smoke-rendered, and projected to a Ladle story (`pnpm gen:demos`).
   The completeness gate requires ≥1 demo per exported headless component; the
   starter `Notifications.demo.tsx` covers `NotificationsProvider`. Demos never ship.
+
+## Read state — one number, one cache entry, three writers
+
+Against **stapel-notifications 0.18.0**: a feed row carries `read_at`
+(`null` while unread), the page envelope carries `unread_count` counted over
+the WHOLE feed, `POST feed/read/` takes `{ids}` **xor** `{all: true}` and
+answers `{marked, unread_count}`, and the existing
+`notifications:user:<id>` stream gained `notification.read`.
+
+The badge rides the feed's own page envelope, so this pair never opens a second
+read for it. `useUnreadCount()` subscribes to the SAME query key as
+`useInfiniteNotificationFeed()` — a bell in the nav and an open feed page share
+one cache entry and one request, which is what keeps the number and the rows
+under it from disagreeing for a round trip after somebody clears something.
+
+Three callers write read state into that entry, and all three go through the
+transforms in `model/feedCache.ts` so the rows and the badge can never move
+apart:
+
+| Writer | Transform | Notes |
+|---|---|---|
+| `useMarkFeedRead()` (a row opened, or "mark all") | `markReadLocally` | Optimistic; the whole pre-write cache is kept and restored on failure. `onSettled` invalidates, so the server's `read_at`/`unread_count` replace the local approximation either way. |
+| `notification.read` frame (`/live`) | `applyReadSignal` | Another screen of the same account cleared something. `unread_count` is taken from the frame verbatim — it counts the whole feed, this cache holds pages. |
+| `notification.new` frame (`/live`) | `mergeArrivedItem` | Upsert by id; the badge goes up with the row unless the delivery arrived already read. |
+
+`markReadLocally` subtracts what CHANGED, not what was asked for — the same
+arithmetic the endpoint's idempotent `filter(read_at__isnull=True)` does — so a
+repeat on an already-read row cannot drive the badge negative.
+
+**A polling deployment needs no socket for any of this.** `feedCache.ts` lives
+in `model/`, not in `/live`, so marking a row read never pulls
+`@stapel/realtime` in. Another tab's mark-all reaches a socket-less client on
+the documented 60-second feed poll — late, never wrong: the columns on the
+server are the record and the frame was only ever a shortcut.
+
+Skin: `<NotificationBell/>` (badge + accessible name carrying the count; nothing
+drawn at zero **or** on a failed read), the unread dot and de-emphasised read
+rows in `FeedItemRow`, and a `GatedButton` "Mark all as read" that is switched
+OFF with a stated reason when nothing is unread — `POST feed/read/` on a read
+feed is a legal, successful, pointless request, and a person who presses a live
+button and sees nothing change learns nothing.
 
 ## Extension seams (frontend-standard §7)
 

@@ -32,12 +32,79 @@ export type DeviceTokenResponse = Schemas["DeviceTokenResponse"];
  * MODULE.md § "The device registry").
  */
 export type DeviceListItem = Schemas["DeviceListItemResponse"];
-/** One entry in the notification feed (a sent push, logged). */
+/**
+ * One entry in the notification feed (a sent push, logged).
+ *
+ * `read_at` (stapel-notifications 0.18.0) is the instant the recipient marked
+ * this row read, and `null` while it is unread — null is the state every row
+ * is born in. Read it through {@link isFeedItemUnread} rather than by hand:
+ * drf-spectacular types the field OPTIONAL (`read_at?`), so `item.read_at ===
+ * null` is false for a row that omitted it and the boolean silently inverts.
+ */
 export type FeedItem = Schemas["FeedItemResponse"];
-/** GET /feed/ 200 body — an anchor-paginated page of {@link FeedItem}s. */
+/**
+ * GET /feed/ 200 body — an anchor-paginated page of {@link FeedItem}s.
+ *
+ * `unread_count` is counted over the WHOLE feed, not the page, and answered by
+ * the same request that fills the list: a badge fed by a second endpoint
+ * disagrees with the rows under it for one round trip — including the round
+ * trip right after marking something read.
+ */
 export type NotificationFeedPage = Schemas["PaginatedFeedItemResponseList"];
+/** POST /feed/read/ request body — exactly one of `ids` / `all` (see
+ * {@link FeedReadTarget}, which is the shape a caller should build). */
+export type FeedReadRequest = Schemas["FeedReadRequest"];
+/** POST /feed/read/ 200 body — `marked` is what CHANGED (0 on a repeat), and
+ * `unread_count` is the caller's remaining unread total after the write. */
+export type FeedReadResponse = Schemas["FeedReadResponse"];
 
 // ── documented corrections (drf-spectacular under-describes) ──────────────────
+
+/**
+ * Is this row still unread?
+ *
+ * The single reading of `read_at` in the pair. The generated schema types it
+ * `string | null | undefined` because drf-spectacular marks the field optional,
+ * while the endpoint always sends it — so a hand-written `read_at === null`
+ * would call an absent field READ, which is the wrong way round for the one
+ * field whose default is unread.
+ */
+export function isFeedItemUnread(item: FeedItem): boolean {
+  return item.read_at === null || item.read_at === undefined;
+}
+
+/**
+ * What `POST /feed/read/` is being asked to mark — the wire's XOR, spelled as
+ * a type so neither-nor and both-at-once are unconstructible.
+ *
+ * The backend answers `error.400.read_target_required` for either mistake, and
+ * deliberately does not disambiguate them: "a mark-all button that lost its
+ * flag must not look like a feed that was already read" (0.18.0). A client
+ * that builds its body from this union cannot reach that error at all.
+ */
+export type FeedReadTarget =
+  | { readonly ids: readonly string[]; readonly all?: undefined }
+  | { readonly all: true; readonly ids?: undefined };
+
+/**
+ * The most ids one `POST /feed/read/` accepts — a bound on the `IN (...)` the
+ * endpoint can be made to build. More than this is
+ * `error.400.too_many_ids`, and the answer is `{all: true}`: one `UPDATE`
+ * whatever the size. Stated here so a caller with a long selection can branch
+ * before the request rather than after the 400.
+ */
+export const FEED_READ_MAX_IDS = 500;
+
+/**
+ * A {@link FeedReadTarget} as the wire body — exactly one key, never both.
+ *
+ * The `ids` branch drops `all` entirely rather than sending `all: false`: the
+ * backend reads "exactly one of the two was supplied", so an explicit `false`
+ * is a second target and a 400.
+ */
+export function feedReadBody(target: FeedReadTarget): FeedReadRequest {
+  return target.all === true ? { all: true } : { ids: [...target.ids] };
+}
 
 /**
  * The device platform. The generated schema types `platform` as a bare

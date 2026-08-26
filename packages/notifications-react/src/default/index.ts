@@ -22,6 +22,8 @@ export { NotificationsPage } from "./NotificationsPage.js";
 export type { NotificationsPageProps } from "./NotificationsPage.js";
 export { NotificationFeedList } from "./NotificationFeedList.js";
 export type { NotificationFeedListProps } from "./NotificationFeedList.js";
+export { NotificationBell } from "./NotificationBell.js";
+export type { NotificationBellProps } from "./NotificationBell.js";
 export { PushSettingsPane } from "./PushSettingsPane.js";
 export type { PushSettingsPaneProps } from "./PushSettingsPane.js";
 export { PushNotificationToggle } from "./PushNotificationToggle.js";

@@ -1,10 +1,20 @@
+import { useCallback } from "react";
 import type { ReactNode } from "react";
-import { loadStateFromQuery, mapLoad } from "@stapel/core";
-import type { LoadState } from "@stapel/core";
+import {
+  actionAvailable,
+  actionBlocked,
+  loadStateFromQuery,
+  mapLoad,
+  requireLoaded,
+} from "@stapel/core";
+import type { ActionAvailability, LoadState, StapelApiError } from "@stapel/core";
 import type { FeedItem } from "../api/types.js";
+import { isFeedItemUnread } from "../api/types.js";
 import { useInfiniteNotificationFeed } from "../model/queries.js";
+import { useMarkFeedRead } from "../model/mutations.js";
 import { useFeedDelivery } from "../model/delivery.js";
 import type { FeedDelivery } from "../model/delivery.js";
+import { NOTIFICATIONS_I18N_KEYS } from "../i18n/keys.js";
 
 /** Render-prop bag for {@link NotificationFeed}. */
 export interface NotificationFeedBag {
@@ -38,6 +48,51 @@ export interface NotificationFeedBag {
    * so a working feed and a dead one looked identical for months.
    */
   readonly delivery: FeedDelivery;
+
+  // ── read state (stapel-notifications 0.18.0) ──────────────────────────────
+
+  /**
+   * Unread rows across the WHOLE feed, not the loaded pages — the badge value,
+   * answered by the same request that filled the list.
+   *
+   * `0` while the read is in flight or failed. That is safe HERE and only
+   * here: `markAll` below carries the load state properly, and a badge is
+   * drawn from {@link NotificationFeedBag.unreadState} when the difference
+   * between "none" and "we don't know" has to show.
+   */
+  readonly unreadCount: number;
+  /** The badge number as a load state, for a skin that draws the outage. */
+  readonly unreadState: LoadState<number>;
+  /**
+   * May "mark everything read" be pressed, and if not, why not — blocked while
+   * the feed is loading, blocked with the failure when it failed, and blocked
+   * with `notifications.feed.mark_all_read.blocked.none` when there is nothing
+   * unread to mark.
+   *
+   * The last one is the case worth spelling: `POST feed/read/ {all:true}` on an
+   * already-read feed is a legal, successful, entirely pointless request that
+   * answers `marked: 0`. A person who presses a live button and sees nothing
+   * change learns nothing; a button that is off next to the sentence "you're
+   * all caught up" has already answered them.
+   */
+  readonly markAll: ActionAvailability;
+  /** Mark every unread row read (`{all: true}` — one `UPDATE`, whatever the
+   * size of the feed, including rows this client never loaded). */
+  markAllRead(): void;
+  /**
+   * Mark ONE row read — what a skin calls when the row is opened.
+   *
+   * A no-op for a row that is already read: the endpoint would answer
+   * `marked: 0` and emit no signal, so the request buys nothing and every
+   * scroll past a read row would send one.
+   */
+  markRead(item: FeedItem): void;
+  /** A mark-read write is in flight (rows are already stamped — this is for a
+   * button's busy state, not for hiding the optimistic result). */
+  readonly isMarkingRead: boolean;
+  /** The failure of the last mark-read write, after its optimistic stamp was
+   * rolled back. `null` when the last one succeeded or none has run. */
+  readonly markReadError: StapelApiError | null;
 }
 
 /**
@@ -65,13 +120,48 @@ export function NotificationFeed(props: {
 }): ReactNode {
   const query = useInfiniteNotificationFeed(props.limit);
   const delivery = useFeedDelivery();
+  const markRead = useMarkFeedRead();
+  const { mutate } = markRead;
+
+  const state = mapLoad(loadStateFromQuery(query), (data) =>
+    data.pages.flatMap((page) => page.items)
+  );
+  const unreadState = mapLoad(
+    loadStateFromQuery(query),
+    (data) => data.pages[0]?.unread_count ?? 0
+  );
+  const unreadCount = query.data?.pages[0]?.unread_count ?? 0;
+
+  const markAll: ActionAvailability = requireLoaded(state, () =>
+    unreadCount === 0
+      ? actionBlocked(NOTIFICATIONS_I18N_KEYS.feedMarkAllBlockedNone)
+      : actionAvailable()
+  );
+
+  const markAllRead = useCallback(() => {
+    mutate({ all: true });
+  }, [mutate]);
+
+  const markOneRead = useCallback(
+    (item: FeedItem) => {
+      if (!isFeedItemUnread(item)) return;
+      mutate({ ids: [item.id] });
+    },
+    [mutate]
+  );
+
   return props.children({
     delivery,
     // The pages are flattened INSIDE the ready arm — a failed or not-yet-run
     // read never produces a list at all.
-    state: mapLoad(loadStateFromQuery(query), (data) =>
-      data.pages.flatMap((page) => page.items)
-    ),
+    state,
+    unreadState,
+    unreadCount,
+    markAll,
+    markAllRead,
+    markRead: markOneRead,
+    isMarkingRead: markRead.isPending,
+    markReadError: markRead.error,
     hasNextPage: query.hasNextPage,
     isFetchingNextPage: query.isFetchingNextPage,
     fetchNextPage: () => {

@@ -4,8 +4,8 @@ import type {
   UseInfiniteQueryResult,
   UseQueryResult,
 } from "@tanstack/react-query";
-import { useActiveSessionReady } from "@stapel/core";
-import type { StapelApiError } from "@stapel/core";
+import { loadStateFromQuery, mapLoad, useActiveSessionReady } from "@stapel/core";
+import type { LoadState, StapelApiError } from "@stapel/core";
 import type {
   DeviceListItem,
   NotificationFeedPage,
@@ -90,6 +90,32 @@ export function useInfiniteNotificationFeed(
     // returning reader looking at whatever was on screen when they left.
     refetchOnWindowFocus: true,
   });
+}
+
+/**
+ * The badge number: unread rows across the WHOLE feed, as a load state.
+ *
+ * ── It is the same request that fills the list, on purpose ────────────────
+ *
+ * `unread_count` rides the feed page envelope rather than a `GET unread-count/`
+ * of its own (stapel-notifications 0.18.0). A badge answered by a second
+ * endpoint disagrees with the rows under it for one round trip — including the
+ * round trip right after marking something read, which is the exact moment
+ * somebody is watching the number. So this hook subscribes to the SAME query
+ * key as {@link useInfiniteNotificationFeed}: a bell in the nav and an open
+ * feed page share one cache entry and one request, and the socket frame,
+ * the poll and the optimistic write move both at once by construction.
+ *
+ * A `LoadState`, not a bare number, for the reason the feed itself returns one:
+ * a failed read and a cleared inbox are both `0`, and a bell that cannot tell
+ * them apart quietly reports "all caught up" through an outage.
+ */
+export function useUnreadCount(): LoadState<number> {
+  const query = useInfiniteNotificationFeed();
+  return mapLoad(
+    loadStateFromQuery(query),
+    (data) => data.pages[0]?.unread_count ?? 0
+  );
 }
 
 /**

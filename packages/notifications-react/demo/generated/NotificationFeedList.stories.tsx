@@ -8,10 +8,13 @@ export default { title: "notifications-react / Notification feed list" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"phone","step":"ready"} };
+Default.parameters = { stapel: {"viewport":"phone","step":"ready/unread"} };
 export const Refused = (): ReactElement => renderDemoVariant(demo, "refused");
 Refused.storyName = "refused";
 Refused.parameters = { stapel: {"viewport":"phone","step":"refused/session"} };
 export const Paged = (): ReactElement => renderDemoVariant(demo, "paged");
 Paged.storyName = "paged";
-Paged.parameters = { stapel: {"viewport":"desktop","step":"ready/has-next"} };
+Paged.parameters = { stapel: {"viewport":"desktop","step":"ready/mixed-read"} };
+export const AllRead = (): ReactElement => renderDemoVariant(demo, "allRead");
+AllRead.storyName = "allRead";
+AllRead.parameters = { stapel: {"viewport":"desktop","step":"ready/all-read"} };

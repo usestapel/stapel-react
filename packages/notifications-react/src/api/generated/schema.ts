@@ -90,13 +90,35 @@ export interface paths {
         };
         /**
          * Get notification feed
-         * @description Returns push notification log entries for the authenticated user, ordered by created_at desc.
+         * @description Returns push notification log entries for the authenticated user, ordered by created_at desc. Each row carries `read_at` — null while unread — and the page envelope carries `unread_count`, the number of unread rows in the WHOLE feed, so a bell badge is answered by the same request that fills the list.
          *
          *     **Permissions:** `IsAuthenticated`
          */
         get: operations["get_notification_feed"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/api/v1/feed/read/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark feed items read
+         * @description Send exactly one of `ids` (feed item ids from `GET feed/`, at most 500) or `all: true`. Idempotent: `marked` counts the rows this call moved from unread to read, so a repeat returns 0. `unread_count` is the caller's remaining unread total after the write. Only the caller's own rows are touched; unknown or foreign ids are ignored rather than reported, and when anything changed a `notification.read` signal goes out on `notifications:user:<id>` so the caller's other open screens correct their badge.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["mark_notification_feed_read"];
         delete?: never;
         options?: never;
         head?: never;
@@ -224,6 +246,28 @@ export interface components {
              * @example 2026-03-17T10:30:00Z
              */
             created_at: string;
+            /**
+             * @description ISO 8601 timestamp the recipient marked this read, or null while it is unread
+             * @example 2026-03-17T11:04:52Z
+             */
+            read_at?: string | null;
+        };
+        /** @description Mark feed rows read. Send exactly one of ``ids`` or ``all``. */
+        FeedReadRequest: {
+            /** @description Feed item ids to mark read — the ids from GET feed/. Ignored when `all` is true */
+            ids?: string[];
+            /** @description Mark every unread row of the caller's feed read */
+            all?: boolean;
+        };
+        /** @description What the mark-as-read write actually changed. */
+        FeedReadResponse: {
+            /**
+             * @description Rows this call moved from unread to read — 0 on a repeat of the same call
+             * @example 3
+             */
+            marked: number;
+            /** @description The caller's unread rows remaining after the write */
+            unread_count: number;
         };
         PaginatedFeedItemResponseList: {
             items: components["schemas"]["FeedItemResponse"][];
@@ -237,6 +281,8 @@ export interface components {
             has_prev: boolean;
             /** @description Number of items in current page */
             count: number;
+            /** @description Unread rows in the caller's whole feed — not just this page. */
+            unread_count: number;
         };
         /** @description Structured error returned by all Stapel API endpoints. */
         StapelError: {
@@ -398,6 +444,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedFeedItemResponseList"];
+                };
+            };
+        };
+    };
+    mark_notification_feed_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["FeedReadRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["FeedReadRequest"];
+                "multipart/form-data": components["schemas"]["FeedReadRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedReadResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
         };

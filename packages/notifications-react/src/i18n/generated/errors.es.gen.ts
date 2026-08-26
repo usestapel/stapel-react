@@ -29,6 +29,8 @@ export const notificationsErrorBundleEs: Record<NotificationsErrorCode, string> 
   "error.400.field.unique": "{field} debe ser único",
   "error.400.invalid_ad_id": "ID de anuncio no válido",
   "error.400.invalid_platform": "La plataforma debe ser una de las siguientes: ios, android, web.",
+  "error.400.read_target_required": "Envía exactamente uno: una lista «ids» no vacía, o «all»: true.",
+  "error.400.too_many_ids": "Demasiados identificadores en una sola petición. Envía menos, o «all»: true.",
   "error.400.validation_error": "Error de validación",
   "error.400.verification_failed": "La verificación ha fallado",
   "error.400.verification_invalid_factor": "Este factor de verificación no está disponible",

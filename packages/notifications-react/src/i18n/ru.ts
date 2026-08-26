@@ -36,6 +36,15 @@ export const notificationsI18nBundleRu: I18nDictionary = {
   "notifications.feed.end": "Это все ваши уведомления.",
   "notifications.feed.open": "Открыть",
 
+  "notifications.feed.unread": "Непрочитано",
+  "notifications.feed.unread_count": "Непрочитанных: {count}",
+  "notifications.feed.mark_read": "Отметить прочитанным",
+  "notifications.feed.mark_all_read": "Отметить все прочитанными",
+  "notifications.feed.mark_all_read.blocked.none":
+    "Отмечать нечего — здесь всё прочитано.",
+  "notifications.bell.label": "Уведомления",
+  "notifications.bell.label_unread": "Уведомления, непрочитанных: {count}",
+
   "notifications.live.on": "В реальном времени",
   "notifications.live.connecting": "Подключение…",
   "notifications.live.reconnecting": "Переподключение…",

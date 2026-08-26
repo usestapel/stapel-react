@@ -29,6 +29,7 @@ import {
   registerNotificationsI18n,
 } from "../src/i18n/keys.js";
 import {
+  NotificationBell,
   NotificationFeedList,
   NotificationsPage,
   PushDeviceList,
@@ -70,7 +71,11 @@ const FEED_ITEM = {
   body: "Blocked for guideline violations.",
   data: { listing_url: "https://example.test/listings/9" },
   created_at: "2026-03-17T10:30:00Z",
+  read_at: null,
 };
+
+/** The same row, already read — `read_at` is the ONLY difference. */
+const READ_ITEM = { ...FEED_ITEM, id: "read-1", read_at: "2026-03-18T09:00:00Z" };
 
 function page(
   items: readonly unknown[],
@@ -83,6 +88,11 @@ function page(
     has_next: false,
     has_prev: false,
     count: items.length,
+    // The wire counts unread over the whole feed; every fixture here is one
+    // page, so counting its rows is the honest stand-in.
+    unread_count: items.filter(
+      (item) => (item as { read_at?: string | null }).read_at == null
+    ).length,
     ...overrides,
   };
 }
@@ -445,6 +455,257 @@ describe("<NotificationFeedList/> — six fields on the wire, six on the glass",
     );
     expect(screen.queryByTestId("notification-feed-empty")).toBeNull();
     expect(screen.queryByTestId("notification-feed-failed")).toBeNull();
+  });
+});
+
+describe("read state — the dot, the count, and the two roads to read", () => {
+  /**
+   * `GET /feed/` and `POST /feed/read/` over ONE piece of state, so the read
+   * that follows the write answers what the write did.
+   *
+   * A fixture whose GET kept returning unread rows after a successful POST
+   * would make the mark-read tests pass or fail on how fast the invalidation
+   * refetch landed — and would be asserting against a server that does not
+   * exist. `marked` counts rows that were unread, exactly as the endpoint
+   * documents, so the arithmetic under test is the real one.
+   */
+  function serveFeed(initial: readonly Record<string, unknown>[]): {
+    posts: () => number;
+    lastBody: () => unknown;
+  } {
+    let rows = initial.map((row) => ({ ...row }));
+    let posts = 0;
+    let lastBody: unknown;
+    server.use(
+      http.get(`${BASE}/feed/`, () => HttpResponse.json(page(rows))),
+      http.post(`${BASE}/feed/read/`, async ({ request }) => {
+        posts += 1;
+        lastBody = await request.json();
+        const body = lastBody as { ids?: string[]; all?: boolean };
+        const hit = (row: Record<string, unknown>): boolean =>
+          body.all === true || (body.ids ?? []).includes(row.id as string);
+        const marked = rows.filter((row) => hit(row) && row.read_at == null).length;
+        rows = rows.map((row) =>
+          hit(row) && row.read_at == null
+            ? { ...row, read_at: "2026-03-19T12:00:00Z" }
+            : row
+        );
+        return HttpResponse.json({
+          marked,
+          unread_count: rows.filter((row) => row.read_at == null).length,
+        });
+      })
+    );
+    return { posts: () => posts, lastBody: () => lastBody };
+  }
+
+  /**
+   * The feed has finished loading, and reads `unread` (`null` for none).
+   *
+   * It waits for a ROW, not just the count, and that is the bug this helper
+   * exists to stop re-introducing: before the first page lands the count is 0
+   * and the mark-all gate is blocked on `stapel.action.blocked.loading`, so a
+   * test that clicked as soon as the button existed would fire at a disabled
+   * control — a no-op that looks exactly like a broken feature.
+   */
+  async function feedReady(unread: string | null): Promise<void> {
+    await waitFor(() =>
+      expect(screen.getAllByTestId("notification-feed-item").length).toBeGreaterThan(0)
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId("notification-feed-unread-count")?.textContent ?? null
+      ).toBe(unread)
+    );
+  }
+
+  it("draws the dot on an unread row and nothing on a read one", async () => {
+    server.use(
+      http.get(`${BASE}/feed/`, () => HttpResponse.json(page([FEED_ITEM, READ_ITEM])))
+    );
+    render(wrap(createNotificationsRuntime({ baseUrl: BASE }), <NotificationFeedList />));
+    await waitFor(() =>
+      expect(screen.getAllByTestId("notification-feed-item")).toHaveLength(2)
+    );
+    const [unread, read] = screen.getAllByTestId("notification-feed-item");
+    expect(unread?.getAttribute("data-unread")).toBe("true");
+    expect(read?.getAttribute("data-unread")).toBe("false");
+    // One dot on the glass, not two — and it has a NAME, so the difference
+    // survives being heard as well as seen.
+    expect(screen.getAllByTestId("notification-feed-unread-dot")).toHaveLength(1);
+    expect(screen.getByLabelText("Unread")).toBeDefined();
+    expect(screen.getByTestId("notification-feed-unread-count").textContent).toBe(
+      "1 unread"
+    );
+  });
+
+  it("opening a linked row marks it read", async () => {
+    const feed = serveFeed([FEED_ITEM]);
+    // Routed by the host (`onSelect`), which is the ordinary SPA case and the
+    // one jsdom can actually run — a bare anchor click would ask it to
+    // navigate. The mark fires on capture, ahead of whichever of the two
+    // branches follows, so this covers both.
+    const opened: string[] = [];
+    render(
+      wrap(
+        createNotificationsRuntime({ baseUrl: BASE }),
+        <NotificationFeedList
+          onSelect={(_item, url) => {
+            opened.push(url);
+          }}
+        />
+      )
+    );
+    await feedReady("1 unread");
+    fireEvent.click(screen.getByTestId("notification-feed-link"));
+    expect(opened).toEqual(["https://example.test/listings/9"]);
+    await waitFor(() => expect(feed.lastBody()).toEqual({ ids: [FEED_ITEM.id] }));
+    // The dot goes with it — and stays gone once the server's own answer
+    // replaces the optimistic stamp.
+    await waitFor(() =>
+      expect(screen.queryByTestId("notification-feed-unread-dot")).toBeNull()
+    );
+    // The count line is gone entirely at zero — the gate's own sentence
+    // beside the switched-off button is the one that has to be there.
+    await feedReady(null);
+  });
+
+  it("a row with nowhere to go gets an explicit control, and only while unread", async () => {
+    // The linkless row deliberately has no click target of its own (a dead
+    // affordance is the defect this file's row anatomy already refuses), so
+    // "mark as read" has to be a real, named button.
+    const feed = serveFeed([
+      { ...FEED_ITEM, data: {} },
+      { ...READ_ITEM, data: {} },
+    ]);
+    render(wrap(createNotificationsRuntime({ baseUrl: BASE }), <NotificationFeedList />));
+    await feedReady("1 unread");
+    expect(screen.getAllByTestId("notification-feed-mark-read")).toHaveLength(1);
+    fireEvent.click(screen.getByTestId("notification-feed-mark-read"));
+    await waitFor(() => expect(feed.lastBody()).toEqual({ ids: [FEED_ITEM.id] }));
+    // Marked — so the control that marks it has nothing left to do and goes.
+    await waitFor(() =>
+      expect(screen.queryByTestId("notification-feed-mark-read")).toBeNull()
+    );
+  });
+
+  it("mark-all is OFF with a readable reason when there is nothing to mark", async () => {
+    server.use(http.get(`${BASE}/feed/`, () => HttpResponse.json(page([READ_ITEM]))));
+    render(wrap(createNotificationsRuntime({ baseUrl: BASE }), <NotificationFeedList />));
+    await feedReady(null);
+    const button = screen.getByTestId("notification-feed-mark-all");
+    expect(button.hasAttribute("disabled")).toBe(true);
+    // The reason is TEXT beside the control (never a tooltip — a disabled
+    // button takes no pointer events) and the control points at it.
+    const reason =
+      notificationsI18nBundleEn["notifications.feed.mark_all_read.blocked.none"];
+    const sentence = document.querySelector("[data-stapel-gated-reason]");
+    expect(sentence?.textContent).toBe(reason);
+    expect(button.getAttribute("aria-describedby")).toBe(sentence?.getAttribute("id"));
+  });
+
+  it("mark-all clears every dot and the count, and sends `all: true`", async () => {
+    const feed = serveFeed([FEED_ITEM, READ_ITEM]);
+    render(wrap(createNotificationsRuntime({ baseUrl: BASE }), <NotificationFeedList />));
+    await feedReady("1 unread");
+    fireEvent.click(screen.getByTestId("notification-feed-mark-all"));
+    await waitFor(() => expect(feed.lastBody()).toEqual({ all: true }));
+    await waitFor(() =>
+      expect(screen.queryByTestId("notification-feed-unread-dot")).toBeNull()
+    );
+    // …and the control now says why it is off, instead of staying live for a
+    // request whose only possible answer is `marked: 0`.
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("notification-feed-mark-all").hasAttribute("disabled")
+      ).toBe(true)
+    );
+  });
+
+  it("a failed mark puts the dot back and says what happened", async () => {
+    server.use(
+      http.get(`${BASE}/feed/`, () => HttpResponse.json(page([FEED_ITEM]))),
+      http.post(`${BASE}/feed/read/`, () =>
+        HttpResponse.json(
+          {
+            localizable_error: "error.400.read_target_required",
+            error: 'Send exactly one of: a non-empty "ids" list, or "all": true.',
+            params: {},
+          },
+          { status: 400 }
+        )
+      )
+    );
+    render(wrap(createNotificationsRuntime({ baseUrl: BASE }), <NotificationFeedList />));
+    await feedReady("1 unread");
+    fireEvent.click(screen.getByTestId("notification-feed-mark-all"));
+    await waitFor(() =>
+      expect(screen.getByTestId("notification-feed-mark-error")).toBeDefined()
+    );
+    // Rolled back — the row is unread again, which is what it in fact is.
+    expect(screen.getByTestId("notification-feed-unread-dot")).toBeDefined();
+    expect(screen.getByTestId("notification-feed-unread-count").textContent).toBe(
+      "1 unread"
+    );
+  });
+});
+
+describe("<NotificationBell/> — the number in the nav", () => {
+  it("carries the count in the badge AND in the accessible name", async () => {
+    server.use(
+      http.get(`${BASE}/feed/`, () =>
+        HttpResponse.json(page([FEED_ITEM], { unread_count: 3 }))
+      )
+    );
+    render(wrap(createNotificationsRuntime({ baseUrl: BASE }), <NotificationBell />));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("notification-bell-badge").getAttribute("data-unread")
+      ).toBe("true")
+    );
+    // An icon-only control's name is the whole thing a screen reader gets, so
+    // the number belongs in it — not only in a badge announced beside it.
+    expect(screen.getByTestId("notification-bell").getAttribute("aria-label")).toBe(
+      "Notifications, 3 unread"
+    );
+  });
+
+  it("draws no badge at zero — and none while the read is still in flight", async () => {
+    server.use(http.get(`${BASE}/feed/`, () => new Promise(() => undefined)));
+    const { unmount } = render(
+      wrap(createNotificationsRuntime({ baseUrl: BASE }), <NotificationBell />)
+    );
+    expect(
+      screen.getByTestId("notification-bell-badge").getAttribute("data-unread")
+    ).toBe("false");
+    expect(screen.getByTestId("notification-bell").getAttribute("aria-label")).toBe(
+      "Notifications"
+    );
+    unmount();
+
+    server.use(http.get(`${BASE}/feed/`, () => HttpResponse.json(page([READ_ITEM]))));
+    render(wrap(createNotificationsRuntime({ baseUrl: BASE }), <NotificationBell />));
+    await waitFor(() =>
+      expect(screen.getByTestId("notification-bell").getAttribute("aria-label")).toBe(
+        "Notifications"
+      )
+    );
+    expect(
+      screen.getByTestId("notification-bell-badge").getAttribute("data-unread")
+    ).toBe("false");
+  });
+
+  it("a FAILED read shows no number rather than a stale or invented one", async () => {
+    server.use(http.get(`${BASE}/feed/`, () => new HttpResponse(null, { status: 503 })));
+    render(wrap(createNotificationsRuntime({ baseUrl: BASE }), <NotificationBell />));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("notification-bell-badge").getAttribute("data-unread")
+      ).toBe("false")
+    );
+    expect(screen.getByTestId("notification-bell").getAttribute("aria-label")).toBe(
+      "Notifications"
+    );
   });
 });
 

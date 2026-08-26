@@ -32,6 +32,7 @@ const FEED_ITEMS: readonly FeedItem[] = [
     body: "Is the bike still available?",
     data: { chat_url: "https://example.test/chat/17" },
     created_at: "2026-03-19T08:55:00Z",
+    read_at: null,
   },
   {
     id: "550e8400-e29b-41d4-a716-446655440000",
@@ -40,6 +41,7 @@ const FEED_ITEMS: readonly FeedItem[] = [
     body: "“Vintage road bike” was blocked for guideline violations.",
     data: { listing_url: "https://example.test/listings/9" },
     created_at: "2026-03-17T10:30:00Z",
+    read_at: null,
   },
   {
     id: "550e8400-e29b-41d4-a716-446655440002",
@@ -48,6 +50,7 @@ const FEED_ITEMS: readonly FeedItem[] = [
     body: "If this wasn't you, review your sessions.",
     data: {},
     created_at: "2026-03-12T21:04:00Z",
+    read_at: "2026-03-13T07:15:00Z",
   },
   {
     id: "550e8400-e29b-41d4-a716-446655440003",
@@ -56,13 +59,22 @@ const FEED_ITEMS: readonly FeedItem[] = [
     body: "Grace invited you as an editor.",
     data: {},
     created_at: "2026-02-25T09:00:00Z",
+    read_at: "2026-02-25T09:41:00Z",
   },
 ];
 
-function page(
-  items: readonly FeedItem[],
-  more = false
-): NotificationFeedPage {
+/** Every row read, at a plausible instant — the "all caught up" fixture. */
+function allRead(items: readonly FeedItem[]): readonly FeedItem[] {
+  return items.map((item) => ({ ...item, read_at: item.read_at ?? "2026-03-19T09:10:00Z" }));
+}
+
+/**
+ * A page envelope. `unread_count` is counted over the WHOLE feed on the wire,
+ * and every fixture here is one page, so counting the rows is the honest
+ * value — a fixture whose badge disagreed with its own rows would document a
+ * bug the component does not have.
+ */
+function page(items: readonly FeedItem[], more = false): NotificationFeedPage {
   return {
     items: [...items],
     next_anchor: more ? "anchor-2" : null,
@@ -70,21 +82,45 @@ function page(
     has_next: more,
     has_prev: false,
     count: items.length,
+    unread_count: items.filter((item) => item.read_at == null).length,
   };
 }
 
-/** Two rows, both with a deep link — the phone story. */
+/** Two rows, both unread and both with a deep link — the phone story. */
 export const DEMO_FEED_SHORT: readonly NotificationFeedPage[] = [
   page(FEED_ITEMS.slice(0, 2)),
 ];
 
-/** Four rows and another page behind them — the desktop story. */
+/** Four rows and another page behind them — the desktop story. Two unread at
+ * the top, two already read below: the row anatomy's whole point is that the
+ * difference is visible without reading either. */
 export const DEMO_FEED_LONG: readonly NotificationFeedPage[] = [
   page(FEED_ITEMS, true),
 ];
 
+/** The same four rows with nothing left unread: the badge is gone, and "Mark
+ * all as read" is off with the sentence that says why. */
+export const DEMO_FEED_ALL_READ: readonly NotificationFeedPage[] = [
+  page(allRead(FEED_ITEMS)),
+];
+
 /** A feed that was read and had nothing. */
 export const DEMO_FEED_EMPTY: readonly NotificationFeedPage[] = [page([])];
+
+/**
+ * A one-page feed carrying a chosen badge value — for the bell, whose whole
+ * subject is the number.
+ *
+ * `unread_count` is deliberately allowed to exceed the rows on the page: on
+ * the wire it counts the WHOLE feed, so "128 unread, four of them on this
+ * page" is exactly what a real first page of a busy account looks like, and a
+ * fixture that capped it at the page size could not photograph the `99+`
+ * overflow at all.
+ */
+export function demoFeedWithUnread(unread: number): readonly NotificationFeedPage[] {
+  const items = unread === 0 ? allRead(FEED_ITEMS) : FEED_ITEMS;
+  return [{ ...page(items), unread_count: unread }];
+}
 
 /** The device this browser is; its fingerprint is SHA-256 of {@link DEMO_TOKEN}. */
 export const DEMO_THIS_DEVICE: DeviceListItem = {

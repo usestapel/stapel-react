@@ -40,16 +40,37 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { InfiniteData, QueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { useStream } from "@stapel/realtime/react";
 import type { RealtimeFrame, RealtimeStreamStatus } from "@stapel/realtime";
-import type { FeedItem, NotificationFeedPage } from "../api/types.js";
+import type { FeedItem } from "../api/types.js";
 import { notificationsQueryKeys } from "../model/queryKeys.js";
+import { applyReadSignal, mergeArrivedItem } from "../model/feedCache.js";
+import type { FeedCache, FeedReadSignal } from "../model/feedCache.js";
 import { FeedDeliveryProvider } from "../model/delivery.js";
 import type { FeedDelivery, FeedDeliveryMode } from "../model/delivery.js";
 
+/**
+ * The cache transforms this adapter applies. They live in `model/feedCache.ts`,
+ * outside this entry point, because `model/mutations.ts` needs the identical
+ * write for its optimistic stamp and must not import `@stapel/realtime` to get
+ * it. Re-exported here so this subpath's published surface is unchanged.
+ */
+export { mergeArrivedItem, applyReadSignal } from "../model/feedCache.js";
+export type { FeedCache, FeedReadSignal } from "../model/feedCache.js";
+
 /** The signal a `sent` push delivery emits (stapel-notifications 0.17.0). */
 export const NOTIFICATION_NEW_SIGNAL = "notification.new";
+
+/**
+ * The signal `POST feed/read/` emits when it actually changed something
+ * (stapel-notifications 0.18.0).
+ *
+ * "When it actually changed something" is load-bearing: a repeat that marks
+ * nothing emits nothing, because a no-op frame is how two open tabs start
+ * correcting each other in a loop.
+ */
+export const NOTIFICATION_READ_SIGNAL = "notification.read";
 
 /** The read-only socket route the module mounts. No user segment: the stream
  * key comes from the authenticated scope, server-side. */
@@ -105,7 +126,7 @@ function toDeliveryMode(status: RealtimeStreamStatus): FeedDeliveryMode {
  * server bug into a blank screen.
  */
 function readFeedItem(payload: Readonly<Record<string, unknown>>): FeedItem | undefined {
-  const { id, notification_type, title, body, created_at, data } = payload;
+  const { id, notification_type, title, body, created_at, data, read_at } = payload;
   if (
     typeof id !== "string" ||
     typeof notification_type !== "string" ||
@@ -123,34 +144,36 @@ function readFeedItem(payload: Readonly<Record<string, unknown>>): FeedItem | un
     title,
     body,
     created_at,
+    // `notification.new` carries `FeedItemResponse` field-for-field, `read_at`
+    // included — and for a row that has just been delivered it is null. Read
+    // rather than assumed: a null that arrived is the same value as a null we
+    // would have invented, and a non-null one (a redelivery of something
+    // already seen) would otherwise be drawn bold.
+    read_at: typeof read_at === "string" ? read_at : null,
     data: data as FeedItem["data"],
   };
 }
 
-type FeedCache = InfiniteData<NotificationFeedPage, string | undefined>;
-
 /**
- * Put an arriving row at the top of the newest page.
+ * A `notification.read` payload off the wire, or `undefined` when it is not
+ * one.
  *
- * Upsert by `id`, never by position: the same delivery can reach a tab twice
- * (a socket frame and a poll that raced it), and a list that appended blindly
- * would show it twice. A cache that has not been read yet is left alone — the
- * first `GET /feed/` will carry the row anyway, and seeding a page from a
- * signal would invent `has_next: false` for a feed nobody has paged.
+ * `unread_count` is required and `all`/`ids` are read defensively, because the
+ * badge is the one number a bad frame could pin at a wrong value until the
+ * next page read. `ids` is filtered to strings rather than rejected wholesale:
+ * a frame naming ten rows of which one is malformed should still clear nine.
  */
-export function mergeArrivedItem(cache: FeedCache | undefined, item: FeedItem): FeedCache | undefined {
-  if (cache === undefined || cache.pages.length === 0) return cache;
-  const already = cache.pages.some((page) =>
-    page.items.some((existing) => existing.id === item.id)
-  );
-  if (already) return cache;
-  const [newest, ...rest] = cache.pages as [NotificationFeedPage, ...NotificationFeedPage[]];
+function readReadSignal(
+  payload: Readonly<Record<string, unknown>>
+): FeedReadSignal | undefined {
+  const { ids, all, unread_count } = payload;
+  if (typeof unread_count !== "number" || !Number.isFinite(unread_count)) {
+    return undefined;
+  }
   return {
-    ...cache,
-    pages: [
-      { ...newest, items: [item, ...newest.items], count: newest.count + 1 },
-      ...rest,
-    ],
+    ids: Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [],
+    all: all === true,
+    unread_count,
   };
 }
 
@@ -182,13 +205,27 @@ export function NotificationsLive(props: NotificationsLiveProps): ReactElement {
 
   const onFrame = useCallback(
     (frame: RealtimeFrame): void => {
-      if (frame.type !== NOTIFICATION_NEW_SIGNAL) return;
-      const item = readFeedItem(frame.payload);
-      if (item === undefined) return;
-      queryClient.setQueryData<FeedCache>(notificationsQueryKeys.feed(), (cache) =>
-        mergeArrivedItem(cache, item)
-      );
-      notify.current?.(item);
+      if (frame.type === NOTIFICATION_NEW_SIGNAL) {
+        const item = readFeedItem(frame.payload);
+        if (item === undefined) return;
+        queryClient.setQueryData<FeedCache>(notificationsQueryKeys.feed(), (cache) =>
+          mergeArrivedItem(cache, item)
+        );
+        notify.current?.(item);
+        return;
+      }
+      if (frame.type === NOTIFICATION_READ_SIGNAL) {
+        // Somebody cleared rows — this tab, or another screen of the same
+        // account. Applied to the cache instead of invalidating: the frame
+        // carries both halves (which rows, and the badge value that is now
+        // true), so a refetch would buy nothing and would race the optimistic
+        // write that a mark FROM THIS TAB has already applied.
+        const signal = readReadSignal(frame.payload);
+        if (signal === undefined) return;
+        queryClient.setQueryData<FeedCache>(notificationsQueryKeys.feed(), (cache) =>
+          applyReadSignal(cache, signal, new Date().toISOString())
+        );
+      }
     },
     [queryClient]
   );

@@ -1,6 +1,6 @@
 # @stapel/notifications-react 0.10.0
 
-Headless React flow pair for stapel-notifications (contract >=0.17 <0.18) — business + state, zero visual opinion.
+Headless React flow pair for stapel-notifications (contract >=0.18 <0.19) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -24,19 +24,21 @@ Paths are relative to `/notifications/api/v1/`.
 - get_notification_feed: GET /feed/
 - get_notification_keys: GET /notification-keys/
 - list_device_tokens: GET /devices/
+- mark_notification_feed_read: POST /feed/read/
 - register_device_token: POST /devices/
 - unregister_device: DELETE /devices/by-id/{device_id}/
 - unregister_device_token: DELETE /devices/{token}/
 
 ## Query hooks (server state; keys come only from the key factory)
 - useDevices (query) → listDevices
+- useMarkFeedRead (mutation) → markFeedRead
 - useNotificationFeed (query) → feed
 - useRegisterDevice (mutation) → registerDevice
 - useUnregisterDevice (mutation) → unregisterDevice
 - useUnregisterDeviceById (mutation) → unregisterDeviceById
 
 ## Errors (render t(code, params); UX from remediation)
-45 keys (full catalog: manifest.json §errors). By remediation: fix_input 18 · retry 13 · verify 6 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+47 keys (full catalog: manifest.json §errors). By remediation: fix_input 20 · retry 13 · verify 6 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -71,7 +73,8 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
-- notifications.feed_list → <NotificationFeedList> [default|refused|paged]  demo/NotificationFeedList.demo.tsx
+- notifications.bell → <NotificationBell> [unread|overflow|caughtUp]  demo/NotificationBell.demo.tsx
+- notifications.feed_list → <NotificationFeedList> [default|refused|paged|allRead]  demo/NotificationFeedList.demo.tsx
 - notifications.page → <NotificationsPage> [polling|live|desktop|empty]  demo/NotificationsPage.demo.tsx
 - notifications.push_settings → <PushSettingsPane> [default|no-devices|unsupported|desktop|toggle-only|registry-only]  demo/PushSettings.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
