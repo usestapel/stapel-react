@@ -60,7 +60,7 @@
   },
   "size-limit": [
     {
-      "name": "index — the ru/es locales must NOT be in the main bundle (en floor only; the operator console's copy rides here too until a subpath can register its own bundle — see REQUESTS)",
+      "name": "index \u2014 the ru/es locales must NOT be in the main bundle (en floor only; the operator console's copy rides here too until a subpath can register its own bundle \u2014 see REQUESTS)",
       "path": "dist/index.js",
       "limit": "24 KB"
     },
@@ -76,7 +76,7 @@
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.18.1 <1.0.0",
+    "@stapel/core": ">=0.19.0 <1.0.0",
     "@stapel/tokens-antd": ">=0.7.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
