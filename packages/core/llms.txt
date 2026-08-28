@@ -13,6 +13,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - CORE_ERROR_LOCALES
 - CORE_UI_LOCALES
 - DETAIL_ERROR_KEY
+- ElevationProvider
 - I18nProvider
 - MandateProvider
 - REFRESH_UNAVAILABLE
@@ -98,6 +99,8 @@ signatures/JSDoc in the package README and src/index.ts.
 - useAnalytics
 - useBreakpoint
 - useDescribeFlowError
+- useElevation
+- useElevationSource
 - useErrorDisplay
 - useErrorText
 - useFlow
@@ -131,6 +134,8 @@ signatures/JSDoc in the package README and src/index.ts.
 - CreateModuleRuntimeOptions
 - CreateSessionManagerOptions
 - DurationStyle
+- Elevation
+- ElevationSource
 - EventDef
 - EventDefInput
 - EventProps

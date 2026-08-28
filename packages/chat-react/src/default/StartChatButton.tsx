@@ -22,6 +22,15 @@ import { ChatSkinTheme } from "./theme.js";
 export interface StartChatButtonProps extends SignInCtaProp {
   sellerId: string | null | undefined;
   viewerId?: string | null;
+  /**
+   * What the thread is ABOUT — `"listing"` and the listing id in a classified
+   * marketplace. Supplying them opens (or reopens) the thread for THIS
+   * listing rather than the seller's one catch-all thread, and the thread
+   * then shows the listing's card at its top. Optional: without them the
+   * control behaves exactly as it always did.
+   */
+  subjectType?: string | null;
+  subjectKey?: string | number | null;
   onOpened?: (conversation: Conversation) => void;
   block?: boolean;
 }
@@ -69,6 +78,8 @@ export function StartChatButton(props: StartChatButtonProps): ReactElement {
     <StartDirectChat
       sellerId={props.sellerId}
       {...(props.viewerId !== undefined ? { viewerId: props.viewerId } : {})}
+      {...(props.subjectType !== undefined ? { subjectType: props.subjectType } : {})}
+      {...(props.subjectKey !== undefined ? { subjectKey: props.subjectKey } : {})}
       {...(props.onOpened !== undefined ? { onOpened: props.onOpened } : {})}
     >
       {({ availability, isStarting, error, start }) => (

@@ -95,6 +95,62 @@ export function Root({ children }: { children: React.ReactNode }) {
 }
 ```
 
+### Auto-anonymous: a guest account nobody was asked about
+
+`POST /anonymous/` has always been there, and `createAnonymousFlow` drives it
+from a button. On a marketplace the button is the wrong shape: a stranger
+cannot evaluate a "continue as guest" tier, and there is no tier — a signed-in
+guest sees the same catalogue as everyone else. What they actually want is to
+save the listing they are looking at. So the account is minted BY that act,
+and they are never asked.
+
+```tsx
+import { LISTINGS_ELEVATION_ACTIONS } from "@stapel/listings-react";
+import { CHAT_ELEVATION_ACTIONS } from "@stapel/chat-react";
+import { ElevationProvider } from "@stapel/core";
+
+const runtime = createAuthRuntime({
+  baseUrl: "/auth/api/v1",
+  // THE AXIS. Which acts may mint is a product judgement, so it is required
+  // rather than defaulted — resolve it from your own config.
+  autoAnonymous: {
+    actions: [
+      LISTINGS_ELEVATION_ACTIONS.favorite,
+      CHAT_ELEVATION_ACTIONS.startDirect,
+    ],
+  },
+});
+
+// Hand the seam down; every gated control reads it through core.
+<ElevationProvider source={runtime.elevation}>…</ElevationProvider>
+```
+
+Omit `autoAnonymous` and `runtime.elevation` is `null` — no minting, no
+behaviour change anywhere.
+
+Four things it guarantees, because each is a way this goes wrong in
+production:
+
+- **Never on render.** Nothing mints on mount; `Elevation.run` is the only
+  path, and a control calls it from a handler. Otherwise every crawler costs a
+  User row and every metric is skewed.
+- **One account per visitor.** An identity the session already holds
+  short-circuits before any request; concurrent presses share one in-flight
+  mint; and a `device_id` persisted in the runtime's storage lets the server
+  return the SAME guest after a reload instead of abandoning the first one
+  along with everything they saved.
+- **A failed mint is not a silent no-op.** It rejects, and the write that was
+  waiting on it never goes out. `AUTH_ANONYMOUS` closed server-side surfaces
+  as a failed action, not as nothing happening.
+- **The mandate is untouched.** A minted guest is `is_anonymous`, so the
+  session status is `"anonymous"` and every act the host did not name keeps
+  its wall for the same person in the same session.
+
+One thing the host still owns: an elevated guest must be able to come BACK to
+what they made. If your route gate admits only members, the guest who messaged
+a seller can never read the reply — gate their own surfaces on "holds a
+session" rather than "holds a mandate".
+
 ### The session substrate underneath (frontend-core-architecture-v2 §43)
 
 `createAuthRuntime` builds on `@stapel/core`'s `createSessionManager`: auth

@@ -82,12 +82,26 @@ export const chatI18nBundleRu: I18nDictionary = {
   "chat.kind.group": "Групповой диалог",
   "chat.kind.support": "Поддержка",
 
+  "chat.person.unnamed": "Имя недоступно",
+  "chat.person.loading": "Загружаем…",
+  "chat.list.preview_own": "Вы: {text}",
+  "chat.list.preview_deleted": "Сообщение удалено",
+
+  "chat.subject.label": "О чём этот диалог",
+  "chat.subject.open": "Открыть",
+  "chat.subject.gone": "Это удалено.",
+  "chat.subject.unavailable": "Сейчас это недоступно.",
+  "chat.subject.unresolved": "Не удалось загрузить, о чём этот диалог.",
+
   "chat.thread.loading": "Загрузка сообщений…",
   "chat.thread.empty": "Сообщений пока нет. Напишите первым.",
   "chat.thread.retry": "Повторить",
   "chat.thread.load_older": "Показать более ранние",
   "chat.thread.beginning": "Это начало переписки.",
   "chat.thread.system": "Системное сообщение",
+  "chat.thread.empty_subject":
+    "Сообщений об этом пока нет. Напишите первым — переписка останется здесь.",
+  "chat.thread.menu": "Действия с диалогом",
 
   "chat.composer.placeholder": "Напишите сообщение…",
   "chat.composer.send": "Отправить",

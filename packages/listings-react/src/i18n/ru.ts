@@ -88,7 +88,7 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.card.price_absent": "Цена по запросу",
   "listings.card.favorite_add": "В избранное",
   "listings.card.favorite_remove": "Убрать из избранного",
-  "listings.card.open": "Открыть",
+  "listings.card.untitled": "Объявление без названия",
   "listings.card.sign_in": "Войти",
 
   "listings.detail.loading": "Загружаем объявление…",

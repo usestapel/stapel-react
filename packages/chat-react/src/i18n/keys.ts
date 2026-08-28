@@ -22,11 +22,43 @@ export const CHAT_I18N_KEYS = {
   listUnread: "chat.list.unread",
   listOpen: "chat.list.open",
 
-  // Conversation kinds (the response carries no title — the kind and the
-  // participants are all a row can honestly say)
+  // Conversation kinds. NOT a row title any more: the inbox used to title
+  // every row with its kind, so a seller with ten buyers read ten rows
+  // saying "Direct message" and told them apart by the clock. A kind is now
+  // what it always was — a category — and it is rendered only where there is
+  // no person to name (a support case).
   kindDirect: "chat.kind.direct",
   kindGroup: "chat.kind.group",
   kindSupport: "chat.kind.support",
+
+  // WHO the row is with. The names come from a host seam (`model/slots.ts`);
+  // these two are what the skin says when the seam has not answered.
+  //
+  // `personUnnamed` must read as a FAILURE, never as a label. The whole
+  // defect this pair shipped was a fallback that looked deliberate — and the
+  // house has been bitten by that exact shape before, when a healthy chat
+  // banner permanently read "Refreshing every few seconds".
+  personUnnamed: "chat.person.unnamed",
+  /** The lookup is in flight — nobody has failed yet, so do not say so. */
+  personLoading: "chat.person.loading",
+  /** Prefix on a preview of the reader's OWN last line. */
+  listPreviewOwn: "chat.list.preview_own",
+  /** A tombstone still occupies the last-line slot; it is not blank. */
+  listPreviewDeleted: "chat.list.preview_deleted",
+
+  // WHAT the thread is about (stapel-chat 0.6.0 subjects). The card itself is
+  // the subject owner's, resolved server-side; these name the states chat can
+  // be in about it.
+  /** Accessible name of the pinned card region. */
+  subjectLabel: "chat.subject.label",
+  /** Accessible name of the link out to the thing itself. */
+  subjectOpen: "chat.subject.open",
+  /** The subject was deleted — the conversation about it still exists. */
+  subjectGone: "chat.subject.gone",
+  /** Paused, sold, withdrawn: it exists and is not on offer. */
+  subjectUnavailable: "chat.subject.unavailable",
+  /** The card could not be built (`meta_reason` says why, upstream). */
+  subjectUnresolved: "chat.subject.unresolved",
 
   // Thread
   threadLoading: "chat.thread.loading",
@@ -35,6 +67,16 @@ export const CHAT_I18N_KEYS = {
   threadLoadOlder: "chat.thread.load_older",
   threadBeginning: "chat.thread.beginning",
   threadSystem: "chat.thread.system",
+  /**
+   * The empty arm of a thread that HAS a subject. Widening `direct_key` with
+   * the subject means the first message about a listing opens a new thread
+   * beside the pair's old catch-all one, and to both of them that looks like
+   * a duplicate. The copy answers it without naming it: this thread is about
+   * this one thing, which is the whole difference.
+   */
+  threadEmptySubject: "chat.thread.empty_subject",
+  /** The overflow menu: its trigger's accessible name and its sheet's title. */
+  threadMenu: "chat.thread.menu",
 
   // Composer
   composerPlaceholder: "chat.composer.placeholder",
@@ -152,12 +194,27 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.kind.group": "Group",
   "chat.kind.support": "Support",
 
+  "chat.person.unnamed": "Name unavailable",
+  "chat.person.loading": "Loading…",
+  "chat.list.preview_own": "You: {text}",
+  "chat.list.preview_deleted": "Message deleted",
+
+  "chat.subject.label": "What this conversation is about",
+  "chat.subject.open": "Open",
+  "chat.subject.gone": "This has been removed.",
+  "chat.subject.unavailable": "This is not available right now.",
+  "chat.subject.unresolved":
+    "We couldn't load what this conversation is about.",
+
   "chat.thread.loading": "Loading messages…",
   "chat.thread.empty": "No messages yet. Say hello.",
   "chat.thread.retry": "Try again",
   "chat.thread.load_older": "Show earlier messages",
   "chat.thread.beginning": "This is the beginning of the conversation.",
   "chat.thread.system": "System",
+  "chat.thread.empty_subject":
+    "No messages about this yet. Say hello — this conversation stays with it.",
+  "chat.thread.menu": "Conversation options",
 
   "chat.composer.placeholder": "Write a message…",
   "chat.composer.send": "Send",

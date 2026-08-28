@@ -13,7 +13,10 @@ import type { ListingCard, ListingPageParams } from "../api/types.js";
 import { useMyFavorites } from "../model/queries.js";
 import { useFavoriteListing } from "../model/mutations.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
-import { useMandateGate } from "./useMandateGate.js";
+import {
+  LISTINGS_ELEVATION_ACTIONS,
+  useElevatableMandateGate,
+} from "./useMandateGate.js";
 
 /**
  * Saving something for later — first-class in stapel-listings (a `Favorite`
@@ -48,23 +51,28 @@ export function useFavoriteToggle(
   id: number,
   favorited: boolean | null | undefined
 ): FavoriteToggleBag {
-  const mandate = useMandateGate();
+  const { gate: mandate, elevation } = useElevatableMandateGate(
+    LISTINGS_ELEVATION_ACTIONS.favorite
+  );
   const mutation = useFavoriteListing();
   const gate = firstBlock(
     mandate,
-    mutation.isPending
+    mutation.isPending || elevation.pending
       ? actionBlocked(LISTINGS_I18N_KEYS.blockedInFlight)
       : actionAvailable()
   );
   return {
     favorited: favorited === true,
     gate,
+    // On a host with auto-anonymous wired, the first heart an anonymous
+    // visitor presses mints their account and then saves — one press, no
+    // form, nothing said about it. Everywhere else `run` performs directly.
     toggle: () => {
       if (!gate.available) return;
-      mutation.mutate({ id, favorited: favorited !== true });
+      elevation.run(() => mutation.mutate({ id, favorited: favorited !== true }));
     },
-    inFlight: mutation.isPending,
-    error: mutation.error,
+    inFlight: mutation.isPending || elevation.pending,
+    error: mutation.error ?? elevation.error,
   };
 }
 
@@ -92,7 +100,18 @@ export interface UseFavoritesOptions {
 /** The favourites page: a real keyset list, unlike the owner's own listings
  * (see `MyListings.tsx` for why those are different). */
 export function useFavorites(options: UseFavoritesOptions = {}): FavoritesBag {
-  const gate = useMandateGate();
+  // The READ side of elevation, and the one place `identified` is the right
+  // question. A guest who saved listings must be able to come back and see
+  // them — an account that can save and cannot re-read is worse than the
+  // refusal it replaced — but a visitor who has never elevated has nothing
+  // here, so this page must not mint just to render. `covers` alone would
+  // open it for them and buy a 401.
+  const { gate: mandateGate, elevation } = useElevatableMandateGate(
+    LISTINGS_ELEVATION_ACTIONS.favorite
+  );
+  const gate = elevation.covers && !elevation.identified
+    ? actionBlocked(LISTINGS_I18N_KEYS.blockedSignIn)
+    : mandateGate;
   const [page, setPage] = useState<ListingPageParams>(
     options.limit !== undefined ? { limit: options.limit } : {}
   );

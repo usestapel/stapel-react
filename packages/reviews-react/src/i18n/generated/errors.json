@@ -222,6 +222,13 @@
     "en": "Requests from this network are not allowed"
   },
   {
+    "code": "error.403.reviews_anonymous_not_allowed",
+    "status": 403,
+    "params": [],
+    "remediation": "retry",
+    "en": "A guest account may not leave a review"
+  },
+  {
     "code": "error.403.reviews_cannot_moderate",
     "status": 403,
     "params": [],

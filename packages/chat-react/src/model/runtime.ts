@@ -5,6 +5,7 @@ import type { RealtimeClientOptions } from "@stapel/realtime";
 import { createChatApi } from "../api/chatApi.js";
 import type { ChatApi } from "../api/chatApi.js";
 import { deriveChatSocketOrigin } from "../realtime/streams.js";
+import type { ChatSlots } from "./slots.js";
 
 /**
  * Everything the substrate's client takes except where it points and who
@@ -70,10 +71,29 @@ export interface ChatRealtimeConfig {
  */
 export type ChatRuntime = ModuleRuntime<ChatApi> & {
   readonly realtime: ChatRealtimeConfig;
+  /**
+   * What this deployment knows and chat does not: who the participants are,
+   * how to draw a subject card, what report and block do. See `./slots.ts` —
+   * every one of them is optional and every absence has a stated rendering.
+   */
+  readonly slots: ChatSlots;
 };
 
 export interface CreateChatRuntimeOptions extends CreateModuleRuntimeOptions {
   readonly realtime?: ChatRealtimeOptions;
+  /**
+   * Host-supplied seams (`./slots.ts`). The pairs that own names and
+   * moderation are PEERS of this one and are never imported here; the
+   * container wires them:
+   *
+   * ```tsx
+   * createChatRuntime({
+   *   baseUrl,
+   *   slots: { people: ChatPeople, report: ReportEntry, block: BlockEntry },
+   * });
+   * ```
+   */
+  readonly slots?: ChatSlots;
 }
 
 function currentOrigin(): string | null {
@@ -108,5 +128,9 @@ export function createChatRuntime(
   options: CreateChatRuntimeOptions
 ): ChatRuntime {
   const runtime = createModuleRuntime(createChatApi, options);
-  return { ...runtime, realtime: resolveRealtime(options.baseUrl, options.realtime) };
+  return {
+    ...runtime,
+    realtime: resolveRealtime(options.baseUrl, options.realtime),
+    slots: options.slots ?? {},
+  };
 }

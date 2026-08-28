@@ -24,6 +24,7 @@ export type { ChatApi } from "./api/chatApi.js";
 export type {
   Schemas,
   AnchorDirection,
+  Attachment,
   ChatMessage,
   Conversation,
   ConversationKind,
@@ -37,6 +38,8 @@ export type {
   Participant,
   ParticipantRole,
   SendMessageRequest,
+  Subject,
+  SubjectRef,
   SupportStatus,
 } from "./api/types.js";
 
@@ -143,6 +146,21 @@ export type {
   ChatRuntime,
   CreateChatRuntimeOptions,
 } from "./model/runtime.js";
+// The host-supplied seams: who the people are, how a subject is drawn, what
+// report and block do. A chat pair cannot know any of the three, and the pairs
+// that DO know are peers it must never import — see `model/slots.ts`.
+export { UNRESOLVED_PEOPLE, noPeopleSlot } from "./model/slots.js";
+export type {
+  ChatPeopleDirectory,
+  ChatPeopleSlot,
+  ChatPeopleSlotProps,
+  ChatPerson,
+  ChatSlots,
+  ChatSubjectCardSlot,
+  ChatSubjectCardSlotProps,
+  ChatThreadActionSlot,
+  ChatThreadActionSlotProps,
+} from "./model/slots.js";
 export {
   ChatRuntimeContext,
   useChatRuntime,
@@ -151,6 +169,10 @@ export {
 } from "./model/context.js";
 export { chatQueryKeys } from "./model/queryKeys.js";
 export { THREAD_PAGE, useConversation, useConversations, useThread } from "./model/queries.js";
+// The last line of each thread this client already holds — no request; see
+// `model/previews.ts` for the upstream gap it works around.
+export { useThreadPreviews } from "./model/previews.js";
+export type { ChatPreviews } from "./model/previews.js";
 export {
   useLoadOlderMessages,
   useMarkRead,
@@ -170,6 +192,7 @@ export {
   mergeNewerPage,
   mergeOlderPage,
   threadFirstSeq,
+  threadLastMessage,
   threadLastRevSeq,
   threadLastSeq,
   threadWindowFromPage,
@@ -196,7 +219,10 @@ export { ConversationThread } from "./headless/ConversationThread.js";
 export type { ConversationThreadBag } from "./headless/ConversationThread.js";
 export { MessageComposer } from "./headless/MessageComposer.js";
 export type { MessageComposerBag } from "./headless/MessageComposer.js";
-export { StartDirectChat } from "./headless/StartDirectChat.js";
+export {
+  StartDirectChat,
+  CHAT_ELEVATION_ACTIONS,
+} from "./headless/StartDirectChat.js";
 export type { StartDirectChatBag } from "./headless/StartDirectChat.js";
 
 // ── nav ──────────────────────────────────────────────────────────────────────

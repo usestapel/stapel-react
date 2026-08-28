@@ -8,7 +8,7 @@ export { reviewsErrorBundleEs } from "./generated/errors.es.gen.js";
  * subpath (i18n-shipping.md §2), opt-in exactly like `./i18n/ru`.
  *
  * Same two sources, same reason (see `./ru.ts`): 42 cross-cutting keys come
- * from stapel-core's catalogue through the generated bundle, and the 9 keys
+ * from stapel-core's catalogue through the generated bundle, and the 10 keys
  * stapel-reviews owns are authored below until upstream ships
  * `translations/errors.es.json`.
  *
@@ -28,6 +28,8 @@ export const reviewsI18nBundleEs: I18nDictionary = {
   "error.400.reviews_response_not_allowed":
     "Las respuestas están desactivadas para este tipo de objeto",
   "error.400.reviews_unknown_target_type": "Tipo de objeto de reseña desconocido",
+  "error.403.reviews_anonymous_not_allowed":
+    "Una cuenta de invitado no puede dejar una reseña",
   "error.403.reviews_cannot_moderate":
     "No puedes moderar las reseñas de este objeto",
   "error.403.reviews_cannot_review": "No puedes reseñar este objeto",
@@ -78,6 +80,8 @@ export const reviewsI18nBundleEs: I18nDictionary = {
   "reviews.submit.blocked.duplicate": "Ya has valorado esto",
   "reviews.submit.blocked.submitted": "Tu reseña se ha enviado",
   "reviews.submit.blocked.forbidden": "No puedes reseñar esto",
+  "reviews.submit.blocked.sign_in": "Inicia sesión para dejar una reseña",
+  "reviews.submit.blocked.mandate_unknown": "Comprobando tu cuenta…",
 
   "reviews.moderation.heading": "Moderación",
   "reviews.moderation.hint":

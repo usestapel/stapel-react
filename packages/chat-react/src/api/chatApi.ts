@@ -8,6 +8,7 @@ import type {
   MessageHistoryParams,
   MessagePage,
   SendMessageRequest,
+  SubjectRef,
 } from "./types.js";
 
 /**
@@ -73,10 +74,17 @@ export interface ChatApi {
    * exactly one OTHER user: the thread is keyed by the (order-independent)
    * participant pair, so a second call returns the same row — the idempotency
    * "message the seller" is built on.
+   *
+   * `subject` NARROWS that key. Since stapel-chat 0.6.0 `direct_key` is
+   * computed over `(scope, {both user ids}, subject_type, subject_key)`, so a
+   * buyer writing about listing A and the same buyer writing to the same
+   * seller about listing B get two threads, each of which can say what it is
+   * about. Omit it and the pair-only key is unchanged.
    */
   createConversation(
     kind: ConversationKind,
-    participantIds?: readonly string[]
+    participantIds?: readonly string[],
+    subject?: SubjectRef
   ): Promise<Conversation>;
   /** A page of message history, anchored on `seq` (see {@link MessageHistoryParams}). */
   messages(
@@ -108,13 +116,19 @@ export function createChatApi(client: StapelClient): ChatApi {
 
     conversation: (conversationId) => client.get(conversationPath(conversationId)),
 
-    createConversation: (kind, participantIds) =>
+    createConversation: (kind, participantIds, subject) =>
       client.post(
         "/conversations",
         {
           kind,
           ...(participantIds !== undefined
             ? { participant_ids: [...participantIds] }
+            : {}),
+          // Both fields or neither: half a pair is refused upstream
+          // (`chat_incomplete_subject`), and sending an empty string for the
+          // missing half would key the thread on "".
+          ...(subject !== undefined
+            ? { subject_type: subject.type, subject_key: subject.key }
             : {}),
         },
         mutating()

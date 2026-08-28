@@ -31,6 +31,28 @@ export type MarkReadRequest = Schemas["MarkReadRequest"];
 export type ConversationPage = Schemas["PaginatedConversationResponseList"];
 /** GET /conversations/{id}/messages 200 body — anchor-paginated on `seq`. */
 export type MessagePage = Schemas["PaginatedMessageResponseList"];
+/**
+ * What a conversation is ABOUT, with the card its owner rendered.
+ *
+ * `card` is `unknown`-shaped on purpose, on both sides of the wire:
+ * stapel-chat stores an opaque `(type, key)` and calls the type's registered
+ * `card_function` for the rest, never looking inside the answer. Neither does
+ * this pair — the default skin reads the conventional fields and a host with
+ * a different card replaces the renderer (`model/slots.ts`).
+ */
+export type Subject = Schemas["SubjectResponse"];
+/** A render descriptor for one attached/illustrated file (CDN geometry). */
+export type Attachment = Schemas["AttachmentResponse"];
+
+/**
+ * The half of a subject a CLIENT supplies: the name, never the card. Both
+ * fields or neither — stapel-chat answers `error.400.chat_incomplete_subject`
+ * for half a pair.
+ */
+export interface SubjectRef {
+  readonly type: string;
+  readonly key: string;
+}
 
 // ── documented corrections (drf-spectacular under-describes) ─────────────────
 

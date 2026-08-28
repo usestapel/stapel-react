@@ -72,6 +72,18 @@ export function threadLastSeq(window: ChatThreadWindow): number {
   return last ? last.seq : 0;
 }
 
+/**
+ * The newest message in the window, or `undefined` for an empty one.
+ *
+ * The window is ascending by `seq` and holds no holes, so the tail IS the
+ * newest — no scan, and no sorting by `created_at`, which is not the order.
+ */
+export function threadLastMessage(
+  window: ChatThreadWindow
+): ChatMessage | undefined {
+  return window.messages[window.messages.length - 1];
+}
+
 /** The oldest `seq` in the window, or 0 for an empty one. */
 export function threadFirstSeq(window: ChatThreadWindow): number {
   const first = window.messages[0];

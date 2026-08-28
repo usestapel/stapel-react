@@ -73,6 +73,11 @@ export const REVIEWS_I18N_KEYS = {
   submitBlockedDuplicate: "reviews.submit.blocked.duplicate",
   submitBlockedSubmitted: "reviews.submit.blocked.submitted",
   submitBlockedForbidden: "reviews.submit.blocked.forbidden",
+  /** The mandate axis says this visitor has no account to attribute a review
+   * to — said BEFORE the rating is typed, not after the POST is refused. */
+  submitBlockedSignIn: "reviews.submit.blocked.sign_in",
+  /** The axis has not answered yet. A wait, never a refusal. */
+  submitBlockedMandateUnknown: "reviews.submit.blocked.mandate_unknown",
 
   // ── The moderation queue ──────────────────────────────────────────────────
   // `POST {id}/moderate`, reachable at last. The pane is state-gated on a
@@ -127,7 +132,7 @@ export const REVIEWS_I18N_KEYS = {
   respondBlockedGone: "reviews.respond.blocked.gone",
 
   // Backend error keys the pair OWNS the localization of. stapel-reviews ships
-  // English only (no `translations/` directory at all), so its 9 keys are
+  // English only (no `translations/` directory at all), so its 10 keys are
   // absent from the generated ru/es bundles and are authored in `./i18n/<lang>`
   // instead — the stapel-forms/`stapel_attributes` precedent, applied before
   // this by forms, chat, cdn and categories. Listed here so `i18n-key-exists`
@@ -137,6 +142,7 @@ export const REVIEWS_I18N_KEYS = {
   errorInvalidRating: "error.400.reviews_invalid_rating",
   errorResponseNotAllowed: "error.400.reviews_response_not_allowed",
   errorUnknownTargetType: "error.400.reviews_unknown_target_type",
+  errorAnonymousNotAllowed: "error.403.reviews_anonymous_not_allowed",
   errorCannotModerate: "error.403.reviews_cannot_moderate",
   errorCannotReview: "error.403.reviews_cannot_review",
   errorReviewNotFound: "error.404.reviews_review_not_found",
@@ -214,6 +220,8 @@ export const reviewsI18nBundleEn: I18nDictionary = {
   "reviews.submit.blocked.duplicate": "You have already rated this",
   "reviews.submit.blocked.submitted": "Your review has been sent",
   "reviews.submit.blocked.forbidden": "You cannot review this",
+  "reviews.submit.blocked.sign_in": "Sign in to leave a review",
+  "reviews.submit.blocked.mandate_unknown": "Checking your account…",
 
   "reviews.moderation.heading": "Moderation",
   "reviews.moderation.hint":

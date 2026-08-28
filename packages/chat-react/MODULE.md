@@ -372,8 +372,24 @@ core floors only `en` and `ru`.
   but does nothing is worse than one that is absent.
 - **The support console.** `/support/queue`, assign / resolve / reopen — an
   operator surface, not this one.
+- **A last-message preview on the conversation list.** `ConversationResponse`
+  carries `last_seq`, `unread_count`, `updated_at`, `subject` and
+  `participants` — and no message. A row therefore shows its last line only
+  for a thread this client already holds (`useThreadPreviews`, cache-only, no
+  request). NAMED UPSTREAM GAP: a `last_message` projection on the
+  conversation serializer would let every row paint one on first load. A
+  `GET /messages?limit=1` per row is not an answer.
+- **Names.** Resolved through the host `people` seam, because they belong to
+  `@stapel/profiles-react`, a peer this pair never imports. With no seam a row
+  says "Name unavailable" — the failure, in words.
+
+## Done since 0.4.0
+
 - **A thread scoped to a listing.** `CreateConversationRequest.scope_key` is
-  ignored by the server (it resolves the scope itself), and a direct thread is
-  keyed by the participant PAIR — so buyer↔seller is one conversation across
-  every listing. A host that wants the listing named says so in the first
-  message.
+  still ignored by the server, but stapel-chat 0.6.0's `(subject_type,
+  subject_key)` is not: it is hashed into `direct_key`, so a subject-carrying
+  "message the seller" opens one thread per listing, and the thread renders
+  the subject owner's own card at its top. `StartChatButton` /
+  `useStartDirectChat` take the pair; a thread without one behaves exactly as
+  before, and the first subject-carrying contact opens a NEW thread beside any
+  subjectless one (nothing can key the old ones retroactively).

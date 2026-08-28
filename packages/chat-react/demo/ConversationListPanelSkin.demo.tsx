@@ -13,7 +13,13 @@
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
 import { ConversationListPanel } from "../src/default/ConversationListPanel.js";
-import { ChatDemoHarness, DEMO_INBOX, inboxPage, seedInbox } from "./_harness.js";
+import {
+  ChatDemoHarness,
+  DEMO_INBOX,
+  DEMO_VIEWER,
+  inboxPage,
+  seedInbox,
+} from "./_harness.js";
 import type { Conversation } from "../src/api/types.js";
 import type { DemoHandlers, DemoSeed } from "./_harness.js";
 
@@ -51,7 +57,10 @@ const EMPTY = inboxDemo([]);
 function Panel(props: { demo: { seed: DemoSeed; handlers: DemoHandlers } }): ReactElement {
   return (
     <ChatDemoHarness seed={props.demo.seed} handlers={props.demo.handlers}>
-      <ConversationListPanel openHref={href} />
+      {/* The reader is named, which is what lets a row name the OTHER person
+          — and what lets the inbox open its own socket instead of polling and
+          wearing the degradation sentence in every frame of the catalogue. */}
+      <ConversationListPanel viewerId={DEMO_VIEWER} openHref={href} />
     </ChatDemoHarness>
   );
 }

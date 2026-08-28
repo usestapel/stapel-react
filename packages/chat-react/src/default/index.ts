@@ -19,6 +19,19 @@ export type { ConversationThreadPanelProps } from "./ConversationThreadPanel.js"
 export { StartChatButton } from "./StartChatButton.js";
 export type { StartChatButtonProps } from "./StartChatButton.js";
 export { SignInLink } from "./SignInLink.js";
+// The subject card and the overflow menu are exported so a host composing its
+// own thread screen keeps the same two surfaces rather than re-deciding them.
+export { SubjectCard, readSubjectCard, subjectRowLabel } from "./subjectCard.js";
+export type { SubjectCardView } from "./subjectCard.js";
+export { ThreadActionsMenu } from "./ThreadActionsMenu.js";
+export type { ThreadActionsMenuProps } from "./ThreadActionsMenu.js";
+export {
+  CounterpartyAvatar,
+  PeopleScope,
+  conversationPeopleIds,
+  counterpartyIds,
+  useCounterpartyLabel,
+} from "./people.js";
 export type { SignInLinkProps } from "./SignInLink.js";
 // The skin's own theme root. Every surface above already wraps itself in it;
 // it is exported so a host composing loose parts can wrap them once.

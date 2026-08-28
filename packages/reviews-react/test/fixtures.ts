@@ -82,6 +82,16 @@ export const UNAUTHENTICATED_401 = {
 };
 
 /**
+ * The GUEST wall: a minted anonymous account IS authenticated, so nothing
+ * answers 401 for it — `ALLOW_ANONYMOUS_WRITES` refuses the review write with
+ * this 403 instead. The other spelling of "sign in first".
+ */
+export const ANONYMOUS_NOT_ALLOWED_403 = {
+  status: 403,
+  body: { localizable_error: "error.403.reviews_anonymous_not_allowed" },
+};
+
+/**
  * The fail-closed moderation gate saying no — to a VERDICT or to the owner's
  * REPLY, which share the callback and therefore share this code.
  */

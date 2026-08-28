@@ -4,7 +4,7 @@
   "version": "0.7.0",
   "backend": {
     "module": "stapel-listings",
-    "contract": ">=0.7 <0.8"
+    "contract": ">=0.8 <0.9"
   },
   "layers": [
     "api",
@@ -19,119 +19,119 @@
     "listings_api_v1_listings_archive_create": {
       "method": "POST",
       "path": "/listings/api/v1/listings/{id}/archive/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": null,
       "response": "ListingActionResponse"
     },
     "listings_api_v1_listings_complete_create": {
       "method": "POST",
       "path": "/listings/api/v1/listings/{id}/complete/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": null,
       "response": "ListingActionResponse"
     },
     "listings_api_v1_listings_create": {
       "method": "POST",
       "path": "/listings/api/v1/listings/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": "ListingDraft",
       "response": "ListingDraft"
     },
     "listings_api_v1_listings_destroy": {
       "method": "DELETE",
       "path": "/listings/api/v1/listings/{id}/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": null,
       "response": "DeleteResponse"
     },
     "listings_api_v1_listings_favorite_create": {
       "method": "POST",
       "path": "/listings/api/v1/listings/{id}/favorite/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": null,
       "response": "FavoriteToggleResponse"
     },
     "listings_api_v1_listings_list": {
       "method": "GET",
       "path": "/listings/api/v1/listings/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": null,
       "response": "PaginatedListingCardList"
     },
     "listings_api_v1_listings_my_counters_retrieve": {
       "method": "GET",
       "path": "/listings/api/v1/listings/my/counters/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": null,
       "response": "MyCountersResponse"
     },
     "listings_api_v1_listings_my_favorites_list": {
       "method": "GET",
       "path": "/listings/api/v1/listings/my/favorites/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": null,
       "response": "PaginatedListingCardList"
     },
     "listings_api_v1_listings_my_listings_list": {
       "method": "GET",
       "path": "/listings/api/v1/listings/my/listings/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": null,
       "response": "PaginatedMyListingCardList"
     },
     "listings_api_v1_listings_partial_update": {
       "method": "PATCH",
       "path": "/listings/api/v1/listings/{id}/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": "PatchedListingDraft",
       "response": "ListingDraft"
     },
     "listings_api_v1_listings_publish_create": {
       "method": "POST",
       "path": "/listings/api/v1/listings/{id}/publish/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": null,
       "response": "PublishResponse"
     },
     "listings_api_v1_listings_retrieve": {
       "method": "GET",
       "path": "/listings/api/v1/listings/{id}/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": null,
       "response": "ListingDetail"
     },
     "listings_api_v1_listings_save_draft_create": {
       "method": "POST",
       "path": "/listings/api/v1/listings/{id}/save-draft/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": null,
       "response": "ListingDraft"
     },
     "listings_api_v1_listings_status_retrieve": {
       "method": "GET",
       "path": "/listings/api/v1/listings/{id}/status/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": null,
       "response": "ListingStatus"
     },
     "listings_api_v1_listings_unfavorite_create": {
       "method": "POST",
       "path": "/listings/api/v1/listings/{id}/unfavorite/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": null,
       "response": "FavoriteToggleResponse"
     },
     "listings_api_v1_listings_update": {
       "method": "PUT",
       "path": "/listings/api/v1/listings/{id}/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": "ListingDraft",
       "response": "ListingDraft"
     },
     "listings_api_v1_listings_validate_draft_retrieve": {
       "method": "GET",
       "path": "/listings/api/v1/listings/{id}/validate-draft/",
-      "tag": "Listings",
+      "tag": "listings",
       "request": null,
       "response": "ValidationBatchResult"
     }
@@ -838,10 +838,10 @@
     "listings.card.favorite_add",
     "listings.card.favorite_remove",
     "listings.card.no_photo",
-    "listings.card.open",
     "listings.card.photo_unavailable",
     "listings.card.price_absent",
     "listings.card.sign_in",
+    "listings.card.untitled",
     "listings.compose.auto_republish",
     "listings.compose.blocked.busy",
     "listings.compose.blocked.details_unavailable",
@@ -965,6 +965,7 @@
       "EMPTY_LOCATION",
       "Favorites",
       "IMAGES_FIELD",
+      "LISTINGS_ELEVATION_ACTIONS",
       "LISTINGS_ERRORS",
       "LISTINGS_ERROR_CODES",
       "LISTINGS_FLOWS",
@@ -1030,6 +1031,7 @@
       "useCompleteListing",
       "useCreateDraft",
       "useDeleteListing",
+      "useElevatableMandateGate",
       "useFavoriteListing",
       "useFavoriteToggle",
       "useFavorites",

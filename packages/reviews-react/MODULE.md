@@ -50,7 +50,15 @@ guest: both endpoints were already published-only for a non-moderator.
 
 `signInRequired` is true at exactly the right moment — the reads are anonymous
 and the POST is not, so the author learns it when there is something to attach
-to a name. What it did not have was a next action: the skin printed "sign in to
+to a name. It is now true BEFORE the click as well: the mandate axis answers
+`anonymous` or `guest` and the form says so instead of letting a review be
+typed that cannot land. The post-hoc arm stays as the net, and reads two
+spellings of the same refusal — 401 for a visitor with no session, 403
+`error.403.reviews_anonymous_not_allowed` for the account a storefront minted
+for them. Whether the wall stands for a stranger at all is the host's call, not
+this pair's: `REVIEWS_ELEVATION_ACTIONS.write` is the client half of
+`ALLOW_ANONYMOUS_WRITES`, and a deployment that opens the server switch names
+the action too. What it did not have was a next action: the skin printed "sign in to
 leave a review" and stopped, and the storefront had to put its own notice a
 screen away from the control it was about (Wave D, G-3).
 

@@ -8,7 +8,7 @@
  * socket-fed thread and a polled one.
  */
 import { fontSize, spacing } from "@stapel/tokens-antd";
-import type { CSSProperties, ReactElement } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Button, Card, Empty, Flex, Input, Space, Spin, Typography } from "antd";
 import {
   matchList,
@@ -17,22 +17,124 @@ import {
   useI18n,
   useT,
 } from "@stapel/core";
-import type { ChatMessage } from "../api/types.js";
+import type { ChatMessage, Conversation } from "../api/types.js";
 import { ConversationThread } from "../headless/ConversationThread.js";
 import { MessageComposer } from "../headless/MessageComposer.js";
+import { useConversation } from "../model/queries.js";
+import type { ChatPeopleDirectory } from "../model/slots.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ErrorAlert } from "./ErrorAlert.js";
 import { TransportTag } from "./TransportTag.js";
 import { ChatSkinTheme } from "./theme.js";
+import { ThreadActionsMenu } from "./ThreadActionsMenu.js";
+import { SubjectCard } from "./subjectCard.js";
+import {
+  CounterpartyAvatar,
+  PeopleScope,
+  counterpartyIds,
+  useCounterpartyLabel,
+} from "./people.js";
 
 export interface ConversationThreadPanelProps {
   conversationId: string;
-  /** The reader, when the host knows them — used only to align their own
-   * lines. Absent, every message is rendered the same way rather than
-   * guessed at. */
+  /**
+   * The reader, when the host knows them — used to align their own lines, to
+   * name the OTHER side in the header, and to tell report/block which person
+   * they are about. Absent, every message is rendered the same way rather
+   * than guessed at.
+   */
   viewerId?: string | null;
   limit?: number;
   maxLength?: number;
+}
+
+/** A stable empty list — a fresh `[]` per render would re-run a host's batch. */
+const NO_PEOPLE: readonly string[] = [];
+
+/**
+ * WHO this is with, WHAT it is about, and the two verbs a conversation needs.
+ *
+ * The conversation row is read here (`useConversation`) rather than demanded
+ * from the host: it carries the participants, the subject, and the server's
+ * own `stream_key`/`socket_path`, and it is the same cache entry the inbox
+ * and "message the seller" already seed. A failed read costs the header, not
+ * the thread — the messages are the screen, and they have their own arm.
+ */
+function ThreadHeader(props: {
+  readonly conversation: Conversation | undefined;
+  readonly viewerId: string | null;
+  readonly directory: ChatPeopleDirectory;
+  readonly conversationId: string;
+  readonly transportTag: ReactNode;
+}): ReactElement {
+  const t = useT();
+  const { conversation, viewerId } = props;
+  // With no row there is nobody to name and nothing to be wrong about: the
+  // screen keeps its plain title rather than announcing a failure that is
+  // the header's, not the person's.
+  const fallback = t(CHAT_I18N_KEYS.listTitle);
+  const others = conversation === undefined ? [] : counterpartyIds(conversation, viewerId);
+  return (
+    <Flex
+      justify="space-between"
+      align="center"
+      wrap="wrap"
+      gap={spacing[2]}
+      style={{ marginBottom: spacing[3] }}
+    >
+      <Flex align="center" gap={spacing[3]} style={{ minWidth: 0 }}>
+        {conversation !== undefined ? (
+          <CounterpartyAvatar
+            conversation={conversation}
+            viewerId={viewerId}
+            directory={props.directory}
+            label={fallback}
+          />
+        ) : null}
+        <Typography.Title
+          level={4}
+          style={{ margin: 0, minWidth: 0 }}
+          data-testid="chat-thread-title"
+        >
+          {conversation === undefined ? (
+            fallback
+          ) : (
+            <ThreadTitle
+              conversation={conversation}
+              viewerId={viewerId}
+              directory={props.directory}
+            />
+          )}
+        </Typography.Title>
+      </Flex>
+      <Flex align="center" gap={spacing[2]}>
+        {/* When the socket is not carrying this thread, the label says WHY —
+            a degraded transport that renders as a plain "refreshing every few
+            seconds" is the thing that made this pair's broken handshake look
+            like a design decision for months. */}
+        {props.transportTag}
+        <ThreadActionsMenu
+          conversationId={props.conversationId}
+          counterpartyId={others.length === 1 ? (others[0] ?? null) : null}
+          viewerId={viewerId}
+        />
+      </Flex>
+    </Flex>
+  );
+}
+
+/** Split out so the label hook is called from a component, not a branch. */
+function ThreadTitle(props: {
+  readonly conversation: Conversation;
+  readonly viewerId: string | null;
+  readonly directory: ChatPeopleDirectory;
+}): ReactElement {
+  const label = useCounterpartyLabel(
+    props.conversation,
+    props.viewerId,
+    props.directory
+  );
+  return <>{label}</>;
 }
 
 function MessageRow(props: {
@@ -159,10 +261,16 @@ export function ConversationThreadPanel(
   const t = useT();
   const { locale } = useI18n();
   const errorDisplay = useErrorDisplay(CHAT_I18N_KEYS.unknownError);
+  // The row behind the header. Its failure is deliberately NOT surfaced: a
+  // header that could not be built must not take the messages down with it.
+  const conversation = useConversation(props.conversationId).data;
+  const viewerId = props.viewerId ?? null;
+  const subject = conversation?.subject ?? null;
 
   return (
     <ConversationThread
       conversationId={props.conversationId}
+      {...(conversation !== undefined ? { conversation } : {})}
       {...(props.limit !== undefined ? { limit: props.limit } : {})}
     >
       {({
@@ -177,30 +285,45 @@ export function ConversationThreadPanel(
       }) => (
         <ChatSkinTheme>
           <Card data-testid="chat-thread">
-          {/* WRAPS, and the tag's own text wraps inside it. The degradation
-              copy is a full sentence ("Live messages stopped — sign in again
-              to get them back"), and in a nowrap row at 390px it had nowhere
-              to go: the flex line could not shrink below its content, so the
-              header pushed the card sideways and the one thing on this screen
-              a person can ACT on was the part that went off the edge. Mobile
-              first is not a width the desktop layout survives — it is the
-              width the layout is decided at. */}
-          <Flex
-            justify="space-between"
-            align="center"
-            wrap="wrap"
-            gap={spacing[2]}
-            style={{ marginBottom: spacing[3] }}
+          {/* The header WRAPS, and the tag's own text wraps inside it. The
+              degradation copy is a full sentence ("Live messages stopped —
+              sign in again to get them back"), and in a nowrap row at 390px it
+              had nowhere to go: the flex line could not shrink below its
+              content, so the header pushed the card sideways and the one thing
+              on this screen a person can ACT on was the part that went off the
+              edge. Mobile first is not a width the desktop layout survives —
+              it is the width the layout is decided at. */}
+          <PeopleScope
+            userIds={
+              conversation === undefined
+                ? NO_PEOPLE
+                : counterpartyIds(conversation, viewerId)
+            }
           >
-            <Typography.Title level={4} style={{ margin: 0 }}>
-              {t(CHAT_I18N_KEYS.listTitle)}
-            </Typography.Title>
-            {/* When the socket is not carrying this thread, the label says
-                WHY — a degraded transport that renders as a plain "refreshing
-                every few seconds" is the thing that made this pair's broken
-                handshake look like a design decision for months. */}
-            <TransportTag transport={transport} degraded={degraded} status={status} />
-          </Flex>
+            {(directory) => (
+              <ThreadHeader
+                conversation={conversation}
+                viewerId={viewerId}
+                directory={directory}
+                conversationId={props.conversationId}
+                transportTag={
+                  <TransportTag
+                    transport={transport}
+                    degraded={degraded}
+                    status={status}
+                  />
+                }
+              />
+            )}
+          </PeopleScope>
+
+          {/* WHAT THIS IS ABOUT, pinned. A thread with a subject shows the
+              subject owner's own card; a thread without one shows nothing,
+              which is exactly the difference between the two threads a
+              subject-widened `direct_key` can produce for the same pair. */}
+          {subject !== null ? (
+            <SubjectCard subject={subject} conversationId={props.conversationId} />
+          ) : null}
 
           {matchList(state, {
             loading: () => <Spin />,
@@ -220,7 +343,11 @@ export function ConversationThreadPanel(
             empty: () => (
               <Empty
                 data-testid="chat-thread-empty"
-                description={t(CHAT_I18N_KEYS.threadEmpty)}
+                description={t(
+                  subject === null
+                    ? CHAT_I18N_KEYS.threadEmpty
+                    : CHAT_I18N_KEYS.threadEmptySubject
+                )}
               />
             ),
             ready: (messages) => (

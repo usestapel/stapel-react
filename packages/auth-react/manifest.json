@@ -3109,6 +3109,7 @@
   ],
   "exports": {
     "runtime": [
+      "ANONYMOUS_DEVICE_ID_KEY",
       "AUTH_ERRORS",
       "AUTH_ERROR_CODES",
       "AUTH_I18N_KEYS",
@@ -3140,6 +3141,7 @@
       "authUrls",
       "base64UrlToArrayBuffer",
       "classifyWebauthnError",
+      "createAnonymousElevation",
       "createAnonymousFlow",
       "createAuthApi",
       "createAuthRuntime",
@@ -3219,6 +3221,7 @@
     ],
     "types": [
       "AnonymousBag",
+      "AnonymousElevationOptions",
       "AnonymousFlow",
       "AnonymousFlowDeps",
       "AnonymousState",

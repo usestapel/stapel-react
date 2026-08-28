@@ -264,6 +264,11 @@
       "params": [],
       "remediation": "contact_support"
     },
+    "error.403.reviews_anonymous_not_allowed": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.403.reviews_cannot_moderate": {
       "status": 403,
       "params": [],
@@ -546,6 +551,7 @@
     "error.402.payment_required",
     "error.403.forbidden",
     "error.403.network_blocked",
+    "error.403.reviews_anonymous_not_allowed",
     "error.403.reviews_cannot_moderate",
     "error.403.reviews_cannot_review",
     "error.403.verification_enrollment_required",
@@ -642,15 +648,19 @@
     "reviews.status.unknown",
     "reviews.submit.blocked.duplicate",
     "reviews.submit.blocked.forbidden",
+    "reviews.submit.blocked.mandate_unknown",
     "reviews.submit.blocked.no_rating",
     "reviews.submit.blocked.pending",
+    "reviews.submit.blocked.sign_in",
     "reviews.submit.blocked.submitted"
   ],
   "exports": {
     "runtime": [
       "DEFAULT_RATING_BOUNDS",
+      "REVIEWS_ELEVATION_ACTIONS",
       "REVIEWS_ERRORS",
       "REVIEWS_ERROR_ALREADY_RESPONDED",
+      "REVIEWS_ERROR_ANONYMOUS_NOT_ALLOWED",
       "REVIEWS_ERROR_CANNOT_MODERATE",
       "REVIEWS_ERROR_CANNOT_REVIEW",
       "REVIEWS_ERROR_CODES",

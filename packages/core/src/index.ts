@@ -289,6 +289,14 @@ export type {
 export { MandateProvider, useMandate, useMandatePrincipal } from "./mandateSource.js";
 export type { MandateSource } from "./mandateSource.js";
 
+// elevation seam (elevation.tsx): the third answer for an anonymous visitor.
+// A named action may mint an identity at the moment it is taken instead of
+// refusing — never on render, once per visitor, and only for the actions a
+// deployment listed. The mandate axis is untouched by it, so the actions
+// that keep the wall (a review, a published listing) keep it.
+export { ElevationProvider, useElevation, useElevationSource } from "./elevation.js";
+export type { Elevation, ElevationSource } from "./elevation.js";
+
 // upload primitives — the bones shared by three DIFFERENT upload contracts
 // (cdn multipart / docs presign+finalize / recordings session+PUT+finalize).
 // Neither knows an endpoint; the contracts stay in their own pairs.

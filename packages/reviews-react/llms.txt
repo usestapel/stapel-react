@@ -34,7 +34,7 @@ Paths are relative to `/reviews/api/v1/`.
 - useSubmitReview (mutation) → createReview
 
 ## Errors (render t(code, params); UX from remediation)
-51 keys (full catalog: manifest.json §errors). By remediation: fix_input 22 · retry 16 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+52 keys (full catalog: manifest.json §errors). By remediation: fix_input 22 · retry 17 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}

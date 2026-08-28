@@ -109,19 +109,114 @@ same wire as the messages it produces can have that. It is not the default:
 the REST twins answer with the persisted row and a localized error envelope,
 while a socket refusal is a protocol code with no i18n key.
 
+## The three seams a chat cannot fill by itself
+
+A `ConversationResponse` names nobody (it carries participant **ids**), a
+subject card belongs to whoever owns that subject type, and "report" and
+"block" live in `@stapel/moderation-react` and `@stapel/profiles-react` — all
+three of them **peers** of this pair, which never imports a peer. So they
+arrive as host-supplied slots on the runtime, exactly like `resolveImage` in
+`@stapel/listings-react`:
+
+```tsx
+import { useProfilesBatch, profileBatchEntry } from "@stapel/profiles-react";
+import { ReportButton } from "@stapel/moderation-react/default";
+import { useBlock, useUnblock, useRelationship } from "@stapel/profiles-react";
+import type { ChatPeopleSlot, ChatThreadActionSlot } from "@stapel/chat-react";
+
+// WHO. Mounted ONCE per screen with every id it is about to draw, so an
+// inbox of twenty rows is one request.
+const People: ChatPeopleSlot = ({ userIds, children }) => {
+  const batch = useProfilesBatch(userIds);
+  return children({
+    pending: batch.isPending,
+    lookup: (userId) => {
+      const entry = profileBatchEntry(batch.data, userId);
+      return entry.status === "found"
+        ? {
+            userId,
+            displayName: entry.profile.display_name,
+            avatarUrl: entry.profile.avatar_url,
+          }
+        : null;
+    },
+  });
+};
+
+// REPORT / BLOCK. Rendered inside the thread's overflow menu — a bottom sheet
+// on a phone, a modal above it. `close()` dismisses that menu when your own
+// control takes the screen over.
+const Report: ChatThreadActionSlot = ({ conversationId, counterpartyId, close }) =>
+  counterpartyId === null ? null : (
+    <ReportButton
+      targetType="chat_message"
+      targetKey={conversationId}
+      block
+      onOpened={close}
+    />
+  );
+
+const Block: ChatThreadActionSlot = ({ counterpartyId }) =>
+  counterpartyId === null ? null : <MyBlockControl userId={counterpartyId} />;
+
+const runtime = createChatRuntime({
+  baseUrl: "/chat/api/v1",
+  slots: { people: People, report: Report, block: Block },
+  // `subjectCard` is the fourth: supply it only if your card is not shaped
+  // like `classified.subject_cards` (title / price / currency / image / url /
+  // state), which the default skin already renders.
+});
+```
+
+**Every absence is stated, never silent.** With no `people` seam a row reads
+"Name unavailable" — the failure, in words — rather than falling back to the
+conversation's kind, which is what made ten different buyers look like ten
+copies of "Direct message". With neither `report` nor `block` the overflow
+control is not drawn at all, because a menu that opens onto nothing promises
+an action the deployment does not have.
+
+**After a block the thread is not broken.** stapel-chat refuses to create a
+thread for a blocked pair and refuses a send with `error.403.chat_send_refused`
+while still serving the history — so the correspondence stays, the composer
+answers with that code's own sentence, and nothing in this pair has to invent
+a "you blocked them" state (it may not: the same code is returned in both
+directions on purpose).
+
 ## "Message the seller"
 
 ```tsx
 import { StartDirectChat } from "@stapel/chat-react";
 
-<StartDirectChat sellerId={listing.seller_id} viewerId={me?.id} onOpened={(c) => navigate(`/account/chat/${c.id}`)}>
+<StartDirectChat
+  sellerId={listing.seller_id}
+  viewerId={me?.id}
+  subjectType="listing"
+  subjectKey={listing.id}
+  onOpened={(c) => navigate(`/account/chat/${c.id}`)}
+>
   {({ availability, start }) => ...}
 </StartDirectChat>;
 ```
 
 Get-or-create: a direct thread is keyed by the participant pair under a unique
-constraint, so pressing twice — or writing to the same seller about a second
-listing — lands in the same conversation.
+constraint, so pressing twice lands in the same conversation.
+
+### What the thread is about
+
+Without a subject, the key is the pair of people — so a buyer asking about a
+second listing lands in the same thread and neither side can tell which item
+"still available?" meant. `subjectType`/`subjectKey` widen the key to
+`(scope, {both user ids}, subject_type, subject_key)`: one thread per listing,
+and the thread carries that listing's card pinned at its top. Both halves
+travel together or neither does (upstream refuses half a pair), the deployment
+must register the type (`STAPEL_CHAT["SUBJECT_TYPES"]`), and a thread with no
+subject behaves exactly as it always did.
+
+**Known cost, accepted:** the first contact *with* a subject opens a NEW
+thread beside any subjectless one the two already have — nothing can key the
+old ones retroactively, because they were never told what they were about. The
+skin does not hide it: a subject thread shows its card and its empty state
+says the conversation is about that one thing.
 
 ### Who may press it, and where a visitor goes
 
@@ -156,6 +251,20 @@ import {
 
 Importing the subpath is the opt-in; consumers who bring their own visuals
 never pull `antd` into their bundle.
+
+An inbox row carries the four things a chat row is made of — who it is with
+(name + avatar), what it is about (the subject, and the last line when this
+client already holds it), when, and the unread badge. The thread pins the
+subject card, names the counterparty in its header, and puts report/block
+behind one overflow control. Dialogs go through `@stapel/tokens-antd/skin`'s
+`SkinDialog`, so every one of them is a bottom sheet on a phone.
+
+**No preview on first paint, and why.** `ConversationResponse` carries no last
+message — not a body, not a snippet — so a row shows the last line only for
+threads this client has open (read from the cache, no request). Naming it on
+first paint needs a `last_message` projection on stapel-chat's conversation
+serializer; a `GET /messages?limit=1` per row is not an answer, and a made-up
+line is worse than a blank one.
 
 ## Locales
 

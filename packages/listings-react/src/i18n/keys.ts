@@ -62,7 +62,17 @@ export const LISTINGS_I18N_KEYS = {
   cardPriceAbsent: "listings.card.price_absent",
   cardFavoriteAdd: "listings.card.favorite_add",
   cardFavoriteRemove: "listings.card.favorite_remove",
-  cardOpen: "listings.card.open",
+  /**
+   * The accessible name of a card whose listing has no title.
+   *
+   * The whole card is ONE anchor now, and an anchor's name is its `aria-label`
+   * — so a titleless listing would otherwise be a link announced as nothing at
+   * all, in a list of forty.
+   *
+   * This replaces `listings.card.open` (retired), which named a separate
+   * "Open" control that no longer exists: the card itself is the control.
+   */
+  cardUntitled: "listings.card.untitled",
   /** The door beside a blocked favourite: the container supplies WHERE. */
   cardSignIn: "listings.card.sign_in",
 
@@ -246,7 +256,7 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.card.price_absent": "Price on request",
   "listings.card.favorite_add": "Save to favourites",
   "listings.card.favorite_remove": "Remove from favourites",
-  "listings.card.open": "Open",
+  "listings.card.untitled": "Untitled listing",
   "listings.card.sign_in": "Sign in",
 
   "listings.detail.loading": "Loading the listing…",

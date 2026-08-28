@@ -2,25 +2,46 @@
  * `<ConversationListPanel/>` — the default skin for the inbox, and the screen
  * this pair's nav manifest mounts (`chat.conversations`, member surface).
  *
+ * ── What a row says now, and what it used to say ──────────────────────────
+ *
+ * It used to say the conversation's KIND. A seller with ten buyers therefore
+ * read ten rows headed "Direct message", told apart only by a timestamp — an
+ * inbox in which nothing is addressed to anybody. A row now carries the four
+ * things a chat row is made of:
+ *
+ *   WHO   the counterparty's name and avatar, resolved in ONE batch for the
+ *         whole page through the host seam (`model/slots.ts` — names live in
+ *         a peer pair this one may not import), and said to be UNAVAILABLE
+ *         when nothing answered, never quietly replaced by a category label;
+ *   WHAT  the subject the thread is about (stapel-chat 0.6.0), and the last
+ *         line when this client holds it (`model/previews.ts` — the list
+ *         endpoint serves no preview, and inventing one is worse than none);
+ *   WHEN  the clock, as `Intl` renders it for the reader's locale;
+ *   NEWS  the server's own unread count, with its accessible sentence.
+ *
  * Built entirely on the headless `<ConversationList>`: this file makes visual
  * decisions and nothing else.
  */
 import { spacing } from "@stapel/tokens-antd";
+import { ListRow } from "@stapel/tokens-antd/skin";
 import type { ReactElement } from "react";
 import { Badge, Button, Card, Empty, Flex, List, Space, Spin, Typography } from "antd";
 import { matchList, useErrorDisplay, useI18n, useT } from "@stapel/core";
-import type { Conversation } from "../api/types.js";
+import type { ChatMessage, Conversation } from "../api/types.js";
 import { ConversationList } from "../headless/ConversationList.js";
+import { useThreadPreviews } from "../model/previews.js";
+import type { ChatPeopleDirectory } from "../model/slots.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ErrorAlert } from "./ErrorAlert.js";
 import { TransportTag } from "./TransportTag.js";
 import { ChatSkinTheme } from "./theme.js";
-
-const KIND_KEYS: Record<string, string> = {
-  direct: CHAT_I18N_KEYS.kindDirect,
-  group: CHAT_I18N_KEYS.kindGroup,
-  support: CHAT_I18N_KEYS.kindSupport,
-};
+import {
+  CounterpartyAvatar,
+  PeopleScope,
+  conversationPeopleIds,
+  useCounterpartyLabel,
+} from "./people.js";
+import { subjectRowLabel } from "./subjectCard.js";
 
 export interface ConversationListPanelProps {
   /**
@@ -28,6 +49,9 @@ export interface ConversationListPanelProps {
    * derives that key from the authenticated scope, so it cannot be guessed —
    * a client subscribed under the wrong id gets a socket that delivers
    * nothing, silently. Without it this screen polls, and the tag says so.
+   *
+   * It is also what makes a row name the OTHER person rather than everyone in
+   * the thread, and what marks a preview as the reader's own line.
    */
   viewerId?: string | number | null;
   /** Page size for the underlying list. */
@@ -53,6 +77,157 @@ function relativeTime(locale: string, iso: string): string {
   }).format(parsed);
 }
 
+/**
+ * One row of the inbox. A COMPONENT, not a callback: it reads the i18n
+ * engine, and hooks called from inside a `renderItem` lambda would be ordered
+ * by how many rows the page happens to have.
+ */
+function ConversationRow(props: {
+  readonly row: Conversation;
+  readonly viewerId: string | null;
+  readonly directory: ChatPeopleDirectory;
+  readonly preview: ChatMessage | undefined;
+  readonly locale: string;
+  readonly openHref: ((conversationId: string) => string) | undefined;
+  readonly onOpen: ((conversationId: string) => void) | undefined;
+}): ReactElement {
+  const t = useT();
+  const { row, viewerId, directory, openHref, onOpen } = props;
+  const label = useCounterpartyLabel(row, viewerId, directory);
+  const subject = row.subject ?? null;
+  const subjectLabel =
+    subject === null ? "" : subjectRowLabel(subject, props.locale);
+
+  const title = openHref ? (
+    <Typography.Link href={openHref(row.id)}>{label}</Typography.Link>
+  ) : onOpen ? (
+    <Button
+      type="link"
+      style={{ padding: 0 }}
+      onClick={() => onOpen(row.id)}
+      data-analytics="none"
+      data-analytics-reason="navigation into a thread — the host app wraps this with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+    >
+      {label}
+    </Button>
+  ) : (
+    // Neither route given: a title, not a control that goes nowhere. A dead
+    // affordance is worse than none.
+    label
+  );
+
+  const preview = props.preview;
+  const previewText =
+    preview === undefined
+      ? ""
+      : preview.deleted === true
+        ? t(CHAT_I18N_KEYS.listPreviewDeleted)
+        : preview.kind === "system"
+          ? t(CHAT_I18N_KEYS.threadSystem)
+          : viewerId !== null && preview.sender_id === viewerId
+            ? t(CHAT_I18N_KEYS.listPreviewOwn, { text: preview.body })
+            : preview.body;
+
+  const meta =
+    subjectLabel === "" && previewText === "" ? undefined : (
+      <>
+        {subjectLabel !== "" ? (
+          <span style={{ display: "block" }} data-testid="chat-row-subject">
+            {subjectLabel}
+          </span>
+        ) : null}
+        {previewText !== "" ? (
+          <span style={{ display: "block" }} data-testid="chat-row-preview">
+            {previewText}
+          </span>
+        ) : null}
+      </>
+    );
+
+  return (
+    <ListRow
+      testId="chat-conversation-row"
+      leading={
+        <CounterpartyAvatar
+          conversation={row}
+          viewerId={viewerId}
+          directory={directory}
+          label={label}
+        />
+      }
+      title={title}
+      truncate
+      {...(meta !== undefined ? { meta } : {})}
+      {...(row.unread_count > 0
+        ? {
+            badge: (
+              <Badge
+                count={row.unread_count}
+                // A bare number is not information: read aloud, this row was
+                // "Direct, 2". The sentence used to travel in `title=`, which
+                // is a browser hover — absent on every phone, unreachable by
+                // keyboard, and announced inconsistently (some readers say it
+                // INSTEAD of the label). So it is the badge's accessible NAME
+                // instead. `role="img"` is what makes the name computable: an
+                // `aria-label` on a bare `<span>` names nothing, because a
+                // span has no role for a name to attach to. `img` is the right
+                // one — a graphic standing in for a sentence, opaque to the
+                // reader, with a text alternative — and it is not `status`,
+                // which would make every refetch announce itself over
+                // whatever is being read.
+                role="img"
+                aria-label={t(CHAT_I18N_KEYS.listUnread, {
+                  count: row.unread_count,
+                })}
+              />
+            ),
+          }
+        : {})}
+      trailing={
+        <Typography.Text type="secondary" style={{ whiteSpace: "nowrap" }}>
+          {relativeTime(props.locale, row.updated_at)}
+        </Typography.Text>
+      }
+    />
+  );
+}
+
+/** The rows, once the names for the whole page have been asked for once. */
+function InboxRows(props: {
+  readonly rows: readonly Conversation[];
+  readonly viewerId: string | null;
+  readonly locale: string;
+  readonly openHref: ((conversationId: string) => string) | undefined;
+  readonly onOpen: ((conversationId: string) => void) | undefined;
+}): ReactElement {
+  const { rows, viewerId } = props;
+  const previews = useThreadPreviews(rows.map((row) => row.id));
+  return (
+    <PeopleScope userIds={conversationPeopleIds(rows, viewerId)}>
+      {(directory) => (
+        <List<Conversation>
+          style={{ marginTop: spacing[4] }}
+          dataSource={[...rows]}
+          rowKey={(row) => row.id}
+          renderItem={(row) => (
+            <List.Item>
+              <ConversationRow
+                row={row}
+                viewerId={viewerId}
+                directory={directory}
+                preview={previews(row.id)}
+                locale={props.locale}
+                openHref={props.openHref}
+                onOpen={props.onOpen}
+              />
+            </List.Item>
+          )}
+        />
+      )}
+    </PeopleScope>
+  );
+}
+
 export function ConversationListPanel(
   props: ConversationListPanelProps = {}
 ): ReactElement {
@@ -62,63 +237,10 @@ export function ConversationListPanel(
   // the transport's own "Request failed with status 500".
   const errorDisplay = useErrorDisplay(CHAT_I18N_KEYS.unknownError);
   const { openHref, onOpen } = props;
-
-  const renderRow = (row: Conversation): ReactElement => {
-    const kindKey = KIND_KEYS[row.kind] ?? CHAT_I18N_KEYS.kindDirect;
-    const title = t(kindKey);
-    return (
-      <List.Item
-        data-testid="chat-conversation-row"
-        extra={
-          row.unread_count > 0 ? (
-            <Badge
-              count={row.unread_count}
-              // A bare number is not information: read aloud, this row was
-              // "Direct, 2". The sentence used to travel in `title=`, which is
-              // a browser hover — absent on every phone, unreachable by
-              // keyboard, and announced inconsistently (some readers say it
-              // INSTEAD of the label). So it is the badge's accessible NAME
-              // instead. `role="img"` is what makes the name computable: an
-              // `aria-label` on a bare `<span>` names nothing, because a span
-              // has no role for a name to attach to. `img` is the right one —
-              // a graphic standing in for a sentence, opaque to the reader,
-              // with a text alternative — and it is not `status`, which would
-              // make every refetch announce itself over whatever is being read.
-              role="img"
-              aria-label={t(CHAT_I18N_KEYS.listUnread, { count: row.unread_count })}
-            />
-          ) : null
-        }
-      >
-        <List.Item.Meta
-          title={
-            openHref ? (
-              <Typography.Link href={openHref(row.id)}>{title}</Typography.Link>
-            ) : onOpen ? (
-              <Button
-                type="link"
-                style={{ padding: 0 }}
-                onClick={() => onOpen(row.id)}
-                data-analytics="none"
-                data-analytics-reason="navigation into a thread — the host app wraps this with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-              >
-                {title}
-              </Button>
-            ) : (
-              // Neither route given: a title, not a control that goes
-              // nowhere. A dead affordance is worse than none.
-              <Typography.Text strong>{title}</Typography.Text>
-            )
-          }
-          description={
-            <Typography.Text type="secondary">
-              {relativeTime(locale, row.updated_at)}
-            </Typography.Text>
-          }
-        />
-      </List.Item>
-    );
-  };
+  const viewerId =
+    props.viewerId === null || props.viewerId === undefined
+      ? null
+      : String(props.viewerId);
 
   return (
     <ConversationList
@@ -174,11 +296,12 @@ export function ConversationListPanel(
             ),
             ready: (rows) => (
               <Space direction="vertical" style={{ width: "100%" }}>
-                <List<Conversation>
-                  style={{ marginTop: spacing[4] }}
-                  dataSource={[...rows]}
-                  rowKey={(row) => row.id}
-                  renderItem={renderRow}
+                <InboxRows
+                  rows={rows}
+                  viewerId={viewerId}
+                  locale={locale}
+                  openHref={openHref}
+                  onOpen={onOpen}
                 />
                 {hasNextPage ? (
                   <Button

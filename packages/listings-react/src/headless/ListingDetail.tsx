@@ -21,7 +21,10 @@ import { asFeatureDaoList, featuresFromDaoList, unreadableFeatureCount } from ".
 import { listingStatusView } from "../model/status.js";
 import type { ListingStatusView } from "../model/status.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
-import { useMandateGate } from "./useMandateGate.js";
+import {
+  LISTINGS_ELEVATION_ACTIONS,
+  useElevatableMandateGate,
+} from "./useMandateGate.js";
 
 /**
  * `images` is `string[] | NULL` on the wire, and the null is the SERVER
@@ -110,7 +113,9 @@ export function useListingDetail(
   const detail = useListing(id);
   const probe = useListingStatus(id);
   const favorite = useFavoriteListing();
-  const mandate = useMandateGate();
+  const { gate: mandate, elevation } = useElevatableMandateGate(
+    LISTINGS_ELEVATION_ACTIONS.favorite
+  );
 
   const state: LoadState<ListingDetailData> =
     detail.status === "error"
@@ -178,7 +183,7 @@ export function useListingDetail(
 
   const favoriteGate = firstBlock(
     mandate,
-    favorite.isPending
+    favorite.isPending || elevation.pending
       ? actionBlocked(LISTINGS_I18N_KEYS.blockedInFlight)
       : actionAvailable(),
     detail.data === undefined
@@ -206,9 +211,11 @@ export function useListingDetail(
     favoriteGate,
     toggleFavorite: () => {
       if (!favoriteGate.available) return;
-      favorite.mutate({ id, favorited: isFavorited !== true });
+      // Mints the anonymous account first where the host permits it for this
+      // action; a direct call everywhere else.
+      elevation.run(() => favorite.mutate({ id, favorited: isFavorited !== true }));
     },
-    favoriteInFlight: favorite.isPending,
+    favoriteInFlight: favorite.isPending || elevation.pending,
     refetch: () => {
       void detail.refetch();
       void probe.refetch();

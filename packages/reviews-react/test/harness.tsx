@@ -12,8 +12,21 @@
 import { useMemo } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { I18nProvider, createI18n } from "@stapel/core";
-import type { I18nEngine } from "@stapel/core";
+import {
+  ElevationProvider,
+  I18nProvider,
+  MandateProvider,
+  createI18n,
+  mandateAsking,
+  mandateResolved,
+  mandateUnavailable,
+} from "@stapel/core";
+import type {
+  ElevationSource,
+  I18nEngine,
+  MandatePrincipal,
+  MandateState,
+} from "@stapel/core";
 import {
   ReviewsProvider,
   createReviewsRuntime,
@@ -96,14 +109,33 @@ export function mockServer(
   return { fetch: fetchImpl, calls };
 }
 
-/** Providers every test render needs. */
+/** The mandate axis, spelled the way a test wants to say it. */
+export type TestMandate = MandatePrincipal | "asking" | "unavailable";
+
+function mandateState(mandate: TestMandate): MandateState {
+  if (mandate === "asking") return mandateAsking();
+  if (mandate === "unavailable") return mandateUnavailable(new Error("no /me"));
+  return mandateResolved(mandate);
+}
+
+/**
+ * Providers every test render needs.
+ *
+ * `mandate` and `elevation` are OPTIONAL and neither has a default: leaving
+ * one out mounts NO provider of that kind at all, which is what a host that
+ * never wired the seam does — and what every other suite in this package
+ * therefore keeps proving. Auto-anonymous especially: no host mints silently
+ * unless it said so.
+ */
 export function TestProviders(props: {
   server: MockServer;
   locale?: string;
   ratingBounds?: Partial<ReviewRatingBounds>;
+  mandate?: TestMandate;
+  elevation?: ElevationSource;
   children: ReactNode;
 }): ReactElement {
-  const { server, locale, ratingBounds } = props;
+  const { server, locale, ratingBounds, mandate, elevation } = props;
   const { runtime, i18n, queryClient } = useMemo(() => {
     const engine: I18nEngine = createI18n({ locale: locale ?? "en" });
     registerReviewsI18n(engine);
@@ -121,10 +153,23 @@ export function TestProviders(props: {
       }),
     };
   }, [server, locale, ratingBounds]);
+  const inner = <ReviewsProvider runtime={runtime}>{props.children}</ReviewsProvider>;
+  const tree =
+    elevation === undefined ? (
+      inner
+    ) : (
+      <ElevationProvider source={elevation}>{inner}</ElevationProvider>
+    );
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
-        <ReviewsProvider runtime={runtime}>{props.children}</ReviewsProvider>
+        {mandate === undefined ? (
+          tree
+        ) : (
+          <MandateProvider source={{ state: mandateState(mandate) }}>
+            {tree}
+          </MandateProvider>
+        )}
       </I18nProvider>
     </QueryClientProvider>
   );

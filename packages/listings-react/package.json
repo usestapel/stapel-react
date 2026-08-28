@@ -55,9 +55,9 @@
   },
   "size-limit": [
     {
-      "name": "index — the headless pair (client + status axes + draft model + hooks): no antd",
+      "name": "index — the headless pair (client + status axes + draft model + hooks): no antd. Raised 11 -> 11.5 KB for the elevation gate (useElevatableMandateGate + core's useElevation): the anonymous arm can now mint an identity for a named action instead of refusing, and that is a state hook the gate did not previously carry",
       "path": "dist/index.js",
-      "limit": "11 KB"
+      "limit": "11.5 KB"
     },
     {
       "name": "default — the antd skin (card, detail, composer, dashboard, the four named slots and the delete confirmation) must stay out of the main bundle",

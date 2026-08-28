@@ -93,9 +93,30 @@ both throttled from the module's own settings (`LIST_THROTTLE` 120/min,
 `AGGREGATE_THROTTLE` 300/min). Nothing new became visible — both endpoints were
 already published-only for a non-moderator.
 
-So `signInRequired` exists on **one** bag, the form's, where a 401 is still the
-honest answer. The read bags have no such state, and an empty list now means
-what it says to everybody: nobody has reviewed this target.
+So `signInRequired` exists on **one** bag, the form's. The read bags have no
+such state, and an empty list now means what it says to everybody: nobody has
+reviewed this target.
+
+It is answered by the mandate axis BEFORE the click. A storefront that mints
+anonymous accounts silently makes the visitor authenticated, so the 401 that
+used to carry this stopped arriving — stapel-reviews refuses that session with
+`ALLOW_ANONYMOUS_WRITES`' own **403 `error.403.reviews_anonymous_not_allowed`**
+instead, because a review from an untraceable account is worthless as social
+proof. `<ReviewForm>` therefore reads core's `MandateSource`: `anonymous` and
+`guest` set `signInRequired` up front and send nothing, `asking` is a wait
+(`reviews.submit.blocked.mandate_unknown`), and `unavailable` — which is also
+what a host with no `<MandateProvider>` gets — leaves the form exactly as it
+is. `isSignInRequired` reads both spellings of the refusal, so a request that
+loses the race still lands on the door instead of a raw key.
+
+The wall is the CLIENT half of `ALLOW_ANONYMOUS_WRITES`, and the two halves are
+joined by the host rather than guessed here. A deployment that opens the server
+switch also names `REVIEWS_ELEVATION_ACTIONS.write` (`"reviews.write"`) on its
+`ElevationSource`; the `anonymous` arm then offers the form and the press mints
+the account before the write. Name nothing — every host today — and `covers` is
+`false`, the wall stands on both sides, and nothing mints. The `guest` arm is
+not an elevation question: there is already an account, so the mandate axis
+alone decides it.
 
 > Against the 0.2.2 contract this pair carried the opposite: every endpoint was
 > `IsAuthenticated`, a visitor got 401 for the list *and* the aggregate, and

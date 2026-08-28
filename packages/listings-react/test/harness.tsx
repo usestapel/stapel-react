@@ -16,6 +16,7 @@
 import type { ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
+  ElevationProvider,
   I18nProvider,
   MandateProvider,
   createI18n,
@@ -23,7 +24,12 @@ import {
   mandateResolved,
   mandateUnavailable,
 } from "@stapel/core";
-import type { I18nEngine, MandatePrincipal, MandateState } from "@stapel/core";
+import type {
+  ElevationSource,
+  I18nEngine,
+  MandatePrincipal,
+  MandateState,
+} from "@stapel/core";
 import { registerAttributesI18n } from "@stapel/attributes-react";
 import { registerAttributesI18nRu } from "@stapel/attributes-react/i18n/ru";
 import { registerAttributesI18nEs } from "@stapel/attributes-react/i18n/es";
@@ -146,6 +152,8 @@ export function TestProviders(props: {
   mandate?: TestMandate;
   /** Off by default so a test can prove the "photos cannot be shown" branch. */
   resolveImage?: boolean;
+  /** Auto-anonymous, off by default — most hosts do not mint silently. */
+  elevation?: ElevationSource | null;
   children: ReactNode;
 }): ReactElement {
   const runtime = createListingsRuntime({
@@ -172,7 +180,9 @@ export function TestProviders(props: {
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
         <MandateProvider source={{ state: mandateState(props.mandate ?? "member") }}>
-          <ListingsProvider runtime={runtime}>{props.children}</ListingsProvider>
+          <ElevationProvider source={props.elevation ?? null}>
+            <ListingsProvider runtime={runtime}>{props.children}</ListingsProvider>
+          </ElevationProvider>
         </MandateProvider>
       </I18nProvider>
     </QueryClientProvider>

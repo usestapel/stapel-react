@@ -39,6 +39,9 @@ The Stapel frontend runtime (L0, frontend-standard §1). Everything the
   implementation lives in `@stapel/analytics` (see below).
 - **Host seams** (`LinkComponent`, `SignInCta`) — the two things a skin needs
   from its container and a library must not choose for it (see below).
+- **Elevation seam** (`ElevationSource`, `ElevationProvider`, `useElevation`)
+  — the third answer a gated control can give an anonymous visitor: mint an
+  identity for THIS action instead of refusing (see below).
 
 ## Slots: an unfilled slot is never silent
 
@@ -60,6 +63,47 @@ In a development build it is a dashed, muted box naming the slot (stamped
 `@stapel/tokens` custom properties only, so it works under any design system —
 which is why it lives here and not in the antd skin. `visibility="visible"`
 pins it on for a production-built showcase; `isDevBuild()` is the switch.
+
+## Elevation: the wall comes down for some acts, not all of them
+
+A marketplace visitor who has not registered can read the catalogue and, until
+this seam, could do nothing with it. Saving a listing and writing to a seller
+are the acts the product exists for; refusing them until a stranger fills in a
+form is friction with nothing on the other side of it. Leaving a review and
+publishing a listing are the opposite case — a review from an account nobody
+can trace is worthless as social proof, and a seller who cannot be reached
+again is not a seller.
+
+So the interesting part is not "mint an account", it is WHICH ACTS may. That
+arrives as data:
+
+```tsx
+// The host names the acts. @stapel/auth-react implements the minting.
+<ElevationProvider source={authRuntime.elevation}>
+
+// A gated control asks for ONE named action.
+const elevation = useElevation(LISTINGS_ELEVATION_ACTIONS.favorite);
+const gate = matchMandate(mandate, {
+  anonymous: () =>
+    elevation.covers ? actionAvailable() : actionBlocked(SIGN_IN_KEY),
+  ...
+});
+const save = () => elevation.run(() => mutation.mutate(input));
+```
+
+Three properties the shape enforces rather than documents:
+
+- **Never on render.** `run` takes the work to do afterwards, so elevation is
+  reachable only from something a person did. A hook that minted on mount
+  would create a row for every crawler.
+- **Once per visitor.** The source collapses concurrent and repeat calls onto
+  a single mint; a double-tap is one account.
+- **Per action, not per session.** The mandate axis is untouched by a mint, so
+  a minted guest stays `"anonymous"` and every act the host did not name keeps
+  its wall — for the same person, in the same session.
+
+`source={null}` is a first-class wiring and the default everywhere else: every
+`covers` is `false` and every gated control refuses exactly as it did before.
 
 ## Host seams: the router and the sign-in door
 

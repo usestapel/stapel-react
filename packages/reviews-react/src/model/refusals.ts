@@ -23,7 +23,9 @@
  * the review, the moderation verdict, the owner's reply — because each of
  * those needs an identity to attribute the act to. {@link isSignInRequired}
  * exists so a write bag can carry that as its own state and the skin can offer
- * a door instead of a red banner.
+ * a door instead of a red banner. Since the storefront started minting
+ * anonymous accounts that refusal has a SECOND spelling, a 403; the predicate
+ * says why it reads both.
  *
  * ── The moderation gate is one code for two capabilities ───────────────────
  *
@@ -47,6 +49,16 @@ export const REVIEWS_ERROR_INVALID_MODERATION_ACTION =
   "error.400.reviews_invalid_moderation_action";
 /** The type's `can_review` callback said no. */
 export const REVIEWS_ERROR_CANNOT_REVIEW = "error.403.reviews_cannot_review";
+/**
+ * A GUEST — an account minted for a stranger, `is_anonymous=True` — wrote a
+ * review while the module's `ALLOW_ANONYMOUS_WRITES` switch is off (its
+ * default). Distinct from {@link REVIEWS_ERROR_CANNOT_REVIEW}: that one is the
+ * host policy's verdict about this author and this target, this one is about
+ * the account itself, and only the second is fixed by signing up. Gates
+ * `POST /reviews` alone — the reads stay open either way.
+ */
+export const REVIEWS_ERROR_ANONYMOUS_NOT_ALLOWED =
+  "error.403.reviews_anonymous_not_allowed";
 /** The type's `can_moderate` callback said no (fail-closed when unset). */
 export const REVIEWS_ERROR_CANNOT_MODERATE = "error.403.reviews_cannot_moderate";
 /** No review with that id. */
@@ -91,16 +103,27 @@ export function isDuplicateReview(error: unknown): boolean {
 }
 
 /**
- * "This read needs a signed-in account." True for the 401 every endpoint of
- * this module answers to an anonymous caller.
+ * "This write needs an account the review can be attributed to."
  *
- * Both halves are checked: core maps an un-keyed 401 body to
+ * ONE refusal, TWO spellings, because there are two ways to lack such an
+ * account. A visitor with no session at all is refused with **401** — there is
+ * nothing to authenticate. A visitor a storefront silently minted a GUEST
+ * account for IS authenticated, so nothing answers 401 for them any more; the
+ * module's own `ALLOW_ANONYMOUS_WRITES` switch refuses that session with a
+ * **403** and `REVIEWS_ERROR_ANONYMOUS_NOT_ALLOWED`. The page says the same
+ * sentence either way: sign in, then write it.
+ *
+ * Both halves of the 401 arm are kept: core maps an un-keyed 401 body to
  * `stapel.http.401`, but a deployment that puts its own `localizable_error`
  * in a 401 body would arrive with that key instead — and it is still a 401.
  */
 export function isSignInRequired(error: unknown): boolean {
   const flow = toReviewsError(error);
-  return flow.status === HTTP_UNAUTHORIZED || isErrorCode(flow, HTTP_401_KEY);
+  return (
+    flow.status === HTTP_UNAUTHORIZED ||
+    isErrorCode(flow, HTTP_401_KEY) ||
+    isErrorCode(flow, REVIEWS_ERROR_ANONYMOUS_NOT_ALLOWED)
+  );
 }
 
 /** The host's `can_review` callback refused this author for this target. */

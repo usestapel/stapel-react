@@ -27,24 +27,44 @@ function expectNoRawKeys(): void {
 }
 
 describe("<ConversationListPanel/>", () => {
-  it("renders rows with the server's unread badge", async () => {
+  it("titles a row with the PERSON, links it, and keeps the unread badge", async () => {
     const server = mockServer({
       "GET /conversations": {
         body: conversationPage([conversation({ unread_count: 4 })]),
       },
     });
     render(
-      <TestHarness server={server} realtime={{ socketUrl: null }}>
-        <ConversationListPanel openHref={(id) => `/account/chat/${id}`} />
+      <TestHarness
+        server={server}
+        realtime={{ socketUrl: null }}
+        slots={{
+          people: ({ userIds, children }) =>
+            children({
+              pending: false,
+              lookup: (userId) =>
+                userIds.includes(userId)
+                  ? { userId, displayName: "Marta Kovács" }
+                  : null,
+            }),
+        }}
+      >
+        <ConversationListPanel
+          viewerId={BUYER}
+          openHref={(id) => `/account/chat/${id}`}
+        />
       </TestHarness>
     );
     await waitFor(() =>
       expect(screen.getAllByTestId("chat-conversation-row")).toHaveLength(1)
     );
-    expect(screen.getByText("Direct message").closest("a")).toHaveProperty(
+    // The row is addressed to somebody. It used to be titled "Direct
+    // message" — the conversation's KIND — which is the same sentence on
+    // every row of every inbox.
+    expect(screen.getByText("Marta Kovács").closest("a")).toHaveProperty(
       "href",
       expect.stringContaining(`/account/chat/${CONVERSATION_ID}`)
     );
+    expect(screen.queryByText("Direct message")).toBeNull();
     expect(screen.getByText("4")).toBeTruthy();
     expectNoRawKeys();
   });

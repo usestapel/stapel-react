@@ -82,12 +82,26 @@ export const chatI18nBundleEs: I18nDictionary = {
   "chat.kind.group": "Grupo",
   "chat.kind.support": "Soporte",
 
+  "chat.person.unnamed": "Nombre no disponible",
+  "chat.person.loading": "Cargando…",
+  "chat.list.preview_own": "Tú: {text}",
+  "chat.list.preview_deleted": "Mensaje eliminado",
+
+  "chat.subject.label": "De qué trata esta conversación",
+  "chat.subject.open": "Abrir",
+  "chat.subject.gone": "Esto se ha eliminado.",
+  "chat.subject.unavailable": "Esto no está disponible ahora.",
+  "chat.subject.unresolved": "No pudimos cargar de qué trata esta conversación.",
+
   "chat.thread.loading": "Cargando mensajes…",
   "chat.thread.empty": "Todavía no hay mensajes. Saluda.",
   "chat.thread.retry": "Reintentar",
   "chat.thread.load_older": "Ver mensajes anteriores",
   "chat.thread.beginning": "Este es el principio de la conversación.",
   "chat.thread.system": "Sistema",
+  "chat.thread.empty_subject":
+    "Aún no hay mensajes sobre esto. Saluda: la conversación se queda con ello.",
+  "chat.thread.menu": "Opciones de la conversación",
 
   "chat.composer.placeholder": "Escribe un mensaje…",
   "chat.composer.send": "Enviar",

@@ -6,6 +6,26 @@
  * the CONTAINER is the seam, which is why this component takes a plain card
  * row and a plain `href` rather than reaching for a router.
  *
+ * ── The CARD is the link ───────────────────────────────────────────────────
+ *
+ * Owner ruling (2026-08-28, from the live stand): a card carrying its own
+ * "view" button is plainly wrong. The card used to render a separate "Open"
+ * control under its own content — a full-width primary button captioned with
+ * `listings.card.open` — so a person looking at a photo, a price and a title
+ * had to find and press a fourth thing to act on the three they were reading.
+ * Nothing on a classified works that way: the card IS the target, and the only
+ * separate control on it is the favourite heart.
+ *
+ * So the photo, the price, the title, the badges and the location now live
+ * INSIDE one anchor that covers the whole card, and `listings.card.open` is
+ * retired rather than left orphaned in three catalogues.
+ *
+ * What that must not cost is the anchor semantics won earlier: this is a real
+ * `<a href>`, so middle-click opens a tab, ⌘-click opens a tab, "copy link
+ * address" works and a crawler can follow it. It is NOT an `onClick` on a div,
+ * which is the shape every "whole card clickable" rewrite reaches for first
+ * and which has none of those properties.
+ *
  * ── One click, one navigation ──────────────────────────────────────────────
  *
  * `href` and `onOpen` used to be two optional props, and a card given both
@@ -13,6 +33,25 @@
  * that was still on the button. They are now three arms of a union — link,
  * button, or neither — and `linkComponent` rides on the link arm so a
  * container can hand in its router's `<Link>` and keep the anchor.
+ *
+ * ── The accessible name is the TITLE, and only the title ───────────────────
+ *
+ * An anchor's name is computed from its contents unless it is given one, and
+ * the contents here are a photo, a price, three badges and a place: a screen
+ * reader reading a list of forty of those announces forty paragraphs. The
+ * anchor therefore carries an explicit `aria-label` — the listing's title,
+ * nothing else — and everything inside it stays readable by ordinary browsing.
+ * A listing with no title falls back to `listings.card.untitled`, because a
+ * link announced as nothing is worse than one announced as untitled.
+ *
+ * ── Why the heart is a row under the card and not floating on the photo ────
+ *
+ * Because for a signed-out visitor — which is most of the traffic a storefront
+ * gets — the heart is BLOCKED, and a blocked control states its reason as text
+ * beside it. There is nowhere to put that sentence on top of a photograph. The
+ * heart therefore sits in its own row beneath the content, outside the anchor
+ * (a button inside a link is neither valid nor operable), where the reason has
+ * a line to live on.
  *
  * ── What it renders without asking the server anything else ────────────────
  *
@@ -34,8 +73,8 @@
  * reason nobody could read on any device. That arm is gone; `blockedReason`
  * is now "text" (reason + door) or "line" (reason alone, for a grid).
  */
-import type { ReactElement, ReactNode } from "react";
-import { Button, Card, Flex, Typography } from "antd";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
+import { Button, Card, Flex, Typography, theme as antdTheme } from "antd";
 import { GatedControl, SkinTheme } from "@stapel/tokens-antd/skin";
 import { useActionGate, useT } from "@stapel/core";
 import type { LinkComponent, SignInCtaProp } from "@stapel/core";
@@ -109,6 +148,53 @@ export type ListingCardOpenProps =
  */
 export type ListingCardBlockedReason = "text" | "line";
 
+/** The class the whole-card target carries, for {@link cardTargetCss}. */
+export const CARD_TARGET_CLASS = "stapel-listing-card-target";
+
+/** The `href` the hoisted card stylesheet is deduplicated by. */
+export const CARD_TARGET_STYLE_HREF = "stapel-listings-card-target";
+
+/**
+ * The one rule an inline style cannot express: `:focus-visible`.
+ *
+ * A whole-card link is the largest focus target on a results page and it must
+ * SHOW that it has focus — a keyboard visitor tabbing a grid of forty cards
+ * with no ring has no idea which one Enter will open. The outline is drawn
+ * from the theme's own focus colour, which arrives as a custom property on the
+ * element (the sheet is static, so one hoisted copy serves either theme).
+ *
+ * `--listing-*` rather than `--stapel-*`: the `--stapel-` namespace is the
+ * design system's ROLE catalogue and this is a component's private plumbing.
+ */
+export function cardTargetCss(): string {
+  return [
+    `.${CARD_TARGET_CLASS}{display:block;color:inherit;text-decoration:none}`,
+    `.${CARD_TARGET_CLASS}:focus-visible{outline:2px solid var(--listing-card-focus);outline-offset:2px}`,
+  ].join("");
+}
+
+/** The anchor: a block that inherits the card's own type colour rather than
+ * painting every card's contents link-blue. */
+const TARGET_STYLE: CSSProperties = {
+  display: "block",
+  color: "inherit",
+  textDecoration: "none",
+};
+
+/** The callback arm's button, reset to look like the anchor does. A card that
+ * is a target on one deployment and a card-plus-a-button on another would be
+ * two different products. */
+const BUTTON_TARGET_STYLE: CSSProperties = {
+  ...TARGET_STYLE,
+  width: "100%",
+  padding: 0,
+  border: "none",
+  background: "none",
+  font: "inherit",
+  textAlign: "start",
+  cursor: "pointer",
+};
+
 export interface ListingCardBaseProps extends ThemeModeProp, SignInCtaProp {
   readonly listing: ListingCardData;
   /** See {@link ListingCardBlockedReason}. Default `"text"`. */
@@ -124,60 +210,66 @@ export interface ListingCardBaseProps extends ThemeModeProp, SignInCtaProp {
 export type ListingCardProps = ListingCardBaseProps & ListingCardOpenProps;
 
 /**
- * The one control that opens the card: an anchor, a button, or nothing.
+ * The card's own body, wrapped in whatever makes it openable: an anchor, a
+ * button, or nothing at all.
  *
  * Exactly one of the three renders, so exactly one navigation happens per
- * click. That is the whole fix — the branch below has no arm in which both a
- * handler and an `href` reach the DOM.
+ * click — the branch below has no arm in which both a handler and an `href`
+ * reach the DOM.
  *
- * It is the card's PRIMARY action and is drawn as one: a full-width button,
- * which on a phone is 44px tall because `SkinTheme` sets antd's
- * `controlHeight` there. It was a bare text link beside a 40px icon button,
- * with no hierarchy between them and neither one a real touch target.
+ * The BUTTON arm exists for a container that routes by callback. It wraps the
+ * same content in a `<button>` reset to look like nothing, rather than drawing
+ * a separate captioned control: a card that is a target on one deployment and
+ * a card-plus-a-button on another would be two different products.
  */
-function OpenControl(
-  props: ListingCardOpenProps & { readonly listingId: number }
-): ReactElement | null {
-  const t = useT();
-  const label = t(LISTINGS_I18N_KEYS.cardOpen);
+function CardTarget(
+  props: ListingCardOpenProps & {
+    readonly listingId: number;
+    readonly label: string;
+    readonly children: ReactNode;
+  }
+): ReactElement {
+  const { label, children } = props;
 
   if (props.href !== undefined) {
     const Link = props.linkComponent;
     // The host's component is rendered as it comes: this pair has no CSS and
-    // no way to hand antd's button styling to a foreign element, and a wrapper
-    // element around a link is a click target that is not the link. A host
-    // that wants the antd look styles its own `<Link>` — it is one component,
-    // written once, and it is already the thing that knows the design system.
+    // no way to hand its own styling to a foreign element. A wrapper element
+    // around a link would be a click target that is not the link.
     return Link !== undefined ? (
       <Link
         href={props.href}
         aria-label={label}
+        className={CARD_TARGET_CLASS}
         data-testid="listings-card-open"
         data-analytics="none"
         data-analytics-reason="business action — host app wraps with its own tracked()"
       >
-        {label}
+        {children}
       </Link>
     ) : (
-      <Button
-        type="primary"
-        block
+      <a
         href={props.href}
+        aria-label={label}
+        className={CARD_TARGET_CLASS}
+        style={TARGET_STYLE}
         data-testid="listings-card-open"
         data-analytics="none"
         data-analytics-reason="business action — host app wraps with its own tracked()"
       >
-        {label}
-      </Button>
+        {children}
+      </a>
     );
   }
 
   if (props.onOpen !== undefined) {
     const onOpen = props.onOpen;
     return (
-      <Button
-        type="primary"
-        block
+      <button
+        type="button"
+        aria-label={label}
+        className={CARD_TARGET_CLASS}
+        style={BUTTON_TARGET_STYLE}
         data-testid="listings-card-open"
         data-analytics="none"
         data-analytics-reason="business action — host app wraps with its own tracked()"
@@ -185,18 +277,20 @@ function OpenControl(
           onOpen(props.listingId);
         }}
       >
-        {label}
-      </Button>
+        {children}
+      </button>
     );
   }
 
-  return null;
+  // No open control at all — a card inside a screen that IS the listing.
+  return <div data-testid="listings-card-body">{children}</div>;
 }
 
 export function ListingCard(props: ListingCardProps): ReactElement {
   const t = useT();
   const { listing } = props;
   const favorite = useFavoriteToggle(listing.id, listing.is_favorited);
+  const { token } = antdTheme.useToken();
 
   const badgeDaos = asFeatureDaoList(listing.features_badges);
   const badgeFeatures = featuresFromDaoList(badgeDaos);
@@ -214,11 +308,83 @@ export function ListingCard(props: ListingCardProps): ReactElement {
       : LISTINGS_I18N_KEYS.cardFavoriteAdd
   );
 
+  const title = listing.title ?? "";
+  // The anchor's name is the TITLE and nothing else. A card with no title is
+  // still a link, and a link announced as nothing is worse than one announced
+  // as untitled.
+  const targetLabel =
+    title.length > 0 ? title : t(LISTINGS_I18N_KEYS.cardUntitled);
+
+  /**
+   * Everything a person reads on the card, in the order a classified reads it:
+   * photo, price, title, the seller's own spec line, the badges, the place.
+   *
+   * The search projection carries `title`, `price`, `currency`,
+   * `location_label`, `image` and `published_at` and NO feature badges — so
+   * every line below is conditional and the card has to look deliberate with
+   * all of them absent. That is why the photo and the price carry the layout:
+   * they are the two fields a result always has.
+   */
+  const content = (
+    <>
+      <ListingPhoto
+        imageRef={listing.images?.[0]}
+        alt={title.length > 0 ? title : String(listing.id)}
+      />
+      <Flex
+        vertical
+        gap={spacing[1]}
+        style={{ minWidth: 0, padding: token.paddingSM }}
+      >
+        {props.badge}
+
+        <Typography.Text strong data-testid="listings-card-price">
+          <ListingPrice
+            amount={listing.price}
+            {...(listing.currency !== undefined ? { currency: listing.currency } : {})}
+          />
+        </Typography.Text>
+
+        <Typography.Text ellipsis data-testid="listings-card-title">
+          {title}
+        </Typography.Text>
+
+        {/* The title features are a stored projection too — the seller's
+            "1.5 TB, black" line, already ordered by the server. */}
+        {titleDaos.length > 0 ? (
+          <Typography.Text type="secondary" ellipsis>
+            <FeatureBadges
+              features={featuresFromDaoList(titleDaos).map((view) => view.feature)}
+              values={featuresDtoFromDaoList(titleDaos)}
+            />
+          </Typography.Text>
+        ) : null}
+
+        {badgeFeatures.length > 0 ? (
+          <FeatureBadges
+            features={badgeFeatures.map((view) => view.feature)}
+            values={badgeValues}
+          />
+        ) : null}
+
+        {listing.location_label !== undefined &&
+        listing.location_label.length > 0 ? (
+          <Typography.Text type="secondary" data-testid="listings-card-location">
+            {listing.location_label}
+          </Typography.Text>
+        ) : null}
+      </Flex>
+    </>
+  );
+
   return (
     <SkinTheme
       surface="bare"
       {...(props.mode !== undefined ? { mode: props.mode } : {})}
     >
+      <style href={CARD_TARGET_STYLE_HREF} precedence="default">
+        {cardTargetCss()}
+      </style>
       <Card
         size="small"
         data-testid="listings-card"
@@ -226,74 +392,35 @@ export function ListingCard(props: ListingCardProps): ReactElement {
         {...(status !== undefined
           ? { "data-listing-status": status.status }
           : {})}
-        styles={{ body: { minWidth: 0 } }}
-        cover={
-          <ListingPhoto
-            imageRef={listing.images?.[0]}
-            alt={listing.title ?? String(listing.id)}
-          />
-        }
+        // The body's own padding is zero because the ANCHOR fills the card:
+        // padding outside it would be a strip of card that looks pressable and
+        // is not. The text block inside the anchor carries the same padding
+        // back, from the same token.
+        styles={{ body: { minWidth: 0, padding: 0 } }}
+        style={{ ["--listing-card-focus" as string]: token.colorPrimary }}
       >
-        <Flex vertical gap={spacing[1]} style={{ minWidth: 0 }}>
-          {props.badge}
+        <CardTarget {...props} listingId={listing.id} label={targetLabel}>
+          {content}
+        </CardTarget>
 
-          <Typography.Text strong data-testid="listings-card-price">
-            <ListingPrice
-              amount={listing.price}
-              {...(listing.currency !== undefined ? { currency: listing.currency } : {})}
-            />
-          </Typography.Text>
-
-          <Typography.Text ellipsis data-testid="listings-card-title">
-            {listing.title ?? ""}
-          </Typography.Text>
-
-          {/* The title features are a stored projection too — the seller's
-              "1.5 TB, black" line, already ordered by the server. */}
-          {titleDaos.length > 0 ? (
-            <Typography.Text type="secondary" ellipsis>
-              <FeatureBadges
-                features={featuresFromDaoList(titleDaos)
-                  .map((view) => view.feature)}
-                values={featuresDtoFromDaoList(titleDaos)}
-              />
-            </Typography.Text>
-          ) : null}
-
-          {badgeFeatures.length > 0 ? (
-            <FeatureBadges
-              features={badgeFeatures.map((view) => view.feature)}
-              values={badgeValues}
-            />
-          ) : null}
-
-          {listing.location_label !== undefined &&
-          listing.location_label.length > 0 ? (
-            <Typography.Text type="secondary" data-testid="listings-card-location">
-              {listing.location_label}
-            </Typography.Text>
-          ) : null}
-
-          {/* The action row is wrapped in ONE `GatedControl`, so the reason a
-              blocked heart carries lands full width UNDER both controls
-              rather than in the two-centimetre column beside the icon. */}
-          {props.showFavorite === false ? (
-            <OpenControl {...props} listingId={listing.id} />
-          ) : (
+        {/* The heart, and only the heart, lives OUTSIDE the anchor: a button
+            inside a link is neither valid HTML nor operable. Its refusal gets
+            a line of its own here, which is the whole reason it is a row under
+            the card rather than a glyph floating on the photograph. */}
+        {props.showFavorite === false ? null : (
+          <div
+            style={{
+              paddingInline: token.paddingSM,
+              paddingBlockEnd: token.paddingSM,
+            }}
+          >
             <GatedControl
               gate={favorite.gate}
               testId="listings-card-actions"
               style={{ width: "100%" }}
             >
               {(bind) => (
-                <Flex
-                  gap={spacing[2]}
-                  align="center"
-                  style={{ width: "100%", minWidth: 0 }}
-                >
-                  <div style={{ flex: "1 1 auto", minWidth: 0 }}>
-                    <OpenControl {...props} listingId={listing.id} />
-                  </div>
+                <Flex justify="flex-end" style={{ width: "100%" }}>
                   <Button
                     disabled={bind.disabled}
                     data-disabled-reason="the enclosing <GatedControl> renders the gate's reason beside this button"
@@ -312,25 +439,23 @@ export function ListingCard(props: ListingCardProps): ReactElement {
                 </Flex>
               )}
             </GatedControl>
-          )}
 
-          {/* The door. `GatedControl` above already prints the reason and
-              wires `aria-describedby` to it; what it cannot know is WHERE a
-              visitor signs in, which is the container's business and arrives
-              as `signIn`. On a grid `blockedReason="line"` drops the door and
-              keeps the sentence — twenty-four doors to one place is not
-              twenty-four pieces of help. */}
-          {props.showFavorite === false ||
-          favoriteGate.reason === undefined ||
-          blockedReason === "line" ? null : (
-            <Typography.Text
-              type="secondary"
-              data-testid="listings-card-favorite-blocked"
-            >
-              <SignInLink cta={props.signIn} testId="listings-card-sign-in" />
-            </Typography.Text>
-          )}
-        </Flex>
+            {/* The door. `GatedControl` above already prints the reason and
+                wires `aria-describedby` to it; what it cannot know is WHERE a
+                visitor signs in, which is the container's business and arrives
+                as `signIn`. On a grid `blockedReason="line"` drops the door and
+                keeps the sentence — twenty-four doors to one place is not
+                twenty-four pieces of help. */}
+            {favoriteGate.reason === undefined || blockedReason === "line" ? null : (
+              <Typography.Text
+                type="secondary"
+                data-testid="listings-card-favorite-blocked"
+              >
+                <SignInLink cta={props.signIn} testId="listings-card-sign-in" />
+              </Typography.Text>
+            )}
+          </div>
+        )}
       </Card>
     </SkinTheme>
   );

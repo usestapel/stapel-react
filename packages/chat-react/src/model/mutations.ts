@@ -5,7 +5,7 @@ import type {
   UseMutationResult,
 } from "@tanstack/react-query";
 import type { StapelApiError } from "@stapel/core";
-import type { ChatMessage, Conversation } from "../api/types.js";
+import type { ChatMessage, Conversation, SubjectRef } from "../api/types.js";
 import { useChatApi } from "./context.js";
 import { chatQueryKeys } from "./queryKeys.js";
 import { nextReadMarker } from "./readMarker.js";
@@ -122,6 +122,11 @@ export function useMarkRead(
 export interface StartDirectChatVariables {
   /** The other person — the seller, on a listing page. */
   readonly userId: string;
+  /**
+   * What the thread is ABOUT, by registered type (`listing`, …). Optional,
+   * and both halves travel together or neither does — see {@link SubjectRef}.
+   */
+  readonly subject?: SubjectRef;
 }
 
 /**
@@ -134,12 +139,20 @@ export interface StartDirectChatVariables {
  * idempotency"). So "message the seller" is safe to press twice, from two
  * tabs, on two listings.
  *
- * TWO PEOPLE, ONE THREAD — INCLUDING ACROSS LISTINGS. The key is the pair,
- * not the listing: a buyer who writes to the same seller about a second item
- * lands in the same conversation. `CreateConversationRequest.scope_key` does
- * not change that (the server ignores the field and resolves the scope
- * itself — `api/extensions.ts`), so a host that wants the listing named must
- * name it in the first message.
+ * TWO PEOPLE, ONE THREAD — UNLESS THE THREAD HAS A SUBJECT. Without one the
+ * key is the participant pair, so a buyer who writes to the same seller about
+ * a second item lands in the same conversation, and neither party can tell
+ * which item "still available?" was about. Pass `subject` and the key widens
+ * to `(scope, {both user ids}, subject_type, subject_key)` — one thread per
+ * listing, each able to show its own card.
+ *
+ * KNOWN CONSEQUENCE, ACCEPTED. The first contact WITH a subject opens a new
+ * thread beside any subjectless one the two already have, which looks like a
+ * duplicate to both of them. There is no migration that could avoid it: the
+ * old threads were never told what they were about, so nothing can key them
+ * retroactively. The skin's answer is not to hide it but to label it — a
+ * thread with a subject carries the subject card at the top, and the one
+ * without carries nothing, which is exactly the difference between them.
  */
 export function useStartDirectChat(): UseMutationResult<
   Conversation,
@@ -153,7 +166,8 @@ export function useStartDirectChat(): UseMutationResult<
     StapelApiError,
     StartDirectChatVariables
   > = {
-    mutationFn: (vars) => api.createConversation("direct", [vars.userId]),
+    mutationFn: (vars) =>
+      api.createConversation("direct", [vars.userId], vars.subject),
     onSuccess: (conversation) => {
       queryClient.setQueryData(
         chatQueryKeys.conversation(conversation.id),

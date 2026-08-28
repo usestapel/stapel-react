@@ -14,6 +14,7 @@ import {
   isSignInRequired,
   isUnknownTargetType,
   REVIEWS_ERROR_ALREADY_RESPONDED,
+  REVIEWS_ERROR_ANONYMOUS_NOT_ALLOWED,
   REVIEWS_ERROR_DUPLICATE,
   toReviewsError,
 } from "../src/index.js";
@@ -61,6 +62,27 @@ describe("the 401 only the WRITE can answer now", () => {
     const forbidden = apiError(403, "error.403.reviews_cannot_review");
     expect(isSignInRequired(forbidden)).toBe(false);
     expect(isReviewingForbidden(forbidden)).toBe(true);
+  });
+});
+
+describe("the same refusal, spelled 403 for a minted GUEST", () => {
+  // A storefront that mints anonymous accounts left this predicate blind: the
+  // visitor IS authenticated, so no 401 arrives, and the module refuses the
+  // write with `ALLOW_ANONYMOUS_WRITES`'s own 403 instead. Without this arm
+  // the form rendered a raw i18n key nobody has copy for.
+  it("recognises `error.403.reviews_anonymous_not_allowed`", () => {
+    expect(REVIEWS_ERROR_ANONYMOUS_NOT_ALLOWED).toBe(
+      "error.403.reviews_anonymous_not_allowed"
+    );
+    expect(
+      isSignInRequired(apiError(403, REVIEWS_ERROR_ANONYMOUS_NOT_ALLOWED))
+    ).toBe(true);
+  });
+
+  it("and is still NOT the can_review 403, which signing up does not fix", () => {
+    expect(
+      isReviewingForbidden(apiError(403, REVIEWS_ERROR_ANONYMOUS_NOT_ALLOWED))
+    ).toBe(false);
   });
 });
 

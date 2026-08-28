@@ -22,7 +22,7 @@ import {
   createChatRuntime,
   registerChatI18n,
 } from "../src/index.js";
-import type { ChatRealtimeOptions } from "../src/index.js";
+import type { ChatRealtimeOptions, ChatSlots } from "../src/index.js";
 
 // The socket double stands at the ENVIRONMENT edge (`globalThis.WebSocket`),
 // not at an injectable factory: a fake standing where `new WebSocket()`
@@ -112,10 +112,16 @@ export function TestHarness(props: {
   server: MockServer;
   /** Default: no socket at all — the polling half of the seam. */
   realtime?: ChatRealtimeOptions;
+  /**
+   * Host-supplied seams (names, subject card, report/block). Default: none,
+   * which is the state a container that wired nothing is in — and the skin
+   * has to be honest about it there too.
+   */
+  slots?: ChatSlots;
   locale?: string;
   children: ReactNode;
 }): ReactElement {
-  const { server, realtime, locale } = props;
+  const { server, realtime, locale, slots } = props;
   // Memoized: the runtime carries the realtime config the freshness effect
   // depends on, and a fresh object each render would reopen the socket on
   // every render.
@@ -127,6 +133,7 @@ export function TestHarness(props: {
         baseUrl: BASE,
         fetch: server.fetch,
         realtime: realtime ?? { socketUrl: null },
+        ...(slots !== undefined ? { slots } : {}),
       }),
       i18n: engine,
       queryClient: new QueryClient({
@@ -135,7 +142,7 @@ export function TestHarness(props: {
         defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
       }),
     };
-  }, [server, realtime, locale]);
+  }, [server, realtime, locale, slots]);
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>

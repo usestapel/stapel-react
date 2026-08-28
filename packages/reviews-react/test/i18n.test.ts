@@ -2,7 +2,7 @@
  * Every error code in the registry must resolve to a SENTENCE in all three
  * locales, and every UI key the pair declares must too.
  *
- * `stapel-reviews` ships no `translations/` directory, so 9 of the 51 registry
+ * `stapel-reviews` ships no `translations/` directory, so 10 of the 52 registry
  * codes have no upstream catalogue and are authored by this pair; the other 42
  * come from stapel-core's own catalogue through the generated bundle. The
  * split is by OWNER, and this suite is what keeps it that way.
@@ -67,9 +67,9 @@ describe.each(["en", "ru", "es"] as const)("locale %s", (locale) => {
   });
 });
 
-describe("ownership of the nine un-catalogued keys", () => {
-  it("the pair authors its own nine in ru and es", () => {
-    expect(REVIEWS_OWNED).toHaveLength(9);
+describe("ownership of the ten un-catalogued keys", () => {
+  it("the pair authors its own ten in ru and es", () => {
+    expect(REVIEWS_OWNED).toHaveLength(10);
     for (const code of REVIEWS_OWNED) {
       expect(reviewsI18nBundleRu[code], code).toBeTruthy();
       expect(reviewsI18nBundleEs[code], code).toBeTruthy();

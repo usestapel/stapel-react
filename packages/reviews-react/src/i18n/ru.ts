@@ -11,12 +11,12 @@ export { reviewsErrorBundleRu } from "./generated/errors.ru.gen.js";
  * bundle-purity test).
  *
  * TWO SOURCES, ON PURPOSE. The generated `reviewsErrorBundleRu` covers the 42
- * cross-cutting keys stapel-core owns and localizes. The 9 keys stapel-reviews
+ * cross-cutting keys stapel-core owns and localizes. The 10 keys stapel-reviews
  * owns are NOT in it, and cannot be: the module ships no `translations/`
  * directory at all, so the generator emits a `Partial` bundle and says so in
  * its own header (`ERRORS_LOCALE_EXEMPT_OWNERS`, the stapel-forms precedent).
  * They are authored below, beside the UI copy. When upstream ships
- * `translations/errors.ru.json`, these nine lines are deleted and the
+ * `translations/errors.ru.json`, these ten lines are deleted and the
  * generated bundle covers them — the keys and the texts do not move.
  */
 export const reviewsI18nBundleRu: I18nDictionary = {
@@ -32,6 +32,8 @@ export const reviewsI18nBundleRu: I18nDictionary = {
   "error.400.reviews_response_not_allowed":
     "Для этого типа объекта ответы отключены",
   "error.400.reviews_unknown_target_type": "Неизвестный тип объекта отзыва",
+  "error.403.reviews_anonymous_not_allowed":
+    "Гостевая учётная запись не может оставить отзыв",
   "error.403.reviews_cannot_moderate":
     "Вы не можете модерировать отзывы об этом объекте",
   "error.403.reviews_cannot_review": "Вы не можете оставить отзыв об этом объекте",
@@ -87,6 +89,8 @@ export const reviewsI18nBundleRu: I18nDictionary = {
   "reviews.submit.blocked.duplicate": "Вы уже оценили это",
   "reviews.submit.blocked.submitted": "Ваш отзыв отправлен",
   "reviews.submit.blocked.forbidden": "Вы не можете оставить здесь отзыв",
+  "reviews.submit.blocked.sign_in": "Войдите, чтобы оставить отзыв",
+  "reviews.submit.blocked.mandate_unknown": "Проверяем вашу учётную запись…",
 
   "reviews.moderation.heading": "Модерация",
   "reviews.moderation.hint":

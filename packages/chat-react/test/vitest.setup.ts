@@ -22,13 +22,25 @@ afterEach(() => {
 });
 
 // jsdom ships neither `matchMedia` nor `ResizeObserver`; Ant Design (the
-// `/default` settings-skin suite) reads both on mount. Minimal no-op
-// polyfills, mirroring auth-react's suite, so the DOM render is exercised
-// without pulling a heavier test env.
+// `/default` skin suite) reads both on mount. Minimal polyfills, mirroring
+// profiles-react's suite, so the DOM render is exercised without pulling a
+// heavier test env.
+//
+// The `matches` answer is EVALUATED, not hardcoded `false`. Since the fleet
+// dialog rule landed (`@stapel/tokens-antd/skin`), a `(min-width: 768px)`
+// query is what decides whether a dialog renders as a phone bottom sheet or a
+// tablet/desktop modal — so a blanket `false` silently declares every test
+// viewport a phone, and the suite would assert the sheet everywhere while the
+// desktop surface went untested. jsdom's own window is 1024x768, so reading
+// `window.innerWidth` gives each test the viewport it actually stands in (and
+// a test that wants the other surface says so by setting `innerWidth`).
 if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
-  window.matchMedia = (query: string): MediaQueryList =>
-    ({
-      matches: false,
+  window.matchMedia = ((query: string) => {
+    const min = /\(min-width:\s*(\d+)px\)/.exec(query);
+    return {
+      get matches(): boolean {
+        return min === null ? false : window.innerWidth >= Number(min[1]);
+      },
       media: query,
       onchange: null,
       addListener: () => {},
@@ -36,7 +48,8 @@ if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
       addEventListener: () => {},
       removeEventListener: () => {},
       dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+    } as unknown as MediaQueryList;
+  }) as typeof window.matchMedia;
 }
 if (typeof globalThis.ResizeObserver === "undefined") {
   globalThis.ResizeObserver = class {

@@ -72,7 +72,7 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.card.price_absent": "Precio a consultar",
   "listings.card.favorite_add": "Guardar en favoritos",
   "listings.card.favorite_remove": "Quitar de favoritos",
-  "listings.card.open": "Abrir",
+  "listings.card.untitled": "Anuncio sin título",
   "listings.card.sign_in": "Iniciar sesión",
 
   "listings.detail.loading": "Cargando el anuncio…",

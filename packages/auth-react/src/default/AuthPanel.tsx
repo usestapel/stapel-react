@@ -176,6 +176,23 @@ export interface AuthPanelProps {
    * registration channel, so it is never a control that leads nowhere.
    */
   readonly showVariantSwitch?: boolean;
+  /**
+   * Offer "continue as a guest" on the sign-in surface. Default ON, tracking
+   * the backend's `registration.anonymous` capability.
+   *
+   * Pass `false` on a host that mints guest accounts AUTOMATICALLY (see
+   * `createAuthRuntime`'s `autoAnonymous`). There the choice is made by the
+   * act — the visitor presses a heart and the account appears — and the
+   * button becomes the thing it was removed for being on this exact
+   * deployment once before: a control that answers a press with silence. It
+   * mints a session and leaves the person on the sign-in screen, because a
+   * guest is not a member and nothing on this page changes for them.
+   *
+   * This is not the client hiding a capability the server advertises. The
+   * server's statement is "guest accounts exist here", and it stays true;
+   * what the host is saying is that they are not obtained by pressing this.
+   */
+  readonly showGuestEntry?: boolean;
 }
 
 /**
@@ -393,6 +410,12 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
   // "Create an account" link that leads to an empty screen.
   const showSwitch =
     (props.showVariantSwitch ?? true) && (variant === "register" || canRegister);
+  // Guest entry: the backend's capability AND the host's willingness to
+  // offer it as a manual choice. See `showGuestEntry`.
+  const showGuestEntry =
+    (props.showGuestEntry ?? true) &&
+    variant === "login" &&
+    (caps.data?.registration.anonymous ?? false);
 
   return (
     <SkinTheme
@@ -490,9 +513,7 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
               sign-in ↔ register switch used to sit in the primary column at
               the same width and weight as the primary action, so "Continue as
               guest" read as loud as "Send code" (visual pass C2). */}
-          {(showSwitch ||
-            (variant === "login" && (caps.data?.registration.anonymous ?? false)) ||
-            props.legal !== undefined) && (
+          {(showSwitch || showGuestEntry || props.legal !== undefined) && (
             <Flex vertical gap="small" style={{ width: "100%" }}>
               <Divider style={{ margin: 0 }} />
               {/* Guest entry (owner directive 2026-07-17): NOT a
@@ -500,7 +521,7 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
                   whenever the backend allows anonymous registration. LOGIN
                   surface only: the registration surface is already the
                   "create an account" screen. */}
-              {variant === "login" && caps.data?.registration.anonymous && (
+              {showGuestEntry && (
                 <AnonymousSession>
                   {(bag) => {
                     const err =

@@ -205,6 +205,16 @@ export type {
 // ── model (runtime wiring, session, query hooks) ─────────────────────────────
 export { createAuthRuntime } from "./model/runtime.js";
 export type { AuthRuntime, CreateAuthRuntimeOptions } from "./model/runtime.js";
+
+// Auto-anonymous: `POST /anonymous/` with no button, as core's
+// `ElevationSource`. Normally reached through
+// `createAuthRuntime({ autoAnonymous })`; exported for a host that builds
+// its runtime by hand.
+export {
+  createAnonymousElevation,
+  ANONYMOUS_DEVICE_ID_KEY,
+} from "./model/anonymousElevation.js";
+export type { AnonymousElevationOptions } from "./model/anonymousElevation.js";
 export { createAuthSession } from "./model/session.js";
 export type {
   AuthSession,

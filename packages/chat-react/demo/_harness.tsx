@@ -39,9 +39,36 @@ import type {
 } from "@stapel/realtime";
 import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
 import { ChatProvider, createChatRuntime, registerChatI18n } from "../src/index.js";
+import type { ChatPeopleSlot, ChatPerson } from "../src/index.js";
 import { chatQueryKeys } from "../src/model/queryKeys.js";
 import type { ChatThreadWindow } from "../src/model/threadWindow.js";
 import type { ChatMessage, Conversation, ConversationPage } from "../src/api/types.js";
+
+/**
+ * WHO THE DEMO PEOPLE ARE.
+ *
+ * `ConversationResponse` names nobody — it carries participant ids — so the
+ * skin asks the runtime's people seam, and a catalogue with no seam wired
+ * would photograph "Name unavailable" on every inbox row. That sentence is
+ * correct and it is exactly what a container that forgot the wiring must see;
+ * it is not what the shipped screen looks like, and a catalogue documents the
+ * shipped screen. So the demo runtime wires the seam the way a storefront
+ * does (`useProfilesBatch` there, a canned table here).
+ */
+const DEMO_PEOPLE: Readonly<Record<string, string>> = {
+  "u-seller": "Marta Kovács",
+  "u-anton": "Anton Berg",
+  "u-support": "Support team",
+};
+
+const demoPeopleSlot: ChatPeopleSlot = (props) =>
+  props.children({
+    pending: false,
+    lookup: (userId): ChatPerson | null => {
+      const displayName = DEMO_PEOPLE[userId];
+      return displayName === undefined ? null : { userId, displayName };
+    },
+  });
 
 /** The base every mock handler mounts on (mirrors stapel-chat `/chat/api/v1`). */
 export const DEMO_BASE = "https://chat.demo.stapel.dev/chat/api/v1";
@@ -315,6 +342,7 @@ export function ChatDemoHarness(props: {
       baseUrl: DEMO_BASE,
       fetch: mockFetch(handlers ?? {}),
       realtime: { socketUrl: live ? DEMO_SOCKET_ORIGIN : null },
+      slots: { people: demoPeopleSlot },
     });
     const engine = createI18n({ locale: "en" });
     registerChatI18n(engine);
@@ -488,11 +516,44 @@ function conversation(
   };
 }
 
-/** A busy inbox: one thread with news, one caught up, one support case. */
+/** The buyer every demo reads as. */
+export const DEMO_VIEWER = "u-buyer";
+
+/** A short listing card, in the shape `classified.subject_cards` serves. */
+function listingSubject(title: string, price: number): NonNullable<Conversation["subject"]> {
+  return {
+    type: "listing",
+    key: "42",
+    card: {
+      listing_id: "42",
+      title,
+      price,
+      currency: "EUR",
+      state: "available",
+      url: "/listings/42",
+      image: null,
+      meta_status: "ok",
+    },
+    meta_status: "ok",
+  };
+}
+
+/**
+ * A busy inbox: two people and a support case — with DIFFERENT
+ * counterparties, because "three rows, three names" is the whole point of the
+ * row, and three rows with one name would document the defect instead.
+ */
 export const DEMO_INBOX: readonly Conversation[] = [
-  conversation("8f14e45f-ceea-467a-9b58-2f0b0b1a6b21", { unread_count: 2 }),
+  conversation("8f14e45f-ceea-467a-9b58-2f0b0b1a6b21", {
+    unread_count: 2,
+    subject: listingSubject("Racing bicycle, almost new", 240),
+  }),
   conversation("1c3d5e7f-2b4a-4c6d-8e0f-1a2b3c4d5e6f", {
     updated_at: "2026-08-21T11:40:00Z",
+    participants: [
+      { user_id: DEMO_VIEWER, role: "member", last_read_seq: 3 },
+      { user_id: "u-anton", role: "member", last_read_seq: 3 },
+    ],
   }),
   conversation("aa11bb22-cc33-4d44-9e55-ff6677889900", {
     kind: "support",

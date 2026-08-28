@@ -140,6 +140,7 @@ export {
   isSignInRequired,
   isUnknownTargetType,
   REVIEWS_ERROR_ALREADY_RESPONDED,
+  REVIEWS_ERROR_ANONYMOUS_NOT_ALLOWED,
   REVIEWS_ERROR_CANNOT_MODERATE,
   REVIEWS_ERROR_CANNOT_REVIEW,
   REVIEWS_ERROR_DUPLICATE,
@@ -174,7 +175,7 @@ export type {
   ReviewAggregateBag,
   ReviewAggregateProps,
 } from "./headless/ReviewAggregate.js";
-export { ReviewForm } from "./headless/ReviewForm.js";
+export { REVIEWS_ELEVATION_ACTIONS, ReviewForm } from "./headless/ReviewForm.js";
 export type { ReviewFormBag, ReviewFormProps } from "./headless/ReviewForm.js";
 
 // ── i18n ─────────────────────────────────────────────────────────────────────

@@ -214,7 +214,11 @@ export type {
 
 // ── headless (renderless components + their bags) ────────────────────────────
 export { ListingsProvider } from "./headless/ListingsProvider.js";
-export { useMandateGate } from "./headless/useMandateGate.js";
+export {
+  useMandateGate,
+  useElevatableMandateGate,
+  LISTINGS_ELEVATION_ACTIONS,
+} from "./headless/useMandateGate.js";
 export { ListingDetail, useListingDetail } from "./headless/ListingDetail.js";
 export type {
   ListingDetailBag,
