@@ -71,7 +71,7 @@ function collectStringConsts(sf) {
   return consts;
 }
 
-function keyArrayFrom(arrayNode, consts, params) {
+function keyArrayFrom(arrayNode, consts) {
   return arrayNode.elements.map((el) => {
     if (ts.isStringLiteralLike(el)) return el.text;
     if (ts.isNumericLiteral(el)) return Number(el.text);
@@ -116,12 +116,12 @@ export function parseKeyFactory(factorySource, fileName, factoryName) {
     const init = p.initializer;
     // `all: [ROOT]`
     if (ts.isArrayLiteralExpression(init)) {
-      map.set(name, keyArrayFrom(init, consts, []));
+      map.set(name, keyArrayFrom(init, consts));
       continue;
     }
     // `capabilities: () => [ROOT, "capabilities"]` / `audit: (page) => [ROOT, "audit", page]`
     if (ts.isArrowFunction(init) && ts.isArrayLiteralExpression(init.body)) {
-      map.set(name, keyArrayFrom(init.body, consts, []));
+      map.set(name, keyArrayFrom(init.body, consts));
     }
   }
   return map;

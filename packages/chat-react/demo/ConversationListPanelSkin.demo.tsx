@@ -12,14 +12,22 @@
  */
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
+import { spacing } from "@stapel/tokens";
 import { ConversationListPanel } from "../src/default/ConversationListPanel.js";
+import { CounterpartyAvatar } from "../src/default/people.js";
+import { ChatSkinTheme } from "../src/default/theme.js";
 import {
   ChatDemoHarness,
   DEMO_INBOX,
+  DEMO_PHOTO,
+  DEMO_THREAD_CONVERSATION,
   DEMO_VIEWER,
   inboxPage,
   seedInbox,
 } from "./_harness.js";
+import { useT } from "@stapel/core";
+import { CHAT_I18N_KEYS } from "../src/index.js";
+import type { ChatPeopleDirectory, ChatPerson } from "../src/index.js";
 import type { Conversation } from "../src/api/types.js";
 import type { DemoHandlers, DemoSeed } from "./_harness.js";
 
@@ -65,12 +73,57 @@ function Panel(props: { demo: { seed: DemoSeed; handlers: DemoHandlers } }): Rea
   );
 }
 
+/**
+ * THE THREE ANSWERS A ROW'S AVATAR CAN GET, side by side.
+ *
+ * Every row of the seeded inbox above renders one — but the demo people table
+ * resolves a NAME and no picture, so the whole catalogue only ever showed the
+ * middle case. The other two are the ones that go wrong in a deployment: a
+ * host that wired avatars (a photo) and a host whose directory could not name
+ * this person at all (a neutral glyph, never an initial invented from a user
+ * id). They are drawn here because they are unreachable from any fixture the
+ * panel variants can carry at once.
+ */
+function directoryOf(person: ChatPerson | null): ChatPeopleDirectory {
+  return {
+    pending: false,
+    lookup: (userId) => (person !== null && person.userId === userId ? person : null),
+  };
+}
+
+const SELLER = "u-seller";
+const NAMED: ChatPerson = { userId: SELLER, displayName: "Marta Kovács" };
+
+const AVATAR_CASES: readonly (readonly [string, ChatPeopleDirectory])[] = [
+  ["initial", directoryOf(NAMED)],
+  ["photo", directoryOf({ ...NAMED, avatarUrl: DEMO_PHOTO })],
+  ["unknown", directoryOf(null)],
+];
+
+function AvatarStates(): ReactElement {
+  const t = useT();
+  return (
+    <div style={{ display: "flex", gap: spacing["4"], alignItems: "center" }}>
+      {AVATAR_CASES.map(([id, directory]) => (
+        <CounterpartyAvatar
+          key={id}
+          conversation={DEMO_THREAD_CONVERSATION}
+          viewerId={DEMO_VIEWER}
+          directory={directory}
+          label={t(CHAT_I18N_KEYS.listTitle)}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default defineDemo({
   id: "chat.conversation-list-panel",
   title: "Inbox (default skin)",
   description:
     "The shipped inbox: threads newest-first, an unread count that carries its own accessible sentence rather than a hover, and a load-more control that becomes a stated end. The failed arm owns the failure on its own — an outage can never render here as `No conversations yet`.",
   component: ConversationListPanel,
+  covers: ["CounterpartyAvatar"],
   tokens: ["surface-raised", "text", "text-muted", "border-subtle"],
   variants: {
     default: {
@@ -93,6 +146,19 @@ export default defineDemo({
       viewport: "phone",
       step: "empty",
       render: () => <Panel demo={EMPTY} />,
+    },
+    "row-identity": {
+      description:
+        "The row's identity glyph in all three answers the people seam can give: a resolved name (their initial), a resolved picture (the picture), and a directory that could not name this person (a neutral outline — never an initial invented from a user id, which is how a hole in a list gets mistaken for a design).",
+      viewport: "phone",
+      step: "avatars",
+      render: () => (
+        <ChatDemoHarness>
+          <ChatSkinTheme surface="raised">
+            <AvatarStates />
+          </ChatSkinTheme>
+        </ChatDemoHarness>
+      ),
     },
   },
 });

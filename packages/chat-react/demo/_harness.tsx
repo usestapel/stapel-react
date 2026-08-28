@@ -39,7 +39,12 @@ import type {
 } from "@stapel/realtime";
 import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
 import { ChatProvider, createChatRuntime, registerChatI18n } from "../src/index.js";
-import type { ChatPeopleSlot, ChatPerson } from "../src/index.js";
+import type {
+  ChatPeopleSlot,
+  ChatPerson,
+  ChatSlots,
+  ChatThreadActionSlotProps,
+} from "../src/index.js";
 import { chatQueryKeys } from "../src/model/queryKeys.js";
 import type { ChatThreadWindow } from "../src/model/threadWindow.js";
 import type { ChatMessage, Conversation, ConversationPage } from "../src/api/types.js";
@@ -130,6 +135,8 @@ export function mockFetch(handlers: DemoHandlers): typeof globalThis.fetch {
 /** i18n copy for the demo chrome — a `demo.*` (unmanaged) namespace. */
 const demoBundleEn: Record<string, string> = {
   "demo.action.refresh": "Refresh",
+  "demo.action.report": "Report this conversation",
+  "demo.action.block": "Block this person",
 };
 
 /**
@@ -208,6 +215,21 @@ export function seedInbox(
       pages: [page],
       pageParams: [undefined],
     });
+  };
+}
+
+/**
+ * Seed the row BEHIND a thread's header.
+ *
+ * `ConversationThreadPanel` reads it with `useConversation` to learn who the
+ * thread is with, what it is about, and whether the overflow menu has a single
+ * target. Without it the header falls back to the plain list title and the
+ * subject card is not drawn at all — a thread demo that seeds only messages
+ * photographs a screen the shipped inbox never produces.
+ */
+export function seedConversation(row: Conversation): DemoSeed {
+  return (queryClient) => {
+    queryClient.setQueryData(chatQueryKeys.conversation(row.id), row);
   };
 }
 
@@ -333,16 +355,23 @@ export function ChatDemoHarness(props: {
    * degradation belongs. Never make it the default again.
    */
   socket?: "live" | "off";
+  /**
+   * Extra host seams, merged over the demo people table. `report`/`block` are
+   * absent by default because a deployment that wired neither draws no
+   * overflow control at all — the shipped default — so a demo that wants the
+   * menu has to ask for it, exactly as a container does.
+   */
+  slots?: ChatSlots;
   children: ReactNode;
 }): ReactElement {
-  const { handlers, seed } = props;
+  const { handlers, seed, slots } = props;
   const live = (props.socket ?? "live") === "live";
   const { runtime, queryClient, i18n, realtime } = useMemo(() => {
     const rt = createChatRuntime({
       baseUrl: DEMO_BASE,
       fetch: mockFetch(handlers ?? {}),
       realtime: { socketUrl: live ? DEMO_SOCKET_ORIGIN : null },
-      slots: { people: demoPeopleSlot },
+      slots: { people: demoPeopleSlot, ...slots },
     });
     const engine = createI18n({ locale: "en" });
     registerChatI18n(engine);
@@ -372,7 +401,7 @@ export function ChatDemoHarness(props: {
       i18n: engine,
       realtime: live ? liveRealtimeClient() : null,
     };
-  }, [handlers, seed, live]);
+  }, [handlers, seed, live, slots]);
   const inner = (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
@@ -463,6 +492,29 @@ export function DemoActions(props: { children: ReactNode }): ReactElement {
   );
 }
 
+// ── the host's own thread verbs (report / block) ─────────────────────────────
+//
+// A storefront fills these with `@stapel/moderation-react`'s `ReportButton`
+// and a `@stapel/profiles-react` block control — peers this pair may never
+// import, which is why they are seams. The demo stands in for both with its
+// own buttons, because what the catalogue documents is the SHIPPED overflow
+// sheet, not either peer's control. Both dismiss the menu, the way a real
+// control does when it takes the screen over.
+
+function DemoReportAction(props: ChatThreadActionSlotProps): ReactElement {
+  return <DemoButton run={props.close} labelKey="demo.action.report" />;
+}
+
+function DemoBlockAction(props: ChatThreadActionSlotProps): ReactElement {
+  return <DemoButton run={props.close} labelKey="demo.action.block" />;
+}
+
+/** A deployment that wired both verbs — the one where the menu exists. */
+export const DEMO_THREAD_ACTIONS: ChatSlots = {
+  report: DemoReportAction,
+  block: DemoBlockAction,
+};
+
 // ── canned wire bodies (the REAL shapes stapel-chat sends) ───────────────────
 
 export const DEMO_CONVERSATION = {
@@ -519,8 +571,27 @@ function conversation(
 /** The buyer every demo reads as. */
 export const DEMO_VIEWER = "u-buyer";
 
+/**
+ * A stand-in photograph. It is demo CONTENT — the thing the catalogue is a
+ * picture OF — so it carries its own colours; `no-raw-colors` guards `src/`,
+ * which owns not one hex.
+ */
+export const DEMO_PHOTO: string =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240">' +
+      '<rect width="240" height="240" fill="#c7d2e4"/>' +
+      '<circle cx="120" cy="96" r="44" fill="#8fa6c4"/>' +
+      '<path d="M32 240a88 88 0 0 1 176 0z" fill="#8fa6c4"/>' +
+      "</svg>"
+  );
+
 /** A short listing card, in the shape `classified.subject_cards` serves. */
-function listingSubject(title: string, price: number): NonNullable<Conversation["subject"]> {
+function listingSubject(
+  title: string,
+  price: number,
+  options: { readonly state?: string; readonly photo?: boolean } = {}
+): NonNullable<Conversation["subject"]> {
   return {
     type: "listing",
     key: "42",
@@ -529,9 +600,12 @@ function listingSubject(title: string, price: number): NonNullable<Conversation[
       title,
       price,
       currency: "EUR",
-      state: "available",
+      state: options.state ?? "available",
       url: "/listings/42",
-      image: null,
+      image:
+        options.photo === true
+          ? { variants: [{ url: DEMO_PHOTO, width: 240, height: 240 }] }
+          : null,
       meta_status: "ok",
     },
     meta_status: "ok",
@@ -539,15 +613,32 @@ function listingSubject(title: string, price: number): NonNullable<Conversation[
 }
 
 /**
+ * What the demo thread is ABOUT — a listing that is still on sale, with a
+ * photo, and the same listing after the seller removed it. The second is not
+ * an edge case: a conversation outliving the thing it was about is the state
+ * `SubjectCard` was written to render out loud rather than as an empty box.
+ */
+export const DEMO_SUBJECT: NonNullable<Conversation["subject"]> = listingSubject(
+  "Racing bicycle, almost new",
+  240,
+  { photo: true }
+);
+
+export const DEMO_SUBJECT_GONE: NonNullable<Conversation["subject"]> =
+  listingSubject("Racing bicycle, almost new", 240, { state: "gone" });
+
+/**
  * A busy inbox: two people and a support case — with DIFFERENT
  * counterparties, because "three rows, three names" is the whole point of the
  * row, and three rows with one name would document the defect instead.
  */
+export const DEMO_THREAD_CONVERSATION: Conversation = conversation(
+  "8f14e45f-ceea-467a-9b58-2f0b0b1a6b21",
+  { unread_count: 2, subject: DEMO_SUBJECT }
+);
+
 export const DEMO_INBOX: readonly Conversation[] = [
-  conversation("8f14e45f-ceea-467a-9b58-2f0b0b1a6b21", {
-    unread_count: 2,
-    subject: listingSubject("Racing bicycle, almost new", 240),
-  }),
+  DEMO_THREAD_CONVERSATION,
   conversation("1c3d5e7f-2b4a-4c6d-8e0f-1a2b3c4d5e6f", {
     updated_at: "2026-08-21T11:40:00Z",
     participants: [
@@ -563,7 +654,7 @@ export const DEMO_INBOX: readonly Conversation[] = [
 ];
 
 /** The thread the panel demos open, ascending by `seq`. */
-export const DEMO_THREAD_ID = DEMO_INBOX[0]?.id ?? "";
+export const DEMO_THREAD_ID: string = DEMO_THREAD_CONVERSATION.id;
 
 function message(
   seq: number,

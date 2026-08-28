@@ -3,7 +3,9 @@ import { cleanup, render, waitFor } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   assertVariantsRenderDistinctly,
+  playVariantIds,
   renderDemoVariant,
+  runDemoPlay,
   variantIds,
 } from "@stapel/showcase";
 import type { DemoDef } from "@stapel/showcase";
@@ -80,6 +82,21 @@ describe("chat-react demos", () => {
     // variant whose state arrives over fetch paints a spinner on its first
     // frame — which is the frame a shot runner keeps — so this is what forces
     // the demos to seed their cache instead of documenting three spinners.
+    // A variant with a `play` step is EXEMPT from the distinctness checks —
+    // its first frame is legitimately its sibling's — so nothing else in this
+    // file looks at it, and a step whose selector rotted would leave the
+    // catalogue photographing the closed button under a name that says open.
+    // The step is the only evidence that state is reachable at all, so it is
+    // run: a failed one throws.
+    const played = playVariantIds(demo);
+    if (played.length > 0) {
+      it.each(played)(`runs the play step of ${demo.id} (%s)`, async (id) => {
+        const { container } = render(renderDemoVariant(demo, id));
+        await runDemoPlay(demo, id, container);
+        cleanup();
+      });
+    }
+
     it(`renders each variant of ${demo.id} distinctly`, () => {
       assertVariantsRenderDistinctly(demo, (element) =>
         renderToStaticMarkup(element)

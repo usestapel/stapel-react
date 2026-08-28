@@ -15,3 +15,6 @@ MoreToLoad.parameters = { stapel: {"viewport":"desktop","step":"paged"} };
 export const Empty = (): ReactElement => renderDemoVariant(demo, "empty");
 Empty.storyName = "empty";
 Empty.parameters = { stapel: {"viewport":"phone","step":"empty"} };
+export const RowIdentity = (): ReactElement => renderDemoVariant(demo, "row-identity");
+RowIdentity.storyName = "row-identity";
+RowIdentity.parameters = { stapel: {"viewport":"phone","step":"avatars"} };

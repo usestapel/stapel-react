@@ -1,0 +1,3 @@
+{
+  "PeopleScope": "Renders no surface of its own: it is the render-prop scope that collects every user id a screen is about to draw and resolves them through the host's people seam in ONE batch (slots.people, or the directory that answers 'nobody' out loud when no host wired it), then hands the answer to its children. There is nothing to photograph — what it feeds IS photographed: the inbox rows and their avatars in chat.conversation-list-panel (variants default / row-identity) and the thread header in chat.conversation-thread-panel."
+}

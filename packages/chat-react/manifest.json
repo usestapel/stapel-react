@@ -539,6 +539,9 @@
       "title": "Inbox (default skin)",
       "description": "The shipped inbox: threads newest-first, an unread count that carries its own accessible sentence rather than a hover, and a load-more control that becomes a stated end. The failed arm owns the failure on its own — an outage can never render here as `No conversations yet`.",
       "component": "ConversationListPanel",
+      "covers": [
+        "CounterpartyAvatar"
+      ],
       "tokens": [
         "surface-raised",
         "text",
@@ -548,7 +551,8 @@
       "variants": [
         "default",
         "more-to-load",
-        "empty"
+        "empty",
+        "row-identity"
       ],
       "source": "demo/ConversationListPanelSkin.demo.tsx"
     },
@@ -558,7 +562,9 @@
       "description": "The shipped thread: replay plus live tail, the reader's own lines aligned to the trailing edge, a composer that states its own limit, and a transport tag that says WHY it is not live instead of only that it is refreshing. The same component renders a socket-fed thread and a polled one — that is the seam holding.",
       "component": "ConversationThreadPanel",
       "covers": [
-        "ChatSkinTheme"
+        "ChatSkinTheme",
+        "SubjectCard",
+        "ThreadActionsMenu"
       ],
       "tokens": [
         "surface-raised",
@@ -571,7 +577,9 @@
         "earlier-history",
         "no-messages-yet",
         "dark",
-        "no-live-socket"
+        "no-live-socket",
+        "subject-gone",
+        "thread-menu-open"
       ],
       "source": "demo/ConversationThreadPanelSkin.demo.tsx"
     },

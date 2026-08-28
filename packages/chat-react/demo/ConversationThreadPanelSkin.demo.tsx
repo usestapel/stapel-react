@@ -25,13 +25,22 @@
  */
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
+import { spacing } from "@stapel/tokens";
 import { ConversationThreadPanel } from "../src/default/ConversationThreadPanel.js";
+import { SubjectCard } from "../src/default/subjectCard.js";
+import { ThreadActionsMenu } from "../src/default/ThreadActionsMenu.js";
 import { ChatSkinTheme } from "../src/default/theme.js";
 import {
   ChatDemoHarness,
+  DEMO_SUBJECT,
+  DEMO_SUBJECT_GONE,
+  DEMO_THREAD_ACTIONS,
+  DEMO_THREAD_CONVERSATION,
   DEMO_THREAD_ID,
   DEMO_THREAD_MESSAGES,
   messagePage,
+  seedAll,
+  seedConversation,
   seedThread,
 } from "./_harness.js";
 import type { ChatMessage } from "../src/api/types.js";
@@ -39,6 +48,9 @@ import type { DemoHandlers, DemoSeed } from "./_harness.js";
 
 /** The reader, so their own lines align to the trailing edge. */
 const VIEWER = "u-buyer";
+
+/** The other side of this thread — who "block" would be about. */
+const COUNTERPARTY = "u-seller";
 
 /**
  * A variant's seed AND the wire behind it, built from the same rows.
@@ -56,8 +68,22 @@ function threadDemo(
   options?: { readonly hasOlder?: boolean }
 ): { seed: DemoSeed; handlers: DemoHandlers } {
   return {
-    seed: seedThread(DEMO_THREAD_ID, messages, options),
-    handlers: { "/read": { ok: true }, "/messages": messagePage(messages) },
+    // The conversation ROW travels with the messages. Without it the header
+    // had nobody to name and nothing to be about, so every frame of this
+    // pair's thread showed the plain list title and no subject card — the
+    // exact screen the 0.6 work was done to replace. `/messages` and `/read`
+    // are declared BEFORE the conversation path because the mock matches on
+    // the first suffix that appears in the URL and `…/conversations/<id>/
+    // messages` contains both.
+    seed: seedAll(
+      seedConversation(DEMO_THREAD_CONVERSATION),
+      seedThread(DEMO_THREAD_ID, messages, options)
+    ),
+    handlers: {
+      "/read": { ok: true },
+      "/messages": messagePage(messages),
+      "/conversations/": DEMO_THREAD_CONVERSATION,
+    },
   };
 }
 
@@ -80,6 +106,38 @@ function Panel(props: {
   );
 }
 
+/**
+ * The two surfaces above the messages, mounted BY HAND — which is what
+ * `src/default/index.ts` exports them for: a host composing its own thread
+ * screen keeps this pair's subject card and overflow menu rather than
+ * re-deciding both. Drawn loose here so each has states of its own on the
+ * catalogue, next to the variants where the shipped panel renders them in
+ * place.
+ */
+function ThreadTop(props: {
+  subject: typeof DEMO_SUBJECT;
+  actions: boolean;
+}): ReactElement {
+  return (
+    <ChatDemoHarness
+      seed={seedConversation(DEMO_THREAD_CONVERSATION)}
+      handlers={{ "/conversations/": DEMO_THREAD_CONVERSATION }}
+      {...(props.actions ? { slots: DEMO_THREAD_ACTIONS } : {})}
+    >
+      <ChatSkinTheme surface="raised">
+        <div style={{ display: "flex", flexDirection: "column", gap: spacing["3"] }}>
+          <ThreadActionsMenu
+            conversationId={DEMO_THREAD_ID}
+            counterpartyId={COUNTERPARTY}
+            viewerId={VIEWER}
+          />
+          <SubjectCard subject={props.subject} conversationId={DEMO_THREAD_ID} />
+        </div>
+      </ChatSkinTheme>
+    </ChatDemoHarness>
+  );
+}
+
 export default defineDemo({
   id: "chat.conversation-thread-panel",
   title: "Conversation (default skin)",
@@ -91,7 +149,7 @@ export default defineDemo({
   // otherwise sit permanently uncovered. It IS rendered here: it is the theme
   // root this panel opens with, and the reason the card is legible on a dark
   // page instead of inheriting antd's light tokens under it.
-  covers: ["ChatSkinTheme"],
+  covers: ["ChatSkinTheme", "SubjectCard", "ThreadActionsMenu"],
   tokens: ["surface-raised", "text", "text-muted", "border-subtle"],
   variants: {
     default: {
@@ -132,6 +190,24 @@ export default defineDemo({
       viewport: "phone",
       step: "no_socket",
       render: () => <Panel demo={READY} socket="off" />,
+    },
+    "subject-gone": {
+      description:
+        "The two loose surfaces above the messages, on a deployment that wired NEITHER report nor block: there is no overflow control at all, because a menu that opens onto nothing promises an action this product does not have. The listing behind the thread has been removed, which the card says in its own sentence — the conversation about a deleted thing is the state a person is most confused by, so it is drawn rather than blanked.",
+      viewport: "phone",
+      step: "subject-gone",
+      render: () => <ThreadTop subject={DEMO_SUBJECT_GONE} actions={false} />,
+    },
+    "thread-menu-open": {
+      description:
+        "The same parts with both verbs wired, photographed with the menu OPEN — at 390px the fleet dialog rule makes it a bottom sheet, and a sheet that is only ever shot closed has zero visual evidence. The step opens it after mount, so the picture is the sheet and not the button that summons it.",
+      viewport: "phone",
+      step: "menu-open",
+      render: () => <ThreadTop subject={DEMO_SUBJECT} actions={true} />,
+      play: async ({ click, find }) => {
+        await click('[data-testid="chat-thread-menu-open"]');
+        await find('[data-testid="chat-thread-menu"]', { portal: true });
+      },
     },
   },
 });

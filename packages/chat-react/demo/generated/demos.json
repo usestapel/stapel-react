@@ -8,7 +8,9 @@
       "title": "Inbox (default skin)",
       "description": "The shipped inbox: threads newest-first, an unread count that carries its own accessible sentence rather than a hover, and a load-more control that becomes a stated end. The failed arm owns the failure on its own — an outage can never render here as `No conversations yet`.",
       "component": "ConversationListPanel",
-      "covers": [],
+      "covers": [
+        "CounterpartyAvatar"
+      ],
       "tokens": [
         "surface-raised",
         "text",
@@ -33,11 +35,17 @@
           "description": "No conversations yet — reachable only when the read SUCCEEDED and returned nothing.",
           "viewport": "phone",
           "step": "empty"
+        },
+        {
+          "id": "row-identity",
+          "description": "The row's identity glyph in all three answers the people seam can give: a resolved name (their initial), a resolved picture (the picture), and a directory that could not name this person (a neutral outline — never an initial invented from a user id, which is how a hole in a list gets mistaken for a design).",
+          "viewport": "phone",
+          "step": "avatars"
         }
       ],
       "source": {
         "file": "demo/ConversationListPanelSkin.demo.tsx",
-        "line": 68
+        "line": 120
       }
     },
     {
@@ -46,7 +54,9 @@
       "description": "The shipped thread: replay plus live tail, the reader's own lines aligned to the trailing edge, a composer that states its own limit, and a transport tag that says WHY it is not live instead of only that it is refreshing. The same component renders a socket-fed thread and a polled one — that is the seam holding.",
       "component": "ConversationThreadPanel",
       "covers": [
-        "ChatSkinTheme"
+        "ChatSkinTheme",
+        "SubjectCard",
+        "ThreadActionsMenu"
       ],
       "tokens": [
         "surface-raised",
@@ -84,11 +94,24 @@
           "description": "A deployment with no sockets at all — a supported configuration, not a fault. The header carries the NAMED reason rather than a bare `Refreshing every few seconds`, and it WRAPS onto its own line instead of squeezing the title: at 390px the sentence is the part a person may act on, so it is the part that must survive. This is the only variant that wears the banner, which is what makes it readable.",
           "viewport": "phone",
           "step": "no_socket"
+        },
+        {
+          "id": "subject-gone",
+          "description": "The two loose surfaces above the messages, on a deployment that wired NEITHER report nor block: there is no overflow control at all, because a menu that opens onto nothing promises an action this product does not have. The listing behind the thread has been removed, which the card says in its own sentence — the conversation about a deleted thing is the state a person is most confused by, so it is drawn rather than blanked.",
+          "viewport": "phone",
+          "step": "subject-gone"
+        },
+        {
+          "id": "thread-menu-open",
+          "description": "The same parts with both verbs wired, photographed with the menu OPEN — at 390px the fleet dialog rule makes it a bottom sheet, and a sheet that is only ever shot closed has zero visual evidence. The step opens it after mount, so the picture is the sheet and not the button that summons it.",
+          "viewport": "phone",
+          "step": "menu-open",
+          "play": true
         }
       ],
       "source": {
         "file": "demo/ConversationThreadPanelSkin.demo.tsx",
-        "line": 83
+        "line": 141
       }
     },
     {
