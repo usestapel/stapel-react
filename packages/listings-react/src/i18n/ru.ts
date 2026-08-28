@@ -48,6 +48,8 @@ export const listingsI18nBundleRu: I18nDictionary = {
     "Неизвестный статус объявления: «{status}»",
   "error.400.publish_validation_failed":
     "Объявление не прошло проверку и не опубликовано",
+  "error.403.listing_anonymous_not_allowed":
+    "Чтобы подать объявление, войдите или зарегистрируйтесь",
   "error.403.listing_not_owner": "Это не ваше объявление",
   "error.404.listing_not_found": "Объявление не найдено",
   "error.409.already_favorited": "Объявление уже в избранном",

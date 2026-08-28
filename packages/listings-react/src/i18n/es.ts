@@ -32,6 +32,8 @@ export const listingsI18nBundleEs: I18nDictionary = {
     "Estado de anuncio desconocido: «{status}»",
   "error.400.publish_validation_failed":
     "El anuncio no pasó la revisión y no se publicó",
+  "error.403.listing_anonymous_not_allowed":
+    "Para publicar un anuncio, inicia sesión o crea una cuenta",
   "error.403.listing_not_owner": "Este anuncio no es tuyo",
   "error.404.listing_not_found": "No se encontró el anuncio",
   "error.409.already_favorited": "El anuncio ya está en favoritos",
