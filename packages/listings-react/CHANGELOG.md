@@ -1,5 +1,83 @@
 # @stapel/listings-react
 
+## 0.8.0
+
+### Minor Changes
+
+- 5c6126d: Auto-anonymous: a gated action can mint an identity instead of refusing.
+
+  A marketplace visitor who has not registered could read the catalogue and do
+  nothing with it. Saving a listing and writing to a seller are the two acts the
+  product exists for, and both answered "sign in first". They no longer do: the
+  press mints a guest account silently and then performs the act.
+
+  - `@stapel/core` gains the elevation seam — `ElevationSource`,
+    `<ElevationProvider>`, `useElevation(action)`. It is per-ACTION on purpose.
+    The mandate axis is untouched by a mint, so a minted guest stays
+    `"anonymous"` and every action a deployment did not name keeps its wall.
+  - `@stapel/auth-react` gains `createAuthRuntime({ autoAnonymous: { actions } })`
+    and `createAnonymousElevation`, implementing that seam over
+    `POST /anonymous/`. It never mints on render, collapses concurrent presses
+    onto one mint, and persists a `device_id` so a reload does not abandon the
+    first guest along with what they saved.
+  - `@stapel/listings-react` exports `LISTINGS_ELEVATION_ACTIONS` and
+    `useElevatableMandateGate`; the favourite heart takes the named action.
+    Publishing deliberately does not.
+  - `@stapel/chat-react` exports `CHAT_ELEVATION_ACTIONS`; "message the seller"
+    takes the named action.
+  - `@stapel/reviews-react` exports `REVIEWS_ELEVATION_ACTIONS` and now refuses a
+    mandate-less visitor BEFORE the click rather than after it. It also
+    recognises `error.403.reviews_anonymous_not_allowed`: a signed-out visitor
+    is refused with 401 and a minted guest with 403, and both mean "you need an
+    account", so `isSignInRequired` reads both.
+
+  `@stapel/auth-react` also gains `<AuthPanel showGuestEntry>`. With the axis
+  open the backend advertises `registration.anonymous` and the panel would draw
+  "Continue as a guest" — on a host that mints automatically that button mints a
+  session and leaves the person on the sign-in screen, which is the silent
+  control that got the capability switched off somewhere once already. The
+  server's statement stays true; the host says whether it is obtained by
+  pressing that.
+
+  WHICH actions may mint is a host's list, not a library default. A host that
+  wires nothing sees no change: every gated control refuses exactly as before.
+
+- 62c70ac: The classified layout, in the default skins.
+
+  Built where the doctrine says the product lives, so every future classified
+  deployment gets it rather than rebuilding it.
+
+  - `shell-react` — `NavDock`, a floating translucent island rather than a flat
+    bar: inset from every edge, real border and shadow, safe-area aware. The
+    glass is progressive enhancement, not the design — the opaque elevated fill
+    is the base and the blur is swapped in only inside an `@supports` for
+    `backdrop-filter`, so text contrast never depends on transparency being
+    available. Destinations are the first five top-level nav entries in the
+    order the manifest already declares, so there is no second selection axis.
+    Real links, `aria-current`, and the badge count folded into each link's
+    accessible name.
+  - `search-react` — a phone gets a scrollable chip row instead of one
+    "Filters" button, each chip opening its own `SkinDialog`, and chips carry
+    the CHOICE rather than the group name. A desktop gets a sticky full-height
+    rail. Both render through one `FacetGroupControl`, so the rail and the
+    sheets cannot drift into two implementations — and a group's shape is
+    derived from the schema keys the composer's editor already reads
+    (`maxSelected: 1` → pills, `hierarchical_select` → indented children)
+    rather than a new presentation flag. Plus a list/grid view switch, which is
+    not URL state because it changes how an answer is drawn and never what it
+    is.
+  - `listings-react` — the whole card is one real anchor: photo, price, title
+    and location inside it, the favourite heart a sibling button outside it so
+    the link cannot swallow it. The separate "open" control is gone and its
+    i18n key is retired. Middle-click, open-in-new-tab and crawlers still work,
+    and the anchor's accessible name is the title alone.
+
+  Parts of the reference layout that do not fit a generic contract are slots
+  with a stated reason rather than invented content: "notify me about new ones"
+  (a saved search has an owner, a schedule and a consent record this pair has
+  none of), the breadcrumb (a walk up a tree search cannot see), and map view
+  (a `SearchView` whose tiles belong to geo-react).
+
 ## 0.7.0
 
 ### Minor Changes

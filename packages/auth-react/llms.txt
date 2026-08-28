@@ -1,6 +1,6 @@
-# @stapel/auth-react 0.17.1
+# @stapel/auth-react 0.18.0
 
-Headless React flow pair for stapel-auth (contract >=0.28 <0.29) — business + state, zero visual opinion.
+Headless React flow pair for stapel-auth (contract >=0.29 <0.30) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -212,7 +212,7 @@ Paths are relative to `/auth/api/v1/`.
 - useVerificationPreferences (query) → verificationPreferences
 
 ## Errors (render t(code, params); UX from remediation)
-138 keys (full catalog: manifest.json §errors). By remediation: fix_input 60 · retry 38 · reauthenticate 14 · verify 9 · wait_and_retry 9 · contact_support 8.
+139 keys (full catalog: manifest.json §errors). By remediation: fix_input 61 · retry 38 · reauthenticate 14 · verify 9 · wait_and_retry 9 · contact_support 8.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}

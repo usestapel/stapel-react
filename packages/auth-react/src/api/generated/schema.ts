@@ -53,7 +53,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Create anonymous user. Minting a NEW guest is capped per client per hour (`ANONYMOUS_RATE_LIMIT_PER_HOUR`) — reusing an existing guest session, by `device_id` or by presenting the anonymous session itself, is free.
+         * @description Create anonymous user. Minting a NEW guest is capped per client per hour (`ANONYMOUS_RATE_LIMIT_PER_HOUR`) — reusing an existing guest session, by `device_id` from the SAME client address or by presenting the anonymous session itself, is free. `device_id` is a dedup key, not a credential: its 60-second slot is scoped to the caller's address, and a value short enough to guess is refused (`error.400.device_id_weak`).
          *
          *     **Permissions:** `DenyEnrollOnly`
          */
@@ -2537,6 +2537,7 @@ export interface components {
         };
         /** @description Serializer for anonymous authentication */
         AnonymousAuth: {
+            /** @description Optional opaque random token identifying this install, used to deduplicate guest mints for 60 seconds. At least 16 characters of [A-Za-z0-9-._~:+/=] — a UUID or a random hex/base64 value, not a readable name. The dedup slot is scoped to the caller's IP, so this is not a credential and cannot resume another client's session. Omit it to mint a fresh guest every time. */
             device_id?: string;
         };
         AuditLogEntry: {

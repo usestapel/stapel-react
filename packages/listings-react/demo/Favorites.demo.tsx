@@ -59,7 +59,11 @@ export default defineDemo({
   description:
     "The plainest place to see the load-state discipline: 'you have not saved anything yet' and 'we could not load your favourites' are two arms, not one. Merging them is the substitution that turned a 5xx into an empty result page on 2026-08-09. A visitor makes no request at all and is shown ONE state — the reason plus the door — where the pane used to render a blocked notice with a spinner turning underneath it. The pager renders only when there is a page to go to.",
   component: FavoritesPane,
-  covers: ["Favorites"],
+  // LISTINGS_ELEVATION_ACTIONS is the action name this pair contributes to a
+  // host's auto-anonymous list. A constant, not a component, so it has no
+  // surface of its own — and it belongs here: favouriting is the act a host
+  // names when it decides a guest may be minted for it.
+  covers: ["Favorites", "LISTINGS_ELEVATION_ACTIONS"],
   tokens: ["surface-raised"],
   variants: {
     default: {

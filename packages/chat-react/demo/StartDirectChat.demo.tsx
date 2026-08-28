@@ -79,6 +79,11 @@ export default defineDemo({
   description:
     "The headless StartDirectChat opens the direct thread with a person — get-or-create, keyed by the participant pair, so pressing twice cannot fan out into two threads. Blocked states carry a readable reason instead of a grey button.",
   component: StartDirectChat,
+  // The action name this pair contributes to a host's auto-anonymous list.
+  // It is a constant, not a component, so it has no surface of its own — but
+  // it belongs to this demo: "start a direct chat" is the act a host names
+  // when it decides a guest may be minted for it.
+  covers: ["CHAT_ELEVATION_ACTIONS"],
   tokens: ["card-bg", "card-border"],
   variants: {
     default: {

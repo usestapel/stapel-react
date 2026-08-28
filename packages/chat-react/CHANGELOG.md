@@ -1,5 +1,79 @@
 # @stapel/chat-react
 
+## 0.5.0
+
+### Minor Changes
+
+- 5c6126d: The inbox names people, and a thread says what it is about.
+
+  A seller with ten conversations saw ten rows all titled "Личная переписка" —
+  the row title was the conversation KIND — distinguishable only by timestamp.
+  And a buyer writing "still available?" about one of five listings landed in
+  the same thread as every other subject, so neither party could tell which.
+
+  - Rows now carry the counterparty's avatar and name, the subject, a preview
+    and an unread badge. Names come from a host seam on the runtime
+    (`slots.people`), shaped like listings-react's `resolveImage`, because chat
+    may not import profiles-react. It is a component rather than a function
+    because the answer is a network read. `<PeopleScope>` resolves a whole
+    screen in ONE batch, never per row, and the test counts the fetches rather
+    than asserting the shape. With no seam wired a row reads "name unavailable"
+    — never a fallback that looks deliberate.
+  - `StartChatButton` / `useStartDirectChat` take `subjectType`/`subjectKey`,
+    and the thread pins a subject card above the messages. Both halves or
+    neither: a half pair is dropped rather than sent, because upstream answers
+    `chat_incomplete_subject`.
+  - The thread header gains report and block, both host slots, in a
+    `SkinDialog` — a bottom sheet on a phone, a modal above it. With neither
+    wired the control is not drawn.
+
+  Two honest limits, both recorded in MODULE.md rather than papered over. The
+  conversation contract carries no last message, so a row shows a preview only
+  for threads this client already holds — a `last_message` projection upstream
+  is what would let every row paint one on first load; a per-row
+  `GET /messages?limit=1` was refused and a fabricated line is worse than a
+  blank one. And widening `direct_key` means the first contact WITH a subject
+  opens a new thread beside a pair's existing subjectless one: the skin makes
+  the two visibly different rather than hiding it.
+
+- 5c6126d: Auto-anonymous: a gated action can mint an identity instead of refusing.
+
+  A marketplace visitor who has not registered could read the catalogue and do
+  nothing with it. Saving a listing and writing to a seller are the two acts the
+  product exists for, and both answered "sign in first". They no longer do: the
+  press mints a guest account silently and then performs the act.
+
+  - `@stapel/core` gains the elevation seam — `ElevationSource`,
+    `<ElevationProvider>`, `useElevation(action)`. It is per-ACTION on purpose.
+    The mandate axis is untouched by a mint, so a minted guest stays
+    `"anonymous"` and every action a deployment did not name keeps its wall.
+  - `@stapel/auth-react` gains `createAuthRuntime({ autoAnonymous: { actions } })`
+    and `createAnonymousElevation`, implementing that seam over
+    `POST /anonymous/`. It never mints on render, collapses concurrent presses
+    onto one mint, and persists a `device_id` so a reload does not abandon the
+    first guest along with what they saved.
+  - `@stapel/listings-react` exports `LISTINGS_ELEVATION_ACTIONS` and
+    `useElevatableMandateGate`; the favourite heart takes the named action.
+    Publishing deliberately does not.
+  - `@stapel/chat-react` exports `CHAT_ELEVATION_ACTIONS`; "message the seller"
+    takes the named action.
+  - `@stapel/reviews-react` exports `REVIEWS_ELEVATION_ACTIONS` and now refuses a
+    mandate-less visitor BEFORE the click rather than after it. It also
+    recognises `error.403.reviews_anonymous_not_allowed`: a signed-out visitor
+    is refused with 401 and a minted guest with 403, and both mean "you need an
+    account", so `isSignInRequired` reads both.
+
+  `@stapel/auth-react` also gains `<AuthPanel showGuestEntry>`. With the axis
+  open the backend advertises `registration.anonymous` and the panel would draw
+  "Continue as a guest" — on a host that mints automatically that button mints a
+  session and leaves the person on the sign-in screen, which is the silent
+  control that got the capability switched off somewhere once already. The
+  server's statement stays true; the host says whether it is obtained by
+  pressing that.
+
+  WHICH actions may mint is a host's list, not a library default. A host that
+  wires nothing sees no change: every gated control refuses exactly as before.
+
 ## 0.4.0
 
 ### Minor Changes

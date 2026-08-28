@@ -1,6 +1,6 @@
 {
   "name": "@stapel/chat-react",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Headless React pair for stapel-chat: typed API client, TanStack Query hooks, a seq-ordered thread store, and ONE transport seam behind which the module's own resumable WebSocket protocol (hello/welcome/replay/replay_done/message/error) and seq-anchored polling are interchangeable — the UI never knows which is live. Conversation list with unread badges, thread replay + live tail, REST send, direct-thread idempotency for \"message the seller\", monotonic read markers. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin.",
   "license": "MIT",
   "repository": {

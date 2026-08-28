@@ -48,7 +48,12 @@ export default defineDemo({
   description:
     "The submit button is switched off until a rating is chosen, and it says so beside itself rather than in a tooltip a disabled button can never fire. 'Already rated' is not an error banner: it is the same sentence whether the host knew up front (the own-review pre-check over the loaded rows) or the server answered error.400.reviews_duplicate_review — a 400, while the module's only 409 says the owner's REPLY already exists, so a form branching on the number would miss the first and mishandle the second. The star row draws the DEPLOYMENT's bounds: RATING_MIN/RATING_MAX are settings, and a client that hardwired five would refuse a rating a 1..10 deployment accepts.",
   component: ReviewFormCard,
-  covers: ["ReviewForm"],
+  // REVIEWS_ELEVATION_ACTIONS is this pair's action name for a host's
+  // auto-anonymous list — the client half of the server's
+  // ALLOW_ANONYMOUS_WRITES. A constant, not a component, and it belongs to
+  // the form: writing a review is the act a host would have to name, and by
+  // default does not.
+  covers: ["ReviewForm", "REVIEWS_ELEVATION_ACTIONS"],
   tokens: ["surface-raised"],
   variants: {
     idle: {

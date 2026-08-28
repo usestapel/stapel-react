@@ -327,6 +327,13 @@
     "en": "You do not have permission to perform this action"
   },
   {
+    "code": "error.403.listing_anonymous_not_allowed",
+    "status": 403,
+    "params": [],
+    "remediation": "retry",
+    "en": "A guest account may not publish a listing"
+  },
+  {
     "code": "error.403.listing_not_owner",
     "status": 403,
     "params": [],

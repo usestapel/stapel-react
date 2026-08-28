@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/auth-react",
-  "version": "0.17.1",
+  "version": "0.18.0",
   "backend": {
     "module": "stapel-auth",
-    "contract": ">=0.28 <0.29"
+    "contract": ">=0.29 <0.30"
   },
   "layers": [
     "api",
@@ -1562,6 +1562,11 @@
       "params": [],
       "remediation": "fix_input"
     },
+    "error.400.device_id_weak": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
     "error.400.email_or_phone_not_both": {
       "status": 400,
       "params": [],
@@ -2947,6 +2952,7 @@
     "error.400.code_expired",
     "error.400.code_required",
     "error.400.credentials_required",
+    "error.400.device_id_weak",
     "error.400.email_or_phone_not_both",
     "error.400.email_or_phone_required",
     "error.400.email_required",

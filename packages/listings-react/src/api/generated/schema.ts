@@ -12,12 +12,21 @@ export interface paths {
         /**
          * @description Listings CRUD plus owner lifecycle actions and favorites.
          *
+         *     Read and write live in one class, so the guest wall
+         *     (:func:`anonymous_write_refusal`, the ``ALLOW_ANONYMOUS_WRITES`` switch)
+         *     is applied per ACTION and never as a class permission: an anonymous
+         *     session must keep browsing and keep its favorites, and only the
+         *     authorship actions — ``create``, ``update``/``partial_update``,
+         *     ``save-draft``, ``publish`` — are the ones that turn a caller into a
+         *     seller.
+         *
          *     **Permissions:** `IsAuthenticatedOrReadOnly`
          */
         get: operations["listings_api_v1_listings_list"];
         put?: never;
         /**
-         * @description Listings CRUD plus owner lifecycle actions and favorites.
+         * @description Open a draft — the first act of becoming a seller, so the guest
+         *     wall stands here and not only at ``publish``.
          *
          *     **Permissions:** `IsAuthenticatedOrReadOnly`
          */
@@ -38,6 +47,14 @@ export interface paths {
         /**
          * @description Listings CRUD plus owner lifecycle actions and favorites.
          *
+         *     Read and write live in one class, so the guest wall
+         *     (:func:`anonymous_write_refusal`, the ``ALLOW_ANONYMOUS_WRITES`` switch)
+         *     is applied per ACTION and never as a class permission: an anonymous
+         *     session must keep browsing and keep its favorites, and only the
+         *     authorship actions — ``create``, ``update``/``partial_update``,
+         *     ``save-draft``, ``publish`` — are the ones that turn a caller into a
+         *     seller.
+         *
          *     **Permissions:** `IsAuthenticatedOrReadOnly`
          */
         get: operations["listings_api_v1_listings_retrieve"];
@@ -53,6 +70,14 @@ export interface paths {
         /**
          * @description Listings CRUD plus owner lifecycle actions and favorites.
          *
+         *     Read and write live in one class, so the guest wall
+         *     (:func:`anonymous_write_refusal`, the ``ALLOW_ANONYMOUS_WRITES`` switch)
+         *     is applied per ACTION and never as a class permission: an anonymous
+         *     session must keep browsing and keep its favorites, and only the
+         *     authorship actions — ``create``, ``update``/``partial_update``,
+         *     ``save-draft``, ``publish`` — are the ones that turn a caller into a
+         *     seller.
+         *
          *     **Permissions:** `IsAuthenticatedOrReadOnly`
          */
         delete: operations["listings_api_v1_listings_destroy"];
@@ -60,6 +85,14 @@ export interface paths {
         head?: never;
         /**
          * @description Listings CRUD plus owner lifecycle actions and favorites.
+         *
+         *     Read and write live in one class, so the guest wall
+         *     (:func:`anonymous_write_refusal`, the ``ALLOW_ANONYMOUS_WRITES`` switch)
+         *     is applied per ACTION and never as a class permission: an anonymous
+         *     session must keep browsing and keep its favorites, and only the
+         *     authorship actions — ``create``, ``update``/``partial_update``,
+         *     ``save-draft``, ``publish`` — are the ones that turn a caller into a
+         *     seller.
          *
          *     **Permissions:** `IsAuthenticatedOrReadOnly`
          */
@@ -77,6 +110,14 @@ export interface paths {
         put?: never;
         /**
          * @description Listings CRUD plus owner lifecycle actions and favorites.
+         *
+         *     Read and write live in one class, so the guest wall
+         *     (:func:`anonymous_write_refusal`, the ``ALLOW_ANONYMOUS_WRITES`` switch)
+         *     is applied per ACTION and never as a class permission: an anonymous
+         *     session must keep browsing and keep its favorites, and only the
+         *     authorship actions — ``create``, ``update``/``partial_update``,
+         *     ``save-draft``, ``publish`` — are the ones that turn a caller into a
+         *     seller.
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -120,6 +161,14 @@ export interface paths {
         /**
          * @description Listings CRUD plus owner lifecycle actions and favorites.
          *
+         *     Read and write live in one class, so the guest wall
+         *     (:func:`anonymous_write_refusal`, the ``ALLOW_ANONYMOUS_WRITES`` switch)
+         *     is applied per ACTION and never as a class permission: an anonymous
+         *     session must keep browsing and keep its favorites, and only the
+         *     authorship actions — ``create``, ``update``/``partial_update``,
+         *     ``save-draft``, ``publish`` — are the ones that turn a caller into a
+         *     seller.
+         *
          *     **Permissions:** `IsAuthenticated`
          */
         post: operations["listings_api_v1_listings_favorite_create"];
@@ -139,7 +188,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Listings CRUD plus owner lifecycle actions and favorites.
+         * @description Put a listing in front of buyers — the act the wall is named for:
+         *     a seller nobody can reach again is not a seller.
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -181,6 +231,14 @@ export interface paths {
         /**
          * @description Listings CRUD plus owner lifecycle actions and favorites.
          *
+         *     Read and write live in one class, so the guest wall
+         *     (:func:`anonymous_write_refusal`, the ``ALLOW_ANONYMOUS_WRITES`` switch)
+         *     is applied per ACTION and never as a class permission: an anonymous
+         *     session must keep browsing and keep its favorites, and only the
+         *     authorship actions — ``create``, ``update``/``partial_update``,
+         *     ``save-draft``, ``publish`` — are the ones that turn a caller into a
+         *     seller.
+         *
          *     **Permissions:** `AllowAny`
          */
         get: operations["listings_api_v1_listings_status_retrieve"];
@@ -204,6 +262,14 @@ export interface paths {
         /**
          * @description Listings CRUD plus owner lifecycle actions and favorites.
          *
+         *     Read and write live in one class, so the guest wall
+         *     (:func:`anonymous_write_refusal`, the ``ALLOW_ANONYMOUS_WRITES`` switch)
+         *     is applied per ACTION and never as a class permission: an anonymous
+         *     session must keep browsing and keep its favorites, and only the
+         *     authorship actions — ``create``, ``update``/``partial_update``,
+         *     ``save-draft``, ``publish`` — are the ones that turn a caller into a
+         *     seller.
+         *
          *     **Permissions:** `IsAuthenticated`
          */
         post: operations["listings_api_v1_listings_unfavorite_create"];
@@ -222,6 +288,14 @@ export interface paths {
         };
         /**
          * @description Listings CRUD plus owner lifecycle actions and favorites.
+         *
+         *     Read and write live in one class, so the guest wall
+         *     (:func:`anonymous_write_refusal`, the ``ALLOW_ANONYMOUS_WRITES`` switch)
+         *     is applied per ACTION and never as a class permission: an anonymous
+         *     session must keep browsing and keep its favorites, and only the
+         *     authorship actions — ``create``, ``update``/``partial_update``,
+         *     ``save-draft``, ``publish`` — are the ones that turn a caller into a
+         *     seller.
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -244,6 +318,14 @@ export interface paths {
         /**
          * @description Listings CRUD plus owner lifecycle actions and favorites.
          *
+         *     Read and write live in one class, so the guest wall
+         *     (:func:`anonymous_write_refusal`, the ``ALLOW_ANONYMOUS_WRITES`` switch)
+         *     is applied per ACTION and never as a class permission: an anonymous
+         *     session must keep browsing and keep its favorites, and only the
+         *     authorship actions — ``create``, ``update``/``partial_update``,
+         *     ``save-draft``, ``publish`` — are the ones that turn a caller into a
+         *     seller.
+         *
          *     **Permissions:** `IsAuthenticated`
          */
         get: operations["listings_api_v1_listings_my_counters_retrieve"];
@@ -264,6 +346,14 @@ export interface paths {
         };
         /**
          * @description Listings CRUD plus owner lifecycle actions and favorites.
+         *
+         *     Read and write live in one class, so the guest wall
+         *     (:func:`anonymous_write_refusal`, the ``ALLOW_ANONYMOUS_WRITES`` switch)
+         *     is applied per ACTION and never as a class permission: an anonymous
+         *     session must keep browsing and keep its favorites, and only the
+         *     authorship actions — ``create``, ``update``/``partial_update``,
+         *     ``save-draft``, ``publish`` — are the ones that turn a caller into a
+         *     seller.
          *
          *     **Permissions:** `IsAuthenticated`
          */

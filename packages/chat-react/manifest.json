@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/chat-react",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "backend": {
     "module": "stapel-chat",
     "contract": ">=0.6 <0.7"
@@ -613,6 +613,9 @@
       "title": "Message the seller",
       "description": "The headless StartDirectChat opens the direct thread with a person — get-or-create, keyed by the participant pair, so pressing twice cannot fan out into two threads. Blocked states carry a readable reason instead of a grey button.",
       "component": "StartDirectChat",
+      "covers": [
+        "CHAT_ELEVATION_ACTIONS"
+      ],
       "tokens": [
         "card-bg",
         "card-border"

@@ -1,6 +1,6 @@
-# @stapel/listings-react 0.7.0
+# @stapel/listings-react 0.8.0
 
-Headless React flow pair for stapel-listings (contract >=0.8 <0.9) — business + state, zero visual opinion.
+Headless React flow pair for stapel-listings (contract >=0.9 <0.10) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -55,7 +55,7 @@ Paths are relative to `/listings/api/v1/`.
 - useValidateDraft (query) → validateDraft
 
 ## Errors (render t(code, params); UX from remediation)
-64 keys (full catalog: manifest.json §errors). By remediation: fix_input 36 · retry 15 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+65 keys (full catalog: manifest.json §errors). By remediation: fix_input 36 · retry 16 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.description_too_long [400] → fix_input {max_length}
 - error.400.description_too_short [400] → fix_input {min_length}

@@ -476,7 +476,7 @@ export interface components {
         FileUpload: {
             /**
              * Format: uri
-             * @description The file to upload. Images: jpg, jpeg, png, gif, webp, bmp, heic, heif. Videos: mp4, webm, mov, avi, mkv.
+             * @description The file to upload. Images: jpg, jpeg, png, gif, webp, avif, heic, heif. Videos: mp4, webm, mov, avi, mkv.
              */
             file: string;
         };

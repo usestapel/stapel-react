@@ -22,6 +22,13 @@ export interface paths {
          *     stapel-listings — the fleet's other read-open/write-authenticated view in
          *     a single class) rather than a per-method override.
          *
+         *     ``IsAuthenticatedOrReadOnly`` admits a GUEST, though — an anonymous
+         *     account is authenticated — so ``POST`` additionally passes
+         *     :func:`anonymous_write_refusal`, the ``ALLOW_ANONYMOUS_WRITES`` switch.
+         *     Per-method rather than a class permission for the same reason the class
+         *     gate is what it is: the refusal is aimed at the write, and ``GET`` must
+         *     stay open to exactly the caller it refuses.
+         *
          *     **Permissions:** `IsAuthenticatedOrReadOnly`
          */
         get: operations["reviews_api_v1_reviews_retrieve"];
@@ -38,6 +45,13 @@ export interface paths {
          *     ``IsAuthenticatedOrReadOnly`` (mirrors ``ListingViewSet`` in
          *     stapel-listings — the fleet's other read-open/write-authenticated view in
          *     a single class) rather than a per-method override.
+         *
+         *     ``IsAuthenticatedOrReadOnly`` admits a GUEST, though — an anonymous
+         *     account is authenticated — so ``POST`` additionally passes
+         *     :func:`anonymous_write_refusal`, the ``ALLOW_ANONYMOUS_WRITES`` switch.
+         *     Per-method rather than a class permission for the same reason the class
+         *     gate is what it is: the refusal is aimed at the write, and ``GET`` must
+         *     stay open to exactly the caller it refuses.
          *
          *     **Permissions:** `IsAuthenticatedOrReadOnly`
          */
