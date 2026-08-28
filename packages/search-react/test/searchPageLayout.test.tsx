@@ -11,7 +11,7 @@
  *    "Results" printed underneath it a moment later.
  */
 import { describe, expect, it } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { SearchPage } from "../src/default/index.js";
 import type { SearchParamsAdapter } from "../src/index.js";
@@ -197,20 +197,43 @@ describe("the filter sheet is a state the page can open in", () => {
     });
   });
 
-  it("counts nothing on the opener until something is applied", async () => {
-    function Unfiltered(): ReactElement {
-      const adapter: SearchParamsAdapter = useTestParams("type=listing");
+  /**
+   * The opener is now the LEADING CHIP of the filter row rather than a
+   * full-width button: icon-only, named by `aria-label`, and carrying a DOT
+   * rather than a count — the counts are written on the chips beside it, which
+   * is the whole reason the row replaced the button.
+   */
+  it("marks the all-filters chip only once something is applied", async () => {
+    function Page(props: { readonly initial: string }): ReactElement {
+      const adapter: SearchParamsAdapter = useTestParams(props.initial);
       return (
         <SearchPage adapter={adapter} defaultType="listing" filtersLayout="sheet" />
       );
     }
     render(
       <TestProviders server={serverWith({ brand: { bosch: 12 } }, ["brand"])}>
-        <Unfiltered />
+        <Page initial="type=listing" />
       </TestProviders>
     );
     await waitFor(() => {
-      expect(screen.getByTestId("search-filters-open").textContent).toBe("Filters");
+      expect(screen.getByTestId("search-filters-open")).toBeTruthy();
     });
+    const chip = screen.getByTestId("search-filters-open");
+    expect(chip.getAttribute("aria-label")).toBe("All filters");
+    expect(chip.getAttribute("data-active")).toBe("false");
+    expect(screen.queryByTestId("search-filters-dot")).toBeNull();
+
+    cleanup();
+    render(
+      <TestProviders server={serverWith({ brand: { bosch: 12 } }, ["brand"])}>
+        <Page initial="type=listing&f.brand=bosch" />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-filters-dot")).toBeTruthy();
+    });
+    expect(
+      screen.getByTestId("search-filters-open").getAttribute("data-active")
+    ).toBe("true");
   });
 });

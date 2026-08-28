@@ -64,9 +64,9 @@
       "limit": "10 KB"
     },
     {
-      "name": "default — the antd skin (query box + typeahead, filters incl. ranges/geo/category slots, results, ranking) must stay out of the main bundle",
+      "name": "default — the antd skin (query box + typeahead, filters incl. ranges/geo/category slots + the phone chip row, results incl. the view switch, ranking) must stay out of the main bundle",
       "path": "dist/default/index.js",
-      "limit": "16 KB"
+      "limit": "18 KB"
     },
     {
       "name": "router — the react-router binding is opt-in; the main entry must never pull a router",

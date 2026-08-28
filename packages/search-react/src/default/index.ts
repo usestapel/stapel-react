@@ -43,6 +43,21 @@ export type {
   SearchResultsRenderer,
 } from "./SearchResultsPane.js";
 
+export { FilterChips, CHIP_ROW_CLASS, CHIP_ROW_STYLE_HREF, chipRowCss } from "./FilterChips.js";
+export type { FilterChipsProps } from "./FilterChips.js";
+
+export {
+  FacetGroupControl,
+  facetGroupShape,
+  facetOptionNodes,
+  FACET_VISIBLE_OPTIONS,
+} from "./FacetGroupControl.js";
+export type {
+  FacetGroupControlProps,
+  FacetGroupShape,
+  FacetOptionNode,
+} from "./FacetGroupControl.js";
+
 export { FacetPanelPane } from "./FacetPanelPane.js";
 export type {
   FacetPanelPaneProps,
@@ -58,6 +73,8 @@ export { SearchBox } from "./SearchBox.js";
 export type { SearchBoxProps } from "./SearchBox.js";
 export { SortSelect, SORT_SELECT_MIN_WIDTH } from "./SortSelect.js";
 export type { SortSelectProps } from "./SortSelect.js";
+export { ViewSwitch, SEARCH_BUILTIN_VIEWS, resolveView } from "./ViewSwitch.js";
+export type { ViewSwitchProps, SearchView, SearchResultsLayout } from "./ViewSwitch.js";
 export { PageSizeSelect, SEARCH_PAGE_SIZES } from "./PageSizeSelect.js";
 export type { PageSizeSelectProps } from "./PageSizeSelect.js";
 export { LanguageSelect } from "./LanguageSelect.js";

@@ -14,6 +14,8 @@ export const shellI18nBundleEs: I18nDictionary = {
   "shell.nav.close_menu": "Cerrar el menú",
   "shell.nav.admin": "Administración",
   "shell.nav.admin_staff_only": "Para el personal que opera este producto",
+  "shell.dock.label": "Secciones principales",
+  "shell.dock.unread": "sin leer: {count}",
   "shell.public.sign_in": "Iniciar sesión",
   "shell.theme.group": "Apariencia",
   "shell.theme.light": "Claro",

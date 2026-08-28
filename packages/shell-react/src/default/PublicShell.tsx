@@ -62,6 +62,7 @@ import { useBreakpoint, useT } from "@stapel/core";
 import { spacing } from "@stapel/tokens-antd";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
 import { NavMenu } from "./navMenu.js";
+import { NavDock, DOCK_CLEARANCE } from "./NavDock.js";
 import { CloseGlyph, MenuGlyph } from "./icons.js";
 import { SHELL_I18N_KEYS } from "../i18n/keys.js";
 
@@ -126,6 +127,26 @@ export interface PublicShellProps {
    * as a measure.
    */
   readonly contentMaxWidth?: number | false;
+  /**
+   * The floating bottom dock (`<NavDock/>`), ON below the desktop breakpoint.
+   *
+   * Default skins ARE the product (§83): a storefront's phone chrome is a
+   * dock, and a pair that made it opt-in would ship every deployment the
+   * hamburger-only frame the dock exists to replace. `false` switches it off
+   * for a host whose own chrome already owns the bottom edge — a map screen, a
+   * checkout, a native shell hosting the page in a webview.
+   *
+   * WHICH destinations it holds is not a second decision: the dock takes the
+   * first five entries of the same resolved nav the menu renders, in the order
+   * `stapel.nav.json` already declares. See `<NavDock/>`.
+   */
+  readonly dock?: boolean;
+  /**
+   * Counts to mark dock destinations with, keyed by nav entry id — unread
+   * messages, pending offers. A SLOT: how many of anything is waiting belongs
+   * to the module that owns the thing, and the shell depends on no module.
+   */
+  readonly dockBadges?: Readonly<Record<string, number>>;
 }
 
 /** The default `accountSlot`: the entry point that must never be absent. */
@@ -167,6 +188,11 @@ function PublicChrome(props: PublicShellProps): ReactElement {
   // strip — and, on phone, a hamburger that opens an empty sheet — is a
   // control that promises a destination it does not have.
   const hasBrowse = props.nav.length > 0 || props.categorySlot !== undefined;
+
+  // The dock is a PHONE/tablet surface: on a desktop the browse bar is already
+  // one click from every destination and an island floating over the content
+  // would be chrome competing with chrome.
+  const showDock = !isDesktop && props.dock !== false;
 
   const navMenu =
     props.nav.length > 0 ? (
@@ -364,7 +390,15 @@ function PublicChrome(props: PublicShellProps): ReactElement {
         </Drawer>
       )}
 
-      <Layout.Content style={{ padding: spacing[4] }}>
+      {/* The dock FLOATS, so the page has to leave room under its last row
+          — otherwise the island covers the final card of every list and the
+          only way to read it is to know it is there. */}
+      <Layout.Content
+        style={{
+          padding: spacing[4],
+          ...(showDock ? { paddingBottom: DOCK_CLEARANCE } : {}),
+        }}
+      >
         <div
           style={{
             width: "100%",
@@ -398,6 +432,15 @@ function PublicChrome(props: PublicShellProps): ReactElement {
             {props.footer}
           </div>
         </Layout.Footer>
+      )}
+
+      {/* Last in the DOM on purpose: a fixed bar that comes first in tab order
+          puts five links between the header and the page on every screen. */}
+      {showDock && (
+        <NavDock
+          nav={props.nav}
+          {...(props.dockBadges !== undefined ? { badges: props.dockBadges } : {})}
+        />
       )}
     </Layout>
   );

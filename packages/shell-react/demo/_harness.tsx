@@ -100,6 +100,8 @@ const demoBundleEn: Record<string, string> = {
   "notifications.nav.feed": "Notifications",
   "search.nav.results": "Search",
   "listings.nav.compose": "Post an ad",
+  "listings.nav.mine": "My ads",
+  "chat.nav.threads": "Chat",
   "gdpr.nav.admin": "Privacy requests",
   "video.nav.admin": "Video usage",
 };
@@ -199,6 +201,63 @@ export const PUBLIC_NAV: readonly ResolvedNavEntry[] = resolveNav([
       requiresAuth: false,
       menuVisibleDefault: false,
       order: 20,
+    }),
+  ]),
+]);
+
+/**
+ * The tree a storefront's PHONE chrome docks: five destinations, ordered the
+ * way a marketplace orders them (browse, post, talk, own, account). The dock
+ * takes the first five of whatever it is handed, so this fixture is also the
+ * statement of which five — there is no second flag anywhere.
+ */
+export const DOCK_NAV: readonly ResolvedNavEntry[] = resolveNav([
+  manifest("@stapel/search", [
+    entry({
+      id: "search.results",
+      labelKey: "search.nav.results",
+      icon: "SearchOutlined",
+      route: { path: "/s" },
+      requiresAuth: false,
+      order: 10,
+    }),
+  ]),
+  manifest("@stapel/listings", [
+    entry({
+      id: "listings.compose",
+      labelKey: "listings.nav.compose",
+      icon: "PlusOutlined",
+      route: { path: "/new" },
+      requiresAuth: false,
+      order: 20,
+    }),
+    entry({
+      id: "listings.mine",
+      labelKey: "listings.nav.mine",
+      icon: "OrderedListOutlined",
+      route: { path: "/mine" },
+      requiresAuth: false,
+      order: 40,
+    }),
+  ]),
+  manifest("@stapel/chat", [
+    entry({
+      id: "chat.threads",
+      labelKey: "chat.nav.threads",
+      icon: "MessageOutlined",
+      route: { path: "/chat" },
+      requiresAuth: false,
+      order: 30,
+    }),
+  ]),
+  manifest("@stapel/profiles", [
+    entry({
+      id: "profiles.settings",
+      labelKey: "profiles.nav.settings",
+      icon: "ProfileOutlined",
+      route: { path: "/settings" },
+      requiresAuth: false,
+      order: 50,
     }),
   ]),
 ]);

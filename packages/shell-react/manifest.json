@@ -36,6 +36,26 @@
       "source": "demo/AppShell.demo.tsx"
     },
     {
+      "id": "shell.nav-dock",
+      "title": "Bottom dock",
+      "description": "Five destinations under the thumb, in the order the project's own nav file already declares — no second selection axis, no manifest flag. The island is translucent with a real blur where the engine has one and OPAQUE where it does not: the fill is progressive enhancement, never the thing the labels' contrast rests on. It floats above env(safe-area-inset-bottom), the page leaves clearance under its last row, and the destination you are on carries aria-current plus a tinted pill rather than colour alone.",
+      "component": "NavDock",
+      "covers": [
+        "NavDock"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "brand"
+      ],
+      "variants": [
+        "phone",
+        "badges",
+        "desktop"
+      ],
+      "source": "demo/NavDock.demo.tsx"
+    },
+    {
       "id": "shell.public",
       "title": "Public shell",
       "description": "A storefront's chrome, and a sibling of AppShell rather than a flag on it: top bar, browse bar, measured content, footer — and never a Sider. On a phone the search box moves to its own line of the same header instead of disappearing, because a storefront whose search vanishes on a phone is a storefront nobody searches. Omit accountSlot and a sign-in link renders anyway: the absence of a sign-in button on a public page is not clean, it is a dead end for the one person the page exists to convert.",
@@ -74,6 +94,8 @@
     }
   ],
   "i18nKeys": [
+    "shell.dock.label",
+    "shell.dock.unread",
     "shell.nav.admin",
     "shell.nav.admin_staff_only",
     "shell.nav.close_menu",

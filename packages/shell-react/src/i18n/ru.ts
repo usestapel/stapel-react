@@ -18,6 +18,8 @@ export const shellI18nBundleRu: I18nDictionary = {
   "shell.nav.close_menu": "Закрыть меню",
   "shell.nav.admin": "Администрирование",
   "shell.nav.admin_staff_only": "Для сотрудников, которые управляют продуктом",
+  "shell.dock.label": "Основные разделы",
+  "shell.dock.unread": "непрочитано: {count}",
   "shell.public.sign_in": "Войти",
   "shell.theme.group": "Оформление",
   "shell.theme.light": "Светлая",

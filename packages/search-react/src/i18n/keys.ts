@@ -74,6 +74,13 @@ export const SEARCH_I18N_KEYS = {
   sortDistance: "search.sort.distance",
   sortServerChose: "search.sort.server_chose",
 
+  // ── how the results are ARRANGED (see ViewSwitch) ────────────────────────
+  /** The switch's own accessible name — a `Segmented` renders a radiogroup
+   * with no `<label for>` to name it. */
+  viewLabel: "search.view.label",
+  viewList: "search.view.list",
+  viewGrid: "search.view.grid",
+
   // ── facets ───────────────────────────────────────────────────────────────
   facetsTitle: "search.facets.title",
   facetsLoading: "search.facets.loading",
@@ -96,6 +103,12 @@ export const SEARCH_I18N_KEYS = {
   facetsRangeToAria: "search.facets.range_to_aria",
   /** The reason "Apply" is off: the range reads backwards. */
   facetsRangeInvalid: "search.facets.range_invalid",
+  /** The fold on a long facet group: "Show all (46)". The number is in
+   * brackets and not a counted noun, so this is one message and not a plural
+   * family — "(1)" never renders, because a group is only folded when the
+   * tail is longer than one row. */
+  facetsShowAll: "search.facets.show_all",
+  facetsShowLess: "search.facets.show_less",
 
   // ── the filter panel as a whole (phone sheet + host slots) ───────────────
   filtersOpen: "search.filters.open",
@@ -107,6 +120,15 @@ export const SEARCH_I18N_KEYS = {
   /** "Show N+ results" — a FLOOR on the same button. A PLURAL FAMILY. */
   filtersShowCountAtLeast: "search.filters.show_count_at_least",
   filtersDismiss: "search.filters.dismiss",
+  /** The accessible name of the phone chip ROW — a `role="group"` holding a
+   * dozen buttons is announced as nothing at all without one. */
+  filtersChipsLabel: "search.filters.chips_label",
+  /** The leading, icon-only chip: the whole panel. Icon-only means the name
+   * exists ONLY here, so this key is the control's entire accessibility. */
+  filtersAll: "search.filters.all",
+  /** A chip filtering on more than one value: "Bosch, +2". Not a plural
+   * family — nothing is being counted in words. */
+  filtersChipMore: "search.filters.chip_more",
 
   // ── category (a host slot, plus the control that removes it) ─────────────
   categoryTitle: "search.category.title",
@@ -239,6 +261,10 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.sort.distance": "Nearest first",
   "search.sort.server_chose": "Sorted by {sort}",
 
+  "search.view.label": "View",
+  "search.view.list": "List",
+  "search.view.grid": "Grid",
+
   "search.facets.title": "Filters",
   "search.facets.loading": "Loading filters…",
   "search.facets.load_failed": "We could not load the filters",
@@ -258,6 +284,8 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.facets.range_clear": "Clear",
   "search.facets.range_from_aria": "{feature}, from",
   "search.facets.range_to_aria": "{feature}, up to",
+  "search.facets.show_all": "Show all ({count})",
+  "search.facets.show_less": "Show fewer",
   "search.facets.range_invalid":
     "“From” is larger than “to”, so nothing could match. Swap them to apply this range.",
 
@@ -268,6 +296,9 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.filters.show_count_at_least.one": "Show {count}+ result",
   "search.filters.show_count_at_least.other": "Show {count}+ results",
   "search.filters.dismiss": "Close the filters",
+  "search.filters.chips_label": "Filters",
+  "search.filters.all": "All filters",
+  "search.filters.chip_more": ", +{count}",
 
   "search.category.title": "Category",
   "search.category.clear": "Search the whole catalogue",

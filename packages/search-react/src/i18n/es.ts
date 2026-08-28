@@ -55,6 +55,10 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.sort.distance": "Más cercanos",
   "search.sort.server_chose": "Ordenado por {sort}",
 
+  "search.view.label": "Vista",
+  "search.view.list": "Lista",
+  "search.view.grid": "Cuadrícula",
+
   "search.facets.title": "Filtros",
   "search.facets.loading": "Cargando filtros…",
   "search.facets.load_failed": "No pudimos cargar los filtros.",
@@ -74,6 +78,8 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.facets.range_clear": "Quitar",
   "search.facets.range_from_aria": "{feature}, desde",
   "search.facets.range_to_aria": "{feature}, hasta",
+  "search.facets.show_all": "Ver todos ({count})",
+  "search.facets.show_less": "Ver menos",
   "search.facets.range_invalid":
     "«Desde» es mayor que «hasta», así que nada podría coincidir. Intercámbialos para aplicar el rango.",
 
@@ -84,6 +90,9 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.filters.show_count_at_least.one": "Ver {count}+ resultado",
   "search.filters.show_count_at_least.other": "Ver {count}+ resultados",
   "search.filters.dismiss": "Cerrar los filtros",
+  "search.filters.chips_label": "Filtros",
+  "search.filters.all": "Todos los filtros",
+  "search.filters.chip_more": ", +{count}",
 
   "search.category.title": "Categoría",
   "search.category.clear": "Buscar en todo el catálogo",

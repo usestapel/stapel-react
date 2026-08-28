@@ -10,7 +10,7 @@
  *     query client and no mandate anywhere in the tree.
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import type { ReactElement } from "react";
 import { I18nProvider, createI18n } from "@stapel/core";
@@ -151,7 +151,13 @@ describe("<PublicShell/> — phone: the browse bar collapses, the header does no
     await waitFor(() => expect(document.querySelector(".ant-drawer-open")).not.toBeNull());
     expect(screen.getByTestId("public-shell-categories")).toBeDefined();
 
-    fireEvent.click(screen.getByText("Post an ad"));
+    // Scoped to the drawer: below the desktop breakpoint the same destination
+    // is ALSO in the bottom dock, and a bare getByText would now be ambiguous
+    // — which is exactly the point of the dock (two ways to the same place,
+    // one of them under the thumb).
+    fireEvent.click(
+      within(screen.getByTestId("public-shell-drawer")).getByText("Post an ad")
+    );
     await waitFor(() => expect(screen.getByText("Compose Page")).toBeDefined());
     await waitFor(() => expect(document.querySelector(".ant-drawer-open")).toBeNull());
     setViewportWidth(1440);

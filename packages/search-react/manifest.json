@@ -418,6 +418,27 @@
       "source": "demo/SearchBox.demo.tsx"
     },
     {
+      "id": "search.classified-filters",
+      "title": "Filter chips and group shapes",
+      "description": "The phone's filter row — one scrolling line of chips, each opening its own bottom sheet, with the whole panel behind the leading icon-only chip and a dot on it when something is applied. Beside it, the three shapes a facet group takes, all three DERIVED from the category schema rather than chosen per screen: pills for a single-choice facet, indented rows for a hierarchical one, and a fold for a long one that says how many are behind it.",
+      "component": "FilterChips",
+      "covers": [
+        "FacetGroupControl",
+        "ViewSwitch"
+      ],
+      "tokens": [
+        "surface-raised",
+        "brand"
+      ],
+      "variants": [
+        "chips",
+        "applied",
+        "shapes",
+        "views"
+      ],
+      "source": "demo/ClassifiedFilters.demo.tsx"
+    },
+    {
       "id": "search.degradation-notice",
       "title": "Degradation notice",
       "description": "What the engine could not do for THIS query, in words: the typo pass it skipped, the facet counts it sampled rather than counted, the scorer it could not evaluate. An unknown degradation still renders — with its raw literal — because a build that predates a limitation should say 'the engine reported something we have no wording for', not nothing.",
@@ -694,9 +715,14 @@
     "search.facets.range_invalid",
     "search.facets.range_to",
     "search.facets.range_to_aria",
+    "search.facets.show_all",
+    "search.facets.show_less",
     "search.facets.skipped",
     "search.facets.title",
+    "search.filters.all",
     "search.filters.apply",
+    "search.filters.chip_more",
+    "search.filters.chips_label",
     "search.filters.dismiss",
     "search.filters.open",
     "search.filters.show_count",
@@ -764,7 +790,10 @@
     "search.url.issue.geo_incomplete",
     "search.url.issue.not_a_number",
     "search.url.issue.range_malformed",
-    "search.url.issues_title"
+    "search.url.issues_title",
+    "search.view.grid",
+    "search.view.label",
+    "search.view.list"
   ],
   "exports": {
     "runtime": [

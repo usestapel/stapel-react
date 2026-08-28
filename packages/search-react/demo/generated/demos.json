@@ -32,6 +32,50 @@
       }
     },
     {
+      "id": "search.classified-filters",
+      "title": "Filter chips and group shapes",
+      "description": "The phone's filter row — one scrolling line of chips, each opening its own bottom sheet, with the whole panel behind the leading icon-only chip and a dot on it when something is applied. Beside it, the three shapes a facet group takes, all three DERIVED from the category schema rather than chosen per screen: pills for a single-choice facet, indented rows for a hierarchical one, and a fold for a long one that says how many are behind it.",
+      "component": "FilterChips",
+      "covers": [
+        "FacetGroupControl",
+        "ViewSwitch"
+      ],
+      "tokens": [
+        "surface-raised",
+        "brand"
+      ],
+      "variants": [
+        {
+          "id": "chips",
+          "description": "390px, nothing applied yet: a chip per facet, a chip per numeric range, and the leading chip that opens the whole panel.",
+          "viewport": "phone",
+          "step": "chips"
+        },
+        {
+          "id": "applied",
+          "description": "The same row on a link that already narrows by brand and condition: the chips carry the CHOICE rather than the group's name, and the leading chip carries the dot.",
+          "viewport": "phone",
+          "step": "chips-applied"
+        },
+        {
+          "id": "shapes",
+          "description": "One group per shape: single-choice pills with their drill-down counts inside them, a hierarchical group with its children indented under their parent, and a twelve-option group folded behind “Show all (12)”.",
+          "viewport": "phone",
+          "step": "group-shapes"
+        },
+        {
+          "id": "views",
+          "description": "How the results are arranged. List and grid ship; a deployment's own view — a map — is declared the same way and treated the same.",
+          "viewport": "desktop",
+          "step": "views"
+        }
+      ],
+      "source": {
+        "file": "demo/ClassifiedFilters.demo.tsx",
+        "line": 133
+      }
+    },
+    {
       "id": "search.degradation-notice",
       "title": "Degradation notice",
       "description": "What the engine could not do for THIS query, in words: the typo pass it skipped, the facet counts it sampled rather than counted, the scorer it could not evaluate. An unknown degradation still renders — with its raw literal — because a build that predates a limitation should say 'the engine reported something we have no wording for', not nothing.",

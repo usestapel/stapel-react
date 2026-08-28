@@ -49,6 +49,44 @@
       }
     },
     {
+      "id": "shell.nav-dock",
+      "title": "Bottom dock",
+      "description": "Five destinations under the thumb, in the order the project's own nav file already declares — no second selection axis, no manifest flag. The island is translucent with a real blur where the engine has one and OPAQUE where it does not: the fill is progressive enhancement, never the thing the labels' contrast rests on. It floats above env(safe-area-inset-bottom), the page leaves clearance under its last row, and the destination you are on carries aria-current plus a tinted pill rather than colour alone.",
+      "component": "NavDock",
+      "covers": [
+        "NavDock"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "brand"
+      ],
+      "variants": [
+        {
+          "id": "phone",
+          "description": "390px, over a live result list: the island floats, the content scrolls under it, and the current destination is marked.",
+          "viewport": "phone",
+          "step": "docked"
+        },
+        {
+          "id": "badges",
+          "description": "Three unread messages and one ad awaiting moderation. The count is on the badge for the eye and inside the link's accessible name for a screen reader; a zero draws nothing at all.",
+          "viewport": "phone",
+          "step": "badged"
+        },
+        {
+          "id": "desktop",
+          "description": "The same shell at desktop width: the browse bar is the navigation and no island floats over the content.",
+          "viewport": "desktop",
+          "step": "no-dock"
+        }
+      ],
+      "source": {
+        "file": "demo/NavDock.demo.tsx",
+        "line": 46
+      }
+    },
+    {
       "id": "shell.public",
       "title": "Public shell",
       "description": "A storefront's chrome, and a sibling of AppShell rather than a flag on it: top bar, browse bar, measured content, footer — and never a Sider. On a phone the search box moves to its own line of the same header instead of disappearing, because a storefront whose search vanishes on a phone is a storefront nobody searches. Omit accountSlot and a sign-in link renders anyway: the absence of a sign-in button on a public page is not clean, it is a dead end for the one person the page exists to convert.",

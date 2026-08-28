@@ -78,6 +78,10 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.sort.distance": "Сначала ближние",
   "search.sort.server_chose": "Отсортировано: {sort}",
 
+  "search.view.label": "Вид",
+  "search.view.list": "Списком",
+  "search.view.grid": "Плиткой",
+
   "search.facets.title": "Фильтры",
   "search.facets.loading": "Загружаем фильтры…",
   "search.facets.load_failed": "Не удалось загрузить фильтры.",
@@ -97,6 +101,8 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.facets.range_clear": "Сбросить",
   "search.facets.range_from_aria": "{feature}, от",
   "search.facets.range_to_aria": "{feature}, до",
+  "search.facets.show_all": "Показать все ({count})",
+  "search.facets.show_less": "Свернуть",
   "search.facets.range_invalid":
     "«От» больше, чем «до», — под такой диапазон ничего не подойдёт. Поменяйте значения местами.",
 
@@ -111,6 +117,9 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.filters.show_count_at_least.many": "Показать {count}+ объявлений",
   "search.filters.show_count_at_least.other": "Показать {count}+ объявления",
   "search.filters.dismiss": "Закрыть фильтры",
+  "search.filters.chips_label": "Фильтры",
+  "search.filters.all": "Все фильтры",
+  "search.filters.chip_more": ", +{count}",
 
   "search.category.title": "Категория",
   "search.category.clear": "Искать по всему каталогу",

@@ -26,6 +26,18 @@ export const SHELL_I18N_KEYS = {
    * capability. It is a REASON, not a hidden entry: the section stays listed
    * so that asking for access is possible at all. */
   navAdminStaffOnly: "shell.nav.admin_staff_only",
+  /** The bottom dock's accessible name (`<NavDock/>`). A dock is a `<nav>`
+   * landmark and a page may hold more than one, so it has to be named — a
+   * screen reader's landmark list otherwise offers two identical
+   * "navigation"s and no way to tell the drawer from the dock. */
+  dockLabel: "shell.dock.label",
+  /** Folded into a dock link's accessible name when its badge carries a
+   * count: "Chat, 3 unread". The number is on the badge for the eye; this is
+   * the same fact for a screen reader, said in words rather than left as a
+   * digit glued to the label. Deliberately NOT a plural family — the counted
+   * noun is the destination's own name, which the shell does not own and
+   * cannot decline. */
+  dockUnread: "shell.dock.unread",
   /** `<PublicShell/>`'s default `accountSlot`. The public chrome renders a
    * sign-in CTA when the host supplies no account slot at all, so this key is
    * reachable on any storefront — a hidden entry point teaches nothing
@@ -48,6 +60,8 @@ export const shellI18nBundleEn: I18nDictionary = {
   "shell.nav.close_menu": "Close menu",
   "shell.nav.admin": "Admin",
   "shell.nav.admin_staff_only": "For the people who operate this product",
+  "shell.dock.label": "Main sections",
+  "shell.dock.unread": "{count} unread",
   "shell.public.sign_in": "Sign in",
   "shell.theme.group": "Appearance",
   "shell.theme.light": "Light",

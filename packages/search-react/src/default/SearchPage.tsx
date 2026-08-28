@@ -66,10 +66,13 @@ import type {
   CategoryFilterSlotProps,
   GeoFilterSlotProps,
 } from "./FacetPanelPane.js";
+import { FilterChips } from "./FilterChips.js";
 import { PageSizeSelect } from "./PageSizeSelect.js";
 import { SearchBox } from "./SearchBox.js";
 import { SearchResultsPane } from "./SearchResultsPane.js";
 import { SortSelect } from "./SortSelect.js";
+import { SEARCH_BUILTIN_VIEWS, ViewSwitch, resolveView } from "./ViewSwitch.js";
+import type { SearchView } from "./ViewSwitch.js";
 import type { DegradationNoticeVariant } from "./DegradationNotice.js";
 import type { SearchCardRenderer } from "./SearchResultCard.js";
 import { UrlIssueNotice } from "./UrlIssueNotice.js";
@@ -91,10 +94,31 @@ export type SearchFiltersLayout = "column" | "sheet";
  */
 export const FILTERS_RAIL_WIDTH = 280;
 
-/** The rail: fixed, never squeezed, never grown. */
+/**
+ * The rail: fixed width, never squeezed, never grown — and STICKY.
+ *
+ * A catalogue page is thirty cards long and the filters are at the top of it,
+ * so by the fourth row of results the controls that narrow the list are a
+ * screenful above the list they narrow: the only way to change a filter after
+ * scrolling was to scroll back. The rail now stays put while the results move
+ * under it, and scrolls INTERNALLY when its own content is taller than the
+ * window (`overflowY: auto` + a viewport-height cap), which is the one place a
+ * viewport measure is right — the sticky box's height IS the window's.
+ *
+ * `alignSelf: flex-start` is load-bearing: a flex child stretches to the row's
+ * height by default, and a stretched box has nothing to stick to.
+ */
 const RAIL: CSSProperties = {
   flex: `0 0 ${String(FILTERS_RAIL_WIDTH)}px`,
   maxWidth: FILTERS_RAIL_WIDTH,
+  position: "sticky",
+  top: 0,
+  alignSelf: "flex-start",
+  maxHeight: "100dvh",
+  overflowY: "auto",
+  overscrollBehavior: "contain",
+  // Room for the focus ring of the last control against the scroll edge.
+  paddingBlockEnd: spacing[2],
 };
 
 /** The results take what is left. `minWidth: 0` so a long word inside a card
@@ -152,6 +176,45 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
   readonly defaultFiltersOpen?: boolean;
   /** Offer a page-size control beside the sort. Default `true`. */
   readonly pageSize?: boolean;
+  /**
+   * The trail above the heading — "Home / Cars / Sedans".
+   *
+   * A SLOT, because a breadcrumb is a walk up the CATEGORY tree and the tree
+   * belongs to `categories-react`; a search package knows the `category`
+   * parameter's value and nothing about its ancestors. Rendered above the
+   * results heading, inside the results column, so it sits over the list it
+   * describes rather than over the whole two-column page.
+   */
+  readonly breadcrumb?: ReactNode;
+  /**
+   * The arrangements the view switch offers. Default: the pair's own list and
+   * grid. A deployment adds its own — `{ id: "map", labelKey, icon, render }`
+   * — and the switch treats it like the two that ship; see {@link SearchView}.
+   *
+   * A single view draws no switch at all.
+   */
+  readonly views?: readonly SearchView[];
+  /** Which arrangement the page opens in. Default: the first of `views`. */
+  readonly defaultView?: string;
+  /** Told when the arrangement changes, for a host that remembers it. The
+   * view is NOT url state — see `<ViewSwitch>` for why. */
+  readonly onViewChange?: (id: string) => void;
+  /**
+   * The action at the trailing end of the results toolbar — conventionally
+   * "notify me about new ones".
+   *
+   * A SLOT, and it cannot be anything else: saving a search and mailing its
+   * new hits is a subscription with an owner, a schedule and a consent record,
+   * none of which this pair has. What the pair CAN state is where such a
+   * control belongs and that the page keeps room for it.
+   */
+  readonly resultsAction?: ReactNode;
+  /**
+   * Heading level for the results caption. Default `1` — on a results SCREEN
+   * the list's name is the page's heading. A container that already prints its
+   * own `<h1>` above this page passes a lower level.
+   */
+  readonly resultsHeadingLevel?: 1 | 2 | 3 | 4 | 5;
 }
 
 interface SearchPageBodyProps {
@@ -169,6 +232,12 @@ interface SearchPageBodyProps {
   readonly filtersLayout?: SearchFiltersLayout;
   readonly defaultFiltersOpen?: boolean;
   readonly pageSize?: boolean;
+  readonly breadcrumb?: ReactNode;
+  readonly views?: readonly SearchView[];
+  readonly defaultView?: string;
+  readonly onViewChange?: (id: string) => void;
+  readonly resultsAction?: ReactNode;
+  readonly resultsHeadingLevel?: 1 | 2 | 3 | 4 | 5;
 }
 
 /**
@@ -189,6 +258,18 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
   const layout: SearchFiltersLayout =
     props.filtersLayout ?? (surface === "sheet" ? "sheet" : "column");
   const [sheetOpen, setSheetOpen] = useState(props.defaultFiltersOpen === true);
+
+  // How the results are ARRANGED. Component state, not URL state: it changes
+  // how the same answer is drawn, never what the answer is, so it must not
+  // rewrite the meaning of a link somebody shared (`<ViewSwitch>` §the view is
+  // not URL state).
+  const views = props.views ?? SEARCH_BUILTIN_VIEWS;
+  const [viewId, setViewId] = useState<string | undefined>(props.defaultView);
+  const view = resolveView(views, viewId) ?? { id: "", labelKey: "" };
+  const changeView = (next: string): void => {
+    setViewId(next);
+    props.onViewChange?.(next);
+  };
 
   /**
    * "Show 25 results", not "Show results".
@@ -256,16 +337,23 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
     </Flex>
   );
 
+  // The toolbar over the results: how they are ARRANGED, how they are ORDERED,
+  // how many per page — and the surface's own action at the trailing end.
   const toolbar = (
     <Flex align="center" wrap gap={spacing[3]}>
+      <ViewSwitch views={views} value={view.id} onChange={changeView} />
       <SortSelect />
       {props.pageSize !== false && <PageSizeSelect />}
+      {props.resultsAction}
     </Flex>
   );
 
   const results = (
     <SearchResultsPane
       toolbar={toolbar}
+      headingLevel={props.resultsHeadingLevel ?? 1}
+      {...(view.render !== undefined ? { renderResults: view.render } : {})}
+      {...(view.layout !== undefined ? { layout: view.layout } : {})}
       {...(props.renderCard !== undefined ? { renderCard: props.renderCard } : {})}
       {...(props.footer !== undefined ? { footer: props.footer } : {})}
       {...(props.resultsHeading !== undefined
@@ -286,26 +374,29 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
       data-filters-layout={layout}
     >
       {props.searchBox !== false && <SearchBox />}
+      {props.breadcrumb !== undefined && (
+        <div data-testid="search-breadcrumb">{props.breadcrumb}</div>
+      )}
       <UrlIssueNotice />
 
       {showFilters && layout === "sheet" ? (
         <>
-          <Button
-            block
-            data-testid="search-filters-open"
-            data-analytics="none"
-            data-analytics-reason="opening the filter sheet is a read, not a flow step"
-            onClick={() => {
+          {/* The phone's filter row. It REPLACES the full-width "Filters (3)"
+              button that used to stand here: that button said how many
+              constraints were applied and not one word about WHICH, and put
+              every filter behind one tap onto a sheet you then had to scroll.
+              The chips state the filters on the page — and the leading chip is
+              still the whole panel, for the person who wants all of it. */}
+          <FilterChips
+            onOpenAll={() => {
               setSheetOpen(true);
             }}
-          >
-            {/* "Filters (0)" is a count of nothing printed on the control that
-                opens the thing that would produce one. The count appears when
-                there is a count. */}
-            {facets.activeFilters === 0
-              ? t(SEARCH_I18N_KEYS.facetsTitle)
-              : t(SEARCH_I18N_KEYS.filtersOpen, { count: facets.activeFilters })}
-          </Button>
+            {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
+            {...(locale !== undefined ? { locale } : {})}
+            {...(props.renderGeoFilter !== undefined
+              ? { renderGeoFilter: props.renderGeoFilter }
+              : {})}
+          />
           <SkinDialog
             open={sheetOpen}
             onClose={() => {
@@ -368,6 +459,12 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     filtersLayout,
     defaultFiltersOpen,
     pageSize,
+    breadcrumb,
+    views,
+    defaultView,
+    onViewChange,
+    resultsAction,
+    resultsHeadingLevel,
     mode,
     ...parseOptions
   } = props;
@@ -390,6 +487,12 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(filtersLayout !== undefined ? { filtersLayout } : {})}
           {...(defaultFiltersOpen !== undefined ? { defaultFiltersOpen } : {})}
           {...(pageSize !== undefined ? { pageSize } : {})}
+          {...(breadcrumb !== undefined ? { breadcrumb } : {})}
+          {...(views !== undefined ? { views } : {})}
+          {...(defaultView !== undefined ? { defaultView } : {})}
+          {...(onViewChange !== undefined ? { onViewChange } : {})}
+          {...(resultsAction !== undefined ? { resultsAction } : {})}
+          {...(resultsHeadingLevel !== undefined ? { resultsHeadingLevel } : {})}
         />
       </SearchStateProvider>
     </SkinTheme>

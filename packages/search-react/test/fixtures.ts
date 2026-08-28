@@ -89,6 +89,55 @@ export const FEATURES: readonly FeatureDef[] = [
   },
 ];
 
+/**
+ * The schema a CLASSIFIED category actually declares — the three shapes a
+ * facet group takes, so `facetGroupShape` is exercised against config keys
+ * rather than against a flag a test invented:
+ *
+ *  - `condition` is SINGLE-CHOICE (`maxSelected: 1`) → pills;
+ *  - `body` is a `hierarchical_select` whose `options` carry `children` →
+ *    indented rows;
+ *  - `brand` is a long open set → folded behind "Show all".
+ */
+export const CLASSIFIED_FEATURES: readonly FeatureDef[] = [
+  {
+    slug: "condition",
+    name: "test.feature.condition",
+    config: {
+      type: "select",
+      maxSelected: 1,
+      options: [
+        { value: "new", label: "test.condition.new" },
+        { value: "used", label: "test.condition.used" },
+      ],
+    },
+  },
+  {
+    slug: "body",
+    name: "test.feature.body",
+    config: {
+      type: "hierarchical_select",
+      options: [
+        {
+          value: "cars",
+          label: "test.body.cars",
+          children: [
+            { value: "sedan", label: "test.body.sedan" },
+            { value: "hatchback", label: "test.body.hatchback" },
+          ],
+        },
+        { value: "vans", label: "test.body.vans" },
+      ],
+    },
+  },
+  { slug: "brand", name: "test.feature.brand", config: { type: "string" } },
+];
+
+/** A long open set: twelve brands, which is a wall on a 390px phone. */
+export const MANY_BRANDS: Readonly<Record<string, number>> = Object.fromEntries(
+  Array.from({ length: 12 }, (_, i) => [`brand-${String(i)}`, 12 - i])
+);
+
 export const RANKING: RankingResponse = {
   doc_type: "listing",
   backend: "postgres",

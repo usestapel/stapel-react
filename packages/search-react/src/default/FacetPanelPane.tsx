@@ -37,7 +37,6 @@ import type { ReactElement, ReactNode } from "react";
 import {
   Alert,
   Button,
-  Checkbox,
   Divider,
   Flex,
   InputNumber,
@@ -56,7 +55,7 @@ import type { FeatureDef } from "@stapel/attributes-react";
 import type { SearchGeo } from "../api/types.js";
 import { FacetPanel } from "../headless/FacetPanel.js";
 import { useSearchState } from "../headless/SearchStateProvider.js";
-import type { FacetGroup, FacetOption } from "../state/facets.js";
+import { FacetGroupControl } from "./FacetGroupControl.js";
 import { buildRangeGroups } from "../state/ranges.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { LanguageSelect } from "./LanguageSelect.js";
@@ -100,45 +99,6 @@ export interface FacetPanelPaneProps extends ThemeModeProp {
    * "Clear all" control lives in it.
    */
   readonly heading?: ReactNode;
-}
-
-function OptionRow(props: {
-  group: FacetGroup;
-  option: FacetOption;
-  onToggle: (slug: string, value: string) => void;
-}): ReactElement {
-  const t = useT();
-  const { option, group } = props;
-  return (
-    <Flex justify="space-between" align="center" gap={spacing[2]}>
-      <Checkbox
-        checked={option.selected}
-        data-testid={`facet-option-${group.slug}-${option.value}`}
-        data-analytics="none"
-        data-analytics-reason="a filter is a read, not a flow step"
-        onChange={() => {
-          props.onToggle(group.slug, option.value);
-        }}
-      >
-        {option.label}
-      </Checkbox>
-      {option.count === null ? (
-        <Typography.Text
-          type="secondary"
-          data-testid={`facet-count-${group.slug}-${option.value}`}
-        >
-          {t(SEARCH_I18N_KEYS.facetsNotCounted)}
-        </Typography.Text>
-      ) : (
-        <Typography.Text
-          type="secondary"
-          data-testid={`facet-count-${group.slug}-${option.value}`}
-        >
-          {option.count}
-        </Typography.Text>
-      )}
-    </Flex>
-  );
 }
 
 /** The category constraint: the host's control, or the door out of it. */
@@ -418,26 +378,20 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                       the desktop panel, once as the range row and once as a
                       label over air. The skipped Alert above already names it;
                       a heading with no control under it names nothing. */}
+                  {/* Each group draws itself the way its own schema says:
+                      pills for a single-choice facet, indented children for a
+                      hierarchical one, a fold for a long one. The panel does
+                      not decide — `facetGroupShape` reads the same config keys
+                      the attributes editor reads, so a facet cannot look one
+                      way here and another way in the composer. */}
                   {groups
                     .filter((group) => group.options.length > 0)
                     .map((group) => (
-                      <Flex
-                        vertical
-                        gap={spacing[1]}
+                      <FacetGroupControl
                         key={group.slug}
-                        data-testid={`facet-group-${group.slug}`}
-                        data-counted={group.counted ? "true" : "false"}
-                      >
-                        <Typography.Text strong>{group.label}</Typography.Text>
-                        {group.options.map((option) => (
-                          <OptionRow
-                            key={option.value}
-                            group={group}
-                            option={option}
-                            onToggle={bag.toggle}
-                          />
-                        ))}
-                      </Flex>
+                        group={group}
+                        onToggle={bag.toggle}
+                      />
                     ))}
                   <Typography.Text type="secondary">
                     {t(SEARCH_I18N_KEYS.facetsDrillDownHint)}

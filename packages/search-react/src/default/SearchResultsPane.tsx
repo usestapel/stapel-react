@@ -45,6 +45,7 @@ import { DegradationNotice } from "./DegradationNotice.js";
 import type { DegradationNoticeVariant } from "./DegradationNotice.js";
 import { SearchResultCard } from "./SearchResultCard.js";
 import type { SearchCardRenderer } from "./SearchResultCard.js";
+import type { SearchResultsLayout } from "./ViewSwitch.js";
 import type { ThemeModeProp } from "./types.js";
 
 /**
@@ -82,6 +83,20 @@ const RESULTS_GRID: CSSProperties = {
   gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
   gap: spacing[3],
   alignItems: "stretch",
+};
+
+/**
+ * The LIST arrangement: one wide row per result.
+ *
+ * The same grid with one track, deliberately — not a second layout mechanism.
+ * A list is a grid whose column count is one, and expressing it that way is
+ * what keeps the card slot, the gap and the stretch identical between the two
+ * arrangements, so switching views cannot change anything except the number of
+ * columns.
+ */
+const RESULTS_LIST: CSSProperties = {
+  ...RESULTS_GRID,
+  gridTemplateColumns: "1fr",
 };
 
 export interface SearchResultsPaneProps extends ThemeModeProp {
@@ -135,6 +150,24 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
   /** Widest the column of results may grow (default {@link RESULTS_MAX_WIDTH});
    * `null` lets the container decide. */
   readonly maxWidth?: number | null;
+  /**
+   * How the loaded rows are arranged: as many card columns as fit
+   * (`"grid"`, the default) or one wide row each (`"list"`). The view SWITCH
+   * that flips this lives in `<ViewSwitch>`; the pane only draws.
+   *
+   * Ignored when `renderResults` replaces the arrangement entirely.
+   */
+  readonly layout?: SearchResultsLayout;
+  /**
+   * Heading level for the results caption. Default `4`, which is what every
+   * surface that EMBEDS this pane under its own title needs.
+   *
+   * `<SearchPage>` passes `1`: on a results SCREEN the list's name is the
+   * page's heading, and a page whose only heading is an `<h4>` has a document
+   * outline that starts three levels down — the thing a screen reader's
+   * heading list is for.
+   */
+  readonly headingLevel?: 1 | 2 | 3 | 4 | 5;
 }
 
 function Count(props: { bag: SearchResultsBag }): ReactElement | null {
@@ -217,7 +250,7 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
           <Flex vertical gap={spacing[4]}>
             <Flex justify="space-between" align="center" wrap gap={spacing[2]}>
               <Typography.Title
-                level={4}
+                level={props.headingLevel ?? 4}
                 style={{ margin: 0 }}
                 data-testid="search-results-heading"
               >
@@ -270,7 +303,11 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                   {renderResults !== undefined ? (
                     renderResults(items)
                   ) : (
-                    <div style={RESULTS_GRID} data-testid="search-results-grid">
+                    <div
+                      style={props.layout === "list" ? RESULTS_LIST : RESULTS_GRID}
+                      data-testid="search-results-grid"
+                      data-layout={props.layout ?? "grid"}
+                    >
                       {items.map((item: SearchItem) => (
                         <div key={item.key}>
                           {renderCard !== undefined ? (

@@ -20,3 +20,14 @@ export { AppShell } from "./AppShell.js";
 export type { AppShellProps } from "./AppShell.js";
 export { PublicShell } from "./PublicShell.js";
 export type { PublicShellProps } from "./PublicShell.js";
+export {
+  NavDock,
+  dockEntries,
+  DOCK_MAX_DESTINATIONS,
+  DOCK_HEIGHT,
+  DOCK_CLEARANCE,
+  DOCK_CLASS,
+  DOCK_STYLE_HREF,
+  dockGlassCss,
+} from "./NavDock.js";
+export type { NavDockProps } from "./NavDock.js";

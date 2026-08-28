@@ -76,6 +76,7 @@ const { tracked } = useTracked();
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - search.box → <SearchBox> [empty|typed]  demo/SearchBox.demo.tsx
+- search.classified-filters → <FilterChips> [chips|applied|shapes|views]  demo/ClassifiedFilters.demo.tsx
 - search.degradation-notice → <DegradationNotice> [banner|inline]  demo/DegradationNotice.demo.tsx
 - search.facet-panel-pane → <FacetPanelPane> [open-search|narrowed]  demo/FacetPanelPane.demo.tsx
 - search.filter-sheet → <SearchPage> [open]  demo/FilterSheet.demo.tsx
