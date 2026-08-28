@@ -60,6 +60,11 @@ import { Image } from "@stapel/image";
 4. Upgrades only: a bigger pick loads off-DOM and swaps after `decode()`;
    an equal-or-smaller pick is ignored — never a blank frame, never a
    visual downgrade.
+5. The decoded image fades in over the blur — an ENHANCEMENT, never a gate.
+   Where there are no frames to spend (a backgrounded or occluded tab, a
+   prerender, a screenshot runner) it is shown at once and without the
+   transition, so a loaded image is never invisible for want of a frame
+   callback.
 
 `fit` defaults to `"cover"`; `alt` is required.
 

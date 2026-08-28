@@ -231,6 +231,12 @@ const ERROR_LAYER_ALLOWED = [
   "**/*.config.{js,mjs,cjs,ts}",
 ];
 
+// `@stapel/tokens-antd/skin` — the ONE legal home of a bare antd
+// `Modal`/`Drawer`, because it is the file that BUILDS `SkinDialog` (and
+// `SkinConfirm` on top of it). Every other file in the fleet renders that
+// component instead; this one has to render the primitives.
+const DIALOG_SUBSTRATE = ["**/tokens-antd/src/skin/**"];
+
 // The api/transport layer + node-side scripts — the one legal home of a
 // defaulted `data` (see the rule header). Deliberately NOT extended to
 // `**/model/**` or `**/headless/**`: those are exactly where the flatten was
@@ -351,10 +357,29 @@ const recommended = [
     },
   },
   {
-    // The default skins' dialog surface. Scoped to `src/default/**` by the
-    // rule itself; the shell's navigation drawers are dialogs in neither
-    // shape nor purpose and are named here rather than disabled inline.
+    // The dialog surface, FLEET-WIDE (0.12.0). It used to be armed only
+    // inside `src/default/**`, which meant the one place a team writes its
+    // own dialogs — a product repo — could not fail this check at all, and a
+    // clean `eslint .` there read as coverage of a doctrine nobody was
+    // enforcing. It is a warning outside the skins: a worklist, the same
+    // shape the doctrine tier shipped in, so a repo upgrading the plugin gets
+    // the list rather than a wall. The shell's navigation drawers are dialogs
+    // in neither shape nor purpose and are named here rather than disabled
+    // inline.
     files: JSX,
+    rules: {
+      "stapel/no-bare-dialog": [
+        "warn",
+        {
+          allowNavigationDrawer: ["AppShell.tsx", "PublicShell.tsx"],
+        },
+      ],
+    },
+  },
+  {
+    // …and an ERROR in the default skins, which have already migrated. The
+    // wall stays exactly where it was; only the surface below it is new.
+    files: ["**/src/default/**/*.{tsx,jsx}"],
     rules: {
       "stapel/no-bare-dialog": [
         "error",
@@ -426,6 +451,14 @@ const recommended = [
     // same reason, as `no-raw-fetch`/`no-raw-error-shape`.
     files: LOAD_STATE_ALLOWED,
     rules: { "stapel/no-flattened-load-state": "off" },
+  },
+  {
+    // The dialog SUBSTRATE — the one legal home of antd's `Modal`/`Drawer`.
+    // `SkinDialog` is what every other file is told to render instead, and it
+    // has to be built out of something. Same carve-out shape, and the same
+    // reason, as `no-raw-fetch` in the api layer.
+    files: DIALOG_SUBSTRATE,
+    rules: { "stapel/no-bare-dialog": "off" },
   },
   {
     // The facade's provider adapters — the ONE legal home of vendor SDK
@@ -517,7 +550,9 @@ const strict = [
     files: JSX,
     rules: {
       ...doctrineRules(DOCTRINE_JSX, "error"),
-      // The full dialog surface: Modal, Drawer AND Popconfirm.
+      // The full dialog surface — Modal, Drawer AND Popconfirm — as an ERROR
+      // on every file, not just the skins. This is what a product repo arms
+      // when it wants the doctrine to be a gate rather than a worklist.
       "stapel/no-bare-dialog": [
         "error",
         { allowNavigationDrawer: ["AppShell.tsx", "PublicShell.tsx"] },
@@ -529,6 +564,13 @@ const strict = [
     // otherwise have switched back on for test files.
     files: TEST_FILES,
     rules: doctrineRules([...DOCTRINE_TS, ...DOCTRINE_JSX], "off"),
+  },
+  {
+    // Same for the dialog substrate: the block above re-arms no-bare-dialog
+    // on every JSX file, and the file that BUILDS SkinDialog is the one that
+    // must import antd's Modal and Drawer.
+    files: DIALOG_SUBSTRATE,
+    rules: { "stapel/no-bare-dialog": "off" },
   },
 ];
 

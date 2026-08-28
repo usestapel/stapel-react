@@ -251,6 +251,23 @@ describe("recommended preset — the doctrine tier is a GATE since the migration
     expect(mine[0].severity).toBe(2);
   });
 
+  // The empirical defect (0.12.0): a product repo's own dialog — the place a
+  // team actually writes dialogs, and the only place the owner ever sees one
+  // on a phone — was outside `src/default/**` and therefore lint-clean. It is
+  // a WARNING here rather than an error on purpose: a repo upgrading the
+  // plugin gets its worklist, not a wall (`strict` is the wall). Silence was
+  // never one of the two options.
+  it("fires OUTSIDE src/default — a product repo's own file is covered", async () => {
+    const messages = await lintUnder(
+      recommended,
+      "src/__gatecheck.tsx",
+      'import { Modal } from "antd";\nexport const x = Modal;\n'
+    );
+    const mine = messages.filter((m) => m.ruleId === "stapel/no-bare-dialog");
+    expect(mine).toHaveLength(1);
+    expect(mine[0].severity).toBe(1);
+  });
+
   it("…and the confirm surface is on in recommended too", async () => {
     // The wave-B switch flipped: every Popconfirm site is on SkinConfirm, so
     // the confirm surface is covered wherever the dialog surface is.
@@ -284,10 +301,33 @@ describe("strict preset — the same rules, at error", () => {
     expect(mine[0].severity).toBe(2);
   });
 
+  it("makes the product repo's own dialog an ERROR — this is what arming it means", async () => {
+    const messages = await lintUnder(
+      strict,
+      "src/__gatecheck.tsx",
+      'import { Modal } from "antd";\nexport const x = Modal;\n'
+    );
+    const mine = messages.filter((m) => m.ruleId === "stapel/no-bare-dialog");
+    expect(mine).toHaveLength(1);
+    expect(mine[0].severity).toBe(2);
+  });
+
   it("keeps every carve-out `recommended` has", () => {
     // Built by APPENDING to recommended, so the two presets cannot disagree
     // about where a rule is off. Structural, not sampled.
     expect(strict.slice(0, recommended.length)).toEqual(recommended);
+  });
+
+  it("exempts the dialog SUBSTRATE in both presets — SkinDialog is built from Modal/Drawer", async () => {
+    const code = 'import { Drawer, Modal } from "antd";\nexport const x = [Drawer, Modal];\n';
+    for (const preset of [recommended, strict]) {
+      const substrate = await lintUnder(preset, "tokens-antd/src/skin/dialog.tsx", code);
+      expect(substrate.filter((m) => m.ruleId === "stapel/no-bare-dialog")).toHaveLength(0);
+      // …and the same text one directory over IS reported, so the empty
+      // result above is a carve-out and not a file ESLint declined to lint.
+      const neighbour = await lintUnder(preset, "tokens-antd/src/other/dialog.tsx", code);
+      expect(neighbour.filter((m) => m.ruleId === "stapel/no-bare-dialog")).toHaveLength(2);
+    }
   });
 
   it("still exempts fixtures — a socket test constructs a socket", async () => {

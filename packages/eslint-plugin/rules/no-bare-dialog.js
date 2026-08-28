@@ -1,4 +1,4 @@
-// stapel/no-bare-dialog — the default skins' dialog surface is a fleet rule.
+// stapel/no-bare-dialog — the dialog surface is a fleet rule.
 //
 // Owner ruling (2026-08-24): on a phone a modal is a bottom sheet; modals are
 // tablet/desktop only. That is a design-system decision, and a design-system
@@ -9,16 +9,45 @@
 //
 // The rule is stated once, in `@stapel/tokens-antd/skin`'s `<SkinDialog>` —
 // the only package every antd default skin already depends on. This rule is
-// what stops the twelfth dialog from being written the old way: inside a
-// package's `src/default` tree, `Modal` and `Drawer` are not importable from
-// antd.
+// what stops the twelfth dialog from being written the old way: `Modal` and
+// `Drawer` are not importable from antd.
 //
-// SCOPE, and why it is narrow. This fires only on the DEFAULT SKINS. A host
-// app's own dialogs are the host's business; a pair's headless layer renders
-// no chrome at all; and a `Drawer` used as NAVIGATION (the shell's hamburger
-// menu) is not a dialog and is exempted by name via `allowNavigationDrawer`.
-// A rule that fired everywhere would be switched off everywhere, and then it
-// would guard nothing.
+// ── SCOPE (`scope`, widened in 0.12.0) ──────────────────────────────────────
+//
+// Until 0.12.0 this rule returned an empty visitor for any file outside a
+// package's `src/default/**` tree. The reasoning of the day is worth keeping,
+// because it is half right: a `Drawer` used as NAVIGATION (the shell's
+// hamburger menu) is not a dialog, a pair's headless layer renders no chrome
+// at all, and "a rule that fires everywhere gets switched off everywhere, and
+// then it guards nothing". What it got wrong was the conclusion — "a host
+// app's own dialogs are the host's business" — because a phone gets a desktop
+// modal from a product repo's dialog exactly as it does from a skin's, and
+// THAT is where a team's own dialogs are actually written. The path check made
+// the doctrine enforceable only where it was already satisfied: a bare
+// `<Modal>` in an application's `src/` linted clean, and a clean lint reads as
+// coverage.
+//
+// So the scope is an OPTION with a default that fires:
+//
+//   `scope: "all"` (default) — every file, minus the exemptions below. What a
+//     product repo needs, and what makes `eslint .` in one mean something.
+//   `scope: "default-skin"` — the pre-0.12.0 behaviour, `src/default/**` only.
+//     For a consumer that wants the wall on the skins and nothing outside it.
+//
+// The severity, not the scope, is what keeps this adoptable: `recommended`
+// arms it fleet-wide at WARN and keeps `src/default/**` at ERROR; `strict`
+// makes the whole surface an error. A worklist is not a wall, and neither is
+// silence.
+//
+// EXEMPTIONS, which are now stated rather than implied by a directory shape:
+//   - `allowNavigationDrawer` — basenames whose `Drawer` is navigation.
+//   - test / fixture paths — a dialog fixture's job is to BE the forbidden
+//     shape. Carved out in the rule itself, not only in the preset, so a
+//     consumer who never spreads the preset still gets the right answer.
+//   - the SUBSTRATE that implements `SkinDialog`/`SkinConfirm` — somebody has
+//     to import antd's `Modal` and `Drawer`, and that somebody is
+//     `@stapel/tokens-antd/skin`. Carved out by path in the preset, the same
+//     way `no-raw-fetch` is carved out in the api layer.
 //
 // ── THE CONFIRM SURFACE (added 0.11.0) ──────────────────────────────────────
 //
@@ -57,6 +86,8 @@
 // `SkinTheme` that IS in the file but does not ENCLOSE the dialog element,
 // which no ancestor-in-file heuristic can see. A rule earns its place when the
 // substrate cannot state the rule for itself; this one now can.
+import { isDefaultSkin, isTestPath, normalizedFilename } from "../lib/jsx.js";
+
 const DIALOG_COMPONENTS = new Set(["Modal", "Drawer"]);
 const CONFIRM_COMPONENTS = ["Popconfirm"];
 
@@ -65,7 +96,7 @@ export default {
     type: "problem",
     docs: {
       description:
-        "Disallow bare antd Modal/Drawer in default skins; render dialogs through @stapel/tokens-antd/skin's SkinDialog, which is a bottom sheet on phones.",
+        "Disallow bare antd Modal/Drawer/Popconfirm; render dialogs through @stapel/tokens-antd/skin's SkinDialog, which is a bottom sheet on phones. Scoped with the `scope` option (default: every file).",
     },
     schema: [
       {
@@ -81,24 +112,33 @@ export default {
           confirmComponents: { type: "array", items: { type: "string" } },
           /** File basenames whose Drawer is navigation, not a dialog. */
           allowNavigationDrawer: { type: "array", items: { type: "string" } },
+          /**
+           * Which files the rule reads. `"all"` (default) is every file —
+           * a product repo's dialogs included, which is where a team's own
+           * dialogs are written. `"default-skin"` restricts it to
+           * `src/default/**`, the pre-0.12.0 behaviour.
+           */
+          scope: { enum: ["all", "default-skin"] },
         },
         additionalProperties: false,
       },
     ],
     messages: {
       bareDialog:
-        'Bare antd `{{name}}` in a default skin. A dialog is a bottom sheet on a phone and a modal on tablet/desktop — one rule, one implementation: import { SkinDialog } from "@stapel/tokens-antd/skin" and render <SkinDialog open onClose title dismissLabel>. Hand-rolling `isPhone ? <Drawer> : <Modal>` is how the fleet ended up with three different sheets and eight desktop modals on phones. A Drawer that is NAVIGATION (a shell menu), not a dialog, belongs in this rule\'s `allowNavigationDrawer` option.',
+        'Bare antd `{{name}}`. A dialog is a bottom sheet on a phone and a modal on tablet/desktop — one rule, one implementation: import { SkinDialog } from "@stapel/tokens-antd/skin" and render <SkinDialog open onClose title dismissLabel>. Hand-rolling `isPhone ? <Drawer> : <Modal>` is how the fleet ended up with three different sheets and eight desktop modals on phones. A Drawer that is NAVIGATION (a shell menu), not a dialog, belongs in this rule\'s `allowNavigationDrawer` option.',
       bareConfirm:
-        'Bare antd `{{name}}` in a default skin. A confirmation is a DIALOG, not an anchored popover: on a 390px phone the popover renders half off-screen or on top of the row being confirmed, and two of these already sit inside a bottom sheet (a desktop popover floating over a sheet). Import { SkinConfirm } from "@stapel/tokens-antd/skin" and render <SkinConfirm open title body confirmLabel cancelLabel danger onConfirm onCancel> — same surface as SkinDialog, so it is a sheet on a phone for free. The destructive verb needs its own i18n key; do not reuse the trigger button\'s label.',
+        'Bare antd `{{name}}`. A confirmation is a DIALOG, not an anchored popover: on a 390px phone the popover renders half off-screen or on top of the row being confirmed, and two of these already sit inside a bottom sheet (a desktop popover floating over a sheet). Import { SkinConfirm } from "@stapel/tokens-antd/skin" and render <SkinConfirm open title body confirmLabel cancelLabel danger onConfirm onCancel> — same surface as SkinDialog, so it is a sheet on a phone for free. The destructive verb needs its own i18n key; do not reuse the trigger button\'s label.',
     },
   },
   create(context) {
-    const filename = context.filename ?? context.getFilename();
-    // Only the default skins. Normalized so the check reads the same on Windows.
-    const path = filename.replace(/\\/g, "/");
-    if (!/\/src\/default\//.test(path)) return {};
-
+    const path = normalizedFilename(context);
     const options = context.options[0] ?? {};
+    // The dialog surface is a doctrine, not a directory: a phone gets a
+    // desktop modal from a product repo exactly as it does from a skin.
+    if ((options.scope ?? "all") === "default-skin" && !isDefaultSkin(path)) return {};
+    // A dialog fixture's job is to BE the forbidden shape.
+    if (isTestPath(path)) return {};
+
     const allowed = new Set(options.allowNavigationDrawer ?? []);
     const base = path.slice(path.lastIndexOf("/") + 1);
     if (allowed.has(base)) return {};

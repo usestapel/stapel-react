@@ -57,7 +57,7 @@ const DEFAULT_SETTLE_MS = 120;
  * So the rule moved to where it belongs — `<Image>`'s load effect, which
  * knows what is on screen — and this hook now answers the question it is
  * named for: how big is this element, right now. It stays cheap by
- * coalescing: the observer's bursts are collapsed to one frame, and a new
+ * coalescing: the observer's bursts are collapsed to one commit, and a new
  * size is reported only after the element has held still for `settleMs`.
  *
  * SSR-safe: `size` is `undefined` until mounted, so server and first client
@@ -76,7 +76,6 @@ export function useImageSlot<T extends HTMLElement = HTMLElement>(
       return;
     }
 
-    let frame: number | null = null;
     let timer: ReturnType<typeof setTimeout> | null = null;
     let pending: ImageSlotSize | null = null;
 
@@ -105,13 +104,17 @@ export function useImageSlot<T extends HTMLElement = HTMLElement>(
       }
       pending = { width, height };
       if (settleMs <= 0) {
-        if (frame !== null) {
+        // Coalesce the observer's burst into one commit — on a TIMER, not a
+        // frame callback. A hidden or occluded tab schedules no frames, and a
+        // measurement that waits for one never arrives: no size, no variant,
+        // no image at all on every prerender and screenshot run.
+        if (timer !== null) {
           return;
         }
-        frame = requestAnimationFrame(() => {
-          frame = null;
+        timer = setTimeout(() => {
+          timer = null;
           commit();
-        });
+        }, 0);
         return;
       }
       // Trailing debounce: the LAST size of a drag is the one that matters,
@@ -149,9 +152,6 @@ export function useImageSlot<T extends HTMLElement = HTMLElement>(
     observer.observe(el);
     return () => {
       observer.disconnect();
-      if (frame !== null) {
-        cancelAnimationFrame(frame);
-      }
       if (timer !== null) {
         clearTimeout(timer);
       }

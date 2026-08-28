@@ -74,6 +74,49 @@ const FILL: CSSProperties = {
 };
 
 /**
+ * How a decoded image gets onto the screen.
+ *
+ * `"pending"` is the ONE frame at `opacity: 0` a CSS transition needs to have
+ * something to transition from; `"fade"` is that transition running;
+ * `"instant"` is the same image with no transition at all.
+ *
+ * The three exist because the fade is an ENHANCEMENT and must never be a gate.
+ * It used to be one: the flip to visible happened only inside a
+ * `requestAnimationFrame` callback, and a browser SUSPENDS rAF in a
+ * backgrounded or occluded tab. Every image on such a page — fetched, decoded,
+ * correct — sat at `opacity: 0` until somebody looked at the tab, which is
+ * precisely what made it expensive: it is invisible to prerenders, link
+ * previews, thumbnailers and screenshot runners, and to nobody who is
+ * watching. `"instant"` is the answer wherever there are no frames to spend.
+ */
+type Reveal = "pending" | "fade" | "instant";
+
+/**
+ * Whether a frame callback can be expected to run — the only condition the
+ * fade may depend on.
+ *
+ * A hidden document is the browser's own statement that it will not schedule
+ * frames. Checked rather than assumed, because "the callback did not fire yet"
+ * and "the callback will never fire" look identical from inside the callback
+ * that never fires.
+ */
+function canRunFrame(): boolean {
+  if (typeof requestAnimationFrame !== "function") {
+    return false;
+  }
+  return typeof document === "undefined" || document.visibilityState !== "hidden";
+}
+
+/**
+ * How long the reveal waits for a frame before showing the image anyway.
+ *
+ * Long enough that a live tab's next frame (~16ms, or a few of them under
+ * load) always wins and the transition runs; short enough that a runner which
+ * never paints is not held at a blank slot for a perceptible time.
+ */
+const FADE_FALLBACK_MS = 100;
+
+/**
  * What the placeholder is, resolved once.
  *
  * A snapshot that carries `preview_b64` but no `preview_kind` predates §83.2
@@ -264,6 +307,9 @@ function DefaultImageError(props: { alt: string }): ReactElement {
  * 4. Upgrades only: a re-measure that picks a variant no bigger than the one
  *    already rendered is ignored; a bigger pick loads off-DOM and swaps in
  *    only after `decode()` — never a flash of empty slot, never a downgrade.
+ * 5. The decoded image fades in over the placeholder — an enhancement, never a
+ *    gate: where there is no frame loop to ride (a backgrounded tab, a
+ *    prerender) it is shown at once, without the transition. See {@link Reveal}.
  */
 export function Image({
   meta,
@@ -282,7 +328,7 @@ export function Image({
 
   const [displayed, setDisplayed] = useState<VariantMeta | undefined>(undefined);
   const [failed, setFailed] = useState<VariantMeta | undefined>(undefined);
-  const [visible, setVisible] = useState(false);
+  const [reveal, setReveal] = useState<Reveal>("pending");
   const displayedRef = useRef<VariantMeta | undefined>(undefined);
 
   const previewKind = previewKindOf(meta);
@@ -434,17 +480,40 @@ export function Image({
   }, [targetUrl]);
 
   useEffect(() => {
-    if (displayed === undefined || visible) {
+    if (displayed === undefined || reveal !== "pending") {
+      return;
+    }
+    // No frame loop to ride: show it NOW, with no transition. A transition
+    // needs frames too, and the runner that has none would capture whatever
+    // opacity it was left at.
+    if (!canRunFrame()) {
+      setReveal("instant");
       return;
     }
     // One frame at opacity 0 so the blur-up → sharp transition actually runs.
     const id = requestAnimationFrame(() => {
-      setVisible(true);
+      setReveal("fade");
     });
+    // The frame that never comes. rAF is suspended the moment the tab is
+    // backgrounded or occluded — including between this paint and the next —
+    // and throttled to nothing in some headless runners, so the reveal cannot
+    // be left waiting on it: the timer is the floor, the frame is the path.
+    // On a live tab the frame always wins this race by an order of magnitude.
+    const timer = setTimeout(() => {
+      setReveal("instant");
+    }, FADE_FALLBACK_MS);
+    const onVisibilityChange = (): void => {
+      if (document.visibilityState === "hidden") {
+        setReveal("instant");
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       cancelAnimationFrame(id);
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [displayed, visible]);
+  }, [displayed, reveal]);
 
   // Layout-shift protection from the snapshot. The measured aspect wins; where
   // there is none, `preview_kind` still fixes a SHAPE for two of the three
@@ -512,8 +581,8 @@ export function Image({
           style={{
             ...FILL,
             objectFit: fit,
-            opacity: visible ? 1 : 0,
-            transition: "opacity 200ms ease",
+            opacity: reveal === "pending" ? 0 : 1,
+            ...(reveal === "fade" ? { transition: "opacity 200ms ease" } : {}),
           }}
         />
       )}
