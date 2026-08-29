@@ -20,6 +20,14 @@ export { AppShell } from "./AppShell.js";
 export type { AppShellProps } from "./AppShell.js";
 export { PublicShell } from "./PublicShell.js";
 export type { PublicShellProps } from "./PublicShell.js";
+// The two host-resolved brand slots `<PublicShell/>` falls back to when the
+// host passes neither `brand` nor `footer` and a `<SiteProvider>` is mounted
+// (multibrand spec, frontend decision). Exported on their own so a host that arranges its own
+// chrome still gets one wordmark and one legal line, not two implementations.
+export { SiteBrand } from "./SiteBrand.js";
+export type { SiteBrandProps } from "./SiteBrand.js";
+export { SiteLegalFooter } from "./SiteLegalFooter.js";
+export type { SiteLegalFooterProps } from "./SiteLegalFooter.js";
 export {
   NavDock,
   dockEntries,

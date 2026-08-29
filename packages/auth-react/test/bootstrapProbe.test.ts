@@ -16,6 +16,12 @@ import { BASE, makeApi, testUser } from "./helpers.js";
  * cookie alongside every such mint so a bearer host can tell "a cookie
  * session might exist" apart from "there never was one" — see
  * `stapel_auth/hint_cookie.py` in the backend repo.
+ *
+ * 2026-08-30 (multibrand spec, frontend decision): the same gate now covers COOKIE mode,
+ * which used to probe unconditionally. On a public storefront that was two
+ * 401s on every anonymous visit and every crawl, spent looking for a session
+ * the hint cookie already said was absent. A live 401 is untouched — only the
+ * cold bootstrap SEARCH is gated.
  */
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
@@ -130,7 +136,8 @@ describe("bootstrapProbe (bearer mode gating)", () => {
     warnSpy.mockRestore();
   });
 
-  it('"auto" cookie mode is unaffected — still probes unconditionally regardless of the hint cookie', async () => {
+  it('"auto" probes COOKIE mode when the hint cookie is present — one refresh, and the session is found', async () => {
+    setHintCookie();
     let refreshCalls = 0;
     server.use(
       http.get(`${BASE}/token/refresh/`, () => {
@@ -139,13 +146,76 @@ describe("bootstrapProbe (bearer mode gating)", () => {
       }),
       http.get(`${BASE}/me/`, () => HttpResponse.json(testUser()))
     );
-    // cookieMode defaults true; no hint cookie set.
+    // cookieMode defaults true.
     const runtime = createAuthRuntime({ baseUrl: BASE });
     await runtime.session.restore();
 
     expect(refreshCalls).toBe(1);
     expect(runtime.session.getState().status).toBe("authenticated");
     expect(runtime.session.getState().user).toEqual(testUser());
+  });
+
+  /**
+   * The storefront half of the same gate (multibrand spec, frontend decision, measured live
+   * on southgate.test 2026-08-30): cookie mode used to probe unconditionally, so
+   * every anonymous visit — and every crawl — of a public catalogue opened
+   * with two 401s on `/token/refresh/` looking for a session that the hint
+   * cookie already said did not exist. 80–95% of a classified's traffic is
+   * exactly that visit.
+   */
+  it('"auto" makes ZERO probe requests in COOKIE mode with no hint cookie on a cold load', async () => {
+    const fetchSpy = vi.fn(async () => {
+      throw new Error("bootstrapProbe must not call fetch in this scenario");
+    });
+    const runtime = createAuthRuntime({
+      baseUrl: BASE, // cookieMode defaults true
+      fetch: fetchSpy as unknown as typeof globalThis.fetch,
+    });
+    await runtime.session.restore();
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    // Settled for real, so every hook gated on whenReady() is released.
+    expect(runtime.session.getState().status).toBe("anonymous");
+    expect(runtime.session.getSessionManager().getStatus()).toBe("unauthenticated");
+    expect(runtime.session.getSessionManager().isReady()).toBe(true);
+  });
+
+  it('"always" still probes cookie mode with no hint cookie — for a backend that sets none', async () => {
+    let refreshCalls = 0;
+    server.use(
+      http.get(`${BASE}/token/refresh/`, () => {
+        refreshCalls += 1;
+        return HttpResponse.json({ access: "acc_4", refresh: "ref_4" });
+      }),
+      http.get(`${BASE}/me/`, () => HttpResponse.json(testUser()))
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE, bootstrapProbe: "always" });
+    await runtime.session.restore();
+
+    expect(refreshCalls).toBe(1);
+    expect(runtime.session.getState().status).toBe("authenticated");
+  });
+
+  it("a LIVE 401 in cookie mode still refreshes without any hint cookie — only the cold probe is gated", async () => {
+    // The distinction the gate must not blur: a request that MET a 401 has
+    // evidence a session existed; a cold probe has none.
+    let meCalls = 0;
+    let refreshCalls = 0;
+    server.use(
+      http.get(`${BASE}/me/`, () => {
+        meCalls += 1;
+        if (meCalls > 1) return HttpResponse.json(testUser());
+        return HttpResponse.json({ localizable_error: "auth.token.expired" }, { status: 401 });
+      }),
+      http.get(`${BASE}/token/refresh/`, () => {
+        refreshCalls += 1;
+        return HttpResponse.json({ access: "acc_5", refresh: "ref_5" });
+      })
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE }); // cookie mode, no hint
+
+    await expect(runtime.client.get("/me/")).resolves.toEqual(testUser());
+    expect(refreshCalls).toBe(1);
   });
 
   it("a failed probe (401/no session) settles anonymous quietly — no throw, no onTeardown", async () => {

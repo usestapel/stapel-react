@@ -43,6 +43,15 @@ export const SHELL_I18N_KEYS = {
    * reachable on any storefront — a hidden entry point teaches nothing
    * (private-space canon §6.3). */
   publicSignIn: "shell.public.sign_in",
+  /** `<SiteLegalFooter/>`'s three labels. The SENTENCES are the deployment's
+   * (a company line, an address, a support mailbox — all of them come off the
+   * wire in `brand.legal`); what the shell owns is the WORD on each link, and
+   * a storefront whose privacy link reads "privacy_url" is a storefront with
+   * a broken footer. Deliberately not per-brand: two brands on one build read
+   * the same three nouns in the same locale. */
+  legalPrivacy: "shell.legal.privacy",
+  legalTerms: "shell.legal.terms",
+  legalSupport: "shell.legal.support",
   // `<ThemeModeControl/>` takes its copy as a PROP rather than calling
   // `useT()`, because core's `useT` throws outside an `<I18nProvider>` and
   // the control has to render in hosts that translate elsewhere. These keys
@@ -63,6 +72,9 @@ export const shellI18nBundleEn: I18nDictionary = {
   "shell.dock.label": "Main sections",
   "shell.dock.unread": "{count} unread",
   "shell.public.sign_in": "Sign in",
+  "shell.legal.privacy": "Privacy",
+  "shell.legal.terms": "Terms",
+  "shell.legal.support": "Support",
   "shell.theme.group": "Appearance",
   "shell.theme.light": "Light",
   "shell.theme.dark": "Dark",

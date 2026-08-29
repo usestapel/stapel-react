@@ -73,6 +73,25 @@
       "source": "demo/PublicShell.demo.tsx"
     },
     {
+      "id": "shell.site-brand",
+      "title": "Host-resolved brand",
+      "description": "The same container, the same nav, the same routed screen — and two identities, because the brand is fetched at runtime (GET site/) instead of baked into the image. Pass PublicShell no `brand` and no `footer` and it draws SiteBrand and SiteLegalFooter from useSite(); the logo is optional, so a brand with none is a text wordmark rather than a hole in the header. The legal line states the operating company, the support mailbox and the links THIS host is bound by, which on a second domain is a different company from the first.",
+      "component": "SiteBrand",
+      "covers": [
+        "SiteLegalFooter"
+      ],
+      "tokens": [
+        "surface",
+        "text"
+      ],
+      "variants": [
+        "default",
+        "second-brand",
+        "phone"
+      ],
+      "source": "demo/SiteBrand.demo.tsx"
+    },
+    {
       "id": "shell.theme-mode",
       "title": "Theme mode control",
       "description": "Sun, moon, half-disc — three NAMED segments in one track, the chosen one filled, each at least 44px tall: a control whose current value can be read at a glance, which three bare 24px glyphs with no selected state could not. Under it a real ARIA radio group: one tab stop, arrow keys move the choice, and no tooltip anywhere (the accessible name carries what the icon means, and hover does not exist on a phone). `system` is a RULE, not a colour: it resolves to light or dark and keeps resolving, so the distinction lives in WHICH segment is marked, and — for a reader who cannot see the mark — in the half-disc's name, which appends what it currently resolves to. Plain DOM and inline currentColor SVG, sized in em: the fleet's two consumers render nothing alike.",
@@ -96,6 +115,9 @@
   "i18nKeys": [
     "shell.dock.label",
     "shell.dock.unread",
+    "shell.legal.privacy",
+    "shell.legal.support",
+    "shell.legal.terms",
     "shell.nav.admin",
     "shell.nav.admin_staff_only",
     "shell.nav.close_menu",

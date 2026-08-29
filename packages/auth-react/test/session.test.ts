@@ -9,8 +9,19 @@ import { BASE, authResponse, makeApi } from "./helpers.js";
 
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  document.cookie = "stapel_auth_hint=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+});
 afterAll(() => server.close());
+
+/** The non-httponly signal a mint leaves behind. Since 2026-08-30 the cold
+ * `restore()` probe is gated on it in cookie mode too, so a test ABOUT the
+ * probe has to put the session in the state the probe exists to discover
+ * (see `bootstrapProbe.test.ts`). */
+function setHintCookie(): void {
+  document.cookie = "stapel_auth_hint=1; path=/";
+}
 
 function memoryStorage(): PersistStorage {
   const map = new Map<string, unknown>();
@@ -276,6 +287,7 @@ describe("an unreachable backend is not an authentication verdict", () => {
   });
 
   it("a cold start against a dead backend settles (never hangs whenReady) without a teardown", async () => {
+    setHintCookie(); // a probe has to actually happen for a dead backend to be met
     server.use(http.get(`${BASE}/token/refresh/`, () => HttpResponse.error()));
     const teardown = vi.fn();
     const sessionLost = vi.fn();
@@ -423,6 +435,7 @@ describe("a negative bootstrap probe is not a session loss", () => {
   }
 
   it("does not tear down a session another caller established mid-probe", async () => {
+    setHintCookie(); // there IS a probe to run — that is the premise
     server.use(
       http.get(`${BASE}/token/refresh/`, () =>
         HttpResponse.json({ localizable_error: "auth.token.expired" }, { status: 401 })
@@ -449,6 +462,7 @@ describe("a negative bootstrap probe is not a session loss", () => {
   });
 
   it("still settles a cold start quietly when nothing else claimed a session", async () => {
+    setHintCookie();
     server.use(
       http.get(`${BASE}/token/refresh/`, () =>
         HttpResponse.json({ localizable_error: "auth.token.expired" }, { status: 401 })

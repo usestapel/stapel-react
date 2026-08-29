@@ -46,6 +46,7 @@ const { tracked } = useTracked();
 - shell.app → <AppShell> [default|admin-blocked|phone|phone-drawer]  demo/AppShell.demo.tsx
 - shell.nav-dock → <NavDock> [phone|badges|desktop]  demo/NavDock.demo.tsx
 - shell.public → <PublicShell> [default|signed-in|nothing-to-browse|phone]  demo/PublicShell.demo.tsx
+- shell.site-brand → <SiteBrand> [default|second-brand|phone]  demo/SiteBrand.demo.tsx
 - shell.theme-mode → <ThemeModeControl> [default|pinned|phone]  demo/ThemeModeControl.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 

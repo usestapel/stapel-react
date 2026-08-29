@@ -26,8 +26,23 @@ import { BASE } from "./helpers.js";
  */
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  document.cookie = "stapel_auth_hint=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+});
 afterAll(() => server.close());
+
+/**
+ * What a `session_share` QR scan (or magic link / SSO / OAuth callback) leaves
+ * behind beside the httponly pair: the one signal a JS runtime can read that
+ * says "a cookie session might exist here". Since 2026-08-30 the cold
+ * `restore()` probe consults it in COOKIE mode too (see `bootstrapProbe.test.ts`),
+ * so every test below whose subject IS the probe has to be in the situation
+ * the probe exists for.
+ */
+function setHintCookie(): void {
+  document.cookie = "stapel_auth_hint=1; path=/";
+}
 
 describe("cookie-mode bootstrap (owner incident, 2026-07-17)", () => {
   it("a query fired BEFORE restore()/bootstrap completes does NOT tear down — it bootstraps via cookies and retries", async () => {
@@ -79,6 +94,7 @@ describe("cookie-mode bootstrap (owner incident, 2026-07-17)", () => {
   });
 
   it("restore() with nothing persisted locally bootstraps via the cookie-backed refresh, resolves the user (LAYER B), and reaches 'authenticated'", async () => {
+    setHintCookie(); // the QR mint left it beside the httponly pair
     server.use(
       http.get(`${BASE}/token/refresh/`, () =>
         HttpResponse.json({ access: "acc_from_cookie", refresh: "ref_from_cookie" })
@@ -98,6 +114,7 @@ describe("cookie-mode bootstrap (owner incident, 2026-07-17)", () => {
   });
 
   it("restore() with nothing persisted AND no valid cookies settles quietly to 'unauthenticated' — no onSessionLost, no onTeardown", async () => {
+    setHintCookie(); // a hint whose httponly pair has since died
     server.use(
       http.get(`${BASE}/token/refresh/`, () =>
         HttpResponse.json({ localizable_error: "error.401.refresh_revoked" }, { status: 401 })
@@ -182,6 +199,7 @@ describe("cookie-mode bootstrap (owner incident, 2026-07-17)", () => {
   });
 
   it("credentials: 'include' rides both the main client AND the refresh-only client in (default) cookie mode", async () => {
+    setHintCookie(); // so the cold probe actually issues the calls under test
     const inits: RequestInit[] = [];
     const fetchSpy: typeof globalThis.fetch = async (input, init) => {
       inits.push(init ?? {});

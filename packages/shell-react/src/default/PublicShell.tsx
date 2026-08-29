@@ -58,12 +58,14 @@ import { Button, Drawer, Flex, Layout, theme } from "antd";
 import { Link, Outlet } from "react-router";
 import { SkinTheme } from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { useBreakpoint, useT } from "@stapel/core";
+import { useBreakpoint, useOptionalSite, useT } from "@stapel/core";
 import { spacing } from "@stapel/tokens-antd";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
 import { NavMenu } from "./navMenu.js";
 import { NavDock, DOCK_CLEARANCE } from "./NavDock.js";
 import { CloseGlyph, MenuGlyph } from "./icons.js";
+import { SiteBrand } from "./SiteBrand.js";
+import { SiteLegalFooter } from "./SiteLegalFooter.js";
 import { SHELL_I18N_KEYS } from "../i18n/keys.js";
 
 /**
@@ -103,7 +105,13 @@ export interface PublicShellProps {
   readonly mode?: ThemeMode;
   /** Brand slot at the head of the top bar — conventionally the logo, already
    * wrapped by the host in its own link to `/` (the shell does not wrap it,
-   * which would nest one anchor inside another). */
+   * which would nest one anchor inside another).
+   *
+   * Omitted BELOW a `<SiteProvider>` (`@stapel/core`), `<SiteBrand/>` draws
+   * the host-resolved wordmark — which is the whole point of the multibrand
+   * seam: one container, two domains, and neither of them carrying the
+   * other's name. With no provider above, omitting it renders no brand at
+   * all, exactly as before. */
   readonly brand?: ReactNode;
   /** The search field in the top bar. Host-provided: what a storefront
    * searches, and where the query goes, is product knowledge. */
@@ -114,6 +122,9 @@ export interface PublicShellProps {
   /** The sign-in CTA, or a signed-in person's account menu. Omitted, a
    * sign-in link renders anyway — see rule 2 in this module's header. */
   readonly accountSlot?: ReactNode;
+  /** The footer's content. Omitted below a `<SiteProvider>` whose brand
+   * carries `legal`, `<SiteLegalFooter/>` states the operating company, the
+   * support mailbox and the privacy/terms links of THIS host. */
   readonly footer?: ReactNode;
   /**
    * How wide the routed content is allowed to get, in px, centred in the
@@ -189,6 +200,26 @@ function PublicChrome(props: PublicShellProps): ReactElement {
   // control that promises a destination it does not have.
   const hasBrowse = props.nav.length > 0 || props.categorySlot !== undefined;
 
+  // The host→brand seam is OPTIONAL, and `useOptionalSite()` is what makes it
+  // so: a host that mounts no `<SiteProvider>` gets `null` here and every
+  // default below behaves exactly as it did before the seam existed. Reading
+  // it with `useSite()` would make this shell THROW in those hosts — a brand
+  // slot is the last thing that should be able to take a storefront down.
+  const site = useOptionalSite();
+  const siteLegal = site?.brand?.legal;
+  const brandContent: ReactNode =
+    props.brand !== undefined
+      ? props.brand
+      : site?.brand != null
+        ? <SiteBrand />
+        : undefined;
+  const footerContent: ReactNode =
+    props.footer !== undefined
+      ? props.footer
+      : siteLegal !== undefined && Object.keys(siteLegal).length > 0
+        ? <SiteLegalFooter />
+        : undefined;
+
   // The dock is a PHONE/tablet surface: on a desktop the browse bar is already
   // one click from every destination and an island floating over the content
   // would be chrome competing with chrome.
@@ -211,12 +242,12 @@ function PublicChrome(props: PublicShellProps): ReactElement {
   // second line of the same header rather than being dropped: a storefront
   // whose search box disappears on a phone is a storefront nobody searches.
   const brandNode =
-    props.brand !== undefined ? (
+    brandContent !== undefined ? (
       <div
         style={{ display: "flex", alignItems: "center", minWidth: 0 }}
         data-testid="public-shell-brand"
       >
-        {props.brand}
+        {brandContent}
       </div>
     ) : null;
 
@@ -370,7 +401,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
             }}
             data-testid="public-shell-drawer-header"
           >
-            <div style={{ flex: "1 1 auto", minWidth: 0 }}>{props.brand}</div>
+            <div style={{ flex: "1 1 auto", minWidth: 0 }}>{brandContent}</div>
             <Button
               type="text"
               aria-label={t(SHELL_I18N_KEYS.navCloseMenu)}
@@ -412,7 +443,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
         </div>
       </Layout.Content>
 
-      {props.footer !== undefined && (
+      {footerContent !== undefined && (
         <Layout.Footer
           style={{
             background: token.colorBgContainer,
@@ -429,7 +460,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
                 : { maxWidth: contentMaxWidth, marginInline: "auto" }),
             }}
           >
-            {props.footer}
+            {footerContent}
           </div>
         </Layout.Footer>
       )}

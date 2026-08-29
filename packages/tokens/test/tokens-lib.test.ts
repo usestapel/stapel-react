@@ -1,3 +1,14 @@
+import { execFileSync } from "node:child_process";
+import {
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 // The gen engine is plain ESM; the bin (bin/stapel-tokens.mjs) is a thin CLI
 // wrapper around it, so the role-dictionary invariants are unit-covered here.
@@ -12,6 +23,8 @@ import {
   renderTailwind3Config,
   // @ts-expect-error — .mjs has no type declarations; it's a build/gen tool.
 } from "../src/gen/lib.mjs";
+
+const here = dirname(fileURLToPath(import.meta.url));
 
 const RAMPS = {
   gray: { "50": "#fafafa", "500": "#7b828f", "900": "#111111" },
@@ -227,4 +240,94 @@ describe("mergeTheme — §68 merge-contract (host stapel.theme.json ⊃ theme.d
     expect(mergeTheme(defaultTheme, {})).toBe(defaultTheme);
     expect(mergeTheme(defaultTheme, undefined)).toBe(defaultTheme);
   });
+});
+
+/**
+ * `--scope <brand-key>` (multibrand spec, frontend decision): ONE build serving two brands.
+ *
+ * The storefront compiles `stapel.theme.json` (the default set, `:root`) and
+ * `stapel.theme.northgate.json` (`--scope northgate`) into the SAME output
+ * directory and ships both stylesheets in one bundle; which one applies is
+ * decided at runtime by `<html data-brand>`, which `@stapel/core`'s
+ * `<SiteProvider>` sets from the host's own `site/` document. Two things have
+ * to hold for that: the scoped selectors must out-rank the unscoped ones, and
+ * a scoped run must not overwrite the default run's files.
+ */
+describe("--scope — a brand overlay beside the default set", () => {
+  it("scopes both halves under [data-brand], and the dark half keeps :root so it out-ranks the light one", () => {
+    const css = renderCss(resolveTheme(base(), RAMPS), { scope: "northgate" });
+    expect(css).toContain(':root[data-brand="northgate"] {');
+    expect(css).toContain(':root[data-brand="northgate"][data-theme="dark"] {');
+    // Not a single unqualified block: an unscoped `:root` emitted from a
+    // brand's theme would repaint the OTHER brand's host.
+    expect(css).not.toMatch(/^:root \{/m);
+    expect(css).not.toMatch(/^\[data-theme="dark"\] \{/m);
+    const dark = css.split(':root[data-brand="northgate"][data-theme="dark"]')[1] ?? "";
+    expect(dark).toContain("--stapel-brand: #98a5fa;");
+  });
+
+  it("leaves the unscoped emission byte-identical (the default set is untouched)", () => {
+    const resolved = resolveTheme(base(), RAMPS);
+    expect(renderCss(resolved, {})).toBe(renderCss(resolved));
+    expect(renderCss(resolved)).toContain(":root {");
+    expect(renderTailwind3Css(resolved)).toContain(":root {");
+  });
+
+  it("scopes the tailwind@3 RGB block too — an unscoped triplet would override the other brand", () => {
+    const css = renderTailwind3Css(resolveTheme(base(), RAMPS), { scope: "northgate" });
+    expect(css).toContain(':root[data-brand="northgate"] {');
+    expect(css).not.toMatch(/^:root \{/m);
+  });
+
+  it("refuses a key that is not [a-z0-9-]+ — it lands in a selector AND a filename", () => {
+    const resolved = resolveTheme(base(), RAMPS);
+    expect(() => renderCss(resolved, { scope: "Northgate Ru" })).toThrow(/\[a-z0-9-\]\+/);
+    expect(() => renderCss(resolved, { scope: 'x"]{}' })).toThrow(/\[a-z0-9-\]\+/);
+  });
+});
+
+describe("the stapel-tokens bin under --scope", () => {
+  const binPath = resolve(here, "..", "bin/stapel-tokens.mjs");
+
+  function run(args: string[], cwd: string): void {
+    execFileSync(process.execPath, [binPath, ...args], { cwd, stdio: "pipe" });
+  }
+
+  it("writes a `.<key>`-infixed file that coexists with the default run, and --check reads it back", () => {
+    const dir = mkdtempSync(join(tmpdir(), "stapel-tokens-scope-"));
+    try {
+      run(["--out", dir, "--targets", "core"], dir);
+      run(["--out", dir, "--targets", "core", "--scope", "northgate"], dir);
+
+      // Two runs, one directory, neither clobbering the other.
+      expect(readdirSync(dir).sort()).toEqual(["tokens.css", "tokens.northgate.css"]);
+      const scoped = readFileSync(join(dir, "tokens.northgate.css"), "utf8");
+      expect(scoped).toContain(':root[data-brand="northgate"] {');
+      expect(readFileSync(join(dir, "tokens.css"), "utf8")).toContain(":root {");
+
+      // The drift gate works against the scoped output too…
+      run(["--out", dir, "--targets", "core", "--scope", "northgate", "--check"], dir);
+      // …and actually fails when the file on disk is stale.
+      writeFileSync(join(dir, "tokens.northgate.css"), "/* hand-edited */\n");
+      expect(() =>
+        run(["--out", dir, "--targets", "core", "--scope", "northgate", "--check"], dir)
+      ).toThrow();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 60_000); // spawns the bin four times — slow under parallel full-CI load
+
+  it("refuses --scope together with --pkg: the self artifacts describe the package, not a brand", () => {
+    const dir = mkdtempSync(join(tmpdir(), "stapel-tokens-scope-"));
+    try {
+      expect(() =>
+        run(
+          ["--out", dir, "--scope", "northgate", "--pkg", resolve(here, "..", "package.json")],
+          dir
+        )
+      ).toThrow();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 30_000);
 });

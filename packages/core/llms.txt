@@ -16,8 +16,11 @@ signatures/JSDoc in the package README and src/index.ts.
 - ElevationProvider
 - I18nProvider
 - MandateProvider
+- PERMISSION_COPY_KEYS
+- PERMISSION_KINDS
 - REFRESH_UNAVAILABLE
 - STAPEL_UI_KEYS
+- SiteProvider
 - SlotPlaceholder
 - StapelApiError
 - StapelConfigProvider
@@ -48,6 +51,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - errorCodePredicate
 - errorStatus
 - extractVerificationChallenge
+- fetchSite
 - firstBlock
 - formatDate
 - formatDateTime
@@ -86,6 +90,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - navEntrySurface
 - navSurfaceVisibleTo
 - parseErrorEnvelope
+- permissionSupported
 - pluralCategory
 - putToForeignOrigin
 - requireLoaded
@@ -111,7 +116,10 @@ signatures/JSDoc in the package README and src/index.ts.
 - useMandatePrincipal
 - useObjectUrlPreview
 - useOptionalI18n
+- useOptionalSite
+- usePermission
 - useSessionReady
+- useSite
 - useStapelClient
 - useStapelConfig
 - useT
@@ -178,6 +186,9 @@ signatures/JSDoc in the package README and src/index.ts.
 - NavSurface
 - NonEmptyArray
 - PackageNavManifest
+- PermissionBag
+- PermissionKind
+- PermissionStatus
 - PersistStorage
 - PiiGuardMode
 - PluralCategory
@@ -200,6 +211,9 @@ signatures/JSDoc in the package README and src/index.ts.
 - SessionStatus
 - SignInCta
 - SignInCtaProp
+- Site
+- SiteBrand
+- SiteProviderProps
 - SlotPlaceholderProps
 - StapelClient
 - StapelClientOptions
@@ -210,6 +224,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - StapelQueryRuntime
 - StapelRequestOptions
 - TranslateFn
+- UsePermissionOptions
 - VerificationChallenge
 - VerificationChallengeHandler
 - VerificationOutcome

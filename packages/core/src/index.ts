@@ -369,6 +369,16 @@ export type {
 export { SlotPlaceholder, isDevBuild } from "./slotPlaceholder.js";
 export type { SlotPlaceholderProps } from "./slotPlaceholder.js";
 
+// host→brand seam (site.tsx): one build, one backend, N hosts. The brand is
+// resolved at RUNTIME from `GET <baseUrl>/site/` (`stapel_core.sites`), never
+// baked into the image and never injected by nginx — so one container serves
+// two domains under two identities. `SiteProvider` renders the container's
+// `fallback` on the first frame, replaces it when the answer lands, keeps it
+// when the answer never does, and reflects `data-brand`/`lang` onto `<html>`
+// so scoped tokens and the accessibility tree follow without React.
+export { fetchSite, SiteProvider, useSite, useOptionalSite } from "./site.js";
+export type { Site, SiteBrand, SiteProviderProps } from "./site.js";
+
 // NOTE: @stapel/core no longer exports a generated `paths`/`components`/
 // `operations` surface. Under the §17 per-module contract pipeline every
 // `@stapel/<module>-react` pair generates its OWN self-contained wire types

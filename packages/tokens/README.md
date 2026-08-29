@@ -47,6 +47,37 @@ every other role from the default). The bin always emits the **stable core**
 (`tokens.css` — plain `--stapel-<role>` vars, version-independent) plus
 whichever adapters you ask for via `--targets` (default: `core,tailwind@4,tailwind@3`).
 
+### `--scope <brand-key>` — two brands, one build
+
+A product served under two domains cannot bake its brand into the image. Emit
+the second brand as an **overlay** instead of a second build:
+
+```sh
+# the default set — :root / [data-theme="dark"], as always
+npx stapel-tokens --theme ./stapel.theme.json --out ./src/stapel-tokens
+# a second brand, into the SAME directory
+npx stapel-tokens --theme ./stapel.theme.northgate.json --scope northgate \
+                  --targets core --out ./src/stapel-tokens
+```
+
+Under `--scope`:
+
+- the emitted selectors become `:root[data-brand="northgate"]` and
+  `:root[data-brand="northgate"][data-theme="dark"]`, which out-rank the
+  unscoped pair by specificity — so both stylesheets can be imported in
+  either order;
+- every output filename gains a `.<key>` infix (`tokens.northgate.css`,
+  `tailwind.northgate.css`, …), so a scoped run never overwrites the default
+  one and both can live in one `--out` directory;
+- `--check` (the drift gate) reads the scoped filenames too;
+- the key must match `[a-z0-9-]+` — it lands in a selector and in a filename;
+- `--pkg` is refused: the self artifacts describe the package, not a brand.
+
+Both stylesheets ship in one bundle and the choice is an attribute set at
+runtime — `@stapel/core`'s `<SiteProvider>` writes `<html data-brand>` from
+the host's own `site/` document, and `@stapel/tokens-antd` reads the live CSS
+variables, so antd follows the switch with it.
+
 ## Usage — the one right way
 
 ```html

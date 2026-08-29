@@ -25,6 +25,17 @@
 //     --out <dir>        output directory for the CSS/JS artifacts (default: ./stapel-tokens-out)
 //     --targets <csv>    which artifacts to emit — any of: core,tailwind@4,tailwind@3
 //                         (default: core,tailwind@4,tailwind@3 — all three)
+//     --scope <brand>    emit this theme as a BRAND overlay instead of the
+//                         default set: selectors become
+//                         `:root[data-brand="<brand>"]` /
+//                         `:root[data-brand="<brand>"][data-theme="dark"]`, and
+//                         every output filename gains a `.<brand>` infix
+//                         (tokens.northgate.css, tailwind.northgate.css, …) so a
+//                         scoped run and the default run coexist in one --out
+//                         directory. The key is `[a-z0-9-]+`.
+//                         One build, two brands: ship both stylesheets and let
+//                         `@stapel/core`'s <SiteProvider> pick with an
+//                         attribute at runtime.
 //     --pkg <path>       this package's own package.json — enables the SELF
 //                         artifacts (tokens.ts, raw.ts, manifest.json, llms.txt)
 //                         @stapel/tokens' own build uses to regenerate its
@@ -37,6 +48,11 @@
 //   node bin/stapel-tokens.mjs                 # this package's own defaults
 //   pnpm gen:tokens                            # repo-root wrapper (unchanged surface)
 //   pnpm gen:tokens:check                      # drift gate
+//
+//   # a second brand, beside the default set, in one directory:
+//   npx stapel-tokens --theme ./stapel.theme.json --out ./src/stapel-tokens
+//   npx stapel-tokens --theme ./stapel.theme.northgate.json --scope northgate \
+//                     --targets core --out ./src/stapel-tokens
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -57,9 +73,22 @@ import {
   renderTailwind3Config,
   renderManifest,
   renderLlms,
+  SCOPE_KEY_RE,
 } from "../src/gen/lib.mjs";
 
 const VALID_TARGETS = new Set(["core", "tailwind@4", "tailwind@3"]);
+
+/**
+ * `tokens.css` → `tokens.northgate.css`. The infix goes before the LAST
+ * extension so `tailwind-v3.config.cjs` stays a `.cjs` file that Node still
+ * loads — a suffix would produce `tailwind-v3.config.cjs.northgate` and nothing
+ * would require it.
+ */
+function scopedName(name, scope) {
+  if (scope === null) return name;
+  const dot = name.lastIndexOf(".");
+  return `${name.slice(0, dot)}.${scope}${name.slice(dot)}`;
+}
 
 function parseArgs(argv) {
   const args = {
@@ -68,6 +97,7 @@ function parseArgs(argv) {
     out: resolve(process.cwd(), "stapel-tokens-out"),
     pkg: null,
     targets: ["core", "tailwind@4", "tailwind@3"],
+    scope: null,
     check: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -95,6 +125,16 @@ function parseArgs(argv) {
           }
         }
         args.targets = list;
+        break;
+      }
+      case "--scope": {
+        const key = (argv[++i] ?? "").trim();
+        if (!SCOPE_KEY_RE.test(key)) {
+          throw new Error(
+            `stapel-tokens: invalid --scope "${key}" — a brand key is [a-z0-9-]+`
+          );
+        }
+        args.scope = key;
         break;
       }
       case "--check":
@@ -140,9 +180,21 @@ async function main() {
   if (args.help) {
     console.log(
       "stapel-tokens [--theme <path>] [--ramps <path>] [--out <dir>] " +
-        "[--targets core,tailwind@4,tailwind@3] [--pkg <path>] [--check]"
+        "[--targets core,tailwind@4,tailwind@3] [--scope <brand-key>] " +
+        "[--pkg <path>] [--check]"
     );
     return;
+  }
+
+  // The SELF artifacts (tokens.ts, raw.ts, manifest.json, llms.txt) describe
+  // @stapel/tokens itself — there is one of each, and a brand overlay has no
+  // business rewriting them. Refuse rather than silently emit a brand's ramps
+  // as the package's own typed surface.
+  if (args.scope && args.pkg) {
+    throw new Error(
+      "stapel-tokens: --scope cannot be combined with --pkg — the self artifacts " +
+        "(tokens.ts/raw.ts/manifest.json/llms.txt) describe the package, not a brand"
+    );
   }
 
   const defaultTheme = await readJson(resolve(PKG_ROOT, "theme.default.json"));
@@ -166,22 +218,26 @@ async function main() {
   const diffs = [];
   const opts = { check: args.check, diffs };
 
+  // Under `--scope`, EVERY artifact this run writes takes the `.<brand>`
+  // infix — not just the one whose selectors changed. A scoped run must never
+  // overwrite the default set, and a half-infixed output directory (scoped
+  // core beside a clobbered tailwind.css) is the version of that mistake
+  // nobody notices until the wrong brand renders.
+  const out = (name) => resolve(args.out, scopedName(name, args.scope));
+  const scoped = { scope: args.scope };
+
   // ── stable core: always, version-independent ──────────────────────────────
   if (args.targets.includes("core")) {
-    await emit(resolve(args.out, "tokens.css"), renderCss(resolved), opts);
+    await emit(out("tokens.css"), renderCss(resolved, scoped), opts);
   }
   // ── tailwind@4: default versioned adapter ──────────────────────────────────
   if (args.targets.includes("tailwind@4")) {
-    await emit(resolve(args.out, "tailwind.css"), renderTailwind4(resolved), opts);
+    await emit(out("tailwind.css"), renderTailwind4(resolved), opts);
   }
   // ── tailwind@3: legacy versioned adapter (owned here, not a host fork) ─────
   if (args.targets.includes("tailwind@3")) {
-    await emit(resolve(args.out, "tailwind-v3.css"), renderTailwind3Css(resolved), opts);
-    await emit(
-      resolve(args.out, "tailwind-v3.config.cjs"),
-      renderTailwind3Config(resolved),
-      opts
-    );
+    await emit(out("tailwind-v3.css"), renderTailwind3Css(resolved, scoped), opts);
+    await emit(out("tailwind-v3.config.cjs"), renderTailwind3Config(resolved), opts);
   }
 
   // ── self artifacts: only when regenerating @stapel/tokens' own package ────
@@ -215,6 +271,7 @@ async function main() {
     `stapel-tokens: ${Object.keys(resolved.core).length} roles, ` +
       `${Object.keys(ramps).length} ramps` +
       (warnings.length ? `, ${warnings.length} warning(s)` : "") +
+      (args.scope ? `, scope "${args.scope}"` : "") +
       `\n              → ${args.out}` +
       (args.pkg ? ` (+ self artifacts in ${dirname(args.pkg)})` : "")
   );

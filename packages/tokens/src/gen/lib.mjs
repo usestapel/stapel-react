@@ -283,6 +283,41 @@ function scaleLines(scales) {
   return lines;
 }
 
+/** A brand key is an ADDRESS in a selector and a filename — keep it boring. */
+export const SCOPE_KEY_RE = /^[a-z0-9-]+$/;
+
+/**
+ * The two selectors an emitted stylesheet writes its light and dark halves
+ * under.
+ *
+ * Unscoped, they are exactly what this package has always emitted — `:root`
+ * and `[data-theme="dark"]`. SCOPED (`--scope northgate`) they gain a
+ * `[data-brand="…"]` qualifier, which does two things at once: it addresses
+ * the brand, and it OUTRANKS the unscoped set by specificity, so a host can
+ * load `tokens.css` and `tokens.northgate.css` in either order and still get the
+ * right answer when `<html data-brand="northgate">` is set. (`:root` is repeated
+ * on the dark selector for that reason — without it the scoped dark block
+ * would tie with the scoped light one and lose on document order.)
+ *
+ * This is what makes ONE build serve two brands: both stylesheets ship in the
+ * same bundle and the choice is an attribute, set at runtime by
+ * `@stapel/core`'s `<SiteProvider>` from the host's own `site/` document.
+ */
+export function scopeSelectors(scope) {
+  if (scope == null || scope === "") {
+    return { light: ":root", dark: '[data-theme="dark"]' };
+  }
+  if (!SCOPE_KEY_RE.test(scope)) {
+    throw new Error(
+      `stapel-tokens: invalid --scope "${scope}" — a brand key is [a-z0-9-]+`
+    );
+  }
+  return {
+    light: `:root[data-brand="${scope}"]`,
+    dark: `:root[data-brand="${scope}"][data-theme="dark"]`,
+  };
+}
+
 /**
  * Render the STABLE CORE (§68 "emitter versioning"): plain
  * `--stapel-<role>` CSS custom properties (:root = light, [data-theme="dark"]
@@ -290,8 +325,13 @@ function scaleLines(scales) {
  * works in any browser, any Tailwind version (or none at all) forever. This
  * is the ONE file every consumer (antd bridge, mui bridge, Tailwind adapters,
  * plain CSS) ultimately reads at runtime.
+ *
+ * `options.scope` emits the SAME substrate under a brand-qualified selector
+ * pair (see {@link scopeSelectors}) — a second brand's role dictionary
+ * beside the default one rather than instead of it.
  */
-export function renderCss(resolved) {
+export function renderCss(resolved, options = {}) {
+  const sel = scopeSelectors(options.scope);
   const { core, elevation, scales } = resolved;
   const rootColor = [];
   const darkColor = [];
@@ -317,7 +357,7 @@ export function renderCss(resolved) {
     "   STABLE CORE (§68): version-independent substrate — every design-system",
     "   bridge and every Tailwind adapter reads these vars, never regenerated",
     "   differently per Tailwind version. */",
-    ":root {",
+    `${sel.light} {`,
     "  /* roles — light */",
     indent(rootColor),
     "",
@@ -328,7 +368,7 @@ export function renderCss(resolved) {
     indent(rootScale),
     "}",
     "",
-    '[data-theme="dark"] {',
+    `${sel.dark} {`,
     "  /* roles — dark */",
     indent(darkColor),
     "",
@@ -381,7 +421,8 @@ export function renderTailwind4(resolved) {
  * resolved to an rgba()) are skipped, not fatal — v3's RGB trick only ever
  * applied to solid colours anyway.
  */
-export function renderTailwind3Css(resolved) {
+export function renderTailwind3Css(resolved, options = {}) {
+  const sel = scopeSelectors(options.scope);
   const { core } = resolved;
   const rootLines = [];
   const darkLines = [];
@@ -399,11 +440,14 @@ export function renderTailwind3Css(resolved) {
     "   core so tailwind.config.js can alpha-blend: rgb(var(--stapel-<role>-rgb)",
     "   / <alpha-value>). Pair with the config snippet from",
     "   renderTailwind3Config / tailwind@3.config.cjs. */",
-    ":root {",
+    // Scoped alongside the stable core: an unscoped RGB block emitted from a
+    // BRAND's theme would override the default brand's triplets on every
+    // host, which is the one thing --scope exists to prevent.
+    `${sel.light} {`,
     indent(rootLines),
     "}",
     "",
-    '[data-theme="dark"] {',
+    `${sel.dark} {`,
     indent(darkLines),
     "}",
     "",

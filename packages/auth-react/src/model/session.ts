@@ -128,25 +128,28 @@ export interface AuthSessionOptions {
    * anonymous despite a valid server-side session — with no signal that
    * coverage had been dropped.
    *
-   * - `"auto"` (**default**): probe when `cookieMode` is `true`, OR — in
-   *   bearer mode — when the non-httponly hint cookie `stapel_auth_hint`
-   *   is present (a plain `document.cookie` check, SSR-safe: `false` when
-   *   there is no `document`). `stapel-auth` sets this cookie alongside
-   *   every httponly refresh cookie it mints (QR session-share, magic
-   *   link, SSO, OAuth callback) specifically so a bearer-mode host can
-   *   tell "a cookie session might exist" from "there was never one"
-   *   without paying a network round trip on every cold load.
-   * - `"always"`: probe unconditionally, bearer mode included, even with
-   *   no hint cookie — for backends that don't set the hint.
-   * - `"off"`: never probe in bearer mode (the historical behavior). Logs
-   *   a ONE-TIME `console.warn` so this gap can't silently recur the way
-   *   it did before the hint cookie existed — a bearer host that
-   *   deliberately wants no probe should still know cookie-minted
-   *   sessions (QR/magic-link/SSO) will never be discovered.
+   * - `"auto"` (**default**): probe when the non-httponly hint cookie
+   *   `stapel_auth_hint` is present (a plain `document.cookie` check,
+   *   SSR-safe: `false` when there is no `document`) — in EITHER mode.
+   *   `stapel-auth` sets this cookie alongside every httponly refresh
+   *   cookie it mints (QR session-share, magic link, SSO, OAuth callback)
+   *   specifically so a host can tell "a cookie session might exist" from
+   *   "there was never one" without paying a network round trip on every
+   *   cold load.
+   * - `"always"`: probe unconditionally, even with no hint cookie — for
+   *   backends that don't set the hint.
+   * - `"off"`: never probe. Logs a ONE-TIME `console.warn` so this gap
+   *   can't silently recur the way it did before the hint cookie existed —
+   *   a host that deliberately wants no probe should still know
+   *   cookie-minted sessions (QR/magic-link/SSO) will never be discovered.
    *
-   * Cookie mode (`cookieMode: true`) is unaffected by any of the three
-   * values except `"off"` combined with an explicit bearer override — the
-   * probe it already always ran stays unconditional.
+   * Cookie mode used to ignore all three values and probe unconditionally.
+   * It no longer does (2026-08-30, southgate.test multibrand wave): a public
+   * storefront is anonymous for 80–95% of its traffic, and the probe was
+   * spending two 401s of every one of those visits — plus every crawl —
+   * looking for a session that the hint cookie already said was not there.
+   * A signed-in visitor is unaffected: the mint that gave them their
+   * httponly cookies set the hint alongside them.
    */
   readonly bootstrapProbe?: "auto" | "always" | "off";
   /** Notified after a teardown so the host can purge caches / redirect. */
@@ -213,21 +216,35 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
   /**
    * Whether `doRefresh`/`bootstrapProbe` should actually attempt the
    * network refresh call — see `AuthSessionOptions.bootstrapProbe`'s doc
-   * for the full three-state contract. Cookie mode is unconditional
-   * (unchanged from before this option existed); bearer mode is gated.
+   * for the full three-state contract.
+   *
+   * ONE rule for both modes (2026-08-30). Cookie mode used to be
+   * unconditional, and on a public storefront that cost every anonymous
+   * visitor — and every crawler — two 401s before the first paint, measured
+   * live on southgate.test: a cold `restore()` fired `POST /token/refresh/` with
+   * no cookie in the jar to refresh from. The hint cookie exists precisely
+   * to tell "a session might exist" from "there was never one", and it is
+   * set alongside every httponly mint regardless of which mode the frontend
+   * runs in — so consulting it in cookie mode is not a new mechanism, it is
+   * the mechanism finally being read where it matters most.
+   *
+   * Nothing about a LIVE 401 changes: `doRefresh`'s own early-out is still
+   * bearer-only, so a cookie-mode request that meets a 401 mid-session
+   * refreshes exactly as before, hint or no hint. This gates the cold
+   * bootstrap SEARCH, which is the only place a "there is nothing to find"
+   * answer was being paid for on every visit.
    */
   function shouldRunBootstrapProbe(): boolean {
-    if (cookieMode) return true;
+    if (bootstrapProbeMode === "always") return true;
     if (bootstrapProbeMode === "off") {
       if (!offDeclineWarned) {
         offDeclineWarned = true;
         console.warn(
-          "bootstrapProbe off/declined in bearer mode — cookie-minted sessions (QR/magic-link) will not be discovered"
+          `bootstrapProbe off/declined in ${cookieMode ? "cookie" : "bearer"} mode — cookie-minted sessions (QR/magic-link) will not be discovered`
         );
       }
       return false;
     }
-    if (bootstrapProbeMode === "always") return true;
     return hasAuthHintCookie(); // "auto"
   }
 
@@ -604,14 +621,14 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
    * is to actually attempt the refresh call and see whether the browser's
    * cookie jar carries a live refresh-token cookie.
    *
-   * Cookie mode always attempts this (unconditional, as before). Bearer
-   * mode is gated by `AuthSessionOptions.bootstrapProbe`
+   * BOTH modes are gated by `AuthSessionOptions.bootstrapProbe`
    * (`shouldRunBootstrapProbe()` above) — see that option's doc for the
    * full `"auto"`/`"always"`/`"off"` contract; in short, `"auto"` (the
-   * default) only probes bearer mode when the non-httponly
-   * `stapel_auth_hint` cookie signals a cookie-minted session might exist,
-   * so a bearer host that never touches cookie-minting flows pays ZERO
-   * extra network calls on a cold load.
+   * default) only probes when the non-httponly `stapel_auth_hint` cookie
+   * signals a cookie-minted session might exist, so a host whose visitor
+   * has never signed in pays ZERO network calls on a cold load. That is
+   * the whole cost of an anonymous storefront visit, and it used to be two
+   * 401s per visit in cookie mode.
    *
    * Routed through `sessionManager.refresh()` (single-flight `doRefresh`) —
    * the SAME path a live 401 retry uses — rather than a bespoke bypass:
@@ -631,8 +648,8 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
    */
   async function bootstrapProbe(): Promise<void> {
     if (!shouldRunBootstrapProbe()) {
-      // Bearer mode, policy declines (see `shouldRunBootstrapProbe`) —
-      // nothing further to try; settle definitively, no network call.
+      // Policy declines (see `shouldRunBootstrapProbe`) — no hint cookie, or
+      // `"off"`. Nothing to try; settle definitively, no network call.
       sessionManager.markUnauthenticated();
       return;
     }
