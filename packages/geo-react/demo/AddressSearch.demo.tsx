@@ -77,6 +77,8 @@ function bag(overrides: Partial<PlaceSearchBag>): PlaceSearchBag {
   return {
     query: TYPED,
     setQuery: () => undefined,
+    accept: () => undefined,
+    chosen: false,
     results: loadReady(SUGGESTIONS),
     availability: "available",
     lang: "default",

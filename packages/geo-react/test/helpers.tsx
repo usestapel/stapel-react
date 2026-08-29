@@ -23,6 +23,7 @@ export const BASE = "https://geo.test/geo";
 export const CONFIG_URL = `${BASE}/api/v1/map/config`;
 export const SEARCH_URL = `${BASE}/api/v1/geocoding/search`;
 export const RESOLVE_URL = `${BASE}/api/v1/geocoding/resolve`;
+export const IP_URL = `${BASE}/api/v1/ip`;
 
 /**
  * `GET /geo/api/v1/map/config` — the contract's own example, with the debounce
@@ -57,6 +58,7 @@ export function mapConfig(overrides?: Record<string, unknown>): Record<string, u
       reverse: "api/v1/geocoding/reverse",
       resolve: "api/v1/geocoding/resolve",
       locations_nearby: "api/v1/locations/nearby-by-coords",
+      ip: "api/v1/ip",
     },
     ...overrides,
   };
@@ -128,6 +130,84 @@ export function resolution(overrides?: Record<string, unknown>): Record<string, 
  */
 export function nowhere(): Record<string, unknown> {
   return resolution({ formatted: null, address: null, feature: null, alternatives: [] });
+}
+
+/**
+ * `GET /geo/api/v1/ip` — the visitor placed by their own address.
+ *
+ * `ip_resolved` is the field that matters: the endpoint ALWAYS answers
+ * something a map can open on, so a body whose `source` is `"fallback"` is
+ * the deployment's default centre wearing the same shape. A test that only
+ * checked for a 200 here would prove nothing.
+ */
+export function ipLocation(overrides?: Record<string, unknown>): Record<string, unknown> {
+  return {
+    lat: 55.7558,
+    lon: 37.6173,
+    source: "maxmind",
+    precision: "city",
+    ip_resolved: true,
+    label: "Moscow, Russia",
+    city: "Moscow",
+    region: null,
+    country: "Russia",
+    country_code: "RU",
+    accuracy_radius_km: 20,
+    ...overrides,
+  };
+}
+
+/** The same verb when it could not place the caller. */
+export function ipFallback(): Record<string, unknown> {
+  return ipLocation({
+    lat: 52.51667,
+    lon: 13.38333,
+    source: "fallback",
+    precision: "default",
+    ip_resolved: false,
+    label: null,
+    city: null,
+    country: null,
+    country_code: null,
+    accuracy_radius_km: null,
+  });
+}
+
+/**
+ * Install a fake `navigator.permissions.query`. Returns a restore function.
+ *
+ * The Permissions API is what `usePermission` pre-flights with, and its three
+ * interesting answers are `prompt`, `denied` and NOT IMPLEMENTED — Safari
+ * throws a TypeError for a name it does not know, which is `unknown` and not
+ * a refusal. Pass `"throw"` for that one.
+ */
+export function withPermissions(
+  answers: Readonly<Record<string, "granted" | "denied" | "prompt" | "throw">>
+): () => void {
+  const original = Object.getOwnPropertyDescriptor(navigator, "permissions");
+  Object.defineProperty(navigator, "permissions", {
+    configurable: true,
+    value: {
+      query: ({ name }: { name: string }) => {
+        const answer = answers[name];
+        if (answer === undefined || answer === "throw") {
+          return Promise.reject(new TypeError(`unsupported permission name: ${name}`));
+        }
+        return Promise.resolve({
+          state: answer,
+          addEventListener: () => undefined,
+          removeEventListener: () => undefined,
+        });
+      },
+    },
+  });
+  return () => {
+    if (original === undefined) {
+      Reflect.deleteProperty(navigator, "permissions");
+    } else {
+      Object.defineProperty(navigator, "permissions", original);
+    }
+  };
 }
 
 /** The Stapel error envelope (contract §6) — the body, verbatim. */

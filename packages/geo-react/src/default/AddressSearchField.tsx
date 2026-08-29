@@ -2,7 +2,19 @@
  * `<AddressSearchField/>` — search-as-you-type over `usePlaceSearch`, with the
  * states that are usually collapsed into one red box kept apart.
  *
- * Six things can be true under this field, and five of them are not failures:
+ * ## A chosen suggestion closes the list
+ *
+ * Picking a row puts its WHOLE label in the input and hides the dropdown, and
+ * the dropdown comes back only when the text changes again. Before that, the
+ * field kept the fragment the person typed while the list stayed open over the
+ * answer they had just chosen — so the next render re-searched the fragment,
+ * re-opened the same list, and the only way out was to click elsewhere. The
+ * suppression lives in `usePlaceSearch` (`accept` / `chosen`) rather than in
+ * this component, so a host with its own visuals inherits it, and so a
+ * suppressed field does not spend a request asking the geocoder to look up the
+ * answer it just gave.
+ *
+ * ## Six things can be true under this field, and five are not failures
  *
  *  - **idle** — fewer characters typed than `search_min_chars`. NOTHING has
  *    been asked yet, so an empty state here would be telling a person their
@@ -54,7 +66,9 @@ export interface AddressSearchFieldProps {
   /** The bag from `usePlaceSearch` — the caller owns it because the map's
    * centre is its search bias, and the bias belongs to the picker. */
   readonly search: PlaceSearchBag;
-  /** A suggestion was chosen. The picker moves the map and the pin to it. */
+  /** A suggestion was chosen. The picker moves the map and the pin to it.
+   * The field has already taken the suggestion's label and closed the list by
+   * the time this fires — see the header. */
   readonly onPick: (suggestion: PlaceSuggestion) => void;
   readonly autoFocus?: boolean;
   readonly "data-testid"?: string;
@@ -125,6 +139,9 @@ export function AddressSearchField(props: AddressSearchFieldProps): ReactElement
             data-analytics="none"
             data-analytics-reason="passthrough — the picker reports the chosen place"
             onClick={() => {
+              // The label first: a chosen place is an answer, and an answer
+              // closes its question. Then the caller's own effect.
+              search.accept(suggestion.label);
               props.onPick(suggestion);
             }}
             style={{
@@ -179,7 +196,7 @@ export function AddressSearchField(props: AddressSearchFieldProps): ReactElement
         allowClear
         autoFocus={props.autoFocus ?? false}
         role="combobox"
-        aria-expanded={!search.idle}
+        aria-expanded={!search.idle && !search.chosen}
         aria-controls={listId}
         aria-autocomplete="list"
         placeholder={t(GEO_I18N_KEYS.pickerSearchPlaceholder)}
@@ -188,7 +205,11 @@ export function AddressSearchField(props: AddressSearchFieldProps): ReactElement
           search.setQuery(event.target.value);
         }}
       />
-      {search.idle ? (
+      {search.chosen ? (
+        // A place has been chosen and is sitting in the field. No list, and no
+        // "keep typing" either — nothing is missing.
+        null
+      ) : search.idle ? (
         note(t(GEO_I18N_KEYS.searchTypeMore), "idle")
       ) : search.availability === "throttled" ? (
         // Under a rate limit the screen keeps what the geocoder last said. No

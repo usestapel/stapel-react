@@ -88,6 +88,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/geo/api/v1/ip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Where the calling client appears to be
+         * @description A coarse, city-at-best guess derived from the caller's own IP address, for opening a map before the browser's geolocation prompt has been answered — or after it was refused. Never a location to store on a record. Answers 200 with the deployment's fallback centre (`ip_resolved: false`) when the address cannot be placed, and 204 when the deployment has configured no fallback centre either.
+         */
+        get: operations["geo_api_v1_ip_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/geo/api/v1/locations/": {
         parameters: {
             query?: never;
@@ -382,6 +402,67 @@ export interface components {
              * @example default
              */
             lang?: string | null;
+        };
+        /** @description A guess at where the caller is, with its provenance attached. */
+        IpLocation: {
+            /**
+             * Format: double
+             * @description Latitude of the point a map should open on
+             * @example 55.7558
+             */
+            lat: number;
+            /**
+             * Format: double
+             * @description Longitude of the point a map should open on
+             * @example 37.6173
+             */
+            lon: number;
+            /**
+             * @description Which locator answered — a provider name, or "fallback"
+             * @example maxmind
+             */
+            source: string;
+            /**
+             * @description How specific the answer is: city, region, country or default
+             * @example city
+             */
+            precision?: string;
+            /**
+             * @description Whether this came from the caller's address at all
+             * @example true
+             */
+            ip_resolved?: boolean;
+            /**
+             * @description One human line for the place, or null when there is none to show
+             * @example Moscow, Russia
+             */
+            label?: string | null;
+            /**
+             * @description City name when the locator knows one
+             * @example Moscow
+             */
+            city?: string | null;
+            /**
+             * @description First-level subdivision when the locator knows one
+             * @example Moscow
+             */
+            region?: string | null;
+            /**
+             * @description Country name when the locator knows one
+             * @example Russia
+             */
+            country?: string | null;
+            /**
+             * @description ISO-3166-1 alpha-2 country code
+             * @example RU
+             */
+            country_code?: string | null;
+            /**
+             * Format: double
+             * @description Radius the provider itself claims, when it claims one
+             * @example 20
+             */
+            accuracy_radius_km?: number | null;
         };
         /** @description Full Location representation — a flat point plus tree metadata. */
         Location: {
@@ -747,6 +828,32 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["GeocodeResponse"];
                 };
+            };
+        };
+    };
+    geo_api_v1_ip_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IpLocation"];
+                };
+            };
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

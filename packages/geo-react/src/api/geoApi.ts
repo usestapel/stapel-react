@@ -2,6 +2,7 @@ import type { StapelClient } from "@stapel/core";
 import type {
   GeocodeResponse,
   GeoEndpoints,
+  IpLocation,
   MapConfig,
   PlaceResolution,
   ResolveQuery,
@@ -70,6 +71,21 @@ export interface GeoApi {
     query: ResolveQuery,
     options?: { readonly signal?: AbortSignal }
   ): Promise<PlaceResolution>;
+
+  /**
+   * Where the caller appears to be, from their own IP. The centre a map opens
+   * on before the browser's position prompt has been answered — or after it
+   * was refused, which is a supported answer and not an error.
+   *
+   * `null` is the deployment saying it has no opinion at all (HTTP 204): it
+   * has no locator answer AND no fallback centre. Every other outcome,
+   * including "we could not place this address", is a 200 carrying the
+   * fallback centre with `ip_resolved: false`.
+   */
+  ipLocation(
+    path: string,
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<IpLocation | null>;
 }
 
 /** The one path this package spells itself. Mount-relative, like the ones
@@ -120,6 +136,15 @@ export function createGeoApi(client: StapelClient): GeoApi {
       client.get(path, { query: pointParams(query), ...signalOf(options) }),
     resolve: (path, query, options) =>
       client.get(path, { query: pointParams(query), ...signalOf(options) }),
+    ipLocation: async (path, options) => {
+      // 204 comes back as `undefined` from the client. Normalized to `null`
+      // here so "the deployment declined to have an opinion" is one value a
+      // caller can branch on, not the difference between two absences.
+      const answer = await client.get<IpLocation | undefined>(path, {
+        ...signalOf(options),
+      });
+      return answer ?? null;
+    },
   };
 }
 

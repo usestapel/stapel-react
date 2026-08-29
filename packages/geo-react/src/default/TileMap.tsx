@@ -358,6 +358,12 @@ export function TileMap(props: TileMapProps): ReactElement {
       tabIndex={0}
       data-geo-map="ready"
       data-geo-zoom={String(effectiveZoom)}
+      // The camera, as an attribute rather than as text on screen. Where the
+      // pin is used to be readable only from the "{lat}, {lon}" line under the
+      // map, which is exactly the thing a person should never be shown — so
+      // the number moved out of the copy and onto the element it describes,
+      // where a test can still see it and a user cannot.
+      data-geo-center={`${center.lat.toFixed(5)},${center.lon.toFixed(5)}`}
       data-analytics="none"
       data-analytics-reason="local-ui-map-camera; the picker reports the chosen place, not each pan"
       {...(props["data-testid"] !== undefined ? { "data-testid": props["data-testid"] } : {})}

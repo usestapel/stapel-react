@@ -32,6 +32,24 @@ export interface PlaceSearchBag {
   /** What the field currently holds. */
   readonly query: string;
   setQuery: (next: string) => void;
+  /**
+   * A suggestion was taken: put its WHOLE label in the field and close the
+   * list until the text moves again.
+   *
+   * Without this, picking a suggestion left the field holding the fragment the
+   * person typed and the dropdown still open over the answer — so the next
+   * render re-searched the fragment, re-opened the same list, and the only way
+   * out was to click somewhere else. A chosen place is an answer, and an
+   * answer closes its question.
+   */
+  accept: (label: string) => void;
+  /**
+   * The field is holding an accepted suggestion. A dropdown MUST NOT be drawn
+   * while this is true — and it goes false the moment the text differs from
+   * the label that was accepted, which is what makes the list come back when
+   * the person edits rather than only when they clear.
+   */
+  readonly chosen: boolean;
   /** The suggestions. `ready` with an EMPTY list is an empty state — nothing
    * matched — and is deliberately not a failure (contract §6). */
   readonly results: LoadState<readonly PlaceSuggestion[]>;
@@ -95,7 +113,10 @@ function idOf(feature: GeocodeFeature, index: number): string {
 export function usePlaceSearch(options: UsePlaceSearchOptions): PlaceSearchBag {
   const api = useGeoApi();
   const { config, bias, zoom, lang } = options;
-  const [query, setQuery] = useState("");
+  const [query, setQueryState] = useState("");
+  /** The label currently sitting in the field because it was CHOSEN, not
+   * typed. `null` once the two differ again. */
+  const [accepted, setAccepted] = useState<string | null>(null);
   const [results, setResults] = useState<LoadState<readonly PlaceSuggestion[]>>(
     loadReady([])
   );
@@ -115,7 +136,10 @@ export function usePlaceSearch(options: UsePlaceSearchOptions): PlaceSearchBag {
     (config as { search_debounce_ms?: number } | undefined)?.search_debounce_ms ?? 350;
 
   const trimmed = query.trim();
-  const idle = trimmed.length < minChars;
+  const chosen = accepted !== null && accepted === query;
+  // `chosen` suppresses the request as well as the list: there is nothing to
+  // learn from asking the geocoder to look up the answer it just gave.
+  const idle = trimmed.length < minChars || chosen;
   // By value (see `UsePlaceSearchOptions.bias`).
   const biasLat = bias?.lat;
   const biasLon = bias?.lon;
@@ -202,5 +226,31 @@ export function usePlaceSearch(options: UsePlaceSearchOptions): PlaceSearchBag {
     setNonce((n) => n + 1);
   }, []);
 
-  return { query, setQuery, results, availability, lang: lastLang, idle, retry };
+  const setQuery = useCallback((next: string) => {
+    setQueryState(next);
+    // Any edit — one character, a paste, a clear — reopens the question.
+    setAccepted((current) => (current === null || current === next ? current : null));
+  }, []);
+
+  const accept = useCallback((label: string) => {
+    setQueryState(label);
+    setAccepted(label);
+  }, []);
+
+  return {
+    query,
+    setQuery,
+    accept,
+    results,
+    availability,
+    lang: lastLang,
+    // `idle` folds "too short to ask" and "already answered" together, because
+    // every caller of it wants the same thing: do not draw a list. `chosen`
+    // is beside it for the one caller that must tell them apart — the field's
+    // own "keep typing" hint, which has no business appearing under an answer
+    // the person just chose.
+    idle,
+    chosen,
+    retry,
+  };
 }

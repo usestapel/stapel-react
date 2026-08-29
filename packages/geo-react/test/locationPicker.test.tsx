@@ -96,11 +96,27 @@ describe("<LocationPickerField/> — map/config", () => {
     happyPath();
     render(wrap(<LocationPickerField mode="inline" />));
     await waitFor(() => {
-      expect(screen.getByTestId("geo-coordinates")).toBeDefined();
+      expect(screen.getByTestId("geo-map")).toBeDefined();
     });
     // `default_center: [52.51667, 13.38333]` is [lat, lon] — the one field in
-    // this contract that looks like a GeoJSON pair and is not.
-    expect(screen.getByTestId("geo-coordinates").textContent).toBe("52.51667, 13.38333");
+    // this contract that looks like a GeoJSON pair and is not. Read off the
+    // MAP, because the camera is not something a person is shown numerically.
+    expect(screen.getByTestId("geo-map").getAttribute("data-geo-center")).toBe(
+      "52.51667,13.38333"
+    );
+  });
+
+  it("shows no coordinate anywhere — the defect this pair exists to undo", async () => {
+    happyPath();
+    render(wrap(<LocationPickerField mode="inline" />));
+    await waitFor(() => {
+      expect(screen.getByTestId("geo-map")).toBeDefined();
+    });
+    // A person choosing where their sofa is does not read 52.51667, and a
+    // number they cannot check makes a wrong answer look authoritative.
+    expect(screen.queryByTestId("geo-coordinates")).toBeNull();
+    expect(document.body.textContent ?? "").not.toContain("52.51667");
+    expect(document.body.textContent ?? "").not.toContain("13.38333");
   });
 
   it("always renders the attribution the licence requires", async () => {
@@ -150,11 +166,11 @@ describe("<LocationPickerField/> — the resolved address", () => {
       expect(document.querySelector('[data-geo-resolve="nowhere"]')).not.toBeNull();
     });
     expect(document.querySelector('[data-geo-resolve="nowhere"]')?.textContent).toContain(
-      "coordinates are still saved"
+      "place is still saved"
     );
-    // A successful call. Not an error, and the coordinate is still on screen.
+    // A successful call. Not an error, and the map is still there to move.
     expect(document.querySelector('[role="alert"]')).toBeNull();
-    expect(screen.getByTestId("geo-coordinates")).toBeDefined();
+    expect(screen.getByTestId("geo-map")).toBeDefined();
   });
 
   it("states the anonymous case and keeps the map — 401 is a configuration fact", async () => {
@@ -263,7 +279,9 @@ describe("<LocationPickerField/> — the resolved address", () => {
     });
     fireEvent.click(screen.getByTestId("geo-suggestion"));
     await waitFor(() => {
-      expect(screen.getByTestId("geo-coordinates").textContent).toBe("52.52182, 13.41314");
+      expect(screen.getByTestId("geo-map").getAttribute("data-geo-center")).toBe(
+        "52.52182,13.41314"
+      );
     });
     expect(screen.getByTestId("geo-map").getAttribute("data-geo-zoom")).toBe("17");
   });
@@ -281,7 +299,9 @@ describe("<LocationPickerField/> — the browser's position", () => {
     });
     fireEvent.click(screen.getByTestId("geo-locate"));
     await waitFor(() => {
-      expect(screen.getByTestId("geo-coordinates").textContent).toBe("55.75580, 37.61730");
+      expect(screen.getByTestId("geo-map").getAttribute("data-geo-center")).toBe(
+        "55.75580,37.61730"
+      );
     });
     restore();
   });
@@ -471,9 +491,11 @@ describe("<LocationPickerField/> — an address the form already holds", () => {
     await waitFor(() => {
       expect(document.querySelector('[data-geo-resolve="nowhere"]')).not.toBeNull();
     });
-    // An empty answer is an empty state: no alert, and the coordinates stay.
+    // An empty answer is an empty state: no alert, and the pin is untouched.
     expect(screen.queryByTestId("geo-resolve-error")).toBeNull();
-    expect(screen.getByTestId("geo-coordinates")).toBeTruthy();
+    expect(screen.getByTestId("geo-map").getAttribute("data-geo-center")).toBe(
+      "54.80000,15.20000"
+    );
   });
 
   it("moving the pin re-resolves — the seed suppresses one request, not the seam", async () => {

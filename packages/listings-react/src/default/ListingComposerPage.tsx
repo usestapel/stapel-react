@@ -7,7 +7,7 @@
  *
  *   category   `renderCategoryPicker` — the container's `<CategoryPickerField>`,
  *                                given `setCategory` to call
- *   where      `locationPicker`  — the container's `<LocationPickerField>`
+ *   where      `locationPicker`  — the container's `<LocationField>`
  *                                (`@stapel/geo-react`)
  *   currency   `renderCurrencyPicker` — whatever vocabulary the deployment sells in
  *   details    `features`      — the schema, drawn by `<FeatureFields>` (L0)
@@ -143,7 +143,7 @@ export interface ComposerCurrencySlot {
 
 /**
  * What a location picker component is handed — the contract
- * `@stapel/geo-react`'s `<LocationPickerField>` was built to fill.
+ * `@stapel/geo-react`'s `<LocationField>` was built to fill.
  *
  * `{ value, onChange }`, and `value` is the pin plus the address a resolver
  * found for it. `lat`/`lon` are NUMBERS here (a picker works in numbers) while
@@ -156,13 +156,15 @@ export interface ComposerCurrencySlot {
  * writes is three lines and no state:
  *
  * ```tsx
- * import { LocationPickerField } from "@stapel/geo-react/default";
+ * import { LocationField } from "@stapel/geo-react/default";
  *
  * <ListingComposerPage
  *   locationPicker={({ value, onChange }) => (
- *     <LocationPickerField
+ *     <LocationField
  *       {...(value.lat !== null && value.lon !== null
- *         ? { value: { lat: value.lat, lon: value.lon } }
+ *         ? { value: { point: { lat: value.lat, lon: value.lon },
+ *                      ...(value.address !== undefined
+ *                        ? { address: value.address } : {}) } }
  *         : {})}
  *       onChange={(picked) => {
  *         onChange({ lat: picked.point.lat, lon: picked.point.lon,
@@ -172,6 +174,17 @@ export interface ComposerCurrencySlot {
  *   )}
  * />
  * ```
+ *
+ * `LocationField` and not `LocationPickerField`, and the difference is the
+ * whole reason this slot exists. The older component is a BUTTON — "Choose on
+ * the map" — that prints its answer underneath itself, so a form the person
+ * has filled in goes on looking empty and the question names the mechanism
+ * rather than the thing being asked. `LocationField` is a field: it states
+ * the question while empty and holds the chosen place inside itself once it
+ * is not, and one tap runs the whole ladder behind it — the permission
+ * pre-prompt before the browser's one-shot prompt, the server's IP guess when
+ * that is refused, then the map. Either component fits this contract; only
+ * one of them looks like an answer to "where is it?".
  *
  * `geohash` is absent from this contract on purpose: since stapel-listings
  * 0.7.1 the server computes it from the coordinates and ignores anything sent
@@ -254,8 +267,9 @@ export interface ListingComposerPageProps extends ThemeModeProp {
   readonly renderCurrencyPicker?: (slot: ComposerCurrencySlot) => ReactNode;
   /**
    * WHERE the thing is, asked the host's way — the slot
-   * `@stapel/geo-react`'s `<LocationPickerField>` fills (see
-   * {@link ComposerLocationPickerProps} for the three-line adapter).
+   * `@stapel/geo-react`'s `<LocationField>` fills (see
+   * {@link ComposerLocationPickerProps} for the adapter, and for why the
+   * field beats the older button).
    *
    * Unfilled: a named placeholder. The composer will NOT fall back to two
    * decimal boxes — a seller does not know their latitude, and those boxes

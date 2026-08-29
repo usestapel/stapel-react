@@ -61,8 +61,6 @@ describe("the es bundle", () => {
     for (const key of Object.values(GEO_I18N_KEYS)) {
       const es = String(geoI18nBundleEs[key]);
       const en = String(geoI18nBundleEn[key]);
-      // The coordinate template is the same in every language on purpose.
-      if (key === GEO_I18N_KEYS.pickerCoordinates) continue;
       expect(es, key).not.toBe(en);
     }
   });
@@ -90,8 +88,11 @@ describe("the es bundle", () => {
     expect(geoI18nBundleEs[GEO_I18N_KEYS.geocoderUnauthorized]).toContain(
       "El mapa sigue funcionando"
     );
-    // "The coordinates are still saved."
-    expect(geoI18nBundleEs[GEO_I18N_KEYS.pickerNoAddress]).toContain("Las coordenadas");
+    // "The place is still saved." — a lake has no address and is still a
+    // place; the sentence must not read as a failed save. It also must not
+    // say "coordinates": nothing this pair renders shows one any more.
+    expect(geoI18nBundleEs[GEO_I18N_KEYS.pickerNoAddress]).toContain("se guarda");
+    expect(geoI18nBundleEs[GEO_I18N_KEYS.pickerNoAddress]).not.toContain("oordenada");
   });
 
   it("registers under `es` and renders the skin in Spanish", async () => {

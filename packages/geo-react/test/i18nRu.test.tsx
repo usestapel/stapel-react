@@ -48,8 +48,6 @@ describe("the ru bundle", () => {
     for (const key of Object.values(GEO_I18N_KEYS)) {
       const ru = String(geoI18nBundleRu[key]);
       const en = String(geoI18nBundleEn[key]);
-      // The coordinate template is the same in every language on purpose.
-      if (key === GEO_I18N_KEYS.pickerCoordinates) continue;
       expect(ru, key).not.toBe(en);
       expect(ru, key).toMatch(/[А-Яа-яЁё]/);
     }
@@ -69,8 +67,11 @@ describe("the ru bundle", () => {
   it("keeps the two load-bearing sentences non-alarming and non-final", () => {
     // "The map still works — you can place the pin yourself."
     expect(geoI18nBundleRu[GEO_I18N_KEYS.geocoderUnauthorized]).toContain("Карта работает");
-    // "The coordinates are still saved."
-    expect(geoI18nBundleRu[GEO_I18N_KEYS.pickerNoAddress]).toContain("Координаты");
+    // "The place is still saved." — a lake has no address and is still a
+    // place; the sentence must not read as a failed save. It also must not
+    // say "coordinates": nothing this pair renders shows one any more.
+    expect(geoI18nBundleRu[GEO_I18N_KEYS.pickerNoAddress]).toContain("сохранится");
+    expect(geoI18nBundleRu[GEO_I18N_KEYS.pickerNoAddress]).not.toContain("оординат");
   });
 
   it("registers under `ru` and renders the skin in Russian", async () => {

@@ -44,6 +44,13 @@
       "request": null,
       "response": "GeocodeResponse"
     },
+    "geo_api_v1_ip_retrieve": {
+      "method": "GET",
+      "path": "/geo/api/v1/ip",
+      "tag": "Map",
+      "request": null,
+      "response": "IpLocation"
+    },
     "geo_api_v1_locations_by_parent_list": {
       "method": "GET",
       "path": "/geo/api/v1/locations/by-parent/{parent_id}/",
@@ -438,6 +445,24 @@
       "source": "demo/AddressSearch.demo.tsx"
     },
     {
+      "id": "geo.location-field",
+      "title": "Where is it? One field, and no coordinates",
+      "description": "The composer's location question as a FIELD rather than a button: empty it says what it is for, filled it holds the chosen place inside itself the way a text input holds text. Tapping it runs the whole ladder — the permission pre-prompt before the browser's one-shot prompt, the IP centre when that is refused, then the map. A latitude never reaches the screen.",
+      "component": "LocationField",
+      "tokens": [
+        "surface-raised",
+        "border-subtle",
+        "text-muted"
+      ],
+      "variants": [
+        "empty",
+        "chosen",
+        "chosen-without-address",
+        "no-map"
+      ],
+      "source": "demo/LocationField.demo.tsx"
+    },
+    {
       "id": "geo.location-picker",
       "title": "The location picker a product mounts once",
       "description": "One component instead of two raw fields called latitude and longitude: a map with search-as-you-type, the browser's position prompt, a centre pin, and the address the pin resolved to. The basemap is drawn by this package — no map library, and the OpenStreetMap credit it is not allowed to suppress.",
@@ -464,6 +489,22 @@
         "dark"
       ],
       "source": "demo/LocationPicker.demo.tsx"
+    },
+    {
+      "id": "geo.permission-gate",
+      "title": "Asking for a browser capability, before the browser does",
+      "description": "The substrate's permission gate (@stapel/tokens-antd/skin) with geo's copy in it. A browser prompt fires once and its refusal is permanent, so the explanation has to come first — and once the answer is no, the screen offers the way that never needed the capability instead of a button that cannot work.",
+      "component": "PermissionGate",
+      "tokens": [
+        "surface-raised",
+        "text-muted"
+      ],
+      "variants": [
+        "ask",
+        "granted",
+        "refused"
+      ],
+      "source": "demo/PermissionGate.demo.tsx"
     },
     {
       "id": "geo.tile-map",
@@ -533,15 +574,21 @@
     "error.502.geocoder_unavailable",
     "error.503.mandate_unavailable",
     "geo.error.unknown",
+    "geo.field.choose_anyway",
+    "geo.field.chosen_no_address",
+    "geo.field.near_you",
+    "geo.field.placeholder",
     "geo.geocoder.failed",
     "geo.geocoder.throttled",
     "geo.geocoder.unauthorized",
     "geo.geocoder.unavailable",
     "geo.map.config_failed",
     "geo.map.retry",
+    "geo.permission.body",
+    "geo.permission.denied",
+    "geo.permission.title",
     "geo.picker.close",
     "geo.picker.confirm",
-    "geo.picker.coordinates",
     "geo.picker.locating",
     "geo.picker.map_label",
     "geo.picker.no_address",
@@ -596,6 +643,7 @@
       "useLocationPicker",
       "useMapConfig",
       "usePlaceSearch",
+      "useResolvedLocation",
       "worldSize",
       "wrapLon"
     ],
@@ -612,6 +660,7 @@
       "GeocodeProperties",
       "GeocodeResponse",
       "GeocoderAvailability",
+      "IpLocation",
       "LatLon",
       "LocationPickerBag",
       "MapConfig",
@@ -625,6 +674,9 @@
       "Remediation",
       "ResolveQuery",
       "ResolveState",
+      "ResolvedLocation",
+      "ResolvedLocationBag",
+      "ResolvedLocationSource",
       "Schemas",
       "SearchQuery",
       "TileLayer",
@@ -632,6 +684,7 @@
       "UseBrowserPositionOptions",
       "UseLocationPickerOptions",
       "UsePlaceSearchOptions",
+      "UseResolvedLocationOptions",
       "WorldPoint"
     ]
   }

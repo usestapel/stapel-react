@@ -14,6 +14,13 @@ export const geoKeys = {
    */
   search: (q: string, bias: string): readonly ["geo", "search", string, string] =>
     ["geo", "search", q, bias] as const,
+  /**
+   * The caller's own IP location. No parameters: the address is the request's,
+   * so the answer is per-session and there is exactly one of it. Cached hard —
+   * an IP's city does not change between two navigations, and the server
+   * caches it too.
+   */
+  ipLocation: (): readonly ["geo", "ip"] => ["geo", "ip"] as const,
   /** One resolved point, keyed to the coordinate that was asked about. */
   resolve: (
     lat: number,

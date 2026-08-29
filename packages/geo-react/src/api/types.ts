@@ -50,6 +50,18 @@ export type PlaceResolution = Schemas["PlaceResolution"];
 export type PlaceSummary = Schemas["PlaceSummary"];
 
 /**
+ * `GET /geo/api/v1/ip` — where the caller appears to be, from their own
+ * address. City-at-best, wrong behind a VPN, wrong behind a carrier's NAT:
+ * the FIRST FRAME of a map, never a location to store on a record.
+ *
+ * Read `ip_resolved` before believing `city`. The endpoint always answers
+ * something a map can open on, so a payload whose `source` is `"fallback"`
+ * is the deployment's default centre wearing the same shape — "we have no
+ * idea, here is where this site lives", not "you are here".
+ */
+export type IpLocation = Schemas["IpLocation"];
+
+/**
  * The endpoint table `map/config` hands out, mount-relative.
  *
  * Read from there rather than hardcoded, because the contract says to: the

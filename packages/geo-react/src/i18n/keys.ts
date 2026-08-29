@@ -32,7 +32,27 @@ export const GEO_I18N_KEYS = {
   /** A SUCCESSFUL resolve with nothing at that point — the middle of a lake.
    * An empty state, and never a failure (contract §6). */
   pickerNoAddress: "geo.picker.no_address",
-  pickerCoordinates: "geo.picker.coordinates",
+
+  // The location FIELD — the shape a form actually wants (LocationField).
+  /** What the empty field says it is for. Not "choose on the map": a map is
+   * the mechanism, and most people answer this by typing a street. */
+  fieldPlaceholder: "geo.field.placeholder",
+  /** A place IS chosen but the geocoder had no address for it. The field must
+   * not look unanswered. */
+  fieldChosenNoAddress: "geo.field.chosen_no_address",
+  /** The door out of a refused permission prompt, inside the sheet. */
+  fieldChooseAnyway: "geo.field.choose_anyway",
+  /** Where the map will open from, when the answer came from an address
+   * rather than a device. Said out loud because a city-level guess presented
+   * silently reads as a precise one. */
+  fieldNearYou: "geo.field.near_you",
+
+  /** The pre-prompt this pair puts in front of the browser's own one-shot
+   * geolocation prompt — its copy, because the generic floor sentence cannot
+   * know that the alternative here is typing a street. */
+  permissionTitle: "geo.permission.title",
+  permissionBody: "geo.permission.body",
+  permissionDenied: "geo.permission.denied",
 
   // Search states
   searchTypeMore: "geo.search.type_more",
@@ -90,8 +110,18 @@ export const geoI18nBundleEn: I18nDictionary = {
   "geo.picker.zoom_out": "Zoom out",
   "geo.picker.pin_label": "The chosen point is at the centre of the map",
   "geo.picker.resolving": "Looking up this place…",
-  "geo.picker.no_address": "No address at this point. The coordinates are still saved.",
-  "geo.picker.coordinates": "{lat}, {lon}",
+  "geo.picker.no_address": "No address at this point. The place is still saved.",
+
+  "geo.field.placeholder": "Choose a location",
+  "geo.field.chosen_no_address": "A place on the map, with no address",
+  "geo.field.choose_anyway": "Choose it on the map instead",
+  "geo.field.near_you": "Starting near {place}.",
+
+  "geo.permission.title": "Start from where you are?",
+  "geo.permission.body":
+    "Then the map opens on your street instead of somewhere you have to travel across. Your browser asks next, and you can type the address instead.",
+  "geo.permission.denied":
+    "This site cannot see your position, and the browser will not ask again. You can turn it back on in the site settings beside the address bar — or just find the place on the map.",
 
   "geo.search.type_more": "Keep typing to search.",
   "geo.search.no_results": "Nothing matched. Try fewer words, or drop the pin yourself.",

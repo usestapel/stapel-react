@@ -54,6 +54,7 @@ export function demoConfig(overrides?: Record<string, unknown>): Record<string, 
       reverse: "api/v1/geocoding/reverse",
       resolve: "api/v1/geocoding/resolve",
       locations_nearby: "api/v1/locations/nearby-by-coords",
+      ip: "api/v1/ip",
     },
     ...overrides,
   };
@@ -109,6 +110,38 @@ export const DEMO_RESOLVE: Record<string, unknown> = {
   feature: demoFeature("Unter den Linden, 1, Berlin, Deutschland", 13.38333, 52.51667, 1),
   alternatives: [],
   nearest: [],
+};
+
+/** `GET …/api/v1/ip` — the caller placed by their own address. City-at-best,
+ * and `ip_resolved` is what says so. */
+export const DEMO_IP: Record<string, unknown> = {
+  lat: 52.52,
+  lon: 13.405,
+  source: "maxmind",
+  precision: "city",
+  ip_resolved: true,
+  label: "Berlin, Germany",
+  city: "Berlin",
+  region: null,
+  country: "Germany",
+  country_code: "DE",
+  accuracy_radius_km: 20,
+};
+
+/** The same verb when it could not place the caller: the deployment's own
+ * centre, wearing the same shape and saying so. */
+export const DEMO_IP_FALLBACK: Record<string, unknown> = {
+  lat: 52.51667,
+  lon: 13.38333,
+  source: "fallback",
+  precision: "default",
+  ip_resolved: false,
+  label: null,
+  city: null,
+  region: null,
+  country: null,
+  country_code: null,
+  accuracy_radius_km: null,
 };
 
 /** The Stapel error envelope (contract §6). */

@@ -57,8 +57,18 @@ export const geoI18nBundleRu: I18nDictionary = {
   "geo.picker.zoom_out": "Отдалить",
   "geo.picker.pin_label": "Выбранная точка — в центре карты",
   "geo.picker.resolving": "Ищем это место…",
-  "geo.picker.no_address": "Здесь нет адреса. Координаты всё равно сохранятся.",
-  "geo.picker.coordinates": "{lat}, {lon}",
+  "geo.picker.no_address": "Здесь нет адреса. Место всё равно сохранится.",
+
+  "geo.field.placeholder": "Выбрать местоположение",
+  "geo.field.chosen_no_address": "Точка на карте, без адреса",
+  "geo.field.choose_anyway": "Выбрать место на карте",
+  "geo.field.near_you": "Начинаем рядом: {place}.",
+
+  "geo.permission.title": "Начать оттуда, где вы сейчас?",
+  "geo.permission.body":
+    "Тогда карта откроется на вашей улице, а не там, откуда придётся ехать. Дальше спросит браузер — адрес всегда можно ввести вручную.",
+  "geo.permission.denied":
+    "Сайт не видит вашу геопозицию, и браузер больше не спросит. Включить её можно в настройках сайта рядом с адресной строкой — либо просто найдите место на карте.",
 
   "geo.search.type_more": "Продолжайте вводить, чтобы начать поиск.",
   "geo.search.no_results":

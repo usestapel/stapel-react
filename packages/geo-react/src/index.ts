@@ -63,6 +63,7 @@ export type {
   GeocodeResponse,
   MapConfig,
   PlaceResolution,
+  IpLocation,
   PlaceSummary,
   ResolveQuery,
   SearchQuery,
@@ -86,6 +87,13 @@ export type {
   PositionState,
   UseBrowserPositionOptions,
 } from "./headless/useBrowserPosition.js";
+export { useResolvedLocation } from "./headless/useResolvedLocation.js";
+export type {
+  ResolvedLocation,
+  ResolvedLocationBag,
+  ResolvedLocationSource,
+  UseResolvedLocationOptions,
+} from "./headless/useResolvedLocation.js";
 export { useLocationPicker } from "./headless/useLocationPicker.js";
 export type {
   LocationPickerBag,

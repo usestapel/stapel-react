@@ -25,6 +25,7 @@ Paths are relative to `/geo/api/v1/`.
 - geo_api_v1_geocoding_reverse_retrieve: GET /geocoding/reverse
 - geo_api_v1_geocoding_search_retrieve: GET /geocoding/search
 - geo_api_v1_geocoding_structured_retrieve: GET /geocoding/structured
+- geo_api_v1_ip_retrieve: GET /ip
 - geo_api_v1_locations_by_parent_list: GET /locations/by-parent/{parent_id}/
 - geo_api_v1_locations_countries_list: GET /locations/countries/
 - geo_api_v1_locations_create: POST /locations/
@@ -78,7 +79,9 @@ const { tracked } = useTracked();
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - geo.address-search → <AddressSearchField> [default|typing|idle|empty|unauthorized|throttled|unavailable]  demo/AddressSearch.demo.tsx
+- geo.location-field → <LocationField> [empty|chosen|chosen-without-address|no-map]  demo/LocationField.demo.tsx
 - geo.location-picker → <LocationPickerField> [default|sheet|anonymous|unavailable|nowhere|config-failed|dark]  demo/LocationPicker.demo.tsx
+- geo.permission-gate → <PermissionGate> [ask|granted|refused]  demo/PermissionGate.demo.tsx
 - geo.tile-map → <TileMap> [default|narrow]  demo/TileMap.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 

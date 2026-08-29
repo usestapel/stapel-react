@@ -60,8 +60,18 @@ export const geoI18nBundleEs: I18nDictionary = {
   "geo.picker.pin_label": "El punto elegido está en el centro del mapa",
   "geo.picker.resolving": "Buscando este lugar…",
   "geo.picker.no_address":
-    "Aquí no hay ninguna dirección. Las coordenadas se guardan igualmente.",
-  "geo.picker.coordinates": "{lat}, {lon}",
+    "Aquí no hay ninguna dirección. El lugar se guarda igualmente.",
+
+  "geo.field.placeholder": "Elegir la ubicación",
+  "geo.field.chosen_no_address": "Un punto en el mapa, sin dirección",
+  "geo.field.choose_anyway": "Elegirlo en el mapa",
+  "geo.field.near_you": "Empezamos cerca de {place}.",
+
+  "geo.permission.title": "¿Empezar donde estás?",
+  "geo.permission.body":
+    "Así el mapa se abre en tu calle y no en un sitio al que tendrías que viajar. Lo siguiente lo pregunta el navegador, y siempre puedes escribir la dirección.",
+  "geo.permission.denied":
+    "Este sitio no puede ver tu ubicación y el navegador no volverá a preguntar. Puedes reactivarla en los ajustes del sitio, junto a la barra de direcciones, o simplemente buscar el lugar en el mapa.",
 
   "geo.search.type_more": "Sigue escribiendo para buscar.",
   "geo.search.no_results":
