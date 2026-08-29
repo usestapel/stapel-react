@@ -33,6 +33,20 @@
  * behind a "Filters (N)" button and opens as a bottom sheet through the shared
  * `SkinDialog`, with the count of what is applied on the button itself.
  *
+ * ── Where the search opens, and what it calls the place ───────────────────
+ *
+ * `defaultGeo` centres a fresh search on the visitor — a granted browser
+ * prompt, or the server's IP guess when there was none — and `geoLabel` says
+ * what that place is CALLED. Both are the host's to resolve: this page has a
+ * `lat` and a `lon` in its query string and no way on earth to turn them into
+ * "Berlin Mitte", which is exactly why it must not print them. A search
+ * package that grew a geocoder to say a nicer sentence would have taken on the
+ * whole of `geo-react` to avoid one bad line.
+ *
+ * The centring is applied once, only into a URL that carries no location, and
+ * never again after the visitor has said anything about location themselves —
+ * see {@link SearchStateProviderProps.defaultGeo}, which owns the rules.
+ *
  * ── The filter column is laid out only when there is something in it ──────
  *
  * `Col md={7}` was unconditional, and on a deployment whose search plan
@@ -59,6 +73,7 @@ import type { SearchParamsAdapter } from "../headless/SearchStateProvider.js";
 import { useFacetPanel } from "../headless/FacetPanel.js";
 import { useAppliedCount } from "../headless/useAppliedCount.js";
 import type { ParseSearchStateOptions } from "../state/urlState.js";
+import type { SearchGeo } from "../api/types.js";
 import { buildRangeGroups } from "../state/ranges.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { FacetPanelPane } from "./FacetPanelPane.js";
@@ -141,6 +156,24 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
   readonly renderCategoryFilter?: (slot: CategoryFilterSlotProps) => ReactNode;
   /** The location control slot (`geo-react`). */
   readonly renderGeoFilter?: (slot: GeoFilterSlotProps) => ReactNode;
+  /**
+   * What the current location is CALLED, in words — set once here and it
+   * reaches both filter surfaces, the desktop panel and the phone chip row.
+   * See {@link FacetPanelPaneProps.geoLabel}: this page never prints a
+   * coordinate, with or without it.
+   */
+  readonly geoLabel?: ReactNode;
+  /**
+   * Open the search centred where the visitor is, when the URL says nothing
+   * about location — see {@link SearchStateProviderProps.defaultGeo} for the
+   * four rules that keep it from overruling a link or a person.
+   *
+   * The host resolves the position; this page does not know what a map or a
+   * geocoder is and must not learn. A browser prompt (`usePermission`
+   * + `geolocation`) or the server's IP guess both arrive here as the same two
+   * numbers, and `geoLabel` is where the name of the place they mean comes in.
+   */
+  readonly defaultGeo?: SearchGeo | undefined;
   /** Container chrome under the results — e.g. the ranking-disclosure link. */
   readonly footer?: ReactNode;
   /**
@@ -225,6 +258,7 @@ interface SearchPageBodyProps {
   readonly languages?: readonly string[];
   readonly renderCategoryFilter?: (slot: CategoryFilterSlotProps) => ReactNode;
   readonly renderGeoFilter?: (slot: GeoFilterSlotProps) => ReactNode;
+  readonly geoLabel?: ReactNode;
   readonly footer?: ReactNode;
   readonly filtersHeader?: ReactNode;
   readonly resultsHeading?: ReactNode;
@@ -332,6 +366,7 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
           {...(props.renderGeoFilter !== undefined
             ? { renderGeoFilter: props.renderGeoFilter }
             : {})}
+          {...(props.geoLabel !== undefined ? { geoLabel: props.geoLabel } : {})}
         />
       )}
     </Flex>
@@ -396,6 +431,7 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
             {...(props.renderGeoFilter !== undefined
               ? { renderGeoFilter: props.renderGeoFilter }
               : {})}
+            {...(props.geoLabel !== undefined ? { geoLabel: props.geoLabel } : {})}
           />
           <SkinDialog
             open={sheetOpen}
@@ -452,6 +488,8 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     languages,
     renderCategoryFilter,
     renderGeoFilter,
+    geoLabel,
+    defaultGeo,
     footer,
     filtersHeader,
     resultsHeading,
@@ -471,7 +509,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
 
   return (
     <SkinTheme surface="base" {...(mode !== undefined ? { mode } : {})}>
-      <SearchStateProvider adapter={adapter} {...parseOptions}>
+      <SearchStateProvider adapter={adapter} defaultGeo={defaultGeo} {...parseOptions}>
         <SearchPageBody
           {...(renderCard !== undefined ? { renderCard } : {})}
           {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
@@ -480,6 +518,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(languages !== undefined ? { languages } : {})}
           {...(renderCategoryFilter !== undefined ? { renderCategoryFilter } : {})}
           {...(renderGeoFilter !== undefined ? { renderGeoFilter } : {})}
+          {...(geoLabel !== undefined ? { geoLabel } : {})}
           {...(footer !== undefined ? { footer } : {})}
           {...(filtersHeader !== undefined ? { filtersHeader } : {})}
           {...(resultsHeading !== undefined ? { resultsHeading } : {})}

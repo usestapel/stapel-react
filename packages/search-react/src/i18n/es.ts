@@ -110,7 +110,7 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.geo.radius_label": "Radio, km",
   "search.geo.clear": "En cualquier lugar",
   "search.geo.box": "Dentro del área mostrada",
-  "search.geo.center": "Cerca de {lat}, {lon}",
+  "search.geo.chosen_place": "Un lugar elegido en el mapa",
 
   "search.url.issues_title": "Parte de este enlace no se pudo leer",
   "search.url.issue.not_a_number":

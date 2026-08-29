@@ -89,6 +89,22 @@ export interface FacetPanelPaneProps extends ThemeModeProp {
   /** The location control (`geo-react`). Unfilled, a location that arrived in
    * the URL still gets its radius and a "clear" control. */
   readonly renderGeoFilter?: (slot: GeoFilterSlotProps) => ReactNode;
+  /**
+   * What the current location constraint is CALLED, in words — the address or
+   * the city the host resolved.
+   *
+   * The panel owns `lat`/`lon`/`radius_km` as URL state and must never render
+   * them: a coordinate is what gets STORED, and storage is not a display
+   * concern. `55.756, 37.617` is unreadable to the one person who could have
+   * caught the mistake, so a wrong point looks as authoritative as a right one
+   * and a right one looks like machinery.
+   *
+   * Whoever turned an address into that point still has the address — the
+   * geocoder's own answer, the city an IP guess named, the label on the map
+   * pin — and hands it back here. Absent, the panel says a location is applied
+   * without pretending to name it (`search.geo.chosen_place`).
+   */
+  readonly geoLabel?: ReactNode;
   /** BCP-47 tags this deployment indexes — see {@link LanguageSelect}. */
   readonly languages?: readonly string[];
   /**
@@ -149,6 +165,28 @@ function CategoryFilter(props: {
 }
 
 /**
+ * What a location constraint is called when the host handed down no name.
+ *
+ * Two sentences, and neither of them is a number. A box is describable without
+ * one — it is the area on the screen — and a point is not, so the point's
+ * sentence says a place was chosen and stops there. The alternative that was
+ * shipped for four releases printed `Around 55.756, 37.617`, which is the
+ * defect class this pair is otherwise careful about everywhere else: a value
+ * the reader cannot check, rendered as if it were an answer.
+ *
+ * Shared with `<FilterChips>` so the phone row and the desktop panel cannot
+ * drift into saying two different things about the same URL.
+ */
+export function geoSummaryFallback(
+  geo: SearchGeo,
+  t: (key: string) => string
+): string {
+  return geo.kind === "bbox"
+    ? t(SEARCH_I18N_KEYS.geoBox)
+    : t(SEARCH_I18N_KEYS.geoChosenPlace);
+}
+
+/**
  * The location constraint.
  *
  * SETTING a centre needs a geocoder, which is the deployment's and
@@ -156,9 +194,15 @@ function CategoryFilter(props: {
  * number in the URL, and a link shared with `lat/lon/radius_km` is a link this
  * panel can widen, tighten and clear without knowing what a map is. That is the
  * difference between a slot and a hole.
+ *
+ * NAMING the centre is a third thing again, and it is the host's: this panel
+ * has two numbers and no way to turn them into a place. So it either says the
+ * name it was handed (`label`) or says that a place is chosen — never the
+ * numbers themselves. See {@link FacetPanelPaneProps.geoLabel}.
  */
 function GeoFilter(props: {
   render?: (slot: GeoFilterSlotProps) => ReactNode;
+  label?: ReactNode;
 }): ReactElement | null {
   const t = useT();
   const { state, setGeo } = useSearchState();
@@ -196,12 +240,7 @@ function GeoFilter(props: {
       <Typography.Text strong>{t(SEARCH_I18N_KEYS.geoTitle)}</Typography.Text>
       {slot}
       <Typography.Text type="secondary" data-testid="search-geo-summary">
-        {geo.kind === "bbox"
-          ? t(SEARCH_I18N_KEYS.geoBox)
-          : t(SEARCH_I18N_KEYS.geoCenter, {
-              lat: geo.lat.toFixed(3),
-              lon: geo.lon.toFixed(3),
-            })}
+        {props.label ?? geoSummaryFallback(geo, t)}
       </Typography.Text>
       {geo.kind === "center" && (
         <Flex gap={spacing[2]} align="center" wrap>
@@ -318,6 +357,7 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               {...(props.renderGeoFilter !== undefined
                 ? { render: props.renderGeoFilter }
                 : {})}
+              {...(props.geoLabel !== undefined ? { label: props.geoLabel } : {})}
             />
 
             {/* Honesty flags, not failures: the counts ARE approximate and

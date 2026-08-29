@@ -732,7 +732,7 @@
     "search.filters.show_count_at_least.one",
     "search.filters.show_count_at_least.other",
     "search.geo.box",
-    "search.geo.center",
+    "search.geo.chosen_place",
     "search.geo.clear",
     "search.geo.radius_km",
     "search.geo.radius_label",

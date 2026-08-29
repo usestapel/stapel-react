@@ -152,7 +152,18 @@ export const SEARCH_I18N_KEYS = {
   geoRadiusLabel: "search.geo.radius_label",
   geoClear: "search.geo.clear",
   geoBox: "search.geo.box",
-  geoCenter: "search.geo.center",
+  /**
+   * What a location constraint is called when nobody has given it a NAME.
+   *
+   * It replaces `search.geo.center` ("Around {lat}, {lon}"), which printed the
+   * two numbers the URL happens to store — `55.756, 37.617` — to a person who
+   * chose a place. A coordinate is storage, not a description: it cannot be
+   * checked by the one reader who could check an address, so a wrong point
+   * reads as authoritative and a right one reads as machinery. Hosts that HAVE
+   * the name (the geocoder that resolved it, the IP guess's city) pass
+   * `geoLabel` and this sentence never appears.
+   */
+  geoChosenPlace: "search.geo.chosen_place",
 
   // ── the URL that could not be read ───────────────────────────────────────
   urlIssuesTitle: "search.url.issues_title",
@@ -316,7 +327,7 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.geo.radius_label": "Radius, km",
   "search.geo.clear": "Anywhere",
   "search.geo.box": "Inside the shown area",
-  "search.geo.center": "Around {lat}, {lon}",
+  "search.geo.chosen_place": "A chosen place on the map",
 
   "search.url.issues_title": "Part of this link could not be read",
   "search.url.issue.not_a_number": "“{param}” in this link is not a number, so it was ignored",

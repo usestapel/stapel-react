@@ -137,7 +137,7 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.geo.radius_label": "Радиус, км",
   "search.geo.clear": "Везде",
   "search.geo.box": "В показанной области",
-  "search.geo.center": "Рядом с {lat}, {lon}",
+  "search.geo.chosen_place": "Выбранное место на карте",
 
   "search.url.issues_title": "Часть этой ссылки прочитать не удалось",
   "search.url.issue.not_a_number":

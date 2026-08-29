@@ -21,7 +21,12 @@
  *     owns walking the tree; this pair owns the `category` parameter.
  *  4. **`renderGeoFilter`** — the location control. `geo-react` owns the map
  *     and the geocoder; this pair owns `lat`/`lon`/`radius_km`/`bbox`, and
- *     keeps the controls that WIDEN a location a link already carries.
+ *     keeps the controls that WIDEN a location a link already carries. Its two
+ *     companions divide the same seam the same way: `geoLabel` is what the
+ *     current place is CALLED (owning a coordinate is not permission to print
+ *     one), and `defaultGeo` is where a fresh search opens when the URL names
+ *     nowhere — the visitor's own position, resolved by whoever is allowed to
+ *     ask for it.
  *  5. **retheming through the §68 token JSON** — every surface wraps itself
  *     in the shared `SkinTheme`, so a host's regenerated `--stapel-*` custom
  *     properties reach this skin with zero code.

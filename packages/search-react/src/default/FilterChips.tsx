@@ -62,6 +62,7 @@ import type { FacetGroup } from "../state/facets.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { FacetGroupControl } from "./FacetGroupControl.js";
 import { RangeFilterRow } from "./RangeFilterRow.js";
+import { geoSummaryFallback } from "./FacetPanelPane.js";
 import type { GeoFilterSlotProps } from "./FacetPanelPane.js";
 
 /** The class the scroller carries, for {@link chipRowCss}. */
@@ -110,6 +111,15 @@ export interface FilterChipsProps {
    * it the location chip appears only when the URL already carries a point,
    * so a shared link can still be widened. */
   readonly renderGeoFilter?: (slot: GeoFilterSlotProps) => ReactNode;
+  /**
+   * What the current location constraint is CALLED — see
+   * {@link FacetPanelPaneProps.geoLabel}. The chip carries it as its own text,
+   * which is the whole point of a chip row: "Berlin Mitte" states the filter
+   * on the results page, where `55.756, 37.617` stated only that a machine was
+   * involved. Absent, the chip reads `search.geo.chosen_place`; never a
+   * coordinate, on either surface.
+   */
+  readonly geoLabel?: ReactNode;
   /** Open the whole panel — the leading chip's action. The page owns that
    * sheet, because the page is the surface it covers. */
   readonly onOpenAll: () => void;
@@ -203,15 +213,13 @@ export function FilterChips(props: FilterChipsProps): ReactElement {
 
   const geo = state.geo;
   const showGeoChip = props.renderGeoFilter !== undefined || geo !== undefined;
-  const geoLabel =
+  // Nothing applied: the chip is the FILTER's name ("Location"), because there
+  // is no constraint to describe yet. Applied: the host's name for the place,
+  // and failing that the sentence that admits the pair does not know it.
+  const geoChipLabel: ReactNode =
     geo === undefined
       ? t(SEARCH_I18N_KEYS.geoTitle)
-      : geo.kind === "bbox"
-        ? t(SEARCH_I18N_KEYS.geoBox)
-        : t(SEARCH_I18N_KEYS.geoCenter, {
-            lat: geo.lat.toFixed(3),
-            lon: geo.lon.toFixed(3),
-          });
+      : (props.geoLabel ?? geoSummaryFallback(geo, t));
 
   return (
     <>
@@ -256,7 +264,7 @@ export function FilterChips(props: FilterChipsProps): ReactElement {
               setOpen("geo");
             }}
           >
-            {geoLabel}
+            {geoChipLabel}
           </Button>
         )}
 
@@ -350,7 +358,7 @@ export function FilterChips(props: FilterChipsProps): ReactElement {
             {geo !== undefined && (
               <>
                 <Typography.Text type="secondary" data-testid="search-chip-geo-summary">
-                  {geoLabel}
+                  {geoChipLabel}
                 </Typography.Text>
                 <Button
                   style={{ alignSelf: "flex-start" }}

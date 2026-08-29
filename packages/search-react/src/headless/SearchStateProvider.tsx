@@ -1,4 +1,11 @@
-import { createContext, useCallback, useContext, useMemo } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import type { ReactElement, ReactNode } from "react";
 import type {
   SearchGeo,
@@ -74,6 +81,41 @@ const StateContext = createContext<SearchStateBag | null>(null);
 
 export interface SearchStateProviderProps extends ParseSearchStateOptions {
   readonly adapter: SearchParamsAdapter;
+  /**
+   * Where to centre the results when the URL says nothing about location —
+   * the visitor's own position, as the HOST resolved it (a granted browser
+   * geolocation prompt, or the server's IP guess when there was none).
+   *
+   * Opt-in, and it is deliberately not one of the `default*` parse options
+   * beside it. Those are read-time fallbacks: `defaultCategory` fills a gap in
+   * the parsed state and never reaches the query string. A location cannot
+   * work that way. It has to be WRITTEN, once, because the URL is the state:
+   * a centre that lived only in the parse would vanish from a link the visitor
+   * shares, and — worse — would be re-applied on the very next render after
+   * they cleared it, which is a filter that will not come off.
+   *
+   * So the rules, all four of which are about not overruling a person:
+   *
+   *  - **Only into an empty URL.** A link that carries `lat`/`lon` or `bbox`
+   *    already means a place, and it must mean the same place for everybody
+   *    who opens it. A default that overwrote it would make one address bar
+   *    two different searches.
+   *  - **Once.** Tracked as "has anyone spoken about location yet", in a ref —
+   *    not by comparing the default against the current value, which cannot
+   *    tell "the visitor cleared it" from "it has not been applied".
+   *  - **Never after a clear.** `setGeo` marks the question answered, so a
+   *    person who widens the search back to everywhere stays there.
+   *  - **Late is fine.** A browser prompt and an IP round trip both resolve
+   *    after the first paint, so `undefined` now and a value three renders
+   *    later still applies — provided the URL is still empty of geo at that
+   *    moment.
+   *
+   * It REPLACES the history entry rather than pushing one: the visitor did not
+   * perform this change, and Back should leave the page, not undo a centring
+   * they never asked for. The adapter's `setParams` takes `{ replace: true }`
+   * for exactly this, and the react-router binding honours it.
+   */
+  readonly defaultGeo?: SearchGeo | undefined;
   readonly children: ReactNode;
 }
 
@@ -86,7 +128,7 @@ export interface SearchStateProviderProps extends ParseSearchStateOptions {
 export function SearchStateProvider(
   props: SearchStateProviderProps
 ): ReactElement {
-  const { adapter, children, ...parseOptions } = props;
+  const { adapter, children, defaultGeo, ...parseOptions } = props;
   const { params, setParams } = adapter;
 
   // The parse options are spread into a stable dependency: a host that builds
@@ -123,6 +165,17 @@ export function SearchStateProvider(
     [setParams, search]
   );
 
+  /**
+   * Has anything at all said where to search yet?
+   *
+   * `true` once the URL was seen carrying a location, once `defaultGeo` has
+   * been applied, or once anybody called `setGeo` — including with `null`.
+   * That last one is the whole reason this is a ref and not a comparison: a
+   * cleared location and an unapplied default look identical in the state, and
+   * only the record of who spoke tells them apart.
+   */
+  const geoSettled = useRef(false);
+
   const bag = useMemo<SearchStateBag>(() => {
     const state = parsed.state;
     const apply = (
@@ -146,7 +199,13 @@ export function SearchStateProvider(
       toggleFilter: (slug, value) => apply(toggleFilterValue(state, slug, value)),
       setFilter: (slug, values) => apply(setFilterValues(state, slug, values)),
       setRange: (slug, range) => apply(setRangeValue(state, slug, range)),
-      setGeo: (geo) => apply(patchSearchState(state, { geo })),
+      setGeo: (geo) => {
+        // The person has now answered the location question themselves —
+        // including by answering "anywhere". `defaultGeo` does not get to ask
+        // it again.
+        geoSettled.current = true;
+        apply(patchSearchState(state, { geo }));
+      },
       // A page size is a preference, not a step through the results.
       setLimit: (limit) => apply(patchSearchState(state, { limit }), { replace: true }),
       clearAll: () => apply(clearFilters(state)),
@@ -155,6 +214,24 @@ export function SearchStateProvider(
       patch: (patch) => apply(patchSearchState(state, patch)),
     };
   }, [parsed, commit]);
+
+  // An effect, not a render-time write: this puts a value in the URL, and a
+  // router asked to navigate during a render is a warning at best and a loop
+  // at worst. It runs after every commit, which is what makes a `defaultGeo`
+  // that arrives on the fourth render — the browser prompt finally answered —
+  // land as reliably as one present on the first.
+  useEffect(() => {
+    if (geoSettled.current) return;
+    if (parsed.state.geo !== undefined) {
+      // The link brought its own place. That settles the question for this
+      // visit even if the host is still resolving one of its own.
+      geoSettled.current = true;
+      return;
+    }
+    if (defaultGeo === undefined) return;
+    geoSettled.current = true;
+    commit(patchSearchState(parsed.state, { geo: defaultGeo }), { replace: true });
+  }, [defaultGeo, parsed.state, commit]);
 
   return <StateContext.Provider value={bag}>{children}</StateContext.Provider>;
 }

@@ -13,6 +13,14 @@
  * The second variant shows the same panel narrowed by a shared link: the
  * category and the location arrived in the URL, and each one has a control
  * that WIDENS it again even though no host filled either slot.
+ *
+ * That location is also where this panel refuses to show its work. The URL
+ * carries `lat=55.75&lon=37.62`, and the summary line under the heading says
+ * "Tverskaya, Moscow" — the name the HOST resolved, passed in as `geoLabel`.
+ * A panel printing `55.750, 37.620` there (which is what it did until this
+ * release) hands a shopper two numbers they cannot check in place of the one
+ * fact they can. Without a `geoLabel` the line reads "A chosen place on the
+ * map"; it never reads a coordinate.
  */
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
@@ -29,6 +37,10 @@ const NARROWED_SEARCH =
 
 const LANGUAGES: readonly string[] = ["ru", "en"];
 
+/** What the host's geocoder called the point in `NARROWED_SEARCH`. A demo,
+ * like a deployment, is the one that knows this — the panel has two numbers. */
+const GEO_LABEL = "Tverskaya, Moscow";
+
 function Panel(props: { phone?: boolean; search: string }): ReactElement {
   return (
     <SearchSkinHarness
@@ -36,7 +48,11 @@ function Panel(props: { phone?: boolean; search: string }): ReactElement {
       seed={SEED}
       {...(props.phone === true ? { phone: true } : {})}
     >
-      <FacetPanelPane categoryFeatures={DEMO_FEATURES} languages={LANGUAGES} />
+      <FacetPanelPane
+        categoryFeatures={DEMO_FEATURES}
+        languages={LANGUAGES}
+        geoLabel={GEO_LABEL}
+      />
     </SearchSkinHarness>
   );
 }
@@ -59,7 +75,7 @@ export default defineDemo({
     },
     narrowed: {
       description:
-        "A shared link that already narrows by category, brand, power and a 25km radius — at 390px. Every one of those constraints has a control that removes it, including the two whose slots no host filled.",
+        "A shared link that already narrows by category, brand, power and a 25km radius — at 390px. Every one of those constraints has a control that removes it, including the two whose slots no host filled. The location reads as the place the host named it, not as the pair of numbers the URL stores.",
       viewport: "phone",
       step: "narrowed",
       render: () => <Panel phone search={NARROWED_SEARCH} />,
