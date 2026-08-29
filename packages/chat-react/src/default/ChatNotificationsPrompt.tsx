@@ -37,6 +37,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import { useT, usePermission } from "@stapel/core";
+import type { PermissionBag } from "@stapel/core";
 import { PermissionSheet, permissionIsBlocked } from "@stapel/tokens-antd/skin";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 
@@ -59,6 +60,15 @@ export interface ChatNotificationsPromptProps {
    * rather than by hiding the component somewhere in a skin.
    */
   readonly offered?: boolean;
+  /**
+   * The permission bag to render against, instead of this browser's own.
+   *
+   * The same shape `PermissionSheet` takes for the same reason: the ask has
+   * five states and a real browser is only ever in one of them, so neither a
+   * demo nor a test can photograph the other four. Production passes nothing
+   * and the hook answers.
+   */
+  readonly permission?: PermissionBag;
   readonly onResolved?: (granted: boolean) => void;
 }
 
@@ -70,9 +80,10 @@ export function ChatNotificationsPrompt(
   props: ChatNotificationsPromptProps
 ): ReactElement | null {
   const t = useT();
-  const permission = usePermission("notifications", {
+  const browserPermission = usePermission("notifications", {
     ...(props.offered !== undefined ? { offered: props.offered } : {}),
   });
+  const permission = props.permission ?? browserPermission;
   const [open, setOpen] = useState(false);
   const [asked, setAsked] = useState(false);
   // The tide mark, taken the moment the thread is LOADED — not at mount. A

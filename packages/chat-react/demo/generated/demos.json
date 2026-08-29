@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/chat-react",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "demos": [
     {
       "id": "chat.conversation-list-panel",
@@ -153,7 +153,7 @@
       "variants": [
         {
           "id": "default",
-          "description": "The counterparty is connected, and this client's socket is live. The header carries ONE claim — 'Online', about them — and no transport chrome, because a working connection is the expected state and needs none. This is the frame where the old build drew 'На связи' from the reader's own socket and every person read it as the seller being there.",
+          "description": "The counterparty is connected, and this client's socket is live. The header carries ONE claim — 'Online', about them — and no transport chrome, because a working connection is the expected state and needs none. This is the frame where the old build drew its 'Live' tag from the reader's own socket and every person read it as the seller being there.",
           "viewport": "phone",
           "step": "online"
         },
@@ -184,7 +184,7 @@
       ],
       "source": {
         "file": "demo/PresenceSkin.demo.tsx",
-        "line": 112
+        "line": 143
       }
     },
     {

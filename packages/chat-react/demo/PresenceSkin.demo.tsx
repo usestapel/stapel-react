@@ -30,6 +30,7 @@ import { ChatNotificationsPrompt } from "../src/default/ChatNotificationsPrompt.
 import { ChatSkinTheme } from "../src/default/theme.js";
 import { ChatDemoHarness, DEMO_THREAD_CONVERSATION, DEMO_VIEWER } from "./_harness.js";
 import type { Conversation } from "../src/api/types.js";
+import type { PermissionBag } from "@stapel/core";
 
 const SELLER = "u-seller";
 
@@ -91,6 +92,24 @@ function Header(props: {
   );
 }
 
+/**
+ * A browser that has NOT been asked yet.
+ *
+ * The catalogue cannot photograph this state by standing in it: a headless
+ * Chromium has already answered the notifications permission, and the
+ * component correctly renders nothing once the browser has — which is the
+ * behaviour, and a blank frame. So the bag is supplied, exactly as
+ * `PermissionSheet` takes one, and the picture is of the arm the state names.
+ */
+const NOT_YET_ASKED: PermissionBag = {
+  kind: "notifications",
+  status: "prompt",
+  supported: true,
+  asking: false,
+  request: async () => "prompt",
+  refresh: () => undefined,
+};
+
 /** The prompt, driven past its value moment so the sheet is actually open. */
 function Prompt(): ReactElement {
   const [lastSeq, setLastSeq] = useState(3);
@@ -110,7 +129,11 @@ function Prompt(): ReactElement {
       <ChatSkinTheme surface="raised">
         <div style={{ minHeight: 320, padding: spacing[3] }}>
           <Typography.Paragraph type="secondary">{DEMO_ASIDE}</Typography.Paragraph>
-          <ChatNotificationsPrompt lastSeq={lastSeq} ready />
+          <ChatNotificationsPrompt
+            lastSeq={lastSeq}
+            ready
+            permission={NOT_YET_ASKED}
+          />
         </div>
       </ChatSkinTheme>
     </ChatDemoHarness>
