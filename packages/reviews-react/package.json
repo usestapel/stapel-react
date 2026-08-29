@@ -1,7 +1,7 @@
 {
   "name": "@stapel/reviews-react",
   "version": "0.6.0",
-  "description": "Headless React pair for stapel-reviews: ratings and reviews addressed the way the module addresses them \u2014 by an opaque (target_type, target_key) pair, never by a foreign key. An anchor-paginated list a guest can read, an aggregate that renders `no reviews yet` instead of a zero-star rating when count is 0, a submit form that reads the duplicate refusal by CODE (the module answers 400, not 409) and asks for a sign-in only where the write actually needs one, and moderation states shown as they are rather than hidden. The seller-level rating is a display over the composite's projection, because reviews itself cannot roll one up. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin.",
+  "description": "Headless React pair for stapel-reviews: ratings and reviews addressed the way the module addresses them — by an opaque (target_type, target_key) pair, never by a foreign key. An anchor-paginated list a guest can read, an aggregate that renders `no reviews yet` instead of a zero-star rating when count is 0, a submit form that reads the duplicate refusal by CODE (the module answers 400, not 409) and asks for a sign-in only where the write actually needs one, and moderation states shown as they are rather than hidden. The seller-level rating is a display over the composite's projection, because reviews itself cannot roll one up. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -53,22 +53,22 @@
   },
   "size-limit": [
     {
-      "name": "index \u2014 the headless pair (client + list window + aggregate + submit + moderate + respond): no antd",
+      "name": "index — the headless pair (client + list window + aggregate + submit + moderate + respond): no antd",
       "path": "dist/index.js",
       "limit": "7 KB"
     },
     {
-      "name": "default \u2014 the antd skin (list, stars, form, moderation queue, reply composer) must stay out of the main bundle",
+      "name": "default — the antd skin (list, stars, form, moderation queue, reply composer) must stay out of the main bundle",
       "path": "dist/default/index.js",
       "limit": "10 KB"
     },
     {
-      "name": "i18n/ru \u2014 the Russian bundle is opt-in, not carried by the main entry",
+      "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",
       "path": "dist/i18n/ru.js",
       "limit": "3.5 KB"
     },
     {
-      "name": "i18n/es \u2014 the Spanish bundle is opt-in, not carried by the main entry",
+      "name": "i18n/es — the Spanish bundle is opt-in, not carried by the main entry",
       "path": "dist/i18n/es.js",
       "limit": "3 KB"
     }

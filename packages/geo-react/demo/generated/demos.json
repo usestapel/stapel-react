@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/geo-react",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "demos": [
     {
       "id": "geo.address-search",
@@ -200,7 +200,7 @@
       ],
       "source": {
         "file": "demo/PermissionGate.demo.tsx",
-        "line": 80
+        "line": 88
       }
     },
     {

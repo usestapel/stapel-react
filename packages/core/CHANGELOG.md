@@ -1,5 +1,71 @@
 # @stapel/core
 
+## 0.20.0
+
+### Minor Changes
+
+- 481db42: **A browser permission is now asked for once, in one place, by the substrate.** `usePermission(kind)` in `@stapel/core`; `PermissionSheet` and `PermissionGate` in `@stapel/tokens-antd/skin`.
+
+  A permission prompt is a single line the product cannot write, fired once, with no second chance: _"example.com wants to use your location"_, Allow / Block. Everything that makes it answerable — why we are asking, what happens if you say no, and where the switch is once you have — has to be said BEFORE it, by us. Fire it cold on page load and it is refused by reflex, and a refusal is **permanent**: the browser will not ask again, however many times the button is pressed.
+
+  Nothing in the fleet held any of that. The only permission-aware code that existed was geo-react's `useBrowserPosition`, which owned one kind and one of its four refusals; a chat pair wanting `notifications`, a composer wanting `camera`, a recorder wanting `microphone` each had a `try { … } catch { }` and its own guess about what the catch meant.
+
+  **`usePermission(kind)` — `@stapel/core`, headless.** `geolocation` / `camera` / `microphone` / `notifications`, as five states rather than a boolean:
+
+  - `granted` — use it.
+  - `prompt` — not asked yet. Explain first. **Not a refusal**; a product that renders it as one shows an error to somebody who has simply never been asked.
+  - `denied` — refused, and terminal. Say where the switch is; offer the way that does not need the capability.
+  - `unknown` — the browser will not say in advance (Safari answers `navigator.permissions.query({name: "camera"})` with a `TypeError`; Firefox knows `geolocation` and `notifications` and not the media pair). Ask and find out — a different state from `prompt`, because it cannot be pre-flighted.
+  - `unsupported` — no such capability here (old browser, insecure context, no camera on the device), or the DEPLOYMENT turned the offer off with `offered: false`. Render the fallback, not a disabled control: there is nothing the person can do about it.
+
+  Three details the four ad-hoc copies each got differently. `request()` **resolves** with the resulting status and never rejects, because every caller of it is inside a click handler. Notifications are read off `Notification.permission` rather than the Permissions API — synchronous, older, and the one kind whose answer is reliably available everywhere. And there is no "request permission" API for geolocation or media: the prompt appears because you asked for a position or a stream, so `options.requester` lets a caller that already makes that call pass its own, and the browser is asked **once** instead of twice. Without one, the hook makes the smallest call that provokes the prompt — and stops the media tracks afterwards, because the prompt was the point and a live track leaves the recording indicator on.
+
+  **`PermissionSheet` / `PermissionGate` — `@stapel/tokens-antd/skin`.** The pre-prompt is a `SkinDialog`, so it is a bottom sheet on a phone and a modal above it without this file choosing. The way out says "Not now", not "Deny" — the browser has not been asked yet and the button must not read like an answer to it.
+
+  The refusal is handled in the same surface: on `denied` the sheet does **not** close onto a dead end. It swaps to the guidance for turning the capability back on and renders the `fallback` — the way forward that does not need it (a search field where the position would have been, an upload button where the camera would have been). The Allow button is **gone** rather than disabled: `GatedControl`'s rule about showing a blocked control's reason is for gates the person can open, and this one they cannot, from here.
+
+  `PermissionGate` is the whole ask as one element — trigger, pre-prompt, granted content, fallback — and `askOnMount` is **off** by default, because a question nobody invited is the thing this component exists to stop.
+
+  Copy: core's UI floor gains `PERMISSION_COPY_KEYS` — a title, a why and a denied-guidance sentence per kind, in en/ru/es, seeded under every locale by `createI18n`. A pair gets an answerable question with zero wiring; a product with a better sentence passes a prop or registers the same key. The token bridge still invents no English of its own.
+
+  Both size budgets moved deliberately and the reason is recorded in `package.json`: core 12 → 13.5 KB (12.6 KB actual), and the skin subpath stays under its 16 KB at 9.1 KB.
+
+  Exported for the chat wave: `usePermission`, `PERMISSION_KINDS`, `permissionSupported`, `PERMISSION_COPY_KEYS` from `@stapel/core`; `PermissionSheet`, `PermissionGate`, `permissionIsBlocked`, `PERMISSION_ALLOW_TESTID`, `PERMISSION_DISMISS_TESTID` from `@stapel/tokens-antd/skin`.
+
+- 042a088: The host decides the brand, at runtime: `SiteProvider` / `useSite` / `fetchSite`.
+
+  A product served under two domains had no honest way to say which one it was
+  being looked at from. The brand was a build-time fact in three places at once
+  — the `<title>` in `index.html`, a `SITE` constant, an i18n key — so a second
+  domain made every one of them wrong on half the traffic, and the only fixes
+  available were a second image or an nginx header, which is a fleet fork of the
+  one thing that must stay identical across deployments.
+
+  `@stapel/core` now carries the seam instead:
+
+  - `fetchSite(client)` reads `GET <baseUrl>/site/` — public, no auth header,
+    the document `stapel_core.sites` serves: host, whether the registry matched
+    it, locale, the brand (key, name, title, logo, theme, legal strings) and the
+    SEO verdict for that host.
+  - `<SiteProvider client fallback>` renders the `fallback` on the FIRST frame
+    and replaces it when the answer lands. There is no empty first frame and no
+    flash of a generic shell; a failure keeps the fallback, warns once, and
+    never throws into the tree — a branding document being unreachable must not
+    blank the page a visitor came for.
+  - It reflects the answer onto `<html>`: `data-brand="<brand.theme>"`, which is
+    what a `stapel-tokens --scope` stylesheet is addressed by, and `lang`, which
+    a screen reader reads and no `<meta>` replaces.
+  - `useSite()` throws outside a provider — a screen whose content IS the brand
+    has nothing honest to draw without one. `useOptionalSite()` returns `null`
+    instead, for library code that PREFERS a site: it is why
+    `@stapel/shell-react`'s `<PublicShell/>` can default its brand slot without
+    breaking every host that mounts no provider.
+
+### Patch Changes
+
+- Updated dependencies [042a088]
+  - @stapel/tokens@0.6.0
+
 ## 0.19.0
 
 ### Minor Changes

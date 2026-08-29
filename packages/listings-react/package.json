@@ -1,7 +1,7 @@
 {
   "name": "@stapel/listings-react",
-  "version": "0.8.0",
-  "description": "Headless React pair for stapel-listings: a typed client over the draft twin, the composer that turns a category schema into a submittable listing, and the owner's dashboard. Two independent axes are rendered as two \u2014 lifecycle `status` decides visibility and `moderation_status` decides nothing about it, so an edit to a live listing stays live and says 'under review' instead of vanishing. Feature values are drawn and mirrored by @stapel/attributes-react; photos arrive as an injected upload bag whose `refs` ARE `images_draft` and whose `settled` gates the submit; a publish refusal is routed onto the control that caused it by slug. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin.",
+  "version": "0.8.1",
+  "description": "Headless React pair for stapel-listings: a typed client over the draft twin, the composer that turns a category schema into a submittable listing, and the owner's dashboard. Two independent axes are rendered as two — lifecycle `status` decides visibility and `moderation_status` decides nothing about it, so an edit to a live listing stays live and says 'under review' instead of vanishing. Feature values are drawn and mirrored by @stapel/attributes-react; photos arrive as an injected upload bag whose `refs` ARE `images_draft` and whose `settled` gates the submit; a publish refusal is routed onto the control that caused it by slug. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -55,22 +55,22 @@
   },
   "size-limit": [
     {
-      "name": "index \u2014 the headless pair (client + status axes + draft model + hooks): no antd. Raised 11 -> 11.5 KB for the elevation gate (useElevatableMandateGate + core's useElevation): the anonymous arm can now mint an identity for a named action instead of refusing, and that is a state hook the gate did not previously carry",
+      "name": "index — the headless pair (client + status axes + draft model + hooks): no antd. Raised 11 -> 11.5 KB for the elevation gate (useElevatableMandateGate + core's useElevation): the anonymous arm can now mint an identity for a named action instead of refusing, and that is a state hook the gate did not previously carry",
       "path": "dist/index.js",
       "limit": "11.5 KB"
     },
     {
-      "name": "default \u2014 the antd skin (card, detail, composer, dashboard, the four named slots and the delete confirmation) must stay out of the main bundle",
+      "name": "default — the antd skin (card, detail, composer, dashboard, the four named slots and the delete confirmation) must stay out of the main bundle",
       "path": "dist/default/index.js",
       "limit": "16 KB"
     },
     {
-      "name": "i18n/ru \u2014 the Russian bundle is opt-in, not carried by the main entry",
+      "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",
       "path": "dist/i18n/ru.js",
       "limit": "5 KB"
     },
     {
-      "name": "i18n/es \u2014 the Spanish bundle is opt-in, not carried by the main entry",
+      "name": "i18n/es — the Spanish bundle is opt-in, not carried by the main entry",
       "path": "dist/i18n/es.js",
       "limit": "3.5 KB"
     }

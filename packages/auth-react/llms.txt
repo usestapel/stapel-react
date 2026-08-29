@@ -1,6 +1,6 @@
-# @stapel/auth-react 0.18.0
+# @stapel/auth-react 0.18.1
 
-Headless React flow pair for stapel-auth (contract >=0.29 <0.30) — business + state, zero visual opinion.
+Headless React flow pair for stapel-auth (contract >=0.30 <0.31) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
