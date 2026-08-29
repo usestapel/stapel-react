@@ -5,7 +5,7 @@
  * paints its own surface, and on a phone it raises antd's control height to
  * a real touch target.
  */
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { Checkbox, Rate, theme as antdTheme } from "antd";
 import { breakpoints, colors } from "@stapel/tokens";
@@ -17,7 +17,13 @@ import {
   SkinTheme,
   phoneTouchFloorCss,
 } from "../src/skin.js";
-import { installMatchMedia, resetViewportListeners, setDocumentTheme, setViewport } from "./env.js";
+import {
+  installMatchMedia,
+  resetViewportListeners,
+  setDocumentBrand,
+  setDocumentTheme,
+  setViewport,
+} from "./env.js";
 
 function TokenProbe(): ReactElement {
   const { token } = antdTheme.useToken();
@@ -27,6 +33,7 @@ function TokenProbe(): ReactElement {
       data-control-height={token.controlHeight}
       data-control-height-sm={token.controlHeightSM}
       data-color-text={token.colorText}
+      data-color-primary={token.colorPrimary}
     />
   );
 }
@@ -40,6 +47,8 @@ afterEach(async () => {
   cleanup();
   resetViewportListeners();
   await setDocumentTheme(null);
+  await setDocumentBrand(null);
+  vi.unstubAllGlobals();
 });
 
 describe("SkinTheme", () => {
@@ -274,5 +283,142 @@ describe("SkinTheme — the phone touch floor beyond controlHeight (NC-TAP44)", 
       </SkinTheme>
     );
     expect(screen.getByTestId("wide").hasAttribute("data-stapel-skin-phone")).toBe(false);
+  });
+});
+
+/**
+ * The host's brand is resolved at RUNTIME on a multibrand deployment — one
+ * image, N hosts — so `<html data-brand>` is stamped by an effect, AFTER the
+ * render that built the antd theme from the live custom properties. Watching
+ * only `data-theme` therefore left every antd control (primary buttons, focus
+ * rings, links) painted in the brand the page happened to boot with, on every
+ * host but the fallback's own (owner report 2026-08-30, found live). The
+ * substrate has to follow BOTH attributes `tokens.css` keys on, so that a
+ * host does not have to know that only one of them is watched.
+ *
+ * jsdom resolves no custom properties through `getComputedStyle` (a
+ * long-standing jsdom limitation — see `toAntdThemeLiveCss.test.ts`), so the
+ * scoped ramps `:root[data-brand="…"]` would emit in a real browser are
+ * stood up here as a `getComputedStyle` that answers `--stapel-*` from the
+ * document's CURRENT `data-brand`. Every other property, and every other
+ * element, is the real declaration.
+ */
+type Ramp = Readonly<Record<string, string>>;
+
+function stubScopedBrandRamps(ramps: Readonly<Record<string, Ramp>>): void {
+  const real = window.getComputedStyle.bind(window);
+  vi.stubGlobal("getComputedStyle", ((element: Element, pseudo?: string | null) => {
+    const declaration = real(element as HTMLElement, pseudo ?? undefined);
+    if (element !== document.documentElement) return declaration;
+    return new Proxy(declaration, {
+      get(target, prop) {
+        if (prop === "getPropertyValue") {
+          return (name: string): string => {
+            const scope = ramps[document.documentElement.dataset.brand ?? ""];
+            return scope?.[name] ?? target.getPropertyValue(name);
+          };
+        }
+        const value = Reflect.get(target, prop, target) as unknown;
+        return typeof value === "function"
+          ? (value as (...args: never[]) => unknown).bind(target)
+          : value;
+      },
+    });
+  }) as typeof getComputedStyle);
+}
+
+function primary(): string | null {
+  return screen.getByTestId("probe").getAttribute("data-color-primary");
+}
+
+function text(): string | null {
+  return screen.getByTestId("probe").getAttribute("data-color-text");
+}
+
+describe("SkinTheme — the skin repaints when the host brand attribute changes", () => {
+  const UNSCOPED = "#5b21b6";
+  const ALPHA = "#1677ff";
+  const BETA = "#ff4d4f";
+
+  it("rebuilds antd's token bag when data-brand is stamped after mount", async () => {
+    stubScopedBrandRamps({
+      "": { "--stapel-brand": UNSCOPED },
+      alpha: { "--stapel-brand": ALPHA },
+      beta: { "--stapel-brand": BETA },
+    });
+    render(
+      <SkinTheme data-testid="root">
+        <TokenProbe />
+      </SkinTheme>
+    );
+    expect(primary()).toBe(UNSCOPED);
+
+    // What a multibrand host's site provider does once the host→brand
+    // lookup answers: an effect, one render too late for anything that
+    // only watches `data-theme`.
+    await setDocumentBrand("alpha");
+    expect(primary()).toBe(ALPHA);
+
+    await setDocumentBrand("beta");
+    expect(primary()).toBe(BETA);
+
+    await setDocumentBrand(null);
+    expect(primary()).toBe(UNSCOPED);
+  });
+
+  it("repaints a nested self-wrapping skin too — the outer one owns the config", async () => {
+    stubScopedBrandRamps({
+      "": { "--stapel-brand": UNSCOPED },
+      alpha: { "--stapel-brand": ALPHA },
+    });
+    render(
+      <SkinTheme data-testid="outer">
+        <SkinTheme surface="bare">
+          <TokenProbe />
+        </SkinTheme>
+      </SkinTheme>
+    );
+    expect(primary()).toBe(UNSCOPED);
+    await setDocumentBrand("alpha");
+    expect(primary()).toBe(ALPHA);
+  });
+
+  it("keys the cache on the scope, not only on the brand value two ramps can share", async () => {
+    // Two scoped ramps with the SAME `--stapel-brand` and a different text
+    // role: `hostBrandFingerprint` alone reports one string for both, so a
+    // cache keyed on it would serve the first scope's config to the second.
+    // (Scope names unique to this test, because the config cache is
+    // process-wide by design — a key is a promise about the ramp behind it.)
+    const SHARED = "#0ea5e9";
+    stubScopedBrandRamps({
+      "": { "--stapel-brand": UNSCOPED },
+      "twin-a": { "--stapel-brand": SHARED, "--stapel-text": "#101828" },
+      "twin-b": { "--stapel-brand": SHARED, "--stapel-text": "#202939" },
+    });
+    render(
+      <SkinTheme data-testid="root">
+        <TokenProbe />
+      </SkinTheme>
+    );
+    await setDocumentBrand("twin-a");
+    expect(primary()).toBe(SHARED);
+    expect(text()).toBe("#101828");
+
+    await setDocumentBrand("twin-b");
+    expect(primary()).toBe(SHARED);
+    expect(text()).toBe("#202939");
+  });
+
+  it("still follows a data-theme flip while a brand scope is stamped", async () => {
+    await setDocumentBrand("alpha");
+    render(
+      <SkinTheme data-testid="root">
+        <TokenProbe />
+      </SkinTheme>
+    );
+    expect(screen.getByTestId("root").getAttribute("data-stapel-skin-mode")).toBe("light");
+    await setDocumentTheme("dark");
+    expect(screen.getByTestId("root").getAttribute("data-stapel-skin-mode")).toBe("dark");
+    expect(text()).toBe(colors.text.dark);
   });
 });

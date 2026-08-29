@@ -35,10 +35,15 @@ import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { ConfigProvider } from "antd";
 import type { ThemeConfig } from "antd";
 import { spacing } from "@stapel/tokens";
-import { hostBrandFingerprint, resolveThemeMode, toAntdThemeConfig } from "../index.js";
+import {
+  hostBrandFingerprint,
+  hostBrandScope,
+  resolveThemeMode,
+  toAntdThemeConfig,
+} from "../index.js";
 import type { ThemeMode } from "../index.js";
 import { useDialogSurface } from "./dialogSurface.js";
-import { useThemeMode } from "./themeMode.js";
+import { useHostBrand, useThemeMode } from "./themeMode.js";
 
 /**
  * The minimum touch target on a phone (WCAG 2.5.8 / platform HIGs: 44 CSS
@@ -164,6 +169,13 @@ const themeConfigCache = new Map<string, ThemeConfig>();
  *  - the DOCUMENT's mode, because `toAntdThemeConfig` reads the host's live
  *    custom properties only when the two agree (see `readLiveCssVar`) — a
  *    `data-theme` flip changes the key and the next build re-reads;
+ *  - {@link hostBrandScope} — the document's `data-brand`, the OTHER
+ *    attribute `tokens.css` keys on (`:root[data-brand="…"]`). The
+ *    fingerprint below usually moves with it, but not always: two scoped
+ *    ramps may share a `--stapel-brand` and differ in every other role, and
+ *    a `getComputedStyle` taken before the scoped sheet is applied reports
+ *    the unscoped value for both. The identity of the scope is therefore its
+ *    own key segment;
  *  - {@link hostBrandFingerprint} — the host's live brand value itself. A host
  *    that customized its tokens, or whose `tokens.css` arrived after the
  *    first render, keys a different entry rather than being served the
@@ -171,11 +183,21 @@ const themeConfigCache = new Map<string, ThemeConfig>();
  *    `useMemo` used to give (a NEW mount re-read) at the price of a rebuild
  *    per mount; here it costs one `getComputedStyle` and a `Map` lookup.
  *
+ * A key that changes only rebuilds when something RENDERS, so the component
+ * subscribes to both attributes ({@link useThemeMode}, {@link useHostBrand})
+ * — a cache that cannot be consulted is not a cache that is fresh.
+ *
  * Only the OUTERMOST `SkinTheme` of a tree reaches this function at all —
  * see {@link AppliedThemeContext}.
  */
 function skinThemeConfig(mode: ThemeMode, phone: boolean): ThemeConfig {
-  const key = `${mode}|${phone ? "phone" : "wide"}|${resolveThemeMode()}|${hostBrandFingerprint(mode)}`;
+  const key = [
+    mode,
+    phone ? "phone" : "wide",
+    resolveThemeMode(),
+    hostBrandScope(),
+    hostBrandFingerprint(mode),
+  ].join("|");
   const hit = themeConfigCache.get(key);
   if (hit !== undefined) return hit;
   const base = toAntdThemeConfig(mode);
@@ -233,6 +255,12 @@ const AppliedThemeContext = createContext<AppliedTheme | null>(null);
  */
 export function SkinTheme(props: SkinThemeProps): ReactElement {
   const liveMode = useThemeMode();
+  // Subscribed, not read: `data-brand` selects the same live `--stapel-*`
+  // values `data-theme` does, and a host that resolves its brand at runtime
+  // stamps it in an effect — after the render that built the theme. Without
+  // this, that theme is never rebuilt and every antd control keeps the
+  // colours of the brand the page booted with (owner report 2026-08-30).
+  useHostBrand();
   const applied = useContext(AppliedThemeContext);
   // A nested bare `SkinTheme` inherits the PIN of the one above it, not the
   // document. `props.mode ?? liveMode` re-read the document inside a pinned

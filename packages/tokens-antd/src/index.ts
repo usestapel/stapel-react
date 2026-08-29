@@ -52,6 +52,39 @@ export type ThemeMode = "light" | "dark";
 export const THEME_ATTRIBUTE: string = "data-theme";
 
 /**
+ * The attribute `@stapel/tokens`' generated `tokens.css` keys a SCOPED token
+ * set on (`:root[data-brand="<brand>"]` / `:root[data-brand="<brand>"][data-theme="dark"]`
+ * — see that package's `gen/lib.mjs#scopeSelectors`). It is the second of the
+ * two switches a host flips, and the two are peers: one picks the side, the
+ * other picks the ramp, and both change exactly the same live
+ * `--stapel-<role>` values this bridge reads.
+ *
+ * A multibrand host writes it at runtime once it knows which site it is
+ * serving (`@stapel/core`'s `SiteProvider`), which is AFTER first paint — so
+ * anything that caches a built theme has to treat it as live, not as a
+ * boot-time constant.
+ */
+export const BRAND_ATTRIBUTE: string = "data-brand";
+
+/**
+ * The host's current `<html data-brand>` — the scoped token set in force, or
+ * `""` where the host declares none (the unscoped `:root` ramp) or there is
+ * no DOM.
+ *
+ * A cheap, allocation-free companion to {@link hostBrandFingerprint} for a
+ * caller that caches a built theme: the fingerprint reports the brand's
+ * VALUE (and so also catches a late stylesheet or an edited theme file),
+ * this reports the brand's IDENTITY. Both belong in a cache key, because
+ * neither implies the other — two scoped ramps may share a `--stapel-brand`
+ * and differ in every other role, and a `getComputedStyle` that cannot yet
+ * see the scoped sheet reports the same string for both.
+ */
+export function hostBrandScope(): string {
+  if (typeof document === "undefined") return "";
+  return document.documentElement.getAttribute(BRAND_ATTRIBUTE) ?? "";
+}
+
+/**
  * Which mode the host's document is ACTUALLY in, read from the same
  * `data-theme` attribute `tokens.css` keys its dark block on.
  *

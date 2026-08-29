@@ -16,9 +16,11 @@
  *
  * ## What is here, and the rule each one states once
  *
- *  - {@link SkinTheme} + {@link useThemeMode} — a skin self-themes from the
- *    document's LIVE `data-theme`, never a hardcoded side, and paints its own
- *    surface; phone controls are 44px.
+ *  - {@link SkinTheme} + {@link useThemeMode} + {@link useHostBrand} — a skin
+ *    self-themes from the document's LIVE `data-theme` AND `data-brand` — the
+ *    two attributes `tokens.css` keys on — never a hardcoded side or a brand
+ *    frozen at first paint, and paints its own surface; phone controls are
+ *    44px.
  *  - {@link SkinDialog} + {@link useDialogSurface} — on a phone a dialog is a
  *    bottom sheet; modals are tablet/desktop only. It also themes its own
  *    portal, so a dialog is on the right side wherever it was declared.
@@ -70,7 +72,12 @@ export {
 export type { SkinDialogProps } from "./skin/dialog.js";
 export { useDialogSurface, MODAL_MEDIA_QUERY } from "./skin/dialogSurface.js";
 export type { DialogSurface } from "./skin/dialogSurface.js";
-export { useThemeMode, subscribeThemeMode } from "./skin/themeMode.js";
+export {
+  useThemeMode,
+  subscribeThemeMode,
+  useHostBrand,
+  subscribeHostBrand,
+} from "./skin/themeMode.js";
 export {
   SkinTheme,
   PHONE_CONTROL_HEIGHT,

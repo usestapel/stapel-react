@@ -64,6 +64,16 @@ export async function setDocumentTheme(mode: "light" | "dark" | null): Promise<v
   });
 }
 
+/** Stamp the document's brand scope (`<html data-brand>`) and let the
+ * MutationObserver deliver it. */
+export async function setDocumentBrand(brand: string | null): Promise<void> {
+  await act(async () => {
+    if (brand === null) document.documentElement.removeAttribute("data-brand");
+    else document.documentElement.setAttribute("data-brand", brand);
+    await Promise.resolve();
+  });
+}
+
 export function makeI18n(locale = "en"): I18nEngine {
   return createI18n({ locale });
 }
