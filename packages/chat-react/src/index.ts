@@ -60,6 +60,7 @@ export {
   CHAT_SIGNAL_ACTIVITY,
   CHAT_SIGNAL_DELIVERED,
   CHAT_SIGNAL_INBOX,
+  CHAT_SIGNAL_PRESENCE,
   CHAT_SIGNAL_READ,
   CHAT_WS_ERRORS,
   chatClientMessageId,
@@ -69,6 +70,7 @@ export {
   readChatMarkerFrame,
   readChatMessageFrame,
   readChatMessagePayload,
+  readChatPresenceFrame,
 } from "./realtime/frames.js";
 export type {
   ChatActivityFramePayload,
@@ -80,6 +82,7 @@ export type {
   ChatMarkerFramePayload,
   ChatMarkerPayload,
   ChatMessagePayload,
+  ChatPresencePayload,
   ChatSendPayload,
   ChatWriteRefusal,
 } from "./realtime/frames.js";
@@ -185,6 +188,24 @@ export type {
 } from "./model/mutations.js";
 export { CHAT_DEFAULT_MAX_BODY_LENGTH } from "./model/limits.js";
 export { nextReadMarker } from "./model/readMarker.js";
+// Presence — read it, never derive it. `participantPresence` is the ONLY
+// sanctioned way to answer "is the other person there": a client that builds
+// that answer from its own socket state is describing its own network under
+// somebody else's name.
+export {
+  PRESENCE_UNKNOWN,
+  applyConversationPresence,
+  participantPresence,
+} from "./model/presence.js";
+export type { ChatPresence } from "./model/presence.js";
+// Browser notifications for messages that land while the tab is hidden. It
+// SPENDS a permission; the asking is the skin's `<ChatNotificationsPrompt/>`,
+// at a moment that has earned the question.
+export { useChatNotifications } from "./model/notifications.js";
+export type {
+  ChatNotificationCopy,
+  UseChatNotificationsOptions,
+} from "./model/notifications.js";
 export {
   EMPTY_THREAD_WINDOW,
   applyRevision,

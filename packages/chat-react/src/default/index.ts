@@ -23,6 +23,16 @@ export { SignInLink } from "./SignInLink.js";
 // own thread screen keeps the same two surfaces rather than re-deciding them.
 export { SubjectCard, readSubjectCard, subjectRowLabel } from "./subjectCard.js";
 export type { SubjectCardView } from "./subjectCard.js";
+// The presence line and the transport tag are both exported, and the pair of
+// them is the point: one says whether the OTHER person is there, the other
+// says whether THIS client's connection is healthy. A host composing its own
+// thread screen gets both, so it cannot rebuild the header that answered the
+// first question with the second one's evidence.
+export { ChatNotificationsPrompt } from "./ChatNotificationsPrompt.js";
+export type { ChatNotificationsPromptProps } from "./ChatNotificationsPrompt.js";
+export { PresenceLine } from "./PresenceLine.js";
+export type { PresenceLineProps } from "./PresenceLine.js";
+export { TransportTag } from "./TransportTag.js";
 export { ThreadActionsMenu } from "./ThreadActionsMenu.js";
 export type { ThreadActionsMenuProps } from "./ThreadActionsMenu.js";
 export {

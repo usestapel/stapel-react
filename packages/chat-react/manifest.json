@@ -4,7 +4,7 @@
   "version": "0.5.0",
   "backend": {
     "module": "stapel-chat",
-    "contract": ">=0.6 <0.7"
+    "contract": ">=0.7 <0.8"
   },
   "layers": [
     "api",
@@ -601,6 +601,29 @@
       "source": "demo/ConversationList.demo.tsx"
     },
     {
+      "id": "chat.presence",
+      "title": "Presence and transport (default skin)",
+      "description": "Who is actually there, and whether this browser's own connection is healthy — two different facts, in two different controls. Presence is a server-side fact about the OTHER participant's connections; the transport tag talks about this client and says nothing at all while nothing is wrong.",
+      "component": "PresenceLine",
+      "covers": [
+        "TransportTag",
+        "ChatNotificationsPrompt"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted"
+      ],
+      "variants": [
+        "default",
+        "last-seen",
+        "never-seen",
+        "my-connection-is-the-problem",
+        "notifications-ask"
+      ],
+      "source": "demo/PresenceSkin.demo.tsx"
+    },
+    {
       "id": "chat.sign-in-link",
       "title": "Sign-in door (default skin)",
       "description": "The link that turns a stated reason into an action a visitor can take. Renders core's `SignInCta` — `{href}` or `{onSignIn}`, never both — and renders NOTHING when the host has no sign-in route, so a reason with no door is exactly its own sentence and not a dead affordance.",
@@ -692,8 +715,15 @@
     "chat.list.title",
     "chat.list.unread",
     "chat.nav.conversations",
+    "chat.notify.body",
+    "chat.notify.denied",
+    "chat.notify.from",
+    "chat.notify.title",
     "chat.person.loading",
     "chat.person.unnamed",
+    "chat.presence.last_seen",
+    "chat.presence.online",
+    "chat.presence.unknown",
     "chat.start.blocked.mandate_unknown",
     "chat.start.blocked.self",
     "chat.start.blocked.sign_in",
@@ -813,6 +843,7 @@
       "CHAT_SIGNAL_ACTIVITY",
       "CHAT_SIGNAL_DELIVERED",
       "CHAT_SIGNAL_INBOX",
+      "CHAT_SIGNAL_PRESENCE",
       "CHAT_SIGNAL_READ",
       "CHAT_STREAM_MODULE",
       "CHAT_WS_ERRORS",
@@ -823,11 +854,13 @@
       "ConversationThread",
       "EMPTY_THREAD_WINDOW",
       "MessageComposer",
+      "PRESENCE_UNKNOWN",
       "RENEWING_CREDENTIAL_DEBOUNCE_MS",
       "StartDirectChat",
       "THREAD_INTERVAL_MS",
       "THREAD_PAGE",
       "UNRESOLVED_PEOPLE",
+      "applyConversationPresence",
       "applyRevision",
       "chatClientMessageId",
       "chatConversationSocketPath",
@@ -858,11 +891,13 @@
       "navEntries",
       "nextReadMarker",
       "noPeopleSlot",
+      "participantPresence",
       "readChatActivityFrame",
       "readChatInboxFrame",
       "readChatMarkerFrame",
       "readChatMessageFrame",
       "readChatMessagePayload",
+      "readChatPresenceFrame",
       "registerChatI18n",
       "threadFirstSeq",
       "threadLastMessage",
@@ -873,6 +908,7 @@
       "useChatAnalytics",
       "useChatApi",
       "useChatFreshness",
+      "useChatNotifications",
       "useChatRuntime",
       "useConversation",
       "useConversations",
@@ -910,10 +946,13 @@
       "ChatMessage",
       "ChatMessagePayload",
       "ChatMessageRevision",
+      "ChatNotificationCopy",
       "ChatPeopleDirectory",
       "ChatPeopleSlot",
       "ChatPeopleSlotProps",
       "ChatPerson",
+      "ChatPresence",
+      "ChatPresencePayload",
       "ChatPreviews",
       "ChatRealtimeClientOptions",
       "ChatRealtimeConfig",
@@ -962,7 +1001,8 @@
       "Subject",
       "SubjectRef",
       "SupportStatus",
-      "ThreadMergeResult"
+      "ThreadMergeResult",
+      "UseChatNotificationsOptions"
     ]
   }
 }

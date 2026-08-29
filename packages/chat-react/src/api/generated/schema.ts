@@ -464,6 +464,13 @@ export interface components {
             last_read_seq: number;
             /** @description seq of the newest message their client */
             last_delivered_seq?: number;
+            /** @description Whether THIS participant is connected right now — a */
+            online?: boolean;
+            /**
+             * Format: date-time
+             * @description When they were last connected or active. What a header
+             */
+            last_seen_at?: string | null;
         };
         /** @description Replace a message's body. Author only. */
         PatchedEditMessageRequest: {

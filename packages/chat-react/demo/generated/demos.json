@@ -137,6 +137,57 @@
       }
     },
     {
+      "id": "chat.presence",
+      "title": "Presence and transport (default skin)",
+      "description": "Who is actually there, and whether this browser's own connection is healthy — two different facts, in two different controls. Presence is a server-side fact about the OTHER participant's connections; the transport tag talks about this client and says nothing at all while nothing is wrong.",
+      "component": "PresenceLine",
+      "covers": [
+        "TransportTag",
+        "ChatNotificationsPrompt"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The counterparty is connected, and this client's socket is live. The header carries ONE claim — 'Online', about them — and no transport chrome, because a working connection is the expected state and needs none. This is the frame where the old build drew 'На связи' from the reader's own socket and every person read it as the seller being there.",
+          "viewport": "phone",
+          "step": "online"
+        },
+        {
+          "id": "last-seen",
+          "description": "The load-bearing case, and the one the old header got exactly backwards: this client's socket is perfectly live while the OTHER person is gone. The line says when they were last here, on core's relative-time ladder, so it reads in the visitor's own language without a key per unit.",
+          "viewport": "phone",
+          "step": "last-seen"
+        },
+        {
+          "id": "never-seen",
+          "description": "A participant this deployment has never seen connect. 'Seen long ago' and 'never seen' are different facts, so the line says the plain thing rather than inventing a date — and a server too old to send the fields lands here too, offline and quiet, never on a fabricated 'online'.",
+          "viewport": "desktop",
+          "step": "unknown"
+        },
+        {
+          "id": "my-connection-is-the-problem",
+          "description": "Desk width, and the one case the tag is FOR: this browser cannot hold a socket. The named reason is chrome that appears because something is wrong — and the presence line beside it is untouched, because the other person's whereabouts are not a function of this laptop's wifi.",
+          "viewport": "desktop",
+          "step": "degraded"
+        },
+        {
+          "id": "notifications-ask",
+          "description": "The ask, at the first message exchanged — never on page load, because `denied` is terminal and an early prompt spends the only chance the browser gives. 'Not now' is a dismissal and not a refusal: it never reaches the browser, so the offer survives to be made again.",
+          "viewport": "phone",
+          "step": "ask"
+        }
+      ],
+      "source": {
+        "file": "demo/PresenceSkin.demo.tsx",
+        "line": 112
+      }
+    },
+    {
       "id": "chat.sign-in-link",
       "title": "Sign-in door (default skin)",
       "description": "The link that turns a stated reason into an action a visitor can take. Renders core's `SignInCta` — `{href}` or `{onSignIn}`, never both — and renders NOTHING when the host has no sign-in route, so a reason with no door is exactly its own sentence and not a dead affordance.",

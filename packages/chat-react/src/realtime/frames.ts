@@ -53,6 +53,19 @@ export const CHAT_SIGNAL_DELIVERED = "chat.delivered";
 export const CHAT_SIGNAL_ACTIVITY = "chat.activity";
 /** Something moved in a conversation this user takes part in (inbox stream). */
 export const CHAT_SIGNAL_INBOX = "chat.inbox";
+/**
+ * A participant connected or went away (`stapel_chat.presence`, 0.7.0).
+ *
+ * It rides the CONVERSATION stream this thread is already subscribed to, so
+ * presence costs no second subscription. Only flips travel: a heartbeat that
+ * renews a lease changes nothing anybody is watching.
+ *
+ * The fact is about **that participant's own sockets**. It is never derived
+ * from this client's transport, which knows only whether *this* browser can
+ * reach the server — the header that conflated the two is the reason this
+ * signal exists.
+ */
+export const CHAT_SIGNAL_PRESENCE = "chat.presence.changed";
 
 // ── client → server frame types (`stapel_chat.consumers`) ────────────────────
 
@@ -150,6 +163,21 @@ export interface ChatActivityPayload {
   readonly user_id: string;
   readonly state: string;
   readonly ttl_s: number;
+}
+
+/**
+ * `chat.presence.changed` — a participant connected or went away.
+ *
+ * `last_seen_at` travels WITH the flip so an offline header can say when
+ * without a round trip. `null` means this deployment has never seen that user
+ * connect — which is a different fact from "seen long ago", and a header must
+ * say nothing rather than invent a date.
+ */
+export interface ChatPresencePayload {
+  readonly conversation_id: string;
+  readonly user_id: string;
+  readonly online: boolean;
+  readonly last_seen_at: string | null;
 }
 
 /** `chat.inbox` — a conversation this user takes part in moved. */
@@ -263,6 +291,26 @@ export function readChatActivityFrame(frame: RealtimeFrame): ChatActivityPayload
     user_id: userId,
     state,
     ttl_s: num(frame.payload["ttl_s"]) ?? 0,
+  };
+}
+
+/** A `chat.presence.changed` signal. */
+export function readChatPresenceFrame(
+  frame: RealtimeFrame
+): ChatPresencePayload | null {
+  if (frame.type !== CHAT_SIGNAL_PRESENCE) return null;
+  const conversationId = str(frame.payload["conversation_id"]);
+  const userId = str(frame.payload["user_id"]);
+  if (conversationId === null || userId === null) return null;
+  // `online` is read with `flag()`: anything that is not literally `true` is
+  // not online. A truthy-but-wrong value (a string, a 1) must not be able to
+  // paint somebody present — this whole surface exists because "online" was
+  // being asserted from the wrong evidence.
+  return {
+    conversation_id: conversationId,
+    user_id: userId,
+    online: flag(frame.payload["online"]),
+    last_seen_at: str(frame.payload["last_seen_at"]),
   };
 }
 

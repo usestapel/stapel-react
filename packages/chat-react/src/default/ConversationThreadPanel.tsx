@@ -11,6 +11,7 @@ import { fontSize, spacing } from "@stapel/tokens-antd";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Button, Card, Empty, Flex, Input, Space, Spin, Typography } from "antd";
 import {
+  isLoadReady,
   matchList,
   useActionGate,
   useErrorDisplay,
@@ -20,6 +21,7 @@ import {
 import type { ChatMessage, Conversation } from "../api/types.js";
 import { ConversationThread } from "../headless/ConversationThread.js";
 import { MessageComposer } from "../headless/MessageComposer.js";
+import { useChatNotifications } from "../model/notifications.js";
 import { useConversation } from "../model/queries.js";
 import type { ChatPeopleDirectory } from "../model/slots.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
@@ -27,6 +29,8 @@ import { ErrorAlert } from "./ErrorAlert.js";
 import { TransportTag } from "./TransportTag.js";
 import { ChatSkinTheme } from "./theme.js";
 import { ThreadActionsMenu } from "./ThreadActionsMenu.js";
+import { ChatNotificationsPrompt } from "./ChatNotificationsPrompt.js";
+import { PresenceLine } from "./PresenceLine.js";
 import { SubjectCard } from "./subjectCard.js";
 import {
   CounterpartyAvatar,
@@ -46,6 +50,13 @@ export interface ConversationThreadPanelProps {
   viewerId?: string | null;
   limit?: number;
   maxLength?: number;
+  /**
+   * Offer browser notifications for messages that arrive while this tab is
+   * hidden, and ask for the permission at the first message exchanged.
+   * Default `true`; `false` turns the whole offer off for deployments that do
+   * not want it, rather than leaving a skin to hide the prompt.
+   */
+  notifications?: boolean;
 }
 
 /** A stable empty list — a fresh `[]` per render would re-run a host's batch. */
@@ -91,21 +102,28 @@ function ThreadHeader(props: {
             label={fallback}
           />
         ) : null}
-        <Typography.Title
-          level={4}
-          style={{ margin: 0, minWidth: 0 }}
-          data-testid="chat-thread-title"
-        >
-          {conversation === undefined ? (
-            fallback
-          ) : (
-            <ThreadTitle
-              conversation={conversation}
-              viewerId={viewerId}
-              directory={props.directory}
-            />
-          )}
-        </Typography.Title>
+        {/* The name, and UNDER it the one sentence that is actually about
+            the other person. It is deliberately not a tag beside the title:
+            the tag slot on the right belongs to this client's own transport,
+            and the two facts sharing one control is the defect. */}
+        <Flex vertical gap={0} style={{ minWidth: 0 }}>
+          <Typography.Title
+            level={4}
+            style={{ margin: 0, minWidth: 0 }}
+            data-testid="chat-thread-title"
+          >
+            {conversation === undefined ? (
+              fallback
+            ) : (
+              <ThreadTitle
+                conversation={conversation}
+                viewerId={viewerId}
+                directory={props.directory}
+              />
+            )}
+          </Typography.Title>
+          <PresenceLine conversation={conversation} viewerId={viewerId} />
+        </Flex>
       </Flex>
       <Flex align="center" gap={spacing[2]}>
         {/* When the socket is not carrying this thread, the label says WHY —
@@ -266,12 +284,28 @@ export function ConversationThreadPanel(
   const conversation = useConversation(props.conversationId).data;
   const viewerId = props.viewerId ?? null;
   const subject = conversation?.subject ?? null;
+  const notifications = props.notifications ?? true;
+
+  // A notification for a message that arrived while this tab was behind
+  // something else. It spends a permission somebody granted and asks for
+  // nothing itself — the asking is `<ChatNotificationsPrompt/>` below, at a
+  // moment that has earned the question.
+  const onSignal = useChatNotifications({
+    viewerId,
+    enabled: notifications,
+    copy: (signal) => {
+      const body = signal.message.body.trim();
+      if (body === "") return null; // an attachment-only line names nothing yet
+      return { title: t(CHAT_I18N_KEYS.notifyFrom), body };
+    },
+  });
 
   return (
     <ConversationThread
       conversationId={props.conversationId}
       {...(conversation !== undefined ? { conversation } : {})}
       {...(props.limit !== undefined ? { limit: props.limit } : {})}
+      {...(notifications ? { onSignal } : {})}
     >
       {({
         state,
@@ -282,6 +316,7 @@ export function ConversationThreadPanel(
         transport,
         degraded,
         status,
+        lastSeq,
       }) => (
         <ChatSkinTheme>
           <Card data-testid="chat-thread">
@@ -323,6 +358,13 @@ export function ConversationThreadPanel(
               subject-widened `direct_key` can produce for the same pair. */}
           {subject !== null ? (
             <SubjectCard subject={subject} conversationId={props.conversationId} />
+          ) : null}
+
+          {/* The ask, at the first message exchanged — never on arrival.
+              `denied` is terminal, so a prompt on page load spends the only
+              chance this product gets. */}
+          {notifications ? (
+            <ChatNotificationsPrompt lastSeq={lastSeq} ready={isLoadReady(state)} />
           ) : null}
 
           {matchList(state, {

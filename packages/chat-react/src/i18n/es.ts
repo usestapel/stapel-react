@@ -118,6 +118,17 @@ export const chatI18nBundleEs: I18nDictionary = {
   "chat.start.blocked.mandate_unknown": "Comprobando tu sesión…",
   "chat.start.sign_in": "Iniciar sesión",
 
+  "chat.notify.title": "¿Avisarte de las respuestas?",
+  "chat.notify.body":
+    "Mostraremos una notificación cuando llegue un mensaje y esta pestaña no esté delante. Nada más.",
+  "chat.notify.denied":
+    "Las notificaciones están desactivadas para este sitio. Vuelve a activarlas en los ajustes del sitio en tu navegador.",
+  "chat.notify.from": "Mensaje nuevo",
+
+  "chat.presence.online": "en línea",
+  "chat.presence.last_seen": "última vez {when}",
+  "chat.presence.unknown": "sin conexión",
+
   "chat.transport.live": "En directo",
   "chat.transport.connecting": "Conectando…",
   "chat.transport.catching_up": "Poniéndonos al día…",

@@ -343,7 +343,14 @@ describe("a screen whose socket is fine never says it is refreshing on a timer",
     expect(tag.getAttribute("data-degraded")).toBeNull();
   });
 
-  it("a live socket renders the live label and NO degradation banner", async () => {
+  it("a live socket says NOTHING — the working state needs no chrome", async () => {
+    // Through 0.5.x this asserted the tag read "Live" ("Live" in Russian).
+    // That label sat in the thread header beside the counterparty's name and
+    // every person using the product read it as "the seller is online" — a
+    // statement about the READER's own network wearing somebody else's name.
+    // Presence is its own line now (`PresenceLine`, from the server, about
+    // them); this control speaks only about this client's transport, and only
+    // when there is something to say. The expected state is silence.
     mountTagged();
     await waitFor(() => expect(env.sockets.length).toBe(1));
     const consumer = new ChatServer(env.last(), { stream: STREAM.key, ephemeral: true });
@@ -351,11 +358,12 @@ describe("a screen whose socket is fine never says it is refreshing on a timer",
       consumer.accept();
     });
 
-    const tag = screen.getByTestId("chat-transport");
-    await waitFor(() => expect(tag.getAttribute("data-transport")).toBe("socket"));
-    expect(tag.getAttribute("data-degraded")).toBeNull();
-    expect(tag.textContent).toBe(chatI18nBundleEn["chat.transport.live"]);
-    expect(tag.textContent ?? "").not.toMatch(REFRESH_COPY);
+    await waitFor(() => expect(screen.queryByTestId("chat-transport")).toBeNull());
+    // And the sentence that started all of this is nowhere on the screen.
+    expect(document.body.textContent ?? "").not.toMatch(REFRESH_COPY);
+    expect(document.body.textContent ?? "").not.toContain(
+      chatI18nBundleEn["chat.transport.live"]
+    );
   });
 
   it("still SAYS SO when the socket really never connects", async () => {

@@ -49,11 +49,13 @@ import type { RealtimeFrame, RealtimeStreamStatus } from "@stapel/realtime";
 import type { NoProviderStatus } from "@stapel/realtime/react";
 import { useChatRuntime } from "../model/context.js";
 import { chatQueryKeys } from "../model/queryKeys.js";
+import { applyConversationPresence } from "../model/presence.js";
 import { applyRevision, threadLastRevSeq } from "../model/threadWindow.js";
 import type { ChatThreadWindow } from "../model/threadWindow.js";
 import {
   readChatActivityFrame,
   readChatInboxFrame,
+  readChatPresenceFrame,
   readChatMarkerFrame,
   readChatMessageFrame,
 } from "../realtime/frames.js";
@@ -114,6 +116,19 @@ export type ChatSignal =
       readonly conversationId: string;
       readonly lastSeq: number;
     }
+  | {
+      /**
+       * A participant connected or went away — THEIR sockets, not this
+       * client's. Already applied to the cached conversation by the time a
+       * consumer sees it, so the header repaints with no read; the signal is
+       * published so a host that keeps its own presence view can follow.
+       */
+      readonly kind: "presence";
+      readonly conversationId: string;
+      readonly userId: string;
+      readonly online: boolean;
+      readonly lastSeenAt: string | null;
+    }
   | { readonly kind: "resync"; readonly conversationId: string | null }
   | { readonly kind: "tick" };
 
@@ -146,6 +161,19 @@ export interface ChatFreshnessOptions {
    * thread broken until someone pressed something.
    */
   readonly socketEnabled?: boolean;
+  /**
+   * Every signal, as it arrives, AFTER this seam has applied whatever it
+   * applies (a revision into the thread window, a presence flip into the
+   * conversation). Read-only: the return value is ignored and nothing here
+   * branches on it.
+   *
+   * It exists for the facts a query cache cannot hold — a browser
+   * Notification for a message that landed while the tab was hidden is the
+   * first, and it needs the message itself, not an invalidation. Held in a
+   * ref, so an inline closure does not tear the subscription down (which
+   * would cost a full journal replay per render).
+   */
+  readonly onSignal?: (signal: ChatSignal) => void;
 }
 
 export interface ChatFreshness {
@@ -245,8 +273,12 @@ export function useChatFreshness(
   // The mapping function is a call-site lambda; keeping it in a ref is what
   // stops every render from tearing the subscription down.
   const mapRef = useRef<ChatSignalKeyMap>(mapToQueryKeys);
+  const onSignalRef = useRef<((signal: ChatSignal) => void) | undefined>(
+    options?.onSignal
+  );
   useEffect(() => {
     mapRef.current = mapToQueryKeys;
+    onSignalRef.current = options?.onSignal;
   });
 
   const failuresRef = useRef(0);
@@ -291,6 +323,15 @@ export function useChatFreshness(
   const flushHandle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const push = useCallback(
     (signal: ChatSignal): void => {
+      // Published BEFORE the refetch buffer: an observer wants the fact, and
+      // the fact is already applied by the time push() is reached. A throw
+      // from an observer is contained — a browser notification failing must
+      // not cost the thread its freshness.
+      try {
+        onSignalRef.current?.(signal);
+      } catch {
+        /* an observer never breaks the transport */
+      }
       buffered.current.push(signal);
       if (flushHandle.current !== undefined) return;
       flushHandle.current = setTimeout(() => {
@@ -348,6 +389,21 @@ export function useChatFreshness(
           userId: activity.user_id,
           state: activity.state,
           ttlMs: activity.ttl_s * 1000,
+        });
+        return;
+      }
+      const presence = readChatPresenceFrame(frame);
+      if (presence !== null) {
+        // Applied, not invalidated. The flip carries both fields the header
+        // renders, so a refetch would buy nothing — and several peers going
+        // online at once would be a refetch storm for a line of text.
+        applyConversationPresence(queryClient, presence);
+        push({
+          kind: "presence",
+          conversationId: presence.conversation_id,
+          userId: presence.user_id,
+          online: presence.online,
+          lastSeenAt: presence.last_seen_at,
         });
         return;
       }

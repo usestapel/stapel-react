@@ -119,9 +119,15 @@ export function TestHarness(props: {
    */
   slots?: ChatSlots;
   locale?: string;
+  /**
+   * A cache the test itself holds, for the assertions that are about what a
+   * live frame does to it (presence flips). Default: one per harness.
+   */
+  queryClient?: QueryClient;
   children: ReactNode;
 }): ReactElement {
   const { server, realtime, locale, slots } = props;
+  const suppliedClient = props.queryClient;
   // Memoized: the runtime carries the realtime config the freshness effect
   // depends on, and a fresh object each render would reopen the socket on
   // every render.
@@ -136,13 +142,15 @@ export function TestHarness(props: {
         ...(slots !== undefined ? { slots } : {}),
       }),
       i18n: engine,
-      queryClient: new QueryClient({
-        // No retries: a test asserting a refusal must see it on the first
-        // answer, not three timeouts later.
-        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-      }),
+      queryClient:
+        suppliedClient ??
+        new QueryClient({
+          // No retries: a test asserting a refusal must see it on the first
+          // answer, not three timeouts later.
+          defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+        }),
     };
-  }, [server, realtime, locale, slots]);
+  }, [server, realtime, locale, slots, suppliedClient]);
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>

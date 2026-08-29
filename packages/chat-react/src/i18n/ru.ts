@@ -118,6 +118,19 @@ export const chatI18nBundleRu: I18nDictionary = {
   "chat.start.blocked.mandate_unknown": "Проверяем вашу сессию…",
   "chat.start.sign_in": "Войти",
 
+  // The last-seen verb carries both genders: the contract knows a user id,
+  // never a gender, and picking one would be wrong for half of a marketplace.
+  "chat.notify.title": "Сообщать о новых сообщениях?",
+  "chat.notify.body":
+    "Покажем уведомление, когда придёт сообщение, а эта вкладка не будет открыта. Больше ничего.",
+  "chat.notify.denied":
+    "Уведомления для сайта отключены. Включите их в настройках сайта в браузере.",
+  "chat.notify.from": "Новое сообщение",
+
+  "chat.presence.online": "в сети",
+  "chat.presence.last_seen": "был(а) в сети {when}",
+  "chat.presence.unknown": "не в сети",
+
   "chat.transport.live": "На связи",
   "chat.transport.connecting": "Подключаемся…",
   "chat.transport.catching_up": "Догоняем…",

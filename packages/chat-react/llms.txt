@@ -1,6 +1,6 @@
 # @stapel/chat-react 0.5.0
 
-Headless React flow pair for stapel-chat (contract >=0.6 <0.7) — business + state, zero visual opinion.
+Headless React flow pair for stapel-chat (contract >=0.7 <0.8) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -82,6 +82,7 @@ const { tracked } = useTracked();
 - chat.conversation-list-panel → <ConversationListPanel> [default|more-to-load|empty|row-identity]  demo/ConversationListPanelSkin.demo.tsx
 - chat.conversation-thread-panel → <ConversationThreadPanel> [default|earlier-history|no-messages-yet|dark|no-live-socket|subject-gone|thread-menu-open]  demo/ConversationThreadPanelSkin.demo.tsx
 - chat.conversations → <ConversationList> [default]  demo/ConversationList.demo.tsx
+- chat.presence → <PresenceLine> [default|last-seen|never-seen|my-connection-is-the-problem|notifications-ask]  demo/PresenceSkin.demo.tsx
 - chat.sign-in-link → <SignInLink> [default|host-routed|no-route]  demo/SignInLinkSkin.demo.tsx
 - chat.start → <StartDirectChat> [default|no-seller|own-listing]  demo/StartDirectChat.demo.tsx
 - chat.start-chat-button → <StartChatButton> [default|signed-out|own-listing|no-seller]  demo/StartChatButtonSkin.demo.tsx

@@ -85,6 +85,13 @@ export function ConversationThread(props: {
   refreshIntervalMs?: number;
   /** Advance the read marker to the tip while mounted. Default `true`. */
   autoMarkRead?: boolean;
+  /**
+   * Every signal this thread receives, already applied. For the facts a query
+   * cache cannot hold — a browser notification for a message that landed
+   * while the tab was hidden (`model/notifications.ts`) is the one that
+   * exists. Purely an observer: nothing here branches on it.
+   */
+  onSignal?: (signal: ChatSignal) => void;
   children: (bag: ConversationThreadBag) => ReactNode;
 }): ReactNode {
   const { conversationId, conversation } = props;
@@ -97,7 +104,11 @@ export function ConversationThread(props: {
       // "typing…" expires on its own hint; there is nothing on the server to
       // go and read, and refetching a thread on every keystroke of the other
       // party is how a courtesy frame becomes a load test.
-      signal.kind === "activity"
+      // Presence is applied straight into the cached conversation by the time
+      // this runs (`model/presence.ts`), so there is nothing to re-read — and
+      // invalidating on every flip would turn a line of text into a refetch
+      // per peer who opens a tab.
+      signal.kind === "activity" || signal.kind === "presence"
         ? []
         : [
             chatQueryKeys.thread(conversationId),
@@ -116,6 +127,7 @@ export function ConversationThread(props: {
   const freshness = useChatFreshness(stream, mapKeys, {
     socketEnabled: loaded,
     fallbackRefetchInterval: props.refreshIntervalMs ?? THREAD_INTERVAL_MS,
+    ...(props.onSignal !== undefined ? { onSignal: props.onSignal } : {}),
   });
 
   const lastSeq = isLoadReady(windowState) ? threadLastSeq(windowState.data) : 0;

@@ -111,6 +111,20 @@ export const CHAT_I18N_KEYS = {
   // which renders. So the pair's own complaint copy was printed on precisely
   // the screens where nothing was wrong — a standing banner that trains
   // people to ignore the one message that matters.
+  // PRESENCE — the other person, from their own sockets. A separate block
+  // from `transport.*` on purpose: those keys describe THIS client's
+  // connection, and one control answering both questions is the defect
+  // (a header that said "Live" whenever the reader's own socket was up,
+  // beside the seller's name, reading as "the seller is online").
+  notifyTitle: "chat.notify.title",
+  notifyBody: "chat.notify.body",
+  notifyDenied: "chat.notify.denied",
+  notifyFrom: "chat.notify.from",
+
+  presenceOnline: "chat.presence.online",
+  presenceLastSeen: "chat.presence.last_seen",
+  presenceUnknown: "chat.presence.unknown",
+
   transportLive: "chat.transport.live",
   transportConnecting: "chat.transport.connecting",
   transportCatchingUp: "chat.transport.catching_up",
@@ -230,6 +244,23 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.start.blocked.sign_in": "Sign in to message the seller.",
   "chat.start.blocked.mandate_unknown": "Checking your session…",
   "chat.start.sign_in": "Sign in",
+
+  // `{when}` is a relative time from core's own formatter, so it follows the
+  // reader's locale and cannot go stale in a catalogue.
+  // Asked at the first message exchanged, never on arrival: `denied` is
+  // terminal, so an early prompt spends the only chance there is.
+  "chat.notify.title": "Get notified about replies?",
+  "chat.notify.body":
+    "We'll show a notification when a message arrives and this tab isn't in front of you. Nothing else.",
+  "chat.notify.denied":
+    "Notifications are switched off for this site. Turn them back on in your browser's site settings for this page.",
+  "chat.notify.from": "New message",
+
+  "chat.presence.online": "Online",
+  "chat.presence.last_seen": "Last seen {when}",
+  // Never seen connect — a different fact from "seen long ago". Saying
+  // nothing beats inventing a date.
+  "chat.presence.unknown": "Offline",
 
   "chat.transport.live": "Live",
   "chat.transport.connecting": "Connecting…",

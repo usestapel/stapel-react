@@ -89,9 +89,18 @@ export function TransportTag(props: {
    * gap ("Catching up…"). Omit it and the honest generic is used.
    */
   status?: RealtimeStreamStatus | NoProviderStatus;
-}): ReactElement {
+}): ReactElement | null {
   const t = useT();
   const { transport, degraded, status } = props;
+  // A WORKING socket says nothing. The expected state needs no chrome, and a
+  // permanent "Live" beside a person's name is read as a fact about THEM —
+  // which is exactly how "Live" came to mean "the seller is online" to
+  // every person who used this product. Presence has its own line now
+  // (`PresenceLine`); this control speaks only about this client's transport,
+  // and only when there is something to say.
+  if (degraded === null && transport === "socket" && status?.state === "live") {
+    return null;
+  }
   // Healing is not degrading, and it is not connecting either: the socket is
   // open and the store is re-reading over REST.
   const healthyKey =
