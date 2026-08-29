@@ -343,7 +343,24 @@ export {
 // `createI18n` in en/ru/es so `@stapel/tokens-antd/skin` renders a real
 // sentence with zero host wiring. A skin reads the keys off `STAPEL_UI_KEYS`;
 // a host overrides one by registering the same key later.
-export { STAPEL_UI_KEYS, CORE_UI_LOCALES, coreUiBundle } from "./i18n/coreUi.js";
+export {
+  STAPEL_UI_KEYS,
+  PERMISSION_COPY_KEYS,
+  CORE_UI_LOCALES,
+  coreUiBundle,
+} from "./i18n/coreUi.js";
+
+// Browser capability permissions (permission.ts): the four prompts a product
+// asks for, as one state machine. Headless on purpose — the skin half
+// (PermissionSheet / PermissionGate) lives in @stapel/tokens-antd/skin and
+// adds no logic, so a pair with no antd still gets the states right.
+export { usePermission, permissionSupported, PERMISSION_KINDS } from "./permission.js";
+export type {
+  PermissionKind,
+  PermissionStatus,
+  PermissionBag,
+  UsePermissionOptions,
+} from "./permission.js";
 
 // slot placeholder (slotPlaceholder.tsx): an unfilled render slot is a visible,
 // named box in development and nothing in production — never silent nothing.

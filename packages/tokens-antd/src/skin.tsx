@@ -24,6 +24,11 @@
  *    portal, so a dialog is on the right side wherever it was declared.
  *  - {@link SkinConfirm} — a confirmation is a dialog (so: a sheet on a
  *    phone), never an anchored popover.
+ *  - {@link PermissionSheet} / {@link PermissionGate} — a browser capability
+ *    is explained BEFORE the browser's one-shot prompt fires, and a refusal
+ *    is permanent: the same surface then says where the switch is and offers
+ *    the way that does not need the capability. The state is core's headless
+ *    `usePermission`; this adds no logic to it.
  *  - {@link ErrorAlert}, {@link EmptyState}, {@link LoadBoundary},
  *    {@link LoadList} — the loading / failed / empty arms are designed once;
  *    "empty" is reachable only from a load that succeeded.
@@ -46,9 +51,10 @@
  *    comes from the box a thing is in, never from the viewport.
  *
  * Copy the substrate needs for itself (retry, dismiss, confirm, cancel, the
- * empty-state default) comes from `@stapel/core`'s UI floor
- * (`STAPEL_UI_KEYS`, en/ru/es), so it is translated with zero host wiring and
- * overridable by registering the same key later.
+ * empty-state default, the four permission pre-prompts) comes from
+ * `@stapel/core`'s UI floor (`STAPEL_UI_KEYS`, `PERMISSION_COPY_KEYS`,
+ * en/ru/es), so it is translated with zero host wiring and overridable by
+ * registering the same key later.
  *
  * Regression is held by `@stapel/eslint-plugin`: `stapel/no-bare-dialog`
  * fails lint on a bare antd `Modal`/`Drawer`/`Popconfirm` under
@@ -84,6 +90,18 @@ export type {
 } from "./skin/states.js";
 export { SkinConfirm, CONFIRM_OK_TESTID, CONFIRM_CANCEL_TESTID } from "./skin/confirm.js";
 export type { SkinConfirmProps } from "./skin/confirm.js";
+export {
+  PermissionSheet,
+  PermissionGate,
+  permissionIsBlocked,
+  PERMISSION_ALLOW_TESTID,
+  PERMISSION_DISMISS_TESTID,
+} from "./skin/permission.js";
+export type {
+  PermissionSheetProps,
+  PermissionGateProps,
+  PermissionCopy,
+} from "./skin/permission.js";
 export { GatedControl, GatedButton, GateReasonScopeContext } from "./skin/gated.js";
 export type {
   GatedControlProps,
