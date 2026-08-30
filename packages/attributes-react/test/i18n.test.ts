@@ -48,8 +48,11 @@ describe("every key this package renders exists in every locale it ships", () =>
 });
 
 describe("the engine's error catalogue, verbatim", () => {
-  it("carries all twelve ATTRIBUTES_ERRORS keys", () => {
-    expect(Object.keys(ATTRIBUTES_ERROR_BUNDLE_EN)).toHaveLength(12);
+  it("carries all thirteen ATTRIBUTES_ERRORS keys", () => {
+    // Thirteen since 0.5.0: `error.400.feature_invalid_rules`, raised when a
+    // feature's `rules` break the closed grammar.
+    expect(Object.keys(ATTRIBUTES_ERROR_BUNDLE_EN)).toHaveLength(13);
+    expect(ATTRIBUTES_ERROR_BUNDLE_EN["error.400.feature_invalid_rules"]).toContain("{feature}");
   });
 
   it("keeps the placeholders the engine's own templates interpolate", () => {

@@ -66,6 +66,24 @@ export const ATTRIBUTES_I18N_KEYS = {
   colorExact: "attributes.color.exact",
   /** Accessible name of the `convertible_unit` unit chooser. */
   unit: "attributes.unit",
+  /**
+   * A `ref_select` / `ref_hierarchical_select` is on screen and no
+   * `VocabularyClientProvider` is above it.
+   *
+   * Its config carries a POINTER to a vocabulary, never a list of options, so
+   * without a client there is nothing to offer — and an empty dropdown is a
+   * mandatory attribute a person cannot answer and is not told about. Same
+   * loud notice as an unsupported type, and the submit blocks through the
+   * same channel.
+   */
+  vocabularyUnavailable: "attributes.vocabulary_unavailable",
+  /** A vocabulary search came back with nothing — `notFoundContent`, so the
+   * dropdown says "no match" instead of drawing an empty box that reads as a
+   * broken control. */
+  vocabularyNoMatches: "attributes.vocabulary.no_matches",
+  /** The feature's `rules` do not parse, so neither its visibility nor its
+   * requiredness is knowable and it cannot honestly be drawn. */
+  invalidRules: "attributes.invalid_rules",
 } as const;
 
 export type AttributesI18nKey =
@@ -83,6 +101,7 @@ export const ATTRIBUTES_ERROR_BUNDLE_EN: I18nDictionary = {
   "error.400.feature_not_in_options": "Value is not in allowed options for {feature}",
   "error.400.feature_invalid_type": "Invalid type for {feature}",
   "error.400.feature_invalid_format": "Invalid format for {feature}",
+  "error.400.feature_invalid_rules": "Invalid rules for {feature}",
   "error.400.feature_mandatory_missing": "Mandatory feature {feature} is required",
   "error.400.feature_unknown_type": "Unknown feature type for {feature}",
   "error.400.feature_not_allowed": "Feature {feature} is not allowed here",
@@ -108,6 +127,9 @@ export const attributesI18nBundleEn: I18nDictionary = {
   "attributes.select.min_selected": "Choose at least {count}.",
   "attributes.color.exact": "Exact shade",
   "attributes.unit": "Unit",
+  "attributes.vocabulary_unavailable": "This detail cannot be filled in here yet.",
+  "attributes.vocabulary.no_matches": "Nothing matched",
+  "attributes.invalid_rules": "This detail is misconfigured and cannot be filled in.",
 };
 
 /** Register the package's `en` floor into a core i18n engine (call once at

@@ -56,7 +56,7 @@
  * the editor must NOT convert anything itself: the server converts the number
  * from the submitted unit into the family's base unit before validating.
  */
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import {
   AutoComplete,
@@ -79,6 +79,9 @@ import type { ValueEditor, ValueEditorProps } from "../registry.js";
 import { featureConfig, featureName } from "../types.js";
 import type { FeatureConfig } from "../types.js";
 import { SIMPLE_COLORS, codePointLength } from "../validate.js";
+import { firstCode, optionsRefOf, useVocabularyClient } from "../vocabulary.js";
+import type { VocabularyClient, VocabularyTerm } from "../vocabulary.js";
+import { UnsupportedValueEditor } from "./notice.js";
 import { formatFeatureValue } from "../format.js";
 import { ATTRIBUTES_I18N_KEYS } from "../i18n/keys.js";
 import { configLabel, optionLabel } from "./labels.js";
@@ -1080,6 +1083,330 @@ const ConvertibleUnitEditor: ValueEditor = (props: ValueEditorProps) => {
   );
 };
 
+// ── ref_select / ref_hierarchical_select ─────────────────────────────────────
+
+/** How long a person may keep typing before a search leaves. 250 ms is the
+ * fleet's typeahead debounce; below it a 14 962-row level is searched on every
+ * keystroke, above it the list feels stuck. */
+const VOCABULARY_DEBOUNCE_MS = 250;
+
+/** How many terms a level's first page offers when nothing has been typed —
+ * the endpoint's own default `limit`. */
+const VOCABULARY_PAGE = 50;
+
+/**
+ * A debounced, superseding search against the {@link VocabularyClient}.
+ *
+ * Two behaviours that are the whole point of not writing this inline twice:
+ *
+ *  - **the previous request is ABORTED when a newer one starts.** Without it a
+ *    slow answer for "ip" lands after the fast one for "iphone 15" and the
+ *    dropdown silently rewinds to the wrong list — the classic typeahead
+ *    defect, and one no test that mocks a single fetch ever sees.
+ *  - **a failure clears the list rather than freezing the last one.** Stale
+ *    options next to a fresh query are worse than none: they are pickable, and
+ *    the code that gets picked may not even be in the level any more.
+ */
+function useTermSearch(
+  client: VocabularyClient | null,
+  vocabulary: string,
+  level: string,
+  parent: string | undefined
+): {
+  readonly terms: readonly VocabularyTerm[];
+  readonly loading: boolean;
+  search(query: string): void;
+  open(): void;
+} {
+  const [terms, setTerms] = useState<readonly VocabularyTerm[]>([]);
+  const [loading, setLoading] = useState(false);
+  const inFlight = useRef<AbortController | undefined>(undefined);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Has this (vocabulary, level, parent) been asked for yet? antd reports the
+  // dropdown as opening on every keystroke, so without this the "first page"
+  // fetch fires once per character — a request storm nobody can see in a
+  // screenshot and everybody pays for on a 15 000-row level.
+  const asked = useRef(false);
+
+  const run = useCallback(
+    (query: string): void => {
+      if (client === null || vocabulary.length === 0 || level.length === 0) return;
+      inFlight.current?.abort();
+      const controller = new AbortController();
+      inFlight.current = controller;
+      setLoading(true);
+      client
+        .search(vocabulary, level, query, parent, controller.signal)
+        .then((found) => {
+          if (controller.signal.aborted) return;
+          setTerms(found.slice(0, VOCABULARY_PAGE));
+          setLoading(false);
+        })
+        .catch(() => {
+          if (controller.signal.aborted) return;
+          setTerms([]);
+          setLoading(false);
+        });
+    },
+    [client, vocabulary, level, parent]
+  );
+
+  // The parent moved (or the pointer did): whatever is listed belongs to the
+  // old parent's children and must not stay pickable.
+  useEffect(() => {
+    asked.current = false;
+    setTerms([]);
+  }, [vocabulary, level, parent]);
+
+  useEffect(
+    () => () => {
+      if (timer.current !== undefined) clearTimeout(timer.current);
+      inFlight.current?.abort();
+    },
+    []
+  );
+
+  const search = useCallback(
+    (query: string): void => {
+      asked.current = true;
+      if (timer.current !== undefined) clearTimeout(timer.current);
+      timer.current = setTimeout(() => run(query), VOCABULARY_DEBOUNCE_MS);
+    },
+    [run]
+  );
+
+  // Opening is not typing: the first page is fetched immediately, because a
+  // spinner that starts a quarter of a second after the click reads as a
+  // control that did not respond. Once only, per level and parent.
+  const open = useCallback((): void => {
+    if (asked.current) return;
+    asked.current = true;
+    run("");
+  }, [run]);
+
+  return { terms, loading, search, open };
+}
+
+/**
+ * `ref_select` → an antd `Select` that searches a vocabulary LEVEL instead of
+ * filtering a list it was given.
+ *
+ * `filterOption={false}` is not a detail: the options ARE the answer to the
+ * current query, and letting antd filter them again would hide rows the server
+ * deliberately returned (a prefix match ranked first, a label matched in
+ * another language).
+ *
+ * `optionsRef.parentFeature` is read off {@link ValueEditorProps.siblings} —
+ * the form's other answers. When it holds a code the level is narrowed to that
+ * term's children; when it is empty the whole level is offered, so a form need
+ * not be filled in order. And when it CHANGES, this feature's own value is
+ * cleared: a model that belonged to the previous vendor is not an answer, it
+ * is a refusal waiting to happen at publish time.
+ */
+const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
+  const t = useT();
+  const cfg = configOf(props);
+  const client = useVocabularyClient();
+  const pointer = optionsRefOf(cfg);
+  const vocabulary = pointer?.vocabulary ?? "";
+  const level = pointer?.level ?? "";
+  const parentFeature = pointer?.parentFeature;
+  const parent =
+    parentFeature === undefined ? undefined : firstCode(props.siblings?.[parentFeature]);
+
+  const declaredMax = cfg["maxSelected"];
+  // ABSENT means 1 for this type (`RefSelectConfig.maxSelected = 1`), the
+  // opposite of `select`. An explicit null is the unlimited one.
+  const maxSelected = declaredMax === null ? undefined : (numberish(declaredMax) ?? 1);
+  const minSelected = numberish(cfg["minSelected"]) ?? 0;
+  const multiple = maxSelected === undefined || maxSelected > 1;
+  const codes = useMemo(
+    () => (Array.isArray(props.value) ? props.value.map(str).filter((one) => one.length > 0) : []),
+    [props.value]
+  );
+
+  const { terms, loading, search, open } = useTermSearch(client, vocabulary, level, parent);
+
+  // Reset on a parent CHANGE, not on the first render: seeding a saved draft
+  // must not wipe the answer it was seeded with. The ref holds the parent this
+  // value was chosen under.
+  const seenParent = useRef<string | undefined>(parent);
+  const onChange = props.onChange;
+  useEffect(() => {
+    if (seenParent.current === parent) return;
+    seenParent.current = parent;
+    onChange(undefined);
+  }, [parent, onChange]);
+
+  if (client === null || pointer === undefined) {
+    return (
+      <UnsupportedValueEditor
+        feature={props.feature}
+        reason={ATTRIBUTES_I18N_KEYS.vocabularyUnavailable}
+      />
+    );
+  }
+
+  // A stored code with no term in the current page still has to be pickable
+  // and visible, or reopening a draft would silently empty the control.
+  const options = [
+    ...codes
+      .filter((code) => !terms.some((term) => term.code === code))
+      .map((code) => ({ value: code, label: code })),
+    ...terms.map((term) => ({ value: term.code, label: term.label })),
+  ];
+
+  return (
+    <>
+      <Select
+        id={props.id}
+        style={{ width: "100%" }}
+        showSearch
+        filterOption={false}
+        options={options}
+        loading={loading}
+        disabled={props.disabled === true}
+        {...errorStatus(props.error)}
+        {...requiredAria(props)}
+        {...(multiple ? { mode: "multiple" as const } : {})}
+        {...(maxSelected !== undefined && maxSelected > 1 ? { maxCount: maxSelected } : {})}
+        placeholder={t(ATTRIBUTES_I18N_KEYS.selectPlaceholder)}
+        notFoundContent={loading ? null : t(ATTRIBUTES_I18N_KEYS.vocabularyNoMatches)}
+        value={multiple ? codes : (codes[0] ?? null)}
+        onDropdownVisibleChange={(visible) => {
+          if (visible) open();
+        }}
+        onSearch={search}
+        onChange={(next: string | string[]) => {
+          const picked = Array.isArray(next) ? next.map(str) : next ? [str(next)] : [];
+          props.onChange(picked.length > 0 ? picked : undefined);
+        }}
+      />
+      {minSelected > 1 && (
+        <Typography.Text type="secondary">
+          {t(ATTRIBUTES_I18N_KEYS.selectMinSelected, { count: minSelected })}
+        </Typography.Text>
+      )}
+    </>
+  );
+};
+
+/** One `Cascader` node, loaded lazily. `isLeaf` is what stops antd asking for
+ * children of a level that has none left. */
+interface RefCascaderOption {
+  value: string;
+  label: string;
+  isLeaf?: boolean;
+  loading?: boolean;
+  children?: RefCascaderOption[];
+}
+
+/**
+ * `ref_hierarchical_select` → a `Cascader` whose columns are VOCABULARY
+ * LEVELS, each fetched when the column before it is chosen.
+ *
+ * The chain is `config.levels`, root first; a node at depth `i` is expanded by
+ * asking the client for level `i + 1` narrowed by that node's code. Nothing is
+ * prefetched past the first level: the whole reason this type exists is that
+ * the tree does not fit in a response.
+ *
+ * Both depth bounds reach the control, exactly as the inline
+ * `hierarchical_select` editor does them: `maxDepth` stops the columns (a
+ * node at the bound is a LEAF), and `minDepth > 1` drops `changeOnSelect` so a
+ * partial path stops being selectable instead of being selectable and then
+ * refused (`below_minimum`).
+ */
+const RefHierarchicalSelectEditor: ValueEditor = (props: ValueEditorProps) => {
+  const t = useT();
+  const cfg = configOf(props);
+  const client = useVocabularyClient();
+  const vocabulary = str(cfg["vocabulary"]);
+  const levels = useMemo(
+    () => (Array.isArray(cfg["levels"]) ? cfg["levels"].map(str).filter((one) => one.length > 0) : []),
+    [cfg]
+  );
+  const minDepth = numberish(cfg["minDepth"]) ?? 1;
+  const maxDepth = Math.min(numberish(cfg["maxDepth"]) ?? levels.length, levels.length);
+  const [options, setOptions] = useState<RefCascaderOption[]>([]);
+
+  const toOptions = useCallback(
+    (terms: readonly VocabularyTerm[], depth: number): RefCascaderOption[] =>
+      terms.map((term) => ({
+        value: term.code,
+        label: term.label,
+        ...(depth + 1 >= maxDepth || term.has_children === false ? { isLeaf: true } : {}),
+      })),
+    [maxDepth]
+  );
+
+  // The root column, once — the only level fetched without a parent.
+  useEffect(() => {
+    if (client === null || vocabulary.length === 0 || levels.length === 0) return;
+    let live = true;
+    void client
+      .search(vocabulary, levels[0] as string, "")
+      .then((terms) => {
+        if (live) setOptions(toOptions(terms, 0));
+      })
+      .catch(() => {
+        if (live) setOptions([]);
+      });
+    return () => {
+      live = false;
+    };
+  }, [client, vocabulary, levels, toOptions]);
+
+  if (client === null || vocabulary.length === 0 || levels.length === 0) {
+    return (
+      <UnsupportedValueEditor
+        feature={props.feature}
+        reason={ATTRIBUTES_I18N_KEYS.vocabularyUnavailable}
+      />
+    );
+  }
+
+  const value = Array.isArray(props.value) ? props.value.map(str) : undefined;
+
+  const loadData = (selected: RefCascaderOption[]): void => {
+    const node = selected[selected.length - 1];
+    const depth = selected.length;
+    const nextLevel = levels[depth];
+    if (node === undefined || nextLevel === undefined) return;
+    node.loading = true;
+    void client
+      .search(vocabulary, nextLevel, "", node.value)
+      .then((terms) => {
+        node.loading = false;
+        node.children = toOptions(terms, depth);
+        if (node.children.length === 0) node.isLeaf = true;
+        setOptions((current) => [...current]);
+      })
+      .catch(() => {
+        node.loading = false;
+        node.isLeaf = true;
+        setOptions((current) => [...current]);
+      });
+  };
+
+  return (
+    <Cascader
+      id={props.id}
+      style={{ width: "100%" }}
+      options={options as never}
+      loadData={loadData as never}
+      disabled={props.disabled === true}
+      {...errorStatus(props.error)}
+      {...requiredAria(props)}
+      placeholder={t(ATTRIBUTES_I18N_KEYS.selectPlaceholder)}
+      {...(minDepth <= 1 ? { changeOnSelect: true } : {})}
+      {...(value ? { value } : {})}
+      onChange={(next: unknown) =>
+        props.onChange(Array.isArray(next) && next.length > 0 ? next.map(str) : undefined)
+      }
+    />
+  );
+};
+
 /**
  * Every builtin is its OWN skin root.
  *
@@ -1117,6 +1444,8 @@ export const BUILTIN_VALUE_EDITORS: Readonly<Record<string, ValueEditor>> = {
   hex_color: skinned("HexColor", HexColorEditor),
   hierarchical_select: skinned("HierarchicalSelect", HierarchicalSelectEditor),
   convertible_unit: skinned("ConvertibleUnit", ConvertibleUnitEditor),
+  ref_select: skinned("RefSelect", RefSelectEditor),
+  ref_hierarchical_select: skinned("RefHierarchicalSelect", RefHierarchicalSelectEditor),
 };
 
 /** The types this skin can draw — handed to `unsupportedTypes` so the

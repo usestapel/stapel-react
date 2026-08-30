@@ -161,6 +161,9 @@ describe("hexColorSwatch", () => {
 describe("FORMATTABLE_TYPES", () => {
   it("is sorted and complete", () => {
     expect([...FORMATTABLE_TYPES].sort()).toEqual([...FORMATTABLE_TYPES]);
-    expect(FORMATTABLE_TYPES).toHaveLength(10);
+    // Twelve since stapel-attributes 0.5.0: the two vocabulary-backed types
+    // format from the DAO's label snapshot, so a card renders a term without
+    // ever reaching a vocabulary.
+    expect(FORMATTABLE_TYPES).toHaveLength(12);
   });
 });

@@ -20,6 +20,7 @@ export const attributesI18nBundleRu: I18nDictionary = {
     "Значение отсутствует среди допустимых вариантов для «{feature}»",
   "error.400.feature_invalid_type": "Неверный тип значения для «{feature}»",
   "error.400.feature_invalid_format": "Неверный формат значения для «{feature}»",
+  "error.400.feature_invalid_rules": "Неверные условия отображения поля «{feature}»",
   "error.400.feature_mandatory_missing": "Поле «{feature}» обязательно для заполнения",
   "error.400.feature_unknown_type": "Неизвестный тип поля «{feature}»",
   "error.400.feature_not_allowed": "Поле «{feature}» здесь недопустимо",
@@ -42,6 +43,9 @@ export const attributesI18nBundleRu: I18nDictionary = {
   "attributes.select.min_selected": "Выберите не менее {count}.",
   "attributes.color.exact": "Точный оттенок",
   "attributes.unit": "Единица измерения",
+  "attributes.vocabulary_unavailable": "Эту характеристику здесь пока нельзя заполнить.",
+  "attributes.vocabulary.no_matches": "Ничего не найдено",
+  "attributes.invalid_rules": "Характеристика настроена неверно, заполнить её нельзя.",
 };
 
 /** Register the `ru` bundle. Call AFTER `registerAttributesI18n` so it

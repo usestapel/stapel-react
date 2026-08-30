@@ -24,9 +24,11 @@ export {
   FeatureFields,
   UnsupportedValueEditor,
   featureControlId,
+  featureSections,
 } from "./FeatureFields.js";
 export type {
   FeatureFieldsProps,
+  FeatureHint,
   FeatureRowProps,
   UnsupportedValueEditorProps,
 } from "./FeatureFields.js";

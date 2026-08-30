@@ -43,6 +43,8 @@ import { actionAvailable, actionBlocked } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
 import type { FeatureDef } from "./types.js";
 import { featureName, featureType } from "./types.js";
+import { ruleErrors } from "./rules.js";
+import { VOCABULARY_BACKED_TYPES } from "./vocabulary.js";
 import { ATTRIBUTES_I18N_KEYS } from "./i18n/keys.js";
 
 /**
@@ -73,6 +75,20 @@ export interface ValueEditorProps<T = unknown> {
    * a blind person meets the requirement for the first time as a refusal.
    */
   readonly required?: boolean;
+  /**
+   * Every current answer of the form, keyed by slug — the sibling seam.
+   *
+   * One prop, because the alternative is a second one per relationship. A
+   * `ref_select` reads `siblings[optionsRef.parentFeature]` to narrow its
+   * level to that term's children (and to reset itself when the parent
+   * moves); nothing else in the builtin set reads it, and a host type that
+   * needs a sibling no longer has to be given a bespoke prop to get one.
+   *
+   * It is NOT how an editor writes: `onChange` still reports only this
+   * feature's own answer. A control that wrote to a sibling would be a second
+   * source of truth for a value the composer already owns.
+   */
+  readonly siblings?: Readonly<Record<string, unknown>>;
   /**
    * DOM id the editor MUST put on its primary control. The field row points
    * its `<label for>` at this, so the label actually names the input for a
@@ -133,19 +149,83 @@ export function registeredValueEditorTypes(): readonly string[] {
  */
 export function unsupportedTypes(
   features: readonly FeatureDef[],
-  builtinTypes: readonly string[]
+  builtinTypes: readonly string[],
+  options?: RenderabilityOptions
 ): readonly string[] {
-  const builtin = new Set(builtinTypes);
   const out = new Set<string>();
+  for (const reason of undrawable(features, builtinTypes, options)) out.add(reason.reported);
+  return [...out].sort();
+}
+
+/**
+ * What else, besides a missing editor, makes a feature undrawable.
+ *
+ * An absent member is UNKNOWN, not false: a caller that does not pass
+ * `vocabularyClient` is not saying "there is none", it is saying it has not
+ * looked — and blocking a submit on a fact nobody asserted would break every
+ * existing caller. The callers that DO know (`<FeatureFields>`, from context,
+ * and listings-react's composer) pass it, and then the block is a fact.
+ */
+export interface RenderabilityOptions {
+  /** The `VocabularyClient` in scope, or `null` when there is none. The two
+   * vocabulary-backed types cannot be drawn without one — their config
+   * carries a POINTER to a vocabulary, not a list of options. */
+  readonly vocabularyClient?: unknown;
+  /**
+   * Slugs whose `rules` break the closed grammar (`ruleErrors(features)`),
+   * when the caller has already computed them. Omitted, it is recomputed — a
+   * rule set that does not parse is a row whose visibility and requiredness
+   * are both unknown, and drawing it anyway would be a guess.
+   */
+  readonly invalidRuleSlugs?: readonly string[];
+}
+
+/** What the helpers report for a feature whose `rules` do not parse. A
+ * distinct sentinel and not a type slug, because the TYPE is fine — it is the
+ * row's conditional logic that cannot be executed. */
+export const INVALID_RULES_FEATURE = "(invalid rules)";
+
+interface Undrawable {
+  readonly feature: FeatureDef;
+  /** What {@link unsupportedTypes} reports it under. */
+  readonly reported: string;
+}
+
+/** The ONE predicate behind all three helpers below, so "can this be drawn?"
+ * has a single answer in this package. */
+function undrawable(
+  features: readonly FeatureDef[],
+  builtinTypes: readonly string[],
+  options: RenderabilityOptions | undefined
+): readonly Undrawable[] {
+  const builtin = new Set(builtinTypes);
+  const broken = new Set(options?.invalidRuleSlugs ?? Object.keys(ruleErrors(features)));
+  const noClient =
+    options !== undefined &&
+    "vocabularyClient" in options &&
+    (options.vocabularyClient === null || options.vocabularyClient === undefined);
+  const out: Undrawable[] = [];
   for (const feature of features) {
     const type = featureType(feature);
     if (type === undefined) {
-      out.add(UNTYPED_FEATURE);
+      out.push({ feature, reported: UNTYPED_FEATURE });
       continue;
     }
-    if (resolveValueEditor(type) === null && !builtin.has(type)) out.add(type);
+    if (broken.has(feature.slug)) {
+      out.push({ feature, reported: INVALID_RULES_FEATURE });
+      continue;
+    }
+    if (resolveValueEditor(type) === null && !builtin.has(type)) {
+      out.push({ feature, reported: type });
+      continue;
+    }
+    // A ref type WITH an editor and WITHOUT a source is the same hole as a
+    // type with no editor at all: the control draws and cannot be answered.
+    if (noClient && VOCABULARY_BACKED_TYPES.includes(type)) {
+      out.push({ feature, reported: type });
+    }
   }
-  return [...out].sort();
+  return out;
 }
 
 /** What `unsupportedTypes` reports for a feature whose config names no type
@@ -168,16 +248,10 @@ export const UNTYPED_FEATURE = "(none)";
  */
 export function unsupportedFeatureNames(
   features: readonly FeatureDef[],
-  builtinTypes: readonly string[]
+  builtinTypes: readonly string[],
+  options?: RenderabilityOptions
 ): readonly string[] {
-  const builtin = new Set(builtinTypes);
-  const out: string[] = [];
-  for (const feature of features) {
-    const type = featureType(feature);
-    const drawable = type !== undefined && (resolveValueEditor(type) !== null || builtin.has(type));
-    if (!drawable) out.push(featureName(feature));
-  }
-  return out;
+  return undrawable(features, builtinTypes, options).map((one) => featureName(one.feature));
 }
 
 /**
@@ -193,9 +267,10 @@ export function unsupportedFeatureNames(
  */
 export function unsupportedTypeGate(
   features: readonly FeatureDef[],
-  builtinTypes: readonly string[]
+  builtinTypes: readonly string[],
+  options?: RenderabilityOptions
 ): ActionAvailability {
-  const names = unsupportedFeatureNames(features, builtinTypes);
+  const names = unsupportedFeatureNames(features, builtinTypes, options);
   if (names.length === 0) return actionAvailable();
   // FEATURE names, not type slugs: the reason is read by the person whose
   // submit is blocked, and `size_grid` is not something they can act on.

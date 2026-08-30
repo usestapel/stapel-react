@@ -10,6 +10,7 @@
  * carrying every default would test a payload the storefront never receives.
  */
 import type { FeatureDef } from "../src/types.js";
+import type { VocabularyClient } from "../src/vocabulary.js";
 
 export function feature(
   slug: string,
@@ -123,6 +124,28 @@ export const CONVERTIBLE_FEATURE: FeatureDef = feature("length", {
   max: 100,
 });
 
+export const REF_SELECT_FEATURE: FeatureDef = feature("vendor", {
+  type: "ref_select",
+  optionsRef: { vocabulary: "avito-phones", level: "Vendor" },
+  maxSelected: 1,
+});
+
+/** The child of {@link REF_SELECT_FEATURE}: its level is narrowed to the
+ * vendor's children, and its own answer is cleared when the vendor moves. */
+export const REF_SELECT_CHILD_FEATURE: FeatureDef = feature("model", {
+  type: "ref_select",
+  optionsRef: { vocabulary: "avito-phones", level: "Model", parentFeature: "vendor" },
+  maxSelected: 1,
+});
+
+export const REF_HIERARCHICAL_FEATURE: FeatureDef = feature("make_model", {
+  type: "ref_hierarchical_select",
+  vocabulary: "avito-cars",
+  levels: ["Make", "Model", "Generation"],
+  minDepth: 1,
+  maxDepth: 3,
+});
+
 /** A type no build of this package knows — the third rung's fixture. */
 export const UNKNOWN_TYPE_FEATURE: FeatureDef = feature("size_grid", {
   type: "size_grid",
@@ -132,7 +155,7 @@ export const UNKNOWN_TYPE_FEATURE: FeatureDef = feature("size_grid", {
 /** A row whose config declares no type at all. */
 export const UNTYPED_FEATURE_DEF: FeatureDef = feature("broken", {});
 
-/** Every builtin, in registry order — the ten-type sweep. */
+/** Every builtin, in registry order — the twelve-type sweep. */
 export const ALL_BUILTIN_FEATURES: readonly FeatureDef[] = [
   BOOL_FEATURE,
   CONVERTIBLE_FEATURE,
@@ -142,6 +165,26 @@ export const ALL_BUILTIN_FEATURES: readonly FeatureDef[] = [
   HEX_COLOR_FEATURE,
   HIERARCHICAL_FEATURE,
   INT_FEATURE,
+  REF_HIERARCHICAL_FEATURE,
+  REF_SELECT_FEATURE,
   SELECT_FEATURE,
   STRING_FEATURE,
 ];
+
+/**
+ * A vocabulary source for the suites that only need the ref editors to DRAW.
+ *
+ * Not a mock of the module under test: the seam IS two functions
+ * (`@stapel/vocabularies-react` satisfies it structurally, without importing
+ * it), so a table is exactly the shape a host hands in. The behavioural claims
+ * — debounce, supersede, parent narrowing — live in
+ * `test/vocabulary.test.tsx`, against a client whose calls are counted.
+ */
+export const STUB_VOCABULARY_CLIENT: VocabularyClient = {
+  async search() {
+    return [{ code: "apple", label: "Apple", has_children: true }];
+  },
+  async resolve() {
+    return { apple: "Apple" };
+  },
+};

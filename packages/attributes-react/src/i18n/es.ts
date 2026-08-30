@@ -13,6 +13,7 @@ export const attributesI18nBundleEs: I18nDictionary = {
   "error.400.feature_not_in_options": "El valor no está entre las opciones de {feature}",
   "error.400.feature_invalid_type": "Tipo de valor no válido para {feature}",
   "error.400.feature_invalid_format": "Formato no válido para {feature}",
+  "error.400.feature_invalid_rules": "Condiciones no válidas en {feature}",
   "error.400.feature_mandatory_missing": "{feature} es obligatorio",
   "error.400.feature_unknown_type": "Tipo de característica desconocido para {feature}",
   "error.400.feature_not_allowed": "{feature} no se admite aquí",
@@ -35,6 +36,9 @@ export const attributesI18nBundleEs: I18nDictionary = {
   "attributes.select.min_selected": "Elige al menos {count}.",
   "attributes.color.exact": "Tono exacto",
   "attributes.unit": "Unidad",
+  "attributes.vocabulary_unavailable": "Este detalle todavía no se puede rellenar aquí.",
+  "attributes.vocabulary.no_matches": "Sin coincidencias",
+  "attributes.invalid_rules": "Este detalle está mal configurado y no se puede rellenar.",
 };
 
 /** Register the `es` bundle. Call AFTER `registerAttributesI18n` so it

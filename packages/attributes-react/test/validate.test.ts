@@ -16,13 +16,15 @@
 import { describe, expect, it } from "vitest";
 import {
   codePointLength,
+  featureAnswerRequired,
   isBlank,
   mirrorValidate,
   patternFullMatch,
   validateFeatureValue,
 } from "../src/validate.js";
+import { defaultFeatureValue, initialFeatureValues } from "../src/useFeatureFields.js";
 import { featureErrorsBySlug } from "../src/errors.js";
-import type { FeaturesDto } from "../src/types.js";
+import type { FeaturesDto, Rule } from "../src/types.js";
 import {
   BOOL_FEATURE,
   CONVERTIBLE_FEATURE,
@@ -38,6 +40,12 @@ import {
   UNKNOWN_TYPE_FEATURE,
   feature,
 } from "./fixtures.js";
+
+/** A rule set that deliberately breaks the grammar — see `test/rules.test.ts`
+ * for why a cast is the only way to write one. */
+function brokenRules(raw: readonly unknown[]): readonly Rule[] {
+  return raw as readonly Rule[];
+}
 
 function refuse(f: Parameters<typeof validateFeatureValue>[0], value: unknown): string | undefined {
   const result = validateFeatureValue(f, { type: String(f.config?.type), value });
@@ -382,5 +390,116 @@ describe("featureErrorsBySlug — a verdict, laid out on the controls", () => {
     expect(errors["year"]?.code).toBe("error.400.feature_not_in_options");
     expect(errors["year"]?.params["feature"]).toBe("Year");
     expect(errors["year"]?.params["field"]).toBe("year");
+  });
+});
+
+// ── requiredness once the RULES are in the picture ───────────────────────────
+
+describe("featureAnswerRequired, with the form's answers", () => {
+  const condition = feature("condition", {
+    type: "select",
+    maxSelected: 1,
+    options: [
+      { value: "new", label: "new" },
+      { value: "used", label: "used" },
+    ],
+  });
+  const screen = feature(
+    "screen_state",
+    { type: "string" },
+    {
+      rules: [
+        { effect: "require", when: { all: [{ feature: "condition", op: "in", values: ["used"] }] } },
+      ],
+    }
+  );
+  const hiddenMandatory = feature(
+    "warranty",
+    { type: "string" },
+    {
+      mandatory: true,
+      rules: [
+        { effect: "hide", when: { all: [{ feature: "condition", op: "in", values: ["used"] }] } },
+      ],
+    }
+  );
+
+  it("answers from `mandatory` alone when no values are given", () => {
+    expect(featureAnswerRequired(screen)).toBe(false);
+    expect(featureAnswerRequired(hiddenMandatory)).toBe(true);
+  });
+
+  it("answers from the rule state when they are", () => {
+    expect(featureAnswerRequired(screen, { condition: ["used"] })).toBe(true);
+    expect(featureAnswerRequired(screen, { condition: ["new"] })).toBe(false);
+  });
+
+  it("never requires a HIDDEN feature, whatever it was flagged", () => {
+    // The publish gate reads this: a mandatory field the rules removed from the
+    // page must not block a submit for an answer nobody can give.
+    expect(featureAnswerRequired(hiddenMandatory, { condition: ["used"] })).toBe(false);
+    expect(featureAnswerRequired(hiddenMandatory, { condition: ["new"] })).toBe(true);
+  });
+
+  it("falls back to the static answer when the rules do not parse", () => {
+    const broken = feature("broken", { type: "string" }, { mandatory: true, rules: brokenRules([{ x: 1 }]) });
+    expect(featureAnswerRequired(broken, { condition: ["used"] })).toBe(true);
+  });
+
+  it("keeps `condition` itself untouched — it controls, it is not controlled", () => {
+    expect(featureAnswerRequired(condition, { condition: ["used"] })).toBe(false);
+  });
+});
+
+describe("the mirror refuses a rule set it cannot parse, on _root", () => {
+  it("fails the whole batch rather than blaming a value", () => {
+    const broken = feature("broken", { type: "string" }, { rules: brokenRules([{ effect: "nope" }]) });
+    const batch = mirrorValidate([broken], {});
+    expect(batch.valid).toBe(false);
+    expect(batch.results).toHaveLength(1);
+    expect(batch.results[0]?.slug).toBe("_root");
+    expect(batch.results[0]?.error).toBe("invalid_rules");
+    expect(batch.results[0]?.localizable_error).toBe("error.400.feature_invalid_rules");
+  });
+});
+
+describe("initialFeatureValues", () => {
+  it("prefers FeatureDef.default over the type's own", () => {
+    const withDefault = feature(
+      "fuel",
+      {
+        type: "select",
+        options: [
+          { value: "petrol", label: "petrol", default: true },
+          { value: "diesel", label: "diesel" },
+        ],
+      },
+      { default: ["diesel"] }
+    );
+    expect(defaultFeatureValue(withDefault)).toEqual(["diesel"]);
+  });
+
+  it("falls back to a select option flagged default, and to date.default", () => {
+    const flagged = feature("fuel", {
+      type: "select",
+      options: [
+        { value: "petrol", label: "petrol", default: true },
+        { value: "diesel", label: "diesel" },
+      ],
+    });
+    expect(defaultFeatureValue(flagged)).toEqual(["petrol"]);
+    expect(defaultFeatureValue(feature("when", { type: "date", default: 1_700_000_000 }))).toBe(
+      1_700_000_000
+    );
+  });
+
+  it("invents nothing for a feature that declares no default", () => {
+    expect(defaultFeatureValue(STRING_FEATURE)).toBeUndefined();
+    expect(initialFeatureValues([STRING_FEATURE, INT_FEATURE])).toEqual({});
+  });
+
+  it("keys only the features that HAVE one", () => {
+    const seeded = feature("colour", { type: "string" }, { default: "red" });
+    expect(initialFeatureValues([STRING_FEATURE, seeded])).toEqual({ colour: "red" });
   });
 });

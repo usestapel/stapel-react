@@ -46,11 +46,18 @@
  */
 
 export type {
+  Cond,
   FeatureConfig,
   FeatureDef,
   FeatureValueDto,
   FeatureValidationResult,
   FeaturesDto,
+  Hint,
+  OptionsRef,
+  RefHierarchicalSelectConfig,
+  RefSelectConfig,
+  Rule,
+  RuleWhen,
   ValidationBatchResult,
   ValidationErrorCode,
   ValidationStatus,
@@ -58,6 +65,33 @@ export type {
 export { featureConfig, featureName, featureType } from "./types.js";
 
 export {
+  FeatureRulesError,
+  RULE_CONNECTIVES,
+  RULE_EFFECTS,
+  RULE_OPERATORS,
+  VISIBLE_STATE,
+  evaluateRules,
+  featureRuleState,
+  narrowConfig,
+  narrowFeature,
+  parseRules,
+  ruleErrors,
+  ruleStateToJson,
+  stringify,
+} from "./rules.js";
+export type { RuleState } from "./rules.js";
+
+export {
+  VOCABULARY_BACKED_TYPES,
+  VocabularyClientProvider,
+  firstCode,
+  optionsRefOf,
+  useVocabularyClient,
+} from "./vocabulary.js";
+export type { VocabularyClient, VocabularyTerm } from "./vocabulary.js";
+
+export {
+  INVALID_RULES_FEATURE,
   UNTYPED_FEATURE,
   registerValueEditor,
   registeredValueEditorTypes,
@@ -67,7 +101,11 @@ export {
   unsupportedTypeGate,
   unsupportedTypes,
 } from "./registry.js";
-export type { ValueEditor, ValueEditorProps } from "./registry.js";
+export type {
+  RenderabilityOptions,
+  ValueEditor,
+  ValueEditorProps,
+} from "./registry.js";
 
 export {
   ERROR_CODE_TO_KEY,

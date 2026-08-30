@@ -31,8 +31,10 @@ import {
   featureControlId,
 } from "../src/default/index.js";
 import type { FeaturesDto } from "../src/types.js";
+import { VocabularyClientProvider } from "../src/vocabulary.js";
 import {
   ALL_BUILTIN_FEATURES,
+  STUB_VOCABULARY_CLIENT,
   BOOL_FEATURE,
   HEX_COLOR_FEATURE,
   INT_FEATURE,
@@ -101,7 +103,16 @@ async function setDocumentTheme(mode: "light" | "dark" | null): Promise<void> {
 function Skinned(props: { children: ReactNode }): ReactElement {
   const i18n = createI18n({ locale: "en" });
   registerAttributesI18n(i18n);
-  return <I18nProvider i18n={i18n}>{props.children}</I18nProvider>;
+  return (
+    <I18nProvider i18n={i18n}>
+      {/* The vocabulary source is a HOST's wiring, not a skin's — without one
+          the two ref editors are undrawable by design, which is a different
+          test (`vocabulary.test.tsx`) from "does this control fit a phone". */}
+      <VocabularyClientProvider value={STUB_VOCABULARY_CLIENT}>
+        {props.children}
+      </VocabularyClientProvider>
+    </I18nProvider>
+  );
 }
 
 /** A stateful `<FeatureFields/>`: the component owns no draft by design. */

@@ -31,8 +31,10 @@ import {
   BUILTIN_VALUE_EDITOR_TYPES,
 } from "../src/default/editors.js";
 import { FeatureFields } from "../src/default/FeatureFields.js";
+import { VocabularyClientProvider } from "../src/vocabulary.js";
 import {
   ALL_BUILTIN_FEATURES,
+  STUB_VOCABULARY_CLIENT,
   STRING_FEATURE,
   UNKNOWN_TYPE_FEATURE,
   UNTYPED_FEATURE_DEF,
@@ -92,7 +94,7 @@ describe("rung 1 — an explicit registration", () => {
 });
 
 describe("rung 2 — the skin's builtins", () => {
-  it("covers exactly the ten types stapel-attributes ships", () => {
+  it("covers exactly the twelve types stapel-attributes ships", () => {
     expect(BUILTIN_VALUE_EDITOR_TYPES).toEqual([
       "bool",
       "convertible_unit",
@@ -102,6 +104,8 @@ describe("rung 2 — the skin's builtins", () => {
       "hex_color",
       "hierarchical_select",
       "int",
+      "ref_hierarchical_select",
+      "ref_select",
       "select",
       "string",
     ]);
@@ -113,11 +117,16 @@ describe("rung 2 — the skin's builtins", () => {
   it("draws every builtin feature without reaching the notice", () => {
     render(
       wrap(
-        <FeatureFields
-          features={ALL_BUILTIN_FEATURES}
-          values={{}}
-          onChange={() => {}}
-        />
+        // The two vocabulary-backed types need a source in scope: their config
+        // carries a POINTER, so without a client they are undrawable BY
+        // DESIGN, and that state has its own test in `vocabulary.test.tsx`.
+        <VocabularyClientProvider value={STUB_VOCABULARY_CLIENT}>
+          <FeatureFields
+            features={ALL_BUILTIN_FEATURES}
+            values={{}}
+            onChange={() => {}}
+          />
+        </VocabularyClientProvider>
       )
     );
     expect(screen.queryByTestId("attributes-unsupported-type")).toBeNull();

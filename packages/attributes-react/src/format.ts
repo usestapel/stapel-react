@@ -34,6 +34,8 @@ export const FORMATTABLE_TYPES: readonly string[] = [
   "hex_color",
   "hierarchical_select",
   "int",
+  "ref_hierarchical_select",
+  "ref_select",
   "select",
   "string",
 ];
@@ -120,6 +122,36 @@ function hierarchicalPathLabels(
     if (label.length === 0 || label === wanted) return wanted;
     return translatable ? translate(options, label) : label;
   });
+}
+
+/**
+ * A vocabulary-backed value, read from the DAO's LABEL SNAPSHOT.
+ *
+ * `ref_select`/`ref_hierarchical_select` store term CODES; the words live in a
+ * vocabulary this package cannot reach and must not need to. So `dto_to_dao`
+ * snapshots `labels` beside `value` at write time (an unknown code labels as
+ * itself), and display reads that — no resolver, no second request, and a
+ * listing keeps printing the model it was published with even if the
+ * catalogue is later re-imported.
+ *
+ * Where the snapshot IS: a DAO row hands `labels` either on the value
+ * envelope or, once a host has split the row into `(FeatureDef, dto)` the way
+ * `@stapel/listings-react`'s `featureFromDao` does, in the config. Both are
+ * read, in that order.
+ *
+ * Fallback is the CODES, exactly as the engine falls back
+ * (`labels if len(labels) == len(codes) else codes`): a partial snapshot is
+ * not a partial answer, and printing three labels for four codes would
+ * silently drop a term.
+ */
+function refLabels(
+  config: Readonly<Record<string, unknown>>,
+  dto: FeatureValueDto,
+  codes: readonly string[]
+): readonly string[] {
+  const raw = dto["labels"] ?? config["labels"];
+  if (!Array.isArray(raw) || raw.length !== codes.length) return codes;
+  return raw.map((one) => str(one));
 }
 
 function formatNumber(
@@ -215,6 +247,16 @@ export function formatFeatureValue(
     case "select": {
       const items = Array.isArray(value) ? value : [value];
       return items.map((item) => labelOf(config, item, options)).join(", ");
+    }
+    case "ref_select": {
+      const codes = (Array.isArray(value) ? value : [value]).map(str);
+      return refLabels(config, dto, codes).join(", ");
+    }
+    case "ref_hierarchical_select": {
+      const codes = (Array.isArray(value) ? value : [value]).map(str);
+      // " / " and not ", ": the value is a PATH down the vocabulary's levels,
+      // and the separator is what says so — the same one the engine uses.
+      return refLabels(config, dto, codes).join(" / ");
     }
     case "hierarchical_select": {
       const path = Array.isArray(value) ? value : [value];

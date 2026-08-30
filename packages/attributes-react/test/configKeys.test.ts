@@ -121,6 +121,15 @@ const HALVES: Readonly<Record<string, { mirror: string | null; editor: string }>
     mirror: "validateConvertibleUnit",
     editor: "ConvertibleUnitEditor",
   },
+  // The two vocabulary-backed types: the mirror judges SHAPE and CARDINALITY
+  // only (whether a code exists is the resolver's answer, and a browser has
+  // neither the table nor the authority), so the keys it reads are exactly the
+  // bounds their controls have to carry.
+  ref_select: { mirror: "validateRefSelect", editor: "RefSelectEditor" },
+  ref_hierarchical_select: {
+    mirror: "validateRefHierarchicalSelect",
+    editor: "RefHierarchicalSelectEditor",
+  },
 };
 
 describe("the extractor itself", () => {
