@@ -510,8 +510,8 @@ export interface components {
             favorited: boolean;
             listing_id: number;
         };
-        FeatureDao: components["schemas"]["IntDao"] | components["schemas"]["FloatDao"] | components["schemas"]["StringDao"] | components["schemas"]["BoolDao"] | components["schemas"]["HexColorDao"] | components["schemas"]["SelectDao"] | components["schemas"]["DateDao"] | components["schemas"]["HeaderDao"] | components["schemas"]["HierarchicalSelectDao"] | components["schemas"]["ConvertibleUnitDao"] | components["schemas"]["RefSelectDao"] | components["schemas"]["RefHierarchicalSelectDao"];
-        FeatureDto: components["schemas"]["IntDto"] | components["schemas"]["FloatDto"] | components["schemas"]["StringDto"] | components["schemas"]["BoolDto"] | components["schemas"]["HexColorDto"] | components["schemas"]["SelectDto"] | components["schemas"]["DateDto"] | components["schemas"]["HeaderDto"] | components["schemas"]["HierarchicalSelectDto"] | components["schemas"]["ConvertibleUnitDto"] | components["schemas"]["RefSelectDto"] | components["schemas"]["RefHierarchicalSelectDto"];
+        FeatureDao: components["schemas"]["IntDao"] | components["schemas"]["FloatDao"] | components["schemas"]["StringDao"] | components["schemas"]["BoolDao"] | components["schemas"]["HexColorDao"] | components["schemas"]["SelectDao"] | components["schemas"]["DateDao"] | components["schemas"]["HeaderDao"] | components["schemas"]["HierarchicalSelectDao"] | components["schemas"]["ConvertibleUnitDao"] | components["schemas"]["RefSelectDao"] | components["schemas"]["RefHierarchicalSelectDao"] | components["schemas"]["GroupDao"];
+        FeatureDto: components["schemas"]["IntDto"] | components["schemas"]["FloatDto"] | components["schemas"]["StringDto"] | components["schemas"]["BoolDto"] | components["schemas"]["HexColorDto"] | components["schemas"]["SelectDto"] | components["schemas"]["DateDto"] | components["schemas"]["HeaderDto"] | components["schemas"]["HierarchicalSelectDto"] | components["schemas"]["ConvertibleUnitDto"] | components["schemas"]["RefSelectDto"] | components["schemas"]["RefHierarchicalSelectDto"] | components["schemas"]["GroupDto"];
         /** @description Serializer for FeatureValidationResult. */
         FeatureValidationResult: {
             id?: unknown;
@@ -560,6 +560,33 @@ export interface components {
             type: "float";
             /** Format: double */
             value?: number;
+        };
+        /** @description Serializer for group feature DAO. */
+        GroupDao: {
+            name?: string | null;
+            order?: number | null;
+            title?: boolean | null;
+            badge?: boolean | null;
+            translate?: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "group";
+            value?: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** @description Serializer for group feature DTO. */
+        GroupDto: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "group";
+            value?: {
+                [key: string]: unknown;
+            }[];
         };
         /** @description Serializer for header feature DAO. */
         HeaderDao: {
@@ -1047,6 +1074,11 @@ export interface components {
          * @enum {string}
          */
         Type104Enum: "convertible_unit";
+        /**
+         * @description * `group` - group
+         * @enum {string}
+         */
+        Type312Enum: "group";
         /**
          * @description * `date` - date
          * @enum {string}
