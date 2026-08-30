@@ -280,7 +280,7 @@
     },
     {
       "package": "@stapel/chat-react",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "entries": [
         {
           "id": "chat.conversations",
