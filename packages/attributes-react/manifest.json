@@ -1,19 +1,19 @@
 {
-  "$generated": "hand-authored, not scripts/gen-manifest.mjs (that driver derives backend.contract from a sibling Django module's docs/schema.json + pyproject.toml; stapel-attributes is an L1 library with NO HTTP surface and emits neither \u2014 see backend below)",
+  "$generated": "hand-authored, not scripts/gen-manifest.mjs (that driver derives backend.contract from a sibling Django module's docs/schema.json + pyproject.toml; stapel-attributes is an L1 library with NO HTTP surface and emits neither — see backend below)",
   "package": "@stapel/attributes-react",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "backend": {
     "module": "stapel-attributes",
     "kind": "L1 library, no HTTP surface",
-    "contract": ">=0.4 <0.5",
-    "pin": "stapel-attributes 0.4.7. No docs/schema.json exists to generate against (no HTTP surface), so the contract range is the sibling's pyproject.toml version and the artifacts pinned are test/fixtures/attributes-registry.json (the builtin type set) and the ValidationErrorCode vocabulary, both taken from the engine's own tests/golden/ corpora and asserted by test/contract.test.ts. test/configKeys.test.ts additionally pins the per-type CONFIG key surface: every key the validation mirror reads must reach a control."
+    "contract": ">=0.5 <0.6",
+    "pin": "stapel-attributes 0.5.0. No docs/schema.json exists to generate against (no HTTP surface), but 0.5.0 adds a canon that IS generated from: docs/feature-def.schema.json emits src/generated/featureDef.ts through scripts/gen-feature-def.mjs (pnpm gen:feature-def, under gen:check), and tests/golden/rules/ is copied into test/fixtures/rules-corpus/ by scripts/gen-rules-corpus.mjs (pnpm gen:rules) so test/rules.golden.test.ts runs the SAME 59 state cases and 10 pipeline cases Python records. The other pinned artefacts are test/fixtures/attributes-registry.json (the twelve builtin types) and the ValidationErrorCode vocabulary (sixteen codes, invalid_rules new in 0.5.0), both from the engine's own tests/golden/ corpora and asserted by test/contract.test.ts. test/configKeys.test.ts additionally pins the per-type CONFIG key surface: every key the validation mirror reads must reach a control."
   },
   "layers": [
     "headless",
     "default",
     "i18n"
   ],
-  "axis": "config.type \u2014 the VALUE type of an attribute. NOT FormField.kind, which is the admin config form's field kind and is what @stapel/forms-react keys on.",
+  "axis": "config.type — the VALUE type of an attribute. NOT FormField.kind, which is the admin config form's field kind and is what @stapel/forms-react keys on.",
   "valueTypes": [
     "bool",
     "convertible_unit",
@@ -23,6 +23,8 @@
     "hex_color",
     "hierarchical_select",
     "int",
+    "ref_hierarchical_select",
+    "ref_select",
     "select",
     "string"
   ],
@@ -70,7 +72,27 @@
       "featureAnswerRequired",
       "useFeatureFields",
       "initialFeatureValues",
-      "defaultFeatureValue"
+      "defaultFeatureValue",
+      "evaluateRules",
+      "featureRuleState",
+      "narrowConfig",
+      "narrowFeature",
+      "parseRules",
+      "ruleErrors",
+      "ruleStateToJson",
+      "stringify",
+      "FeatureRulesError",
+      "VISIBLE_STATE",
+      "RULE_EFFECTS",
+      "RULE_OPERATORS",
+      "RULE_CONNECTIVES",
+      "VocabularyClientProvider",
+      "useVocabularyClient",
+      "VOCABULARY_BACKED_TYPES",
+      "optionsRefOf",
+      "firstCode",
+      "INVALID_RULES_FEATURE",
+      "featureSections"
     ],
     "types": [
       "FeatureDef",
@@ -90,7 +112,19 @@
       "FeatureDisplayProps",
       "UnsupportedValueEditorProps",
       "FeatureFieldsState",
-      "UseFeatureFieldsOptions"
+      "UseFeatureFieldsOptions",
+      "Rule",
+      "RuleWhen",
+      "Cond",
+      "Hint",
+      "OptionsRef",
+      "RefSelectConfig",
+      "RefHierarchicalSelectConfig",
+      "RuleState",
+      "RenderabilityOptions",
+      "VocabularyClient",
+      "VocabularyTerm",
+      "FeatureHint"
     ]
   },
   "i18nKeys": [
@@ -106,6 +140,9 @@
     "attributes.locked",
     "attributes.select.min_selected",
     "attributes.color.exact",
-    "attributes.unit"
+    "attributes.unit",
+    "attributes.vocabulary_unavailable",
+    "attributes.vocabulary.no_matches",
+    "attributes.invalid_rules"
   ]
 }

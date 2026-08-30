@@ -19,7 +19,16 @@ import { AttributesDemoHarness, EditableFeatureFields } from "./_harness.js";
 import {
   CHOICE_FEATURES,
   CHOICE_VALUES,
+  DEMO_VOCABULARY_CLIENT,
   REFUSED_VALUES,
+  REF_HIERARCHICAL_FEATURES,
+  REF_HIERARCHICAL_VALUES,
+  REF_SELECT_FEATURES,
+  REF_SELECT_VALUES,
+  RULES_NEW_VALUES,
+  RULES_USED_VALUES,
+  RULE_FEATURES,
+  SECTION_FEATURES,
   TEXT_FEATURES,
   TEXT_VALUES,
   UNIT_FEATURES,
@@ -79,6 +88,80 @@ export default defineDemo({
             initialValues={REFUSED_VALUES}
             showErrors
           />
+        </AttributesDemoHarness>
+      ),
+    },
+    "rules — new": {
+      description:
+        "Condition = new. The rule engine runs BEFORE any editor: “Screen condition” is not on the page at all (a `show` rule), and “Delivery” still offers post. Values in, states out, one pass — a controlling field's own visibility is never consulted, so a rule cycle is impossible by construction.",
+      viewport: "phone",
+      step: "condition=new",
+      render: () => (
+        <AttributesDemoHarness surface="base">
+          <EditableFeatureFields features={RULE_FEATURES} initialValues={RULES_NEW_VALUES} />
+        </AttributesDemoHarness>
+      ),
+    },
+    "rules — used": {
+      description:
+        "The same three features, one answer later. “Screen condition” appears AND carries the asterisk (`show` + `require` on one field), and “Delivery” has lost the post option — narrowed out of the config before the control saw it, rather than offered and then refused. Two variants because a rule is a transition, and a single frame cannot photograph one.",
+      viewport: "desktop",
+      step: "condition=used",
+      render: () => (
+        <AttributesDemoHarness surface="base">
+          <EditableFeatureFields features={RULE_FEATURES} initialValues={RULES_USED_VALUES} />
+        </AttributesDemoHarness>
+      ),
+    },
+    sections: {
+      description:
+        "The form metadata 99.9 % of imported fields carry: `group` becomes a section (ordered by first appearance, ungrouped rows first and unheaded), `description` becomes the help line under the field, `example` becomes the placeholder, and `hints` become ONE info alert per field rather than a stack of boxes.",
+      viewport: "phone",
+      step: "grouped",
+      render: () => (
+        <AttributesDemoHarness surface="base">
+          <EditableFeatureFields features={SECTION_FEATURES} />
+        </AttributesDemoHarness>
+      ),
+    },
+    "ref-select": {
+      description:
+        "Two vocabulary-backed fields over a mock client: Brand searches a level of `avito-phones`, Model searches the level below narrowed by the brand's code. The options are not in the category schema — they cannot be (529 vendors, 14 962 models) — so the config carries a pointer and the terms arrive over a second wire, debounced and superseding.",
+      viewport: "desktop",
+      step: "brand-and-model",
+      render: () => (
+        <AttributesDemoHarness surface="base">
+          <EditableFeatureFields
+            features={REF_SELECT_FEATURES}
+            initialValues={REF_SELECT_VALUES}
+            vocabularyClient={DEMO_VOCABULARY_CLIENT}
+          />
+        </AttributesDemoHarness>
+      ),
+    },
+    "ref-hierarchical": {
+      description:
+        "One field, three vocabulary levels: Make → Model → Generation as a Cascader that loads each column when the one before it is chosen. Nothing is prefetched past the root — the whole reason this type exists is that the tree does not fit in a response.",
+      viewport: "phone",
+      step: "cascade",
+      render: () => (
+        <AttributesDemoHarness surface="base">
+          <EditableFeatureFields
+            features={REF_HIERARCHICAL_FEATURES}
+            initialValues={REF_HIERARCHICAL_VALUES}
+            vocabularyClient={DEMO_VOCABULARY_CLIENT}
+          />
+        </AttributesDemoHarness>
+      ),
+    },
+    "no vocabulary source": {
+      description:
+        "The same two ref fields with no VocabularyClientProvider above them. A pointer with nothing to resolve it is drawn as the loud notice, never as an empty dropdown — an empty dropdown is a mandatory attribute a person cannot answer and is not told about — and the submit blocks through the same channel an unsupported type uses.",
+      viewport: "phone",
+      step: "no-client",
+      render: () => (
+        <AttributesDemoHarness surface="base">
+          <EditableFeatureFields features={REF_SELECT_FEATURES} />
         </AttributesDemoHarness>
       ),
     },

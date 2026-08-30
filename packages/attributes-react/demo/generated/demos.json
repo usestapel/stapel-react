@@ -82,6 +82,42 @@
           "step": "invalid"
         },
         {
+          "id": "rules — new",
+          "description": "Condition = new. The rule engine runs BEFORE any editor: “Screen condition” is not on the page at all (a `show` rule), and “Delivery” still offers post. Values in, states out, one pass — a controlling field's own visibility is never consulted, so a rule cycle is impossible by construction.",
+          "viewport": "phone",
+          "step": "condition=new"
+        },
+        {
+          "id": "rules — used",
+          "description": "The same three features, one answer later. “Screen condition” appears AND carries the asterisk (`show` + `require` on one field), and “Delivery” has lost the post option — narrowed out of the config before the control saw it, rather than offered and then refused. Two variants because a rule is a transition, and a single frame cannot photograph one.",
+          "viewport": "desktop",
+          "step": "condition=used"
+        },
+        {
+          "id": "sections",
+          "description": "The form metadata 99.9 % of imported fields carry: `group` becomes a section (ordered by first appearance, ungrouped rows first and unheaded), `description` becomes the help line under the field, `example` becomes the placeholder, and `hints` become ONE info alert per field rather than a stack of boxes.",
+          "viewport": "phone",
+          "step": "grouped"
+        },
+        {
+          "id": "ref-select",
+          "description": "Two vocabulary-backed fields over a mock client: Brand searches a level of `avito-phones`, Model searches the level below narrowed by the brand's code. The options are not in the category schema — they cannot be (529 vendors, 14 962 models) — so the config carries a pointer and the terms arrive over a second wire, debounced and superseding.",
+          "viewport": "desktop",
+          "step": "brand-and-model"
+        },
+        {
+          "id": "ref-hierarchical",
+          "description": "One field, three vocabulary levels: Make → Model → Generation as a Cascader that loads each column when the one before it is chosen. Nothing is prefetched past the root — the whole reason this type exists is that the tree does not fit in a response.",
+          "viewport": "phone",
+          "step": "cascade"
+        },
+        {
+          "id": "no vocabulary source",
+          "description": "The same two ref fields with no VocabularyClientProvider above them. A pointer with nothing to resolve it is drawn as the loud notice, never as an empty dropdown — an empty dropdown is a mandatory attribute a person cannot answer and is not told about — and the submit blocks through the same channel an unsupported type uses.",
+          "viewport": "phone",
+          "step": "no-client"
+        },
+        {
           "id": "submitting",
           "description": "A submit in flight: every editor goes read-only at once, from the one prop the composer already owns.",
           "viewport": "phone",
@@ -90,7 +126,7 @@
       ],
       "source": {
         "file": "demo/FeatureFields.demo.tsx",
-        "line": 29
+        "line": 38
       }
     },
     {

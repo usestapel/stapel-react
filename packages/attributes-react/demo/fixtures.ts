@@ -21,7 +21,12 @@
  *    words and the option labels are `demo.*` keys the harness registers; a
  *    demo that photographed `demo.fuel.petrol` would be documenting a bug.
  */
-import type { FeatureDef, FeaturesDto } from "../src/index.js";
+import type {
+  FeatureDef,
+  FeaturesDto,
+  VocabularyClient,
+  VocabularyTerm,
+} from "../src/index.js";
 
 function feature(
   slug: string,
@@ -286,4 +291,229 @@ export const STORED: FeaturesDto = {
 export const STORED_WITH_GAPS: FeaturesDto = {
   title: { type: "string", value: "Golf 1.6 TDI, one owner" },
   size_grid: { type: "size_grid", value: { rowIndex: 2 } },
+};
+
+// ── rules, sections and the two vocabulary-backed types ─────────────────────
+
+/**
+ * The controlling field of every rule below. It is an ordinary `select`: a
+ * rule is a sibling of `mandatory` on the CONTROLLED feature, and nothing on
+ * the controller says it controls anything.
+ */
+export const PHONE_CONDITION: FeatureDef = feature("condition", "Condition", {
+  type: "select",
+  maxSelected: 1,
+  uiStyle: "chips",
+  options: [
+    { value: "new", label: "demo.condition.new" },
+    { value: "used", label: "demo.condition.used" },
+  ],
+});
+
+/** Shown AND required only when the phone is used — one field, two effects. */
+export const SCREEN_STATE: FeatureDef = feature(
+  "screen_state",
+  "Screen condition",
+  { type: "string", maxLength: 120 },
+  {
+    description: "demo.help.screen_state",
+    example: "demo.example.screen_state",
+    rules: [
+      { effect: "show", when: { all: [{ feature: "condition", op: "in", values: ["used"] }] } },
+      { effect: "require", when: { all: [{ feature: "condition", op: "in", values: ["used"] }] } },
+    ],
+  }
+);
+
+/** A used phone cannot be sent by post: the option is not offered, rather than
+ * offered and then refused. */
+export const DELIVERY: FeatureDef = feature(
+  "delivery",
+  "Delivery",
+  {
+    type: "select",
+    maxSelected: 1,
+    uiStyle: "checkboxes",
+    options: [
+      { value: "pickup", label: "demo.delivery.pickup" },
+      { value: "post", label: "demo.delivery.post" },
+    ],
+  },
+  {
+    rules: [
+      {
+        effect: "forbid_option",
+        option: "post",
+        when: { all: [{ feature: "condition", op: "in", values: ["used"] }] },
+      },
+    ],
+  }
+);
+
+export const RULE_FEATURES: readonly FeatureDef[] = [PHONE_CONDITION, SCREEN_STATE, DELIVERY];
+
+export const RULES_NEW_VALUES: Readonly<Record<string, unknown>> = { condition: ["new"] };
+export const RULES_USED_VALUES: Readonly<Record<string, unknown>> = {
+  condition: ["used"],
+  screen_state: "two hairline scratches, no chips",
+};
+
+/**
+ * Sections, help and hints: the metadata 99.9 % of imported fields carry.
+ * `group` is key-or-literal exactly like `name`, and section order is the
+ * order each group's FIRST feature appears — not alphabetical, because the
+ * catalogue's order is the order a person is asked.
+ */
+export const SECTION_FEATURES: readonly FeatureDef[] = [
+  feature(
+    "title",
+    "Headline",
+    { type: "string", maxLength: 60 },
+    { description: "demo.help.title", example: "demo.example.title" }
+  ),
+  feature(
+    "power",
+    "Power",
+    { type: "int", min: 20, max: 800, postfix: "demo.unit.hp" },
+    {
+      group: "demo.group.engine",
+      description: "demo.help.power",
+      example: "demo.example.power",
+      hints: [{ title: "demo.hint.power.title", content: "demo.hint.power.content" }],
+    }
+  ),
+  feature(
+    "engine",
+    "Engine volume",
+    { type: "float", min: 0.5, max: 8, precision: 1, postfix: "demo.unit.litre" },
+    { group: "demo.group.engine", example: "demo.example.engine" }
+  ),
+  feature(
+    "scratches",
+    "Scratches and dents",
+    { type: "string", multiline: true, maxLength: 300 },
+    {
+      group: "demo.group.condition",
+      description: "demo.help.scratches",
+      hints: [
+        { title: "demo.hint.honest.title", content: "demo.hint.honest.content" },
+        { title: "", content: "demo.hint.photos.content" },
+      ],
+    }
+  ),
+];
+
+// ── vocabulary-backed features and the mock client that feeds them ──────────
+
+export const VENDOR: FeatureDef = feature("vendor", "Brand", {
+  type: "ref_select",
+  optionsRef: { vocabulary: "avito-phones", level: "Vendor" },
+  maxSelected: 1,
+});
+
+/** The child level. `parentFeature` is read off the form's other answers, so
+ * choosing a brand narrows this to that brand's models — and changing the
+ * brand clears whatever was chosen here. */
+export const MODEL: FeatureDef = feature(
+  "model",
+  "Model",
+  {
+    type: "ref_select",
+    optionsRef: { vocabulary: "avito-phones", level: "Model", parentFeature: "vendor" },
+    maxSelected: 1,
+  },
+  { description: "demo.help.model" }
+);
+
+export const REF_SELECT_FEATURES: readonly FeatureDef[] = [VENDOR, MODEL];
+
+export const CAR_TREE: FeatureDef = feature("make_model", "Make and model", {
+  type: "ref_hierarchical_select",
+  vocabulary: "avito-cars",
+  levels: ["Make", "Model", "Generation"],
+  minDepth: 1,
+  maxDepth: 3,
+});
+
+export const REF_HIERARCHICAL_FEATURES: readonly FeatureDef[] = [CAR_TREE];
+
+/** The in-memory vocabulary the demo's client answers from: two levels of
+ * phones and three of cars, which is the smallest thing that shows a parent
+ * narrowing a child and a cascader loading a level at a time. */
+const TERMS: Readonly<Record<string, Readonly<Record<string, readonly VocabularyTerm[]>>>> = {
+  "avito-phones": {
+    Vendor: [
+      { code: "apple", label: "Apple", has_children: true },
+      { code: "samsung", label: "Samsung", has_children: true },
+      { code: "xiaomi", label: "Xiaomi", has_children: true },
+    ],
+    "Model:apple": [
+      { code: "iphone-15", label: "iPhone 15" },
+      { code: "iphone-15-pro", label: "iPhone 15 Pro" },
+      { code: "iphone-14", label: "iPhone 14" },
+    ],
+    "Model:samsung": [
+      { code: "galaxy-s24", label: "Galaxy S24" },
+      { code: "galaxy-a55", label: "Galaxy A55" },
+    ],
+    "Model:xiaomi": [{ code: "redmi-note-13", label: "Redmi Note 13" }],
+  },
+  "avito-cars": {
+    Make: [
+      { code: "volkswagen", label: "Volkswagen", has_children: true },
+      { code: "skoda", label: "Škoda", has_children: true },
+    ],
+    "Model:volkswagen": [
+      { code: "golf", label: "Golf", has_children: true },
+      { code: "passat", label: "Passat", has_children: true },
+    ],
+    "Model:skoda": [{ code: "octavia", label: "Octavia", has_children: true }],
+    "Generation:golf": [
+      { code: "mk7", label: "Mk7 (2012—2020)" },
+      { code: "mk8", label: "Mk8 (2019—)" },
+    ],
+    "Generation:passat": [{ code: "b8", label: "B8 (2014—)" }],
+    "Generation:octavia": [{ code: "a7", label: "A7 (2013—2020)" }],
+  },
+};
+
+/**
+ * A `VocabularyClient` over {@link TERMS} — what a host hands the provider,
+ * with `@stapel/vocabularies-react`'s HTTP client swapped for a table.
+ *
+ * It is a legitimate stand-in and not a mock of the module under test: the
+ * seam IS two functions, `vocabularies-react` satisfies it structurally
+ * without importing it, and a demo that reached for a real endpoint could not
+ * be photographed offline.
+ */
+export const DEMO_VOCABULARY_CLIENT: VocabularyClient = {
+  async search(vocabulary, level, query, parent) {
+    const table = TERMS[vocabulary] ?? {};
+    const rows = table[parent === undefined ? level : `${level}:${parent}`] ?? [];
+    const needle = query.trim().toLowerCase();
+    return needle.length === 0
+      ? rows
+      : rows.filter((row) => row.label.toLowerCase().includes(needle));
+  },
+  async resolve(vocabulary, level, codes) {
+    const table = TERMS[vocabulary] ?? {};
+    const out: Record<string, string> = {};
+    for (const rows of Object.values(table)) {
+      for (const row of rows) {
+        if (row.label.length > 0 && codes.includes(row.code) && level.length > 0) {
+          out[row.code] = row.label;
+        }
+      }
+    }
+    return out;
+  },
+};
+
+export const REF_SELECT_VALUES: Readonly<Record<string, unknown>> = {
+  vendor: ["apple"],
+  model: ["iphone-15-pro"],
+};
+
+export const REF_HIERARCHICAL_VALUES: Readonly<Record<string, unknown>> = {
+  make_model: ["volkswagen", "golf", "mk7"],
 };

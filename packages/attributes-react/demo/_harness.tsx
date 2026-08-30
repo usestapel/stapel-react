@@ -31,8 +31,13 @@ import { I18nProvider, createI18n } from "@stapel/core";
 import type { FlowError } from "@stapel/core";
 import { SkinTheme } from "@stapel/tokens-antd/skin";
 import type { SkinSurface } from "@stapel/tokens-antd/skin";
-import { featureErrorsBySlug, mirrorValidate, toFeaturesDto } from "../src/index.js";
-import type { FeatureDef } from "../src/index.js";
+import {
+  VocabularyClientProvider,
+  featureErrorsBySlug,
+  mirrorValidate,
+  toFeaturesDto,
+} from "../src/index.js";
+import type { FeatureDef, VocabularyClient } from "../src/index.js";
 import { registerAttributesI18n } from "../src/i18n/keys.js";
 import { FeatureFields } from "../src/default/index.js";
 
@@ -69,6 +74,26 @@ const demoBundleEn: Record<string, string> = {
   "demo.colour.red": "Red",
   "demo.colour.blue": "Blue",
   "demo.colour.silver": "Silver",
+
+  "demo.unit.hp": "hp",
+  "demo.delivery.pickup": "Pickup",
+  "demo.delivery.post": "Post",
+  "demo.group.engine": "Engine",
+  "demo.group.condition": "Condition and history",
+  "demo.help.title": "What is being sold, in one line. Buyers scan this first.",
+  "demo.help.power": "As stated in the registration document.",
+  "demo.help.scratches": "Describe every mark a buyer would notice in daylight.",
+  "demo.help.screen_state": "Scratches, chips, dead pixels — anything visible when the screen is off.",
+  "demo.help.model": "Narrowed to the brand chosen above.",
+  "demo.example.title": "e.g. Golf 1.6 TDI, one owner",
+  "demo.example.power": "e.g. 150",
+  "demo.example.engine": "e.g. 1.6",
+  "demo.example.screen_state": "e.g. two hairline scratches, no chips",
+  "demo.hint.power.title": "Not the tuned figure",
+  "demo.hint.power.content": "Buyers filter on the registered power, so a tuned number hides the listing.",
+  "demo.hint.honest.title": "Say it here",
+  "demo.hint.honest.content": "A dent found at the viewing costs more than a dent in the description.",
+  "demo.hint.photos.content": "Photograph every mark you list.",
 
   // Copy the demo STAND-INS render. A demo is product code (compiled, linted
   // with the product ruleset, rendered), so a literal string in one is the
@@ -111,6 +136,9 @@ export function AttributesDemoHarness(props: {
 export function EditableFeatureFields(props: {
   readonly features: readonly FeatureDef[];
   readonly initialValues?: Readonly<Record<string, unknown>>;
+  /** The vocabulary source the two `ref_*` editors search. Absent, they draw
+   * the loud notice — which is a state worth photographing too. */
+  readonly vocabularyClient?: VocabularyClient;
   /** Show the mirror's refusals from the first frame — what a person sees
    * after a submit was refused, which is the only time they are useful. */
   readonly showErrors?: boolean;
@@ -125,12 +153,14 @@ export function EditableFeatureFields(props: {
     return featureErrorsBySlug(mirrorValidate(props.features, toFeaturesDto(props.features, values)));
   }, [props.features, props.showErrors, values]);
   return (
-    <FeatureFields
-      features={props.features}
-      values={values}
-      errors={errors}
-      disabled={props.submitting === true}
-      onChange={(slug, value) => setValues((prev) => ({ ...prev, [slug]: value }))}
-    />
+    <VocabularyClientProvider value={props.vocabularyClient ?? null}>
+      <FeatureFields
+        features={props.features}
+        values={values}
+        errors={errors}
+        disabled={props.submitting === true}
+        onChange={(slug, value) => setValues((prev) => ({ ...prev, [slug]: value }))}
+      />
+    </VocabularyClientProvider>
   );
 }
