@@ -1,7 +1,7 @@
 {
   "$generated": "hand-authored, not scripts/gen-manifest.mjs (that driver derives backend.contract from a sibling Django module's docs/schema.json + pyproject.toml; stapel-attributes is an L1 library with NO HTTP surface and emits neither — see backend below)",
   "package": "@stapel/attributes-react",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "backend": {
     "module": "stapel-attributes",
     "kind": "L1 library, no HTTP surface",
