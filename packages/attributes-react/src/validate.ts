@@ -50,6 +50,14 @@ import type {
   ValidationErrorCode,
 } from "./types.js";
 import { featureConfig, featureName, featureType } from "./types.js";
+import type { RuleState } from "./rules.js";
+import {
+  FeatureRulesError,
+  VISIBLE_STATE,
+  evaluateRules,
+  featureRuleState,
+  narrowFeature,
+} from "./rules.js";
 import { ERROR_CODE_TO_KEY } from "./errors.js";
 
 /** `stapel_attributes.types.hex_color.constants.SIMPLE_COLORS` — the closed
@@ -196,12 +204,51 @@ const REQUIRED_RULES: Readonly<Record<string, RequiredRule>> = {
  * the asterisk and the refusal can never disagree. `header` is never required:
  * it holds no value at all.
  */
-export function featureAnswerRequired(feature: FeatureDef): boolean {
+export function featureAnswerRequired(
+  feature: FeatureDef,
+  values?: Readonly<Record<string, unknown>>
+): boolean {
   const type = featureType(feature);
   if (type === "header") return false;
-  if (feature.mandatory === true) return true;
+  // With the form's answers in hand, requiredness comes from the RULE STATE —
+  // `mandatory` is only half of it since stapel-attributes 0.5.0, and a hidden
+  // field is never required no matter how it was flagged. Without them, the
+  // static answer, which is what a caller drawing one row out of context has.
+  const state =
+    values === undefined
+      ? { ...VISIBLE_STATE, required: feature.mandatory === true }
+      : ruleStateOrStatic(feature, values);
+  return requiredUnder(feature, state);
+}
+
+/** Requiredness under an already-computed {@link RuleState} — the one place
+ * the CATEGORY's answer (`RuleState.required`, which folds `mandatory` and
+ * every matching `require` rule) and the TYPE's own switch are combined, so
+ * the marker, the mirror and the gate cannot disagree. */
+function requiredUnder(feature: FeatureDef, state: RuleState): boolean {
+  const type = featureType(feature);
+  if (type === "header" || !state.visible) return false;
+  if (state.required) return true;
   const rule = type === undefined ? undefined : REQUIRED_RULES[type];
   return rule !== undefined && rule.required(featureConfig(feature));
+}
+
+/** The feature's rule state, or the unconditioned one when its `rules` do not
+ * parse. A broken rule set is reported as `invalid_rules` by
+ * {@link mirrorValidate} and drawn as a notice by `<FeatureFields>`; it must
+ * not additionally make a required marker throw mid-render. */
+function ruleStateOrStatic(
+  feature: FeatureDef,
+  values: Readonly<Record<string, unknown>>
+): RuleState {
+  try {
+    return featureRuleState(feature, values);
+  } catch (thrown) {
+    if (thrown instanceof FeatureRulesError) {
+      return { ...VISIBLE_STATE, required: feature.mandatory === true };
+    }
+    throw thrown;
+  }
 }
 
 /** The refusal a blank required answer produces — `mandatory_missing` unless
@@ -312,6 +359,60 @@ function validateSelect(
         ref_value: [...allowed].map(String).sort(),
       };
     }
+  }
+  return undefined;
+}
+
+/**
+ * `ref_select` — SHAPE and CARDINALITY only.
+ *
+ * Whether a code exists in the vocabulary, and whether it is a child of the
+ * parent feature's term, is the server's (`resolver.exists` / `is_child`); the
+ * browser has neither the table nor the authority, and a mirror that guessed
+ * would refuse a code the server accepts. What it CAN say is exactly what the
+ * engine says before it reaches the resolver: a list of strings, no
+ * duplicates, within `minSelected`/`maxSelected`.
+ *
+ * `maxSelected` ABSENT means **1** here — the engine's own default for this
+ * type, and the opposite of `select`, where absent means unlimited. Reading it
+ * as unlimited would let a person pick three models and be refused on submit.
+ * An explicit `null` is the unlimited one.
+ */
+function validateRefSelect(
+  config: Readonly<Record<string, unknown>>,
+  value: unknown
+): Refusal | undefined {
+  if (!Array.isArray(value)) return { code: "invalid_type" };
+  if (!value.every((item) => typeof item === "string")) return { code: "invalid_type" };
+  const minSelected = num(config, "minSelected") ?? 0;
+  if (value.length < minSelected) {
+    return { code: "below_minimum", ref_value: minSelected };
+  }
+  const declaredMax = config["maxSelected"];
+  const maxSelected = declaredMax === null ? undefined : (num(config, "maxSelected") ?? 1);
+  if (maxSelected !== undefined && value.length > maxSelected) {
+    return { code: "above_maximum", ref_value: maxSelected };
+  }
+  if (new Set(value).size !== value.length) return { code: "invalid_format" };
+  return undefined;
+}
+
+/** `ref_hierarchical_select` — the DEPTH of the code path. Same division of
+ * labour as {@link validateRefSelect}: existence and the parent chain are the
+ * resolver's, the path's length is not. An absent `maxDepth` means the whole
+ * `levels` chain, which is the engine's own fallback. */
+function validateRefHierarchicalSelect(
+  config: Readonly<Record<string, unknown>>,
+  value: unknown
+): Refusal | undefined {
+  if (!Array.isArray(value)) return { code: "invalid_type" };
+  if (!value.every((item) => typeof item === "string")) return { code: "invalid_type" };
+  const minDepth = num(config, "minDepth") ?? 1;
+  if (value.length < minDepth) return { code: "below_minimum", ref_value: minDepth };
+  const levels = list(config, "levels");
+  const maxDepth = num(config, "maxDepth") ?? (levels.length > 0 ? levels.length : undefined);
+  if (maxDepth !== undefined && value.length > maxDepth) {
+    return { code: "above_maximum", ref_value: maxDepth };
   }
   return undefined;
 }
@@ -466,14 +567,17 @@ function validateConvertibleUnit(
  */
 export function validateFeatureValue(
   feature: FeatureDef,
-  dto: FeatureValueDto
+  dto: FeatureValueDto,
+  values?: Readonly<Record<string, unknown>>
 ): FeatureValidationResult | undefined {
   const type = featureType(feature);
   if (type === "header") return undefined;
   const config = featureConfig(feature);
 
   if (isBlank(dto.value)) {
-    return featureAnswerRequired(feature) ? failed(feature, blankRefusal(feature)) : ok(feature);
+    return featureAnswerRequired(feature, values)
+      ? failed(feature, blankRefusal(feature))
+      : ok(feature);
   }
 
   const refusal = ((): Refusal | undefined => {
@@ -494,6 +598,10 @@ export function validateFeatureValue(
         return validateHexColor(config, dto.value);
       case "hierarchical_select":
         return validateHierarchicalSelect(config, dto.value);
+      case "ref_select":
+        return validateRefSelect(config, dto.value);
+      case "ref_hierarchical_select":
+        return validateRefHierarchicalSelect(config, dto.value);
       case "convertible_unit":
         return validateConvertibleUnit(config, dto);
       default:
@@ -532,12 +640,24 @@ function failed(feature: FeatureDef, refusal: Refusal): FeatureValidationResult 
  * Validate a whole answer set against a category's features — the client-side
  * twin of `POST /categories/{pk}/validate-dto/`.
  *
- * Mirrors the engine's two passes and their order, because the order is what
- * a caller sees: first every SUBMITTED entry whose slug the category allows
- * (an unknown slug is ignored, not refused — the engine's documented
- * behaviour), then every allowed feature that was never submitted, of which
- * only a REQUIRED non-header one produces a row — required by the category
- * (`mandatory`) or by the type's own config ({@link featureAnswerRequired}).
+ * Mirrors the engine's pre-pass and its two loops, because the order is what a
+ * caller sees:
+ *
+ *  0. `evaluateRules(features, dto)` ONCE. A feature the rules hide is not
+ *     validated and does not have to be answered; requiredness is
+ *     `RuleState.required`, never `mandatory` alone.
+ *  1. every SUBMITTED entry whose slug the category allows (an unknown slug is
+ *     ignored, not refused — the engine's documented behaviour), against its
+ *     config NARROWED by that state: a forbidden option therefore comes back
+ *     as `not_in_options` and a tightened bound as `above_maximum`, through
+ *     the ordinary per-type rules and with no error vocabulary of its own.
+ *  2. every allowed feature that was never submitted, of which only a REQUIRED
+ *     non-header one produces a row.
+ *
+ * A rule set that breaks the grammar fails the whole batch on `_root` with
+ * `invalid_rules` — exactly as `validate_dto_structured` does. The SCHEMA is
+ * broken, not the payload, and refusing per-field would tell a person to fix
+ * a value that is fine.
  */
 export function mirrorValidate(
   features: readonly FeatureDef[],
@@ -551,6 +671,27 @@ export function mirrorValidate(
     }
   }
 
+  let states: Readonly<Record<string, RuleState>>;
+  try {
+    states = evaluateRules(features, dto);
+  } catch (thrown) {
+    if (!(thrown instanceof FeatureRulesError)) throw thrown;
+    return {
+      valid: false,
+      results: [
+        {
+          slug: "_root",
+          status: "validation_failed",
+          error: "invalid_rules",
+          localizable_error: ERROR_CODE_TO_KEY["invalid_rules"],
+          params: { feature: thrown.slug ?? "_root", slug: thrown.slug ?? "_root" },
+          message: thrown.message,
+        },
+      ],
+    };
+  }
+  const stateOf = (feature: FeatureDef): RuleState => states[feature.slug] ?? VISIBLE_STATE;
+
   const results: FeatureValidationResult[] = [];
   const seen = new Set<string>();
 
@@ -558,14 +699,33 @@ export function mirrorValidate(
     const feature = bySlug.get(key);
     if (feature === undefined) continue; // unknown slug — ignored, per the engine
     seen.add(feature.slug);
-    const result = validateFeatureValue(feature, entry);
+    const state = stateOf(feature);
+    // Hidden by a rule: silently accepted and dropped from the DAO. Reporting
+    // a refusal for a control that is not on screen would send a person
+    // looking for a field they cannot see.
+    if (!state.visible) {
+      results.push(ok(feature));
+      continue;
+    }
+    if (featureType(feature) === "header") continue; // auto-generated, never answered
+    // The empty check runs BEFORE the type's, exactly as the engine orders it:
+    // a normalizer coerces an empty value into a valid one (`int` None -> 0)
+    // and `normalize_to_dao` then drops it, so a required feature submitted
+    // blank would pass validation and vanish from the DAO.
+    if (isBlank(entry.value)) {
+      results.push(
+        requiredUnder(feature, state) ? failed(feature, blankRefusal(feature)) : ok(feature)
+      );
+      continue;
+    }
+    const result = validateFeatureValue(narrowFeature(feature, state), entry);
     if (result !== undefined) results.push(result);
   }
 
   for (const feature of features) {
     if (seen.has(feature.slug)) continue;
     if (featureType(feature) === "header") continue;
-    if (!featureAnswerRequired(feature)) continue;
+    if (!requiredUnder(feature, stateOf(feature))) continue;
     results.push(failed(feature, blankRefusal(feature)));
   }
 

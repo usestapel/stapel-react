@@ -11,6 +11,7 @@
  */
 import type { FeatureDef, FeaturesDto, FeatureValueDto } from "./types.js";
 import { featureType } from "./types.js";
+import { FeatureRulesError, evaluateRules } from "./rules.js";
 import { isBlank } from "./validate.js";
 
 /**
@@ -24,6 +25,12 @@ import { isBlank } from "./validate.js";
  *    it exists; silently sending a broken row would not.
  *  - `header` is DROPPED. The engine regenerates a header's DAO from its
  *    config and rejects an answer to one outright.
+ *  - A feature the RULES HIDE is DROPPED, even when an answer is held for it.
+ *    `normalize_to_dao` drops it server-side ("a hidden field's value is not
+ *    part of the declaration"), so sending it would store an answer to a
+ *    question that is not being asked — and the two sides would disagree about
+ *    what the listing says. The answer stays in the composer's own `values`
+ *    map, so unhiding the field brings it back.
  *  - A blank value is DROPPED rather than sent as `null`. "Not answered" and
  *    "answered with nothing" are the same thing to the engine's empty check,
  *    and omitting the key keeps a draft's payload the size of what was
@@ -38,9 +45,24 @@ export function toFeaturesDto(
   values: Readonly<Record<string, unknown>>
 ): FeaturesDto {
   const out: Record<string, FeatureValueDto> = {};
+  // A rule set that does not parse is reported as `invalid_rules` by the
+  // mirror and drawn as a notice by the fields; a DTO builder is not the place
+  // to raise it, so a broken schema simply hides nothing here.
+  let hidden: ReadonlySet<string>;
+  try {
+    hidden = new Set(
+      Object.entries(evaluateRules(features, values))
+        .filter(([, state]) => !state.visible)
+        .map(([slug]) => slug)
+    );
+  } catch (thrown) {
+    if (!(thrown instanceof FeatureRulesError)) throw thrown;
+    hidden = new Set<string>();
+  }
   for (const feature of features) {
     const type = featureType(feature);
     if (type === undefined || type === "header") continue;
+    if (hidden.has(feature.slug)) continue;
     const value = values[feature.slug];
     if (isBlank(value)) continue;
     if (type === "convertible_unit" && value !== null && typeof value === "object") {

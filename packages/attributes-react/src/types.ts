@@ -16,8 +16,30 @@
  */
 
 /**
- * A feature's type-specific configuration. `type` is the discriminator — the
- * **value type's slug**, and the axis this whole package switches on.
+ * The canon's own shapes, re-exported rather than re-described.
+ *
+ * `FeatureDef`, `Rule`, `Cond`, `Hint` and `OptionsRef` are GENERATED from
+ * `stapel-attributes/docs/feature-def.schema.json` — the §68 canon, the one
+ * source the Python dataclass is gated against and stapel-categories checks
+ * its `ResolvedFeature` payload against. This file used to describe them by
+ * hand off `FeatureCompactSerializer`'s field list, which is how a field can
+ * be added upstream and simply not exist here; now the drift is a red
+ * `pnpm gen:feature-def:check` instead.
+ *
+ * ── The two things the canon does not say, and the wire does ───────────────
+ *
+ *  - **`config` may arrive without a `type`.** The features endpoint
+ *    serializes `obj.config` verbatim (`FeatureCompactSerializer.get_config`),
+ *    NOT `get_config_with_defaults()`, so a malformed row arrives with no
+ *    discriminator at all. The canon calls `type` required because a
+ *    well-formed definition has one; the generated `FeatureConfig` keeps it
+ *    optional because a browser must draw the loud unsupported notice rather
+ *    than crash. That is the emitter's stated rule for INLINE sub-schemas
+ *    (`scripts/gen-feature-def.mjs`).
+ *  - **The row carries more than the canon describes** — `icon`, `comment`,
+ *    `tn_parent` off the same serializer. The generated interfaces keep an
+ *    index signature for exactly that, so a host reading one is not fighting
+ *    the type.
  *
  * ── The distinction that must not be swallowed ─────────────────────────────
  *
@@ -30,45 +52,26 @@
  *    registry keys on.
  *  - `config["type"]` — the VALUE type: `int`, `float`, `string`, `bool`,
  *    `hex_color`, `select`, `date`, `header`, `hierarchical_select`,
- *    `convertible_unit`. That is what a person filling in a listing actually
- *    edits, and it is what this package keys on.
+ *    `convertible_unit`, and since 0.5.0 `ref_select` /
+ *    `ref_hierarchical_select`. That is what a person filling in a listing
+ *    actually edits, and it is what this package keys on.
  *
  * A storefront therefore needs **no catalogue endpoint**: the type arrives in
  * the data, on every feature.
- *
- * `type` is optional here because the wire can omit it. The features endpoint
- * serializes `obj.config` verbatim (`stapel-categories`
- * `FeatureCompactSerializer.get_config`), NOT `get_config_with_defaults()`, so
- * a config saved without its defaults arrives without them — including,
- * for a malformed row, without a `type`. A missing type is an unsupported
- * type, loudly, rather than a crash.
  */
-export interface FeatureConfig {
-  readonly type?: string;
-  readonly [key: string]: unknown;
-}
+export type {
+  Cond,
+  FeatureDef,
+  Hint,
+  OptionsRef,
+  RefHierarchicalSelectConfig,
+  RefSelectConfig,
+  Rule,
+  RuleWhen,
+  FeatureDefConfig as FeatureConfig,
+} from "./generated/featureDef.js";
 
-/**
- * One feature of a category — the browser's view of `stapel_attributes.base
- * .FeatureDef`, as `stapel-categories`' `FeatureCompactSerializer` sends it
- * (`fields = [id, tn_parent, name, slug, icon, comment, config, mandatory,
- * show_as_badge, show_at_title, translate]`).
- */
-export interface FeatureDef {
-  /** Payload key this feature's value is submitted under. */
-  readonly slug: string;
-  readonly config?: FeatureConfig;
-  readonly id?: number | string | null;
-  /** Display name or translation key. Falls back to `slug` server-side. */
-  readonly name?: string | null;
-  readonly mandatory?: boolean;
-  readonly show_at_title?: boolean;
-  readonly show_as_badge?: boolean;
-  readonly translate?: string | null;
-  readonly icon?: string | null;
-  readonly comment?: string | null;
-  readonly tn_parent?: number | string | null;
-}
+import type { FeatureDef, FeatureDefConfig } from "./generated/featureDef.js";
 
 /**
  * One submitted value: `{type, value}` plus whatever else the type's DTO
@@ -105,6 +108,7 @@ export type ValidationErrorCode =
   | "empty_options"
   | "invalid_config"
   | "invalid_format"
+  | "invalid_rules"
   | "invalid_type"
   | "mandatory_missing"
   | "min_greater_than_max"
@@ -155,7 +159,7 @@ export function featureType(feature: FeatureDef): string | undefined {
 }
 
 /** A feature's config, never `undefined` — saves every reader a `?? {}`. */
-export function featureConfig(feature: FeatureDef): FeatureConfig {
+export function featureConfig(feature: FeatureDef): FeatureDefConfig {
   return feature.config ?? {};
 }
 
