@@ -76,7 +76,7 @@
     }
   ],
   "peerDependencies": {
-    "@stapel/attributes-react": ">=0.4.0",
+    "@stapel/attributes-react": ">=0.5.0",
     "@stapel/core": ">=0.19.0 <1.0.0",
     "@stapel/currencies-react": ">=0.2.0",
     "@stapel/image": ">=0.2.0",

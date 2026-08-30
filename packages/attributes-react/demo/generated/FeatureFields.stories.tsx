@@ -4,7 +4,7 @@ import type { ReactElement } from "react";
 import { renderDemoVariant } from "@stapel/showcase";
 import demo from "../FeatureFields.demo.js";
 
-export default { title: "attributes-react / Feature fields - the twelve builtin editors" };
+export default { title: "attributes-react / Feature fields - the thirteen builtin editors" };
 
 export const TextAndNumbers = (): ReactElement => renderDemoVariant(demo, "text and numbers");
 TextAndNumbers.storyName = "text and numbers";
@@ -27,6 +27,12 @@ RulesUsed.parameters = { stapel: {"viewport":"desktop","step":"condition=used"} 
 export const Sections = (): ReactElement => renderDemoVariant(demo, "sections");
 Sections.storyName = "sections";
 Sections.parameters = { stapel: {"viewport":"phone","step":"grouped"} };
+export const CompositeFilled = (): ReactElement => renderDemoVariant(demo, "composite — filled");
+CompositeFilled.storyName = "composite — filled";
+CompositeFilled.parameters = { stapel: {"viewport":"desktop","step":"two-steps"} };
+export const CompositeOnAPhone = (): ReactElement => renderDemoVariant(demo, "composite — on a phone");
+CompositeOnAPhone.storyName = "composite — on a phone";
+CompositeOnAPhone.parameters = { stapel: {"viewport":"phone","step":"one-step-and-a-blank"} };
 export const RefSelect = (): ReactElement => renderDemoVariant(demo, "ref-select");
 RefSelect.storyName = "ref-select";
 RefSelect.parameters = { stapel: {"viewport":"desktop","step":"brand-and-model"} };

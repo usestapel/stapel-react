@@ -19,8 +19,8 @@
  * where a spec line belongs is the display twin of a dropped mandatory field.
  */
 import type { FeatureDef, FeatureValueDto } from "./types.js";
-import { featureConfig, featureType } from "./types.js";
-import { isBlank } from "./validate.js";
+import { featureConfig, featureName, featureType } from "./types.js";
+import { groupChildren, isBlank } from "./validate.js";
 
 /** The types this module can render, sorted — the display half of the
  * builtin set, and asserted equal to the editor half in `contract.test.ts`
@@ -30,6 +30,7 @@ export const FORMATTABLE_TYPES: readonly string[] = [
   "convertible_unit",
   "date",
   "float",
+  "group",
   "header",
   "hex_color",
   "hierarchical_select",
@@ -283,6 +284,39 @@ export function formatFeatureValue(
         return translate(options, entry.label);
       }
       return str(entry.simple) || str(entry.hex) || undefined;
+    }
+    case "group": {
+      // The stored value is a list of ROWS, each row an object keyed by child
+      // slug whose cells are the children's own DAOs. Every cell is formatted
+      // by its child's own type, so the composite adds no display rules of its
+      // own — and a cell whose child the config no longer declares keeps its
+      // raw value rather than printing a blank (the stored answer is the
+      // truth, and a reconfigured category must not erase an old listing).
+      const rows = Array.isArray(value) ? value : [];
+      const children = new Map(groupChildren(config).map((child) => [child.slug, child]));
+      const lines: string[] = [];
+      for (const row of rows) {
+        if (row === null || typeof row !== "object" || Array.isArray(row)) continue;
+        const cells: string[] = [];
+        for (const [slug, cell] of Object.entries(row as Record<string, unknown>)) {
+          const child = children.get(slug);
+          // A stored cell is the child's own DAO (`{type, value, name, …}`);
+          // a cell held by the composer is the bare value. `hex_color` and
+          // `convertible_unit` are objects themselves, so the test is the
+          // `value` KEY, not "is an object".
+          const envelope =
+            cell !== null && typeof cell === "object" && !Array.isArray(cell) && "value" in cell;
+          const entry = (envelope ? cell : { type: "", value: cell }) as FeatureValueDto;
+          const label = str((entry as Record<string, unknown>)["name"]) ||
+            (child === undefined ? slug : featureName(child));
+          const text =
+            (child === undefined ? undefined : formatFeatureValue(child, entry, options)) ??
+            str(entry.value);
+          cells.push(`${label}: ${text}`);
+        }
+        if (cells.length > 0) lines.push(cells.join(", "));
+      }
+      return lines.length > 0 ? lines.join("; ") : undefined;
     }
     case "convertible_unit": {
       const parsed = typeof value === "number" ? value : Number(value);

@@ -79,6 +79,11 @@ const demoBundleEn: Record<string, string> = {
   "demo.delivery.pickup": "Pickup",
   "demo.delivery.post": "Post",
   "demo.group.engine": "Engine",
+  "demo.group.wholesale": "Wholesale",
+  "demo.example.quantity": "10",
+  "demo.help.ladder":
+    "Each step is a quantity and the discount that starts at it. Up to five steps.",
+  "demo.help.warranty": "Left blank if the item carries no warranty.",
   "demo.group.condition": "Condition and history",
   "demo.help.title": "What is being sold, in one line. Buyers scan this first.",
   "demo.help.power": "As stated in the registration document.",

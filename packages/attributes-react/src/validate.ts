@@ -534,6 +534,88 @@ function validateHierarchicalSelect(
   return undefined;
 }
 
+// ── the composite ───────────────────────────────────────────────────────────
+
+/** The child feature definitions of a `group` config, in `fields` order. */
+export function groupChildren(
+  config: Readonly<Record<string, unknown>>
+): readonly FeatureDef[] {
+  return list(config, "fields").filter(
+    (entry): entry is FeatureDef =>
+      entry !== null &&
+      typeof entry === "object" &&
+      typeof (entry as { slug?: unknown }).slug === "string"
+  );
+}
+
+/** `[minRows, maxRows]` for a `group` config. `repeat: null` (or absent) is a
+ * SINGLE-row group — the same reading as `_repeat_bounds` upstream, and the
+ * reason the editor draws no add/remove chrome for one. */
+export function groupRowBounds(
+  config: Readonly<Record<string, unknown>>
+): readonly [number, number | undefined] {
+  const repeat = config["repeat"];
+  if (repeat === null || repeat === undefined || typeof repeat !== "object") return [0, 1];
+  const bounds = repeat as Readonly<Record<string, unknown>>;
+  const min = num(bounds, "min") ?? 0;
+  return [min, num(bounds, "max")];
+}
+
+/** One row of a composite, as an object keyed by child slug. */
+function groupRow(row: unknown): Readonly<Record<string, unknown>> | undefined {
+  return row !== null && typeof row === "object" && !Array.isArray(row)
+    ? (row as Readonly<Record<string, unknown>>)
+    : undefined;
+}
+
+/**
+ * A `group` answer: the row count against `repeat`, then every cell through
+ * its own child type — the mirror of `GroupFeatureType.validate_dto`.
+ *
+ * The refusal that comes back is the CHILD's own code (`above_maximum` for a
+ * discount over 30 %), never a code of the composite's own: the engine adds no
+ * error vocabulary for a group and neither does this. Which cell it was is
+ * lost on the way up, exactly as it is server-side once the batch result
+ * reduces `params` to `{feature, slug}` — the editor draws the row.
+ */
+function validateGroup(
+  config: Readonly<Record<string, unknown>>,
+  value: unknown
+): Refusal | undefined {
+  if (!Array.isArray(value)) return { code: "invalid_type" };
+  if (value.length === 0) return undefined; // the empty pre-check already ruled
+  const [minRows, maxRows] = groupRowBounds(config);
+  if (value.length < minRows) return { code: "below_minimum", ref_value: minRows };
+  if (maxRows !== undefined && value.length > maxRows) {
+    return { code: "above_maximum", ref_value: maxRows };
+  }
+  const children = groupChildren(config);
+  const known = new Set(children.map((child) => child.slug));
+  for (const raw of value) {
+    const row = groupRow(raw);
+    if (row === undefined) return { code: "invalid_format" };
+    const unknown = Object.keys(row).filter((key) => !known.has(key));
+    if (unknown.length > 0) return { code: "invalid_format", ref_value: unknown };
+    for (const child of children) {
+      const cell = row[child.slug];
+      if (isBlank(cell)) {
+        if (child.mandatory === true) return { code: "mandatory_missing" };
+        continue;
+      }
+      const type = featureType(child);
+      if (type === undefined) continue;
+      const result = validateFeatureValue(child, { type, value: cell }, row);
+      if (result !== undefined && result.status === "validation_failed") {
+        return {
+          code: result.error ?? "invalid_type",
+          ...(result.ref_value === undefined ? {} : { ref_value: result.ref_value }),
+        };
+      }
+    }
+  }
+  return undefined;
+}
+
 function validateConvertibleUnit(
   config: Readonly<Record<string, unknown>>,
   dto: FeatureValueDto
@@ -604,6 +686,8 @@ export function validateFeatureValue(
         return validateRefHierarchicalSelect(config, dto.value);
       case "convertible_unit":
         return validateConvertibleUnit(config, dto);
+      case "group":
+        return validateGroup(config, dto.value);
       default:
         // An unknown type is the server's to judge — see the module header.
         return undefined;

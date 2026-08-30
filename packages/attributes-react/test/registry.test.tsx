@@ -94,12 +94,13 @@ describe("rung 1 — an explicit registration", () => {
 });
 
 describe("rung 2 — the skin's builtins", () => {
-  it("covers exactly the twelve types stapel-attributes ships", () => {
+  it("covers exactly the thirteen types stapel-attributes ships", () => {
     expect(BUILTIN_VALUE_EDITOR_TYPES).toEqual([
       "bool",
       "convertible_unit",
       "date",
       "float",
+      "group",
       "header",
       "hex_color",
       "hierarchical_select",

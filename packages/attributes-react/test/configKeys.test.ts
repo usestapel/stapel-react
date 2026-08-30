@@ -130,6 +130,11 @@ const HALVES: Readonly<Record<string, { mirror: string | null; editor: string }>
     mirror: "validateRefHierarchicalSelect",
     editor: "RefHierarchicalSelectEditor",
   },
+  // The composite reads `fields` and `repeat` on both halves and nothing else:
+  // a cell's own constraints belong to the CHILD's config, judged by the
+  // child's own mirror rule and offered by the child's own editor, which is
+  // the whole point of a group holding full feature definitions.
+  group: { mirror: "validateGroup", editor: "GroupEditor" },
 };
 
 describe("the extractor itself", () => {

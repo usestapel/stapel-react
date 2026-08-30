@@ -27,6 +27,9 @@ import {
   REF_SELECT_VALUES,
   RULES_NEW_VALUES,
   RULES_USED_VALUES,
+  GROUP_FEATURES,
+  GROUP_PARTIAL_VALUES,
+  GROUP_VALUES,
   RULE_FEATURES,
   SECTION_FEATURES,
   TEXT_FEATURES,
@@ -37,9 +40,9 @@ import {
 
 export default defineDemo({
   id: "attributes.fields",
-  title: "Feature fields - the twelve builtin editors",
+  title: "Feature fields - the thirteen builtin editors",
   description:
-    "<FeatureFields> runs the resolution ladder per feature (host registration > skin builtin > loud notice) and draws each value type from its own config. It holds no state and owns no submit: values in, changes out, so the composer that owns the draft keeps one source of truth. All ten builtin types appear across these variants.",
+    "<FeatureFields> runs the resolution ladder per feature (host registration > skin builtin > loud notice) and draws each value type from its own config. It holds no state and owns no submit: values in, changes out, so the composer that owns the draft keeps one source of truth. All thirteen builtin types appear across these variants.",
   component: FeatureFields,
   tokens: ["surface-raised", "text"],
   variants: {
@@ -121,6 +124,31 @@ export default defineDemo({
       render: () => (
         <AttributesDemoHarness surface="base">
           <EditableFeatureFields features={SECTION_FEATURES} />
+        </AttributesDemoHarness>
+      ),
+    },
+    "composite — filled": {
+      description:
+        "`group` is one feature holding a small TABLE: a list of rows, each row a set of ordinary child fields. The cells are the same `int` and `string` editors a top-level row gets, bounds and postfix included, because the children ARE full feature definitions. The row cap lives on the parent (`repeat.max: 5`), so the add button stops there rather than offering a sixth row the server would refuse. Below it, a single-row composite (`repeat: null`) draws as a plain fieldset with no add, no remove and no row numbers.",
+      viewport: "desktop",
+      step: "two-steps",
+      render: () => (
+        <AttributesDemoHarness surface="base">
+          <EditableFeatureFields features={GROUP_FEATURES} initialValues={GROUP_VALUES} />
+        </AttributesDemoHarness>
+      ),
+    },
+    "composite — on a phone": {
+      description:
+        "The same subform in a narrow column: the cells stack instead of sitting side by side, and the add/remove controls take the 44px touch floor — measured from the COLUMN's width, not the viewport's, because a composer is not a viewport. One row filled, one still blank: the state a repeatable subform is in most of the time a person is using it.",
+      viewport: "phone",
+      step: "one-step-and-a-blank",
+      render: () => (
+        <AttributesDemoHarness surface="base">
+          <EditableFeatureFields
+            features={GROUP_FEATURES}
+            initialValues={GROUP_PARTIAL_VALUES}
+          />
         </AttributesDemoHarness>
       ),
     },

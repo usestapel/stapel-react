@@ -509,6 +509,69 @@ export const DEMO_VOCABULARY_CLIENT: VocabularyClient = {
   },
 };
 
+// ── the composite ───────────────────────────────────────────────────────────
+
+/**
+ * `group` — the shape 2 468 Avito fields carry and no other kind could hold:
+ * a small TABLE. `DiscountLadderList` is "from N units, M % off", repeated up
+ * to five times, and its children are full feature definitions of ordinary
+ * kinds — so the cells are the same `int` editors a top-level row would get,
+ * bounds and postfix included.
+ *
+ * The parent's own row cap lives in `repeat`, never in a child's bounds: Avito
+ * ships it as `values_range: {max: 5}` on the parent, and reading that as a
+ * value bound would have produced a field accepting 3 and refusing a 10 %
+ * discount.
+ */
+export const DISCOUNT_LADDER: FeatureDef = feature(
+  "discount_ladder",
+  "Wholesale discount",
+  {
+    type: "group",
+    fields: [
+      feature("quantity", "From, units", { type: "int", min: 1, max: 1000 }, {
+        mandatory: true,
+        example: "demo.example.quantity",
+      }),
+      feature("discount", "Discount", { type: "int", min: 1, max: 30, postfix: "%" }),
+    ],
+    repeat: { min: 1, max: 5 },
+  },
+  { description: "demo.help.ladder", group: "demo.group.wholesale" }
+);
+
+/** A single-row composite: `repeat: null`, so no add, no remove, no row
+ * numbers — a plain fieldset with two cells. */
+export const WARRANTY: FeatureDef = feature(
+  "warranty",
+  "Warranty",
+  {
+    type: "group",
+    fields: [
+      feature("months", "Months", { type: "int", min: 1, max: 60 }),
+      feature("provider", "Provided by", { type: "string", maxLength: 40 }),
+    ],
+    repeat: null,
+  },
+  { description: "demo.help.warranty" }
+);
+
+export const GROUP_FEATURES: readonly FeatureDef[] = [DISCOUNT_LADDER, WARRANTY];
+
+export const GROUP_VALUES: Readonly<Record<string, unknown>> = {
+  discount_ladder: [
+    { quantity: 10, discount: 5 },
+    { quantity: 50, discount: 12 },
+  ],
+  warranty: [{ months: 24, provider: "Manufacturer" }],
+};
+
+/** One row filled in, one still blank — the state a repeatable subform is in
+ * most of the time a person is using it. */
+export const GROUP_PARTIAL_VALUES: Readonly<Record<string, unknown>> = {
+  discount_ladder: [{ quantity: 10, discount: 5 }, {}],
+};
+
 export const REF_SELECT_VALUES: Readonly<Record<string, unknown>> = {
   vendor: ["apple"],
   model: ["iphone-15-pro"],

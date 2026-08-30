@@ -84,6 +84,15 @@ export const ATTRIBUTES_I18N_KEYS = {
   /** The feature's `rules` do not parse, so neither its visibility nor its
    * requiredness is knowable and it cannot honestly be drawn. */
   invalidRules: "attributes.invalid_rules",
+  /** A composite's row heading — "Step 1", "Step 2". Interpolates `{index}`,
+   * one-based, because a person counts rows from one. */
+  groupRow: "attributes.group.row",
+  /** Add one row to a repeatable composite. Hidden entirely when `repeat` is
+   * null (a single-row group has nothing to add). */
+  groupAddRow: "attributes.group.add_row",
+  /** Drop one row. Absent once `repeat.min` is reached, rather than disabled:
+   * a control that can never be pressed is the dead rectangle §83 forbids. */
+  groupRemoveRow: "attributes.group.remove_row",
 } as const;
 
 export type AttributesI18nKey =
@@ -130,6 +139,9 @@ export const attributesI18nBundleEn: I18nDictionary = {
   "attributes.vocabulary_unavailable": "This detail cannot be filled in here yet.",
   "attributes.vocabulary.no_matches": "Nothing matched",
   "attributes.invalid_rules": "This detail is misconfigured and cannot be filled in.",
+  "attributes.group.row": "Row {index}",
+  "attributes.group.add_row": "Add row",
+  "attributes.group.remove_row": "Remove",
 };
 
 /** Register the package's `en` floor into a core i18n engine (call once at

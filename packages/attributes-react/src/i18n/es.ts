@@ -39,6 +39,9 @@ export const attributesI18nBundleEs: I18nDictionary = {
   "attributes.vocabulary_unavailable": "Este detalle todavía no se puede rellenar aquí.",
   "attributes.vocabulary.no_matches": "Sin coincidencias",
   "attributes.invalid_rules": "Este detalle está mal configurado y no se puede rellenar.",
+  "attributes.group.row": "Fila {index}",
+  "attributes.group.add_row": "Añadir fila",
+  "attributes.group.remove_row": "Quitar",
 };
 
 /** Register the `es` bundle. Call AFTER `registerAttributesI18n` so it

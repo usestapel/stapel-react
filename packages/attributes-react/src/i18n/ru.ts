@@ -46,6 +46,9 @@ export const attributesI18nBundleRu: I18nDictionary = {
   "attributes.vocabulary_unavailable": "Эту характеристику здесь пока нельзя заполнить.",
   "attributes.vocabulary.no_matches": "Ничего не найдено",
   "attributes.invalid_rules": "Характеристика настроена неверно, заполнить её нельзя.",
+  "attributes.group.row": "Строка {index}",
+  "attributes.group.add_row": "Добавить строку",
+  "attributes.group.remove_row": "Удалить",
 };
 
 /** Register the `ru` bundle. Call AFTER `registerAttributesI18n` so it

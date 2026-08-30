@@ -52,6 +52,8 @@ export type {
   FeatureValueDto,
   FeatureValidationResult,
   FeaturesDto,
+  GroupConfig,
+  GroupRepeat,
   Hint,
   OptionsRef,
   RefHierarchicalSelectConfig,

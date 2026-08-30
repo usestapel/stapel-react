@@ -152,15 +152,40 @@ export const UNKNOWN_TYPE_FEATURE: FeatureDef = feature("size_grid", {
   table: "clothing_women",
 });
 
+/**
+ * The composite: Avito's `DiscountLadderList` — "quantity from N, discount
+ * M %", up to five steps. Children are full feature definitions of ordinary
+ * kinds; the parent's row cap lives in `repeat`, never in a child's bounds.
+ */
+export const GROUP_FEATURE: FeatureDef = feature("discount_ladder", {
+  type: "group",
+  fields: [
+    feature("quantity", { type: "int", min: 1, max: 10000000 }, { mandatory: true }),
+    feature("discount", { type: "int", min: 1, max: 30, postfix: "%" }),
+  ],
+  repeat: { min: 1, max: 5 },
+});
+
+/** A single-row composite: no `repeat`, so no add/remove chrome at all. */
+export const SINGLE_ROW_GROUP_FEATURE: FeatureDef = feature("warranty", {
+  type: "group",
+  fields: [
+    feature("months", { type: "int", min: 1, max: 60 }),
+    feature("provider", { type: "string", maxLength: 40 }),
+  ],
+  repeat: null,
+});
+
 /** A row whose config declares no type at all. */
 export const UNTYPED_FEATURE_DEF: FeatureDef = feature("broken", {});
 
-/** Every builtin, in registry order — the twelve-type sweep. */
+/** Every builtin, in registry order — the thirteen-type sweep. */
 export const ALL_BUILTIN_FEATURES: readonly FeatureDef[] = [
   BOOL_FEATURE,
   CONVERTIBLE_FEATURE,
   DATE_FEATURE,
   FLOAT_FEATURE,
+  GROUP_FEATURE,
   HEADER_FEATURE,
   HEX_COLOR_FEATURE,
   HIERARCHICAL_FEATURE,

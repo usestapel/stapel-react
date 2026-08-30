@@ -1,6 +1,6 @@
 /**
  * The antd BUILTIN value editors — one per value type `stapel_attributes`
- * ships (`types/`: ten of them).
+ * ships (`types/`: thirteen of them).
  *
  * ── Where these sit in the resolution ladder ───────────────────────────────
  *
@@ -60,6 +60,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import {
   AutoComplete,
+  Button,
   Cascader,
   Checkbox,
   ColorPicker,
@@ -76,9 +77,16 @@ import { actionBlocked, useI18n, useT } from "@stapel/core";
 import { GatedControl, PHONE_CONTROL_HEIGHT, SkinTheme } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 import type { ValueEditor, ValueEditorProps } from "../registry.js";
-import { featureConfig, featureName } from "../types.js";
+import { resolveValueEditor } from "../registry.js";
+import { featureConfig, featureName, featureType } from "../types.js";
 import type { FeatureConfig } from "../types.js";
-import { SIMPLE_COLORS, codePointLength } from "../validate.js";
+import {
+  SIMPLE_COLORS,
+  codePointLength,
+  groupChildren,
+  groupRowBounds,
+  isBlank,
+} from "../validate.js";
 import { firstCode, optionsRefOf, useVocabularyClient } from "../vocabulary.js";
 import type { VocabularyClient, VocabularyTerm } from "../vocabulary.js";
 import { UnsupportedValueEditor } from "./notice.js";
@@ -96,6 +104,17 @@ const SEGMENTED_MAX_OPTIONS = 4;
  * never a word — so its width is measured in characters, not pixels: it
  * follows the type scale instead of contradicting it. */
 const UNIT_SELECT_WIDTH = "12ch";
+
+/** One row of a composite: the cells a `group` holds, keyed by child slug. */
+type GroupRow = Readonly<Record<string, unknown>>;
+
+/** A blank row — a module constant so an added row is referentially stable. */
+const EMPTY_ROW: GroupRow = {};
+
+/** The subform's frame. antd's own `colorBorder` is not reachable outside a
+ * `ConfigProvider` consumer, and a group's box is chrome, not a control, so it
+ * takes the same neutral border every bordered surface in the skin does. */
+const GROUP_BORDER = "var(--stapel-border, rgba(128,128,128,0.35))";
 
 /**
  * The height a chip's LABEL is held to inside a narrow column.
@@ -1492,6 +1511,192 @@ const RefHierarchicalSelectEditor: ValueEditor = (props: ValueEditorProps) => {
   );
 };
 
+// ── group (the composite) ────────────────────────────────────────────────────
+
+/**
+ * `group` → a bordered subform: a list of ROWS, each row a set of child
+ * features of the ordinary kinds.
+ *
+ * The value is `[{child_slug: value}, …]` — one object per row — and the whole
+ * array travels through the ONE `onChange` this editor owns, per the registry
+ * contract (an editor writes its own slug and nothing else). A cell's editor
+ * is resolved through the same ladder as a top-level row, so a host's
+ * registered editor is used inside a group too, and a kind that reaches the
+ * notice at the top level reaches it in a cell.
+ *
+ * Three things it deliberately does NOT do, because the engine does not:
+ *
+ *  - **No nested groups.** A child of type `group` is refused by
+ *    `validate_config` upstream; here it simply resolves to the notice like
+ *    any undrawable type, rather than recursing.
+ *  - **No rules inside.** A child carrying `rules` is a refused config
+ *    upstream, so there is no rule pre-pass per row and no `narrowConfig`
+ *    here — a cell's config is what the catalogue wrote.
+ *  - **No per-cell error.** The server's refusal names the composite, not the
+ *    cell (the batch result reduces `params` to `{feature, slug}`), so the
+ *    row's own `Form.Item` carries it. Inventing a cell to blame would be a
+ *    guess drawn as a fact.
+ *
+ * `repeat: null` is a SINGLE-row group: no add, no remove, no row numbers —
+ * a plain fieldset. Repeatable, the add button stops at `repeat.max` and the
+ * remove button at `repeat.min`, so the control never offers what the mirror
+ * would refuse (the rule this file is held to).
+ */
+const GroupEditor: ValueEditor = (props: ValueEditorProps) => {
+  const t = useT();
+  const cfg = configOf(props);
+  const touch = useTouchFloor();
+  const children = useMemo(() => groupChildren(cfg), [cfg]);
+  const [minRows, maxRows] = groupRowBounds(cfg);
+  const repeatable = cfg["repeat"] !== null && cfg["repeat"] !== undefined;
+
+  const stored: readonly GroupRow[] = useMemo(
+    () =>
+      (Array.isArray(props.value) ? props.value : []).filter(
+        (row): row is GroupRow => row !== null && typeof row === "object" && !Array.isArray(row)
+      ),
+    [props.value]
+  );
+  // A single-row group always draws its one row: with no add button, an empty
+  // one would be a labelled box with nothing in it. A repeatable one draws a
+  // blank row when an answer is REQUIRED — the fields a person must fill are
+  // not something to make them press a button to see — and nothing otherwise.
+  const rows: readonly GroupRow[] =
+    stored.length > 0 ? stored : !repeatable || props.required === true ? [EMPTY_ROW] : [];
+
+  const emit = useCallback(
+    (next: readonly GroupRow[]): void => {
+      const kept = next.filter((row) => Object.values(row).some((cell) => !isBlank(cell)));
+      props.onChange(kept.length > 0 ? kept : undefined);
+    },
+    [props]
+  );
+
+  const setCell = (index: number, slug: string, value: unknown): void => {
+    emit(
+      rows.map((row, at) =>
+        at === index
+          ? Object.fromEntries(
+              Object.entries({ ...row, [slug]: value }).filter(([, cell]) => !isBlank(cell))
+            )
+          : row
+      )
+    );
+  };
+
+  const disabled = props.disabled === true;
+  const canAdd = repeatable && !disabled && (maxRows === undefined || rows.length < maxRows);
+  const canRemove = repeatable && !disabled && rows.length > Math.max(minRows, 1);
+
+  // `props.id` lands on the CONTAINER, not on a cell.
+  //
+  // The registry contract says the id goes on "the primary control" so the
+  // row's `<label for>` reaches it — but a composite has no primary control,
+  // and picking the first cell of the first row would give that one `int` two
+  // labels ("Wholesale discount" and "From, units") and make the row's label
+  // read as a question about it. `role="group"` is what this box actually is:
+  // a set of controls the row's label names as a whole.
+  return (
+    <Flex
+      vertical
+      gap={spacing[2]}
+      style={{ width: "100%" }}
+      id={props.id}
+      role="group"
+      data-attributes-composite={rows.length}
+    >
+      {rows.map((row, index) => (
+        <div
+          // eslint-disable-next-line react/no-array-index-key -- the index IS the row's identity: the value is an ordered array and the engine addresses a cell by position (`rows[1].discount`); a row carries no id of its own
+          key={index}
+          data-attributes-row={index}
+          style={{
+            border: `1px solid ${GROUP_BORDER}`,
+            borderRadius: spacing[1],
+            padding: spacing[2],
+          }}
+        >
+          {repeatable && (
+            <Flex justify="space-between" align="center" style={{ marginBottom: spacing[1] }}>
+              <Typography.Text type="secondary">
+                {t(ATTRIBUTES_I18N_KEYS.groupRow, { index: index + 1 })}
+              </Typography.Text>
+              {canRemove && (
+                <Button
+                  size="small"
+                  type="text"
+                  danger
+                  data-analytics="none"
+                  data-analytics-reason="local form edit — the funnel step is the submit, not a row"
+                  style={{ minHeight: touch ? PHONE_CONTROL_HEIGHT : undefined }}
+                  onClick={() => emit(rows.filter((_row, at) => at !== index))}
+                >
+                  {t(ATTRIBUTES_I18N_KEYS.groupRemoveRow)}
+                </Button>
+              )}
+            </Flex>
+          )}
+          {/* Side by side while there is room; stacked in a narrow column.
+              The basis only applies horizontally — in a column, `flex-basis`
+              sizes HEIGHT, and a 12rem floor turned every stacked cell into a
+              third of a phone screen of empty space. */}
+          <Flex vertical={touch} wrap={!touch} gap={spacing[2]}>
+            {children.map((child) => {
+              const cellId = `${props.id}-${index}-${child.slug}`;
+              const type = featureType(child);
+              const Editor =
+                (type === undefined ? null : resolveValueEditor(type)) ??
+                (type === undefined ? undefined : BUILTIN_VALUE_EDITORS[type]);
+              return (
+                <div
+                  key={child.slug}
+                  style={{ flex: touch ? "0 0 auto" : "1 1 12rem", minWidth: 0 }}
+                >
+                  <label htmlFor={cellId} style={{ display: "block", marginBottom: spacing[1] }}>
+                    <Typography.Text strong>{t(featureName(child))}</Typography.Text>
+                    {child.mandatory === true && (
+                      <Typography.Text type="danger" aria-hidden="true">
+                        {" *"}
+                      </Typography.Text>
+                    )}
+                  </label>
+                  {Editor === undefined || Editor === null ? (
+                    <UnsupportedValueEditor feature={child} />
+                  ) : (
+                    <Editor
+                      id={cellId}
+                      feature={child}
+                      value={row[child.slug]}
+                      siblings={row}
+                      onChange={(value) => setCell(index, child.slug, value)}
+                      disabled={disabled}
+                      required={child.mandatory === true}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </Flex>
+        </div>
+      ))}
+      {repeatable && (
+        <div>
+          <Button
+            size="small"
+            disabled={!canAdd}
+            data-analytics="none"
+            data-analytics-reason="local form edit — the funnel step is the submit, not a row"
+            style={{ minHeight: touch ? PHONE_CONTROL_HEIGHT : undefined }}
+            onClick={() => emit([...rows, EMPTY_ROW])}
+          >
+            {t(ATTRIBUTES_I18N_KEYS.groupAddRow)}
+          </Button>
+        </div>
+      )}
+    </Flex>
+  );
+};
+
 /**
  * Every builtin is its OWN skin root.
  *
@@ -1531,6 +1736,7 @@ export const BUILTIN_VALUE_EDITORS: Readonly<Record<string, ValueEditor>> = {
   convertible_unit: skinned("ConvertibleUnit", ConvertibleUnitEditor),
   ref_select: skinned("RefSelect", RefSelectEditor),
   ref_hierarchical_select: skinned("RefHierarchicalSelect", RefHierarchicalSelectEditor),
+  group: skinned("Group", GroupEditor),
 };
 
 /** The types this skin can draw — handed to `unsupportedTypes` so the

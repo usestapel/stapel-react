@@ -7,8 +7,9 @@
 // (tests/test_feature_def_schema.py), attributes-react generates its
 // TypeScript types from it, and stapel-categories checks its ResolvedFeature
 // payload against it. Per-type `config` shapes stay with their type plugin;
-// only the two vocabulary-backed configs are described here because their
-// shape is part of the ref contract.
+// the two vocabulary-backed configs and the composite `group` config are
+// described here because their shape is part of a cross-language contract (the
+// ref contract, and the composite subform both editors render).
 
 /** Type-specific configuration, discriminated by `type`. */
 export interface FeatureDefConfig {
@@ -104,6 +105,29 @@ export interface RefSelectConfig {
   readonly maxSelected?: number | null;
   /** @default "dropdown" */
   readonly uiStyle?: "dropdown" | "chips";
+  /** The wire carries more than the canon describes. */
+  readonly [key: string]: unknown;
+}
+
+/** Row-count bounds of a repeatable group; `max: null` is unbounded. */
+export interface GroupRepeat {
+  /** @default 0 */
+  readonly min?: number;
+  readonly max?: number | null;
+}
+
+export interface GroupConfig {
+  readonly type: "group";
+  /**
+   * Child feature definitions. Nesting depth is 1: no child may be a
+   * `group` (nor a `header`), and no child may carry `rules`.
+   */
+  readonly fields: readonly FeatureDef[];
+  /**
+   * Repeatable row bounds, or null for a single-row group.
+   * @default null
+   */
+  readonly repeat?: GroupRepeat | null;
   /** The wire carries more than the canon describes. */
   readonly [key: string]: unknown;
 }

@@ -21,7 +21,7 @@
 import { describe, expect, it } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { VocabularyClientProvider } from "@stapel/attributes-react";
+import { VocabularyClientProvider, toFeaturesDto } from "@stapel/attributes-react";
 import type { FeatureDef, VocabularyClient } from "@stapel/attributes-react";
 import { BUILTIN_VALUE_EDITOR_TYPES } from "@stapel/attributes-react/default";
 import { useListingComposer } from "../src/index.js";
@@ -189,6 +189,69 @@ describe("the publish gate reads the rules, not `mandatory`", () => {
     });
     await waitFor(() => expect(result.current.mirror["screen_state"]).toBeUndefined());
     expect(result.current.publishGate.available).toBe(true);
+  });
+});
+
+describe("a composite goes through the composer untouched", () => {
+  /**
+   * The claim is that the composer needed NO code for the `group` kind: the
+   * bag holds a value keyed by slug whatever its shape, `<FeatureFields>`
+   * resolves the editor, and the mirror judges the rows. If any of those had
+   * special-cased the twelve scalar kinds, this is where it would show.
+   */
+  const LADDER: FeatureDef = {
+    slug: "discount_ladder",
+    name: "Wholesale discount",
+    mandatory: true,
+    config: {
+      type: "group",
+      fields: [
+        { slug: "quantity", name: "From, units", mandatory: true,
+          config: { type: "int", min: 1, max: 1000 } },
+        { slug: "discount", name: "Discount", config: { type: "int", min: 1, max: 30 } },
+      ],
+      repeat: { min: 1, max: 5 },
+    },
+  };
+
+  it("draws with the builtin editors — no unsupported type, no blocked publish", async () => {
+    const { result } = bagFor([LADDER], {
+      initialFeatures: { discount_ladder: [{ quantity: 10, discount: 5 }] },
+    });
+    await waitFor(() => expect(result.current.unsupported).toEqual([]));
+    expect(BUILTIN_VALUE_EDITOR_TYPES).toContain("group");
+    expect(result.current.publishGate.available).toBe(true);
+  });
+
+  it("blocks the publish while a mandatory composite is empty, and unblocks on a row", async () => {
+    const { result } = bagFor([LADDER]);
+    await waitFor(() =>
+      expect(result.current.mirror["discount_ladder"]?.code).toBe(
+        "error.400.feature_mandatory_missing"
+      )
+    );
+    expect(result.current.publishGate.available).toBe(false);
+  });
+
+  it("refuses a cell the CHILD's own bounds refuse", async () => {
+    const { result } = bagFor([LADDER], {
+      initialFeatures: { discount_ladder: [{ quantity: 10, discount: 99 }] },
+    });
+    await waitFor(() =>
+      expect(result.current.mirror["discount_ladder"]?.code).toBe(
+        "error.400.feature_above_maximum"
+      )
+    );
+    expect(result.current.publishGate.available).toBe(false);
+  });
+
+  it("puts the table on the wire under the group's own slug", async () => {
+    const rows = [{ quantity: 10, discount: 5 }, { quantity: 50, discount: 12 }];
+    const { result } = bagFor([LADDER], { initialFeatures: { discount_ladder: rows } });
+    await waitFor(() => expect(result.current.unsupported).toEqual([]));
+    expect(toFeaturesDto([LADDER], result.current.values.features)).toEqual({
+      discount_ladder: { type: "group", value: rows },
+    });
   });
 });
 

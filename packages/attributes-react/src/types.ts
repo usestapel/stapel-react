@@ -52,8 +52,9 @@
  *    registry keys on.
  *  - `config["type"]` — the VALUE type: `int`, `float`, `string`, `bool`,
  *    `hex_color`, `select`, `date`, `header`, `hierarchical_select`,
- *    `convertible_unit`, and since 0.5.0 `ref_select` /
- *    `ref_hierarchical_select`. That is what a person filling in a listing
+ *    `convertible_unit`, since 0.5.0 `ref_select` /
+ *    `ref_hierarchical_select`, and since 0.6.0 the composite `group`. That is
+ *    what a person filling in a listing
  *    actually edits, and it is what this package keys on.
  *
  * A storefront therefore needs **no catalogue endpoint**: the type arrives in
@@ -62,6 +63,8 @@
 export type {
   Cond,
   FeatureDef,
+  GroupConfig,
+  GroupRepeat,
   Hint,
   OptionsRef,
   RefHierarchicalSelectConfig,
