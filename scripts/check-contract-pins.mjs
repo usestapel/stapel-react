@@ -106,9 +106,82 @@ function checkPinsResolve(pins) {
  * every pair merges — the hold worked, the claim was false, 42 codes vanished
  * from ru/es on the runner. Re-read a hold's reason whenever the gate lists it.
  */
+/**
+ * The release tags of a sibling checkout, newest last — or `null` when this
+ * process cannot establish them at all.
+ *
+ * That third answer is the whole point. Until 2026-08-31 this read
+ * `git tag --list v*` and nothing else, which is a full answer at a desk (full
+ * clones, every tag present) and an EMPTY one on the runner: ci.yml and
+ * release.yml build each sibling with `git init` + `fetch --depth 1 <sha>`,
+ * and a fetch of one sha brings down no tags. `newest` came back null, the
+ * `if (!pinned || !newest) continue;` below stepped over it, and the freshness
+ * gate reported nothing and exited 0 for every module, on every run, in the
+ * one place it was supposed to be the last line of defence. A gate whose
+ * finding is "" is indistinguishable from a gate whose finding is "clean" —
+ * the same shape as the outages this file's other comments are about.
+ *
+ * The fix is not to fetch the tags: `fetch --tags --depth 1` drags a full tree
+ * per tag for 26 siblings to answer a question about REF NAMES. `ls-remote
+ * --tags` asks the server for exactly the names, costs one round trip, needs
+ * no objects, and lives here rather than in two workflow files — so any
+ * caller on any tagless checkout is covered, not just the two we remembered.
+ *
+ * Blindness is never silence again: a checkout with no local tags AND no
+ * reachable origin returns null, and the caller fails loudly on it. An origin
+ * that answers with zero tags is an ANSWER (an unreleased sibling), not
+ * blindness, and returns [].
+ */
+function releaseTags(dir) {
+  const parse = (names) =>
+    names
+      .map((t) => t.trim().replace(/^v/, ""))
+      .filter((t) => /^\d+\.\d+\.\d+$/.test(t))
+      .map((t) => t.split(".").map(Number))
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+
+  let local = [];
+  try {
+    local = parse(
+      execFileSync("git", ["-C", dir, "tag", "--list", "v*"], { encoding: "utf8" }).split("\n")
+    );
+  } catch {
+    return null; // not a readable git dir at all
+  }
+  if (local.length > 0) return local;
+
+  let origin;
+  try {
+    origin = execFileSync("git", ["-C", dir, "remote", "get-url", "origin"], {
+      encoding: "utf8",
+    }).trim();
+  } catch {
+    return null; // tagless and no origin to ask — nothing can be concluded
+  }
+  if (!origin) return null;
+  try {
+    const out = execFileSync("git", ["ls-remote", "--tags", "--refs", origin], {
+      encoding: "utf8",
+      timeout: 30_000,
+      // Never sit at a credential prompt on a runner: a private sibling must
+      // fail fast and be reported as blind, not hang the job.
+      env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+    });
+    return parse(
+      out
+        .split("\n")
+        .map((line) => line.split("refs/tags/")[1] ?? "")
+        .filter(Boolean)
+    );
+  } catch {
+    return null;
+  }
+}
+
 function checkPinsFresh(pins) {
   const notes = [];
   const stale = [];
+  const blind = [];
   for (const [module, entry] of Object.entries(pins.modules ?? {})) {
     const dir = resolve(ROOT, SIBLING_ROOT, module);
     if (!existsSync(resolve(dir, ".git"))) continue;
@@ -118,31 +191,43 @@ function checkPinsFresh(pins) {
       continue;
     }
     let pinned;
-    let newest;
     try {
       const py = execFileSync("git", ["-C", dir, "show", `${entry.ref}:pyproject.toml`], { encoding: "utf8" });
       pinned = parseVersion(py);
-      const tags = execFileSync("git", ["-C", dir, "tag", "--list", "v*"], { encoding: "utf8" })
-        .split("\n")
-        .map((t) => t.trim().replace(/^v/, ""))
-        .filter((t) => /^\d+\.\d+\.\d+$/.test(t))
-        .map((t) => t.split(".").map(Number))
-        .sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
-      newest = tags.at(-1) ?? null;
     } catch {
+      continue; // the ref not being readable here is checkPinsResolve's finding
+    }
+    const tags = releaseTags(dir);
+    if (tags === null) {
+      blind.push(`${module}: no tags in ${dir} and \`git ls-remote --tags\` on its origin failed`);
       continue;
     }
+    const newest = tags.at(-1) ?? null;
     if (!pinned || !newest) continue;
     const behind = newest[0] - pinned[0] > 0 ? Infinity : newest[1] - pinned[1];
     if (behind >= 2) stale.push(`${module}: pinned ${show(pinned)}, newest tag v${newest.join(".")} (${behind === Infinity ? "a major" : behind + " minors"} behind)`);
     else if (behind === 1) notes.push(`${module}: pinned ${show(pinned)}, newest tag v${newest.join(".")}`);
   }
   for (const n of notes) console.error(`  ~ pin one minor behind (a deliberate hold, or the next bump): ${n}`);
+  if (blind.length > 0) {
+    // Not a listing matter and not a warning: this is the gate reporting that
+    // it could not run. Passing here is how it silently passed for months.
+    console.error(`✖ contract-pins: the freshness check is BLIND for ${blind.length} sibling(s):\n` +
+      blind.map((b) => `    - ${b}`).join("\n") +
+      `\n  It cannot see the newest release tag, so it cannot tell a current pin from one four minors\n` +
+      `  behind — and a check that answers "" must not be read as "clean". Give the checkout its tags\n` +
+      `  (\`git fetch --tags\`) or network access to its origin.`);
+  }
   if (stale.length > 0) {
     console.error(`✖ contract-pins: ${stale.length} pin(s) are two or more minors behind the library they pin:\n` +
       stale.map((s) => `    - ${s}`).join("\n") +
       `\n  A pair regenerated from such a pin is internally consistent and wrong about the wire. Bump the pin\n` +
       `  to the release the pair is built for and regenerate it (pnpm gen:pinned), or record the hold in the note.`);
+  }
+  if (blind.length > 0 || stale.length > 0) {
+    // Both blocks are printed before exiting: a run that is blind for one
+    // sibling still has a real finding for another, and hiding it behind the
+    // first `process.exit` would cost a whole CI round trip to learn.
     process.exit(1);
   }
 }

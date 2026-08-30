@@ -71,6 +71,17 @@ Transitional note: while a backend's contract commits exist only locally
 GitHub-side CI can only resolve such a sha after the backend push wave
 lands — a checkout failure before that is expected, not a regression.
 
+**Pin freshness.** `pnpm check:gates` compares each pin's `pyproject`
+version against the sibling's newest `v*` release tag: one minor behind is
+listed (a deliberate hold, or the next bump), two or more fails. It needs the
+tag list, and CI builds each sibling with `git init` + `fetch --depth 1 <sha>`,
+which brings down no tags at all — so from 2026-08-31 the check falls back to
+`git ls-remote --tags` on the checkout's origin when the local list is empty
+(ref names only, one round trip, no objects). A sibling with neither local
+tags nor a reachable origin now **fails as BLIND** rather than passing: before
+the fallback existed, the freshness half of this gate silently reported
+nothing on every CI and release run.
+
 ## Publishing a pair for the FIRST time
 
 Releases are tokenless: npm **OIDC trusted publishing**, configured per package
