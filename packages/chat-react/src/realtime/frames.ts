@@ -178,6 +178,13 @@ export interface ChatPresencePayload {
   readonly user_id: string;
   readonly online: boolean;
   readonly last_seen_at: string | null;
+  /**
+   * When this `online` stops being believable (stapel-chat 0.7.3). It makes
+   * the frame SELF-LIMITING: a lease running out is announced by nobody —
+   * nothing happens, so there is no event — and without the deadline a client
+   * that hears this frame and then nothing more believes `online` forever.
+   */
+  readonly online_until: string | null;
 }
 
 /** `chat.inbox` — a conversation this user takes part in moved. */
@@ -311,6 +318,7 @@ export function readChatPresenceFrame(
     user_id: userId,
     online: flag(frame.payload["online"]),
     last_seen_at: str(frame.payload["last_seen_at"]),
+    online_until: str(frame.payload["online_until"]),
   };
 }
 

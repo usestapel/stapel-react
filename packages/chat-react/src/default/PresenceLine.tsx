@@ -18,6 +18,21 @@
  * something it cannot know. So the line renders for a 1:1 thread and is
  * absent otherwise — absent, not a placeholder: there is no fact to show.
  *
+ * ── Why an "online" here expires on its own ───────────────────────────────
+ *
+ * `chat.presence.changed` is announced from a DISCONNECT. A lease running out
+ * announces nothing — nothing happens, so there is no event — and the lease
+ * exists for exactly the case where no disconnect ever runs: a killed tab, a
+ * lost worker. A header told only `online: true` therefore kept saying it
+ * forever; that was seen live, ninety seconds after the peer was gone, while
+ * the server had already said offline.
+ *
+ * So the server's own deadline (`online_until`) is read and a SINGLE timer is
+ * armed for it — one per rendered participant, fired once, never an interval
+ * and never a refetch. When it fires the line re-renders and reads offline,
+ * which is the answer the server was already giving. A body with no deadline
+ * (an older server) arms nothing and behaves exactly as before.
+ *
  * ── Why the relative time comes from core ─────────────────────────────────
  *
  * `useFormat().relative()` is the fleet's one relative-time ladder
@@ -27,11 +42,16 @@
  * holds one sentence with a `{when}` hole; `Intl` fills it in the reader's
  * own language.
  */
+import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import { Typography } from "antd";
 import { useFormat, useT } from "@stapel/core";
 import type { Conversation } from "../api/types.js";
-import { participantPresence } from "../model/presence.js";
+import {
+  participantPresence,
+  presenceAt,
+  presenceExpiryDelay,
+} from "../model/presence.js";
 import { counterpartyIds } from "./people.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 
@@ -51,12 +71,32 @@ export function PresenceLine(props: PresenceLineProps): ReactElement | null {
   const t = useT();
   const format = useFormat();
   const { conversation, viewerId } = props;
-  if (conversation === undefined) return null;
 
-  const others = counterpartyIds(conversation, viewerId);
-  if (others.length !== 1) return null;
-  const counterpartyId = others[0] ?? null;
-  const presence = participantPresence(conversation, counterpartyId);
+  // Read before any early return — hooks may not be conditional. A thread
+  // with no single counterparty simply arms nothing.
+  const others =
+    conversation === undefined ? [] : counterpartyIds(conversation, viewerId);
+  const counterpartyId = others.length === 1 ? (others[0] ?? null) : null;
+  const raw = participantPresence(conversation, counterpartyId);
+
+  // `now` exists only to be advanced when the deadline passes; it is not a
+  // clock the component reads continuously.
+  const [now, setNow] = useState(() => Date.now());
+  const delay = presenceExpiryDelay(raw, now);
+  useEffect(() => {
+    if (delay === null) return undefined;
+    const handle = setTimeout(() => {
+      setNow(Date.now());
+    }, delay);
+    return () => {
+      clearTimeout(handle);
+    };
+    // `raw.onlineUntil` is the identity of the deadline being waited on: a
+    // renewal that pushes it out re-arms, and a flip that clears it disarms.
+  }, [delay, raw.onlineUntil]);
+
+  if (conversation === undefined || counterpartyId === null) return null;
+  const presence = presenceAt(raw, now);
 
   // Offline with no last-seen: this deployment has never seen them connect.
   // "Offline" is the whole truth available, and it is said plainly rather

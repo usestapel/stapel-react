@@ -196,6 +196,12 @@ export {
   PRESENCE_UNKNOWN,
   applyConversationPresence,
   participantPresence,
+  // The local expiry of a server-granted "online". A lease running out is
+  // announced by nobody, so a client that cannot evaluate the deadline itself
+  // believes `online` forever after a peer's tab is killed.
+  presenceAt,
+  presenceExpired,
+  presenceExpiryDelay,
 } from "./model/presence.js";
 export type { ChatPresence } from "./model/presence.js";
 // Browser notifications for messages that land while the tab is hidden. It

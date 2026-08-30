@@ -471,6 +471,11 @@ export interface components {
              * @description When they were last connected or active. What a header
              */
             last_seen_at?: string | null;
+            /**
+             * Format: date-time
+             * @description When this ``online`` stops being believable — the lease
+             */
+            online_until?: string | null;
         };
         /** @description Replace a message's body. Author only. */
         PatchedEditMessageRequest: {

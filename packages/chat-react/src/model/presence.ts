@@ -28,6 +28,23 @@
  * This module reads no transport state and takes no socket as an argument.
  * That is not an omission; it is the fix. A client's own connection health is
  * a real thing to show, and `TransportTag` shows it, about itself.
+ *
+ * ── Why `online` has an expiry, and why that is not a poll ────────────────
+ *
+ * `chat.presence.changed` is announced from a DISCONNECT. A lease running out
+ * announces nothing, because nothing happens — no socket closes, no row is
+ * written, there is no event for the server to send. And the lease exists
+ * precisely for the case where no disconnect ever runs: a killed tab, a lost
+ * worker. So exactly when the peer vanishes most abruptly, a client told only
+ * `online: true` hears nothing more and believes it forever. That was
+ * observed live: a header said online ninety seconds after the peer was gone,
+ * while the server had already said offline.
+ *
+ * `online_until` (stapel-chat 0.7.3) is the deadline the SERVER evaluates,
+ * handed over so the client reaches the same answer on its own clock. It
+ * makes an `online` self-limiting rather than making the client ask again —
+ * one timer per rendered participant, no interval, no traffic. A body without
+ * the field (an older server) keeps the previous behaviour exactly.
  */
 import type { QueryClient } from "@tanstack/react-query";
 import type { Conversation, Participant } from "../api/types.js";
@@ -43,13 +60,66 @@ export interface ChatPresence {
    * deployment has never seen them connect — say nothing, do not guess.
    */
   readonly lastSeenAt: string | null;
+  /**
+   * When `online` stops being believable, ISO 8601, or `null` when the server
+   * did not say. A reader must stop treating `online` as true at this
+   * instant, exactly as the server does.
+   */
+  readonly onlineUntil: string | null;
 }
 
 /** What a participant with no presence on the wire reads as. */
 export const PRESENCE_UNKNOWN: ChatPresence = {
   online: false,
   lastSeenAt: null,
+  onlineUntil: null,
 };
+
+/**
+ * Has the server's own deadline passed?
+ *
+ * `null` — an older server that sends no deadline — is NOT expired: the
+ * previous behaviour is kept rather than every such participant being blinked
+ * offline by a field their server has never heard of. An unparseable value is
+ * treated the same way, for the same reason.
+ */
+export function presenceExpired(
+  presence: ChatPresence,
+  now: number = Date.now()
+): boolean {
+  if (!presence.online || presence.onlineUntil === null) return false;
+  const deadline = Date.parse(presence.onlineUntil);
+  return Number.isFinite(deadline) && deadline <= now;
+}
+
+/**
+ * The presence as it should be RENDERED at `now` — `online` forced false once
+ * the deadline has passed, with `lastSeenAt` left exactly as the server sent
+ * it, because that is still the last time anybody saw them.
+ */
+export function presenceAt(
+  presence: ChatPresence,
+  now: number = Date.now()
+): ChatPresence {
+  return presenceExpired(presence, now) ? { ...presence, online: false } : presence;
+}
+
+/**
+ * Milliseconds until this presence needs re-rendering, or `null` when it
+ * never does. Only a LIVE claim with a future deadline has anything to wait
+ * for: an offline participant is already at its final answer, and one with no
+ * deadline has nothing to wait on. This is what keeps the mechanism a single
+ * timer per participant instead of an interval.
+ */
+export function presenceExpiryDelay(
+  presence: ChatPresence,
+  now: number = Date.now()
+): number | null {
+  if (!presence.online || presence.onlineUntil === null) return null;
+  const deadline = Date.parse(presence.onlineUntil);
+  if (!Number.isFinite(deadline)) return null;
+  return deadline > now ? deadline - now : 0;
+}
 
 /**
  * Read one participant's presence off a conversation body.
@@ -73,6 +143,7 @@ export function participantPresence(
   return {
     online: participant.online === true,
     lastSeenAt: participant.last_seen_at ?? null,
+    onlineUntil: participant.online_until ?? null,
   };
 }
 
@@ -96,7 +167,8 @@ export function applyConversationPresence(
     if (participant.user_id !== presence.user_id) return participant;
     if (
       participant.online === presence.online &&
-      (participant.last_seen_at ?? null) === presence.last_seen_at
+      (participant.last_seen_at ?? null) === presence.last_seen_at &&
+      (participant.online_until ?? null) === presence.online_until
     ) {
       return participant;
     }
@@ -105,6 +177,7 @@ export function applyConversationPresence(
       ...participant,
       online: presence.online,
       last_seen_at: presence.last_seen_at,
+      online_until: presence.online_until,
     };
   });
   if (!touched) return false;

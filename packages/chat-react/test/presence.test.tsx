@@ -23,6 +23,9 @@ import {
   applyConversationPresence,
   chatQueryKeys,
   participantPresence,
+  presenceAt,
+  presenceExpired,
+  presenceExpiryDelay,
   readChatPresenceFrame,
 } from "../src/index.js";
 import type { Conversation } from "../src/index.js";
@@ -141,6 +144,7 @@ describe("chat.presence.changed", () => {
         user_id: SELLER,
         online: true,
         last_seen_at: "2026-08-30T10:00:00Z",
+        online_until: "2026-08-30T10:01:30Z",
       })
     );
     expect(read).toEqual({
@@ -148,6 +152,8 @@ describe("chat.presence.changed", () => {
       user_id: SELLER,
       online: true,
       last_seen_at: "2026-08-30T10:00:00Z",
+      // The deadline that makes the frame self-limiting.
+      online_until: "2026-08-30T10:01:30Z",
     });
   });
 
@@ -167,6 +173,7 @@ describe("chat.presence.changed", () => {
       user_id: SELLER,
       online: true,
       last_seen_at: "2026-08-30T10:00:00Z",
+      online_until: null,
     });
     expect(changed).toBe(true);
     const row = client.getQueryData<Conversation>(
@@ -189,6 +196,7 @@ describe("chat.presence.changed", () => {
         user_id: SELLER,
         online: true,
         last_seen_at: "2026-08-30T09:00:00Z",
+        online_until: null,
       })
     ).toBe(false);
   });
@@ -201,6 +209,7 @@ describe("chat.presence.changed", () => {
         user_id: SELLER,
         online: true,
         last_seen_at: null,
+        online_until: null,
       })
     ).toBe(false);
   });
@@ -229,12 +238,101 @@ describe("the live tail repaints the header", () => {
       user_id: SELLER,
       online: true,
       last_seen_at: "2026-08-30T10:00:00Z",
+      online_until: null,
     });
 
     await waitFor(() =>
       expect(
         screen.getByTestId("chat-presence").getAttribute("data-online")
       ).toBe("true")
+    );
+  });
+});
+
+// ── the deadline expires locally (stapel-chat 0.7.3) ─────────────────────
+//
+// The defect: `chat.presence.changed` is announced from a DISCONNECT, and a
+// lease running out announces nothing — nothing happens, so there is no event
+// — while the lease exists for exactly the case where no disconnect ever runs.
+// A header told only `online: true` kept saying it forever. Seen live: online
+// 90s after the peer was gone, while the server already said offline.
+
+describe("an online that expires on its own clock", () => {
+  const at = (msFromNow: number) => new Date(Date.now() + msFromNow).toISOString();
+
+  it("is still online before the deadline", () => {
+    const p = { online: true, lastSeenAt: null, onlineUntil: at(60_000) };
+    expect(presenceExpired(p)).toBe(false);
+    expect(presenceAt(p).online).toBe(true);
+  });
+
+  it("reads offline once the deadline has passed, with no event at all", () => {
+    const p = { online: true, lastSeenAt: at(-90_000), onlineUntil: at(-1_000) };
+    expect(presenceExpired(p)).toBe(true);
+    expect(presenceAt(p).online).toBe(false);
+    // last-seen is untouched: it is still the last time anybody saw them.
+    expect(presenceAt(p).lastSeenAt).toBe(p.lastSeenAt);
+  });
+
+  it("keeps the old behaviour when the server sends no deadline", () => {
+    // An older server. Blinking every such participant offline because of a
+    // field their backend has never heard of would be a worse lie than the
+    // one this fixes.
+    const p = { online: true, lastSeenAt: null, onlineUntil: null };
+    expect(presenceExpired(p)).toBe(false);
+    expect(presenceExpiryDelay(p)).toBeNull();
+  });
+
+  it("waits for nothing it cannot act on", () => {
+    // Offline is already the final answer; an unparseable deadline is not a
+    // reason to arm a timer that would fire on garbage.
+    expect(presenceExpiryDelay({ online: false, lastSeenAt: null, onlineUntil: at(60_000) })).toBeNull();
+    expect(presenceExpiryDelay({ online: true, lastSeenAt: null, onlineUntil: "not-a-date" })).toBeNull();
+  });
+
+  it("asks to be woken exactly when the deadline lands", () => {
+    const p = { online: true, lastSeenAt: null, onlineUntil: at(45_000) };
+    const delay = presenceExpiryDelay(p) ?? -1;
+    expect(delay).toBeGreaterThan(43_000);
+    expect(delay).toBeLessThanOrEqual(45_000);
+    // Already past: due now, never negative.
+    expect(presenceExpiryDelay({ ...p, onlineUntil: at(-5_000) })).toBe(0);
+  });
+});
+
+describe("the header flips itself without any frame arriving", () => {
+  it("goes from online to last-seen when the lease runs out", async () => {
+    // A real, very short lease rather than fake timers: the thread mounts antd
+    // and a query client, and freezing their clocks tests the harness instead
+    // of the mechanism. 400ms is the same code path a 90-second one takes.
+    const lease = new Date(Date.now() + 400).toISOString();
+    const seen = new Date(Date.now() - 5_000).toISOString();
+    renderThread(
+      conversation({
+        participants: [
+          { user_id: BUYER, role: "member", last_read_seq: 1 },
+          {
+            user_id: SELLER,
+            role: "member",
+            last_read_seq: 3,
+            online: true,
+            last_seen_at: seen,
+            online_until: lease,
+          },
+        ],
+      })
+    );
+    const line = await screen.findByTestId("chat-presence");
+    expect(line.getAttribute("data-online")).toBe("true");
+
+    // No disconnect, no frame, no refetch — only time passing, which is
+    // precisely the transition the server cannot announce.
+    await waitFor(
+      () =>
+        expect(
+          screen.getByTestId("chat-presence").getAttribute("data-online")
+        ).toBe("false"),
+      { timeout: 4000 }
     );
   });
 });

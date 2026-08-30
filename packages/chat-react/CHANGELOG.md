@@ -1,5 +1,39 @@
 # @stapel/chat-react
 
+## 0.6.1
+
+### Patch Changes
+
+- b802daf: An "online" the header never took back.
+
+  `chat.presence.changed` is announced from a **disconnect**. A lease running
+  out announces nothing — nothing happens, so there is no event for the server
+  to send — and the lease exists for exactly the case where no disconnect ever
+  runs: a killed tab, a lost worker. So at the moment a peer vanishes most
+  abruptly, a header told only `online: true` heard nothing more and kept saying
+  it. Seen live on a stand: online ninety seconds after the peer was gone, while
+  the server had already said offline.
+
+  Against stapel-chat 0.7.3 (pin bumped), `online_until` — the deadline the
+  server itself evaluates — reaches the client, on `participants[]` and in the
+  presence frame:
+
+  - `presenceExpired` / `presenceAt` / `presenceExpiryDelay` in the model;
+  - `<PresenceLine/>` arms **one timer per rendered participant** for that
+    deadline, fired once. No interval, no refetch, no traffic. When it fires the
+    line re-renders and reads offline — the answer the server was already
+    giving.
+
+  A fix by data rather than by event: the reader is handed what the server
+  evaluates instead of the server inventing a message for a non-happening.
+
+  Degradation is unchanged in both directions that matter. A body with no
+  deadline (an older server) arms nothing and behaves exactly as before, and an
+  unparseable deadline is treated the same — blinking a participant offline
+  because of a field their backend has never heard of would be a worse lie than
+  the one this fixes. `last_seen_at` is left untouched when a deadline passes,
+  because it is still the last time anybody saw them.
+
 ## 0.6.0
 
 ### Minor Changes

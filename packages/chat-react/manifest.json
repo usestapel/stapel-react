@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/chat-react",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "backend": {
     "module": "stapel-chat",
     "contract": ">=0.7 <0.8"
@@ -892,6 +892,8 @@
       "nextReadMarker",
       "noPeopleSlot",
       "participantPresence",
+      "presenceExpired",
+      "presenceExpiryDelay",
       "readChatActivityFrame",
       "readChatInboxFrame",
       "readChatMarkerFrame",
@@ -899,6 +901,7 @@
       "readChatMessagePayload",
       "readChatPresenceFrame",
       "registerChatI18n",
+      "so",
       "threadFirstSeq",
       "threadLastMessage",
       "threadLastRevSeq",
