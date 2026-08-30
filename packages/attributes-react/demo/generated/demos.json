@@ -48,7 +48,7 @@
     },
     {
       "id": "attributes.fields",
-      "title": "Feature fields - the ten builtin editors",
+      "title": "Feature fields - the twelve builtin editors",
       "description": "<FeatureFields> runs the resolution ladder per feature (host registration > skin builtin > loud notice) and draws each value type from its own config. It holds no state and owns no submit: values in, changes out, so the composer that owns the draft keeps one source of truth. All ten builtin types appear across these variants.",
       "component": "FeatureFields",
       "covers": [],
@@ -59,7 +59,7 @@
       "variants": [
         {
           "id": "text and numbers",
-          "description": "header, string, int, float, bool — a caption with no label or asterisk, a code-point counter rather than a hard cap (the DOM counts UTF-16, the engine counts code points), a translated postfix on the float, and the admin's own comment under the headline.",
+          "description": "header, string, int, float, bool — a caption with no label or asterisk, a code-point counter rather than a hard cap (the DOM counts UTF-16, the engine counts code points), a translated postfix on the float, and a header that is a caption rather than a question.",
           "viewport": "phone",
           "step": "answered"
         },

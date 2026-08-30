@@ -4,7 +4,7 @@ import type { ReactElement } from "react";
 import { renderDemoVariant } from "@stapel/showcase";
 import demo from "../FeatureFields.demo.js";
 
-export default { title: "attributes-react / Feature fields - the ten builtin editors" };
+export default { title: "attributes-react / Feature fields - the twelve builtin editors" };
 
 export const TextAndNumbers = (): ReactElement => renderDemoVariant(demo, "text and numbers");
 TextAndNumbers.storyName = "text and numbers";

@@ -300,6 +300,11 @@ const StringEditor: ValueEditor = (props: ValueEditorProps) => {
         value={value}
         {...chrome}
         autoSize={{ minRows: 3, maxRows: 8 }}
+        // antd hangs the counter BELOW a textarea, absolutely positioned, so
+        // it lands on top of the field's help line. The row needs the height
+        // reserved for it; a single-line `Input` puts its counter inside the
+        // box and needs none.
+        {...(maxLength !== undefined ? { style: { marginBottom: spacing[5] } } : {})}
         onChange={(event) => props.onChange(event.target.value)}
       />
     );
@@ -1188,6 +1193,51 @@ function useTermSearch(
 }
 
 /**
+ * Labels for codes the form already HOLDS — a reopened draft, a seeded value.
+ *
+ * Without it the control shows the stored CODES (`iphone-15-pro`), which is
+ * the fallback and not the answer: a person reopening their listing would be
+ * looking at slugs out of an importer. `resolve` exists for exactly this, and
+ * it is asked once per code — a code the vocabulary does not know stays itself
+ * rather than being asked for again on every render.
+ */
+function useStoredLabels(
+  client: VocabularyClient | null,
+  vocabulary: string,
+  level: string,
+  codes: readonly string[]
+): Readonly<Record<string, string>> {
+  const [labels, setLabels] = useState<Readonly<Record<string, string>>>({});
+  const asked = useRef(new Set<string>());
+  const key = codes.join("\u0000");
+  useEffect(() => {
+    asked.current = new Set<string>();
+    setLabels({});
+  }, [vocabulary, level, client]);
+  useEffect(() => {
+    if (client === null || vocabulary.length === 0 || level.length === 0) return;
+    const wanted = codes.filter((code) => !asked.current.has(code));
+    if (wanted.length === 0) return;
+    for (const code of wanted) asked.current.add(code);
+    let live = true;
+    void client
+      .resolve(vocabulary, level, wanted)
+      .then((found) => {
+        if (live) setLabels((previous) => ({ ...previous, ...found }));
+      })
+      .catch(() => {
+        // An unresolvable code keeps showing itself — the stored answer is the
+        // truth, and a blank control would be a worse lie than a slug.
+      });
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` is the codes, joined: the array identity changes every render
+  }, [client, vocabulary, level, key]);
+  return labels;
+}
+
+/**
  * `ref_select` → an antd `Select` that searches a vocabulary LEVEL instead of
  * filtering a list it was given.
  *
@@ -1226,6 +1276,7 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
   );
 
   const { terms, loading, search, open } = useTermSearch(client, vocabulary, level, parent);
+  const labels = useStoredLabels(client, vocabulary, level, codes);
 
   // Reset on a parent CHANGE, not on the first render: seeding a saved draft
   // must not wipe the answer it was seeded with. The ref holds the parent this
@@ -1252,7 +1303,7 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
   const options = [
     ...codes
       .filter((code) => !terms.some((term) => term.code === code))
-      .map((code) => ({ value: code, label: code })),
+      .map((code) => ({ value: code, label: labels[code] ?? code })),
     ...terms.map((term) => ({ value: term.code, label: term.label })),
   ];
 
@@ -1328,6 +1379,39 @@ const RefHierarchicalSelectEditor: ValueEditor = (props: ValueEditorProps) => {
   const minDepth = numberish(cfg["minDepth"]) ?? 1;
   const maxDepth = Math.min(numberish(cfg["maxDepth"]) ?? levels.length, levels.length);
   const [options, setOptions] = useState<RefCascaderOption[]>([]);
+  const value = useMemo(
+    () => (Array.isArray(props.value) ? props.value.map(str) : undefined),
+    [props.value]
+  );
+  // The stored path is CODES, and only the root column is loaded on mount — so
+  // without this a reopened draft reads "Volkswagen / golf / mk7": one label
+  // and two slugs. Each level resolves its own code, once.
+  const [pathLabels, setPathLabels] = useState<readonly string[]>([]);
+  const pathKey = (value ?? []).join("\u0000");
+  useEffect(() => {
+    const path = pathKey.length === 0 ? [] : pathKey.split("\u0000");
+    if (client === null || vocabulary.length === 0 || path.length === 0) {
+      setPathLabels([]);
+      return;
+    }
+    let live = true;
+    void Promise.all(
+      path.map(async (code, depth) => {
+        const level = levels[depth];
+        if (level === undefined) return code;
+        try {
+          return (await client.resolve(vocabulary, level, [code]))[code] ?? code;
+        } catch {
+          return code;
+        }
+      })
+    ).then((resolved) => {
+      if (live) setPathLabels(resolved);
+    });
+    return () => {
+      live = false;
+    };
+  }, [client, vocabulary, levels, pathKey]);
 
   const toOptions = useCallback(
     (terms: readonly VocabularyTerm[], depth: number): RefCascaderOption[] =>
@@ -1365,8 +1449,6 @@ const RefHierarchicalSelectEditor: ValueEditor = (props: ValueEditorProps) => {
     );
   }
 
-  const value = Array.isArray(props.value) ? props.value.map(str) : undefined;
-
   const loadData = (selected: RefCascaderOption[]): void => {
     const node = selected[selected.length - 1];
     const depth = selected.length;
@@ -1400,6 +1482,9 @@ const RefHierarchicalSelectEditor: ValueEditor = (props: ValueEditorProps) => {
       placeholder={t(ATTRIBUTES_I18N_KEYS.selectPlaceholder)}
       {...(minDepth <= 1 ? { changeOnSelect: true } : {})}
       {...(value ? { value } : {})}
+      {...(value !== undefined && pathLabels.length === value.length
+        ? { displayRender: (): string => pathLabels.join(" / ") }
+        : {})}
       onChange={(next: unknown) =>
         props.onChange(Array.isArray(next) && next.length > 0 ? next.map(str) : undefined)
       }
