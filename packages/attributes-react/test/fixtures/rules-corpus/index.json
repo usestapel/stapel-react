@@ -1,0 +1,4665 @@
+{
+  "$generated": "by scripts/gen-rules-corpus.mjs from the pinned stapel-attributes checkout — do not edit; drift-gated (pnpm gen:rules:check)",
+  "source": "stapel-attributes tests/golden/rules",
+  "cases": [
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "min_order": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "wholesale": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "bool"
+          },
+          "slug": "wholesale"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  },
+                  {
+                    "feature": "wholesale",
+                    "op": "in",
+                    "values": [
+                      "true"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "min_order"
+        }
+      ],
+      "id": "all-every-cond-matches",
+      "note": "all: every condition holds",
+      "values": {
+        "condition": [
+          "used"
+        ],
+        "wholesale": true
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "min_order": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "wholesale": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "bool"
+          },
+          "slug": "wholesale"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  },
+                  {
+                    "feature": "wholesale",
+                    "op": "in",
+                    "values": [
+                      "true"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "min_order"
+        }
+      ],
+      "id": "all-one-cond-fails",
+      "note": "all: one failing condition is enough to not match",
+      "values": {
+        "condition": [
+          "used"
+        ],
+        "wholesale": false
+      }
+    },
+    {
+      "expect": {
+        "availability": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "lead_time": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": false
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "in_stock",
+                "value": "in_stock"
+              },
+              {
+                "label": "on_order",
+                "value": "on_order"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "availability"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "show",
+              "when": {
+                "any": [
+                  {
+                    "feature": "availability",
+                    "op": "empty"
+                  },
+                  {
+                    "feature": "availability",
+                    "op": "in",
+                    "values": [
+                      "in_stock"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "lead_time"
+        }
+      ],
+      "id": "any-empty-or-in-other-value",
+      "note": "same rule, a value outside the list",
+      "values": {
+        "availability": [
+          "on_order"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "availability": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "lead_time": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "in_stock",
+                "value": "in_stock"
+              },
+              {
+                "label": "on_order",
+                "value": "on_order"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "availability"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "show",
+              "when": {
+                "any": [
+                  {
+                    "feature": "availability",
+                    "op": "empty"
+                  },
+                  {
+                    "feature": "availability",
+                    "op": "in",
+                    "values": [
+                      "in_stock"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "lead_time"
+        }
+      ],
+      "id": "any-empty-or-in",
+      "note": "the imported 'not filled or in stock' shape",
+      "values": {}
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "min_order": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "wholesale": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "bool"
+          },
+          "slug": "wholesale"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "any": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  },
+                  {
+                    "feature": "wholesale",
+                    "op": "in",
+                    "values": [
+                      "true"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "min_order"
+        }
+      ],
+      "id": "any-first-cond-matches",
+      "note": "any: the first condition is enough",
+      "values": {
+        "condition": [
+          "used"
+        ],
+        "wholesale": false
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "min_order": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "wholesale": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "bool"
+          },
+          "slug": "wholesale"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "any": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  },
+                  {
+                    "feature": "wholesale",
+                    "op": "in",
+                    "values": [
+                      "true"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "min_order"
+        }
+      ],
+      "id": "any-no-cond-matches",
+      "note": "any: nothing holds",
+      "values": {
+        "condition": [
+          "new"
+        ],
+        "wholesale": false
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "min_order": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "wholesale": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "bool"
+          },
+          "slug": "wholesale"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "any": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  },
+                  {
+                    "feature": "wholesale",
+                    "op": "in",
+                    "values": [
+                      "true"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "min_order"
+        }
+      ],
+      "id": "any-second-cond-matches",
+      "note": "any: the second condition is enough",
+      "values": {
+        "condition": [
+          "new"
+        ],
+        "wholesale": true
+      }
+    },
+    {
+      "expect": {
+        "note": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "tags": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "a",
+                "value": "a"
+              },
+              {
+                "label": "b",
+                "value": "b"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "tags"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "tags",
+                    "op": "empty"
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "note"
+        }
+      ],
+      "id": "empty-on-empty-list",
+      "note": "an empty list reads as empty",
+      "values": {
+        "tags": []
+      }
+    },
+    {
+      "expect": {
+        "brand": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "model": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "slug": "brand"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "brand",
+                    "op": "empty"
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "model"
+        }
+      ],
+      "id": "empty-on-empty-string",
+      "note": "the empty string reads as empty",
+      "values": {
+        "brand": ""
+      }
+    },
+    {
+      "expect": {
+        "min_order": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "wholesale": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "bool"
+          },
+          "slug": "wholesale"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "wholesale",
+                    "op": "empty"
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "min_order"
+        }
+      ],
+      "id": "empty-on-false-bool",
+      "note": "…so empty does not match a False bool",
+      "values": {
+        "wholesale": false
+      }
+    },
+    {
+      "expect": {
+        "brand": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "model": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "slug": "brand"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "brand",
+                    "op": "empty"
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "model"
+        }
+      ],
+      "id": "empty-on-missing-key",
+      "note": "a slug absent from the payload reads as empty",
+      "values": {}
+    },
+    {
+      "expect": {
+        "brand": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "model": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "slug": "brand"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "brand",
+                    "op": "empty"
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "model"
+        }
+      ],
+      "id": "empty-on-null",
+      "note": "an explicit null reads as empty",
+      "values": {
+        "brand": null
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "note": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": false
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "show",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "empty"
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "note"
+        }
+      ],
+      "id": "empty-values-payload",
+      "note": "an empty payload: everything reads as empty",
+      "values": {}
+    },
+    {
+      "expect": {
+        "min_order": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "wholesale": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "bool"
+          },
+          "slug": "wholesale"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "wholesale",
+                    "op": "filled"
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "min_order"
+        }
+      ],
+      "id": "filled-on-false-bool",
+      "note": "False is filled — it stringifies to 'false'",
+      "values": {
+        "wholesale": false
+      }
+    },
+    {
+      "expect": {
+        "note": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "stock": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "max": 100,
+            "min": 0,
+            "type": "int"
+          },
+          "mandatory": false,
+          "slug": "stock"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "stock",
+                    "op": "filled"
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "note"
+        }
+      ],
+      "id": "filled-on-zero",
+      "note": "0 is filled — it stringifies to '0'",
+      "values": {
+        "stock": 0
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "delivery": {
+          "forbidden_options": [
+            "post"
+          ],
+          "max": 1,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "options": [
+              {
+                "label": "pickup",
+                "value": "pickup"
+              },
+              {
+                "label": "post",
+                "value": "post"
+              }
+            ],
+            "type": "select"
+          },
+          "rules": [
+            {
+              "effect": "forbid_option",
+              "option": "post",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "effect": "limit",
+              "max": 1,
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "delivery"
+        }
+      ],
+      "id": "forbid-and-limit-together",
+      "note": "one feature can collect a forbidden option and a limit",
+      "values": {
+        "condition": [
+          "new"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "delivery": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "pickup",
+                "value": "pickup"
+              },
+              {
+                "label": "courier",
+                "value": "courier"
+              },
+              {
+                "label": "post",
+                "value": "post"
+              }
+            ],
+            "type": "select"
+          },
+          "rules": [
+            {
+              "effect": "forbid_option",
+              "option": "post",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "delivery"
+        }
+      ],
+      "id": "forbid-option-no-match",
+      "note": "a forbid_option rule that does not match forbids nothing",
+      "values": {
+        "condition": [
+          "used"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "delivery": {
+          "forbidden_options": [
+            "post"
+          ],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "pickup",
+                "value": "pickup"
+              },
+              {
+                "label": "courier",
+                "value": "courier"
+              },
+              {
+                "label": "post",
+                "value": "post"
+              }
+            ],
+            "type": "select"
+          },
+          "rules": [
+            {
+              "effect": "forbid_option",
+              "option": "post",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "delivery"
+        }
+      ],
+      "id": "forbid-option-single",
+      "note": "one matching forbid_option rule",
+      "values": {
+        "condition": [
+          "new"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "delivery": {
+          "forbidden_options": [
+            "courier",
+            "post"
+          ],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "pickup",
+                "value": "pickup"
+              },
+              {
+                "label": "courier",
+                "value": "courier"
+              },
+              {
+                "label": "post",
+                "value": "post"
+              }
+            ],
+            "type": "select"
+          },
+          "rules": [
+            {
+              "effect": "forbid_option",
+              "option": "post",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "effect": "forbid_option",
+              "option": "courier",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "filled"
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "delivery"
+        }
+      ],
+      "id": "forbid-option-two-rules",
+      "note": "two matching forbid_option rules accumulate",
+      "values": {
+        "condition": [
+          "new"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "section": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "header"
+          },
+          "mandatory": true,
+          "rules": [
+            {
+              "effect": "hide",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "section"
+        }
+      ],
+      "id": "header-always-visible",
+      "note": "a header is visible and never required, whatever the rules say",
+      "values": {
+        "condition": [
+          "new"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": false
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "show",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "effect": "hide",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "hide-beats-show",
+      "note": "hide wins when a show rule matches too",
+      "values": {
+        "condition": [
+          "new"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": false
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": true,
+          "rules": [
+            {
+              "effect": "hide",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "hide-suppresses-require",
+      "note": "a hidden feature is never required",
+      "values": {
+        "condition": [
+          "new"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": false
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "hide",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "hide-when-in-match",
+      "note": "a matching hide rule hides the feature",
+      "values": {
+        "condition": [
+          "new"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "hide",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "hide-when-in-no-match",
+      "note": "a hide rule that does not match leaves the feature visible",
+      "values": {
+        "condition": [
+          "used"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "note": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "tags": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "a",
+                "value": "a"
+              },
+              {
+                "label": "b",
+                "value": "b"
+              },
+              {
+                "label": "c",
+                "value": "c"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "tags"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "tags",
+                    "op": "in",
+                    "values": [
+                      "c"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "note"
+        }
+      ],
+      "id": "in-multi-select-any-element",
+      "note": "in matches when any selected element is listed",
+      "values": {
+        "tags": [
+          "a",
+          "c"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              },
+              {
+                "label": "broken",
+                "value": "broken"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used",
+                      "broken"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "in-multiple-values",
+      "note": "in matches any listed value",
+      "values": {
+        "condition": [
+          "broken"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "weight": {
+          "forbidden_options": [],
+          "max": 20,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "max": 100,
+            "min": 1,
+            "type": "int"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "limit",
+              "max": 50,
+              "min": 5,
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "effect": "limit",
+              "max": 20,
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "filled"
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "weight"
+        }
+      ],
+      "id": "limit-last-matching-wins",
+      "note": "limits replace, they do not intersect",
+      "values": {
+        "condition": [
+          "used"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "weight": {
+          "forbidden_options": [],
+          "max": 50,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "max": 100,
+            "min": 1,
+            "type": "int"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "limit",
+              "max": 50,
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "weight"
+        }
+      ],
+      "id": "limit-max-only",
+      "note": "a limit rule may carry only max",
+      "values": {
+        "condition": [
+          "used"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "weight": {
+          "forbidden_options": [],
+          "max": 50,
+          "min": 5,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "max": 100,
+            "min": 1,
+            "type": "int"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "limit",
+              "max": 50,
+              "min": 5,
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "weight"
+        }
+      ],
+      "id": "limit-min-and-max",
+      "note": "a limit rule may carry both bounds",
+      "values": {
+        "condition": [
+          "used"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "weight": {
+          "forbidden_options": [],
+          "max": null,
+          "min": 5,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "max": 100,
+            "min": 1,
+            "type": "int"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "limit",
+              "min": 5,
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "weight"
+        }
+      ],
+      "id": "limit-min-only",
+      "note": "a limit rule may carry only min",
+      "values": {
+        "condition": [
+          "used"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "weight": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "max": 100,
+            "min": 1,
+            "type": "int"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "limit",
+              "min": 5,
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "weight"
+        }
+      ],
+      "id": "limit-no-match",
+      "note": "an unmatched limit rule leaves the bounds open",
+      "values": {
+        "condition": [
+          "new"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": true,
+          "slug": "screen_state"
+        }
+      ],
+      "id": "no-rules-baseline",
+      "note": "no rules at all: mandatory carries through unchanged",
+      "values": {
+        "condition": [
+          "new"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "note": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "tags": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "a",
+                "value": "a"
+              },
+              {
+                "label": "b",
+                "value": "b"
+              },
+              {
+                "label": "c",
+                "value": "c"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "tags"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "tags",
+                    "op": "not_in",
+                    "values": [
+                      "c"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "note"
+        }
+      ],
+      "id": "not-in-multi-select",
+      "note": "not_in is the negation of in over the whole reading",
+      "values": {
+        "tags": [
+          "a",
+          "b"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": true,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "require-mandatory-stays-required",
+      "note": "a statically mandatory feature stays required with no matching rule",
+      "values": {
+        "condition": [
+          "new"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "brand": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "model": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "slug": "brand"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "brand",
+                    "op": "empty"
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "model"
+        }
+      ],
+      "id": "require-when-empty",
+      "note": "empty fires when nothing was submitted",
+      "values": {}
+    },
+    {
+      "expect": {
+        "brand": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "model": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "slug": "brand"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "brand",
+                    "op": "filled"
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "model"
+        }
+      ],
+      "id": "require-when-filled",
+      "note": "filled fires on any non-empty reading",
+      "values": {
+        "brand": "Apple"
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "require-when-in-no-match",
+      "note": "require silent when the controlling value differs",
+      "values": {
+        "condition": [
+          "new"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "require-when-in",
+      "note": "require fires when the controlling select holds the value",
+      "values": {
+        "condition": [
+          "used"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "not_in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "require-when-not-in-empty-value",
+      "note": "not_in also fires when the controller is empty",
+      "values": {}
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "not_in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "require-when-not-in",
+      "note": "not_in fires on any other value",
+      "values": {
+        "condition": [
+          "used"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "show",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "effect": "show",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "show-two-rules-one-matches",
+      "note": "any matching show rule is enough",
+      "values": {
+        "condition": [
+          "new"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "show",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "show-when-in-match",
+      "note": "a show rule that matches keeps the feature visible",
+      "values": {
+        "condition": [
+          "used"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": false
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "show",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "show-when-in-no-match",
+      "note": "a show rule that does not match hides the feature",
+      "values": {
+        "condition": [
+          "new"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "brand": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": false
+        },
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "model": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "hide",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "brand"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "brand",
+                    "op": "filled"
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "model"
+        }
+      ],
+      "id": "single-pass-controller-hidden",
+      "note": "a hidden controller is still read by its dependants (single pass)",
+      "values": {
+        "brand": "Apple",
+        "condition": [
+          "new"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "min_order": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "wholesale": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "bool"
+          },
+          "slug": "wholesale"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "wholesale",
+                    "op": "in",
+                    "values": [
+                      "false"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "min_order"
+        }
+      ],
+      "id": "stringify-bool-false",
+      "note": "False stringifies to 'false'",
+      "values": {
+        "wholesale": false
+      }
+    },
+    {
+      "expect": {
+        "min_order": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "wholesale": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "bool"
+          },
+          "slug": "wholesale"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "wholesale",
+                    "op": "in",
+                    "values": [
+                      "true"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "min_order"
+        }
+      ],
+      "id": "stringify-bool-true",
+      "note": "True stringifies to 'true'",
+      "values": {
+        "wholesale": true
+      }
+    },
+    {
+      "expect": {
+        "blob": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "note": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "string"
+          },
+          "slug": "blob"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "blob",
+                    "op": "empty"
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "note"
+        }
+      ],
+      "id": "stringify-dict-without-value",
+      "note": "a dict with no 'value' key reads as empty",
+      "values": {
+        "blob": {
+          "other": 1
+        }
+      }
+    },
+    {
+      "expect": {
+        "note": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "tags": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "a",
+                "value": "a"
+              },
+              {
+                "label": "b",
+                "value": "b"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "tags"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "tags",
+                    "op": "in",
+                    "values": [
+                      "b"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "note"
+        }
+      ],
+      "id": "stringify-dto-envelope-list",
+      "note": "an envelope around a list is unwrapped too",
+      "values": {
+        "tags": {
+          "type": "select",
+          "value": [
+            "a",
+            "b"
+          ]
+        }
+      }
+    },
+    {
+      "expect": {
+        "min_order": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "wholesale": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "bool"
+          },
+          "slug": "wholesale"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "wholesale",
+                    "op": "in",
+                    "values": [
+                      "true"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "min_order"
+        }
+      ],
+      "id": "stringify-dto-envelope",
+      "note": "a {type, value} envelope is unwrapped",
+      "values": {
+        "wholesale": {
+          "type": "bool",
+          "value": true
+        }
+      }
+    },
+    {
+      "expect": {
+        "note": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "ratio": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "float"
+          },
+          "slug": "ratio"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "ratio",
+                    "op": "in",
+                    "values": [
+                      "2.5"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "note"
+        }
+      ],
+      "id": "stringify-float-fractional",
+      "note": "a fractional float keeps its shortest decimal form",
+      "values": {
+        "ratio": 2.5
+      }
+    },
+    {
+      "expect": {
+        "note": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "ratio": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "float"
+          },
+          "slug": "ratio"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "ratio",
+                    "op": "in",
+                    "values": [
+                      "2"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "note"
+        }
+      ],
+      "id": "stringify-float-integral",
+      "note": "an integral float stringifies as an integer",
+      "values": {
+        "ratio": 2
+      }
+    },
+    {
+      "expect": {
+        "note": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "ratio": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "float"
+          },
+          "slug": "ratio"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "ratio",
+                    "op": "in",
+                    "values": [
+                      "100000000000000000000"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "note"
+        }
+      ],
+      "id": "stringify-float-large",
+      "note": "a large integral float still stringifies as an integer",
+      "values": {
+        "ratio": 100000000000000000000
+      }
+    },
+    {
+      "expect": {
+        "note": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "ratio": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "float"
+          },
+          "slug": "ratio"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "ratio",
+                    "op": "in",
+                    "values": [
+                      "0.0000001"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "note"
+        }
+      ],
+      "id": "stringify-float-small",
+      "note": "a tiny float expands instead of using an exponent",
+      "values": {
+        "ratio": 1e-7
+      }
+    },
+    {
+      "expect": {
+        "note": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "year": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "max": 2100,
+            "min": 1900,
+            "type": "int"
+          },
+          "mandatory": false,
+          "slug": "year"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "year",
+                    "op": "in",
+                    "values": [
+                      "2024"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "note"
+        }
+      ],
+      "id": "stringify-int",
+      "note": "an integer stringifies without decimals",
+      "values": {
+        "year": 2024
+      }
+    },
+    {
+      "expect": {
+        "note": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        },
+        "tags": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "a",
+                "value": "a"
+              },
+              {
+                "label": "b",
+                "value": "b"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "tags"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "tags",
+                    "op": "in",
+                    "values": [
+                      "b"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "note"
+        }
+      ],
+      "id": "stringify-list-concatenates",
+      "note": "a list stringifies element by element",
+      "values": {
+        "tags": [
+          "a",
+          "b"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "mixed": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "note": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "string"
+          },
+          "slug": "mixed"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "mixed",
+                    "op": "in",
+                    "values": [
+                      "true"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "note"
+        }
+      ],
+      "id": "stringify-list-mixed",
+      "note": "a mixed list stringifies each element by its own rule",
+      "values": {
+        "mixed": [
+          1,
+          true,
+          "x"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "brand": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "model": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "slug": "brand"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "brand",
+                    "op": "in",
+                    "values": [
+                      "Apple"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "model"
+        }
+      ],
+      "id": "stringify-string-not-trimmed",
+      "note": "a string is never trimmed",
+      "values": {
+        "brand": " Apple "
+      }
+    },
+    {
+      "expect": {
+        "note": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "absent",
+                    "op": "empty"
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "note"
+        }
+      ],
+      "id": "unknown-controlling-slug-empty",
+      "note": "…and `empty` therefore always matches for it",
+      "values": {
+        "absent": "x"
+      }
+    },
+    {
+      "expect": {
+        "note": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "absent",
+                    "op": "in",
+                    "values": [
+                      "x"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "note"
+        }
+      ],
+      "id": "unknown-controlling-slug-in",
+      "note": "a controlling slug outside the set reads as empty, so `in` cannot match",
+      "values": {
+        "absent": "x"
+      }
+    }
+  ],
+  "pipeline": [
+    {
+      "expect": {
+        "dao": [
+          "condition",
+          "delivery"
+        ],
+        "results": {
+          "condition": {
+            "error": null,
+            "status": "ok"
+          },
+          "delivery": {
+            "error": null,
+            "status": "ok"
+          }
+        },
+        "valid": true
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "options": [
+              {
+                "label": "pickup",
+                "value": "pickup"
+              },
+              {
+                "label": "post",
+                "value": "post"
+              }
+            ],
+            "type": "select"
+          },
+          "rules": [
+            {
+              "effect": "forbid_option",
+              "option": "post",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "delivery"
+        }
+      ],
+      "id": "forbidden-option-other-passes",
+      "note": "the surviving option still validates",
+      "values": {
+        "condition": [
+          "new"
+        ],
+        "delivery": [
+          "pickup"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "dao": [
+          "condition",
+          "delivery"
+        ],
+        "results": {
+          "condition": {
+            "error": null,
+            "status": "ok"
+          },
+          "delivery": {
+            "error": "not_in_options",
+            "status": "validation_failed"
+          }
+        },
+        "valid": false
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "options": [
+              {
+                "label": "pickup",
+                "value": "pickup"
+              },
+              {
+                "label": "post",
+                "value": "post"
+              }
+            ],
+            "type": "select"
+          },
+          "rules": [
+            {
+              "effect": "forbid_option",
+              "option": "post",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "delivery"
+        }
+      ],
+      "id": "forbidden-option-rejected",
+      "note": "a narrowed select rejects the forbidden option as not_in_options",
+      "values": {
+        "condition": [
+          "new"
+        ],
+        "delivery": [
+          "post"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "dao": [
+          "condition"
+        ],
+        "results": {
+          "condition": {
+            "error": null,
+            "status": "ok"
+          },
+          "screen_state": {
+            "error": null,
+            "status": "ok"
+          }
+        },
+        "valid": true
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "hide",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "hidden-feature-value-dropped",
+      "note": "a value submitted for a hidden feature is dropped silently and still reports OK",
+      "values": {
+        "condition": [
+          "new"
+        ],
+        "screen_state": "cracked"
+      }
+    },
+    {
+      "expect": {
+        "dao": [
+          "condition"
+        ],
+        "results": {
+          "condition": {
+            "error": null,
+            "status": "ok"
+          }
+        },
+        "valid": true
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": true,
+          "rules": [
+            {
+              "effect": "hide",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "hidden-mandatory-not-required",
+      "note": "a hidden mandatory feature neither blocks the submission nor reaches the DAO",
+      "values": {
+        "condition": [
+          "new"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "dao": [
+          "condition",
+          "weight"
+        ],
+        "results": {
+          "condition": {
+            "error": null,
+            "status": "ok"
+          },
+          "weight": {
+            "error": "above_maximum",
+            "status": "validation_failed"
+          }
+        },
+        "valid": false
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "max": 100,
+            "min": 1,
+            "type": "int"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "limit",
+              "max": 10,
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "weight"
+        }
+      ],
+      "id": "limit-max-narrows-int",
+      "note": "a limit rule tightens the int max, so the value is above_maximum",
+      "values": {
+        "condition": [
+          "new"
+        ],
+        "weight": 42
+      }
+    },
+    {
+      "expect": {
+        "dao": [
+          "condition",
+          "weight"
+        ],
+        "results": {
+          "condition": {
+            "error": null,
+            "status": "ok"
+          },
+          "weight": {
+            "error": "below_minimum",
+            "status": "validation_failed"
+          }
+        },
+        "valid": false
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "max": 100,
+            "min": 1,
+            "type": "int"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "limit",
+              "min": 40,
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "weight"
+        }
+      ],
+      "id": "limit-min-narrows-int",
+      "note": "a limit rule tightens the int min, so the value is below_minimum",
+      "values": {
+        "condition": [
+          "new"
+        ],
+        "weight": 5
+      }
+    },
+    {
+      "expect": {
+        "dao": [
+          "condition",
+          "weight"
+        ],
+        "results": {
+          "condition": {
+            "error": null,
+            "status": "ok"
+          },
+          "weight": {
+            "error": null,
+            "status": "ok"
+          }
+        },
+        "valid": true
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "max": 100,
+            "min": 1,
+            "type": "int"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "limit",
+              "max": 10,
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "weight"
+        }
+      ],
+      "id": "limit-not-matching-keeps-config",
+      "note": "an unmatched limit rule leaves the declared bounds alone",
+      "values": {
+        "condition": [
+          "new"
+        ],
+        "weight": 42
+      }
+    },
+    {
+      "expect": {
+        "dao": [
+          "condition",
+          "weight"
+        ],
+        "results": {
+          "condition": {
+            "error": null,
+            "status": "ok"
+          },
+          "weight": {
+            "error": null,
+            "status": "ok"
+          }
+        },
+        "valid": true
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "max": 100,
+            "min": 1,
+            "type": "int"
+          },
+          "mandatory": true,
+          "slug": "weight"
+        }
+      ],
+      "id": "no-rules-unchanged",
+      "note": "no rules: the pipeline behaves exactly as before rules existed",
+      "values": {
+        "condition": [
+          "new"
+        ],
+        "weight": 42
+      }
+    },
+    {
+      "expect": {
+        "dao": [
+          "condition"
+        ],
+        "results": {
+          "condition": {
+            "error": null,
+            "status": "ok"
+          },
+          "screen_state": {
+            "error": "mandatory_missing",
+            "status": "validation_failed"
+          }
+        },
+        "valid": false
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "visible-mandatory-missing",
+      "note": "a shown feature made required by a rule reports mandatory_missing",
+      "values": {
+        "condition": [
+          "used"
+        ]
+      }
+    },
+    {
+      "expect": {
+        "dao": [
+          "condition",
+          "screen_state"
+        ],
+        "results": {
+          "condition": {
+            "error": null,
+            "status": "ok"
+          },
+          "screen_state": {
+            "error": null,
+            "status": "ok"
+          }
+        },
+        "valid": true
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "used"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "visible-required-satisfied",
+      "note": "the same rule passes once the value is there",
+      "values": {
+        "condition": [
+          "used"
+        ],
+        "screen_state": "cracked"
+      }
+    }
+  ],
+  "avito": []
+}
