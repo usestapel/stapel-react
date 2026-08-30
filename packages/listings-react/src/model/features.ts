@@ -56,6 +56,11 @@ const ENVELOPE = new Set(["slug", "value", "name", "order", "title", "badge"]);
  * the path with " / " and never consults an option table at all. */
 const OPTION_VALUED = new Set(["select"]);
 
+/** The canon's `FeatureDef.translate` vocabulary — three values, closed. */
+function isTranslateMode(value: unknown): value is "all" | "title" | "none" {
+  return value === "all" || value === "title" || value === "none";
+}
+
 /**
  * The identity option table for a stored `select` — see the module header.
  *
@@ -100,7 +105,11 @@ export function featureFromDao(
     slug: dao.slug,
     config,
     name: dao.name ?? null,
-    ...(dao.translate !== undefined ? { translate: dao.translate } : {}),
+    // `translate` is a CLOSED vocabulary in the canon (`all` / `title` /
+    // `none`), and the stored row types it as a loose string. A value outside
+    // the three is dropped rather than smuggled through: `FeatureDef`'s own
+    // default is `all`, which is what the engine falls back to anyway.
+    ...(isTranslateMode(dao.translate) ? { translate: dao.translate } : {}),
   };
 
   const value: FeatureValueDto | undefined =

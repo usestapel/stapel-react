@@ -10,7 +10,12 @@ import {
 } from "@stapel/core";
 import type { ActionAvailability, FlowError, LoadState } from "@stapel/core";
 import type { FeatureDef, FeaturesDto } from "@stapel/attributes-react";
-import { toFeaturesDto, unsupportedTypes } from "@stapel/attributes-react";
+import {
+  initialFeatureValues,
+  toFeaturesDto,
+  unsupportedTypes,
+  useVocabularyClient,
+} from "@stapel/attributes-react";
 import type {
   ListingDetail as ListingDetailData,
   ListingDraft,
@@ -267,11 +272,15 @@ export function useListingComposer(
     );
   }, [existing.data, runtime.currency]);
 
-  // Pruning runs on the SCHEMA arriving, one render after the category
-  // changed: `setCategory` cannot prune against features it has not been
-  // handed. Gated on the schema being settled, because pruning against a
+  // Pruning and SEEDING both run on the SCHEMA arriving, one render after the
+  // category changed: `setCategory` cannot prune against features it has not
+  // been handed. Gated on the schema being settled, because acting on a
   // half-loaded (or previous) category's features would delete answers that
   // are perfectly valid for the one now chosen.
+  //
+  // The effect fires once per feature SET (its deps are the set and the
+  // settled flag), so a default seeded here is not re-seeded over an answer
+  // the person then cleared.
   const schemaSettled =
     options.featuresLoading !== true && options.featuresError === undefined;
   const { features } = options;
@@ -279,12 +288,20 @@ export function useListingComposer(
     if (!schemaSettled || features.length === 0) return;
     setValues((current) => {
       const gone = droppedFeatureSlugs(current.features, features);
-      if (gone.length === 0) return current;
-      setDropped(gone);
-      return {
-        ...current,
-        features: retainKnownFeatureValues(current.features, features),
-      };
+      const kept =
+        gone.length === 0 ? current.features : retainKnownFeatureValues(current.features, features);
+      // `FeatureDef.default` (and the type's own default) is what the CATALOGUE
+      // says a blank form opens with — a `select` option flagged `default`, a
+      // preset date. It is applied ONLY where the draft has no answer: a
+      // reopened listing, or anything typed before the schema landed, outranks
+      // a default, because a default is a suggestion and an answer is not.
+      const seeded: Record<string, unknown> = {};
+      for (const [slug, value] of Object.entries(initialFeatureValues(features))) {
+        if (kept[slug] === undefined) seeded[slug] = value;
+      }
+      if (gone.length === 0 && Object.keys(seeded).length === 0) return current;
+      if (gone.length > 0) setDropped(gone);
+      return { ...current, features: { ...kept, ...seeded } };
     });
   }, [schemaSettled, features]);
 
@@ -322,9 +339,16 @@ export function useListingComposer(
     [effectiveValues, options.features, featuresDto, runtime.limits]
   );
 
+  // A `ref_select` whose vocabulary source the host never wired up is exactly
+  // as undrawable as a type with no editor: the control renders and cannot be
+  // answered. It therefore reaches the publish gate through the SAME channel
+  // (`unsupportedTypes`) rather than a second one — one fact, one sentence.
+  // Read from context, so a host wires `VocabularyClientProvider` once around
+  // the composer and nothing else changes.
+  const vocabularyClient = useVocabularyClient();
   const unsupported = useMemo(
-    () => unsupportedTypes(options.features, options.editorTypes ?? []),
-    [options.features, options.editorTypes]
+    () => unsupportedTypes(options.features, options.editorTypes ?? [], { vocabularyClient }),
+    [options.features, options.editorTypes, vocabularyClient]
   );
 
   const isLiveEdit = existing.data?.status === "published";
