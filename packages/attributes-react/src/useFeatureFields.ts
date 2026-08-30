@@ -51,18 +51,32 @@ import { toFeaturesDto } from "./dto.js";
 import { mirrorValidate } from "./validate.js";
 import { featureErrorsBySlug } from "./errors.js";
 import { unsupportedTypeGate, unsupportedTypes } from "./registry.js";
+import { ruleErrors } from "./rules.js";
+import { useVocabularyClient } from "./vocabulary.js";
 import { ATTRIBUTES_I18N_KEYS } from "./i18n/keys.js";
 
 /**
- * The answer a feature's own config says a blank form should open with.
+ * The answer a blank form should open with, for one feature.
  *
- * `date.default` is a Unix timestamp the admin picked; a `select` option
- * carrying `default: true` is pre-selected (the engine's
- * `SelectOption.default`, validated against `maxSelected` at config time). No
- * other builtin declares a default, and a type this build does not know gets
- * none — inventing one would submit a value nobody chose.
+ * Two sources, in the engine's own order (`get_default_value`):
+ *
+ *  1. **`FeatureDef.default`** — the field the catalogue sets per feature
+ *     since stapel-attributes 0.5.0, holding a value in DTO `value` shape (a
+ *     list of codes for a `select`). It outranks the type's own default
+ *     because it is the more specific statement: the admin set it on THIS
+ *     row.
+ *  2. the TYPE's default: `date.default` is a Unix timestamp the admin picked;
+ *     a `select` option carrying `default: true` is pre-selected (the engine's
+ *     `SelectOption.default`, validated against `maxSelected` at config time).
+ *
+ * No other builtin declares a default, and a type this build does not know
+ * gets none — inventing one would submit a value nobody chose.
  */
 export function defaultFeatureValue(feature: FeatureDef): unknown {
+  const declared = feature.default;
+  if (declared !== undefined && declared !== null && declared !== "") {
+    if (!Array.isArray(declared) || declared.length > 0) return declared;
+  }
   const config = featureConfig(feature);
   switch (featureType(feature)) {
     case "date": {
@@ -231,9 +245,19 @@ export function useFeatureFields(options: UseFeatureFieldsOptions): FeatureField
   // Memoised so the default `[]` is not a new array on every render, which
   // would re-run both gates below forever.
   const drawable = useMemo(() => editorTypes ?? NO_EDITOR_TYPES, [editorTypes]);
+  // The renderability facts this hook can SEE: a vocabulary source in scope
+  // (a `ref_select` with no client is a control that draws and cannot be
+  // answered) and the rule sets that do not parse. Both block the submit
+  // through the same channel a missing editor does — one gate, one sentence.
+  const vocabularyClient = useVocabularyClient();
+  const invalidRuleSlugs = useMemo(() => Object.keys(ruleErrors(features)), [features]);
+  const renderability = useMemo(
+    () => ({ vocabularyClient, invalidRuleSlugs }),
+    [vocabularyClient, invalidRuleSlugs]
+  );
   const typeGate = useMemo(
-    () => unsupportedTypeGate(features, drawable),
-    [features, drawable]
+    () => unsupportedTypeGate(features, drawable, renderability),
+    [features, drawable, renderability]
   );
 
   const submit = useMemo((): ActionAvailability => {
@@ -248,8 +272,8 @@ export function useFeatureFields(options: UseFeatureFieldsOptions): FeatureField
   }, [typeGate, result]);
 
   const unsupported = useMemo(
-    () => unsupportedTypes(features, drawable),
-    [features, drawable]
+    () => unsupportedTypes(features, drawable, renderability),
+    [features, drawable, renderability]
   );
 
   return {
