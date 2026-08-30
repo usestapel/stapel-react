@@ -70,6 +70,16 @@ jobs:
         # would find it — after the release. See scripts/check-peer-floors.mjs.
         run: corepack pnpm check:peer-floors
 
+      - name: Contract pin + error-bundle gates
+        # `pnpm ci` (package.json) runs check:gates and this workflow did not:
+        # the steps below are a hand-copy of that script that drifted, so the
+        # pin-freshness half — the one that fails a pin two minors behind its
+        # library — has never run on a pull request, only inside `pnpm release`
+        # after merge. The freshness check reaches the network (git ls-remote
+        # --tags on each sibling's origin, ~8s for 26) because a --depth 1
+        # sibling fetch brings down no tags to read locally.
+        run: corepack pnpm check:gates
+
       - name: Codegen drift gates (api / flows / errors / manifest)
         # Regenerates the committed projections from the pinned backend sources
         # and fails if any diverge — types, the flow registry, the backend-error
