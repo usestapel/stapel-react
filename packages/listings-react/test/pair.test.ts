@@ -145,13 +145,15 @@ describe("the runtime carries the deployment's knowledge", () => {
 
 describe("errors", () => {
   it("carries the whole registry with a remediation each", () => {
-    // 65 as of stapel-listings 0.9.0, which added
-    // error.403.listing_anonymous_not_allowed with ALLOW_ANONYMOUS_WRITES.
+    // 66 as of stapel-listings 0.10.0: the embedded stapel_attributes
+    // registry gained error.400.feature_invalid_rules with the rule grammar.
+    // (65 came from 0.9.0's error.403.listing_anonymous_not_allowed.)
     // The number is asserted rather than derived on purpose: a code that
     // vanishes from the registry is a contract change somebody should have to
     // notice, and a code that arrives without a ru/es sentence is caught by
     // the i18n suite next door.
-    expect(LISTINGS_ERROR_CODES.length).toBe(65);
+    expect(LISTINGS_ERROR_CODES.length).toBe(66);
+    expect(LISTINGS_ERROR_CODES).toContain("error.400.feature_invalid_rules");
     for (const code of LISTINGS_ERROR_CODES) {
       expect(explainListingsError(code)).toBeTruthy();
     }

@@ -116,8 +116,15 @@ export function featureLabel(feature: CategoryFeature): CategoryLabel {
 export function featureCommentLabel(
   feature: CategoryFeature
 ): CategoryLabel | null {
-  const comment = feature.comment;
-  if (comment === null || comment === undefined || comment === "") return null;
+  // A RUNTIME check, not a nullish guard, since attributes-react 0.4.0: the
+  // §68 canon (`docs/feature-def.schema.json`) does not name `comment` —
+  // decision D14 gave that role to `description` and attributes-react stopped
+  // rendering it — while `FeatureCompact` on the wire still sends it and
+  // stapel-categories' own translation.py still reads it. So it reaches this
+  // pair through the canon's open index signature as `unknown`, and the only
+  // honest way to put it in a `string` field is to check that it IS one.
+  const comment: unknown = feature.comment;
+  if (typeof comment !== "string" || comment === "") return null;
   return {
     kind: feature.translate === "none" ? "literal" : "key",
     value: comment,

@@ -103,7 +103,10 @@ describe("the API surface is the PUBLIC half of the contract", () => {
 
 describe("errors", () => {
   it("carries the whole registry with a remediation each", () => {
-    expect(CATEGORIES_ERROR_CODES.length).toBe(62);
+    // 63 since stapel-categories 0.7.0: the embedded stapel_attributes
+    // registry gained error.400.feature_invalid_rules with the rule grammar.
+    expect(CATEGORIES_ERROR_CODES.length).toBe(63);
+    expect(CATEGORIES_ERROR_CODES).toContain("error.400.feature_invalid_rules");
     for (const code of CATEGORIES_ERROR_CODES) {
       expect(explainCategoriesError(code)).toBeTruthy();
     }

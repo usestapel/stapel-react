@@ -19,7 +19,8 @@
 import { describe, expect, it } from "vitest";
 import type { CategoryFeatureConfig, CategoryFeatureType } from "../src/index.js";
 
-/** The ten registered value types (stapel-categories CHANGELOG 0.6.1). */
+/** The twelve registered value types (stapel-attributes 0.5.0 added the two
+ * vocabulary-backed ones; stapel-categories 0.7.0 carries them). */
 const FEATURE_TYPE_SLUGS = [
   "int",
   "float",
@@ -31,6 +32,8 @@ const FEATURE_TYPE_SLUGS = [
   "header",
   "hierarchical_select",
   "convertible_unit",
+  "ref_select",
+  "ref_hierarchical_select",
 ] as const;
 
 /** Every slug above is a discriminant of the generated union… */
@@ -40,12 +43,12 @@ type Extra = Exclude<CategoryFeatureType, (typeof FEATURE_TYPE_SLUGS)[number]>;
 const _noExtraMembers: Extra extends never ? true : never = true;
 
 describe("FeatureConfig discriminator", () => {
-  it("is slug-keyed, ten members, in both directions", () => {
+  it("is slug-keyed, twelve members, in both directions", () => {
     // The compile-time assertions above are the test; these keep the runtime
     // half honest about the count and about the absence of the old spelling.
-    expect(new Set(FEATURE_TYPE_SLUGS).size).toBe(10);
+    expect(new Set(FEATURE_TYPE_SLUGS).size).toBe(12);
     expect(FEATURE_TYPE_SLUGS).not.toContain("BoolConfig" as never);
-    expect(_slugsAreDiscriminants.length).toBe(10);
+    expect(_slugsAreDiscriminants.length).toBe(12);
     expect(_noExtraMembers).toBe(true);
   });
 

@@ -79,12 +79,15 @@ describe.each(["en", "ru", "es"] as const)("locale %s", (locale) => {
   });
 });
 
-describe("ownership of the twenty-two un-catalogued keys", () => {
+describe("ownership of the twenty-three un-catalogued keys", () => {
   it("the registry really does carry all ten module-owned codes", () => {
     for (const code of LISTINGS_OWNED) {
       expect(LISTINGS_ERROR_CODES, code).toContain(code);
     }
-    expect(ATTRIBUTES_OWNED).toHaveLength(12);
+    // 13 since stapel-listings 0.10.0: the embedded stapel_attributes
+    // registry gained error.400.feature_invalid_rules with the rule grammar.
+    expect(ATTRIBUTES_OWNED).toHaveLength(13);
+    expect(ATTRIBUTES_OWNED).toContain("error.400.feature_invalid_rules");
   });
 
   it("the pair authors its own ten in ru and es", () => {
@@ -94,7 +97,7 @@ describe("ownership of the twenty-two un-catalogued keys", () => {
     }
   });
 
-  it("the pair authors NONE of the twelve attributes-owned keys", () => {
+  it("the pair authors NONE of the thirteen attributes-owned keys", () => {
     // Spec §13.2 note 3: a pair may not own another module's namespace, and
     // two packages must not give one refusal two sentences.
     for (const bundle of [listingsI18nBundleRu, listingsI18nBundleEs]) {

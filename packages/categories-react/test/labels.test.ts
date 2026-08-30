@@ -65,7 +65,7 @@ describe("a feature's name", () => {
   });
 
   it("falls back to the slug exactly as the server does", () => {
-    expect(featureLabel({ slug: "unnamed" }).value).toBe("unnamed");
+    expect(featureLabel({ slug: "unnamed", config: {} }).value).toBe("unnamed");
   });
 });
 

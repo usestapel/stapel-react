@@ -163,6 +163,6 @@ describe("config arrives VERBATIM — defaults are attributes-react's job", () =
   });
 
   it("a name still falls back to the slug the way the server does", () => {
-    expect(featureName({ slug: "bare" })).toBe("bare");
+    expect(featureName({ slug: "bare", config: {} })).toBe("bare");
   });
 });

@@ -1,5 +1,51 @@
 # @stapel/listings-react
 
+## 0.9.0
+
+### Minor Changes
+
+- 9708eb3: The composer reads the rules, the catalogue's defaults, and the vocabulary
+  source.
+
+  - **A category's defaults reach a blank draft.** `initialFeatureValues` is
+    applied when the schema lands, only for slugs the draft has no answer for —
+    a reopened listing outranks a default, because a default is a suggestion and
+    an answer is not. It runs once per feature SET, so a default is not re-seeded
+    over a field the person then cleared.
+  - **The publish gate's required check is the RULE STATE.** A mandatory feature
+    the rules hid no longer blocks a publish for an answer nobody can give, and a
+    feature a `require` rule turned on blocks one though `mandatory` is false.
+  - **A missing vocabulary source blocks through the "unsupported" channel.** The
+    composer reads `useVocabularyClient()` and hands it to `unsupportedTypes`, so
+    a `ref_select` with nothing to resolve it raises the same
+    `listings.compose.blocked.unsupported_type` a type with no editor raises.
+    One dead control, one reason, no second channel — wire
+    `<VocabularyClientProvider>` around the composer and it goes away.
+
+  `featureFromDao` narrows `translate` to the canon's closed vocabulary
+  (`all` / `title` / `none`) instead of passing any string through.
+
+  Requires @stapel/attributes-react >= 0.4.
+
+### Patch Changes
+
+- d1125bc: Regenerated against the attributes-v2 contract pins: stapel-categories 0.7.0,
+  stapel-listings 0.10.0, stapel-search 0.3.1.
+
+  What moves in the wire types: `FeatureCompact` and `ResolvedFeature` gain
+  `rules`, `description`, `example`, `default`, `hints` and `group` — the form
+  metadata an imported catalogue actually carries, which is what
+  `<FeatureFields>` draws sections, help lines, placeholders and hints from
+  instead of a host's hand-written table; `Category` gains `external_id`; the two
+  vocabulary-backed value types (`ref_select`, `ref_hierarchical_select`) appear
+  in the type enums; and the error registry gains
+  `error.400.feature_invalid_rules`.
+
+  search-react's regen is contract metadata only — the facet mapping for the two
+  ref types (`term` / `path`, and no `closed_options` for any config carrying an
+  `optionsRef`) is decided server-side in stapel-search 0.3.1 and reaches this
+  pair as facet rows, not as a new surface.
+
 ## 0.8.1
 
 ### Patch Changes
