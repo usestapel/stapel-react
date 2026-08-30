@@ -6,7 +6,7 @@
  * react-router `<Outlet/>` the consumer's own nested routes fill in.
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { useLayoutEffect } from "react";
 import type { ReactElement } from "react";
@@ -20,6 +20,25 @@ afterEach(() => cleanup());
 function setViewportWidth(width: number): void {
   Object.defineProperty(window, "innerWidth", { value: width, writable: true });
   window.dispatchEvent(new Event("resize"));
+}
+
+/** Make the OS say "dark" for the length of a test. Returns the undo. */
+function matchDarkOs(): () => void {
+  const original = window.matchMedia;
+  window.matchMedia = ((query: string) =>
+    ({
+      matches: query.includes("dark"),
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }) as unknown as MediaQueryList) as typeof window.matchMedia;
+  return () => {
+    window.matchMedia = original;
+  };
 }
 
 const NAV: readonly ResolvedNavEntry[] = [
@@ -395,6 +414,15 @@ describe("<AppShell/> — the admin section is gated on staff, not hidden by it"
  */
 describe("<AppShell/> — self-theming", () => {
   it("renders on the side the document is stamped with", async () => {
+    // The OS is asked to agree with the stamp, because since 0.10.0 the shell
+    // also RENDERS the theme control (`themeControl`, on by default), and that
+    // control applies the stored preference — `system` when nothing was ever
+    // chosen, which resolves through `prefers-color-scheme`. A document
+    // stamped `dark` while the OS says light is a contradiction the applier is
+    // supposed to resolve toward the OS; it is not the state this test is
+    // about. Everywhere the pair actually runs, the stamp CAME from that same
+    // resolution (a pre-paint boot script), so the two agree by construction.
+    const restoreMatchMedia = matchDarkOs();
     document.documentElement.setAttribute("data-theme", "dark");
     setViewportWidth(1440);
     render(wrap("/settings"));
@@ -406,6 +434,7 @@ describe("<AppShell/> — self-theming", () => {
       document.querySelector("[data-stapel-skin-mode]")?.getAttribute("data-stapel-skin-mode")
     ).toBe("dark");
     document.documentElement.removeAttribute("data-theme");
+    restoreMatchMedia();
   });
 
   it("paints the page surface, not a bare container", async () => {
@@ -444,5 +473,91 @@ describe("<AppShell/> — self-theming", () => {
       document.querySelector("[data-stapel-skin-mode]")?.getAttribute("data-stapel-skin-mode")
     ).toBe("light");
     document.documentElement.removeAttribute("data-theme");
+  });
+});
+
+/**
+ * The theme switch is part of the DEFAULT chrome (§83): the mechanism has
+ * shipped for two waves and every token file compiles a dark block, and no
+ * deployment could reach it because nothing rendered a control. These assert
+ * the place, on both surfaces, and the opt-out.
+ */
+describe("<AppShell/> — the theme control is chrome, not a host chore", () => {
+  afterEach(() => {
+    document.documentElement.removeAttribute("data-theme");
+  });
+
+  it("renders it at the foot of the Sider on a desktop", async () => {
+    setViewportWidth(1440);
+    render(wrap("/settings"));
+
+    await waitFor(() => expect(screen.getByTestId("app-shell-sider")).toBeDefined());
+    const foot = within(screen.getByTestId("app-shell-sider")).getByTestId(
+      "app-shell-theme"
+    );
+    expect(within(foot).getByTestId("shell-theme-control")).toBeDefined();
+    // Named from the engine, not from the control's English floor.
+    expect(
+      within(foot).getByRole("radiogroup", { name: "Appearance" })
+    ).toBeDefined();
+  });
+
+  it("renders it in the foot of the nav sheet on a phone", async () => {
+    setViewportWidth(375);
+    render(wrap("/settings"));
+    await waitFor(() =>
+      expect(screen.getByTestId("app-shell-menu-trigger")).toBeDefined()
+    );
+
+    fireEvent.click(screen.getByTestId("app-shell-menu-trigger"));
+    await waitFor(() =>
+      expect(screen.getByTestId("app-shell-drawer")).toBeDefined()
+    );
+    expect(
+      within(screen.getByTestId("app-shell-drawer")).getByTestId("shell-theme-control")
+    ).toBeDefined();
+    setViewportWidth(1440);
+  });
+
+  it("stamps the document when a side is chosen — the control is self-managing", async () => {
+    setViewportWidth(1440);
+    render(wrap("/settings"));
+    await waitFor(() => expect(screen.getByTestId("shell-theme-control")).toBeDefined());
+
+    fireEvent.click(screen.getByRole("radio", { name: "Dark" }));
+
+    await waitFor(() =>
+      expect(document.documentElement.getAttribute("data-theme")).toBe("dark")
+    );
+    // …and the chrome moved with it, rather than staying on the side it
+    // mounted with.
+    await waitFor(() =>
+      expect(
+        document
+          .querySelector("[data-stapel-skin-mode]")
+          ?.getAttribute("data-stapel-skin-mode")
+      ).toBe("dark")
+    );
+  });
+
+  it("steps aside for a host that owns the choice elsewhere", async () => {
+    setViewportWidth(1440);
+    const i18n = createI18n({ locale: "en" });
+    registerShellI18n(i18n);
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/settings"]}>
+          <Routes>
+            <Route element={<AppShell nav={NAV} themeControl={false} />}>
+              <Route path="settings" element={<div>Settings Page</div>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </I18nProvider>
+    );
+
+    await waitFor(() => expect(screen.getByText("Settings Page")).toBeDefined());
+    expect(screen.queryByTestId("shell-theme-control")).toBeNull();
+    expect(screen.queryByTestId("app-shell-theme")).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/shell-react",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "demos": [
     {
       "id": "shell.app",
@@ -162,6 +162,39 @@
       "source": {
         "file": "demo/SiteBrand.demo.tsx",
         "line": 111
+      }
+    },
+    {
+      "id": "shell.theme-control",
+      "title": "Shell theme control",
+      "description": "The theme switch the default chrome renders, and the reason a dark theme that shipped in every token file was unreachable: the mechanism had no place. Unlike the bare ThemeModeControl — prop-driven on purpose, for hosts that keep the preference in a profile field — this one owns its own state: it reads the cached preference, applies it, follows the OS while the choice is “match system”, and writes the choice back. It applies NOTHING until that read resolves, so it never re-stamps the document a frame after a pre-paint boot script stamped it correctly; until then it simply marks the mode the page is already in. AppShell and PublicShell mount it by default (themeControl={false} opts out): at the foot of the Sider and the end of the header account area on a desktop, in the foot of the nav sheet on a phone.",
+      "component": "ShellThemeControl",
+      "covers": [],
+      "tokens": [
+        "text",
+        "text-muted",
+        "surface",
+        "surface-sunken",
+        "border",
+        "brand"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Desktop: the switch under the sentence that says what it governs.",
+          "viewport": "desktop",
+          "step": "settings"
+        },
+        {
+          "id": "phone",
+          "description": "Phone: the foot of the nav sheet, below the destinations and behind a rule.",
+          "viewport": "phone",
+          "step": "sheet-footer"
+        }
+      ],
+      "source": {
+        "file": "demo/ShellThemeControl.demo.tsx",
+        "line": 115
       }
     },
     {

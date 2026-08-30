@@ -146,3 +146,29 @@ cannot end up half themed. It never touches the backend — persisting the
 choice is the host's, through whatever profile client it already owns.
 `THEME_PREFERENCE_STORAGE_KEY` is published for the host's pre-paint boot
 script, which runs before any bundle and so cannot import this module.
+
+## `<ShellThemeControl/>` (`/default` subpath — the switch as chrome)
+
+```tsx
+import { ShellThemeControl } from "@stapel/shell-react/default";
+
+// Nothing to wire: it reads the cached preference, applies it, follows the
+// OS while the choice is "match system", and writes the choice back.
+<ShellThemeControl />;
+```
+
+`ThemeModeControl` above is prop-driven on purpose — a host that keeps the
+preference in a profile field owns the value. That contract is wrong for
+CHROME, which cannot ask its host for a value the host has no reason to hold,
+so this wrapper owns the state and takes its labels from the `shell.theme.*`
+keys through core's `useT()` (it therefore needs an `<I18nProvider>`; the bare
+control does not).
+
+**`<AppShell/>` and `<PublicShell/>` render it by default** — foot of the
+`Sider` and end of the header's account area on a desktop, foot of the nav
+sheet on a phone — because a mechanism with no place is a mechanism nobody has:
+every token file in the fleet compiles a `[data-theme="dark"]` block and no
+deployment could reach it. `themeControl={false}` opts out, for a host whose own
+settings screen owns the choice. It is not a substitute for the pre-paint boot
+script: the wrapper applies nothing until its (async) cached read resolves, so
+the first paint is still the boot script's to get right.

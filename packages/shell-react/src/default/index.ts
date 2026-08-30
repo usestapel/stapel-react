@@ -24,6 +24,12 @@ export type { PublicShellProps } from "./PublicShell.js";
 // host passes neither `brand` nor `footer` and a `<SiteProvider>` is mounted
 // (multibrand spec, frontend decision). Exported on their own so a host that arranges its own
 // chrome still gets one wordmark and one legal line, not two implementations.
+// The theme switch both chromes render by default (`themeControl`). Exported
+// on its own so a host arranging its own chrome — or putting the switch in a
+// settings screen as well — mounts the same self-managing control rather than
+// re-wiring `readStoredThemePreference`/`useThemePreference` by hand.
+export { ShellThemeControl } from "./ShellThemeControl.js";
+export type { ShellThemeControlProps } from "./ShellThemeControl.js";
 export { SiteBrand } from "./SiteBrand.js";
 export type { SiteBrandProps } from "./SiteBrand.js";
 export { SiteLegalFooter } from "./SiteLegalFooter.js";

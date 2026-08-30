@@ -185,6 +185,12 @@ const SEGMENT_MIN_HEIGHT = "2.75rem";
 const GROUP_STYLE = {
   display: "inline-flex",
   alignItems: "stretch",
+  // Three named segments are ~310px wide, and the chrome now mounts the
+  // control in places narrower than that (a 200px `Sider`, a nav sheet). A
+  // single non-wrapping row there clips the third segment — the one whose
+  // whole purpose is to say the choice is a RULE and not a colour — so the
+  // track wraps instead of hiding a state.
+  flexWrap: "wrap",
   gap: "0.125rem",
   maxWidth: "100%",
   padding: "0.125rem",

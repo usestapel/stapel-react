@@ -37,6 +37,7 @@ import { adminNavIds } from "../headless/resolveNav.js";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
 import { NavMenu } from "./navMenu.js";
 import { CloseGlyph, MenuGlyph } from "./icons.js";
+import { ShellThemeControl } from "./ShellThemeControl.js";
 import { SHELL_I18N_KEYS } from "../i18n/keys.js";
 
 /**
@@ -100,6 +101,18 @@ export interface AppShellProps {
   /** Optional right-aligned header slot (e.g. a user/account menu the host
    * composes from its own auth state). */
   readonly headerExtra?: ReactNode;
+  /**
+   * The theme switch (`<ShellThemeControl/>`), ON by default — at the foot of
+   * the `Sider` on a desktop, at the foot of the nav sheet on a phone.
+   *
+   * Default skins ARE the product (§83). The mechanism under this control has
+   * shipped for two waves and every token file compiles a dark block; what was
+   * missing was a PLACE, and a place that each host had to remember to make is
+   * a place most of them never made. `false` is for a host whose own settings
+   * screen owns the choice — it switches off the chrome's copy, not the
+   * mechanism (`useThemePreference` stays available).
+   */
+  readonly themeControl?: boolean;
 }
 
 /** Full app chrome: responsive `Sider`/`Drawer` nav + `<Outlet/>` content. */
@@ -135,6 +148,7 @@ function AppChrome(props: AppShellProps): ReactElement {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const staff = props.staff ?? false;
+  const themeControl = props.themeControl !== false;
   const adminIds = useMemo(() => adminNavIds(props.nav), [props.nav]);
   const gate = useCallback(
     (entry: ResolvedNavEntry): ActionAvailability =>
@@ -205,11 +219,31 @@ function AppChrome(props: AppShellProps): ReactElement {
             }}
             data-testid="app-shell-sider"
           >
-            <NavMenu
-              nav={props.nav}
-              gate={gate}
-              style={{ borderInlineEnd: "none", paddingBlockStart: spacing[2] }}
-            />
+            {/* A column, so the theme switch can sit at the FOOT of the rail
+                rather than under the last menu row: appearance is a setting,
+                and a setting inline with the destinations reads as a
+                destination. */}
+            <div
+              style={{ display: "flex", flexDirection: "column", height: "100%" }}
+            >
+              <NavMenu
+                nav={props.nav}
+                gate={gate}
+                style={{ borderInlineEnd: "none", paddingBlockStart: spacing[2] }}
+              />
+              {themeControl && (
+                <div
+                  style={{
+                    marginBlockStart: "auto",
+                    padding: spacing[3],
+                    borderBlockStart: `1px solid ${token.colorSplit}`,
+                  }}
+                  data-testid="app-shell-theme"
+                >
+                  <ShellThemeControl />
+                </div>
+              )}
+            </div>
           </Layout.Sider>
         ) : (
           <Drawer
@@ -255,6 +289,22 @@ function AppChrome(props: AppShellProps): ReactElement {
               onNavigate={() => setDrawerOpen(false)}
               style={{ borderInlineEnd: "none", paddingBlock: spacing[2] }}
             />
+            {/* The sheet's footer. A phone has no `Sider` to hang a setting
+                off, and the header is one 56px line with a hamburger, a brand
+                and an account control already in it — the sheet is the one
+                phone surface with room for a control that is three targets
+                wide. */}
+            {themeControl && (
+              <div
+                style={{
+                  padding: spacing[3],
+                  borderBlockStart: `1px solid ${token.colorSplit}`,
+                }}
+                data-testid="app-shell-theme"
+              >
+                <ShellThemeControl />
+              </div>
+            )}
           </Drawer>
         )}
         <Layout.Content style={{ padding: spacing[4] }}>

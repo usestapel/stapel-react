@@ -64,6 +64,7 @@ import type { ResolvedNavEntry } from "../headless/resolveNav.js";
 import { NavMenu } from "./navMenu.js";
 import { NavDock, DOCK_CLEARANCE } from "./NavDock.js";
 import { CloseGlyph, MenuGlyph } from "./icons.js";
+import { ShellThemeControl } from "./ShellThemeControl.js";
 import { SiteBrand } from "./SiteBrand.js";
 import { SiteLegalFooter } from "./SiteLegalFooter.js";
 import { SHELL_I18N_KEYS } from "../i18n/keys.js";
@@ -158,6 +159,17 @@ export interface PublicShellProps {
    * to the module that owns the thing, and the shell depends on no module.
    */
   readonly dockBadges?: Readonly<Record<string, number>>;
+  /**
+   * The theme switch (`<ShellThemeControl/>`), ON by default — at the end of
+   * the header's account area on a desktop, in the foot of the nav sheet on a
+   * phone.
+   *
+   * Default skins ARE the product (§83). Both brands' token files have carried
+   * a `[data-theme="dark"]` block for two waves and no storefront had a
+   * control that could reach it, because the mechanism shipped without a
+   * place. `false` is for a host whose own settings screen owns the choice.
+   */
+  readonly themeControl?: boolean;
 }
 
 /** The default `accountSlot`: the entry point that must never be absent. */
@@ -265,16 +277,31 @@ function PublicChrome(props: PublicShellProps): ReactElement {
       </div>
     ) : null;
 
+  const themeControl = props.themeControl !== false;
+
+  // Desktop: the switch is the LAST thing in the account area — after the
+  // sign-in CTA or the host's account menu, which is the row a person already
+  // scans for "things about me". On a phone it is not here at all: the 390px
+  // header line holds a hamburger, a brand and an account control, and a
+  // fourth control three targets wide would push one of those off the row.
   const accountNode = (
     <div
       style={{
         marginInlineStart:
           isDesktop && props.searchSlot !== undefined ? 0 : "auto",
         flex: "0 0 auto",
+        display: "flex",
+        alignItems: "center",
+        gap: spacing[3],
       }}
       data-testid="public-shell-account"
     >
       {props.accountSlot ?? <SignInCta />}
+      {isDesktop && themeControl && (
+        <div data-testid="public-shell-theme">
+          <ShellThemeControl />
+        </div>
+      )}
     </div>
   );
 
@@ -416,6 +443,20 @@ function PublicChrome(props: PublicShellProps): ReactElement {
           {props.categorySlot !== undefined && (
             <div style={{ padding: spacing[4] }} data-testid="public-shell-categories">
               {props.categorySlot}
+            </div>
+          )}
+          {/* The sheet's footer: below the menu and the categories, which is
+              where a setting belongs — it is not a destination, and inline
+              with the destinations it would read as one. */}
+          {themeControl && (
+            <div
+              style={{
+                padding: spacing[3],
+                borderBlockStart: `1px solid ${token.colorSplit}`,
+              }}
+              data-testid="public-shell-theme"
+            >
+              <ShellThemeControl />
             </div>
           )}
         </Drawer>

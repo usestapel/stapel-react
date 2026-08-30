@@ -1,5 +1,31 @@
 # @stapel/eslint-plugin
 
+## 0.13.0
+
+### Minor Changes
+
+- 97185d1: `no-hardcoded-theme-mode` now flags a literal `mode`/`themeMode`/`colorMode`
+  JSX attribute in any source file, not only prop defaults inside default skins.
+
+  The rule scanned two grids — `src/default/**`, and only the declaration shapes
+  (`mode = "light"`, `?? "dark"`, `toAntdTheme("light")`, `resolveThemeMode()`) —
+  and a storefront pinned `mode="light"` on its shell, in a host app, outside
+  both. Both brands' token files carried a dark block, the shell followed
+  `data-theme` correctly, and the deployment still had no way to reach dark. A
+  skin that reads the document and a call site that overrides it with a literal
+  render exactly the same wrong page, so the guardrail no longer stops at the
+  library boundary.
+
+  - New report `literalJsxMode`, on `<Shell mode="light"/>` and `mode={"dark"}`,
+    in EVERY file. `themeMode` and `colorMode` are covered; antd's own
+    `theme="dark"` deliberately is not — same word, vendor meaning, and a rule
+    that flagged it would be switched off in every file that renders chrome.
+    Tune the list with `jsxModeAttributes`.
+  - Demos (`**/demo/**`, `*.demo.*`), stories and test paths are exempt: pinning
+    both sides is what those files are for. The carve-out lives in the RULE, not
+    only in the preset, so a consumer with its own config gets the same answer.
+  - The declaration checks are unchanged, and still scoped to `src/default/**`.
+
 ## 0.12.1
 
 ### Patch Changes

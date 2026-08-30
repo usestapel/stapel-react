@@ -300,3 +300,65 @@ describe("<PublicShell/> — the content has a measure", () => {
     expect(screen.getByText("Search Page")).toBeDefined();
   });
 });
+
+/**
+ * The theme switch, in the storefront's chrome by default (§83). Desktop: the
+ * end of the header's account area. Phone: the foot of the nav sheet — the
+ * 390px header line already holds a hamburger, a brand and an account control.
+ */
+describe("<PublicShell/> — the theme control is chrome, not a host chore", () => {
+  afterEach(() => {
+    document.documentElement.removeAttribute("data-theme");
+  });
+
+  it("puts it at the end of the account area on a desktop", async () => {
+    setViewportWidth(1440);
+    render(wrap("/s", { accountSlot: <span>My account</span> }));
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-account")).toBeDefined());
+    const account = screen.getByTestId("public-shell-account");
+    expect(within(account).getByTestId("shell-theme-control")).toBeDefined();
+    // Last, not first: the account control the person came for stays at the
+    // head of the row.
+    expect(
+      account.firstElementChild?.contains(within(account).getByText("My account"))
+    ).toBe(true);
+  });
+
+  it("moves it into the nav sheet on a phone, and keeps it out of the header", async () => {
+    setViewportWidth(375);
+    render(wrap("/s", { categorySlot: <span>Cars</span> }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Open menu" })).toBeDefined());
+    expect(
+      within(screen.getByTestId("public-shell-header")).queryByTestId("shell-theme-control")
+    ).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open menu" }));
+    await waitFor(() => expect(document.querySelector(".ant-drawer-open")).not.toBeNull());
+    expect(
+      within(screen.getByTestId("public-shell-drawer")).getByTestId("shell-theme-control")
+    ).toBeDefined();
+    setViewportWidth(1440);
+  });
+
+  it("stamps the document when a side is chosen", async () => {
+    setViewportWidth(1440);
+    render(wrap("/s"));
+    await waitFor(() => expect(screen.getByTestId("shell-theme-control")).toBeDefined());
+
+    fireEvent.click(screen.getByRole("radio", { name: "Dark" }));
+
+    await waitFor(() =>
+      expect(document.documentElement.getAttribute("data-theme")).toBe("dark")
+    );
+  });
+
+  it("steps aside for a host that owns the choice elsewhere", async () => {
+    setViewportWidth(1440);
+    render(wrap("/s", { themeControl: false }));
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-header")).toBeDefined());
+    expect(screen.queryByTestId("shell-theme-control")).toBeNull();
+    expect(screen.queryByTestId("public-shell-theme")).toBeNull();
+  });
+});

@@ -1,5 +1,41 @@
 # @stapel/shell-react
 
+## 0.10.0
+
+### Minor Changes
+
+- 97185d1: `ShellThemeControl`: a self-managing theme switch, rendered by default in the
+  `AppShell`/`PublicShell` chrome (`themeControl` opts out).
+
+  The mechanism has been complete for two waves — `ThemeModeControl`,
+  `useThemePreference`, `applyThemePreference`, `readStoredThemePreference` — and
+  every token file in the fleet compiles a `[data-theme="dark"]` block. No
+  deployment could reach it, because nothing in the default chrome rendered a
+  control: a mechanism with no place is a mechanism nobody has. Default skins ARE
+  the product (§83), so the place ships with the skin.
+
+  - New `/default` export `<ShellThemeControl size? className? data-testid?/>`.
+    It owns the three things the bare `ThemeModeControl` deliberately does not:
+    the cached preference it starts from (`readStoredThemePreference`), applying
+    it and following the OS while it says `system` (`useThemePreference`), and
+    writing the choice back (`applyThemePreference`). Labels come from the
+    `shell.theme.*` keys through core's `useT()`; the bare control stays
+    prop-driven for hosts that translate elsewhere.
+    It applies NOTHING until the cached read resolves, so it never re-stamps the
+    document a frame after a pre-paint boot script stamped it correctly; until
+    then it marks the mode the page is already in.
+  - `<AppShell/>` and `<PublicShell/>` render it by default: at the foot of the
+    `Sider` and at the end of the header's account area on a desktop, in the foot
+    of the nav sheet on a phone (the 390px header line already carries a
+    hamburger, a brand and an account control). New prop on both:
+    `themeControl?: boolean`, default `true`, for a host whose own settings
+    screen owns the choice. The `mode` prop is unchanged — it still PINS a side
+    for a demo or a test.
+  - `ThemeModeControl`'s track now wraps instead of clipping. Three named
+    segments are ~310px wide and the chrome mounts it in places narrower than
+    that; the segment that would have been cut off is the half-disc, whose whole
+    purpose is to say the choice is a rule and not a colour.
+
 ## 0.9.0
 
 ### Minor Changes
