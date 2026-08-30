@@ -501,16 +501,17 @@ export interface components {
          *     * `invalid_config` - invalid_config
          *     * `min_greater_than_max` - min_greater_than_max
          *     * `empty_options` - empty_options
+         *     * `invalid_rules` - invalid_rules
          * @enum {string}
          */
-        ErrorEnum: "below_minimum" | "above_maximum" | "not_in_options" | "invalid_type" | "invalid_format" | "mandatory_missing" | "duplicate_slug" | "unknown_feature_type" | "not_allowed" | "unknown_feature" | "description_too_short" | "description_too_long" | "invalid_config" | "min_greater_than_max" | "empty_options";
+        ErrorEnum: "below_minimum" | "above_maximum" | "not_in_options" | "invalid_type" | "invalid_format" | "mandatory_missing" | "duplicate_slug" | "unknown_feature_type" | "not_allowed" | "unknown_feature" | "description_too_short" | "description_too_long" | "invalid_config" | "min_greater_than_max" | "empty_options" | "invalid_rules";
         /** @description Result of favoriting / unfavoriting a listing. */
         FavoriteToggleResponse: {
             favorited: boolean;
             listing_id: number;
         };
-        FeatureDao: components["schemas"]["IntDao"] | components["schemas"]["FloatDao"] | components["schemas"]["StringDao"] | components["schemas"]["BoolDao"] | components["schemas"]["HexColorDao"] | components["schemas"]["SelectDao"] | components["schemas"]["DateDao"] | components["schemas"]["HeaderDao"] | components["schemas"]["HierarchicalSelectDao"] | components["schemas"]["ConvertibleUnitDao"];
-        FeatureDto: components["schemas"]["IntDto"] | components["schemas"]["FloatDto"] | components["schemas"]["StringDto"] | components["schemas"]["BoolDto"] | components["schemas"]["HexColorDto"] | components["schemas"]["SelectDto"] | components["schemas"]["DateDto"] | components["schemas"]["HeaderDto"] | components["schemas"]["HierarchicalSelectDto"] | components["schemas"]["ConvertibleUnitDto"];
+        FeatureDao: components["schemas"]["IntDao"] | components["schemas"]["FloatDao"] | components["schemas"]["StringDao"] | components["schemas"]["BoolDao"] | components["schemas"]["HexColorDao"] | components["schemas"]["SelectDao"] | components["schemas"]["DateDao"] | components["schemas"]["HeaderDao"] | components["schemas"]["HierarchicalSelectDao"] | components["schemas"]["ConvertibleUnitDao"] | components["schemas"]["RefSelectDao"] | components["schemas"]["RefHierarchicalSelectDao"];
+        FeatureDto: components["schemas"]["IntDto"] | components["schemas"]["FloatDto"] | components["schemas"]["StringDto"] | components["schemas"]["BoolDto"] | components["schemas"]["HexColorDto"] | components["schemas"]["SelectDto"] | components["schemas"]["DateDto"] | components["schemas"]["HeaderDto"] | components["schemas"]["HierarchicalSelectDto"] | components["schemas"]["ConvertibleUnitDto"] | components["schemas"]["RefSelectDto"] | components["schemas"]["RefHierarchicalSelectDto"];
         /** @description Serializer for FeatureValidationResult. */
         FeatureValidationResult: {
             id?: unknown;
@@ -920,6 +921,58 @@ export interface components {
             listing_id: number;
             status: string;
         };
+        /** @description Serializer for the ref_hierarchical_select feature DAO. */
+        RefHierarchicalSelectDao: {
+            name?: string | null;
+            order?: number | null;
+            title?: boolean | null;
+            badge?: boolean | null;
+            translate?: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "ref_hierarchical_select";
+            value?: string[];
+            labels?: string[];
+            vocabulary?: string | null;
+            levels?: string[];
+        };
+        /** @description Serializer for the ref_hierarchical_select feature DTO. */
+        RefHierarchicalSelectDto: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "ref_hierarchical_select";
+            value?: string[];
+        };
+        /** @description Serializer for the ref_select feature DAO. */
+        RefSelectDao: {
+            name?: string | null;
+            order?: number | null;
+            title?: boolean | null;
+            badge?: boolean | null;
+            translate?: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "ref_select";
+            value?: string[];
+            labels?: string[];
+            vocabulary?: string | null;
+            level?: string | null;
+        };
+        /** @description Serializer for the ref_select feature DTO. */
+        RefSelectDto: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "ref_select";
+            value?: string[];
+        };
         /** @description Serializer for select feature DAO. */
         SelectDao: {
             name?: string | null;
@@ -1010,6 +1063,11 @@ export interface components {
          */
         Type515Enum: "hex_color";
         /**
+         * @description * `ref_hierarchical_select` - ref_hierarchical_select
+         * @enum {string}
+         */
+        Type565Enum: "ref_hierarchical_select";
+        /**
          * @description * `hierarchical_select` - hierarchical_select
          * @enum {string}
          */
@@ -1029,6 +1087,11 @@ export interface components {
          * @enum {string}
          */
         TypeC1bEnum: "int";
+        /**
+         * @description * `ref_select` - ref_select
+         * @enum {string}
+         */
+        TypeCcbEnum: "ref_select";
         /**
          * @description * `float` - float
          * @enum {string}

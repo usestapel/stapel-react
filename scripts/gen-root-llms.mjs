@@ -15,6 +15,24 @@
 //      when packages/<dir>/llms.txt actually exists; the rest are listed by
 //      name under "Not yet described", never silently dropped.
 //
+// ── THE GROUPING LAYER (2026-08-30) ────────────────────────────────────────
+//
+// The flat one-line-per-package list hit the token budget at 35 packages, and
+// the budget THROWS rather than truncating — correctly, because an index that
+// silently drops the package you needed is worse than no index. The fix the
+// error message asks for, done here:
+//
+//   · Packages are grouped by ROLE (backend pairs / substrate / design
+//     tokens), because "which package do I even want" is answered by role
+//     first and by name second.
+//   · The per-line `packages/<dir>/llms.txt` path is gone. It was ~40
+//     characters of the same derivable string on every line; the convention is
+//     now stated ONCE in the header, and `assertDirDerivable` fails the build
+//     the day a package's directory stops matching its unscoped name — so the
+//     convention cannot quietly become a lie.
+//
+// That is ~300 tokens back, without any package losing its line.
+//
 //   node scripts/gen-root-llms.mjs         # generate ./llms.txt
 //   pnpm gen:root-llms                     # generate (root script)
 //   pnpm gen:root-llms:check               # drift gate (fails on divergence)
@@ -59,7 +77,41 @@ async function publicPackages() {
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/**
+ * The role a package plays, which is the first thing somebody choosing one
+ * needs to know. Derived from the NAME, not from a hand list, so a new package
+ * lands in a group without anybody remembering to file it.
+ */
+function groupOf(name) {
+  if (name.startsWith("@stapel/tokens")) return "Design tokens";
+  if (name.endsWith("-react")) return "Backend pairs";
+  return "Substrate";
+}
+
+/** Header order: pairs first (the reason this repo exists), then the layers
+ * underneath them. */
+const GROUP_ORDER = ["Backend pairs", "Substrate", "Design tokens"];
+
+/**
+ * The path convention this index states once instead of repeating per line.
+ * It holds for every package today; the day it stops holding, this throws
+ * rather than letting the header promise a path that does not exist.
+ */
+function assertDirDerivable(pkgs) {
+  const broken = pkgs.filter((p) => p.name.split("/").pop() !== p.dir);
+  if (broken.length > 0) {
+    throw new Error(
+      "gen-root-llms: this index states `packages/<name without @stapel/>/llms.txt` " +
+        "as a convention instead of printing the path on every line, and these " +
+        "packages break it:\n" +
+        broken.map((p) => `    - ${p.name} lives in packages/${p.dir}`).join("\n") +
+        "\n  Either rename the directory to match, or print the path for these entries."
+    );
+  }
+}
+
 function render(pkgs) {
+  assertDirDerivable(pkgs);
   const described = pkgs.filter((p) => p.hasLlms);
   const missing = pkgs.filter((p) => !p.hasLlms);
   const L = [];
@@ -77,18 +129,26 @@ function render(pkgs) {
   L.push("");
   L.push(
     "An agent that does not yet know which package it needs reads this ONE "
-      + "file, then follows the link for that package's full surface (exports, "
-      + "hooks, operations, errors)."
+      + "file, picks a name below, then reads that package's full surface "
+      + "(exports, hooks, operations, errors) at "
+      + "`packages/<name without @stapel/>/llms.txt` — `@stapel/auth-react` is "
+      + "`packages/auth-react/llms.txt`."
   );
   L.push("");
   L.push(`## Described (${described.length})`);
-  L.push("");
   if (described.length > 0) {
-    for (const p of described) {
-      const entry = `- **${p.name}** — packages/${p.dir}/llms.txt`;
-      L.push(p.description ? `${entry} — ${p.description}` : entry);
+    for (const group of GROUP_ORDER) {
+      const rows = described.filter((p) => groupOf(p.name) === group);
+      if (rows.length === 0) continue;
+      L.push("");
+      L.push(`### ${group} (${rows.length})`);
+      L.push("");
+      for (const p of rows) {
+        L.push(p.description ? `- **${p.name}** — ${p.description}` : `- **${p.name}**`);
+      }
     }
   } else {
+    L.push("");
     L.push("(none yet — no package in this build has a committed llms.txt)");
   }
   L.push("");

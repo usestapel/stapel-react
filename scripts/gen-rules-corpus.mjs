@@ -19,17 +19,37 @@
 //   pnpm gen:rules         # generate
 //   pnpm gen:rules:check   # drift gate
 //
-// ONE FILE, not a directory of copies: `index.json` carries every case in
-// filename order per set, so the vitest side needs no glob (and no
-// `resolveJsonModule` per file), and a review of the diff reads as one list
-// rather than 69 renames. `avito/` is optional — the generated Avito set
-// (§4.7) does not exist until stapel-tools emits it, and its absence is
-// recorded as an empty list rather than a missing key.
-import { readdir, readFile, writeFile, mkdir } from "node:fs/promises";
+// ── TWO SHAPES, BECAUSE UPSTREAM HAS TWO ───────────────────────────────────
+//
+// `cases` and `pipeline` are DIRECTORIES of hand-written cases, one file each
+// (59 + 10 at stapel-attributes 0.5.1). They are inlined into a single
+// `index.json` in filename order — the ordering the upstream test parametrizes
+// on — so the vitest side needs no glob and a review of the diff reads as one
+// list rather than 69 renames.
+//
+// `avito` is not that. It is the GENERATED corpus
+// (`stapel-avito-import --emit-rule-cases`, §4.7): 3890 distinct rules
+// recorded from the real Avito catalogue, in two files that are single-line
+// compact arrays of ~12 MB total, with the feature set stored once per
+// polarity PAIR. Those are copied BYTE FOR BYTE — not parsed, not re-indented,
+// not merged into index.json — for three reasons: re-serializing 12 MB through
+// `JSON.stringify(…, null, 2)` would quadruple it and make every future diff
+// unreadable; a byte copy is the only form in which "this file IS upstream's
+// file" is checkable by eye; and the test reads them with `readFileSync`
+// rather than a static import, so vite never has to transform a 10 MB module.
+//
+// `index.json` therefore records the avito file NAMES rather than their
+// contents, and an absent `avito/` directory is recorded as an empty list —
+// the set does not exist in a checkout of stapel-attributes older than 0.5.1,
+// and its absence is a fact rather than a missing key.
+import { readdir, readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const SETS = ["cases", "pipeline", "avito"];
+/** The two hand-written sets, inlined into index.json. */
+const INLINE_SETS = ["cases", "pipeline"];
+/** The generated set, copied verbatim into `<out>/avito/`. */
+const COPY_SET = "avito";
 
 /** Every `*.json` of one set, in filename order — the ordering the upstream
  * test parametrizes on (`sorted(directory.glob("*.json"))`). */
@@ -45,6 +65,15 @@ async function readSet(dir) {
     out.push(JSON.parse(await readFile(join(dir, name), "utf8")));
   }
   return out;
+}
+
+/** The `*.json` filenames of one set, in filename order. */
+async function listSet(dir) {
+  try {
+    return (await readdir(dir)).filter((n) => n.endsWith(".json")).sort();
+  } catch {
+    return [];
+  }
 }
 
 export function buildCorpus(sets, sourceLabel) {
@@ -64,13 +93,35 @@ async function main() {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   const src = resolve(root, process.env.RULES_CORPUS_SRC);
   const outDir = resolve(root, process.env.RULES_CORPUS_OUT);
-  const sets = {};
-  for (const set of SETS) sets[set] = await readSet(join(src, set));
-  const corpus = buildCorpus(sets, "stapel-attributes tests/golden/rules");
   await mkdir(outDir, { recursive: true });
+
+  const sets = {};
+  for (const set of INLINE_SETS) sets[set] = await readSet(join(src, set));
+
+  // The generated set: a byte copy, and a REPLACED directory — a file deleted
+  // upstream must disappear here too, or the drift gate would go green over a
+  // corpus this repo alone still carries.
+  const avitoSrc = join(src, COPY_SET);
+  const avitoOut = join(outDir, COPY_SET);
+  const avitoNames = await listSet(avitoSrc);
+  await rm(avitoOut, { recursive: true, force: true });
+  let avitoBytes = 0;
+  if (avitoNames.length > 0) {
+    await mkdir(avitoOut, { recursive: true });
+    for (const name of avitoNames) {
+      const bytes = await readFile(join(avitoSrc, name));
+      avitoBytes += bytes.byteLength;
+      await writeFile(join(avitoOut, name), bytes);
+    }
+  }
+  sets[COPY_SET] = avitoNames;
+
+  const corpus = buildCorpus(sets, "stapel-attributes tests/golden/rules");
   await writeFile(join(outDir, "index.json"), `${JSON.stringify(corpus, null, 2)}\n`);
   console.error(
-    `gen:rules: ${SETS.map((s) => `${sets[s].length} ${s}`).join(", ")} from ${src}\n` +
+    `gen:rules: ${INLINE_SETS.map((s) => `${sets[s].length} ${s}`).join(", ")}, ` +
+      `${avitoNames.length} avito file(s) copied verbatim ` +
+      `(${(avitoBytes / 1_048_576).toFixed(1)} MB) from ${src}\n` +
       `           → ${join(outDir, "index.json")}`
   );
 }

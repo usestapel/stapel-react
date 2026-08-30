@@ -646,6 +646,8 @@ export interface components {
             readonly id: number;
             name: string;
             slug: string;
+            /** @description Identifier in the source catalogue this category was imported from. */
+            external_id?: string;
             /** @description CDN catalog icon reference (opaque string, e.g. catalog/asset-name) */
             catalog_icon?: string;
             /** @description CDN carousel icon reference (opaque string, e.g. carousel/asset-name) */
@@ -676,6 +678,8 @@ export interface components {
             id: number;
             name: string;
             slug: string;
+            /** @description Identifier in the source catalogue this category was imported from. */
+            external_id?: string;
             /** @description CDN catalog icon reference (opaque string, e.g. catalog/asset-name) */
             catalog_icon?: string;
             /** @description CDN carousel icon reference (opaque string, e.g. carousel/asset-name) */
@@ -800,9 +804,10 @@ export interface components {
          *     * `invalid_config` - invalid_config
          *     * `min_greater_than_max` - min_greater_than_max
          *     * `empty_options` - empty_options
+         *     * `invalid_rules` - invalid_rules
          * @enum {string}
          */
-        ErrorEnum: "below_minimum" | "above_maximum" | "not_in_options" | "invalid_type" | "invalid_format" | "mandatory_missing" | "duplicate_slug" | "unknown_feature_type" | "not_allowed" | "unknown_feature" | "description_too_short" | "description_too_long" | "invalid_config" | "min_greater_than_max" | "empty_options";
+        ErrorEnum: "below_minimum" | "above_maximum" | "not_in_options" | "invalid_type" | "invalid_format" | "mandatory_missing" | "duplicate_slug" | "unknown_feature_type" | "not_allowed" | "unknown_feature" | "description_too_short" | "description_too_long" | "invalid_config" | "min_greater_than_max" | "empty_options" | "invalid_rules";
         /** @description Feature serializer with polymorphic config support. */
         Feature: {
             readonly id: number;
@@ -822,6 +827,18 @@ export interface components {
              *     * `none` - None
              */
             translate?: components["schemas"]["Translate2c2Enum"];
+            /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
+            rules?: unknown;
+            /** @description Help text under the field; translation key or literal. */
+            description?: string;
+            /** @description Placeholder text; translation key or literal. */
+            example?: string;
+            /** @description Initial form value in DTO 'value' shape (for a select, a list of option codes). */
+            default?: unknown;
+            /** @description Notices rendered with the field: [{"title": ..., "content": ...}]. */
+            hints?: unknown;
+            /** @description Form section; sections order by first appearance. */
+            group?: string;
             /** Parent */
             tn_parent?: number | null;
             /**
@@ -880,6 +897,18 @@ export interface components {
             mandatory?: boolean;
             show_as_badge?: boolean;
             show_at_title?: boolean;
+            /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
+            rules?: unknown;
+            /** @description Help text under the field; translation key or literal. */
+            description?: string;
+            /** @description Placeholder text; translation key or literal. */
+            example?: string;
+            /** @description Initial form value in DTO 'value' shape (for a select, a list of option codes). */
+            default?: unknown;
+            /** @description Notices rendered with the field: [{"title": ..., "content": ...}]. */
+            hints?: unknown;
+            /** @description Form section; sections order by first appearance. */
+            group?: string;
             /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
@@ -914,8 +943,20 @@ export interface components {
              *     * `none` - None
              */
             translate?: components["schemas"]["Translate2c2Enum"];
+            /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
+            rules?: unknown;
+            /** @description Help text under the field; translation key or literal. */
+            description?: string;
+            /** @description Placeholder text; translation key or literal. */
+            example?: string;
+            /** @description Initial form value in DTO 'value' shape (for a select, a list of option codes). */
+            default?: unknown;
+            /** @description Notices rendered with the field: [{"title": ..., "content": ...}]. */
+            hints?: unknown;
+            /** @description Form section; sections order by first appearance. */
+            group?: string;
         };
-        FeatureConfig: components["schemas"]["IntConfig"] | components["schemas"]["FloatConfig"] | components["schemas"]["StringConfig"] | components["schemas"]["BoolConfig"] | components["schemas"]["HexColorConfig"] | components["schemas"]["SelectConfig"] | components["schemas"]["DateConfig"] | components["schemas"]["HeaderConfig"] | components["schemas"]["HierarchicalSelectConfig"] | components["schemas"]["ConvertibleUnitConfig"];
+        FeatureConfig: components["schemas"]["IntConfig"] | components["schemas"]["FloatConfig"] | components["schemas"]["StringConfig"] | components["schemas"]["BoolConfig"] | components["schemas"]["HexColorConfig"] | components["schemas"]["SelectConfig"] | components["schemas"]["DateConfig"] | components["schemas"]["HeaderConfig"] | components["schemas"]["HierarchicalSelectConfig"] | components["schemas"]["ConvertibleUnitConfig"] | components["schemas"]["RefSelectConfig"] | components["schemas"]["RefHierarchicalSelectConfig"];
         FeatureConvertType: {
             /** @description New config after conversion */
             config: Omit<components["schemas"]["FeatureConfig"], "type">;
@@ -967,6 +1008,18 @@ export interface components {
             mandatory?: boolean;
             show_as_badge?: boolean;
             show_at_title?: boolean;
+            /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
+            rules?: unknown;
+            /** @description Help text under the field; translation key or literal. */
+            description?: string;
+            /** @description Placeholder text; translation key or literal. */
+            example?: string;
+            /** @description Initial form value in DTO 'value' shape (for a select, a list of option codes). */
+            default?: unknown;
+            /** @description Notices rendered with the field: [{"title": ..., "content": ...}]. */
+            hints?: unknown;
+            /** @description Form section; sections order by first appearance. */
+            group?: string;
             /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
@@ -980,7 +1033,7 @@ export interface components {
             /** Parent */
             tn_parent?: number | null;
         };
-        FeatureDto: components["schemas"]["IntDto"] | components["schemas"]["FloatDto"] | components["schemas"]["StringDto"] | components["schemas"]["BoolDto"] | components["schemas"]["HexColorDto"] | components["schemas"]["SelectDto"] | components["schemas"]["DateDto"] | components["schemas"]["HeaderDto"] | components["schemas"]["HierarchicalSelectDto"] | components["schemas"]["ConvertibleUnitDto"];
+        FeatureDto: components["schemas"]["IntDto"] | components["schemas"]["FloatDto"] | components["schemas"]["StringDto"] | components["schemas"]["BoolDto"] | components["schemas"]["HexColorDto"] | components["schemas"]["SelectDto"] | components["schemas"]["DateDto"] | components["schemas"]["HeaderDto"] | components["schemas"]["HierarchicalSelectDto"] | components["schemas"]["ConvertibleUnitDto"] | components["schemas"]["RefSelectDto"] | components["schemas"]["RefHierarchicalSelectDto"];
         /** @description Request payload for applying feature editor changes. */
         FeatureEditorApply: {
             features: components["schemas"]["FeatureEditorItem"][];
@@ -1034,6 +1087,21 @@ export interface components {
              * @default all
              */
             translate: components["schemas"]["FeatureEditorFeatureTranslateEnum"];
+            /** @description Conditional rules over sibling values (stapel-attributes' closed grammar). */
+            rules?: {
+                [key: string]: unknown;
+            }[];
+            /** @default  */
+            description: string;
+            /** @default  */
+            example: string;
+            default?: unknown;
+            /** @description Notices rendered with the field: [{title, content}]. */
+            hints?: {
+                [key: string]: string;
+            }[];
+            /** @default  */
+            group: string;
             tn_parent?: number | null;
             /** @default 0 */
             tn_priority: number;
@@ -1221,6 +1289,11 @@ export interface components {
         };
         /** @enum {unknown} */
         NullEnum: null;
+        OptionsRef: {
+            vocabulary?: string;
+            level?: string;
+            parentFeature?: string | null;
+        };
         PaginatedCategoryList: {
             pagination: {
                 /** @description Current page number */
@@ -1280,6 +1353,8 @@ export interface components {
             readonly id?: number;
             name?: string;
             slug?: string;
+            /** @description Identifier in the source catalogue this category was imported from. */
+            external_id?: string;
             /** @description CDN catalog icon reference (opaque string, e.g. catalog/asset-name) */
             catalog_icon?: string;
             /** @description CDN carousel icon reference (opaque string, e.g. carousel/asset-name) */
@@ -1347,6 +1422,18 @@ export interface components {
             mandatory?: boolean;
             show_as_badge?: boolean;
             show_at_title?: boolean;
+            /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
+            rules?: unknown;
+            /** @description Help text under the field; translation key or literal. */
+            description?: string;
+            /** @description Placeholder text; translation key or literal. */
+            example?: string;
+            /** @description Initial form value in DTO 'value' shape (for a select, a list of option codes). */
+            default?: unknown;
+            /** @description Notices rendered with the field: [{"title": ..., "content": ...}]. */
+            hints?: unknown;
+            /** @description Form section; sections order by first appearance. */
+            group?: string;
             /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
@@ -1368,6 +1455,54 @@ export interface components {
          * @enum {string}
          */
         PrecisionEnum: "year" | "month" | "date" | "datetime";
+        /** @description Serializer for the ref_hierarchical_select feature configuration. */
+        RefHierarchicalSelectConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "ref_hierarchical_select";
+            vocabulary?: string | null;
+            levels?: string[];
+            minDepth?: number;
+            maxDepth?: number | null;
+        };
+        /** @description Serializer for the ref_hierarchical_select feature DTO. */
+        RefHierarchicalSelectDto: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "ref_hierarchical_select";
+            value?: string[];
+        };
+        /** @description Serializer for the ref_select feature configuration. */
+        RefSelectConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "ref_select";
+            optionsRef?: components["schemas"]["OptionsRef"] | null;
+            minSelected?: number;
+            maxSelected?: number | null;
+            uiStyle?: components["schemas"]["RefSelectConfigUiStyleEnum"];
+        };
+        /**
+         * @description * `dropdown` - dropdown
+         *     * `chips` - chips
+         * @enum {string}
+         */
+        RefSelectConfigUiStyleEnum: "dropdown" | "chips";
+        /** @description Serializer for the ref_select feature DTO. */
+        RefSelectDto: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "ref_select";
+            value?: string[];
+        };
         /** @description Serializer for select feature configuration. */
         SelectConfig: {
             /**
@@ -1376,12 +1511,19 @@ export interface components {
              */
             type: "select";
             options?: components["schemas"]["SelectOption"][];
-            uiStyle?: components["schemas"]["UiStyleEnum"];
+            uiStyle?: components["schemas"]["SelectConfigUiStyleEnum"];
             minSelected?: number;
             maxSelected?: number | null;
             lockUserInput?: boolean;
             translatable_options?: boolean;
         };
+        /**
+         * @description * `dropdown` - dropdown
+         *     * `checkboxes` - checkboxes
+         *     * `chips` - chips
+         * @enum {string}
+         */
+        SelectConfigUiStyleEnum: "dropdown" | "checkboxes" | "chips";
         /** @description Serializer for select feature DTO. */
         SelectDto: {
             /**
@@ -1464,6 +1606,11 @@ export interface components {
          */
         Type515Enum: "hex_color";
         /**
+         * @description * `ref_hierarchical_select` - ref_hierarchical_select
+         * @enum {string}
+         */
+        Type565Enum: "ref_hierarchical_select";
+        /**
          * @description * `hierarchical_select` - hierarchical_select
          * @enum {string}
          */
@@ -1484,6 +1631,11 @@ export interface components {
          */
         TypeC1bEnum: "int";
         /**
+         * @description * `ref_select` - ref_select
+         * @enum {string}
+         */
+        TypeCcbEnum: "ref_select";
+        /**
          * @description * `float` - float
          * @enum {string}
          */
@@ -1493,13 +1645,6 @@ export interface components {
          * @enum {string}
          */
         TypeE3eEnum: "bool";
-        /**
-         * @description * `dropdown` - dropdown
-         *     * `checkboxes` - checkboxes
-         *     * `chips` - chips
-         * @enum {string}
-         */
-        UiStyleEnum: "dropdown" | "checkboxes" | "chips";
         /** @description Restored soft-deleted categories. */
         UndeleteResponse: {
             /**

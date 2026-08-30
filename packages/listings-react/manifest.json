@@ -4,7 +4,7 @@
   "version": "0.8.1",
   "backend": {
     "module": "stapel-listings",
-    "contract": ">=0.9 <0.10"
+    "contract": ">=0.10 <0.11"
   },
   "layers": [
     "api",
@@ -319,6 +319,13 @@
       "remediation": "fix_input"
     },
     "error.400.feature_invalid_format": {
+      "status": 400,
+      "params": [
+        "feature"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.feature_invalid_rules": {
       "status": 400,
       "params": [
         "feature"
@@ -781,6 +788,7 @@
     "error.400.feature_below_minimum",
     "error.400.feature_invalid_config",
     "error.400.feature_invalid_format",
+    "error.400.feature_invalid_rules",
     "error.400.feature_invalid_type",
     "error.400.feature_mandatory_missing",
     "error.400.feature_not_allowed",

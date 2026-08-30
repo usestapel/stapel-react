@@ -1,0 +1,70 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/vocabularies-react",
+  "version": "0.0.0",
+  "demos": [
+    {
+      "id": "vocabularies.provider",
+      "title": "Vocabularies provider",
+      "description": "The headless vocabularies root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "VocabulariesProvider",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/Vocabularies.demo.tsx",
+        "line": 24
+      }
+    },
+    {
+      "id": "vocabularies.term-select",
+      "title": "Vocabulary term select (default skin)",
+      "description": "One vocabulary level as a typeahead: the options are the answer to the current query (debounced, superseding), and a code the control already holds is resolved to its label and kept pickable even when the current page does not contain it.",
+      "component": "VocabularyTermSelect",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The vendor level, with an answer already given.",
+          "viewport": "desktop",
+          "step": "chosen"
+        },
+        {
+          "id": "phone",
+          "description": "The same control at 390px — the design width.",
+          "viewport": "phone",
+          "step": "chosen"
+        },
+        {
+          "id": "narrowed",
+          "description": "The model level narrowed by a vendor: the list is that vendor's children, and choosing another vendor is what clears this answer upstream.",
+          "viewport": "phone",
+          "step": "narrowed"
+        },
+        {
+          "id": "multiple",
+          "description": "Several terms at once — the shape a facet filter uses.",
+          "viewport": "phone",
+          "step": "chosen"
+        },
+        {
+          "id": "unavailable",
+          "description": "No client: the loud notice, not an empty dropdown. A control that cannot reach its terms and looks like one that found none is how a person is left unable to answer a question nobody told them was broken.",
+          "viewport": "phone",
+          "step": "unavailable"
+        }
+      ],
+      "source": {
+        "file": "demo/VocabularyTermSelect.demo.tsx",
+        "line": 52
+      }
+    }
+  ]
+}

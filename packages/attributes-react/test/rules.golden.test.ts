@@ -13,7 +13,7 @@
  * fixture cannot be missing, because it is committed and drift-gated rather
  * than read out of a sibling checkout at test time.
  *
- * Two sets, two claims:
+ * Three sets, three claims:
  *
  *  - `cases` — pure `evaluateRules` semantics, compared to Python's recorded
  *    `expect` EXACTLY, through `ruleStateToJson` (the corpus's own spelling).
@@ -27,8 +27,19 @@
  *        option list, `above_maximum`/`below_minimum` from a narrowed bound).
  *      · `expect.dao`     — which answers actually reach the wire, which is
  *        `toFeaturesDto` dropping the hidden ones.
+ *  - `avito` — the GENERATED set: 3890 distinct rules lifted out of the real
+ *    Avito catalogue by `stapel-avito-import --emit-rule-cases`, each recorded
+ *    at BOTH polarities (a values assignment that fires the rule and one that
+ *    does not), with the feature set stored once per pair. A rule is a
+ *    TRANSITION, and one frame cannot photograph one — so the pair is the unit
+ *    of evidence here, and the shape gate below insists the two frames
+ *    actually differ on the feature the rule hangs off. This is where the
+ *    hand-written 59 stop being a sample of a grammar and start being a sample
+ *    of a grammar somebody's production catalogue really uses.
  */
 // @vitest-environment node
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import type { FeatureDef, FeaturesDto, FeatureValueDto } from "../src/types.js";
 import { featureType } from "../src/types.js";
@@ -36,6 +47,11 @@ import { evaluateRules, ruleStateToJson } from "../src/rules.js";
 import { mirrorValidate } from "../src/validate.js";
 import { toFeaturesDto } from "../src/dto.js";
 import corpus from "./fixtures/rules-corpus/index.json" with { type: "json" };
+
+// The Avito files are ~12 MB of single-line JSON and are read at run time
+// rather than imported: a static import would make vite transform (and hold in
+// memory) a 10 MB module for every worker that touches this file.
+const CORPUS_DIR = fileURLToPath(new URL("./fixtures/rules-corpus/", import.meta.url));
 
 interface StateExpectation {
   readonly visible: boolean;
@@ -67,10 +83,69 @@ interface PipelineCase {
 
 const cases = corpus.cases as readonly RuleCase[];
 const pipeline = corpus.pipeline as readonly PipelineCase[];
-/** The generated Avito set (`stapel-avito-import --emit-rule-cases`): one case
- * per distinct parsed dependency sentence. Empty until stapel-tools commits
- * it, which is why it is a separate, non-empty-asserted block. */
-const avito = (corpus as { avito?: readonly RuleCase[] }).avito ?? [];
+/**
+ * One recorded rule, at both polarities. `features` is shared by the two
+ * frames — that is the whole compaction — and each frame carries the values
+ * that produce it plus the `expect` Python's evaluator wrote for them.
+ */
+interface AvitoPolarity {
+  readonly values: Readonly<Record<string, unknown>>;
+  readonly expect: Readonly<Record<string, StateExpectation>>;
+}
+interface AvitoCase {
+  readonly id: string;
+  readonly note: string;
+  readonly features: readonly FeatureDef[];
+  readonly polarities: {
+    readonly match: AvitoPolarity;
+    readonly nomatch: AvitoPolarity;
+  };
+}
+
+/** The generated Avito set, one entry per DISTINCT rule.
+ *
+ * `corpus.avito` is a list of FILE NAMES (the driver copies the files verbatim
+ * rather than inlining 12 MB into index.json), so the names come from the
+ * generated manifest and the contents from disk. */
+const avitoFiles = (corpus as { avito?: readonly string[] }).avito ?? [];
+const avitoSets: readonly (readonly [string, readonly AvitoCase[]])[] = avitoFiles.map(
+  (name) =>
+    [name, JSON.parse(readFileSync(`${CORPUS_DIR}avito/${name}`, "utf8")) as readonly AvitoCase[]] as const
+);
+
+/** Which slug each entry's rules hang off — the feature the two polarities
+ * must disagree about. */
+function ruleBearing(one: AvitoCase): readonly string[] {
+  return one.features.filter((f) => (f.rules ?? []).length > 0).map((f) => f.slug);
+}
+
+/** Every effect named anywhere in an entry's rules. */
+function effectsOf(one: AvitoCase): readonly string[] {
+  return one.features.flatMap((f) => (f.rules ?? []).map((rule) => rule.effect));
+}
+
+const EVERY_EFFECT = ["forbid_option", "hide", "limit", "require", "show"] as const;
+
+/**
+ * JSON with its object keys sorted, recursively.
+ *
+ * The two sides agree on the VALUES and not on the key order — Python's
+ * recorder writes `sort_keys=True`, `evaluateRules` returns features in the
+ * order they were declared — and `JSON.stringify` is order-sensitive. Sorting
+ * both sides is what makes a string comparison mean "same state" rather than
+ * "same spelling"; comparing 7780 frames with `toEqual` instead would be
+ * correct too, and about forty times slower.
+ */
+function canonical(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  if (value !== null && typeof value === "object") {
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([key, one]) => `${JSON.stringify(key)}:${canonical(one)}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
+}
 
 /**
  * What the browser SENT — every answer in the case, tagged with its type.
@@ -142,12 +217,78 @@ describe.each(pipeline.map((one) => [one.id, one] as const))(
   }
 );
 
-describe.runIf(avito.length > 0)("the generated Avito set", () => {
-  it.each(avito.map((one) => [one.id, one] as const))("%s", (_id, one) => {
-    const state = evaluateRules(one.features, one.values);
-    const actual = Object.fromEntries(
-      Object.entries(state).map(([slug, value]) => [slug, ruleStateToJson(value)])
-    );
-    expect(actual).toEqual(one.expect);
+/**
+ * The generated Avito set.
+ *
+ * Deliberately NOT `it.each` over 3890 entries: vitest's per-test overhead
+ * would turn a two-second comparison into minutes, and a run nobody waits for
+ * is a gate nobody keeps. Each file is one test that walks every entry and
+ * every polarity, collects the DIVERGENCES, and asserts the list is empty — so
+ * a failure still names the exact case, feature and frame, and a green run
+ * costs what the arithmetic costs.
+ */
+describe.runIf(avitoSets.length > 0)("the generated Avito set", () => {
+  it("is the corpus the pin promises", () => {
+    expect(avitoFiles).toEqual(["prose.json", "values-by-group.json"]);
+    for (const [name, entries] of avitoSets) {
+      expect(entries.length, name).toBeGreaterThan(0);
+    }
   });
+
+  it("carries both polarities of every one of the five effects", () => {
+    // A corpus that lost an effect would still be green everywhere else — the
+    // remaining cases would simply never exercise it. So the SHAPE is asserted
+    // before the semantics.
+    const seen = new Set<string>();
+    for (const [, entries] of avitoSets) {
+      for (const one of entries) for (const effect of effectsOf(one)) seen.add(effect);
+    }
+    expect([...seen].sort()).toEqual([...EVERY_EFFECT]);
+  });
+
+  it("records two frames that actually differ, for every entry", () => {
+    // The pair is the unit of evidence: if `match` and `nomatch` produced the
+    // same state, the entry proves nothing about the rule it was emitted for.
+    const same: string[] = [];
+    for (const [name, entries] of avitoSets) {
+      for (const one of entries) {
+        const bearing = ruleBearing(one);
+        const differs = bearing.some(
+          (slug) =>
+            canonical(one.polarities.match.expect[slug]) !==
+            canonical(one.polarities.nomatch.expect[slug])
+        );
+        if (bearing.length === 0 || !differs) same.push(`${name}:${one.id}`);
+      }
+    }
+    expect(same).toEqual([]);
+  });
+
+  for (const [name, entries] of avitoSets) {
+    it(`${name} — every entry, both polarities, exactly as Python recorded them`, () => {
+      const wrong: string[] = [];
+      let checked = 0;
+      for (const one of entries) {
+        for (const polarity of ["match", "nomatch"] as const) {
+          const frame = one.polarities[polarity];
+          const state = evaluateRules(one.features, frame.values);
+          const actual = Object.fromEntries(
+            Object.entries(state).map(([slug, value]) => [slug, ruleStateToJson(value)])
+          );
+          checked += Object.keys(frame.expect).length;
+          const got = canonical(actual);
+          const want = canonical(frame.expect);
+          if (got !== want) wrong.push(`${one.id}/${polarity}: ${got} != ${want}`);
+        }
+      }
+      // Reported, not asserted: the count is what makes "the corpus ran" a
+      // number in the log rather than a claim in a commit message.
+      console.error(
+        `rules corpus [avito/${name}]: ${entries.length} rules, ` +
+          `${entries.length * 2} frames, ${checked} feature expectations`
+      );
+      expect(wrong.slice(0, 5)).toEqual([]);
+      expect(wrong).toHaveLength(0);
+    });
+  }
 });

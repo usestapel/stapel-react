@@ -1,0 +1,466 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/vocabularies-react",
+  "version": "0.0.0",
+  "backend": {
+    "module": "stapel-vocabularies",
+    "contract": ">=0.1 <0.2"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "vocabularies_api_v1_vocabularies_list": {
+      "method": "GET",
+      "path": "/vocabularies/api/v1/vocabularies/",
+      "tag": "vocabularies",
+      "request": null,
+      "response": null
+    },
+    "vocabularies_api_v1_vocabularies_retrieve": {
+      "method": "GET",
+      "path": "/vocabularies/api/v1/vocabularies/{slug}/",
+      "tag": "vocabularies",
+      "request": null,
+      "response": "Vocabulary"
+    },
+    "vocabularies_api_v1_vocabularies_terms_resolve_retrieve": {
+      "method": "GET",
+      "path": "/vocabularies/api/v1/vocabularies/{slug}/terms/resolve/",
+      "tag": "vocabularies",
+      "request": null,
+      "response": null
+    },
+    "vocabularies_api_v1_vocabularies_terms_retrieve": {
+      "method": "GET",
+      "path": "/vocabularies/api/v1/vocabularies/{slug}/terms/",
+      "tag": "vocabularies",
+      "request": null,
+      "response": "TermPage"
+    }
+  },
+  "hooks": {
+    "useTermLabels": {
+      "kind": "query",
+      "queryKey": [
+        "vocabularies",
+        "termLabels",
+        "{vocabulary}",
+        "{level}",
+        "{…}"
+      ]
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.vocabularies_bad_parent": {
+      "status": 400,
+      "params": [
+        "parent",
+        "level"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.vocabularies_level_not_found": {
+      "status": 404,
+      "params": [
+        "vocabulary",
+        "level"
+      ],
+      "remediation": "retry"
+    },
+    "error.404.vocabularies_vocabulary_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "vocabularies.provider",
+      "title": "Vocabularies provider",
+      "description": "The headless vocabularies root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "VocabulariesProvider",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/Vocabularies.demo.tsx"
+    },
+    {
+      "id": "vocabularies.term-select",
+      "title": "Vocabulary term select (default skin)",
+      "description": "One vocabulary level as a typeahead: the options are the answer to the current query (debounced, superseding), and a code the control already holds is resolved to its label and kept pickable even when the current page does not contain it.",
+      "component": "VocabularyTermSelect",
+      "variants": [
+        "default",
+        "phone",
+        "narrowed",
+        "multiple",
+        "unavailable"
+      ],
+      "source": "demo/VocabularyTermSelect.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.400.vocabularies_bad_parent",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.404.vocabularies_level_not_found",
+    "error.404.vocabularies_vocabulary_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.mandate_unavailable",
+    "vocabularies.error.unknown",
+    "vocabularies.termSelect.noMatches",
+    "vocabularies.termSelect.placeholder",
+    "vocabularies.termSelect.unavailable",
+    "vocabularies.termSelect.unavailable.title"
+  ],
+  "exports": {
+    "runtime": [
+      "DEFAULT_TERM_LIMIT",
+      "RESOLVE_BATCH",
+      "TERM_SEARCH_DEBOUNCE_MS",
+      "VOCABULARIES_ERRORS",
+      "VOCABULARIES_ERROR_CODES",
+      "VOCABULARIES_FLOWS",
+      "VOCABULARIES_I18N_KEYS",
+      "VocabulariesProvider",
+      "VocabulariesRuntimeContext",
+      "createFlowMachine",
+      "createVocabulariesApi",
+      "createVocabulariesRuntime",
+      "createVocabularyClient",
+      "explainVocabulariesError",
+      "flowEndpoints",
+      "isErrorCode",
+      "registerVocabulariesI18n",
+      "termLabel",
+      "toFlowError",
+      "useFlow",
+      "useTermLabels",
+      "useTermSearch",
+      "useVocabulariesAnalytics",
+      "useVocabulariesApi",
+      "useVocabulariesRuntime",
+      "vocabulariesErrorBundleEn",
+      "vocabulariesI18nBundleEn",
+      "vocabulariesQueryKeys"
+    ],
+    "types": [
+      "CreateVocabulariesRuntimeOptions",
+      "CreateVocabularyClientOptions",
+      "FlowEndpoint",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "Level",
+      "Remediation",
+      "Schemas",
+      "Term",
+      "TermLabels",
+      "TermLabelsOptions",
+      "TermPage",
+      "TermSearchOptions",
+      "TermSearchState",
+      "VocabulariesApi",
+      "VocabulariesErrorCode",
+      "VocabulariesErrorSpec",
+      "VocabulariesFlowId",
+      "VocabulariesFlowSpec",
+      "VocabulariesI18nKey",
+      "VocabulariesRuntime",
+      "Vocabulary",
+      "VocabularyClient",
+      "VocabularyTerm"
+    ]
+  }
+}

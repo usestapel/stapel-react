@@ -4661,5 +4661,8 @@
       }
     }
   ],
-  "avito": []
+  "avito": [
+    "prose.json",
+    "values-by-group.json"
+  ]
 }

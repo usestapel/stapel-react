@@ -10,7 +10,16 @@ browser half of stapel-attributes 0.5.0.
 `narrowFeature`, `parseRules`, `ruleErrors`, `RuleState`. It is measured
 against Python rather than reviewed against it — `test/rules.golden.test.ts`
 runs all 59 state cases and all 10 pipeline cases of the corpus the engine
-records from its own evaluator, copied here by `pnpm gen:rules` and drift-gated.
+records from its own evaluator, copied here by `pnpm gen:rules` and drift-gated,
+AND the whole generated Avito set from stapel-attributes 0.5.1: 3890 distinct
+rules lifted out of a real catalogue, each at both polarities — 7780 frames,
+15730 feature-state expectations, compared to what the Python evaluator wrote.
+A rule is a transition and one frame cannot photograph one, so the pair is the
+unit of evidence, and the corpus gate insists the two frames actually differ on
+the rule-bearing feature and that all five effects (require / show / hide /
+forbid_option / limit) appear. The two Avito files are copied BYTE FOR BYTE
+(~12 MB, test-only, never packed) rather than re-serialized, so "this file IS
+upstream's file" stays checkable.
 Three behaviours that are decisions, not defaults: readings come from the
 feature DEFINITIONS (a controlling slug the set does not declare reads as
 `empty` even when `values` carries one), `narrowConfig` REPLACES a declared
