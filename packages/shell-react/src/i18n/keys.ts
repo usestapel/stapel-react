@@ -31,12 +31,17 @@ export const SHELL_I18N_KEYS = {
    * screen reader's landmark list otherwise offers two identical
    * "navigation"s and no way to tell the drawer from the dock. */
   dockLabel: "shell.dock.label",
-  /** Folded into a dock link's accessible name when its badge carries a
+  /** Folded into a nav destination's accessible name when its badge carries a
    * count: "Chat, 3 unread". The number is on the badge for the eye; this is
    * the same fact for a screen reader, said in words rather than left as a
    * digit glued to the label. Deliberately NOT a plural family — the counted
    * noun is the destination's own name, which the shell does not own and
-   * cannot decline. */
+   * cannot decline.
+   *
+   * Named for the dock because that is where it started; it is now read by
+   * every surface that renders a nav badge (the dock, the `Sider`, the nav
+   * sheet, the storefront's top-bar menu). One count, one sentence — a second
+   * key per surface would be four translations of one fact. */
   dockUnread: "shell.dock.unread",
   /** `<PublicShell/>`'s default `accountSlot`. The public chrome renders a
    * sign-in CTA when the host supplies no account slot at all, so this key is

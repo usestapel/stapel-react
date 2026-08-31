@@ -19,9 +19,11 @@
  * ── The three rules this component is TESTED against, not trusted on ───────
  *
  * 1. **No `Sider`, ever.** Top bar + optional browse bar + `<Outlet/>` +
- *    optional footer. On phone the browse bar collapses into a `Drawer`; the
- *    header itself never collapses, because a storefront whose search box
- *    disappears on a phone is a storefront nobody searches.
+ *    optional footer. On phone the browse bar collapses into a `Drawer` — or,
+ *    with `phoneChrome="dock"`, disappears entirely into the bottom dock and
+ *    leaves one sticky header row. Either way the header itself never
+ *    collapses, because a storefront whose search box disappears on a phone is
+ *    a storefront nobody searches.
  *
  * 2. **`accountSlot` is a CTA, never emptiness.** Omit it and this component
  *    renders a sign-in link anyway. A hidden control teaches nothing
@@ -88,6 +90,7 @@ const DEFAULT_CONTENT_MAX_WIDTH = 1280;
 
 /** See `AppShell`'s constants of the same name — one frame, one geometry. */
 const HEADER_HEIGHT_DESKTOP = spacing[8];
+const HEADER_HEIGHT_PHONE = spacing[7] + spacing[2];
 const DRAWER_WIDTH = "min(20rem, 86vw)";
 
 export interface PublicShellProps {
@@ -154,9 +157,61 @@ export interface PublicShellProps {
    */
   readonly dock?: boolean;
   /**
-   * Counts to mark dock destinations with, keyed by nav entry id — unread
-   * messages, pending offers. A SLOT: how many of anything is waiting belongs
-   * to the module that owns the thing, and the shell depends on no module.
+   * Which chrome this storefront wears BELOW the desktop breakpoint. Desktop
+   * is untouched either way — this prop has no effect there at all.
+   *
+   *  - `"drawer"` (default, and byte-identical to every release before this
+   *    prop existed): a hamburger opens the nav sheet, and the header takes a
+   *    second line for the search field.
+   *  - `"dock"`: no hamburger, no sheet, no second header line. The header is
+   *    ONE sticky row — the search field, stretched, and the account control
+   *    at its end — and the `<NavDock/>` under the thumb is the whole
+   *    navigation. The brand is not drawn on a phone in this mode: identity
+   *    and navigation both live in the dock, and a 390px row that carries a
+   *    wordmark cannot also carry a search field worth typing into.
+   *
+   * The footer still renders in both. A storefront's legal links are the one
+   * thing that must stay reachable from every screen, and "clean" is not a
+   * reason to make privacy and terms unreachable on the device most people
+   * read them on.
+   *
+   * `dock={false}` alongside `"dock"` leaves a phone with no navigation at
+   * all. That combination is not defended against, because it is a legible
+   * statement: a host that switched the island off has said its own chrome
+   * owns the bottom edge, and it owns what is in it.
+   *
+   * ── What `"dock"` gives up, stated rather than discovered ─────────────────
+   *
+   * The phone's theme switch lives in the foot of the nav sheet, so removing
+   * the sheet removes it: in `"dock"` mode there is NO theme control on a
+   * phone. That is accepted, not overlooked. A boot-time `system` follow
+   * already puts an anonymous visitor on the right side of the theme without
+   * anyone choosing anything, and the choice itself belongs on the account or
+   * profile surface a host owns — where `<ShellThemeControl/>` is a single
+   * import away. What is not acceptable is putting a three-target appearance
+   * control on the one row a storefront's search field lives on.
+   */
+  readonly phoneChrome?: "drawer" | "dock";
+  /**
+   * Counts to mark nav destinations with, keyed by `ResolvedNavEntry.id` —
+   * unread messages, pending offers. THE canonical badge channel: the count
+   * is rendered wherever the entry is rendered — the dock, the nav sheet, the
+   * top bar's menu — so a fact the chrome knows is not said by one surface
+   * and swallowed by the others.
+   *
+   * A SLOT: how many of anything is waiting belongs to the module that owns
+   * the thing, and the shell depends on no module. Absent or `0` draws no
+   * badge.
+   */
+  readonly navBadges?: Readonly<Record<string, number>>;
+  /**
+   * The dock-only badge input, kept working unchanged.
+   *
+   * It predates {@link PublicShellProps.navBadges} and says less: a count
+   * passed here marks the dock and nothing else, which on a desktop — where
+   * there is no dock — is a count nobody sees. Prefer `navBadges`. Where both
+   * name the same entry the narrower input wins for the dock, because a host
+   * that spelled out a dock-specific number meant the dock.
    */
   readonly dockBadges?: Readonly<Record<string, number>>;
   /**
@@ -168,6 +223,10 @@ export interface PublicShellProps {
    * a `[data-theme="dark"]` block for two waves and no storefront had a
    * control that could reach it, because the mechanism shipped without a
    * place. `false` is for a host whose own settings screen owns the choice.
+   *
+   * The phone placement IS the nav sheet, so `phoneChrome="dock"` — which has
+   * no sheet — has no phone theme control. See that prop for why that is an
+   * accepted trade and what covers it.
    */
   readonly themeControl?: boolean;
 }
@@ -207,6 +266,11 @@ function PublicChrome(props: PublicShellProps): ReactElement {
   const isDesktop = breakpoint === "desktop";
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // The decluttered phone chrome, and ONLY below the desktop breakpoint: the
+  // prop describes a phone, and a desktop that changed shape because of it
+  // would be this component quietly growing a second layout axis.
+  const dockChrome = !isDesktop && props.phoneChrome === "dock";
+
   // The browse bar exists only when there is something to browse. An empty
   // strip — and, on phone, a hamburger that opens an empty sheet — is a
   // control that promises a destination it does not have.
@@ -237,12 +301,22 @@ function PublicChrome(props: PublicShellProps): ReactElement {
   // would be chrome competing with chrome.
   const showDock = !isDesktop && props.dock !== false;
 
+  // `navBadges` is the canonical channel and `dockBadges` the dock-only one it
+  // replaced, so the dock reads both and the narrower input wins on a
+  // collision. Everywhere else — the sheet, the top bar's menu — only the
+  // canonical one applies: `dockBadges` says "dock" in its name.
+  const dockBadges: Readonly<Record<string, number>> | undefined =
+    props.navBadges === undefined && props.dockBadges === undefined
+      ? undefined
+      : { ...props.navBadges, ...props.dockBadges };
+
   const navMenu =
     props.nav.length > 0 ? (
       <NavMenu
         nav={props.nav}
         mode={isDesktop ? "horizontal" : "inline"}
         testId="public-shell-menu"
+        {...(props.navBadges !== undefined ? { badges: props.navBadges } : {})}
         style={{ borderInlineEnd: "none", background: "transparent" }}
         {...(isDesktop ? {} : { onNavigate: () => setDrawerOpen(false) })}
       />
@@ -253,8 +327,12 @@ function PublicChrome(props: PublicShellProps): ReactElement {
   // 390px line without each of them being unreadable, so the search takes a
   // second line of the same header rather than being dropped: a storefront
   // whose search box disappears on a phone is a storefront nobody searches.
+  // In `"dock"` mode the phone header draws no brand: the row is one line and
+  // the search field is what a storefront's phone header is FOR. The brand is
+  // still built — the nav sheet's own header uses `brandContent` directly, and
+  // the desktop row is untouched.
   const brandNode =
-    brandContent !== undefined ? (
+    brandContent !== undefined && !dockChrome ? (
       <div
         style={{ display: "flex", alignItems: "center", minWidth: 0 }}
         data-testid="public-shell-brand"
@@ -267,8 +345,11 @@ function PublicChrome(props: PublicShellProps): ReactElement {
     props.searchSlot !== undefined ? (
       <div
         style={
-          isDesktop
-            ? { flex: "1 1 auto", minWidth: 0 }
+          isDesktop || dockChrome
+            ? // Dominant: on a phone in dock mode the search field IS the
+              // header, and every other row it used to share space with has
+              // moved into the dock.
+              { flex: "1 1 auto", minWidth: 0 }
             : { flex: "0 0 auto", width: "100%", minWidth: 0 }
         }
         data-testid="public-shell-search"
@@ -288,7 +369,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
     <div
       style={{
         marginInlineStart:
-          isDesktop && props.searchSlot !== undefined ? 0 : "auto",
+          (isDesktop || dockChrome) && props.searchSlot !== undefined ? 0 : "auto",
         flex: "0 0 auto",
         display: "flex",
         alignItems: "center",
@@ -306,7 +387,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
   );
 
   const menuTrigger =
-    !isDesktop && hasBrowse ? (
+    !isDesktop && !dockChrome && hasBrowse ? (
       <Button
         type="text"
         aria-label={t(SHELL_I18N_KEYS.navOpenMenu)}
@@ -323,21 +404,43 @@ function PublicChrome(props: PublicShellProps): ReactElement {
     <Layout style={{ minHeight: "100vh" }} data-testid="public-shell">
       <Layout.Header
         data-testid="public-shell-header"
+        data-phone-chrome={isDesktop ? undefined : dockChrome ? "dock" : "drawer"}
         style={{
           display: "flex",
-          alignItems: isDesktop ? "center" : "stretch",
-          flexDirection: isDesktop ? "row" : "column",
-          gap: isDesktop ? spacing[4] : spacing[2],
+          alignItems: isDesktop || dockChrome ? "center" : "stretch",
+          flexDirection: isDesktop || dockChrome ? "row" : "column",
+          gap: isDesktop ? spacing[4] : dockChrome ? spacing[3] : spacing[2],
           padding: isDesktop
             ? `0 ${String(spacing[4])}px`
-            : `${String(spacing[2])}px ${String(spacing[4])}px`,
-          height: isDesktop ? HEADER_HEIGHT_DESKTOP : "auto",
+            : dockChrome
+              ? `0 ${String(spacing[4])}px`
+              : `${String(spacing[2])}px ${String(spacing[4])}px`,
+          height: isDesktop
+            ? HEADER_HEIGHT_DESKTOP
+            : dockChrome
+              ? HEADER_HEIGHT_PHONE
+              : "auto",
           lineHeight: 1,
+          // Sticky in dock mode, and only there. With the sheet gone the
+          // header is the only way back to search from halfway down a feed,
+          // and a header that scrolls away turns "search again" into "scroll
+          // to the top first". The background is the theme's own container
+          // token rather than a colour, so the content passing under it is
+          // covered on both sides of the theme; `zIndexPopupBase` is the layer
+          // the dock already floats on, and antd's own popups sit above it, so
+          // a select inside the search slot still opens over the header.
+          ...(dockChrome
+            ? {
+                position: "sticky" as const,
+                top: 0,
+                zIndex: token.zIndexPopupBase,
+              }
+            : {}),
           background: token.colorBgContainer,
           borderBottom: `1px solid ${token.colorSplit}`,
         }}
       >
-        {isDesktop ? (
+        {isDesktop || dockChrome ? (
           <>
             {brandNode}
             {searchNode}
@@ -405,7 +508,9 @@ function PublicChrome(props: PublicShellProps): ReactElement {
         </Flex>
       )}
 
-      {!isDesktop && (
+      {/* No sheet in dock mode: the dock IS the navigation, and a drawer that
+          nothing opens is a surface a screen reader still walks into. */}
+      {!isDesktop && !dockChrome && (
         <Drawer
           placement="left"
           open={drawerOpen}
@@ -511,7 +616,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
       {showDock && (
         <NavDock
           nav={props.nav}
-          {...(props.dockBadges !== undefined ? { badges: props.dockBadges } : {})}
+          {...(dockBadges !== undefined ? { badges: dockBadges } : {})}
         />
       )}
     </Layout>

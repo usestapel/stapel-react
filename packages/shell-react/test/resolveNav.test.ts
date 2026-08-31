@@ -559,3 +559,141 @@ describe("resolveNav — the admin section", () => {
     expect(adminNavIds(resolved).size).toBe(0);
   });
 });
+
+/**
+ * The override file's SURFACE and SESSION axes.
+ *
+ * A module declares who its screen is for in the abstract — `chat` is a member
+ * surface, `listings.favorites` needs an account. A container knows what it
+ * actually mounted around those routes, and the two answers are not the same
+ * product: a classified storefront puts Favourites and Messages in its phone
+ * dock for an anonymous visitor because it mounted a guest wall in front of
+ * them. That is a container decision, so the container's own file is where it
+ * is stated — not a fork of the module's manifest.
+ *
+ * Both axes are overridable, and that is not two features. Overriding one
+ * alone is, for this case, a setting that does nothing: a `member` +
+ * `requiresAuth` entry moved to `"public"` is still dropped by the session
+ * gate, and a project reads a setting that changes nothing as a broken
+ * mechanism.
+ */
+describe("resolveNav — overriding the surface and session axes", () => {
+  const installed = [
+    manifest("@stapel/chat", [
+      entry({
+        id: "chat.conversations",
+        requiresAuth: true,
+        surface: "member",
+        order: 40,
+      }),
+    ]),
+    manifest("@stapel/listings", [
+      entry({ id: "listings.favorites", requiresAuth: true, surface: "member", order: 20 }),
+    ]),
+    manifest("@stapel/search", [
+      entry({ id: "search.results", requiresAuth: false, surface: "public", order: 10 }),
+    ]),
+  ];
+
+  it("without the override, an anonymous storefront sees only the public entry", () => {
+    expect(resolvePublicNav(installed).map((e) => e.id)).toEqual(["search.results"]);
+  });
+
+  it("carries the overridden surface onto the resolved entry, so the menu and the route agree", () => {
+    const resolved = resolveNav(installed, {
+      overrides: { "listings.favorites": { surface: "public", requiresAuth: false } },
+    });
+    const favorites = resolved.find((e) => e.id === "listings.favorites");
+    expect(favorites?.surface).toBe("public");
+    expect(favorites?.requiresAuth).toBe(false);
+  });
+
+  it("puts the overridden destinations in an anonymous visitor's tree, in declared order", () => {
+    const overrides = {
+      overrides: {
+        "listings.favorites": { surface: "public" as const, requiresAuth: false },
+        "chat.conversations": { surface: "public" as const, requiresAuth: false },
+      },
+    };
+    expect(resolvePublicNav(installed, overrides).map((e) => e.id)).toEqual([
+      "search.results",
+      "listings.favorites",
+      "chat.conversations",
+    ]);
+  });
+
+  it("leaves an entry the file does not name exactly where it was", () => {
+    const overrides = {
+      overrides: { "listings.favorites": { surface: "public" as const, requiresAuth: false } },
+    };
+    expect(resolvePublicNav(installed, overrides).map((e) => e.id)).not.toContain(
+      "chat.conversations"
+    );
+  });
+
+  it("keeps the two axes independent — surface alone still meets the session gate", () => {
+    // The trap this test exists for: `surface: "public"` on a `requiresAuth`
+    // entry is a door onto the sign-in redirect, and `resolveNav` has dropped
+    // that combination since the session axis was read. An override does not
+    // exempt an entry from the gates; it only restates what the entry IS.
+    const overrides = { overrides: { "chat.conversations": { surface: "public" as const } } };
+    const anonymous = resolvePublicNav(installed, overrides).map((e) => e.id);
+    expect(anonymous).not.toContain("chat.conversations");
+    // …and the surface itself did move, which is why the entry reaches a
+    // signed-in guest who has no mandate.
+    expect(
+      resolveNav(installed, overrides, { audience: "guest", authenticated: true }).map(
+        (e) => e.id
+      )
+    ).toContain("chat.conversations");
+  });
+
+  it("closes a public destination just as well as it opens a member one", () => {
+    const overrides = { overrides: { "search.results": { surface: "member" as const } } };
+    expect(resolvePublicNav(installed, overrides).map((e) => e.id)).toEqual([]);
+    expect(resolveMemberNav(installed, overrides).map((e) => e.id)).toContain("search.results");
+  });
+
+  it("re-derives an undeclared surface from the overridden session axis, not the manifest's", () => {
+    // The entry declares no surface at all, so its surface is DERIVED. Reading
+    // the derivation off the manifest's `requiresAuth` while the project has
+    // overridden that same field would make one entry contradict itself.
+    const derived = [
+      manifest("@stapel/a", [entry({ id: "a.member_by_derivation", requiresAuth: true })]),
+    ];
+    expect(resolveNav(derived)[0]?.surface).toBe("member");
+    const opened = resolveNav(derived, {
+      overrides: { "a.member_by_derivation": { requiresAuth: false } },
+    });
+    expect(opened[0]?.surface).toBe("public");
+    expect(resolvePublicNav(derived, {
+      overrides: { "a.member_by_derivation": { requiresAuth: false } },
+    }).map((e) => e.id)).toEqual(["a.member_by_derivation"]);
+  });
+
+  it("an explicit declared surface still wins over the derivation when only the session axis is overridden", () => {
+    const opened = resolveNav(installed, {
+      overrides: { "chat.conversations": { requiresAuth: false } },
+    });
+    expect(opened.find((e) => e.id === "chat.conversations")?.surface).toBe("member");
+  });
+
+  it("applies to a SUBMENU child as well as a top entry", () => {
+    const tree = [
+      manifest("@stapel/a", [entry({ id: "a.top", requiresAuth: false, surface: "public" })]),
+      manifest("@stapel/b", [
+        entry({
+          id: "b.member",
+          requiresAuth: true,
+          surface: "member",
+          placement: { level: "submenu", parentId: "a.top" },
+        }),
+      ]),
+    ];
+    expect(resolvePublicNav(tree)[0]?.children).toEqual([]);
+    const opened = resolvePublicNav(tree, {
+      overrides: { "b.member": { surface: "public", requiresAuth: false } },
+    });
+    expect(opened[0]?.children?.map((c) => c.id)).toEqual(["b.member"]);
+  });
+});

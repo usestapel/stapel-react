@@ -58,7 +58,7 @@
     {
       "id": "shell.public",
       "title": "Public shell",
-      "description": "A storefront's chrome, and a sibling of AppShell rather than a flag on it: top bar, browse bar, measured content, footer — and never a Sider. On a phone the search box moves to its own line of the same header instead of disappearing, because a storefront whose search vanishes on a phone is a storefront nobody searches. Omit accountSlot and a sign-in link renders anyway: the absence of a sign-in button on a public page is not clean, it is a dead end for the one person the page exists to convert.",
+      "description": "A storefront's chrome, and a sibling of AppShell rather than a flag on it: top bar, browse bar, measured content, footer — and never a Sider. The phone has two frames: the default \"drawer\", where the search box moves to its own line of the same header and browse collapses behind a hamburger, and phoneChrome=\"dock\", which drops the hamburger, the sheet and the second line for one sticky row over a dock. Either way the search box never disappears, because a storefront whose search vanishes on a phone is a storefront nobody searches. Omit accountSlot and a sign-in link renders anyway: the absence of a sign-in button on a public page is not clean, it is a dead end for the one person the page exists to convert.",
       "component": "PublicShell",
       "tokens": [
         "surface",
@@ -68,7 +68,10 @@
         "default",
         "signed-in",
         "nothing-to-browse",
-        "phone"
+        "phone",
+        "phone-dock",
+        "phone-dock-badges",
+        "badges"
       ],
       "source": "demo/PublicShell.demo.tsx"
     },

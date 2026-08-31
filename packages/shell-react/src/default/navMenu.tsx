@@ -14,7 +14,7 @@
  */
 import { useMemo } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { ConfigProvider, Menu, Typography, theme } from "antd";
+import { Badge, ConfigProvider, Menu, Typography, theme } from "antd";
 import type { MenuProps } from "antd";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useT } from "@stapel/core";
@@ -22,6 +22,7 @@ import type { ActionAvailability, TranslateFn } from "@stapel/core";
 import { radii, spacing } from "@stapel/tokens-antd";
 import { LockGlyph, resolveNavIcon } from "./icons.js";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
+import { SHELL_I18N_KEYS } from "../i18n/keys.js";
 
 /** Why an entry is offered, or is not. See {@link NavMenuProps.gate}. */
 export type NavGate = (entry: ResolvedNavEntry) => ActionAvailability;
@@ -150,11 +151,59 @@ const BLOCKED_ROW_STYLE: CSSProperties = {
   whiteSpace: "normal",
 };
 
+/**
+ * Counts to mark nav destinations with, keyed by `ResolvedNavEntry.id`.
+ *
+ * The RUNTIME channel over a static manifest: a manifest states which
+ * destinations exist, and how many of anything is waiting behind one is a fact
+ * only the module that owns the thing can answer. The shell depends on no
+ * module, so the number arrives as data addressed by the id the manifest
+ * already gave the entry — the same shape `<NavDock/>` takes, because the dock
+ * and the menu are two renderings of one tree and a second shape would be a
+ * second place to keep in step.
+ */
+export type NavBadges = Readonly<Record<string, number>>;
+
+/**
+ * A row's label with its count beside it — and the count folded into the
+ * accessible name rather than left as a digit glued to the word.
+ *
+ * The `<Badge>` is `aria-hidden`, exactly as it is in the dock: it is the
+ * number FOR THE EYE, and a screen reader that read it twice — once as
+ * "Messages 3" from the badge's own text, once from the name — would be
+ * reporting one fact as two. The name lives on the wrapper, which is what a
+ * menu row (and the `<Link>` inside it) computes its own name from.
+ *
+ * Zero draws nothing at all, and the label stays a bare string: a zero badge
+ * is a mark that says nothing is happening, and an empty wrapper element
+ * around every unbadged row would change the menu's DOM for no reason.
+ */
+function badgedLabel(text: string, count: number, t: TranslateFn): ReactNode {
+  if (count <= 0) return text;
+  return (
+    <span
+      aria-label={`${text}, ${t(SHELL_I18N_KEYS.dockUnread, { count })}`}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: spacing[3],
+        maxWidth: "100%",
+      }}
+      data-stapel-nav-badged=""
+    >
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{text}</span>
+      <Badge count={count} size="small" aria-hidden="true" />
+    </span>
+  );
+}
+
 export function toMenuItems(
   nav: readonly ResolvedNavEntry[],
   t: TranslateFn,
-  gate: NavGate = alwaysOpen
+  gate: NavGate = alwaysOpen,
+  badges?: NavBadges
 ): NonNullable<MenuProps["items"]> {
+  const countOf = (entry: ResolvedNavEntry): number => badges?.[entry.id] ?? 0;
   const one = (
     entry: ResolvedNavEntry,
     /** `false` for a child of an already-blocked section: the reason is
@@ -178,7 +227,7 @@ export function toMenuItems(
     return {
       key: entry.id,
       icon: navIcon(entry.icon),
-      label: <Link to={entry.linkPath}>{text}</Link>,
+      label: <Link to={entry.linkPath}>{badgedLabel(text, countOf(entry), t)}</Link>,
     };
   };
 
@@ -197,7 +246,11 @@ export function toMenuItems(
         return {
           key: entry.id,
           icon: navIcon(entry.icon),
-          label: text,
+          // A section carries its own count too: whatever is waiting inside a
+          // collapsed submenu is invisible until the submenu is opened, which
+          // is precisely when a mark on the section is the only thing that
+          // says to open it.
+          label: badgedLabel(text, countOf(entry), t),
           children: entry.children.map((child) => one(child)),
         };
       }
@@ -234,6 +287,16 @@ export interface NavMenuProps {
    * spell "off, reason unknown".
    */
   readonly gate?: NavGate;
+  /**
+   * Per-entry counts ({@link NavBadges}) — unread messages, ads awaiting
+   * moderation. Absent or `0` draws no badge.
+   *
+   * The same input the dock takes, rendered on the same entries: a count that
+   * appeared under the thumb and not in the sheet (or on a desktop `Sider`,
+   * which has no dock at all) would be a fact the chrome knows and only one of
+   * its surfaces says.
+   */
+  readonly badges?: NavBadges;
   /** Test hook. Defaults to `AppShell`'s historical id so its suite — and any
    * host asserting on it — keeps working unchanged. */
   readonly testId?: string;
@@ -257,9 +320,12 @@ export function NavMenu(props: NavMenuProps): ReactElement {
   const { token } = theme.useToken();
   const location = useLocation();
   const navigate = useNavigate();
-  const { nav, onNavigate, gate } = props;
+  const { nav, onNavigate, gate, badges } = props;
   const flat = useMemo(() => flatten(nav), [nav]);
-  const items = useMemo(() => toMenuItems(nav, t, gate), [nav, t, gate]);
+  const items = useMemo(
+    () => toMenuItems(nav, t, gate, badges),
+    [nav, t, gate, badges]
+  );
   // One config object per distinct answer. A fresh `ThemeConfig` on every
   // render makes antd re-derive the whole theme on every render — the exact
   // cost `SkinTheme`'s own cache exists to avoid.

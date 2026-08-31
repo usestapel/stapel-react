@@ -82,7 +82,10 @@ const NAV: readonly ResolvedNavEntry[] = [
   },
 ];
 
-function wrap(initialPath: string): ReactElement {
+function wrap(
+  initialPath: string,
+  props: Partial<Parameters<typeof AppShell>[0]> = {}
+): ReactElement {
   const i18n = createI18n({ locale: "en" });
   registerShellI18n(i18n);
   i18n.registerBundle("en", {
@@ -94,7 +97,7 @@ function wrap(initialPath: string): ReactElement {
     <I18nProvider i18n={i18n}>
       <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
-          <Route element={<AppShell nav={NAV} />}>
+          <Route element={<AppShell nav={NAV} {...props} />}>
             <Route path="settings" element={<div>Settings Page</div>} />
             <Route path="notifications" element={<div>Notifications Page</div>} />
           </Route>
@@ -559,5 +562,56 @@ describe("<AppShell/> — the theme control is chrome, not a host chore", () => 
     await waitFor(() => expect(screen.getByText("Settings Page")).toBeDefined());
     expect(screen.queryByTestId("shell-theme-control")).toBeNull();
     expect(screen.queryByTestId("app-shell-theme")).toBeNull();
+  });
+});
+
+/**
+ * Nav badges — the runtime channel over a static manifest.
+ *
+ * The manifest says which destinations exist; how many of anything is waiting
+ * behind one is a fact only the module owning that thing can answer, so it
+ * arrives as data keyed by the id the manifest already gave the entry. What is
+ * asserted here is that it lands on the row a person actually looks at — and in
+ * the row's NAME, not only in a glyph beside it.
+ */
+describe("<AppShell/> — nav badges reach the rows the entries render on", () => {
+  it("marks the addressed entry in the Sider, count folded into its accessible name", async () => {
+    setViewportWidth(1440);
+    render(wrap("/settings", { navBadges: { "notifications.feed": 3 } }));
+
+    await waitFor(() => expect(screen.getByTestId("app-shell-sider")).toBeDefined());
+    const sider = screen.getByTestId("app-shell-sider");
+    expect(
+      within(sider).getByRole("menuitem", { name: "Notifications, 3 unread" })
+    ).toBeDefined();
+    // The other entry is untouched: a badge channel that marked everything
+    // would be a decoration, not a count.
+    expect(within(sider).getByRole("menuitem", { name: "Settings" })).toBeDefined();
+    expect(sider.querySelectorAll(".ant-badge").length).toBe(1);
+  });
+
+  it("draws nothing for an absent or zero count", async () => {
+    setViewportWidth(1440);
+    render(wrap("/settings", { navBadges: { "notifications.feed": 0 } }));
+
+    await waitFor(() => expect(screen.getByTestId("app-shell-sider")).toBeDefined());
+    const sider = screen.getByTestId("app-shell-sider");
+    expect(within(sider).getByRole("menuitem", { name: "Notifications" })).toBeDefined();
+    expect(sider.querySelector(".ant-badge")).toBeNull();
+  });
+
+  it("marks the same entry in the phone nav sheet — one fact, every surface", async () => {
+    setViewportWidth(375);
+    render(wrap("/settings", { navBadges: { "notifications.feed": 3 } }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Open menu" })).toBeDefined());
+    fireEvent.click(screen.getByRole("button", { name: "Open menu" }));
+    await waitFor(() => expect(document.querySelector(".ant-drawer-open")).not.toBeNull());
+
+    const drawer = screen.getByTestId("app-shell-drawer");
+    expect(
+      within(drawer).getByRole("menuitem", { name: "Notifications, 3 unread" })
+    ).toBeDefined();
+    setViewportWidth(1440);
   });
 });

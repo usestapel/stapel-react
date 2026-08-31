@@ -362,3 +362,213 @@ describe("<PublicShell/> — the theme control is chrome, not a host chore", () 
     expect(screen.queryByTestId("public-shell-theme")).toBeNull();
   });
 });
+
+/**
+ * `phoneChrome="dock"` — the decluttered phone frame (mobile-web wave).
+ *
+ * The reference storefronts all draw the same thing on a phone: one row of
+ * search plus a sign-in control, and every destination under the thumb. The
+ * shell's own default was a hamburger, a brand, an account control AND a
+ * second header line for search — four decisions on a 390px screen, three of
+ * which the dock already answers.
+ *
+ * The `"drawer"` default is unchanged and asserted so above; what is asserted
+ * here is that the second mode removes exactly what it claims to and nothing
+ * a storefront needs — the footer's legal links included.
+ */
+describe("<PublicShell/> — phoneChrome=\"dock\"", () => {
+  it("drops the hamburger and the sheet: the dock is the whole navigation", async () => {
+    setViewportWidth(375);
+    render(
+      wrap("/s", {
+        phoneChrome: "dock",
+        searchSlot: <input aria-label="q" />,
+        categorySlot: <span>Cars</span>,
+      })
+    );
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-header")).toBeDefined());
+    expect(screen.queryByRole("button", { name: "Open menu" })).toBeNull();
+    expect(screen.queryByTestId("public-shell-drawer")).toBeNull();
+    expect(screen.queryByTestId("public-shell-browse")).toBeNull();
+    expect(screen.getByTestId("nav-dock")).toBeDefined();
+    setViewportWidth(1440);
+  });
+
+  it("is ONE row: search stretched, account at its end, no brand and no second line", async () => {
+    setViewportWidth(375);
+    render(
+      wrap("/s", {
+        phoneChrome: "dock",
+        brand: <span>Acme</span>,
+        searchSlot: <input aria-label="q" />,
+      })
+    );
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-header")).toBeDefined());
+    const header = screen.getByTestId("public-shell-header");
+    expect(header.style.flexDirection).toBe("row");
+    // The brand is not drawn: identity lives in the dock, and a 390px row that
+    // carries a wordmark cannot also carry a search field worth typing into.
+    expect(screen.queryByTestId("public-shell-brand")).toBeNull();
+    expect(screen.queryByText("Acme")).toBeNull();
+    const search = screen.getByTestId("public-shell-search");
+    expect(search.style.flex).toBe("1 1 auto");
+    // Search first, account after it — and both are direct children of the one
+    // header row rather than of a nested line.
+    const order = [...header.children].map((el) => el.getAttribute("data-testid"));
+    expect(order).toEqual(["public-shell-search", "public-shell-account"]);
+    setViewportWidth(1440);
+  });
+
+  it("sticks to the top: the way back to search must survive a scrolled feed", async () => {
+    setViewportWidth(375);
+    render(wrap("/s", { phoneChrome: "dock", searchSlot: <input aria-label="q" /> }));
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-header")).toBeDefined());
+    const header = screen.getByTestId("public-shell-header");
+    expect(header.style.position).toBe("sticky");
+    expect(header.style.top).toBe("0px");
+    expect(header.style.zIndex).not.toBe("");
+    // Painted from the theme's own container token, so whatever scrolls under
+    // it is covered on both sides of the theme.
+    expect(header.style.background).not.toBe("");
+    setViewportWidth(1440);
+  });
+
+  it("keeps the footer — legal links are not clutter", async () => {
+    setViewportWidth(375);
+    render(
+      wrap("/s", { phoneChrome: "dock", footer: <span>Privacy</span> })
+    );
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-footer")).toBeDefined());
+    expect(screen.getByText("Privacy")).toBeDefined();
+    setViewportWidth(1440);
+  });
+
+  it("has no phone theme control, because the sheet that held it is gone", async () => {
+    setViewportWidth(375);
+    render(wrap("/s", { phoneChrome: "dock", searchSlot: <input aria-label="q" /> }));
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-header")).toBeDefined());
+    // Documented on the prop, not discovered in production: the boot-time
+    // system follow covers an anonymous visitor, and a host mounts
+    // <ShellThemeControl/> on its own account surface.
+    expect(screen.queryByTestId("shell-theme-control")).toBeNull();
+    setViewportWidth(1440);
+  });
+
+  it("leaves the DESKTOP alone — the prop describes a phone", async () => {
+    setViewportWidth(1440);
+    render(
+      wrap("/s", {
+        phoneChrome: "dock",
+        brand: <span>Acme</span>,
+        searchSlot: <input aria-label="q" />,
+        categorySlot: <span>Cars</span>,
+      })
+    );
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-browse")).toBeDefined());
+    expect(screen.getByTestId("public-shell-brand")).toBeDefined();
+    expect(screen.getByTestId("public-shell-header").style.position).toBe("");
+    expect(screen.getByTestId("shell-theme-control")).toBeDefined();
+    expect(screen.queryByTestId("nav-dock")).toBeNull();
+  });
+
+  it("still draws the drawer chrome when the prop is omitted", async () => {
+    setViewportWidth(375);
+    render(wrap("/s", { searchSlot: <input aria-label="q" />, categorySlot: <span>Cars</span> }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Open menu" })).toBeDefined());
+    expect(screen.getByTestId("public-shell-header").style.flexDirection).toBe("column");
+    expect(screen.getByTestId("public-shell-header").style.position).toBe("");
+    setViewportWidth(1440);
+  });
+});
+
+/**
+ * `navBadges` — the canonical badge channel, and `dockBadges` the dock-only
+ * one it replaces. A count the chrome knows has to appear on every surface
+ * that renders the entry, or it is a fact one surface says and the others
+ * swallow — which on a desktop, where there is no dock at all, meant it was
+ * said nowhere.
+ */
+describe("<PublicShell/> — navBadges reach every surface the entry renders on", () => {
+  it("marks the top bar's menu on a desktop", async () => {
+    setViewportWidth(1440);
+    render(wrap("/s", { navBadges: { "listings.compose": 2 } }));
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-menu")).toBeDefined());
+    const menu = screen.getByTestId("public-shell-menu");
+    expect(
+      within(menu).getByRole("menuitem", { name: "Post an ad, 2 unread" })
+    ).toBeDefined();
+    expect(menu.querySelectorAll(".ant-badge").length).toBe(1);
+  });
+
+  it("marks the nav sheet AND the dock on a phone", async () => {
+    setViewportWidth(375);
+    render(wrap("/s", { navBadges: { "listings.compose": 2 }, categorySlot: <span>Cars</span> }));
+
+    await waitFor(() => expect(screen.getByTestId("nav-dock")).toBeDefined());
+    expect(
+      screen.getByTestId("nav-dock-item-listings.compose").getAttribute("aria-label")
+    ).toBe("Post an ad, 2 unread");
+
+    fireEvent.click(screen.getByRole("button", { name: "Open menu" }));
+    await waitFor(() => expect(document.querySelector(".ant-drawer-open")).not.toBeNull());
+    expect(
+      within(screen.getByTestId("public-shell-drawer")).getByRole("menuitem", {
+        name: "Post an ad, 2 unread",
+      })
+    ).toBeDefined();
+    setViewportWidth(1440);
+  });
+
+  it("draws nothing for a zero", async () => {
+    setViewportWidth(1440);
+    render(wrap("/s", { navBadges: { "listings.compose": 0 } }));
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-menu")).toBeDefined());
+    expect(screen.getByTestId("public-shell-menu").querySelector(".ant-badge")).toBeNull();
+  });
+
+  it("keeps the legacy dockBadges working, dock-only and unchanged", async () => {
+    setViewportWidth(375);
+    render(wrap("/s", { dockBadges: { "listings.compose": 5 }, categorySlot: <span>Cars</span> }));
+
+    await waitFor(() => expect(screen.getByTestId("nav-dock")).toBeDefined());
+    expect(
+      screen.getByTestId("nav-dock-item-listings.compose").getAttribute("aria-label")
+    ).toBe("Post an ad, 5 unread");
+
+    // Dock-only: it says "dock" in its name, and the sheet is not the dock.
+    fireEvent.click(screen.getByRole("button", { name: "Open menu" }));
+    await waitFor(() => expect(document.querySelector(".ant-drawer-open")).not.toBeNull());
+    expect(
+      screen.getByTestId("public-shell-drawer").querySelector(".ant-badge")
+    ).toBeNull();
+    setViewportWidth(1440);
+  });
+
+  it("merges the two for the dock, and the narrower input wins on a collision", async () => {
+    setViewportWidth(375);
+    render(
+      wrap("/s", {
+        navBadges: { "listings.compose": 2, "search.results": 7 },
+        dockBadges: { "listings.compose": 5 },
+      })
+    );
+
+    await waitFor(() => expect(screen.getByTestId("nav-dock")).toBeDefined());
+    expect(
+      screen.getByTestId("nav-dock-item-listings.compose").getAttribute("aria-label")
+    ).toBe("Post an ad, 5 unread");
+    expect(
+      screen.getByTestId("nav-dock-item-search.results").getAttribute("aria-label")
+    ).toBe("Search, 7 unread");
+    setViewportWidth(1440);
+  });
+});

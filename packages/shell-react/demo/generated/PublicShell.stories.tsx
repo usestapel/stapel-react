@@ -18,3 +18,12 @@ NothingToBrowse.parameters = { stapel: {"viewport":"phone","step":"no-browse"} }
 export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
 Phone.storyName = "phone";
 Phone.parameters = { stapel: {"viewport":"phone","step":"collapsed"} };
+export const PhoneDock = (): ReactElement => renderDemoVariant(demo, "phone-dock");
+PhoneDock.storyName = "phone-dock";
+PhoneDock.parameters = { stapel: {"viewport":"phone","step":"dock"} };
+export const PhoneDockBadges = (): ReactElement => renderDemoVariant(demo, "phone-dock-badges");
+PhoneDockBadges.storyName = "phone-dock-badges";
+PhoneDockBadges.parameters = { stapel: {"viewport":"phone","step":"dock-badged"} };
+export const Badges = (): ReactElement => renderDemoVariant(demo, "badges");
+Badges.storyName = "badges";
+Badges.parameters = { stapel: {"viewport":"desktop","step":"badged"} };

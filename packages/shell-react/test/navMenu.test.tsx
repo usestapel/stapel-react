@@ -72,6 +72,7 @@ function renderMenu(
     "auth.security.label": "Security",
     "admin.root.label": "Admin",
     "shell.nav.admin_staff_only": "For the people who operate this product",
+    "shell.dock.unread": "{count} unread",
   });
   render(
     <I18nProvider i18n={i18n}>
@@ -194,5 +195,55 @@ describe("<NavMenu/> — a gated entry is listed with its reason, never hidden",
     renderMenu(SECTION, "/app/settings");
     expect(document.querySelector("[data-stapel-nav-blocked-reason]")).toBeNull();
     expect(screen.getByText("Security").closest("a")).not.toBeNull();
+  });
+});
+
+/**
+ * Badges: the runtime channel over the static manifest.
+ *
+ * A nav manifest is baked at build time and states which destinations exist. A
+ * count is the opposite kind of fact — it changes while the page is open, and
+ * only the module that owns the thing can answer it. So it arrives as data
+ * addressed by the id the manifest already gave the entry, and the menu's job
+ * is to put it on the right row and INTO that row's name: a bare digit beside
+ * a word is a number a screen reader reads as part of the label.
+ */
+describe("<NavMenu/> — badges", () => {
+  it("marks the addressed row and folds the count into its accessible name", () => {
+    renderMenu(SECTION, "/app/settings", { badges: { "auth.security": 2 } });
+
+    expect(screen.getByRole("menuitem", { name: "Security, 2 unread" })).toBeDefined();
+    // The badge is the number for the EYE; the name already carries it once.
+    const badge = document.querySelector(".ant-badge");
+    expect(badge).not.toBeNull();
+    expect(badge?.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("leaves every other row exactly as it was", () => {
+    renderMenu(SECTION, "/app/settings", { badges: { "auth.security": 2 } });
+
+    expect(screen.getByRole("menuitem", { name: "Overview" })).toBeDefined();
+    expect(document.querySelectorAll(".ant-badge").length).toBe(1);
+  });
+
+  it("draws nothing for a zero, and nothing for an id it was given no count for", () => {
+    renderMenu(SECTION, "/app/settings", { badges: { "auth.security": 0 } });
+
+    expect(screen.getByRole("menuitem", { name: "Security" })).toBeDefined();
+    expect(document.querySelector(".ant-badge")).toBeNull();
+  });
+
+  it("renders no badge markup at all when no counts are passed", () => {
+    renderMenu(SECTION, "/app/settings");
+
+    expect(screen.getByRole("menuitem", { name: "Security" })).toBeDefined();
+    expect(document.querySelector("[data-stapel-nav-badged]")).toBeNull();
+  });
+
+  it("marks a SECTION too — what is waiting inside a closed submenu is invisible until it opens", () => {
+    renderMenu(SECTION, "/app/settings", { badges: { "profiles.settings": 4 } });
+
+    const section = screen.getByRole("menuitem", { name: "Settings, 4 unread" });
+    expect(section).toBeDefined();
   });
 });

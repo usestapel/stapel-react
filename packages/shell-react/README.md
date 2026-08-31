@@ -14,12 +14,39 @@ const nav = resolveNav(navManifest.packages, projectOverrides);
 ```
 
 Merges every installed `@stapel/<pair>-react`'s nav-manifest, applies a
-project's per-entry `menuVisible`/`order` overrides, sorts, nests
-`placement.level: "submenu"` entries under their `parentId`, and filters to
-only the entries that resolve visible. Runs identically at scaffold codegen
-time (baking a default `stapel.nav.json`) and at runtime in the shipped app
-(re-applying the project's live override file) — see the module doc in
+project's per-entry overrides, sorts, nests `placement.level: "submenu"`
+entries under their `parentId`, and filters to only the entries that resolve
+visible. Runs identically at scaffold codegen time (baking a default
+`stapel.nav.json`) and at runtime in the shipped app (re-applying the
+project's live override file) — see the module doc in
 `src/headless/resolveNav.ts` for the exact algorithm.
+
+### The override file (`stapel.nav.json`)
+
+```jsonc
+{
+  "overrides": {
+    "listings.favorites": { "order": 20, "surface": "public", "requiresAuth": false },
+    "chat.conversations": { "order": 40, "surface": "public", "requiresAuth": false }
+  }
+}
+```
+
+Four fields, and they are the four a **container** legitimately re-decides:
+`menuVisible`, `order`, and — since 0.11 — `surface` and `requiresAuth`. A
+module declares who its screen is for in the abstract; the container knows
+what it actually mounted around that screen. A classified storefront puts
+Favourites and Messages in its phone dock for an anonymous visitor because it
+mounted a guest wall in front of those routes, and the module that declared
+them `member` could not know that.
+
+Both axes are overridable and both remain **independent** — `resolveNav`
+applies both gates, exactly as before. They are both exposed because
+overriding one alone is, for that case, a setting that does nothing: a
+`member` + `requiresAuth` entry moved to `"public"` is still dropped by the
+session gate. An override cannot exempt an entry from the gates; it can only
+restate what the entry **is**, and the restatement travels to the resolved
+entry, so the menu row and the route a host mounts from the same tree agree.
 
 ### `resolvePublicNav` / `resolveMemberNav` — the audience in the name
 
@@ -85,7 +112,7 @@ the nav `Menu`, `toAntdThemeConfig`, `useBreakpoint`) and no geometry:
 
 | | `<AppShell/>` | `<PublicShell/>` |
 |---|---|---|
-| Nav chrome | `Layout.Sider` (desktop) / `Drawer` (phone) | top bar + browse bar (desktop) / `Drawer` (phone) |
+| Nav chrome | `Layout.Sider` (desktop) / `Drawer` (phone) | top bar + browse bar (desktop) / `Drawer` or dock (phone — `phoneChrome`) |
 | Slots | `logo`, `headerExtra` | `brand`, `searchSlot`, `categorySlot`, `accountSlot`, `footer` |
 | Sign-in | host's business | **default CTA when `accountSlot` is omitted** |
 | Content width | full width of the content column | `contentMaxWidth` (default **1280**, centred; `false` = edge to edge) |
@@ -93,7 +120,8 @@ the nav `Menu`, `toAntdThemeConfig`, `useBreakpoint`) and no geometry:
 Three properties it is tested against rather than trusted on:
 
 1. **No `Sider`, ever.** On phone the browse bar (nav menu + category strip)
-   collapses into a `Drawer`; the header — brand, search, account — stays.
+   collapses into a `Drawer` — or, with `phoneChrome="dock"`, into the bottom
+   dock; the header's search box stays either way.
 2. **`accountSlot` is a CTA, never emptiness.** Omit it and a sign-in link to
    `auth.login`'s own route (`/login`) renders anyway. A hidden control
    teaches nothing: the missing sign-in button on a public storefront is not
@@ -118,6 +146,57 @@ storefront passes its own number.
 
 The chrome above it stays full-bleed on purpose: a top bar that stops short of
 the window edges reads as a broken page, not as a measure.
+
+### `phoneChrome` — two phone frames, one desktop
+
+```tsx
+<PublicShell nav={nav} phoneChrome="dock" searchSlot={<HeaderSearch />} />
+```
+
+Below the desktop breakpoint only; desktop is untouched either way.
+
+| | `"drawer"` (default) | `"dock"` |
+|---|---|---|
+| Header | two lines — hamburger + brand + account, then search | **one sticky row** — search stretched, account at its end |
+| Brand | drawn | not drawn (identity lives in the dock) |
+| Nav | hamburger → `Drawer` (menu + categories) + dock | **dock only** |
+| Footer | drawn | drawn |
+
+`"drawer"` is byte-identical to every release before the prop existed. `"dock"`
+is the reference phone chrome for a classified storefront: the search field is
+what a phone header is for, and the destinations a hamburger hid are already
+under the thumb.
+
+One thing `"dock"` gives up, stated rather than discovered: the phone theme
+switch lives in the foot of the nav sheet, so removing the sheet removes it.
+That is accepted. A pre-paint boot script following `system` already puts an
+anonymous visitor on the right side of the theme, and the choice itself belongs
+on the account/profile surface a host owns — `<ShellThemeControl/>` is one
+import away. What is not acceptable is a three-target appearance control on the
+one row a storefront's search field lives on.
+
+### `navBadges` — counts on nav destinations (both shells)
+
+```tsx
+<PublicShell nav={nav} navBadges={{ "chat.conversations": unreadTotal }} />
+<AppShell    nav={nav} navBadges={{ "chat.conversations": unreadTotal }} />
+```
+
+A `Record<navEntryId, number>` rendered **wherever that entry renders** — the
+dock's item, the `Sider`/sheet's `Menu` row, the storefront top bar's tab —
+with the number on a badge for the eye and folded into the row's accessible
+name (`"Messages, 3 unread"`) for a screen reader. Absent or `0` draws nothing:
+a zero badge is a mark that says nothing is happening.
+
+It is the runtime channel over the static manifest. A manifest is baked at
+build time and says which destinations exist; how many of anything is waiting
+behind one is a fact only the module owning that thing can answer, and a shell
+that fetched it would be reading state for modules it must not depend on — so
+it arrives as data addressed by the id the manifest already gave the entry.
+
+`<PublicShell/>`'s older `dockBadges` still works and is still dock-only; where
+both name the same entry the narrower input wins for the dock. New code passes
+`navBadges`.
 
 ## `<ThemeModeControl/>` (`/theme` subpath — plain DOM, no antd, no CSS file)
 

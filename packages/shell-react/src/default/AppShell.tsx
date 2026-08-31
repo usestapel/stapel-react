@@ -102,6 +102,22 @@ export interface AppShellProps {
    * composes from its own auth state). */
   readonly headerExtra?: ReactNode;
   /**
+   * Counts to mark nav destinations with, keyed by `ResolvedNavEntry.id` —
+   * unread messages, ads awaiting moderation, a cart. Rendered on every
+   * surface this shell draws the entry on (the `Sider` on a desktop, the nav
+   * sheet on a phone), with the count folded into the row's accessible name.
+   * Absent or `0` draws no badge: a zero badge is a mark that says nothing is
+   * happening.
+   *
+   * A SLOT, and it has to be one. How many of anything is waiting is a fact
+   * each module's own pair owns (`chat-react`'s unread query,
+   * `notifications-react`'s feed), and a shell that fetched it would be
+   * reading state for modules it must not depend on. The static nav manifest
+   * says which destinations exist; this is the runtime channel over it,
+   * addressed by the id the manifest already gave each entry.
+   */
+  readonly navBadges?: Readonly<Record<string, number>>;
+  /**
    * The theme switch (`<ShellThemeControl/>`), ON by default — at the foot of
    * the `Sider` on a desktop, at the foot of the nav sheet on a phone.
    *
@@ -229,6 +245,7 @@ function AppChrome(props: AppShellProps): ReactElement {
               <NavMenu
                 nav={props.nav}
                 gate={gate}
+                {...(props.navBadges !== undefined ? { badges: props.navBadges } : {})}
                 style={{ borderInlineEnd: "none", paddingBlockStart: spacing[2] }}
               />
               {themeControl && (
@@ -286,6 +303,7 @@ function AppChrome(props: AppShellProps): ReactElement {
             <NavMenu
               nav={props.nav}
               gate={gate}
+              {...(props.navBadges !== undefined ? { badges: props.navBadges } : {})}
               onNavigate={() => setDrawerOpen(false)}
               style={{ borderInlineEnd: "none", paddingBlock: spacing[2] }}
             />

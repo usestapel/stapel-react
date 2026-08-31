@@ -13,12 +13,15 @@
  *     manifests present at generation.
  *  2. shipped-app runtime — `@stapel/shell-react`'s `<AppShell/>` calls this
  *     again with the project's live override file, so a host can flip
- *     `menuVisible`/`order` without touching generated code.
+ *     `menuVisible`/`order`/`surface`/`requiresAuth` without touching
+ *     generated code.
  *
  * Algorithm (deterministic, documented — not incidental):
  *  1. Flatten every installed package's `entries` into one list.
- *  2. Resolve each entry's `menuVisible` (override ?? `menuVisibleDefault`)
- *     and `order` (override ?? `order`).
+ *  2. Resolve each entry's `menuVisible` (override ?? `menuVisibleDefault`),
+ *     `order` (override ?? `order`), `requiresAuth` and `surface` — the last
+ *     two overridable because WHO a destination is for is a container
+ *     decision as often as a module one (see {@link NavOverrideEntry}).
  *  3. Nest: a `placement.level === "submenu"` entry attaches under the
  *     resolved TOP entry whose `id === placement.parentId`. A submenu entry
  *     whose parent is absent from the installed set (e.g. the parent's
@@ -100,10 +103,49 @@ export const ADMIN_ROOT_ENTRY: NavEntry = {
   order: 110,
 };
 
-/** One entry's override in a project's nav-override file. */
+/**
+ * One entry's override in a project's nav-override file.
+ *
+ * Four fields, and they are the four a CONTAINER legitimately re-decides. A
+ * module declares what its screen needs in the abstract; the container knows
+ * what it actually mounted around that screen, and those two answers are not
+ * always the same product.
+ */
 export interface NavOverrideEntry {
   readonly menuVisible?: boolean;
   readonly order?: number;
+  /**
+   * Re-declare WHO this destination is for — the {@link NavEntry.surface}
+   * axis, restated by the project that mounts the route.
+   *
+   * This is a container decision and not a preference, which is the whole
+   * distinction that makes it safe to expose. A classified storefront puts
+   * Favourites and Messages in its phone dock for an anonymous visitor
+   * because it mounted a guest wall in front of those routes — the module
+   * that declared them `"member"` could not know that, and had no business
+   * guessing. The project that overrides the axis is the same project that
+   * owns the gate behind it.
+   *
+   * It travels to {@link ResolvedNavEntry.surface}, so a host that builds its
+   * route tree from the resolved nav mounts the route on the same terms it
+   * lists the entry on. An override that moved the menu entry while leaving
+   * the route's own guard reading the manifest's answer would be a tab that
+   * navigates straight into a refusal.
+   */
+  readonly surface?: NavSurface;
+  /**
+   * Re-declare whether this destination needs a SESSION — the
+   * {@link NavEntry.requiresAuth} axis, and the sibling of `surface` above.
+   *
+   * The two axes stay independent here exactly as they are everywhere else
+   * (`resolveNav` applies both gates, and a screen can need a session without
+   * needing a mandate). They are both overridable because overriding one
+   * alone is, for the case this exists for, a setting that does nothing: a
+   * `member`+`requiresAuth` entry moved to `"public"` is still dropped by the
+   * session gate, and a project reads that as the mechanism being broken. A
+   * container opening a destination to an anonymous visitor states both.
+   */
+  readonly requiresAuth?: boolean;
 }
 
 /**
@@ -180,10 +222,13 @@ export interface ResolvedNavEntry {
    * renderer reads one shape instead of `boolean | undefined`. */
   readonly index: boolean;
   readonly component: NavComponentRef;
+  /** Resolved session axis — the project's override, else what the manifest
+   * declares. */
   readonly requiresAuth: boolean;
-  /** Resolved surface — declared, or derived from `requiresAuth`. Always
-   * present here even though `NavEntry.surface` is optional, so a renderer
-   * or a route guard reads the axis without repeating the derivation. */
+  /** Resolved surface — the project's override, else what the entry declares,
+   * else derived from the resolved `requiresAuth`. Always present here even
+   * though `NavEntry.surface` is optional, so a renderer or a route guard
+   * reads the axis without repeating the derivation. */
   readonly surface: NavSurface;
   /** Resolved order (override applied). */
   readonly order: number;
@@ -210,6 +255,11 @@ function resolveOne(
 ): ResolvedNavEntry {
   const o = overrides[entry.id];
   const index = entry.route.index === true;
+  // Resolved first, because the surface DERIVATION reads it: an entry that
+  // declares no surface takes it from `requiresAuth`, and taking it from the
+  // manifest's answer while the project has overridden that answer would make
+  // one override contradict the other inside one entry.
+  const requiresAuth = o?.requiresAuth ?? entry.requiresAuth;
   return {
     id: entry.id,
     labelKey: entry.labelKey,
@@ -218,8 +268,8 @@ function resolveOne(
     linkPath: index && section !== undefined ? section.route.path : entry.route.path,
     index,
     component: entry.component,
-    requiresAuth: entry.requiresAuth,
-    surface: navEntrySurface(entry),
+    requiresAuth,
+    surface: o?.surface ?? entry.surface ?? navEntrySurface({ requiresAuth }),
     order: o?.order ?? entry.order,
     menuVisible: o?.menuVisible ?? entry.menuVisibleDefault,
   };
@@ -253,10 +303,16 @@ export function resolveNav(
   const overrides = overridesFile?.overrides ?? {};
   const audience = options?.audience;
   const authenticated = options?.authenticated;
-  /** The surface + session gate. A project's override file can flip
-   * `menuVisible` and `order`; it deliberately cannot flip this — a
-   * per-project preference must not be able to put a screen that will refuse
-   * the caller back in front of them. */
+  /**
+   * The surface + session gate, applied to the RESOLVED axes.
+   *
+   * Both axes are overridable by the project's own file (see
+   * {@link NavOverrideEntry}), and the two remain independent: a screen can
+   * need a session without needing a mandate, and both gates still apply.
+   * What an override cannot do is exempt an entry from the gates — it can
+   * only restate what the entry IS, and it is restated in one place, so the
+   * menu entry and the route a host mounts from the same resolved tree agree.
+   */
   const openTo = (e: ResolvedNavEntry): boolean => {
     if (audience !== undefined && !navSurfaceVisibleTo(e.surface, audience)) return false;
     return !(authenticated === false && e.requiresAuth);
