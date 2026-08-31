@@ -39,7 +39,11 @@ import {
 import type { ListingDraftValues, ListingLocation } from "../model/draft.js";
 import { asFeatureDaoList } from "../model/features.js";
 import { featuresDtoFromDaoList } from "../model/features.js";
-import { mirrorDraft, publishRefusal } from "../model/validation.js";
+import {
+  envelopeFieldErrors,
+  mirrorDraft,
+  publishRefusal,
+} from "../model/validation.js";
 import type { PublishRefusal } from "../model/validation.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { useMandateGate } from "./useMandateGate.js";
@@ -358,12 +362,21 @@ export function useListingComposer(
     (existing.data.title ?? "").length === 0 &&
     (existing.data.description ?? "").length === 0;
 
+  // A save-draft/create 400 names its field in the envelope rather than in a
+  // batch, so it takes the other door onto the same routing table. Without it
+  // the composer painted a banner and left every control clean — the person
+  // was told something was wrong and not what (blocker C2).
+  const saveThrown: unknown = saveDraft.error ?? createDraft.error;
   const fieldErrors: Readonly<Record<string, FlowError>> = useMemo(() => {
     const shown = showErrors ? mirror : {};
-    return refusal?.kind === "invalid_draft"
-      ? { ...shown, ...refusal.fieldErrors }
-      : shown;
-  }, [showErrors, mirror, refusal]);
+    const routed =
+      refusal?.kind === "invalid_draft"
+        ? refusal.fieldErrors
+        : refusal?.kind === "error"
+          ? envelopeFieldErrors(refusal.error)
+          : {};
+    return { ...shown, ...envelopeFieldErrors(saveThrown), ...routed };
+  }, [showErrors, mirror, refusal, saveThrown]);
 
   const listingState: LoadState<ListingDetailData> | undefined =
     options.listingId === undefined
@@ -568,7 +581,7 @@ export function useListingComposer(
     saving: busy,
     publishing: publishListing.isPending,
     saved,
-    saveError: saveDraft.error ?? createDraft.error,
+    saveError: saveThrown,
     outcome,
   };
 }

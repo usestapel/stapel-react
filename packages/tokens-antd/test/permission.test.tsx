@@ -138,6 +138,94 @@ describe("PermissionSheet", () => {
     expect(screen.getByText(/will not ask again/)).toBeTruthy();
   });
 
+  it("puts the fallback door on screen BEFORE the refusal, not only after it", async () => {
+    // Blocker C1: the door was gated on `blocked`, so the one arm that carries
+    // a "Not now" button — the arm the sheet OPENS on — had nothing behind it.
+    render(
+      withLocale(
+        "en",
+        <PermissionSheet
+          open
+          surface="modal"
+          permission={bagOf("prompt")}
+          onClose={vi.fn()}
+          fallback={<span data-testid="fallback">choose a place</span>}
+          data-testid="perm"
+        />
+      )
+    );
+    expect(
+      screen.getByTestId("perm").querySelector('[data-stapel-permission="prompt"]')
+    ).toBeTruthy();
+    expect(screen.getByTestId("fallback")).toBeTruthy();
+    // …and the ask is still on offer: the door is a second way out, not a
+    // replacement for the question.
+    expect(screen.getByTestId(PERMISSION_ALLOW_TESTID)).toBeTruthy();
+  });
+
+  it("carries the door through `unknown` too — the arm Safari answers with", () => {
+    render(
+      withLocale(
+        "en",
+        <PermissionSheet
+          open
+          surface="modal"
+          permission={bagOf("unknown")}
+          onClose={vi.fn()}
+          fallback={<span data-testid="fallback">choose a place</span>}
+          data-testid="perm"
+        />
+      )
+    );
+    expect(screen.getByTestId("fallback")).toBeTruthy();
+  });
+
+  it("shows no fallback once the capability is granted", () => {
+    render(
+      withLocale(
+        "en",
+        <PermissionSheet
+          open
+          surface="modal"
+          permission={bagOf("granted")}
+          onClose={vi.fn()}
+          fallback={<span data-testid="fallback">choose a place</span>}
+          data-testid="perm"
+        />
+      )
+    );
+    expect(screen.queryByTestId("fallback")).toBeNull();
+  });
+
+  it("closes on an unanswered prompt, so the caller can take the way around", async () => {
+    // `usePermission` resolves an unanswered browser prompt as `prompt` (its
+    // module doc, 5). That is not blocked, so the sheet hands control back
+    // rather than sitting on a spinner forever.
+    const onClose = vi.fn();
+    const onResolved = vi.fn();
+    render(
+      withLocale(
+        "en",
+        <PermissionSheet
+          open
+          surface="modal"
+          permission={bagOf("prompt", async () => "prompt")}
+          onClose={onClose}
+          onResolved={onResolved}
+          fallback={<span data-testid="fallback">choose a place</span>}
+          data-testid="perm"
+        />
+      )
+    );
+    await act(async () => {
+      screen.getByTestId(PERMISSION_ALLOW_TESTID).click();
+    });
+    await waitFor(() => {
+      expect(onResolved).toHaveBeenCalledWith("prompt");
+    });
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it("offers no Allow button once the browser has stopped asking", () => {
     render(
       withLocale(

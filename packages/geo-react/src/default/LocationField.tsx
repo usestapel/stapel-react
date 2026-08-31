@@ -33,11 +33,22 @@
  *     the IP answer (`GET geo/api/v1/ip`), which is a city and says so. No
  *     dead end, no empty ocean, and nothing the person has to do twice.
  *
- * A person who already said no does NOT get the sheet again on every tap —
- * their answer stands, and the field goes straight to the map. The sheet's
- * `fallback` slot carries the same door for the one time they refuse in it.
+ * ## Every way out of the sheet leads to the map
+ *
+ * The position is only ever a way to CENTRE the picker; the picker itself
+ * works without it. So closing the sheet — the "Not now" button, the mask,
+ * Esc, a swipe, or a browser prompt that was opened and never answered — does
+ * not put the field back where it started: it opens the picker on the IP
+ * centre. Anything else makes "no" the one answer with nothing behind it, and
+ * a field whose only control re-asks the same question forever is a form
+ * nobody can finish.
+ *
+ * And the sheet is asked ONCE. A person who has answered it — however they
+ * answered it — goes straight to the map on every later tap. Re-explaining a
+ * question already answered is the same lie as re-offering a capability
+ * already refused.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Button, Input, Typography, theme as antdTheme } from "antd";
 import { matchLoad, useT } from "@stapel/core";
@@ -96,6 +107,9 @@ export function LocationField(props: LocationFieldProps): ReactElement {
   const [permissionOpen, setPermissionOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [chosen, setChosen] = useState<ChosenPlace | undefined>(undefined);
+  // Whether the pre-prompt has already been put to this person. An answered
+  // question is not asked twice; the next tap is the map.
+  const explained = useRef(false);
 
   const current = chosen ?? props.value;
   const address = current?.address;
@@ -117,8 +131,10 @@ export function LocationField(props: LocationFieldProps): ReactElement {
   const activate = (): void => {
     if (props.disabled === true) return;
     const status = resolved.permission.status;
-    if (status === "prompt" || status === "unknown") {
-      // Explain before the browser does. Step 2 of the four in the file doc.
+    if ((status === "prompt" || status === "unknown") && !explained.current) {
+      // Explain before the browser does, once. Step 2 of the four in the file
+      // doc; the `explained` guard is the "asked once" rule under it.
+      explained.current = true;
       setPermissionOpen(true);
       return;
     }
@@ -193,13 +209,13 @@ export function LocationField(props: LocationFieldProps): ReactElement {
 
         {/* The pre-prompt. Its `fallback` is the same door the refusal path
             takes anyway — stated inside the sheet so a "no" is one tap from
-            the map instead of a dead end. */}
+            the map instead of a dead end. Closing it IS that door: the
+            position only centres the picker, so "not now", the mask, Esc and
+            an unanswered browser prompt all land on the map. */}
         <PermissionSheet
           open={permissionOpen}
           permission={resolved.permission}
-          onClose={() => {
-            setPermissionOpen(false);
-          }}
+          onClose={openPicker}
           onResolved={(status) => {
             if (status === "granted") openPicker();
           }}

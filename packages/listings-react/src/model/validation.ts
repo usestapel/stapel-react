@@ -93,6 +93,31 @@ export const TITLE_FIELD = "title";
 export const PRICE_FIELD = "price";
 export const IMAGES_FIELD = "images";
 export const CATEGORY_FIELD = "category_id";
+/** The coordinate pair, as one control: a latitude alone is not a place. */
+export const LOCATION_FIELD = "location";
+
+/**
+ * The API's own field names → the control that holds them.
+ *
+ * The draft serializer writes `*_draft` columns, and the two coordinates are
+ * one field on screen. Without this table a per-field 400 has nowhere to land
+ * and becomes a banner nobody can act on — which is the whole of blocker C2's
+ * second half: a save refused for `lat_draft` painted "Validation error" over
+ * the footer while the location control, the only thing the person could have
+ * changed, stayed clean.
+ */
+const CONTROL_OF_API_FIELD: Readonly<Record<string, string>> = {
+  title_draft: TITLE_FIELD,
+  description_draft: DESCRIPTION_FIELD,
+  price_draft: PRICE_FIELD,
+  images_draft: IMAGES_FIELD,
+  category_id: CATEGORY_FIELD,
+  lat_draft: LOCATION_FIELD,
+  lon_draft: LOCATION_FIELD,
+  location_id_draft: LOCATION_FIELD,
+  location_label_draft: LOCATION_FIELD,
+  stock_quantity: "stockQuantity",
+};
 
 /** A client-side refusal. `status: 0` on purpose: a rule this build applied
  * must never be indistinguishable from one that came over the wire. */
@@ -162,7 +187,7 @@ export function mirrorListingFields(
   const hasLat = lat !== null && lat.length > 0;
   const hasLon = lon !== null && lon.length > 0;
   if (hasLat !== hasLon) {
-    out["location"] = mirrored(LISTINGS_I18N_KEYS.composeGeoIncomplete);
+    out[LOCATION_FIELD] = mirrored(LISTINGS_I18N_KEYS.composeGeoIncomplete);
   }
 
   return out;
@@ -241,6 +266,44 @@ export function publishRefusal(thrown: unknown): PublishRefusal {
           status: 0,
           body: thrown,
         }),
+  };
+}
+
+/**
+ * A per-field refusal in the ORDINARY envelope → the control it belongs to.
+ *
+ * `save-draft` and `create` do not answer a batch: DRF's field validation
+ * raises, and stapel-core's handler folds it into one envelope carrying
+ * `params.field` — the field name, and often the ONLY thing in the response
+ * that says what went wrong, because a DRF code the registry does not know
+ * (`max_decimal_places`, say) collapses to the generic
+ * `error.400.validation_error`, whose sentence is "Validation error" and
+ * nothing else.
+ *
+ * So the field name is the payload. Put on the control, it is the difference
+ * between a red banner the person cannot act on and a red field they can.
+ * Returns `{}` for anything that names no field, or names one this composer
+ * does not draw — a banner is right for those, and a refusal routed to a
+ * control that does not exist would vanish.
+ */
+export function envelopeFieldErrors(
+  thrown: unknown
+): Readonly<Record<string, FlowError>> {
+  if (!isStapelApiError(thrown)) return {};
+  const named = thrown.params["field"];
+  if (typeof named !== "string" || named.length === 0) return {};
+  const control = CONTROL_OF_API_FIELD[named];
+  if (control === undefined) return {};
+  return {
+    [control]: {
+      code: thrown.code,
+      // `field` is the fleet's routing param; the control key is what a
+      // sentence should name, not the column the server happened to use.
+      params: { ...thrown.params, field: control },
+      status: thrown.status,
+      message: thrown.message,
+      language: thrown.language,
+    },
   };
 }
 

@@ -26,6 +26,19 @@
  *     UsePermissionOptions.requester} exists — a caller that already makes
  *     that call (geo-react's position hook, a recorder's `getUserMedia`)
  *     passes its own, and the browser is asked exactly once instead of twice.
+ *  5. **An unanswered prompt never calls back.** The Geolocation spec stops
+ *     the `timeout` clock while the permission decision is pending, so a
+ *     person who swipes the browser's prompt away instead of answering it
+ *     leaves `getCurrentPosition` hanging for as long as the page is open —
+ *     neither callback ever fires, `timeout` or no `timeout`. Measured in
+ *     Chromium: an ungranted context never settles, while the same call under
+ *     a granted permission with no fix available rejects with `code: 3` after
+ *     exactly its `timeout`. A hook that just `await`s the requester therefore
+ *     hangs, `asking` stays true forever, and every screen built on it is a
+ *     dead end. {@link UsePermissionOptions.decisionTimeoutMs} is the bound,
+ *     and it is applied ONLY while the Permissions API still says the
+ *     question is open — a slow GPS fix after a real "allow" is never cut
+ *     short.
  *
  * The hook is headless and lives here, in the framework floor, because a pair
  * with no antd dependency needs it too — the skin half (`PermissionSheet`,
@@ -88,6 +101,16 @@ export interface UsePermissionOptions {
    * a button somewhere in a skin.
    */
   readonly offered?: boolean;
+  /**
+   * How long to wait for the browser's PROMPT to be answered before giving up
+   * on this attempt. Default 20s.
+   *
+   * It is not a timeout on the capability: it only expires while the
+   * Permissions API still reports the question open, so a granted-but-slow GPS
+   * fix keeps its own `timeout` and is never cut short by this one. See point
+   * 5 of the module doc for why waiting forever is the alternative.
+   */
+  readonly decisionTimeoutMs?: number;
 }
 
 export interface PermissionBag {
@@ -105,6 +128,11 @@ export interface PermissionBag {
    * Ask. Triggers the real browser prompt when the status is `prompt` or
    * `unknown`, resolves with the status afterwards, and never rejects — a
    * refusal is a value here, not an exception.
+   *
+   * It always settles. A prompt nobody answers resolves with the status the
+   * Permissions API still reports (`prompt`, usually) once
+   * {@link UsePermissionOptions.decisionTimeoutMs} is up, rather than leaving
+   * the caller waiting on a promise the browser will never keep.
    */
   readonly request: () => Promise<PermissionStatus>;
   /** Re-read the Permissions API (after a visit to browser settings). */
@@ -187,6 +215,47 @@ function statusOfRejection(reason: unknown): PermissionStatus {
   return "unknown";
 }
 
+/**
+ * How long an unanswered browser prompt is waited on. See point 5 of the
+ * module doc: the alternative is forever.
+ */
+const DECISION_TIMEOUT_MS = 20_000;
+
+/**
+ * Wait for the attempt, but not past the point where the browser has clearly
+ * not been answered.
+ *
+ * `attempt` never rejects — it is already the status of one try. The deadline
+ * only decides anything while the Permissions API still says `prompt`
+ * (or will not say): if it reports `granted`, the person DID answer and the
+ * capability's own timeout is what bounds the wait, so we keep waiting; if it
+ * reports `denied`, that is the answer and the attempt will never call back
+ * with it.
+ */
+async function awaitDecision(
+  kind: PermissionKind,
+  attempt: Promise<PermissionStatus>,
+  timeoutMs: number
+): Promise<PermissionStatus> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => {
+      resolve(undefined);
+    }, timeoutMs);
+  });
+  const raced = await Promise.race([attempt.then((status) => ({ status })), deadline]);
+  if (timer !== undefined) clearTimeout(timer);
+  if (raced !== undefined) return raced.status;
+  const queried = await readStatus(kind);
+  if (queried === "denied" || queried === "unsupported") return queried;
+  // Granted: the prompt WAS answered and the fix is still being acquired, so
+  // the capability's own timeout owns the rest of the wait.
+  if (queried === "granted") return await attempt;
+  // Nobody answered. The question is still open — which is exactly what
+  // `prompt` means, and what a UI must be able to move on from.
+  return queried;
+}
+
 /** The smallest call that provokes the browser's prompt, per kind. */
 function defaultRequester(kind: PermissionKind): () => Promise<unknown> {
   return async () => {
@@ -240,6 +309,7 @@ export function usePermission(
   const [nonce, setNonce] = useState(0);
   const alive = useRef(true);
   const requester = options.requester;
+  const decisionTimeoutMs = options.decisionTimeoutMs ?? DECISION_TIMEOUT_MS;
 
   useEffect(() => {
     alive.current = true;
@@ -295,13 +365,17 @@ export function usePermission(
   const request = useCallback(async (): Promise<PermissionStatus> => {
     if (!supported) return "unsupported";
     setAsking(true);
-    let next: PermissionStatus;
-    try {
-      await (requester ?? defaultRequester(kind))();
-      next = "granted";
-    } catch (reason) {
-      next = statusOfRejection(reason);
-    }
+    const attempt = (async (): Promise<PermissionStatus> => {
+      try {
+        await (requester ?? defaultRequester(kind))();
+        return "granted";
+      } catch (reason) {
+        return statusOfRejection(reason);
+      }
+    })();
+    // The browser is under no obligation to answer at all (module doc, 5), so
+    // this is the one call that must not be a bare `await`.
+    let next = await awaitDecision(kind, attempt, decisionTimeoutMs);
     // The attempt is the strongest signal, but the Permissions API knows
     // things it does not — a `timeout` from geolocation says nothing about
     // permission, and the query can still answer `granted`.
@@ -314,7 +388,7 @@ export function usePermission(
       setStatus(next);
     }
     return next;
-  }, [kind, supported, requester]);
+  }, [kind, supported, requester, decisionTimeoutMs]);
 
   return { kind, status, supported, asking, request, refresh };
 }

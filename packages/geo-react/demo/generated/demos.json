@@ -181,7 +181,7 @@
       "variants": [
         {
           "id": "ask",
-          "description": "Nobody has been asked. The control opens an explanation; the browser stays untouched until then.",
+          "description": "Nobody has been asked. The control opens an explanation; the browser stays untouched until then — and that explanation already carries the way around, so declining it is a step forward rather than a dead end.",
           "viewport": "phone",
           "step": "prompt"
         },
@@ -200,7 +200,7 @@
       ],
       "source": {
         "file": "demo/PermissionGate.demo.tsx",
-        "line": 88
+        "line": 91
       }
     },
     {

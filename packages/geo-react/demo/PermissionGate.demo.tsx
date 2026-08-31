@@ -19,7 +19,10 @@
  * What the three pictures are for:
  *
  *  - **ask** — nobody has been asked. A door, not a capability: the browser is
- *    untouched until the person opens it.
+ *    untouched until the person opens it. The sheet it opens carries the
+ *    `fallback` too, in this arm as much as in the refused one: "not now" is
+ *    an answer the sheet's own way out invites, so it cannot be the one answer
+ *    with nothing behind it.
  *  - **granted** — the capability's own content, and no ask anywhere. A screen
  *    that keeps offering "allow" after a yes is as wrong as one that keeps
  *    offering it after a no.
@@ -95,7 +98,7 @@ export default defineDemo({
   variants: {
     ask: {
       description:
-        "Nobody has been asked. The control opens an explanation; the browser stays untouched until then.",
+        "Nobody has been asked. The control opens an explanation; the browser stays untouched until then — and that explanation already carries the way around, so declining it is a step forward rather than a dead end.",
       viewport: "phone",
       step: "prompt",
       render: () => <Gate permission={PROMPT} />,

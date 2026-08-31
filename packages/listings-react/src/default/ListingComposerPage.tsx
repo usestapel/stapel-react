@@ -98,8 +98,10 @@ import {
   CATEGORY_FIELD,
   DESCRIPTION_FIELD,
   IMAGES_FIELD,
+  LOCATION_FIELD,
   PRICE_FIELD,
   TITLE_FIELD,
+  envelopeFieldErrors,
   failedResults,
 } from "../model/validation.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
@@ -332,6 +334,11 @@ function SlotField(props: {
   );
 }
 
+/** Did this refusal land on a control? Then the control is where it is read. */
+function routedToAControl(thrown: unknown): boolean {
+  return Object.keys(envelopeFieldErrors(thrown)).length > 0;
+}
+
 /** A decimal string → the number a picker works in, or `null`. */
 function toNumber(value: string | null): number | null {
   if (value === null || value.length === 0) return null;
@@ -553,7 +560,7 @@ export function ListingComposerPage(
             extra={t(LISTINGS_I18N_KEYS.composeLocationHelp)}
             slot="locationPicker"
             named={namedSlots}
-            status={errorOf("location")}
+            status={errorOf(LOCATION_FIELD)}
             testId="listings-composer-location"
             control={
               props.renderLocationPicker !== undefined ? (
@@ -690,7 +697,13 @@ export function ListingComposerPage(
           />
         ) : null}
 
-        {bag.refusal?.kind === "error" ? (
+        {/* A refusal that reached a control is READ there, under the field
+            the person can change. Repeating it as a banner — twice, since a
+            publish saves the draft first and both failures are the same 400 —
+            is how one refused coordinate painted two identical "Validation
+            error" plaques and named nothing (blocker C2). The banner is for
+            what has nowhere else to go. */}
+        {bag.refusal?.kind === "error" && !routedToAControl(bag.refusal.error) ? (
           <ErrorAlert
             testId="listings-composer-error"
             error={describe({
@@ -703,7 +716,9 @@ export function ListingComposerPage(
           />
         ) : null}
 
-        {bag.saveError !== undefined && bag.saveError !== null ? (
+        {bag.saveError !== undefined &&
+        bag.saveError !== null &&
+        !routedToAControl(bag.saveError) ? (
           <ErrorAlert
             testId="listings-composer-save-error"
             thrown={bag.saveError}

@@ -25,6 +25,14 @@
  *     blocked control's reason (`GatedControl`) is for gates the person can
  *     open, and this one they cannot, from here.
  *
+ * The `fallback` is on screen in BOTH steps, not only the second one. A sheet
+ * that offers the door only after a refusal has already been recorded makes
+ * "not now" the one answer with nothing behind it — and "not now" is the
+ * answer the sheet's own way out invites. It is also the only arm reachable
+ * when a browser prompt is opened and never answered: the Geolocation spec
+ * stops its `timeout` clock while a decision is pending, so that attempt comes
+ * back as `prompt`, not as a refusal (see `usePermission`, module doc 5).
+ *
  * The copy defaults to core's UI floor, per kind, in every locale core ships
  * (`PERMISSION_COPY_KEYS`) — so a pair gets an answerable question with no
  * wiring, and a product that has a better sentence passes it as a prop or
@@ -101,10 +109,11 @@ export interface PermissionSheetProps extends PermissionCopy {
    */
   readonly onResolved?: (status: PermissionStatus) => void;
   /**
-   * What to offer INSTEAD, once the answer is no — a search field where the
+   * What to offer INSTEAD of the capability — a search field where the
    * position would have been, an upload button where the camera would have
-   * been. Rendered inside the sheet under the guidance, so the dead end has a
-   * door in it.
+   * been. Rendered inside the sheet under the sentence in every arm but
+   * `granted`, so neither "not now" nor a refusal nor an unanswered browser
+   * prompt is a dead end.
    */
   readonly fallback?: ReactNode;
   /** Force a surface (tests). See `SkinDialogProps.surface`. */
@@ -203,7 +212,7 @@ export function PermissionSheet(props: PermissionSheetProps): ReactElement {
         <Typography.Paragraph style={{ marginBottom: token.paddingSM }}>
           {sentence}
         </Typography.Paragraph>
-        {blocked && props.fallback !== undefined ? (
+        {status !== "granted" && props.fallback !== undefined ? (
           <div data-stapel-permission-fallback="">{props.fallback}</div>
         ) : null}
       </div>

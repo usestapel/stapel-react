@@ -272,6 +272,106 @@ describe("<LocationField/> — one tap, and the ladder behind it", () => {
     restorePermissions();
   });
 
+  it("offers the way around INSIDE the pre-prompt, before anything is refused", async () => {
+    happyPath();
+    const restorePermissions = withPermissions({ geolocation: "prompt" });
+    const restoreGeo = withGeolocation(() => undefined);
+    render(wrap(<LocationField />));
+    fireEvent.click(await fieldReady());
+    await waitFor(() => {
+      expect(screen.getByTestId("stapel-permission-allow")).toBeTruthy();
+    });
+    // The door is on the FIRST arm too. It used to appear only after a
+    // refusal, which left "Not now" as the one answer with nothing behind it.
+    expect(screen.getByTestId("geo-field-permission-fallback")).toBeTruthy();
+    restoreGeo();
+    restorePermissions();
+  });
+
+  it("«Not now» opens the map — the position only ever centred it", async () => {
+    // Blocker C1: dismissing the sheet closed it and left the field empty, and
+    // the next tap re-asked the same question. Forever.
+    happyPath();
+    const restorePermissions = withPermissions({ geolocation: "prompt" });
+    const getCurrentPosition = vi.fn();
+    const restoreGeo = withGeolocation(() => {
+      getCurrentPosition();
+    });
+    render(wrap(<LocationField />));
+    fireEvent.click(await fieldReady());
+    await waitFor(() => {
+      expect(screen.getByTestId("stapel-permission-dismiss")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByTestId("stapel-permission-dismiss"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("geo-map")).toBeTruthy();
+    });
+    // On the IP centre, and with the browser still untouched — saying "not
+    // now" must not fire the one-shot prompt behind the person's back.
+    expect(screen.getByTestId("geo-map").getAttribute("data-geo-center")).toBe(
+      "55.75580,37.61730"
+    );
+    expect(getCurrentPosition).not.toHaveBeenCalled();
+    restoreGeo();
+    restorePermissions();
+  });
+
+  it("asks the pre-prompt once — a later tap is the map, not the same question", async () => {
+    happyPath();
+    const restorePermissions = withPermissions({ geolocation: "prompt" });
+    const restoreGeo = withGeolocation(() => undefined);
+    render(wrap(<LocationField />));
+    const field = await fieldReady();
+    fireEvent.click(field);
+    await waitFor(() => {
+      expect(screen.getByTestId("stapel-permission-dismiss")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByTestId("stapel-permission-dismiss"));
+    await waitFor(() => {
+      expect(screen.getByTestId("geo-map")).toBeTruthy();
+    });
+    // Close the picker the way a person does, then tap the field again.
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => {
+      expect(screen.queryByTestId("geo-map")).toBeNull();
+    });
+    fireEvent.click(field);
+    await waitFor(() => {
+      expect(screen.getByTestId("geo-map")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("stapel-permission-allow")).toBeNull();
+    restoreGeo();
+    restorePermissions();
+  });
+
+  it("ends on the map even when the browser answers the prompt with nothing", async () => {
+    // A prompt that is swiped away rather than answered comes back as
+    // `prompt`, not as a refusal (`usePermission`, module doc 5) — the arm
+    // that used to leave the sheet sitting on a spinner with no door in it.
+    happyPath();
+    const restorePermissions = withPermissions({ geolocation: "prompt" });
+    const restoreGeo = withGeolocation((_onSuccess, onError) => {
+      // GeolocationPositionError.TIMEOUT — says nothing about permission.
+      onError({ code: 3 });
+    });
+    render(wrap(<LocationField />));
+    fireEvent.click(await fieldReady());
+    await waitFor(() => {
+      expect(screen.getByTestId("stapel-permission-allow")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByTestId("stapel-permission-allow"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("geo-map")).toBeTruthy();
+    });
+    expect(screen.getByTestId("geo-map").getAttribute("data-geo-center")).toBe(
+      "55.75580,37.61730"
+    );
+    restoreGeo();
+    restorePermissions();
+  });
+
   it("does not open anything while disabled", async () => {
     happyPath();
     render(wrap(<LocationField disabled />));

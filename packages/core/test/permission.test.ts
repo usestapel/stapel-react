@@ -254,6 +254,101 @@ describe("usePermission — asking", () => {
     expect(answer).toBe("denied");
   });
 
+  it("settles when the browser prompt is never answered, instead of hanging", async () => {
+    // The measured Chromium behaviour, and the whole of blocker C1: the
+    // Geolocation spec stops the `timeout` clock while the permission decision
+    // is pending, so a swiped-away prompt calls NEITHER callback, ever. A bare
+    // `await` here leaves `asking` true and the screen a dead end.
+    vi.useFakeTimers();
+    try {
+      const requester = vi.fn(() => new Promise<never>(() => undefined));
+      stubPermissionsApi({ geolocation: "prompt" });
+      stubGeolocation({});
+      const { result } = renderHook(() =>
+        usePermission("geolocation", { requester, decisionTimeoutMs: 20_000 })
+      );
+      await vi.waitFor(() => {
+        expect(result.current.status).toBe("prompt");
+      });
+      let answer: string | undefined;
+      let settled = false;
+      await act(async () => {
+        const pending = result.current.request().then((value) => {
+          answer = value;
+          settled = true;
+        });
+        await vi.advanceTimersByTimeAsync(19_000);
+        expect(settled).toBe(false);
+        await vi.advanceTimersByTimeAsync(2_000);
+        await pending;
+      });
+      expect(settled).toBe(true);
+      // The question is still open — it was never answered — but the caller is
+      // free, and `asking` is false so the UI can offer its way around.
+      expect(answer).toBe("prompt");
+      expect(result.current.asking).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not cut short a slow fix the person DID allow", async () => {
+    // Same deadline, opposite answer from the Permissions API: `granted` means
+    // the prompt was answered and the capability's own timeout owns the wait.
+    vi.useFakeTimers();
+    try {
+      let settle: (() => void) | undefined;
+      const requester = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            settle = resolve;
+          })
+      );
+      stubPermissionsApi({ geolocation: "granted" });
+      stubGeolocation({});
+      const { result } = renderHook(() =>
+        usePermission("geolocation", { requester, decisionTimeoutMs: 20_000 })
+      );
+      let answer: string | undefined;
+      await act(async () => {
+        const pending = result.current.request().then((value) => {
+          answer = value;
+        });
+        await vi.advanceTimersByTimeAsync(60_000);
+        expect(answer).toBeUndefined();
+        settle?.();
+        await pending;
+      });
+      expect(answer).toBe("granted");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("takes the Permissions API's `denied` when the attempt never calls back", async () => {
+    vi.useFakeTimers();
+    try {
+      const requester = vi.fn(() => new Promise<never>(() => undefined));
+      stubPermissionsApi({ geolocation: "denied" });
+      stubGeolocation({});
+      const { result } = renderHook(() =>
+        usePermission("geolocation", { requester, decisionTimeoutMs: 20_000 })
+      );
+      let answer: string | undefined;
+      await act(async () => {
+        const pending = result.current.request().then((value) => {
+          answer = value;
+        });
+        await vi.advanceTimersByTimeAsync(21_000);
+        await pending;
+      });
+      expect(answer).toBe("denied");
+      expect(result.current.status).toBe("denied");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("answers `unsupported` without touching anything when it cannot ask", async () => {
     vi.stubGlobal("navigator", {});
     const { result } = renderHook(() => usePermission("camera"));
