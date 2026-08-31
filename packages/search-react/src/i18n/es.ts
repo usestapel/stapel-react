@@ -40,6 +40,9 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.results.untitled": "Sin título",
   "search.results.open": "Abrir",
   "search.results.image_alt": "Foto de {title}",
+  "search.results.photo_alt": "Foto {index} de {total}: {title}",
+  "search.results.photos": "Fotos",
+  "search.results.photo_unavailable": "Foto no disponible",
 
   "search.box.label": "Buscar",
   "search.box.placeholder": "¿Qué estás buscando?",

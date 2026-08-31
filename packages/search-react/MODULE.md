@@ -112,9 +112,13 @@ are props, not dependencies (spec §6.2 items 1–2):
 
 - **`renderCard`** — `<ListingCard>` from `@stapel/listings-react/default`. The
   generic card here is a working default over a documented set of conventional
-  `card` fields (`title`, `price`, `currency`, `location`, `image_url`), because
-  `SearchItem.card` is deliberately free-form: "stored row fields, so a result
-  page costs one query".
+  `card` fields (`title`, `price`, `currency`, `location`, `images`, `image`,
+  `url`), because `SearchItem.card` is deliberately free-form: "stored row
+  fields, so a result page costs one query". `images` is the whole gallery in
+  seller order (stapel-classified 0.7.0) and `image` is `images[0]`; both hold
+  opaque `<type>/<hash>` CDN references, so the card draws them through the
+  runtime's `resolveImage` seam — the same seam `@stapel/listings-react`
+  states, and the same function a container passes to both.
 - **`categoryFeatures`** — the category's feature schema, from
   `categories-react`. The server sends `{value: count}` and no labels; the
   captions are translation keys in that schema.

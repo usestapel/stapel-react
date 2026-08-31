@@ -355,21 +355,36 @@
     {
       "id": "search.result-card",
       "title": "Result card",
-      "description": "The default card a doc type gets for free: a 4:3 photo well drawn before the network answers (via @stapel/image, so a dead URL is a named placeholder rather than a torn-page icon), the title, the price with its currency, the location and distance — and the promoted marking painted from a token role rather than an antd preset, with its explanation as ordinary text beneath it.",
+      "description": "The default card a doc type gets for free: the card's whole photo gallery as a swipeable strip (references resolved through the runtime's resolveImage seam and drawn by @stapel/image, so the 4:3 well lands before the network does), the title, the price with its currency, the location and distance — and the promoted marking painted from a token role rather than an antd preset, with its explanation as ordinary text beneath it.",
       "component": "SearchResultCard",
       "covers": [],
       "tokens": [
         "warning-bg",
         "warning-on",
         "warning-border",
-        "surface-sunken"
+        "surface-sunken",
+        "text-muted",
+        "border",
+        "focus-ring"
       ],
       "variants": [
         {
+          "id": "gallery",
+          "description": "Five photos at 390px: the strip snaps, the edge of the next photo is the only thing on screen that says there is more, and the dots say where you are. The strip is a SIBLING of the card's anchor — a swipe that ended inside the link would be delivered as a click on it.",
+          "viewport": "phone",
+          "step": "gallery"
+        },
+        {
           "id": "promoted",
-          "description": "A paid placement with a photo: the marking, and the sentence that makes the marking mean something, both visible without a pointer.",
+          "description": "A paid placement with the singular `image` and no gallery: one slide, no peek, no dots — and the marking with the sentence that makes it mean something, both visible without a pointer.",
           "viewport": "desktop",
           "step": "promoted"
+        },
+        {
+          "id": "unresolved",
+          "description": "The card stores references and nothing resolved them — an unwired `resolveImage`, or files that are gone. The well is drawn at the shape the photo would have had, and it SAYS so: an empty grey box teaches nobody anything, a sentence gets the wiring fixed.",
+          "viewport": "phone",
+          "step": "unresolved"
         },
         {
           "id": "plain",
@@ -380,7 +395,7 @@
       ],
       "source": {
         "file": "demo/SearchResultCard.demo.tsx",
-        "line": 31
+        "line": 49
       }
     },
     {

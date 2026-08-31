@@ -18,11 +18,14 @@
  *
  * ── Two things this card used to get wrong ────────────────────────────────
  *
- * 1. **It declared `image_url` and drew nothing.** A text-only card in a
- *    classifieds search is not a card; the field was in `GENERIC_CARD_FIELDS`
- *    and in no render path. It is drawn now, through `@stapel/image`, so the
- *    aspect box lands before the network does and a dead URL renders a named
- *    placeholder instead of the browser's torn-page icon.
+ * 1. **It read a photo shape nothing in this fleet emits.** `card.image` was
+ *    read as an object with a `url` key and `card.image_url` as the fallback;
+ *    what the fleet actually stores is a `<type>/<hash>` CDN reference, and
+ *    where it does store an object that object carries `ref` + `variants[]`
+ *    and no top-level `url`. So every consumer that did not pass its own
+ *    `renderCard` got a card with no photo at all. `cardPhotos.ts` reads the
+ *    real shapes, through the runtime's `resolveImage` seam, and the whole
+ *    `images[]` gallery rather than one photo.
  * 2. **The marking's EXPLANATION was in a `Tooltip`.** Touch has no hover, so
  *    on the device most of this traffic arrives from, the sentence the law is
  *    actually about was unreachable — the tag said "Promoted" and nothing on
@@ -47,11 +50,14 @@ import { useMemo } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Card, Flex, Typography } from "antd";
 import { Image } from "@stapel/image";
-import type { StapelImage } from "@stapel/image";
+import { SkinCarousel } from "@stapel/tokens-antd/skin";
 import { useFormat, useT } from "@stapel/core";
 import type { Format } from "@stapel/core";
 import { cssVar, fontSize, fontWeight, radii, spacing } from "@stapel/tokens";
 import type { SearchItem } from "../api/types.js";
+import { useSearchRuntime } from "../model/context.js";
+import { readCardPhotos } from "./cardPhotos.js";
+import type { CardPhotos } from "./cardPhotos.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 
 /** What the card slot is handed. */
@@ -78,7 +84,11 @@ export const GENERIC_CARD_FIELDS: readonly string[] = [
   "price",
   "currency",
   "location",
-  "image_url",
+  // The gallery, and the singular first photo the projection keeps beside it
+  // (`images[0]`). Both hold CDN references; see `cardPhotos.ts`. The old
+  // `image_url` is gone — no backend in this fleet ever wrote it.
+  "images",
+  "image",
   "url",
 ];
 
@@ -150,41 +160,130 @@ const PROMOTED_TAG: CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-/** The photo's box: a 4:3 well the image fills, drawn before it loads. */
-const PHOTO: CSSProperties = {
+/**
+ * The shape of one photo well, everywhere on this card. Declared once so the
+ * placeholder and the loaded photo cannot drift into two different crops, and
+ * so the well is on screen before the network answers.
+ */
+const CARD_PHOTO_ASPECT = "4 / 3";
+
+/** The placeholder well: the box the photo would have occupied. */
+const PHOTO_ABSENT: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: spacing[1],
   width: "100%",
-  aspectRatio: "4 / 3",
+  aspectRatio: CARD_PHOTO_ASPECT,
   overflow: "hidden",
   borderRadius: radii.md,
   background: cssVar("surface-sunken"),
+  color: cssVar("text-muted"),
 };
 
+/** The slide's own fill — the strip's well owns the shape. */
+const PHOTO_FILL: CSSProperties = { width: "100%", height: "100%" };
+
+/** A camera outline in `currentColor` — no icon dependency, and it inherits
+ * the theme rather than carrying a colour. `aria-hidden` because the sentence
+ * beside it is the label. */
+function CameraGlyph(): ReactElement {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.7l1.2-2h6.2l1.2 2h1.7A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z" />
+      <circle cx="12" cy="12.5" r="3.2" />
+    </svg>
+  );
+}
+
 /**
- * A plain `image_url` as the descriptor `<Image>` consumes.
+ * The card's photos — the whole gallery, as a swipeable strip.
  *
- * A doc type that stores a bare URL has no variant ladder and no dimensions —
- * `source: "link"` is exactly that case, and `<Image>` degrades to the single
- * URL rather than pretending to shop a tier. A doc type that stores the whole
- * `StapelImage` snapshot (`card.image`) gets the ladder, blur-up and all.
+ * ── Why the strip is OUTSIDE the card's anchor ────────────────────────────
+ *
+ * `<SkinCarousel>` is a scroll container with its own tab stop, and a
+ * horizontal swipe that ends inside an `<a>` is a swipe the browser may
+ * deliver as a click. Inside the anchor, every attempt to look at photo two
+ * would navigate to the result — the defect that makes phone galleries
+ * unusable. So it sits above the anchor as a sibling, exactly as
+ * `<ListingSerpCard>` does it, and the anchor still covers everything a
+ * person reads.
+ *
+ * Three states, and they are three different facts. No photo FIELD at all —
+ * a doc type that indexes text — draws nothing, because reserving a 4:3 well
+ * for a corpus that has no photos is a hole in every row. A field with
+ * nothing behind it draws the well and says the photo is unavailable: that is
+ * usually an unwired `resolveImage`, and a sentence gets it fixed where an
+ * empty grey box does not. Anything else is the strip.
  */
-function cardImage(card: Readonly<Record<string, unknown>>): StapelImage | undefined {
-  const rich = card["image"];
-  if (rich !== null && typeof rich === "object" && "url" in rich) {
-    return rich as StapelImage;
+function CardPhotoStrip(props: {
+  photos: CardPhotos;
+  title: string;
+}): ReactElement | null {
+  const t = useT();
+  const { photos, title } = props;
+  if (photos.stored === 0) return null;
+
+  if (photos.images.length === 0) {
+    const caption = t(SEARCH_I18N_KEYS.resultsPhotoUnavailable);
+    return (
+      <div
+        role="img"
+        aria-label={caption}
+        data-testid="search-result-photo-absent"
+        style={PHOTO_ABSENT}
+      >
+        <CameraGlyph />
+        <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
+          {caption}
+        </Typography.Text>
+      </div>
+    );
   }
-  const url = text(card["image_url"]);
-  if (url === undefined) return undefined;
-  return {
-    source: "link",
-    url,
-    mime: null,
-    width: null,
-    height: null,
-    aspect: null,
-    square: false,
-    preview_b64: null,
-    variants: [],
-  };
+
+  const total = photos.images.length;
+  // A one-photo strip gets neither a peek nor dots: the sliver of a next
+  // slide is an affordance for something that is there.
+  const many = total > 1;
+  return (
+    <SkinCarousel
+      label={t(SEARCH_I18N_KEYS.resultsPhotos)}
+      aspectRatio={CARD_PHOTO_ASPECT}
+      peek={many}
+      dots={many}
+      data-testid="search-result-photos"
+    >
+      {photos.images.map((image, index) => (
+        <Image
+          key={`${String(index)}:${image.url}`}
+          meta={image}
+          alt={
+            many
+              ? t(SEARCH_I18N_KEYS.resultsPhotoAlt, {
+                  index: index + 1,
+                  total,
+                  title,
+                })
+              : t(SEARCH_I18N_KEYS.resultsImageAlt, { title })
+          }
+          fit="cover"
+          data-testid="search-result-photo"
+          style={PHOTO_FILL}
+        />
+      ))}
+    </SkinCarousel>
+  );
 }
 
 /**
@@ -208,6 +307,7 @@ export function SearchResultCard(props: SearchCardProps): ReactElement {
   const t = useT();
   const format = useFormat();
   const card = props.item.card;
+  const resolve = useSearchRuntime().resolveImage;
   const title = text(card["title"]) ?? t(SEARCH_I18N_KEYS.resultsUntitled);
   const price = formatCardPrice(format, text(card["price"]), text(card["currency"]));
   const href = text(card["url"]);
@@ -218,48 +318,32 @@ export function SearchResultCard(props: SearchCardProps): ReactElement {
           km: props.item.distance_km.toFixed(1),
         })
       : undefined;
-  // Memoised on the two fields it reads: a fresh `meta` identity every render
-  // is a load `<Image>` has to decide is or is not the same one.
-  const image = useMemo(() => cardImage(card), [card]);
+  // Memoised on the card and the resolver: a host resolver is a plain
+  // function returning a fresh object, so resolving inline hands `<Image>` a
+  // new `meta` identity on every render — a load it then has to decide is or
+  // is not the same one.
+  const photos = useMemo(() => readCardPhotos(card, resolve), [card, resolve]);
 
   const body = (
-    <Flex vertical gap={spacing[2]}>
-      {image !== undefined && (
-        <div style={PHOTO} data-testid="search-result-photo">
-          {/* The WELL owns the shape (4:3, drawn before the network answers),
-              so the image is told to fill it. Without an explicit box the
-              image's own container reserves height only from the snapshot's
-              `aspect` — which a doc type storing a bare `image_url` does not
-              have — and a `cover` image inside a zero-height parent is a
-              photo that loaded and was never seen. */}
-          <Image
-            meta={image}
-            alt={t(SEARCH_I18N_KEYS.resultsImageAlt, { title })}
-            fit="cover"
-            style={{ width: "100%", height: "100%" }}
-          />
-        </div>
+    <Flex vertical gap={spacing[1]}>
+      <Typography.Text strong>{title}</Typography.Text>
+      {/* The price is the strongest line on a catalogue card: it is what the
+          eye scans a grid for. It used to share a type step with the location
+          and sit under a disclosure three times its size. */}
+      {price !== undefined && (
+        <Typography.Text
+          strong
+          style={{ fontSize: fontSize.lg.fontSize }}
+          data-testid="search-result-price"
+        >
+          {price}
+        </Typography.Text>
       )}
-      <Flex vertical gap={spacing[1]}>
-        <Typography.Text strong>{title}</Typography.Text>
-        {/* The price is the strongest line on a catalogue card: it is what
-            the eye scans a grid for. It used to share a type step with the
-            location and sit under a disclosure three times its size. */}
-        {price !== undefined && (
-          <Typography.Text
-            strong
-            style={{ fontSize: fontSize.lg.fontSize }}
-            data-testid="search-result-price"
-          >
-            {price}
-          </Typography.Text>
-        )}
-        {(location !== undefined || distance !== undefined) && (
-          <Typography.Text type="secondary">
-            {[location, distance].filter((v) => v !== undefined).join(" · ")}
-          </Typography.Text>
-        )}
-      </Flex>
+      {(location !== undefined || distance !== undefined) && (
+        <Typography.Text type="secondary">
+          {[location, distance].filter((v) => v !== undefined).join(" · ")}
+        </Typography.Text>
+      )}
     </Flex>
   );
 
@@ -272,6 +356,8 @@ export function SearchResultCard(props: SearchCardProps): ReactElement {
       styles={{ body: { padding: spacing[3] } }}
     >
       <Flex vertical gap={spacing[2]}>
+        {/* A SIBLING of the anchor, never a child — see `CardPhotoStrip`. */}
+        <CardPhotoStrip photos={photos} title={title} />
         {href === undefined ? (
           body
         ) : (

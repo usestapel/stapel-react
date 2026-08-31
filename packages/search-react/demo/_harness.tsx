@@ -31,7 +31,35 @@ import type {
   SearchResponse,
   SuggestResponse,
 } from "../src/index.js";
-import { DEMO_TYPE } from "./fixtures.js";
+import type { StapelImage } from "@stapel/image";
+import { DEMO_PHOTO_BY_REF, DEMO_TYPE } from "./fixtures.js";
+
+/**
+ * The seam a deployment fills in: a stored `<type>/<hash>` reference → a
+ * renderable image.
+ *
+ * Wired here because it is the thing worth showing. The pair cannot resolve a
+ * reference on its own — no contract in this fleet resolves a stranger's
+ * (`model/runtime.ts` argues it) — so a demo that left the seam empty would
+ * only ever photograph the "photo unavailable" arm, which is exactly what the
+ * card did on every live SERP until this seam existed. One reference is left
+ * deliberately unknown, so that arm still has a demo of its own.
+ */
+export function demoResolveImage(ref: string): StapelImage | undefined {
+  const url = DEMO_PHOTO_BY_REF[ref];
+  if (url === undefined) return undefined;
+  return {
+    source: "cdn",
+    url,
+    mime: "image/svg+xml",
+    width: 400,
+    height: 300,
+    aspect: 4 / 3,
+    square: false,
+    preview_b64: null,
+    variants: [],
+  };
+}
 
 /** The base every mock handler mounts on (mirrors `/search/api/v1/`). */
 export const DEMO_BASE = "https://search.demo.stapel.dev/search/api/v1/";
@@ -223,6 +251,7 @@ export function SearchDemoHarness(props: {
     const rt = createSearchRuntime({
       baseUrl: DEMO_BASE,
       fetch: mockFetch({ ...seedHandlers(seed), ...(handlers ?? {}) }),
+      resolveImage: demoResolveImage,
     });
     const engine = createI18n({ locale: "en" });
     registerSearchI18n(engine);

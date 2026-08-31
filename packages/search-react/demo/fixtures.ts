@@ -60,6 +60,46 @@ const DEMO_PHOTO_SAW = demoPhoto(
   "#e4ece4"
 );
 
+const DEMO_PHOTO_DRILL_BACK = demoPhoto(
+  '<rect x="70" y="110" width="180" height="80" rx="16" fill="#4b5563"/>' +
+    '<rect x="250" y="135" width="80" height="30" rx="8" fill="#9ca3af"/>',
+  "#e6e9f0"
+);
+
+const DEMO_PHOTO_DRILL_CASE = demoPhoto(
+  '<rect x="70" y="90" width="260" height="130" rx="18" fill="#374151"/>' +
+    '<rect x="170" y="70" width="60" height="24" rx="10" fill="#6b7280"/>',
+  "#dfe4dd"
+);
+
+/**
+ * What a card actually stores for a photo: an OPAQUE `<type>/<hash>` CDN
+ * reference. Nothing in this fleet stores a URL on a card, so a demo that
+ * inlined one would be documenting a shape no backend emits — and would leave
+ * the seam these references exist to exercise (`resolveImage`) unwired and
+ * unphotographed.
+ */
+export const DEMO_PHOTO_REFS = {
+  drill: "image/demo-drill",
+  drillBack: "image/demo-drill-back",
+  drillCase: "image/demo-drill-case",
+  hammer: "image/demo-hammer",
+  saw: "image/demo-saw",
+} as const;
+
+/** The deployment knowledge a demo stands in for: reference → picture. */
+export const DEMO_PHOTO_BY_REF: Readonly<Record<string, string>> = {
+  [DEMO_PHOTO_REFS.drill]: DEMO_PHOTO_DRILL,
+  [DEMO_PHOTO_REFS.drillBack]: DEMO_PHOTO_DRILL_BACK,
+  [DEMO_PHOTO_REFS.drillCase]: DEMO_PHOTO_DRILL_CASE,
+  [DEMO_PHOTO_REFS.hammer]: DEMO_PHOTO_HAMMER,
+  [DEMO_PHOTO_REFS.saw]: DEMO_PHOTO_SAW,
+};
+
+/** A reference the resolver has nothing for — the state a card draws when a
+ * deployment has not wired `resolveImage` (or the file is gone). */
+export const DEMO_PHOTO_REF_MISSING = "image/demo-gone";
+
 /** A page with a promoted row, approximate facet counts and one skipped slug. */
 export const DEMO_SEARCH_RESPONSE: SearchResponse = {
   items: [
@@ -73,7 +113,12 @@ export const DEMO_SEARCH_RESPONSE: SearchResponse = {
         price: "3200",
         currency: "RUB",
         location: "Moscow",
-        image_url: DEMO_PHOTO_DRILL,
+        images: [
+          DEMO_PHOTO_REFS.drill,
+          DEMO_PHOTO_REFS.drillBack,
+          DEMO_PHOTO_REFS.drillCase,
+        ],
+        image: DEMO_PHOTO_REFS.drill,
         url: "https://demo.stapel.dev/l/1001",
       },
     },
@@ -87,7 +132,8 @@ export const DEMO_SEARCH_RESPONSE: SearchResponse = {
         price: "4100",
         currency: "RUB",
         location: "Khimki",
-        image_url: DEMO_PHOTO_HAMMER,
+        images: [DEMO_PHOTO_REFS.hammer],
+        image: DEMO_PHOTO_REFS.hammer,
         url: "https://demo.stapel.dev/l/1002",
       },
     },
@@ -100,7 +146,8 @@ export const DEMO_SEARCH_RESPONSE: SearchResponse = {
         title: "Interskol DU-13",
         price: "1800",
         currency: "RUB",
-        image_url: DEMO_PHOTO_SAW,
+        images: [DEMO_PHOTO_REFS.saw],
+        image: DEMO_PHOTO_REFS.saw,
         url: "https://demo.stapel.dev/l/1003",
       },
     },
@@ -173,8 +220,49 @@ export const DEMO_PROMOTED_ITEM: SearchItem = {
     price: "3200",
     currency: "RUB",
     location: "Moscow",
-    image_url: DEMO_PHOTO_DRILL,
+    // The singular alone — a doc type that never grew a gallery, and the
+    // fallback `image` exists for.
+    image: DEMO_PHOTO_REFS.drill,
     url: "https://demo.stapel.dev/l/1001",
+  },
+};
+
+/** The gallery the projection has carried since stapel-classified 0.7.0:
+ * every photo the seller uploaded, in their order. */
+export const DEMO_GALLERY_ITEM: SearchItem = {
+  key: "l-1004",
+  score: 1.2,
+  promoted: false,
+  distance_km: 1.8,
+  card: {
+    title: "Makita HP1630, with the case",
+    price: "4100",
+    currency: "RUB",
+    location: "Khimki",
+    images: [
+      DEMO_PHOTO_REFS.hammer,
+      DEMO_PHOTO_REFS.drill,
+      DEMO_PHOTO_REFS.drillBack,
+      DEMO_PHOTO_REFS.drillCase,
+      DEMO_PHOTO_REFS.saw,
+    ],
+    image: DEMO_PHOTO_REFS.hammer,
+    url: "https://demo.stapel.dev/l/1004",
+  },
+};
+
+/** A row whose references nothing resolves: the well, and the reason. */
+export const DEMO_UNRESOLVED_ITEM: SearchItem = {
+  key: "l-1005",
+  score: 0.6,
+  promoted: false,
+  distance_km: null,
+  card: {
+    title: "Interskol DU-13",
+    price: "1800",
+    currency: "RUB",
+    images: [DEMO_PHOTO_REF_MISSING],
+    image: DEMO_PHOTO_REF_MISSING,
   },
 };
 
@@ -189,7 +277,6 @@ export const DEMO_PLAIN_ITEM: SearchItem = {
     title: "Interskol DU-13",
     price: "1800",
     currency: "RUB",
-    image_url: DEMO_PHOTO_SAW,
   },
 };
 

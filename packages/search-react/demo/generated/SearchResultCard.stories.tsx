@@ -6,9 +6,15 @@ import demo from "../SearchResultCard.demo.js";
 
 export default { title: "search-react / Result card" };
 
+export const Gallery = (): ReactElement => renderDemoVariant(demo, "gallery");
+Gallery.storyName = "gallery";
+Gallery.parameters = { stapel: {"viewport":"phone","step":"gallery"} };
 export const Promoted = (): ReactElement => renderDemoVariant(demo, "promoted");
 Promoted.storyName = "promoted";
 Promoted.parameters = { stapel: {"viewport":"desktop","step":"promoted"} };
+export const Unresolved = (): ReactElement => renderDemoVariant(demo, "unresolved");
+Unresolved.storyName = "unresolved";
+Unresolved.parameters = { stapel: {"viewport":"phone","step":"unresolved"} };
 export const Plain = (): ReactElement => renderDemoVariant(demo, "plain");
 Plain.storyName = "plain";
 Plain.parameters = { stapel: {"viewport":"phone","step":"plain"} };

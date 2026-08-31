@@ -64,9 +64,9 @@
       "limit": "10.5 KB"
     },
     {
-      "name": "default — the antd skin (query box + a typeahead that offers CATEGORY destinations with their live counts, filters incl. ranges/geo/category slots + the phone chip row with its leading category chip and the location summary row, results incl. the view switch, ranking) must stay out of the main bundle",
+      "name": "default — the antd skin (query box + a typeahead that offers CATEGORY destinations with their live counts, filters incl. ranges/geo/category slots + the phone chip row with its leading category chip and the location summary row, results incl. the view switch, the card photo GALLERY as a SkinCarousel strip, ranking) must stay out of the main bundle",
       "path": "dist/default/index.js",
-      "limit": "19.5 KB"
+      "limit": "20 KB"
     },
     {
       "name": "router — the react-router binding is opt-in; the main entry must never pull a router",

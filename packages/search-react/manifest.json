@@ -586,16 +586,21 @@
     {
       "id": "search.result-card",
       "title": "Result card",
-      "description": "The default card a doc type gets for free: a 4:3 photo well drawn before the network answers (via @stapel/image, so a dead URL is a named placeholder rather than a torn-page icon), the title, the price with its currency, the location and distance — and the promoted marking painted from a token role rather than an antd preset, with its explanation as ordinary text beneath it.",
+      "description": "The default card a doc type gets for free: the card's whole photo gallery as a swipeable strip (references resolved through the runtime's resolveImage seam and drawn by @stapel/image, so the 4:3 well lands before the network does), the title, the price with its currency, the location and distance — and the promoted marking painted from a token role rather than an antd preset, with its explanation as ordinary text beneath it.",
       "component": "SearchResultCard",
       "tokens": [
         "warning-bg",
         "warning-on",
         "warning-border",
-        "surface-sunken"
+        "surface-sunken",
+        "text-muted",
+        "border",
+        "focus-ring"
       ],
       "variants": [
+        "gallery",
         "promoted",
+        "unresolved",
         "plain"
       ],
       "source": "demo/SearchResultCard.demo.tsx"
@@ -801,6 +806,9 @@
     "search.results.loading",
     "search.results.next",
     "search.results.open",
+    "search.results.photo_alt",
+    "search.results.photo_unavailable",
+    "search.results.photos",
     "search.results.prev",
     "search.results.promoted",
     "search.results.promoted_hint",
@@ -937,6 +945,7 @@
       "SearchGeoBox",
       "SearchGeoCenter",
       "SearchI18nKey",
+      "SearchImageResolver",
       "SearchItem",
       "SearchPageInfo",
       "SearchParamsAdapter",

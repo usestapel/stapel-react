@@ -86,7 +86,7 @@ const { tracked } = useTracked();
 - search.page-size-select → <PageSizeSelect> [ladder|off-ladder]  demo/PageSizeSelect.demo.tsx
 - search.range-filter-row → <RangeFilterRow> [untouched|applied]  demo/RangeFilterRow.demo.tsx
 - search.ranking-pane → <RankingDisclosurePane> [desktop|phone]  demo/RankingDisclosurePane.demo.tsx
-- search.result-card → <SearchResultCard> [promoted|plain]  demo/SearchResultCard.demo.tsx
+- search.result-card → <SearchResultCard> [gallery|promoted|unresolved|plain]  demo/SearchResultCard.demo.tsx
 - search.results-pane → <SearchResultsPane> [desktop|phone|empty]  demo/SearchResultsPane.demo.tsx
 - search.sort-select → <SortSelect> [no-centre|with-centre]  demo/SortSelect.demo.tsx
 - search.url-issue-notice → <UrlIssueNotice> [two-issues|one-issue]  demo/UrlIssueNotice.demo.tsx

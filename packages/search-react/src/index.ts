@@ -145,6 +145,7 @@ export {
 export { createSearchRuntime } from "./model/runtime.js";
 export type {
   SearchRuntime,
+  SearchImageResolver,
   CreateSearchRuntimeOptions,
 } from "./model/runtime.js";
 export {

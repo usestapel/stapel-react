@@ -56,6 +56,16 @@ export const SEARCH_I18N_KEYS = {
   resultsOpen: "search.results.open",
   /** Alt text for the card photo — the card's own title, in a sentence. */
   resultsImageAlt: "search.results.image_alt",
+  /** Alt text for one photo of a GALLERY: its place in the strip, and the
+   * card's title. A row of ten photos all called "Photo of X" is ten
+   * identical announcements. */
+  resultsPhotoAlt: "search.results.photo_alt",
+  /** The photo strip's accessible name. `SkinCarousel` takes its label from
+   * the caller for exactly this reason: the token bridge owns no i18n. */
+  resultsPhotos: "search.results.photos",
+  /** The card stores a reference and nothing resolved it — a sentence gets
+   * the wiring fixed; an empty grey box teaches nobody anything. */
+  resultsPhotoUnavailable: "search.results.photo_unavailable",
 
   // ── the query box ────────────────────────────────────────────────────────
   boxLabel: "search.box.label",
@@ -318,6 +328,9 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.results.untitled": "Untitled",
   "search.results.open": "Open",
   "search.results.image_alt": "Photo of {title}",
+  "search.results.photo_alt": "Photo {index} of {total}: {title}",
+  "search.results.photos": "Photos",
+  "search.results.photo_unavailable": "Photo unavailable",
 
   "search.box.label": "Search",
   "search.box.placeholder": "What are you looking for?",

@@ -63,6 +63,9 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.results.untitled": "Без названия",
   "search.results.open": "Открыть",
   "search.results.image_alt": "Фото: {title}",
+  "search.results.photo_alt": "Фото {index} из {total}: {title}",
+  "search.results.photos": "Фотографии",
+  "search.results.photo_unavailable": "Фото недоступно",
 
   "search.box.label": "Поиск",
   "search.box.placeholder": "Что ищете?",
