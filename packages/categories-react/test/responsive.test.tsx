@@ -145,6 +145,51 @@ describe("the phone shape is a different shape, not a narrower one", () => {
     ).toBe("sheet");
   });
 
+  it("names the trigger without printing a second heading over it", async () => {
+    // The composer's form item already prints "Category". A second visible
+    // copy underneath reads as two stacked controls — but dropping the word
+    // from the ACCESSIBILITY TREE would leave a button whose only name is the
+    // value, with nothing saying what it is a choice of. So: named, joined to
+    // the value, and off the screen.
+    setViewport(PHONE_WIDTH);
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryPickerField value={null} />
+      </TestProviders>
+    );
+    const trigger = await screen.findByTestId("categories-picker-open");
+    const ids = (trigger.getAttribute("aria-labelledby") ?? "").split(" ");
+    // Both halves are in the tree, in reading order: the name and the
+    // current answer.
+    expect(ids).toHaveLength(2);
+    const named = ids.map((id) => document.getElementById(id));
+    expect(named.map((node) => node?.textContent)).toEqual([
+      "Category",
+      "Choose a category",
+    ]);
+    // …and the name is CLIPPED rather than removed: `display: none` would
+    // take it out of the accessibility tree along with the screen, which is
+    // the whole distinction this change rests on.
+    expect(named[0]?.getAttribute("style")).toContain("clip-path");
+    expect(named[0]?.getAttribute("style")).not.toContain("display: none");
+  });
+
+  it("keeps the sheet's own visible title, which duplicates nothing", async () => {
+    // A dialog with no header is a panel that appeared. The key is shared
+    // with the trigger's hidden name on purpose — one word, one translation.
+    setViewport(PHONE_WIDTH);
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryPickerField value={null} defaultOpen />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-picker-list")).toBeTruthy();
+    });
+    const dialog = document.querySelector('[role="dialog"]');
+    expect(dialog?.textContent).toContain("Category");
+  });
+
   it("choosing a leaf closes the sheet — the journey is over", async () => {
     setViewport(PHONE_WIDTH);
     render(

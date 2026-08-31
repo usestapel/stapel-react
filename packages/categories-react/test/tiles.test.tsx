@@ -234,13 +234,17 @@ describe("<CategoryTree> says whether its level may be tiles", () => {
  * about ABSENCE FROM THE DOCUMENT, never about visibility — a test that
  * accepted a hidden node would pass against the exact bug it exists to stop.
  */
-async function renderCategoryPage(form?: SubcategoryForm, slug = "electronics") {
+async function renderCategoryPage(
+  props: {
+    readonly subcategories?: SubcategoryForm;
+    readonly breadcrumbs?: boolean;
+    readonly slug?: string;
+  } = {}
+) {
+  const { slug = "electronics", ...rest } = props;
   const result = render(
     <TestProviders server={mockServer(OK)}>
-      <CategoryPage
-        slug={slug}
-        {...(form !== undefined ? { subcategories: form } : {})}
-      />
+      <CategoryPage slug={slug} {...rest} />
     </TestProviders>
   );
   await waitFor(() => {
@@ -260,7 +264,7 @@ describe("<CategoryPage> renders exactly one form of sub-categories", () => {
   });
 
   it("mounts the tiles and NOT the pane when asked for tiles", async () => {
-    await renderCategoryPage("tiles");
+    await renderCategoryPage({ subcategories: "tiles" });
     await waitFor(() => {
       expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy();
     });
@@ -271,7 +275,7 @@ describe("<CategoryPage> renders exactly one form of sub-categories", () => {
   it("draws the category's own children as tiles, not the carousel's rows", async () => {
     // The carousel endpoint answers `electronics`; this landing IS
     // electronics, and what belongs on it is what is inside it.
-    await renderCategoryPage("tiles");
+    await renderCategoryPage({ subcategories: "tiles" });
     await waitFor(() => {
       expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy();
     });
@@ -284,7 +288,7 @@ describe("<CategoryPage> renders exactly one form of sub-categories", () => {
   });
 
   it("mounts NEITHER list when the host draws its own", async () => {
-    await renderCategoryPage("none");
+    await renderCategoryPage({ subcategories: "none" });
     expect(screen.queryByTestId("categories-tree")).toBeNull();
     expect(screen.queryByTestId("categories-tile-grid")).toBeNull();
   });
@@ -293,7 +297,7 @@ describe("<CategoryPage> renders exactly one form of sub-categories", () => {
     // `phones` is depth 1, so its children are depth 2 — a level the canon
     // sends to a cascading selector. Falling back to the list here would
     // reintroduce browsing at exactly the depth the model removed it from.
-    await renderCategoryPage("tiles", "phones");
+    await renderCategoryPage({ subcategories: "tiles", slug: "phones" });
     await waitFor(() => {
       expect(screen.getByTestId("categories-category-page")).toBeTruthy();
     });
@@ -305,10 +309,48 @@ describe("<CategoryPage> renders exactly one form of sub-categories", () => {
     // `laptops` has no children. "This category has no subcategories" belongs
     // on a page that came looking for them, not above the listings.
     for (const form of ["pane", "tiles"] as const) {
-      const { unmount } = await renderCategoryPage(form, "laptops");
+      const { unmount } = await renderCategoryPage({ subcategories: form, slug: "laptops" });
       expect(screen.queryByTestId("categories-tree")).toBeNull();
       expect(screen.queryByTestId("categories-tile-grid")).toBeNull();
       unmount();
     }
+  });
+});
+
+describe("<CategoryPage> lets the host say whether the trail belongs here", () => {
+  it("draws the breadcrumbs by default", async () => {
+    await renderCategoryPage();
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-breadcrumbs")).toBeTruthy();
+    });
+  });
+
+  it("mounts NOTHING when the host says the back arrow carries the trail", async () => {
+    // The phone shape: the reference landing is back-arrow, search field and
+    // tiles. Hiding the bar in the host's stylesheet — which is what a live
+    // classified deployment did — still ships the crumbs to every phone and
+    // still puts them in the accessibility tree.
+    await renderCategoryPage({ breadcrumbs: false });
+    expect(screen.queryByTestId("categories-breadcrumbs")).toBeNull();
+    expect(screen.queryByTestId("categories-breadcrumbs-loading")).toBeNull();
+    expect(screen.queryByTestId("categories-breadcrumbs-unknown")).toBeNull();
+  });
+
+  it("leaves the rest of the page alone with the trail off", async () => {
+    // Turning off one row of chrome must not turn off the screen: the title
+    // and the sub-categories are the page, not the bar's dependants.
+    await renderCategoryPage({ breadcrumbs: false });
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-tree-list")).toBeTruthy();
+    });
+  });
+
+  it("composes with the sub-category arms rather than fighting them", async () => {
+    await renderCategoryPage({ breadcrumbs: false, subcategories: "tiles" });
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("categories-breadcrumbs")).toBeNull();
+    expect(screen.queryByTestId("categories-tree")).toBeNull();
   });
 });

@@ -24,6 +24,26 @@
  * dialog surface) with the crumb as its header. Tablet and desktop keep the
  * inline list, where there is room for it. The state lives in the headless
  * bag either way, so the sheet is a container and not a second picker.
+ *
+ * ── Why the trigger has no VISIBLE heading of its own ──────────────────────
+ *
+ * This field is mounted inside somebody else's form, and that form's item
+ * already prints "Category" above it. A second one underneath is the same word
+ * twice in two type sizes — the composer's label, then the pair's — which
+ * reads as two separate controls stacked, and the phone fold has four lines to
+ * spend.
+ *
+ * It is dropped from the SCREEN, not from the accessibility tree, which is the
+ * distinction `display: none` gets wrong: mounted bare (the showcase, a host
+ * with no form item), the trigger would otherwise be a button whose only name
+ * is the value inside it — "Phones, button", with nothing saying what Phones
+ * is a choice OF. So the name is still authored, still translated, and
+ * `visuallyHidden` (the substrate's one way to do this) keeps it in the tree.
+ * It is joined to the value rather than replacing it, so the button announces
+ * "Category, Phones" instead of losing one half or the other.
+ *
+ * The SHEET keeps its visible title, on the same key. There the word is not a
+ * duplicate of anything — a dialog with no header is a panel that appeared.
  */
 import { useId, useState } from "react";
 import type { ReactElement } from "react";
@@ -39,6 +59,7 @@ import {
   SkinDialog,
   SkinTheme,
   useDialogSurface,
+  visuallyHidden,
 } from "@stapel/tokens-antd/skin";
 import { categoryLabel, renderCategoryLabel } from "../catalog/labels.js";
 import type { CategoryNode } from "../catalog/tree.js";
@@ -83,6 +104,7 @@ export function CategoryPickerField(
       : dialogSurface === "sheet";
   const [open, setOpen] = useState(props.defaultOpen ?? false);
   const labelId = useId();
+  const valueId = useId();
 
   return (
     <SkinTheme
@@ -112,16 +134,22 @@ export function CategoryPickerField(
             <Flex vertical gap={spacing[2]} data-testid="categories-picker">
               {sheet ? (
                 <>
-                  {/* A FIELD, not a centred block of text: a visible label,
-                      the value leading, a caret at the end and the touch
-                      floor for a height. Centred with no affordance, it read
-                      as a read-only value. */}
-                  <Typography.Text id={labelId}>
+                  {/* The control's NAME, off the screen and in the
+                      accessibility tree — see this file's header for why the
+                      visible copy of it is the composer's to print. */}
+                  <span id={labelId} style={visuallyHidden}>
                     {t(CATEGORIES_I18N_KEYS.pickerTitle)}
-                  </Typography.Text>
+                  </span>
+                  {/* A FIELD, not a centred block of text: the value leading,
+                      a caret at the end and the touch floor for a height.
+                      Centred with no affordance, it read as a read-only
+                      value. */}
                   <Button
                     block
-                    aria-labelledby={labelId}
+                    // Both ids, in reading order: the name alone would drop
+                    // the current answer from what a screen reader announces,
+                    // and the value alone never says what it is a choice of.
+                    aria-labelledby={`${labelId} ${valueId}`}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -138,7 +166,7 @@ export function CategoryPickerField(
                       setOpen(true);
                     }}
                   >
-                    <span>
+                    <span id={valueId}>
                       {bag.selected === null
                         ? t(CATEGORIES_I18N_KEYS.pickerChoose)
                         : renderCategoryLabel(

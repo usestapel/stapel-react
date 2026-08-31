@@ -46,6 +46,13 @@
  * rendered once. The arm that is not chosen is not MOUNTED — it does not
  * render hidden, and its testid is absent from the document, which is what
  * makes "one list" checkable rather than a claim about stylesheets.
+ *
+ * {@link CategoryPageProps.breadcrumbs} is the same defect one row up, and it
+ * was hidden by the same stylesheet: a phone landing in the reference design
+ * is back-arrow, search field and tiles, so the trail belongs to the back
+ * arrow and a crumb row above the title is desktop furniture. Same rule, same
+ * reason — the host STATES it and the bar is never mounted, rather than being
+ * rendered and then covered.
  */
 import { spacing } from "@stapel/tokens";
 import type { ReactElement, ReactNode } from "react";
@@ -92,6 +99,28 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
   /** Show the category's feature schema. Off by default: on a storefront the
    * schema is the facet panel's input, not a visitor-facing table. */
   readonly showFeatures?: boolean;
+  /**
+   * Draw the trail above the title. Default `true` — what this page has always
+   * rendered, so no existing host changes behaviour.
+   *
+   * NOT a taste knob, and the reason matters because the next reader will
+   * otherwise assume it is one. Which chrome carries "where am I" is a
+   * DEPLOYMENT'S navigation decision, and the two answers are both correct:
+   *
+   *  - on a desktop the trail IS the catalogue's navigation — it is how a
+   *    visitor moves back up a tree that has no other affordance on screen;
+   *  - on a phone the reference design gives that job to the back arrow in
+   *    the app bar, above a landing that is search field and tiles. A crumb
+   *    row there repeats the back arrow in a second visual language and
+   *    spends a line of a fold that has four of them.
+   *
+   * A live classified deployment had exactly that, as a `display: none` under
+   * a `max-width` media query with an upstream ask attached. `false` mounts
+   * NOTHING — the bar is absent from the document rather than covered — which
+   * is the same rule the sub-category arms follow and the only version of
+   * this a test can check.
+   */
+  readonly breadcrumbs?: boolean;
   /**
    * Which FORM the sub-categories take. Default `"pane"` — what this page has
    * always rendered, so no existing host changes behaviour.
@@ -210,12 +239,14 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
             {/* The page owns the outage and the dead address; the bar under
                 the same read must not state either a second time in a second
                 visual language. */}
-            <CategoryBreadcrumbsBar
-              slug={props.slug}
-              basePath={base}
-              onAbsent="quiet"
-              {...link}
-            />
+            {props.breadcrumbs === false ? null : (
+              <CategoryBreadcrumbsBar
+                slug={props.slug}
+                basePath={base}
+                onAbsent="quiet"
+                {...link}
+              />
+            )}
 
             <LoadBoundary
               state={bag.catalog}
