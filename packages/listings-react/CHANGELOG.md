@@ -1,5 +1,47 @@
 # @stapel/listings-react
 
+## 0.14.0
+
+### Minor Changes
+
+- The desktop result card is a list row, and it has the phone card's gallery
+
+  Measured on a live 1440px result page in "list" view: **one offer per screen**
+  — a 974×835 card of which the photograph was 974×731 — showing a SINGLE photo,
+  with no carousel, and that photo inside the card's own link. The phone card,
+  measured in the same run, was correct on every count: three photos per card,
+  dots on all of them, a 17px peek, and the strip a sibling of the anchor.
+
+  Two changes, both to `<ListingCard>`, and the second to `<ListingSerpCard>` as
+  well.
+
+  **The photos are a strip, outside the anchor.** `<ListingPhotoStrip>` is now
+  the one gallery both card surfaces draw: a `SkinCarousel` over every stored
+  photo, peeking and dotted above one photo, one slide for a listing with none.
+  It sits BESIDE the anchor rather than inside it, because a swipeable strip is a
+  control, a link may not contain one, and a horizontal swipe that ends inside an
+  `<a>` is a swipe the browser may deliver as a click — the defect that made the
+  desktop gallery unreachable. The "the card is the link" ruling is otherwise
+  untouched: the price, the title, the badges and the place are still inside one
+  real `<a href>` whose accessible name is the title.
+
+  **The card lays out as a row when it is wide enough to be one.** Above
+  `LISTING_CARD_ROW_MIN` (560px of the CARD's own inline size, asked with a
+  `@container` query and never a viewport breakpoint) the strip moves beside the
+  reading column at a fixed `LISTING_CARD_ROW_MEDIA` (260px), so several offers
+  fit a screen. In a grid the column is never that wide, so nothing about a grid
+  changes.
+
+  New from `@stapel/listings-react/default`: `ListingPhotoStrip`,
+  `LISTING_CARD_ROW_MIN` and `LISTING_CARD_ROW_MEDIA`. The frame's own class
+  names (`CARD_QUERY_CLASS`, `CARD_FRAME_CLASS`, `CARD_MEDIA_CLASS`,
+  `CARD_MAIN_CLASS`, `CARD_BLEED_CLASS`) stay on the module, beside
+  `cardTargetCss`, where the other card surfaces read them.
+
+  Demos photograph both cards at both widths — a 320px grid cell and a 960px list
+  row — and the suite asserts the structure the layout acts on plus the rule text
+  a browser applies.
+
 ## 0.13.0
 
 ### Minor Changes

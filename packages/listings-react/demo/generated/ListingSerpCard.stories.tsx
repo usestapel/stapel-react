@@ -15,6 +15,9 @@ Trend.parameters = { stapel: {"viewport":"phone","step":"member_price_dropped"} 
 export const Visitor = (): ReactElement => renderDemoVariant(demo, "visitor");
 Visitor.storyName = "visitor";
 Visitor.parameters = { stapel: {"viewport":"phone","step":"anonymous_blocked"} };
+export const DesktopRow = (): ReactElement => renderDemoVariant(demo, "desktop row");
+DesktopRow.storyName = "desktop row";
+DesktopRow.parameters = { stapel: {"viewport":"desktop","step":"member_row_960"} };
 export const Bare = (): ReactElement => renderDemoVariant(demo, "bare");
 Bare.storyName = "bare";
 Bare.parameters = { stapel: {"viewport":"desktop","step":"member_no_media"} };

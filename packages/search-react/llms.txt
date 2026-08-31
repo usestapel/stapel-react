@@ -1,4 +1,4 @@
-# @stapel/search-react 0.14.0
+# @stapel/search-react 0.14.1
 
 Headless React flow pair for stapel-search (contract >=0.7 <0.8) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
@@ -78,7 +78,7 @@ const { tracked } = useTracked();
 - search.box → <SearchBox> [empty|typed]  demo/SearchBox.demo.tsx
 - search.classified-filters → <FilterChips> [chips|applied|shapes|views]  demo/ClassifiedFilters.demo.tsx
 - search.degradation-notice → <DegradationNotice> [banner|inline]  demo/DegradationNotice.demo.tsx
-- search.facet-panel-pane → <FacetPanelPane> [open-search|narrowed]  demo/FacetPanelPane.demo.tsx
+- search.facet-panel-pane → <FacetPanelPane> [open-search|narrowed|in the desktop rail]  demo/FacetPanelPane.demo.tsx
 - search.filter-sheet → <SearchPage> [open]  demo/FilterSheet.demo.tsx
 - search.language-select → <LanguageSelect> [offered|from-a-link]  demo/LanguageSelect.demo.tsx
 - search.location-summary → <LocationSummaryLine> [everywhere|placed|narrowed|long-place|wide]  demo/LocationSummaryLine.demo.tsx

@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/listings-react",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "demos": [
     {
       "id": "listings.card",
@@ -34,6 +34,18 @@
           "step": "anonymous_blocked"
         },
         {
+          "id": "grid cell",
+          "description": "In a 320px grid column: the card stacks, the photo strip runs edge to edge above the text, and the three photos peek with dots. Below the row threshold, so nothing about a grid changes.",
+          "viewport": "phone",
+          "step": "member_stacked_320"
+        },
+        {
+          "id": "list row",
+          "description": "The same card in a 960px list row: the strip moves beside the text at a fixed 260px and the reading column takes what is left, so several offers fit a screen. The live desktop SERP drew this as one 974x835 card per screen with a 974x731 photograph and no carousel at all.",
+          "viewport": "desktop",
+          "step": "member_row_960"
+        },
+        {
           "id": "no-photo",
           "description": "No photo and no price — the two absences a marketplace grid has to draw honestly.",
           "viewport": "desktop",
@@ -42,7 +54,7 @@
       ],
       "source": {
         "file": "demo/ListingCard.demo.tsx",
-        "line": 47
+        "line": 89
       }
     },
     {
@@ -321,6 +333,41 @@
       }
     },
     {
+      "id": "listings.photo-strip",
+      "title": "Listing photo strip",
+      "description": "Every stored photo of a listing as one swipeable, snapping strip — the gallery <ListingCard> and <ListingSerpCard> both render, always as a SIBLING of the card's anchor. A swipeable strip is a control, a link may not contain one, and a horizontal swipe that ends inside an <a> is a swipe the browser may deliver as a click; that is what made the desktop gallery unreachable on a live deployment while the phone one worked.",
+      "component": "ListingPhotoStrip",
+      "covers": [],
+      "tokens": [
+        "surface-sunken",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Three photos: the next one peeks at the trailing edge and the dots say how many there are. The peek is the only thing on screen that says there is more, and it is what people swipe at.",
+          "viewport": "phone",
+          "step": "three_photos"
+        },
+        {
+          "id": "single",
+          "description": "One photo: no peek and no dots. A sliver of a next slide that does not exist is a strip of dead space, and one dot is not a position.",
+          "viewport": "phone",
+          "step": "one_photo"
+        },
+        {
+          "id": "no photos",
+          "description": "A listing the seller uploaded nothing for: still one slide, carrying the designed placeholder rather than a broken image, so the card's height is the same as its neighbours'.",
+          "viewport": "desktop",
+          "step": "no_media"
+        }
+      ],
+      "source": {
+        "file": "demo/ListingPhotoStrip.demo.tsx",
+        "line": 36
+      }
+    },
+    {
       "id": "listings.serp-card",
       "title": "Listing SERP card",
       "description": "The one-column result card of a phone search page: a SkinCarousel photo strip that peeks, then the PRICE as the first and largest line, the title at regular weight, the seller's spec line, the stored badge projection, the seller slot and the place. The strip sits outside the card's anchor on purpose — a horizontal swipe that ends inside a link is a swipe the browser may deliver as a navigation — and the trailing rail carries the container's call and chat controls with the favourite heart at its end.",
@@ -352,6 +399,12 @@
           "step": "anonymous_blocked"
         },
         {
+          "id": "desktop row",
+          "description": "One card in a 960px list row: the photo strip beside the reading column at a fixed width, the action rail still at the trailing edge. Below 560px the same component stacks — it asks its own width, never the viewport's.",
+          "viewport": "desktop",
+          "step": "member_row_960"
+        },
+        {
           "id": "bare",
           "description": "No photo, no price, no place — the absences a result page has to draw without looking broken.",
           "viewport": "desktop",
@@ -360,7 +413,7 @@
       ],
       "source": {
         "file": "demo/ListingSerpCard.demo.tsx",
-        "line": 100
+        "line": 116
       }
     }
   ]

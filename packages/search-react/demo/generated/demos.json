@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/search-react",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "demos": [
     {
       "id": "search.box",
@@ -126,11 +126,17 @@
           "description": "A shared link that already narrows by category, brand, power and a 25km radius — at 390px. Every one of those constraints has a control that removes it, including the two whose slots no host filled. The location reads as the place the host named it, not as the pair of numbers the URL stores.",
           "viewport": "phone",
           "step": "narrowed"
+        },
+        {
+          "id": "in the desktop rail",
+          "description": "The same narrowed panel in the 280px column <SearchPage> gives it. Both halves of the heading row are present and neither is squeezed: the word keeps its own width and never breaks between its letters, and \"Clear all filters (3)\" wraps onto its own line instead of taking the heading's. Measured on the live SERP before this, the heading was a 43x78 box holding three lines.",
+          "viewport": "desktop",
+          "step": "narrowed-in-rail"
         }
       ],
       "source": {
         "file": "demo/FacetPanelPane.demo.tsx",
-        "line": 60
+        "line": 86
       }
     },
     {

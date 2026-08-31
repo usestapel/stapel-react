@@ -86,6 +86,22 @@ function Visitor(): ReactElement {
   );
 }
 
+/**
+ * The same card given a desktop list row's width. Above
+ * `LISTING_CARD_ROW_MIN` the strip sits beside the text instead of full-bleed
+ * above it — full-bleed is right at 390px and, at 974px, makes the picture the
+ * whole screen and the offer a footnote.
+ */
+function Row(): ReactElement {
+  return (
+    <div style={{ width: 960 }}>
+      <ListingsDemoHarness>
+        <Card />
+      </ListingsDemoHarness>
+    </div>
+  );
+}
+
 function Bare(): ReactElement {
   return (
     <ListingsDemoHarness>
@@ -126,6 +142,13 @@ export default defineDemo({
       description:
         "A visitor with no rail: the heart is off and its reason is printed beside it. A real feed wraps the list in a PaneGate so that sentence is said once, not once per card.",
       render: () => <Visitor />,
+    },
+    "desktop row": {
+      viewport: "desktop",
+      step: "member_row_960",
+      description:
+        "One card in a 960px list row: the photo strip beside the reading column at a fixed width, the action rail still at the trailing edge. Below 560px the same component stacks — it asks its own width, never the viewport's.",
+      render: () => <Row />,
     },
     bare: {
       viewport: "desktop",

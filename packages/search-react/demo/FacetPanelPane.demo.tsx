@@ -25,6 +25,7 @@
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
 import { FacetPanelPane } from "../src/default/FacetPanelPane.js";
+import { FILTERS_RAIL_WIDTH } from "../src/default/SearchPage.js";
 import { SearchSkinHarness } from "./_harness.js";
 import type { DemoSeed } from "./_harness.js";
 import { DEMO_FEATURES, DEMO_SEARCH_RESPONSE, DEMO_TYPE } from "./fixtures.js";
@@ -57,6 +58,31 @@ function Panel(props: { phone?: boolean; search: string }): ReactElement {
   );
 }
 
+/**
+ * The panel at the width it actually gets on a desktop SERP — the rail, not
+ * the page.
+ *
+ * `<SearchPage>` gives the filters a fixed 280px column, and the heading row
+ * has to survive it with a twenty-five-character "Clear all filters (3)"
+ * beside the word "Filters". On the live stand it did not: the heading came
+ * out 43px wide and 78px tall, three lines, one syllable each (defect C14).
+ * Photographed at the rail's own width because that is the only width at
+ * which the row is under any pressure at all.
+ */
+function Rail(): ReactElement {
+  return (
+    <div style={{ width: FILTERS_RAIL_WIDTH }}>
+      <SearchSkinHarness search={NARROWED_SEARCH} seed={SEED}>
+        <FacetPanelPane
+          categoryFeatures={DEMO_FEATURES}
+          languages={LANGUAGES}
+          geoLabel={GEO_LABEL}
+        />
+      </SearchSkinHarness>
+    </div>
+  );
+}
+
 export default defineDemo({
   id: "search.facet-panel-pane",
   title: "Filter panel",
@@ -79,6 +105,13 @@ export default defineDemo({
       viewport: "phone",
       step: "narrowed",
       render: () => <Panel phone search={NARROWED_SEARCH} />,
+    },
+    "in the desktop rail": {
+      description:
+        "The same narrowed panel in the 280px column <SearchPage> gives it. Both halves of the heading row are present and neither is squeezed: the word keeps its own width and never breaks between its letters, and \"Clear all filters (3)\" wraps onto its own line instead of taking the heading's. Measured on the live SERP before this, the heading was a 43x78 box holding three lines.",
+      viewport: "desktop",
+      step: "narrowed-in-rail",
+      render: () => <Rail />,
     },
   },
 });

@@ -26,6 +26,7 @@ import {
   REF_SELECT_FEATURES,
   REF_SELECT_VALUES,
   RULES_NEW_VALUES,
+  SLOW_VOCABULARY_CLIENT,
   RULES_USED_VALUES,
   GROUP_FEATURES,
   GROUP_PARTIAL_VALUES,
@@ -37,6 +38,22 @@ import {
   UNIT_FEATURES,
   UNIT_VALUES,
 } from "./fixtures.js";
+
+/**
+ * Type into a React-controlled input the way a person does.
+ *
+ * `value = x` alone is invisible to React — its own value setter is shadowed
+ * on the element — so the native setter is called and the `input` event fired,
+ * which is exactly the pair a keystroke produces.
+ */
+function type(box: HTMLInputElement, text: string): void {
+  const setter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    "value"
+  )?.set;
+  setter?.call(box, text);
+  box.dispatchEvent(new Event("input", { bubbles: true }));
+}
 
 export default defineDemo({
   id: "attributes.fields",
@@ -181,6 +198,38 @@ export default defineDemo({
           />
         </AttributesDemoHarness>
       ),
+    },
+    "ref-select — waiting for the wire": {
+      description:
+        "The window defect C23 lived in. The brand box holds a query the wire has not answered yet, and the list is BLANK rather than the previous query's terms: on the live stand it kept them for 400–640 ms per field, pickable, so a fast tap wrote somebody else's code into the attribute. `data-vocabulary-matched=\"false\"` is the control saying, in one attribute a probe and a screenshot can both read, that nothing on screen answers what is typed.",
+      viewport: "phone",
+      step: "query-in-flight",
+      render: () => (
+        <AttributesDemoHarness surface="base">
+          <EditableFeatureFields
+            features={REF_SELECT_FEATURES}
+            vocabularyClient={SLOW_VOCABULARY_CLIENT}
+          />
+        </AttributesDemoHarness>
+      ),
+      // Typed through the control's own affordance rather than seeded by a
+      // prop that exists only for demos: the stale window opens on a
+      // KEYSTROKE, so a keystroke is what this variant performs.
+      play: async ({ find }) => {
+        const box = (await find('input[role="combobox"]')) as HTMLInputElement;
+        // `mousedown`, not `click`: that is the event antd opens a Select on,
+        // and the dropdown has to be open for the blank list to be the
+        // picture rather than an assertion.
+        box.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+        box.focus();
+        type(box, "iph");
+        // BUSY is the assertion, not `matched="false"`: an untouched control
+        // is already unmatched (it has been asked nothing), and busy is the
+        // state a keystroke put it in.
+        await find(
+          '[data-testid="attributes-ref-select"][data-vocabulary-busy="true"]'
+        );
+      },
     },
     "no vocabulary source": {
       description:

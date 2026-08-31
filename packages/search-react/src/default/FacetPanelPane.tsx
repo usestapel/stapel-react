@@ -33,7 +33,7 @@
  * carries gets a control that REMOVES it. A shared link that narrows to a
  * category or a point must never leave a person with no way to widen it again.
  */
-import type { ReactElement, ReactNode } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import {
   Alert,
   Button,
@@ -62,6 +62,63 @@ import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { LanguageSelect } from "./LanguageSelect.js";
 import { RangeFilterRow } from "./RangeFilterRow.js";
 import type { ThemeModeProp } from "./types.js";
+
+/**
+ * The heading row, in a 280px rail (defect C14).
+ *
+ * Measured on the live desktop SERP: the box holding the word "Filters" was
+ * **43px wide and 78px tall — three lines** — reading "Fil / ter / s" down the
+ * left edge of the results. It is the first thing a shopper sees beside their
+ * results, and it looked like a rendering fault.
+ *
+ * Two causes, one row:
+ *
+ * 1. **The row's other half is a long sentence.** "Clear all filters (2)" is
+ *    twenty-one characters in English and twenty-four in the Russian
+ *    catalogue. Both halves were ordinary flex items in a `space-between` row,
+ *    so in a rail the button took the width it wanted and the heading got what
+ *    was left — 43px of a 280px column.
+ * 2. **antd's `.ant-typography` ships `word-break: break-word`,** which is why
+ *    the remains were not a truncated word but a word broken between its
+ *    letters onto three lines. Breaking inside a word is for prose that has to
+ *    fit a narrow measure; a one-word section heading is not that.
+ *
+ * So: the row WRAPS — the button drops to its own line rather than squeezing
+ * the word — the heading never shrinks below its own content and never breaks
+ * inside a word, and the button is the half that gives, wrapping its sentence
+ * over two lines when the rail is narrow.
+ *
+ * ── Why these are inline styles and not a hoisted sheet ───────────────────
+ *
+ * Because they contradict antd, and both elements are OURS. A class of ours
+ * against `.ant-typography` or `.ant-btn` is decided by whichever stylesheet
+ * was injected last, which is not a decision — it is a coin toss that happens
+ * to land right until a dependency reorders its emit. An inline style wins
+ * against every stylesheet by rule. `<LocationSummaryLine>` hoists a sheet
+ * because its rules have to reach a `<span>` antd generates and React never
+ * sees; nothing here does.
+ */
+const FACET_HEADING: CSSProperties = {
+  margin: 0,
+  // Never squeezed: 43px of a 280px column was a heading allowed to give its
+  // width to a twenty-five-character button.
+  flex: "0 0 auto",
+  minInlineSize: "max-content",
+  // Never hyphenated, never broken between the letters of one word.
+  wordBreak: "normal",
+  overflowWrap: "normal",
+  hyphens: "none",
+};
+
+/** The half that gives. A two-line button is a button; a three-line heading of
+ * one word is a defect. */
+const FACET_CLEAR: CSSProperties = {
+  flex: "0 1 auto",
+  minInlineSize: 0,
+  whiteSpace: "normal",
+  height: "auto",
+  textAlign: "start",
+};
 
 /** What a host's category control is handed. */
 export interface CategoryFilterSlotProps {
@@ -349,16 +406,31 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
           });
           return (
           <Flex vertical gap={spacing[3]} data-testid="search-facets">
-            <Flex justify="space-between" align="center" gap={spacing[2]}>
+            {/* In a 280px rail this row laid the word "Filters" out in a
+                43x78 box, three lines, one syllable each — see FACET_HEADING.
+                `wrap` is the row's half of the fix: the long sentence drops to
+                its own line instead of taking the heading's width. */}
+            <Flex
+              justify="space-between"
+              align="center"
+              wrap
+              gap={spacing[2]}
+              data-testid="search-facets-head"
+            >
               {props.heading === null ? (
                 <span />
               ) : (
-                <Typography.Title level={5} style={{ margin: 0 }}>
+                <Typography.Title
+                  level={5}
+                  style={FACET_HEADING}
+                  data-testid="search-facets-heading"
+                >
                   {props.heading ?? t(SEARCH_I18N_KEYS.facetsTitle)}
                 </Typography.Title>
               )}
               {bag.activeFilters > 0 && (
                 <Button
+                  style={FACET_CLEAR}
                   onClick={bag.clearAll}
                   data-analytics="none"
                   data-analytics-reason="a filter is a read, not a flow step"

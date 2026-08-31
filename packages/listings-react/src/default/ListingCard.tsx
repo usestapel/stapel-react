@@ -16,9 +16,9 @@
  * Nothing on a classified works that way: the card IS the target, and the only
  * separate control on it is the favourite heart.
  *
- * So the photo, the price, the title, the badges and the location now live
- * INSIDE one anchor that covers the whole card, and `listings.card.open` is
- * retired rather than left orphaned in three catalogues.
+ * So the price, the title, the badges and the location live INSIDE one anchor
+ * that covers the whole card, and `listings.card.open` is retired rather than
+ * left orphaned in three catalogues.
  *
  * What that must not cost is the anchor semantics won earlier: this is a real
  * `<a href>`, so middle-click opens a tab, ⌘-click opens a tab, "copy link
@@ -43,6 +43,29 @@
  * nothing else — and everything inside it stays readable by ordinary browsing.
  * A listing with no title falls back to `listings.card.untitled`, because a
  * link announced as nothing is worse than one announced as untitled.
+ *
+ * ── The photos moved OUT of the anchor, and the card became a ROW ─────────
+ *
+ * Both from the same measurement of the live desktop SERP, in list view:
+ * **one card per screen** — 974×835, of which the photograph was 974×731 —
+ * showing a SINGLE photo, with no carousel, and that photo inside the anchor.
+ * The phone card beside it was correct on every count.
+ *
+ * The photo used to be inside the anchor on the argument that a still `<img>`
+ * in a link is just a bigger link, which is true and stops being true the
+ * moment there is more than one photo: a swipeable strip is a control, a link
+ * may not contain one, and a horizontal swipe that ends inside an `<a>` is a
+ * swipe the browser may deliver as a click. So the strip is a SIBLING of the
+ * anchor — the arrangement `<ListingSerpCard>` has always used, and the reason
+ * the phone gallery works — and the anchor still covers everything a person
+ * READS. `<ListingPhotoStrip>` is the one gallery both cards draw.
+ *
+ * The row is the other half. A grid card handed a full-page-wide track keeps
+ * its shape and becomes a banner; this card now asks its OWN width
+ * (`@container`, see {@link LISTING_CARD_ROW_MIN}) and lays the photo beside
+ * the text above 560px. In a grid its column is never that wide, so nothing
+ * about the grid changes; in a list several rows fit a screen, which is the
+ * only reason a list exists.
  *
  * ── Why the heart is a row under the card and not floating on the photo ────
  *
@@ -88,7 +111,7 @@ import { useFavoriteToggle } from "../headless/Favorites.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { HeartIcon } from "./icons.js";
 import { SignInLink } from "./SignInLink.js";
-import { ListingPhoto } from "./ListingPhoto.js";
+import { ListingPhotoStrip } from "./ListingPhoto.js";
 import { ListingPrice } from "./ListingPrice.js";
 import type { CategoryFeaturesProp, ThemeModeProp } from "./types.js";
 
@@ -151,9 +174,44 @@ export type ListingCardBlockedReason = "text" | "line";
 
 /** The class the whole-card target carries, for {@link cardTargetCss}. */
 export const CARD_TARGET_CLASS = "stapel-listing-card-target";
+/** The class the card's OUTER box carries — the size container the row layout
+ * is asked about. A container cannot answer a query about itself, which is why
+ * this is a wrapper and not the frame. */
+export const CARD_QUERY_CLASS = "stapel-listing-card-q";
+/** The class the media/reading frame carries. */
+export const CARD_FRAME_CLASS = "stapel-listing-card-frame";
+/** The class the photo strip's box carries. */
+export const CARD_MEDIA_CLASS = "stapel-listing-card-media";
+/** The class the reading column carries. */
+export const CARD_MAIN_CLASS = "stapel-listing-card-main";
+/** Added to the frame by a card whose media is FULL-BLEED when stacked
+ * (`<ListingCard>`), so the row arm gets the inset the stacked arm does not. */
+export const CARD_BLEED_CLASS = "stapel-listing-card-bleed";
 
 /** The `href` the hoisted card stylesheet is deduplicated by. */
 export const CARD_TARGET_STYLE_HREF = "stapel-listings-card-target";
+
+/**
+ * The card's own inline size above which it stops being a card and becomes a
+ * ROW.
+ *
+ * Measured on the live desktop SERP in "list" view: **one card per screen**,
+ * 974×835, of which the photograph was 974×731 — a grid card handed a
+ * full-page track and asked to keep its shape. A shopper comparing offers got
+ * one offer per scroll.
+ *
+ * 560px is the width at which a 4:3 photo stops being a banner: below it a
+ * two-column row leaves the text nothing, above it the photo is a thumbnail
+ * beside a paragraph. A `@container` query rather than a media query because
+ * the card does not know the viewport and must not care: the same card is a
+ * grid cell 300px wide on a 1440px screen and a full-width row on a 700px one,
+ * and only its OWN width decides which it is.
+ */
+export const LISTING_CARD_ROW_MIN = 560;
+
+/** The photo's width in the row arm. Wide enough to read the goods, narrow
+ * enough that several rows fit a screen — the whole point of a list. */
+export const LISTING_CARD_ROW_MEDIA = 260;
 
 /**
  * The one rule an inline style cannot express: `:focus-visible`.
@@ -168,9 +226,33 @@ export const CARD_TARGET_STYLE_HREF = "stapel-listings-card-target";
  * design system's ROLE catalogue and this is a component's private plumbing.
  */
 export function cardTargetCss(): string {
+  const q = `.${CARD_QUERY_CLASS}`;
+  const frame = `.${CARD_FRAME_CLASS}`;
+  const media = `.${CARD_MEDIA_CLASS}`;
+  const main = `.${CARD_MAIN_CLASS}`;
+  const bleed = `.${CARD_BLEED_CLASS}`;
   return [
     `.${CARD_TARGET_CLASS}{display:block;color:inherit;text-decoration:none}`,
     `.${CARD_TARGET_CLASS}:focus-visible{outline:2px solid var(--listing-card-focus);outline-offset:2px}`,
+    // The card asks about its OWN width, not the window's — see
+    // `LISTING_CARD_ROW_MIN`.
+    `${q}{container-type:inline-size}`,
+    `${frame}{display:flex;flex-direction:column;min-inline-size:0}`,
+    `${media}{min-inline-size:0}`,
+    `${main}{display:flex;flex-direction:column;flex:1 1 auto;min-inline-size:0}`,
+    // The row arm. `align-items:flex-start` so a short text column does not
+    // stretch the photo, and a fixed media basis so the picture cannot grow
+    // into the 974px banner the live SERP was measured at.
+    `@container (min-width:${String(LISTING_CARD_ROW_MIN)}px){` +
+      `${frame}{flex-direction:row;align-items:flex-start}` +
+      `${media}{flex:0 0 ${String(LISTING_CARD_ROW_MEDIA)}px;` +
+      `max-inline-size:${String(LISTING_CARD_ROW_MEDIA)}px}` +
+      // A full-bleed stacked card has no padding of its own to give the row
+      // arm, so the row arm states its own; the reading column's padding is
+      // what separates the two.
+      `${bleed}{padding-block:var(--listing-card-inset);` +
+      `padding-inline-start:var(--listing-card-inset)}` +
+      `}`,
   ].join("");
 }
 
@@ -343,8 +425,9 @@ export function ListingCard(props: ListingCardProps): ReactElement {
     title.length > 0 ? title : t(LISTINGS_I18N_KEYS.cardUntitled);
 
   /**
-   * Everything a person reads on the card, in the order a classified reads it:
-   * photo, price, title, the seller's own spec line, the badges, the place.
+   * Everything a person READS on the card, in the order a classified reads it:
+   * price, title, the seller's own spec line, the badges, the place. The
+   * photos are not here — they are the strip beside this, outside the anchor.
    *
    * The search projection carries `title`, `price`, `currency`,
    * `location_label`, `image` and `published_at` and NO feature badges — so
@@ -353,57 +436,51 @@ export function ListingCard(props: ListingCardProps): ReactElement {
    * they are the two fields a result always has.
    */
   const content = (
-    <>
-      <ListingPhoto
-        imageRef={listing.images?.[0]}
-        alt={title.length > 0 ? title : String(listing.id)}
-      />
-      <Flex
-        vertical
-        gap={spacing[1]}
-        style={{ minWidth: 0, padding: token.paddingSM }}
-      >
-        {props.badge}
+    <Flex
+      vertical
+      gap={spacing[1]}
+      style={{ minWidth: 0, padding: token.paddingSM }}
+    >
+      {props.badge}
 
-        <Typography.Text strong data-testid="listings-card-price">
-          <ListingPrice
-            amount={listing.price}
-            {...(listing.currency !== undefined ? { currency: listing.currency } : {})}
-          />
-        </Typography.Text>
+      <Typography.Text strong data-testid="listings-card-price">
+        <ListingPrice
+          amount={listing.price}
+          {...(listing.currency !== undefined ? { currency: listing.currency } : {})}
+        />
+      </Typography.Text>
 
-        <Typography.Text ellipsis data-testid="listings-card-title">
-          {title}
-        </Typography.Text>
+      <Typography.Text ellipsis data-testid="listings-card-title">
+        {title}
+      </Typography.Text>
 
-        {/* The title features are a stored projection too — the seller's
-            "1.5 TB, black" line, already ordered by the server. */}
-        {titleDaos.length > 0 ? (
-          <Typography.Text type="secondary" ellipsis>
-            <FeatureBadges
-              features={featuresFromDaoList(titleDaos, copy).map(
-                (view) => view.feature
-              )}
-              values={featuresDtoFromDaoList(titleDaos)}
-            />
-          </Typography.Text>
-        ) : null}
-
-        {badgeFeatures.length > 0 ? (
+      {/* The title features are a stored projection too — the seller's
+          "1.5 TB, black" line, already ordered by the server. */}
+      {titleDaos.length > 0 ? (
+        <Typography.Text type="secondary" ellipsis>
           <FeatureBadges
-            features={badgeFeatures.map((view) => view.feature)}
-            values={badgeValues}
+            features={featuresFromDaoList(titleDaos, copy).map(
+              (view) => view.feature
+            )}
+            values={featuresDtoFromDaoList(titleDaos)}
           />
-        ) : null}
+        </Typography.Text>
+      ) : null}
 
-        {listing.location_label !== undefined &&
-        listing.location_label.length > 0 ? (
-          <Typography.Text type="secondary" data-testid="listings-card-location">
-            {listing.location_label}
-          </Typography.Text>
-        ) : null}
-      </Flex>
-    </>
+      {badgeFeatures.length > 0 ? (
+        <FeatureBadges
+          features={badgeFeatures.map((view) => view.feature)}
+          values={badgeValues}
+        />
+      ) : null}
+
+      {listing.location_label !== undefined &&
+      listing.location_label.length > 0 ? (
+        <Typography.Text type="secondary" data-testid="listings-card-location">
+          {listing.location_label}
+        </Typography.Text>
+      ) : null}
+    </Flex>
   );
 
   return (
@@ -421,70 +498,92 @@ export function ListingCard(props: ListingCardProps): ReactElement {
         {...(status !== undefined
           ? { "data-listing-status": status.status }
           : {})}
-        // The body's own padding is zero because the ANCHOR fills the card:
-        // padding outside it would be a strip of card that looks pressable and
-        // is not. The text block inside the anchor carries the same padding
-        // back, from the same token.
+        // The body's own padding is zero because the frame fills the card and
+        // the photo runs edge to edge when it is stacked: padding here would
+        // be a strip of card around a picture. The text block inside the
+        // anchor carries the same padding back, from the same token, and the
+        // row arm states its own inset (`--listing-card-inset`).
         styles={{ body: { minWidth: 0, padding: 0 } }}
-        style={{ ["--listing-card-focus" as string]: token.colorPrimary }}
+        style={{
+          ["--listing-card-focus" as string]: token.colorPrimary,
+          ["--listing-card-inset" as string]: `${String(token.paddingSM)}px`,
+        }}
       >
-        <CardTarget {...props} listingId={listing.id} label={targetLabel}>
-          {content}
-        </CardTarget>
+        <div className={CARD_QUERY_CLASS}>
+          <div className={`${CARD_FRAME_CLASS} ${CARD_BLEED_CLASS}`}>
+            {/* The photos, OUTSIDE the anchor — see `<ListingPhotoStrip>`.
+                A swipeable strip is a control, and a link may not contain
+                one; the anchor still covers everything a person reads. */}
+            <div className={CARD_MEDIA_CLASS}>
+              <ListingPhotoStrip
+                images={listing.images ?? []}
+                title={title.length > 0 ? title : String(listing.id)}
+                testId="listings-card-photos"
+              />
+            </div>
 
-        {/* The heart, and only the heart, lives OUTSIDE the anchor: a button
-            inside a link is neither valid HTML nor operable. Its refusal gets
-            a line of its own here, which is the whole reason it is a row under
-            the card rather than a glyph floating on the photograph. */}
-        {props.showFavorite === false ? null : (
-          <div
-            style={{
-              paddingInline: token.paddingSM,
-              paddingBlockEnd: token.paddingSM,
-            }}
-          >
-            <GatedControl
-              gate={favorite.gate}
-              testId="listings-card-actions"
-              style={{ width: "100%" }}
-            >
-              {(bind) => (
-                <Flex justify="flex-end" style={{ width: "100%" }}>
-                  <Button
-                    disabled={bind.disabled}
-                    data-disabled-reason="the enclosing <GatedControl> renders the gate's reason beside this button"
-                    {...(bind["aria-describedby"] !== undefined
-                      ? { "aria-describedby": bind["aria-describedby"] }
-                      : {})}
-                    aria-label={favoriteLabel}
-                    aria-pressed={favorite.favorited}
-                    data-testid="listings-card-favorite"
-                    data-favorited={String(favorite.favorited)}
-                    data-analytics="none"
-                    data-analytics-reason="business action — host app wraps with its own tracked()"
-                    onClick={favorite.toggle}
-                    icon={<HeartIcon filled={favorite.favorited} />}
-                  />
-                </Flex>
+            <div className={CARD_MAIN_CLASS}>
+              <CardTarget {...props} listingId={listing.id} label={targetLabel}>
+                {content}
+              </CardTarget>
+
+              {/* The heart, and only the heart, is a separate CONTROL outside the
+                  anchor: a button inside a link is neither valid HTML nor operable.
+                  Its refusal gets a line of its own here, which is the whole reason
+                  it is a row under the card rather than a glyph floating on the
+                  photograph. */}
+              {props.showFavorite === false ? null : (
+                <div
+                  style={{
+                    paddingInline: token.paddingSM,
+                    paddingBlockEnd: token.paddingSM,
+                  }}
+                >
+                  <GatedControl
+                    gate={favorite.gate}
+                    testId="listings-card-actions"
+                    style={{ width: "100%" }}
+                  >
+                    {(bind) => (
+                      <Flex justify="flex-end" style={{ width: "100%" }}>
+                        <Button
+                          disabled={bind.disabled}
+                          data-disabled-reason="the enclosing <GatedControl> renders the gate's reason beside this button"
+                          {...(bind["aria-describedby"] !== undefined
+                            ? { "aria-describedby": bind["aria-describedby"] }
+                            : {})}
+                          aria-label={favoriteLabel}
+                          aria-pressed={favorite.favorited}
+                          data-testid="listings-card-favorite"
+                          data-favorited={String(favorite.favorited)}
+                          data-analytics="none"
+                          data-analytics-reason="business action — host app wraps with its own tracked()"
+                          onClick={favorite.toggle}
+                          icon={<HeartIcon filled={favorite.favorited} />}
+                        />
+                      </Flex>
+                    )}
+                  </GatedControl>
+
+                  {/* The door. `GatedControl` above already prints the reason and
+                      wires `aria-describedby` to it; what it cannot know is WHERE a
+                      visitor signs in, which is the container's business and arrives
+                      as `signIn`. On a grid `blockedReason="line"` drops the door and
+                      keeps the sentence — twenty-four doors to one place is not
+                      twenty-four pieces of help. */}
+                  {favoriteGate.reason === undefined || blockedReason === "line" ? null : (
+                    <Typography.Text
+                      type="secondary"
+                      data-testid="listings-card-favorite-blocked"
+                    >
+                      <SignInLink cta={props.signIn} testId="listings-card-sign-in" />
+                    </Typography.Text>
+                  )}
+                </div>
               )}
-            </GatedControl>
-
-            {/* The door. `GatedControl` above already prints the reason and
-                wires `aria-describedby` to it; what it cannot know is WHERE a
-                visitor signs in, which is the container's business and arrives
-                as `signIn`. On a grid `blockedReason="line"` drops the door and
-                keeps the sentence — twenty-four doors to one place is not
-                twenty-four pieces of help. */}
-            {favoriteGate.reason === undefined || blockedReason === "line" ? null : (
-              <Typography.Text
-                type="secondary"
-                data-testid="listings-card-favorite-blocked"
-              >
-                <SignInLink cta={props.signIn} testId="listings-card-sign-in" />
-              </Typography.Text>
-            )}
+            </div>
           </div>
-        )}
+        </div>
       </Card>
     </SkinTheme>
   );

@@ -580,3 +580,30 @@ export const REF_SELECT_VALUES: Readonly<Record<string, unknown>> = {
 export const REF_HIERARCHICAL_VALUES: Readonly<Record<string, unknown>> = {
   make_model: ["volkswagen", "golf", "mk7"],
 };
+
+/**
+ * The same table over a wire that has not answered yet — the state defect C23
+ * is about.
+ *
+ * The first page comes back at once (that is what opening a dropdown gets);
+ * a TYPED query never resolves, so the control stays in the window the live
+ * stand measured at 400–640 ms per field. It exists so the strict skin gate
+ * photographs that window instead of only the two states either side of it: a
+ * dropdown that still lists the previous query's terms and a dropdown that
+ * lists the new ones look almost identical in a shot, and the whole defect is
+ * the moment between them.
+ */
+export const SLOW_VOCABULARY_CLIENT: VocabularyClient = {
+  async search(vocabulary, level, query, parent) {
+    if (query.trim().length === 0) {
+      return DEMO_VOCABULARY_CLIENT.search(vocabulary, level, query, parent);
+    }
+    // Never within the life of a screenshot. Not `new Promise(() => {})`: a
+    // promise nobody can ever settle is a leak in a viewer that keeps a story
+    // mounted, and an hour is the same picture.
+    await new Promise((resolve) => setTimeout(resolve, 3_600_000));
+    return DEMO_VOCABULARY_CLIENT.search(vocabulary, level, query, parent);
+  },
+  resolve: (vocabulary, level, codes) =>
+    DEMO_VOCABULARY_CLIENT.resolve(vocabulary, level, codes),
+};

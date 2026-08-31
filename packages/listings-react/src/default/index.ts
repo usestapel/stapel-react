@@ -33,7 +33,13 @@
  * that wrapped its own composition in `<ListingsSkinTheme>` imports
  * `<SkinTheme>` from the substrate instead — same props, plus a `surface`.
  */
-export { ListingCard } from "./ListingCard.js";
+export {
+  ListingCard,
+  // The card's row arm, for a container that wants to lay out against the same
+  // threshold (and for a test that measures it). See `<ListingCard>`'s header.
+  LISTING_CARD_ROW_MIN,
+  LISTING_CARD_ROW_MEDIA,
+} from "./ListingCard.js";
 export type {
   ListingCardProps,
   ListingCardBaseProps,
@@ -79,7 +85,11 @@ export type {
 
 export { LifecycleTag, ListingStatusBlock, ModerationNote } from "./StatusTags.js";
 export type { ListingStatusProps } from "./StatusTags.js";
-export { ListingPhoto, LISTING_PHOTO_ASPECT } from "./ListingPhoto.js";
+export {
+  ListingPhoto,
+  ListingPhotoStrip,
+  LISTING_PHOTO_ASPECT,
+} from "./ListingPhoto.js";
 export type { ListingPhotoProps } from "./ListingPhoto.js";
 export { SignInLink } from "./SignInLink.js";
 export type { SignInLinkProps } from "./SignInLink.js";

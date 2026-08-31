@@ -56,8 +56,13 @@ export interface VocabularyClient {
    * is what a dropdown opens on.
    *
    * `signal` is honoured: the editors supersede an in-flight search when a
-   * person keeps typing, and an implementation that ignores it will resolve
-   * stale results over fresh ones.
+   * person keeps typing, and an implementation that abandons the request early
+   * saves the round trip.
+   *
+   * It is a COURTESY, not the correctness boundary. The editors tag every
+   * request with its query and drop an answer whose query is no longer the one
+   * in the box, so a client that ignores `signal` costs bandwidth and cannot
+   * put the wrong list under somebody's finger.
    */
   search(
     vocabulary: string,

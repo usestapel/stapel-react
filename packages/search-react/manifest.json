@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/search-react",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "backend": {
     "module": "stapel-search",
     "contract": ">=0.7 <0.8"
@@ -465,7 +465,8 @@
       ],
       "variants": [
         "open-search",
-        "narrowed"
+        "narrowed",
+        "in the desktop rail"
       ],
       "source": "demo/FacetPanelPane.demo.tsx"
     },

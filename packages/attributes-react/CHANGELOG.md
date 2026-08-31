@@ -1,5 +1,50 @@
 # @stapel/attributes-react
 
+## 0.8.0
+
+### Minor Changes
+
+- A reference typeahead never offers a list that answers an older query
+
+  `ref_select`, `ref_hierarchical_select` and `<VocabularyTermSelect>` kept the
+  PREVIOUS query's terms on screen, pickable, while a newer query was on its way.
+  Measured on a live classified deployment, on both seller flows and on every
+  reference field of the phone category: `Vendor` 621/635 ms, `Model` 416/421 ms,
+  `RAM` 631/639 ms. A person who types three letters and taps the first row —
+  which is what people do — wrote somebody else's code into the attribute with
+  nothing on screen saying so; one run published `vendor=3q, model=qoo-s` for a
+  listing the seller had typed as Apple / iPhone 13. It was the last `major`
+  defect in either seller flow.
+
+  Aborting the superseded request never fixed this and could not: the stale
+  window is not a race between two responses, it is the 250 ms of debounce plus
+  the round trip during which the last ANSWER is still rendered.
+
+  So the hook holds the query the terms answer BESIDE the terms, and reports them
+  only while it equals the query in the box:
+
+  - a keystroke blanks the list at once — on the keystroke, not on the response,
+    because that is the instant the list stopped being the answer;
+  - every request carries its query and a response is dropped unless that query
+    is still the current one. The abort is kept, but it is now a courtesy to the
+    network: correctness may not rest on a client honouring `signal`, and one
+    that ignores it can no longer put the wrong list under somebody's finger;
+  - a parent change aborts and drops in flight as well as clearing what is shown;
+  - a failed search ANSWERS with an empty list rather than freezing the last one;
+  - while the shown list does not answer the box, nothing in it can be picked:
+    the terms are gone and the held-code rows a reopened draft keeps are
+    `disabled`.
+
+  Both controls stamp `data-vocabulary-matched` and `data-vocabulary-busy` on the
+  select's root — one fact a screenshot and a browser probe can both read.
+  `useTermSearch` in `@stapel/vocabularies-react` gains `matched` on its returned
+  state; a host reading `terms`/`loading` needs no change.
+
+  `ref_hierarchical_select` gets the same rule one column deeper: each `loadData`
+  carries the generation of the tree it was asked for, so a pointer that moves
+  under an in-flight column cannot graft one vocabulary's terms onto another's
+  node.
+
 ## 0.7.0
 
 ### Minor Changes

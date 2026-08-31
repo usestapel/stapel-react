@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/listings-react",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "backend": {
     "module": "stapel-listings",
     "contract": ">=0.10 <0.11"
@@ -669,6 +669,8 @@
         "default",
         "saved",
         "visitor",
+        "grid cell",
+        "list row",
         "no-photo"
       ],
       "source": "demo/ListingCard.demo.tsx"
@@ -796,6 +798,22 @@
       "source": "demo/ListingParts.demo.tsx"
     },
     {
+      "id": "listings.photo-strip",
+      "title": "Listing photo strip",
+      "description": "Every stored photo of a listing as one swipeable, snapping strip — the gallery <ListingCard> and <ListingSerpCard> both render, always as a SIBLING of the card's anchor. A swipeable strip is a control, a link may not contain one, and a horizontal swipe that ends inside an <a> is a swipe the browser may deliver as a click; that is what made the desktop gallery unreachable on a live deployment while the phone one worked.",
+      "component": "ListingPhotoStrip",
+      "tokens": [
+        "surface-sunken",
+        "text-muted"
+      ],
+      "variants": [
+        "default",
+        "single",
+        "no photos"
+      ],
+      "source": "demo/ListingPhotoStrip.demo.tsx"
+    },
+    {
       "id": "listings.serp-card",
       "title": "Listing SERP card",
       "description": "The one-column result card of a phone search page: a SkinCarousel photo strip that peeks, then the PRICE as the first and largest line, the title at regular weight, the seller's spec line, the stored badge projection, the seller slot and the place. The strip sits outside the card's anchor on purpose — a horizontal swipe that ends inside a link is a swipe the browser may deliver as a navigation — and the trailing rail carries the container's call and chat controls with the favourite heart at its end.",
@@ -811,6 +829,7 @@
         "default",
         "trend",
         "visitor",
+        "desktop row",
         "bare"
       ],
       "source": "demo/ListingSerpCard.demo.tsx"

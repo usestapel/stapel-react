@@ -1118,18 +1118,44 @@ const VOCABULARY_DEBOUNCE_MS = 250;
  * the endpoint's own default `limit`. */
 const VOCABULARY_PAGE = 50;
 
+/** The list a control shows when it has no answer to the question in its box.
+ * One frozen instance, so "no answer" is a stable identity across renders. */
+const EMPTY_TERMS: readonly VocabularyTerm[] = Object.freeze([]);
+
 /**
- * A debounced, superseding search against the {@link VocabularyClient}.
+ * A debounced, superseding search against the {@link VocabularyClient}, whose
+ * ONE invariant is that the list on screen answers the query in the box.
  *
- * Two behaviours that are the whole point of not writing this inline twice:
+ * ── The defect this shape exists to make impossible (C23) ──────────────────
  *
- *  - **the previous request is ABORTED when a newer one starts.** Without it a
- *    slow answer for "ip" lands after the fast one for "iphone 15" and the
- *    dropdown silently rewinds to the wrong list — the classic typeahead
- *    defect, and one no test that mocks a single fetch ever sees.
- *  - **a failure clears the list rather than freezing the last one.** Stale
- *    options next to a fresh query are worse than none: they are pickable, and
- *    the code that gets picked may not even be in the level any more.
+ * Measured on the live stand, on every reference field of the seller form:
+ * `Vendor` 621/635 ms, `Model` 416/421 ms, `RAM` 631/639 ms during which the
+ * dropdown showed the PREVIOUS query's terms and every one of them was
+ * pickable. A person who types three letters and taps the first row — which is
+ * what people do — wrote somebody else's code into the attribute, silently: a
+ * night run published `vendor=3q, model=qoo-s` for a listing typed as
+ * Apple/iPhone 13.
+ *
+ * Aborting the previous request never fixed that, and could not: the stale
+ * window is not the network, it is the QUARTER SECOND of debounce plus the
+ * round trip during which the old answer was still rendered. So the hook holds
+ * the query the list ANSWERS beside the terms, and reports terms only while it
+ * equals the query the box holds:
+ *
+ *  - **a keystroke blanks the list immediately.** Not on the response, not
+ *    when the debounce fires — on the keystroke, because that is the instant
+ *    the list stopped being the answer.
+ *  - **every request carries its query, and a response is dropped unless its
+ *    query is still the current one.** The abort is kept as well, but it is a
+ *    courtesy to the network; correctness may not rest on a client honouring
+ *    `signal`, and an implementation that ignores it resolves stale results
+ *    over fresh ones exactly as before.
+ *  - **`matched` is false while a newer query is in flight**, and the editors
+ *    disable every row that is still on screen. A blank list nobody can pick
+ *    from is the only honest state for "we do not know yet".
+ *  - **a failure ANSWERS with an empty list** rather than freezing the last
+ *    one. Stale options next to a fresh query are worse than none: they are
+ *    pickable, and the code that gets picked may not be in the level at all.
  */
 function useTermSearch(
   client: VocabularyClient | null,
@@ -1139,11 +1165,25 @@ function useTermSearch(
 ): {
   readonly terms: readonly VocabularyTerm[];
   readonly loading: boolean;
+  /** Does {@link terms} answer the query the box holds? While this is false
+   * the list is not an answer and nothing in it may be picked. */
+  readonly matched: boolean;
   search(query: string): void;
   open(): void;
 } {
-  const [terms, setTerms] = useState<readonly VocabularyTerm[]>([]);
-  const [loading, setLoading] = useState(false);
+  // The answer AND the question it answers, as one value — two states could
+  // be written in either order and the pair would be briefly inconsistent,
+  // which is the whole defect in miniature.
+  const [answer, setAnswer] = useState<{
+    readonly query: string;
+    readonly terms: readonly VocabularyTerm[];
+  } | null>(null);
+  // What the box holds right now. `null` is "nothing has been asked for yet",
+  // which is neither loading nor answered.
+  const [wanted, setWanted] = useState<string | null>(null);
+  // The same value, readable from a promise callback. A response is accepted
+  // only while this still equals the query it was made for.
+  const current = useRef<string | null>(null);
   const inFlight = useRef<AbortController | undefined>(undefined);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   // Has this (vocabulary, level, parent) been asked for yet? antd reports the
@@ -1158,28 +1198,36 @@ function useTermSearch(
       inFlight.current?.abort();
       const controller = new AbortController();
       inFlight.current = controller;
-      setLoading(true);
       client
         .search(vocabulary, level, query, parent, controller.signal)
         .then((found) => {
-          if (controller.signal.aborted) return;
-          setTerms(found.slice(0, VOCABULARY_PAGE));
-          setLoading(false);
+          if (controller.signal.aborted || current.current !== query) return;
+          setAnswer({ query, terms: found.slice(0, VOCABULARY_PAGE) });
         })
         .catch(() => {
-          if (controller.signal.aborted) return;
-          setTerms([]);
-          setLoading(false);
+          if (controller.signal.aborted || current.current !== query) return;
+          setAnswer({ query, terms: [] });
         });
     },
     [client, vocabulary, level, parent]
   );
 
   // The parent moved (or the pointer did): whatever is listed belongs to the
-  // old parent's children and must not stay pickable.
+  // old parent's children and must not stay pickable — nor may an answer for
+  // the old parent, still in flight, land on the new one.
+  //
+  // The CLIENT is deliberately not a dependency, as it was not before. It
+  // arrives from context and a host is expected to build it once at its
+  // composition root; a host that builds one inline hands this a new identity
+  // every render, and aborting the in-flight search on every render would be a
+  // control that can never finish loading. A swapped client is covered anyway:
+  // `current` is what admits an answer, and `run` is rebuilt on the new one.
   useEffect(() => {
     asked.current = false;
-    setTerms([]);
+    current.current = null;
+    inFlight.current?.abort();
+    setAnswer(null);
+    setWanted(null);
   }, [vocabulary, level, parent]);
 
   useEffect(
@@ -1193,8 +1241,15 @@ function useTermSearch(
   const search = useCallback(
     (query: string): void => {
       asked.current = true;
+      // BEFORE the debounce, not after it: the list stopped being the answer
+      // the moment the query changed, and the 250 ms it would otherwise stay
+      // on screen is most of the measured stale window.
+      current.current = query;
+      setWanted(query);
       if (timer.current !== undefined) clearTimeout(timer.current);
-      timer.current = setTimeout(() => run(query), VOCABULARY_DEBOUNCE_MS);
+      timer.current = setTimeout(() => {
+        run(query);
+      }, VOCABULARY_DEBOUNCE_MS);
     },
     [run]
   );
@@ -1205,10 +1260,19 @@ function useTermSearch(
   const open = useCallback((): void => {
     if (asked.current) return;
     asked.current = true;
+    current.current = "";
+    setWanted("");
     run("");
   }, [run]);
 
-  return { terms, loading, search, open };
+  const matched = wanted !== null && answer !== null && answer.query === wanted;
+  return {
+    terms: matched && answer !== null ? answer.terms : EMPTY_TERMS,
+    loading: wanted !== null && !matched,
+    matched,
+    search,
+    open,
+  };
 }
 
 /**
@@ -1294,7 +1358,12 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
     [props.value]
   );
 
-  const { terms, loading, search, open } = useTermSearch(client, vocabulary, level, parent);
+  const { terms, loading, matched, search, open } = useTermSearch(
+    client,
+    vocabulary,
+    level,
+    parent
+  );
   const labels = useStoredLabels(client, vocabulary, level, codes);
 
   // Reset on a parent CHANGE, not on the first render: seeding a saved draft
@@ -1318,11 +1387,19 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
   }
 
   // A stored code with no term in the current page still has to be pickable
-  // and visible, or reopening a draft would silently empty the control.
+  // and visible, or reopening a draft would silently empty the control — but
+  // while the list does not answer the box (`matched === false`) it is NOT
+  // pickable: a held row left live during the stale window is one more thing a
+  // fast tap can land on. `terms` is already empty there, so this is the whole
+  // dropdown, disabled.
   const options = [
     ...codes
       .filter((code) => !terms.some((term) => term.code === code))
-      .map((code) => ({ value: code, label: labels[code] ?? code })),
+      .map((code) => ({
+        value: code,
+        label: labels[code] ?? code,
+        ...(matched ? {} : { disabled: true }),
+      })),
     ...terms.map((term) => ({ value: term.code, label: term.label })),
   ];
 
@@ -1335,6 +1412,14 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
         filterOption={false}
         options={options}
         loading={loading}
+        // The one fact a photograph and a browser probe can both read: whether
+        // what is listed answers what is typed. `false` is the state the live
+        // measure caught for 400–640 ms per field with a pickable list on
+        // screen. `data-*` rather than `aria-busy` because antd forwards the
+        // former to the control's root and drops the latter.
+        data-testid="attributes-ref-select"
+        data-vocabulary-matched={matched ? "true" : "false"}
+        data-vocabulary-busy={loading ? "true" : "false"}
         disabled={props.disabled === true}
         {...errorStatus(props.error)}
         {...requiredAria(props)}
@@ -1442,6 +1527,16 @@ const RefHierarchicalSelectEditor: ValueEditor = (props: ValueEditorProps) => {
     [maxDepth]
   );
 
+  // Which TREE the columns on screen belong to. A cascader loads a column at a
+  // time and writes the answer into the node that asked for it, so a pointer
+  // that moves under an in-flight column would graft one vocabulary's terms
+  // onto another's node — the same class of defect as C23 (an answer to a
+  // question nobody is asking any more), one column deeper.
+  const generation = useRef(0);
+  useEffect(() => {
+    generation.current += 1;
+  }, [client, vocabulary, levels]);
+
   // The root column, once — the only level fetched without a parent.
   useEffect(() => {
     if (client === null || vocabulary.length === 0 || levels.length === 0) return;
@@ -1473,16 +1568,19 @@ const RefHierarchicalSelectEditor: ValueEditor = (props: ValueEditorProps) => {
     const depth = selected.length;
     const nextLevel = levels[depth];
     if (node === undefined || nextLevel === undefined) return;
+    const asked = generation.current;
     node.loading = true;
     void client
       .search(vocabulary, nextLevel, "", node.value)
       .then((terms) => {
+        if (asked !== generation.current) return;
         node.loading = false;
         node.children = toOptions(terms, depth);
         if (node.children.length === 0) node.isLeaf = true;
         setOptions((current) => [...current]);
       })
       .catch(() => {
+        if (asked !== generation.current) return;
         node.loading = false;
         node.isLeaf = true;
         setOptions((current) => [...current]);

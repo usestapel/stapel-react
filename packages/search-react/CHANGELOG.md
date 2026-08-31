@@ -1,5 +1,38 @@
 # @stapel/search-react
 
+## 0.14.1
+
+### Patch Changes
+
+- The desktop filter rail stops laying its own heading out down a column
+
+  Measured on a live 1440px result page: the box holding the word "Filters" was
+  43px wide and 78px tall — three lines, one syllable each — down the left edge
+  of the results. It is the first thing a shopper sees beside what they searched
+  for, and it read as a broken page.
+
+  Two causes in one row. The heading shared a `space-between` line with "Clear
+  all filters (2)", and both halves were ordinary flex items, so in a 280px rail
+  the sentence took the width it wanted and the heading got the 43px left over.
+  antd's `.ant-typography` then ships `word-break: break-word`, which is why the
+  remains were a word broken between its letters rather than a truncated one.
+
+  - the row WRAPS: the long sentence drops to its own line instead of squeezing
+    the word;
+  - the heading never shrinks below its own content and never breaks inside a
+    word (`flex: 0 0 auto`, `min-inline-size: max-content`, `word-break: normal`);
+  - the button is the half that gives, and may wrap its sentence over two lines;
+  - the rail states a `min-width` as well as a `max-width`, so the column the
+    panel lives in is 280px rather than a share of whatever it was dropped into.
+
+  Both contradicted rules are inline styles rather than a class: a class of ours
+  against `.ant-typography` or `.ant-btn` is decided by whichever stylesheet was
+  injected last, which is not a decision.
+
+  A new demo variant photographs the panel at the rail's own width — the only
+  width at which the row is under any pressure — and a layout suite asserts the
+  computed style of the rendered elements.
+
 ## 0.14.0
 
 ### Minor Changes

@@ -8,7 +8,10 @@
  *
  * Four claims, each of which a rewrite could quietly lose:
  *
- *  1. the whole card — photo, price, title, place — is inside ONE anchor;
+ *  1. everything a person READS — price, title, place — is inside ONE anchor.
+ *     The photo strip is the exception and is a SIBLING of it: a swipeable
+ *     strip is a control, a link may not contain one, and a horizontal swipe
+ *     that ends inside an `<a>` is a swipe the browser may deliver as a click;
  *  2. it is a REAL `<a href>`, so middle-click, ⌘-click, "copy link address"
  *     and a crawler all still work. An `onClick` on a div has none of that,
  *     and is the shape a "make the card clickable" rewrite reaches for first;
@@ -63,13 +66,28 @@ describe("the whole card is one target", () => {
     expect(inside.getByTestId("listings-card-price")).toBeTruthy();
     expect(inside.getByTestId("listings-card-title")).toBeTruthy();
     expect(inside.getByTestId("listings-card-location")).toBeTruthy();
-    // The photo too: on a classified the picture is the first half of the
-    // click, not a decoration beside it.
-    expect(
-      target.querySelector(
-        "[data-testid='listings-photo'], [data-testid='listings-photo-absent']"
-      )
-    ).not.toBeNull();
+  });
+
+  it("keeps the photo STRIP outside it — a link may not contain a control", () => {
+    render(providers(<ListingCard listing={CARD} href="/l/7" />));
+    const target = screen.getByTestId("listings-card-open");
+    const strip = screen.getByTestId("listings-card-photos");
+    // The photo used to be inside the anchor, on the argument that a still
+    // `<img>` in a link is just a bigger link. That is true, and it stops
+    // being true the moment there is more than one photo: `<SkinCarousel>` is
+    // a scroll container with its own tab stop, and a horizontal swipe that
+    // ends inside an `<a>` is a swipe the browser may deliver as a click — so
+    // every attempt to look at photo two opened the listing. Measured on the
+    // live desktop SERP: one photo per card, no carousel, image inside the
+    // link, while the phone card (strip outside) worked.
+    expect(target.contains(strip)).toBe(false);
+    expect(strip.contains(target)).toBe(false);
+    // The anchor still covers everything a person READS, which is the whole
+    // of the "the card is the link" ruling that survives.
+    const reading = within(target);
+    expect(reading.getByTestId("listings-card-price")).toBeTruthy();
+    expect(reading.getByTestId("listings-card-title")).toBeTruthy();
+    expect(reading.getByTestId("listings-card-location")).toBeTruthy();
   });
 
   it("draws no separate captioned control any more", () => {

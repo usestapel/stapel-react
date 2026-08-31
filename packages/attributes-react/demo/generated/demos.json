@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/attributes-react",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "demos": [
     {
       "id": "attributes.display",
@@ -124,6 +124,13 @@
           "step": "cascade"
         },
         {
+          "id": "ref-select — waiting for the wire",
+          "description": "The window defect C23 lived in. The brand box holds a query the wire has not answered yet, and the list is BLANK rather than the previous query's terms: on the live stand it kept them for 400–640 ms per field, pickable, so a fast tap wrote somebody else's code into the attribute. `data-vocabulary-matched=\"false\"` is the control saying, in one attribute a probe and a screenshot can both read, that nothing on screen answers what is typed.",
+          "viewport": "phone",
+          "step": "query-in-flight",
+          "play": true
+        },
+        {
           "id": "no vocabulary source",
           "description": "The same two ref fields with no VocabularyClientProvider above them. A pointer with nothing to resolve it is drawn as the loud notice, never as an empty dropdown — an empty dropdown is a mandatory attribute a person cannot answer and is not told about — and the submit blocks through the same channel an unsupported type uses.",
           "viewport": "phone",
@@ -138,7 +145,7 @@
       ],
       "source": {
         "file": "demo/FeatureFields.demo.tsx",
-        "line": 41
+        "line": 58
       }
     },
     {

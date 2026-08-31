@@ -12,3 +12,6 @@ OpenSearch.parameters = { stapel: {"viewport":"desktop","step":"open"} };
 export const Narrowed = (): ReactElement => renderDemoVariant(demo, "narrowed");
 Narrowed.storyName = "narrowed";
 Narrowed.parameters = { stapel: {"viewport":"phone","step":"narrowed"} };
+export const InTheDesktopRail = (): ReactElement => renderDemoVariant(demo, "in the desktop rail");
+InTheDesktopRail.storyName = "in the desktop rail";
+InTheDesktopRail.parameters = { stapel: {"viewport":"desktop","step":"narrowed-in-rail"} };

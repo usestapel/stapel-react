@@ -149,3 +149,127 @@ describe("typing debounces and supersedes", () => {
     expect(search.mock.calls[0]?.[2]).toBe("app");
   });
 });
+
+/**
+ * THE LIST NEVER ANSWERS AN OLDER QUERY (defect C23).
+ *
+ * The suite above proved the debounce and the abort, and both were true while
+ * the control was broken: the stale window is not a race between two
+ * responses, it is the quarter second of debounce plus a round trip during
+ * which the LAST answer is still rendered and still pickable. On the live
+ * stand that was 400–640 ms per reference field, and a fast tap in it wrote
+ * somebody else's code.
+ *
+ * So these resolve two requests OUT OF ORDER against a client that ignores
+ * `signal` — the honest model of a client this package does not own.
+ */
+describe("the list answers the query in the box, or it is blank", () => {
+  interface Deferred {
+    readonly query: string;
+    settle: (terms: readonly VocabularyTerm[]) => void;
+  }
+
+  function deferred(): { client: VocabularyClient; pending: Deferred[] } {
+    const pending: Deferred[] = [];
+    return {
+      pending,
+      client: client({
+        search: (_v, _l, query) =>
+          new Promise((resolve) => {
+            pending.push({
+              query,
+              settle: (terms) => {
+                resolve(terms);
+              },
+            });
+          }),
+      }),
+    };
+  }
+
+  function type(container: HTMLElement, value: string): void {
+    const input = container.querySelector("input");
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(
+        globalThis.HTMLInputElement.prototype,
+        "value"
+      )?.set;
+      setter?.call(input, value);
+      (input as HTMLInputElement).dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  }
+
+  function control(container: HTMLElement): HTMLElement {
+    return container.querySelector(
+      '[data-testid="vocabulary-term-select"]'
+    ) as HTMLElement;
+  }
+
+  it("stops claiming a match on the keystroke, before the request even leaves", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { client: slow, pending } = deferred();
+    const { container } = render(
+      wrap(
+        <VocabularyTermSelect client={slow} vocabulary="avito-phones" level="Vendor" />
+      )
+    );
+    type(container, "a");
+    await act(async () => {
+      vi.advanceTimersByTime(TERM_SEARCH_DEBOUNCE_MS + 10);
+      await Promise.resolve();
+    });
+    await act(async () => {
+      pending[0]?.settle(TERMS);
+      await Promise.resolve();
+    });
+    expect(control(container).getAttribute("data-vocabulary-matched")).toBe("true");
+
+    type(container, "sam");
+    await act(async () => {
+      await Promise.resolve();
+    });
+    // Nothing has been requested for "sam" yet — this is the window the live
+    // measure caught, and the control is already saying it has no answer.
+    expect(pending).toHaveLength(1);
+    expect(control(container).getAttribute("data-vocabulary-matched")).toBe("false");
+    expect(control(container).getAttribute("data-vocabulary-busy")).toBe("true");
+  });
+
+  it("drops an older answer that lands after a newer one", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { client: slow, pending } = deferred();
+    const { container } = render(
+      wrap(
+        <VocabularyTermSelect client={slow} vocabulary="avito-phones" level="Vendor" />
+      )
+    );
+    type(container, "a");
+    await act(async () => {
+      vi.advanceTimersByTime(TERM_SEARCH_DEBOUNCE_MS + 10);
+      await Promise.resolve();
+    });
+    type(container, "sam");
+    await act(async () => {
+      vi.advanceTimersByTime(TERM_SEARCH_DEBOUNCE_MS + 10);
+      await Promise.resolve();
+    });
+    expect(pending.map((one) => one.query)).toEqual(["a", "sam"]);
+
+    await act(async () => {
+      pending[1]?.settle([{ code: "samsung", label: "Samsung" }]);
+      await Promise.resolve();
+    });
+    expect(control(container).getAttribute("data-vocabulary-matched")).toBe("true");
+
+    // The client never abandoned the first request, so it answers last.
+    await act(async () => {
+      pending[0]?.settle(TERMS);
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(control(container).getAttribute("data-vocabulary-matched")).toBe("true");
+    });
+    // "Apple" belonged to "a" and must not be on screen for "sam".
+    expect(screen.queryByTitle("Apple")).toBeNull();
+  });
+});

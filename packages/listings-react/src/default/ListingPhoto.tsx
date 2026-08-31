@@ -25,6 +25,7 @@ import type { CSSProperties, ReactElement } from "react";
 import { useMemo } from "react";
 import { Typography, theme as antdTheme } from "antd";
 import { Image } from "@stapel/image";
+import { SkinCarousel } from "@stapel/tokens-antd/skin";
 import { useT } from "@stapel/core";
 import { radii, spacing } from "@stapel/tokens";
 import { useListingsRuntime } from "../model/context.js";
@@ -131,5 +132,68 @@ export function ListingPhoto(props: ListingPhotoProps): ReactElement {
         ...props.style,
       }}
     />
+  );
+}
+
+/**
+ * A listing's photos as ONE swipeable strip — the shape every card surface in
+ * this pair uses, so there is one gallery and not three.
+ *
+ * ── Why the strip is never inside a card's anchor ──────────────────────────
+ *
+ * A `<SkinCarousel>` is a scroll container with its own tab stop, and a
+ * horizontal swipe that ends inside an `<a>` is a swipe the browser may
+ * deliver as a click: every attempt to look at photo two would open the
+ * listing. A link may not contain a control, and a swipeable strip is a
+ * control. So a card renders this as a SIBLING of its anchor and keeps the
+ * anchor around everything a person READS — which is the arrangement
+ * `<ListingSerpCard>` has shipped since it existed, and the one the live phone
+ * SERP was measured correct on while the desktop card (a still `<img>` inside
+ * the anchor, one photo, no dots) was not.
+ *
+ * A listing with no photos still gets one slide, so a row's height does not
+ * depend on whether a seller uploaded anything, and a ONE-photo strip gets
+ * neither peek nor dots: the sliver of a next slide is an affordance for
+ * something that is there.
+ */
+export function ListingPhotoStrip(props: {
+  /** The stored references, in the seller's order. */
+  readonly images: readonly string[];
+  /** The listing's title — the fallback alt for a single photo. */
+  readonly title: string;
+  /** The surface's own test id, so a screen holding two kinds of card does
+   * not hand a test two elements under one name. */
+  readonly testId: string;
+}): ReactElement {
+  const t = useT();
+  const { images, title } = props;
+  const many = images.length > 1;
+  return (
+    <SkinCarousel
+      label={t(LISTINGS_I18N_KEYS.cardPhotos)}
+      aspectRatio={LISTING_PHOTO_ASPECT}
+      peek={many}
+      dots={many}
+      data-testid={props.testId}
+    >
+      {images.length === 0 ? (
+        <ListingPhoto imageRef={undefined} alt={title} />
+      ) : (
+        images.map((reference, index) => (
+          <ListingPhoto
+            key={reference}
+            imageRef={reference}
+            alt={
+              many
+                ? t(LISTINGS_I18N_KEYS.detailPhotoAlt, {
+                    index: index + 1,
+                    total: images.length,
+                  })
+                : title
+            }
+          />
+        ))
+      )}
+    </SkinCarousel>
   );
 }

@@ -15,7 +15,10 @@
  *  - the options ARE the answer to the current query, so `filterOption={false}`
  *    — letting antd filter them again would hide rows the server deliberately
  *    ranked (a prefix match first, a label matched in another language);
- *  - typing is debounced and superseding (`useTermSearch`);
+ *  - typing is debounced and superseding (`useTermSearch`), and the list is
+ *    BLANK rather than stale while a newer query is in flight — a dropdown
+ *    still listing the previous query's terms is a dropdown a fast tap writes
+ *    the wrong code from (defect C23, measured at 400–640 ms per field);
  *  - a code the control already HOLDS is resolved to its label
  *    (`useTermLabels`) and kept in the option list even when the current page
  *    does not contain it — otherwise reopening a saved filter would silently
@@ -65,7 +68,7 @@ export function VocabularyTermSelect(
     [props.value]
   );
 
-  const { terms, loading, search, open } = useTermSearch(client, {
+  const { terms, loading, matched, search, open } = useTermSearch(client, {
     vocabulary,
     level,
     parent,
@@ -73,15 +76,22 @@ export function VocabularyTermSelect(
   const labels = useTermLabels(client, { vocabulary, level, codes });
 
   // A held code the current page does not contain still has to be visible and
-  // pickable, so it is prepended rather than looked up in `terms`.
+  // pickable, so it is prepended rather than looked up in `terms` — but not
+  // while the list fails to answer the box: `terms` is empty there, so this is
+  // the whole dropdown, and a row left live during that window is one more
+  // thing a fast tap can land on.
   const options = useMemo(
     () => [
       ...codes
         .filter((code) => !terms.some((term) => term.code === code))
-        .map((code) => ({ value: code, label: termLabel(labels, code) })),
+        .map((code) => ({
+          value: code,
+          label: termLabel(labels, code),
+          ...(matched ? {} : { disabled: true }),
+        })),
       ...terms.map((term) => ({ value: term.code, label: term.label })),
     ],
-    [codes, terms, labels]
+    [codes, terms, labels, matched]
   );
 
   if (client === null || vocabulary.length === 0 || level.length === 0) {
@@ -112,6 +122,12 @@ export function VocabularyTermSelect(
       <Select
         {...(props.id !== undefined ? { id: props.id } : {})}
         data-testid="vocabulary-term-select"
+        // The one fact a photograph and a browser probe can both read: whether
+        // what is listed answers what is typed. `data-*` rather than
+        // `aria-busy` because antd forwards the former to the control's root
+        // and drops the latter.
+        data-vocabulary-matched={matched ? "true" : "false"}
+        data-vocabulary-busy={loading ? "true" : "false"}
         style={{ width: "100%" }}
         showSearch
         filterOption={false}

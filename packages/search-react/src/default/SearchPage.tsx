@@ -126,6 +126,12 @@ export const FILTERS_RAIL_WIDTH = 280;
  */
 const RAIL: CSSProperties = {
   flex: `0 0 ${String(FILTERS_RAIL_WIDTH)}px`,
+  // Both bounds, not just the upper one. `flex-shrink: 0` already holds the
+  // column at its basis in this row, but the panel is handed to hosts and to
+  // the sheet as well, and a filter column that can be squeezed is how the
+  // word "Filters" ended up laid out down its left edge (defect C14). The
+  // width is a property of the instrument, so it is stated as one.
+  minWidth: FILTERS_RAIL_WIDTH,
   maxWidth: FILTERS_RAIL_WIDTH,
   position: "sticky",
   top: 0,

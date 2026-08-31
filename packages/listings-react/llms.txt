@@ -1,4 +1,4 @@
-# @stapel/listings-react 0.13.0
+# @stapel/listings-react 0.14.0
 
 Headless React flow pair for stapel-listings (contract >=0.10 <0.11) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
@@ -106,14 +106,15 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
-- listings.card → <ListingCard> [default|saved|visitor|no-photo]  demo/ListingCard.demo.tsx
+- listings.card → <ListingCard> [default|saved|visitor|grid cell|list row|no-photo]  demo/ListingCard.demo.tsx
 - listings.composer → <ListingComposerPage> [default|unwired|photos-in-flight|unsupported-type]  demo/ListingComposer.demo.tsx
 - listings.detail → <ListingDetailPane> [default|contact-unwired|owner|not-found]  demo/ListingDetail.demo.tsx
 - listings.favorites → <FavoritesPane> [default|paged|empty|failed|visitor]  demo/Favorites.demo.tsx
 - listings.feed-card → <ListingFeedCard> [default|tile|visitor|wide]  demo/ListingFeedCard.demo.tsx
 - listings.mine → <MyListingsPane> [default|no-editor|taken-down|visitor|failed]  demo/MyListings.demo.tsx
 - listings.parts → <ListingStatusBlock> [default|tags|notes|media|door]  demo/ListingParts.demo.tsx
-- listings.serp-card → <ListingSerpCard> [default|trend|visitor|bare]  demo/ListingSerpCard.demo.tsx
+- listings.photo-strip → <ListingPhotoStrip> [default|single|no photos]  demo/ListingPhotoStrip.demo.tsx
+- listings.serp-card → <ListingSerpCard> [default|trend|visitor|desktop row|bare]  demo/ListingSerpCard.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets
