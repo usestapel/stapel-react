@@ -51,6 +51,9 @@ export type {
 export { FilterChips, CHIP_ROW_CLASS, CHIP_ROW_STYLE_HREF, chipRowCss } from "./FilterChips.js";
 export type { FilterChipsProps } from "./FilterChips.js";
 
+export { LocationSummaryLine } from "./LocationSummaryLine.js";
+export type { LocationSummaryLineProps } from "./LocationSummaryLine.js";
+
 export {
   FacetGroupControl,
   facetGroupShape,

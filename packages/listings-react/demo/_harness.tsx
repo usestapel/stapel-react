@@ -155,6 +155,13 @@ const demoBundleEn: Record<string, string> = {
   "demo.category.placeholder": "Choose a category",
   "demo.photo.none": "A listing with no photo",
   "demo.photo.unresolvable": "A reference nothing resolves",
+
+  // The two lines the phone SERP card takes from its CONTAINER: the spec
+  // summary a deployment composes from its own category's editorial order,
+  // and the seller line whose rating aggregate is not in the projection.
+  "demo.serp.specs": "Corded, 600 W, SDS-plus, case included",
+  "demo.serp.seller": "Anna · 4.8 ★ · 36 reviews",
+  "demo.feed.badge": "New",
 };
 
 /** Provider frame every listings demo variant renders inside. */

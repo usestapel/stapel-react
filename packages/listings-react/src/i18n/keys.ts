@@ -75,6 +75,17 @@ export const LISTINGS_I18N_KEYS = {
   cardUntitled: "listings.card.untitled",
   /** The door beside a blocked favourite: the container supplies WHERE. */
   cardSignIn: "listings.card.sign_in",
+  /** The accessible name of `<ListingSerpCard>`'s photo strip. `SkinCarousel`
+   * requires one — an unnamed scrollable region is announced as nothing — and
+   * the token bridge owns no i18n engine, so the copy is this pair's. */
+  cardPhotos: "listings.card.photos",
+  /** The label on the struck-through previous price. The strike is styling and
+   * a screen reader announces none of it, so the word is on the line. */
+  cardPriceWas: "listings.card.price_was",
+  /** The name of the trend arrow — the whole message of a glyph that would
+   * otherwise be a decoration nobody can read. */
+  cardPriceDropped: "listings.card.price_dropped",
+  cardPriceRaised: "listings.card.price_raised",
 
   // ── detail ───────────────────────────────────────────────────────────────
   detailLoading: "listings.detail.loading",
@@ -258,6 +269,10 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.card.favorite_remove": "Remove from favourites",
   "listings.card.untitled": "Untitled listing",
   "listings.card.sign_in": "Sign in",
+  "listings.card.photos": "Photos of this listing",
+  "listings.card.price_was": "Was",
+  "listings.card.price_dropped": "The price went down",
+  "listings.card.price_raised": "The price went up",
 
   "listings.detail.loading": "Loading the listing…",
   "listings.detail.load_failed": "We could not load this listing",

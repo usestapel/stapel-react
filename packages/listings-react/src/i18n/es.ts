@@ -76,6 +76,10 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.card.favorite_remove": "Quitar de favoritos",
   "listings.card.untitled": "Anuncio sin título",
   "listings.card.sign_in": "Iniciar sesión",
+  "listings.card.photos": "Fotos de este anuncio",
+  "listings.card.price_was": "Antes",
+  "listings.card.price_dropped": "El precio ha bajado",
+  "listings.card.price_raised": "El precio ha subido",
 
   "listings.detail.loading": "Cargando el anuncio…",
   "listings.detail.load_failed": "No pudimos cargar este anuncio",

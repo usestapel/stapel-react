@@ -184,6 +184,49 @@
       }
     },
     {
+      "id": "search.location-summary",
+      "title": "Location summary line",
+      "description": "Where this search is looking, on a row of its own above the chips — because the chip row scrolls and location is the one constraint that changes what a result MEANS rather than narrowing a set. It prints the name the container handed it plus the radius, never a coordinate, and it opens the same location sheet the geo chip opens. On the right, the filter affordance carries a COUNT rather than the chip row's dot: this row has the width to say how many.",
+      "component": "LocationSummaryLine",
+      "covers": [
+        "SearchStateProvider"
+      ],
+      "tokens": [
+        "brand",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "everywhere",
+          "description": "Nothing applied: the line says the search is looking everywhere, and the filter side carries no count.",
+          "viewport": "phone",
+          "step": "no-geo"
+        },
+        {
+          "id": "placed",
+          "description": "A centre and a 200 km radius from a shared link — the name comes from the host, the radius from the URL.",
+          "viewport": "phone",
+          "step": "geo-radius"
+        },
+        {
+          "id": "narrowed",
+          "description": "The same place with four more constraints applied: the badge on the right counts them.",
+          "viewport": "phone",
+          "step": "geo-and-filters"
+        },
+        {
+          "id": "wide",
+          "description": "The same row on a desktop: it is a full-width line either way, because what it states describes the whole page.",
+          "viewport": "desktop",
+          "step": "geo-desktop"
+        }
+      ],
+      "source": {
+        "file": "demo/LocationSummaryLine.demo.tsx",
+        "line": 51
+      }
+    },
+    {
       "id": "search.page",
       "title": "Search page",
       "description": "The composed /s screen: the query box bound to setText, the filter panel (category and location slots, numeric ranges, drill-down facets), the sort and page-size toolbar, and one keyset page of cards with the DSA promoted marking explained in words rather than in a tooltip.",

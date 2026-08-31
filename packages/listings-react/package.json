@@ -60,9 +60,9 @@
       "limit": "11.5 KB"
     },
     {
-      "name": "default — the antd skin (card, detail, composer, dashboard, the four named slots and the delete confirmation) must stay out of the main bundle. Raised 16 -> 17 KB for attributes-react 0.4.0: the composer's <FeatureFields> now carries the rule pre-pass, the form sections and the two vocabulary-backed editors, and the skin re-exports them (15.86 -> 16.02 KB measured)",
+      "name": "default — the antd skin (three cards, detail, composer, dashboard, the named slots and the delete confirmation) must stay out of the main bundle. Raised 17 -> 19 KB for the mobile wave: <ListingSerpCard> (photo strip + price-first block + action rail), <ListingFeedCard> and <FeedGrid> are two more card surfaces on the same shared target/favourite/photo parts, not three copies of one",
       "path": "dist/default/index.js",
-      "limit": "17 KB"
+      "limit": "19 KB"
     },
     {
       "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",
@@ -70,9 +70,9 @@
       "limit": "5 KB"
     },
     {
-      "name": "i18n/es — the Spanish bundle is opt-in, not carried by the main entry",
+      "name": "i18n/es — the Spanish bundle is opt-in, not carried by the main entry. Raised 3.5 -> 4 KB: the mobile wave's four card keys landed the bundle exactly ON the old limit, and a budget a release passes by rounding is a budget that fails the next one",
       "path": "dist/i18n/es.js",
-      "limit": "3.5 KB"
+      "limit": "4 KB"
     }
   ],
   "peerDependencies": {
@@ -80,7 +80,7 @@
     "@stapel/core": ">=0.19.0 <1.0.0",
     "@stapel/currencies-react": ">=0.2.0",
     "@stapel/image": ">=0.2.0",
-    "@stapel/tokens-antd": ">=0.7.0",
+    "@stapel/tokens-antd": ">=0.9.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"

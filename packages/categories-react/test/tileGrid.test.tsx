@@ -16,7 +16,8 @@ import {
   CategoryQuickSearchPanel,
   CategoryTileGrid,
 } from "../src/default/index.js";
-import type { QuickSearchCount } from "../src/default/index.js";
+import type { CarouselEntry, QuickSearchCount } from "../src/default/index.js";
+import { categoryLabel } from "../src/index.js";
 import {
   PHONE_WIDTH,
   TestProviders,
@@ -25,9 +26,23 @@ import {
   resetViewportListeners,
   setViewport,
 } from "./harness.js";
-import { ELECTRONICS, FULL_PAGE, VEHICLES } from "./fixtures.js";
+import { ELECTRONICS, FULL_PAGE, LAPTOPS, PHONES, VEHICLES } from "./fixtures.js";
 
 const CAROUSEL = [ELECTRONICS, VEHICLES];
+
+/**
+ * Rows a HOST hands in: a category's CHILDREN, which the carousel endpoint
+ * does not serve at all. Built the way a container builds them — off the tree
+ * it already has, through the pair's own `categoryLabel`.
+ */
+const CHILD_TILES: readonly CarouselEntry[] = [PHONES, LAPTOPS].map(
+  (category) => ({
+    category,
+    label: categoryLabel(category),
+    icon: null,
+    href: `/c/${category.slug}`,
+  })
+);
 const OK = {
   "/categories/carousel/": { body: CAROUSEL },
   "/categories/": { body: FULL_PAGE },
@@ -131,6 +146,70 @@ describe("<CategoryTileGrid>", () => {
       list.querySelectorAll('[data-stapel-tile-art="placeholder"]')
     ).toHaveLength(CAROUSEL.length + 1);
     expect(list.querySelectorAll("img")).toHaveLength(0);
+  });
+
+  it("draws the host's own rows when `entries` is given", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid entries={CHILD_TILES} allTile={false} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy();
+    });
+    const links = [
+      ...screen.getByTestId("categories-tile-grid-list").querySelectorAll("a"),
+    ];
+    expect(links).toHaveLength(CHILD_TILES.length);
+    expect(links[0]?.getAttribute("href")).toBe("/c/phones");
+    expect(links[1]?.getAttribute("href")).toBe("/c/laptops");
+  });
+
+  it("asks the server NOTHING on the override arm", async () => {
+    // The carousel handler refuses. An implementation that mounted the bag and
+    // then ignored its answer would still have made the call — and would still
+    // pass a test that only looked at the rendered rows.
+    const server = mockServer({
+      "/categories/carousel/": { status: 503, body: {} },
+    });
+    render(
+      <TestProviders server={server}>
+        <CategoryTileGrid entries={CHILD_TILES} allTile={false} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy();
+    });
+    expect(server.queries("/categories/carousel/")).toHaveLength(0);
+    expect(screen.queryByTestId("categories-tile-grid-failed")).toBeNull();
+  });
+
+  it("still leads with the All tile when the override keeps it", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid entries={CHILD_TILES} basePath="/catalogue" />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-tile-grid-all")).toBeTruthy();
+    });
+    const links = [
+      ...screen.getByTestId("categories-tile-grid-list").querySelectorAll("a"),
+    ];
+    expect(links[0]?.getAttribute("href")).toBe("/catalogue");
+    expect(links).toHaveLength(CHILD_TILES.length + 1);
+  });
+
+  it("treats an EMPTY override as a real answer, not as 'ask the server'", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid entries={[]} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-tile-grid-empty")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("categories-tile-grid-list")).toBeNull();
   });
 
   it("says the catalogue features nothing rather than spinning forever", async () => {

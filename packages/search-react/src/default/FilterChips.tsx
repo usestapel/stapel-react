@@ -49,13 +49,12 @@
  */
 import { useState } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { Button, Flex, Typography } from "antd";
+import { Button } from "antd";
 import { SkinDialog, useDialogSurface } from "@stapel/tokens-antd/skin";
-import { SlotPlaceholder, useT, useTPlural } from "@stapel/core";
+import { useT } from "@stapel/core";
 import { radii, spacing } from "@stapel/tokens";
 import type { FeatureDef } from "@stapel/attributes-react";
 import { useFacetPanel } from "../headless/FacetPanel.js";
-import { useAppliedCount } from "../headless/useAppliedCount.js";
 import { useSearchState } from "../headless/SearchStateProvider.js";
 import { buildRangeGroups } from "../state/ranges.js";
 import type { FacetGroup } from "../state/facets.js";
@@ -64,6 +63,7 @@ import { FacetGroupControl } from "./FacetGroupControl.js";
 import { RangeFilterRow } from "./RangeFilterRow.js";
 import { geoSummaryFallback } from "./FacetPanelPane.js";
 import type { GeoFilterSlotProps } from "./FacetPanelPane.js";
+import { CHIP_GEO_TEST_IDS, GeoSheet, useApplyLabel } from "./geoSheet.js";
 
 /** The class the scroller carries, for {@link chipRowCss}. */
 export const CHIP_ROW_CLASS = "stapel-filter-chips";
@@ -142,15 +142,14 @@ function chipLabel(group: FacetGroup, t: (key: string, p?: Record<string, unknow
 
 export function FilterChips(props: FilterChipsProps): ReactElement {
   const t = useT();
-  const tPlural = useTPlural();
-  const { state, setGeo } = useSearchState();
+  const { state } = useSearchState();
   const bag = useFacetPanel({
     ...(props.categoryFeatures !== undefined
       ? { categoryFeatures: props.categoryFeatures }
       : {}),
     ...(props.locale !== undefined ? { locale: props.locale } : {}),
   });
-  const applied = useAppliedCount();
+  const applyLabel = useApplyLabel();
   const surface = useDialogSurface();
   const [open, setOpen] = useState<OpenChip>(null);
 
@@ -165,19 +164,6 @@ export function FilterChips(props: FilterChipsProps): ReactElement {
     bag.state.status === "ready"
       ? bag.state.data.filter((group) => group.options.length > 0)
       : [];
-
-  // The same sentence the panel's own commit button says, for the same reason:
-  // the results are BEHIND this sheet, so the button that closes it is the
-  // only place a person learns what their choice did.
-  const applyLabel =
-    applied.count === null || applied.kind === "unknown"
-      ? t(SEARCH_I18N_KEYS.filtersApply)
-      : tPlural(
-          applied.kind === "at_least"
-            ? SEARCH_I18N_KEYS.filtersShowCountAtLeast
-            : SEARCH_I18N_KEYS.filtersShowCount,
-          { count: applied.count }
-        );
 
   const close = (): void => {
     setOpen(null);
@@ -338,43 +324,18 @@ export function FilterChips(props: FilterChipsProps): ReactElement {
               );
         })()}
 
-      {open === "geo" &&
-        sheetFor(
-          "geo",
-          t(SEARCH_I18N_KEYS.geoTitle),
-          <Flex vertical gap={spacing[3]}>
-            {/* SETTING a centre needs a geocoder, which is `geo-react`'s and
-                the deployment's. ADJUSTING or CLEARING one the URL already
-                carries does not — which is why the chip still opens on a
-                shared link with no slot filled, and why the absence of the
-                slot is NAMED in development rather than left as a gap under
-                the sheet's title. */}
-            {props.renderGeoFilter?.({
-              value: geo,
-              onChange: (next) => {
-                setGeo(next);
-              },
-            }) ?? <SlotPlaceholder name="renderGeoFilter" data-testid="search-chip-geo-slot" />}
-            {geo !== undefined && (
-              <>
-                <Typography.Text type="secondary" data-testid="search-chip-geo-summary">
-                  {geoChipLabel}
-                </Typography.Text>
-                <Button
-                  style={{ alignSelf: "flex-start" }}
-                  data-testid="search-chip-geo-clear"
-                  data-analytics="none"
-                  data-analytics-reason="a filter is a read, not a flow step"
-                  onClick={() => {
-                    setGeo(null);
-                  }}
-                >
-                  {t(SEARCH_I18N_KEYS.geoClear)}
-                </Button>
-              </>
-            )}
-          </Flex>
-        )}
+      {/* The LOCATION sheet is shared with `<LocationSummaryLine>` — the ref
+          puts a location control on both rows, and they must land in the same
+          place. See `geoSheet.tsx`. */}
+      <GeoSheet
+        open={open === "geo"}
+        onClose={close}
+        testIds={CHIP_GEO_TEST_IDS}
+        {...(props.renderGeoFilter !== undefined
+          ? { renderGeoFilter: props.renderGeoFilter }
+          : {})}
+        {...(props.geoLabel !== undefined ? { geoLabel: props.geoLabel } : {})}
+      />
     </>
   );
 }

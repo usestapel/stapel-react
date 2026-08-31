@@ -179,6 +179,49 @@
       }
     },
     {
+      "id": "listings.feed-card",
+      "title": "Listing feed card",
+      "description": "The phone home feed: no border and no card surface, so the photo is the card and the rhythm of the grid is what separates one listing from the next. Two lines of title then a clamp, the price in bold, the place muted, and the favourite heart pinned over the photo's trailing corner — the one surface in this pair where the heart floats, because a two-column tile has no line to spare for a refusal. A container draws the grid inside a PaneGate so that refusal is said once for the whole feed.",
+      "component": "ListingFeedCard",
+      "covers": [
+        "FeedGrid",
+        "ListingsProvider"
+      ],
+      "tokens": [
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Six listings, two across: a clamped two-line title, one badge overlay, and a row with no photo.",
+          "viewport": "phone",
+          "step": "member_two_columns"
+        },
+        {
+          "id": "tile",
+          "description": "One tile on its own — the title clamp and the overlay, at full width.",
+          "viewport": "phone",
+          "step": "member_single_tile"
+        },
+        {
+          "id": "visitor",
+          "description": "A visitor: the hearts are off and each states its reason. This is the shot that argues for wrapping a real feed in a PaneGate.",
+          "viewport": "phone",
+          "step": "anonymous_blocked"
+        },
+        {
+          "id": "wide",
+          "description": "columns={4} — desktop is not this wave's consumer, but the same declaration serves it.",
+          "viewport": "desktop",
+          "step": "member_four_columns"
+        }
+      ],
+      "source": {
+        "file": "demo/ListingFeedCard.demo.tsx",
+        "line": 99
+      }
+    },
+    {
       "id": "listings.mine",
       "title": "My listings",
       "description": "stapel-listings 0.7.0 gave the owner's own listings a route (GET my/listings/, every status, ?status= for a tab's set), so the rows here are the contract's own. Four things the pane refuses to smooth over: both axes on every row (a LIVE listing whose edit is under review says so — status alone cannot); a moderation takedown, which my/counters counts in no tab at all, sits ABOVE the tabs; every switched-off action prints its reason beside itself instead of hiding it in a hover a phone cannot open; and Delete asks first, through a bottom sheet. The row is a thumbnail plus a min-width:0 column, so four actions wrap at 390px instead of clipping.",
@@ -275,6 +318,49 @@
       "source": {
         "file": "demo/ListingParts.demo.tsx",
         "line": 105
+      }
+    },
+    {
+      "id": "listings.serp-card",
+      "title": "Listing SERP card",
+      "description": "The one-column result card of a phone search page: a SkinCarousel photo strip that peeks, then the PRICE as the first and largest line, the title at regular weight, the seller's spec line, the stored badge projection, the seller slot and the place. The strip sits outside the card's anchor on purpose — a horizontal swipe that ends inside a link is a swipe the browser may deliver as a navigation — and the trailing rail carries the container's call and chat controls with the favourite heart at its end.",
+      "component": "ListingSerpCard",
+      "covers": [
+        "ListingsProvider"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Three photos, so the strip peeks and draws dots; a signed-in reader.",
+          "viewport": "phone",
+          "step": "member_three_photos"
+        },
+        {
+          "id": "trend",
+          "description": "The price-trend seam with fixture data: the arrow and the struck previous price. No live projection carries this yet (gap G-2).",
+          "viewport": "phone",
+          "step": "member_price_dropped"
+        },
+        {
+          "id": "visitor",
+          "description": "A visitor with no rail: the heart is off and its reason is printed beside it. A real feed wraps the list in a PaneGate so that sentence is said once, not once per card.",
+          "viewport": "phone",
+          "step": "anonymous_blocked"
+        },
+        {
+          "id": "bare",
+          "description": "No photo, no price, no place — the absences a result page has to draw without looking broken.",
+          "viewport": "desktop",
+          "step": "member_no_media"
+        }
+      ],
+      "source": {
+        "file": "demo/ListingSerpCard.demo.tsx",
+        "line": 100
       }
     }
   ]

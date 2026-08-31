@@ -333,6 +333,19 @@ describe("the toolbar over the results", () => {
     expect(screen.getByTestId("search-sort")).toBeTruthy();
   });
 
+  it("keeps that room on a PHONE too — the saved-search stub goes there", async () => {
+    // The mobile wave's "notify me about new ones" is the host's stub in this
+    // slot (there is no saved-search backend), so the slot has to survive the
+    // sheet layout — where the toolbar shares a row with the view switch, the
+    // sort and the page size on a 390px screen.
+    setViewport(PHONE_WIDTH);
+    mount({ resultsAction: <span data-testid="host-notify">Notify me</span> });
+    await waitFor(() => expect(screen.getByTestId("host-notify")).toBeTruthy());
+    expect(screen.getByTestId("search-page").getAttribute("data-filters-layout"))
+      .toBe("sheet");
+    expect(screen.getByTestId("search-sort")).toBeTruthy();
+  });
+
   it("draws ONE switch on a phone too — the arrangement is not a desktop luxury", async () => {
     setViewport(PHONE_WIDTH);
     mount();

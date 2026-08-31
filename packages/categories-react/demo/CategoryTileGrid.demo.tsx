@@ -15,7 +15,7 @@ import { cssVar } from "@stapel/tokens";
 import { CategoryTileGrid } from "../src/default/index.js";
 import { CategoriesDemoHarness } from "./_harness.js";
 import type { DemoHandlers, DemoSeed } from "./_harness.js";
-import { DEMO_TILE_CAROUSEL } from "./fixtures.js";
+import { DEMO_CHILD_TILES, DEMO_TILE_CAROUSEL } from "./fixtures.js";
 
 const SEEDED: DemoSeed = { carousel: DEMO_TILE_CAROUSEL };
 const NOTHING: DemoSeed = { carousel: [] };
@@ -74,6 +74,21 @@ export default defineDemo({
       render: () => (
         <CategoriesDemoHarness seed={SEEDED}>
           <CategoryTileGrid />
+        </CategoriesDemoHarness>
+      ),
+    },
+    "host tiles": {
+      description:
+        "entries — the host's own rows, here a category's CHILDREN, which the carousel endpoint does not serve. The handler is the outage one on purpose: the override asks the server nothing, so the tiles draw anyway.",
+      viewport: "phone",
+      step: "ready-from-entries",
+      render: () => (
+        <CategoriesDemoHarness handlers={OUTAGE}>
+          <CategoryTileGrid
+            entries={DEMO_CHILD_TILES}
+            allTile={false}
+            renderIcon={(reference) => <Art reference={reference} />}
+          />
         </CategoriesDemoHarness>
       ),
     },

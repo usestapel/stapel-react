@@ -1,6 +1,16 @@
 /**
- * `@stapel/listings-react/default` — the antd skin: the card another pair
+ * `@stapel/listings-react/default` — the antd skin: the cards another pair
  * renders, the listing page, the composer and the seller's dashboard.
+ *
+ * ── Three cards, because a classified has three shelves ────────────────────
+ *
+ * `ListingCard` is the grid card (a bordered surface, photo-led, twenty-four
+ * to a desktop catalogue). `ListingSerpCard` is the phone result row (one per
+ * line, a swipeable photo strip, PRICE first, a vertical action rail).
+ * `ListingFeedCard` + `FeedGrid` are the home feed (borderless, two across,
+ * the photo carried on the page's own ground). They are three components and
+ * not one with a `variant`, because they differ in READING ORDER and in what
+ * may live inside the card's anchor — not merely in size.
  *
  * A separate entry point (the convention every pair's `/default` follows) so
  * a host rendering its own visuals over the bags never pulls `antd` into its
@@ -30,6 +40,19 @@ export type {
   ListingCardOpenProps,
   ListingCardBlockedReason,
 } from "./ListingCard.js";
+export { ListingSerpCard } from "./ListingSerpCard.js";
+export type {
+  ListingSerpCardProps,
+  ListingSerpCardBaseProps,
+  ListingPriceTrend,
+} from "./ListingSerpCard.js";
+export { ListingFeedCard } from "./ListingFeedCard.js";
+export type {
+  ListingFeedCardProps,
+  ListingFeedCardBaseProps,
+} from "./ListingFeedCard.js";
+export { FeedGrid, FEED_GRID_COLUMNS } from "./FeedGrid.js";
+export type { FeedGridProps } from "./FeedGrid.js";
 export { ListingDetailPane, DETAIL_MEASURE, DETAIL_PHOTO_MIN } from "./ListingDetailPane.js";
 export type { ListingDetailPaneProps } from "./ListingDetailPane.js";
 export { ListingComposerPage, COMPOSER_MEASURE } from "./ListingComposerPage.js";

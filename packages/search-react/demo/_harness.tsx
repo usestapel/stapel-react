@@ -96,6 +96,10 @@ const demoBundleEn: Record<string, string> = {
   "demo.brand.interskol": "Interskol",
   "demo.condition.new": "New",
   "demo.condition.used": "Used",
+  // The host's NAME for a point. It is `demo.*` and not a search key on
+  // purpose: turning `lat`/`lon` into a place is a geocoder's job and the
+  // container's, which is the whole argument `geoLabel` exists to make.
+  "demo.geo.city": "Kazan",
   "search.scorer.relevance": "Text relevance",
   "search.scorer.geo": "Distance",
 };

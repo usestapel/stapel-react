@@ -12,9 +12,9 @@
  * The seams a storefront fills: `renderCard` (a `<ListingCard>`),
  * `categoryFeatures` (from categories-react, for facet labels and range rows),
  * `renderCategoryFilter` / `renderGeoFilter` (controls other pairs own),
- * `footer` (the container's own chrome), `filtersHeader` and `resultsHeading`.
- * None of them is optional behaviour in disguise — every one has a working
- * default or a visible placeholder.
+ * `footer` (the container's own chrome), `filtersHeader`, `resultsHeader` and
+ * `resultsHeading`. None of them is optional behaviour in disguise — every one
+ * has a working default or a visible placeholder.
  *
  * ── The screen could not start a search ───────────────────────────────────
  *
@@ -185,6 +185,25 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * sense that matters and not a decoration bolted on top.
    */
   readonly filtersHeader?: ReactNode;
+  /**
+   * The row ABOVE the chips and the results — where `<LocationSummaryLine>`
+   * goes on the phone SERP.
+   *
+   * A NEW slot rather than a reuse, and the existing four were each checked
+   * first: `filtersHeader` is inside the filter panel (it is a filter, and on
+   * a phone it is behind the sheet, which is precisely where a location
+   * summary must NOT be); `breadcrumb` renders in the right place but names a
+   * walk up the CATEGORY tree, and a host wanting a trail AND a location row
+   * would have to choose; `resultsHeading` and the pane's `toolbar` are inside
+   * the results pane, below the chips. Nothing sat between "the search box"
+   * and "the filters", and that gap is exactly the ref's location row.
+   *
+   * It is rendered in the page's vertical stack, so it spans the full width in
+   * BOTH layouts — above the chip row on a phone, above the two columns on a
+   * desktop. That is deliberate: whatever states where a search is looking
+   * describes the whole page, not the results column of it.
+   */
+  readonly resultsHeader?: ReactNode;
   /** What this surface calls its result list. See
    * {@link SearchResultsPaneProps.heading}. */
   readonly resultsHeading?: ReactNode;
@@ -261,6 +280,7 @@ interface SearchPageBodyProps {
   readonly geoLabel?: ReactNode;
   readonly footer?: ReactNode;
   readonly filtersHeader?: ReactNode;
+  readonly resultsHeader?: ReactNode;
   readonly resultsHeading?: ReactNode;
   readonly degradationNotice?: DegradationNoticeVariant;
   readonly filtersLayout?: SearchFiltersLayout;
@@ -414,6 +434,14 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
       )}
       <UrlIssueNotice />
 
+      {/* Above the chips in the sheet layout and above the columns in the
+          other one — see {@link SearchPageProps.resultsHeader}. `?? null` is
+          the written decision, not an oversight: a page with nothing to say
+          about location says nothing rather than reserving a blank row. */}
+      {props.resultsHeader !== undefined && (
+        <div data-testid="search-results-header">{props.resultsHeader}</div>
+      )}
+
       {showFilters && layout === "sheet" ? (
         <>
           {/* The phone's filter row. It REPLACES the full-width "Filters (3)"
@@ -492,6 +520,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     defaultGeo,
     footer,
     filtersHeader,
+    resultsHeader,
     resultsHeading,
     degradationNotice,
     filtersLayout,
@@ -521,6 +550,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(geoLabel !== undefined ? { geoLabel } : {})}
           {...(footer !== undefined ? { footer } : {})}
           {...(filtersHeader !== undefined ? { filtersHeader } : {})}
+          {...(resultsHeader !== undefined ? { resultsHeader } : {})}
           {...(resultsHeading !== undefined ? { resultsHeading } : {})}
           {...(degradationNotice !== undefined ? { degradationNotice } : {})}
           {...(filtersLayout !== undefined ? { filtersLayout } : {})}

@@ -733,6 +733,26 @@
       "source": "demo/Favorites.demo.tsx"
     },
     {
+      "id": "listings.feed-card",
+      "title": "Listing feed card",
+      "description": "The phone home feed: no border and no card surface, so the photo is the card and the rhythm of the grid is what separates one listing from the next. Two lines of title then a clamp, the price in bold, the place muted, and the favourite heart pinned over the photo's trailing corner — the one surface in this pair where the heart floats, because a two-column tile has no line to spare for a refusal. A container draws the grid inside a PaneGate so that refusal is said once for the whole feed.",
+      "component": "ListingFeedCard",
+      "covers": [
+        "FeedGrid",
+        "ListingsProvider"
+      ],
+      "tokens": [
+        "text-muted"
+      ],
+      "variants": [
+        "default",
+        "tile",
+        "visitor",
+        "wide"
+      ],
+      "source": "demo/ListingFeedCard.demo.tsx"
+    },
+    {
       "id": "listings.mine",
       "title": "My listings",
       "description": "stapel-listings 0.7.0 gave the owner's own listings a route (GET my/listings/, every status, ?status= for a tab's set), so the rows here are the contract's own. Four things the pane refuses to smooth over: both axes on every row (a LIVE listing whose edit is under review says so — status alone cannot); a moderation takedown, which my/counters counts in no tab at all, sits ABOVE the tabs; every switched-off action prints its reason beside itself instead of hiding it in a hover a phone cannot open; and Delete asks first, through a bottom sheet. The row is a thumbnail plus a min-width:0 column, so four actions wrap at 390px instead of clipping.",
@@ -774,6 +794,26 @@
         "door"
       ],
       "source": "demo/ListingParts.demo.tsx"
+    },
+    {
+      "id": "listings.serp-card",
+      "title": "Listing SERP card",
+      "description": "The one-column result card of a phone search page: a SkinCarousel photo strip that peeks, then the PRICE as the first and largest line, the title at regular weight, the seller's spec line, the stored badge projection, the seller slot and the place. The strip sits outside the card's anchor on purpose — a horizontal swipe that ends inside a link is a swipe the browser may deliver as a navigation — and the trailing rail carries the container's call and chat controls with the favourite heart at its end.",
+      "component": "ListingSerpCard",
+      "covers": [
+        "ListingsProvider"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text-muted"
+      ],
+      "variants": [
+        "default",
+        "trend",
+        "visitor",
+        "bare"
+      ],
+      "source": "demo/ListingSerpCard.demo.tsx"
     }
   ],
   "i18nKeys": [
@@ -854,7 +894,11 @@
     "listings.card.favorite_remove",
     "listings.card.no_photo",
     "listings.card.photo_unavailable",
+    "listings.card.photos",
     "listings.card.price_absent",
+    "listings.card.price_dropped",
+    "listings.card.price_raised",
+    "listings.card.price_was",
     "listings.card.sign_in",
     "listings.card.untitled",
     "listings.compose.auto_republish",

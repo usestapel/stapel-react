@@ -92,6 +92,10 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.card.favorite_remove": "Убрать из избранного",
   "listings.card.untitled": "Объявление без названия",
   "listings.card.sign_in": "Войти",
+  "listings.card.photos": "Фотографии объявления",
+  "listings.card.price_was": "Было",
+  "listings.card.price_dropped": "Цена снизилась",
+  "listings.card.price_raised": "Цена выросла",
 
   "listings.detail.loading": "Загружаем объявление…",
   "listings.detail.load_failed": "Не удалось загрузить объявление",

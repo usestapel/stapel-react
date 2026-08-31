@@ -335,6 +335,12 @@
           "step": "ready-without-art"
         },
         {
+          "id": "host tiles",
+          "description": "entries — the host's own rows, here a category's CHILDREN, which the carousel endpoint does not serve. The handler is the outage one on purpose: the override asks the server nothing, so the tiles draw anyway.",
+          "viewport": "phone",
+          "step": "ready-from-entries"
+        },
+        {
           "id": "inside a category",
           "description": "allTile={false} — a row already inside a category does not lead with a link back to the catalogue root.",
           "viewport": "desktop",

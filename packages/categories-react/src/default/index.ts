@@ -35,6 +35,11 @@ export { CategoryCarouselStrip } from "./CategoryCarouselStrip.js";
 export type { CategoryCarouselStripProps } from "./CategoryCarouselStrip.js";
 export { CategoryTileGrid } from "./CategoryTileGrid.js";
 export type { CategoryTileGridProps } from "./CategoryTileGrid.js";
+/** Re-exported here because `<CategoryTileGrid>`'s `entries` and `renderIcon`
+ * both make it part of a skin caller's vocabulary — a host composing tiles
+ * should not have to reach into the headless entry for the row type it is
+ * handed and asked to hand back. Same type, one door closer. */
+export type { CarouselEntry } from "../headless/CategoryCarousel.js";
 export { CategoryQuickSearchPanel } from "./CategoryQuickSearchPanel.js";
 export type {
   CategoryQuickSearchPanelProps,

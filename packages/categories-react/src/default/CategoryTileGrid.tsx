@@ -24,6 +24,16 @@
  * (no `renderIcon`, or no reference on the row) draws a subtle placeholder
  * glyph. Never a guessed URL, and therefore never a broken image.
  *
+ * ── Two sources of rows, one geometry ──────────────────────────────────────
+ *
+ * By default the rows come from the carousel bag, which answers exactly one
+ * question: which categories the operator put on the front page. A CATEGORY
+ * landing asks a different one — what is inside THIS category — and its answer
+ * is already in the host's hand (`useCategoryTree()`), not on the carousel
+ * endpoint. {@link CategoryTileGridProps.entries} is that second source, and
+ * when it is given `<CategoryCarousel>` is not mounted at all, so the override
+ * costs no request it would then discard.
+ *
  * ── Geometry ───────────────────────────────────────────────────────────────
  *
  * Every length is relative to the CONTAINER, not to the viewport: the column
@@ -192,89 +202,147 @@ export interface CategoryTileGridProps extends ThemeModeProp, LinkComponentProp 
    * catalogue root the visitor just came from.
    */
   readonly allTile?: boolean;
+  /**
+   * Tiles the HOST supplies, instead of the carousel bag.
+   *
+   * The bag answers ONE question — "which categories has the operator put on
+   * the storefront's front page" (`carousel_enabled`, `GET /categories
+   * /carousel/`) — and that is the only question a landing page asks. A
+   * CATEGORY page asks a different one: "what is inside this category", whose
+   * answer is `useCategoryTree()`'s children, already in the host's hand and
+   * not on the carousel endpoint at all. Without this prop the second surface
+   * either re-implements the tile geometry or renders the wrong rows, and the
+   * tiles on `/c/transport` would be the same five the home page shows.
+   *
+   * Given, the component asks the server NOTHING: `<CategoryCarousel>` is not
+   * mounted, so an override costs no `GET /categories/carousel/` (the request
+   * a "swap the bag's data" implementation would still fire and discard). An
+   * empty array is a real answer — a category with no children — and draws the
+   * same empty state a featureless carousel draws.
+   *
+   * There is no loading or failed arm for an override, and that is deliberate:
+   * the host owns the fetch it drew these rows from, so it owns the two
+   * sentences that go with it. Handing this component a `LoadState` would give
+   * one load two owners.
+   */
+  readonly entries?: readonly CarouselEntry[];
+}
+
+/** The scroll port itself: the "All" tile, then one tile per row. */
+function TileRow(props: {
+  readonly entries: readonly CarouselEntry[];
+  readonly basePath: string;
+  readonly allTile?: boolean;
+  readonly linkComponent?: LinkComponent;
+  readonly renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode;
+}): ReactElement {
+  const t = useT();
+  const linkProps =
+    props.linkComponent !== undefined
+      ? { linkComponent: props.linkComponent }
+      : {};
+  return (
+    <div style={scrollerStyle} data-testid="categories-tile-grid-list">
+      {props.allTile !== false && (
+        <Tile
+          {...linkProps}
+          href={props.basePath}
+          label={t(CATEGORIES_I18N_KEYS.tilesAll)}
+          art={<TilePlaceholder />}
+          testId="categories-tile-grid-all"
+        />
+      )}
+      {props.entries.map((entry) => (
+        <Tile
+          key={entry.category.id}
+          {...linkProps}
+          href={entry.href}
+          slug={entry.category.slug}
+          label={renderCategoryLabel(entry.label, t)}
+          art={
+            entry.icon !== null && props.renderIcon !== undefined ? (
+              props.renderIcon(entry.icon, entry)
+            ) : (
+              <TilePlaceholder />
+            )
+          }
+        />
+      ))}
+    </div>
+  );
 }
 
 export function CategoryTileGrid(props: CategoryTileGridProps): ReactElement {
   const t = useT();
   const basePath = props.basePath ?? "/c";
-  const linkProps =
-    props.linkComponent !== undefined
+  const rowProps = {
+    basePath,
+    ...(props.allTile !== undefined ? { allTile: props.allTile } : {}),
+    ...(props.linkComponent !== undefined
       ? { linkComponent: props.linkComponent }
-      : {};
+      : {}),
+    ...(props.renderIcon !== undefined ? { renderIcon: props.renderIcon } : {}),
+  };
+  const override = props.entries;
 
   return (
     <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
-      <CategoryCarousel basePath={basePath}>
-        {(bag) => (
-          <nav
-            aria-label={t(CATEGORIES_I18N_KEYS.carouselTitle)}
-            data-testid="categories-tile-grid"
-          >
-            <LoadList
-              state={bag.state}
-              testId="categories-tile-grid"
-              onRetry={bag.refetch}
-              loading={
-                <div style={scrollerStyle}>
-                  {SKELETON_TILES.map((slot) => (
-                    <Skeleton.Button
-                      key={slot}
-                      active
-                      block
-                      style={{ aspectRatio: TILE_ASPECT_RATIO, height: "auto" }}
-                    />
-                  ))}
-                </div>
-              }
-              failed={(error) => (
-                <ErrorAlert
-                  testId="categories-tile-grid-failed"
-                  thrown={error}
-                  message={t(CATEGORIES_I18N_KEYS.carouselLoadFailed)}
-                  onRetry={bag.refetch}
-                />
-              )}
-              empty={
-                <EmptyState
-                  testId="categories-tile-grid-empty"
-                  compact
-                  title={t(CATEGORIES_I18N_KEYS.carouselEmpty)}
-                />
-              }
-            >
-              {(entries) => (
-                <div style={scrollerStyle} data-testid="categories-tile-grid-list">
-                  {props.allTile !== false && (
-                    <Tile
-                      {...linkProps}
-                      href={basePath}
-                      label={t(CATEGORIES_I18N_KEYS.tilesAll)}
-                      art={<TilePlaceholder />}
-                      testId="categories-tile-grid-all"
-                    />
-                  )}
-                  {entries.map((entry) => (
-                    <Tile
-                      key={entry.category.id}
-                      {...linkProps}
-                      href={entry.href}
-                      slug={entry.category.slug}
-                      label={renderCategoryLabel(entry.label, t)}
-                      art={
-                        entry.icon !== null && props.renderIcon !== undefined ? (
-                          props.renderIcon(entry.icon, entry)
-                        ) : (
-                          <TilePlaceholder />
-                        )
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </LoadList>
-          </nav>
+      <nav
+        aria-label={t(CATEGORIES_I18N_KEYS.carouselTitle)}
+        data-testid="categories-tile-grid"
+      >
+        {override !== undefined ? (
+          // The override arm asks the server nothing — see `entries`.
+          override.length === 0 ? (
+            <EmptyState
+              testId="categories-tile-grid-empty"
+              compact
+              title={t(CATEGORIES_I18N_KEYS.carouselEmpty)}
+            />
+          ) : (
+            <TileRow {...rowProps} entries={override} />
+          )
+        ) : (
+          <CategoryCarousel basePath={basePath}>
+            {(bag) => (
+              <LoadList
+                state={bag.state}
+                testId="categories-tile-grid"
+                onRetry={bag.refetch}
+                loading={
+                  <div style={scrollerStyle}>
+                    {SKELETON_TILES.map((slot) => (
+                      <Skeleton.Button
+                        key={slot}
+                        active
+                        block
+                        style={{ aspectRatio: TILE_ASPECT_RATIO, height: "auto" }}
+                      />
+                    ))}
+                  </div>
+                }
+                failed={(error) => (
+                  <ErrorAlert
+                    testId="categories-tile-grid-failed"
+                    thrown={error}
+                    message={t(CATEGORIES_I18N_KEYS.carouselLoadFailed)}
+                    onRetry={bag.refetch}
+                  />
+                )}
+                empty={
+                  <EmptyState
+                    testId="categories-tile-grid-empty"
+                    compact
+                    title={t(CATEGORIES_I18N_KEYS.carouselEmpty)}
+                  />
+                }
+              >
+                {(entries) => <TileRow {...rowProps} entries={entries} />}
+              </LoadList>
+            )}
+          </CategoryCarousel>
         )}
-      </CategoryCarousel>
+      </nav>
     </SkinTheme>
   );
 }

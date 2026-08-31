@@ -9,7 +9,8 @@
  * `{count, next, results}`.
  */
 import type { FeatureDef } from "@stapel/attributes-react";
-import type { Category, CategoryListPage } from "../src/index.js";
+import { categoryLabel } from "../src/index.js";
+import type { CarouselEntry, Category, CategoryListPage } from "../src/index.js";
 
 function row(
   id: number,
@@ -117,6 +118,30 @@ export const DEMO_TILE_CAROUSEL: readonly Category[] = [
     carousel_enabled: true,
   }),
 ];
+
+/**
+ * Tiles a HOST supplies — the `entries` override.
+ *
+ * These are the CHILDREN of one category, which is the case the carousel bag
+ * cannot answer: `GET /categories/carousel/` returns the storefront's front
+ * page and nothing else, so a `/c/electronics` landing that wants "Phones,
+ * Laptops, Used phones" has to hand its own rows in. They are built the way a
+ * container builds them — from the tree it already has, through the pair's own
+ * `categoryLabel` — and deliberately share no row with `DEMO_TILE_CAROUSEL`,
+ * so the override variant photographs as a different row rather than the same
+ * one by another route.
+ */
+export const DEMO_CHILD_TILES: readonly CarouselEntry[] = DEMO_ROWS.filter(
+  (candidate) => candidate.tn_parent !== null && !candidate.deleted
+).map((category) => ({
+  category,
+  label: categoryLabel(category),
+  icon:
+    category.carousel_icon !== undefined && category.carousel_icon !== ""
+      ? category.carousel_icon
+      : null,
+  href: `/c/${category.slug}`,
+}));
 
 /**
  * A category's resolved feature schema. `config` is VERBATIM — no defaults

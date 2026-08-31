@@ -151,6 +151,16 @@ export const SEARCH_I18N_KEYS = {
   geoRadiusKm: "search.geo.radius_km",
   geoRadiusLabel: "search.geo.radius_label",
   geoClear: "search.geo.clear",
+  /**
+   * What `<LocationSummaryLine>` says when NO location is applied.
+   *
+   * Not `search.geo.clear` reused: that is the label on a BUTTON that widens
+   * the search ("Anywhere"), and this is a STATEMENT about where the search is
+   * currently looking. The two are the same word in English and diverge the
+   * moment a translator treats one as an imperative — which is exactly the
+   * class of bug a shared key produces and nobody sees in the source locale.
+   */
+  geoEverywhere: "search.geo.everywhere",
   geoBox: "search.geo.box",
   /**
    * What a location constraint is called when nobody has given it a NAME.
@@ -326,6 +336,7 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.geo.radius_km": "Within {km} km",
   "search.geo.radius_label": "Radius, km",
   "search.geo.clear": "Anywhere",
+  "search.geo.everywhere": "Searching everywhere",
   "search.geo.box": "Inside the shown area",
   "search.geo.chosen_place": "A chosen place on the map",
 

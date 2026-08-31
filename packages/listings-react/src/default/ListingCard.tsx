@@ -221,15 +221,29 @@ export type ListingCardProps = ListingCardBaseProps & ListingCardOpenProps;
  * same content in a `<button>` reset to look like nothing, rather than drawing
  * a separate captioned control: a card that is a target on one deployment and
  * a card-plus-a-button on another would be two different products.
+ *
+ * Exported for this pair's OTHER card surfaces (`<ListingSerpCard>`,
+ * `<ListingFeedCard>`) and for no one else — it is deliberately absent from
+ * `src/default/index.ts`. Three cards each re-deriving "which of the three
+ * arms is this" is three places for the double-navigation defect to come back;
+ * one function is one place. The card surfaces differ in what they PUT inside
+ * the target, never in how the target is made.
  */
-function CardTarget(
+export function CardTarget(
   props: ListingCardOpenProps & {
     readonly listingId: number;
     readonly label: string;
+    /** The target's own test id. Each card surface names its own, so a screen
+     * holding two kinds of card does not hand a test two elements under one
+     * name. Default: the original card's. */
+    readonly testId?: string;
+    /** The body's test id on the arm where nothing opens. */
+    readonly bodyTestId?: string;
     readonly children: ReactNode;
   }
 ): ReactElement {
   const { label, children } = props;
+  const testId = props.testId ?? "listings-card-open";
 
   if (props.href !== undefined) {
     const Link = props.linkComponent;
@@ -241,7 +255,7 @@ function CardTarget(
         href={props.href}
         aria-label={label}
         className={CARD_TARGET_CLASS}
-        data-testid="listings-card-open"
+        data-testid={testId}
         data-analytics="none"
         data-analytics-reason="business action — host app wraps with its own tracked()"
       >
@@ -253,7 +267,7 @@ function CardTarget(
         aria-label={label}
         className={CARD_TARGET_CLASS}
         style={TARGET_STYLE}
-        data-testid="listings-card-open"
+        data-testid={testId}
         data-analytics="none"
         data-analytics-reason="business action — host app wraps with its own tracked()"
       >
@@ -270,7 +284,7 @@ function CardTarget(
         aria-label={label}
         className={CARD_TARGET_CLASS}
         style={BUTTON_TARGET_STYLE}
-        data-testid="listings-card-open"
+        data-testid={testId}
         data-analytics="none"
         data-analytics-reason="business action — host app wraps with its own tracked()"
         onClick={() => {
@@ -283,7 +297,9 @@ function CardTarget(
   }
 
   // No open control at all — a card inside a screen that IS the listing.
-  return <div data-testid="listings-card-body">{children}</div>;
+  return (
+    <div data-testid={props.bodyTestId ?? "listings-card-body"}>{children}</div>
+  );
 }
 
 export function ListingCard(props: ListingCardProps): ReactElement {
