@@ -147,8 +147,16 @@ describe("the controlled pair", () => {
       </TestProviders>
     );
 
-    // The schema of no category asks nothing; the composer says so.
-    expect(screen.getByTestId("listings-composer-features-empty")).toBeTruthy();
+    // No category has been chosen, which is a different statement from "this
+    // category asks for nothing" and from "we are fetching what it asks for":
+    // nothing is in flight and nothing will be until a category exists.
+    expect(
+      screen.getByTestId("listings-composer-features-no-category")
+    ).toBeTruthy();
+    expect(screen.queryByTestId("listings-composer-features-empty")).toBeNull();
+    expect(
+      screen.queryByTestId("listings-composer-features-loading")
+    ).toBeNull();
 
     fireEvent.click(screen.getByTestId("picker"));
 
@@ -157,7 +165,7 @@ describe("the controlled pair", () => {
     // screen — the thing G-1 made unreachable.
     await waitFor(() => {
       expect(
-        screen.queryByTestId("listings-composer-features-empty")
+        screen.queryByTestId("listings-composer-features-no-category")
       ).toBeNull();
     });
   });

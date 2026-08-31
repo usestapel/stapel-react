@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { formatFeatureValue } from "@stapel/attributes-react";
-import type { ListingDetailData, ListingFeatureDao } from "../src/index.js";
+import type { FeatureDef } from "@stapel/attributes-react";
+import type {
+  FeatureCopySource,
+  ListingDetailData,
+  ListingFeatureDao,
+} from "../src/index.js";
 import { featureFromDao } from "../src/index.js";
 import { ListingDetailPane } from "../src/default/index.js";
 import { TestProviders, mockServer } from "./harness.js";
@@ -20,11 +25,31 @@ import { detail, statusInfo } from "./fixtures.js";
 /** What a spec row does: split the DAO, format the pair. */
 function formatted(
   dao: ListingFeatureDao,
-  t?: (key: string) => string
+  t?: (key: string) => string,
+  source: FeatureCopySource = {}
 ): string | undefined {
-  const view = featureFromDao(dao);
+  const view = featureFromDao(dao, source);
   if (view === undefined) return undefined;
   return formatFeatureValue(view.feature, view.value, t === undefined ? {} : { t });
+}
+
+/** The category's own definition of `condition`, as
+ * `GET /categories/api/v1/categories/{id}/features/` answers it: the option
+ * table WITH labels, which is the thing the stored row does not carry. */
+function categoryCondition(overrides: Partial<FeatureDef> = {}): FeatureDef {
+  return {
+    slug: "condition",
+    name: "Condition",
+    config: {
+      type: "select",
+      translatable_options: false,
+      options: [
+        { value: "novoe", label: "New" },
+        { value: "b-u", label: "Second-hand" },
+      ],
+    },
+    ...overrides,
+  };
 }
 
 /** A non-translatable catalogue: literal copy in the category, no key to look
@@ -158,6 +183,188 @@ describe("the fix reaches a surface", () => {
       expect(
         screen.getByTestId("listings-detail-title-features").textContent
       ).toBe("Second-hand");
+    });
+  });
+});
+
+/**
+ * The REPAIR path: the category's own option table, handed to a display
+ * surface that has it.
+ *
+ * Every listing already published on a live classified deployment carries a
+ * `select` with no `labels` key at all, and no snapshot can help a row that
+ * has none. The category's feature defs are the other place the copy lives,
+ * and these are the four rules the seam holds.
+ */
+describe("the category's option table repairs a snapshot-less select", () => {
+  it("prints the category's label where the row has no snapshot", () => {
+    expect(
+      formatted(literalSelect(), undefined, {
+        categoryFeatures: [categoryCondition()],
+      })
+    ).toBe("Second-hand");
+  });
+
+  it("keeps the SNAPSHOT where the two disagree — a listing is what it was published with", () => {
+    expect(
+      formatted(literalSelect({ labels: ["Used, boxed"] }), undefined, {
+        categoryFeatures: [categoryCondition()],
+      })
+    ).toBe("Used, boxed");
+  });
+
+  it("repairs the values the snapshot missed without touching the ones it made", () => {
+    const dao = literalSelect({
+      slug: "condition",
+      value: ["b-u", "novoe"],
+      // A snapshot of a different length is not this value list's snapshot, so
+      // it is dropped whole — and the category then answers for both values.
+      labels: ["Used, boxed"],
+    });
+    expect(
+      formatted(dao, undefined, { categoryFeatures: [categoryCondition()] })
+    ).toBe("Second-hand, New");
+  });
+
+  it("ignores a def whose value type is no longer the stored one", () => {
+    expect(
+      formatted(literalSelect(), undefined, {
+        categoryFeatures: [
+          categoryCondition({ config: { type: "string" } }),
+        ],
+      })
+    ).toBe("b-u");
+  });
+
+  it("ignores a category that does not declare this slug at all", () => {
+    expect(
+      formatted(literalSelect(), undefined, {
+        categoryFeatures: [categoryCondition({ slug: "colour" })],
+      })
+    ).toBe("b-u");
+  });
+
+  it("still prints a value the category never declared — raw, never blank", () => {
+    expect(
+      formatted(literalSelect({ value: ["vitrina"] }), undefined, {
+        categoryFeatures: [categoryCondition()],
+      })
+    ).toBe("vitrina");
+  });
+
+  it("leaves a row that carries its own table alone: it is the stronger snapshot", () => {
+    expect(
+      formatted(
+        literalSelect({ options: [{ value: "b-u", label: "As stored" }] }),
+        undefined,
+        { categoryFeatures: [categoryCondition()] }
+      )
+    ).toBe("As stored");
+  });
+
+  it("with nothing supplied, behaves exactly as it does today", () => {
+    expect(formatted(literalSelect(), (key) => key, {})).toBe("b-u");
+    expect(formatted(literalSelect(), (key) => key)).toBe("b-u");
+    expect(
+      formatted(literalSelect(), undefined, { categoryFeatures: [] })
+    ).toBe("b-u");
+  });
+});
+
+describe("the same repair for a hierarchical_select, whose table is a tree", () => {
+  const CATEGORY_TREE: FeatureDef = {
+    slug: "body",
+    name: "Body",
+    config: {
+      type: "hierarchical_select",
+      translatable_options: false,
+      options: [
+        {
+          value: "passenger",
+          label: "Passenger car",
+          children: [{ value: "sedan", label: "Saloon" }],
+        },
+      ],
+    },
+  };
+
+  it("prints the storage keys with no category, exactly as it does today", () => {
+    expect(
+      formatted({
+        slug: "body",
+        type: "hierarchical_select",
+        value: ["passenger", "sedan"],
+        translatable_options: false,
+      })
+    ).toBe("passenger / sedan");
+  });
+
+  it("names every level once the category's tree is handed in", () => {
+    expect(
+      formatted(
+        {
+          slug: "body",
+          type: "hierarchical_select",
+          value: ["passenger", "sedan"],
+          translatable_options: false,
+        },
+        undefined,
+        { categoryFeatures: [CATEGORY_TREE] }
+      )
+    ).toBe("Passenger car / Saloon");
+  });
+
+  it("keeps a step the tree does not contain as its raw value", () => {
+    expect(
+      formatted(
+        {
+          slug: "body",
+          type: "hierarchical_select",
+          value: ["passenger", "liftback"],
+          translatable_options: false,
+        },
+        undefined,
+        { categoryFeatures: [CATEGORY_TREE] }
+      )
+    ).toBe("Passenger car / liftback");
+  });
+});
+
+describe("the repair reaches the detail pane's spec table", () => {
+  function paneWith(features: readonly ListingFeatureDao[]) {
+    return mockServer({
+      "/listings/7/status/": { body: statusInfo() },
+      "/listings/7/": {
+        body: detail({
+          features: features as unknown as ListingDetailData["features"],
+        }),
+      },
+    });
+  }
+
+  it("prints the slug when the page wires no category features", async () => {
+    render(
+      <TestProviders server={paneWith([literalSelect()])}>
+        <ListingDetailPane id={7} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("attributes-value-list").textContent
+      ).toContain("b-u");
+    });
+  });
+
+  it("prints the category's copy when it does", async () => {
+    render(
+      <TestProviders server={paneWith([literalSelect()])}>
+        <ListingDetailPane id={7} categoryFeatures={[categoryCondition()]} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      const text = screen.getByTestId("attributes-value-list").textContent ?? "";
+      expect(text).toContain("Second-hand");
+      expect(text).not.toContain("b-u");
     });
   });
 });

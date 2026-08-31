@@ -133,6 +133,10 @@ export const LISTINGS_I18N_KEYS = {
   composeTooManyImages: "listings.compose.too_many_images",
   composeDetails: "listings.compose.details",
   composeDetailsLoading: "listings.compose.details_loading",
+  /** No category has been chosen yet, so nothing is in flight and nothing will
+   * be until one is. The section used to print the LOADING sentence in this
+   * state — a spinner-shaped claim about a request that was never made. */
+  composeDetailsNoCategory: "listings.compose.details_no_category",
   composeDetailsFailed: "listings.compose.details_failed",
   composeDetailsEmpty: "listings.compose.details_empty",
   composeCountable: "listings.compose.countable",
@@ -159,6 +163,10 @@ export const LISTINGS_I18N_KEYS = {
    * pointed at nothing highlighted, because the mirror only becomes visible
    * once the person has tried to publish. */
   composeBlockedIncomplete: "listings.compose.blocked.incomplete",
+  /** The way from the blocked-submit COUNT to the first field it is counting.
+   * The count is printed at the foot of a 7000px form whose required fields
+   * are two viewports up; a number nobody can act on is not help. */
+  composeShowFirstMissing: "listings.compose.show_first_missing",
   composeBlockedDetailsUnavailable: "listings.compose.blocked.details_unavailable",
 
   // ── the owner's dashboard ────────────────────────────────────────────────
@@ -327,6 +335,8 @@ export const listingsI18nBundleEn: Record<string, string> = {
     "A listing can carry at most {max} photos",
   "listings.compose.details": "Details",
   "listings.compose.details_loading": "Loading what this category asks for…",
+  "listings.compose.details_no_category":
+    "Choose a category first — what it asks for appears here.",
   "listings.compose.details_failed":
     "We could not load what this category asks for",
   "listings.compose.details_empty": "This category asks for no extra details",
@@ -360,6 +370,7 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.compose.blocked.mirror":
     "Fix the highlighted fields first",
   "listings.compose.blocked.incomplete": "{count} required details are still empty",
+  "listings.compose.show_first_missing": "Take me to the first empty field",
   "listings.compose.blocked.details_unavailable":
     "We could not load what this category asks for, so we cannot check the form",
 

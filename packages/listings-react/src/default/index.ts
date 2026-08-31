@@ -55,7 +55,12 @@ export { FeedGrid, FEED_GRID_COLUMNS } from "./FeedGrid.js";
 export type { FeedGridProps } from "./FeedGrid.js";
 export { ListingDetailPane, DETAIL_MEASURE, DETAIL_PHOTO_MIN } from "./ListingDetailPane.js";
 export type { ListingDetailPaneProps } from "./ListingDetailPane.js";
-export { ListingComposerPage, COMPOSER_MEASURE } from "./ListingComposerPage.js";
+export {
+  ListingComposerPage,
+  COMPOSER_MEASURE,
+  COMPOSER_STACKED_BELOW,
+  composerFieldId,
+} from "./ListingComposerPage.js";
 export type {
   ListingComposerPageProps,
   ComposerCategorySlot,
@@ -78,4 +83,4 @@ export { ListingPhoto, LISTING_PHOTO_ASPECT } from "./ListingPhoto.js";
 export type { ListingPhotoProps } from "./ListingPhoto.js";
 export { SignInLink } from "./SignInLink.js";
 export type { SignInLinkProps } from "./SignInLink.js";
-export type { ThemeModeProp } from "./types.js";
+export type { CategoryFeaturesProp, ThemeModeProp } from "./types.js";

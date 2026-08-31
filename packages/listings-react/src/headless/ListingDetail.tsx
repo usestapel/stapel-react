@@ -11,6 +11,7 @@ import {
 } from "@stapel/core";
 import type { ActionAvailability, LoadState } from "@stapel/core";
 import type {
+  FeatureDef,
   ListingDetail as ListingDetailData,
   ListingFeatureView,
   ListingStatusInfo,
@@ -18,6 +19,7 @@ import type {
 import { useListing, useListingStatus } from "../model/queries.js";
 import { useFavoriteListing } from "../model/mutations.js";
 import { asFeatureDaoList, featuresFromDaoList, unreadableFeatureCount } from "../model/features.js";
+import type { FeatureCopySource } from "../model/features.js";
 import { listingStatusView } from "../model/status.js";
 import type { ListingStatusView } from "../model/status.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
@@ -104,6 +106,19 @@ export interface UseListingDetailOptions {
   /** The reader's own id, when the host knows it — enables `viewerIsOwner`.
    * A uuid string, matching `ListingDetail.owner` / `ListingStatus.owner_id`. */
   readonly viewerId?: string;
+  /**
+   * The listing's category features, when the container has them — the same
+   * `readonly FeatureDef[]` the composer takes, from
+   * `@stapel/categories-react`'s `useCategoryFeatures`.
+   *
+   * A stored `select` carries its chosen VALUES and no option table, so a row
+   * written before labels were snapshotted prints its storage slug (`b-u`)
+   * where the category holds the copy. Handing the category's defs in repairs
+   * that; handing nothing in leaves every rendered value exactly as it is
+   * today. Which definition wins over which is `model/features.ts`' business —
+   * this is only the wire it travels on.
+   */
+  readonly categoryFeatures?: readonly FeatureDef[];
 }
 
 export function useListingDetail(
@@ -166,17 +181,25 @@ export function useListingDetail(
       ? undefined
       : owner === options.viewerId;
 
+  // One object, rebuilt only when the defs themselves change, so the three
+  // projections below keep their memo across renders that touched neither.
+  const categoryFeatures = options.categoryFeatures;
+  const copy: FeatureCopySource = useMemo(
+    () => (categoryFeatures !== undefined ? { categoryFeatures } : {}),
+    [categoryFeatures]
+  );
+
   const features = useMemo(
-    () => featuresFromDaoList(asFeatureDaoList(detail.data?.features)),
-    [detail.data]
+    () => featuresFromDaoList(asFeatureDaoList(detail.data?.features), copy),
+    [detail.data, copy]
   );
   const titleFeatures = useMemo(
-    () => featuresFromDaoList(asFeatureDaoList(detail.data?.features_title)),
-    [detail.data]
+    () => featuresFromDaoList(asFeatureDaoList(detail.data?.features_title), copy),
+    [detail.data, copy]
   );
   const badgeFeatures = useMemo(
-    () => featuresFromDaoList(asFeatureDaoList(detail.data?.features_badges)),
-    [detail.data]
+    () => featuresFromDaoList(asFeatureDaoList(detail.data?.features_badges), copy),
+    [detail.data, copy]
   );
 
   const isFavorited = detail.data?.is_favorited ?? undefined;
@@ -228,11 +251,15 @@ export function useListingDetail(
 export function ListingDetail(props: {
   id: number;
   viewerId?: string;
+  /** See {@link UseListingDetailOptions.categoryFeatures}. */
+  categoryFeatures?: readonly FeatureDef[];
   children: (bag: ListingDetailBag) => ReactNode;
 }): ReactElement {
-  const bag = useListingDetail(
-    props.id,
-    props.viewerId !== undefined ? { viewerId: props.viewerId } : {}
-  );
+  const bag = useListingDetail(props.id, {
+    ...(props.viewerId !== undefined ? { viewerId: props.viewerId } : {}),
+    ...(props.categoryFeatures !== undefined
+      ? { categoryFeatures: props.categoryFeatures }
+      : {}),
+  });
   return <>{props.children(bag)}</>;
 }

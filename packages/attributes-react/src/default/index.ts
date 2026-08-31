@@ -22,8 +22,11 @@ export { BUILTIN_VALUE_EDITORS, BUILTIN_VALUE_EDITOR_TYPES } from "./editors.js"
 export { inputValueToTimestamp, timestampToInputValue } from "./editors.js";
 export {
   FeatureFields,
+  UNGROUPED_SECTION,
   UnsupportedValueEditor,
   featureControlId,
+  featureRowTestId,
+  featureSectionTestId,
   featureSections,
 } from "./FeatureFields.js";
 export type {

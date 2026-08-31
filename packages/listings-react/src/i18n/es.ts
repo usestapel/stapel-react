@@ -130,6 +130,8 @@ export const listingsI18nBundleEs: I18nDictionary = {
     "Un anuncio admite como mucho {max} fotos",
   "listings.compose.details": "Detalles",
   "listings.compose.details_loading": "Cargando lo que pide esta categoría…",
+  "listings.compose.details_no_category":
+    "Elige primero una categoría: aquí aparecerá lo que pide.",
   "listings.compose.details_failed":
     "No pudimos cargar lo que pide esta categoría",
   "listings.compose.details_empty": "Esta categoría no pide más detalles",
@@ -159,6 +161,7 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.compose.blocked.busy":
     "Un momento — el último cambio se está guardando",
   "listings.compose.blocked.incomplete": "Faltan {count} datos obligatorios",
+  "listings.compose.show_first_missing": "Ir al primer campo sin completar",
   "listings.compose.blocked.mirror": "Corrige primero los campos marcados",
   "listings.compose.blocked.details_unavailable":
     "No pudimos cargar lo que pide esta categoría, así que no podemos revisar el formulario",

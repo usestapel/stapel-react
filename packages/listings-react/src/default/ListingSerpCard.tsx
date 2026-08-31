@@ -74,6 +74,7 @@ import {
   featuresDtoFromDaoList,
   featuresFromDaoList,
 } from "../model/features.js";
+import type { FeatureCopySource } from "../model/features.js";
 import { lifecycleCaption } from "../model/status.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { PriceTrendIcon } from "./icons.js";
@@ -86,7 +87,7 @@ import {
 import type { ListingCardOpenProps } from "./ListingCard.js";
 import { LISTING_PHOTO_ASPECT, ListingPhoto } from "./ListingPhoto.js";
 import { ListingPrice } from "./ListingPrice.js";
-import type { ThemeModeProp } from "./types.js";
+import type { CategoryFeaturesProp, ThemeModeProp } from "./types.js";
 
 /**
  * A price that moved, as the ref draws it: the old figure struck through and
@@ -103,7 +104,9 @@ export interface ListingPriceTrend {
   readonly direction: "down" | "up";
 }
 
-export interface ListingSerpCardBaseProps extends ThemeModeProp {
+export interface ListingSerpCardBaseProps
+  extends ThemeModeProp,
+    CategoryFeaturesProp {
   readonly listing: ListingCardData;
   /**
    * The seller's own one-line summary — "Petrol 1.5 (147 hp), robot, front".
@@ -149,7 +152,13 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
   const { token } = antdTheme.useToken();
 
   const badgeDaos = asFeatureDaoList(listing.features_badges);
-  const badgeFeatures = featuresFromDaoList(badgeDaos);
+  // See `CategoryFeaturesProp`: the option table a stored `select` does not
+  // carry, when this surface knows which category it is drawing.
+  const copy: FeatureCopySource =
+    props.categoryFeatures !== undefined
+      ? { categoryFeatures: props.categoryFeatures }
+      : {};
+  const badgeFeatures = featuresFromDaoList(badgeDaos, copy);
   const badgeValues = featuresDtoFromDaoList(badgeDaos);
   // The fallback spec line when the host derived none: the row's own
   // `features_title` projection, exactly the line `ListingCard` draws.
@@ -315,7 +324,7 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
                     data-testid="listings-serp-specs"
                   >
                     <FeatureBadges
-                      features={featuresFromDaoList(titleDaos).map(
+                      features={featuresFromDaoList(titleDaos, copy).map(
                         (view) => view.feature,
                       )}
                       values={featuresDtoFromDaoList(titleDaos)}

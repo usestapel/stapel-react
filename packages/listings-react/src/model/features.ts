@@ -22,7 +22,7 @@
  * `order`, `title`, `badge`) are simply ignored by every formatter. Copying a
  * hand-picked subset instead would be a list to keep in step with ten types.
  *
- * ── What a DAO does NOT carry, and the two tables that repair it ───────────
+ * ── What a DAO does NOT carry, and the tables that repair it ───────────────
  *
  * `select`'s `options`. `SelectType.dto_to_dao` stores the chosen VALUES and
  * the ui config, never the option table — the table lives on the CATEGORY, and
@@ -35,28 +35,69 @@
  * subtitle on its cards. (The server never had this problem: its own
  * `format_value` has the category's config in hand.)
  *
- * So the split below rebuilds the table, from the better of two sources:
+ * So the split below rebuilds the table, from the best of three sources:
  *
  *  1. The LABEL SNAPSHOT. A `select` DAO written by a stapel-attributes that
  *     snapshots labels carries `labels`, a `string[]` positionally aligned
  *     with `value` — the same device `ref_select` has always used for its
  *     vocabulary terms, and the reason a published listing keeps printing the
  *     copy it was published with however the category is edited afterwards.
- *  2. The IDENTITY table — `{value: v, label: v}` — for a row written before
- *     that release, which carries no `labels` key at all. That is exactly the
- *     table a TRANSLATABLE catalogue would have produced, since its labels ARE
- *     its keys, so such a listing still reads out of the host's bundle. A
- *     NON-translatable catalogue has no key to look up and keeps showing the
- *     slug until the listing is re-projected: a visible `b-u` gets fixed, an
- *     invented "Used" ships wrong.
+ *  2. The CATEGORY's own option table, when the display surface has it —
+ *     `GET /categories/api/v1/categories/{id}/features/` answers with
+ *     `{"slug":"condition","config":{"type":"select","options":[…]}}`, labels
+ *     and all. It is handed in through {@link FeatureCopySource}, because a
+ *     library may not fetch another module's endpoint and a card grid has no
+ *     category to fetch one FOR.
+ *  3. The IDENTITY table — `{value: v, label: v}` — for a value neither of the
+ *     first two names. That is exactly the table a TRANSLATABLE catalogue
+ *     would have produced, since its labels ARE its keys, so such a value
+ *     still reads out of the host's bundle; a NON-translatable one keeps
+ *     showing the slug. A visible `b-u` gets fixed by rung 1 or 2, and an
+ *     invented "Used" ships wrong, so the floor stays the value itself.
  *
- * Either table is then read the one way `formatFeatureValue` reads any option
- * table — literal when the config says `translatable_options: false`, through
- * the host's `t` otherwise, where a translatable catalogue's label IS the key
- * and an unknown key comes back unchanged. Nothing on that path is
- * special-cased here, and nothing about it changed.
+ * ── Which rung wins, and why that order and not the other one ──────────────
+ *
+ * The SNAPSHOT outranks the category. The snapshot is what the listing was
+ * PUBLISHED with; the category is what the catalogue says today. A category
+ * whose option copy was rewritten after a listing went live must not silently
+ * restate that listing — the person reading it is reading an advert somebody
+ * else wrote, not a form. The category outranks identity, which is the whole
+ * point: every listing published before the snapshot release, and every row
+ * written by an older server, has no snapshot to outrank it and prints its
+ * slug today.
+ *
+ * A category def that does not describe the STORED row — a different value
+ * type, or no such slug — is ignored rather than forced. A category edited
+ * from `select` to `string` is a different question, and pairing its options
+ * against this row's values would print one question's copy under another
+ * question's answer, which does not even LOOK wrong.
+ *
+ * With no category defs supplied, every rung above 1 is absent and the
+ * projection behaves exactly as it did.
+ *
+ * ── The category path is the REPAIR path, not the mechanism ────────────────
+ *
+ * The primary mechanism is the server's, and it is the snapshot: stapel-
+ * attributes writes `labels` beside a `select`'s codes exactly as it always
+ * has for `ref_select`, and stapel-listings ships a reprojection command that
+ * back-fills rows written before it. Nothing here competes with that. Rung 2
+ * exists for the three states that outlive that deploy:
+ *
+ *   - a row written before the snapshot existed and not yet reprojected;
+ *   - a deployment that never runs the reprojection;
+ *   - a category whose option copy was edited AFTER publication — where the
+ *     snapshot is deliberately the older and correct answer, which is exactly
+ *     why the precedence runs the way it does above.
+ *
+ * The resulting table is then read the one way `formatFeatureValue` reads any
+ * option table — literal when the config says `translatable_options: false`,
+ * through the host's `t` otherwise, where a translatable catalogue's label IS
+ * the key and an unknown key comes back unchanged. The flag stays the ROW's:
+ * it describes how the listing's own stored config wants its copy resolved,
+ * and an unknown key resolves to itself either way.
  */
 import type { FeatureDef, FeatureValueDto } from "@stapel/attributes-react";
+import { featureType } from "@stapel/attributes-react";
 import type { ListingFeatureDao, ListingFeatureView } from "../api/types.js";
 
 /**
@@ -72,10 +113,26 @@ import type { ListingFeatureDao, ListingFeatureView } from "../api/types.js";
  */
 const ENVELOPE = new Set(["slug", "value", "name", "order", "title", "badge"]);
 
-/** The two types whose stored `value` is an option key rather than the thing
- * itself. `hierarchical_select` is deliberately absent: its formatter joins
- * the path with " / " and never consults an option table at all. */
+/** The type whose stored `value` is a flat list of option keys rather than the
+ * things themselves, and whose copy therefore has to be repaired pairwise.
+ * `ref_select` is absent because it repairs itself: its `labels` snapshot has
+ * always been mandatory (no display package can reach a vocabulary term). */
 const OPTION_VALUED = new Set(["select"]);
+
+/**
+ * The type whose copy lives in a TREE on the category rather than in a flat
+ * table: `hierarchical_select` stores a path of option keys and
+ * `formatFeatureValue` walks `config.options` level by level to name each
+ * step, so a row without that tree prints "passenger / sedan" — the storage
+ * keys — exactly as a table-less `select` prints `b-u`.
+ *
+ * It is kept apart from {@link OPTION_VALUED} because the two repairs are not
+ * the same repair: a flat positional `labels` list cannot describe a tree, so
+ * there is nothing to merge and the category's tree is adopted whole or not at
+ * all. `formatFeatureValue` already keeps a step the tree does not contain as
+ * its raw value, so an adopted tree can only add copy, never blank one out.
+ */
+const TREE_VALUED = new Set(["hierarchical_select"]);
 
 /** The canon's `FeatureDef.translate` vocabulary — three values, closed. */
 function isTranslateMode(value: unknown): value is "all" | "title" | "none" {
@@ -83,27 +140,103 @@ function isTranslateMode(value: unknown): value is "all" | "title" | "none" {
 }
 
 /**
+ * The category's feature defs, for a display surface that has them.
+ *
+ * A detail page reads one listing of one category and its container usually
+ * holds that category's schema already (it is the same read the composer is
+ * given); a card grid spanning forty categories does not, and passes nothing.
+ * Optional for exactly that reason: the seam adds a source of copy, it never
+ * becomes a requirement, and a host that wires nothing keeps the behaviour it
+ * has.
+ */
+export interface FeatureCopySource {
+  /**
+   * The chosen category's features, as
+   * `GET /categories/api/v1/categories/{id}/features/` answers — the same
+   * `readonly FeatureDef[]` `<ListingComposerPage>` already takes. Defs are
+   * matched to stored rows by slug AND value type; anything else is ignored.
+   */
+  readonly categoryFeatures?: readonly FeatureDef[];
+}
+
+/** Category defs keyed by slug, or `undefined` when there are none to key —
+ * built once per list so a 40-row projection is not 40 linear scans. */
+type CategoryDefs = ReadonlyMap<string, FeatureDef>;
+
+function categoryDefs(source: FeatureCopySource): CategoryDefs | undefined {
+  const defs = source.categoryFeatures;
+  if (defs === undefined || defs.length === 0) return undefined;
+  const index = new Map<string, FeatureDef>();
+  for (const def of defs) {
+    // First wins: a duplicate slug in a category is a catalogue defect, and
+    // silently preferring the last one would make the copy depend on the
+    // order the endpoint happened to serialize.
+    if (typeof def.slug === "string" && def.slug.length > 0 && !index.has(def.slug)) {
+      index.set(def.slug, def);
+    }
+  }
+  return index.size === 0 ? undefined : index;
+}
+
+/**
+ * The category's definition OF THIS ROW, or `undefined`.
+ *
+ * Same slug and same value type, or it is not a definition of this row — see
+ * the module header on why a mismatch is ignored rather than forced.
+ */
+function categoryDefFor(
+  dao: ListingFeatureDao,
+  defs: CategoryDefs | undefined
+): FeatureDef | undefined {
+  if (defs === undefined) return undefined;
+  const def = defs.get(dao.slug);
+  if (def === undefined) return undefined;
+  return featureType(def) === dao.type ? def : undefined;
+}
+
+/** A category def's declared option list, when it declares one. */
+function declaredOptions(def: FeatureDef | undefined): readonly unknown[] | undefined {
+  const raw = def?.config?.["options"];
+  return Array.isArray(raw) ? (raw as readonly unknown[]) : undefined;
+}
+
+/** One entry of an option list → its `(value, label)` pair, when it is one. */
+function optionPair(entry: unknown): { value: string; label: string } | undefined {
+  if (entry === null || typeof entry !== "object") return undefined;
+  const option = entry as { value?: unknown; label?: unknown };
+  if (typeof option.value !== "string" || option.value.length === 0) return undefined;
+  return {
+    value: option.value,
+    label: typeof option.label === "string" && option.label.length > 0 ? option.label : option.value,
+  };
+}
+
+/**
  * The option table a stored `select` needs and does not carry — see the
- * module header. Built from the row's `labels` snapshot when there is one,
- * from the values themselves when there is not.
+ * module header. The category's table underneath, the row's own `labels`
+ * snapshot on top, the values themselves as the floor.
  *
  * The alignment rule is the engine's own (`labels if len(labels) ==
  * len(codes) else codes`): a snapshot of a different length than `value` is a
  * snapshot of some other value list, and pairing the two anyway would print
  * one option's copy against another option's value — worse than a slug,
  * because it does not LOOK wrong. So a length mismatch drops the whole
- * snapshot back to identity rather than pairing the overlap. Within a usable
- * snapshot, a missing or empty entry falls back to its own value for that one
- * pair.
+ * snapshot rather than pairing the overlap, and the row falls back to the
+ * category (or to identity). Within a usable snapshot, a missing or empty
+ * entry falls back to whatever the category, then the value itself, offers for
+ * that one pair.
  *
  * Returns `undefined` when there is nothing to add (another type, a config
- * that already carries a table, a value that is not a list of strings), so the
- * common path allocates nothing and a DAO that DOES carry options is left
- * exactly as it arrived.
+ * that already carries a table, a value that is not a list of strings and no
+ * category table either), so the common path allocates nothing and a DAO that
+ * DOES carry options is left exactly as it arrived — a stored table is a
+ * write-time snapshot of the whole question, which is a stronger statement
+ * about this listing than either the per-value snapshot or today's category.
  */
-function synthesizedOptions(
+function selectOptions(
   dao: ListingFeatureDao,
-  config: Readonly<Record<string, unknown>>
+  config: Readonly<Record<string, unknown>>,
+  categoryDef: FeatureDef | undefined
 ): readonly { value: string; label: string }[] | undefined {
   if (typeof dao.type !== "string" || !OPTION_VALUED.has(dao.type)) return undefined;
   if (Array.isArray(config["options"])) return undefined;
@@ -116,16 +249,41 @@ function synthesizedOptions(
       ? (snapshot as readonly unknown[])
       : undefined;
 
-  const table: { value: string; label: string }[] = [];
+  // A Map so the three rungs can overwrite one another by value instead of
+  // the reader having to scan a list that carries the same value twice —
+  // `labelOf` takes the FIRST match, so a duplicate would make the losing
+  // rung win.
+  const table = new Map<string, string>();
+  for (const entry of declaredOptions(categoryDef) ?? []) {
+    const pair = optionPair(entry);
+    if (pair !== undefined) table.set(pair.value, pair.label);
+  }
   raw.forEach((value, index) => {
     if (typeof value !== "string") return;
     const label = labels?.[index];
-    table.push({
-      value,
-      label: typeof label === "string" && label.length > 0 ? label : value,
-    });
+    if (typeof label === "string" && label.length > 0) table.set(value, label);
+    else if (!table.has(value)) table.set(value, value);
   });
-  return table.length === 0 ? undefined : table;
+  if (table.size === 0) return undefined;
+  return [...table].map(([value, label]) => ({ value, label }));
+}
+
+/**
+ * The category's option TREE, adopted whole for a `hierarchical_select` that
+ * stored none — see {@link TREE_VALUED}.
+ *
+ * Nothing is merged and nothing is rewritten: the tree is the category's
+ * structure, and this projection has no per-level snapshot with which to
+ * disagree about it.
+ */
+function adoptedTree(
+  dao: ListingFeatureDao,
+  config: Readonly<Record<string, unknown>>,
+  categoryDef: FeatureDef | undefined
+): readonly unknown[] | undefined {
+  if (typeof dao.type !== "string" || !TREE_VALUED.has(dao.type)) return undefined;
+  if (Array.isArray(config["options"])) return undefined;
+  return declaredOptions(categoryDef);
 }
 
 /**
@@ -137,7 +295,16 @@ function synthesizedOptions(
  * position that changes whenever the category does.
  */
 export function featureFromDao(
-  dao: ListingFeatureDao
+  dao: ListingFeatureDao,
+  source: FeatureCopySource = {}
+): ListingFeatureView | undefined {
+  return featureView(dao, categoryDefs(source));
+}
+
+/** The work of {@link featureFromDao}, against an already-built index. */
+function featureView(
+  dao: ListingFeatureDao,
+  defs: CategoryDefs | undefined
 ): ListingFeatureView | undefined {
   if (typeof dao.slug !== "string" || dao.slug.length === 0) return undefined;
 
@@ -145,7 +312,9 @@ export function featureFromDao(
   for (const [key, value] of Object.entries(dao)) {
     if (!ENVELOPE.has(key)) config[key] = value;
   }
-  const options = synthesizedOptions(dao, config);
+  const categoryDef = categoryDefFor(dao, defs);
+  const options =
+    selectOptions(dao, config, categoryDef) ?? adoptedTree(dao, config, categoryDef);
   if (options !== undefined) config["options"] = options;
 
   const feature: FeatureDef = {
@@ -172,11 +341,13 @@ export function featureFromDao(
  * unreadableFeatureCount} so a skin can say how many rather than pretend the
  * listing had fewer attributes. */
 export function featuresFromDaoList(
-  daos: readonly ListingFeatureDao[] | null | undefined
+  daos: readonly ListingFeatureDao[] | null | undefined,
+  source: FeatureCopySource = {}
 ): readonly ListingFeatureView[] {
+  const defs = categoryDefs(source);
   const out: ListingFeatureView[] = [];
   for (const dao of daos ?? []) {
-    const view = featureFromDao(dao);
+    const view = featureView(dao, defs);
     if (view !== undefined) out.push(view);
   }
   return out;

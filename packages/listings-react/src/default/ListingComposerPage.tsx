@@ -50,6 +50,22 @@
  * do not import each other; the container is the seam. A library that picked
  * one would pick it for every host.
  *
+ * ── On a narrow form the CHARACTERISTICS come before the photos ────────────
+ *
+ * The details of the chosen category are the questions only that category
+ * asks, and they are the reason a category is chosen at all. On a wide form
+ * they can sit after the photos, because the whole form is one screen. On a
+ * 390px one they cannot: measured on a live classified deployment, choosing
+ * Mobile phones grew the page to 7292px and put the first attribute control at
+ * y=1596 — nearly two viewports below the fold, behind a ~700px photo dropzone
+ * — while the footer said "10 required details not filled in" with none of
+ * them on screen. So on a narrow form the section moves directly under the
+ * category that produced it, and the photo dropzone follows it.
+ *
+ * The measurement is the FORM's own width (`useElementWidth`, the fleet's one
+ * observer), not the viewport's: a composer is not a viewport, and a viewport
+ * query would call a 360px pane on a desktop "wide".
+ *
  * ── Every blocked control says which of six reasons it is ──────────────────
  *
  * The publish button is the most-gated control in the fleet, and that is the
@@ -60,9 +76,11 @@
  * would be told, and `<GatedButton>` renders the reason beside the button —
  * never a grey rectangle, never a hover.
  */
+import { useRef } from "react";
 import type { ComponentType, ReactElement, ReactNode } from "react";
 import {
   Alert,
+  Button,
   Checkbox,
   Divider,
   Flex,
@@ -76,6 +94,7 @@ import {
   GatedButton,
   PaneGate,
   SkinTheme,
+  useElementWidth,
 } from "@stapel/tokens-antd/skin";
 import {
   SlotPlaceholder,
@@ -85,11 +104,12 @@ import {
   useI18n,
   useT,
 } from "@stapel/core";
-import { spacing } from "@stapel/tokens";
+import { breakpoints, spacing } from "@stapel/tokens";
 import type { FeatureDef } from "@stapel/attributes-react";
 import {
   BUILTIN_VALUE_EDITOR_TYPES,
   FeatureFields,
+  featureControlId,
 } from "@stapel/attributes-react/default";
 import { useListingComposer } from "../headless/ListingComposer.js";
 import type { ListingLocation } from "../model/draft.js";
@@ -113,6 +133,61 @@ import type { ThemeModeProp } from "./types.js";
  * A measure, not a pixel guess: `ch` scales with the type the theme is set to.
  */
 export const COMPOSER_MEASURE = "44rem";
+
+/**
+ * Below this FORM width the composer is a one-thumb column, and the order of
+ * its sections has to change — see {@link ListingComposerPage}'s header on why
+ * the characteristics move up.
+ *
+ * The `tablet` breakpoint, which is what "narrow" means everywhere else in the
+ * skin, measured against the form's OWN width and never the viewport's (§83).
+ * A composer drawn in a 360px settings pane on a 1440px desktop is narrow; a
+ * viewport query would call it wide and bury its questions.
+ */
+export const COMPOSER_STACKED_BELOW: number = breakpoints.tablet;
+
+/**
+ * The DOM id of the control that answers one of the composer's own fields —
+ * the names `mirrorListingFields` refuses by (`title`, `description`, …).
+ *
+ * A person told "10 required details are still empty" needs to be taken to
+ * one, and taking them there needs an ADDRESS. Features already have one
+ * (`featureControlId`); the composer's own fields had none, and a test id is
+ * not an address — it is a test's handle, and reaching for it in product code
+ * makes every test id load-bearing.
+ */
+export function composerFieldId(field: string): string {
+  return `listings-composer-field-${field}`;
+}
+
+/** What counts as a control a person can be put in front of. A slot's control
+ * belongs to the container, so the field is asked for its first focusable
+ * descendant rather than assumed to be an `<input>`. */
+const FOCUSABLE =
+  "input,select,textarea,button,[href],[tabindex]:not([tabindex='-1'])";
+
+/**
+ * Put the person in front of one field: bring it into view, and focus what
+ * they are meant to answer.
+ *
+ * Both halves are guarded rather than assumed. `scrollIntoView` does not exist
+ * in every environment this renders in (jsdom, older embedded engines), and a
+ * field whose control came from a slot may have nothing focusable in it at
+ * all — in which case scrolling to it is still the whole of the help that can
+ * honestly be given.
+ */
+function revealField(id: string): void {
+  if (typeof document === "undefined") return;
+  const anchor = document.getElementById(id);
+  if (anchor === null) return;
+  if (typeof anchor.scrollIntoView === "function") {
+    anchor.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+  const control = anchor.matches(FOCUSABLE)
+    ? anchor
+    : anchor.querySelector<HTMLElement>(FOCUSABLE);
+  control?.focus();
+}
 
 /**
  * What `renderCategoryPicker` is handed: the current category and the ONLY
@@ -318,16 +393,23 @@ function SlotField(props: {
   readonly control: ReactNode | undefined;
   readonly status: { help: ReactNode; validateStatus: "error" } | Record<string, never>;
   readonly testId: string;
+  /** The address `revealField` aims at — see {@link composerFieldId}. */
+  readonly anchorId: string;
 }): ReactElement | null {
   const filled = props.control !== undefined;
   if (!filled && !props.named) return null;
+  // A refusal REPLACES the hint rather than stacking under it. "Choose a
+  // category — the rest of the form depends on it" and "a category is
+  // required" are one fact printed twice, one line apart, and the second is
+  // the one the person just earned.
+  const refused = "validateStatus" in props.status;
   return (
     <Form.Item
       label={props.label}
-      {...(props.extra !== undefined ? { extra: props.extra } : {})}
+      {...(props.extra !== undefined && !refused ? { extra: props.extra } : {})}
       {...props.status}
     >
-      <div data-testid={props.testId}>
+      <div id={props.anchorId} data-testid={props.testId}>
         {props.control ?? <SlotPlaceholder name={props.slot} visibility="visible" />}
       </div>
     </Form.Item>
@@ -401,6 +483,76 @@ export function ListingComposerPage(
   );
 
   const LocationPicker = props.locationPicker;
+  // The FORM's width, which is what decides the section order — see the
+  // header. `?? false` because an unmeasured box is not a narrow one (the rule
+  // `useElementWidth` states for every caller): the wide order is the one that
+  // reflows gracefully, so it is what the first frame draws.
+  const form = useRef<HTMLDivElement>(null);
+  const { below } = useElementWidth(form, {
+    thresholds: { stacked: COMPOSER_STACKED_BELOW },
+  });
+  const stacked = below.stacked ?? false;
+
+  /**
+   * The characteristics of the chosen category — built once and rendered in
+   * exactly one of two places, so neither arm can drift from the other.
+   *
+   * The four states are four different sentences, and the one that used to be
+   * missing is the FIRST: with no category chosen there is no request in
+   * flight and none will be made, so "loading the category's characteristics"
+   * was simply untrue — a spinner-shaped sentence over a form that was waiting
+   * for the person, not for the network.
+   */
+  const details = (
+    <div
+      data-testid="listings-composer-details"
+      data-placement={stacked ? "after-category" : "after-photos"}
+    >
+      <Divider />
+      <Typography.Title level={5}>
+        {t(LISTINGS_I18N_KEYS.composeDetails)}
+      </Typography.Title>
+      {props.featuresError !== undefined ? (
+        <ErrorAlert
+          testId="listings-composer-features-failed"
+          message={t(LISTINGS_I18N_KEYS.composeDetailsFailed)}
+        />
+      ) : bag.values.categoryId.length === 0 ? (
+        <Typography.Text
+          type="secondary"
+          data-testid="listings-composer-features-no-category"
+        >
+          {t(LISTINGS_I18N_KEYS.composeDetailsNoCategory)}
+        </Typography.Text>
+      ) : props.featuresLoading === true ? (
+        <Typography.Text type="secondary" data-testid="listings-composer-features-loading">
+          {t(LISTINGS_I18N_KEYS.composeDetailsLoading)}
+        </Typography.Text>
+      ) : props.features.length === 0 ? (
+        <Typography.Text type="secondary" data-testid="listings-composer-features-empty">
+          {t(LISTINGS_I18N_KEYS.composeDetailsEmpty)}
+        </Typography.Text>
+      ) : (
+        <FeatureFields
+          features={props.features}
+          values={bag.values.features}
+          errors={bag.fieldErrors}
+          disabled={bag.publishing}
+          onChange={bag.setFeature}
+        />
+      )}
+    </div>
+  );
+
+  // Where the "take me to it" control aims. A feature answers at its own
+  // control id; everything else at the composer's.
+  const missing = bag.firstUnsatisfied;
+  const missingAnchor =
+    missing === undefined
+      ? undefined
+      : props.features.some((feature) => feature.slug === missing)
+        ? featureControlId(missing)
+        : composerFieldId(missing);
   // Whether an unfilled slot draws its named placeholder — and therefore
   // whether the field it belongs to exists at all.
   const namedSlots = props.slotVisibility === "visible" || isDevBuild();
@@ -451,6 +603,11 @@ export function ListingComposerPage(
           />
         ) : null}
 
+        {/* The measured box is the FORM, so a host that renders this page in
+            a narrow pane gets the narrow order without the viewport agreeing.
+            A plain block wrapper: antd's `Form` forwards its ref to the form
+            INSTANCE, not to a node. */}
+        <div ref={form}>
         <Form layout="vertical" data-testid="listings-composer-form">
           <SlotField
             label={t(LISTINGS_I18N_KEYS.composeCategory)}
@@ -459,6 +616,7 @@ export function ListingComposerPage(
             named={namedSlots}
             status={errorOf(CATEGORY_FIELD)}
             testId="listings-composer-category"
+            anchorId={composerFieldId(CATEGORY_FIELD)}
             control={props.renderCategoryPicker?.({
               value: bag.values.categoryId,
               setCategory: bag.setCategory,
@@ -476,11 +634,16 @@ export function ListingComposerPage(
             />
           ) : null}
 
+          {/* Narrow: the category's own questions, directly under the choice
+              that produced them and above the photo dropzone. */}
+          {stacked ? details : null}
+
           <Form.Item
             label={t(LISTINGS_I18N_KEYS.composeTitleLabel)}
             {...errorOf(TITLE_FIELD)}
           >
             <Input
+              id={composerFieldId(TITLE_FIELD)}
               value={bag.values.title}
               aria-label={t(LISTINGS_I18N_KEYS.composeTitleLabel)}
               data-testid="listings-composer-title"
@@ -496,6 +659,7 @@ export function ListingComposerPage(
             {...errorOf(DESCRIPTION_FIELD)}
           >
             <Input.TextArea
+              id={composerFieldId(DESCRIPTION_FIELD)}
               rows={5}
               value={bag.values.description}
               aria-label={t(LISTINGS_I18N_KEYS.composeDescriptionLabel)}
@@ -518,6 +682,7 @@ export function ListingComposerPage(
             {...errorOf(PRICE_FIELD)}
           >
             <Input
+              id={composerFieldId(PRICE_FIELD)}
               inputMode="decimal"
               value={bag.values.price}
               {...(props.renderCurrencyPicker === undefined
@@ -538,6 +703,7 @@ export function ListingComposerPage(
             named={namedSlots}
             status={{}}
             testId="listings-composer-currency"
+            anchorId={composerFieldId("currency")}
             control={props.renderCurrencyPicker?.({
               value: bag.values.currency,
               setCurrency: (code) => {
@@ -562,6 +728,7 @@ export function ListingComposerPage(
             named={namedSlots}
             status={errorOf(LOCATION_FIELD)}
             testId="listings-composer-location"
+            anchorId={composerFieldId(LOCATION_FIELD)}
             control={
               props.renderLocationPicker !== undefined ? (
                 <div data-testid="listings-composer-location-slot">
@@ -608,9 +775,11 @@ export function ListingComposerPage(
               <Typography.Title level={5}>
                 {t(LISTINGS_I18N_KEYS.composePhotos)}
               </Typography.Title>
-              {props.gallerySlot ?? (
-                <SlotPlaceholder name="gallerySlot" visibility="visible" />
-              )}
+              <div id={composerFieldId(IMAGES_FIELD)}>
+                {props.gallerySlot ?? (
+                  <SlotPlaceholder name="gallerySlot" visibility="visible" />
+                )}
+              </div>
               {bag.fieldErrors[IMAGES_FIELD] ? (
                 <Typography.Text type="danger" data-testid="listings-composer-images-error">
                   {describe(bag.fieldErrors[IMAGES_FIELD]).message}
@@ -619,33 +788,9 @@ export function ListingComposerPage(
             </>
           ) : null}
 
-          <Divider />
-
-          <Typography.Title level={5}>
-            {t(LISTINGS_I18N_KEYS.composeDetails)}
-          </Typography.Title>
-          {props.featuresError !== undefined ? (
-            <ErrorAlert
-              testId="listings-composer-features-failed"
-              message={t(LISTINGS_I18N_KEYS.composeDetailsFailed)}
-            />
-          ) : props.featuresLoading === true ? (
-            <Typography.Text type="secondary" data-testid="listings-composer-features-loading">
-              {t(LISTINGS_I18N_KEYS.composeDetailsLoading)}
-            </Typography.Text>
-          ) : props.features.length === 0 ? (
-            <Typography.Text type="secondary" data-testid="listings-composer-features-empty">
-              {t(LISTINGS_I18N_KEYS.composeDetailsEmpty)}
-            </Typography.Text>
-          ) : (
-            <FeatureFields
-              features={props.features}
-              values={bag.values.features}
-              errors={bag.fieldErrors}
-              disabled={bag.publishing}
-              onChange={bag.setFeature}
-            />
-          )}
+          {/* Wide: the whole form is one screen, so the details keep their
+              place after the photos. */}
+          {stacked ? null : details}
 
           <Divider />
 
@@ -687,6 +832,7 @@ export function ListingComposerPage(
             </Checkbox>
           </Form.Item>
         </Form>
+        </div>
 
         {bag.refusal?.kind === "invalid_draft" ? (
           <ErrorAlert
@@ -748,6 +894,30 @@ export function ListingComposerPage(
           >
             {bag.publishing ? t(LISTINGS_I18N_KEYS.composePublishing) : publishLabel}
           </GatedButton>
+
+          {/* A count with nowhere to go is a dead end: "10 required details
+              are still empty" is printed by the gate above with not one of
+              them on screen, because the attribute region starts below the
+              fold. This is the way to the first of them — a real button, with
+              its own accessible name, and not a click handler stuck on the
+              sentence (which announces as text and cannot be tabbed to). It
+              appears only while the gate is closed, so it never stands under
+              a button that is ready to press. */}
+          {!bag.publishGate.available && missingAnchor !== undefined ? (
+            <Button
+              type="link"
+              size="small"
+              style={{ paddingInline: 0 }}
+              data-testid="listings-composer-goto-missing"
+              data-analytics="none"
+              data-analytics-reason="navigation within the page — the host app wraps business actions with its own tracked()"
+              onClick={() => {
+                revealField(missingAnchor);
+              }}
+            >
+              {t(LISTINGS_I18N_KEYS.composeShowFirstMissing)}
+            </Button>
+          ) : null}
 
           <Flex gap={spacing[3]} wrap align="flex-start">
             <GatedButton

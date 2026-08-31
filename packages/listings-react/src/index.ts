@@ -152,6 +152,7 @@ export {
   featuresFromDaoList,
   unreadableFeatureCount,
 } from "./model/features.js";
+export type { FeatureCopySource } from "./model/features.js";
 
 // ── model: validation, the mirror and the publish-400 split ──────────────────
 export {

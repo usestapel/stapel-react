@@ -146,6 +146,8 @@ export const listingsI18nBundleRu: I18nDictionary = {
     "К объявлению можно приложить не больше {max} фото",
   "listings.compose.details": "Характеристики",
   "listings.compose.details_loading": "Загружаем характеристики категории…",
+  "listings.compose.details_no_category":
+    "Сначала выберите категорию — здесь появится то, что она спрашивает.",
   "listings.compose.details_failed":
     "Не удалось загрузить характеристики категории",
   "listings.compose.details_empty":
@@ -176,6 +178,7 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.compose.blocked.busy":
     "Секунду — предыдущее изменение ещё сохраняется",
   "listings.compose.blocked.incomplete": "Не заполнено обязательных деталей: {count}",
+  "listings.compose.show_first_missing": "Перейти к первому незаполненному полю",
   "listings.compose.blocked.mirror": "Сначала поправьте отмеченные поля",
   "listings.compose.blocked.details_unavailable":
     "Не удалось загрузить характеристики категории, поэтому проверить форму нельзя",

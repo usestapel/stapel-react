@@ -56,6 +56,36 @@ export function featureControlId(slug: string): string {
   return `attributes-field-${slug}`;
 }
 
+/** What the section holding the ungrouped rows is keyed by. They are "the
+ * questions before the first heading" and carry no name of their own, so one
+ * is spelled here rather than left as an empty suffix nothing can select. */
+export const UNGROUPED_SECTION = "ungrouped";
+
+/**
+ * The test id of the section one `FeatureDef.group` produces.
+ *
+ * A category's attribute region is the tallest thing on a composer — a live
+ * classified deployment measured 25 rows under 6 headings across some 5000px
+ * — and the whole of it carried ONE test id, on an alert that appears only
+ * when a field has hints. "Are the headings there?", "did this field render?",
+ * "in which section?" were all unmeasurable, so none of them could regress
+ * loudly. These builders are exported rather than inlined so a host's e2e
+ * suite keys on the same strings this component writes.
+ *
+ * `group` is admin-authored text (and a translation key as often as not), so
+ * it travels verbatim: normalizing it would collide two sections that differ
+ * only in punctuation.
+ */
+export function featureSectionTestId(group: string): string {
+  return `attributes-group-${group.length > 0 ? group : UNGROUPED_SECTION}`;
+}
+
+/** The test id of one feature's row — the field and everything under it,
+ * whether this build could draw an editor for it or not. */
+export function featureRowTestId(slug: string): string {
+  return `attributes-row-${slug}`;
+}
+
 /** The value types whose control has a text box an `example` can sit in. A
  * `select` has no placeholder an example would mean anything in, and putting
  * one on a `Switch` is nonsense. */
@@ -299,13 +329,21 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
   return (
     <SkinTheme surface="bare">
       <TouchFloorProvider value={below.touch ?? false}>
-        <div ref={column}>
+        <div ref={column} data-testid="attributes-fields">
           {sections.map((section) =>
             section.rows.length === 0 ? null : (
-              <div key={section.group || " ungrouped"} data-attributes-group={section.group}>
+              <div
+                key={section.group || " ungrouped"}
+                data-attributes-group={section.group}
+                data-testid={featureSectionTestId(section.group)}
+              >
                 {section.group.length > 0 && (
                   <>
-                    <Typography.Title level={5} style={{ marginBottom: spacing[1] }}>
+                    <Typography.Title
+                      level={5}
+                      style={{ marginBottom: spacing[1] }}
+                      data-testid={`${featureSectionTestId(section.group)}-heading`}
+                    >
                       {/* `group` is key-or-literal, exactly like `name`. */}
                       {t(section.group)}
                     </Typography.Title>
@@ -369,10 +407,22 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
                     hints: resolveHints(feature, t),
                     unsupported,
                   };
-                  if (props.renderRow) {
-                    return <div key={feature.slug}>{props.renderRow(row)}</div>;
-                  }
-                  return <FeatureRow key={feature.slug} {...row} />;
+                  // The row's test id lives on the WRAPPER rather than on the
+                  // field itself, so it is the same element whether the host
+                  // supplied `renderRow` or not: a measurement that changed
+                  // shape with the host's chrome would be measuring the chrome.
+                  return (
+                    <div
+                      key={feature.slug}
+                      data-testid={featureRowTestId(feature.slug)}
+                    >
+                      {props.renderRow ? (
+                        <>{props.renderRow(row)}</>
+                      ) : (
+                        <FeatureRow {...row} />
+                      )}
+                    </div>
+                  );
                 })}
               </div>
             )

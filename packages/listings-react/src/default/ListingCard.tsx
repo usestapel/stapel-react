@@ -82,6 +82,7 @@ import { spacing } from "@stapel/tokens";
 import { FeatureBadges } from "@stapel/attributes-react/default";
 import type { ListingCard as ListingCardData } from "../api/types.js";
 import { asFeatureDaoList, featuresDtoFromDaoList, featuresFromDaoList } from "../model/features.js";
+import type { FeatureCopySource } from "../model/features.js";
 import { lifecycleCaption } from "../model/status.js";
 import { useFavoriteToggle } from "../headless/Favorites.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
@@ -89,7 +90,7 @@ import { HeartIcon } from "./icons.js";
 import { SignInLink } from "./SignInLink.js";
 import { ListingPhoto } from "./ListingPhoto.js";
 import { ListingPrice } from "./ListingPrice.js";
-import type { ThemeModeProp } from "./types.js";
+import type { CategoryFeaturesProp, ThemeModeProp } from "./types.js";
 
 /**
  * How the card opens — ONE of three, and the type says so.
@@ -195,7 +196,10 @@ const BUTTON_TARGET_STYLE: CSSProperties = {
   cursor: "pointer",
 };
 
-export interface ListingCardBaseProps extends ThemeModeProp, SignInCtaProp {
+export interface ListingCardBaseProps
+  extends ThemeModeProp,
+    SignInCtaProp,
+    CategoryFeaturesProp {
   readonly listing: ListingCardData;
   /** See {@link ListingCardBlockedReason}. Default `"text"`. */
   readonly blockedReason?: ListingCardBlockedReason;
@@ -309,7 +313,14 @@ export function ListingCard(props: ListingCardProps): ReactElement {
   const { token } = antdTheme.useToken();
 
   const badgeDaos = asFeatureDaoList(listing.features_badges);
-  const badgeFeatures = featuresFromDaoList(badgeDaos);
+  // The category's own option table, when the surface has it: a stored
+  // `select` carries no table of its own, so without this a badge prints the
+  // storage slug. Absent on a mixed grid, which is why it is optional.
+  const copy: FeatureCopySource =
+    props.categoryFeatures !== undefined
+      ? { categoryFeatures: props.categoryFeatures }
+      : {};
+  const badgeFeatures = featuresFromDaoList(badgeDaos, copy);
   const badgeValues = featuresDtoFromDaoList(badgeDaos);
   const titleDaos = asFeatureDaoList(listing.features_title);
 
@@ -370,7 +381,9 @@ export function ListingCard(props: ListingCardProps): ReactElement {
         {titleDaos.length > 0 ? (
           <Typography.Text type="secondary" ellipsis>
             <FeatureBadges
-              features={featuresFromDaoList(titleDaos).map((view) => view.feature)}
+              features={featuresFromDaoList(titleDaos, copy).map(
+                (view) => view.feature
+              )}
               values={featuresDtoFromDaoList(titleDaos)}
             />
           </Typography.Text>

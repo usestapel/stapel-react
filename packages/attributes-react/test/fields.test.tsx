@@ -15,7 +15,10 @@ import { featureErrorsBySlug, mirrorValidate } from "../src/index.js";
 import { registerAttributesI18n } from "../src/i18n/keys.js";
 import {
   FeatureFields,
+  UNGROUPED_SECTION,
   featureControlId,
+  featureRowTestId,
+  featureSectionTestId,
   featureSections,
 } from "../src/default/FeatureFields.js";
 import { HEADER_FEATURE, INT_FEATURE, STRING_FEATURE, feature } from "./fixtures.js";
@@ -371,5 +374,95 @@ describe("sections", () => {
       )
     );
     expect(screen.queryByRole("heading", { name: "Condition" })).toBeNull();
+  });
+});
+
+/**
+ * The attribute region is MEASURABLE.
+ *
+ * On a live classified deployment the composer's characteristics region is
+ * 25 rows under 6 headings, some 5000px tall, and the whole of it carried one
+ * test id — on an alert that only appears when a field has hints. A region
+ * nothing can select is a region nothing can assert about, which is why every
+ * defect in it was found by a person scrolling a phone.
+ */
+describe("stable test ids over the region", () => {
+  const grouped = [
+    feature("title", { type: "string" }),
+    feature("power", { type: "int" }, { group: "Engine" }),
+    feature("scratches", { type: "string" }, { group: "Condition" }),
+  ];
+
+  it("keys the container, every section, every heading and every field", () => {
+    render(wrap(<FeatureFields features={grouped} values={{}} onChange={() => {}} />));
+    expect(screen.getByTestId("attributes-fields")).toBeDefined();
+    // The ungrouped rows are a section too — they have no heading, so without
+    // a key of their own there is nothing to say "the questions before the
+    // first heading rendered".
+    expect(screen.getByTestId(featureSectionTestId(""))).toBeDefined();
+    expect(screen.getByTestId(featureSectionTestId(""))).toBe(
+      screen.getByTestId(`attributes-group-${UNGROUPED_SECTION}`)
+    );
+    for (const group of ["Engine", "Condition"]) {
+      expect(screen.getByTestId(featureSectionTestId(group))).toBeDefined();
+      expect(
+        screen.getByTestId(`${featureSectionTestId(group)}-heading`).textContent
+      ).toBe(group);
+    }
+    for (const slug of ["title", "power", "scratches"]) {
+      expect(screen.getByTestId(featureRowTestId(slug))).toBeDefined();
+    }
+  });
+
+  it("puts each row inside the section its group declares", () => {
+    render(wrap(<FeatureFields features={grouped} values={{}} onChange={() => {}} />));
+    expect(
+      screen
+        .getByTestId(featureSectionTestId("Engine"))
+        .contains(screen.getByTestId(featureRowTestId("power")))
+    ).toBe(true);
+    expect(
+      screen
+        .getByTestId(featureSectionTestId("Condition"))
+        .contains(screen.getByTestId(featureRowTestId("power")))
+    ).toBe(false);
+  });
+
+  it("keys the row the same way when the host draws its own chrome", () => {
+    render(
+      wrap(
+        <FeatureFields
+          features={grouped}
+          values={{}}
+          onChange={() => {}}
+          renderRow={(row) => <div>{row.control}</div>}
+        />
+      )
+    );
+    expect(screen.getByTestId(featureRowTestId("power"))).toBeDefined();
+  });
+
+  it("has no section, and therefore no key, for a group whose rows are all hidden", () => {
+    const hidden = feature(
+      "scratches",
+      { type: "string" },
+      {
+        group: "Condition",
+        rules: [
+          { effect: "show", when: { all: [{ feature: "condition", op: "in", values: ["used"] }] } },
+        ],
+      }
+    );
+    render(
+      wrap(
+        <FeatureFields
+          features={[CONDITION, hidden]}
+          values={{ condition: ["new"] }}
+          onChange={() => {}}
+        />
+      )
+    );
+    expect(screen.queryByTestId(featureSectionTestId("Condition"))).toBeNull();
+    expect(screen.queryByTestId(featureRowTestId("scratches"))).toBeNull();
   });
 });

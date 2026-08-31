@@ -40,6 +40,7 @@ import type { ListingDraftValues, ListingLocation } from "../model/draft.js";
 import { asFeatureDaoList } from "../model/features.js";
 import { featuresDtoFromDaoList } from "../model/features.js";
 import {
+  LISTING_FIELD_ORDER,
   envelopeFieldErrors,
   mirrorDraft,
   publishRefusal,
@@ -201,6 +202,17 @@ export interface ListingComposerBag {
   readonly fieldErrors: Readonly<Record<string, FlowError>>;
   /** The server's last publish refusal, unrouted, for a summary line. */
   readonly refusal: PublishRefusal | undefined;
+  /**
+   * The first field the mirror is refusing, in the order the form asks for it
+   * (`LISTING_FIELD_ORDER`, then the category's features in schema order), or
+   * `undefined` when nothing is refused.
+   *
+   * The publish gate can say "10 required details are still empty" while not
+   * one of them is on screen — on a phone the attribute region starts nearly
+   * two viewports below the fold — and a count with nowhere to go is a dead
+   * end. This is what a skin's "take me there" control aims at.
+   */
+  readonly firstUnsatisfied: string | undefined;
   /** Value types this build cannot draw — the fact, from attributes-react. */
   readonly unsupported: readonly string[];
 
@@ -377,6 +389,21 @@ export function useListingComposer(
           : {};
     return { ...shown, ...envelopeFieldErrors(saveThrown), ...routed };
   }, [showErrors, mirror, refusal, saveThrown]);
+
+  // The order is the FORM's, not the record's — see `LISTING_FIELD_ORDER`.
+  // A key in neither list (a server field with no control of its own) is still
+  // named rather than dropped: something is refusing, and saying which is
+  // better than saying nothing.
+  const firstUnsatisfied: string | undefined = useMemo(() => {
+    const refused = mirror;
+    for (const field of LISTING_FIELD_ORDER) {
+      if (refused[field] !== undefined) return field;
+    }
+    for (const feature of options.features) {
+      if (refused[feature.slug] !== undefined) return feature.slug;
+    }
+    return Object.keys(refused)[0];
+  }, [mirror, options.features]);
 
   const listingState: LoadState<ListingDetailData> | undefined =
     options.listingId === undefined
@@ -571,6 +598,7 @@ export function useListingComposer(
     mirror,
     fieldErrors,
     refusal,
+    firstUnsatisfied,
     unsupported,
 
     saveGate,

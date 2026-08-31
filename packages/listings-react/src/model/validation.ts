@@ -97,6 +97,26 @@ export const CATEGORY_FIELD = "category_id";
 export const LOCATION_FIELD = "location";
 
 /**
+ * The composer's OWN controls, in the order the draft declares them.
+ *
+ * The mirror is a `Record`, and a record has no order worth trusting — its
+ * feature refusals happen to come first because of a spread. "Which field is
+ * the first unsatisfied one?" is a question a person asks about a FORM, so the
+ * answer is written down as a list rather than read off an object: the
+ * category (nothing else can be answered until it is chosen), then the
+ * listing's own fields, then — appended by the caller — the category's
+ * features in the order the schema declares them.
+ */
+export const LISTING_FIELD_ORDER: readonly string[] = [
+  CATEGORY_FIELD,
+  TITLE_FIELD,
+  DESCRIPTION_FIELD,
+  PRICE_FIELD,
+  LOCATION_FIELD,
+  IMAGES_FIELD,
+];
+
+/**
  * The API's own field names → the control that holds them.
  *
  * The draft serializer writes `*_draft` columns, and the two coordinates are

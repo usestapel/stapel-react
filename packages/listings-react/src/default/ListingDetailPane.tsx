@@ -59,7 +59,7 @@ import { HeartIcon } from "./icons.js";
 import { ListingPhoto } from "./ListingPhoto.js";
 import { ListingPrice } from "./ListingPrice.js";
 import { ListingStatusBlock } from "./StatusTags.js";
-import type { ThemeModeProp } from "./types.js";
+import type { CategoryFeaturesProp, ThemeModeProp } from "./types.js";
 
 /** The reading measure of the page body. A detail page is prose plus a spec
  * table; past this it stops being one column and starts being a stripe across
@@ -73,7 +73,9 @@ export const DETAIL_MEASURE = "60rem";
  * postage stamp on the other. */
 export const DETAIL_PHOTO_MIN = "14rem";
 
-export interface ListingDetailPaneProps extends ThemeModeProp {
+export interface ListingDetailPaneProps
+  extends ThemeModeProp,
+    CategoryFeaturesProp {
   readonly id: number;
   /** The reader's own uuid, when the host knows it. Enables the owner view —
    * the only place the moderation axis is shown, because it is the only
@@ -98,10 +100,12 @@ export interface ListingDetailPaneProps extends ThemeModeProp {
 export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
   const t = useT();
   const { locale } = useI18n();
-  const bag = useListingDetail(
-    props.id,
-    props.viewerId !== undefined ? { viewerId: props.viewerId } : {}
-  );
+  const bag = useListingDetail(props.id, {
+    ...(props.viewerId !== undefined ? { viewerId: props.viewerId } : {}),
+    ...(props.categoryFeatures !== undefined
+      ? { categoryFeatures: props.categoryFeatures }
+      : {}),
+  });
   const owner = bag.viewerIsOwner === true;
   const actions = useListingActions(props.id, bag.status?.lifecycle.status);
   const editGate = actions.editGate(props.onEdit !== undefined);
