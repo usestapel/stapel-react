@@ -119,6 +119,7 @@ const { tracked } = useTracked();
 - categories.features → <CategoryFeatureList> [schema|no extra details|outage]  demo/CategoryFeatureList.demo.tsx
 - categories.picker → <CategoryPickerField> [on a phone|the closed trigger|inline|too general|chosen|outage]  demo/CategoryPickerField.demo.tsx
 - categories.quick-search → <CategoryQuickSearchPanel> [counted|counting|a floor, not a total|no fields]  demo/CategoryQuickSearchPanel.demo.tsx
+- categories.search-hits → <CategorySearchHits> [ranked|one hit|nothing matched]  demo/CategorySearchHits.demo.tsx
 - categories.tile-grid → <CategoryTileGrid> [tiles|no art|host tiles|inside a category|nothing featured|outage]  demo/CategoryTileGrid.demo.tsx
 - categories.tree → <CategoryTreePane> [roots|one level down|leaf|partial catalogue|outage]  demo/CategoryTreePane.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).

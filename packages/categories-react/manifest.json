@@ -796,6 +796,25 @@
       "source": "demo/CategoryQuickSearchPanel.demo.tsx"
     },
     {
+      "id": "categories.search-hits",
+      "title": "Category search hits",
+      "description": "The categories a search query reached, ranked exact-then-prefix-then-substring and printed as links above the results. Not a picker and not a typeahead over the tree: a short list that lets a person who typed a section's name land in that section instead of only ever landing in results. With no hits it renders nothing at all.",
+      "component": "CategorySearchHits",
+      "covers": [
+        "useCategorySearch"
+      ],
+      "tokens": [
+        "surface",
+        "text"
+      ],
+      "variants": [
+        "ranked",
+        "one hit",
+        "nothing matched"
+      ],
+      "source": "demo/CategorySearchHits.demo.tsx"
+    },
+    {
       "id": "categories.tile-grid",
       "title": "Category tile grid",
       "description": "Two rows of rounded tiles that scroll sideways, sized as a fraction of the box they were mounted in rather than of the viewport. The label sits top-left over two lines; the art is pinned bottom-right through the same renderIcon seam the carousel strip takes, and an unresolved reference draws a placeholder rather than a broken image.",
