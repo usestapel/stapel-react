@@ -64,6 +64,22 @@ export const SEARCH_I18N_KEYS = {
   boxClear: "search.box.clear",
   /** Accessible name of the suggestion list under the box. */
   boxSuggestions: "search.box.suggestions",
+  /**
+   * The heading over the CATEGORY half of the type-ahead (stapel-search
+   * 0.7.0). The rows under it are DESTINATIONS — a section of the catalogue —
+   * and not, like everything else in the menu, another set of words to search
+   * for; a group with no heading would read as more of the same.
+   */
+  boxCategories: "search.box.categories",
+  /**
+   * "1 240 listings" beside a category row — how many LIVE listings a buyer
+   * would see there, the same number the SERP reports for it.
+   *
+   * A PLURAL FAMILY: render with `tPlural`, never `t`. It counts a noun in
+   * words, so Russian needs its four endings and a single string would be
+   * right only for 5-20 — the exact defect the results count already fixed.
+   */
+  boxCategoryCount: "search.box.category_count",
 
   // ── sort ─────────────────────────────────────────────────────────────────
   sortLabel: "search.sort.label",
@@ -210,6 +226,34 @@ export const SEARCH_I18N_KEYS = {
   rankingInactive: "search.ranking.inactive",
   rankingNotes: "search.ranking.notes",
   rankingLink: "search.ranking.link",
+
+  // ── nav (the destination's own name, not the page's heading) ─────────────
+  /**
+   * What the MENU calls the results screen.
+   *
+   * Separate from `search.results.title` on purpose. That key captions the
+   * list of matches — a heading over rows, which is why it reads "Results" —
+   * and a menu entry pointing at `/s` labelled "Results" tells a visitor
+   * nothing about where they would be going: results of what? The destination
+   * is the search itself. One key, one job; a translator asked to make
+   * "Results" work as both a page heading and a menu label has to pick which
+   * one to get wrong.
+   */
+  navResults: "search.nav.results",
+  /** The menu name of the P2B disclosure PAGE — see {@link navResults} for
+   * why it is not `search.ranking.title`, which is the page's own heading and
+   * a whole sentence. */
+  navRanking: "search.nav.ranking",
+  /**
+   * The compact form for a phone dock — see `NavEntry.shortLabelKey`. A
+   * five-cell dock at 390px gives a destination roughly ten characters, and
+   * "Ranking disclosure" ellipsizes to a fragment there.
+   *
+   * `search.nav.results` needs no short form: it is already one word in every
+   * locale this pair ships, and declaring a short key identical to the long
+   * one only gives a translator two strings to keep in sync.
+   */
+  navRankingShort: "search.nav.ranking.short",
 } as const;
 
 export type SearchI18nKey =
@@ -236,6 +280,7 @@ export const SEARCH_I18N_PLURAL_KEYS: readonly SearchI18nKey[] = [
   SEARCH_I18N_KEYS.resultsCountExact,
   SEARCH_I18N_KEYS.filtersShowCount,
   SEARCH_I18N_KEYS.filtersShowCountAtLeast,
+  SEARCH_I18N_KEYS.boxCategoryCount,
 ];
 
 /**
@@ -279,6 +324,9 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.box.submit": "Search",
   "search.box.clear": "Clear the search",
   "search.box.suggestions": "Suggestions",
+  "search.box.categories": "Sections",
+  "search.box.category_count.one": "{count} listing",
+  "search.box.category_count.other": "{count} listings",
 
   "search.sort.label": "Sort",
   "search.sort.relevance": "Most relevant",
@@ -383,6 +431,10 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.ranking.inactive": "Not applied: {reason}",
   "search.ranking.notes": "Notes",
   "search.ranking.link": "How these results are ordered",
+
+  "search.nav.results": "Search",
+  "search.nav.ranking": "Ranking disclosure",
+  "search.nav.ranking.short": "Ranking",
 };
 
 /**

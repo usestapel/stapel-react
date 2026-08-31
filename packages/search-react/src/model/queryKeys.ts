@@ -32,6 +32,22 @@ export const searchQueryKeys: {
   query(
     params: SearchQueryKeyParams
   ): readonly ["search", "query", SearchQueryKeyParams];
+  /**
+   * One group's captions from the HOST's resolver — the seam that names a
+   * vocabulary-backed facet value on a server too old to caption it itself.
+   *
+   * Keyed on the slug, the values asked about and the locale. The values are
+   * SORTED by the caller before they get here: the same group arrives in
+   * count order, and count order changes on every click, so an unsorted key
+   * would re-ask the host for the same words each time a sibling facet moved.
+   * The locale is in the key because a caption is copy — one cache entry per
+   * language, never one shared between two.
+   */
+  facetLabels(
+    slug: string,
+    values: readonly string[],
+    locale?: string
+  ): readonly ["search", "facet-labels", string, readonly string[], string | null];
   /** The P2B disclosure. `type` is optional on the endpoint; normalized to
    * `null` so an absent type and an explicit `undefined` cannot cache twice. */
   ranking(type?: string): readonly ["search", "ranking", string | null];
@@ -43,6 +59,13 @@ export const searchQueryKeys: {
 } = {
   all: [ROOT],
   query: (params) => [ROOT, "query", params],
+  facetLabels: (slug, values, locale) => [
+    ROOT,
+    "facet-labels",
+    slug,
+    values,
+    locale ?? null,
+  ],
   ranking: (type) => [ROOT, "ranking", type ?? null],
   suggest: (type, q, limit) => [ROOT, "suggest", type, q, limit ?? null],
 };

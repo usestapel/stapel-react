@@ -44,7 +44,12 @@
 export { createSearchApi, searchQueryParams } from "./api/searchApi.js";
 export type { SearchApi } from "./api/searchApi.js";
 export type { Schemas } from "./api/types.js";
-export { SEARCH_SORTS } from "./api/types.js";
+export {
+  SEARCH_SORTS,
+  SUGGEST_DEGRADED_CATEGORIES,
+  SUGGEST_DEGRADED_ROLLUP,
+  suggestTerms,
+} from "./api/types.js";
 export type {
   FacetMeta,
   FacetSelection,
@@ -59,6 +64,9 @@ export type {
   SearchQueryState,
   SearchRange,
   SearchResponse,
+  SuggestAnswer,
+  SuggestCategory,
+  SuggestCategoryMatch,
   SuggestParams,
   SuggestResponse,
 } from "./api/types.js";
@@ -100,7 +108,12 @@ export type {
   SearchDegradationAudience,
 } from "./state/degradations.js";
 
-export { buildFacetGroups, facetOptionLabel } from "./state/facets.js";
+export {
+  FACETABLE_FEATURE_TYPES,
+  buildFacetGroups,
+  facetOptionLabel,
+  isFacetableFeature,
+} from "./state/facets.js";
 export type {
   BuildFacetGroupsInput,
   FacetGroup,
@@ -157,8 +170,13 @@ export { SearchResults } from "./headless/SearchResults.js";
 export type { SearchPageInfo, SearchResultsBag } from "./headless/SearchResults.js";
 export { FacetPanel, useFacetPanel } from "./headless/FacetPanel.js";
 export type { FacetPanelBag } from "./headless/FacetPanel.js";
+export { useHostFacetLabels } from "./headless/useFacetLabels.js";
+export type {
+  FacetLabelRequest,
+  FacetLabelResolver,
+} from "./headless/useFacetLabels.js";
 export { useAppliedSort } from "./headless/useAppliedSort.js";
-export { useSearchBox } from "./headless/useSearchBox.js";
+export { offerableCategories, useSearchBox } from "./headless/useSearchBox.js";
 export type { SearchBoxBag, UseSearchBoxOptions } from "./headless/useSearchBox.js";
 export { countQueryState, useSearchCount } from "./headless/useSearchCount.js";
 export type {

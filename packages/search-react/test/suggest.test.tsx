@@ -23,14 +23,17 @@ import {
   useSearchBox,
   useSuggest,
 } from "../src/index.js";
-import type { SuggestResponse } from "../src/index.js";
+import type { SuggestAnswer } from "../src/index.js";
 import { searchResponse } from "./fixtures.js";
 import { TestHarness, TestProviders, mockServer } from "./harness.js";
 
 const FAST = 10;
 const ITEMS = ["bosch drill", "bosch saw"];
 
-function suggestServer(body: SuggestResponse | undefined, status = 200) {
+// `SuggestAnswer`, not the generated `SuggestResponse`: every body here is
+// what a server OLDER than stapel-search 0.7.0 sends, and the generated type
+// declares 0.7.0's five new fields required.
+function suggestServer(body: SuggestAnswer | undefined, status = 200) {
   return mockServer({
     "/query": { body: searchResponse() },
     "/suggest": { status, body: body ?? { items: [], backend: "postgres" } },

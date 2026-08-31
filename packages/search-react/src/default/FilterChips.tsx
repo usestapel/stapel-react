@@ -41,11 +41,69 @@
  *
  * ## The library is not inventing a classified's filters
  *
- * A chip exists for each facet group the SERVER returned, each numeric range
- * the CATEGORY SCHEMA declares, and the location — plus the leading
- * "all filters" chip. Nothing here knows what a "brand" or a "mileage" is;
- * a deployment with three facets gets three chips and a deployment with none
- * gets the leading chip alone.
+ * A chip exists for each facet group the SERVER returned AND the category
+ * schema types as choosable (`isFacetableFeature` — an `imei` is counted and
+ * is not a filter), each numeric range the CATEGORY SCHEMA declares, the
+ * location, and the host's category control — plus the leading "all filters"
+ * chip. Nothing here knows what a "brand" or a "mileage" is; a deployment with
+ * three facets gets three chips and a deployment with none gets the leading
+ * chip alone.
+ *
+ * ## The ORDER of the row is the whole product
+ *
+ * At 390px a person sees roughly four chips before the fold, and everything
+ * past them costs a horizontal flick most people never make. On a live phone
+ * category the first seven were battery health, four parcel dimensions and two
+ * wholesale counts — every one of them a numeric ATTRIBUTE the category
+ * happens to declare, drawn before the condition, the vendor and the model
+ * anybody actually narrows by, and before the price.
+ *
+ * That is an ORDERING defect, not a facetability one, and it is fixed as one:
+ * nothing is deleted, because this package cannot tell a battery-health axis
+ * from a parcel-width axis and must not pretend to. Two categories declare
+ * `int` attributes and one of them is `mileage`. So the row states its order
+ * instead, out of evidence it actually has:
+ *
+ *   1. **the category chip** — narrowing the category decides which chips
+ *      exist at all, the facet plan being derived from the leaf;
+ *   2. **the location chip** — the other host-slot filter;
+ *   3. **everything APPLIED**, in band order below. A constraint a person has
+ *      set has to be reachable without a flick, or the row states filters that
+ *      are on screen only if you go looking;
+ *   4. then everything unapplied, in band order:
+ *      **core range axes** (`facet_meta.core_ranges` — the SERVER declaring an
+ *      axis that exists for every document in every category: `price`), then
+ *      **counted facet groups** (the server counted them for this search and
+ *      each carries its remaining counts — the strongest evidence the row has
+ *      that these are the axes this corpus is narrowed by), then
+ *      **the category's numeric attributes**, which are form fields the
+ *      composer collects and which no flag in the schema distinguishes from an
+ *      axis a buyer uses.
+ *
+ * Band 3's attributes keep their controls, whole, in the panel behind the
+ * leading circle and at the tail of this row. `buildRangeGroups` is untouched:
+ * a rule that DELETED them would have to answer "on what evidence", and
+ * `facet_meta.skipped` — the one server signal that names a slug — means the
+ * counter ran out of plan slots at `MAX_FACET_FIELDS`, not that a person
+ * cannot filter by it. `r.<slug>` still answers for a skipped slug.
+ *
+ * ## Why the CATEGORY leads the row
+ *
+ * The owner's navigation model puts levels 1-2 of the catalogue on tiles and
+ * every level below them behind a cascading child selector, chosen "as a
+ * characteristic" — on the result list and in the composer alike. On the SERP
+ * that selector is a chip like any other, and it is the FIRST one, because
+ * narrowing the category is what changes which other chips exist at all: the
+ * facet plan is derived from the leaf category, so every chip to its right is
+ * downstream of it.
+ *
+ * The pair does not draw that selector. Walking the tree belongs to
+ * `categories-react`, so the chip is the host's `renderCategoryFilter` in the
+ * same sheet the other chips open, and a row whose host filled no such slot
+ * renders exactly as it did before. There is no synthesized category FACET
+ * anywhere here and there must not be one: the server counts no category
+ * buckets and the index has no read path for them, so any count this row drew
+ * beside a child category would be a number nobody could check.
  */
 import { useState } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
@@ -55,14 +113,19 @@ import { useT } from "@stapel/core";
 import { radii, spacing } from "@stapel/tokens";
 import type { FeatureDef } from "@stapel/attributes-react";
 import { useFacetPanel } from "../headless/FacetPanel.js";
+import type { FacetLabelResolver } from "../headless/useFacetLabels.js";
 import { useSearchState } from "../headless/SearchStateProvider.js";
 import { buildRangeGroups } from "../state/ranges.js";
+import type { RangeGroup } from "../state/ranges.js";
 import type { FacetGroup } from "../state/facets.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { FacetGroupControl } from "./FacetGroupControl.js";
 import { RangeFilterRow } from "./RangeFilterRow.js";
 import { geoSummaryFallback } from "./FacetPanelPane.js";
-import type { GeoFilterSlotProps } from "./FacetPanelPane.js";
+import type {
+  CategoryFilterSlotProps,
+  GeoFilterSlotProps,
+} from "./FacetPanelPane.js";
 import { CHIP_GEO_TEST_IDS, GeoSheet, useApplyLabel } from "./geoSheet.js";
 
 /** The class the scroller carries, for {@link chipRowCss}. */
@@ -102,11 +165,99 @@ const CHIP: CSSProperties = { flex: "0 0 auto", borderRadius: radii.full };
 /** Which picker is open, if any. `null` closes everything. */
 type OpenChip = string | null;
 
+/**
+ * The three bands the row's non-slot chips fall into, most-evidenced first.
+ *
+ * `core_range` is the SERVER's own declaration (`facet_meta.core_ranges`) that
+ * an axis exists for every document in every category. `facet` is a group the
+ * server COUNTED for this search, which arrives with the remaining counts that
+ * make it a drill-down. `attribute_range` is a numeric field the category
+ * declares and nothing ranks — see this module's ordering note.
+ */
+export type ChipBand = "core_range" | "facet" | "attribute_range";
+
+/** Band order, stated once. */
+export const CHIP_BAND_ORDER: readonly ChipBand[] = [
+  "core_range",
+  "facet",
+  "attribute_range",
+];
+
+/** One non-slot chip, resolved to the band and the applied state it sorts by. */
+export type ChipSpec =
+  | { readonly band: "core_range" | "attribute_range"; readonly range: RangeGroup }
+  | { readonly band: "facet"; readonly facet: FacetGroup };
+
+/** Has the person set this filter? */
+function specApplied(spec: ChipSpec): boolean {
+  return spec.band === "facet" ? spec.facet.selected.length > 0 : spec.range.active;
+}
+
+/**
+ * The row's order: applied first, then band, then the order each source
+ * already came in.
+ *
+ * Exported because the order IS the fix — the defect it closes is invisible to
+ * a test that only asks whether a chip exists, and a rule stated in prose next
+ * to an unexercised implementation is a rule that drifts.
+ *
+ * `Array.prototype.sort` is stable in every runtime this pair supports, so
+ * equal-ranked chips keep the order `buildRangeGroups` and `buildFacetGroups`
+ * gave them — a closed set's authored order survives all the way to the row.
+ */
+export function orderChipFilters(
+  ranges: readonly RangeGroup[],
+  facets: readonly FacetGroup[]
+): readonly ChipSpec[] {
+  const specs: ChipSpec[] = [
+    ...ranges.map(
+      (range): ChipSpec =>
+        range.core
+          ? { band: "core_range", range }
+          : { band: "attribute_range", range }
+    ),
+    ...facets.map((facet): ChipSpec => ({ band: "facet", facet })),
+  ];
+  return [...specs].sort((a, b) => {
+    const applied = Number(specApplied(b)) - Number(specApplied(a));
+    if (applied !== 0) return applied;
+    return CHIP_BAND_ORDER.indexOf(a.band) - CHIP_BAND_ORDER.indexOf(b.band);
+  });
+}
+
 export interface FilterChipsProps {
   /** The category's feature schema — the source of option labels, of which
-   * slugs get a range chip, and of how each group is drawn. */
+   * slugs get a range chip, of which slugs are choosable at all, and of how
+   * each group is drawn. */
   readonly categoryFeatures?: readonly FeatureDef[];
   readonly locale?: string;
+  /**
+   * Name the values neither the answer nor the schema names — see
+   * {@link FacetLabelResolver}. The same prop reaches the filter panel, so a
+   * value cannot read one way on a chip and another way inside the sheet.
+   */
+  readonly resolveFacetLabels?: FacetLabelResolver;
+  /**
+   * The catalogue picker (`categories-react`), same slot the panel takes.
+   *
+   * Filled, it becomes the row's LEADING chip and opens in the same sheet as
+   * every other chip. Unfilled, the row draws no category chip at all — and
+   * that is not a constraint left without a control: the whole panel is one
+   * tap away behind the leading circle, and it carries the "search the whole
+   * catalogue" button for a link that arrived narrowed.
+   */
+  readonly renderCategoryFilter?: (slot: CategoryFilterSlotProps) => ReactNode;
+  /**
+   * What the current category is CALLED, in words.
+   *
+   * The pair holds a `root/leaf` PATH of slugs and nothing that turns one into
+   * a catalogue name — the tree belongs to `categories-react`, and whoever
+   * rendered the picker has the name already. Absent, the chip falls back to
+   * the path's last segment, which is the honest half-answer: it is what the
+   * search is actually narrowed to, it fits a 390px row where the whole path
+   * does not, and it is never invented.
+   */
+  readonly categoryLabel?: ReactNode;
   /** The location control (`geo-react`), same slot the panel takes. Without
    * it the location chip appears only when the URL already carries a point,
    * so a shared link can still be widened. */
@@ -150,14 +301,32 @@ function chipLabel(group: FacetGroup, t: (key: string, p?: Record<string, unknow
     : `${first.label}${t(SEARCH_I18N_KEYS.filtersChipMore, { count: chosen.length - 1 })}`;
 }
 
+/**
+ * The last segment of a `root/leaf` category path.
+ *
+ * A chip has room for one word, and the whole path is what the panel prints on
+ * a surface with a column to spend. This is the pair's LAST resort — a host
+ * that renders the picker knows the catalogue's own name for the node and
+ * passes `categoryLabel` — but it is a real narrowing stated with a value the
+ * URL genuinely carries, which is the line the geo chip draws too: never print
+ * a coordinate, always print the name you actually have.
+ */
+export function categoryLeaf(path: string): string {
+  const parts = path.split("/").filter((part) => part.length > 0);
+  return parts[parts.length - 1] ?? path;
+}
+
 export function FilterChips(props: FilterChipsProps): ReactElement | null {
   const t = useT();
-  const { state } = useSearchState();
+  const { state, setCategory } = useSearchState();
   const bag = useFacetPanel({
     ...(props.categoryFeatures !== undefined
       ? { categoryFeatures: props.categoryFeatures }
       : {}),
     ...(props.locale !== undefined ? { locale: props.locale } : {}),
+    ...(props.resolveFacetLabels !== undefined
+      ? { resolveFacetLabels: props.resolveFacetLabels }
+      : {}),
   });
   const applyLabel = useApplyLabel();
   const surface = useDialogSurface();
@@ -212,6 +381,21 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
     </SkinDialog>
   );
 
+  // The category chip exists only where a host can actually draw the picker:
+  // a chip that opened an empty sheet would be a filter affordance leading
+  // nowhere, and the whole panel behind the leading circle already carries the
+  // control that widens a narrowed link.
+  const showCategoryChip = props.renderCategoryFilter !== undefined;
+  const category = state.category;
+  // Same rule as every other chip: the CHOICE when there is one, the filter's
+  // own name when there is not.
+  const categoryChipLabel: ReactNode =
+    category === undefined
+      ? t(SEARCH_I18N_KEYS.categoryTitle)
+      : (props.categoryLabel ?? categoryLeaf(category));
+
+  const ordered = orderChipFilters(ranges, groups);
+
   const geo = state.geo;
   const showGeoChip =
     props.geoChip !== false &&
@@ -236,7 +420,7 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
    * there is nothing to state, the row states nothing and the surface above
    * keeps its own door.
    */
-  const hasChips = showGeoChip || ranges.length > 0 || groups.length > 0;
+  const hasChips = showCategoryChip || showGeoChip || ordered.length > 0;
   if (!hasChips) return null;
 
   return (
@@ -270,6 +454,24 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
           {bag.activeFilters > 0 && <ActiveDot />}
         </Button>
 
+        {/* FIRST, before every facet chip: narrowing the category is what
+            decides which facet chips exist at all. */}
+        {showCategoryChip && (
+          <Button
+            style={CHIP}
+            shape="round"
+            type={category !== undefined ? "primary" : "default"}
+            data-testid="search-chip-category"
+            data-analytics="none"
+            data-analytics-reason="a filter is a read, not a flow step"
+            onClick={() => {
+              setOpen("category");
+            }}
+          >
+            {categoryChipLabel}
+          </Button>
+        )}
+
         {showGeoChip && (
           <Button
             style={CHIP}
@@ -286,43 +488,61 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
           </Button>
         )}
 
-        {ranges.map((group) => (
-          <Button
-            key={group.slug}
-            style={CHIP}
-            shape="round"
-            type={group.active ? "primary" : "default"}
-            data-testid={`search-chip-range-${group.slug}`}
-            data-analytics="none"
-            data-analytics-reason="a filter is a read, not a flow step"
-            onClick={() => {
-              setOpen(`range:${group.slug}`);
-            }}
-          >
-            {group.label}
-          </Button>
-        ))}
-
-        {groups.map((group) => (
-          <Button
-            key={group.slug}
-            style={CHIP}
-            shape="round"
-            type={group.selected.length > 0 ? "primary" : "default"}
-            data-testid={`search-chip-${group.slug}`}
-            data-analytics="none"
-            data-analytics-reason="a filter is a read, not a flow step"
-            onClick={() => {
-              setOpen(`facet:${group.slug}`);
-            }}
-          >
-            {chipLabel(group, t)}
-          </Button>
-        ))}
+        {/* One list, in the row's stated order — see this module's ordering
+            note. Rendering ranges and facets as two separate `.map`s is what
+            put seven parcel dimensions in front of the price. */}
+        {ordered.map((spec) =>
+          spec.band === "facet" ? (
+            <Button
+              key={`facet:${spec.facet.slug}`}
+              style={CHIP}
+              shape="round"
+              type={spec.facet.selected.length > 0 ? "primary" : "default"}
+              data-testid={`search-chip-${spec.facet.slug}`}
+              data-band={spec.band}
+              data-analytics="none"
+              data-analytics-reason="a filter is a read, not a flow step"
+              onClick={() => {
+                setOpen(`facet:${spec.facet.slug}`);
+              }}
+            >
+              {chipLabel(spec.facet, t)}
+            </Button>
+          ) : (
+            <Button
+              key={`range:${spec.range.slug}`}
+              style={CHIP}
+              shape="round"
+              type={spec.range.active ? "primary" : "default"}
+              data-testid={`search-chip-range-${spec.range.slug}`}
+              data-band={spec.band}
+              data-analytics="none"
+              data-analytics-reason="a filter is a read, not a flow step"
+              onClick={() => {
+                setOpen(`range:${spec.range.slug}`);
+              }}
+            >
+              {spec.range.label}
+            </Button>
+          )
+        )}
       </div>
 
       {/* One sheet per chip, rendered only for the open one: a dozen mounted
           dialogs is a dozen focus traps waiting for a stray `open`. */}
+      {open === "category" &&
+        props.renderCategoryFilter !== undefined &&
+        sheetFor(
+          "category",
+          t(SEARCH_I18N_KEYS.categoryTitle),
+          props.renderCategoryFilter({
+            value: category,
+            onChange: (path) => {
+              setCategory(path);
+            },
+          })
+        )}
+
       {open?.startsWith("facet:") === true &&
         (() => {
           const slug = open.slice("facet:".length);

@@ -59,14 +59,14 @@
   },
   "size-limit": [
     {
-      "name": "index — the headless pair (client + hooks + URL codec + facet model): no antd, no react-router",
+      "name": "index — the headless pair (client + hooks + URL codec + facet model incl. the facetability rule and the host label seam): no antd, no react-router",
       "path": "dist/index.js",
-      "limit": "10 KB"
+      "limit": "10.5 KB"
     },
     {
-      "name": "default — the antd skin (query box + typeahead, filters incl. ranges/geo/category slots + the phone chip row and the location summary row, results incl. the view switch, ranking) must stay out of the main bundle",
+      "name": "default — the antd skin (query box + a typeahead that offers CATEGORY destinations with their live counts, filters incl. ranges/geo/category slots + the phone chip row with its leading category chip and the location summary row, results incl. the view switch, ranking) must stay out of the main bundle",
       "path": "dist/default/index.js",
-      "limit": "18 KB"
+      "limit": "19.5 KB"
     },
     {
       "name": "router — the react-router binding is opt-in; the main entry must never pull a router",
@@ -85,10 +85,10 @@
     }
   ],
   "peerDependencies": {
-    "@stapel/attributes-react": ">=0.1.0",
+    "@stapel/attributes-react": ">=0.4.0",
     "@stapel/core": ">=0.18.1 <1.0.0",
     "@stapel/image": ">=0.3.0",
-    "@stapel/tokens-antd": ">=0.7.0",
+    "@stapel/tokens-antd": ">=0.11.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19",

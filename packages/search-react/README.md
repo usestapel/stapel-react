@@ -83,6 +83,20 @@ two members, shaped exactly like react-router's `useSearchParams()`. `./router`
 ships that binding; a Next.js app, a hash router or a plain `URLSearchParams` in
 a test satisfy the same seam.
 
+## The search box reaches the catalogue, not only the titles
+
+`GET /suggest` (stapel-search 0.7.0) answers CATEGORIES as well as title
+prefixes, so typing a section's name offers the section. `<SearchBox>` draws
+them as their own group above the terms — each row the ancestor path plus its
+live listing count, which is the only way to tell three same-named leaves
+apart — and selecting one narrows the SERP using the server's own `category`
+string, verbatim.
+
+An older server sends no `categories` key and the box behaves exactly as it
+did. When the answer says `degraded: ["category_suggestions"]` the group is
+absent rather than empty: an empty group under a heading would claim the
+catalogue has no such section.
+
 ## Facets are drill-down, and the panel says so
 
 Each facet is counted over the candidates **with its own filter removed**
@@ -98,6 +112,34 @@ category's feature schema. Hand that schema in and the options read as words:
 ```
 
 Without it, options read as raw index terms. Never as blanks.
+
+That schema also decides **which counted slugs are filters at all**: a plan
+derived from a category counts what is indexed, so a real answer carries `imei`
+and `video_file_url` beside `condition` and `vendor`. Only the bounded option
+types (`FACETABLE_FEATURE_TYPES`) get a chip. A slug with no feature def is
+kept — silence is not a verdict — and so is any slug the URL already filters on,
+so a link can always be widened again.
+
+A `ref_select` facet carries a POINTER to a vocabulary and no options, and a
+server older than stapel-search 0.4.0 sends no `facet_labels` to cover for it.
+`resolveFacetLabels` is the host seam that names those values — batched per
+group, cached, aborted on supersession:
+
+```tsx
+<SearchPage
+  categoryFeatures={features}
+  resolveFacetLabels={async ({ slug, feature, values }, { signal }) =>
+    await vocabulary.captions(feature, values, { signal })
+  }
+  renderCategoryFilter={(slot) => <CategoryPickerField {...slot} />}
+  categoryLabel={currentCategory?.name}
+/>
+```
+
+Precedence is `facet_labels` → the schema's inline `options` → this resolver →
+the raw value; a value nobody names keeps printing itself. `renderCategoryFilter`
+also becomes the leading chip of the phone filter row, which is where the
+catalogue's deeper levels are chosen on a result list.
 
 ## What the server admits, the screen repeats
 

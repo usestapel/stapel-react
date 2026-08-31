@@ -54,6 +54,7 @@ import { featureName } from "@stapel/attributes-react";
 import type { FeatureDef } from "@stapel/attributes-react";
 import type { SearchGeo } from "../api/types.js";
 import { FacetPanel } from "../headless/FacetPanel.js";
+import type { FacetLabelResolver } from "../headless/useFacetLabels.js";
 import { useSearchState } from "../headless/SearchStateProvider.js";
 import { FacetGroupControl } from "./FacetGroupControl.js";
 import { buildRangeGroups } from "../state/ranges.js";
@@ -78,11 +79,21 @@ export interface GeoFilterSlotProps {
 }
 
 export interface FacetPanelPaneProps extends ThemeModeProp {
-  /** The category's feature schema — the source of option LABELS and of which
-   * slugs get a numeric range row. */
+  /** The category's feature schema — the source of option LABELS, of which
+   * slugs get a numeric range row, and of which slugs are a filter at all
+   * (`isFacetableFeature`: an `imei` is counted and is not one). */
   readonly categoryFeatures?: readonly FeatureDef[];
   readonly locale?: string;
   readonly enabled?: boolean;
+  /**
+   * Name the values neither the answer nor the schema names — see
+   * {@link FacetLabelResolver}. A `ref_select` facet carries only a pointer to
+   * a vocabulary in its config, and the vocabulary is the host's to read.
+   *
+   * The same prop reaches `<FilterChips>` from `<SearchPage>`, so the panel
+   * and the chip row cannot print two different words for one value.
+   */
+  readonly resolveFacetLabels?: FacetLabelResolver;
   /** The catalogue picker (`categories-react`'s `CategoryPickerField`, bound
    * to a path). Unfilled, an active category still gets a "clear" control. */
   readonly renderCategoryFilter?: (slot: CategoryFilterSlotProps) => ReactNode;
@@ -315,6 +326,9 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
           : {})}
         {...(props.locale !== undefined ? { locale: props.locale } : {})}
         {...(props.enabled !== undefined ? { enabled: props.enabled } : {})}
+        {...(props.resolveFacetLabels !== undefined
+          ? { resolveFacetLabels: props.resolveFacetLabels }
+          : {})}
       >
         {(bag) => {
           // Built INSIDE the bag, because which axes exist is a property of

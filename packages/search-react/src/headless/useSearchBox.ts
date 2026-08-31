@@ -21,10 +21,36 @@
  *
  * The suggestion list is asked for the DEBOUNCED prefix, not the draft — one
  * request per pause, not per keystroke, on an endpoint the backend throttles.
+ *
+ * ── The box reaches the CATALOGUE, not only the titles ────────────────────
+ *
+ * stapel-search 0.7.0 answers `/suggest` with two halves. Until it did, typing
+ * a word that names a section of the catalogue answered listing titles and
+ * nothing else: on a live classified deployment the search field could not
+ * reach a category at all, and the owner's own navigation canon rules out both
+ * of the usual workarounds — a picker, and a client-side typeahead over the
+ * whole tree.
+ *
+ * The server's answer is neither, and it carries the one thing a client-side
+ * matcher can never have: the number of LIVE listings behind each destination,
+ * computed as one aggregate over the index and equal to what `/query` reports
+ * for the same category. That number is what tells "Menswear / Shorts" from
+ * "Childrenswear / Shorts".
+ *
+ * Everything here is absent-safe. A server that predates 0.7.0 sends no
+ * `categories` key, `suggestCategories` is empty, and the box behaves exactly
+ * as it did — which is not a hypothetical: the key appeared mid-session on a
+ * stand that was redeployed underneath a running client.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadStateFromQuery, mapLoad } from "@stapel/core";
 import type { LoadState } from "@stapel/core";
+import {
+  SUGGEST_DEGRADED_CATEGORIES,
+  SUGGEST_DEGRADED_ROLLUP,
+  suggestTerms,
+} from "../api/types.js";
+import type { SuggestAnswer, SuggestCategory } from "../api/types.js";
 import { useSearchState } from "./SearchStateProvider.js";
 import { useSuggest } from "../model/queries.js";
 import {
@@ -55,6 +81,42 @@ export interface SearchBoxBag {
   readonly suggestState: LoadState<readonly string[]>;
   /** A suggestion request is in flight for a prefix nothing is shown for yet. */
   readonly suggestLoading: boolean;
+  /**
+   * CATEGORY destinations for the typed prefix, server-ranked by live listing
+   * count — the primary half of the answer (stapel-search 0.7.0).
+   *
+   * Empty on a server that sends no `categories` key, and empty when the
+   * server could not reach a category provider: see
+   * {@link SearchBoxBag.categoriesUnavailable} for why a surface must tell
+   * those two apart from "nothing matched".
+   *
+   * A category with a count of `0` is already filtered out — see
+   * {@link SearchBoxBag.categoryCountsUnknown}.
+   */
+  readonly categories: readonly SuggestCategory[];
+  /**
+   * The server HAS no category provider for this answer
+   * (`degraded: ["category_suggestions"]`), so `categories` being empty says
+   * nothing about the catalogue.
+   *
+   * A surface must render no group at all rather than an empty one: a heading
+   * over nothing is the box telling a person the catalogue has no section by
+   * that name, which is a claim this answer did not make. It is deliberately
+   * NOT a banner either — the reader is mid-word, the terms half still
+   * answers, and a provider being down is the operator's business, the same
+   * ruling `degradationAudience` already applies to an engine shortfall.
+   */
+  readonly categoriesUnavailable: boolean;
+  /**
+   * The counts on {@link SearchBoxBag.categories} are not answers
+   * (`degraded: ["category_rollup"]`): with no ancestry every stored path is
+   * one segment long, so every count would read `0` for a mechanical reason.
+   *
+   * The rows are still real destinations and are still offered; a surface
+   * prints the path and omits the number, because a catalogue of zeros is
+   * worse than a list with no counts.
+   */
+  readonly categoryCountsUnknown: boolean;
   /** Characters a prefix needs before the index is asked. */
   readonly minSuggestChars: number;
   readonly maxLength: number;
@@ -65,6 +127,25 @@ export interface SearchBoxBag {
   submit(value?: string): void;
   /** Empty the box AND the search (an empty `q` is a valid browse). */
   clear(): void;
+  /**
+   * Follow a category suggestion: narrow the SERP to that section.
+   *
+   * Two decisions, both load-bearing.
+   *
+   * The `category` parameter is set to the server's own
+   * {@link SuggestCategory.category} string, VERBATIM. The server joins the
+   * ancestry itself precisely so a client cannot invent a different join and
+   * silently miss, so nothing here rebuilds it from the path or the slug.
+   *
+   * The typed text is CLEARED in the same write. The row promised a count —
+   * "Menswear / Shorts, 1 240 listings" — and that number is the
+   * section's, not the section's intersected with a title search for the word
+   * that found it. Keeping `q` would land a person on strictly fewer results
+   * than the row they tapped had just quoted, which is the row lying about
+   * where it goes. One `patch` call, so it is also one history entry: Back
+   * returns to the search the person typed.
+   */
+  chooseCategory(category: SuggestCategory): void;
 }
 
 export interface UseSearchBoxOptions {
@@ -81,8 +162,39 @@ export interface UseSearchBoxOptions {
 /** One frozen empty list, so a render with no suggestions is a stable value. */
 const NO_SUGGESTIONS: readonly string[] = [];
 
+/** The same, for the categories half. */
+const NO_CATEGORIES: readonly SuggestCategory[] = [];
+
+/** Does this answer name a shortfall? Absent-safe on every older server. */
+function degradedWith(answer: SuggestAnswer | undefined, literal: string): boolean {
+  return answer?.degraded?.includes(literal) === true;
+}
+
+/**
+ * The destinations worth offering out of one answer.
+ *
+ * A category with a count of `0` is a section with nothing in it: following it
+ * lands the buyer on an empty SERP, which is a dead end dressed as a
+ * destination — and the server does return those (it reads the count with a
+ * `0` default and ranks them last), so somebody has to drop them.
+ *
+ * The one exception is `category_rollup`, where EVERY count is `0` because the
+ * ancestry never arrived rather than because the sections are empty. Filtering
+ * on the count there would delete the whole group for a reason that has
+ * nothing to do with what is in the catalogue, so the rows are kept and the
+ * numbers are what the surface omits.
+ */
+export function offerableCategories(
+  answer: SuggestAnswer | undefined
+): readonly SuggestCategory[] {
+  const categories = answer?.categories;
+  if (categories === undefined || categories.length === 0) return NO_CATEGORIES;
+  if (degradedWith(answer, SUGGEST_DEGRADED_ROLLUP)) return categories;
+  return categories.filter((category) => category.count > 0);
+}
+
 export function useSearchBox(options: UseSearchBoxOptions = {}): SearchBoxBag {
-  const { state, setText } = useSearchState();
+  const { state, setText, patch } = useSearchState();
   const committed = state.q;
   const debounceMs = options.debounceMs ?? SEARCH_BOX_DEBOUNCE_MS;
 
@@ -168,10 +280,21 @@ export function useSearchBox(options: UseSearchBoxOptions = {}): SearchBoxBag {
     enabled: options.suggest !== false,
   });
 
-  const suggestState = mapLoad(
-    loadStateFromQuery(suggest),
-    (data) => data.items as readonly string[]
-  );
+  const suggestState = mapLoad(loadStateFromQuery(suggest), suggestTerms);
+
+  // The READY answer only. A category row is a navigation control, and one
+  // rendered out of a stale answer would send a person somewhere the current
+  // prefix never named.
+  const answer = suggest.data;
+  const categories = offerableCategories(answer);
+
+  const chooseCategory = (category: SuggestCategory): void => {
+    setDraftState("");
+    cancel();
+    // One write, so one history entry — see `SearchBoxBag.chooseCategory` for
+    // why the text goes with it.
+    patch({ q: "", category: category.category });
+  };
 
   return {
     draft,
@@ -180,10 +303,14 @@ export function useSearchBox(options: UseSearchBoxOptions = {}): SearchBoxBag {
     suggestions: suggestState.status === "ready" ? suggestState.data : NO_SUGGESTIONS,
     suggestState,
     suggestLoading: suggest.isLoading && suggest.fetchStatus === "fetching",
+    categories,
+    categoriesUnavailable: degradedWith(answer, SUGGEST_DEGRADED_CATEGORIES),
+    categoryCountsUnknown: degradedWith(answer, SUGGEST_DEGRADED_ROLLUP),
     minSuggestChars: SUGGEST_MIN_CHARS,
     maxLength: SEARCH_QUERY_MAX_CHARS,
     setDraft,
     submit,
     clear,
+    chooseCategory,
   };
 }

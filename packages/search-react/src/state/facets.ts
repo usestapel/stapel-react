@@ -8,29 +8,94 @@
  *    they would have if you swapped to them. A panel that greys the siblings
  *    out has silently converted a drill-down facet into a naive one, and the
  *    e2e leg in the spec (§7.2) exists to catch exactly that.
- * 2. **Option LABELS come from two places, in that order.** The category's
- *    feature schema — `categoryFeatures`, the second slot-seam of the pair,
- *    filled by the container from `categories-react` (spec §6.2 item 2) —
- *    and, under it, the answer's own `facet_labels` (stapel-search 0.4.0+).
+ * 2. **Option LABELS have one stated order: ANSWER, then schema, then the
+ *    raw value** — with a host resolver between the last two, applied by
+ *    `useHostFacetLabels` on what this module could not name.
  *
- *    Until 0.4.0 the server sent `{value: count}` and nothing else, on the
- *    reasoning that the container has the schema anyway. That reasoning had
- *    a hole the size of a marketplace: the slot is OPTIONAL, a live
- *    classified board never filled it, and its buyers read "Condition:
- *    **b-u**", "Listing kind: **prodayu-svoe**", "Screen condition:
- *    **bez-defektov**" on the SERP and in the filter chips. The schema still
- *    wins where it resolves — the client fetched it with its own
- *    `Accept-Language` — and the answer's captions are the floor beneath it.
- *    Neither invents a label: a value nobody names renders as itself.
+ *    The answer leads because it is the only source that always exists and
+ *    the only one that has RESOLVED anything: `categoryFeatures` is an
+ *    optional slot a live classified board never filled, and even where it is
+ *    filled a `ref_select` config carries a pointer to a vocabulary and no
+ *    option table at all — so the schema cannot name `apple` or `chernyy` no
+ *    matter who threads it through. `facet_labels` (stapel-search 0.4.0+,
+ *    vocabulary-backed from 0.6.0) is the server reading that vocabulary
+ *    against the snapshot the documents were written with, and answering in
+ *    the request's own language. The schema is the floor under it, for a
+ *    server too old to send captions and for a slug the answer omits.
+ *
+ *    Neither invents a label: a value nobody names renders as itself. A page
+ *    against a pre-0.4.0 server therefore behaves exactly as it did — the key
+ *    is absent, every option falls through to the schema, and nothing
+ *    crashes on the missing key.
  *
  * A slug the server SKIPPED (`facet_meta.skipped`, dropped at
  * `MAX_FACET_FIELDS`) is not counted at all. Its options carry `count: null`,
  * never `0` — "we did not count this" and "there are none" are different
  * sentences and the honest one has to survive to the screen.
+ *
+ * 3. **Not every counted slug is a FILTER.** The plan is built from the leaf
+ *    category's feature defs and the counter counts whatever is indexed, so a
+ *    live classified deployment answers with `imei: {"355971829187494": 1}`
+ *    and `video_file_url: {}` beside its brand and its condition. Neither is
+ *    something a person narrows by — one is unique per document, the other is
+ *    a URL — and on a 390px chip row a chip offering one IMEI with a count of
+ *    one pushes the chips that DO narrow off the screen. Which slugs can be
+ *    chipped is therefore decided from the category's own feature defs, by
+ *    value TYPE (see {@link FACETABLE_FEATURE_TYPES}), not by what came back.
  */
-import { featureConfig, featureName, featureType, formatFeatureValue } from "@stapel/attributes-react";
+import {
+  VOCABULARY_BACKED_TYPES,
+  featureConfig,
+  featureName,
+  featureType,
+  formatFeatureValue,
+} from "@stapel/attributes-react";
 import type { FeatureDef } from "@stapel/attributes-react";
 import type { FacetMeta, SearchQueryState } from "../api/types.js";
+
+/**
+ * Value types whose values are a BOUNDED OPTION SET — the only kind of
+ * feature a person can be offered as a filter.
+ *
+ * The list is not invented here: the ref/vocabulary-backed half is
+ * `@stapel/attributes-react`'s own `VOCABULARY_BACKED_TYPES` (the one place
+ * that knows which types are drawn from a vocabulary), and the rest are the
+ * select family plus `bool`. Everything else a category can declare — a
+ * `string`, an `int`, a `date`, a `hex_color`, a `group` — enumerates as many
+ * terms as there are documents, which is a list, not a choice.
+ *
+ * `int`/`float`/`convertible_unit` are absent here and present in
+ * `RANGE_FEATURE_TYPES` (`state/ranges.ts`): a number is narrowed with two
+ * bounds, not with a checkbox per value. They are not dropped from the panel,
+ * they are drawn by the other half of the model.
+ */
+export const FACETABLE_FEATURE_TYPES: readonly string[] = [
+  "bool",
+  "hierarchical_select",
+  ...VOCABULARY_BACKED_TYPES,
+  "select",
+];
+
+/**
+ * Can a person filter by the slug this feature def describes?
+ *
+ * **A missing feature def is not a "no".** `categoryFeatures` is an OPTIONAL
+ * slot and a whole deployment can run without it; a feature can also be
+ * retired between the write that indexed a value and the read that counts it.
+ * Answering "not facetable" for an absent def would blank the entire chip row
+ * for every host that never threaded the schema through — the same empty row
+ * this rule exists to fix, arrived at from the other side. So the schema can
+ * only ever REMOVE a chip it names and disowns; silence removes nothing.
+ *
+ * The same reasoning covers a def with no `config.type` at all: an untyped
+ * feature is a def that says nothing, and nothing is not a verdict.
+ */
+export function isFacetableFeature(feature: FeatureDef | undefined): boolean {
+  if (feature === undefined) return true;
+  const type = featureType(feature);
+  if (type === undefined) return true;
+  return FACETABLE_FEATURE_TYPES.includes(type);
+}
 
 /** One value of one facet. */
 export interface FacetOption {
@@ -68,23 +133,25 @@ export interface BuildFacetGroupsInput {
   /** The category's feature schema, for labels and option order. */
   readonly categoryFeatures?: readonly FeatureDef[];
   /**
-   * The envelope's `facet_labels` (stapel-search 0.4.0+):
-   * `{slug: {translatable, values: {value: caption}}}`.
+   * The envelope's `facet_labels` (stapel-search 0.4.0+, vocabulary-backed
+   * from 0.6.0): `{slug: {translatable, values: {value: caption}}}`.
    *
-   * The FLOOR under `categoryFeatures`, not a replacement for it. Both read
-   * the same category config, but they read it differently: the client
-   * fetches `GET /categories/{id}/features/` with its own `Accept-Language`,
-   * so a host that threaded the schema through has the better-localized
-   * copy and keeps it. What the answer's captions fix is the case where
-   * there is no other copy at all — `categoryFeatures` is an OPTIONAL slot,
-   * a live classified board never filled it, and its buyers read
-   * "Condition: **b-u**" and "Listing kind: **prodayu-svoe**" on the SERP and in the
-   * filter chips. A caption that arrives with the counts cannot be
-   * forgotten by a host.
+   * The PRIMARY caption source, above `categoryFeatures`. Two reasons, and
+   * the second is the one that cannot be worked around:
    *
-   * A slug neither side captions (a vocabulary-backed one, whose level lives
-   * outside the category schema) falls through to the raw value. No labels
-   * are invented at any step.
+   *  - it is always there. The schema slot is optional and a live classified
+   *    board never filled it, so its buyers read "Condition: **b-u**" and
+   *    "Listing kind: **prodayu-svoe**" on the SERP and in the filter chips.
+   *  - it is the only source that RESOLVED anything. A `ref_select`'s config
+   *    carries an `optionsRef` pointer and no option table, so a host that
+   *    threads the entire schema through still has nothing to print for
+   *    `apple` or `chernyy`. The server read that vocabulary against the
+   *    snapshot the documents were written with.
+   *
+   * ABSENT on a server older than 0.4.0 — absent, not empty — which is why
+   * every read of it here is optional-chained and every option falls through
+   * to the schema and then to its raw self. No labels are invented at any
+   * step.
    */
   readonly facetLabels?: Readonly<
     Record<
@@ -149,14 +216,19 @@ function declaredOptionValues(feature: FeatureDef | undefined): readonly string[
 }
 
 /**
- * One option's caption: schema, then answer, then the raw value.
+ * One option's caption: the ANSWER, then the schema, then the raw value.
  *
- * Order matters and is deliberate. Both sources are the same category
- * config, but the client fetched its copy with its own `Accept-Language`, so
- * where the host threaded a schema through and it names the value, that is
- * the better-localized answer. Where it does not — no schema, a slug the
- * schema omits, a value added since — the server's caption is what stops
- * `b-u` reaching a buyer.
+ * The answer leads because it is the source that always exists and the only
+ * one that can name a vocabulary-backed value at all: a `ref_select`'s config
+ * is a POINTER (`optionsRef`), so a host who threaded the whole schema through
+ * still has nothing to print for `apple`. The server read that vocabulary
+ * against the snapshot the documents carry and answered in the request's own
+ * language, which is a strictly better-informed caption than the option table
+ * the schema may or may not hold.
+ *
+ * The schema is the floor: a server too old to send `facet_labels`, a slug the
+ * answer omits, a value the vocabulary has since dropped. Below both, the raw
+ * value — never a blank, and never a guess.
  */
 function resolveLabel(
   input: BuildFacetGroupsInput,
@@ -165,9 +237,10 @@ function resolveLabel(
   value: string,
   labelOptions: { t?: (key: string) => string; locale?: string }
 ): string {
-  const viaSchema = facetOptionLabel(feature, value, labelOptions);
-  if (feature !== undefined && viaSchema !== value) return viaSchema;
-  return serverLabel(input.facetLabels, slug, value, input.t) ?? viaSchema;
+  return (
+    serverLabel(input.facetLabels, slug, value, input.t) ??
+    facetOptionLabel(feature, value, labelOptions)
+  );
 }
 
 /**
@@ -231,6 +304,13 @@ export function facetOptionLabel(
  * person has filtered on — the last one matters: a filter whose slug fell out
  * of the plan must stay visible, or it becomes a constraint with no control to
  * remove it.
+ *
+ * A slug the category schema names and types as something no one can choose
+ * from (see {@link isFacetableFeature}) produces no group at all — not an
+ * empty one, because an empty group is still a heading in the panel and still
+ * a chip in the row. The APPLIED-filter clause outranks the type rule: a
+ * constraint the URL carries always gets its control back, whatever the schema
+ * now says about it, or a person is left holding a filter they cannot clear.
  */
 export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGroup[] {
   const bySlug = new Map<string, FeatureDef>();
@@ -246,6 +326,10 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
   ]) {
     if (seen.has(slug)) continue;
     seen.add(slug);
+    // Applied first, type second — in that order, so an `imei` somebody
+    // somehow got into a link keeps the control that removes it.
+    const applied = (input.state.filters[slug] ?? []).length > 0;
+    if (!applied && !isFacetableFeature(bySlug.get(slug))) continue;
     slugs.push(slug);
   }
 

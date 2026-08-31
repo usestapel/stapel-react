@@ -25,8 +25,122 @@ export type SearchItem = Schemas["SearchItem"];
  * `counted`, `skipped`. Rendered, never swallowed (spec §4.2). */
 export type FacetMeta = Schemas["FacetMeta"];
 
-/** `GET /suggest` 200. */
+/** `GET /suggest` 200, as the CURRENT generated schema describes it. */
 export type SuggestResponse = Schemas["SuggestResponse"];
+
+/**
+ * How a category's name matched the typed prefix. Informational — the server
+ * ranks by `count`, never by this.
+ */
+export type SuggestCategoryMatch = "prefix" | "substring";
+
+/**
+ * One CATEGORY the type-ahead offers: a destination, not a search term.
+ *
+ * A classified's search box is a navigation control before it is a text
+ * filter. "Shorts" is not one destination but three — men's, women's,
+ * children's — and the only things that let a buyer pick between them are the
+ * ancestor path and how many live listings sit behind each. Both are here,
+ * and neither can be computed on the client: the count is one aggregate over
+ * the index, and a client-side matcher over a fetched tree would have the
+ * names and no numbers.
+ */
+export interface SuggestCategory {
+  readonly id: number;
+  readonly slug: string;
+  /** The category's own display name. */
+  readonly name: string;
+  /**
+   * Display names root→leaf, e.g. `["Menswear", "Shorts"]` — this is what
+   * distinguishes three categories sharing a name, and it is what a row has
+   * to print.
+   */
+  readonly path: readonly string[];
+  /**
+   * The ancestry as ids joined with `/`, ready to pass VERBATIM as the
+   * `category` parameter of `/query`.
+   *
+   * The server serves the joined string rather than only the segments
+   * precisely so that a client cannot invent a different join and silently
+   * miss — so nothing in this pair rebuilds it from {@link path} or
+   * {@link slug}.
+   */
+  readonly category: string;
+  /**
+   * Live listings a buyer would see under this category, descendants
+   * included — the same number the SERP reports for it.
+   */
+  readonly count: number;
+  /** Number of segments in {@link path}. */
+  readonly depth: number;
+  readonly match: SuggestCategoryMatch;
+}
+
+/**
+ * The `/suggest` answer this pair actually reads.
+ *
+ * GENERATOR NOTE, and the reason this is not `Schemas["SuggestResponse"]`:
+ * the generated type describes ONE server. stapel-search 0.7.0 made the answer
+ * three-part — `categories`, `terms`, and `items` as a deprecated alias of
+ * `terms` — plus `language` and `degraded`, and declares all five REQUIRED,
+ * which is true of a 0.7.0 answer and false of every answer sent by the
+ * servers a storefront is also deployed against.
+ *
+ * Every member but `backend` is therefore OPTIONAL here, which is not
+ * sloppiness but the deployment story: a storefront ships against whichever
+ * server is actually running, an older one sends no `categories` key at all,
+ * and "the key is absent" has to read as "this server offers no destinations"
+ * rather than as a crash or as an empty group under a heading. A pair typed
+ * against the required-field version would compile while reading `undefined`
+ * from a field the compiler swore was there.
+ */
+export interface SuggestAnswer {
+  readonly backend: string;
+  /** Destinations, ranked by live listing count desc, then depth, then name. */
+  readonly categories?: readonly SuggestCategory[];
+  /** Title prefixes from the index. */
+  readonly terms?: readonly string[];
+  /** Deprecated alias of {@link terms}, and the only half a pre-0.7.0 server
+   * sends. Read through {@link suggestTerms}, never directly. */
+  readonly items?: readonly string[];
+  /** Which dictionary answered — the same resolution `/query` reports. */
+  readonly language?: string;
+  /** What this answer could not do — see {@link SUGGEST_DEGRADED_CATEGORIES}
+   * and {@link SUGGEST_DEGRADED_ROLLUP}. */
+  readonly degraded?: readonly string[];
+}
+
+/**
+ * The suggest answer had NO category provider, so the categories half is
+ * empty for a reason that is not "nothing matched".
+ *
+ * A dropdown has no room for a sentence about a provider being down, and the
+ * person reading it is mid-word. So the group is ABSENT rather than empty —
+ * an empty group under a heading is the box claiming the catalogue has no
+ * section by that name, which is a different and untrue statement.
+ */
+export const SUGGEST_DEGRADED_CATEGORIES = "category_suggestions";
+
+/**
+ * Ancestry never arrived, so every stored path is one segment long and every
+ * count would read `0`.
+ *
+ * The rows are still destinations and still worth offering; their COUNTS are
+ * the part that is not an answer, so a surface drops the number rather than
+ * printing a catalogue of zeros.
+ */
+export const SUGGEST_DEGRADED_ROLLUP = "category_rollup";
+
+/**
+ * The term half of a suggest answer, from whichever key this server sends.
+ *
+ * `terms` is 0.7.0's name and `items` is the deprecated alias kept for one
+ * minor; a client that read only one of them would go blank against half the
+ * servers in the fleet.
+ */
+export function suggestTerms(answer: SuggestAnswer | undefined): readonly string[] {
+  return answer?.terms ?? answer?.items ?? [];
+}
 
 /** `GET /ranking` 200 — the P2B Art. 5 disclosure. */
 export type RankingResponse = Schemas["RankingResponse"];

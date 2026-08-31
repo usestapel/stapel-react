@@ -69,6 +69,11 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.box.submit": "Найти",
   "search.box.clear": "Очистить запрос",
   "search.box.suggestions": "Подсказки",
+  "search.box.categories": "Разделы",
+  "search.box.category_count.one": "{count} объявление",
+  "search.box.category_count.few": "{count} объявления",
+  "search.box.category_count.many": "{count} объявлений",
+  "search.box.category_count.other": "{count} объявления",
 
   "search.sort.label": "Сортировка",
   "search.sort.relevance": "По релевантности",
@@ -178,6 +183,10 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.ranking.inactive": "Не применяется: {reason}",
   "search.ranking.notes": "Примечания",
   "search.ranking.link": "Как упорядочены результаты",
+
+  "search.nav.results": "Поиск",
+  "search.nav.ranking": "Порядок результатов",
+  "search.nav.ranking.short": "Порядок",
 };
 
 /** Register the ru bundle. Call AFTER `registerSearchI18n` so it layers over

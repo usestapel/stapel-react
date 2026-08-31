@@ -102,12 +102,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Title prefixes from the index
-         * @description ``GET /search/api/v1/suggest`` — title prefixes out of the index.
+         * Type-ahead: category paths with live counts, plus title prefixes
+         * @description ``GET /search/api/v1/suggest`` — what to offer under the search box.
          *
-         *     Not out of a query log: no query log is kept, which is a privacy
+         *     ``categories`` is the primary half: each row is a destination with its
+         *     full ancestor path and the number of listings a buyer would actually
+         *     see there, ranked by that number. ``terms`` is the title-prefix half.
+         *
+         *     Neither comes from a query log: no query log is kept, which is a privacy
          *     decision before it is a product one, and on day one there would be
          *     nothing in it anyway.
+         *
+         *     The answer is public, identical for every reader and requested on every
+         *     keystroke, so it carries ``Cache-Control: public`` and an ``ETag``. This
+         *     is the module's first conditional read — ``query`` has none, because a
+         *     SERP answer embeds ``took_ms`` and a cursor and would revalidate to a
+         *     miss every time. Here the payload is deliberately free of anything that
+         *     varies with the clock.
          *
          *     **Permissions:** `AllowAny`
          */
@@ -124,6 +135,30 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description One destination in the dropdown, ready to render and ready to follow. */
+        CategorySuggestion: {
+            /** @description Category id. */
+            id: number;
+            /** @description Category slug. */
+            slug: string;
+            /** @description The category's own display name. */
+            name: string;
+            /** @description Display names root->leaf, e.g. ['Мужская одежда', 'Шорты']. This is what distinguishes three categories that share a name. */
+            path: string[];
+            /** @description The ancestry as ids joined with '/'. Pass it verbatim as the `category` parameter of /query — do not re-join path segments yourself. */
+            category: string;
+            /** @description Live listings a buyer would see under this category, descendants included — the same number the SERP reports for it. */
+            count: number;
+            /** @description Number of segments in `path`. */
+            depth: number;
+            /**
+             * @description How the name matched. Informational; ranking is by `count`.
+             *
+             *     * `prefix` - prefix
+             *     * `substring` - substring
+             */
+            match: components["schemas"]["MatchEnum"];
+        };
         /** @description Captions for one slug's option codes. */
         FacetLabels: {
             /** @description True when `values` holds translation KEYS to run through the catalogue; false when it holds literal captions. The reader cannot tell by looking — `b.apple` and `Б/у` are both strings. */
@@ -155,6 +190,12 @@ export interface components {
             lag_seconds?: number | null;
             stale_reason?: string;
         };
+        /**
+         * @description * `prefix` - prefix
+         *     * `substring` - substring
+         * @enum {string}
+         */
+        MatchEnum: "prefix" | "substring";
         /** @description The P2B Art. 5 disclosure, generated from the scorer registry. */
         RankingResponse: {
             doc_type: string;
@@ -242,7 +283,16 @@ export interface components {
             took_ms: number;
         };
         SuggestResponse: {
+            /** @description Destinations, ranked by live listing count desc, then depth, then name. */
+            categories: components["schemas"]["CategorySuggestion"][];
+            /** @description Title prefixes from the index. */
+            terms: string[];
+            /** @description Deprecated alias of `terms`, kept for one minor. */
             items: string[];
+            /** @description Which dictionary answered — the same resolution /query reports. */
+            language: string;
+            /** @description What this answer could not do: `category_suggestions` (no provider for category names), `category_rollup` (no ancestry, so counts would read 0). */
+            degraded: string[];
             backend: string;
         };
     };
@@ -372,11 +422,15 @@ export interface operations {
     };
     search_api_v1_suggest_retrieve: {
         parameters: {
-            query: {
+            query?: {
+                /** @description Language of the query: picks the dictionary, so «shorty» reaches «шорты». Falls back to Accept-Language, then DEFAULT_LANGUAGE. */
+                lang?: string;
+                /** @description Rows per half. Capped by MAX_SUGGEST_LIMIT. */
                 limit?: number;
-                /** @description Title prefix. */
+                /** @description What the buyer has typed so far. */
                 q?: string;
-                type: string;
+                /** @description Registered doc_type. Optional when exactly one type is registered — a type-ahead should not have to name the only corpus there is. */
+                type?: string;
             };
             header?: never;
             path?: never;

@@ -6,6 +6,8 @@ import type { FacetMeta, SearchRange } from "../api/types.js";
 import { useSearchQuery } from "../model/queries.js";
 import { buildFacetGroups } from "../state/facets.js";
 import type { FacetGroup } from "../state/facets.js";
+import { useHostFacetLabels } from "./useFacetLabels.js";
+import type { FacetLabelResolver } from "./useFacetLabels.js";
 import { useSearchState } from "./SearchStateProvider.js";
 
 /** The bag `<FacetPanel>` hands its render prop. */
@@ -87,6 +89,8 @@ export function FacetPanel(props: {
   /** BCP-47 tag for `date`-typed option labels. Defaults to the runtime's. */
   locale?: string;
   enabled?: boolean;
+  /** The host's vocabulary lookup — see {@link FacetLabelResolver}. */
+  resolveFacetLabels?: FacetLabelResolver;
   children: (bag: FacetPanelBag) => ReactNode;
 }): ReactNode {
   return props.children(
@@ -96,6 +100,9 @@ export function FacetPanel(props: {
         : {}),
       ...(props.locale !== undefined ? { locale: props.locale } : {}),
       ...(props.enabled !== undefined ? { enabled: props.enabled } : {}),
+      ...(props.resolveFacetLabels !== undefined
+        ? { resolveFacetLabels: props.resolveFacetLabels }
+        : {}),
     })
   );
 }
@@ -116,6 +123,13 @@ export function useFacetPanel(props: {
   categoryFeatures?: readonly FeatureDef[];
   locale?: string;
   enabled?: boolean;
+  /**
+   * The host's lookup for values neither the answer nor the schema names —
+   * see {@link FacetLabelResolver}. Threaded here rather than into each skin
+   * so the chip row and the filter panel, which both call this hook, cannot
+   * end up printing two different words for one value.
+   */
+  resolveFacetLabels?: FacetLabelResolver;
 } = {}): FacetPanelBag {
   const { state: searchState, setFilter, setRange, clearAll, toggleFilter, activeFilters } =
     useSearchState();
@@ -142,8 +156,13 @@ export function useFacetPanel(props: {
     })
   );
 
+  // The host seam runs AFTER `buildFacetGroups`, on what it could not name:
+  // the precedence is server captions, then the schema's own option table,
+  // then this. See `useFacetLabels.ts`.
+  const labelled = useHostFacetLabels(groups, props.resolveFacetLabels, props.locale);
+
   return {
-    state: groups,
+    state: labelled,
     approximate: meta.approximate,
     skipped: meta.skipped,
     counted: meta.counted,

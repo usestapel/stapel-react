@@ -7,7 +7,7 @@ import type {
   RankingResponse,
   SearchItem,
   SearchResponse,
-  SuggestResponse,
+  SuggestAnswer,
 } from "../src/index.js";
 
 export const DEMO_TYPE = "listing";
@@ -193,9 +193,41 @@ export const DEMO_PLAIN_ITEM: SearchItem = {
   },
 };
 
-/** Title prefixes out of the INDEX — never a query log (`services.suggest`). */
-export const DEMO_SUGGEST: SuggestResponse = {
+/**
+ * What the box offers under the cursor: DESTINATIONS first, then title
+ * prefixes out of the INDEX — never a query log (`services.suggest`).
+ *
+ * The two categories share a leaf name, which is the case the group exists
+ * for: only the ancestor path and the live count tell them apart, and a
+ * client-side matcher over a fetched tree would have the names and no numbers.
+ */
+export const DEMO_SUGGEST: SuggestAnswer = {
+  categories: [
+    {
+      id: 41,
+      slug: "dreli",
+      name: "Дрели",
+      path: ["Инструменты", "Дрели"],
+      category: "10/41",
+      count: 1240,
+      depth: 2,
+      match: "prefix",
+    },
+    {
+      id: 52,
+      slug: "dreli",
+      name: "Дрели",
+      path: ["Садовая техника", "Дрели"],
+      category: "11/52",
+      count: 96,
+      depth: 2,
+      match: "substring",
+    },
+  ],
+  terms: ["Bosch GSB 13 RE", "Bosch GBH 2-26", "Bosch PSR 18"],
   items: ["Bosch GSB 13 RE", "Bosch GBH 2-26", "Bosch PSR 18"],
+  language: "ru",
+  degraded: [],
   backend: "postgres",
 };
 

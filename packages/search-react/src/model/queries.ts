@@ -6,7 +6,7 @@ import type {
   RankingResponse,
   SearchQueryState,
   SearchResponse,
-  SuggestResponse,
+  SuggestAnswer,
 } from "../api/types.js";
 import { SUGGEST_MAX_LIMIT, SUGGEST_MIN_CHARS } from "../state/limits.js";
 import { useSearchApi } from "./context.js";
@@ -63,11 +63,12 @@ export function useSearchQuery(
 }
 
 /**
- * Title prefixes from the index, for the search box's typeahead.
+ * What the box offers under the cursor: CATEGORIES and title prefixes.
  *
  * Not from a query log: stapel-search keeps none, which is a privacy decision
- * before it is a product one (`services.suggest`). So the list is what exists
- * in the catalogue, and choosing one is always a search that has results.
+ * before it is a product one (`services.suggest`). So both halves are what
+ * exists in the catalogue — choosing a term is always a search that has
+ * results, and choosing a category is always a section that exists.
  *
  * `enabled` is the debounce's partner, not its replacement: the CALLER holds a
  * debounced prefix (see `useSearchBox`) and this hook refuses to ask about a
@@ -83,7 +84,7 @@ export function useSuggest(params: {
   readonly q: string;
   readonly limit?: number;
   readonly enabled?: boolean;
-}): UseQueryResult<SuggestResponse, StapelApiError> {
+}): UseQueryResult<SuggestAnswer, StapelApiError> {
   const api = useSearchApi();
   const q = params.q.trim();
   const limit = params.limit;

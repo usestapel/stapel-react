@@ -3,8 +3,8 @@ import type {
   RankingResponse,
   SearchQueryState,
   SearchResponse,
+  SuggestAnswer,
   SuggestParams,
-  SuggestResponse,
 } from "./types.js";
 
 /**
@@ -53,15 +53,22 @@ export interface SearchApi {
   ): Promise<SearchResponse>;
 
   /**
-   * Title-prefix suggestions. Typed and callable, but this pair ships NO hook
-   * and no autocomplete widget over it (spec §4.2 defers the debounce +
-   * keyboard work). A host that wants one today calls this directly rather
-   * than waiting for a version of the pair that has it.
+   * What to offer under the search box: CATEGORIES first, then title-prefix
+   * terms (stapel-search 0.7.0).
+   *
+   * Neither half comes from a query log — the module keeps none, which is a
+   * privacy decision before it is a product one — so every suggestion is a
+   * destination or a search that has results.
+   *
+   * Typed as {@link SuggestAnswer} rather than as the generated
+   * `SuggestResponse`: a build regenerated against a pre-0.7.0 schema would
+   * otherwise hide the categories half from the compiler. See that type for
+   * why every member but `backend` is optional.
    */
   suggest(
     params: SuggestParams,
     options?: { readonly signal?: AbortSignal }
-  ): Promise<SuggestResponse>;
+  ): Promise<SuggestAnswer>;
 
   /**
    * The P2B Art. 5 ranking disclosure for a doc type: which parameters rank

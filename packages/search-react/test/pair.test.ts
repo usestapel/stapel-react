@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  SEARCH_I18N_KEYS,
   navEntries,
   registerSearchI18n,
   searchI18nBundleEn,
@@ -80,6 +81,28 @@ describe("nav manifest (the pair's public surface)", () => {
     for (const entry of navEntries) {
       expect(searchI18nBundleEn[entry.labelKey]).toBeTruthy();
     }
+  });
+
+  it("names a DESTINATION, never borrowing a surface's own heading", () => {
+    // `search.results.title` captions a list of matches ("Results"), which
+    // answers nothing as a menu row: results of what? `search.ranking.title`
+    // is a whole sentence. Sharing either would also weld the two uses
+    // together — a translator improving the heading would rewrite the menu.
+    const labels = navEntries.map((entry) => entry.labelKey);
+    expect(labels).toEqual(["search.nav.results", "search.nav.ranking"]);
+    expect(labels).not.toContain(SEARCH_I18N_KEYS.resultsTitle);
+    expect(labels).not.toContain(SEARCH_I18N_KEYS.rankingTitle);
+  });
+
+  it("carries a compact label wherever the menu one cannot fit a phone dock", () => {
+    // A five-cell dock at 390px gives a destination roughly ten characters.
+    // "Ranking disclosure" ellipsizes there; "Search" does not, and a short
+    // key identical to the long one is two strings to keep in sync.
+    const byId = new Map(navEntries.map((entry) => [entry.id, entry]));
+    expect(byId.get("search.results")?.shortLabelKey).toBeUndefined();
+    const short = byId.get("search.ranking")?.shortLabelKey;
+    expect(short).toBe(SEARCH_I18N_KEYS.navRankingShort);
+    expect(searchI18nBundleEn[short ?? ""]).toBeTruthy();
   });
 
   it("matches the generated nav-manifest.json", () => {

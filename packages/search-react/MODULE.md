@@ -126,6 +126,117 @@ carries facet values as index TERMS (strings), so `facetOptionLabel` coerces
 back into the shape each type's formatter expects: `select` is a list even for
 one value, `date` is a Unix timestamp integer, `int`/`float` are numbers.
 
+## The search box reaches the catalogue
+
+Until stapel-search 0.7.0 `/suggest` answered title prefixes only, so typing a
+word that names a SECTION answered listing titles and nothing else — the search
+field could not reach a category at all. 0.7.0 makes the answer two-part and
+`categories` is the primary half:
+
+| field | what it is |
+|---|---|
+| `path` | display names root→leaf — the only thing telling three same-named leaves apart |
+| `category` | the ancestry as ids joined with `/`, to pass VERBATIM as the `category` parameter |
+| `count` | live listings under it, descendants included — the number the SERP reports |
+| `id` / `slug` / `name` / `depth` / `match` | identity, and how the name matched (informational; ranking is by `count`) |
+
+`useSearchBox` surfaces them as `categories`, and `<SearchBox>` draws them as
+their own labelled group ABOVE the terms, each row printing the path and the
+count (a plural family — Russian needs four endings). Selecting one calls
+`chooseCategory`, which writes `{ q: "", category: entry.category }` in ONE
+patch: the server's own joined string, never a path the client reassembled, and
+the text goes with it because the row quoted the section's count and the
+destination has to show that count rather than the section intersected with a
+title search.
+
+Three honesty rules ride along:
+
+- **absent key ⇒ today's behaviour.** Every member of `SuggestAnswer` but
+  `backend` is optional. The generated `SuggestResponse` declares 0.7.0's five
+  new fields required, which is true of one server and false of the others a
+  storefront is deployed against.
+- **`degraded: ["category_suggestions"]` ⇒ no group at all.** An empty group
+  under a heading is the box claiming the catalogue has no such section — a
+  claim the answer never made. Not a banner either: the reader is mid-word and
+  a missing provider is the operator's business.
+- **`degraded: ["category_rollup"]` ⇒ rows without numbers.** Every count reads
+  `0` because the ancestry never arrived, so the counts are dropped and the
+  destinations kept. Outside that case a `count: 0` row is filtered out: the
+  server really does return empty sections, and following one is a dead end
+  dressed as a destination.
+
+## Which counted slugs are filters, and who names their values
+
+The facet plan is derived from the leaf category's feature defs and the counter
+counts what is indexed, so a real classified answer carries `imei` and
+`video_file_url` beside `condition` and `vendor`. Neither is a filter: an
+identifier is unique per document and a URL is free text, and a chip offering
+one IMEI with a count of one crowds a 390px row.
+
+`FACETABLE_FEATURE_TYPES` is the verdict, read by value TYPE from the same
+`categoryFeatures` schema everything else here reads — the select family, the
+vocabulary-backed family (`VOCABULARY_BACKED_TYPES`, imported rather than
+retyped) and `bool`. Two rules keep it honest:
+
+- a slug with **no feature def** is KEPT. `categoryFeatures` is optional, a
+  feature can be retired after the write that indexed it, and answering "not
+  facetable" for silence would empty the row for every host that never threaded
+  the schema through;
+- a slug the **URL already filters on** is KEPT whatever the schema now says,
+  or a link narrows the search with nothing on screen to widen it.
+
+Captions have four sources, in this order, and none of them invents one:
+
+1. the answer's `facet_labels` (stapel-search 0.4.0+) — the server saw the
+   write-time snapshot;
+2. the feature def's inline `options` table;
+3. **`resolveFacetLabels`** — a host seam, `(slug, feature, values[]) →
+   Promise<{value: caption}>`, batched per group, cached, given the query's own
+   `AbortSignal`. It exists because a `ref_select` config carries a POINTER to a
+   vocabulary (`optionsRef`) and no options, and reading that vocabulary is the
+   host's business, not a search package's;
+4. the raw value — a value nobody names keeps printing itself rather than
+   disappearing, because a chip that silently drops an option is worse than one
+   showing a slug.
+
+Set on `<SearchPage>`, it reaches both filter surfaces: the desktop panel and
+the phone chip row read one `useFacetPanel`, so they cannot print two words for
+one value.
+
+## The chip row's order is the row's product
+
+At 390px about four chips fit before the fold. On a live phone category the
+first seven were battery health, four parcel dimensions and two wholesale
+counts — numeric attributes the category happens to declare, drawn ahead of the
+price, the condition and the vendor.
+
+That is an ordering defect and it is fixed as one. Nothing in a feature def
+separates `akb` from `weight_for_delivery`, and the next category's `int`
+attribute is `mileage`, so `orderChipFilters` re-ranks and deletes nothing:
+
+1. the category chip, then the location chip — the two host-slot filters;
+2. everything APPLIED, in band order — a constraint you set must be reachable
+   without a flick;
+3. then, unapplied: **core range axes** (`facet_meta.core_ranges`, the server
+   declaring an axis that exists for every document), **counted facet groups**
+   (the server counted them for this search and each carries its remaining
+   counts), then **the category's numeric attributes**, which nothing ranks.
+
+The sort is stable, so an authored option order survives to the row. Deleting
+band 3 was considered and rejected: the only server signal that names a slug is
+`facet_meta.skipped`, and that means the counter hit `MAX_FACET_FIELDS` — not
+that a person cannot filter by it. `r.<slug>` still answers for a skipped slug.
+
+## The chip row's leading chip is the category
+
+There is no category facet on the server and no read path for one, so nothing
+here synthesizes counts. What the SERP offers instead is a narrowing: the host's
+`renderCategoryFilter` — the same slot the panel takes — becomes the FIRST chip
+of the phone row, opening in the same sheet as every other chip, labelled with
+`categoryLabel` (or the path's last segment) when the search is narrowed and
+with the filter's own name when it is not. A host that fills no such slot gets
+the row exactly as it was.
+
 ## Honesty flags are not decoration
 
 Four independent signals, all surfaced:

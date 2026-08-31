@@ -48,8 +48,16 @@ export type {
   SearchResultsRenderer,
 } from "./SearchResultsPane.js";
 
-export { FilterChips, CHIP_ROW_CLASS, CHIP_ROW_STYLE_HREF, chipRowCss } from "./FilterChips.js";
-export type { FilterChipsProps } from "./FilterChips.js";
+export {
+  FilterChips,
+  CHIP_BAND_ORDER,
+  CHIP_ROW_CLASS,
+  CHIP_ROW_STYLE_HREF,
+  categoryLeaf,
+  chipRowCss,
+  orderChipFilters,
+} from "./FilterChips.js";
+export type { ChipBand, ChipSpec, FilterChipsProps } from "./FilterChips.js";
 
 export { LocationSummaryLine } from "./LocationSummaryLine.js";
 export type { LocationSummaryLineProps } from "./LocationSummaryLine.js";

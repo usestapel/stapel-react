@@ -866,7 +866,7 @@
       "entries": [
         {
           "id": "search.results",
-          "labelKey": "search.results.title",
+          "labelKey": "search.nav.results",
           "icon": "SearchOutlined",
           "route": {
             "path": "/s"
@@ -885,7 +885,8 @@
         },
         {
           "id": "search.ranking",
-          "labelKey": "search.ranking.title",
+          "labelKey": "search.nav.ranking",
+          "shortLabelKey": "search.nav.ranking.short",
           "icon": "OrderedListOutlined",
           "route": {
             "path": "/ranking-disclosure"

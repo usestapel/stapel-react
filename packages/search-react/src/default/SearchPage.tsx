@@ -71,6 +71,7 @@ import type { FeatureDef } from "@stapel/attributes-react";
 import { SearchStateProvider, useSearchState } from "../headless/SearchStateProvider.js";
 import type { SearchParamsAdapter } from "../headless/SearchStateProvider.js";
 import { useFacetPanel } from "../headless/FacetPanel.js";
+import type { FacetLabelResolver } from "../headless/useFacetLabels.js";
 import { useAppliedCount } from "../headless/useAppliedCount.js";
 import type { ParseSearchStateOptions } from "../state/urlState.js";
 import type { SearchGeo } from "../api/types.js";
@@ -147,13 +148,40 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
   readonly renderCard?: SearchCardRenderer;
   readonly categoryFeatures?: readonly FeatureDef[];
   readonly locale?: string;
+  /**
+   * Name the facet values neither the answer nor the category schema names —
+   * see {@link FacetLabelResolver}.
+   *
+   * Set once here and it reaches BOTH filter surfaces, the desktop panel and
+   * the phone chip row, the same way `geoLabel` does. It is the seam a
+   * `ref_select` facet needs: its config carries a pointer to a vocabulary and
+   * no option table, the vocabulary is a service this pair does not talk to,
+   * and a server older than stapel-search 0.4.0 sends no `facet_labels` to
+   * cover for it — so without this the chips print `apple` and `128-gb`.
+   */
+  readonly resolveFacetLabels?: FacetLabelResolver;
   /** Render the query box at the top. `false` for a container whose HEADER
    * already mounts `<SearchBox>` — one box per screen, not two. */
   readonly searchBox?: boolean;
   /** BCP-47 tags this deployment indexes, for the language filter. */
   readonly languages?: readonly string[];
-  /** The catalogue picker slot — see {@link FacetPanelPaneProps}. */
+  /**
+   * The catalogue picker slot — see {@link FacetPanelPaneProps}.
+   *
+   * It reaches TWO surfaces: the filter panel's category row, and — on the
+   * phone — the LEADING chip of the filter row, which opens the same control
+   * in the same kind of sheet as every other chip. The owner's navigation
+   * model chooses levels 1-2 from tiles and everything deeper as a
+   * characteristic, and on a result list that is what a chip is.
+   */
   readonly renderCategoryFilter?: (slot: CategoryFilterSlotProps) => ReactNode;
+  /**
+   * What the current category is CALLED — the chip's own text. The pair holds
+   * a path of slugs and no way to turn one into a catalogue name; absent, the
+   * chip states the path's last segment. See
+   * {@link FilterChipsProps.categoryLabel}.
+   */
+  readonly categoryLabel?: ReactNode;
   /** The location control slot (`geo-react`). */
   readonly renderGeoFilter?: (slot: GeoFilterSlotProps) => ReactNode;
   /**
@@ -273,9 +301,11 @@ interface SearchPageBodyProps {
   readonly renderCard?: SearchCardRenderer;
   readonly categoryFeatures?: readonly FeatureDef[];
   readonly locale?: string;
+  readonly resolveFacetLabels?: FacetLabelResolver;
   readonly searchBox?: boolean;
   readonly languages?: readonly string[];
   readonly renderCategoryFilter?: (slot: CategoryFilterSlotProps) => ReactNode;
+  readonly categoryLabel?: ReactNode;
   readonly renderGeoFilter?: (slot: GeoFilterSlotProps) => ReactNode;
   readonly geoLabel?: ReactNode;
   readonly footer?: ReactNode;
@@ -301,11 +331,12 @@ interface SearchPageBodyProps {
 function SearchPageBody(props: SearchPageBodyProps): ReactElement {
   const t = useT();
   const tPlural = useTPlural();
-  const { categoryFeatures, locale, filtersHeader } = props;
+  const { categoryFeatures, locale, resolveFacetLabels, filtersHeader } = props;
   const { state } = useSearchState();
   const facets = useFacetPanel({
     ...(categoryFeatures !== undefined ? { categoryFeatures } : {}),
     ...(locale !== undefined ? { locale } : {}),
+    ...(resolveFacetLabels !== undefined ? { resolveFacetLabels } : {}),
   });
   const applied = useAppliedCount();
   const surface = useDialogSurface();
@@ -379,6 +410,7 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
           {...(layout === "sheet" ? { heading: null } : {})}
           {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
           {...(locale !== undefined ? { locale } : {})}
+          {...(resolveFacetLabels !== undefined ? { resolveFacetLabels } : {})}
           {...(props.languages !== undefined ? { languages: props.languages } : {})}
           {...(props.renderCategoryFilter !== undefined
             ? { renderCategoryFilter: props.renderCategoryFilter }
@@ -480,6 +512,16 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
             }}
             {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
             {...(locale !== undefined ? { locale } : {})}
+            {...(resolveFacetLabels !== undefined ? { resolveFacetLabels } : {})}
+            /* The catalogue picker becomes the row's leading chip. The panel
+               behind the circle keeps its own copy of the control; both write
+               the same `category` parameter, so they cannot disagree. */
+            {...(props.renderCategoryFilter !== undefined
+              ? { renderCategoryFilter: props.renderCategoryFilter }
+              : {})}
+            {...(props.categoryLabel !== undefined
+              ? { categoryLabel: props.categoryLabel }
+              : {})}
             {...(props.renderGeoFilter !== undefined
               ? { renderGeoFilter: props.renderGeoFilter }
               : {})}
@@ -540,9 +582,11 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     renderCard,
     categoryFeatures,
     locale,
+    resolveFacetLabels,
     searchBox,
     languages,
     renderCategoryFilter,
+    categoryLabel,
     renderGeoFilter,
     geoLabel,
     defaultGeo,
@@ -571,9 +615,11 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(renderCard !== undefined ? { renderCard } : {})}
           {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
           {...(locale !== undefined ? { locale } : {})}
+          {...(resolveFacetLabels !== undefined ? { resolveFacetLabels } : {})}
           {...(searchBox !== undefined ? { searchBox } : {})}
           {...(languages !== undefined ? { languages } : {})}
           {...(renderCategoryFilter !== undefined ? { renderCategoryFilter } : {})}
+          {...(categoryLabel !== undefined ? { categoryLabel } : {})}
           {...(renderGeoFilter !== undefined ? { renderGeoFilter } : {})}
           {...(geoLabel !== undefined ? { geoLabel } : {})}
           {...(footer !== undefined ? { footer } : {})}

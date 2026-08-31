@@ -47,6 +47,33 @@ describe("every key the pair renders has copy in every locale it ships", () => {
   });
 });
 
+describe("the nav labels are the destination's, not a surface's heading", () => {
+  for (const [locale, bundle] of [
+    ["en", searchI18nBundleEn],
+    ["ru", searchI18nBundleRu],
+    ["es", searchI18nBundleEs],
+  ] as const) {
+    it(`${locale} names both destinations without reusing a page caption`, () => {
+      const nav = bundle[SEARCH_I18N_KEYS.navResults];
+      const ranking = bundle[SEARCH_I18N_KEYS.navRanking];
+      expect(nav).toBeTruthy();
+      expect(ranking).toBeTruthy();
+      // Distinct STRINGS, not merely distinct keys: a locale that translated
+      // the menu label back into the heading would pass a key-only check and
+      // still put a sentence in a menu row.
+      expect(nav).not.toBe(bundle[SEARCH_I18N_KEYS.resultsTitle]);
+      expect(ranking).not.toBe(bundle[SEARCH_I18N_KEYS.rankingTitle]);
+    });
+
+    it(`${locale} keeps the dock label shorter than the menu one`, () => {
+      const short = bundle[SEARCH_I18N_KEYS.navRankingShort] ?? "";
+      const long = bundle[SEARCH_I18N_KEYS.navRanking] ?? "";
+      expect(short.length).toBeGreaterThan(0);
+      expect(short.length).toBeLessThan(long.length);
+    });
+  }
+});
+
 describe("a plural family carries every form its locale can select", () => {
   for (const [locale, bundle] of [
     ["en", searchI18nBundleEn],

@@ -177,13 +177,11 @@ describe("390px: the filters are a scrolling row of chips", () => {
     mount({ initial: "type=listing&f.condition=used" });
     await waitFor(() => expect(screen.getByTestId("search-chip-condition")).toBeTruthy());
     // The chip carries the CHOICE, not the group's name: "Condition" while
-    // filtering to used is a lie a person can only catch by opening it. (The
-    // fixture's labels are i18n KEYS the test engine has no copy for, so what
-    // reaches the screen is the key — which is still the OPTION's key and not
-    // the feature's, and that is the whole assertion.)
-    expect(screen.getByTestId("search-chip-condition").textContent).toBe(
-      "test.condition.used"
-    );
+    // filtering to used is a lie a person can only catch by opening it. The
+    // word itself is the ANSWER's caption for that value — the fixture sends
+    // `facet_labels`, which outranks the schema's translation key, so this
+    // assertion also pins the precedence the whole SERP depends on.
+    expect(screen.getByTestId("search-chip-condition").textContent).toBe("Б/у");
   });
 
   it("counts the extra choices rather than listing them", async () => {

@@ -46,6 +46,9 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.box.submit": "Buscar",
   "search.box.clear": "Borrar la búsqueda",
   "search.box.suggestions": "Sugerencias",
+  "search.box.categories": "Secciones",
+  "search.box.category_count.one": "{count} anuncio",
+  "search.box.category_count.other": "{count} anuncios",
 
   "search.sort.label": "Orden",
   "search.sort.relevance": "Más relevantes",
@@ -151,6 +154,10 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.ranking.inactive": "No aplicado: {reason}",
   "search.ranking.notes": "Notas",
   "search.ranking.link": "Cómo se ordenan estos resultados",
+
+  "search.nav.results": "Buscar",
+  "search.nav.ranking": "Orden de resultados",
+  "search.nav.ranking.short": "Orden",
 };
 
 /** Register the es bundle. Call AFTER `registerSearchI18n`. */
