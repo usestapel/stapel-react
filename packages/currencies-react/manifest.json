@@ -501,6 +501,7 @@
       "FlowStateBase",
       "FormatMoneyOptions",
       "FormatRateOptions",
+      "FractionPolicy",
       "MoneyBag",
       "MoneyPolicy",
       "MoneyProps",

@@ -19,8 +19,18 @@
 import { describe, expect, it } from "vitest";
 import type { CategoryFeatureConfig, CategoryFeatureType } from "../src/index.js";
 
-/** The twelve registered value types (stapel-attributes 0.5.0 added the two
- * vocabulary-backed ones; stapel-categories 0.7.0 carries them). */
+/** The thirteen registered value types (stapel-attributes 0.5.0 added the two
+ * vocabulary-backed ones and 0.7.0 the `group` container; stapel-categories
+ * 0.9.0 carries them).
+ *
+ * `group` is the odd one and is listed here for the same reason `header` is:
+ * this list pins what the WIRE can send, not what this pair draws. A group's
+ * config holds `fields` — its children as raw dicts, each discriminated by its
+ * own `type` — plus an optional `repeat`, so it is a container in the schema
+ * and an editor question elsewhere. Leaving it out of the list would fail this
+ * assertion in the direction that says "the union has a member you did not
+ * name", which is exactly the signal a regenerated schema is supposed to
+ * give. */
 const FEATURE_TYPE_SLUGS = [
   "int",
   "float",
@@ -34,6 +44,7 @@ const FEATURE_TYPE_SLUGS = [
   "convertible_unit",
   "ref_select",
   "ref_hierarchical_select",
+  "group",
 ] as const;
 
 /** Every slug above is a discriminant of the generated union… */
@@ -43,12 +54,12 @@ type Extra = Exclude<CategoryFeatureType, (typeof FEATURE_TYPE_SLUGS)[number]>;
 const _noExtraMembers: Extra extends never ? true : never = true;
 
 describe("FeatureConfig discriminator", () => {
-  it("is slug-keyed, twelve members, in both directions", () => {
+  it("is slug-keyed, thirteen members, in both directions", () => {
     // The compile-time assertions above are the test; these keep the runtime
     // half honest about the count and about the absence of the old spelling.
-    expect(new Set(FEATURE_TYPE_SLUGS).size).toBe(12);
+    expect(new Set(FEATURE_TYPE_SLUGS).size).toBe(13);
     expect(FEATURE_TYPE_SLUGS).not.toContain("BoolConfig" as never);
-    expect(_slugsAreDiscriminants.length).toBe(12);
+    expect(_slugsAreDiscriminants.length).toBe(13);
     expect(_noExtraMembers).toBe(true);
   });
 

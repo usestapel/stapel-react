@@ -648,6 +648,8 @@ export interface components {
             slug: string;
             /** @description Identifier in the source catalogue this category was imported from. */
             external_id?: string;
+            /** @description Source catalogue `external_id` belongs to (blank = the single/default source). */
+            external_source?: string;
             /** @description CDN catalog icon reference (opaque string, e.g. catalog/asset-name) */
             catalog_icon?: string;
             /** @description CDN carousel icon reference (opaque string, e.g. carousel/asset-name) */
@@ -680,6 +682,8 @@ export interface components {
             slug: string;
             /** @description Identifier in the source catalogue this category was imported from. */
             external_id?: string;
+            /** @description Source catalogue `external_id` belongs to (blank = the single/default source). */
+            external_source?: string;
             /** @description CDN catalog icon reference (opaque string, e.g. catalog/asset-name) */
             catalog_icon?: string;
             /** @description CDN carousel icon reference (opaque string, e.g. carousel/asset-name) */
@@ -956,7 +960,7 @@ export interface components {
             /** @description Form section; sections order by first appearance. */
             group?: string;
         };
-        FeatureConfig: components["schemas"]["IntConfig"] | components["schemas"]["FloatConfig"] | components["schemas"]["StringConfig"] | components["schemas"]["BoolConfig"] | components["schemas"]["HexColorConfig"] | components["schemas"]["SelectConfig"] | components["schemas"]["DateConfig"] | components["schemas"]["HeaderConfig"] | components["schemas"]["HierarchicalSelectConfig"] | components["schemas"]["ConvertibleUnitConfig"] | components["schemas"]["RefSelectConfig"] | components["schemas"]["RefHierarchicalSelectConfig"];
+        FeatureConfig: components["schemas"]["IntConfig"] | components["schemas"]["FloatConfig"] | components["schemas"]["StringConfig"] | components["schemas"]["BoolConfig"] | components["schemas"]["HexColorConfig"] | components["schemas"]["SelectConfig"] | components["schemas"]["DateConfig"] | components["schemas"]["HeaderConfig"] | components["schemas"]["HierarchicalSelectConfig"] | components["schemas"]["ConvertibleUnitConfig"] | components["schemas"]["RefSelectConfig"] | components["schemas"]["RefHierarchicalSelectConfig"] | components["schemas"]["GroupConfig"];
         FeatureConvertType: {
             /** @description New config after conversion */
             config: Omit<components["schemas"]["FeatureConfig"], "type">;
@@ -1033,7 +1037,7 @@ export interface components {
             /** Parent */
             tn_parent?: number | null;
         };
-        FeatureDto: components["schemas"]["IntDto"] | components["schemas"]["FloatDto"] | components["schemas"]["StringDto"] | components["schemas"]["BoolDto"] | components["schemas"]["HexColorDto"] | components["schemas"]["SelectDto"] | components["schemas"]["DateDto"] | components["schemas"]["HeaderDto"] | components["schemas"]["HierarchicalSelectDto"] | components["schemas"]["ConvertibleUnitDto"] | components["schemas"]["RefSelectDto"] | components["schemas"]["RefHierarchicalSelectDto"];
+        FeatureDto: components["schemas"]["IntDto"] | components["schemas"]["FloatDto"] | components["schemas"]["StringDto"] | components["schemas"]["BoolDto"] | components["schemas"]["HexColorDto"] | components["schemas"]["SelectDto"] | components["schemas"]["DateDto"] | components["schemas"]["HeaderDto"] | components["schemas"]["HierarchicalSelectDto"] | components["schemas"]["ConvertibleUnitDto"] | components["schemas"]["RefSelectDto"] | components["schemas"]["RefHierarchicalSelectDto"] | components["schemas"]["GroupDto"];
         /** @description Request payload for applying feature editor changes. */
         FeatureEditorApply: {
             features: components["schemas"]["FeatureEditorItem"][];
@@ -1178,6 +1182,39 @@ export interface components {
             type: "float";
             /** Format: double */
             value?: number;
+        };
+        /**
+         * @description Serializer for group feature configuration.
+         *
+         *     ``fields`` passes through as raw dicts on purpose: each child carries its
+         *     own ``config`` discriminated by ``type``, parsed by that type's own strict
+         *     serializer when the group validates its children.
+         */
+        GroupConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "group";
+            fields?: {
+                [key: string]: unknown;
+            }[];
+            repeat?: components["schemas"]["GroupRepeat"] | null;
+        };
+        /** @description Serializer for group feature DTO. */
+        GroupDto: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "group";
+            value?: {
+                [key: string]: unknown;
+            }[];
+        };
+        GroupRepeat: {
+            min?: number;
+            max?: number | null;
         };
         /** @description Serializer for header feature configuration. */
         HeaderConfig: {
@@ -1355,6 +1392,8 @@ export interface components {
             slug?: string;
             /** @description Identifier in the source catalogue this category was imported from. */
             external_id?: string;
+            /** @description Source catalogue `external_id` belongs to (blank = the single/default source). */
+            external_source?: string;
             /** @description CDN catalog icon reference (opaque string, e.g. catalog/asset-name) */
             catalog_icon?: string;
             /** @description CDN carousel icon reference (opaque string, e.g. carousel/asset-name) */
@@ -1590,6 +1629,11 @@ export interface components {
          * @enum {string}
          */
         Type104Enum: "convertible_unit";
+        /**
+         * @description * `group` - group
+         * @enum {string}
+         */
+        Type312Enum: "group";
         /**
          * @description * `date` - date
          * @enum {string}
