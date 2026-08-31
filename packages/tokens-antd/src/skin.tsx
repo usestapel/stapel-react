@@ -26,6 +26,9 @@
  *    portal, so a dialog is on the right side wherever it was declared.
  *  - {@link SkinConfirm} — a confirmation is a dialog (so: a sheet on a
  *    phone), never an anchored popover.
+ *  - {@link SkinCarousel} — a swipeable strip is NATIVE scroll-snap with a
+ *    peek, never a JS gesture layer: the edge of the next slide is the
+ *    affordance that there is more, and the platform owns the fling.
  *  - {@link PermissionSheet} / {@link PermissionGate} — a browser capability
  *    is explained BEFORE the browser's one-shot prompt fires, and a refusal
  *    is permanent: the same surface then says where the switch is and offers
@@ -86,6 +89,18 @@ export {
   phoneTouchFloorCss,
 } from "./skin/theme.js";
 export type { SkinThemeProps, SkinSurface } from "./skin/theme.js";
+export {
+  SkinCarousel,
+  SKIN_CAROUSEL_CLASS,
+  SKIN_CAROUSEL_STRIP_CLASS,
+  SKIN_CAROUSEL_SLIDE_CLASS,
+  SKIN_CAROUSEL_DOTS_CLASS,
+  SKIN_CAROUSEL_DOT_CLASS,
+  SKIN_CAROUSEL_STYLE_HREF,
+  SKIN_CAROUSEL_PEEK,
+  skinCarouselCss,
+} from "./skin/carousel.js";
+export type { SkinCarouselProps } from "./skin/carousel.js";
 export { useElementWidth } from "./skin/elementWidth.js";
 export type { ElementWidthOptions, ElementWidthReading } from "./skin/elementWidth.js";
 export { ErrorAlert, EmptyState, LoadBoundary, LoadList, ACTION_STACK_BELOW } from "./skin/states.js";

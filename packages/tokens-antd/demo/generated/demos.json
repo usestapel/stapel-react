@@ -1,0 +1,54 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/tokens-antd",
+  "version": "0.8.1",
+  "demos": [
+    {
+      "id": "tokens-antd.skin-carousel",
+      "title": "Skin carousel",
+      "description": "The fleet's one swipe primitive: a native CSS scroll-snap strip with no gesture code at all. The default `peek` leaves the edge of the next slide on screen — the affordance that says there is more — the scrollbar is hidden while the strip itself stays a focusable, arrow-scrollable region, and the optional dots are an indicator rather than a control, because a tappable dot would need per-dot copy the token bridge cannot invent.",
+      "component": "SkinCarousel",
+      "covers": [],
+      "tokens": [
+        "brand",
+        "info",
+        "success",
+        "warning",
+        "error",
+        "border",
+        "text-muted",
+        "focus-ring"
+      ],
+      "variants": [
+        {
+          "id": "peek",
+          "description": "The default strip at 390px: slides are the container minus an 8% sliver, so the second plate's edge is visible at rest. Nothing else is drawn — no indicator, no ratio — which is the shape a card in a result list uses.",
+          "viewport": "phone",
+          "step": "peek"
+        },
+        {
+          "id": "dots",
+          "description": "The same strip with the position indicator. The row is aria-hidden and holds no buttons: position is announced through the strip's list semantics instead, in every locale, with no key to register.",
+          "viewport": "phone",
+          "step": "dots"
+        },
+        {
+          "id": "aspect-ratio",
+          "description": "A 4 / 3 photo well with a fixed 56px peek. The well's shape is fixed by the strip, so a gallery does not change height as each image lands — the reason a photo carousel states an aspectRatio and a text one does not.",
+          "viewport": "phone",
+          "step": "aspect-ratio"
+        },
+        {
+          "id": "no-peek",
+          "description": "peek={false} at desktop width: full-width slides, nothing showing beside them. The honest shape for a hero or a single-photo card — and the visible cost of it is that the strip no longer says there is more.",
+          "viewport": "desktop",
+          "step": "no-peek"
+        }
+      ],
+      "source": {
+        "file": "demo/SkinCarousel.demo.tsx",
+        "line": 82
+      }
+    }
+  ]
+}

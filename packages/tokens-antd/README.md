@@ -76,6 +76,7 @@ the theme mapping never loads a component.
 | `useThemeMode()` / `subscribeThemeMode()` | The reactive mode read (`useSyncExternalStore` + MutationObserver on `data-theme`), SSR-safe. |
 | `SkinDialog` / `useDialogSurface()` | On a phone a dialog is a bottom sheet; modals are tablet/desktop only. It themes its own portal, so a dialog is on the right side wherever it was declared. |
 | `SkinConfirm` | A confirmation is a dialog (so: a sheet on a phone), never an anchored `Popconfirm`. Controlled; `danger` variant; `confirming` holds both arms. |
+| `SkinCarousel` | A swipeable strip is NATIVE CSS scroll-snap, never a JS gesture layer. `peek` (default 8%) keeps the edge of the next slide on screen — the affordance that there is more; `aspectRatio` fixes the well so a gallery does not change height as images land; `dots` is an indicator, not a control (position is announced through the strip's list semantics, which needs no i18n key). `label` is required. The scrollbar is hidden and the strip is a focusable, arrow-scrollable region. |
 | `ErrorAlert` | The one error surface: `error` (described), `thrown` (raw), or `message`; `onRetry`, `onDismiss`, `action`; `variant="block"` (Alert) or `"inline"`. In a box narrower than `ACTION_STACK_BELOW` the actions stack under the message instead of taking a column beside it. |
 | `EmptyState` | Icon, title, hint, action. Reachable only from a load that succeeded. |
 | `LoadBoundary` / `LoadList` | `matchLoad` / `matchList` as components with designed loading / failed / empty arms; the skin writes only the ready arm. |
