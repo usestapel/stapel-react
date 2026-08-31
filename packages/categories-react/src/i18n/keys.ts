@@ -77,6 +77,15 @@ export const CATEGORIES_I18N_KEYS = {
   /** The leading tile, which links the catalogue root rather than a category. */
   tilesAll: "categories.tiles.all",
 
+  // ── category hits for a free-text query ──────────────────────────────────
+  /**
+   * The heading over the categories a search query reached. Carries `{query}`,
+   * because a list of category links above somebody else's results has to say
+   * WHY it is there — without the typed words it reads as a second menu that
+   * appeared on its own.
+   */
+  searchHitsTitle: "categories.search.hits_title",
+
   // ── quick search (the category landing's panel) ──────────────────────────
   /** The button when the count is absent, in flight, refused, or a number the
    * engine declined to give — the sentence that is true under every arm. */
@@ -211,6 +220,8 @@ export const categoriesI18nBundleEn: Record<string, string> = {
   "categories.carousel.empty": "No categories are featured right now",
 
   "categories.tiles.all": "All",
+
+  "categories.search.hits_title": "Categories matching “{query}”",
 
   "categories.quick_search.cta": "Show listings",
   "categories.quick_search.cta_count.one": "Show {count} listing",

@@ -26,7 +26,7 @@
 export { CatalogPage } from "./CatalogPage.js";
 export type { CatalogPageProps } from "./CatalogPage.js";
 export { CategoryPage } from "./CategoryPage.js";
-export type { CategoryPageProps } from "./CategoryPage.js";
+export type { CategoryPageProps, SubcategoryForm } from "./CategoryPage.js";
 export { CategoryTreePane } from "./CategoryTreePane.js";
 export type { CategoryTreePaneProps } from "./CategoryTreePane.js";
 export { CategoryBreadcrumbsBar } from "./CategoryBreadcrumbsBar.js";
@@ -40,6 +40,12 @@ export type { CategoryTileGridProps } from "./CategoryTileGrid.js";
  * should not have to reach into the headless entry for the row type it is
  * handed and asked to hand back. Same type, one door closer. */
 export type { CarouselEntry } from "../headless/CategoryCarousel.js";
+export { CategorySearchHits } from "./CategorySearchHits.js";
+export type { CategorySearchHitsProps } from "./CategorySearchHits.js";
+/** Re-exported for the same reason as `CarouselEntry`: a host that mounts
+ * `<CategorySearchHits>` is handed these rows by `useCategorySearch` and has
+ * to name their type. Same type, one door closer. */
+export type { CategorySearchHit } from "../catalog/search.js";
 export { CategoryQuickSearchPanel } from "./CategoryQuickSearchPanel.js";
 export type {
   CategoryQuickSearchPanelProps,

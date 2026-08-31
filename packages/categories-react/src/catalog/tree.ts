@@ -15,7 +15,9 @@
  * 2. **`active: false` rows are served too**, and nothing on the list endpoint
  *    filters them — only `carousel` does. "Active" is the storefront's
  *    visibility switch, so the public tree drops them by default and the
- *    option to keep them is explicit.
+ *    option to keep them is explicit. Both this and the tombstone rule are
+ *    `catalog/browse.ts`'s single predicate, shared with every other browse
+ *    surface; the tree does not carry a second copy of the answer.
  * 3. **Order is `tn_priority` DESCENDING**, which is what both `children` and
  *    `carousel` do server-side (`views.py: order_by("-tn_priority")`). Ties
  *    are broken by `id` so a rebuild is deterministic — priority defaults to
@@ -23,6 +25,8 @@
  *    there means the menu reshuffles between renders.
  */
 import type { Category } from "../api/types.js";
+import { isBrowsableCategory } from "./browse.js";
+import type { CategoryVisibilityOptions } from "./browse.js";
 import { parseTreenodePks } from "./pks.js";
 
 /** One node of the assembled tree. */
@@ -52,28 +56,22 @@ export interface CategoryIndex {
   readonly totalRows: number;
 }
 
-export interface BuildCategoryTreeOptions {
-  /** Keep `deleted: true` rows. Default `false`. */
-  readonly includeDeleted?: boolean;
-  /** Keep `active: false` rows. Default `false` — the storefront's answer.
-   * A catalogue admin passes `true`. */
-  readonly includeInactive?: boolean;
-}
+/**
+ * How to shape the built tree.
+ *
+ * The visibility half is {@link CategoryVisibilityOptions} — the SAME three
+ * flags every browse surface in this pair takes, so "what a person may be
+ * offered" is one vocabulary and one predicate rather than a per-surface
+ * opinion. The storefront's answer is the default; a catalogue admin passes
+ * `ADMIN_VISIBILITY`.
+ */
+export type BuildCategoryTreeOptions = CategoryVisibilityOptions;
 
 function displayOrder(a: Category, b: Category): number {
   const pa = a.tn_priority ?? 0;
   const pb = b.tn_priority ?? 0;
   if (pa !== pb) return pb - pa;
   return a.id - b.id;
-}
-
-function keeps(row: Category, options: BuildCategoryTreeOptions): boolean {
-  if (row.deleted === true && options.includeDeleted !== true) return false;
-  // `active` is optional in the schema and defaults to true on the model, so
-  // the test is "not explicitly false" — an absent field is an active
-  // category, never a hidden one.
-  if (row.active === false && options.includeInactive !== true) return false;
-  return true;
 }
 
 /**
@@ -91,7 +89,13 @@ export function buildCategoryTree(
   options: BuildCategoryTreeOptions = {}
 ): CategoryIndex {
   const all = [...rows];
-  const kept = all.filter((row) => keeps(row, options)).sort(displayOrder);
+  // The ONE browse predicate (`catalog/browse.ts`), not a second copy of it:
+  // the tree is a browse surface like any other, and a tree that filtered on
+  // its own terms would disagree with the carousel and the children hook about
+  // which rows are live.
+  const kept = all
+    .filter((row) => isBrowsableCategory(row, options))
+    .sort(displayOrder);
 
   const childrenOf = new Map<number, Category[]>();
   const present = new Set<number>(kept.map((row) => row.id));

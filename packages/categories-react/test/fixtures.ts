@@ -87,6 +87,31 @@ export const GONE: Category = categoryRow(7, "gone", "category.gone", null, "", 
   deleted: true,
 });
 
+/**
+ * A row an end-to-end run left behind, flagged by the deployment itself.
+ *
+ * Shaped after the real thing: on a live classified deployment 105 of the 187
+ * rows the list endpoint returns are fixtures with slugs like this one. The
+ * `is_test` flag is NOT in the pinned schema — which is precisely the case the
+ * predicate has to survive — so it is attached the way the wire attaches it,
+ * as a field the generated type does not declare.
+ */
+export const TEST_LEFTOVER: Category = {
+  ...categoryRow(8, "authz-1787369370", "category.authz", null, "", ""),
+  is_test: true,
+} as Category;
+
+/** The same leftover WITHOUT the flag: still active, still live, still a real
+ * category as far as any consumer may tell. */
+export const UNFLAGGED: Category = categoryRow(
+  9,
+  "storefront-2",
+  "category.storefront_2",
+  null,
+  "",
+  ""
+);
+
 export const ROWS: readonly Category[] = [
   ELECTRONICS,
   PHONES,

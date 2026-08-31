@@ -20,6 +20,7 @@ const ROOT = "categories" as const;
 export interface CatalogKeyOptions {
   readonly includeDeleted: boolean;
   readonly includeInactive: boolean;
+  readonly includeTest: boolean;
 }
 
 export function catalogKeyOptions(
@@ -28,6 +29,7 @@ export function catalogKeyOptions(
   return {
     includeDeleted: options.includeDeleted === true,
     includeInactive: options.includeInactive === true,
+    includeTest: options.includeTest === true,
   };
 }
 

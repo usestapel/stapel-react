@@ -72,6 +72,8 @@ export const categoriesI18nBundleEs: I18nDictionary = {
 
   "categories.tiles.all": "Todo",
 
+  "categories.search.hits_title": "Categorías que coinciden con «{query}»",
+
   "categories.quick_search.cta": "Ver anuncios",
   "categories.quick_search.cta_count.one": "Ver {count} anuncio",
   "categories.quick_search.cta_count.other": "Ver {count} anuncios",

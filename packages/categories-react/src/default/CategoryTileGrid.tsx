@@ -35,6 +35,18 @@
  * when it is given `<CategoryCarousel>` is not mounted at all, so the override
  * costs no request it would then discard.
  *
+ * ── Where tiles STOP ───────────────────────────────────────────────────────
+ *
+ * Tiles are the top level and a top-level category's children, and nothing
+ * deeper: below that a category is a CHARACTERISTIC, chosen through cascading
+ * child selectors when filtering or posting, not a tile a person navigates
+ * into. {@link CategoryTileGridProps.categoryDepth} is how a landing says
+ * which depth it is at, and past the cap this component renders NOTHING at
+ * all — not an empty state, because there is no absence to report: the
+ * sub-categories exist, they are simply offered somewhere else, in a different
+ * shape. The number itself lives in `catalog/tiles.ts` so the search and
+ * composer surfaces read the same one.
+ *
  * ── Geometry ───────────────────────────────────────────────────────────────
  *
  * Every length is relative to the CONTAINER, not to the viewport: the column
@@ -49,6 +61,7 @@ import { cssVar, fontWeight, radii, spacing } from "@stapel/tokens-antd";
 import { useT } from "@stapel/core";
 import type { LinkComponent } from "@stapel/core";
 import { renderCategoryLabel } from "../catalog/labels.js";
+import { categoryOffersTileGrid } from "../catalog/tiles.js";
 import { CategoryCarousel } from "../headless/CategoryCarousel.js";
 import type { CarouselEntry } from "../headless/CategoryCarousel.js";
 import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
@@ -260,6 +273,18 @@ export interface CategoryTileGridProps extends ThemeModeProp, LinkComponentProp 
    * one load two owners.
    */
   readonly entries?: readonly CarouselEntry[];
+  /**
+   * The 0-indexed depth of the category whose children these tiles are — a
+   * top-level category is `0`, its child is `1`. Omitted means the catalogue
+   * ROOT (the home screen), which is above every category and always offers
+   * tiles.
+   *
+   * Past {@link MAX_TILE_DEPTH} this component renders nothing: the deeper
+   * levels of the tree are characteristics chosen through cascading selectors,
+   * not tiles (see this file's header). The rows are NOT lost — the host still
+   * has them, and a list, a breadcrumb or a selector may render them.
+   */
+  readonly categoryDepth?: number;
 }
 
 /** The scroll port itself: the "All" tile, then one tile per row. */
@@ -312,9 +337,16 @@ function TileRow(props: {
   );
 }
 
-export function CategoryTileGrid(props: CategoryTileGridProps): ReactElement {
+export function CategoryTileGrid(
+  props: CategoryTileGridProps
+): ReactElement | null {
   const t = useT();
   const basePath = props.basePath ?? "/c";
+  // Before any load: past the cap there are no tiles to ask for, so the
+  // carousel bag is never mounted and the request it would make is never
+  // fired. A component that fetched and then hid the answer would pay for
+  // rows nobody may see.
+  const offersTiles = categoryOffersTileGrid(props.categoryDepth);
   const rowProps = {
     basePath,
     ...(props.allTile !== undefined ? { allTile: props.allTile } : {}),
@@ -324,6 +356,8 @@ export function CategoryTileGrid(props: CategoryTileGridProps): ReactElement {
     ...(props.renderIcon !== undefined ? { renderIcon: props.renderIcon } : {}),
   };
   const override = props.entries;
+
+  if (!offersTiles) return null;
 
   return (
     <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>

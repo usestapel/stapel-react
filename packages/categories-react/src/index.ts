@@ -75,6 +75,28 @@ export {
   flattenCategoryNodes,
   resolveCategorySlug,
 } from "./catalog/tree.js";
+export {
+  ADMIN_VISIBILITY,
+  browsableCategories,
+  isBrowsableCategory,
+  isTestCategory,
+} from "./catalog/browse.js";
+export type { CategoryVisibilityOptions } from "./catalog/browse.js";
+export {
+  MAX_TILE_DEPTH,
+  categoryOffersTileGrid,
+  nodeOffersTileGrid,
+} from "./catalog/tiles.js";
+export {
+  CATEGORY_SEARCH_LIMIT,
+  foldForSearch,
+  rankCategoryMatches,
+} from "./catalog/search.js";
+export type {
+  CategoryMatchKind,
+  CategorySearchHit,
+  RankCategoryMatchesOptions,
+} from "./catalog/search.js";
 export type {
   BuildCategoryTreeOptions,
   CategoryIndex,
@@ -135,7 +157,9 @@ export {
   useCategoryFeatures,
 } from "./model/queries.js";
 export type {
+  CategoryBrowseOptions,
   CategoryCatalog,
+  UseCategoryCarouselOptions,
   UseCategoryCatalogOptions,
 } from "./model/queries.js";
 
@@ -149,7 +173,7 @@ export type {
   CategoryBreadcrumbsProps,
   CategoryCrumb,
 } from "./headless/CategoryBreadcrumbs.js";
-export { CategoryCarousel } from "./headless/CategoryCarousel.js";
+export { CategoryCarousel, categoryTileEntry } from "./headless/CategoryCarousel.js";
 export type {
   CarouselEntry,
   CategoryCarouselBag,
@@ -162,6 +186,8 @@ export type {
   CategoryPickerBlockedReason,
   CategoryPickerProps,
 } from "./headless/CategoryPicker.js";
+export { useCategorySearch } from "./headless/useCategorySearch.js";
+export type { UseCategorySearchOptions } from "./headless/useCategorySearch.js";
 export { CategoryFeatures } from "./headless/CategoryFeatures.js";
 export type {
   CategoryFeatureEntry,

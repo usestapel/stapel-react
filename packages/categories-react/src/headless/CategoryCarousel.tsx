@@ -35,6 +35,40 @@ export interface CategoryCarouselBag {
   refetch(): void;
 }
 
+/**
+ * One row -> one tile, the ONE mapping in this pair.
+ *
+ * Extracted because the carousel bag is no longer its only caller: a category
+ * landing draws its own CHILDREN as tiles (`<CategoryPage subcategories=
+ * "tiles">`), and those rows never pass through `GET /categories/carousel/`.
+ * A second copy of the mapping would drift on the one detail that is easy to
+ * get wrong and invisible when wrong — the icon fallback order — and a
+ * deployment with `catalog_icon` set and `carousel_icon` empty would draw art
+ * on the home page and monograms one level down.
+ *
+ * The icon is `carousel_icon`, falling back to `catalog_icon`, falling back to
+ * `null`. `""` is an ABSENT reference, not a reference to an empty string:
+ * that is the state every catalogue is in until somebody uploads art, and it
+ * is what every row on a live classified deployment carries today.
+ */
+export function categoryTileEntry(
+  category: Category,
+  basePath: string
+): CarouselEntry {
+  const reference =
+    category.carousel_icon !== undefined && category.carousel_icon !== ""
+      ? category.carousel_icon
+      : category.catalog_icon !== undefined && category.catalog_icon !== ""
+        ? category.catalog_icon
+        : null;
+  return {
+    category,
+    label: categoryLabel(category),
+    icon: reference,
+    href: `${basePath}/${category.slug}`,
+  };
+}
+
 export interface CategoryCarouselProps {
   /** Path prefix for a tile's link. Default `/c` — the spec's `/c/:slug`. */
   basePath?: string;
@@ -60,17 +94,7 @@ export function CategoryCarousel(props: CategoryCarouselProps): ReactNode {
 
   return props.children({
     state: mapLoad(state, (rows) =>
-      rows.map((category) => ({
-        category,
-        label: categoryLabel(category),
-        icon:
-          category.carousel_icon !== undefined && category.carousel_icon !== ""
-            ? category.carousel_icon
-            : category.catalog_icon !== undefined && category.catalog_icon !== ""
-              ? category.catalog_icon
-              : null,
-        href: `${base}/${category.slug}`,
-      }))
+      rows.map((category) => categoryTileEntry(category, base))
     ),
     isFetching: query.isFetching,
     refetch: () => {

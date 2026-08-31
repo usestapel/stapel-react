@@ -4,7 +4,7 @@
   "version": "0.6.0",
   "backend": {
     "module": "stapel-categories",
-    "contract": ">=0.7 <0.8"
+    "contract": ">=0.9 <0.10"
   },
   "layers": [
     "api",
@@ -899,6 +899,7 @@
     "categories.quick_search.cta_count_at_least",
     "categories.quick_search.cta_count_at_least.one",
     "categories.quick_search.cta_count_at_least.other",
+    "categories.search.hits_title",
     "categories.tiles.all",
     "error.400.bad_request",
     "error.400.captcha_invalid",
@@ -966,6 +967,7 @@
   ],
   "exports": {
     "runtime": [
+      "ADMIN_VISIBILITY",
       "CATALOG_KEY",
       "CATALOG_NAMESPACE",
       "CATEGORIES_ERRORS",
@@ -973,6 +975,7 @@
       "CATEGORIES_FEATURE_EDITOR_CONFLICT",
       "CATEGORIES_I18N_KEYS",
       "CATEGORIES_I18N_PLURAL_KEYS",
+      "CATEGORY_SEARCH_LIMIT",
       "CategoriesProvider",
       "CategoriesRuntimeContext",
       "CategoryBreadcrumbs",
@@ -982,8 +985,10 @@
       "CategoryTree",
       "EMPTY_SNAPSHOT",
       "MAX_SYNC_PAGES",
+      "MAX_TILE_DEPTH",
       "UNPERSISTED_WARNING",
       "applyCategoryPage",
+      "browsableCategories",
       "buildCategoryTree",
       "catalogKeyOptions",
       "categoriesErrorBundleEn",
@@ -994,6 +999,8 @@
       "categoryChildIds",
       "categoryLabel",
       "categoryListParams",
+      "categoryOffersTileGrid",
+      "categoryTileEntry",
       "createCatalogStore",
       "createCategoriesApi",
       "createCategoriesRuntime",
@@ -1003,12 +1010,17 @@
       "featureOptionsAreKeys",
       "firstPageRequest",
       "flattenCategoryNodes",
+      "foldForSearch",
+      "isBrowsableCategory",
       "isEmptySnapshot",
+      "isTestCategory",
       "memoryCatalogStore",
       "navEntries",
       "nextPageRequest",
+      "nodeOffersTileGrid",
       "parseSnapshot",
       "parseTreenodePks",
+      "rankCategoryMatches",
       "registerCategoriesI18n",
       "renderCategoryLabel",
       "resolveCategorySlug",
@@ -1020,7 +1032,8 @@
       "useCategoryCarousel",
       "useCategoryCatalog",
       "useCategoryChildren",
-      "useCategoryFeatures"
+      "useCategoryFeatures",
+      "useCategorySearch"
     ],
     "types": [
       "BuildCategoryTreeOptions",
@@ -1035,6 +1048,7 @@
       "Category",
       "CategoryBreadcrumbsBag",
       "CategoryBreadcrumbsProps",
+      "CategoryBrowseOptions",
       "CategoryCarouselBag",
       "CategoryCarouselProps",
       "CategoryCatalog",
@@ -1050,24 +1064,30 @@
       "CategoryLabelKind",
       "CategoryListPage",
       "CategoryListParams",
+      "CategoryMatchKind",
       "CategoryNode",
       "CategoryOption",
       "CategoryPickerBag",
       "CategoryPickerBlockedReason",
       "CategoryPickerProps",
       "CategoryRevisions",
+      "CategorySearchHit",
       "CategorySnapshot",
       "CategoryTreeBag",
       "CategoryTreeProps",
+      "CategoryVisibilityOptions",
       "CreateCatalogStoreOptions",
       "CreateCategoriesRuntimeOptions",
       "FeatureConfig",
       "MaxRevision",
+      "RankCategoryMatchesOptions",
       "Remediation",
       "Schemas",
       "SyncCatalogOptions",
       "SyncCatalogResult",
-      "UseCategoryCatalogOptions"
+      "UseCategoryCarouselOptions",
+      "UseCategoryCatalogOptions",
+      "UseCategorySearchOptions"
     ]
   }
 }

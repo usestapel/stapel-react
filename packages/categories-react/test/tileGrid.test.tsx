@@ -131,7 +131,7 @@ describe("<CategoryTileGrid>", () => {
     ).toHaveLength(0);
   });
 
-  it("draws a placeholder — never a hole and never a guessed image — with no resolver", async () => {
+  it("draws the monogram — never a hole and never a guessed image — with no resolver", async () => {
     render(
       <TestProviders server={mockServer(OK)}>
         <CategoryTileGrid />
@@ -141,11 +141,48 @@ describe("<CategoryTileGrid>", () => {
       expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy();
     });
     const list = screen.getByTestId("categories-tile-grid-list");
-    // One per tile, All included.
+    // One per tile, All included. The art fallback is the category's own
+    // INITIAL, not a muted disc: a grid of identical grey circles reads as
+    // images still loading, which is the state a live catalogue with no
+    // uploaded art is permanently in.
     expect(
-      list.querySelectorAll('[data-stapel-tile-art="placeholder"]')
+      list.querySelectorAll('[data-stapel-tile-art="monogram"]')
     ).toHaveLength(CAROUSEL.length + 1);
     expect(list.querySelectorAll("img")).toHaveLength(0);
+  });
+
+  it("carries catalog_icon through when the row has no carousel_icon", async () => {
+    // Both references are the empty string on the live deployment, so the
+    // monogram is what renders there — but the CARRY has to work for a
+    // deployment that has art, and the fallback order is `carousel_icon` then
+    // `catalog_icon`. Only an end-to-end assertion catches a bag that drops
+    // the second one.
+    const seen: string[] = [];
+    const withCatalogIconOnly = {
+      ...VEHICLES,
+      catalog_icon: "catalog/vehicles",
+      carousel_icon: "",
+    };
+    render(
+      <TestProviders
+        server={mockServer({
+          "/categories/carousel/": { body: [withCatalogIconOnly] },
+          "/categories/": { body: FULL_PAGE },
+        })}
+      >
+        <CategoryTileGrid
+          allTile={false}
+          renderIcon={(reference) => {
+            seen.push(reference);
+            return <span data-testid="art" />;
+          }}
+        />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy();
+    });
+    expect(seen).toEqual(["catalog/vehicles"]);
   });
 
   it("draws the host's own rows when `entries` is given", async () => {

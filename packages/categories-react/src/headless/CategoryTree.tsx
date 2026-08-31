@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { loadStateFromQuery, mapLoad } from "@stapel/core";
 import type { LoadState } from "@stapel/core";
+import { nodeOffersTileGrid } from "../catalog/tiles.js";
 import { categoryBreadcrumbs, resolveCategorySlug } from "../catalog/tree.js";
 import type { CategoryIndex, CategoryNode } from "../catalog/tree.js";
 import { useCategoryCatalog } from "../model/queries.js";
@@ -21,6 +22,18 @@ export interface CategoryTreeBag {
   readonly catalog: LoadState<CategoryCatalog>;
   /** The node `slug`/`categoryId` selected, once the catalogue has loaded. */
   readonly current: CategoryNode | null;
+  /**
+   * May `state`'s rows be offered as a TILE GRID?
+   *
+   * The catalogue model has tiles for the top level and for a top-level
+   * category's children, and nothing deeper — below that a category is a
+   * CHARACTERISTIC picked in a cascading selector, not a place to navigate to
+   * (`catalog/tiles.ts`, {@link MAX_TILE_DEPTH}). `false` does not mean the
+   * level is empty and does not mean it is unreachable: the rows are right
+   * here in `state`, and a skin renders them as a list. It means they must not
+   * be drawn as tiles.
+   */
+  readonly offersTiles: boolean;
   /** Root → current, inclusive. `[]` when nothing is selected. */
   readonly breadcrumbs: readonly CategoryNode[];
   /**
@@ -96,12 +109,24 @@ export function CategoryTree(props: CategoryTreeProps): ReactNode {
     }
   }
 
+  // Whose children this level IS decides the tile rule: an explicit
+  // `parentId` when the host asked for one, otherwise the selected category,
+  // otherwise the catalogue root (which is above every category and always
+  // offers tiles).
+  const levelOwner =
+    index === null
+      ? null
+      : parentId !== null && parentId !== undefined
+        ? (index.byId.get(parentId) ?? null)
+        : current;
+
   return children({
     state: mapLoad(catalog, (data) =>
       levelOf(data.index, parentId, current)
     ),
     catalog,
     current,
+    offersTiles: nodeOffersTileGrid(levelOwner),
     breadcrumbs:
       index === null ? [] : categoryBreadcrumbs(index, current?.id),
     unknownSlug:

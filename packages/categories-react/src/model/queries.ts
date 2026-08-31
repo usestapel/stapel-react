@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { StapelApiError } from "@stapel/core";
 import type { Category, CategoryFeature, MaxRevision } from "../api/types.js";
+import { browsableCategories } from "../catalog/browse.js";
+import type { CategoryVisibilityOptions } from "../catalog/browse.js";
 import { buildCategoryTree } from "../catalog/tree.js";
 import type { BuildCategoryTreeOptions, CategoryIndex } from "../catalog/tree.js";
 import type { CategorySnapshot } from "../catalog/sync.js";
@@ -22,6 +24,18 @@ import { catalogKeyOptions, categoriesQueryKeys } from "./queryKeys.js";
  * `ReadOnlyOrStaff`, which anonymous callers may make. Gating them would make
  * a storefront's catalogue wait for a login bootstrap that a visitor who will
  * never sign in has no stake in.
+ *
+ * ── Every browse hook filters; no cache does ───────────────────────────────
+ *
+ * The three hooks that produce rows for a surface a PERSON picks from — the
+ * catalogue tree, a category's children, the carousel — run
+ * `catalog/browse.ts`'s predicate and take {@link CategoryVisibilityOptions}
+ * to opt out of it. The cache underneath never does: the catalogue snapshot
+ * stores every row the sync sent (a filtered snapshot could not apply the next
+ * delta), and the children/carousel reads keep the server's whole answer under
+ * their query key and project it per observer through TanStack's `select`. So
+ * a browse mount and an admin mount of the same endpoint share ONE cache entry
+ * and disagree only about what they show.
  */
 
 /** What `useCategoryCatalog` hands back beside the tree. */
@@ -97,8 +111,11 @@ export function useCategoryCatalog(
       ...(options.includeInactive !== undefined
         ? { includeInactive: options.includeInactive }
         : {}),
+      ...(options.includeTest !== undefined
+        ? { includeTest: options.includeTest }
+        : {}),
     }),
-    [options.includeDeleted, options.includeInactive]
+    [options.includeDeleted, options.includeInactive, options.includeTest]
   );
   const keyOptions = useMemo(
     () => catalogKeyOptions(treeOptions),
@@ -136,42 +153,91 @@ export function useCategoryCatalog(
 }
 
 /**
- * One category's direct children, straight from the server.
+ * The browse projection as a STABLE `select` — the same function identity
+ * across renders while the visibility flags do not change, so a keystroke
+ * somewhere else on the page cannot make TanStack recompute (and re-render)
+ * every consumer of a category list.
+ */
+function useBrowseProjection(
+  options: CategoryVisibilityOptions | undefined
+): (rows: readonly Category[]) => readonly Category[] {
+  const includeDeleted = options?.includeDeleted;
+  const includeInactive = options?.includeInactive;
+  const includeTest = options?.includeTest;
+  return useCallback(
+    (rows: readonly Category[]) =>
+      browsableCategories(rows, {
+        ...(includeDeleted !== undefined ? { includeDeleted } : {}),
+        ...(includeInactive !== undefined ? { includeInactive } : {}),
+        ...(includeTest !== undefined ? { includeTest } : {}),
+      }),
+    [includeDeleted, includeInactive, includeTest]
+  );
+}
+
+/** Options every hook that PROJECTS rows for browsing shares. */
+export interface CategoryBrowseOptions extends CategoryVisibilityOptions {
+  readonly enabled?: boolean;
+}
+
+/**
+ * One category's direct children, projected for browsing.
  *
  * The synced tree already knows them; this is for the host that does not mount
  * the catalogue — an SSR category page, a lazily expanded branch. The server
  * filters `deleted` here and orders by `tn_priority` descending, but it does
- * NOT filter `active`, so a public screen still has to.
+ * NOT filter `active` and knows nothing about test rows, so a public screen
+ * still has to — and on a live classified deployment that is the difference
+ * between a menu of categories and a menu of end-to-end leftovers.
+ *
+ * The projection runs in `select`, so the QUERY CACHE still holds the server's
+ * complete answer and a sibling admin mount reads the same entry rather than
+ * issuing a second request for the same children.
  */
 export function useCategoryChildren(
   id: number | null | undefined,
-  options?: { readonly enabled?: boolean }
+  options?: CategoryBrowseOptions
 ): UseQueryResult<readonly Category[], StapelApiError> {
   const api = useCategoriesApi();
+  const visible = useBrowseProjection(options);
   return useQuery({
     queryKey: categoriesQueryKeys.children(id ?? -1),
     queryFn: ({ signal }) => api.children(id as number, { signal }),
+    select: visible,
     enabled: (options?.enabled ?? true) && typeof id === "number",
     retry: false,
   });
 }
 
+/** {@link useCategoryCarousel}'s options — the browse flags plus freshness. */
+export interface UseCategoryCarouselOptions extends CategoryBrowseOptions {
+  readonly staleTime?: number;
+}
+
 /**
  * The carousel strip for a landing page.
  *
- * The one endpoint the server already filters completely (`active` AND
+ * The endpoint the server filters MOST completely (`active` AND
  * `carousel_enabled`) and already caches, sending
  * `Cache-Control: public, max-age`. `staleTime` mirrors that: the browser's
  * HTTP cache and the query cache should not disagree about how fresh this is.
+ *
+ * The browse projection still runs. Not because the server's `active` filter
+ * is doubted, but because the two other halves of the predicate are not the
+ * server's to apply here: a tombstone and a test row are both filtered on the
+ * client, and this row of tiles is the most prominent browse surface the
+ * storefront has. A surface that skipped the shared predicate would be the one
+ * place a filtered row could still reach a person.
  */
-export function useCategoryCarousel(options?: {
-  readonly enabled?: boolean;
-  readonly staleTime?: number;
-}): UseQueryResult<readonly Category[], StapelApiError> {
+export function useCategoryCarousel(
+  options?: UseCategoryCarouselOptions
+): UseQueryResult<readonly Category[], StapelApiError> {
   const api = useCategoriesApi();
+  const visible = useBrowseProjection(options);
   return useQuery({
     queryKey: categoriesQueryKeys.carousel,
     queryFn: ({ signal }) => api.carousel({ signal }),
+    select: visible,
     enabled: options?.enabled ?? true,
     staleTime: options?.staleTime ?? DEFAULT_CATALOG_STALE_TIME,
     retry: false,
