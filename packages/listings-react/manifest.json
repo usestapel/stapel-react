@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/listings-react",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "backend": {
     "module": "stapel-listings",
     "contract": ">=0.10 <0.11"
@@ -1035,6 +1035,7 @@
       "LISTING_PUBLISH_VALIDATION_FAILED",
       "LISTING_STATUSES",
       "LISTING_TRANSITIONS",
+      "LOCATION_FIELD",
       "ListingComposer",
       "ListingDetail",
       "ListingsProvider",
@@ -1058,6 +1059,7 @@
       "draftValuesFromWire",
       "droppedFeatureSlugs",
       "emptyDraftValues",
+      "envelopeFieldErrors",
       "explainListingsError",
       "failedResults",
       "featureFromDao",
