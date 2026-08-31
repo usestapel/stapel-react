@@ -24,7 +24,7 @@ describe("<Price> — the seller's own number is never absent", () => {
       </Harness>
     );
     // No await: this is the FIRST frame, with rates still in flight.
-    expect(screen.getByText("€1,500.00")).toBeTruthy();
+    expect(screen.getByText("€1,500")).toBeTruthy();
   });
 
   it("adds the estimate once rates land, marked as an estimate", async () => {
@@ -54,7 +54,7 @@ describe("<Price> — the seller's own number is never absent", () => {
       expect(document.querySelector('[data-stapel-price="unavailable"]')).not.toBeNull();
     });
     // …and the original is still the thing on screen.
-    expect(screen.getByText("€1,500.00")).toBeTruthy();
+    expect(screen.getByText("€1,500")).toBeTruthy();
   });
 
   it("shows the rate as visible text, never as a title attribute", async () => {
@@ -77,15 +77,18 @@ describe("<Price> — the seller's own number is never absent", () => {
         <Price amount="1500.00" currency="RUB" />
       </Harness>
     );
-    // ru-RU: space grouping, comma decimal, symbol last.
-    expect(ru.container.textContent).toMatch(/1\s?500,00\s?₽/);
+    // ru-RU: space grouping, symbol last — and no `,00` on a whole amount
+    // (the `"auto"` fraction policy, `model/money.ts`).
+    expect(ru.container.textContent).toMatch(/1\s?500\s?₽/);
     cleanup();
     const es = render(
       <Harness locale="es">
-        <Price amount="1500.00" currency="EUR" />
+        <Price amount="1500.50" currency="EUR" />
       </Harness>
     );
-    expect(es.container.textContent).toMatch(/1500,00\s?€/);
+    // A real fractional amount keeps every place the currency has: comma
+    // decimal, symbol last.
+    expect(es.container.textContent).toMatch(/1500,50\s?€/);
   });
 });
 

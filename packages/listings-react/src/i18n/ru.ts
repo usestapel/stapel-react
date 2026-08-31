@@ -237,7 +237,9 @@ export const listingsI18nBundleRu: I18nDictionary = {
 
   "listings.nav.detail": "Объявление",
   "listings.nav.compose": "Подать объявление",
+  "listings.nav.compose.short": "Подать",
   "listings.nav.mine": "Мои объявления",
+  "listings.nav.mine.short": "Мои",
   "listings.nav.favorites": "Избранное",
 };
 

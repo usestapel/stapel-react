@@ -79,8 +79,16 @@ export const DOCK_MAX_DESTINATIONS: number = 5;
 /** The island's own height — the same 48+8 the phone header is built from. */
 export const DOCK_HEIGHT: number = spacing[7] + spacing[2];
 
-/** How far the island floats in from the viewport's edges. */
-const DOCK_INSET = spacing[3];
+/**
+ * How far the island floats in from the viewport's edges.
+ *
+ * Every pixel here is taken from FIVE labels: the cell a destination gets is
+ * `(viewport - 2·inset - 2·padding) / 5`, which at a 390px phone is the
+ * difference between a label that fits and one ellipsized mid-word. The
+ * island still reads as floating at 8 — the radius and the shadow do that
+ * work, not the gap.
+ */
+const DOCK_INSET = spacing[2];
 
 /**
  * How much room the page has to leave under its last row so the island is not
@@ -143,12 +151,35 @@ export interface NavDockProps {
   readonly max?: number;
 }
 
+/**
+ * Below this the dock draws nothing: an island holding one link is not
+ * navigation, it is a button that has been given a bar to sit in. Exported so
+ * a shell can ask whether the island will exist BEFORE it reserves room for
+ * it — see {@link dockRenders}.
+ */
+export const DOCK_MIN_DESTINATIONS: number = 2;
+
 /** Which entries the dock actually draws. */
 export function dockEntries(
   nav: readonly ResolvedNavEntry[],
   max: number = DOCK_MAX_DESTINATIONS
 ): readonly ResolvedNavEntry[] {
   return nav.slice(0, Math.min(max, DOCK_MAX_DESTINATIONS));
+}
+
+/**
+ * Will {@link NavDock} draw an island for this nav?
+ *
+ * The shell reserves {@link DOCK_CLEARANCE} at the foot of the page, and that
+ * reservation has to answer the SAME question the dock answers — otherwise a
+ * one-entry nav gets a strip of empty page under a dock that was never
+ * rendered. One predicate, two callers.
+ */
+export function dockRenders(
+  nav: readonly ResolvedNavEntry[],
+  max: number = DOCK_MAX_DESTINATIONS
+): boolean {
+  return dockEntries(nav, max).length >= DOCK_MIN_DESTINATIONS;
 }
 
 /**
@@ -163,7 +194,7 @@ export function NavDock(props: NavDockProps): ReactElement | null {
   const entries = dockEntries(props.nav, props.max ?? DOCK_MAX_DESTINATIONS);
   const active = findActive(entries, location.pathname);
 
-  if (entries.length < 2) return null;
+  if (entries.length < DOCK_MIN_DESTINATIONS) return null;
 
   const island: CSSProperties = {
     position: "fixed",
@@ -174,7 +205,9 @@ export function NavDock(props: NavDockProps): ReactElement | null {
     alignItems: "stretch",
     height: DOCK_HEIGHT,
     padding: spacing[1],
-    gap: spacing[1],
+    // No gap: the only separator a dock needs is the pill behind the current
+    // destination, and four gaps are 16px stolen from five labels.
+    gap: 0,
     borderRadius: radii.xl,
     border: `1px solid ${token.colorBorderSecondary}`,
     boxShadow: token.boxShadowSecondary,
@@ -218,7 +251,23 @@ function DockLink(props: {
   const t = useT();
   const { token } = theme.useToken();
   const { entry, current, count } = props;
+  /*
+   * The COMPACT label when the pair declared one.
+   *
+   * A dock cell at 390px is about 68px wide, which at 12px is nine or ten
+   * characters — a menu label written for a full row ("Post a listing", and
+   * every locale whose translation is longer) ellipsizes mid-word, and a
+   * destination a person has to guess at is the one thing a dock must not
+   * produce. `NavEntry.shortLabelKey` is that pair's own shorter wording; the
+   * fallback keeps every manifest written before the field existed rendering
+   * exactly as it did.
+   *
+   * The ACCESSIBLE name stays the long one: a screen reader has no 68px
+   * problem, and the clipped verb alone is a poorer answer to "where does
+   * this go" than the sentence the menu uses.
+   */
   const label = t(entry.labelKey);
+  const shortLabel = entry.shortLabelKey !== undefined ? t(entry.shortLabelKey) : label;
   const tint = current ? token.colorPrimary : token.colorTextSecondary;
 
   return (
@@ -228,7 +277,9 @@ function DockLink(props: {
       aria-label={
         count > 0
           ? `${label}, ${t(SHELL_I18N_KEYS.dockUnread, { count })}`
-          : undefined
+          : shortLabel === label
+            ? undefined
+            : label
       }
       data-testid={`nav-dock-item-${entry.id}`}
       data-current={current ? "true" : "false"}
@@ -268,7 +319,7 @@ function DockLink(props: {
           fontSize: fontSize.xs.fontSize,
         }}
       >
-        {label}
+        {shortLabel}
       </span>
     </Link>
   );

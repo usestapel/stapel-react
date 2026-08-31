@@ -392,9 +392,32 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
     </Flex>
   );
 
-  // The toolbar over the results: how they are ARRANGED, how they are ORDERED,
-  // how many per page — and the surface's own action at the trailing end.
-  const toolbar = (
+  /*
+   * The toolbar over the results: how they are ARRANGED, how they are ORDERED,
+   * how many per page — and the surface's own action at the trailing end.
+   *
+   * TWO shapes, because at 390px the desktop shape is not a smaller version of
+   * itself, it is four stacked rows. The phone form is the reference's own
+   * sort row: the ordering at one end, the surface's action at the other, one
+   * line, nothing else. `pageSize` is already the surface's call; the view
+   * switch draws nothing for a single view and stays in the row for the
+   * surfaces that offer two.
+   */
+  const phoneToolbar = layout === "sheet";
+  const toolbar = phoneToolbar ? (
+    <Flex
+      align="center"
+      justify="space-between"
+      gap={spacing[2]}
+      style={{ width: "100%" }}
+    >
+      <Flex align="center" gap={spacing[2]} style={{ minWidth: 0 }}>
+        <ViewSwitch views={views} value={view.id} onChange={changeView} />
+        <SortSelect compact />
+      </Flex>
+      {props.resultsAction}
+    </Flex>
+  ) : (
     <Flex align="center" wrap gap={spacing[3]}>
       <ViewSwitch views={views} value={view.id} onChange={changeView} />
       <SortSelect />
@@ -406,6 +429,7 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
   const results = (
     <SearchResultsPane
       toolbar={toolbar}
+      {...(phoneToolbar ? { header: "compact" as const } : {})}
       headingLevel={props.resultsHeadingLevel ?? 1}
       {...(view.render !== undefined ? { renderResults: view.render } : {})}
       {...(view.layout !== undefined ? { layout: view.layout } : {})}
@@ -460,6 +484,10 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
               ? { renderGeoFilter: props.renderGeoFilter }
               : {})}
             {...(props.geoLabel !== undefined ? { geoLabel: props.geoLabel } : {})}
+            /* The row above already states the location and opens its own
+               sheet, so the chip would be the second control over one filter
+               — see `FilterChipsProps.geoChip`. */
+            {...(props.resultsHeader !== undefined ? { geoChip: false } : {})}
           />
           <SkinDialog
             open={sheetOpen}

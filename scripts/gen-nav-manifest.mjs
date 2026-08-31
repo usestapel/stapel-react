@@ -149,6 +149,11 @@ function validateEntry(pkgName, entry, index) {
     typeof entry.labelKey === "string" && entry.labelKey.length > 0,
     "needs a non-empty string labelKey"
   );
+  need(
+    entry.shortLabelKey === undefined ||
+      (typeof entry.shortLabelKey === "string" && entry.shortLabelKey.length > 0),
+    "shortLabelKey must be a non-empty string when present (omit it to fall back to labelKey)"
+  );
   need(typeof entry.icon === "string" && entry.icon.length > 0, "needs a non-empty string icon");
   need(
     typeof entry.route === "object" && entry.route !== null && typeof entry.route.path === "string" && entry.route.path.length > 0,

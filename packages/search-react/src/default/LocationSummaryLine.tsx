@@ -151,6 +151,11 @@ export function LocationSummaryLine(
           )}
         </Button>
 
+        {/* "Filters", not "All filters": this end of the row shares 390px
+            with a place name that can run to fifteen characters, and the word
+            the person is looking for is the noun. The panel's own heading
+            still says "All filters" — there it is naming a sheet, not a
+            door. */}
         {/* The count, not a dot: this row has the width to say how many. */}
         <Badge
           count={activeFilters}
@@ -166,7 +171,7 @@ export function LocationSummaryLine(
             data-analytics-reason="opening the filter sheet is a read, not a flow step"
             onClick={props.onOpenAll}
           >
-            {t(SEARCH_I18N_KEYS.filtersAll)}
+            {t(SEARCH_I18N_KEYS.filtersShort)}
           </Button>
         </Badge>
       </Flex>

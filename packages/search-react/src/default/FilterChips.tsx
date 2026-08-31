@@ -123,6 +123,16 @@ export interface FilterChipsProps {
   /** Open the whole panel — the leading chip's action. The page owns that
    * sheet, because the page is the surface it covers. */
   readonly onOpenAll: () => void;
+  /**
+   * Draw the location chip. Default `true`.
+   *
+   * `false` for a surface that already states the location ABOVE this row —
+   * `<LocationSummaryLine>` is that surface, and the phone SERP mounts both.
+   * Together they printed two location controls one line apart — the summary
+   * sentence over the chip's own prompt — opening two different sheets over
+   * one filter, which is the same constraint asked about twice.
+   */
+  readonly geoChip?: boolean;
 }
 
 /**
@@ -140,7 +150,7 @@ function chipLabel(group: FacetGroup, t: (key: string, p?: Record<string, unknow
     : `${first.label}${t(SEARCH_I18N_KEYS.filtersChipMore, { count: chosen.length - 1 })}`;
 }
 
-export function FilterChips(props: FilterChipsProps): ReactElement {
+export function FilterChips(props: FilterChipsProps): ReactElement | null {
   const t = useT();
   const { state } = useSearchState();
   const bag = useFacetPanel({
@@ -203,7 +213,9 @@ export function FilterChips(props: FilterChipsProps): ReactElement {
   );
 
   const geo = state.geo;
-  const showGeoChip = props.renderGeoFilter !== undefined || geo !== undefined;
+  const showGeoChip =
+    props.geoChip !== false &&
+    (props.renderGeoFilter !== undefined || geo !== undefined);
   // Nothing applied: the chip is the FILTER's name ("Location"), because there
   // is no constraint to describe yet. Applied: the host's name for the place,
   // and failing that the sentence that admits the pair does not know it.
@@ -211,6 +223,21 @@ export function FilterChips(props: FilterChipsProps): ReactElement {
     geo === undefined
       ? t(SEARCH_I18N_KEYS.geoTitle)
       : (props.geoLabel ?? geoSummaryFallback(geo, t));
+
+  /*
+   * A row of one button is not a chip row.
+   *
+   * The leading circle is the whole-panel door, and it is the only child this
+   * row is guaranteed. On a deployment whose plan has no facets for the
+   * current query — a free-text search with no category is exactly that: the
+   * plan comes from the CATEGORY's feature defs, so `facets` comes back `{}` —
+   * the row rendered as a lone circle floating between the location line and
+   * the results, a third filter affordance next to two working ones. When
+   * there is nothing to state, the row states nothing and the surface above
+   * keeps its own door.
+   */
+  const hasChips = showGeoChip || ranges.length > 0 || groups.length > 0;
+  if (!hasChips) return null;
 
   return (
     <>

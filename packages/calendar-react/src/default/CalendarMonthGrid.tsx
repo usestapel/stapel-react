@@ -29,7 +29,7 @@
  */
 import type { CSSProperties, ReactElement } from "react";
 import { Button, Typography } from "antd";
-import { SkinTheme } from "@stapel/tokens-antd/skin";
+import { SkinTheme, visuallyHidden } from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
 import { useI18n, useT, useTPlural } from "@stapel/core";
 import { cssVar, fontSize, radii, spacing } from "@stapel/tokens";
@@ -274,13 +274,3 @@ function InstanceChip(props: {
   );
 }
 
-/** Off-screen but announced. Clipped rather than sized to zero, so the text
- * still exists for assistive technology. */
-const visuallyHidden: CSSProperties = {
-  position: "absolute",
-  width: spacing["1"],
-  height: spacing["1"],
-  overflow: "hidden",
-  clipPath: "inset(50%)",
-  whiteSpace: "nowrap",
-};

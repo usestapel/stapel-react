@@ -169,10 +169,58 @@ describe("formatMoney — the locale is the point", () => {
     );
   });
 
-  it("uses the currency's own minor units", () => {
+  it("uses the currency's own minor units as the CEILING", () => {
     expect(formatMoney("1234", "JPY", { locale: "en-US" })).toBe("¥1,234");
     expect(minorUnitsOf("JPY")).toBe(0);
     expect(minorUnitsOf("USD")).toBe(2);
+    // The ceiling still bites: three written places round to the currency's two.
+    expect(formatMoney("1234.567", "USD", { locale: "en-US" })).toBe("$1,234.57");
+  });
+
+  describe("the fraction is printed when the amount HAS one", () => {
+    it("drops the minor units from a whole amount", () => {
+      // The defect this rule closes: a classified printed «42 000,00 ₽» on
+      // every card, and no marketplace does.
+      expect(formatMoney("42000.00", "RUB", { locale: "ru-RU", fallbackSymbol: "₽" }))
+        .toMatch(/^42\s?000\s?₽$/);
+      expect(formatMoney("1500", "USD", { locale: "en-US" })).toBe("$1,500");
+      expect(formatMoney("0.00", "USD", { locale: "en-US" })).toBe("$0");
+      expect(formatMoney("-42000.00", "USD", { locale: "en-US" })).toBe("-$42,000");
+    });
+
+    it("keeps every place a fractional amount really has", () => {
+      expect(formatMoney("42000.50", "RUB", { locale: "ru-RU", fallbackSymbol: "₽" }))
+        .toMatch(/42\s?000,50/);
+      expect(formatMoney("1500.05", "USD", { locale: "en-US" })).toBe("$1,500.05");
+      // Not `$1,500.5`: a two-place currency prints both places or neither.
+      expect(formatMoney("1500.50", "USD", { locale: "en-US" })).toBe("$1,500.50");
+    });
+
+    it("prints the minor units on every amount under the ledger policy", () => {
+      expect(
+        formatMoney("1500", "USD", { locale: "en-US", fraction: "minor-units" })
+      ).toBe("$1,500.00");
+      expect(
+        formatMoney("1500.5", "USD", { locale: "en-US", fraction: "minor-units" })
+      ).toBe("$1,500.50");
+    });
+
+    it("lets an explicit digit count override the policy either way", () => {
+      expect(
+        formatMoney("1500", "USD", {
+          locale: "en-US",
+          minimumFractionDigits: 2,
+        })
+      ).toBe("$1,500.00");
+      expect(
+        formatMoney("1500.5", "USD", {
+          locale: "en-US",
+          fraction: "minor-units",
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        })
+      ).toBe("$1,501");
+    });
   });
 
   it("falls back to the catalogue's symbol when Intl refuses the code", () => {
@@ -197,12 +245,12 @@ describe("formatMoney — the locale is the point", () => {
     const shown = formatMoney("1500", "RUB", { locale: "en-US", fallbackSymbol: "₽" });
     expect(shown).toContain("₽");
     expect(shown).not.toContain("RUB");
-    expect(shown).toContain("1,500.00");
+    expect(shown).toContain("1,500");
   });
 
   it("leaves a glyph Intl already knows alone", () => {
     expect(formatMoney("10", "EUR", { locale: "en-US", fallbackSymbol: "E" })).toBe(
-      "€10.00"
+      "€10"
     );
   });
 

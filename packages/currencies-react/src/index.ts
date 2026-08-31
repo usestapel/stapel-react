@@ -73,6 +73,7 @@ export type {
   Decimal,
   FormatMoneyOptions,
   FormatRateOptions,
+  FractionPolicy,
   SymbolDisplay,
 } from "./model/money.js";
 

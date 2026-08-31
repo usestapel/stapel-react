@@ -220,7 +220,11 @@ export const LISTINGS_I18N_KEYS = {
   // ── nav labels ───────────────────────────────────────────────────────────
   navDetail: "listings.nav.detail",
   navCompose: "listings.nav.compose",
+  // The compact wording a phone dock uses — `NavEntry.shortLabelKey`. The
+  // verb, not the sentence: a dock cell is ten characters wide.
+  navComposeShort: "listings.nav.compose.short",
   navMine: "listings.nav.mine",
+  navMineShort: "listings.nav.mine.short",
   navFavorites: "listings.nav.favorites",
 } as const;
 
@@ -417,7 +421,9 @@ export const listingsI18nBundleEn: Record<string, string> = {
 
   "listings.nav.detail": "Listing",
   "listings.nav.compose": "Post a listing",
+  "listings.nav.compose.short": "Post",
   "listings.nav.mine": "My listings",
+  "listings.nav.mine.short": "Listings",
   "listings.nav.favorites": "Favourites",
 };
 

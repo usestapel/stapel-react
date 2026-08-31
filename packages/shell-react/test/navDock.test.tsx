@@ -71,6 +71,8 @@ const LABELS: Record<string, string> = {
   "listings.nav.favorites": "Favourites",
   "profiles.nav.settings": "Profile",
   "docs.nav.help": "Help",
+  // The compact wording a phone dock prefers — see `NavEntry.shortLabelKey`.
+  "listings.nav.compose.short": "Post",
 };
 
 function frame(
@@ -138,13 +140,32 @@ describe("the dock is a phone surface, and the width decides", () => {
     setViewportWidth(PHONE_WIDTH);
     render(shell("/s"));
     await waitFor(() => expect(screen.getByTestId("nav-dock")).toBeDefined());
-    const content = document.querySelector(".ant-layout-content");
-    expect(content).not.toBeNull();
+    // On the page COLUMN, not on the content: the island is fixed over the
+    // last thing on the page, and the last thing is the footer, not the
+    // content. Reserving on the content cleared the final card and left the
+    // footer's legal links permanently under the island.
+    const shellRoot = screen.getByTestId("public-shell");
     // The clearance is the island plus its insets plus the home indicator —
     // a number alone would sit ON the gesture bar of a notched phone.
-    expect((content as HTMLElement).style.paddingBottom).toContain(
+    expect(shellRoot.style.paddingBottom).toContain("safe-area-inset-bottom");
+    const content = document.querySelector(".ant-layout-content");
+    expect(content).not.toBeNull();
+    // The content keeps only its own even padding — the clearance is not
+    // duplicated here, or the footer sits one island-height too low.
+    expect((content as HTMLElement).style.paddingBottom).not.toContain(
       "safe-area-inset-bottom"
     );
+  });
+
+  it("reserves nothing when the nav is too small for an island to be drawn", async () => {
+    setViewportWidth(PHONE_WIDTH);
+    render(shell("/s", { nav: NAV.slice(0, 1) }));
+    await waitFor(() => expect(screen.getByTestId("public-shell-header")).toBeDefined());
+    expect(screen.queryByTestId("nav-dock")).toBeNull();
+    // A strip of empty page under a dock nobody drew is the defect
+    // `dockRenders` exists to close: the reservation asks the same question
+    // the dock does.
+    expect(screen.getByTestId("public-shell").style.paddingBottom).toBe("");
   });
 });
 
@@ -244,6 +265,36 @@ describe("every destination is reachable, and the current one says so", () => {
     expect(
       dock.getByTestId("nav-dock-item-chat.threads").getAttribute("aria-current")
     ).toBeNull();
+  });
+
+  it("prints the pair's COMPACT label and keeps the long one as the name", async () => {
+    setViewportWidth(PHONE_WIDTH);
+    const withShort = NAV.map((e) =>
+      e.id === "listings.compose" ? { ...e, shortLabelKey: "listings.nav.compose.short" } : e
+    );
+    render(
+      frame(
+        "/s",
+        <Routes>
+          <Route element={<PublicShell nav={withShort} />}>
+            <Route path="s" element={<div>Search Page</div>} />
+          </Route>
+        </Routes>
+      )
+    );
+    await waitFor(() => expect(screen.getByTestId("nav-dock")).toBeDefined());
+    const compose = screen.getByTestId("nav-dock-item-listings.compose");
+    // What a 68px cell prints…
+    expect(compose.textContent).toContain("Post");
+    expect(compose.textContent).not.toContain("Post an ad");
+    // …and what a screen reader still hears: a dock cell's width is not a
+    // reason to give assistive technology the poorer answer.
+    expect(compose.getAttribute("aria-label")).toBe("Post an ad");
+    // A destination with no compact wording is untouched — every manifest
+    // written before the field existed renders exactly as it did.
+    const search = screen.getByTestId("nav-dock-item-search.results");
+    expect(search.textContent).toContain("Search");
+    expect(search.getAttribute("aria-label")).toBeNull();
   });
 
   it("names the landmark, so a screen reader can tell the dock from the drawer", async () => {

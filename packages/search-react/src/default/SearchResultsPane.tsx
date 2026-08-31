@@ -33,6 +33,7 @@ import {
   GatedButton,
   LoadList,
   SkinTheme,
+  visuallyHidden,
 } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 import type { SearchItem } from "../api/types.js";
@@ -168,6 +169,28 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
    * heading list is for.
    */
   readonly headingLevel?: 1 | 2 | 3 | 4 | 5;
+  /**
+   * How the row above the results is arranged. Default `"banner"`.
+   *
+   * `"banner"` — the heading on the left, the count and the toolbar on the
+   * right of one line. A desktop results page, where that line is wide enough
+   * to hold all three.
+   *
+   * `"compact"` — the phone form, and it is a different SHAPE rather than the
+   * same shape at a smaller size. At 390px the banner's one line wraps to
+   * four: a display-size "Results", the count under it, the sort control under
+   * that, and the surface's action under that — a whole viewport of chrome
+   * above the first card, which is what a live phone SERP printed. Compact
+   * gives the toolbar its own row (the surface arranges it: sort at one end,
+   * its action at the other) and puts the COUNT immediately above the cards,
+   * where it is a caption for the list rather than a fourth heading.
+   *
+   * The heading does not disappear — a results screen whose only heading is
+   * gone has a document outline that starts at the footer. It becomes
+   * visually hidden, so a screen reader's heading list is unchanged and the
+   * viewport is not spent saying "Results" over a list of results.
+   */
+  readonly header?: "banner" | "compact";
 }
 
 function Count(props: { bag: SearchResultsBag }): ReactElement | null {
@@ -248,19 +271,33 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
       <SearchResults {...(props.enabled !== undefined ? { enabled: props.enabled } : {})}>
         {(bag) => (
           <Flex vertical gap={spacing[4]}>
-            <Flex justify="space-between" align="center" wrap gap={spacing[2]}>
-              <Typography.Title
-                level={props.headingLevel ?? 4}
-                style={{ margin: 0 }}
-                data-testid="search-results-heading"
-              >
-                {props.heading ?? t(SEARCH_I18N_KEYS.resultsTitle)}
-              </Typography.Title>
-              <Flex align="center" wrap gap={spacing[3]}>
-                <Count bag={bag} />
+            {props.header === "compact" ? (
+              <Flex vertical gap={spacing[2]} data-testid="search-results-header-compact">
+                <Typography.Title
+                  level={props.headingLevel ?? 4}
+                  style={visuallyHidden}
+                  data-testid="search-results-heading"
+                >
+                  {props.heading ?? t(SEARCH_I18N_KEYS.resultsTitle)}
+                </Typography.Title>
                 {props.toolbar}
+                <Count bag={bag} />
               </Flex>
-            </Flex>
+            ) : (
+              <Flex justify="space-between" align="center" wrap gap={spacing[2]}>
+                <Typography.Title
+                  level={props.headingLevel ?? 4}
+                  style={{ margin: 0 }}
+                  data-testid="search-results-heading"
+                >
+                  {props.heading ?? t(SEARCH_I18N_KEYS.resultsTitle)}
+                </Typography.Title>
+                <Flex align="center" wrap gap={spacing[3]}>
+                  <Count bag={bag} />
+                  {props.toolbar}
+                </Flex>
+              </Flex>
+            )}
 
             <DegradationNotice
               degradations={bag.degradations}

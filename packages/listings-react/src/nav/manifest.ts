@@ -60,6 +60,7 @@ export const navEntries: readonly NavEntry[] = [
   {
     id: "listings.compose",
     labelKey: "listings.nav.compose",
+    shortLabelKey: "listings.nav.compose.short",
     icon: "PlusOutlined",
     route: { path: "/new" },
     component: { export: "ListingComposerPage", subpath: "default" },
@@ -73,6 +74,7 @@ export const navEntries: readonly NavEntry[] = [
     // Relative path: a child of the container's `/account` layout route.
     id: "listings.mine",
     labelKey: "listings.nav.mine",
+    shortLabelKey: "listings.nav.mine.short",
     icon: "ProfileOutlined",
     route: { path: "listings" },
     component: { export: "MyListingsPane", subpath: "default" },

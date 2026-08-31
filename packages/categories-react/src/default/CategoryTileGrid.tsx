@@ -21,8 +21,9 @@
  * `<CategoryCarouselStrip>` takes, so a storefront wires its CDN resolver once
  * and both surfaces draw art. What is new here is the ABSENCE arm: a tile with
  * nothing in its art corner reads as a broken tile, so an unresolved reference
- * (no `renderIcon`, or no reference on the row) draws a subtle placeholder
- * glyph. Never a guessed URL, and therefore never a broken image.
+ * (no `renderIcon`, or no reference on the row) draws the category's own
+ * initial as {@link TileMonogram}. Never a guessed URL, and therefore never a
+ * broken image.
  *
  * ── Two sources of rows, one geometry ──────────────────────────────────────
  *
@@ -134,27 +135,60 @@ const artStyle: CSSProperties = {
 };
 
 /**
- * What an unresolved icon reference draws.
+ * What a tile draws in its art corner when there is no art.
  *
- * Not an `<img>` with a guessed `src` (a broken image on every deployment that
- * guessed differently) and not nothing (a tile with an empty corner reads as a
- * tile that failed to load). A muted disc: the tile keeps its shape, and the
- * missing art is visibly missing rather than visibly broken.
+ * ── Why a monogram and not a disc ──────────────────────────────────────────
+ *
+ * The first version of this drew a muted circle, on the reasoning that a tile
+ * with an empty corner reads as a tile that failed to load. It does — and so
+ * does the circle. A live catalogue put nine of them on one landing (every
+ * category on that deployment carries `carousel_icon: ""`, which is the state
+ * every catalogue is in until somebody uploads art), and a grid of identical
+ * grey discs reads as nine images still loading, not as a design.
+ *
+ * A letter cannot be mistaken for a pending image. It is also not a guess: the
+ * category's own initial is information the tile already has and already
+ * shows, set large and faint so it sits behind the label as texture rather
+ * than competing with it as a second reading. Every tile then differs from
+ * every other tile, which is the property the discs lacked.
+ *
+ * Still never an `<img>` with an invented `src` — the reason the art seam is a
+ * host callback in the first place (see this file's header).
+ *
+ * `aria-hidden`, because it is the label's first letter: a screen reader that
+ * announced it would read the category's name and then its initial.
  */
-function TilePlaceholder(): ReactElement {
+function TileMonogram(props: { readonly label: string }): ReactElement {
   return (
     <span
       aria-hidden="true"
-      data-stapel-tile-art="placeholder"
+      data-stapel-tile-art="monogram"
       style={{
-        width: "2.5em",
-        height: "2.5em",
-        borderRadius: radii.full,
-        background: cssVar("border-subtle"),
-        opacity: 0.5,
+        // `Intl.Segmenter` would be the pedantic way to take one grapheme, and
+        // it is not worth a polyfill here: the fallback is decorative, and a
+        // label whose first code point is half a surrogate pair renders the
+        // replacement glyph in a corner nobody reads letters from.
+        fontSize: "2.25em",
+        lineHeight: 1,
+        fontWeight: fontWeight.bold,
+        color: cssVar("text"),
+        // Faint enough to stay behind the label at any tile size, dark enough
+        // to survive the sunken surface in both themes.
+        opacity: 0.14,
+        userSelect: "none",
       }}
-    />
+    >
+      {firstLetter(props.label)}
+    </span>
   );
+}
+
+/** The one character a monogram shows: the label's first letter, uppercased
+ * in the label's OWN locale rules — `toLocaleUpperCase` and not
+ * `toUpperCase`, so a Turkish `i` becomes `İ` rather than `I`. */
+function firstLetter(label: string): string {
+  const [first] = [...label.trim()];
+  return first === undefined ? "" : first.toLocaleUpperCase();
 }
 
 function Tile(props: {
@@ -193,7 +227,7 @@ export interface CategoryTileGridProps extends ThemeModeProp, LinkComponentProp 
   /**
    * Turn an opaque icon reference into something renderable — the same
    * contract `<CategoryCarouselStrip>` takes. Absent, or absent for a row that
-   * carries no reference, draws {@link TilePlaceholder}.
+   * carries no reference, draws {@link TileMonogram}.
    */
   readonly renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode;
   /**
@@ -243,31 +277,37 @@ function TileRow(props: {
       : {};
   return (
     <div style={scrollerStyle} data-testid="categories-tile-grid-list">
-      {props.allTile !== false && (
-        <Tile
-          {...linkProps}
-          href={props.basePath}
-          label={t(CATEGORIES_I18N_KEYS.tilesAll)}
-          art={<TilePlaceholder />}
-          testId="categories-tile-grid-all"
-        />
-      )}
-      {props.entries.map((entry) => (
-        <Tile
-          key={entry.category.id}
-          {...linkProps}
-          href={entry.href}
-          slug={entry.category.slug}
-          label={renderCategoryLabel(entry.label, t)}
-          art={
-            entry.icon !== null && props.renderIcon !== undefined ? (
-              props.renderIcon(entry.icon, entry)
-            ) : (
-              <TilePlaceholder />
-            )
-          }
-        />
-      ))}
+      {props.allTile !== false && (() => {
+        const allLabel = t(CATEGORIES_I18N_KEYS.tilesAll);
+        return (
+          <Tile
+            {...linkProps}
+            href={props.basePath}
+            label={allLabel}
+            art={<TileMonogram label={allLabel} />}
+            testId="categories-tile-grid-all"
+          />
+        );
+      })()}
+      {props.entries.map((entry) => {
+        const label = renderCategoryLabel(entry.label, t);
+        return (
+          <Tile
+            key={entry.category.id}
+            {...linkProps}
+            href={entry.href}
+            slug={entry.category.slug}
+            label={label}
+            art={
+              entry.icon !== null && props.renderIcon !== undefined ? (
+                props.renderIcon(entry.icon, entry)
+              ) : (
+                <TileMonogram label={label} />
+              )
+            }
+          />
+        );
+      })}
     </div>
   );
 }

@@ -509,6 +509,7 @@
         {
           "id": "listings.compose",
           "labelKey": "listings.nav.compose",
+          "shortLabelKey": "listings.nav.compose.short",
           "icon": "PlusOutlined",
           "route": {
             "path": "/new"
@@ -528,6 +529,7 @@
         {
           "id": "listings.mine",
           "labelKey": "listings.nav.mine",
+          "shortLabelKey": "listings.nav.mine.short",
           "icon": "ProfileOutlined",
           "route": {
             "path": "listings"

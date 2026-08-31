@@ -101,6 +101,7 @@ export {
   skinCarouselCss,
 } from "./skin/carousel.js";
 export type { SkinCarouselProps } from "./skin/carousel.js";
+export { visuallyHidden } from "./skin/visuallyHidden.js";
 export { useElementWidth } from "./skin/elementWidth.js";
 export type { ElementWidthOptions, ElementWidthReading } from "./skin/elementWidth.js";
 export { ErrorAlert, EmptyState, LoadBoundary, LoadList, ACTION_STACK_BELOW } from "./skin/states.js";

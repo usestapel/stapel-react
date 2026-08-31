@@ -34,10 +34,37 @@ import { sortLabelKey } from "./sortLabels.js";
  */
 export const SORT_SELECT_MIN_WIDTH = 200;
 
+/** Why `sort=distance` is refused without a centre — the server's own code, so
+ * the control and the 400 it would have earned say the same sentence. */
+const SORT_DISTANCE_BLOCKED = "error.400.search_sort_needs_center";
+
 export interface SortSelectProps {
   /** The sort the SERVER applied, shown when the URL names none. Omitted, it
    * is read from the page already in cache — see {@link useAppliedSort}. */
   readonly appliedSort?: string | undefined;
+  /**
+   * The one-line form, for a phone toolbar. Default `false`.
+   *
+   * Three things change, and the third is the interesting one:
+   *
+   *  - the "Sort" caption goes (the select already shows a sort by name; the
+   *    accessible name keeps the word);
+   *  - the {@link SORT_SELECT_MIN_WIDTH} floor goes, so the control shares one
+   *    row with whatever the surface puts beside it instead of pushing it to
+   *    the next line;
+   *  - the blocked option's REASON moves from a line under the control into
+   *    the option's own label.
+   *
+   * That last move is not the reason being dropped. This file exists because
+   * the reason used to live in a `title=` a phone can never surface, and a
+   * phone is exactly where "sort by distance" is greyed out most often. On a
+   * 390px toolbar the reason as a separate row costs a whole band of the
+   * viewport above the first result — so it goes where the person actually
+   * meets the refusal: on the disabled row of the open list, which a screen
+   * reader reads out with the option and a thumb reads at the moment of the
+   * tap. Nothing is hidden; it is closer to the thing it explains.
+   */
+  readonly compact?: boolean;
 }
 
 export function SortSelect(props: SortSelectProps): ReactElement {
@@ -65,7 +92,48 @@ export function SortSelect(props: SortSelectProps): ReactElement {
   // four sorts work perfectly well without a location.
   const distance: ActionAvailability = hasCentre
     ? actionAvailable()
-    : actionBlocked("error.400.search_sort_needs_center");
+    : actionBlocked(SORT_DISTANCE_BLOCKED);
+
+  const optionsFor = (describedBy?: string): {
+    readonly value: string;
+    readonly label: string;
+    readonly disabled: boolean;
+  }[] =>
+    values.map((value) => {
+      const key = sortLabelKey(value);
+      const label = key !== undefined ? t(key) : value;
+      const blocked = value === "distance" && !hasCentre;
+      return {
+        value,
+        // In the compact form the option carries its own reason — see
+        // `SortSelectProps.compact`. Elsewhere `GatedControl` renders it once,
+        // beside the control, and repeating it here would say it twice.
+        label:
+          blocked && props.compact === true && describedBy === undefined
+            ? `${label} — ${t(SORT_DISTANCE_BLOCKED)}`
+            : label,
+        disabled: blocked,
+      };
+    });
+
+  if (props.compact === true) {
+    return (
+      <Select<string>
+        data-testid="search-sort"
+        data-stapel-gated={hasCentre ? "available" : "blocked"}
+        aria-label={t(SEARCH_I18N_KEYS.sortLabel)}
+        // `minWidth: 0` and not the floor: a control that refuses to be
+        // narrower than 200px is a control that wraps a two-item toolbar onto
+        // two rows at 390px.
+        style={{ minWidth: 0, flex: "0 1 auto" }}
+        value={active ?? null}
+        onChange={(next) => {
+          setSort(next);
+        }}
+        options={optionsFor()}
+      />
+    );
+  }
 
   return (
     <GatedControl gate={distance} testId="search-sort-gate">
@@ -83,14 +151,7 @@ export function SortSelect(props: SortSelectProps): ReactElement {
             onChange={(next) => {
               setSort(next);
             }}
-            options={values.map((value) => {
-              const key = sortLabelKey(value);
-              return {
-                value,
-                label: key !== undefined ? t(key) : value,
-                disabled: value === "distance" && !hasCentre,
-              };
-            })}
+            options={optionsFor(bind["aria-describedby"] ?? "")}
           />
         </Flex>
       )}

@@ -88,6 +88,26 @@ export interface NavEntry {
   /** i18n key for the menu label — never a string literal (frontend-standard
    * §4.5's i18n discipline applies to nav labels too). */
   readonly labelKey: string;
+  /**
+   * i18n key for the label a COMPACT chrome uses — a phone dock, a rail, any
+   * surface that gives a destination a fixed sliver of a 390px viewport
+   * instead of a menu row.
+   *
+   * Optional, and a compact chrome falls back to {@link labelKey} without it.
+   * Declare it when the menu label cannot fit: a five-item dock gives each
+   * destination roughly ten characters, and a label written for a menu row
+   * ("Post a listing", and its longer Russian translation) ellipsizes to a
+   * fragment — a truncated label is a destination a person has to guess at,
+   * and a dock is exactly where guessing is worst.
+   *
+   * A KEY and not a length hint on purpose. Which words survive the cut is a
+   * translator's judgement, not an algorithm's: the useful short form of
+   * "Post a listing" is the verb, while the useful short form of "My
+   * listings" is the noun — and a locale may put those the other way round.
+   * No truncation rule finds either, and a shell that measured text would
+   * still be choosing WHERE to cut a word it cannot read.
+   */
+  readonly shortLabelKey?: string;
   /** Icon name (antd icon component name, e.g. `"SettingOutlined"`) —
    * resolved by the shell's icon registry, not imported here (keeps this
    * contract free of any UI-library dependency). */

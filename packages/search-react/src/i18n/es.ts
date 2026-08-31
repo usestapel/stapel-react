@@ -93,6 +93,7 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.filters.dismiss": "Cerrar los filtros",
   "search.filters.chips_label": "Filtros",
   "search.filters.all": "Todos los filtros",
+  "search.filters.short": "Filtros",
   "search.filters.chip_more": ", +{count}",
 
   "search.category.title": "Categoría",

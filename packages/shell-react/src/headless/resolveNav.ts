@@ -203,6 +203,12 @@ export interface ResolveNavOptions {
 export interface ResolvedNavEntry {
   readonly id: string;
   readonly labelKey: string;
+  /** Resolved `NavEntry.shortLabelKey` — the key a COMPACT chrome (the phone
+   * dock) prefers, absent when the manifest declares none and the compact
+   * chrome should fall back to {@link labelKey}. Copied opaque: which words
+   * survive the cut is the pair's and its translators' call, never a
+   * renderer's. */
+  readonly shortLabelKey?: string;
   readonly icon: string;
   readonly route: NavRoute;
   /**
@@ -263,6 +269,9 @@ function resolveOne(
   return {
     id: entry.id,
     labelKey: entry.labelKey,
+    ...(entry.shortLabelKey !== undefined
+      ? { shortLabelKey: entry.shortLabelKey }
+      : {}),
     icon: entry.icon,
     route: entry.route,
     linkPath: index && section !== undefined ? section.route.path : entry.route.path,

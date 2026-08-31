@@ -120,6 +120,7 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.filters.dismiss": "Закрыть фильтры",
   "search.filters.chips_label": "Фильтры",
   "search.filters.all": "Все фильтры",
+  "search.filters.short": "Фильтры",
   "search.filters.chip_more": ", +{count}",
 
   "search.category.title": "Категория",

@@ -64,7 +64,7 @@ import { useBreakpoint, useOptionalSite, useT } from "@stapel/core";
 import { spacing } from "@stapel/tokens-antd";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
 import { NavMenu } from "./navMenu.js";
-import { NavDock, DOCK_CLEARANCE } from "./NavDock.js";
+import { NavDock, DOCK_CLEARANCE, dockRenders } from "./NavDock.js";
 import { CloseGlyph, MenuGlyph } from "./icons.js";
 import { ShellThemeControl } from "./ShellThemeControl.js";
 import { SiteBrand } from "./SiteBrand.js";
@@ -301,6 +301,16 @@ function PublicChrome(props: PublicShellProps): ReactElement {
   // would be chrome competing with chrome.
   const showDock = !isDesktop && props.dock !== false;
 
+  /*
+   * Does an island actually float over this page?
+   *
+   * `showDock` is the shell's INTENT; `dockRenders` is what `<NavDock>` will
+   * do with the nav it is handed. They differ for a nav with fewer than two
+   * top entries, and the difference used to show up as a strip of empty page
+   * under a dock nobody drew. The clearance below asks the second question.
+   */
+  const dockFloats = showDock && dockRenders(props.nav);
+
   // `navBadges` is the canonical channel and `dockBadges` the dock-only one it
   // replaced, so the dock reads both and the narrower input wins on a
   // collision. Everywhere else — the sheet, the top bar's menu — only the
@@ -401,7 +411,30 @@ function PublicChrome(props: PublicShellProps): ReactElement {
     ) : null;
 
   return (
-    <Layout style={{ minHeight: "100vh" }} data-testid="public-shell">
+    <Layout
+      /*
+       * ── Why the dock's clearance is on the PAGE COLUMN, not on the content ──
+       *
+       * The island is `position: fixed` over the LAST thing on the page, and
+       * the last thing on the page is not always the content: this shell draws
+       * a footer under it, and a host can draw more. Reserving the room on
+       * `<Layout.Content>` cleared the final card and left the footer's last
+       * rows — the legal links, the ranking-disclosure sentence — permanently
+       * under the island, readable only by knowing they were there. The
+       * reservation belongs to whatever the island can reach, which is the
+       * whole column.
+       *
+       * `box-sizing: border-box` keeps `100vh` meaning the viewport: the
+       * padding is spent INSIDE the minimum height, so a short page still does
+       * not scroll.
+       */
+      style={{
+        minHeight: "100vh",
+        boxSizing: "border-box",
+        ...(dockFloats ? { paddingBottom: DOCK_CLEARANCE } : {}),
+      }}
+      data-testid="public-shell"
+    >
       <Layout.Header
         data-testid="public-shell-header"
         data-phone-chrome={isDesktop ? undefined : dockChrome ? "dock" : "drawer"}
@@ -567,13 +600,9 @@ function PublicChrome(props: PublicShellProps): ReactElement {
         </Drawer>
       )}
 
-      {/* The dock FLOATS, so the page has to leave room under its last row
-          — otherwise the island covers the final card of every list and the
-          only way to read it is to know it is there. */}
       <Layout.Content
         style={{
           padding: spacing[4],
-          ...(showDock ? { paddingBottom: DOCK_CLEARANCE } : {}),
         }}
       >
         <div

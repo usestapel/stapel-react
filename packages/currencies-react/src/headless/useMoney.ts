@@ -72,6 +72,9 @@ export function useMoney(): MoneyBag {
         ...(options?.maximumFractionDigits !== undefined
           ? { maximumFractionDigits: options.maximumFractionDigits }
           : {}),
+        ...(options?.fraction !== undefined
+          ? { fraction: options.fraction }
+          : {}),
         // The catalogue's own symbol is what a non-ISO token falls back to.
         ...(symbol !== undefined && symbol.length > 0
           ? { fallbackSymbol: symbol }

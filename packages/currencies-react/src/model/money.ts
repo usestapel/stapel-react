@@ -279,6 +279,11 @@ export interface FormatMoneyOptions {
   readonly minimumFractionDigits?: number;
   readonly maximumFractionDigits?: number;
   /**
+   * Whether a whole amount prints its currency's minor units. See
+   * {@link FractionPolicy}. Default `"auto"`.
+   */
+  readonly fraction?: FractionPolicy;
+  /**
    * What to print beside the number when `Intl` refuses the code (it accepts
    * only three ASCII letters). Normally the catalogue's `symbol`; falls back
    * to the code itself, never to nothing.
@@ -286,15 +291,60 @@ export interface FormatMoneyOptions {
   readonly fallbackSymbol?: string;
 }
 
+/**
+ * How many decimal places a money string prints when the caller pins neither
+ * end. The rule, in one sentence: **the fraction is printed when the amount
+ * HAS one.**
+ *
+ * `"auto"` (default) — `42000.00 RUB` is `42 000 ₽` and `42000.50 RUB` is
+ * `42 000,50 ₽`. A trailing `,00` on a classified's price tag is noise a
+ * person has to read past on every card of every page, and no marketplace
+ * prints it; but a price that really is 42 000,50 must not be rounded to a
+ * different number. So the AMOUNT decides the minimum and the CURRENCY still
+ * decides the maximum — `1234.567 USD` is `$1,234.57`, not `$1,234.567`.
+ *
+ * `"minor-units"` — always the currency's own minor units, `42 000,00 ₽`. What
+ * a ledger, an invoice line or a settlement report wants: a column of amounts
+ * whose decimal points line up, where a missing `,00` reads as a different
+ * precision rather than as a round number.
+ *
+ * Neither is a rounding policy: both arms print the same VALUE, quantized by
+ * `Intl` to at most the currency's minor units. An explicit
+ * `minimumFractionDigits`/`maximumFractionDigits` overrides both — a rate
+ * table showing four places is still a caller's call.
+ */
+export type FractionPolicy = "auto" | "minor-units";
+
+/** Does this amount carry a non-zero fractional part? `1.50` does; `1.00`
+ * does not, and neither does `1`. Scale alone cannot answer it — the wire
+ * writes whole roubles as `"42000.00"`. */
+function hasFraction(value: Decimal): boolean {
+  if (value.scale === 0) return false;
+  let divisor = 1n;
+  for (let i = 0; i < value.scale; i += 1) divisor *= 10n;
+  return value.units % divisor !== 0n;
+}
+
 function fractionOptions(
-  options: FormatMoneyOptions
+  options: FormatMoneyOptions,
+  amount: Decimal
 ): { minimumFractionDigits?: number; maximumFractionDigits?: number } {
   const min = options.minimumFractionDigits;
   const max = options.maximumFractionDigits ?? min;
-  return {
-    ...(min !== undefined ? { minimumFractionDigits: min } : {}),
-    ...(max !== undefined ? { maximumFractionDigits: max } : {}),
-  };
+  if (min !== undefined || max !== undefined) {
+    return {
+      ...(min !== undefined ? { minimumFractionDigits: min } : {}),
+      ...(max !== undefined ? { maximumFractionDigits: max } : {}),
+    };
+  }
+  // Nothing pinned: the policy decides. `{}` leaves `Intl` on the currency's
+  // own ISO 4217 minor units for BOTH ends, which is the `"minor-units"` arm
+  // and was this function's only behaviour before the policy existed.
+  if ((options.fraction ?? "auto") === "minor-units") return {};
+  // `"auto"`: drop the floor to zero and leave the ceiling where the currency
+  // put it. A whole amount then prints no fraction and a fractional one prints
+  // every place the currency has.
+  return hasFraction(amount) ? {} : { minimumFractionDigits: 0 };
 }
 
 /**
@@ -327,7 +377,7 @@ export function formatMoney(
       style: "currency",
       currency: code,
       currencyDisplay: display,
-      ...fractionOptions(options),
+      ...fractionOptions(options, parsed),
     });
     if (display === "code") return asStringCapable(formatter).format(normalized);
     return withPreferredGlyph(
@@ -337,7 +387,7 @@ export function formatMoney(
     );
   } catch (error) {
     if (!(error instanceof RangeError)) throw error;
-    return formatUnknownCurrency(normalized, code, options);
+    return formatUnknownCurrency(normalized, parsed, code, options);
   }
 }
 
@@ -348,6 +398,7 @@ export function formatMoney(
  */
 function formatUnknownCurrency(
   normalized: string,
+  amount: Decimal,
   code: string,
   options: FormatMoneyOptions
 ): string {
@@ -362,7 +413,7 @@ function formatUnknownCurrency(
       style: "currency",
       currency: PLACEHOLDER_CURRENCY,
       currencyDisplay: "code",
-      ...fractionOptions(options),
+      ...fractionOptions(options, amount),
     });
     return asStringCapable(formatter)
       .formatToParts(normalized)

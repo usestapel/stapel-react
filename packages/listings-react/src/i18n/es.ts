@@ -218,7 +218,9 @@ export const listingsI18nBundleEs: I18nDictionary = {
 
   "listings.nav.detail": "Anuncio",
   "listings.nav.compose": "Poner un anuncio",
+  "listings.nav.compose.short": "Poner",
   "listings.nav.mine": "Mis anuncios",
+  "listings.nav.mine.short": "Míos",
   "listings.nav.favorites": "Favoritos",
 };
 

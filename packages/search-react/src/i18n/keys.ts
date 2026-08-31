@@ -129,6 +129,9 @@ export const SEARCH_I18N_KEYS = {
   /** The leading, icon-only chip: the whole panel. Icon-only means the name
    * exists ONLY here, so this key is the control's entire accessibility. */
   filtersAll: "search.filters.all",
+  /** The same door, named for a 390px row: the location line's trailing link
+   * sits beside a place name and cannot spend six characters on "All". */
+  filtersShort: "search.filters.short",
   /** A chip filtering on more than one value: "Bosch, +2". Not a plural
    * family — nothing is being counted in words. */
   filtersChipMore: "search.filters.chip_more",
@@ -323,6 +326,7 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.filters.dismiss": "Close the filters",
   "search.filters.chips_label": "Filters",
   "search.filters.all": "All filters",
+  "search.filters.short": "Filters",
   "search.filters.chip_more": ", +{count}",
 
   "search.category.title": "Category",
