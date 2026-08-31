@@ -176,6 +176,16 @@ export interface ListingFeatureDao {
    * can lack it and a JSONField will pass that through. */
   readonly type?: ListingFeatureType;
   readonly value?: unknown;
+  /**
+   * The write-time LABEL SNAPSHOT: the copy each entry of `value` had when the
+   * listing was stored, positionally aligned with it, one entry per value.
+   * `ref_select`/`ref_hierarchical_select` have always carried it (their codes
+   * name vocabulary terms no display package can reach) and `select` carries
+   * it from the release that snapshots option copy — so it is OPTIONAL, and a
+   * row stored before that one has no key at all. `model/features.ts` reads
+   * it, and says what a row without it falls back to.
+   */
+  readonly labels?: readonly string[];
   /** Display name or translation key; falls back to the slug. */
   readonly name?: string | null;
   readonly order?: number | null;

@@ -22,33 +22,54 @@
  * `order`, `title`, `badge`) are simply ignored by every formatter. Copying a
  * hand-picked subset instead would be a list to keep in step with ten types.
  *
- * ── What a DAO does NOT carry, and the one line that repairs it ────────────
+ * ── What a DAO does NOT carry, and the two tables that repair it ───────────
  *
  * `select`'s `options`. `SelectType.dto_to_dao` stores the chosen VALUES and
  * the ui config, never the option table — the table lives on the CATEGORY, and
  * not needing it is the whole point of the projection.
  *
- * The consequence was a defect the visual pass caught on every card and every
- * spec row: `formatFeatureValue` resolves an option's copy by looking the
- * value up in `config.options`, and with no table it falls through to
- * `String(value)`. The stored value of a translatable catalogue IS a
- * translation key, so a listing page printed `demo.condition.used` and
- * `demo.brand.bosch` at people. (The server does not have this problem: its
- * own `format_value` has the category's config in hand.)
+ * `formatFeatureValue` resolves an option's copy by looking the value up in
+ * `config.options`, so with no table at all it falls through to
+ * `String(value)` and the STORAGE SLUG reaches the screen: a live classified
+ * deployment printed "Condition: b-u" on its spec rows and a three-slug
+ * subtitle on its cards. (The server never had this problem: its own
+ * `format_value` has the category's config in hand.)
  *
- * So the split below synthesizes the IDENTITY table — `{value: v, label: v}`
- * for each stored value — which is exactly the table a translatable catalogue
- * would have produced, since its labels ARE the keys. `formatFeatureValue`
- * then runs the value through the host's `t` and a bundle carrying the
- * catalogue copy reads "Used". A bundle that does not still shows the key, on
- * purpose: a visible `option.condition.used` gets fixed, an invented "Used"
- * ships wrong. A NON-translatable catalogue stores literal labels, `t` returns
- * an unknown key unchanged, and the output is what it always was.
+ * So the split below rebuilds the table, from the better of two sources:
+ *
+ *  1. The LABEL SNAPSHOT. A `select` DAO written by a stapel-attributes that
+ *     snapshots labels carries `labels`, a `string[]` positionally aligned
+ *     with `value` — the same device `ref_select` has always used for its
+ *     vocabulary terms, and the reason a published listing keeps printing the
+ *     copy it was published with however the category is edited afterwards.
+ *  2. The IDENTITY table — `{value: v, label: v}` — for a row written before
+ *     that release, which carries no `labels` key at all. That is exactly the
+ *     table a TRANSLATABLE catalogue would have produced, since its labels ARE
+ *     its keys, so such a listing still reads out of the host's bundle. A
+ *     NON-translatable catalogue has no key to look up and keeps showing the
+ *     slug until the listing is re-projected: a visible `b-u` gets fixed, an
+ *     invented "Used" ships wrong.
+ *
+ * Either table is then read the one way `formatFeatureValue` reads any option
+ * table — literal when the config says `translatable_options: false`, through
+ * the host's `t` otherwise, where a translatable catalogue's label IS the key
+ * and an unknown key comes back unchanged. Nothing on that path is
+ * special-cased here, and nothing about it changed.
  */
 import type { FeatureDef, FeatureValueDto } from "@stapel/attributes-react";
 import type { ListingFeatureDao, ListingFeatureView } from "../api/types.js";
 
-/** Keys that belong to the DAO envelope rather than to the type's config. */
+/**
+ * Keys that belong to the DAO envelope rather than to the type's config.
+ *
+ * `labels` is deliberately NOT one of them, even though this module now reads
+ * it: `ref_select` and `ref_hierarchical_select` resolve their vocabulary
+ * terms from `config.labels` (attributes-react's `refLabels` reads the value
+ * envelope first and the config second, and this split hands the formatter a
+ * bare `{type, value}`), so envelope-ing the key would blank every term those
+ * two types print. For `select` the key is simply inert — its formatter reads
+ * `options` and nothing else — so carrying it costs a reference.
+ */
 const ENVELOPE = new Set(["slug", "value", "name", "order", "title", "badge"]);
 
 /** The two types whose stored `value` is an option key rather than the thing
@@ -62,7 +83,18 @@ function isTranslateMode(value: unknown): value is "all" | "title" | "none" {
 }
 
 /**
- * The identity option table for a stored `select` — see the module header.
+ * The option table a stored `select` needs and does not carry — see the
+ * module header. Built from the row's `labels` snapshot when there is one,
+ * from the values themselves when there is not.
+ *
+ * The alignment rule is the engine's own (`labels if len(labels) ==
+ * len(codes) else codes`): a snapshot of a different length than `value` is a
+ * snapshot of some other value list, and pairing the two anyway would print
+ * one option's copy against another option's value — worse than a slug,
+ * because it does not LOOK wrong. So a length mismatch drops the whole
+ * snapshot back to identity rather than pairing the overlap. Within a usable
+ * snapshot, a missing or empty entry falls back to its own value for that one
+ * pair.
  *
  * Returns `undefined` when there is nothing to add (another type, a config
  * that already carries a table, a value that is not a list of strings), so the
@@ -75,10 +107,25 @@ function synthesizedOptions(
 ): readonly { value: string; label: string }[] | undefined {
   if (typeof dao.type !== "string" || !OPTION_VALUED.has(dao.type)) return undefined;
   if (Array.isArray(config["options"])) return undefined;
-  const raw = Array.isArray(dao.value) ? dao.value : [dao.value];
-  const values = raw.filter((item): item is string => typeof item === "string");
-  if (values.length === 0) return undefined;
-  return values.map((value) => ({ value, label: value }));
+  const raw: readonly unknown[] = Array.isArray(dao.value)
+    ? (dao.value as readonly unknown[])
+    : [dao.value];
+  const snapshot: unknown = dao.labels;
+  const labels: readonly unknown[] | undefined =
+    Array.isArray(snapshot) && snapshot.length === raw.length
+      ? (snapshot as readonly unknown[])
+      : undefined;
+
+  const table: { value: string; label: string }[] = [];
+  raw.forEach((value, index) => {
+    if (typeof value !== "string") return;
+    const label = labels?.[index];
+    table.push({
+      value,
+      label: typeof label === "string" && label.length > 0 ? label : value,
+    });
+  });
+  return table.length === 0 ? undefined : table;
 }
 
 /**
