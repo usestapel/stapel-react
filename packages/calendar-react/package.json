@@ -1,6 +1,6 @@
 {
   "name": "@stapel/calendar-react",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Headless React pair for stapel-calendar plus its default antd skin: a typed client, TanStack Query hooks, headless primitives for every one of the module's ten operations, and a wired month/week/day calendar that degrades to an agenda on a phone. The materialized-occurrence dedup the wire contract demands is applied once, in the pair, so no consumer draws a repeating event twice; AvailabilityResponse.truncated is rendered as visible copy rather than silently offering booked time. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin.",
   "license": "MIT",
   "repository": {

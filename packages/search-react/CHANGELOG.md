@@ -1,5 +1,125 @@
 # @stapel/search-react
 
+## 0.12.0
+
+### Minor Changes
+
+- 8d1e20f: The phone dock stops truncating its labels, stops covering the footer, and the
+  phone SERP gets a one-line toolbar instead of four stacked rows.
+
+  **A compact label for a compact chrome.** `NavEntry.shortLabelKey` (core) is an
+  optional second i18n key a manifest declares when its menu label cannot fit a
+  dock cell. A five-item dock at 390px gives each destination about ten
+  characters, and a label written for a menu row ellipsizes mid-word — a
+  destination a person has to guess at, which is the one thing a dock must not
+  produce. A key and not a length hint, because which words survive the cut is a
+  translator's judgement: the useful short form of "Post a listing" is the verb,
+  of "My listings" the noun, and no truncation rule finds either. `resolveNav`
+  carries it through, `<NavDock>` prints it and keeps the LONG label as the
+  link's accessible name; `listings-react` declares one for `compose` and `mine`.
+  The dock also drops its inter-cell gap and one inset step — 24px given back to
+  five labels — and `scripts/gen-nav-manifest.mjs` validates the new field.
+
+  **The clearance belongs to the page, not the content.** The island is fixed
+  over the last thing on the page, and the last thing is the footer. Reserving
+  `DOCK_CLEARANCE` on `<Layout.Content>` cleared the final card and left the
+  footer's legal links permanently under the island. `<PublicShell>` reserves it
+  on the page column instead, and only when `dockRenders(nav)` says an island
+  will actually be drawn — a one-entry nav used to get a strip of empty page
+  under a dock nobody rendered.
+
+  **A phone toolbar that is one row.** `<SearchResultsPane header="compact">`
+  gives the toolbar its own line and puts the count directly above the cards as
+  their caption, with the heading visually hidden but still in the document
+  outline; the banner shape (heading | count + toolbar) is unchanged and
+  remains the default. `<SortSelect compact>` drops the caption and the 200px
+  floor so the control shares a row, and moves the blocked `distance` option's
+  REASON into the option's own label — on a phone, where that refusal is most
+  common, a separate reason row costs a band of viewport above the first result.
+  `<FilterChips>` takes `geoChip={false}` for a surface that already states the
+  location above it (the phone SERP mounts `<LocationSummaryLine>`, and the two
+  together asked about one filter twice), and renders NOTHING when it would be a
+  row of one button — a free-text query has no category, so the server returns no
+  facet plan, and the row was a lone circle floating between two working filter
+  affordances. `<LocationSummaryLine>` says "Filters", not "All filters": that
+  end of the row shares 390px with a place name.
+
+  **Tiles say which category they are.** `<CategoryTileGrid>` draws the
+  category's own initial where art is missing, instead of a muted disc. A live
+  catalogue put nine identical grey discs on one landing — every category there
+  carries an empty `carousel_icon`, which is the state every catalogue is in
+  until somebody uploads art — and a grid of them reads as nine images still
+  loading. A letter cannot be mistaken for a pending image, and every tile
+  differs from every other.
+
+  **`visuallyHidden`** (tokens-antd `/skin`) is the fleet's one off-screen-but-
+  announced style. It was written twice before, in `calendar-react` and
+  `search-react`, and the two disagreed on `clip-path` versus the deprecated
+  `clip`; both now import it.
+
+- aa79a97: The result list gets a chip row a person can use, chips that print copy, a
+  category narrowing, and a search box that can reach a category.
+
+  **A facet a person cannot filter by is not a chip.** `FACETABLE_FEATURE_TYPES`
+  / `isFacetableFeature` decide from the category's own schema — the select
+  family, `bool`, and `attributes-react`'s own `VOCABULARY_BACKED_TYPES`,
+  imported rather than retyped. `imei` and `video_file_url` leave both the chip
+  row and the panel. Two edges are held on purpose: a group with NO feature def
+  is KEPT (the schema slot is optional, and treating silence as "not facetable"
+  would empty the row for every host that never threaded it), and a slug the URL
+  already filters on is kept whatever its type, or a shared link would narrow a
+  search with nothing on screen to widen it again.
+
+  **The row's leading edge is the filters people use.** `orderChipFilters` sorts
+  applied-first, then by band: core ranges (`facet_meta.core_ranges`), then
+  counted facet groups, then the category's numeric attributes. A live
+  classified deployment led with battery health and four delivery dimensions;
+  it now leads with category, price, condition and brand. Nothing is deleted —
+  `facet_meta.skipped` means the counter hit its field cap, not that the axis
+  is unfilterable, and `r.<slug>` still answers for a skipped slug, so removing
+  one on that signal would delete a working filter on a capacity report.
+
+  **A chip prints copy, not a storage slug.** Precedence, now answer-first:
+  `facet_labels` (the server saw the write-time snapshot) → the def's inline
+  `options` → the host's `resolveFacetLabels` → the raw value. The host seam is
+  batched per group through `useQueries`, cached, deduplicated across the three
+  components that read the panel, and given the query's own `AbortSignal`; it is
+  asked only about values nothing else named and cannot overwrite one that was.
+  A value nothing resolves keeps printing itself — a chip that silently drops an
+  option is worse than one showing a slug.
+
+  **A category narrowing on the row.** `renderCategoryFilter` and the new
+  `categoryLabel` reach `<FilterChips>` as the LEADING chip, opening the same
+  sheet every other chip does. There is no category facet on any server and the
+  index has no read path for one, so nothing here synthesizes counts. `hasChips`
+  now renders a row holding only the category chip and still renders nothing for
+  a row holding only the sliders circle.
+
+  **The search box offers CATEGORIES.** stapel-search 0.7.0's `/suggest` answers
+  a destination per row — the full ancestor path, the live count behind it, and
+  a `category` string to pass verbatim to `/query`. `useSearchBox` surfaces
+  `categories`, `categoriesUnavailable`, `categoryCountsUnknown` and
+  `chooseCategory`, and `<SearchBox>` draws them as a labelled group above the
+  term suggestions, each row printing the whole trail (which is what tells three
+  same-named leaves apart) and its counted sentence. Choosing one clears the
+  query text: keeping it would land the person on that section intersected with
+  a title search for the word that found it, which is fewer results than the
+  number they just tapped. A zero-count row is dropped — an empty section is a
+  dead end dressed as a destination — except under `category_rollup`, where the
+  zeroes mean the ancestry never arrived and it is the NUMBERS that are omitted.
+  `SuggestAnswer` deliberately widens the generated response type, whose fields
+  are all required: a pair typed against it would compile while reading
+  `undefined` from a field the compiler swore was there. An older server that
+  sends no `categories` key, and one that reports `category_suggestions` in
+  `degraded`, both draw no group at all — never an empty one, and nothing
+  anywhere says the catalogue has no matches.
+
+  **Nav labels.** `search.results` stopped borrowing `search.results.title` from
+  the results heading: one key was carrying the name of a DESTINATION and the
+  name of a LIST, and they diverge the moment the destination is a tab.
+  `search.nav.results` / `search.nav.ranking` are the nav's own, and the
+  disclosure entry declares a `shortLabelKey` for a phone dock.
+
 ## 0.11.0
 
 ### Minor Changes

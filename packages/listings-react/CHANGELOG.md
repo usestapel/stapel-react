@@ -1,5 +1,176 @@
 # @stapel/listings-react
 
+## 0.12.0
+
+### Minor Changes
+
+- 0eab206: A published listing prints its option COPY wherever the copy exists, and the
+  composer's characteristics step is reachable on a phone.
+
+  **The copy.** A `select` DAO carries the chosen values and the display config,
+  never the option table — the table lives on the CATEGORY, and not needing it
+  is what lets a card draw a badge without a category read. A row written before
+  the server started snapshotting labels therefore had nothing to resolve
+  against, and the STORAGE SLUG reached the screen: a live classified deployment
+  printed `b-u`, `bez-defektov` and `ne-rabotaet-vspyshka` on its spec rows.
+  `featureFromDao(dao, { categoryFeatures })` adds the third and last source of
+  copy, with the precedence written out: a row carrying its own `options` table
+  is left alone, then the row's own `labels` snapshot, then the CATEGORY's
+  option table, then the raw value. The snapshot wins over the category on
+  purpose — it is what the listing was PUBLISHED with, and the whole reason the
+  server takes one is that a category edited afterwards must not silently
+  restate an old listing. A category def is used only when slug AND value type
+  match, so a renamed feature is ignored rather than forced, and a value the
+  catalogue no longer declares still prints itself rather than vanishing or
+  being invented. `hierarchical_select` gets the same repair, its tree adopted
+  whole because no positional snapshot can describe one. `<ListingDetailPane>`,
+  `<ListingCard>`, `<ListingSerpCard>`, `<ListingDetail>` and `useListingDetail`
+  take the optional `categoryFeatures`; a host that wires nothing is unchanged.
+
+  **The composer.** On a 390px viewport the characteristics of the chosen
+  category began about 1.8 viewports below the fold, under a 700px photo
+  dropzone, with no step indicator and nothing saying they existed — while the
+  footer counted ten unfilled required details, none of them on screen.
+
+  - Below `COMPOSER_STACKED_BELOW` the characteristics render directly under the
+    category choice and ABOVE the photos; at or above it they stay where they
+    were. The threshold is measured on the FORM's own width via `useElementWidth`
+    — a composer in a 400px panel on a desktop is a narrow composer — and an
+    unmeasured element falls to the wide arm.
+  - The placeholder said "loading the category's characteristics" when nothing
+    was in flight and no category had been chosen. That is now its own fourth
+    state with its own sentence, en/ru/es.
+  - `ListingComposerBag.firstUnsatisfied` names the first refused field in the
+    form's own order, and the closed gate renders a real button (accessible
+    name, focus AND scroll) that takes the person to it. A count of ten with
+    nothing on screen is a dead end.
+  - A field showing a refusal now drops its hint instead of stacking on it: the
+    refusal is the more specific statement and the one just earned.
+  - The whole attribute region carried exactly one test id. `attributes-fields`,
+    `attributes-group-<group>`, `attributes-group-<group>-heading` and
+    `attributes-row-<slug>` (with `featureSectionTestId` / `featureRowTestId`
+    exported) make it measurable, and the row id sits on the same element with
+    or without a host `renderRow`.
+
+- 9a123b9: A stored `select` prints its option copy, not the storage slug.
+
+  A DAO carries the value and the display config, never the option table — the
+  table lives on the category, and not needing it is what lets a card render a
+  badge without a category read. `formatFeatureValue` resolves an option's copy
+  out of `config.options`, so with no table it fell through to `String(value)`
+  and the SLUG reached the screen: a live classified deployment printed
+  "Condition: b-u" on its spec rows and a subtitle of three slugs on its cards.
+
+  The identity table `featureFromDao` synthesized (`{value: v, label: v}`) only
+  ever answered for a TRANSLATABLE catalogue, whose labels are its keys. The
+  catalogues that produced those screens set `translatable_options: false` and
+  carry literal copy on the category, so `t("b-u")` returned `"b-u"` and there
+  was nothing else to fall back to.
+
+  - `featureFromDao` now builds the option table from the DAO's write-time
+    `labels` snapshot — the `string[]` positionally aligned with `value` that
+    `ref_select` has always carried and that `select` carries from the
+    stapel-attributes release which snapshots option copy. The copy a listing was
+    published with is the copy it prints, whatever the category has become since.
+  - A row written before that release carries no `labels` key and keeps the
+    identity table exactly as it behaved: a translatable catalogue still reads
+    out of the host's bundle, and a non-translatable one still shows the slug
+    until the listing is re-projected. A visible slug gets fixed; an invented
+    label ships wrong.
+  - A snapshot whose length differs from `value` is dropped WHOLE rather than
+    paired over its overlap, which is the engine's own rule: one option's copy
+    printed against another option's value does not look wrong.
+  - `ListingFeatureDao` declares `labels?: readonly string[]`.
+
+  Minor rather than patch: the fix rides on a new optional wire field and changes
+  what every listing surface renders. `ListingCard`, `ListingSerpCard`,
+  `ListingDetailPane` and the `ListingDetail` headless bag all split their DAOs
+  through this one function, so no surface needed its own patch — and a host
+  snapshotting card or detail output will see the labels change.
+
+- 8d1e20f: The phone dock stops truncating its labels, stops covering the footer, and the
+  phone SERP gets a one-line toolbar instead of four stacked rows.
+
+  **A compact label for a compact chrome.** `NavEntry.shortLabelKey` (core) is an
+  optional second i18n key a manifest declares when its menu label cannot fit a
+  dock cell. A five-item dock at 390px gives each destination about ten
+  characters, and a label written for a menu row ellipsizes mid-word — a
+  destination a person has to guess at, which is the one thing a dock must not
+  produce. A key and not a length hint, because which words survive the cut is a
+  translator's judgement: the useful short form of "Post a listing" is the verb,
+  of "My listings" the noun, and no truncation rule finds either. `resolveNav`
+  carries it through, `<NavDock>` prints it and keeps the LONG label as the
+  link's accessible name; `listings-react` declares one for `compose` and `mine`.
+  The dock also drops its inter-cell gap and one inset step — 24px given back to
+  five labels — and `scripts/gen-nav-manifest.mjs` validates the new field.
+
+  **The clearance belongs to the page, not the content.** The island is fixed
+  over the last thing on the page, and the last thing is the footer. Reserving
+  `DOCK_CLEARANCE` on `<Layout.Content>` cleared the final card and left the
+  footer's legal links permanently under the island. `<PublicShell>` reserves it
+  on the page column instead, and only when `dockRenders(nav)` says an island
+  will actually be drawn — a one-entry nav used to get a strip of empty page
+  under a dock nobody rendered.
+
+  **A phone toolbar that is one row.** `<SearchResultsPane header="compact">`
+  gives the toolbar its own line and puts the count directly above the cards as
+  their caption, with the heading visually hidden but still in the document
+  outline; the banner shape (heading | count + toolbar) is unchanged and
+  remains the default. `<SortSelect compact>` drops the caption and the 200px
+  floor so the control shares a row, and moves the blocked `distance` option's
+  REASON into the option's own label — on a phone, where that refusal is most
+  common, a separate reason row costs a band of viewport above the first result.
+  `<FilterChips>` takes `geoChip={false}` for a surface that already states the
+  location above it (the phone SERP mounts `<LocationSummaryLine>`, and the two
+  together asked about one filter twice), and renders NOTHING when it would be a
+  row of one button — a free-text query has no category, so the server returns no
+  facet plan, and the row was a lone circle floating between two working filter
+  affordances. `<LocationSummaryLine>` says "Filters", not "All filters": that
+  end of the row shares 390px with a place name.
+
+  **Tiles say which category they are.** `<CategoryTileGrid>` draws the
+  category's own initial where art is missing, instead of a muted disc. A live
+  catalogue put nine identical grey discs on one landing — every category there
+  carries an empty `carousel_icon`, which is the state every catalogue is in
+  until somebody uploads art — and a grid of them reads as nine images still
+  loading. A letter cannot be mistaken for a pending image, and every tile
+  differs from every other.
+
+  **`visuallyHidden`** (tokens-antd `/skin`) is the fleet's one off-screen-but-
+  announced style. It was written twice before, in `calendar-react` and
+  `search-react`, and the two disagreed on `clip-path` versus the deprecated
+  `clip`; both now import it.
+
+### Patch Changes
+
+- e738b83: Regenerated against the contracts the fleet actually installs.
+
+  `contract-pins.json` moves stapel-search 0.4.0 → 0.7.0 and stapel-categories
+  0.7.0 → 0.9.0 — the two pins the freshness gate reported as three and two
+  minors behind, and the two versions a live classified deployment now runs. A
+  pair regenerated from a stale pin is internally consistent and wrong about the
+  wire, which is the whole reason the gate exists.
+
+  What the regeneration brings in:
+
+  - `search-react`'s `GET /suggest` grows `categories[]` — a destination per row
+    with its full ancestor path, the number of LIVE listings behind it and a
+    `category` string to pass verbatim to `/query`, ranked by that count. The
+    answer is now public and conditional (`Cache-Control` + `ETag`), which is
+    what makes a per-keystroke read reasonable.
+  - `categories-react`'s feature-config union gains `group` — attributes v2's
+    container type, whose config holds its children as raw dicts each
+    discriminated by its own `type`, plus an optional `repeat`. The pair's
+    discriminator contract test pins thirteen members instead of twelve; it
+    checks in both directions on purpose, and this is the direction that was
+    supposed to fire.
+  - `calendar-react` and `search-react` raise their `@stapel/tokens-antd` peer
+    floor to the release that first ships `visuallyHidden`, which both now
+    import. The monorepo cannot catch that by building — in here every package
+    compiles against the workspace peer, never against its own declared floor —
+    so only a consumer installing at the floor would have found it, after the
+    release.
+
 ## 0.11.0
 
 ### Minor Changes

@@ -1,5 +1,167 @@
 # @stapel/categories-react
 
+## 0.7.0
+
+### Minor Changes
+
+- 7f23ccf: The catalogue stops offering rows nobody may browse, tiles stop at the second
+  level, and a query can reach a category.
+
+  **The browse projection.** `GET /categories/` is a REVISION-SYNC contract and
+  is right to keep sending rows a shopper may not see — a consumer that never
+  received a row again could never learn it went inactive. So the filter belongs
+  on the consumer. On a live classified deployment the list endpoint answers 187
+  rows of which 105 are `active: false`, end-to-end leftovers, and every browse
+  surface offered them. `isBrowsableCategory` / `browsableCategories` /
+  `ADMIN_VISIBILITY` (`catalog/browse.ts`) are the one predicate the tile grid,
+  the carousel, the tree walk and the children hook now share: `active`
+  (absent means active — the flag is optional and defaults true on the model),
+  `deleted` (a tombstone, deliberately still served), and `is_test` read
+  defensively off the wire because the pinned schema does not declare it, where
+  ABSENT means "not a test row". It never pattern-matches slugs: a heuristic
+  that drops `authz-…` also drops the real category somebody named `winter-2026`,
+  and a silently deleted branch is a worse failure than a visible test row. The
+  sync CACHE still ingests every row — only the projection over it filters, or
+  the next delta breaks.
+
+  **Tiles are two levels.** Level 1 on the home screen and a top-level
+  category's children on its landing; below that a category is a
+  CHARACTERISTIC, chosen through cascading child selectors when filtering or
+  posting, not a tile to navigate into. `MAX_TILE_DEPTH` /
+  `categoryOffersTileGrid` / `nodeOffersTileGrid` (`catalog/tiles.ts`) are that
+  rule as one exported number, so the search and composer surfaces read the
+  same one. `<CategoryTileGrid categoryDepth>` renders nothing past the cap —
+  not an empty state, because nothing is absent: the sub-categories exist and
+  are offered in a different shape — and it returns before mounting the
+  carousel bag, so it issues no request it would discard.
+
+  **One subcategory list, not two.** `<CategoryPage subcategories>` takes
+  `"pane" | "tiles" | "none"` and MOUNTS exactly one; the other is absent from
+  the document rather than hidden. Without it a host wanting tiles had to mount
+  the grid as well and hide `<CategoryTreePane>` with its own stylesheet, which
+  a live deployment was doing — the same links rendered twice. `"pane"` stays
+  the default, so no existing host changes. The page also takes `renderIcon`
+  and forwards it to the tiles arm, which otherwise could never draw art.
+  `categoryTileEntry` is the row→tile mapping lifted out of
+  `<CategoryCarousel>`: it held the only copy of the `carousel_icon` →
+  `catalog_icon` → `null` fallback order (with `""` read as absent), and a
+  second copy would have drifted on the one detail that is invisible when wrong.
+
+  **A query reaches a category.** `useCategorySearch` /
+  `rankCategoryMatches` / `<CategorySearchHits>` match a free-text query against
+  the categories the browse projection has ALREADY loaded — exact name, then
+  prefix, then substring, case- and diacritic-insensitive, over the localized
+  label and the slug, capped. No request per keystroke, and nothing the browse
+  projection hides can be reached through it. It is a list of category links,
+  not a picker and not a typeahead over the whole tree.
+
+- 7994c0d: `<CategoryPage breadcrumbs>` and a picker that stops printing its label twice.
+
+  **The trail is a deployment's decision.** `breadcrumbs={false}` mounts no
+  crumb bar — absent from the document, not covered. Which chrome carries "where
+  am I" is a navigation decision and both answers are right: on a desktop the
+  trail IS the catalogue's navigation, the only affordance on screen for moving
+  back up the tree; on a phone the reference design gives that job to the app
+  bar's back arrow, and a crumb row above the title repeats it in a second
+  visual language while spending one of four lines above the fold. A live
+  classified deployment had exactly that, as a `display: none` under a media
+  query with an upstream ask attached — and a host hiding a pair's output with a
+  stylesheet is the pair's bug.
+
+  **The picker's visible heading goes.** `<CategoryPickerField>` is mounted
+  inside somebody else's form, whose form item already prints "Category" above
+  it; a second copy underneath is the same word twice in two type sizes, which
+  reads as two stacked controls. It is dropped from the SCREEN and not from the
+  accessibility tree — mounted bare, the trigger would otherwise be a button
+  whose only name is the value inside it ("Phones, button", with nothing saying
+  what Phones is a choice OF), so the name is still authored, still translated,
+  and `visuallyHidden` keeps it in the tree, joined to the value rather than
+  replacing it. The SHEET keeps its visible title on the same key: there the
+  word duplicates nothing, and a dialog with no header is a panel that appeared.
+
+- 8d1e20f: The phone dock stops truncating its labels, stops covering the footer, and the
+  phone SERP gets a one-line toolbar instead of four stacked rows.
+
+  **A compact label for a compact chrome.** `NavEntry.shortLabelKey` (core) is an
+  optional second i18n key a manifest declares when its menu label cannot fit a
+  dock cell. A five-item dock at 390px gives each destination about ten
+  characters, and a label written for a menu row ellipsizes mid-word — a
+  destination a person has to guess at, which is the one thing a dock must not
+  produce. A key and not a length hint, because which words survive the cut is a
+  translator's judgement: the useful short form of "Post a listing" is the verb,
+  of "My listings" the noun, and no truncation rule finds either. `resolveNav`
+  carries it through, `<NavDock>` prints it and keeps the LONG label as the
+  link's accessible name; `listings-react` declares one for `compose` and `mine`.
+  The dock also drops its inter-cell gap and one inset step — 24px given back to
+  five labels — and `scripts/gen-nav-manifest.mjs` validates the new field.
+
+  **The clearance belongs to the page, not the content.** The island is fixed
+  over the last thing on the page, and the last thing is the footer. Reserving
+  `DOCK_CLEARANCE` on `<Layout.Content>` cleared the final card and left the
+  footer's legal links permanently under the island. `<PublicShell>` reserves it
+  on the page column instead, and only when `dockRenders(nav)` says an island
+  will actually be drawn — a one-entry nav used to get a strip of empty page
+  under a dock nobody rendered.
+
+  **A phone toolbar that is one row.** `<SearchResultsPane header="compact">`
+  gives the toolbar its own line and puts the count directly above the cards as
+  their caption, with the heading visually hidden but still in the document
+  outline; the banner shape (heading | count + toolbar) is unchanged and
+  remains the default. `<SortSelect compact>` drops the caption and the 200px
+  floor so the control shares a row, and moves the blocked `distance` option's
+  REASON into the option's own label — on a phone, where that refusal is most
+  common, a separate reason row costs a band of viewport above the first result.
+  `<FilterChips>` takes `geoChip={false}` for a surface that already states the
+  location above it (the phone SERP mounts `<LocationSummaryLine>`, and the two
+  together asked about one filter twice), and renders NOTHING when it would be a
+  row of one button — a free-text query has no category, so the server returns no
+  facet plan, and the row was a lone circle floating between two working filter
+  affordances. `<LocationSummaryLine>` says "Filters", not "All filters": that
+  end of the row shares 390px with a place name.
+
+  **Tiles say which category they are.** `<CategoryTileGrid>` draws the
+  category's own initial where art is missing, instead of a muted disc. A live
+  catalogue put nine identical grey discs on one landing — every category there
+  carries an empty `carousel_icon`, which is the state every catalogue is in
+  until somebody uploads art — and a grid of them reads as nine images still
+  loading. A letter cannot be mistaken for a pending image, and every tile
+  differs from every other.
+
+  **`visuallyHidden`** (tokens-antd `/skin`) is the fleet's one off-screen-but-
+  announced style. It was written twice before, in `calendar-react` and
+  `search-react`, and the two disagreed on `clip-path` versus the deprecated
+  `clip`; both now import it.
+
+### Patch Changes
+
+- e738b83: Regenerated against the contracts the fleet actually installs.
+
+  `contract-pins.json` moves stapel-search 0.4.0 → 0.7.0 and stapel-categories
+  0.7.0 → 0.9.0 — the two pins the freshness gate reported as three and two
+  minors behind, and the two versions a live classified deployment now runs. A
+  pair regenerated from a stale pin is internally consistent and wrong about the
+  wire, which is the whole reason the gate exists.
+
+  What the regeneration brings in:
+
+  - `search-react`'s `GET /suggest` grows `categories[]` — a destination per row
+    with its full ancestor path, the number of LIVE listings behind it and a
+    `category` string to pass verbatim to `/query`, ranked by that count. The
+    answer is now public and conditional (`Cache-Control` + `ETag`), which is
+    what makes a per-keystroke read reasonable.
+  - `categories-react`'s feature-config union gains `group` — attributes v2's
+    container type, whose config holds its children as raw dicts each
+    discriminated by its own `type`, plus an optional `repeat`. The pair's
+    discriminator contract test pins thirteen members instead of twelve; it
+    checks in both directions on purpose, and this is the direction that was
+    supposed to fire.
+  - `calendar-react` and `search-react` raise their `@stapel/tokens-antd` peer
+    floor to the release that first ships `visuallyHidden`, which both now
+    import. The monorepo cannot catch that by building — in here every package
+    compiles against the workspace peer, never against its own declared floor —
+    so only a consumer installing at the floor would have found it, after the
+    release.
+
 ## 0.6.0
 
 ### Minor Changes

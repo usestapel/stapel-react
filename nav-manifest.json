@@ -191,7 +191,7 @@
     },
     {
       "package": "@stapel/calendar-react",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "entries": [
         {
           "id": "calendar.month",
@@ -236,7 +236,7 @@
     },
     {
       "package": "@stapel/categories-react",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "entries": [
         {
           "id": "categories.catalog",
@@ -305,7 +305,7 @@
     },
     {
       "package": "@stapel/currencies-react",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "entries": []
     },
     {
@@ -485,7 +485,7 @@
     },
     {
       "package": "@stapel/listings-react",
-      "version": "0.11.0",
+      "version": "0.12.0",
       "entries": [
         {
           "id": "listings.detail",
@@ -862,7 +862,7 @@
     },
     {
       "package": "@stapel/search-react",
-      "version": "0.11.0",
+      "version": "0.12.0",
       "entries": [
         {
           "id": "search.results",
