@@ -18,7 +18,7 @@
 import { useRef, useState } from "react";
 import type { ReactElement } from "react";
 import { Button, Flex, InputNumber, Typography } from "antd";
-import { actionAvailable, actionBlocked, useT } from "@stapel/core";
+import { actionAvailable, actionBlocked, useFormat, useT } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
 import { GatedButton } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
@@ -40,8 +40,39 @@ function toDraft(value: string | undefined): string {
   return value ?? "";
 }
 
+/**
+ * The suffix a bound field carries: a currency SYMBOL for a money axis, the
+ * category's own unit string otherwise.
+ *
+ * `group.currency` is an ISO 4217 code and `RUB` beside an input is not what
+ * money looks like anywhere; `Intl` knows the symbol per locale, so the code
+ * goes in and «₽» comes out. An unsupported code falls back to the code
+ * itself — still better than nothing, and it never throws inside a render.
+ */
+function boundSuffix(
+  format: ReturnType<typeof useFormat>,
+  group: RangeGroup
+): string | undefined {
+  if (group.currency === undefined) return group.unit;
+  if (!/^[A-Za-z]{3}$/.test(group.currency)) return group.currency;
+  try {
+    const sample = format.number(0, {
+      style: "currency",
+      currency: group.currency.toUpperCase(),
+      currencyDisplay: "narrowSymbol",
+      maximumFractionDigits: 0,
+    });
+    if (sample === null) return group.currency;
+    const symbol = sample.replace(/[\s\u00a0\u202f0-9.,]/g, "");
+    return symbol.length > 0 ? symbol : group.currency;
+  } catch {
+    return group.currency;
+  }
+}
+
 export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
   const t = useT();
+  const format = useFormat();
   const { group } = props;
   const [from, setFrom] = useState(toDraft(group.from));
   const [to, setTo] = useState(toDraft(group.to));
@@ -71,7 +102,23 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
     props.onApply(group.slug, empty ? null : draft);
   };
 
-  const unit = group.unit === undefined ? "" : ` ${group.unit}`;
+  const suffix = boundSuffix(format, group);
+  const unit = suffix === undefined ? "" : ` ${suffix}`;
+  // Thousands grouping inside the field, because a price is read in
+  // thousands: `119000` is a wall of digits and `119 000` is a number. The
+  // parser is digits-only, so whatever the locale's separator turns out to
+  // be, the value that leaves the control is still the one the URL carries.
+  const grouping =
+    group.core
+      ? {
+          formatter: (value: string | number | undefined): string =>
+            value === undefined || value === ""
+              ? ""
+              : (format.number(Number(value)) ?? String(value)),
+          parser: (value: string | undefined): string =>
+            (value ?? "").replace(/[^\d.-]/g, ""),
+        }
+      : {};
 
   return (
     <Flex
@@ -79,8 +126,17 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
       gap={spacing[1]}
       data-testid={`facet-range-${group.slug}`}
       data-active={group.active ? "true" : "false"}
+      data-core={group.core ? "true" : "false"}
     >
-      <Typography.Text strong>{group.label}</Typography.Text>
+      {/* The unit lives in the HEADING, not in the fields. It used to live
+          only in an aria-label, so a sighted reader of a money row saw two
+          bare integers and had to infer the currency from the results. antd
+          deprecated `addonAfter` on InputNumber in favour of `Space.Compact`,
+          and two addons plus an Apply button do not survive a 390px row —
+          "Price, RUB" states it once and costs no width. */}
+      <Typography.Text strong data-testid={`facet-range-${group.slug}-label`}>
+        {suffix === undefined ? group.label : `${group.label}, ${suffix}`}
+      </Typography.Text>
       <Flex gap={spacing[2]} align="center" wrap>
         <InputNumber
           value={from === "" ? null : Number(from)}
@@ -90,6 +146,7 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
           })}${unit}`}
           data-testid={`facet-range-${group.slug}-from`}
           style={{ minWidth: RANGE_FIELD_MIN_WIDTH }}
+          {...grouping}
           {...(group.min !== undefined ? { min: group.min } : {})}
           {...(group.max !== undefined ? { max: group.max } : {})}
           {...(group.step !== undefined ? { step: group.step } : {})}
@@ -106,6 +163,7 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
           })}${unit}`}
           data-testid={`facet-range-${group.slug}-to`}
           style={{ minWidth: RANGE_FIELD_MIN_WIDTH }}
+          {...grouping}
           {...(group.min !== undefined ? { min: group.min } : {})}
           {...(group.max !== undefined ? { max: group.max } : {})}
           {...(group.step !== undefined ? { step: group.step } : {})}

@@ -306,13 +306,6 @@ function skippedNames(
 export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
   const t = useT();
   const { state } = useSearchState();
-  const ranges = buildRangeGroups({
-    state,
-    ...(props.categoryFeatures !== undefined
-      ? { categoryFeatures: props.categoryFeatures }
-      : {}),
-    t,
-  });
 
   return (
     <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
@@ -323,7 +316,24 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
         {...(props.locale !== undefined ? { locale: props.locale } : {})}
         {...(props.enabled !== undefined ? { enabled: props.enabled } : {})}
       >
-        {(bag) => (
+        {(bag) => {
+          // Built INSIDE the bag, because which axes exist is a property of
+          // the ANSWER now: `facet_meta.core_ranges` names the core columns
+          // this server can actually filter on (`r.price`), and the corpus
+          // currency is read off the cards it just returned. Computed
+          // outside, the panel would have had to keep its own list of core
+          // slugs — which is how a board ends up offering a price filter
+          // against a server that answers zero for one.
+          const ranges = buildRangeGroups({
+            state,
+            ...(props.categoryFeatures !== undefined
+              ? { categoryFeatures: props.categoryFeatures }
+              : {}),
+            coreRanges: bag.coreRanges,
+            ...(bag.currency !== undefined ? { currency: bag.currency } : {}),
+            t,
+          });
+          return (
           <Flex vertical gap={spacing[3]} data-testid="search-facets">
             <Flex justify="space-between" align="center" gap={spacing[2]}>
               {props.heading === null ? (
@@ -360,6 +370,25 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               {...(props.geoLabel !== undefined ? { label: props.geoLabel } : {})}
             />
 
+            {/* Price first. Every numeric row below it is an ATTRIBUTE the
+                category happens to declare — on the phone board this was
+                measured against, all seven of them were parcel dimensions
+                and wholesale packing. The one number a buyer narrows by is
+                the price, and `buildRangeGroups` puts the core axes first. */}
+            {ranges.length > 0 && (
+              <Flex vertical gap={spacing[3]} data-testid="search-ranges">
+                {ranges.map((group) => (
+                  <RangeFilterRow
+                    key={group.slug}
+                    group={group}
+                    onApply={bag.setRange}
+                  />
+                ))}
+              </Flex>
+            )}
+
+            {ranges.length > 0 && <Divider style={{ margin: 0 }} />}
+
             {/* Honesty flags, not failures: the counts ARE approximate and
                 those slugs WERE skipped, and a red box would teach a person
                 the page is broken. `ErrorAlert` is for a read that did not
@@ -382,20 +411,6 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 })}
               />
             )}
-
-            {ranges.length > 0 && (
-              <Flex vertical gap={spacing[3]} data-testid="search-ranges">
-                {ranges.map((group) => (
-                  <RangeFilterRow
-                    key={group.slug}
-                    group={group}
-                    onApply={bag.setRange}
-                  />
-                ))}
-              </Flex>
-            )}
-
-            {ranges.length > 0 && <Divider style={{ margin: 0 }} />}
 
             <LoadList
               state={bag.state}
@@ -440,7 +455,8 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               )}
             </LoadList>
           </Flex>
-        )}
+          );
+        }}
       </FacetPanel>
     </SkinTheme>
   );

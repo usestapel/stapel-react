@@ -6,13 +6,23 @@
  * the panel only knew how to draw checkboxes. This module is the missing half:
  * which slugs a range row exists for, and what the row is called.
  *
- * ── Where a range row comes from, and why it is not the response ───────────
+ * ── Where a range row comes from ──────────────────────────────────────────
  *
- * A facet answer (`facets: {slug: {value: count}}`) enumerates DISCRETE values;
- * a range is not enumerable and the server never sends one. So the rows come
- * from the CATEGORY SCHEMA — the same `categoryFeatures` slot that gives the
- * checkboxes their labels — filtered to the numeric value types, plus every
- * slug the URL already carries a range for.
+ * A facet answer (`facets: {slug: {value: count}}`) enumerates DISCRETE
+ * values; a range is not enumerable and no bucket is ever sent for one. So
+ * the rows come from two places:
+ *
+ *  - the CATEGORY SCHEMA — the same `categoryFeatures` slot that gives the
+ *    checkboxes their labels — filtered to the numeric value types;
+ *  - the ANSWER's `facet_meta.core_ranges` (stapel-search 0.4.0+), which
+ *    names the range slugs addressing a COLUMN of the document rather than
+ *    an attribute. `price` is the shipped one, and it is why this module
+ *    exists at all: a live classified board offered seven numeric ranges,
+ *    every one of them a shipping or wholesale input, and no price — because
+ *    price is not a category feature anywhere, and a row was only ever drawn
+ *    for a feature.
+ *
+ * Plus every slug the URL already carries a range for.
  *
  * That last clause is the same rule `buildFacetGroups` follows for a filtered
  * slug that fell out of the plan: a constraint that is ACTIVE must always have
@@ -59,11 +69,50 @@ export interface RangeGroup {
   readonly step: number | undefined;
   /** Whether the URL currently constrains this slug. */
   readonly active: boolean;
+  /**
+   * `true` when the axis is a CORE document column the server declared in
+   * `facet_meta.core_ranges` rather than a category feature. Price is the
+   * shipped one. A core axis is drawn first and is never absent because a
+   * category forgot to declare an attribute for it.
+   */
+  readonly core: boolean;
+  /**
+   * ISO 4217 code when the row is money, so the control can read as money
+   * instead of as a bare integer. Only ever set on a core axis: an attribute
+   * carries a `postfix`, not a currency.
+   */
+  readonly currency: string | undefined;
+}
+
+/**
+ * i18n key for a core axis's own name.
+ *
+ * A core axis has no FeatureDef and therefore no `name` to translate. The
+ * label is this package's, because the axis is this package's.
+ */
+export function coreRangeLabelKey(slug: string): string {
+  return `search.range.${slug}`;
 }
 
 export interface BuildRangeGroupsInput {
   readonly state: SearchQueryState;
   readonly categoryFeatures?: readonly FeatureDef[];
+  /**
+   * `facet_meta.core_ranges` — range slugs that address a column of the
+   * document rather than an attribute (stapel-search 0.4.0+).
+   *
+   * It comes from the ANSWER on purpose. A live classified board offered
+   * seven numeric ranges — parcel weight, length, height, width, packing
+   * quantity, minimum-order quantity, battery condition — and no price,
+   * because a row was only ever drawn for a category feature and price is a
+   * column of the listing. Hardcoding `"price"` here would have fixed that
+   * board and broken the next one, where `r.price` still answers zero
+   * because the server predates the axis. So the server says which axes it
+   * can actually serve, and this list is empty against an older one.
+   */
+  readonly coreRanges?: readonly string[];
+  /** ISO 4217 code for the money axes, when the surface knows one. */
+  readonly currency?: string;
   /** Translator for label keys (the schema's `name` is often one). */
   readonly t?: (key: string) => string;
 }
@@ -89,9 +138,15 @@ export function isRangeFeature(feature: FeatureDef): boolean {
 }
 
 /**
- * The range rows for the current search: every numeric feature of the
- * category, in the schema's own order, plus any slug the URL constrains that
- * the schema does not explain.
+ * The range rows for the current search, in the order they should be read:
+ * the CORE axes the answer declares, then every numeric feature of the
+ * category in the schema's own order, then any slug the URL constrains that
+ * neither explains.
+ *
+ * Core first is not cosmetic. On the board this was measured against, the
+ * seven numeric attributes a phone category happens to declare are all
+ * shipping and wholesale inputs; the one number a phone buyer narrows by is
+ * the price, and it belongs above them.
  */
 export function buildRangeGroups(
   input: BuildRangeGroupsInput
@@ -99,30 +154,45 @@ export function buildRangeGroups(
   const bySlug = new Map<string, FeatureDef>();
   for (const feature of input.categoryFeatures ?? []) bySlug.set(feature.slug, feature);
 
-  const slugs: string[] = [];
+  const core = new Set(input.coreRanges ?? []);
+  const slugs: string[] = [...core];
   for (const feature of input.categoryFeatures ?? []) {
-    if (isRangeFeature(feature)) slugs.push(feature.slug);
+    // A core slug shadows a same-named attribute — which is exactly what the
+    // server does with it (`index_schema.CORE_RANGE_FIELDS` reserves the
+    // slug), so drawing both would put two controls over one filter.
+    if (isRangeFeature(feature) && !core.has(feature.slug)) slugs.push(feature.slug);
   }
   for (const slug of Object.keys(input.state.ranges)) {
     if (!slugs.includes(slug)) slugs.push(slug);
   }
 
   return slugs.map((slug) => {
-    const feature = bySlug.get(slug);
+    const isCore = core.has(slug);
+    const feature = isCore ? undefined : bySlug.get(slug);
     const config = feature === undefined ? {} : featureConfig(feature);
     const applied: SearchRange | undefined = input.state.ranges[slug];
     return {
       slug,
-      label:
-        feature === undefined ? slug : translate(input.t, featureName(feature)),
+      label: isCore
+        ? translate(input.t, coreRangeLabelKey(slug))
+        : feature === undefined
+          ? slug
+          : translate(input.t, featureName(feature)),
       feature,
       from: applied?.from,
       to: applied?.to,
       min: num(config["min"]),
       max: num(config["max"]),
-      unit: str(config["postfix"]) ?? str(config["unit_m"]) ?? str(config["unit_i"]),
+      // A core money axis carries a CURRENCY, not a unit suffix: "₽" is
+      // formatted from the code for the reader's locale, a unit suffix is a literal
+      // the category author typed.
+      unit: isCore
+        ? undefined
+        : (str(config["postfix"]) ?? str(config["unit_m"]) ?? str(config["unit_i"])),
       step: feature !== undefined && featureType(feature) === "int" ? 1 : undefined,
       active: applied !== undefined,
+      core: isCore,
+      currency: isCore ? str(input.currency) : undefined,
     };
   });
 }

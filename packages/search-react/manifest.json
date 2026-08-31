@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/search-react",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "backend": {
     "module": "stapel-search",
-    "contract": ">=0.3 <0.4"
+    "contract": ">=0.4 <0.5"
   },
   "layers": [
     "api",
@@ -763,6 +763,7 @@
     "search.limit.from_link",
     "search.limit.label",
     "search.limit.option",
+    "search.range.price",
     "search.ranking.applies_to",
     "search.ranking.empty",
     "search.ranking.inactive",
@@ -848,11 +849,13 @@
       "buildFacetGroups",
       "buildRangeGroups",
       "clearFilters",
+      "coreRangeLabelKey",
       "countIsEstimate",
       "countKind",
       "countQueryState",
       "createSearchApi",
       "createSearchRuntime",
+      "degradationAudience",
       "degradationMessageKey",
       "explainSearchError",
       "facetOptionLabel",
@@ -864,6 +867,7 @@
       "parseDegradations",
       "parseSearchState",
       "patchSearchState",
+      "readerFacing",
       "registerSearchI18n",
       "searchErrorBundleEn",
       "searchI18nBundleEn",
@@ -908,6 +912,7 @@
       "SearchCountKind",
       "SearchCountState",
       "SearchDegradation",
+      "SearchDegradationAudience",
       "SearchDegradationKind",
       "SearchErrorCode",
       "SearchErrorSpec",

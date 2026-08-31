@@ -95,6 +95,7 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.facets.not_counted": "не посчитано",
   "search.facets.drill_down_hint":
     "Рядом с каждым значением — сколько будет, если выбрать его вместо текущего.",
+  "search.range.price": "Цена",
   "search.facets.range_from": "От",
   "search.facets.range_to": "До",
   "search.facets.range_apply": "Применить",

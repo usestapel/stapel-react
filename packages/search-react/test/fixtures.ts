@@ -34,6 +34,13 @@ export function searchResponse(
       candidates: 25,
       counted: ["brand", "condition"],
       skipped: [],
+      core_ranges: ["price"],
+    },
+    facet_labels: {
+      condition: {
+        translatable: false,
+        values: { new: "Новое", used: "Б/у" },
+      },
     },
     next_anchor: "anchor-2",
     prev_anchor: null,
@@ -44,6 +51,7 @@ export function searchResponse(
     exact_total: true,
     degraded: [],
     backend: "postgres",
+    language: "ru",
     sort: "relevance",
     took_ms: 12,
     ...overrides,

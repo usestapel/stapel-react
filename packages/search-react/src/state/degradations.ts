@@ -133,3 +133,59 @@ export function isCountNuanceOnly(
     degradations.every((degradation) => degradation.kind === "exact_total")
   );
 }
+
+/**
+ * Who a degradation is addressed to.
+ *
+ * - `"reader"` — it changes what THIS PAGE MEANS. "Counts are approximate",
+ *   "subcategories may be missing", "a ranking parameter is inactive", and
+ *   anything this build has no wording for. A buyer can act on these: read
+ *   the numbers as estimates, widen the category, distrust the order.
+ * - `"operator"` — it describes the ENGINE THIS DEPLOYMENT CHOSE. Nothing a
+ *   buyer does changes it, and it is the same sentence on every query
+ *   forever, which is precisely what makes it invisible by the time it
+ *   matters.
+ */
+export type SearchDegradationAudience = "reader" | "operator";
+
+const OPERATOR_KINDS: ReadonlySet<string> = new Set<SearchDegradationKind>([
+  // Both of these say, in the shipped copy, "the search engine in use
+  // cannot do this" — a sentence about a procurement decision, printed at a
+  // person trying to buy a phone.
+  "typo_tolerance",
+  "phrase_synonyms",
+  // A count nuance the count itself already speaks, as "N+". This is the
+  // rule `isCountNuanceOnly` encoded for one kind, generalized.
+  "exact_total",
+]);
+
+/** {@link SearchDegradationAudience} for one kind. */
+export function degradationAudience(
+  kind: SearchDegradationKind
+): SearchDegradationAudience {
+  return OPERATOR_KINDS.has(kind) ? "operator" : "reader";
+}
+
+/**
+ * The degradations a buyer should be told about.
+ *
+ * The live defect this exists for: a classified board raised a full-screen
+ * yellow "What this search could not do: synonyms were not substituted —
+ * the search engine in use cannot do this" between the sort control and
+ * the first card, on every query, for every buyer. It was not a lie about a
+ * broken thing — stapel-search really did report `phrase_synonyms` on every
+ * query with text — which is exactly why deleting the STRING would have been
+ * the wrong fix: the next engine-capability literal would have grown its own
+ * copy of it. What is wrong is the AUDIENCE, so the audience is the thing
+ * that got a name.
+ *
+ * `variant="debug"` on `<DegradationNotice>` shows the operator's half; a
+ * host that wants it on a status page renders that.
+ */
+export function readerFacing(
+  degradations: readonly SearchDegradation[]
+): readonly SearchDegradation[] {
+  return degradations.filter(
+    (degradation) => degradationAudience(degradation.kind) === "reader"
+  );
+}

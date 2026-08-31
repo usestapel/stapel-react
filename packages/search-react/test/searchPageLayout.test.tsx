@@ -41,7 +41,7 @@ function serverWith(facets: Record<string, Record<string, number>>, counted: str
     "/query": {
       body: searchResponse({
         facets,
-        facet_meta: { approximate: false, candidates: 2, counted, skipped: [] },
+        facet_meta: { approximate: false, candidates: 2, counted, skipped: [], core_ranges: [] },
       }),
     },
   });

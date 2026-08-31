@@ -8,12 +8,20 @@
  *    they would have if you swapped to them. A panel that greys the siblings
  *    out has silently converted a drill-down facet into a naive one, and the
  *    e2e leg in the spec (§7.2) exists to catch exactly that.
- * 2. **The server does not send option LABELS** (`facets.py` returns
- *    `{value: count}` and nothing else). The labels are in the category's
- *    feature schema, which is why {@link buildFacetGroups} takes
- *    `categoryFeatures` — the second slot-seam of the pair, filled by the
- *    container from `categories-react` (spec §6.2 item 2). Without it the
- *    panel still works and shows raw values; it does not invent labels.
+ * 2. **Option LABELS come from two places, in that order.** The category's
+ *    feature schema — `categoryFeatures`, the second slot-seam of the pair,
+ *    filled by the container from `categories-react` (spec §6.2 item 2) —
+ *    and, under it, the answer's own `facet_labels` (stapel-search 0.4.0+).
+ *
+ *    Until 0.4.0 the server sent `{value: count}` and nothing else, on the
+ *    reasoning that the container has the schema anyway. That reasoning had
+ *    a hole the size of a marketplace: the slot is OPTIONAL, a live
+ *    classified board never filled it, and its buyers read "Condition:
+ *    **b-u**", "Listing kind: **prodayu-svoe**", "Screen condition:
+ *    **bez-defektov**" on the SERP and in the filter chips. The schema still
+ *    wins where it resolves — the client fetched it with its own
+ *    `Accept-Language` — and the answer's captions are the floor beneath it.
+ *    Neither invents a label: a value nobody names renders as itself.
  *
  * A slug the server SKIPPED (`facet_meta.skipped`, dropped at
  * `MAX_FACET_FIELDS`) is not counted at all. Its options carry `count: null`,
@@ -59,6 +67,31 @@ export interface BuildFacetGroupsInput {
   readonly state: SearchQueryState;
   /** The category's feature schema, for labels and option order. */
   readonly categoryFeatures?: readonly FeatureDef[];
+  /**
+   * The envelope's `facet_labels` (stapel-search 0.4.0+):
+   * `{slug: {translatable, values: {value: caption}}}`.
+   *
+   * The FLOOR under `categoryFeatures`, not a replacement for it. Both read
+   * the same category config, but they read it differently: the client
+   * fetches `GET /categories/{id}/features/` with its own `Accept-Language`,
+   * so a host that threaded the schema through has the better-localized
+   * copy and keeps it. What the answer's captions fix is the case where
+   * there is no other copy at all — `categoryFeatures` is an OPTIONAL slot,
+   * a live classified board never filled it, and its buyers read
+   * "Condition: **b-u**" and "Listing kind: **prodayu-svoe**" on the SERP and in the
+   * filter chips. A caption that arrives with the counts cannot be
+   * forgotten by a host.
+   *
+   * A slug neither side captions (a vocabulary-backed one, whose level lives
+   * outside the category schema) falls through to the raw value. No labels
+   * are invented at any step.
+   */
+  readonly facetLabels?: Readonly<
+    Record<
+      string,
+      { readonly translatable: boolean; readonly values: Readonly<Record<string, string>> }
+    >
+  >;
   /** Translator for label keys. */
   readonly t?: (key: string) => string;
   /** BCP-47 tag, forwarded to `formatFeatureValue` for `date` options. */
@@ -69,6 +102,26 @@ function translate(t: ((key: string) => string) | undefined, key: string): strin
   if (t === undefined) return key;
   const resolved = t(key);
   return resolved.length > 0 ? resolved : key;
+}
+
+/**
+ * The caption the ANSWER carries for one option, or `undefined`.
+ *
+ * `translatable` is the server saying whether `values` holds translation
+ * KEYS or literal captions, and it has to be said rather than sniffed:
+ * `b.apple` and a rendered caption are both strings, and guessing wrong prints either a
+ * dotted key or an untranslated word at a buyer.
+ */
+function serverLabel(
+  labels: BuildFacetGroupsInput["facetLabels"],
+  slug: string,
+  value: string,
+  t: ((key: string) => string) | undefined
+): string | undefined {
+  const entry = labels?.[slug];
+  const caption = entry?.values[value];
+  if (caption === undefined || caption.length === 0) return undefined;
+  return entry?.translatable === true ? translate(t, caption) : caption;
 }
 
 /**
@@ -93,6 +146,28 @@ function declaredOptionValues(feature: FeatureDef | undefined): readonly string[
     }
   }
   return out;
+}
+
+/**
+ * One option's caption: schema, then answer, then the raw value.
+ *
+ * Order matters and is deliberate. Both sources are the same category
+ * config, but the client fetched its copy with its own `Accept-Language`, so
+ * where the host threaded a schema through and it names the value, that is
+ * the better-localized answer. Where it does not — no schema, a slug the
+ * schema omits, a value added since — the server's caption is what stops
+ * `b-u` reaching a buyer.
+ */
+function resolveLabel(
+  input: BuildFacetGroupsInput,
+  feature: FeatureDef | undefined,
+  slug: string,
+  value: string,
+  labelOptions: { t?: (key: string) => string; locale?: string }
+): string {
+  const viaSchema = facetOptionLabel(feature, value, labelOptions);
+  if (feature !== undefined && viaSchema !== value) return viaSchema;
+  return serverLabel(input.facetLabels, slug, value, input.t) ?? viaSchema;
 }
 
 /**
@@ -180,7 +255,15 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
     const counted = !skipped.has(slug) && slug in input.facets;
     const selected = input.state.filters[slug] ?? [];
 
-    const declared = declaredOptionValues(feature);
+    // The authored option order, from whichever copy of the category config
+    // this page has. An authored list reshuffled by count is a size chart
+    // that moves on every click, and until 0.11 a host that passed no schema
+    // got exactly that.
+    const fromSchema = declaredOptionValues(feature);
+    const declared =
+      fromSchema.length > 0
+        ? fromSchema
+        : Object.keys(input.facetLabels?.[slug]?.values ?? {});
     const values: string[] = [];
     const push = (value: string): void => {
       if (!values.includes(value)) values.push(value);
@@ -211,7 +294,12 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
       options: values.map((value) => ({
         value,
         count: counted ? (counts[value] ?? 0) : null,
-        label: facetOptionLabel(feature, value, labelOptions),
+        // The host's schema first when it actually resolves the value, the
+        // answer's caption when it does not (or when there is no schema at
+        // all), the raw value when neither knows. `facetOptionLabel` returns
+        // the value unchanged for an option it cannot name, which is what
+        // makes "did it resolve?" answerable without a second lookup.
+        label: resolveLabel(input, feature, slug, value, labelOptions),
         selected: selected.includes(value),
       })),
     };

@@ -89,11 +89,16 @@ export type {
 export {
   countIsEstimate,
   countKind,
+  degradationAudience,
   degradationMessageKey,
   isCountNuanceOnly,
   parseDegradations,
+  readerFacing,
 } from "./state/degradations.js";
-export type { SearchCountKind } from "./state/degradations.js";
+export type {
+  SearchCountKind,
+  SearchDegradationAudience,
+} from "./state/degradations.js";
 
 export { buildFacetGroups, facetOptionLabel } from "./state/facets.js";
 export type {
@@ -105,6 +110,7 @@ export type {
 export {
   RANGE_FEATURE_TYPES,
   buildRangeGroups,
+  coreRangeLabelKey,
   isRangeFeature,
   isRangeUsable,
 } from "./state/ranges.js";

@@ -1,5 +1,45 @@
 # @stapel/search-react
 
+## 0.11.0
+
+### Minor Changes
+
+- The three things a buyer's SERP owes them, measured missing on a live classified board.
+
+  **A price filter.** The panel offered seven numeric ranges — parcel weight, length,
+  height, width, packing quantity, minimum-order quantity, battery condition — and no
+  price, because a range row was only ever drawn for a CATEGORY FEATURE and price is a
+  column of the listing. `buildRangeGroups` now takes `coreRanges` from the answer's
+  `facet_meta.core_ranges` (stapel-search 0.4.0) and draws those axes FIRST, marked
+  `core: true`. It comes from the server on purpose: hardcoding `"price"` would have
+  fixed that board and broken the next one, where `r.price` still answers zero. The
+  row reads as money — the corpus currency is read off the cards of the same answer,
+  so no host wires anything — and the unit now shows in the row heading, where until
+  now it existed only in an `aria-label`.
+
+  **Captions, not storage slugs.** `buildFacetGroups` takes `facetLabels` from the
+  answer (`{slug: {translatable, values}}`) as the FLOOR under `categoryFeatures`. The
+  schema still wins where it resolves — the client fetched it with its own
+  `Accept-Language` — but the schema slot is OPTIONAL, a live board never filled it,
+  and its buyers read "Condition: b-u", "Listing kind: prodayu-svoe", "Screen
+  condition: bez-defektov" on the SERP and in the filter chips. A caption that arrives
+  with the counts cannot be forgotten by a host. `translatable` says whether the
+  caption is a key or literal text, because the reader cannot tell by looking.
+
+  **No engine diagnostics in a buyer's face.** Every query, for every buyer, raised a
+  full-screen yellow "What this search could not do: synonyms were not substituted —
+  the search engine in use cannot do this" between the sort control and the first
+  card. New `degradationAudience` / `readerFacing` split `degraded[]` by who it is
+  addressed to: `typo_tolerance`, `phrase_synonyms` and `exact_total` describe the
+  ENGINE somebody licensed and no longer reach a reader; `category_rollup`,
+  `exact_facet_counts`, `scorer:` and unknown literals change what the page MEANS and
+  still do. Note what the fix is not — the string was not deleted and the kind was not
+  special-cased; the audience got a name, so the next engine-capability literal is
+  filtered by the same rule. `<DegradationNotice variant="debug">` shows everything,
+  for a status page.
+
+  Contract re-pinned to stapel-search 0.4.0 (`>=0.4 <0.5`).
+
 ## 0.10.0
 
 ### Minor Changes

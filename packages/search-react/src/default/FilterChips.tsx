@@ -153,11 +153,16 @@ export function FilterChips(props: FilterChipsProps): ReactElement {
   const surface = useDialogSurface();
   const [open, setOpen] = useState<OpenChip>(null);
 
+  // Same source as the panel's rows, so the phone chip row and the desktop
+  // panel cannot disagree about which axes exist: the core columns come from
+  // the ANSWER (`facet_meta.core_ranges`) and the currency off its cards.
   const ranges = buildRangeGroups({
     state,
     ...(props.categoryFeatures !== undefined
       ? { categoryFeatures: props.categoryFeatures }
       : {}),
+    coreRanges: bag.coreRanges,
+    ...(bag.currency !== undefined ? { currency: bag.currency } : {}),
     t,
   });
   const groups =

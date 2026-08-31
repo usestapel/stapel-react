@@ -96,9 +96,15 @@ describe("the banner says what the engine could not do", () => {
       expect(screen.getByTestId("search-degraded")).toBeTruthy();
     });
     const text = screen.getByTestId("search-degraded").textContent ?? "";
-    expect(text).toContain("Typos were not corrected");
     expect(text).toContain("Subcategories may be missing");
     expect(text).toContain("geo_decay");
+    // `typo_tolerance` arrived in the same list and is NOT here: it names a
+    // capability of the engine somebody licensed, not a property of this
+    // answer, and it is the same sentence on every query forever. See
+    // `readerFacing` — and `serpAxes.test.tsx` for the live board where its
+    // twin, `phrase_synonyms`, occupied a screen between the sort control
+    // and the first card on every search.
+    expect(text).not.toContain("Typos were not corrected");
   });
 
   it("renders the raw literal for a degradation this build has no wording for", async () => {
@@ -149,7 +155,7 @@ describe("the banner says what the engine could not do", () => {
     const server = mockServer({
       "/query": {
         body: searchResponse({
-          degraded: ["exact_total", "typo_tolerance"],
+          degraded: ["exact_total", "category_rollup"],
           count_is_lower_bound: true,
           exact_total: false,
         }),
@@ -164,7 +170,7 @@ describe("the banner says what the engine could not do", () => {
       expect(screen.getByTestId("search-degraded")).toBeTruthy();
     });
     expect(screen.getByTestId("search-degraded").textContent).toContain(
-      "Typos were not corrected"
+      "Subcategories may be missing"
     );
   });
 
@@ -187,7 +193,7 @@ describe("the banner says what the engine could not do", () => {
 
   it("says the same sentences quietly under degradationNotice='inline'", async () => {
     const server = mockServer({
-      "/query": { body: searchResponse({ degraded: ["typo_tolerance"] }) },
+      "/query": { body: searchResponse({ degraded: ["category_rollup"] }) },
     });
     render(
       <TestHarness server={server}>
@@ -199,7 +205,7 @@ describe("the banner says what the engine could not do", () => {
     });
     const notice = screen.getByTestId("search-degraded");
     expect(notice.getAttribute("data-variant")).toBe("inline");
-    expect(notice.textContent).toContain("Typos were not corrected");
+    expect(notice.textContent).toContain("Subcategories may be missing");
   });
 
   it("shows no banner at all when the engine did everything asked of it", async () => {

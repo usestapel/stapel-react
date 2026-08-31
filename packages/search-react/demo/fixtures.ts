@@ -114,6 +114,15 @@ export const DEMO_SEARCH_RESPONSE: SearchResponse = {
     candidates: 15000,
     counted: ["brand", "condition"],
     skipped: ["power_w"],
+    // The core axes stapel-search 0.4.0 declares per answer. `price` is why
+    // the demo panel has a money range above the attribute rows at all.
+    core_ranges: ["price"],
+  },
+  facet_labels: {
+    condition: {
+      translatable: true,
+      values: { new: "demo.condition.new", used: "demo.condition.used" },
+    },
   },
   next_anchor: "eyJ2IjoxLCJrIjoibC0xMDAzIiwibyI6M30",
   prev_anchor: null,
@@ -124,8 +133,11 @@ export const DEMO_SEARCH_RESPONSE: SearchResponse = {
   count: 25,
   count_is_lower_bound: true,
   exact_total: false,
+  // `typo_tolerance` is addressed to whoever chose the engine and no longer
+  // reaches a buyer; the other two describe THIS answer and still do.
   degraded: ["typo_tolerance", "exact_facet_counts", "scorer:geo_decay"],
   backend: "postgres",
+  language: "en",
   sort: "relevance",
   took_ms: 41,
 };
@@ -139,7 +151,7 @@ export const DEMO_EMPTY_RESPONSE: SearchResponse = {
   ...DEMO_SEARCH_RESPONSE,
   items: [],
   facets: {},
-  facet_meta: { approximate: false, candidates: 0, counted: [], skipped: [] },
+  facet_meta: { approximate: false, candidates: 0, counted: [], skipped: [], core_ranges: [] },
   next_anchor: null,
   prev_anchor: null,
   has_next: false,

@@ -72,6 +72,7 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.facets.not_counted": "sin contar",
   "search.facets.drill_down_hint":
     "Cada recuento es lo que obtendrías eligiendo ese valor en lugar del actual.",
+  "search.range.price": "Precio",
   "search.facets.range_from": "Desde",
   "search.facets.range_to": "Hasta",
   "search.facets.range_apply": "Aplicar",

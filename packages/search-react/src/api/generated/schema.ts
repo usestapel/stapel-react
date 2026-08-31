@@ -124,6 +124,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Captions for one slug's option codes. */
+        FacetLabels: {
+            /** @description True when `values` holds translation KEYS to run through the catalogue; false when it holds literal captions. The reader cannot tell by looking — `b.apple` and `Б/у` are both strings. */
+            translatable: boolean;
+            values: {
+                [key: string]: string;
+            };
+        };
         FacetMeta: {
             /** @description True when counts came from a sample because the candidate set exceeded FACET_CANDIDATE_CAP. */
             approximate: boolean;
@@ -132,6 +140,8 @@ export interface components {
             counted: string[];
             /** @description Plan slugs dropped at MAX_FACET_FIELDS — reported, not vanished. */
             skipped: string[];
+            /** @description Range slugs that address a core document column rather than an attribute (`r.price`). Offer them as filters unconditionally: they exist for every document in every category, which is why they are not in the category's own plan. */
+            core_ranges: string[];
         };
         HealthResponse: {
             backend: string;
@@ -208,6 +218,10 @@ export interface components {
                     [key: string]: number;
                 };
             };
+            /** @description {slug: {translatable, values: {value: caption}}} for slugs whose options are inline in the category schema. Absent for a vocabulary-backed slug: its level lives outside the schema and the plan will not invent a caption it has not read. */
+            facet_labels: {
+                [key: string]: components["schemas"]["FacetLabels"];
+            };
             facet_meta: components["schemas"]["FacetMeta"];
             next_anchor: string | null;
             prev_anchor: string | null;
@@ -222,6 +236,8 @@ export interface components {
             /** @description What the configured engine could not do for this query. */
             degraded: string[];
             backend: string;
+            /** @description The language whose dictionary and analyzer configuration answered — `lang`, else Accept-Language, else DEFAULT_LANGUAGE. When the fallback is wrong the synonym layer silently does not apply, and this field is the only place the answer says so. */
+            language: string;
             sort: string;
             took_ms: number;
         };

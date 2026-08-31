@@ -103,6 +103,9 @@ export const SEARCH_I18N_KEYS = {
   facetsRangeToAria: "search.facets.range_to_aria",
   /** The reason "Apply" is off: the range reads backwards. */
   facetsRangeInvalid: "search.facets.range_invalid",
+  /** A CORE range axis has no FeatureDef and so no `name` to translate.
+   * `search.range.<slug>`; `price` is the one stapel-search ships. */
+  rangePrice: "search.range.price",
   /** The fold on a long facet group: "Show all (46)". The number is in
    * brackets and not a counted noun, so this is one message and not a plural
    * family — "(1)" never renders, because a group is only folded when the
@@ -299,6 +302,7 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.facets.not_counted": "not counted",
   "search.facets.drill_down_hint":
     "Each count is what you would get by choosing that value instead of the one you have.",
+  "search.range.price": "Price",
   "search.facets.range_from": "From",
   "search.facets.range_to": "To",
   "search.facets.range_apply": "Apply",

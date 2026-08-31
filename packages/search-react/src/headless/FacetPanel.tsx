@@ -31,6 +31,22 @@ export interface FacetPanelBag {
   readonly skipped: readonly string[];
   /** Slugs that WERE counted. */
   readonly counted: readonly string[];
+  /**
+   * Range slugs the server declared as CORE document columns
+   * (`facet_meta.core_ranges`, stapel-search 0.4.0+) — `price` on a
+   * classified board. They are not part of the category plan and are not
+   * counted; they are axes the panel may offer unconditionally, and they
+   * come from the answer so that a panel never draws a control over a
+   * filter the deployed server would answer zero for.
+   */
+  readonly coreRanges: readonly string[];
+  /**
+   * ISO 4217 code of the corpus, read off the first card of the answer, so
+   * a money range reads as money without the host wiring anything. The
+   * cards already carry it — `SearchResultCard` formats prices from the
+   * same field.
+   */
+  readonly currency: string | undefined;
   /** Size of the largest counted set — the number `approximate` is about. */
   readonly candidates: number;
   /** Facet values + ranges + geo currently applied. */
@@ -47,6 +63,7 @@ const EMPTY_META: FacetMeta = {
   candidates: 0,
   counted: [],
   skipped: [],
+  core_ranges: [],
 };
 
 /**
@@ -115,6 +132,7 @@ export function useFacetPanel(props: {
     buildFacetGroups({
       facets: data.facets,
       meta: data.facet_meta,
+      facetLabels: data.facet_labels,
       state: searchState,
       ...(props.categoryFeatures !== undefined
         ? { categoryFeatures: props.categoryFeatures }
@@ -129,6 +147,12 @@ export function useFacetPanel(props: {
     approximate: meta.approximate,
     skipped: meta.skipped,
     counted: meta.counted,
+    coreRanges: meta.core_ranges ?? [],
+    currency:
+      envelope.status === "ready"
+        ? envelope.data.items.find((item) => typeof item.card?.["currency"] === "string")
+            ?.card?.["currency"] as string | undefined
+        : undefined,
     candidates: meta.candidates,
     activeFilters,
     toggle: toggleFilter,
