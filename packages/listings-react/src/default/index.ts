@@ -57,8 +57,8 @@ export { ListingDetailPane, DETAIL_MEASURE, DETAIL_PHOTO_MIN } from "./ListingDe
 export type { ListingDetailPaneProps } from "./ListingDetailPane.js";
 export {
   ListingComposerPage,
+  COMPOSER_DETAILS_PLACEMENT,
   COMPOSER_MEASURE,
-  COMPOSER_STACKED_BELOW,
   composerFieldId,
 } from "./ListingComposerPage.js";
 export type {

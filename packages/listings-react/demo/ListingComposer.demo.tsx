@@ -22,6 +22,7 @@ const FEATURES: readonly FeatureDef[] = [
     slug: "brand",
     name: "Brand",
     mandatory: true,
+    group: "About the tool",
     config: {
       type: "select",
       options: [
@@ -34,6 +35,7 @@ const FEATURES: readonly FeatureDef[] = [
   {
     slug: "condition",
     name: "Condition",
+    group: "About the tool",
     config: {
       type: "select",
       options: [
@@ -46,7 +48,24 @@ const FEATURES: readonly FeatureDef[] = [
   {
     slug: "power",
     name: "Power",
+    group: "About the tool",
     config: { type: "int", min: 0, max: 5000, postfix: "W" },
+  },
+  // The plumbing an imported catalogue brings with it: optional, uninteresting
+  // to a person selling one drill, and four to seven fields tall on a real
+  // leaf. Folded away under its own heading — the shape `groupCollapse="auto"`
+  // exists for.
+  {
+    slug: "parcel_weight",
+    name: "Weight (for delivery)",
+    group: "Delivery",
+    config: { type: "float", min: 0, max: 50, precision: 1, postfix: "kg" },
+  },
+  {
+    slug: "parcel_length",
+    name: "Length (for delivery)",
+    group: "Delivery",
+    config: { type: "int", min: 0, max: 500, postfix: "cm" },
   },
 ];
 

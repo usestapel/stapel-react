@@ -31,6 +31,7 @@ export {
 } from "./FeatureFields.js";
 export type {
   FeatureFieldsProps,
+  FeatureGroupCollapse,
   FeatureHint,
   FeatureRowProps,
   UnsupportedValueEditorProps,

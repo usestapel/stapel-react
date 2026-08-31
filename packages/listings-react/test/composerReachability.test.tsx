@@ -21,7 +21,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { ReactElement } from "react";
 import { act } from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { actionAvailable } from "@stapel/core";
 import type { FeatureDef } from "@stapel/attributes-react";
 import {
@@ -29,7 +29,11 @@ import {
   featureRowTestId,
   featureSectionTestId,
 } from "@stapel/attributes-react/default";
-import { ListingComposerPage, composerFieldId } from "../src/default/index.js";
+import {
+  COMPOSER_DETAILS_PLACEMENT,
+  ListingComposerPage,
+  composerFieldId,
+} from "../src/default/index.js";
 import { DESCRIPTION_FIELD } from "../src/index.js";
 import { TestProviders, mockServer } from "./harness.js";
 import { DRAFT, FEATURES, detail } from "./fixtures.js";
@@ -103,47 +107,112 @@ function composer(props: {
   );
 }
 
-describe("where the category's characteristics sit", () => {
-  it("puts them under the category and BEFORE the photos on a narrow form", async () => {
+describe("what the form asks first", () => {
+  /**
+   * The order the seller reads, measured the only way jsdom can measure it:
+   * DOCUMENT order, which in a single-column `Form` is vertical order. The
+   * pixel version of the same assertion lives in the showcase run — the
+   * regression this replaces was measured at 390x844 as title y=5575 under
+   * the first attribute at y=500, in a 7308px form.
+   */
+  const CORE = [
+    "listings-composer-title",
+    "listings-composer-description",
+    "listings-composer-price",
+    "listings-composer-location",
+    "gallery",
+  ] as const;
+
+  for (const [name, width] of [
+    ["a phone", PHONE],
+    ["a desktop", DESKTOP],
+  ] as const) {
+    it(`asks title, description, price, where and photos BEFORE the category's own questions on ${name}`, async () => {
+      installFormWidth(width);
+      render(<TestProviders server={server()}>{composer({})}</TestProviders>);
+      await waitFor(() => {
+        expect(screen.getByTestId("attributes-fields")).toBeTruthy();
+      });
+
+      const category = screen.getByTestId("listings-composer-category");
+      const details = screen.getByTestId("listings-composer-details");
+      const firstAttribute = screen.getByTestId(featureRowTestId("brand"));
+      for (const testId of CORE) {
+        const core = screen.getByTestId(testId);
+        expect(precedes(category, core)).toBe(true);
+        expect(precedes(core, details)).toBe(true);
+        expect(precedes(core, firstAttribute)).toBe(true);
+      }
+    });
+  }
+
+  it("says so on the region itself, at every width", async () => {
     installFormWidth(PHONE);
     render(<TestProviders server={server()}>{composer({})}</TestProviders>);
-
     await waitFor(() => {
       expect(
         screen.getByTestId("listings-composer-details").getAttribute("data-placement")
-      ).toBe("after-category");
+      ).toBe(COMPOSER_DETAILS_PLACEMENT);
     });
-    const details = screen.getByTestId("listings-composer-details");
-    expect(precedes(screen.getByTestId("listings-composer-category"), details)).toBe(
-      true
-    );
-    expect(precedes(details, screen.getByTestId("gallery"))).toBe(true);
-  });
+    cleanup();
 
-  it("leaves the desktop composer exactly as it was: photos, then details", async () => {
     installFormWidth(DESKTOP);
     render(<TestProviders server={server()}>{composer({})}</TestProviders>);
-
     await waitFor(() => {
       expect(
         screen.getByTestId("listings-composer-details").getAttribute("data-placement")
-      ).toBe("after-photos");
+      ).toBe(COMPOSER_DETAILS_PLACEMENT);
     });
-    expect(
-      precedes(
-        screen.getByTestId("gallery"),
-        screen.getByTestId("listings-composer-details")
-      )
-    ).toBe(true);
   });
 
-  it("draws the section exactly once, whichever order it is in", async () => {
+  it("draws the section exactly once", async () => {
     installFormWidth(PHONE);
     render(<TestProviders server={server()}>{composer({})}</TestProviders>);
     await waitFor(() => {
       expect(screen.getAllByTestId("listings-composer-details")).toHaveLength(1);
     });
     expect(screen.getAllByTestId("attributes-fields")).toHaveLength(1);
+  });
+});
+
+describe("the region is short enough to have something after it", () => {
+  it("opens the group that asks something required and folds the plumbing away", async () => {
+    installFormWidth(PHONE);
+    render(<TestProviders server={server()}>{composer({})}</TestProviders>);
+    await waitFor(() => {
+      expect(screen.getByTestId("attributes-fields")).toBeTruthy();
+    });
+    // `brand` is mandatory, `power` is not — one group open, one closed, both
+    // headings on screen.
+    const basics = screen.getByTestId(featureSectionTestId("Basics")) as HTMLDetailsElement;
+    const engine = screen.getByTestId(featureSectionTestId("Engine")) as HTMLDetailsElement;
+    expect(basics.tagName).toBe("DETAILS");
+    expect(basics.open).toBe(true);
+    expect(engine.open).toBe(false);
+    expect(
+      screen.getByTestId(`${featureSectionTestId("Engine")}-heading`).textContent
+    ).toBe("Engine");
+  });
+
+  it("opens a folded section to put the person in the field inside it", async () => {
+    installFormWidth(PHONE);
+    render(<TestProviders server={server()}>{composer({})}</TestProviders>);
+    await waitFor(() => {
+      expect(screen.getByTestId("attributes-fields")).toBeTruthy();
+    });
+    // The seller folds the section away themselves, then asks to be taken to
+    // the first empty field — which is inside it.
+    const basics = screen.getByTestId(featureSectionTestId("Basics")) as HTMLDetailsElement;
+    basics.open = false;
+    fireEvent(basics, new Event("toggle"));
+    expect(basics.open).toBe(false);
+
+    fireEvent.change(screen.getByTestId("listings-composer-description"), {
+      target: { value: "A drill in good order" },
+    });
+    fireEvent.click(screen.getByTestId("listings-composer-goto-missing"));
+    expect(basics.open).toBe(true);
+    expect(document.activeElement?.id).toBe(featureControlId("brand"));
   });
 });
 

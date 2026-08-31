@@ -50,21 +50,44 @@
  * do not import each other; the container is the seam. A library that picked
  * one would pick it for every host.
  *
- * ── On a narrow form the CHARACTERISTICS come before the photos ────────────
+ * ── The SECTION ORDER is this component's, and it is not a prop ────────────
  *
- * The details of the chosen category are the questions only that category
- * asks, and they are the reason a category is chosen at all. On a wide form
- * they can sit after the photos, because the whole form is one screen. On a
- * 390px one they cannot: measured on a live classified deployment, choosing
- * Mobile phones grew the page to 7292px and put the first attribute control at
- * y=1596 — nearly two viewports below the fold, behind a ~700px photo dropzone
- * — while the footer said "10 required details not filled in" with none of
- * them on screen. So on a narrow form the section moves directly under the
- * category that produced it, and the photo dropzone follows it.
+ * One order, at every width:
  *
- * The measurement is the FORM's own width (`useElementWidth`, the fleet's one
- * observer), not the viewport's: a composer is not a viewport, and a viewport
- * query would call a 360px pane on a desktop "wide".
+ *   category → title → description → price → currency → where → photos →
+ *   the category's characteristics → the listing's own options
+ *
+ * The category comes first because everything after it depends on the choice.
+ * Then the five questions a seller came to answer — what it is, what it says,
+ * what it costs, where it is, what it looks like — and only then the questions
+ * the CATEGORY asks.
+ *
+ * This used to be two orders chosen by the form's width, and the narrow one
+ * put the characteristics directly under the category. The reason was real:
+ * measured on a live classified deployment, Mobile phones put the first
+ * attribute control at y=1596, two viewports below the fold, while the footer
+ * said "10 required details not filled in" with none of them on screen. The
+ * fix was not: the same leaf carries 32 imported fields, so on the next
+ * measurement of the same form the seller was asked for the parcel's weight,
+ * its length and "what the goods are measured in" BEFORE the title — title
+ * y=5575, price y=5871, photos y=6245, of a 7308px form. A composer that asks
+ * about postage before it asks what is being sold has no funnel left.
+ *
+ * So the discoverability problem is solved where it actually lives, and by two
+ * things that do not move the questions around:
+ *
+ *  - the count of unfilled details is a CONTROL that goes to the first of them
+ *    (`listings-composer-goto-missing`, below), so "10 required details" is
+ *    never a dead end wherever the region sits;
+ *  - the region itself is short, because `groupCollapse="auto"` opens the
+ *    groups that ask something required and leaves the plumbing (delivery
+ *    dimensions, wholesale terms) closed under its own heading.
+ *
+ * `detailsPlacement` is therefore gone as a decision — `data-placement` stays
+ * on the region as a constant, because an e2e that measured the regression
+ * needs something to read that is not a pixel count. A host that wants a
+ * different order does not want this page; it wants `<FeatureFields>` and its
+ * own form, which is exactly why that component is exported separately.
  *
  * ── Every blocked control says which of six reasons it is ──────────────────
  *
@@ -76,7 +99,6 @@
  * would be told, and `<GatedButton>` renders the reason beside the button —
  * never a grey rectangle, never a hover.
  */
-import { useRef } from "react";
 import type { ComponentType, ReactElement, ReactNode } from "react";
 import {
   Alert,
@@ -94,7 +116,6 @@ import {
   GatedButton,
   PaneGate,
   SkinTheme,
-  useElementWidth,
 } from "@stapel/tokens-antd/skin";
 import {
   SlotPlaceholder,
@@ -104,7 +125,7 @@ import {
   useI18n,
   useT,
 } from "@stapel/core";
-import { breakpoints, spacing } from "@stapel/tokens";
+import { spacing } from "@stapel/tokens";
 import type { FeatureDef } from "@stapel/attributes-react";
 import {
   BUILTIN_VALUE_EDITOR_TYPES,
@@ -135,16 +156,14 @@ import type { ThemeModeProp } from "./types.js";
 export const COMPOSER_MEASURE = "44rem";
 
 /**
- * Below this FORM width the composer is a one-thumb column, and the order of
- * its sections has to change — see {@link ListingComposerPage}'s header on why
- * the characteristics move up.
+ * What `data-placement` says on the characteristics region.
  *
- * The `tablet` breakpoint, which is what "narrow" means everywhere else in the
- * skin, measured against the form's OWN width and never the viewport's (§83).
- * A composer drawn in a 360px settings pane on a 1440px desktop is narrow; a
- * viewport query would call it wide and bury its questions.
+ * A constant, and deliberately so: the order is the composer's and does not
+ * depend on the width any more (see the header). The attribute stays because
+ * an e2e suite measured the regression through it and needs a reading that is
+ * not a pixel count.
  */
-export const COMPOSER_STACKED_BELOW: number = breakpoints.tablet;
+export const COMPOSER_DETAILS_PLACEMENT = "after-core-fields";
 
 /**
  * The DOM id of the control that answers one of the composer's own fields —
@@ -167,11 +186,18 @@ const FOCUSABLE =
   "input,select,textarea,button,[href],[tabindex]:not([tabindex='-1'])";
 
 /**
- * Put the person in front of one field: bring it into view, and focus what
- * they are meant to answer.
+ * Put the person in front of one field: open whatever it is folded inside,
+ * bring it into view, and focus what they are meant to answer.
  *
- * Both halves are guarded rather than assumed. `scrollIntoView` does not exist
- * in every environment this renders in (jsdom, older embedded engines), and a
+ * The disclosure step is the one that is easy to forget. A characteristic
+ * lives in a `<details>` section that may be closed (`groupCollapse="auto"`),
+ * and scrolling to a control inside a closed disclosure scrolls to nothing —
+ * the "take me to the first empty field" button would report success and move
+ * the page nowhere. Any depth of nesting is opened, because the answer to
+ * "where is it" must not depend on how the section was drawn.
+ *
+ * The rest is guarded rather than assumed. `scrollIntoView` does not exist in
+ * every environment this renders in (jsdom, older embedded engines), and a
  * field whose control came from a slot may have nothing focusable in it at
  * all — in which case scrolling to it is still the whole of the help that can
  * honestly be given.
@@ -180,6 +206,13 @@ function revealField(id: string): void {
   if (typeof document === "undefined") return;
   const anchor = document.getElementById(id);
   if (anchor === null) return;
+  for (
+    let folded = anchor.closest("details");
+    folded !== null;
+    folded = folded.parentElement?.closest("details") ?? null
+  ) {
+    folded.open = true;
+  }
   if (typeof anchor.scrollIntoView === "function") {
     anchor.scrollIntoView({ block: "center", behavior: "smooth" });
   }
@@ -483,15 +516,6 @@ export function ListingComposerPage(
   );
 
   const LocationPicker = props.locationPicker;
-  // The FORM's width, which is what decides the section order — see the
-  // header. `?? false` because an unmeasured box is not a narrow one (the rule
-  // `useElementWidth` states for every caller): the wide order is the one that
-  // reflows gracefully, so it is what the first frame draws.
-  const form = useRef<HTMLDivElement>(null);
-  const { below } = useElementWidth(form, {
-    thresholds: { stacked: COMPOSER_STACKED_BELOW },
-  });
-  const stacked = below.stacked ?? false;
 
   /**
    * The characteristics of the chosen category — built once and rendered in
@@ -506,7 +530,7 @@ export function ListingComposerPage(
   const details = (
     <div
       data-testid="listings-composer-details"
-      data-placement={stacked ? "after-category" : "after-photos"}
+      data-placement={COMPOSER_DETAILS_PLACEMENT}
     >
       <Divider />
       <Typography.Title level={5}>
@@ -539,6 +563,11 @@ export function ListingComposerPage(
           errors={bag.fieldErrors}
           disabled={bag.publishing}
           onChange={bag.setFeature}
+          // An imported leaf is mostly plumbing: 32 fields across seven
+          // headings, four of them parcel dimensions. Open what is required or
+          // already answered, leave the rest one tap away under its own
+          // heading — see `FeatureGroupCollapse`.
+          groupCollapse="auto"
         />
       )}
     </div>
@@ -603,11 +632,6 @@ export function ListingComposerPage(
           />
         ) : null}
 
-        {/* The measured box is the FORM, so a host that renders this page in
-            a narrow pane gets the narrow order without the viewport agreeing.
-            A plain block wrapper: antd's `Form` forwards its ref to the form
-            INSTANCE, not to a node. */}
-        <div ref={form}>
         <Form layout="vertical" data-testid="listings-composer-form">
           <SlotField
             label={t(LISTINGS_I18N_KEYS.composeCategory)}
@@ -633,10 +657,6 @@ export function ListingComposerPage(
               })}
             />
           ) : null}
-
-          {/* Narrow: the category's own questions, directly under the choice
-              that produced them and above the photo dropzone. */}
-          {stacked ? details : null}
 
           <Form.Item
             label={t(LISTINGS_I18N_KEYS.composeTitleLabel)}
@@ -788,9 +808,9 @@ export function ListingComposerPage(
             </>
           ) : null}
 
-          {/* Wide: the whole form is one screen, so the details keep their
-              place after the photos. */}
-          {stacked ? null : details}
+          {/* The category's own questions, after the five the seller came to
+              answer. See the header on why this is one order and not two. */}
+          {details}
 
           <Divider />
 
@@ -832,7 +852,6 @@ export function ListingComposerPage(
             </Checkbox>
           </Form.Item>
         </Form>
-        </div>
 
         {bag.refusal?.kind === "invalid_draft" ? (
           <ErrorAlert

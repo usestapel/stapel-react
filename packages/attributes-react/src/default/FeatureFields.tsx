@@ -29,7 +29,7 @@
  * Treating it as "no rules" would render a conditionally-mandatory field as
  * unconditionally optional because its `require` rule had a typo.
  */
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Alert, Divider, Form, Typography } from "antd";
 import { useFormatFlowError, useT } from "@stapel/core";
@@ -91,6 +91,24 @@ export function featureRowTestId(slug: string): string {
  * one on a `Switch` is nonsense. */
 const EXAMPLE_TYPES = new Set(["string", "int", "float"]);
 
+/**
+ * Whether the named sections open and close, and what they do on the first
+ * frame.
+ *
+ *  - `"none"` (default) — every section is drawn open, headings and all. What
+ *    this component has always done, and what a filter panel or an admin
+ *    preview wants: a section nobody can see is a section nobody can read.
+ *  - `"auto"` — every named section is a disclosure, and it starts OPEN when
+ *    it asks something the person MUST answer or something they already have
+ *    (see {@link sectionOpensByDefault}). An imported catalogue is mostly
+ *    plumbing — a phone leaf carries 32 fields across seven groups, of which
+ *    four are parcel dimensions and three are wholesale terms — and a form
+ *    that asks all of it at full height is a form nobody reaches the bottom
+ *    of. Every heading stays on screen; only the answers behind the optional
+ *    ones are one tap away.
+ */
+export type FeatureGroupCollapse = "none" | "auto";
+
 export interface FeatureFieldsProps {
   readonly features: readonly FeatureDef[];
   /** Current answers keyed by slug. The DTO envelope is built at submit time
@@ -105,6 +123,9 @@ export interface FeatureFieldsProps {
   /** Rendered instead of a default `Form.Item` row, for a host with its own
    * field chrome. */
   readonly renderRow?: (row: FeatureRowProps) => ReactNode;
+  /** Whether the named sections collapse, and what they do on the first
+   * frame. Default `"none"` — see {@link FeatureGroupCollapse}. */
+  readonly groupCollapse?: FeatureGroupCollapse;
 }
 
 /** One hint under a field, already resolved through the host's catalogue. */
@@ -258,6 +279,47 @@ export function featureSections(features: readonly FeatureDef[]): readonly Secti
     .map(([group, rows]) => ({ group, rows }));
 }
 
+/** Has this field been answered? An empty string and an empty table are the
+ * same absence as `undefined` — the shape `toFeaturesDto` drops. */
+function answered(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  return true;
+}
+
+/**
+ * Does a collapsing section start open?
+ *
+ * Yes when it asks something the person MUST answer, or something they have
+ * already answered. Otherwise it is optional and untouched, and it starts
+ * closed with its heading still on screen.
+ *
+ * The rule is the schema's, not a list of group NAMES. A catalogue's groups
+ * are admin-authored text in the deployment's own language, and a library that
+ * recognised "Delivery" by spelling would sort one deployment and mis-sort
+ * every other one it was translated for. Requiredness is the
+ * one thing every catalogue states in a machine-readable way, and it happens
+ * to draw the line where a person would: what a listing cannot be published
+ * without is what identifies the thing; the parcel's width is not.
+ *
+ * It is a DEFAULT and not a rule about visibility: the heading is always
+ * drawn, the disclosure is native, and a rule that turns a hidden row required
+ * (`condition = used` → "screen condition") re-opens its section on the render
+ * that does it.
+ */
+function sectionOpensByDefault(
+  rows: readonly FeatureDef[],
+  values: Readonly<Record<string, unknown>>,
+  states: Readonly<Record<string, RuleState>>
+): boolean {
+  return rows.some(
+    (feature) =>
+      requiredRow(feature, states[feature.slug] ?? VISIBLE_STATE) ||
+      answered(values[feature.slug])
+  );
+}
+
 /** `FeatureDef.hints` → resolved `{title, content}` pairs. Both members are
  * key-or-literal, like `name`: the catalogue supplies either, and `t()` hands
  * back an unknown key unchanged. */
@@ -315,6 +377,11 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
     [features, values, broken]
   );
 
+  // What the PERSON has decided about a section, keyed by group. Absent means
+  // "they have not touched this one", and the default still speaks.
+  const collapsing = props.groupCollapse === "auto";
+  const [openState, setOpenState] = useState<Readonly<Record<string, boolean>>>({});
+
   const sections = useMemo(
     () =>
       featureSections(features).map((section) => ({
@@ -330,27 +397,30 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
     <SkinTheme surface="bare">
       <TouchFloorProvider value={below.touch ?? false}>
         <div ref={column} data-testid="attributes-fields">
-          {sections.map((section) =>
-            section.rows.length === 0 ? null : (
-              <div
-                key={section.group || " ungrouped"}
-                data-attributes-group={section.group}
-                data-testid={featureSectionTestId(section.group)}
-              >
-                {section.group.length > 0 && (
-                  <>
-                    <Typography.Title
-                      level={5}
-                      style={{ marginBottom: spacing[1] }}
-                      data-testid={`${featureSectionTestId(section.group)}-heading`}
-                    >
-                      {/* `group` is key-or-literal, exactly like `name`. */}
-                      {t(section.group)}
-                    </Typography.Title>
-                    <Divider style={{ marginTop: 0, marginBottom: spacing[3] }} />
-                  </>
-                )}
-                {section.rows.map((feature) => {
+          {sections.map((section) => {
+            if (section.rows.length === 0) return null;
+            // The ungrouped rows are "the questions before the first heading":
+            // there is no heading to press, so there is nothing to collapse.
+            const collapsible = collapsing && section.group.length > 0;
+            const open =
+              openState[section.group] ??
+              sectionOpensByDefault(section.rows, values, states);
+            const heading =
+              section.group.length === 0 ? null : (
+                <Typography.Title
+                  level={5}
+                  style={
+                    collapsible
+                      ? { marginBottom: 0, display: "inline-block" }
+                      : { marginBottom: spacing[1] }
+                  }
+                  data-testid={`${featureSectionTestId(section.group)}-heading`}
+                >
+                  {/* `group` is key-or-literal, exactly like `name`. */}
+                  {t(section.group)}
+                </Typography.Title>
+              );
+            const rows = section.rows.map((feature) => {
                   const controlId = featureControlId(feature.slug);
                   const type = featureType(feature);
                   const state: RuleState = states[feature.slug] ?? VISIBLE_STATE;
@@ -423,10 +493,59 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
                       )}
                     </div>
                   );
-                })}
+            });
+            const inside = (
+              <>
+                {collapsible ? (
+                  <summary
+                    style={{ cursor: "pointer", marginBottom: spacing[1] }}
+                    data-testid={`${featureSectionTestId(section.group)}-summary`}
+                  >
+                    {heading}
+                  </summary>
+                ) : (
+                  heading
+                )}
+                {heading === null ? null : (
+                  <Divider style={{ marginTop: 0, marginBottom: spacing[3] }} />
+                )}
+                {rows}
+              </>
+            );
+            // A native disclosure, so the keyboard, the screen reader and
+            // find-in-page all behave without this component owning any of it.
+            // `open` is held here rather than left to the DOM because the
+            // DEFAULT can legitimately change under a rule ("screen condition"
+            // becomes required once the condition is `used`), and a browser
+            // will not re-read an attribute it has already applied.
+            return collapsible ? (
+              <details
+                key={section.group}
+                data-attributes-group={section.group}
+                data-testid={featureSectionTestId(section.group)}
+                style={{ marginBottom: spacing[3] }}
+                open={open}
+                onToggle={(event) => {
+                  const next = event.currentTarget.open;
+                  setOpenState((current) =>
+                    current[section.group] === next
+                      ? current
+                      : { ...current, [section.group]: next }
+                  );
+                }}
+              >
+                {inside}
+              </details>
+            ) : (
+              <div
+                key={section.group || " ungrouped"}
+                data-attributes-group={section.group}
+                data-testid={featureSectionTestId(section.group)}
+              >
+                {inside}
               </div>
-            )
-          )}
+            );
+          })}
         </div>
       </TouchFloorProvider>
     </SkinTheme>

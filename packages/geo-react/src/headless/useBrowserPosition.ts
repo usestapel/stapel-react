@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { LatLon } from "../model/coords.js";
 
 /**
@@ -46,7 +46,40 @@ export interface UseBrowserPositionOptions {
   /** Seconds a cached fix stays acceptable. A picker does not need a fresh
    * satellite lock; a two-minute-old position is the same street. */
   readonly maximumAgeMs?: number;
+  /**
+   * How long an UNANSWERED browser prompt is waited on before this attempt is
+   * given up on. Default 20s — see {@link DECISION_TIMEOUT_MS}.
+   *
+   * It must be longer than {@link UseBrowserPositionOptions.timeoutMs}: a
+   * prompt that WAS answered with "allow" is bounded by the Geolocation API's
+   * own `timeout` (which fires `code: 3`), and this deadline exists only for
+   * the case where no callback will ever come.
+   */
+  readonly decisionTimeoutMs?: number;
 }
+
+/**
+ * How long an unanswered prompt is waited on.
+ *
+ * The Geolocation spec STOPS the `timeout` clock while the permission
+ * decision is pending, so a person who swipes the browser's prompt away —
+ * or whose browser blocks the site without telling the page — leaves
+ * `getCurrentPosition` hanging for as long as the page is open: neither the
+ * success nor the error callback ever fires, `timeout` or no `timeout`.
+ *
+ * The button on top of that spun for as long as it was watched (measured
+ * on a live classified deployment: >30s of "Finding you…" over a live map,
+ * with no way out but a reload). `@stapel/core`'s `usePermission` had
+ * carried this bound for four releases — `decisionTimeoutMs`, the same 20s —
+ * but the picker's button does not go through it: it calls the browser
+ * directly, and so it needed the same deadline of its own.
+ *
+ * 20s and not 10s because the geolocation call's OWN `timeout` is 10s: a
+ * fix that is merely slow must be allowed to fail as `code: 3` first, so
+ * that "we could not place you" and "you never answered" stay two different
+ * sentences.
+ */
+export const DECISION_TIMEOUT_MS = 20_000;
 
 function isGeolocationSupported(): boolean {
   return typeof navigator !== "undefined" && typeof navigator.geolocation?.getCurrentPosition === "function";
@@ -70,21 +103,81 @@ function outcomeOf(error: { readonly code?: number } | undefined): PositionOutco
   }
 }
 
+/**
+ * What the Permissions API says about geolocation RIGHT NOW, for the one
+ * moment it decides something: the deadline.
+ *
+ * A silent prompt has two causes that read identically from
+ * `getCurrentPosition` — the person walked away from it, and the browser
+ * refused on their behalf without a callback — and they deserve different
+ * sentences. Everything about this read is optional: Safari throws on the
+ * descriptor, Firefox may not know the name, and a page can be in a context
+ * with no `navigator` at all. Any of those is simply "we do not know", which
+ * is what the timeout outcome already says.
+ */
+async function deniedByPermissionsApi(): Promise<boolean> {
+  try {
+    if (typeof navigator === "undefined") return false;
+    const permissions = (navigator as Navigator & { permissions?: Permissions })
+      .permissions;
+    if (permissions?.query === undefined) return false;
+    const result = await permissions.query({
+      name: "geolocation",
+    } as unknown as PermissionDescriptor);
+    return result.state === "denied";
+  } catch {
+    return false;
+  }
+}
+
 export function useBrowserPosition(
   options: UseBrowserPositionOptions = {}
 ): BrowserPositionBag {
   const [state, setState] = useState<PositionState>({ step: "idle" });
   const supported = isGeolocationSupported() && options.offered !== false;
+  const decisionTimeoutMs = options.decisionTimeoutMs ?? DECISION_TIMEOUT_MS;
+
+  // Which attempt is the live one. A callback that arrives after its attempt
+  // was given up on (or after another `locate()` replaced it) must not repaint
+  // the control, and neither must anything at all after unmount.
+  const attempt = useRef(0);
+  const deadline = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(
+    () => () => {
+      attempt.current += 1;
+      if (deadline.current !== undefined) clearTimeout(deadline.current);
+    },
+    []
+  );
 
   const locate = useCallback(() => {
     if (!isGeolocationSupported()) {
       setState({ step: "refused", outcome: "unsupported" });
       return;
     }
+    attempt.current += 1;
+    const generation = attempt.current;
+    if (deadline.current !== undefined) clearTimeout(deadline.current);
+    /** Only the live attempt writes, and only once. */
+    const settle = (next: PositionState): void => {
+      if (generation !== attempt.current) return;
+      attempt.current += 1;
+      if (deadline.current !== undefined) clearTimeout(deadline.current);
+      deadline.current = undefined;
+      setState(next);
+    };
     setState({ step: "locating" });
+    // The prompt is under no obligation to be answered, and an unanswered one
+    // never calls back — so the spinner needs an end that does not depend on
+    // the browser having one. See DECISION_TIMEOUT_MS.
+    deadline.current = setTimeout(() => {
+      void deniedByPermissionsApi().then((denied) => {
+        settle({ step: "refused", outcome: denied ? "denied" : "timeout" });
+      });
+    }, decisionTimeoutMs);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setState({
+        settle({
           step: "located",
           point: { lat: position.coords.latitude, lon: position.coords.longitude },
           accuracyM:
@@ -92,7 +185,7 @@ export function useBrowserPosition(
         });
       },
       (error: { readonly code?: number }) => {
-        setState({ step: "refused", outcome: outcomeOf(error) });
+        settle({ step: "refused", outcome: outcomeOf(error) });
       },
       {
         enableHighAccuracy: false,
@@ -100,9 +193,12 @@ export function useBrowserPosition(
         maximumAge: options.maximumAgeMs ?? 120_000,
       }
     );
-  }, [options.timeoutMs, options.maximumAgeMs]);
+  }, [options.timeoutMs, options.maximumAgeMs, decisionTimeoutMs]);
 
   const reset = useCallback(() => {
+    attempt.current += 1;
+    if (deadline.current !== undefined) clearTimeout(deadline.current);
+    deadline.current = undefined;
     setState({ step: "idle" });
   }, []);
 
