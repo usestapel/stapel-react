@@ -73,6 +73,23 @@ export const CATEGORIES_I18N_KEYS = {
   carouselLoadFailed: "categories.carousel.load_failed",
   carouselEmpty: "categories.carousel.empty",
 
+  // ── tile grid (the phone landing's two scrolling rows) ───────────────────
+  /** The leading tile, which links the catalogue root rather than a category. */
+  tilesAll: "categories.tiles.all",
+
+  // ── quick search (the category landing's panel) ──────────────────────────
+  /** The button when the count is absent, in flight, refused, or a number the
+   * engine declined to give — the sentence that is true under every arm. */
+  quickSearchCta: "categories.quick_search.cta",
+  /**
+   * "Show {count} listings" — an EXACT total. A PLURAL FAMILY: render with
+   * `tPlural`, never `t` (see {@link CATEGORIES_I18N_PLURAL_KEYS}).
+   */
+  quickSearchCtaCount: "categories.quick_search.cta_count",
+  /** "Show {count}+ listings" — a LOWER BOUND, never spelled as a total.
+   * A PLURAL FAMILY. */
+  quickSearchCtaAtLeast: "categories.quick_search.cta_count_at_least",
+
   // ── picker (the compose form's chooser) ──────────────────────────────────
   pickerTitle: "categories.picker.title",
   pickerSearch: "categories.picker.search",
@@ -147,6 +164,8 @@ export type CategoriesI18nKey =
  */
 export const CATEGORIES_I18N_PLURAL_KEYS: readonly CategoriesI18nKey[] = [
   CATEGORIES_I18N_KEYS.categorySubcategoriesCount,
+  CATEGORIES_I18N_KEYS.quickSearchCtaCount,
+  CATEGORIES_I18N_KEYS.quickSearchCtaAtLeast,
 ];
 
 /**
@@ -190,6 +209,14 @@ export const categoriesI18nBundleEn: Record<string, string> = {
   "categories.carousel.loading": "Loading categories…",
   "categories.carousel.load_failed": "We could not load the categories",
   "categories.carousel.empty": "No categories are featured right now",
+
+  "categories.tiles.all": "All",
+
+  "categories.quick_search.cta": "Show listings",
+  "categories.quick_search.cta_count.one": "Show {count} listing",
+  "categories.quick_search.cta_count.other": "Show {count} listings",
+  "categories.quick_search.cta_count_at_least.one": "Show {count}+ listing",
+  "categories.quick_search.cta_count_at_least.other": "Show {count}+ listings",
 
   "categories.picker.title": "Category",
   "categories.picker.search": "Search categories",

@@ -79,6 +79,46 @@ export const DEMO_CAROUSEL: readonly Category[] = DEMO_ROWS.filter(
 );
 
 /**
+ * A wider carousel, for the two-row tile grid.
+ *
+ * Two tiles fit on one screen and prove nothing about a grid whose whole
+ * subject is that it scrolls sideways with the third column peeking in. These
+ * eight rows are the same shape as the ones above — names are translation
+ * keys, icon references are opaque strings — and half of them deliberately
+ * carry NO icon reference, so one photograph shows both the resolved art and
+ * the placeholder beside each other.
+ */
+export const DEMO_TILE_CAROUSEL: readonly Category[] = [
+  ...DEMO_CAROUSEL,
+  row(11, "jobs", "demo.category.jobs", null, "", "", {
+    tn_priority: 9,
+    carousel_enabled: true,
+    carousel_icon: "carousel/jobs",
+  }),
+  row(12, "services", "demo.category.services", null, "", "", {
+    tn_priority: 8,
+    carousel_enabled: true,
+    carousel_icon: "carousel/services",
+  }),
+  row(13, "realty", "demo.category.realty", null, "", "", {
+    tn_priority: 7,
+    carousel_enabled: true,
+  }),
+  row(14, "home-and-garden", "demo.category.home_and_garden", null, "", "", {
+    tn_priority: 6,
+    carousel_enabled: true,
+  }),
+  row(15, "hobby", "demo.category.hobby", null, "", "", {
+    tn_priority: 5,
+    carousel_enabled: true,
+  }),
+  row(16, "animals", "demo.category.animals", null, "", "", {
+    tn_priority: 4,
+    carousel_enabled: true,
+  }),
+];
+
+/**
  * A category's resolved feature schema. `config` is VERBATIM — no defaults
  * filled in — exactly as `FeatureCompactSerializer.get_config` sends it, and
  * one row deliberately carries a type no builtin editor covers.

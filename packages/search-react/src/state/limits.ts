@@ -28,6 +28,29 @@ export const SEARCH_MAX_PAGE_SIZE = 100;
 export const SUGGEST_MAX_LIMIT = 25;
 
 /**
+ * The page a COUNT read asks for.
+ *
+ * There is no count-only endpoint (`SearchApi` is query/suggest/ranking), so
+ * `useSearchCount` rides the ordinary query and takes the total out of the
+ * envelope. One row is the smallest page the endpoint documents — `limit=0` is
+ * not a page size — and it is the difference between serializing one card
+ * nobody renders and serializing the default twenty-four.
+ */
+export const SEARCH_COUNT_PAGE_SIZE = 1;
+
+/**
+ * How long a composing panel has to stop changing before its count is asked
+ * for.
+ *
+ * Shorter than the search commit (350ms): a count follows discrete choices — a
+ * select, a chip, a range end — rather than keystrokes, and a button whose
+ * number arrives a third of a second after the choice reads as broken. Longer
+ * than zero: the read is a full query (see `SEARCH_COUNT_PAGE_SIZE`), so a
+ * person walking a select's options must not spend one search per option.
+ */
+export const SEARCH_COUNT_DEBOUNCE_MS = 250;
+
+/**
  * The shortest prefix worth asking the index about.
  *
  * One and two letters match nearly everything, so the answer is noise and the

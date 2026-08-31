@@ -270,6 +270,95 @@
       }
     },
     {
+      "id": "categories.quick-search",
+      "title": "Category quick search",
+      "description": "The category landing's brand-tinted panel: a heading, the host's own field slots, and a full-width button carrying the live result count. Only a ready, countable answer earns a number — loading, refused and 'the engine cannot say' all render the plain sentence, and a lower bound gets its own, because a floor printed as a total is a lie in a shorter form.",
+      "component": "CategoryQuickSearchPanel",
+      "covers": [],
+      "tokens": [
+        "brand-subtle"
+      ],
+      "variants": [
+        {
+          "id": "counted",
+          "description": "An exact total: the button says how many.",
+          "viewport": "phone",
+          "step": "ready-exact"
+        },
+        {
+          "id": "counting",
+          "description": "The count is in flight. The button stays pressable and stays honest — the same sentence a refusal and an uncountable answer get.",
+          "viewport": "phone",
+          "step": "loading"
+        },
+        {
+          "id": "a floor, not a total",
+          "description": "count_is_lower_bound: at least 500 match, possibly more. Never rendered as 500.",
+          "viewport": "desktop",
+          "step": "ready-at-least"
+        },
+        {
+          "id": "no fields",
+          "description": "A category whose quick search is just 'show me everything under here' — a heading and a button, which is a legitimate panel.",
+          "viewport": "desktop",
+          "step": "ready-exact-bare"
+        }
+      ],
+      "source": {
+        "file": "demo/CategoryQuickSearchPanel.demo.tsx",
+        "line": 73
+      }
+    },
+    {
+      "id": "categories.tile-grid",
+      "title": "Category tile grid",
+      "description": "Two rows of rounded tiles that scroll sideways, sized as a fraction of the box they were mounted in rather than of the viewport. The label sits top-left over two lines; the art is pinned bottom-right through the same renderIcon seam the carousel strip takes, and an unresolved reference draws a placeholder rather than a broken image.",
+      "component": "CategoryTileGrid",
+      "covers": [
+        "CategoryCarousel"
+      ],
+      "tokens": [
+        "surface-sunken",
+        "border-subtle"
+      ],
+      "variants": [
+        {
+          "id": "tiles",
+          "description": "The host's resolver wired: art in the bottom-right corner.",
+          "viewport": "phone",
+          "step": "ready"
+        },
+        {
+          "id": "no art",
+          "description": "No resolver, and rows that carry no reference: the placeholder glyph, on purpose, rather than a guessed URL.",
+          "viewport": "phone",
+          "step": "ready-without-art"
+        },
+        {
+          "id": "inside a category",
+          "description": "allTile={false} — a row already inside a category does not lead with a link back to the catalogue root.",
+          "viewport": "desktop",
+          "step": "ready-without-all"
+        },
+        {
+          "id": "nothing featured",
+          "description": "A real configuration — a landing that says so instead of spinning.",
+          "viewport": "desktop",
+          "step": "empty"
+        },
+        {
+          "id": "outage",
+          "description": "The grid refuses, with the retry beside the bad news.",
+          "viewport": "desktop",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/CategoryTileGrid.demo.tsx",
+        "line": 48
+      }
+    },
+    {
       "id": "categories.tree",
       "title": "Category tree pane",
       "description": "stapel-categories has no tree endpoint: the list returns FLAT rows ordered by revision, with ancestry as comma-joined pk strings. The client assembles the hierarchy, drops soft-deleted and inactive rows for DIFFERENT reasons, and resolves /c/:slug against the result — the server has no slug lookup either.",

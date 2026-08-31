@@ -805,6 +805,8 @@
       "SEARCH_BACKEND_UNAVAILABLE",
       "SEARCH_BOX_DEBOUNCE_MS",
       "SEARCH_BOX_SUGGEST_DEBOUNCE_MS",
+      "SEARCH_COUNT_DEBOUNCE_MS",
+      "SEARCH_COUNT_PAGE_SIZE",
       "SEARCH_DEFAULT_PAGE_SIZE",
       "SEARCH_ERRORS",
       "SEARCH_ERROR_CODES",
@@ -827,6 +829,7 @@
       "clearFilters",
       "countIsEstimate",
       "countKind",
+      "countQueryState",
       "createSearchApi",
       "createSearchRuntime",
       "degradationMessageKey",
@@ -854,6 +857,7 @@
       "useSearchAnalytics",
       "useSearchApi",
       "useSearchBox",
+      "useSearchCount",
       "useSearchQuery",
       "useSearchRuntime",
       "useSearchState",
@@ -879,7 +883,9 @@
       "Scorer",
       "SearchApi",
       "SearchBoxBag",
+      "SearchCount",
       "SearchCountKind",
+      "SearchCountState",
       "SearchDegradation",
       "SearchDegradationKind",
       "SearchErrorCode",
@@ -904,7 +910,8 @@
       "SearchStateProviderProps",
       "SuggestParams",
       "SuggestResponse",
-      "UseSearchBoxOptions"
+      "UseSearchBoxOptions",
+      "UseSearchCountOptions"
     ]
   }
 }

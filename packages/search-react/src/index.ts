@@ -113,6 +113,8 @@ export type { BuildRangeGroupsInput, RangeGroup } from "./state/ranges.js";
 export {
   SEARCH_BOX_DEBOUNCE_MS,
   SEARCH_BOX_SUGGEST_DEBOUNCE_MS,
+  SEARCH_COUNT_DEBOUNCE_MS,
+  SEARCH_COUNT_PAGE_SIZE,
   SEARCH_DEFAULT_PAGE_SIZE,
   SEARCH_MAX_PAGE_SIZE,
   SEARCH_QUERY_MAX_CHARS,
@@ -152,6 +154,12 @@ export type { FacetPanelBag } from "./headless/FacetPanel.js";
 export { useAppliedSort } from "./headless/useAppliedSort.js";
 export { useSearchBox } from "./headless/useSearchBox.js";
 export type { SearchBoxBag, UseSearchBoxOptions } from "./headless/useSearchBox.js";
+export { countQueryState, useSearchCount } from "./headless/useSearchCount.js";
+export type {
+  SearchCount,
+  SearchCountState,
+  UseSearchCountOptions,
+} from "./headless/useSearchCount.js";
 export { RankingDisclosure } from "./headless/RankingDisclosure.js";
 export type { RankingDisclosureBag } from "./headless/RankingDisclosure.js";
 

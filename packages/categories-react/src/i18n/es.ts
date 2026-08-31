@@ -70,6 +70,14 @@ export const categoriesI18nBundleEs: I18nDictionary = {
   "categories.carousel.load_failed": "No pudimos cargar las categorías.",
   "categories.carousel.empty": "Ahora mismo no hay categorías destacadas.",
 
+  "categories.tiles.all": "Todo",
+
+  "categories.quick_search.cta": "Ver anuncios",
+  "categories.quick_search.cta_count.one": "Ver {count} anuncio",
+  "categories.quick_search.cta_count.other": "Ver {count} anuncios",
+  "categories.quick_search.cta_count_at_least.one": "Ver {count}+ anuncio",
+  "categories.quick_search.cta_count_at_least.other": "Ver {count}+ anuncios",
+
   "categories.picker.title": "Categoría",
   "categories.picker.search": "Buscar categorías",
   "categories.picker.loading": "Cargando categorías…",

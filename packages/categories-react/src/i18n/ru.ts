@@ -88,6 +88,18 @@ export const categoriesI18nBundleRu: I18nDictionary = {
   "categories.carousel.load_failed": "Не удалось загрузить категории.",
   "categories.carousel.empty": "Сейчас ни одна категория не вынесена на витрину.",
 
+  "categories.tiles.all": "Все",
+
+  "categories.quick_search.cta": "Показать объявления",
+  "categories.quick_search.cta_count.one": "Показать {count} объявление",
+  "categories.quick_search.cta_count.few": "Показать {count} объявления",
+  "categories.quick_search.cta_count.many": "Показать {count} объявлений",
+  "categories.quick_search.cta_count.other": "Показать {count} объявления",
+  "categories.quick_search.cta_count_at_least.one": "Показать {count}+ объявление",
+  "categories.quick_search.cta_count_at_least.few": "Показать {count}+ объявления",
+  "categories.quick_search.cta_count_at_least.many": "Показать {count}+ объявлений",
+  "categories.quick_search.cta_count_at_least.other": "Показать {count}+ объявления",
+
   "categories.picker.title": "Категория",
   "categories.picker.search": "Поиск по категориям",
   "categories.picker.loading": "Загружаем категории…",

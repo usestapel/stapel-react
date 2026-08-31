@@ -33,6 +33,14 @@ export { CategoryBreadcrumbsBar } from "./CategoryBreadcrumbsBar.js";
 export type { CategoryBreadcrumbsBarProps } from "./CategoryBreadcrumbsBar.js";
 export { CategoryCarouselStrip } from "./CategoryCarouselStrip.js";
 export type { CategoryCarouselStripProps } from "./CategoryCarouselStrip.js";
+export { CategoryTileGrid } from "./CategoryTileGrid.js";
+export type { CategoryTileGridProps } from "./CategoryTileGrid.js";
+export { CategoryQuickSearchPanel } from "./CategoryQuickSearchPanel.js";
+export type {
+  CategoryQuickSearchPanelProps,
+  QuickSearchCount,
+  QuickSearchCountKind,
+} from "./CategoryQuickSearchPanel.js";
 export { CategoryPickerField } from "./CategoryPickerField.js";
 export type { CategoryPickerFieldProps } from "./CategoryPickerField.js";
 export { CategoryFeatureList } from "./CategoryFeatureList.js";
