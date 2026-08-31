@@ -27,32 +27,137 @@
  *
  * `<FilterChips>`'s leading chip is a 32px circle: a number inside it is a
  * number nobody reads, so it shows a dot. This is a full-width row with a word
- * on it, so the badge has room to say HOW MANY constraints are applied — which
- * is the difference between "something is filtered" and "four things are, and
- * that is why there are three results". Both read the same
- * `activeFilters` off the URL state; neither invents a second counter.
+ * on it, so it has room to say HOW MANY constraints are applied — which is the
+ * difference between "something is filtered" and "four things are, and that is
+ * why there are three results". Both read the same `activeFilters` off the URL
+ * state; neither invents a second counter.
+ *
+ * ## The row overlapped itself on a phone, and why (defect C12)
+ *
+ * Measured on a live 390px SERP, in both themes, on every result page:
+ *
+ * ```
+ * {"kind":"clipped-left","t":"A chosen place on the map","x":-4}
+ * {"kind":"overlap","a":"· Within 25 km","b":"Filters","px":43}
+ * ```
+ *
+ * Three separate causes, and none of them was the flex row itself:
+ *
+ * 1. **An antd `<Button>` CENTRES its content.** `minWidth: 0` let the left
+ *    item shrink, and nothing clipped what was inside it, so the label
+ *    overflowed its box symmetrically — off the left edge of the screen at
+ *    `x = -4` and 43px across the word "Filters" at the other end. A shrunk
+ *    box with no `overflow` is not a truncation, it is an overlap.
+ * 2. **Nothing declared which end may shrink.** Both ends were `1 1 auto`, so
+ *    a long place name took width from a word that must never lose any.
+ * 3. **The count was an antd `<Badge count>`,** which is an absolutely
+ *    positioned `sup` hung off the top-right CORNER of what it wraps. At the
+ *    trailing edge of a full-width row that lands it outside the row entirely
+ *    — a red plaque floating in the corner of the page, attached to nothing
+ *    (measured at `y = 72` for a row whose own line is at `y = 93`).
+ *
+ * So: one compact line, `place · radius` on the left and `Filters` right; the
+ * left is the only half that shrinks and it truncates with an ellipsis; the
+ * count rides IN the flow beside the word it counts for. The first two rules
+ * are what an inline style cannot reach (they belong on the wrapper antd puts
+ * around a button's children), which is why this file hoists a stylesheet the
+ * way `<ListingCard>` and `<SkinCarousel>` do.
  */
 import { useState } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { Badge, Button, Flex } from "antd";
+import { Button, Flex } from "antd";
 import { useT } from "@stapel/core";
-import { spacing } from "@stapel/tokens";
+import { cssVar, fontSize, radii, spacing } from "@stapel/tokens";
 import { useSearchState } from "../headless/SearchStateProvider.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { geoSummaryFallback } from "./FacetPanelPane.js";
 import type { GeoFilterSlotProps } from "./FacetPanelPane.js";
 import { GeoSheet, SUMMARY_GEO_TEST_IDS } from "./geoSheet.js";
 
+/** The class the row carries, for {@link locationLineCss}. */
+export const LOCATION_LINE_CLASS = "stapel-search-location-line";
+/** The class the shrinking half carries. */
+export const LOCATION_LINE_WHERE_CLASS = "stapel-search-location-line-where";
+/** The class the truncating label carries. */
+export const LOCATION_LINE_LABEL_CLASS = "stapel-search-location-line-label";
+/** The class the fixed half carries. */
+export const LOCATION_LINE_END_CLASS = "stapel-search-location-line-end";
+
+/** The `href` the hoisted stylesheet is deduplicated by. */
+export const LOCATION_LINE_STYLE_HREF = "stapel-search-location-line";
+
+/**
+ * The rules that keep the line ONE line — and that an inline style cannot
+ * reach, because they belong on the `<span>` antd wraps a button's children
+ * in. See the file header (defect C12) for what each of them stops.
+ *
+ * Static: nothing here varies per instance, so one hoisted copy serves a page
+ * in either theme.
+ */
+export function locationLineCss(): string {
+  const row = `.${LOCATION_LINE_CLASS}`;
+  const where = `.${LOCATION_LINE_WHERE_CLASS}`;
+  const label = `.${LOCATION_LINE_LABEL_CLASS}`;
+  const end = `.${LOCATION_LINE_END_CLASS}`;
+  return [
+    // `min-width:0` on the row too: a flex item's default `min-width:auto`
+    // is what makes a nested flex row refuse to shrink at all.
+    `${row}{min-inline-size:0}`,
+    // The ONLY half that shrinks, and it CLIPS what it cannot show. An antd
+    // Button is already a flex row and it CENTRES its children, so without
+    // these two the box shrank and its content overflowed both edges at once
+    // — the whole defect: `x:-4` on the left, 43px over "Filters" on the
+    // right.
+    `${where}{flex:1 1 auto;min-inline-size:0;overflow:hidden;` +
+      `justify-content:flex-start}`,
+    // Whatever the button puts its children in has to be allowed to shrink;
+    // a flex item's `min-width:auto` refuses to go below its content.
+    `${where}>span{min-inline-size:0}`,
+    // `display:block` is load-bearing: `text-overflow` applies to a BLOCK
+    // container and does nothing on a flex one, so a label that had been
+    // turned into a flex box truncated with a hard cut mid-glyph instead of
+    // an ellipsis.
+    `${label}{display:block;min-inline-size:0;overflow:hidden;` +
+      `text-overflow:ellipsis;white-space:nowrap}`,
+    // The word a person is looking for never loses a pixel to a place name.
+    `${end}{flex:0 0 auto}`,
+  ].join("");
+}
+
 /** The row. Both ends are text buttons, so the row reads as a line of type
  * rather than as two controls bolted onto a results page. */
 const ROW: CSSProperties = { width: "100%" };
 
-/** Each end shrinks before it wraps; the location is the half that may
- * ellipsis, because a long place name must not push "Filters" off screen. */
+/** The shrinking half. The flex rules it needs live in the hoisted sheet
+ * (they have to reach antd's own wrapper span); this is the chrome. */
 const LOCATION: CSSProperties = {
-  minWidth: 0,
   paddingInline: 0,
   textAlign: "start",
+};
+
+/** The pin, which is not allowed to shrink either — a squashed glyph is
+ * noise, and it costs 16px. */
+const PIN: CSSProperties = { flex: "0 0 auto", display: "inline-flex" };
+
+/**
+ * The count, IN the flow.
+ *
+ * An antd `<Badge count>` is an absolutely positioned `sup` on the corner of
+ * whatever it wraps, and at the trailing edge of a full-width row that puts it
+ * outside the row: a red plaque in the corner of the page attached to nothing.
+ * A pill beside the word is the same fact, in the line it belongs to, and it
+ * takes part in the layout instead of floating over it.
+ */
+const COUNT: CSSProperties = {
+  display: "inline-block",
+  minInlineSize: `${String(spacing[4])}px`,
+  paddingInline: spacing[1],
+  borderRadius: radii.full,
+  background: cssVar("brand"),
+  color: cssVar("text-on-accent"),
+  fontSize: fontSize.xs.fontSize,
+  lineHeight: `${String(spacing[4])}px`,
+  textAlign: "center",
 };
 
 export interface LocationSummaryLineProps {
@@ -123,18 +228,26 @@ export function LocationSummaryLine(
 
   return (
     <>
+      <style href={LOCATION_LINE_STYLE_HREF} precedence="default">
+        {locationLineCss()}
+      </style>
       <Flex
         align="center"
         justify="space-between"
         gap={spacing[2]}
         style={ROW}
+        className={LOCATION_LINE_CLASS}
         data-testid="search-location-summary"
         data-geo={geo === undefined ? "off" : "on"}
       >
+        {/* The glyph is rendered as a CHILD rather than through antd's `icon`
+            prop: the icon slot sits outside the wrapper span, so the label
+            beside it could not be given a min-width of its own — and a label
+            that cannot shrink is a label that overflows. */}
         <Button
           type="link"
           style={LOCATION}
-          icon={<PinGlyph />}
+          className={LOCATION_LINE_WHERE_CLASS}
           data-testid="search-location-open"
           data-analytics="none"
           data-analytics-reason="opening the location sheet is a read, not a flow step"
@@ -142,13 +255,21 @@ export function LocationSummaryLine(
             setOpen(true);
           }}
         >
-          {where}
-          {radius !== undefined && (
-            <span data-testid="search-location-radius">
-              {" · "}
-              {radius}
-            </span>
-          )}
+          <span style={PIN}>
+            <PinGlyph />
+          </span>
+          <span
+            className={LOCATION_LINE_LABEL_CLASS}
+            data-testid="search-location-label"
+          >
+            {where}
+            {radius !== undefined && (
+              <span data-testid="search-location-radius">
+                {" · "}
+                {radius}
+              </span>
+            )}
+          </span>
         </Button>
 
         {/* "Filters", not "All filters": this end of the row shares 390px
@@ -156,10 +277,12 @@ export function LocationSummaryLine(
             the person is looking for is the noun. The panel's own heading
             still says "All filters" — there it is naming a sheet, not a
             door. */}
-        {/* The count, not a dot: this row has the width to say how many. */}
-        <Badge
-          count={activeFilters}
-          size="small"
+        {/* The count, not a dot: this row has the width to say how many — and
+            it rides IN the line rather than floating off its corner. */}
+        <Flex
+          align="center"
+          gap={spacing[1]}
+          className={LOCATION_LINE_END_CLASS}
           data-testid="search-location-filters-badge"
         >
           <Button
@@ -173,7 +296,12 @@ export function LocationSummaryLine(
           >
             {t(SEARCH_I18N_KEYS.filtersShort)}
           </Button>
-        </Badge>
+          {activeFilters > 0 && (
+            <span style={COUNT} data-testid="search-location-filters-count">
+              {activeFilters}
+            </span>
+          )}
+        </Flex>
       </Flex>
 
       <GeoSheet

@@ -193,6 +193,7 @@
       ],
       "tokens": [
         "brand",
+        "text-on-accent",
         "text-muted"
       ],
       "variants": [
@@ -215,6 +216,12 @@
           "step": "geo-and-filters"
         },
         {
+          "id": "long-place",
+          "description": "A place name a geocoder really returns, at 390px, with a radius and a count on the same line — the measured C12 case. One line: the place truncates with an ellipsis, `Filters` keeps every pixel of its word, and the count sits beside it IN the row instead of floating off the corner of the page.",
+          "viewport": "phone",
+          "step": "long-place-name"
+        },
+        {
           "id": "wide",
           "description": "The same row on a desktop: it is a full-width line either way, because what it states describes the whole page.",
           "viewport": "desktop",
@@ -223,7 +230,7 @@
       ],
       "source": {
         "file": "demo/LocationSummaryLine.demo.tsx",
-        "line": 51
+        "line": 57
       }
     },
     {

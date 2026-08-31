@@ -128,6 +128,10 @@ const demoBundleEn: Record<string, string> = {
   // purpose: turning `lat`/`lon` into a place is a geocoder's job and the
   // container's, which is the whole argument `geoLabel` exists to make.
   "demo.geo.city": "Kazan",
+  // The long one, for the case the row was measured breaking on: a place name
+  // a geocoder really returns, on a 390px line that also has to hold a radius
+  // and the word "Filters".
+  "demo.geo.long": "Voskresenskiye Vorota Passage, Tverskoy, Moscow",
   "search.scorer.relevance": "Text relevance",
   "search.scorer.geo": "Distance",
 };
