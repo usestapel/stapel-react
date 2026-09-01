@@ -68,6 +68,7 @@ const { tracked } = useTracked();
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - vocabularies.provider → <VocabulariesProvider> [default]  demo/Vocabularies.demo.tsx
+- vocabularies.term-picker → <VocabularyTermPicker> [closed|open|loading|stale|multiple|unavailable]  demo/VocabularyTermPicker.demo.tsx
 - vocabularies.term-select → <VocabularyTermSelect> [default|phone|narrowed|multiple|unavailable]  demo/VocabularyTermSelect.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 

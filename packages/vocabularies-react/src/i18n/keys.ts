@@ -16,6 +16,14 @@ export const VOCABULARIES_I18N_KEYS = {
   termSelectNoMatches: "vocabularies.termSelect.noMatches",
   termSelectUnavailableTitle: "vocabularies.termSelect.unavailable.title",
   termSelectUnavailable: "vocabularies.termSelect.unavailable",
+  termPickerTitle: "vocabularies.termPicker.title",
+  termPickerEmpty: "vocabularies.termPicker.empty",
+  termPickerCount: "vocabularies.termPicker.count",
+  termPickerDone: "vocabularies.termPicker.done",
+  termPickerChosen: "vocabularies.termPicker.chosen",
+  termPickerRecent: "vocabularies.termPicker.recent",
+  termPickerAll: "vocabularies.termPicker.all",
+  termPickerRefine: "vocabularies.termPicker.refine",
 } as const;
 
 export type VocabulariesI18nKey =
@@ -41,6 +49,20 @@ export const vocabulariesI18nBundleEn: I18nDictionary = {
   "vocabularies.termSelect.unavailable.title": "This list cannot be loaded",
   "vocabularies.termSelect.unavailable":
     "The terms for this field come from a vocabulary service that is not configured here, so there is nothing to choose from. Nobody can answer this question until it is wired up — please report it.",
+
+  // the picker field and its sheet (VocabularyTermPicker)
+  "vocabularies.termPicker.title": "Choose a value",
+  "vocabularies.termPicker.empty": "Not chosen yet",
+  // The trigger's summary, rendered ONLY from two upwards (one chosen term is
+  // shown as its own label), so no locale here needs a singular form and the
+  // key stays a flat string instead of a plural family.
+  "vocabularies.termPicker.count": "{count} chosen",
+  "vocabularies.termPicker.done": "Done",
+  "vocabularies.termPicker.chosen": "Chosen",
+  "vocabularies.termPicker.recent": "Recent",
+  "vocabularies.termPicker.all": "All values",
+  "vocabularies.termPicker.refine":
+    "Only the first {count} are shown — keep typing to narrow it down.",
 };
 
 /**

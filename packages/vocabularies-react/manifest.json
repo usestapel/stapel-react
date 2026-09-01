@@ -337,6 +337,21 @@
       "source": "demo/Vocabularies.demo.tsx"
     },
     {
+      "id": "vocabularies.term-picker",
+      "title": "Vocabulary term picker (default skin)",
+      "description": "One vocabulary level as a form field: the trigger says what is chosen — the resolved LABEL for one term, the count for several — and opens a bottom sheet with the search box, the codes picked most recently on top, and a commit button carrying its count. The list is the answer to the query in the box or it is nothing: while a newer query is in flight the rows dim and stop responding, so a fast tap cannot write the previous query's code.",
+      "component": "VocabularyTermPicker",
+      "variants": [
+        "closed",
+        "open",
+        "loading",
+        "stale",
+        "multiple",
+        "unavailable"
+      ],
+      "source": "demo/VocabularyTermPicker.demo.tsx"
+    },
+    {
       "id": "vocabularies.term-select",
       "title": "Vocabulary term select (default skin)",
       "description": "One vocabulary level as a typeahead: the options are the answer to the current query (debounced, superseding), and a code the control already holds is resolved to its label and kept pickable even when the current page does not contain it.",
@@ -398,6 +413,14 @@
     "error.500.internal",
     "error.503.mandate_unavailable",
     "vocabularies.error.unknown",
+    "vocabularies.termPicker.all",
+    "vocabularies.termPicker.chosen",
+    "vocabularies.termPicker.count",
+    "vocabularies.termPicker.done",
+    "vocabularies.termPicker.empty",
+    "vocabularies.termPicker.recent",
+    "vocabularies.termPicker.refine",
+    "vocabularies.termPicker.title",
     "vocabularies.termSelect.noMatches",
     "vocabularies.termSelect.placeholder",
     "vocabularies.termSelect.unavailable",

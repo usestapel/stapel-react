@@ -42,8 +42,10 @@ public surface of this package.
 - **headless/** — `<VocabulariesProvider>`, the standard runtime context. Not
   needed by the seam client; needed to reach the catalogue endpoints through
   this pair's `StapelClient`.
-- **default/** — `<VocabularyTermSelect/>`, the antd control, on the opt-in
-  `./default` subpath.
+- **default/** — `<VocabularyTermSelect/>` (the inline typeahead an embedding
+  surface drops into a row) and `<VocabularyTermPicker/>` (the same level as a
+  field that opens a picker sheet: recents on top, a counted commit, a stale
+  list nobody can tap), both on the opt-in `./default` subpath.
 - **i18n/** — `VOCABULARIES_I18N_KEYS` + en/ru/es. The generated backend error
   bundles are merged in so every `error.*` code has a fallback; the three codes
   stapel-vocabularies owns are authored by hand until upstream ships a

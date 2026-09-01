@@ -38,6 +38,17 @@ export const vocabulariesI18nBundleRu: I18nDictionary = {
   "vocabularies.termSelect.unavailable.title": "Список не удалось загрузить",
   "vocabularies.termSelect.unavailable":
     "Значения для этого поля берутся из справочника, который здесь не подключён, и выбирать не из чего. Ответить на этот вопрос невозможно — сообщите, пожалуйста, об этом.",
+  "vocabularies.termPicker.title": "Выберите значение",
+  "vocabularies.termPicker.empty": "Не выбрано",
+  // A colon instead of agreement: the line is rendered only from two upwards
+  // (a single term is shown as its own label), so no case ending is needed.
+  "vocabularies.termPicker.count": "Выбрано: {count}",
+  "vocabularies.termPicker.done": "Готово",
+  "vocabularies.termPicker.chosen": "Выбранное",
+  "vocabularies.termPicker.recent": "Недавние",
+  "vocabularies.termPicker.all": "Все значения",
+  "vocabularies.termPicker.refine":
+    "Показаны только первые {count} — уточните запрос.",
 };
 
 /**

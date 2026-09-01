@@ -33,6 +33,17 @@ export const vocabulariesI18nBundleEs: I18nDictionary = {
   "vocabularies.termSelect.unavailable.title": "No se puede cargar esta lista",
   "vocabularies.termSelect.unavailable":
     "Los valores de este campo vienen de un servicio de vocabularios que no está configurado aquí, así que no hay nada que elegir. Nadie puede responder a esta pregunta hasta que se conecte — avísanos, por favor.",
+  "vocabularies.termPicker.title": "Elige un valor",
+  "vocabularies.termPicker.empty": "Sin elegir",
+  // Rendered only from two upwards (a single term is shown as its own label),
+  // so the plural form is always the right one here.
+  "vocabularies.termPicker.count": "{count} elegidos",
+  "vocabularies.termPicker.done": "Listo",
+  "vocabularies.termPicker.chosen": "Elegidos",
+  "vocabularies.termPicker.recent": "Recientes",
+  "vocabularies.termPicker.all": "Todos los valores",
+  "vocabularies.termPicker.refine":
+    "Solo se muestran los primeros {count} — sigue escribiendo para acotar.",
 };
 
 /**

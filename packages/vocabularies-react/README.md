@@ -2,7 +2,7 @@
 
 Reference vocabularies too large to inline into a category schema: term
 typeahead and code-to-label resolve behind the `VocabularyClient` seam, plus the
-antd term select.
+antd term controls — an inline select and a picker-sheet field.
 
 ## Why this package exists
 
@@ -80,7 +80,11 @@ the vocabulary's revision moves, and several controls on one page routinely ask
 for the same set. It hands out a `LoadState`, not a bare map: `{}` would say
 "these codes have no labels" in the same words as "nobody has asked yet".
 
-## The control
+## The controls
+
+Two of them over one level, and the choice between them is the SURFACE, not the
+data: both hold the same value (a list of codes, single-select included), read
+the same seam and share the same query layer.
 
 ```tsx
 import { VocabularyTermSelect } from "@stapel/vocabularies-react/default";
@@ -104,6 +108,37 @@ and stays pickable even when the current page does not contain it. **No client
 is a loud state** — the notice, not an empty dropdown: a control that cannot
 reach its terms and looks like one that found none is how a person is left
 unable to answer a question nobody told them was broken.
+
+`<VocabularyTermPicker/>` is the same level as a FIELD: a trigger saying what is
+chosen — the resolved label for one term, the count for several — that opens
+`SkinPickerSheet` (a bottom sheet on a phone, a modal above it), with the search
+box at the top, the codes picked most recently on top of the list
+(`useRecents` from `@stapel/core`, scoped per vocabulary and level, and a
+remembered code the vocabulary can no longer name is dropped rather than shown
+as a slug), and — in `multiple` — a commit button carrying the count it is about
+to keep.
+
+```tsx
+import { VocabularyTermPicker } from "@stapel/vocabularies-react/default";
+
+<VocabularyTermPicker
+  client={vocabularies}
+  vocabulary="phone-models"
+  level="Model"
+  parent={vendor}
+  title={fieldLabel}
+  value={codes}
+  onChange={setCodes}
+/>;
+```
+
+The two coexist on purpose. The select is EMBEDDED — a filter rail, an admin
+row, a bulk-edit cell hand it a width and expect the inline control beside the
+others — so widening it into a sheet would change those layouts without anyone
+asking. The picker is what a phone form wants, where a 250px dropdown under the
+on-screen keyboard is the wrong shape. In both, `matched === false` (the answer
+in flight is not the answer on screen) makes the list untappable — dimmed here,
+blank there — which is the whole of defect C23.
 
 `./default` is themed through `SkinTheme` from `@stapel/tokens-antd/skin` (one
 bridge for the whole fleet — a pair never mounts its own `ConfigProvider` and
@@ -138,7 +173,7 @@ src/
   model/      query keys, useTermSearch, useTermLabels, runtime wiring
   flows/      toFlowError + zero-flow registry shim (the module annotates none)
   headless/   VocabulariesProvider
-  default/    VocabularyTermSelect (antd, opt-in subpath)
+  default/    VocabularyTermSelect + VocabularyTermPicker (antd, opt-in subpath)
   i18n/       translation keys + generated backend error map (en/ru/es)
 demo/         first-class demos (compiled, product-linted, smoke-rendered)
 ```

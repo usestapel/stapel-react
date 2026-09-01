@@ -23,6 +23,56 @@
       }
     },
     {
+      "id": "vocabularies.term-picker",
+      "title": "Vocabulary term picker (default skin)",
+      "description": "One vocabulary level as a form field: the trigger says what is chosen — the resolved LABEL for one term, the count for several — and opens a bottom sheet with the search box, the codes picked most recently on top, and a commit button carrying its count. The list is the answer to the query in the box or it is nothing: while a newer query is in flight the rows dim and stop responding, so a fast tap cannot write the previous query's code.",
+      "component": "VocabularyTermPicker",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "closed",
+          "description": "The field as a reopened form shows it: one chosen term, resolved through the seam to the word the person actually picked, never the stored slug.",
+          "viewport": "phone",
+          "step": "chosen"
+        },
+        {
+          "id": "open",
+          "description": "The sheet, with two remembered codes above the level's first page. The section is drawn only while the box is empty and only when it has something in it — and a remembered code whose label the vocabulary no longer knows is dropped rather than shown as a slug.",
+          "viewport": "phone",
+          "step": "browsing"
+        },
+        {
+          "id": "loading",
+          "description": "The answer to the box is in flight and there is nothing else on screen: a skeleton where the rows will be. The commit is not blocked — what is already chosen is still chosen.",
+          "viewport": "phone",
+          "step": "loading"
+        },
+        {
+          "id": "stale",
+          "description": "The same wait, with history on screen. The rows dim and stop responding instead of being replaced by a skeleton: a person's own recents should not flash away four times a word, and nothing that is not the answer to the box may be tappable.",
+          "viewport": "phone",
+          "step": "stale"
+        },
+        {
+          "id": "multiple",
+          "description": "Several terms at once — the shape a facet filter uses. The checkmarks are the draft and the footer says what pressing it keeps; dismissing the sheet discards it, which is why the count is on the button and not in the title.",
+          "viewport": "phone",
+          "step": "multi"
+        },
+        {
+          "id": "unavailable",
+          "description": "No client: the loud notice, not a field that opens an empty sheet. A control that cannot reach its terms and looks like one that found none is how a person is left unable to answer a question nobody told them was broken.",
+          "viewport": "phone",
+          "step": "unavailable"
+        }
+      ],
+      "source": {
+        "file": "demo/VocabularyTermPicker.demo.tsx",
+        "line": 92
+      }
+    },
+    {
       "id": "vocabularies.term-select",
       "title": "Vocabulary term select (default skin)",
       "description": "One vocabulary level as a typeahead: the options are the answer to the current query (debounced, superseding), and a code the control already holds is resolved to its label and kept pickable even when the current page does not contain it.",

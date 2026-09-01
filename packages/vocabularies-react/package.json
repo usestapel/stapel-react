@@ -1,7 +1,7 @@
 {
   "name": "@stapel/vocabularies-react",
   "version": "0.2.1",
-  "description": "Reference vocabularies too large to inline into a category schema: term typeahead and code-to-label resolve behind the VocabularyClient seam, plus the antd term select.",
+  "description": "Reference vocabularies too large to inline into a category schema: term typeahead and code-to-label resolve behind the VocabularyClient seam, plus the antd term controls — an inline select and a picker-sheet field.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -58,7 +58,7 @@
       "limit": "8 KB"
     },
     {
-      "name": "default — the antd term select must stay out of the main bundle",
+      "name": "default — the antd term controls must stay out of the main bundle",
       "path": "dist/default/index.js",
       "limit": "10 KB"
     },
@@ -74,8 +74,8 @@
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.20.0 <1.0.0",
-    "@stapel/tokens-antd": ">=0.8.0",
+    "@stapel/core": ">=0.23.0 <1.0.0",
+    "@stapel/tokens-antd": ">=0.12.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"
