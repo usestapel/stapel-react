@@ -173,24 +173,30 @@ function degradedWith(answer: SuggestAnswer | undefined, literal: string): boole
 /**
  * The destinations worth offering out of one answer.
  *
- * A category with a count of `0` is a section with nothing in it: following it
- * lands the buyer on an empty SERP, which is a dead end dressed as a
- * destination — and the server does return those (it reads the count with a
- * `0` default and ranks them last), so somebody has to drop them.
+ * **Every category the server ranked, in the order it ranked them.** Until
+ * 0.15 this dropped every row whose count was `0`, on the reasoning that an
+ * empty section is a dead end dressed as a destination. That reasoning holds
+ * for a stocked board and inverts on a young one, which is what the live
+ * measurement showed: 3036 leaves, ~100 listings, so 2924 leaves read zero
+ * and the filter deleted the answer. Typing a word with six real sections behind it in
+ * the catalogue produced NO PANEL AT ALL, and so did two other everyday
+ * words; the type-ahead told a buyer those sections do not exist, about
+ * sections that do. A catalogue you cannot navigate until somebody stocks it
+ * is worse than one that admits a section is empty.
  *
- * The one exception is `category_rollup`, where EVERY count is `0` because the
- * ancestry never arrived rather than because the sections are empty. Filtering
- * on the count there would delete the whole group for a reason that has
- * nothing to do with what is in the catalogue, so the rows are kept and the
- * numbers are what the surface omits.
+ * The server already ranks stocked sections above empty ones
+ * (`stapel-search` 0.8: stock, then match quality, then count) so the useful
+ * rows still come first, and every row carries its own `count` for the
+ * surface to print honestly — "0 listings" is a fact a person can act on,
+ * an absent panel is not. Nothing is dropped here; a surface that wants a
+ * shorter list slices it.
  */
 export function offerableCategories(
   answer: SuggestAnswer | undefined
 ): readonly SuggestCategory[] {
   const categories = answer?.categories;
   if (categories === undefined || categories.length === 0) return NO_CATEGORIES;
-  if (degradedWith(answer, SUGGEST_DEGRADED_ROLLUP)) return categories;
-  return categories.filter((category) => category.count > 0);
+  return categories;
 }
 
 export function useSearchBox(options: UseSearchBoxOptions = {}): SearchBoxBag {

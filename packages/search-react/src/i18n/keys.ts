@@ -162,6 +162,23 @@ export const SEARCH_I18N_KEYS = {
    * family — nothing is being counted in words. */
   filtersChipMore: "search.filters.chip_more",
 
+  // ── the way OUT of a search that found nothing ───────────────────────────
+  /** Caption above the exit buttons. Not a second "nothing found" — that
+   * sentence has already been said; this one says what can be done next. */
+  emptyExitsTitle: "search.empty.exits_title",
+  /** Drop the last segment of the category path. Deliberately unnamed: the
+   * pair holds a path of slugs or ids and cannot name the parent, and a
+   * guessed name on a navigation control is worse than an honest direction. */
+  emptyUpALevel: "search.empty.up_a_level",
+  /** "Search within {km} km" — the widened radius, already multiplied. */
+  emptyWidenRadius: "search.empty.widen_radius",
+  /** Drop the location constraint. Distinct from `search.geo.clear`, which
+   * labels the same action inside the location picker: here it is one exit
+   * among several and has to name the constraint it removes. */
+  emptyAnywhere: "search.empty.anywhere",
+  /** "Without {name}" — one applied filter, named as its own chip names it. */
+  emptyDropFilter: "search.empty.drop_filter",
+
   // ── category (a host slot, plus the control that removes it) ─────────────
   categoryTitle: "search.category.title",
   categoryClear: "search.category.clear",
@@ -390,6 +407,11 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.filters.short": "Filters",
   "search.filters.chip_more": ", +{count}",
 
+  "search.empty.exits_title": "Try widening the search",
+  "search.empty.up_a_level": "Go up a level",
+  "search.empty.widen_radius": "Search within {km} km",
+  "search.empty.anywhere": "Search anywhere",
+  "search.empty.drop_filter": "Without {name}",
   "search.category.title": "Category",
   "search.category.clear": "Search the whole catalogue",
   "search.category.current": "Searching inside {path}",

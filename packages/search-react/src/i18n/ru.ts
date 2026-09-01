@@ -131,6 +131,11 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.filters.short": "Фильтры",
   "search.filters.chip_more": ", +{count}",
 
+  "search.empty.exits_title": "Попробуйте расширить поиск",
+  "search.empty.up_a_level": "Подняться на уровень выше",
+  "search.empty.widen_radius": "Искать в радиусе {km} км",
+  "search.empty.anywhere": "Искать везде",
+  "search.empty.drop_filter": "Без «{name}»",
   "search.category.title": "Категория",
   "search.category.clear": "Искать по всему каталогу",
   "search.category.current": "Ищем внутри {path}",

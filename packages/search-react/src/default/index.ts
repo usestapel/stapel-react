@@ -58,6 +58,8 @@ export {
   orderChipFilters,
 } from "./FilterChips.js";
 export type { ChipBand, ChipSpec, FilterChipsProps } from "./FilterChips.js";
+export { EmptyExits, RADIUS_WIDEN_FACTOR, parentCategory } from "./EmptyExits.js";
+export type { EmptyExitsProps } from "./EmptyExits.js";
 
 export { LocationSummaryLine } from "./LocationSummaryLine.js";
 export type { LocationSummaryLineProps } from "./LocationSummaryLine.js";

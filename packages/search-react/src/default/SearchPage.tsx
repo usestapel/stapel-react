@@ -251,6 +251,14 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    */
   readonly filtersLayout?: SearchFiltersLayout;
   /**
+   * The host's own exits from an empty result — sibling sections with their
+   * counts. A SLOT for the same reason `breadcrumb` is one: walking the tree
+   * belongs to `categories-react`. Everything the pair can derive on its own
+   * (up a level, widen the radius, search everywhere, drop one filter) is
+   * offered whether this is filled or not — see {@link EmptyExits}.
+   */
+  readonly renderEmptyExits?: () => ReactNode;
+  /**
    * Open the phone filter sheet on mount.
    *
    * For a container that deep-links INTO the filters ("Refine this search"
@@ -306,6 +314,7 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
 interface SearchPageBodyProps {
   readonly renderCard?: SearchCardRenderer;
   readonly categoryFeatures?: readonly FeatureDef[];
+  readonly renderEmptyExits?: () => ReactNode;
   readonly locale?: string;
   readonly resolveFacetLabels?: FacetLabelResolver;
   readonly searchBox?: boolean;
@@ -415,6 +424,9 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
         <FacetPanelPane
           {...(layout === "sheet" ? { heading: null } : {})}
           {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
+          {...(props.renderEmptyExits !== undefined
+            ? { renderEmptyExits: props.renderEmptyExits }
+            : {})}
           {...(locale !== undefined ? { locale } : {})}
           {...(resolveFacetLabels !== undefined ? { resolveFacetLabels } : {})}
           {...(props.languages !== undefined ? { languages: props.languages } : {})}
@@ -478,6 +490,10 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
         : {})}
       {...(props.degradationNotice !== undefined
         ? { degradationNotice: props.degradationNotice }
+        : {})}
+      {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
+      {...(props.renderEmptyExits !== undefined
+        ? { renderEmptyExits: props.renderEmptyExits }
         : {})}
     />
   );

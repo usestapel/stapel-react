@@ -41,7 +41,11 @@ function stateOf(search: string): SearchQueryState {
 }
 
 /** The row's specs, built the way `<FilterChips>` builds them. */
-function specsFor(search = "type=listing", coreRanges: readonly string[] = ["price"]) {
+function specsFor(
+  search = "type=listing",
+  coreRanges: readonly string[] = ["price"],
+  options: { readonly barren?: boolean } = {}
+) {
   const state = stateOf(search);
   const ranges = buildRangeGroups({
     state,
@@ -49,10 +53,10 @@ function specsFor(search = "type=listing", coreRanges: readonly string[] = ["pri
     coreRanges,
   });
   const facets = buildFacetGroups({
-    facets: PHONE_FACETS,
+    facets: options.barren === true ? {} : PHONE_FACETS,
     meta: {
       approximate: false,
-      candidates: 43,
+      candidates: options.barren === true ? 0 : 43,
       counted: Object.keys(PHONE_FACETS),
       skipped: [],
       core_ranges: [...coreRanges],
@@ -60,7 +64,11 @@ function specsFor(search = "type=listing", coreRanges: readonly string[] = ["pri
     state,
     categoryFeatures: PHONE_RANGE_FEATURES,
   });
-  return orderChipFilters(ranges, facets);
+  return orderChipFilters(
+    ranges,
+    facets.filter((group) => group.options.length > 0),
+    options
+  );
 }
 
 function slugs(specs: ReturnType<typeof specsFor>): readonly string[] {
@@ -203,5 +211,31 @@ describe("the rendered row", () => {
     expect(ids[0]).toBe("search-chip-condition");
     expect(ids).toContain("search-chip-range-akb");
     expect(ids).not.toContain("search-chip-range-price");
+  });
+});
+
+describe("a barren result: the chips that never needed a count are not the answer", () => {
+  it("drops the unapplied numeric attributes when nothing matched", () => {
+    // Measured live on a cars leaf inside a radius that held no cars: every
+    // counted facet came back empty and dropped out on its own, leaving a row
+    // of "Year / VIN / Dealer offer x9" — schema-only numeric axes,
+    // on a page with no cars on it. The core axis stays: price is the server's
+    // own declaration and it is what a person widens first.
+    const barren = slugs(specsFor("type=listing", ["price"], { barren: true }));
+    expect(barren).toEqual(["price"]);
+  });
+
+  it("keeps an APPLIED numeric attribute — a constraint keeps its control", () => {
+    const applied = slugs(
+      specsFor("type=listing&r.weight_for_delivery=1..5", ["price"], {
+        barren: true,
+      })
+    );
+    expect(applied).toContain("weight_for_delivery");
+    expect(applied[0]).toBe("weight_for_delivery");
+  });
+
+  it("changes nothing when the result is not barren", () => {
+    expect(slugs(specsFor())).toEqual(slugs(specsFor("type=listing", ["price"], {})));
   });
 });

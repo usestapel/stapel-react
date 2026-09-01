@@ -268,21 +268,35 @@ describe("what the answer could not do is not a claim about the catalogue", () =
   });
 });
 
-describe("a section with nothing in it is not a destination", () => {
-  it("drops a zero-count category from the menu", async () => {
-    // The server does return them, ranked last. Following one lands the buyer
-    // on an empty SERP — a dead end dressed as a destination.
+describe("an empty section is still a place, and it says it is empty", () => {
+  it("offers a zero-count category and prints the zero", async () => {
+    // Measured on a live board: 3036 leaves, ~100 listings, so 2924 leaves
+    // read zero. Dropping them made three everyday words produce
+    // NO PANEL AT ALL — the type-ahead reporting that six real sections of
+    // the catalogue do not exist. An honest "0 listings" is a fact a
+    // person can act on; a missing panel is not.
     await openMenu(suggestAnswer());
     expect(screen.getByTestId("search-box-category-10/41")).toBeTruthy();
-    expect(screen.queryByTestId("search-box-category-12/63")).toBeNull();
+    const empty = screen.getByTestId("search-box-category-12/63");
+    expect(empty).toBeTruthy();
+    expect(empty.textContent).toContain("0");
   });
 
   it("is decided in the model, so both surfaces agree", () => {
     expect(offerableCategories(suggestAnswer()).map((c) => c.category)).toEqual([
       "10/41",
       "11/52",
+      "12/63",
     ]);
     expect(offerableCategories(legacySuggestAnswer())).toEqual([]);
     expect(offerableCategories(undefined)).toEqual([]);
+  });
+
+  it("keeps the server's order — it already ranks stock first", () => {
+    // The ranking is `stapel-search`'s (stock, then match quality, then
+    // count): this side must not re-sort, or the two disagree about which
+    // destination is best while only one of them has the counts.
+    const answer = suggestAnswer();
+    expect(offerableCategories(answer)).toEqual(answer.categories);
   });
 });

@@ -36,6 +36,7 @@ import {
   visuallyHidden,
 } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
+import type { FeatureDef } from "@stapel/attributes-react";
 import type { SearchItem } from "../api/types.js";
 import { SearchResults } from "../headless/SearchResults.js";
 import type { SearchResultsBag } from "../headless/SearchResults.js";
@@ -43,6 +44,7 @@ import { useScorerNames } from "../headless/useScorerNames.js";
 import { SEARCH_WINDOW_EXCEEDED } from "../i18n/errorsMap.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { DegradationNotice } from "./DegradationNotice.js";
+import { EmptyExits } from "./EmptyExits.js";
 import type { DegradationNoticeVariant } from "./DegradationNotice.js";
 import { SearchResultCard } from "./SearchResultCard.js";
 import type { SearchCardRenderer } from "./SearchResultCard.js";
@@ -191,6 +193,20 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
    * viewport is not spent saying "Results" over a list of results.
    */
   readonly header?: "banner" | "compact";
+  /**
+   * The category's feature schema, used ONLY to name an applied filter in the
+   * empty state's exits ("Without Brand" rather than "Without vendor").
+   * Absent, an exit falls back to the slug, which is still a removable
+   * constraint the person can read.
+   */
+  readonly categoryFeatures?: readonly FeatureDef[];
+  /**
+   * The host's own exits from an empty result — sibling sections with their
+   * counts, most usefully. Rendered above the derived exits (see
+   * {@link EmptyExits}); walking the tree is `categories-react`'s job, so
+   * this pair offers the slot and never the tree.
+   */
+  readonly renderEmptyExits?: () => ReactNode;
 }
 
 function Count(props: { bag: SearchResultsBag }): ReactElement | null {
@@ -311,10 +327,23 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
               skeletonRows={6}
               onRetry={bag.refetch}
               empty={
-                <EmptyState
-                  title={t(SEARCH_I18N_KEYS.resultsEmpty)}
-                  testId="search-empty"
-                />
+                <>
+                  <EmptyState
+                    title={t(SEARCH_I18N_KEYS.resultsEmpty)}
+                    testId="search-empty"
+                  />
+                  {/* The sentence alone was the terminal state of a whole
+                      catalogue. Every exit here removes exactly one
+                      constraint the person did not necessarily choose. */}
+                  <EmptyExits
+                    {...(props.categoryFeatures !== undefined
+                      ? { categoryFeatures: props.categoryFeatures }
+                      : {})}
+                    {...(props.renderEmptyExits !== undefined
+                      ? { renderExtra: props.renderEmptyExits }
+                      : {})}
+                  />
+                </>
               }
               failed={(error) => {
                 // The window refusal is a DIFFERENT sentence from a failed

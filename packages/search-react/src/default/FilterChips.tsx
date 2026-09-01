@@ -87,6 +87,22 @@
  * counter ran out of plan slots at `MAX_FACET_FIELDS`, not that a person
  * cannot filter by it. `r.<slug>` still answers for a skipped slug.
  *
+ * ## The one case where band 3 IS deleted: a barren result
+ *
+ * There is exactly one piece of evidence strong enough, and the server sends
+ * it: the plan was counted (`facet_meta.counted`) over a candidate set of
+ * ZERO (`facet_meta.candidates`). Then every counted group is empty and drops
+ * out on its own, and the only chips left standing are the ones that never
+ * needed a count — the category's numeric attributes, drawn from the schema
+ * alone. Measured live on a cars leaf inside a 25 km radius that held no
+ * cars, that row read "Price / Colour / Availability / Steering side / Year / VIN or body
+ * number / Dealer offer "…" x9": the make and the model gone
+ * because they had nothing to count, a body number and nine dealer
+ * promotions in their place. An unapplied numeric axis over an empty set
+ * narrows nothing that is not already nothing; it states nothing and takes
+ * the room the empty state's exits need. APPLIED ones stay, always — a
+ * constraint keeps the control that removes it.
+ *
  * ## Why the CATEGORY leads the row
  *
  * The owner's navigation model puts levels 1-2 of the catalogue on tiles and
@@ -207,7 +223,8 @@ function specApplied(spec: ChipSpec): boolean {
  */
 export function orderChipFilters(
   ranges: readonly RangeGroup[],
-  facets: readonly FacetGroup[]
+  facets: readonly FacetGroup[],
+  options: { readonly barren?: boolean } = {}
 ): readonly ChipSpec[] {
   const specs: ChipSpec[] = [
     ...ranges.map(
@@ -217,7 +234,11 @@ export function orderChipFilters(
           : { band: "attribute_range", range }
     ),
     ...facets.map((facet): ChipSpec => ({ band: "facet", facet })),
-  ];
+  ].filter(
+    (spec) =>
+      !(options.barren === true && spec.band === "attribute_range") ||
+      specApplied(spec)
+  );
   return [...specs].sort((a, b) => {
     const applied = Number(specApplied(b)) - Number(specApplied(a));
     if (applied !== 0) return applied;
@@ -311,9 +332,17 @@ function chipLabel(group: FacetGroup, t: (key: string, p?: Record<string, unknow
  * URL genuinely carries, which is the line the geo chip draws too: never print
  * a coordinate, always print the name you actually have.
  */
-export function categoryLeaf(path: string): string {
+export function categoryLeaf(path: string): string | undefined {
   const parts = path.split("/").filter((part) => part.length > 0);
-  return parts[parts.length - 1] ?? path;
+  const leaf = parts[parts.length - 1];
+  if (leaf === undefined) return undefined;
+  // A path of database IDS has no readable last segment, and printing one
+  // puts a green pill reading «165» on the SERP — which is what the live
+  // board did, permanently, on every category page. An id is not a
+  // half-answer the way a slug is: it names nothing a person could have
+  // typed. When the leaf is a bare number the chip falls back to the
+  // FILTER's own name, the same thing every other unset chip shows.
+  return /^\d+$/.test(leaf) ? undefined : leaf;
 }
 
 export function FilterChips(props: FilterChipsProps): ReactElement | null {
@@ -392,9 +421,23 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
   const categoryChipLabel: ReactNode =
     category === undefined
       ? t(SEARCH_I18N_KEYS.categoryTitle)
-      : (props.categoryLabel ?? categoryLeaf(category));
+      : (props.categoryLabel ??
+        categoryLeaf(category) ??
+        t(SEARCH_I18N_KEYS.categoryTitle));
 
-  const ordered = orderChipFilters(ranges, groups);
+  // The server counted a plan over a candidate set of ZERO. Every counted
+  // facet is therefore empty and drops out of `groups` above — and what is
+  // left standing is the band that never needed a count: the numeric
+  // attributes drawn from the category schema alone. On the live cars leaf
+  // that row read "Price / Colour / Availability / Steering side / Year /
+  // VIN / Dealer offer x9" — the make and the model gone, a body-number field
+  // and nine dealer promotions in their place, on a page with no cars on it.
+  // An unapplied attribute range on an empty result narrows nothing that is
+  // not already nothing, so it states nothing and takes the room the exits
+  // need. Applied ones stay: a constraint always keeps the control that
+  // removes it.
+  const barren = bag.counted.length > 0 && bag.candidates === 0;
+  const ordered = orderChipFilters(ranges, groups, { barren });
 
   const geo = state.geo;
   const showGeoChip =

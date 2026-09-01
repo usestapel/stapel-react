@@ -226,7 +226,23 @@ describe("the chip states the narrowing, or the filter's own name", () => {
       "mobilnye-telefony"
     );
     expect(categoryLeaf("elektronika")).toBe("elektronika");
-    expect(categoryLeaf("")).toBe("");
+    expect(categoryLeaf("")).toBeUndefined();
+  });
+
+  it("prints the filter's own name rather than a raw category id", async () => {
+    // Measured live: a board whose `category=` carries DATABASE IDS drew a
+    // green pill reading «165» — then «163», then «1142» — on every SERP,
+    // permanently. An id is not the half-answer a slug is: it names nothing
+    // a person could have typed, so there is nothing honest to print and the
+    // chip falls back to the filter's own name.
+    mount({ initial: "type=listing&category=141/151/165" });
+    await waitFor(() => {
+      expect(screen.getByTestId("search-chip-category").textContent).toBe(
+        "Category"
+      );
+    });
+    expect(categoryLeaf("141/151/165")).toBeUndefined();
+    expect(categoryLeaf("165")).toBeUndefined();
   });
 });
 

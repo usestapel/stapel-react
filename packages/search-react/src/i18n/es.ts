@@ -102,6 +102,11 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.filters.short": "Filtros",
   "search.filters.chip_more": ", +{count}",
 
+  "search.empty.exits_title": "Prueba a ampliar la búsqueda",
+  "search.empty.up_a_level": "Subir un nivel",
+  "search.empty.widen_radius": "Buscar en un radio de {km} km",
+  "search.empty.anywhere": "Buscar en todas partes",
+  "search.empty.drop_filter": "Sin «{name}»",
   "search.category.title": "Categoría",
   "search.category.clear": "Buscar en todo el catálogo",
   "search.category.current": "Buscando dentro de {path}",

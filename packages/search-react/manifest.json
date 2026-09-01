@@ -4,7 +4,7 @@
   "version": "0.14.2",
   "backend": {
     "module": "stapel-search",
-    "contract": ">=0.7 <0.8"
+    "contract": ">=0.8 <0.9"
   },
   "layers": [
     "api",
@@ -731,6 +731,11 @@
     "search.degraded.title",
     "search.degraded.typo_tolerance",
     "search.degraded.unknown",
+    "search.empty.anywhere",
+    "search.empty.drop_filter",
+    "search.empty.exits_title",
+    "search.empty.up_a_level",
+    "search.empty.widen_radius",
     "search.error.unknown",
     "search.facets.approximate",
     "search.facets.clear",
