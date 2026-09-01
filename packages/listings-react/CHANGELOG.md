@@ -1,5 +1,46 @@
 # @stapel/listings-react
 
+## 0.15.0
+
+### Minor Changes
+
+- The redacted feature stub reaches the spec table and never reaches an editor
+
+  stapel-listings 0.12.0 redacts `features` per viewer: a row whose value the
+  reader may not see arrives as a value-free stub — `{slug, type, name, order,
+visibility, redacted: true, present}` and no `value` key at all — kept in place
+  and in order rather than dropped. `ListingFeatureDao` now types `visibility`,
+  `redacted`, `present` and `verification`.
+
+  `model/features.ts` routes the markers deliberately instead of letting them
+  arrive through `config`'s index signature: `visibility` is lifted onto the
+  built `FeatureDef`, where it is a genuine canon field and where
+  `isPublicFeature` reads it, and `redacted` / `present` / `verification` ride
+  the value envelope, which is where `@stapel/attributes-react`'s predicates read
+  them. All four join `ENVELOPE`, so none of them reaches a type's config. A
+  stored `visibility` this build does not recognise is read as `staff`, not as
+  public. `featureFromDao` produces a usable view for a stub rather than dropping
+  the row, and `unreadableFeatureCount` does not count one: the field's existence
+  is exactly what the stub is there to state.
+
+  **The split that protects stored data.** `featuresDtoFromDaoList` is what seeds
+  a composer reopening a published listing, and it now DROPS a stub. Seeding an
+  editor from one would put `undefined` under the seller's own slug and the next
+  save would write that back — blanking a stored VIN the seller never touched and
+  cannot see was blanked. A reopened composer belongs to the owner, whose read is
+  unredacted, so a stub arriving there means something upstream already went
+  wrong; it fails safe rather than taking the other twenty answers down with it.
+  The new `featureValuesForDisplay` is the other half: same shape, opposite job,
+  a separate function rather than a flag so the destructive default is not one
+  forgotten argument away.
+
+  `<ListingDetailPane>` reads the spec table through `featureValuesForDisplay`,
+  so a withheld row keeps its position and reads "Provided by the seller"; its
+  title line filters redacted views before formatting. Both are belts — the
+  server keeps hidden values out of `features_title` and `features_badges`
+  entirely, and `formatFeatureValue` refuses a stub besides — but the title line
+  is where a leaked identifier would be read out loud.
+
 ## 0.14.1
 
 ### Patch Changes

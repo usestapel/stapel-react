@@ -148,6 +148,7 @@ export type {
 export {
   asFeatureDaoList,
   featureFromDao,
+  featureValuesForDisplay,
   featuresDtoFromDaoList,
   featuresFromDaoList,
   unreadableFeatureCount,

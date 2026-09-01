@@ -28,6 +28,7 @@ export {
   featureRowTestId,
   featureSectionTestId,
   featureSections,
+  featureVisibilityTestId,
 } from "./FeatureFields.js";
 export type {
   FeatureFieldsProps,

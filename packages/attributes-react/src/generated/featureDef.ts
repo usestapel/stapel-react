@@ -53,6 +53,19 @@ export interface FeatureDef {
   readonly hints?: readonly Hint[];
   /** Form section; sections order by first appearance. */
   readonly group?: string | null;
+  /**
+   * Which audience may READ a stored value. Orthogonal to `mandatory`: a
+   * non-public feature is still required, still validated, still stored
+   * and still moderated — it is only never handed to a reader who is not
+   * entitled to it. Identifiers of a specific physical unit (VIN, IMEI, a
+   * serial or a registry number) belong here. `owner` = the object's
+   * owner, and staff; `staff` = staff only, not even the owner's own view.
+   * A non-public feature is never in a title, never a badge, never indexed
+   * and never facetable, and `show_at_title`/`show_as_badge` are forced to
+   * false.
+   * @default "public"
+   */
+  readonly visibility?: "public" | "owner" | "staff";
   /** The wire carries more than the canon describes. */
   readonly [key: string]: unknown;
 }

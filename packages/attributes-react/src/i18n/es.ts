@@ -29,6 +29,13 @@ export const attributesI18nBundleEs: I18nDictionary = {
   "attributes.untyped_feature": "Este detalle está mal configurado y no se puede rellenar.",
   "attributes.value.not_set": "Sin especificar",
   "attributes.value.unreadable": "Este valor no se puede mostrar aquí",
+  "attributes.value.provided": "Indicado por el vendedor",
+  "attributes.value.verified": "Verificado",
+  "attributes.visibility.not_published": "No se publica",
+  "attributes.visibility.owner":
+    "Este campo lo ven usted y el equipo de moderación; los compradores no.",
+  "attributes.visibility.staff":
+    "Este campo solo lo ve el equipo de moderación; a usted tampoco se le muestra.",
   "attributes.bool.yes": "Sí",
   "attributes.bool.no": "No",
   "attributes.select.placeholder": "Elegir",

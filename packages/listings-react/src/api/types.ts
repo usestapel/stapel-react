@@ -194,6 +194,35 @@ export interface ListingFeatureDao {
   /** Rendered as a badge on the card. */
   readonly badge?: boolean | null;
   readonly translate?: string | null;
+  /**
+   * Which audience may READ the stored value (stapel-attributes 0.8.1).
+   * Stamped into the DAO at write time and absent on a public row, so an
+   * existing row is byte-identical. `owner`/`staff` mark an identifier of one
+   * physical unit — a VIN, an IMEI, a serial — which stapel-listings 0.12.0
+   * withholds from a reader who is not entitled to it.
+   */
+  readonly visibility?: string | null;
+  /**
+   * `true` on a **stub**: the row survived redaction as its own identity with
+   * no value at all (`RedactedFeatureDao`). It is kept in place and in order
+   * so the public spec table has the same rows as the seller's own — a buyer
+   * can see the field exists rather than not knowing it was ever asked.
+   */
+  readonly redacted?: boolean;
+  /**
+   * On a stub: whether the seller actually filled the withheld value in.
+   * A FACT this system observed, and the only one it has — see
+   * {@link ListingFeatureDao.verification}.
+   */
+  readonly present?: boolean;
+  /**
+   * On a stub: the result of an outside check of the value, passed through
+   * redaction verbatim. **Absent for everything in the fleet today** — no
+   * product runs a VIN or an IMEI check — which is exactly why `present`
+   * alone may never be rendered as "verified". stapel-attributes deliberately
+   * leaves the `status` vocabulary to whichever product runs the check.
+   */
+  readonly verification?: Readonly<Record<string, unknown>>;
   /** The type's own config keys (`prefix`, `precision`, `unitType`, …). */
   readonly [key: string]: unknown;
 }

@@ -12,6 +12,13 @@
  *  - **`show_as_badge` / `show_at_title` are the CATEGORY's decision**, made
  *    by whoever configured the feature, and this component honours it instead
  *    of picking its own first three values.
+ *  - **A value this reader may not see is a row, not a hole.** `<FeatureValueList/>`
+ *    keeps a redacted row in place and says what the system actually observed
+ *    — the seller supplied it — while `<FeatureBadges/>` drops it entirely,
+ *    because a card badge strip is not the place for "VIN: provided by the
+ *    seller".
+ *    See `../visibility.ts` for why the axis exists and why the presence copy
+ *    is not a verification claim.
  *
  * Both are their own skin roots (`SkinTheme surface="bare"`): a card or a
  * detail page that draws them on a dark document with no `ConfigProvider`
@@ -24,9 +31,16 @@ import { Descriptions, Flex, Tag, Typography } from "antd";
 import { useI18n, useT } from "@stapel/core";
 import { SkinTheme } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
-import type { FeatureDef, FeaturesDto } from "../types.js";
+import type { FeatureDef, FeatureValueDto, FeaturesDto } from "../types.js";
 import { featureName, featureType } from "../types.js";
 import { formatFeatureValue, hexColorSwatch } from "../format.js";
+import {
+  isPublicFeature,
+  isRedactedValue,
+  isValuePresent,
+  isValueVerified,
+  valueVerification,
+} from "../visibility.js";
 import { ATTRIBUTES_I18N_KEYS } from "../i18n/keys.js";
 
 export interface FeatureDisplayProps {
@@ -42,6 +56,7 @@ function useRows(
   only?: (feature: FeatureDef) => boolean
 ): readonly {
   readonly feature: FeatureDef;
+  readonly dto: FeatureValueDto | undefined;
   readonly text: string | undefined;
   readonly swatch: string | undefined;
 }[] {
@@ -52,12 +67,73 @@ function useRows(
     .filter((feature) => (only ? only(feature) : true))
     .map((feature) => {
       const dto = props.values[feature.slug];
+      // A redacted row is not formatted at all. `formatFeatureValue` already
+      // refuses it (a stub carries no value, and `isBlank(undefined)` is
+      // true), but a stub is a DIFFERENT statement from an empty field and
+      // the branch that says so should be visible here rather than inferred
+      // from the formatter's return.
+      const redacted = isRedactedValue(dto);
       return {
         feature,
-        text: formatFeatureValue(feature, dto, { t, locale }),
-        swatch: featureType(feature) === "hex_color" ? hexColorSwatch(dto) : undefined,
+        dto,
+        text: redacted ? undefined : formatFeatureValue(feature, dto, { t, locale }),
+        swatch:
+          !redacted && featureType(feature) === "hex_color" ? hexColorSwatch(dto) : undefined,
       };
     });
+}
+
+/**
+ * A withheld value's row: what the system OBSERVED, and nothing more.
+ *
+ * Three states, in the order that keeps the copy honest:
+ *
+ *  - the seller did not fill it in → the ordinary "not specified" treatment,
+ *    the same one an empty public field gets. There is nothing to withhold.
+ *  - an outside check actually ran and said `verified` → the stronger badge.
+ *    **Nothing in the fleet writes a `verification` today**, so this branch is
+ *    dead code that is nonetheless correct: the day a registry integration
+ *    writes one, the badge upgrades without a release here — and because the
+ *    engine never synthesizes one, it cannot upgrade by accident.
+ *  - otherwise → "Provided by the seller". A statement about the SELLER's
+ *    action, deliberately not about the value being right. We run no VIN
+ *    check, so "VIN verified" is a claim about the outside world that no code
+ *    here has established, and it is not printed.
+ *
+ * A `verification` whose `status` this build does not recognise falls into
+ * the third branch too: not understood is not verified.
+ */
+function RedactedValue(props: { readonly dto: FeatureValueDto | undefined }): ReactElement {
+  const t = useT();
+  if (!isValuePresent(props.dto)) {
+    return (
+      <Typography.Text type="secondary">{t(ATTRIBUTES_I18N_KEYS.valueNotSet)}</Typography.Text>
+    );
+  }
+  if (isValueVerified(props.dto)) {
+    const verification = valueVerification(props.dto);
+    return (
+      <Tag
+        color="success"
+        data-testid="attributes-value-verified"
+        // Who checked and when are machine facts for support, not copy for a
+        // reader — the same C-DEVCOPY rule the unsupported notice follows.
+        {...(typeof verification?.source === "string"
+          ? { "data-attributes-verification-source": verification.source }
+          : {})}
+        {...(typeof verification?.verified_at === "string"
+          ? { "data-attributes-verified-at": verification.verified_at }
+          : {})}
+      >
+        {t(ATTRIBUTES_I18N_KEYS.valueVerified)}
+      </Tag>
+    );
+  }
+  return (
+    <Typography.Text type="secondary" data-testid="attributes-value-provided">
+      {t(ATTRIBUTES_I18N_KEYS.valueProvided)}
+    </Typography.Text>
+  );
 }
 
 /** A row's value, or the named reason there is none. */
@@ -96,8 +172,17 @@ function ValueText(props: {
  * explicitly instead.
  */
 export function FeatureBadges(props: FeatureDisplayProps): ReactElement {
-  const rows = useRows(props, (feature) => feature.show_as_badge === true);
-  const shown = rows.filter((row) => row.text !== undefined);
+  // A non-public feature is NEVER a badge. The engine forces
+  // `show_as_badge: false` on one and keeps hidden values out of
+  // `features_badges` entirely, so both filters below are defensive — but a
+  // card badge strip is not the place for "VIN: provided by the seller", and a
+  // renderer that can only be correct because of what the server did is the
+  // arrangement that leaked the VIN in the first place.
+  const rows = useRows(
+    props,
+    (feature) => feature.show_as_badge === true && isPublicFeature(feature)
+  );
+  const shown = rows.filter((row) => row.text !== undefined && !isRedactedValue(row.dto));
   return (
     <SkinTheme surface="bare">
       <Flex gap={spacing[1]} wrap data-testid="attributes-badges">
@@ -115,7 +200,16 @@ export function FeatureBadges(props: FeatureDisplayProps): ReactElement {
   );
 }
 
-/** Every feature and its value — the spec table of a detail page. */
+/**
+ * Every feature and its value — the spec table of a detail page.
+ *
+ * A row whose value this reader may not see KEEPS ITS PLACE, as the presence
+ * statement instead of the value. That is deliberate and it is the whole
+ * shape of the redaction: the public table then has the same rows in the same
+ * order as the seller's own, and a buyer can see that the field exists and
+ * was answered. Dropping the row would make the field's very existence
+ * invisible, which is a worse answer for a buyer deciding whether to ask.
+ */
 export function FeatureValueList(props: FeatureDisplayProps): ReactElement {
   const rows = useRows(props);
   return (
@@ -127,7 +221,9 @@ export function FeatureValueList(props: FeatureDisplayProps): ReactElement {
         items={rows.map((row) => ({
           key: row.feature.slug,
           label: featureName(row.feature),
-          children: (
+          children: isRedactedValue(row.dto) ? (
+            <RedactedValue dto={row.dto} />
+          ) : (
             <ValueText
               feature={row.feature}
               text={row.text}

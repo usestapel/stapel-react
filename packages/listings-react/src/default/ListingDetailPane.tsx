@@ -50,10 +50,10 @@ import {
 } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
 import { FeatureValueList } from "@stapel/attributes-react/default";
-import { formatFeatureValue } from "@stapel/attributes-react";
+import { formatFeatureValue, isRedactedValue } from "@stapel/attributes-react";
 import { useListingDetail } from "../headless/ListingDetail.js";
 import { useListingActions } from "../headless/ListingActions.js";
-import { asFeatureDaoList, featuresDtoFromDaoList } from "../model/features.js";
+import { asFeatureDaoList, featureValuesForDisplay } from "../model/features.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { HeartIcon } from "./icons.js";
 import { ListingPhoto } from "./ListingPhoto.js";
@@ -218,6 +218,14 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
               {bag.titleFeatures.length > 0 ? (
                 <Typography.Text type="secondary" data-testid="listings-detail-title-features">
                   {bag.titleFeatures
+                    // A hidden value is never part of a title: the server
+                    // keeps one out of `features_title` entirely, and
+                    // `formatFeatureValue` refuses a stub besides (it carries
+                    // no value, so there is nothing to format). The filter is
+                    // the third belt, and it is here rather than at the
+                    // formatter's edge because THIS is the line where a
+                    // leaked identifier would be read out loud.
+                    .filter((view) => !isRedactedValue(view.value))
                     .map((view) =>
                       formatFeatureValue(view.feature, view.value, { t, locale })
                     )
@@ -332,8 +340,15 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
               ) : (
                 <FeatureValueList
                   features={bag.features.map((view) => view.feature)}
-                  values={featuresDtoFromDaoList(
-                    asFeatureDaoList(listing.features)
+                  // The DISPLAY envelope, not the edit one: a redacted row
+                  // keeps its place in the table and says the seller supplied
+                  // the value. `featuresDtoFromDaoList` deliberately drops a
+                  // stub, because it is what seeds a composer.
+                  values={featureValuesForDisplay(
+                    asFeatureDaoList(listing.features),
+                    props.categoryFeatures !== undefined
+                      ? { categoryFeatures: props.categoryFeatures }
+                      : {}
                   )}
                 />
               )}

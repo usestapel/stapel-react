@@ -51,6 +51,28 @@ export const ATTRIBUTES_I18N_KEYS = {
   /** Display side: this build has no formatter for the value's type. Same
    * C-DEVCOPY rule as `unsupportedType`: no slug in the sentence. */
   valueUnreadable: "attributes.value.unreadable",
+  /**
+   * Display side: the value is withheld from this reader and the seller DID
+   * fill it in. It says only that, because `present` is the only thing this
+   * system observed — nothing in the fleet runs a VIN or an IMEI check, so
+   * the sentence must not read as "we checked it". See `visibility.ts`.
+   */
+  valueProvided: "attributes.value.provided",
+  /**
+   * Display side: an outside check actually ran and said so
+   * (`verification.status === "verified"`). Nothing writes one today; the key
+   * exists so the badge upgrades the day something does, and never before.
+   */
+  valueVerified: "attributes.value.verified",
+  /** Composer side: the tag beside a non-public field's label. The seller is
+   * told AT THE FIELD that what they are about to type is not published —
+   * before they type it, not in a help page. */
+  visibilityNotPublished: "attributes.visibility.not_published",
+  /** Composer side: `visibility: "owner"` — who does see it. */
+  visibilityOwner: "attributes.visibility.owner",
+  /** Composer side: `visibility: "staff"` — moderation only, and it is not
+   * echoed back to the seller either, which they are owed before typing. */
+  visibilityStaff: "attributes.visibility.staff",
   boolYes: "attributes.bool.yes",
   boolNo: "attributes.bool.no",
   selectPlaceholder: "attributes.select.placeholder",
@@ -129,6 +151,13 @@ export const attributesI18nBundleEn: I18nDictionary = {
   "attributes.untyped_feature": "This detail is misconfigured and cannot be filled in.",
   "attributes.value.not_set": "Not specified",
   "attributes.value.unreadable": "This value cannot be shown here",
+  "attributes.value.provided": "Provided by the seller",
+  "attributes.value.verified": "Verified",
+  "attributes.visibility.not_published": "Not published",
+  "attributes.visibility.owner":
+    "You and our moderators can see it; buyers cannot.",
+  "attributes.visibility.staff":
+    "Only our moderators can see it \u2014 it is not shown back to you either.",
   "attributes.bool.yes": "Yes",
   "attributes.bool.no": "No",
   "attributes.select.placeholder": "Choose",

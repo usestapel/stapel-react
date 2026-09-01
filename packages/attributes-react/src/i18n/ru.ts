@@ -36,6 +36,13 @@ export const attributesI18nBundleRu: I18nDictionary = {
   "attributes.untyped_feature": "Характеристика настроена неверно, заполнить её нельзя.",
   "attributes.value.not_set": "Не указано",
   "attributes.value.unreadable": "Это значение здесь не отображается",
+  "attributes.value.provided": "Указано продавцом",
+  "attributes.value.verified": "Проверено",
+  "attributes.visibility.not_published": "Не публикуется",
+  "attributes.visibility.owner":
+    "Это поле видите вы и модераторы; покупателям оно не показывается.",
+  "attributes.visibility.staff":
+    "Это поле видят только модераторы — вам оно обратно тоже не показывается.",
   "attributes.bool.yes": "Да",
   "attributes.bool.no": "Нет",
   "attributes.select.placeholder": "Выберите",

@@ -1,5 +1,55 @@
 # @stapel/attributes-react
 
+## 0.9.0
+
+### Minor Changes
+
+- A value the reader may not see is a row that says the seller answered — never one that says we checked
+
+  `FeatureDef.visibility` (stapel-attributes 0.8.1) records, once per definition,
+  which audience may READ a stored value. It exists for the handful of attributes
+  that IDENTIFY one physical unit rather than describe it — a VIN, an IMEI, a
+  serial or a registry number — because publishing one lets a stranger act as
+  that unit's owner. It is orthogonal to `mandatory`: such a field is still
+  required, still validated, still stored, still moderated and still the seller's
+  to edit.
+
+  `src/visibility.ts` is the new wire layer, exported from the main (antd-free)
+  entry: `featureVisibility` / `isPublicFeature` read the definition — a
+  visibility string this build does not know reads as `staff`, not as public,
+  because a typo must not publish a VIN — and `isRedactedValue` /
+  `isValuePresent` / `valueVerification` / `isValueVerified` read the value-free
+  stub stapel-listings 0.12.0 sends in place of a value the reader is not
+  entitled to.
+
+  **The composer tells the seller before they type.** `<FeatureFields>` puts a
+  neutral "Not published" tag beside a non-public field's label and a line in the
+  field's own `extra` slot naming who does see it — `owner` says the seller and
+  moderation see it and buyers do not, `staff` says moderation only and that it
+  is not shown back to the seller either. The field stays required and stays
+  editable. `FeatureRowProps.visibility` carries the same answer to a host's own
+  `renderRow`, and `featureVisibilityTestId` is exported so an e2e suite keys on
+  the string this component writes.
+
+  **The display says what the system observed, and stops there.**
+  `<FeatureValueList>` keeps a redacted row in its stored position — the public
+  spec table then has the same rows in the same order as the seller's own, so a
+  buyer can see the field exists and was answered — and renders "Provided by the
+  seller" where the value would be, or the ordinary "Not specified" when the
+  seller left it empty. It does **not** say the value was verified: nothing in
+  the fleet runs a VIN or an IMEI check, so that would be a claim about the
+  outside world no code here has established. A stronger badge branches on a
+  `verification` result instead; the engine never synthesizes one, so the branch
+  is unreachable today and correct on the day a real integration writes one — and
+  a `verification.status` this build cannot read falls back to the neutral copy
+  rather than upgrading on a word it does not understand. `<FeatureBadges>` drops
+  a redacted row and a non-public feature entirely, defensively: a card badge
+  strip is not the place for this, and a renderer that is only correct because of
+  what the server did is the arrangement that leaked the VIN in the first place.
+
+  Five new keys in all three shipped bundles (en/ru/es). The generated
+  `FeatureDef` is regenerated from the canon and carries `visibility`.
+
 ## 0.8.1
 
 ### Patch Changes

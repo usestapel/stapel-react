@@ -138,6 +138,18 @@ export type {
 
 export { fromFeaturesDto, toFeaturesDto } from "./dto.js";
 
+export {
+  FEATURE_VISIBILITIES,
+  VERIFICATION_VERIFIED,
+  featureVisibility,
+  isPublicFeature,
+  isRedactedValue,
+  isValuePresent,
+  isValueVerified,
+  valueVerification,
+} from "./visibility.js";
+export type { FeatureVerification, FeatureVisibility } from "./visibility.js";
+
 export { FORMATTABLE_TYPES, formatFeatureValue, hexColorSwatch } from "./format.js";
 export type { FormatOptions } from "./format.js";
 

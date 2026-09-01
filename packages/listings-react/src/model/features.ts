@@ -97,7 +97,7 @@
  * and an unknown key resolves to itself either way.
  */
 import type { FeatureDef, FeatureValueDto } from "@stapel/attributes-react";
-import { featureType } from "@stapel/attributes-react";
+import { featureType, isRedactedValue } from "@stapel/attributes-react";
 import type { ListingFeatureDao, ListingFeatureView } from "../api/types.js";
 
 /**
@@ -111,7 +111,30 @@ import type { ListingFeatureDao, ListingFeatureView } from "../api/types.js";
  * two types print. For `select` the key is simply inert — its formatter reads
  * `options` and nothing else — so carrying it costs a reference.
  */
-const ENVELOPE = new Set(["slug", "value", "name", "order", "title", "badge"]);
+const ENVELOPE = new Set([
+  "slug",
+  "value",
+  "name",
+  "order",
+  "title",
+  "badge",
+  // ── The visibility axis (stapel-attributes 0.8.1 / stapel-listings 0.12.0) ──
+  //
+  // These four are envelope for exactly the reason the six above are: they
+  // describe the ROW, not the type, and no formatter has ever read one. But
+  // they matter more than the others, because the alternative is not noise —
+  // it is a marker reaching the display BY ACCIDENT, through the index
+  // signature, with nothing stating that it did.
+  //
+  // `visibility` is a genuine `FeatureDef` field and is lifted onto the
+  // definition below; `redacted`/`present`/`verification` describe THIS
+  // reader's access to THIS stored value, so they ride the value envelope,
+  // which is where `@stapel/attributes-react`'s predicates read them.
+  "visibility",
+  "redacted",
+  "present",
+  "verification",
+]);
 
 /** The type whose stored `value` is a flat list of option keys rather than the
  * things themselves, and whose copy therefore has to be repaired pairwise.
@@ -137,6 +160,32 @@ const TREE_VALUED = new Set(["hierarchical_select"]);
 /** The canon's `FeatureDef.translate` vocabulary — three values, closed. */
 function isTranslateMode(value: unknown): value is "all" | "title" | "none" {
   return value === "all" || value === "title" || value === "none";
+}
+
+/**
+ * The stamped `FeatureDef.visibility`, or `undefined` when the row is public.
+ *
+ * `public` is stamped as nothing at all upstream (`dataclass_to_dict_no_none`
+ * drops it), which is why an existing public row is byte-identical after the
+ * axis landed — so an absent key means public and is dropped here too.
+ *
+ * A string that is NOT one of the three becomes `"staff"`, the most
+ * restrictive one. Python raises `UnknownVisibility` on the same input; this
+ * side has nobody to raise at, so it takes the only direction that cannot
+ * leak — a typo must not publish a VIN. The engine normalizes at write time,
+ * so this is the belt on a stored row nobody expects to see.
+ */
+function storedVisibility(value: unknown): "public" | "owner" | "staff" | undefined {
+  if (typeof value !== "string" || value.length === 0 || value === "public") return undefined;
+  return value === "owner" || value === "staff" ? value : "staff";
+}
+
+/** A `verification` result, when the row carries one. An object and nothing
+ * else: the shape belongs to whichever product ran the check, and this
+ * projection passes it through rather than describing it. */
+function storedVerification(value: unknown): Readonly<Record<string, unknown>> | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
+  return value as Readonly<Record<string, unknown>>;
 }
 
 /**
@@ -317,6 +366,7 @@ function featureView(
     selectOptions(dao, config, categoryDef) ?? adoptedTree(dao, config, categoryDef);
   if (options !== undefined) config["options"] = options;
 
+  const visibility = storedVisibility(dao.visibility);
   const feature: FeatureDef = {
     slug: dao.slug,
     config,
@@ -326,7 +376,37 @@ function featureView(
     // the three is dropped rather than smuggled through: `FeatureDef`'s own
     // default is `all`, which is what the engine falls back to anyway.
     ...(isTranslateMode(dao.translate) ? { translate: dao.translate } : {}),
+    // A genuine `FeatureDef` field, so it goes on the DEFINITION rather than
+    // into `config`: it is what `isPublicFeature` reads to keep a hidden
+    // value off a badge strip.
+    ...(visibility !== undefined ? { visibility } : {}),
   };
+
+  // A REDACTED STUB — a row this reader may not see — carries no `value` key
+  // at all, and this envelope must not invent one. What it carries instead is
+  // what the system honestly observed: `present` (did the seller answer) and,
+  // reserved for the day some product actually runs a VIN or an IMEI check,
+  // `verification`. `@stapel/attributes-react`'s `<FeatureValueList/>` reads
+  // exactly these and prints "provided by the seller" — never "verified".
+  //
+  // The row is built even when `type` is missing, which the normal path below
+  // refuses: an unkeyable value is a row a buyer cannot be told about, but a
+  // stub's whole content is "this field exists and was answered", and that is
+  // still true without a type slug.
+  if (dao.redacted === true) {
+    const verification = storedVerification(dao.verification);
+    const stub: FeatureValueDto = {
+      type: typeof dao.type === "string" ? dao.type : "",
+      // No stored answer exists on this side of the wire. Spelled rather than
+      // omitted only because `FeatureValueDto.value` is a required key;
+      // `isBlank(undefined)` is true, so no formatter prints anything for it.
+      value: undefined,
+      redacted: true,
+      present: dao.present === true,
+      ...(verification !== undefined ? { verification } : {}),
+    };
+    return { feature, value: stub };
+  }
 
   const value: FeatureValueDto | undefined =
     typeof dao.type === "string" && dao.type.length > 0
@@ -365,12 +445,55 @@ export function unreadableFeatureCount(
  * a composer reopening a PUBLISHED listing needs: `draftValuesFromDetail`
  * seeds its editors from the published values, and the published values live
  * only in the DAO list.
+ *
+ * ── Why a redacted stub is DROPPED here, and not passed through ────────────
+ *
+ * This is the EDIT envelope, and the only one that can destroy data. A stub
+ * has no value; seeding an editor from it would put `undefined` in the
+ * composer's draft under the seller's own slug, and the next save would write
+ * that back — blanking a stored VIN the seller never touched and cannot see
+ * was blanked. Dropping the row instead leaves the field empty in the form
+ * and untouched in the record, which is the recoverable failure.
+ *
+ * A composer reopening a listing belongs to its OWNER, whose read is
+ * unredacted, so a stub reaching this function means something upstream
+ * already went wrong — a cached anonymous payload, a viewer id that did not
+ * arrive, a host wiring the public detail into an edit form. It fails safe
+ * rather than fails loudly on purpose: there is no honest recovery from "the
+ * value was withheld from the person editing it", and refusing the whole seed
+ * would take the other twenty answers down with it.
+ *
+ * {@link featureValuesForDisplay} is the other half of this split: a spec
+ * table WANTS the stub, because "the seller answered this" is exactly what it
+ * has to say.
  */
 export function featuresDtoFromDaoList(
   daos: readonly ListingFeatureDao[] | null | undefined
 ): Readonly<Record<string, FeatureValueDto>> {
   const out: Record<string, FeatureValueDto> = {};
   for (const view of featuresFromDaoList(daos)) {
+    if (view.value === undefined || isRedactedValue(view.value)) continue;
+    out[view.feature.slug] = view.value;
+  }
+  return out;
+}
+
+/**
+ * A stored projection → the envelope a DISPLAY component reads, redacted
+ * stubs and all.
+ *
+ * Same shape as {@link featuresDtoFromDaoList} and a different job, which is
+ * why it is a different function rather than a flag: a stub belongs in a spec
+ * table (in place, in order, saying the seller answered) and must never reach
+ * an editor. A boolean argument would put the destructive default one
+ * forgotten parameter away.
+ */
+export function featureValuesForDisplay(
+  daos: readonly ListingFeatureDao[] | null | undefined,
+  source: FeatureCopySource = {}
+): Readonly<Record<string, FeatureValueDto>> {
+  const out: Record<string, FeatureValueDto> = {};
+  for (const view of featuresFromDaoList(daos, source)) {
     if (view.value !== undefined) out[view.feature.slug] = view.value;
   }
   return out;

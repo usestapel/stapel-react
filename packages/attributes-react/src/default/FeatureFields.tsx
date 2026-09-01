@@ -31,13 +31,15 @@
  */
 import { useMemo, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Alert, Divider, Form, Typography } from "antd";
+import { Alert, Divider, Form, Tag, Typography } from "antd";
 import { useFormatFlowError, useT } from "@stapel/core";
 import type { FlowError } from "@stapel/core";
 import { SkinTheme, useElementWidth } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 import type { FeatureDef } from "../types.js";
 import { featureConfig, featureName, featureType } from "../types.js";
+import type { FeatureVisibility } from "../visibility.js";
+import { featureVisibility } from "../visibility.js";
 import type { RuleState } from "../rules.js";
 import { VISIBLE_STATE, evaluateRules, narrowFeature, ruleErrors } from "../rules.js";
 import { resolveValueEditor } from "../registry.js";
@@ -84,6 +86,19 @@ export function featureSectionTestId(group: string): string {
  * whether this build could draw an editor for it or not. */
 export function featureRowTestId(slug: string): string {
   return `attributes-row-${slug}`;
+}
+
+/**
+ * The test id of the DISCLOSURE NOTICE on a non-public field — the line that
+ * names who does see what the seller is about to type. The tag beside the
+ * label is the same id suffixed `-tag`, following the section builder's
+ * `${featureSectionTestId(group)}-heading` convention.
+ *
+ * Absent on a `public` field, which is every field a catalogue has today
+ * unless someone deliberately marked one otherwise.
+ */
+export function featureVisibilityTestId(slug: string): string {
+  return `attributes-visibility-${slug}`;
 }
 
 /** The value types whose control has a text box an `example` can sit in. A
@@ -169,6 +184,17 @@ export interface FeatureRowProps {
    * must not ALSO label it — the visual pass caught "Size grid" printed twice,
    * once as a label and once inside the alert. */
   readonly unsupported: boolean;
+  /**
+   * Who may READ this value once it is stored (`FeatureDef.visibility`), and
+   * therefore what the seller has to be told BEFORE they type it.
+   *
+   * Orthogonal to {@link required}: a `mandatory` VIN with `visibility:
+   * "owner"` is still required, still validated, still stored and still
+   * moderated — it is simply never handed to a buyer. `public` for every
+   * field a catalogue has unless someone marked one otherwise, so a host's
+   * `renderRow` that ignores this prop keeps behaving exactly as it did.
+   */
+  readonly visibility: FeatureVisibility;
 }
 
 /**
@@ -217,8 +243,46 @@ function FeatureHints(props: { readonly hints: readonly FeatureHint[] }): ReactE
   );
 }
 
+/**
+ * What a seller is owed AT THE FIELD when the answer will not be published.
+ *
+ * A mandatory VIN is a strange thing to be asked for, and the question a
+ * person asks themselves while typing one is "who is going to see this?".
+ * Answering it in a help page somewhere is not answering it: the sentence
+ * belongs under the box, on the render that asks. So a non-public row gets
+ * two things — a neutral tag beside the label saying the value is not
+ * published, and this line naming the audience that does see it.
+ *
+ * `owner` and `staff` are genuinely different promises and are worded as
+ * two: with `owner` the seller's own view keeps showing them the number, with
+ * `staff` it does not come back at all, and being surprised by that after
+ * saving is worse than being told before.
+ */
+function VisibilityNotice(props: { readonly visibility: FeatureVisibility; readonly slug: string }):
+  | ReactElement
+  | null {
+  const t = useT();
+  if (props.visibility === "public") return null;
+  return (
+    <div
+      style={{ marginTop: spacing[1] }}
+      data-testid={featureVisibilityTestId(props.slug)}
+      data-attributes-visibility={props.visibility}
+    >
+      <Typography.Text type="secondary">
+        {t(
+          props.visibility === "staff"
+            ? ATTRIBUTES_I18N_KEYS.visibilityStaff
+            : ATTRIBUTES_I18N_KEYS.visibilityOwner
+        )}
+      </Typography.Text>
+    </div>
+  );
+}
+
 function FeatureRow(props: FeatureRowProps): ReactElement {
   const format = useFormatFlowError();
+  const t = useT();
   // A header is a caption, and an unsupported notice names itself: no label,
   // no colon, no required marker. Rendering either inside a labelled Form.Item
   // would make a section heading look like a question and print the feature's
@@ -230,16 +294,44 @@ function FeatureRow(props: FeatureRowProps): ReactElement {
   // what to type comes before the warnings about what not to. `extra` is
   // antd's slot for exactly that, so the two never end up on opposite sides of
   // the field.
+  //
+  // The disclosure notice joins them, LAST: help says what to type, hints say
+  // what not to, and this says where the answer goes. It is not folded into
+  // `help` because it is not the catalogue's sentence — it is a consequence
+  // of the definition, and a category that writes no `description` still owes
+  // the seller this line.
+  // Kept `null` rather than an always-rendered component that returns null
+  // internally: `extra` is an antd SLOT, and handing it an empty fragment
+  // paints an empty box under every public field on the form.
+  const notice =
+    props.visibility === "public" ? null : (
+      <VisibilityNotice visibility={props.visibility} slug={props.feature.slug} />
+    );
   const extra =
-    props.help === undefined && props.hints.length === 0 ? undefined : (
+    props.help === undefined && props.hints.length === 0 && notice === null ? undefined : (
       <>
         {props.help}
         <FeatureHints hints={props.hints} />
+        {notice}
       </>
     );
   return (
     <Form.Item
-      label={featureName(props.feature)}
+      label={
+        props.visibility === "public" ? (
+          featureName(props.feature)
+        ) : (
+          <>
+            {featureName(props.feature)}
+            <Tag
+              style={{ marginInlineStart: spacing[1] }}
+              data-testid={`${featureVisibilityTestId(props.feature.slug)}-tag`}
+            >
+              {t(ATTRIBUTES_I18N_KEYS.visibilityNotPublished)}
+            </Tag>
+          </>
+        )
+      }
       htmlFor={props.controlId}
       required={props.required}
       {...(props.stacked ? { layout: "vertical" as const } : {})}
@@ -476,6 +568,11 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
                     help: description.length > 0 ? t(description) : undefined,
                     hints: resolveHints(feature, t),
                     unsupported,
+                    // Read off the ORIGINAL definition, not the narrowed one:
+                    // rules narrow a config, they never move a value between
+                    // audiences, and taking it from the row the catalogue
+                    // sent keeps that impossible to get wrong.
+                    visibility: featureVisibility(feature),
                   };
                   // The row's test id lives on the WRAPPER rather than on the
                   // field itself, so it is the same element whether the host
