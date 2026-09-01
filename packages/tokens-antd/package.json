@@ -42,7 +42,7 @@
       "limit": "4 KB"
     },
     {
-      "name": "skin subpath -- the shared skin substrate (theme, dialog, confirm, carousel, permission, states, gate, pane, row, table)",
+      "name": "skin subpath -- the shared skin substrate (theme, dialog, confirm, carousel, permission, states, gate, pane, row, table, chips, picker sheet, number field, counted input)",
       "path": "dist/skin.js",
       "limit": "16 KB"
     }

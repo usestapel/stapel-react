@@ -198,6 +198,15 @@ export {
   memoryStorage,
 } from "./storage.js";
 
+// recency (useRecents.ts): the codes a person picked last, per scope, most
+// recent first. Headless on purpose — "the four makes you last chose on top of
+// the list" is the same product rule in an attributes ref editor, a vocabulary
+// term control and (next) a search facet, so it cannot live in any one of them
+// and must not live in the antd bridge either. Persisted through the
+// PersistStorage ladder above; never throws when storage is unavailable.
+export { useRecents, recentsStorageKey, RECENTS_DEFAULT_MAX, RECENTS_KEY_PREFIX } from "./useRecents.js";
+export type { RecentsBag, UseRecentsOptions } from "./useRecents.js";
+
 // session substrate (frontend-core-architecture-v2 §43.1–§43.3): status,
 // single-flight refresh, the logout-hook registry, the per-session
 // encryption key `createRepository` uses. An authenticating module (today:

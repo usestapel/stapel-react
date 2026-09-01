@@ -5,9 +5,9 @@
  * new `*.demo.tsx` is covered automatically, mounts each variant, and asserts
  * that the four states the showcase CLAIMS are four states it actually draws.
  */
-import { beforeEach, describe, expect, it } from "vitest";
-import { render } from "@testing-library/react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { cleanup, render } from "@testing-library/react";
+import type { ReactNode } from "react";
 import {
   assertVariantsRenderDistinctly,
   renderDemoVariant,
@@ -25,6 +25,29 @@ beforeEach(() => {
   installMatchMedia();
   setViewport(390);
 });
+
+afterEach(() => {
+  cleanup();
+});
+
+/**
+ * The renderer the distinctness check compares markup with: jsdom, not
+ * `renderToStaticMarkup`.
+ *
+ * A picker sheet is a DIALOG, and a dialog is a portal; the server renderer
+ * refuses portals outright ("Portals are not currently supported by the server
+ * renderer"), so the moment the substrate got a demo of `SkinPickerSheet` the
+ * static comparison could not render it at all. Comparing the whole
+ * `baseElement` keeps everything a variant paints INSIDE the portal — which
+ * for a picker is the entire component — inside the comparison. Same renderer,
+ * and the same reason, as `recordings-react`'s suite.
+ */
+function domMarkup(element: ReactNode): string {
+  const { baseElement } = render(<>{element}</>);
+  const html = baseElement.innerHTML;
+  cleanup();
+  return html;
+}
 
 describe("tokens-antd demos", () => {
   const entries = Object.entries(modules);
@@ -45,7 +68,7 @@ describe("tokens-antd demos", () => {
     it(`${demo.id} photographs a different frame per variant`, () => {
       // C-SAMESHOT: a showcase that names four states and draws one is worse
       // than a showcase with one state, because the reviewer believes it.
-      assertVariantsRenderDistinctly(demo, renderToStaticMarkup);
+      assertVariantsRenderDistinctly(demo, domMarkup);
     });
   }
 });

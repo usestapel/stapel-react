@@ -4,6 +4,172 @@
   "version": "0.11.0",
   "demos": [
     {
+      "id": "tokens-antd.choice-chips",
+      "title": "Choice chips",
+      "description": "A handful of options rendered inline as 44px chips instead of a dropdown: every answer is visible at rest, one tap away, and the labels wrap rather than being cut. Single-select tapping the chosen chip again does nothing unless `allowClear` is on — 'unanswer it' is not a state a required field should reach by fumbling. A chip that cannot be chosen states its reason as visible text under the row, once per distinct sentence, because a disabled control receives no pointer events and a tooltip on it is an explanation nobody can read.",
+      "component": "ChoiceChips",
+      "covers": [],
+      "tokens": [
+        "brand",
+        "surface-raised",
+        "border",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "single",
+          "description": "One answer out of three, with the second one already given. The third label is long enough to wrap, which is the case an ellipsis would have turned into a guess.",
+          "viewport": "phone",
+          "step": "single-chosen"
+        },
+        {
+          "id": "multi-blocked",
+          "description": "Several answers at once, two of them switched off for the same reason — printed ONCE under the row and pointed at by both chips' aria-describedby, instead of six copies of one sentence down a screen.",
+          "viewport": "phone",
+          "step": "multi-blocked"
+        },
+        {
+          "id": "grid",
+          "description": "columns=\"grid\" for a set whose labels are long enough that a ragged wrapped row reads as noise: equal columns, two across at 390px.",
+          "viewport": "phone",
+          "step": "multi-grid"
+        }
+      ],
+      "source": {
+        "file": "demo/ChoiceChips.demo.tsx",
+        "line": 101
+      }
+    },
+    {
+      "id": "tokens-antd.counted-input",
+      "title": "Counted input",
+      "description": "A length limit shown as a live counter rather than enforced as a silent cap. The DOM's `maxlength` counts UTF-16 code units while the backend counts Unicode code points, so the attribute stops somebody two emoji short of the real limit with no message at all — this component therefore never sets it, counts in the engine's own unit, and turns the counter to the error colour when the text goes past the limit. `normalize` runs where foreign text enters (the paste) and once more on blur — the last moment a fix is still invisible — never per keystroke, because a normalizer that strips spaces as you type makes two words impossible.",
+      "component": "CountedInput",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "border",
+        "text-muted",
+        "error"
+      ],
+      "variants": [
+        {
+          "id": "under",
+          "description": "A free-text field well inside its limit: the counter is a quiet muted line under the box, right-aligned, out of the way of the field's own help.",
+          "viewport": "phone",
+          "step": "under"
+        },
+        {
+          "id": "mono-at-limit",
+          "description": "A VIN at exactly its 17 characters, in the token monospace face so 0/O and 1/l can be told apart against a document. Pasting one with spaces in it normalizes on the way in.",
+          "viewport": "phone",
+          "step": "at-limit"
+        },
+        {
+          "id": "over",
+          "description": "Two characters past the limit: the keystrokes were accepted, the counter is red and reads 19 / 17, and the refusal is a sentence under the field. This frame does not exist at all in a `maxlength` field — the person simply finds the keyboard doing nothing.",
+          "viewport": "phone",
+          "step": "over"
+        }
+      ],
+      "source": {
+        "file": "demo/CountedInput.demo.tsx",
+        "line": 61
+      }
+    },
+    {
+      "id": "tokens-antd.number-field",
+      "title": "Number field",
+      "description": "A number typed on a phone. `integer` decides the keypad (`inputMode=numeric` vs `decimal`) so iOS raises digits instead of the alphabet; the unit is a suffix inside the box and never part of the value; `min`/`max` arrive as a preformatted placeholder — a HINT — and are never used to reject a keystroke. This is deliberately not antd's `InputNumber`, which clamps: typing 9 towards 95 in a max-50 field leaves 9, and a blurred 120 becomes 100 with no sentence anywhere saying so. Out of range is the caller's validation to display, beside the field, in words.",
+      "component": "SkinNumberField",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "border",
+        "text-muted",
+        "error"
+      ],
+      "variants": [
+        {
+          "id": "integer",
+          "description": "An empty integer field: the range is the placeholder, the unit sits after the value, and the keypad is numeric.",
+          "viewport": "phone",
+          "step": "empty-hint"
+        },
+        {
+          "id": "decimal",
+          "description": "A decimal field with an answer. The component owns the TEXT, so a half-typed `10.` survives the keystroke that a `String(value)` round trip would have deleted.",
+          "viewport": "phone",
+          "step": "filled-decimal"
+        },
+        {
+          "id": "out-of-range",
+          "description": "9.9 in a 0.6-8.0 field: the value is KEPT, the ring is red, and the reason is a sentence under the field. The alternative — silently rewriting it to 8.0 — is a value the person never entered, in a field they have stopped looking at.",
+          "viewport": "phone",
+          "step": "error"
+        }
+      ],
+      "source": {
+        "file": "demo/SkinNumberField.demo.tsx",
+        "line": 60
+      }
+    },
+    {
+      "id": "tokens-antd.picker-sheet",
+      "title": "Picker sheet",
+      "description": "The fleet's rule for a long list: on a phone it is picked in a bottom sheet with a search box, never a dropdown — the sheet takes the room the keyboard leaves, keeps its search pinned and its commit button above the home indicator, and scrolls its own body instead of the page. Single-select answers and closes on one tap; multi-select holds a draft and commits it on a footer button that carries the count it is about to keep. The list has four states a Select never modelled: loading, empty, capped, and STALE — rows that no longer answer what is in the search box are dimmed and made inert, so nobody picks the previous query's fourth row believing it is this query's.",
+      "component": "SkinPickerSheet",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "brand",
+        "border",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "single",
+          "description": "One answer, with the caller's own `Recent` group on top (that group is `useRecents` from @stapel/core; the sheet only draws what it is handed). Tapping a row answers and closes.",
+          "viewport": "phone",
+          "step": "single-open"
+        },
+        {
+          "id": "multi",
+          "description": "Three already chosen: the checkmarks are the draft, and the footer button says what pressing it keeps — `Done · 3`. Dismissing instead discards the draft, which is why the count is on the button and not in the title.",
+          "viewport": "phone",
+          "step": "multi-open"
+        },
+        {
+          "id": "loading",
+          "description": "The answer to the typed query is in flight: a skeleton where the rows will be. The commit is NOT blocked — the values already chosen are still chosen, and somebody who is done should not wait for a list they are not reading.",
+          "viewport": "phone",
+          "step": "loading"
+        },
+        {
+          "id": "stale-list",
+          "description": "The search box says one thing and the rows still answer the previous one (the caller's `matched === false`). The list dims and stops responding until it catches up, which is the difference between a slow picker and a picker that quietly hands back the wrong code.",
+          "viewport": "phone",
+          "step": "stale"
+        },
+        {
+          "id": "capped",
+          "description": "260 matches, 200 rows: nothing is virtualized yet, so the sheet draws what a phone can usefully scroll and the tail row says the list was cut. Pretending the rest is one flick away would be the more expensive lie.",
+          "viewport": "phone",
+          "step": "capped"
+        },
+        {
+          "id": "empty",
+          "description": "The load succeeded and matched nothing — a different sentence from `still loading`, and the reason the empty arm is a prop rather than an empty list.",
+          "viewport": "phone",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/SkinPickerSheet.demo.tsx",
+        "line": 117
+      }
+    },
+    {
       "id": "tokens-antd.skin-carousel",
       "title": "Skin carousel",
       "description": "The fleet's one swipe primitive: a native CSS scroll-snap strip with no gesture code at all. The default `peek` leaves the edge of the next slide on screen — the affordance that says there is more — the scrollbar is hidden while the strip itself stays a focusable, arrow-scrollable region, and the optional dots are an indicator rather than a control, because a tappable dot would need per-dot copy the token bridge cannot invent.",

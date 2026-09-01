@@ -33,9 +33,9 @@
   },
   "size-limit": [
     {
-      "name": "index -- the framework floor. RAISED 12 -> 13.5 KB in 0.20.0 for usePermission and its translated pre-prompt copy: four browser capabilities as one state machine, plus the sentences that make a browser prompt answerable, in three locales. A budget is a ceiling to argue with, not a wall to route around -- what bought this one is a subsystem every pair was otherwise going to re-derive.",
+      "name": "index -- the framework floor. RAISED 12 -> 13.5 KB in 0.20.0 for usePermission and its translated pre-prompt copy: four browser capabilities as one state machine, plus the sentences that make a browser prompt answerable, in three locales. RAISED 13.5 -> 14 KB for useRecents: the MRU list every picker in the fleet was otherwise going to re-derive, persisted through the storage ladder that is already here. A budget is a ceiling to argue with, not a wall to route around -- what bought both raises is a subsystem every pair was otherwise going to re-derive.",
       "path": "dist/index.js",
-      "limit": "13.5 KB"
+      "limit": "14 KB"
     }
   ],
   "peerDependencies": {

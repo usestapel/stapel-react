@@ -18,6 +18,8 @@ signatures/JSDoc in the package README and src/index.ts.
 - MandateProvider
 - PERMISSION_COPY_KEYS
 - PERMISSION_KINDS
+- RECENTS_DEFAULT_MAX
+- RECENTS_KEY_PREFIX
 - REFRESH_UNAVAILABLE
 - STAPEL_UI_KEYS
 - SiteProvider
@@ -93,6 +95,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - permissionSupported
 - pluralCategory
 - putToForeignOrigin
+- recentsStorageKey
 - requireLoaded
 - toDate
 - toFlowError
@@ -118,6 +121,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - useOptionalI18n
 - useOptionalSite
 - usePermission
+- useRecents
 - useSessionReady
 - useSite
 - useStapelClient
@@ -198,6 +202,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - PropsSchema
 - PutToForeignOriginOptions
 - QueryLike
+- RecentsBag
 - RefreshOutcome
 - RelativeOptions
 - Repository
@@ -225,6 +230,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - StapelRequestOptions
 - TranslateFn
 - UsePermissionOptions
+- UseRecentsOptions
 - VerificationChallenge
 - VerificationChallengeHandler
 - VerificationOutcome

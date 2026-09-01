@@ -33,6 +33,12 @@ The Stapel frontend runtime (L0, frontend-standard §1). Everything the
   cancel, loading, empty-state title, unfilled slot) seeded in en/ru/es like the
   error floor, so the shared skin substrate (`@stapel/tokens-antd/skin`) is
   translated with zero host wiring; override any key by registering it later.
+- **`useRecents(scope, { max })`** — the codes a person picked last, most
+  recent first, deduped, capped, surviving a reload. Headless: the same product
+  rule serves an attributes reference editor, a vocabulary term control and a
+  search facet, so it cannot live in any one of them or in the antd bridge.
+  Persisted through the `PersistStorage` ladder above; reads nothing during
+  render (SSR-safe) and never throws when storage is unavailable.
 - **`SlotPlaceholder`** — an unfilled render slot is a visible, named box in
   development and nothing in production (see below).
 - **Analytics seam** — the `Analytics` type + context plumbing; the facade

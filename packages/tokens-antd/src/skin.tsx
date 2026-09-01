@@ -54,6 +54,20 @@
  *    not, by element width.
  *  - {@link useElementWidth} — the one element-width measurement: geometry
  *    comes from the box a thing is in, never from the viewport.
+ *  - {@link ChoiceChips} — a handful of options is picked INLINE, as 44px
+ *    chips that wrap and never truncate a label; a chip that cannot be
+ *    chosen states its reason as text, once per distinct sentence.
+ *  - {@link SkinPickerSheet} — a LONG list is picked in a bottom sheet with a
+ *    search box, never a dropdown. It composes `SkinDialog`, holds a draft in
+ *    multi-select (the footer button carries the count it is about to
+ *    commit), and marks a list that no longer answers the search box as stale
+ *    instead of letting somebody pick the previous query's row.
+ *  - {@link SkinNumberField} — a number raises the numeric keypad, wears its
+ *    unit as a suffix that is never part of the value, and states `min`/`max`
+ *    as a hint. It is NOT antd's `InputNumber`, which clamps silently.
+ *  - {@link CountedInput} — a length limit is a live counter in the unit the
+ *    backend validates in (code points), never a `maxlength` that stops
+ *    somebody two emoji short with no explanation.
  *
  * Copy the substrate needs for itself (retry, dismiss, confirm, cancel, the
  * empty-state default, the four permission pre-prompts) comes from
@@ -144,3 +158,27 @@ export { ListRow, CardHeader } from "./skin/listRow.js";
 export type { ListRowProps, CardHeaderProps } from "./skin/listRow.js";
 export { DataTable } from "./skin/dataTable.js";
 export type { DataTableProps, DataTableColumn, DataTableCardRole } from "./skin/dataTable.js";
+export { ChoiceChips } from "./skin/choiceChips.js";
+export type {
+  ChoiceChipsProps,
+  ChoiceChipsSingleProps,
+  ChoiceChipsMultiProps,
+  ChoiceChipOption,
+} from "./skin/choiceChips.js";
+export {
+  SkinPickerSheet,
+  DEFAULT_MAX_ROWS,
+  PICKER_SEARCH_TESTID,
+  PICKER_DONE_TESTID,
+} from "./skin/pickerSheet.js";
+export type {
+  SkinPickerSheetProps,
+  PickerSheetSingleProps,
+  PickerSheetMultiProps,
+  PickerOption,
+  PickerGroup,
+} from "./skin/pickerSheet.js";
+export { SkinNumberField, parseNumericText } from "./skin/numberField.js";
+export type { SkinNumberFieldProps } from "./skin/numberField.js";
+export { CountedInput, codePointLength, COUNTER_TESTID } from "./skin/countedInput.js";
+export type { CountedInputProps } from "./skin/countedInput.js";
