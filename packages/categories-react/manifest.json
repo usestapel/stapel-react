@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/categories-react",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "backend": {
     "module": "stapel-categories",
     "contract": ">=0.9 <0.10"

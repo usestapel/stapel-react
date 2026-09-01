@@ -1,6 +1,6 @@
 {
   "package": "@stapel/categories-react",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "entries": [
     {
       "id": "categories.catalog",
