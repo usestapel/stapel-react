@@ -249,7 +249,7 @@ narrowing before the person has picked a child.
 
 ## Tests
 
-275 in 19 files (271 in `test`, 4 in `test:pack`).
+277 in 19 files (273 in `test`, 4 in `test:pack`).
 
 | File | What it holds down |
 |---|---|

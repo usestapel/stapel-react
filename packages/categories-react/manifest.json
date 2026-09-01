@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/categories-react",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "backend": {
     "module": "stapel-categories",
     "contract": ">=0.9 <0.10"
@@ -701,6 +701,28 @@
       "source": "demo/CategoryCarouselStrip.demo.tsx"
     },
     {
+      "id": "categories.cascade",
+      "title": "Category cascade",
+      "description": "One select per level of the tree, growing a rung as each is answered and dropping every rung below when one is changed — the ladder is derived from the chain above it, never remembered, so a stale deep answer cannot survive a shallow change. It is deliberately the same gesture as a 'brand → model' characteristic, because under the owner's navigation model a deep category IS one. Counts per option are a host prop and are unfilled here: no server can currently count a category's children, and an invented number is worse than none.",
+      "component": "CategoryCascadeField",
+      "covers": [
+        "CategoryCascade",
+        "useCategoryCascade"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "on a phone",
+        "half way",
+        "at the leaf",
+        "inside a filter chip",
+        "nothing left to narrow",
+        "outage"
+      ],
+      "source": "demo/CategoryCascadeField.demo.tsx"
+    },
+    {
       "id": "categories.catalog",
       "title": "Catalogue page",
       "description": "The /c route: the carousel of featured categories over the top-level tree. Category names arrive from the wire as TRANSLATION KEYS, so the host's bundle supplies the copy — and icon references stay opaque strings the host resolves, because a library that guessed a CDN path would ship a broken image on every deployment that guessed differently.",
@@ -864,6 +886,8 @@
     "categories.carousel.load_failed",
     "categories.carousel.loading",
     "categories.carousel.title",
+    "categories.cascade.blocked.nothing_selected",
+    "categories.cascade.choose",
     "categories.catalog.as_of",
     "categories.catalog.empty",
     "categories.catalog.load_failed",
@@ -999,6 +1023,7 @@
       "CategoriesRuntimeContext",
       "CategoryBreadcrumbs",
       "CategoryCarousel",
+      "CategoryCascade",
       "CategoryFeatures",
       "CategoryPicker",
       "CategoryTree",
@@ -1008,7 +1033,11 @@
       "UNPERSISTED_WARNING",
       "applyCategoryPage",
       "browsableCategories",
+      "buildCategoryCascade",
       "buildCategoryTree",
+      "cascadeReachedLeaf",
+      "cascadeSelection",
+      "cascadeTrail",
       "catalogKeyOptions",
       "categoriesErrorBundleEn",
       "categoriesI18nBundleEn",
@@ -1049,12 +1078,14 @@
       "useCategoriesRevision",
       "useCategoriesRuntime",
       "useCategoryCarousel",
+      "useCategoryCascade",
       "useCategoryCatalog",
       "useCategoryChildren",
       "useCategoryFeatures",
       "useCategorySearch"
     ],
     "types": [
+      "BuildCategoryCascadeOptions",
       "BuildCategoryTreeOptions",
       "CarouselEntry",
       "CatalogKeyOptions",
@@ -1070,6 +1101,13 @@
       "CategoryBrowseOptions",
       "CategoryCarouselBag",
       "CategoryCarouselProps",
+      "CategoryCascadeBag",
+      "CategoryCascadeBlockedReason",
+      "CategoryCascadeCommit",
+      "CategoryCascadeLevel",
+      "CategoryCascadeOption",
+      "CategoryCascadeProps",
+      "CategoryCascadeStep",
       "CategoryCatalog",
       "CategoryCrumb",
       "CategoryFeature",
@@ -1105,6 +1143,7 @@
       "SyncCatalogOptions",
       "SyncCatalogResult",
       "UseCategoryCarouselOptions",
+      "UseCategoryCascadeOptions",
       "UseCategoryCatalogOptions",
       "UseCategorySearchOptions"
     ]

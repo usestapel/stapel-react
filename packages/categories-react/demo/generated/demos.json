@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/categories-react",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "demos": [
     {
       "id": "categories.breadcrumbs",
@@ -86,6 +86,61 @@
       "source": {
         "file": "demo/CategoryCarouselStrip.demo.tsx",
         "line": 46
+      }
+    },
+    {
+      "id": "categories.cascade",
+      "title": "Category cascade",
+      "description": "One select per level of the tree, growing a rung as each is answered and dropping every rung below when one is changed — the ladder is derived from the chain above it, never remembered, so a stale deep answer cannot survive a shallow change. It is deliberately the same gesture as a 'brand → model' characteristic, because under the owner's navigation model a deep category IS one. Counts per option are a host prop and are unfilled here: no server can currently count a category's children, and an invented number is worse than none.",
+      "component": "CategoryCascadeField",
+      "covers": [
+        "CategoryCascade",
+        "useCategoryCascade"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "on a phone",
+          "description": "Nothing answered yet: one rung, the catalogue's roots, and the composer's gate stated rather than left silent.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "half way",
+          "description": "A non-leaf answered. Under `commit=leaf` it is NOT reported to the host — a listing filed there would inherit the wrong feature set — but the ladder still advances, because the cursor is not the value.",
+          "viewport": "phone",
+          "step": "blocked-not-a-leaf"
+        },
+        {
+          "id": "at the leaf",
+          "description": "The ladder finished. Every level above stays on screen and stays changeable, and the trail above them pops back to any of them in one tap.",
+          "viewport": "phone",
+          "step": "selected"
+        },
+        {
+          "id": "inside a filter chip",
+          "description": "The SERP's shape: rooted at the category the tiles arrived at, so it offers only what is below it, wrapping side by side, with no verdict line — there the narrowing is visible in the results themselves.",
+          "viewport": "phone",
+          "step": "filter"
+        },
+        {
+          "id": "nothing left to narrow",
+          "description": "Rooted at a leaf: the tiles arrived somewhere with nothing under it. Said out loud, rather than drawn as an empty box.",
+          "viewport": "desktop",
+          "step": "exhausted"
+        },
+        {
+          "id": "outage",
+          "description": "The catalogue never arrived, so there is nothing to narrow. A failed sync is never an empty catalogue.",
+          "viewport": "desktop",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/CategoryCascadeField.demo.tsx",
+        "line": 26
       }
     },
     {

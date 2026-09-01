@@ -1,4 +1,4 @@
-# @stapel/categories-react 0.7.0
+# @stapel/categories-react 0.8.0
 
 Headless React flow pair for stapel-categories (contract >=0.9 <0.10) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
@@ -114,6 +114,7 @@ const { tracked } = useTracked();
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - categories.breadcrumbs → <CategoryBreadcrumbsBar> [deep|in a router|the link itself|stale link]  demo/CategoryBreadcrumbsBar.demo.tsx
 - categories.carousel → <CategoryCarouselStrip> [tiles|text only|nothing featured|outage]  demo/CategoryCarouselStrip.demo.tsx
+- categories.cascade → <CategoryCascadeField> [on a phone|half way|at the leaf|inside a filter chip|nothing left to narrow|outage]  demo/CategoryCascadeField.demo.tsx
 - categories.catalog → <CatalogPage> [browse|no icons|empty catalogue|outage]  demo/CatalogPage.demo.tsx
 - categories.category → <CategoryPage> [composed|unfilled slot|leaf with its schema|no such category|outage]  demo/CategoryPage.demo.tsx
 - categories.features → <CategoryFeatureList> [schema|no extra details|outage]  demo/CategoryFeatureList.demo.tsx
