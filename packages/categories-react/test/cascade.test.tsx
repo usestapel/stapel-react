@@ -186,9 +186,17 @@ async function mountProbe(props: {
   readonly value?: number | null;
   readonly roots?: readonly Category[];
   readonly onChange?: (id: number | null) => void;
+  /** What `GET /categories/carousel/` answers. Omitted, the route does not
+   * exist at all — a deployment with no curated strip, which is the case the
+   * catalogue-sync fallback is for. */
+  readonly carousel?: readonly Category[];
 }): Promise<Mounted> {
+  const { carousel, ...probeProps } = props;
   const server = mockServer({
     "/categories/": { body: FULL_PAGE },
+    ...(carousel !== undefined
+      ? { "/categories/carousel/": { body: carousel } }
+      : {}),
     ...rowRoutes(ROWS),
   });
   const store = testStore();
@@ -196,7 +204,7 @@ async function mountProbe(props: {
   render(
     <TestProviders server={server}>
       <Probe
-        {...props}
+        {...probeProps}
         store={store}
         onBag={(bag) => {
           latest = bag;
@@ -243,7 +251,55 @@ describe("useCategoryCascade — one small request per rung", () => {
     expect(listCalls(server)).toBe(0);
   });
 
-  it("without roots, a rootless ladder falls back to the catalogue for its TOP rung only", async () => {
+  it("a rootless ladder takes its TOP rung from the carousel — one cached request", async () => {
+    // The measured defect: with no rootId and no host roots, this rung read
+    // the whole table. On a live catalogue of 3583 categories that was 36
+    // requests, 1.4 MB, and 19.9 seconds before the composer's FIRST select
+    // existed — while everything below it costs one `children/` per rung.
+    const { bag, server } = await mountProbe({
+      commit: "any",
+      carousel: [ELECTRONICS, VEHICLES],
+    });
+    const state = bag().state;
+    expect(
+      state.status === "ready"
+        ? state.data[0]?.options.map((o) => o.category.id)
+        : []
+    ).toEqual([1, 5]);
+    expect(listCalls(server)).toBe(0);
+  });
+
+  it("reads the carousel as ROOTS, not as a tree — a flagged child is not one", async () => {
+    // `carousel_enabled` is a strip a deployment curates, and a deployment may
+    // flag a category at any depth. The top rung is the roots, so the rows are
+    // projected to those with no ancestors; the rest are not top-level and are
+    // not offered as if they were.
+    const { bag } = await mountProbe({
+      commit: "any",
+      carousel: [ELECTRONICS, PHONES, VEHICLES],
+    });
+    const state = bag().state;
+    expect(
+      state.status === "ready"
+        ? state.data[0]?.options.map((o) => o.category.id)
+        : []
+    ).toEqual([1, 5]);
+  });
+
+  it("falls through to the catalogue when the carousel names no roots", async () => {
+    // A deployment that curates nothing behaves exactly as it did before the
+    // fast path existed — the fallback is the whole reason it can be a default.
+    const { bag, server } = await mountProbe({ commit: "any", carousel: [PHONES] });
+    const state = bag().state;
+    expect(
+      state.status === "ready"
+        ? state.data[0]?.options.map((o) => o.category.id)
+        : []
+    ).toEqual([1, 5]);
+    expect(listCalls(server)).toBeGreaterThan(0);
+  });
+
+  it("without a carousel at all, a rootless ladder falls back to the catalogue for its TOP rung only", async () => {
     const { bag, server } = await mountProbe({ commit: "any" });
     const state = bag().state;
     expect(

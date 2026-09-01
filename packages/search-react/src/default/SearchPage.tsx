@@ -197,6 +197,9 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * coordinate, with or without it.
    */
   readonly geoLabel?: ReactNode;
+  /** Print the engine's list of uncounted facet slugs in the filter panel.
+   * Default `false` — see {@link FacetPanelPaneProps.skippedNotice}. */
+  readonly skippedNotice?: boolean;
   /**
    * Open the search centred where the visitor is, when the URL says nothing
    * about location — see {@link SearchStateProviderProps.defaultGeo} for the
@@ -323,6 +326,7 @@ interface SearchPageBodyProps {
   readonly categoryLabel?: ReactNode;
   readonly renderGeoFilter?: (slot: GeoFilterSlotProps) => ReactNode;
   readonly geoLabel?: ReactNode;
+  readonly skippedNotice?: boolean;
   readonly footer?: ReactNode;
   readonly filtersHeader?: ReactNode;
   readonly resultsHeader?: ReactNode;
@@ -437,6 +441,9 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
             ? { renderGeoFilter: props.renderGeoFilter }
             : {})}
           {...(props.geoLabel !== undefined ? { geoLabel: props.geoLabel } : {})}
+          {...(props.skippedNotice !== undefined
+            ? { skippedNotice: props.skippedNotice }
+            : {})}
         />
       )}
     </Flex>
@@ -611,6 +618,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     categoryLabel,
     renderGeoFilter,
     geoLabel,
+    skippedNotice,
     defaultGeo,
     footer,
     filtersHeader,
@@ -644,6 +652,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(categoryLabel !== undefined ? { categoryLabel } : {})}
           {...(renderGeoFilter !== undefined ? { renderGeoFilter } : {})}
           {...(geoLabel !== undefined ? { geoLabel } : {})}
+          {...(skippedNotice !== undefined ? { skippedNotice } : {})}
           {...(footer !== undefined ? { footer } : {})}
           {...(filtersHeader !== undefined ? { filtersHeader } : {})}
           {...(resultsHeader !== undefined ? { resultsHeader } : {})}

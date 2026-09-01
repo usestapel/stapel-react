@@ -31,7 +31,11 @@
  * A slug the server SKIPPED (`facet_meta.skipped`, dropped at
  * `MAX_FACET_FIELDS`) is not counted at all. Its options carry `count: null`,
  * never `0` — "we did not count this" and "there are none" are different
- * sentences and the honest one has to survive to the screen.
+ * sentences and the honest one has to survive to the screen. Its options come
+ * from the CATEGORY SCHEMA, because a count is not a licence to filter: the
+ * server accepts `f.<slug>` whether or not it counted it, so an uncounted
+ * facet is a filter that exists and a number that is missing, not a filter
+ * that does not exist. See {@link buildFacetGroups}.
  *
  * 3. **Not every counted slug is a FILTER.** The plan is built from the leaf
  *    category's feature defs and the counter counts whatever is indexed, so a
@@ -352,13 +356,37 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
     const push = (value: string): void => {
       if (!values.includes(value)) values.push(value);
     };
-    // Declared order first (closed sets), then whatever else the counter
-    // returned, then anything selected that neither of them mentioned.
-    for (const value of declared) if (value in counts) push(value);
-    const remaining = Object.keys(counts)
-      .filter((value) => !declared.includes(value))
-      .sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0) || a.localeCompare(b));
-    for (const value of remaining) push(value);
+    if (counted) {
+      // Declared order first (closed sets), then whatever else the counter
+      // returned, then anything selected that neither of them mentioned.
+      for (const value of declared) if (value in counts) push(value);
+      const remaining = Object.keys(counts)
+        .filter((value) => !declared.includes(value))
+        .sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0) || a.localeCompare(b));
+      for (const value of remaining) push(value);
+    } else {
+      // A COUNT IS NOT A LICENCE TO FILTER.
+      //
+      // `counts` is empty here by definition — the counter never looked at
+      // this slug (`facet_meta.skipped`, the plan overrunning
+      // `MAX_FACET_FIELDS`) or the deployment counts nothing at all. Gating
+      // the options on `value in counts` therefore left the facet with NONE,
+      // and a group with no options is dropped by every surface that draws
+      // one. Measured on a live cars leaf: 26 facetable features declared, 12
+      // counted, 14 rendered as a warning naming filters the person could not
+      // then use — while `/query` accepts `f.<slug>` for every one of them.
+      //
+      // So an uncounted facet is built from the SCHEMA: the option table the
+      // category config already carries (`config.options`), or the captions
+      // the answer sent for it. The counts stay `null` below — "nobody
+      // counted this" is still said, in the place it belongs (beside the
+      // option), and it no longer decides whether the filter exists.
+      //
+      // A `ref_select` whose config is a bare `optionsRef` pointer has no
+      // table here and no options to draw; naming that gap is
+      // `MODULE.md`'s job, inventing values would not be.
+      for (const value of declared) push(value);
+    }
     for (const value of selected) push(value);
 
     const labelOptions = {

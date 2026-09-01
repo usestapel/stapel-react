@@ -33,12 +33,17 @@
  *
  * A ROOTLESS ladder — the composer's, and the filter's when nothing is chosen
  * — opens on the catalogue's top level, and `stapel-categories` has no roots
- * endpoint and no `tn_parent` filter on the list. That single rung therefore
- * still falls back to the catalogue sync (and only that rung: everything below
- * it is `children/`). {@link UseCategoryCascadeOptions.roots} is the escape
- * hatch for a host that knows its own top level — a deployment with a handful
- * of roots, or one that has them from its own navigation config — and it costs
- * nothing when unused. MODULE.md carries the upstream ask.
+ * endpoint and no `tn_parent` filter on the list. Reading the whole table for
+ * that ONE rung is what made the composer unusable on a phone: 36 requests,
+ * 1.4 MB, and 19.9 seconds before the first select existed.
+ *
+ * So the rung is answered by `GET /categories/carousel/` — one cached
+ * request — projected to the rows with no ancestors, which is what a root IS.
+ * A deployment that curates no carousel gets an empty projection and falls
+ * through to the catalogue sync, exactly as before.
+ * {@link UseCategoryCascadeOptions.roots} remains the escape hatch for a host
+ * that knows its own top level and wants neither read. MODULE.md carries the
+ * upstream ask for a real roots endpoint, which is what would retire both.
  *
  * A ROOTED ladder — the one a category landing mounts, which is where the
  * owner's model says the tiles hand over — never mounts the sync at all.
@@ -112,6 +117,7 @@ import type { CategoryLabel } from "../catalog/labels.js";
 import { categoryChildIds } from "../catalog/tree.js";
 import {
   useCategory,
+  useCategoryCarousel,
   useCategoryCatalog,
   useCategoryLevels,
 } from "../model/queries.js";
@@ -314,7 +320,44 @@ export function useCategoryCascade(
   const enabled = options.enabled ?? true;
   const cursorQuery = useCategory(cursorId, { enabled });
   const rootQuery = useCategory(rootId, { enabled });
-  const needsCatalogRoots = rootId === null && roots === undefined;
+  const needsRoots = rootId === null && roots === undefined;
+
+  /*
+   * ── The top rung, and the twenty seconds it used to cost ──────────────────
+   *
+   * A rootless ladder opens on the catalogue's top level, and the list
+   * endpoint has no roots filter — so this rung read the whole table. Measured
+   * on a live classified deployment (3583 categories): 36 requests, 1.4 MB,
+   * and the composer's FIRST select appeared 19.9 seconds after the screen
+   * did. Everything below it costs one `children/` per rung, 0.25-0.39 s, so
+   * the entire cost of the control was this one question.
+   *
+   * `GET /categories/carousel/` answers it in one cached request. It is not a
+   * substitute tree and it is not being read as one: the rows are projected to
+   * those with NO ancestors, which is the definition of a root, so what comes
+   * back is either the deployment's own top level or nothing. Nothing falls
+   * through to the catalogue sync, unchanged — a deployment that curates no
+   * carousel behaves exactly as it did.
+   *
+   * It also makes the two halves of the owner's navigation model agree: the
+   * tiles a storefront draws from this endpoint and the cascade's first select
+   * now offer the same roots, and the handover between them stops being a
+   * place where the catalogue changes shape.
+   */
+  const carouselQuery = useCategoryCarousel({
+    ...visibility,
+    enabled: needsRoots && enabled,
+  });
+  const carouselRoots = useMemo<readonly Category[] | null>(() => {
+    const rows = carouselQuery.data;
+    if (rows === undefined) return null;
+    return rows.filter((row) => categoryAncestorChain(row).length === 0);
+  }, [carouselQuery.data]);
+  // Only once the carousel has ANSWERED: mounting the sync beside it would pay
+  // both costs on every cold start, which is the cost this exists to remove.
+  const carouselSettled = carouselQuery.isSuccess || carouselQuery.isError;
+  const needsCatalogRoots =
+    needsRoots && carouselSettled && (carouselRoots?.length ?? 0) === 0;
   const catalogQuery = useCategoryCatalog({
     ...catalogOptions,
     ...visibility,
@@ -351,8 +394,16 @@ export function useCategoryCascade(
   const topOptions = useMemo<readonly Category[] | null>(() => {
     if (rootId !== null) return levelQueries.rows[0] ?? null;
     if (roots !== undefined) return browsableCategories(roots, visibility);
+    if (carouselRoots !== null && carouselRoots.length > 0) return carouselRoots;
     return catalogQuery.data?.index.roots.map((node) => node.category) ?? null;
-  }, [rootId, roots, visibility, levelQueries.rows, catalogQuery.data]);
+  }, [
+    rootId,
+    roots,
+    visibility,
+    levelQueries.rows,
+    carouselRoots,
+    catalogQuery.data,
+  ]);
 
   /**
    * The fetched rungs, assembled top-down.

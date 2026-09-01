@@ -21,6 +21,7 @@ export const shellI18nBundleRu: I18nDictionary = {
   "shell.dock.label": "Основные разделы",
   "shell.dock.unread": "непрочитано: {count}",
   "shell.public.sign_in": "Войти",
+  "shell.public.home": "На главную",
   "shell.legal.privacy": "Конфиденциальность",
   "shell.legal.terms": "Условия",
   "shell.legal.support": "Поддержка",

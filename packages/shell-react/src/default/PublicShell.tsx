@@ -65,7 +65,7 @@ import { spacing } from "@stapel/tokens-antd";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
 import { NavMenu } from "./navMenu.js";
 import { NavDock, DOCK_CLEARANCE, dockRenders } from "./NavDock.js";
-import { CloseGlyph, MenuGlyph } from "./icons.js";
+import { CloseGlyph, HomeGlyph, MenuGlyph } from "./icons.js";
 import { ShellThemeControl } from "./ShellThemeControl.js";
 import { SiteBrand } from "./SiteBrand.js";
 import { SiteLegalFooter } from "./SiteLegalFooter.js";
@@ -192,6 +192,21 @@ export interface PublicShellProps {
    * control on the one row a storefront's search field lives on.
    */
   readonly phoneChrome?: "drawer" | "dock";
+  /**
+   * Draw the header's HOME affordance in `phoneChrome="dock"`. Default `true`.
+   *
+   * The brand mark at glyph size, linking to `/`, at the head of the phone
+   * header row — the corner every storefront puts it in, and the only route
+   * home a docked phone chrome had. It replaces nothing: the wordmark is still
+   * absent (the row cannot hold one), the search field still dominates, and a
+   * host's own leading control (a history back arrow, say) sits beside it
+   * rather than instead of it.
+   *
+   * `false` for a host whose own chrome already owns that corner. Desktop and
+   * `"drawer"` are untouched either way — both draw the full wordmark, which
+   * is already a link home.
+   */
+  readonly home?: boolean;
   /**
    * Counts to mark nav destinations with, keyed by `ResolvedNavEntry.id` —
    * unread messages, pending offers. THE canonical badge channel: the count
@@ -351,6 +366,60 @@ function PublicChrome(props: PublicShellProps): ReactElement {
       </div>
     ) : null;
 
+  /*
+   * ── The way home, on a phone ──────────────────────────────────────────────
+   *
+   * `"dock"` mode drops the wordmark for a good reason — a 390px row cannot
+   * carry one AND a search field worth typing into — and that left the phone
+   * with NO route to `/` at all: the header's leading control is a host's
+   * history back arrow (which does not reach home from a deep chain or a
+   * fresh entry), and the dock's tabs are wherever the nav manifest points.
+   * Reported by the owner as "there is no way to navigate to the front page
+   * at all", and it was exactly true.
+   *
+   * So the brand becomes a MARK: the logo alone at glyph size, or the house
+   * where a brand has no logo, always a link to `/`. It is the affordance
+   * every reference storefront puts in that corner, it costs one square of a
+   * row the search field still dominates, and it is the same target in both
+   * themes because it is drawn from the brand's own asset and the theme's own
+   * text colour.
+   *
+   * `home={false}` for a host whose own chrome owns that corner. The dock is
+   * not the answer to this even when it holds a home tab: a tab is a
+   * destination among five, and the brand corner is where a person looks.
+   */
+  const brandLogo = site?.brand?.logo;
+  const homeNode =
+    dockChrome && props.home !== false ? (
+      <Link
+        to="/"
+        aria-label={t(SHELL_I18N_KEYS.publicHome)}
+        data-testid="public-shell-home"
+        style={{
+          flex: "0 0 auto",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          // Square, and inside the 44px touch floor `SkinTheme` holds every
+          // other phone control to.
+          inlineSize: spacing[6],
+          blockSize: spacing[6],
+          color: token.colorText,
+        }}
+      >
+        {brandLogo !== undefined && brandLogo !== "" ? (
+          <img
+            src={brandLogo}
+            alt=""
+            data-testid="public-shell-home-logo"
+            style={{ maxBlockSize: spacing[5], inlineSize: "auto", display: "block" }}
+          />
+        ) : (
+          <HomeGlyph />
+        )}
+      </Link>
+    ) : null;
+
   const searchNode =
     props.searchSlot !== undefined ? (
       <div
@@ -476,6 +545,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
         {isDesktop || dockChrome ? (
           <>
             {brandNode}
+            {homeNode}
             {searchNode}
             {/* Pushed to the trailing edge whether or not a search slot
                 claimed the middle — the CTA's position must not depend on

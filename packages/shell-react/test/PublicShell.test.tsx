@@ -414,10 +414,63 @@ describe("<PublicShell/> — phoneChrome=\"dock\"", () => {
     expect(screen.queryByText("Acme")).toBeNull();
     const search = screen.getByTestId("public-shell-search");
     expect(search.style.flex).toBe("1 1 auto");
-    // Search first, account after it — and both are direct children of the one
-    // header row rather than of a nested line.
+    // Home, search, account — all three direct children of the one header row
+    // rather than of a nested line. The wordmark is still absent; what stands
+    // in the corner is a MARK, sized like a glyph.
     const order = [...header.children].map((el) => el.getAttribute("data-testid"));
-    expect(order).toEqual(["public-shell-search", "public-shell-account"]);
+    expect(order).toEqual([
+      "public-shell-home",
+      "public-shell-search",
+      "public-shell-account",
+    ]);
+    setViewportWidth(1440);
+  });
+
+  it("puts a route HOME in the corner of every phone screen", async () => {
+    setViewportWidth(375);
+    render(
+      wrap("/s", {
+        phoneChrome: "dock",
+        brand: <span>Acme</span>,
+        searchSlot: <input aria-label="q" />,
+      })
+    );
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-home")).toBeDefined());
+    // The defect this closes: the docked phone chrome drew no brand, the
+    // header's leading control was a host's history back arrow, and the dock's
+    // tabs are wherever a manifest points — so `/` was reachable from nowhere.
+    const home = screen.getByTestId("public-shell-home");
+    expect(home.getAttribute("href")).toBe("/");
+    // A picture needs a name, or a screen reader reads a link with no text.
+    expect(home.getAttribute("aria-label")).toBe("Home");
+    setViewportWidth(1440);
+  });
+
+  it("draws no home mark where the host says its own chrome owns that corner", async () => {
+    setViewportWidth(375);
+    render(
+      wrap("/s", {
+        phoneChrome: "dock",
+        home: false,
+        searchSlot: <input aria-label="q" />,
+      })
+    );
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-header")).toBeDefined());
+    expect(screen.queryByTestId("public-shell-home")).toBeNull();
+    setViewportWidth(1440);
+  });
+
+  it("leaves the drawer chrome's own wordmark alone — it is already a link home", async () => {
+    setViewportWidth(375);
+    render(
+      wrap("/s", { brand: <span>Acme</span>, searchSlot: <input aria-label="q" /> })
+    );
+
+    await waitFor(() => expect(screen.getByTestId("public-shell-brand")).toBeDefined());
+    // No second home control beside a wordmark that already is one.
+    expect(screen.queryByTestId("public-shell-home")).toBeNull();
     setViewportWidth(1440);
   });
 

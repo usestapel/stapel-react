@@ -102,6 +102,17 @@ const HeartOutlined = svg(
   <path d="M12 20.5s-7.5-4.7-9.8-9.4A5.2 5.2 0 0 1 12 6.3a5.2 5.2 0 0 1 9.8 4.8c-2.3 4.7-9.8 9.4-9.8 9.4z" />
 );
 
+/** The front page. A nav-manifest name — an entry that leads home is a
+ * DESTINATION, and a dock whose first tab draws the fallback square is the
+ * defect this registry exists to prevent. Distinct from {@link HomeGlyph},
+ * which is chrome: same house, different door. */
+const HomeOutlined = svg(
+  <>
+    <path d="M4 10.5 12 4l8 6.5" />
+    <path d="M6 9.8V19a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9.8" />
+  </>
+);
+
 const MessageOutlined = svg(
   <>
     <rect x="3" y="4" width="18" height="13" rx="2" />
@@ -179,6 +190,7 @@ const REGISTRY: Record<string, (props: { size?: number }) => ReactElement> = {
   ClockCircleOutlined,
   FolderOpenOutlined,
   HeartOutlined,
+  HomeOutlined,
   MessageOutlined,
   OrderedListOutlined,
   PlusOutlined,
@@ -241,6 +253,24 @@ export function CloseGlyph({ size = 18 }: { size?: number }): ReactElement {
     <ChromeGlyph size={size}>
       <path d="M6 6l12 12" />
       <path d="M18 6L6 18" />
+    </ChromeGlyph>
+  );
+}
+
+/**
+ * A house — the phone header's way HOME.
+ *
+ * Chrome, like {@link MenuGlyph}: it is the shell's own control, not a
+ * destination a manifest named, so it is not in the nav registry. It is drawn
+ * only where a brand has no logo of its own — a wordmark cannot share a 390px
+ * row with a search field, and the row without either had no route to `/` at
+ * all.
+ */
+export function HomeGlyph({ size = 20 }: { size?: number }): ReactElement {
+  return (
+    <ChromeGlyph size={size}>
+      <path d="M4 10.5 12 4l8 6.5" />
+      <path d="M6 9.8V19a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9.8" />
     </ChromeGlyph>
   );
 }

@@ -17,6 +17,7 @@ export const shellI18nBundleEs: I18nDictionary = {
   "shell.dock.label": "Secciones principales",
   "shell.dock.unread": "sin leer: {count}",
   "shell.public.sign_in": "Iniciar sesión",
+  "shell.public.home": "Inicio",
   "shell.legal.privacy": "Privacidad",
   "shell.legal.terms": "Condiciones",
   "shell.legal.support": "Soporte",

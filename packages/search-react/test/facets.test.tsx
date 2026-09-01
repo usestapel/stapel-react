@@ -89,6 +89,98 @@ describe("a skipped slug says 'not counted', never 0", () => {
   });
 });
 
+describe("an uncounted facet is still a FILTER", () => {
+  it("draws a skipped slug's options from the category schema", () => {
+    // The defect: options came only from the counted buckets, so a slug in
+    // `facet_meta.skipped` had NONE — and every surface drops a group with no
+    // options. The person read "these filters were not counted" and then could
+    // not use them, while `/query` accepts `f.condition` either way. Measured
+    // on a live cars leaf: 26 facetable features declared, 12 counted.
+    const groups = buildFacetGroups({
+      facets: { brand: { bosch: 12 } },
+      meta: {
+        approximate: false,
+        candidates: 12,
+        counted: ["brand"],
+        skipped: ["condition"], core_ranges: [],
+      },
+      state: stateOf("type=listing"),
+      categoryFeatures: FEATURES,
+    });
+    const condition = groups.find((g) => g.slug === "condition");
+    expect(condition?.counted).toBe(false);
+    // The authored order, and no invented numbers: "nobody counted this" is
+    // still said beside every option.
+    expect(condition?.options.map((o) => [o.value, o.count])).toEqual([
+      ["new", null],
+      ["used", null],
+    ]);
+  });
+
+  it("keeps the applied value first among them, still selected", () => {
+    const groups = buildFacetGroups({
+      facets: {},
+      meta: {
+        approximate: false,
+        candidates: 3,
+        counted: [],
+        skipped: ["condition"], core_ranges: [],
+      },
+      state: stateOf("type=listing&f.condition=used"),
+      categoryFeatures: FEATURES,
+    });
+    const condition = groups.find((g) => g.slug === "condition");
+    expect(condition?.options.map((o) => [o.value, o.selected])).toEqual([
+      ["new", false],
+      ["used", true],
+    ]);
+  });
+
+  it("invents nothing for a slug no schema and no answer names", () => {
+    // A `ref_select` config is a POINTER into a vocabulary this pair cannot
+    // read. An empty group is honest there, and every surface drops it.
+    const groups = buildFacetGroups({
+      facets: {},
+      meta: {
+        approximate: false,
+        candidates: 4,
+        counted: [],
+        skipped: ["make_ref"], core_ranges: [],
+      },
+      state: stateOf("type=listing"),
+      categoryFeatures: [
+        {
+          slug: "make_ref",
+          name: "test.feature.make",
+          config: { type: "ref_select", optionsRef: { vocabulary: "cars", level: "Make" } },
+        },
+      ],
+    });
+    expect(groups.find((g) => g.slug === "make_ref")?.options).toEqual([]);
+  });
+
+  it("falls back to the answer's own captions when the schema has no table", () => {
+    const groups = buildFacetGroups({
+      facets: {},
+      meta: {
+        approximate: false,
+        candidates: 4,
+        counted: [],
+        skipped: ["colour"], core_ranges: [],
+      },
+      state: stateOf("type=listing"),
+      facetLabels: {
+        colour: { translatable: false, values: { red: "Red", blue: "Blue" } },
+      },
+    });
+    const colour = groups.find((g) => g.slug === "colour");
+    expect(colour?.options.map((o) => [o.value, o.label, o.count])).toEqual([
+      ["red", "Red", null],
+      ["blue", "Blue", null],
+    ]);
+  });
+});
+
 describe("labels come from the category schema (@stapel/attributes-react)", () => {
   const t = (key: string): string =>
     ({
@@ -144,7 +236,37 @@ describe("labels come from the category schema (@stapel/attributes-react)", () =
 });
 
 describe("the panel renders the server's honesty flags", () => {
-  it("shows the approximate notice and names the skipped slugs", async () => {
+  it("shows the approximate notice and names the skipped slugs — behind the opt-in", async () => {
+    const server = mockServer({
+      "/query": {
+        body: searchResponse({
+          facet_meta: {
+            approximate: true,
+            candidates: 15000,
+            counted: ["brand"],
+            skipped: ["power_w", "colour"], core_ranges: [],
+          },
+        }),
+      },
+    });
+    render(
+      <TestHarness server={server}>
+        <FacetPanelPane categoryFeatures={FEATURES} skippedNotice />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("facets-approximate")).toBeTruthy();
+    });
+    expect(screen.getByTestId("facets-skipped").textContent).toContain("power_w");
+    expect(screen.getByTestId("facets-skipped").textContent).toContain("colour");
+  });
+
+  it("says NOTHING about uncounted slugs on a shopper's panel", async () => {
+    // The owner met this as a yellow warning listing forty-two internal field
+    // names above the filters on a live cars leaf. It is the engine's own note
+    // about its facet plan, it is true, and it is not a shopper's sentence —
+    // the same class as the synonym-expansion notice this pair removed
+    // earlier. `skippedNotice` (default false) is the only way back to it.
     const server = mockServer({
       "/query": {
         body: searchResponse({
@@ -165,8 +287,34 @@ describe("the panel renders the server's honesty flags", () => {
     await waitFor(() => {
       expect(screen.getByTestId("facets-approximate")).toBeTruthy();
     });
-    expect(screen.getByTestId("facets-skipped").textContent).toContain("power_w");
-    expect(screen.getByTestId("facets-skipped").textContent).toContain("colour");
+    expect(screen.queryByTestId("facets-skipped")).toBeNull();
+  });
+
+  it("renders nothing at all on a healthy answer — no flags, no notes", async () => {
+    const server = mockServer({
+      "/query": {
+        body: searchResponse({
+          facets: { brand: { bosch: 12 } },
+          facet_meta: {
+            approximate: false,
+            candidates: 12,
+            counted: ["brand"],
+            skipped: [], core_ranges: [],
+          },
+        }),
+      },
+    });
+    render(
+      <TestHarness server={server}>
+        <FacetPanelPane categoryFeatures={FEATURES} />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("facet-group-brand")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("facets-approximate")).toBeNull();
+    expect(screen.queryByTestId("facets-skipped")).toBeNull();
+    expect(document.querySelectorAll(".ant-alert").length).toBe(0);
   });
 
   it("prints 'not counted' where a skipped slug's number would go", async () => {

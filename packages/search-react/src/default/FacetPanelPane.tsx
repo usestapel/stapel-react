@@ -17,7 +17,10 @@
  *    genuinely are a sample above the backend's candidate cap.
  *  - `skipped` — the slugs the server did not count at all. Their options show
  *    "not counted", never `0`. A silent zero there is the same defect class as
- *    `data ?? []`: a number that looks like an answer and is not one.
+ *    `data ?? []`: a number that looks like an answer and is not one. The
+ *    facet itself is still DRAWN, from the category schema, because the server
+ *    filters on a slug it never counted; the engine's own list of skipped
+ *    slugs is a developer's note and lives behind `skippedNotice`.
  *
  * ── Two slots, and why they are slots ─────────────────────────────────────
  *
@@ -183,6 +186,30 @@ export interface FacetPanelPaneProps extends ThemeModeProp {
    * "Clear all" control lives in it.
    */
   readonly heading?: ReactNode;
+  /**
+   * Print the engine's own note about which slugs it did not COUNT
+   * (`facet_meta.skipped`). Default `false` — off, and off for a shopper.
+   *
+   * ── Why this is opt-in and was not ────────────────────────────────────────
+   *
+   * The sentence is true and it is not a shopper's sentence. On a live cars
+   * leaf it rendered as a yellow warning naming forty-two of the category's
+   * own fields — climate-control sub-options, a video-file URL, nine dealer
+   * promotions — stacked above the filters. The same class of engine plumbing
+   * as the synonym-expansion notice this pair removed earlier, and the owner
+   * read it exactly that way: as the page saying something was broken.
+   *
+   * It was also, until this release, a WARNING ABOUT A CONSEQUENCE THE PANEL
+   * IMPOSED: an uncounted facet drew no options, so the note named filters
+   * the person could not then use. `buildFacetGroups` now builds those
+   * options from the category schema, so the filters are there, counted or
+   * not, and the only thing missing is the number beside each option — which
+   * every option already says for itself.
+   *
+   * `true` puts it back, for a developer looking at a deployment's facet plan
+   * on a staging surface. Nothing else changes with it.
+   */
+  readonly skippedNotice?: boolean;
 }
 
 /** The category constraint: the host's control, or the door out of it. */
@@ -487,7 +514,7 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 title={t(SEARCH_I18N_KEYS.facetsApproximate)}
               />
             )}
-            {bag.skipped.length > 0 && (
+            {props.skippedNotice === true && bag.skipped.length > 0 && (
               <Alert
                 type="warning"
                 showIcon
@@ -514,11 +541,11 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               {(groups) => (
                 <Flex vertical gap={spacing[4]}>
                   {/* A group with no options is a heading with nothing under
-                      it. `power_w` arrives in `skipped` and in no facet map,
-                      so it produced exactly that — "Power" printed twice on
-                      the desktop panel, once as the range row and once as a
-                      label over air. The skipped Alert above already names it;
-                      a heading with no control under it names nothing. */}
+                      it. What is left in that state after `buildFacetGroups`
+                      learned to read the schema is the genuinely unanswerable
+                      case: a `ref_select` whose config is a bare pointer into
+                      a vocabulary this pair cannot read. A heading with no
+                      control under it names nothing, so it is not drawn. */}
                   {/* Each group draws itself the way its own schema says:
                       pills for a single-choice facet, indented children for a
                       hierarchical one, a fold for a long one. The panel does

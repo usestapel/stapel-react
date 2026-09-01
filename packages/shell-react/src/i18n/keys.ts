@@ -48,6 +48,13 @@ export const SHELL_I18N_KEYS = {
    * reachable on any storefront — a hidden entry point teaches nothing
    * (private-space canon §6.3). */
   publicSignIn: "shell.public.sign_in",
+  /** The phone header's home affordance — the brand mark, or the house glyph
+   * where a brand has no logo. Its accessible name, because the control is a
+   * picture: without it a screen reader reads a link with no text. The dock
+   * has no home tab on a deployment that does not declare one, and history's
+   * back arrow is not a route home, so this control is the guarantee that `/`
+   * is one tap from every screen. */
+  publicHome: "shell.public.home",
   /** `<SiteLegalFooter/>`'s three labels. The SENTENCES are the deployment's
    * (a company line, an address, a support mailbox — all of them come off the
    * wire in `brand.legal`); what the shell owns is the WORD on each link, and
@@ -77,6 +84,7 @@ export const shellI18nBundleEn: I18nDictionary = {
   "shell.dock.label": "Main sections",
   "shell.dock.unread": "{count} unread",
   "shell.public.sign_in": "Sign in",
+  "shell.public.home": "Home",
   "shell.legal.privacy": "Privacy",
   "shell.legal.terms": "Terms",
   "shell.legal.support": "Support",
