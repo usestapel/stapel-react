@@ -104,6 +104,42 @@
       }
     },
     {
+      "id": "search.empty-exits",
+      "title": "Empty-result exits",
+      "description": "A search that found nothing, with a way out of every constraint that could have caused it — up a level of the category path, four times the radius, everywhere, drop one named filter, clear everything. Each button removes exactly one constraint and is offered only when that constraint is actually applied, so the row is never a wall of controls that change nothing. Sibling sections with counts are the exit a buyer most wants and the one this package must not build: walking the tree belongs to the categories pair, so it is a host slot rendered above the derived exits.",
+      "component": "EmptyExits",
+      "covers": [
+        "parentCategory"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "every constraint",
+          "description": "Narrowed to a third-level category, centred with a 25 km radius, one facet and one range applied — five separate exits plus 'clear everything', because which one is the culprit is not something this pair can rank.",
+          "viewport": "phone",
+          "step": "all-exits"
+        },
+        {
+          "id": "only the location",
+          "description": "The commonest real case on a thin board: nothing was typed, nothing was filtered, and the SERP applied a radius the category page did not. Two exits, and no 'up a level' — there is no path to shorten.",
+          "viewport": "phone",
+          "step": "geo-only"
+        },
+        {
+          "id": "with the host's siblings",
+          "description": "The slot filled: neighbouring sections with live counts, above the derived exits. The host has the tree and the counts; this package has neither, and a made-up number beside a section name is worse than no section list.",
+          "viewport": "phone",
+          "step": "with-extra"
+        }
+      ],
+      "source": {
+        "file": "demo/EmptyExits.demo.tsx",
+        "line": 82
+      }
+    },
+    {
       "id": "search.facet-panel-pane",
       "title": "Filter panel",
       "description": "The drill-down facet panel with every count beside its option — including the options you have not chosen, which is what makes them drill-down rather than naive — plus the server's honesty flags said in words: 'these counts are approximate' and the slugs it did not count at all, whose options read 'not counted' and never a zero that looks like an answer.",

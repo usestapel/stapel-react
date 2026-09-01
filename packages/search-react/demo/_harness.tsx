@@ -115,6 +115,11 @@ export function mockFetch(handlers: DemoHandlers): typeof globalThis.fetch {
  * app-local and never false-positives on them. */
 const demoBundleEn: Record<string, string> = {
   "demo.label.url": "URL",
+  // The host slot on an empty result: the neighbouring sections a container
+  // that owns the category tree can offer, which this package cannot build.
+  "demo.exits.siblings": "Nearby in this section",
+  "demo.exits.sibling_used": "Used cars · 128",
+  "demo.exits.sibling_bikes": "Motorcycles · 41",
   "demo.action.reset": "Reset",
   "demo.feature.brand": "Brand",
   "demo.feature.condition": "Condition",
