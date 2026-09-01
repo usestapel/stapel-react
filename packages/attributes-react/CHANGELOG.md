@@ -1,5 +1,26 @@
 # @stapel/attributes-react
 
+## 0.8.1
+
+### Patch Changes
+
+- The imported rule corpus and the vocabulary examples are source-neutral.
+
+  `test/fixtures/rules-corpus/imported/` replaces the directory named after the
+  external marketplace the corpus was imported from, and both files were
+  regenerated upstream (stapel-attributes 0.7.1) with a synthetic option
+  vocabulary and structural notes. The rewrite is injective per case, so the
+  TypeScript evaluator is still measured against exactly the same 3890 rules at
+  both polarities — 7780 frames, 15 730 feature-state expectations, the same
+  effect mix and the same shape gate. `scripts/gen-rules-corpus.mjs` copies the
+  `imported` set, and the `stapel-attributes` contract pin moves to v0.7.1.
+
+  Examples and demo data drop the source's name too: the worked vocabulary is
+  `phone-models` / `car-models` / `phone-catalog` across the attributes,
+  vocabularies, search and listings pairs. Comments, READMEs and changelog prose
+  say "an imported external catalogue" where they used to name the marketplace.
+  No runtime behaviour, exported API or wire shape changes.
+
 ## 0.8.0
 
 ### Minor Changes
@@ -147,7 +168,7 @@
   stapel-attributes 0.6.0 registers a thirteenth builtin type: one feature
   holding a small TABLE. Its value is a list of rows keyed by child slug, and its
   `config.fields` are full feature definitions of the ordinary kinds — which is
-  the shape 2 468 fields of the Avito autoload corpus carry (a discount ladder is
+  the shape 2 468 fields of the imported catalogue corpus carry (a discount ladder is
   "from N units, M % off", up to five steps) and that no other kind could hold.
 
   **attributes-react**
@@ -203,15 +224,15 @@
   against Python rather than reviewed against it — `test/rules.golden.test.ts`
   runs all 59 state cases and all 10 pipeline cases of the corpus the engine
   records from its own evaluator, copied here by `pnpm gen:rules` and drift-gated,
-  AND the whole generated Avito set from stapel-attributes 0.5.1: 3890 distinct
+  AND the whole generated imported set from stapel-attributes 0.5.1: 3890 distinct
   rules lifted out of a real catalogue, each at both polarities — 7780 frames,
   15730 feature-state expectations, compared to what the Python evaluator wrote.
   A rule is a transition and one frame cannot photograph one, so the pair is the
   unit of evidence, and the corpus gate insists the two frames actually differ on
   the rule-bearing feature and that all five effects (require / show / hide /
-  forbid_option / limit) appear. The two Avito files are copied BYTE FOR BYTE
-  (~12 MB, test-only, never packed) rather than re-serialized, so "this file IS
-  upstream's file" stays checkable.
+  forbid_option / limit) appear. The two corpus files are copied BYTE FOR BYTE
+  (megabytes, test-only, never packed) rather than re-serialized, so "this file
+  IS upstream's file" stays checkable.
   Three behaviours that are decisions, not defaults: readings come from the
   feature DEFINITIONS (a controlling slug the set does not declare reads as
   `empty` even when `values` carries one), `narrowConfig` REPLACES a declared

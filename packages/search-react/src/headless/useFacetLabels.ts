@@ -7,7 +7,7 @@
  * A live classified deployment's category schema types `vendor`, `model`,
  * `memory_size` and `color_ref_select` as `ref_select`: their config carries
  * no `options` table at all, only a POINTER —
- * `{"optionsRef": {"level": "Vendor", "vocabulary": "avito-phone-catalog"}}`.
+ * `{"optionsRef": {"level": "Vendor", "vocabulary": "phone-catalog"}}`.
  * The words live in the vocabulary the pointer names, which is a different
  * service with a different client. So the two label sources this pair already
  * has both come up empty: the answer's `facet_labels` because the deployed

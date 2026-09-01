@@ -159,7 +159,7 @@ describe("RefSelectEditor", () => {
     );
     expect(search).not.toHaveBeenCalled();
     fireEvent.mouseDown(screen.getByRole("combobox"));
-    await waitFor(() => expect(search).toHaveBeenCalledWith("avito-phones", "Vendor", "", undefined, expect.anything()));
+    await waitFor(() => expect(search).toHaveBeenCalledWith("phone-models", "Vendor", "", undefined, expect.anything()));
     await waitFor(() => expect(screen.getByTitle("Apple")).toBeDefined());
   });
 
@@ -238,7 +238,7 @@ describe("RefSelectEditor", () => {
     fireEvent.mouseDown(screen.getAllByRole("combobox")[1] as HTMLElement);
     await waitFor(() =>
       expect(search).toHaveBeenCalledWith(
-        "avito-phones",
+        "phone-models",
         "Model",
         "",
         "apple",
@@ -306,7 +306,7 @@ describe("RefHierarchicalSelectEditor", () => {
       )
     );
     await waitFor(() =>
-      expect(search).toHaveBeenCalledWith("avito-cars", "Make", "")
+      expect(search).toHaveBeenCalledWith("car-models", "Make", "")
     );
     expect(search).toHaveBeenCalledTimes(1);
   });

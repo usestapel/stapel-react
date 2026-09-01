@@ -7,7 +7,7 @@
  * ```tsx
  * import { VocabularyTermSelect } from "@stapel/vocabularies-react/default";
  * // under core's <I18nProvider>; the client is a prop, not a context read:
- * <VocabularyTermSelect client={client} vocabulary="avito-phones" level="Vendor" … />
+ * <VocabularyTermSelect client={client} vocabulary="phone-models" level="Vendor" … />
  * ```
  */
 export { VocabularyTermSelect } from "./VocabularyTermSelect.js";

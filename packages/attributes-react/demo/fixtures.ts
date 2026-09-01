@@ -407,7 +407,7 @@ export const SECTION_FEATURES: readonly FeatureDef[] = [
 
 export const VENDOR: FeatureDef = feature("vendor", "Brand", {
   type: "ref_select",
-  optionsRef: { vocabulary: "avito-phones", level: "Vendor" },
+  optionsRef: { vocabulary: "phone-models", level: "Vendor" },
   maxSelected: 1,
 });
 
@@ -419,7 +419,7 @@ export const MODEL: FeatureDef = feature(
   "Model",
   {
     type: "ref_select",
-    optionsRef: { vocabulary: "avito-phones", level: "Model", parentFeature: "vendor" },
+    optionsRef: { vocabulary: "phone-models", level: "Model", parentFeature: "vendor" },
     maxSelected: 1,
   },
   { description: "demo.help.model" }
@@ -429,7 +429,7 @@ export const REF_SELECT_FEATURES: readonly FeatureDef[] = [VENDOR, MODEL];
 
 export const CAR_TREE: FeatureDef = feature("make_model", "Make and model", {
   type: "ref_hierarchical_select",
-  vocabulary: "avito-cars",
+  vocabulary: "car-models",
   levels: ["Make", "Model", "Generation"],
   minDepth: 1,
   maxDepth: 3,
@@ -441,7 +441,7 @@ export const REF_HIERARCHICAL_FEATURES: readonly FeatureDef[] = [CAR_TREE];
  * phones and three of cars, which is the smallest thing that shows a parent
  * narrowing a child and a cascader loading a level at a time. */
 const TERMS: Readonly<Record<string, Readonly<Record<string, readonly VocabularyTerm[]>>>> = {
-  "avito-phones": {
+  "phone-models": {
     Vendor: [
       { code: "apple", label: "Apple", has_children: true },
       { code: "samsung", label: "Samsung", has_children: true },
@@ -458,7 +458,7 @@ const TERMS: Readonly<Record<string, Readonly<Record<string, readonly Vocabulary
     ],
     "Model:xiaomi": [{ code: "redmi-note-13", label: "Redmi Note 13" }],
   },
-  "avito-cars": {
+  "car-models": {
     Make: [
       { code: "volkswagen", label: "Volkswagen", has_children: true },
       { code: "skoda", label: "Škoda", has_children: true },
@@ -512,14 +512,15 @@ export const DEMO_VOCABULARY_CLIENT: VocabularyClient = {
 // ── the composite ───────────────────────────────────────────────────────────
 
 /**
- * `group` — the shape 2 468 Avito fields carry and no other kind could hold:
- * a small TABLE. `DiscountLadderList` is "from N units, M % off", repeated up
+ * `group` — the shape 2 468 imported fields carry and no other kind could hold:
+ * a small TABLE. A wholesale discount ladder is "from N units, M % off",
+ * repeated up
  * to five times, and its children are full feature definitions of ordinary
  * kinds — so the cells are the same `int` editors a top-level row would get,
  * bounds and postfix included.
  *
- * The parent's own row cap lives in `repeat`, never in a child's bounds: Avito
- * ships it as `values_range: {max: 5}` on the parent, and reading that as a
+ * The parent's own row cap lives in `repeat`, never in a child's bounds: the
+ * source ships it as `values_range: {max: 5}` on the parent, and reading that as a
  * value bound would have produced a field accepting 3 and refusing a 10 %
  * discount.
  */

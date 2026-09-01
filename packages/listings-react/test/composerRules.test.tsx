@@ -76,7 +76,7 @@ const REF_FEATURE: FeatureDef = {
   name: "Brand",
   config: {
     type: "ref_select",
-    optionsRef: { vocabulary: "avito-phones", level: "Vendor" },
+    optionsRef: { vocabulary: "phone-models", level: "Vendor" },
     maxSelected: 1,
   },
 };

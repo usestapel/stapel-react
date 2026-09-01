@@ -53,11 +53,11 @@ describe("search — the URL that goes out", () => {
   it("carries level, q and limit, and omits parent when it is undefined", async () => {
     const s = stub(PAGE);
     const client = createVocabularyClient({ baseUrl: BASE, fetch: s.fetch });
-    await client.search("avito-phones", "Vendor", "app");
+    await client.search("phone-models", "Vendor", "app");
 
     expect(s.urls).toHaveLength(1);
     const url = new URL(s.urls[0] as string);
-    expect(url.pathname).toBe("/vocabularies/api/v1/vocabularies/avito-phones/terms/");
+    expect(url.pathname).toBe("/vocabularies/api/v1/vocabularies/phone-models/terms/");
     expect(url.searchParams.get("level")).toBe("Vendor");
     expect(url.searchParams.get("q")).toBe("app");
     expect(url.searchParams.get("limit")).toBe("50");
@@ -70,8 +70,8 @@ describe("search — the URL that goes out", () => {
   it("sends parent when a parent term is given, and drops an empty one", async () => {
     const s = stub(PAGE, PAGE);
     const client = createVocabularyClient({ baseUrl: BASE, fetch: s.fetch });
-    await client.search("avito-phones", "Model", "", "apple");
-    await client.search("avito-phones", "Model", "", "");
+    await client.search("phone-models", "Model", "", "apple");
+    await client.search("phone-models", "Model", "", "");
 
     expect(new URL(s.urls[0] as string).searchParams.get("parent")).toBe("apple");
     expect(new URL(s.urls[1] as string).searchParams.has("parent")).toBe(false);
@@ -120,7 +120,7 @@ describe("search — the URL that goes out", () => {
   it("returns the page's rows, `has_children` included", async () => {
     const s = stub(PAGE);
     const terms = await createVocabularyClient({ baseUrl: BASE, fetch: s.fetch }).search(
-      "avito-phones",
+      "phone-models",
       "Vendor",
       ""
     );
@@ -176,14 +176,14 @@ describe("resolve", () => {
   it("sends the codes as one comma-separated parameter and reads the map back", async () => {
     const s = stub({ apple: "Apple", samsung: "Samsung" });
     const labels = await createVocabularyClient({ baseUrl: BASE, fetch: s.fetch }).resolve(
-      "avito-phones",
+      "phone-models",
       "Vendor",
       ["apple", "samsung", "nokia"]
     );
 
     const url = new URL(s.urls[0] as string);
     expect(url.pathname).toBe(
-      "/vocabularies/api/v1/vocabularies/avito-phones/terms/resolve/"
+      "/vocabularies/api/v1/vocabularies/phone-models/terms/resolve/"
     );
     expect(url.searchParams.get("level")).toBe("Vendor");
     expect(url.searchParams.get("codes")).toBe("apple,samsung,nokia");

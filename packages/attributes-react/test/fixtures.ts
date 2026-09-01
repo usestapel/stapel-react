@@ -126,7 +126,7 @@ export const CONVERTIBLE_FEATURE: FeatureDef = feature("length", {
 
 export const REF_SELECT_FEATURE: FeatureDef = feature("vendor", {
   type: "ref_select",
-  optionsRef: { vocabulary: "avito-phones", level: "Vendor" },
+  optionsRef: { vocabulary: "phone-models", level: "Vendor" },
   maxSelected: 1,
 });
 
@@ -134,13 +134,13 @@ export const REF_SELECT_FEATURE: FeatureDef = feature("vendor", {
  * vendor's children, and its own answer is cleared when the vendor moves. */
 export const REF_SELECT_CHILD_FEATURE: FeatureDef = feature("model", {
   type: "ref_select",
-  optionsRef: { vocabulary: "avito-phones", level: "Model", parentFeature: "vendor" },
+  optionsRef: { vocabulary: "phone-models", level: "Model", parentFeature: "vendor" },
   maxSelected: 1,
 });
 
 export const REF_HIERARCHICAL_FEATURE: FeatureDef = feature("make_model", {
   type: "ref_hierarchical_select",
-  vocabulary: "avito-cars",
+  vocabulary: "car-models",
   levels: ["Make", "Model", "Generation"],
   minDepth: 1,
   maxDepth: 3,
@@ -153,7 +153,7 @@ export const UNKNOWN_TYPE_FEATURE: FeatureDef = feature("size_grid", {
 });
 
 /**
- * The composite: Avito's `DiscountLadderList` — "quantity from N, discount
+ * The composite: a wholesale discount ladder — "quantity from N, discount
  * M %", up to five steps. Children are full feature definitions of ordinary
  * kinds; the parent's row cap lives in `repeat`, never in a child's bounds.
  */

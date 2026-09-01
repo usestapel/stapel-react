@@ -1,6 +1,6 @@
 {
   "name": "@stapel/vocabularies-react",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Reference vocabularies too large to inline into a category schema: term typeahead and code-to-label resolve behind the VocabularyClient seam, plus the antd term select.",
   "license": "MIT",
   "repository": {

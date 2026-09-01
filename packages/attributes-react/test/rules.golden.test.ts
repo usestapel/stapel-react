@@ -27,8 +27,8 @@
  *        option list, `above_maximum`/`below_minimum` from a narrowed bound).
  *      · `expect.dao`     — which answers actually reach the wire, which is
  *        `toFeaturesDto` dropping the hidden ones.
- *  - `avito` — the GENERATED set: 3890 distinct rules lifted out of the real
- *    Avito catalogue by `stapel-avito-import --emit-rule-cases`, each recorded
+ *  - `imported` — the GENERATED set: 3890 distinct rules lifted out of a real
+ *    imported catalogue by the catalogue importer, each recorded
  *    at BOTH polarities (a values assignment that fires the rule and one that
  *    does not), with the feature set stored once per pair. A rule is a
  *    TRANSITION, and one frame cannot photograph one — so the pair is the unit
@@ -48,7 +48,7 @@ import { mirrorValidate } from "../src/validate.js";
 import { toFeaturesDto } from "../src/dto.js";
 import corpus from "./fixtures/rules-corpus/index.json" with { type: "json" };
 
-// The Avito files are ~12 MB of single-line JSON and are read at run time
+// The imported files are megabytes of single-line JSON and are read at run time
 // rather than imported: a static import would make vite transform (and hold in
 // memory) a 10 MB module for every worker that touches this file.
 const CORPUS_DIR = fileURLToPath(new URL("./fixtures/rules-corpus/", import.meta.url));
@@ -88,39 +88,39 @@ const pipeline = corpus.pipeline as readonly PipelineCase[];
  * frames — that is the whole compaction — and each frame carries the values
  * that produce it plus the `expect` Python's evaluator wrote for them.
  */
-interface AvitoPolarity {
+interface ImportedPolarity {
   readonly values: Readonly<Record<string, unknown>>;
   readonly expect: Readonly<Record<string, StateExpectation>>;
 }
-interface AvitoCase {
+interface ImportedCase {
   readonly id: string;
   readonly note: string;
   readonly features: readonly FeatureDef[];
   readonly polarities: {
-    readonly match: AvitoPolarity;
-    readonly nomatch: AvitoPolarity;
+    readonly match: ImportedPolarity;
+    readonly nomatch: ImportedPolarity;
   };
 }
 
-/** The generated Avito set, one entry per DISTINCT rule.
+/** The generated imported set, one entry per DISTINCT rule.
  *
- * `corpus.avito` is a list of FILE NAMES (the driver copies the files verbatim
+ * `corpus.imported` is a list of FILE NAMES (the driver copies the files verbatim
  * rather than inlining 12 MB into index.json), so the names come from the
  * generated manifest and the contents from disk. */
-const avitoFiles = (corpus as { avito?: readonly string[] }).avito ?? [];
-const avitoSets: readonly (readonly [string, readonly AvitoCase[]])[] = avitoFiles.map(
+const importedFiles = (corpus as { imported?: readonly string[] }).imported ?? [];
+const importedSets: readonly (readonly [string, readonly ImportedCase[]])[] = importedFiles.map(
   (name) =>
-    [name, JSON.parse(readFileSync(`${CORPUS_DIR}avito/${name}`, "utf8")) as readonly AvitoCase[]] as const
+    [name, JSON.parse(readFileSync(`${CORPUS_DIR}imported/${name}`, "utf8")) as readonly ImportedCase[]] as const
 );
 
 /** Which slug each entry's rules hang off — the feature the two polarities
  * must disagree about. */
-function ruleBearing(one: AvitoCase): readonly string[] {
+function ruleBearing(one: ImportedCase): readonly string[] {
   return one.features.filter((f) => (f.rules ?? []).length > 0).map((f) => f.slug);
 }
 
 /** Every effect named anywhere in an entry's rules. */
-function effectsOf(one: AvitoCase): readonly string[] {
+function effectsOf(one: ImportedCase): readonly string[] {
   return one.features.flatMap((f) => (f.rules ?? []).map((rule) => rule.effect));
 }
 
@@ -218,7 +218,7 @@ describe.each(pipeline.map((one) => [one.id, one] as const))(
 );
 
 /**
- * The generated Avito set.
+ * The generated imported set.
  *
  * Deliberately NOT `it.each` over 3890 entries: vitest's per-test overhead
  * would turn a two-second comparison into minutes, and a run nobody waits for
@@ -227,10 +227,10 @@ describe.each(pipeline.map((one) => [one.id, one] as const))(
  * a failure still names the exact case, feature and frame, and a green run
  * costs what the arithmetic costs.
  */
-describe.runIf(avitoSets.length > 0)("the generated Avito set", () => {
+describe.runIf(importedSets.length > 0)("the generated imported set", () => {
   it("is the corpus the pin promises", () => {
-    expect(avitoFiles).toEqual(["prose.json", "values-by-group.json"]);
-    for (const [name, entries] of avitoSets) {
+    expect(importedFiles).toEqual(["prose.json", "values-by-group.json"]);
+    for (const [name, entries] of importedSets) {
       expect(entries.length, name).toBeGreaterThan(0);
     }
   });
@@ -240,7 +240,7 @@ describe.runIf(avitoSets.length > 0)("the generated Avito set", () => {
     // remaining cases would simply never exercise it. So the SHAPE is asserted
     // before the semantics.
     const seen = new Set<string>();
-    for (const [, entries] of avitoSets) {
+    for (const [, entries] of importedSets) {
       for (const one of entries) for (const effect of effectsOf(one)) seen.add(effect);
     }
     expect([...seen].sort()).toEqual([...EVERY_EFFECT]);
@@ -250,7 +250,7 @@ describe.runIf(avitoSets.length > 0)("the generated Avito set", () => {
     // The pair is the unit of evidence: if `match` and `nomatch` produced the
     // same state, the entry proves nothing about the rule it was emitted for.
     const same: string[] = [];
-    for (const [name, entries] of avitoSets) {
+    for (const [name, entries] of importedSets) {
       for (const one of entries) {
         const bearing = ruleBearing(one);
         const differs = bearing.some(
@@ -264,7 +264,7 @@ describe.runIf(avitoSets.length > 0)("the generated Avito set", () => {
     expect(same).toEqual([]);
   });
 
-  for (const [name, entries] of avitoSets) {
+  for (const [name, entries] of importedSets) {
     it(`${name} — every entry, both polarities, exactly as Python recorded them`, () => {
       const wrong: string[] = [];
       let checked = 0;
@@ -284,7 +284,7 @@ describe.runIf(avitoSets.length > 0)("the generated Avito set", () => {
       // Reported, not asserted: the count is what makes "the corpus ran" a
       // number in the log rather than a claim in a commit message.
       console.error(
-        `rules corpus [avito/${name}]: ${entries.length} rules, ` +
+        `rules corpus [imported/${name}]: ${entries.length} rules, ` +
           `${entries.length * 2} frames, ${checked} feature expectations`
       );
       expect(wrong.slice(0, 5)).toEqual([]);

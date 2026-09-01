@@ -159,7 +159,7 @@ anywhere: one field, one role.
 
 `ref_select` and `ref_hierarchical_select` carry a POINTER
 (`optionsRef {vocabulary, level, parentFeature?}`) instead of an options list,
-because the lists do not fit in a category schema — Avito's phone catalogue is
+because the lists do not fit in a category schema — a real phone catalogue is
 529 vendors and 14 962 models. The terms arrive over a second wire, behind one
 seam:
 

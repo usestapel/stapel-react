@@ -1,5 +1,26 @@
 # @stapel/vocabularies-react
 
+## 0.2.1
+
+### Patch Changes
+
+- The imported rule corpus and the vocabulary examples are source-neutral.
+
+  `test/fixtures/rules-corpus/imported/` replaces the directory named after the
+  external marketplace the corpus was imported from, and both files were
+  regenerated upstream (stapel-attributes 0.7.1) with a synthetic option
+  vocabulary and structural notes. The rewrite is injective per case, so the
+  TypeScript evaluator is still measured against exactly the same 3890 rules at
+  both polarities — 7780 frames, 15 730 feature-state expectations, the same
+  effect mix and the same shape gate. `scripts/gen-rules-corpus.mjs` copies the
+  `imported` set, and the `stapel-attributes` contract pin moves to v0.7.1.
+
+  Examples and demo data drop the source's name too: the worked vocabulary is
+  `phone-models` / `car-models` / `phone-catalog` across the attributes,
+  vocabularies, search and listings pairs. Comments, READMEs and changelog prose
+  say "an imported external catalogue" where they used to name the marketplace.
+  No runtime behaviour, exported API or wire shape changes.
+
 ## 0.2.0
 
 ### Minor Changes

@@ -59,7 +59,7 @@ it.
 
 ```tsx
 const { terms, loading, search, open } = useTermSearch(client, {
-  vocabulary: "avito-phones",
+  vocabulary: "phone-models",
   level: "Model",
   parent: vendorCode,          // undefined = the whole level
 });
@@ -88,7 +88,7 @@ import { registerVocabulariesI18nRu } from "@stapel/vocabularies-react/i18n/ru";
 
 <VocabularyTermSelect
   client={vocabularies}
-  vocabulary="avito-phones"
+  vocabulary="phone-models"
   level="Vendor"
   value={codes}
   onChange={setCodes}

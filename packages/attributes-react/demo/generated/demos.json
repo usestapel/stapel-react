@@ -113,7 +113,7 @@
         },
         {
           "id": "ref-select",
-          "description": "Two vocabulary-backed fields over a mock client: Brand searches a level of `avito-phones`, Model searches the level below narrowed by the brand's code. The options are not in the category schema — they cannot be (529 vendors, 14 962 models) — so the config carries a pointer and the terms arrive over a second wire, debounced and superseding.",
+          "description": "Two vocabulary-backed fields over a mock client: Brand searches a level of `phone-models`, Model searches the level below narrowed by the brand's code. The options are not in the category schema — they cannot be (529 vendors, 14 962 models) — so the config carries a pointer and the terms arrive over a second wire, debounced and superseding.",
           "viewport": "desktop",
           "step": "brand-and-model"
         },

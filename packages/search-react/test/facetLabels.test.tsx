@@ -139,7 +139,7 @@ describe("the host resolver names what nothing else can", () => {
     });
     expect(seen[0]?.feature?.config["optionsRef"]).toEqual({
       level: "Vendor",
-      vocabulary: "avito-phone-catalog",
+      vocabulary: "phone-catalog",
     });
   });
 

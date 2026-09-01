@@ -37,7 +37,7 @@ function TermSelectDemo(props: {
       <DemoCard heading={props.heading}>
         <VocabularyTermSelect
           client={props.unavailable === true ? null : client}
-          vocabulary="avito-phones"
+          vocabulary="phone-models"
           level={props.level}
           parent={props.parent}
           value={codes}

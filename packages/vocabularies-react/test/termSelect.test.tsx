@@ -61,7 +61,7 @@ describe("a held code is shown as its label", () => {
       wrap(
         <VocabularyTermSelect
           client={client()}
-          vocabulary="avito-phones"
+          vocabulary="phone-models"
           level="Vendor"
           value={["apple"]}
         />
@@ -79,7 +79,7 @@ describe("a held code is shown as its label", () => {
       wrap(
         <VocabularyTermSelect
           client={client({ resolve: () => Promise.resolve({}) })}
-          vocabulary="avito-phones"
+          vocabulary="phone-models"
           level="Vendor"
           value={["nokia-3310"]}
         />
@@ -95,7 +95,7 @@ describe("no client is a loud state", () => {
   it("draws the notice instead of an empty dropdown", () => {
     render(
       wrap(
-        <VocabularyTermSelect client={null} vocabulary="avito-phones" level="Vendor" />
+        <VocabularyTermSelect client={null} vocabulary="phone-models" level="Vendor" />
       )
     );
     expect(screen.getByTestId("vocabulary-term-select-unavailable")).toBeTruthy();
@@ -116,7 +116,7 @@ describe("typing debounces and supersedes", () => {
       wrap(
         <VocabularyTermSelect
           client={client({ search })}
-          vocabulary="avito-phones"
+          vocabulary="phone-models"
           level="Vendor"
         />
       )
@@ -210,7 +210,7 @@ describe("the list answers the query in the box, or it is blank", () => {
     const { client: slow, pending } = deferred();
     const { container } = render(
       wrap(
-        <VocabularyTermSelect client={slow} vocabulary="avito-phones" level="Vendor" />
+        <VocabularyTermSelect client={slow} vocabulary="phone-models" level="Vendor" />
       )
     );
     type(container, "a");
@@ -240,7 +240,7 @@ describe("the list answers the query in the box, or it is blank", () => {
     const { client: slow, pending } = deferred();
     const { container } = render(
       wrap(
-        <VocabularyTermSelect client={slow} vocabulary="avito-phones" level="Vendor" />
+        <VocabularyTermSelect client={slow} vocabulary="phone-models" level="Vendor" />
       )
     );
     type(container, "a");

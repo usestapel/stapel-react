@@ -1,6 +1,6 @@
 {
   "name": "@stapel/search-react",
-  "version": "0.14.1",
+  "version": "0.14.2",
   "description": "Headless React pair for stapel-search: a typed query client, TanStack Query hooks, and a URL-first state codec that makes a search shareable by construction (filters, ranges, geo, sort and the keyset cursor all live in the query string). Drill-down facets rendered with their remaining counts and with the server's own honesty flags — approximate, skipped, degraded — never swallowed; keyset pagination with the window refusal named; DSA Art. 26 `promoted` marking carried into every card slot and the P2B Art. 5 ranking disclosure exposed as data. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin, and /router binds the codec to react-router's useSearchParams.",
   "license": "MIT",
   "repository": {

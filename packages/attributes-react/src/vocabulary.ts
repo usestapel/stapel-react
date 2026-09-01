@@ -5,8 +5,8 @@
  * `stapel-attributes` 0.5.0 added two vocabulary-backed value types whose
  * config carries a POINTER (`optionsRef {vocabulary, level, parentFeature?}`)
  * rather than an options list, because the lists are the wrong size to inline:
- * Avito's phone catalogue is 529 vendors → 14 962 models, and its car
- * catalogue is 107 049 modifications. `GET /categories/{id}/features` sends
+ * a real phone catalogue is 529 vendors → 14 962 models, and a car
+ * catalogue 107 049 modifications. `GET /categories/{id}/features` sends
  * the pointer as-is and never inlines a vocabulary.
  *
  * So the terms arrive over a SECOND wire, and this file is the shape of it.

@@ -5,7 +5,7 @@
 // two implementations of one closed grammar, and two evaluators cannot be
 // trusted to agree by review. Upstream RECORDS the expectations
 // (`GOLDEN_RECORD=1 pytest tests/test_rules_golden.py`) into
-// `tests/golden/rules/{cases,pipeline,avito}/*.json`; this driver copies that
+// `tests/golden/rules/{cases,pipeline,imported}/*.json`; this driver copies that
 // corpus into the package as a generated artefact under `gen:check`, and
 // `test/rules.golden.test.ts` runs EVERY case through the TypeScript half.
 //
@@ -27,10 +27,10 @@
 // on — so the vitest side needs no glob and a review of the diff reads as one
 // list rather than 69 renames.
 //
-// `avito` is not that. It is the GENERATED corpus
-// (`stapel-avito-import --emit-rule-cases`, §4.7): 3890 distinct rules
-// recorded from the real Avito catalogue, in two files that are single-line
-// compact arrays of ~12 MB total, with the feature set stored once per
+// `imported` is not that. It is the GENERATED corpus (the catalogue
+// importer's `--emit-rule-cases`, §4.7): 3890 distinct rules recorded from a
+// real imported catalogue and de-identified upstream, in two files that are
+// single-line compact arrays of several MB, with the feature set stored once per
 // polarity PAIR. Those are copied BYTE FOR BYTE — not parsed, not re-indented,
 // not merged into index.json — for three reasons: re-serializing 12 MB through
 // `JSON.stringify(…, null, 2)` would quadruple it and make every future diff
@@ -38,8 +38,8 @@
 // file" is checkable by eye; and the test reads them with `readFileSync`
 // rather than a static import, so vite never has to transform a 10 MB module.
 //
-// `index.json` therefore records the avito file NAMES rather than their
-// contents, and an absent `avito/` directory is recorded as an empty list —
+// `index.json` therefore records the imported file NAMES rather than their
+// contents, and an absent `imported/` directory is recorded as an empty list —
 // the set does not exist in a checkout of stapel-attributes older than 0.5.1,
 // and its absence is a fact rather than a missing key.
 import { readdir, readFile, writeFile, mkdir, rm } from "node:fs/promises";
@@ -48,8 +48,8 @@ import { fileURLToPath } from "node:url";
 
 /** The two hand-written sets, inlined into index.json. */
 const INLINE_SETS = ["cases", "pipeline"];
-/** The generated set, copied verbatim into `<out>/avito/`. */
-const COPY_SET = "avito";
+/** The generated set, copied verbatim into `<out>/imported/`. */
+const COPY_SET = "imported";
 
 /** Every `*.json` of one set, in filename order — the ordering the upstream
  * test parametrizes on (`sorted(directory.glob("*.json"))`). */
@@ -101,27 +101,27 @@ async function main() {
   // The generated set: a byte copy, and a REPLACED directory — a file deleted
   // upstream must disappear here too, or the drift gate would go green over a
   // corpus this repo alone still carries.
-  const avitoSrc = join(src, COPY_SET);
-  const avitoOut = join(outDir, COPY_SET);
-  const avitoNames = await listSet(avitoSrc);
-  await rm(avitoOut, { recursive: true, force: true });
-  let avitoBytes = 0;
-  if (avitoNames.length > 0) {
-    await mkdir(avitoOut, { recursive: true });
-    for (const name of avitoNames) {
-      const bytes = await readFile(join(avitoSrc, name));
-      avitoBytes += bytes.byteLength;
-      await writeFile(join(avitoOut, name), bytes);
+  const importedSrc = join(src, COPY_SET);
+  const importedOut = join(outDir, COPY_SET);
+  const importedNames = await listSet(importedSrc);
+  await rm(importedOut, { recursive: true, force: true });
+  let importedBytes = 0;
+  if (importedNames.length > 0) {
+    await mkdir(importedOut, { recursive: true });
+    for (const name of importedNames) {
+      const bytes = await readFile(join(importedSrc, name));
+      importedBytes += bytes.byteLength;
+      await writeFile(join(importedOut, name), bytes);
     }
   }
-  sets[COPY_SET] = avitoNames;
+  sets[COPY_SET] = importedNames;
 
   const corpus = buildCorpus(sets, "stapel-attributes tests/golden/rules");
   await writeFile(join(outDir, "index.json"), `${JSON.stringify(corpus, null, 2)}\n`);
   console.error(
     `gen:rules: ${INLINE_SETS.map((s) => `${sets[s].length} ${s}`).join(", ")}, ` +
-      `${avitoNames.length} avito file(s) copied verbatim ` +
-      `(${(avitoBytes / 1_048_576).toFixed(1)} MB) from ${src}\n` +
+      `${importedNames.length} imported file(s) copied verbatim ` +
+      `(${(importedBytes / 1_048_576).toFixed(1)} MB) from ${src}\n` +
       `           → ${join(outDir, "index.json")}`
   );
 }

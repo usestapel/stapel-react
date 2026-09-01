@@ -214,7 +214,7 @@ export const PHONE_FEATURES: readonly FeatureDef[] = [
     name: "test.feature.vendor",
     config: {
       type: "ref_select",
-      optionsRef: { level: "Vendor", vocabulary: "avito-phone-catalog" },
+      optionsRef: { level: "Vendor", vocabulary: "phone-catalog" },
     },
   },
   { slug: "imei", name: "test.feature.imei", config: { type: "string" } },
