@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/categories-react",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "backend": {
     "module": "stapel-categories",
     "contract": ">=0.9 <0.10"
@@ -241,6 +241,15 @@
       "queryKey": [
         "categories",
         "revision"
+      ]
+    },
+    "useCategory": {
+      "kind": "query",
+      "operation": "retrieve",
+      "queryKey": [
+        "categories",
+        "category",
+        "{id}"
       ]
     },
     "useCategoryCarousel": {
@@ -1035,6 +1044,8 @@
       "browsableCategories",
       "buildCategoryCascade",
       "buildCategoryTree",
+      "cascadeChainIds",
+      "cascadeParentIds",
       "cascadeReachedLeaf",
       "cascadeSelection",
       "cascadeTrail",
@@ -1042,6 +1053,7 @@
       "categoriesErrorBundleEn",
       "categoriesI18nBundleEn",
       "categoriesQueryKeys",
+      "categoryAncestorChain",
       "categoryAncestorIds",
       "categoryBreadcrumbs",
       "categoryChildIds",
@@ -1077,15 +1089,17 @@
       "useCategoriesApi",
       "useCategoriesRevision",
       "useCategoriesRuntime",
+      "useCategory",
       "useCategoryCarousel",
       "useCategoryCascade",
       "useCategoryCatalog",
       "useCategoryChildren",
       "useCategoryFeatures",
+      "useCategoryLevels",
+      "useCategoryRows",
       "useCategorySearch"
     ],
     "types": [
-      "BuildCategoryCascadeOptions",
       "BuildCategoryTreeOptions",
       "CarouselEntry",
       "CatalogKeyOptions",
@@ -1107,9 +1121,11 @@
       "CategoryCascadeLevel",
       "CategoryCascadeOption",
       "CategoryCascadeProps",
+      "CategoryCascadeSource",
       "CategoryCascadeStep",
       "CategoryCatalog",
       "CategoryCrumb",
+      "CategoryFanOut",
       "CategoryFeature",
       "CategoryFeatureConfig",
       "CategoryFeatureEntry",

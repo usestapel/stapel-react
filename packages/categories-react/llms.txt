@@ -1,4 +1,4 @@
-# @stapel/categories-react 0.8.0
+# @stapel/categories-react 0.9.0
 
 Headless React flow pair for stapel-categories (contract >=0.9 <0.10) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
@@ -55,6 +55,7 @@ Paths are relative to `/categories/api/v1/`.
 
 ## Query hooks (server state; keys come only from the key factory)
 - useCategoriesRevision (query) → revision
+- useCategory (query) → retrieve
 - useCategoryCarousel (query) → carousel
 - useCategoryCatalog (query) → —
 - useCategoryChildren (query) → children
