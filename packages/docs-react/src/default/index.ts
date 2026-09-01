@@ -59,6 +59,8 @@ export {
   DefaultMarkdownEditor,
   DefaultCsvEditor,
 } from "./editors.js";
+export { registerDocsRichEditors } from "./richEditors.js";
+export type { RegisterDocsRichEditorsOptions } from "./richEditors.js";
 export { FileCard } from "./FileCard.js";
 export type { FileCardProps } from "./FileCard.js";
 export { NameDialog, MoveDialog, NewDocumentDialog } from "./dialogs.js";

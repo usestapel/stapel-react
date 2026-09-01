@@ -207,6 +207,17 @@
     }
   },
   "hooks": {
+    "useAppendUpdates": {
+      "kind": "mutation",
+      "operation": "postUpdate",
+      "invalidates": [
+        [
+          "docs",
+          "document",
+          "{documentId}"
+        ]
+      ]
+    },
     "useCreateDocument": {
       "kind": "mutation",
       "operation": "createDocument"
@@ -244,6 +255,15 @@
         "docs",
         "documents",
         "{params}"
+      ]
+    },
+    "useDocUpdates": {
+      "kind": "query",
+      "operation": "getUpdates",
+      "queryKey": [
+        "docs",
+        "updates",
+        "{documentId}"
       ]
     },
     "useDownloadUrl": {
@@ -900,6 +920,22 @@
       "source": "demo/RevisionsModal.demo.tsx"
     },
     {
+      "id": "docs.richEditors",
+      "title": "Rich editors",
+      "description": "CodeMirror 6 and Milkdown as OPTIONAL peers loaded with import(): no editor engine is in the pair's main entry, which is budgeted at 12 KB — a fifth of the lightest WYSIWYG measured. Markdown gets the WYSIWYG with a one-click source mode, because remark normalizes on save (semantic round-trip, not byte-for-byte) and a machine-written document belongs in the byte-stable surface. With the peers absent, every surface degrades to the pair's textarea builtin under a sentence, still saving through the same If-Match bag.",
+      "component": "EditorChrome",
+      "covers": [
+        "DocEditor"
+      ],
+      "variants": [
+        "default",
+        "markdown-source",
+        "text-codemirror",
+        "engine-missing"
+      ],
+      "source": "demo/richEditors.demo.tsx"
+    },
+    {
       "id": "docs.trash",
       "title": "Trash",
       "description": "Three states that a boolean `disabled` used to blur into one grey button: the read is in flight, the read failed, or the trash is genuinely empty. Each says which, in a sentence beside the control that aria-describedby points at. Delete-forever is confirmed through SkinConfirm — a bottom sheet on a phone, never a popover clipped against the screen edge.",
@@ -941,7 +977,12 @@
     "docs.editor.deleteRow",
     "docs.editor.dirty",
     "docs.editor.downloadOnly",
+    "docs.editor.engineFailed",
+    "docs.editor.engineLoading",
+    "docs.editor.engineMissing",
     "docs.editor.loading",
+    "docs.editor.modeRich",
+    "docs.editor.modeSource",
     "docs.editor.override",
     "docs.editor.save",
     "docs.editor.saved",
@@ -1096,6 +1137,7 @@
       "DOCS_FLOWS",
       "DOCS_HEAD_SEQ_HEADER",
       "DOCS_I18N_KEYS",
+      "DOC_UPDATES_INTERVAL_MS",
       "DocEditor",
       "DocUploader",
       "DocsProvider",
@@ -1136,9 +1178,11 @@
       "toFlowError",
       "unregisterDocEditor",
       "uploadToPutUrl",
+      "useAppendUpdates",
       "useCreateDocument",
       "useCreateFolder",
       "useCreateRevision",
+      "useDocUpdates",
       "useDocsAnalytics",
       "useDocsApi",
       "useDocsRuntime",
@@ -1178,10 +1222,14 @@
       "DocEditorAdapterProps",
       "DocEditorBag",
       "DocEditorComponent",
+      "DocEditorWrap",
+      "DocEditorWrapProps",
       "DocFolder",
       "DocRevision",
       "DocUpdate",
+      "DocUpdatesBag",
       "DocUpdatesFeed",
+      "DocUpdatesOptions",
       "DocUpdatesResponse",
       "DocUpdatesResync",
       "DocsApi",

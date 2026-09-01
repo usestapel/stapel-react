@@ -50,12 +50,14 @@ Paths are relative to `/docs/api/v1/`.
 - docs_api_v1_uploads_finalize_create: POST /uploads/{upload_id}/finalize
 
 ## Query hooks (server state; keys come only from the key factory)
+- useAppendUpdates (mutation) → postUpdate
 - useCreateDocument (mutation) → createDocument
 - useCreateFolder (mutation) → createFolder
 - useCreateRevision (mutation) → createRevision
 - useDocument (query) → getDocument
 - useDocumentContent (query) → getContent
 - useDocuments (query) → listDocuments
+- useDocUpdates (query) → getUpdates
 - useDownloadUrl (query) → getDownloadUrl
 - useExportUrl (mutation) → getDownloadUrl
 - useFolders (query) → listFolders
@@ -117,6 +119,7 @@ const { tracked } = useTracked();
 - docs.file-manager → <FileManager> [default|empty|loading|outage]  demo/FileManager.demo.tsx
 - docs.folder-tree → <FolderTreePane> [default|empty|failed]  demo/FolderTreePane.demo.tsx
 - docs.revisions → <RevisionsModal> [default|empty|binary]  demo/RevisionsModal.demo.tsx
+- docs.richEditors → <EditorChrome> [default|markdown-source|text-codemirror|engine-missing]  demo/richEditors.demo.tsx
 - docs.trash → <TrashPane> [default|empty|failed]  demo/TrashPane.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 

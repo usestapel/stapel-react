@@ -104,7 +104,10 @@ export {
   useDownloadUrl,
 } from "./model/queries.js";
 export type { DocumentText, RevisionText } from "./model/queries.js";
+export { DOC_UPDATES_INTERVAL_MS, useDocUpdates } from "./model/updates.js";
+export type { DocUpdatesBag, DocUpdatesOptions } from "./model/updates.js";
 export {
+  useAppendUpdates,
   useSaveContent,
   useCreateRevision,
   useRestoreRevision,
@@ -141,6 +144,8 @@ export {
 export type {
   DocEditorAdapterProps,
   DocEditorComponent,
+  DocEditorWrap,
+  DocEditorWrapProps,
 } from "./editors/registry.js";
 export { TextEditor } from "./editors/builtin/TextEditor.js";
 export { MarkdownEditor } from "./editors/builtin/MarkdownEditor.js";

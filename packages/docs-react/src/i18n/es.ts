@@ -119,6 +119,13 @@ export const docsI18nBundleEs: I18nDictionary = {
   "docs.editor.collabUnsupported": "Este documento se edita de forma colaborativa.",
   "docs.editor.collabUnsupportedHint":
     "No hay ningún editor colaborativo registrado para su tipo, así que aquí no se puede editar. Descárgalo o registra uno con registerDocEditor.",
+  "docs.editor.engineLoading": "Preparando el editor…",
+  "docs.editor.engineMissing":
+    "El paquete opcional del editor no está instalado: se edita el código fuente.",
+  "docs.editor.engineFailed":
+    "El editor no pudo iniciarse: se edita el código fuente.",
+  "docs.editor.modeSource": "Editar el código",
+  "docs.editor.modeRich": "Editar con formato",
   "docs.nav.files": "Documentos",
   "docs.nav.document": "Documento",
 };

@@ -21,6 +21,7 @@ export const docsQueryKeys: {
   ): readonly ["docs", "documents", DocumentListParams];
   document(documentId: string): readonly ["docs", "document", string];
   content(documentId: string): readonly ["docs", "content", string];
+  updates(documentId: string): readonly ["docs", "updates", string];
   revisions(documentId: string): readonly ["docs", "revisions", string];
   revisionContent(
     documentId: string,
@@ -37,6 +38,10 @@ export const docsQueryKeys: {
   documents: (params) => [ROOT, "documents", params],
   document: (documentId) => [ROOT, "document", documentId],
   content: (documentId) => [ROOT, "content", documentId],
+  // The journal poll (`useDocUpdates`). The cursor is deliberately NOT in the
+  // key: `?since=` moves on every tick, and a key that moved with it would
+  // mint a new cache entry per poll instead of refreshing one.
+  updates: (documentId) => [ROOT, "updates", documentId],
   revisions: (documentId) => [ROOT, "revisions", documentId],
   revisionContent: (documentId, revisionId) => [
     ROOT,

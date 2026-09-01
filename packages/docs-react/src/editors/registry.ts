@@ -21,7 +21,7 @@
  * all snapshot documents saved through the If-Match discipline; an explicit
  * `registerDocEditor("text", …)` overrides the builtin without forking.
  */
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import type { DocEditorBag } from "../headless/DocEditor.js";
 import { TextEditor } from "./builtin/TextEditor.js";
 import { MarkdownEditor } from "./builtin/MarkdownEditor.js";
@@ -35,6 +35,20 @@ export interface DocEditorAdapterProps {
 }
 
 export type DocEditorComponent = ComponentType<DocEditorAdapterProps>;
+
+/** What a chrome component wrapping an editing surface receives. Deliberately
+ * the shape `/default`'s `EditorChrome` already has: the save button, the
+ * dirty marker, the conflict banner and the error line belong to the SKIN, so
+ * an editor that wants them takes the skin's chrome as a parameter instead of
+ * importing antd (which would drag the skin into a headless subpath). */
+export interface DocEditorWrapProps {
+  readonly bag: DocEditorBag;
+  readonly children: ReactNode;
+}
+
+/** A chrome component — `/default`'s `EditorChrome`, or a host's own. Passed
+ * to the lazy engines' factories (`createCodeMirrorDocEditor({ wrap })`). */
+export type DocEditorWrap = ComponentType<DocEditorWrapProps>;
 
 const registered = new Map<string, DocEditorComponent>();
 

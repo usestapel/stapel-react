@@ -336,6 +336,46 @@
       }
     },
     {
+      "id": "docs.richEditors",
+      "title": "Rich editors",
+      "description": "CodeMirror 6 and Milkdown as OPTIONAL peers loaded with import(): no editor engine is in the pair's main entry, which is budgeted at 12 KB — a fifth of the lightest WYSIWYG measured. Markdown gets the WYSIWYG with a one-click source mode, because remark normalizes on save (semantic round-trip, not byte-for-byte) and a machine-written document belongs in the byte-stable surface. With the peers absent, every surface degrades to the pair's textarea builtin under a sentence, still saving through the same If-Match bag.",
+      "component": "EditorChrome",
+      "covers": [
+        "DocEditor"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Milkdown (Crepe) editing markdown, in the skin's chrome. Unstyled here: the host imports the Crepe theme in its own entry.",
+          "viewport": "phone",
+          "step": "markdown-wysiwyg"
+        },
+        {
+          "id": "markdown-source",
+          "description": "The source surface — CodeMirror, byte-stable. Also what the markdown hint falls back to when @milkdown/crepe is not installed.",
+          "viewport": "phone",
+          "step": "markdown-source"
+        },
+        {
+          "id": "text-codemirror",
+          "description": "editor_hint 'text' on CodeMirror: the document model IS the string.",
+          "viewport": "desktop",
+          "step": "text-codemirror"
+        },
+        {
+          "id": "engine-missing",
+          "description": "The optional peers are not installed: a sentence, the builtin textarea, and a Save that still works.",
+          "viewport": "phone",
+          "step": "engine-missing"
+        }
+      ],
+      "source": {
+        "file": "demo/richEditors.demo.tsx",
+        "line": 72
+      }
+    },
+    {
       "id": "docs.trash",
       "title": "Trash",
       "description": "Three states that a boolean `disabled` used to blur into one grey button: the read is in flight, the read failed, or the trash is genuinely empty. Each says which, in a sentence beside the control that aria-describedby points at. Delete-forever is confirmed through SkinConfirm — a bottom sheet on a phone, never a popover clipped against the screen edge.",

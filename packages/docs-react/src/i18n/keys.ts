@@ -146,6 +146,20 @@ export const DOCS_I18N_KEYS = {
    * instead of silently offering a save the journal would refuse. */
   editorCollabUnsupported: "docs.editor.collabUnsupported",
   editorCollabUnsupportedHint: "docs.editor.collabUnsupportedHint",
+  // Optional editor engines (the `./editors/codemirror` and
+  // `./editors/milkdown` subpaths — loaded with import() at mount).
+  /** The optional engine is being fetched; the surface is not blank. */
+  editorEngineLoading: "docs.editor.engineLoading",
+  /** The optional peer is not installed. A designed screen, not a crash:
+   * the plain-textarea builtin still edits the document under it. */
+  editorEngineMissing: "docs.editor.engineMissing",
+  /** The optional peer IS installed but blew up on load — a different fact
+   * from "not installed", and the remedy is a different one too. */
+  editorEngineFailed: "docs.editor.engineFailed",
+  /** Switch the markdown surface to raw source (CodeMirror). */
+  editorModeSource: "docs.editor.modeSource",
+  /** Switch the markdown surface back to rich text (Milkdown). */
+  editorModeRich: "docs.editor.modeRich",
   // Navigation (src/nav/manifest.ts — the scripted-fullstack nav contract)
   navFiles: "docs.nav.files",
   navDocument: "docs.nav.document",
@@ -264,6 +278,13 @@ export const docsI18nBundleEn: I18nDictionary = {
     "This document is edited collaboratively.",
   "docs.editor.collabUnsupportedHint":
     "No collaborative editor is registered for its type, so it cannot be edited here. Download it, or register one with registerDocEditor.",
+  "docs.editor.engineLoading": "Preparing the editor…",
+  "docs.editor.engineMissing":
+    "The optional editor package is not installed — editing the plain source instead.",
+  "docs.editor.engineFailed":
+    "The editor could not start — editing the plain source instead.",
+  "docs.editor.modeSource": "Edit source",
+  "docs.editor.modeRich": "Edit rich text",
   "docs.nav.files": "Documents",
   "docs.nav.document": "Document",
 };

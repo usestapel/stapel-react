@@ -1,7 +1,7 @@
 {
   "name": "@stapel/docs-react",
   "version": "0.5.0",
-  "description": "Headless React flow pair for stapel-docs: typed API client, TanStack Query hooks, snapshot-save discipline (If-Match head_seq), the editor_hint registry (registerDocEditor), headless components (documents / folder tree / editor / revisions / trash / upload / media), and i18n keys. Zero visual opinion in the main entry; an opt-in /default subpath ships the self-themed antd skin (file manager, context menus, revision modal, editors) — every part swappable via the skin slot registry.",
+  "description": "Headless React flow pair for stapel-docs: typed API client, TanStack Query hooks, snapshot-save discipline (If-Match head_seq), the editor_hint registry (registerDocEditor), headless components (documents / folder tree / editor / revisions / trash / upload / media), and i18n keys. Zero visual opinion in the main entry; an opt-in /default subpath ships the self-themed antd skin (file manager, context menus, revision modal, editors) — every part swappable via the skin slot registry. Real editing engines live behind their own subpaths as OPTIONAL peers loaded with import(): /editors/codemirror (byte-stable source editing) and /editors/milkdown (markdown WYSIWYG with a source mode), so no editor engine is ever in the main entry.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -20,6 +20,14 @@
     "./default": {
       "types": "./dist/default/index.d.ts",
       "default": "./dist/default/index.js"
+    },
+    "./editors/codemirror": {
+      "types": "./dist/editors/codemirror/index.d.ts",
+      "default": "./dist/editors/codemirror/index.js"
+    },
+    "./editors/milkdown": {
+      "types": "./dist/editors/milkdown/index.d.ts",
+      "default": "./dist/editors/milkdown/index.js"
     },
     "./i18n/ru": {
       "types": "./dist/i18n/ru.d.ts",
@@ -62,9 +70,23 @@
       "name": "default — the file-manager/editor skin (antd) must stay out of the main bundle",
       "path": "dist/default/index.js",
       "limit": "22 KB"
+    },
+    {
+      "name": "editors/codemirror — the lazy engine's WRAPPER only (plus the pair's key table): CodeMirror itself is a dynamic import() and must never be measured here",
+      "path": "dist/editors/codemirror/index.js",
+      "limit": "6 KB"
+    },
+    {
+      "name": "editors/milkdown — the lazy engine's WRAPPER only (plus the CodeMirror source mode it falls back to): @milkdown/crepe is a dynamic import() and must never be measured here",
+      "path": "dist/editors/milkdown/index.js",
+      "limit": "7 KB"
     }
   ],
   "peerDependencies": {
+    "@codemirror/lang-markdown": ">=6 <7",
+    "@codemirror/state": ">=6 <7",
+    "@codemirror/view": ">=6 <7",
+    "@milkdown/crepe": ">=7.10 <8",
     "@stapel/core": ">=0.18.1 <1.0.0",
     "@stapel/tokens-antd": ">=0.7.0",
     "@tanstack/react-query": "^5.0.0",
@@ -72,6 +94,9 @@
     "react": ">=19"
   },
   "devDependencies": {
+    "@codemirror/lang-markdown": "^6.3.0",
+    "@codemirror/state": "^6.5.0",
+    "@codemirror/view": "^6.36.0",
     "@size-limit/preset-small-lib": "^11.2.0",
     "@stapel/core": "workspace:^",
     "@stapel/showcase": "workspace:^",
@@ -97,6 +122,18 @@
     "access": "public"
   },
   "peerDependenciesMeta": {
+    "@codemirror/lang-markdown": {
+      "optional": true
+    },
+    "@codemirror/state": {
+      "optional": true
+    },
+    "@codemirror/view": {
+      "optional": true
+    },
+    "@milkdown/crepe": {
+      "optional": true
+    },
     "@stapel/tokens-antd": {
       "optional": true
     },

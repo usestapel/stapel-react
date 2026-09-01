@@ -23,8 +23,10 @@ const pkg = JSON.parse(
 ) as {
   dependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
+  peerDependenciesMeta?: Record<string, { optional?: boolean }>;
   devDependencies?: Record<string, string>;
   files?: string[];
+  exports?: Record<string, unknown>;
 };
 
 const INTROSPECTION_ONLY = ["@stapel/showcase", "@stapel/showcase-viewer"];
@@ -71,4 +73,75 @@ describe("prod bundle carries no showcase/demo code (§5.1)", () => {
     expect(paths.filter((p) => /(^|\/)demo(\/|\.)/i.test(p))).toEqual([]);
     expect(paths.filter((p) => /showcase/i.test(p))).toEqual([]);
   }, 120_000); // real npm-pack I/O; runs in the serialized `test:pack` CI step
+});
+
+/**
+ * Introspection-gating, layer 2: the OPTIONAL EDITOR ENGINES stay out of the
+ * main entry — by construction, not by care.
+ *
+ * The editors research put the byte budget above the choice of editor: the
+ * lightest WYSIWYG measured (109 KB gzip) is six times the whole `auth-react`
+ * pair, and this pair's main entry is budgeted at 12 KB. So `@codemirror/*`
+ * and `@milkdown/crepe` are OPTIONAL peers reached only through a dynamic
+ * `import()` behind the `./editors/*` subpaths. `size-limit` measures the
+ * consequence; these assertions name the cause, so a regression is reported as
+ * "an engine leaked into the main entry" rather than as "the budget moved".
+ */
+describe("the optional editor engines stay out of the main entry", () => {
+  const ENGINE_SPECIFIERS = ["@codemirror/", "@milkdown/"];
+
+  function distFile(relative: string): string {
+    const path = resolve(PKG_DIR, relative);
+    try {
+      return readFileSync(path, "utf8");
+    } catch {
+      throw new Error(
+        `${relative} is missing — build the package before test:pack (CI runs build first).`
+      );
+    }
+  }
+
+  it("no engine is a runtime dependency; every one is an OPTIONAL peer", () => {
+    const runtime = pkg.dependencies ?? {};
+    const meta = pkg.peerDependenciesMeta ?? {};
+    const peers = Object.keys(pkg.peerDependencies ?? {}).filter((name) =>
+      ENGINE_SPECIFIERS.some((prefix) => name.startsWith(prefix))
+    );
+    expect(peers.length).toBeGreaterThan(0);
+    for (const name of peers) {
+      expect(Object.keys(runtime)).not.toContain(name);
+      expect(meta[name]?.optional, `${name} must be an OPTIONAL peer`).toBe(true);
+    }
+  });
+
+  it("the built main entry mentions no engine package at all", () => {
+    const main = distFile("dist/index.js");
+    for (const prefix of ENGINE_SPECIFIERS) {
+      expect(main.includes(prefix), `${prefix} leaked into dist/index.js`).toBe(false);
+    }
+  });
+
+  it("the engine subpaths reference their packages ONLY through a dynamic import", () => {
+    for (const entry of [
+      "dist/editors/codemirror/CodeMirrorEditor.js",
+      "dist/editors/milkdown/MilkdownEditor.js",
+    ]) {
+      const source = distFile(entry);
+      // A static `import … from "@codemirror/view"` would make the package a
+      // hard requirement of the subpath — and would break the build of any
+      // host that did not install an OPTIONAL peer.
+      expect(/^\s*import\s[^;]*from\s*["'](@codemirror|@milkdown)\//m.test(source)).toBe(
+        false
+      );
+      expect(/^\s*export\s[^;]*from\s*["'](@codemirror|@milkdown)\//m.test(source)).toBe(
+        false
+      );
+    }
+  });
+
+  it("the engine subpaths are published (exports map + the files allowlist)", () => {
+    expect(pkg.exports ?? {}).toHaveProperty("./editors/codemirror");
+    expect(pkg.exports ?? {}).toHaveProperty("./editors/milkdown");
+    expect(pkg.files ?? []).toContain("dist");
+  });
 });

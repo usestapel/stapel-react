@@ -118,6 +118,13 @@ export const docsI18nBundleRu: I18nDictionary = {
   "docs.editor.collabUnsupported": "Этот документ редактируется совместно.",
   "docs.editor.collabUnsupportedHint":
     "Для его типа не зарегистрирован совместный редактор, поэтому здесь его не отредактировать. Скачайте документ или зарегистрируйте редактор через registerDocEditor.",
+  "docs.editor.engineLoading": "Готовим редактор…",
+  "docs.editor.engineMissing":
+    "Дополнительный пакет редактора не установлен — правим обычный исходник.",
+  "docs.editor.engineFailed":
+    "Редактор не запустился — правим обычный исходник.",
+  "docs.editor.modeSource": "Править исходник",
+  "docs.editor.modeRich": "Править как текст",
   "docs.nav.files": "Документы",
   "docs.nav.document": "Документ",
 };

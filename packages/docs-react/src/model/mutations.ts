@@ -5,6 +5,7 @@ import type {
 } from "@tanstack/react-query";
 import { StapelApiError } from "@stapel/core";
 import type {
+  AppendResult,
   CreateDocumentRequest,
   CreateFolderRequest,
   DocDocument,
@@ -13,6 +14,7 @@ import type {
   EmptyTrashRequest,
   PatchDocumentRequest,
   PatchFolderRequest,
+  PostUpdateRequest,
   SaveContentResult,
   TrashPurgeResult,
 } from "../api/types.js";
@@ -206,6 +208,39 @@ export function useSaveContent(
     // Invalidate on conflict too: a conflict PROVES the cached content is
     // stale (someone saved past our seq), so the refetch is exactly right.
     onSuccess: invalidate,
+  };
+  return useMutation(options);
+}
+
+/**
+ * `POST /documents/:id/updates` — append a BATCH of opaque encoded updates to
+ * a crdt document's journal (the write half of the discipline `useDocUpdates`
+ * reads). The wire never took a single payload: the body is `{updates: […],
+ * client_id}`, and the answer is the document's new head.
+ *
+ * Invalidation is DELIBERATELY narrow — the document head only, not the module
+ * root every other mutation drops. An append happens as often as a person
+ * types, and the two reads a snapshot save shifts are wrong here anyway: the
+ * content read is not what a crdt document is edited through, and the journal
+ * read must not be invalidated at all (it is a moving cursor, and refetching
+ * it out of band would replay rows the local editor already has).
+ */
+export function useAppendUpdates(
+  documentId: string
+): UseMutationResult<AppendResult, StapelApiError, PostUpdateRequest> {
+  const api = useDocsApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<
+    AppendResult,
+    StapelApiError,
+    PostUpdateRequest
+  > = {
+    mutationFn: (body) => api.postUpdate(documentId, body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: docsQueryKeys.document(documentId),
+      });
+    },
   };
   return useMutation(options);
 }
