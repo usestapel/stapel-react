@@ -58,13 +58,21 @@ therefore reads as "the parent is missing".
 An unreachable row (a parent cycle in authored data) is promoted to a root
 rather than dropped: a broken branch must be visible, not absent.
 
-### 2. There is no slug lookup
+### 2. There is no slug lookup, and no way to ask for the ROOTS
 
 `lookup_field` is never overridden and the list has no slug filter. `/c/:slug`
 resolves against the synced tree. `Category.slug` is `unique=True` on the
 model, so a collision cannot come from the database — it can only come from a
 stale row in the client's own snapshot, and first-in-display-order wins
 deterministically.
+
+The same gap has a second half: there is no `roots` action and no `tn_parent`
+filter, so "the top level of the catalogue" also costs the whole table. Every
+other rung is one small `GET {id}/children/`.
+
+Both are recorded as upstream asks below, and both are measured: on a live
+3583-row catalogue the list is **36 requests / 1.4 MB / 20.2 s**, one rung is
+**1 request / 1-4 KB / 0.25-0.39 s**.
 
 ### 3. Names are translation keys
 
@@ -188,12 +196,38 @@ above the 59 that make it usable. Tiles stopped and nothing started.
 `catalog/cascade.ts` + `headless/CategoryCascade.tsx` + the
 `<CategoryCascadeField>` skin are that missing half — ONE primitive, because
 the model requires the filter and the composer to be the same gesture. The
-ladder is a pure function of (index, root, cursor): a level is derived from the
-chain above it rather than remembered, so changing a rung cannot leave a
-stale answer below it in the query string. `commit` is the only thing the two
+ladder is a pure function of (fetched rungs, chain of chosen ids): a level is
+derived from the chain above it rather than remembered, so changing a rung
+cannot leave a stale answer below it in the query string.
+
+It reads ONE SMALL REQUEST PER RUNG — `GET {id}/children/`, 1-4 KB, a third of
+a second — and the chain a deep value implies comes from that value's own
+`tn_ancestors_pks` (`GET {id}/`, 300 bytes). The first version read the synced
+catalogue instead, on the reasoning that a request per level would put a
+spinner between every rung; measured, that reasoning was wrong in both halves.
+The tree is only "already in memory" once somebody has waited twenty seconds
+for it, and the rungs above a pending one stay on screen, so the ladder grows
+downward and never blanks. `<CategoryPage>`'s tile arm hands over to it past
+the depth cap, which is what makes the 2924 leaves below level 2 reachable
+from a phone at all. `commit` is the only thing the two
 surfaces disagree about — a filter takes any category (the search index matches
 a category path as a PREFIX, so a parent finds its descendants), a composer
 takes only a leaf (a non-leaf inherits the wrong feature set).
+
+**Upstream ask — the two rungs the server cannot answer.** The ladder is
+`GET {id}/children/` per rung and nothing else, EXCEPT at its two ends:
+
+| what a surface needs | today | the shape that closes it |
+|---|---|---|
+| the catalogue's top level (`/c`, the composer's first rung, a rootless cascade) | the whole table | `GET /categories/roots/` — `tn_parent__isnull=True, deleted=False`, `-tn_priority`, symmetric with `children/` |
+| a slug → a row (`/c/:slug` arriving cold) | the whole table | `GET /categories/by-slug/{slug}/`, or a `slug` filter on the list |
+
+Until they exist, `useCategoryCascade` takes a `roots` prop (a host that knows
+its own top level pays nothing) and `<CategoryPage>` takes `categoryId`
+alongside `slug` (every in-app navigation knows the id, because it drew the
+link). Neither is a workaround for a host with the endpoints: with them, both
+props become optional conveniences and the catalogue sync leaves the browse
+path entirely.
 
 **Upstream ask — a child count.** A cascade wants "New (1 240)" beside each
 option and no server can answer it. `GET {id}/children/` sends rows with no

@@ -50,7 +50,7 @@ export default defineDemo({
       step: "blocked-not-a-leaf",
       render: () => (
         <CategoriesDemoHarness seed={SEEDED}>
-          <CategoryCascadeField commit="leaf" value={null} rootId={1} />
+          <CategoryCascadeField commit="leaf" value={2} rootId={1} />
         </CategoriesDemoHarness>
       ),
     },

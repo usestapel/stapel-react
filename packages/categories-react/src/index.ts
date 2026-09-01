@@ -89,13 +89,16 @@ export {
 } from "./catalog/tiles.js";
 export {
   buildCategoryCascade,
+  cascadeChainIds,
+  cascadeParentIds,
   cascadeReachedLeaf,
   cascadeSelection,
   cascadeTrail,
+  categoryAncestorChain,
 } from "./catalog/cascade.js";
 export type {
-  BuildCategoryCascadeOptions,
   CategoryCascadeLevel,
+  CategoryCascadeSource,
 } from "./catalog/cascade.js";
 export {
   CATEGORY_SEARCH_LIMIT,
@@ -161,14 +164,18 @@ export { catalogKeyOptions, categoriesQueryKeys } from "./model/queryKeys.js";
 export type { CatalogKeyOptions } from "./model/queryKeys.js";
 export {
   useCategoriesRevision,
+  useCategory,
   useCategoryCarousel,
   useCategoryCatalog,
   useCategoryChildren,
   useCategoryFeatures,
+  useCategoryLevels,
+  useCategoryRows,
 } from "./model/queries.js";
 export type {
   CategoryBrowseOptions,
   CategoryCatalog,
+  CategoryFanOut,
   UseCategoryCarouselOptions,
   UseCategoryCatalogOptions,
 } from "./model/queries.js";

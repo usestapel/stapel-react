@@ -20,7 +20,7 @@ import {
   memoryCatalogStore,
   registerCategoriesI18n,
 } from "../src/index.js";
-import type { CatalogStore } from "../src/index.js";
+import type { CatalogStore, Category } from "../src/index.js";
 import { registerCategoriesI18nRu } from "../src/i18n/ru.js";
 import { registerCategoriesI18nEs } from "../src/i18n/es.js";
 
@@ -201,4 +201,36 @@ export async function setDocumentTheme(
     else document.documentElement.setAttribute("data-theme", mode);
     await Promise.resolve();
   });
+}
+
+// ── the SERVER-DRIVEN walk, as routes ───────────────────────────────────────
+//
+// `GET {id}/children/` and `GET {id}/` are what a cascade, a category landing
+// and a breadcrumb read now, one small answer per rung. The routes are derived
+// from the same flat fixture the list endpoint serves, so a test cannot assert
+// a ladder the catalogue would not have produced — and `calls` still records
+// every request, which is how "one request per rung, and not one more" is
+// checked rather than claimed.
+
+/**
+ * Suffix routes for the per-row reads over a flat fixture.
+ *
+ * The server's own filters are applied here and only here: `children/` drops
+ * `deleted` rows and orders by `tn_priority` descending (`views.py`), and it
+ * does NOT drop `active: false` — which is exactly the split the browse
+ * projection on the client exists to close.
+ */
+export function rowRoutes(
+  rows: readonly Category[]
+): Record<string, Handler> {
+  const routes: Record<string, Handler> = {};
+  for (const row of rows) {
+    routes[`/categories/${String(row.id)}/children/`] = () => ({
+      body: rows
+        .filter((r) => r.tn_parent === row.id && r.deleted !== true)
+        .sort((a, b) => (b.tn_priority ?? 0) - (a.tn_priority ?? 0) || a.id - b.id),
+    });
+    routes[`/categories/${String(row.id)}/`] = () => ({ body: row });
+  }
+  return routes;
 }

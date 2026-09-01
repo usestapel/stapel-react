@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { StapelApiError } from "@stapel/core";
 import type { Category, CategoryFeature, MaxRevision } from "../api/types.js";
@@ -206,6 +206,154 @@ export function useCategoryChildren(
     select: visible,
     enabled: (options?.enabled ?? true) && typeof id === "number",
     retry: false,
+  });
+}
+
+/**
+ * ONE category row by id — the cheapest read in the contract, and the hook a
+ * server-driven walk is built out of.
+ *
+ * 311 bytes and a third of a second on a live classified deployment, against
+ * 1.4 MB and twenty seconds for the catalogue that also answers this. Every
+ * surface that already HAS an id — a search chip naming its own narrowing, a
+ * category landing reached by a link, a cascade reconciling a deep value —
+ * asks this instead of mounting the sync.
+ *
+ * The answer carries `tn_ancestors_pks`, so it is also the whole breadcrumb
+ * chain and the whole cascade chain: see {@link useCategoryRows}.
+ *
+ * NOT browse-projected. A row asked for BY ID was named by the caller, and a
+ * hook that answered `undefined` for an inactive category would turn "you
+ * linked to a hidden row" into "the request failed". The caller decides;
+ * `isBrowsableCategory` is one call away.
+ */
+export function useCategory(
+  id: number | null | undefined,
+  options?: { readonly enabled?: boolean; readonly staleTime?: number }
+): UseQueryResult<Category, StapelApiError> {
+  const api = useCategoriesApi();
+  return useQuery({
+    queryKey: categoriesQueryKeys.category(id ?? -1),
+    queryFn: ({ signal }) => api.retrieve(id as number, { signal }),
+    enabled: (options?.enabled ?? true) && typeof id === "number",
+    staleTime: options?.staleTime ?? DEFAULT_CATALOG_STALE_TIME,
+    retry: false,
+  });
+}
+
+/** What a fan-out of small reads answers, beside the rows themselves. */
+export interface CategoryFanOut<T> {
+  /** One entry per id asked for, in that order. `null` = not answered yet, or
+   * answered with a refusal — `error` says which. */
+  readonly rows: readonly (T | null)[];
+  /** At least one read is still in flight. */
+  readonly isPending: boolean;
+  /** The first refusal, or `null`. One error for the fan-out: a ladder with
+   * one broken rung is a broken ladder, and four identical alerts are not
+   * four sentences. */
+  readonly error: StapelApiError | null;
+}
+
+/**
+ * Several category rows by id, one small request each, in parallel.
+ *
+ * The breadcrumb of a deep category is exactly this: `tn_ancestors_pks` gives
+ * the ids, and the names come back in one round trip of 300-byte reads that
+ * every other surface then finds in the cache. A tree sync answers the same
+ * question for four thousand times the bytes.
+ *
+ * `ids` may be empty, and then nothing is requested — TanStack still needs the
+ * hook to be called unconditionally, which is why this is a fan-out hook and
+ * not a loop of {@link useCategory} at the call site.
+ */
+export function useCategoryRows(
+  ids: readonly number[],
+  options?: { readonly enabled?: boolean; readonly staleTime?: number }
+): CategoryFanOut<Category> {
+  const api = useCategoriesApi();
+  const enabled = options?.enabled ?? true;
+  const staleTime = options?.staleTime ?? DEFAULT_CATALOG_STALE_TIME;
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: categoriesQueryKeys.category(id),
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        api.retrieve(id, { signal }),
+      enabled,
+      staleTime,
+      retry: false as const,
+    })),
+    combine: combineFanOut,
+  });
+}
+
+/**
+ * Fold a fan-out's results into one answer, ONCE per change.
+ *
+ * A module-level function on purpose: TanStack memoizes `combine` on (results,
+ * function identity), and a closure written inline at the call site is a new
+ * identity every render — which recomputes the fold, hands back a new object,
+ * and re-renders every consumer of a ladder that did not change. That is the
+ * defect this whole file exists to avoid one layer down.
+ */
+function combineFanOut<T>(
+  results: readonly {
+    readonly data?: T | undefined;
+    readonly isPending: boolean;
+    readonly fetchStatus: "fetching" | "paused" | "idle";
+    readonly error: unknown;
+  }[]
+): CategoryFanOut<T> {
+  return {
+    rows: results.map((result) => result.data ?? null),
+    // A DISABLED read is not a pending one. TanStack reports `isPending` for a
+    // query it was never allowed to run, and a ladder whose last rung is
+    // deliberately off would otherwise report itself as loading forever.
+    isPending: results.some(
+      (result) => result.isPending && result.fetchStatus !== "idle"
+    ),
+    error:
+      (results.find((result) => result.error != null)?.error as
+        | StapelApiError
+        | undefined) ?? null,
+  };
+}
+
+/**
+ * The children of several parents — ONE RUNG PER PARENT, one small request
+ * each, in parallel.
+ *
+ * This is the whole server-driven walk. A cascade four levels deep is four
+ * requests of one to four kilobytes; the catalogue that would answer the same
+ * four questions from memory costs 1.4 MB before the first of them can be
+ * asked, which on a 3583-row catalogue was measured at twenty seconds.
+ *
+ * A `null` parent means "the top of a rootless ladder", which this module
+ * CANNOT answer from the server: there is no roots endpoint, and the list
+ * endpoint takes no `tn_parent` filter (see MODULE.md's upstream asks). Such a
+ * rung is left unanswered here and the caller supplies it — the one place the
+ * catalogue sync is still the only source.
+ *
+ * The browse projection runs per rung, over the server's complete answer kept
+ * in the cache, exactly as {@link useCategoryChildren} does — so an admin
+ * mount and a storefront mount of the same rung share one cache entry.
+ */
+export function useCategoryLevels(
+  parentIds: readonly (number | null)[],
+  options?: CategoryBrowseOptions
+): CategoryFanOut<readonly Category[]> {
+  const api = useCategoriesApi();
+  const visible = useBrowseProjection(options);
+  const enabled = options?.enabled ?? true;
+  return useQueries({
+    queries: parentIds.map((parentId) => ({
+      queryKey: categoriesQueryKeys.children(parentId ?? -1),
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        api.children(parentId as number, { signal }),
+      select: visible,
+      enabled: enabled && parentId !== null,
+      retry: false as const,
+    })),
+    combine: combineFanOut,
   });
 }
 

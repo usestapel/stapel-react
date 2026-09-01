@@ -1,200 +1,175 @@
 /**
- * WHERE THE CATALOGUE CONTINUES AFTER THE TILES STOP — the ladder of child
- * selectors that `catalog/tiles.ts` promises and nothing built.
+ * WHERE THE TILES STOP — the ladder of child selectors `catalog/tiles.ts`
+ * promises, and the one surface in this pair that walks the tree WITHOUT
+ * transferring it.
  *
- * `MAX_TILE_DEPTH` says the first two levels of the tree are tiles and
- * "everything deeper is chosen as a CHARACTERISTIC, through cascading child
- * selectors (the brand -> model pattern)". That rule was stated, and enforced
- * on the tile side — past the cap a landing draws no grid — but the thing it
- * hands over TO did not exist. The measured result on a live classified
- * deployment is the whole reason this file is here:
+ * `MAX_TILE_DEPTH` caps tiles at the second level of the tree, on the rule that
+ * everything deeper is chosen as a CHARACTERISTIC through cascading child
+ * selectors. The cap was enforced and the selector did not exist, so on a live
+ * classified catalogue the measured result was total:
  *
  *   catalogue        3583 categories, 3036 of them leaves
- *   within the cap   198 rows, so 94% of the tree had no route to it at all
- *   a level-2 page   `GET {id}/features/` answers `[]` — features are
- *                    resolved by INHERITANCE (own + ancestors), so a category
- *                    whose own rows are empty legitimately has none
- *   its child        59 features, the whole brand/model/generation chain
+ *   within the cap   198 rows — 94% of the tree had no route to it
+ *   a level-2 page   `GET {id}/features/` → `[]`
+ *   its child        59 features, the whole brand/model chain
  *
- * A person reaching the level-2 page was therefore told, truthfully, that the
- * category has no characteristics — one tap above the 59 that make the
- * category usable, with no control on the screen that would take them there.
- * Tiles stopped and nothing started.
+ * Features resolve by INHERITANCE (own plus every ancestor's), so a category
+ * whose own rows are empty legitimately has none: the level-2 page told a
+ * person the truth, one tap above the 59 that make the category usable.
  *
- * ── What a cascade IS, stated once ─────────────────────────────────────────
+ * ── Why this file holds ids and rows, and not the built tree ───────────────
  *
- * A LADDER of levels. Level 0 offers the children of the cascade's root (the
- * catalogue itself, when there is no root); every level below offers the
- * children of the level above's chosen node; the ladder ends at a leaf. It is
- * the same shape a `hierarchical_select` feature has — which is exactly the
- * point, and exactly why the owner's model calls a deep category "a
- * characteristic": to the person, choosing `Cars > New` is the same gesture as
- * choosing `Brand > Model`, and it must not be a second, different one.
+ * Because the built tree costs 1.4 MB and twenty seconds, and one rung of the
+ * ladder costs four kilobytes and a third of a second. Measured on that same
+ * deployment:
+ *
+ *   whole catalogue, `?page_size=100`    36 requests   1453 KB   20.2 s
+ *   whole catalogue, `?page_size=1000`    4 requests   1447 KB   10.4 s
+ *   whole catalogue, `data.json`          1 request    1411 KB    8.5 s
+ *   ONE level, `GET {id}/children/`       1 request    1-4 KB   0.25-0.39 s
+ *
+ * Every protocol that reads the whole table is within a factor of two of every
+ * other, because the table IS the cost — so the fix is not a better sync, it
+ * is not syncing. A cascade asks for exactly the level it is drawing.
+ *
+ * That is why the functions here take ROWS (`Category`, straight off
+ * `{id}/children/`) rather than a `CategoryIndex`: an index can only be built
+ * from the whole catalogue, and needing one is the same as needing all of it.
  *
  * ── Derived, never accumulated ─────────────────────────────────────────────
  *
- * The ladder is a PURE FUNCTION of (index, root, cursor). There is no
- * per-level state anywhere, and that is the invariant this file exists to
+ * The ladder is a pure function of (fetched levels, chain of chosen ids).
+ * There is no per-level state, and that is the invariant this file exists to
  * hold: a cascade that remembered a chosen node per level would let a level-3
- * answer survive a level-1 change, which is the classic defect of this control
- * — the brand is switched and the previous brand's model is still on screen,
+ * answer survive a level-1 change — the classic defect of this control, where
+ * the brand is switched and the previous brand's model is still on screen and
  * still in the query string, matching nothing.
  *
- * Truncation is therefore not an operation. Choosing at level *k* moves the
- * cursor to that node; every level below simply is not built, because the
- * chain from the root to the cursor is one node shorter. Nothing is cleared,
- * so nothing can fail to clear.
+ * Truncation is therefore not an operation. Choosing at level *k* shortens the
+ * chain; every level below is simply not built, and its request is not made.
  *
  * ── Why this is not `CategoryPicker` ───────────────────────────────────────
  *
- * `headless/CategoryPicker.tsx` is a DRILL-DOWN: one list at a time, replacing
- * itself as you descend, plus a flat search. It answers "find me a category in
- * a tree of three thousand". Its skin is a bottom sheet, because a journey
- * that replaces itself needs somewhere to happen.
+ * `headless/CategoryPicker.tsx` is a DRILL-DOWN over the synced tree: one list
+ * at a time, replacing itself as you descend, plus a flat search across the
+ * whole catalogue. It answers "find me a category among three thousand", and
+ * that question genuinely needs the catalogue — which is exactly why opening
+ * it cost twenty seconds on this deployment.
  *
  * A cascade answers a different question — "narrow the category I am already
- * in" — and it answers it in place, with every level still visible and every
- * level still changeable. The two coexist: the picker remains for a search
- * across the whole catalogue, and it remains the honest control for a host
- * with no tiles at all. What the cascade replaces is the picker used as a
- * MODAL category chooser on a surface that has already established where the
- * person is, which the owner ruled out by name.
+ * in" — in place, with every level still visible and still changeable. What it
+ * replaces is the picker used as a MODAL category chooser on a surface that
+ * has already established where the person is, which the owner ruled out by
+ * name and which is also the surface where the twenty seconds were being paid.
  */
-import type { CategoryIndex, CategoryNode } from "./tree.js";
+import type { Category } from "../api/types.js";
+import { parseTreenodePks } from "./pks.js";
 
-/** One rung of the ladder. */
+/** One fetched rung: whose children these are, and what they are. */
+export interface CategoryCascadeSource {
+  /** `null` at the top of a rootless ladder, where the options are roots. */
+  readonly parentId: number | null;
+  /** The parent's own row, when it is known — a skin labels the rung with it. */
+  readonly parent: Category | null;
+  readonly options: readonly Category[];
+}
+
+/** One rung of the ladder, resolved. */
 export interface CategoryCascadeLevel {
   /** 0 for the children of the cascade's root. */
   readonly depth: number;
-  /**
-   * Whose children this level offers — `null` at the top of a rootless
-   * cascade, where the options are the catalogue's roots. It is also the
-   * answer to "what does clearing this level go back to".
-   */
-  readonly parent: CategoryNode | null;
-  /** Never empty: a level with no options is not built (see {@link buildCategoryCascade}). */
-  readonly options: readonly CategoryNode[];
-  /** The option taken at this level, or `null` while the level is unanswered. */
-  readonly chosen: CategoryNode | null;
-}
-
-export interface BuildCategoryCascadeOptions {
-  /**
-   * Where the ladder starts. `null`/absent starts at the catalogue's roots —
-   * the composer's case, where nothing has been established yet.
-   *
-   * On a category landing this is the category the TILES arrived at, so the
-   * ladder offers only what is below it and the two mechanisms meet at exactly
-   * one boundary rather than overlapping.
-   *
-   * A root that is not in the index (a slug that has not resolved, a row the
-   * browse projection filtered out) yields an EMPTY ladder rather than
-   * silently falling back to the catalogue root — offering the whole tree
-   * where the caller asked for one branch is a wrong answer that looks like a
-   * working control.
-   */
-  readonly rootId?: number | null;
-  /**
-   * How deep the person has gone. Every ancestor of it between the root and it
-   * is answered; the first unanswered level offers its children.
-   *
-   * Not required to be a descendant of `rootId`: when it is not, the ladder is
-   * built as if nothing were chosen, which is what a stale URL parameter
-   * against a re-parented catalogue should do.
-   */
-  readonly cursorId?: number | null;
+  readonly parentId: number | null;
+  readonly parent: Category | null;
+  /** Never empty: a rung with no options is not built (see {@link buildCategoryCascade}). */
+  readonly options: readonly Category[];
+  /** The option taken at this rung, or `null` while it is unanswered. */
+  readonly chosen: Category | null;
 }
 
 /**
- * The ladder for one (root, cursor) pair.
+ * The chain of chosen ids, top-down, from just below `rootId` to `cursorId`.
  *
- * The last level is the FIRST UNANSWERED one — the level whose `chosen` is
- * `null` — and there is at most one of those, because a level is only built
- * once the level above it has an answer. The ladder ends without one when the
- * cursor is a leaf: there is nothing further to ask.
+ * `ancestors` is the cursor's own `tn_ancestors_pks`, parsed — the SERVER's
+ * ancestry, which is the only complete one available without the tree.
+ * A cursor that is not below the root yields `[]`, which is what a stale URL
+ * parameter against a re-parented catalogue should do.
+ */
+export function cascadeChainIds(
+  ancestors: readonly number[],
+  cursorId: number | null,
+  rootId: number | null
+): readonly number[] {
+  if (cursorId === null) return [];
+  const full = [...ancestors, cursorId];
+  if (rootId === null) return full;
+  const at = full.indexOf(rootId);
+  // The root must be an ANCESTOR, not the cursor itself: a cursor equal to the
+  // root means the ladder has not been started.
+  if (at < 0 || at === full.length - 1) return [];
+  return full.slice(at + 1);
+}
+
+/**
+ * Which parents the ladder needs the children of, top-down.
  *
- * A level with no options is never built. That is not a cosmetic rule: a
- * chosen node with no children IS the end of the cascade, and an empty
- * trailing select would ask a question the catalogue has no answers for while
- * making a finished choice look unfinished.
+ * `[root, ...answered]` — one entry per rung that could exist. The LAST entry
+ * is speculative: its request is what discovers whether the deepest answer is
+ * a leaf, and an empty answer is how the ladder learns to stop.
+ */
+export function cascadeParentIds(
+  rootId: number | null,
+  chainIds: readonly number[]
+): readonly (number | null)[] {
+  return [rootId, ...chainIds];
+}
+
+/**
+ * Assemble the fetched rungs into the ladder.
+ *
+ * A rung with no options is never built. That is not cosmetic: a chosen
+ * category with no children IS the end of the cascade, and an empty trailing
+ * select would ask a question the catalogue has no answers for while making a
+ * finished choice look unfinished.
+ *
+ * Building stops after the first UNANSWERED rung — there is at most one, and
+ * nothing below it is a question yet.
  */
 export function buildCategoryCascade(
-  index: CategoryIndex,
-  options: BuildCategoryCascadeOptions = {}
+  sources: readonly CategoryCascadeSource[],
+  chainIds: readonly number[]
 ): readonly CategoryCascadeLevel[] {
-  const rootId = options.rootId ?? null;
-  const root = rootId === null ? null : (index.byId.get(rootId) ?? null);
-  if (rootId !== null && root === null) return [];
-
-  const chain = cascadeChain(index, root, options.cursorId ?? null);
-
   const levels: CategoryCascadeLevel[] = [];
-  let parent: CategoryNode | null = root;
-  for (let depth = 0; ; depth += 1) {
-    const siblings: readonly CategoryNode[] =
-      parent === null ? index.roots : parent.children;
-    if (siblings.length === 0) break;
-    const chosen = chain[depth] ?? null;
-    levels.push({ depth, parent, options: siblings, chosen });
+  for (let depth = 0; depth < sources.length; depth += 1) {
+    const source = sources[depth];
+    if (source === undefined || source.options.length === 0) break;
+    const wanted = chainIds[depth];
+    const chosen =
+      wanted === undefined
+        ? null
+        : (source.options.find((row) => row.id === wanted) ?? null);
+    levels.push({
+      depth,
+      parentId: source.parentId,
+      parent: source.parent,
+      options: source.options,
+      chosen,
+    });
     if (chosen === null) break;
-    parent = chosen;
   }
   return levels;
 }
 
 /**
- * Root -> cursor, exclusive of the root, or `[]` when the cursor is not below
- * the root.
- *
- * Walks PARENT LINKS in the built tree rather than reading
- * `tn_ancestors_pks`, and the difference is load-bearing: the wire's ancestry
- * is the server's, complete, while this index may legitimately have dropped an
- * inactive or test ancestor. A chain containing a node the index does not hold
- * would build a level whose `chosen` is not among its `options`, which is a
- * select showing a value it cannot show.
- */
-function cascadeChain(
-  index: CategoryIndex,
-  root: CategoryNode | null,
-  cursorId: number | null
-): readonly CategoryNode[] {
-  if (cursorId === null) return [];
-  const cursor = index.byId.get(cursorId);
-  if (cursor === undefined) return [];
-
-  const chain: CategoryNode[] = [];
-  let node: CategoryNode | undefined = cursor;
-  // Bounded by the catalogue's depth; the guard is against a cycle a corrupt
-  // `tn_parent` could describe, which would otherwise hang the render.
-  for (let guard = 0; node !== undefined && guard <= MAX_CASCADE_DEPTH; guard += 1) {
-    if (root !== null && node.id === root.id) return chain.reverse();
-    chain.push(node);
-    const parentId = node.category.tn_parent;
-    if (parentId === null || parentId === undefined) {
-      // Reached a root of the tree. That is the answer only for a rootless
-      // cascade; for a rooted one it means the cursor is somewhere else in
-      // the catalogue entirely.
-      return root === null ? chain.reverse() : [];
-    }
-    node = index.byId.get(parentId);
-  }
-  return [];
-}
-
-/** A catalogue deeper than this is a cycle, not a catalogue. */
-const MAX_CASCADE_DEPTH = 64;
-
-/**
- * The nodes the ladder has answers for, top first — the trail a skin prints so
- * the person can see where they landed, and pop back up.
+ * The rows the ladder has answers for, top first — the trail a skin prints so
+ * a person can see where they landed and pop back up.
  *
  * Derived from the ladder rather than from the cursor, so the trail cannot
  * disagree with the controls beside it.
  */
 export function cascadeTrail(
   levels: readonly CategoryCascadeLevel[]
-): readonly CategoryNode[] {
-  const trail: CategoryNode[] = [];
+): readonly Category[] {
+  const trail: Category[] = [];
   for (const level of levels) {
     if (level.chosen !== null) trail.push(level.chosen);
   }
@@ -202,31 +177,57 @@ export function cascadeTrail(
 }
 
 /**
- * The deepest answered node, or `null` — what the cascade currently NAMES.
+ * The deepest answered row, or `null` — what the cascade currently NAMES.
  *
  * `null` for an untouched rooted cascade too: the root is where the person
  * already was, not something the cascade chose for them.
  */
 export function cascadeSelection(
   levels: readonly CategoryCascadeLevel[]
-): CategoryNode | null {
+): Category | null {
   const trail = cascadeTrail(levels);
   return trail[trail.length - 1] ?? null;
 }
 
 /**
- * Has the cascade reached a category nothing lives under?
+ * Has the ladder reached a category nothing lives under?
  *
- * TRUE only for an answered leaf. An untouched cascade is `false` even when
- * its root is a leaf — the caller asked whether the LADDER finished, and a
- * ladder with no rungs did not.
+ * The evidence is a rung that was FETCHED AND CAME BACK EMPTY under the
+ * deepest answer — the server saying "leaf". Not the absence of a rung, which
+ * is the same shape and a different sentence: a rung still in flight has no
+ * source either, and reading that as a leaf would let a cascade announce a
+ * finished choice a third of a second before it knows whether one exists. On
+ * the composer, whose whole gate hangs on this, that is a listing filed one
+ * level too high.
  *
- * This is the composer's gate: a listing filed under a non-leaf inherits the
- * wrong feature set, so the attribute form waits for this.
+ * It is also not `tn_children_pks`: that column is maintained by
+ * django-treenode, which knows nothing about `active` or `deleted`, so it
+ * names rows the browse projection drops. The request is the only authority.
+ *
+ * `false` for an untouched ladder even when its root is a leaf: the caller
+ * asked whether the LADDER finished, and one with no rungs did not.
  */
 export function cascadeReachedLeaf(
-  levels: readonly CategoryCascadeLevel[]
+  sources: readonly CategoryCascadeSource[],
+  chainIds: readonly number[]
 ): boolean {
-  const selection = cascadeSelection(levels);
-  return selection !== null && selection.children.length === 0;
+  if (chainIds.length === 0) return false;
+  // The rung UNDER the deepest answer. Absent = not fetched; empty = leaf.
+  const terminal = sources[chainIds.length];
+  if (terminal === undefined || terminal.options.length > 0) return false;
+  // …and every answer above it is really an option of its own rung, so a
+  // stale id in a URL cannot report itself as a finished choice.
+  return chainIds.every(
+    (id, depth) =>
+      sources[depth]?.options.some((row) => row.id === id) === true
+  );
+}
+
+/** `tn_ancestors_pks` of one row, parsed — the server's own chain. */
+export function categoryAncestorChain(
+  category: Category | null | undefined
+): readonly number[] {
+  return category === null || category === undefined
+    ? []
+    : parseTreenodePks(category.tn_ancestors_pks);
 }

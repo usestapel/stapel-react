@@ -136,6 +136,23 @@ function seedQueryClient(client: QueryClient, seed: DemoSeed): void {
       truncated: seed.truncated === true,
       wasFullSync: true,
     });
+    // …and the SERVER-DRIVEN reads over the same rows. Every surface that
+    // walks the tree now asks `GET {id}/` and `GET {id}/children/` one rung at
+    // a time, so a demo seeded only with the catalogue would photograph its
+    // loading arm however the variant is named — the C-SAMESHOT defect this
+    // seeding exists to prevent, one layer down.
+    for (const row of seed.rows) {
+      client.setQueryData(categoriesQueryKeys.category(row.id), row);
+      client.setQueryData(
+        categoriesQueryKeys.children(row.id),
+        seed.rows
+          .filter((r) => r.tn_parent === row.id && r.deleted !== true)
+          .sort(
+            (a, b) =>
+              (b.tn_priority ?? 0) - (a.tn_priority ?? 0) || a.id - b.id
+          )
+      );
+    }
   }
   if (seed.carousel !== undefined) {
     client.setQueryData(categoriesQueryKeys.carousel, [...seed.carousel]);

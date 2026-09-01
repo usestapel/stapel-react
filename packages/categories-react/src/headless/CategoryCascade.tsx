@@ -1,5 +1,6 @@
 /**
- * The cascading child selector, headless — ONE primitive, two surfaces.
+ * The cascading child selector, headless — ONE primitive, two surfaces, and
+ * ONE SMALL REQUEST PER RUNG.
  *
  * The owner's catalogue model gives levels 1-2 of the tree to tiles and every
  * level below them to "a characteristic, chosen through cascading child
@@ -11,6 +12,36 @@
  * So the ladder, the cursor, the commit rule and the load state live here, and
  * the two skins over it are presentation only. `catalog/cascade.ts` explains
  * the ladder itself and why it is derived rather than accumulated.
+ *
+ * ── What it costs, and what it used to cost ────────────────────────────────
+ *
+ * The first version of this hook read the DELTA-SYNCED CATALOGUE, on the
+ * reasoning that the tree is already in memory and a request per level would
+ * put a spinner between every rung. On a live classified deployment that
+ * reasoning was measured and it was wrong in both halves:
+ *
+ *   whole catalogue, `?page_size=100`    36 requests   1453 KB   20.2 s
+ *   ONE rung, `GET {id}/children/`        1 request     1-4 KB   0.25-0.39 s
+ *
+ * The tree is only "already in memory" once somebody has waited twenty seconds
+ * for it, and every surface that mounted this control paid that before drawing
+ * its FIRST select. A rung costs a third of a second, and the rungs above it
+ * stay on screen while it lands — so the ladder never blanks, and the control
+ * is answerable a whole catalogue-sync sooner.
+ *
+ * ── The one rung the server cannot answer ──────────────────────────────────
+ *
+ * A ROOTLESS ladder — the composer's, and the filter's when nothing is chosen
+ * — opens on the catalogue's top level, and `stapel-categories` has no roots
+ * endpoint and no `tn_parent` filter on the list. That single rung therefore
+ * still falls back to the catalogue sync (and only that rung: everything below
+ * it is `children/`). {@link UseCategoryCascadeOptions.roots} is the escape
+ * hatch for a host that knows its own top level — a deployment with a handful
+ * of roots, or one that has them from its own navigation config — and it costs
+ * nothing when unused. MODULE.md carries the upstream ask.
+ *
+ * A ROOTED ladder — the one a category landing mounts, which is where the
+ * owner's model says the tiles hand over — never mounts the sync at all.
  *
  * ── The cursor, and the one piece of state this hook actually owns ─────────
  *
@@ -28,14 +59,18 @@
  * wins. An effect would have rendered one frame of the old ladder against the
  * new value first — briefly showing a category the URL no longer names.
  *
- * ── What it costs ─────────────────────────────────────────────────────────
+ * ── Where the CHAIN comes from, now that there is no tree ──────────────────
  *
- * One `useCategoryCatalog` — which is the catalogue every other surface on the
- * page already mounts, so in practice nothing. No request per level, no
- * request per keystroke, and the whole ladder works offline once the catalogue
- * has synced. The alternative — `GET {id}/children/` per level — would put a
- * spinner between every rung of a control whose entire value is that it feels
- * like one.
+ * `tn_ancestors_pks` on the cursor's own row: the server's ancestry, which is
+ * the only complete one available without the catalogue. So a deep link
+ * (`?category=165` arriving cold) costs one 300-byte `GET {id}/` and then one
+ * `children/` per rung it draws — four small requests for a four-level ladder,
+ * against 1.4 MB for the tree that answers the same question.
+ *
+ * A row the person just CLICKED is already in hand, so it is written into the
+ * per-id cache on the way past (`queryClient.setQueryData`) and the extra read never
+ * happens. Clicking down a ladder therefore costs exactly one request per
+ * rung, and nothing else.
  *
  * ── Counts are a SEAM, and deliberately empty by default ──────────────────
  *
@@ -54,26 +89,54 @@
  */
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { loadStateFromQuery, mapLoad } from "@stapel/core";
+import { useQueryClient } from "@tanstack/react-query";
+import { loadFailed, loadLoading, loadReady } from "@stapel/core";
 import type { LoadState } from "@stapel/core";
+import type { Category } from "../api/types.js";
+import { browsableCategories } from "../catalog/browse.js";
 import {
   buildCategoryCascade,
+  cascadeChainIds,
+  cascadeParentIds,
   cascadeReachedLeaf,
   cascadeSelection,
   cascadeTrail,
+  categoryAncestorChain,
 } from "../catalog/cascade.js";
-import type { CategoryCascadeLevel } from "../catalog/cascade.js";
+import type {
+  CategoryCascadeLevel,
+  CategoryCascadeSource,
+} from "../catalog/cascade.js";
 import { categoryLabel } from "../catalog/labels.js";
 import type { CategoryLabel } from "../catalog/labels.js";
-import type { CategoryNode } from "../catalog/tree.js";
-import { useCategoryCatalog } from "../model/queries.js";
-import type { UseCategoryCatalogOptions } from "../model/queries.js";
+import { categoryChildIds } from "../catalog/tree.js";
+import {
+  useCategory,
+  useCategoryCatalog,
+  useCategoryLevels,
+} from "../model/queries.js";
+import type {
+  CategoryBrowseOptions,
+  UseCategoryCatalogOptions,
+} from "../model/queries.js";
+import { categoriesQueryKeys } from "../model/queryKeys.js";
 
 /** One option of one level, with everything a skin needs to draw a row. */
 export interface CategoryCascadeOption {
-  readonly node: CategoryNode;
+  readonly category: Category;
   readonly label: CategoryLabel;
-  /** Nothing lives under it — choosing it ends the ladder. */
+  /**
+   * The server's own `tn_children_pks` is empty — nothing at all lives under
+   * this row, so choosing it ends the ladder.
+   *
+   * A HINT, and the one place this hook reports something it has not verified.
+   * The column is maintained by django-treenode, which knows nothing about
+   * `active` or `deleted`, so `false` can still lead to a rung with no
+   * browsable options. The authoritative verdict is
+   * {@link CategoryCascadeBag.atLeaf}, which is the absence of a further rung
+   * — i.e. the server's own empty answer. This is here so a skin can mark an
+   * option as terminal before it is chosen, never so it can skip a request.
+   */
   readonly isLeaf: boolean;
   /**
    * Live results under this option, or `null` when nobody counted.
@@ -90,12 +153,12 @@ export interface CategoryCascadeStep {
   /** 0 for the children of the cascade's root. */
   readonly depth: number;
   /** Whose children these are — `null` at the top of a rootless cascade. */
-  readonly parent: CategoryNode | null;
+  readonly parent: Category | null;
   /** The parent's name, for a skin that labels each select. `null` at the
    * top of a rootless cascade, where the label belongs to the host's form. */
   readonly parentLabel: CategoryLabel | null;
   readonly options: readonly CategoryCascadeOption[];
-  readonly chosen: CategoryNode | null;
+  readonly chosen: Category | null;
   readonly chosenLabel: CategoryLabel | null;
 }
 
@@ -103,19 +166,25 @@ export interface CategoryCascadeBag {
   /**
    * The ladder. `empty` is a real answer and means the cascade's root has no
    * children — the tiles arrived at a leaf and there is nothing to narrow.
+   *
+   * `ready` as soon as the TOP rung is known. A rung still in flight below it
+   * is simply not built yet, so the ladder grows downward instead of blanking
+   * — which is the whole reason a request per rung is affordable.
    */
   readonly state: LoadState<readonly CategoryCascadeStep[]>;
-  /** The deepest answered node, or `null`. */
-  readonly selected: CategoryNode | null;
+  /** The deepest answered row, or `null`. */
+  readonly selected: Category | null;
   /** Root -> selected, for the poppable trail. Excludes the cascade's own
    * root, which is where the person already was. */
-  readonly trail: readonly CategoryNode[];
+  readonly trail: readonly Category[];
   /** The ladder finished on a category nothing lives under. */
   readonly atLeaf: boolean;
+  /** A rung below the ones on screen is still in flight. */
+  readonly isFetching: boolean;
   /** Why the cascade will not hand a value back yet, or `null`. */
   readonly blockedReason: CategoryCascadeBlockedReason | null;
   /** Answer one level. `null` un-answers it, dropping every level below. */
-  choose(depth: number, node: CategoryNode | null): void;
+  choose(depth: number, category: Category | null): void;
   /** Un-answer everything from this depth down — what popping a trail chip
    * does. `clearFrom(0)` empties the cascade. */
   clearFrom(depth: number): void;
@@ -129,9 +198,7 @@ export interface CategoryCascadeBag {
  * a non-leaf is never reported in the first place, so the reason there is
  * always that the ladder is unfinished.
  */
-export type CategoryCascadeBlockedReason =
-  | "nothing_selected"
-  | "not_a_leaf";
+export type CategoryCascadeBlockedReason = "nothing_selected" | "not_a_leaf";
 
 /**
  * What a cascade reports to its host.
@@ -148,20 +215,34 @@ export type CategoryCascadeBlockedReason =
  */
 export type CategoryCascadeCommit = "any" | "leaf";
 
-export interface UseCategoryCascadeOptions extends UseCategoryCatalogOptions {
+export interface UseCategoryCascadeOptions
+  extends CategoryBrowseOptions,
+    UseCategoryCatalogOptions {
   /**
-   * Where the ladder starts. Absent/`null` starts at the catalogue's roots.
+   * Where the ladder starts. Absent/`null` starts at the catalogue's roots,
+   * which is the one rung that still costs a catalogue sync — see this file's
+   * header.
    *
    * On a category landing, pass the category the TILES arrived at: the two
    * mechanisms then meet at exactly one boundary instead of both offering the
-   * same level.
+   * same level, and the whole control becomes one `children/` per rung.
    */
   readonly rootId?: number | null;
   /** The host's current answer. */
   readonly value?: number | null;
-  readonly onChange?: (id: number | null, node: CategoryNode | null) => void;
+  readonly onChange?: (id: number | null, category: Category | null) => void;
   /** Default `"any"`. See {@link CategoryCascadeCommit}. */
   readonly commit?: CategoryCascadeCommit;
+  /**
+   * The top rung of a ROOTLESS ladder, supplied by the host.
+   *
+   * The escape hatch for the one question the server cannot answer. A host
+   * that already knows its top-level categories — a small catalogue, a
+   * navigation config, a carousel it has just drawn — hands them over and the
+   * catalogue sync is never mounted. Ignored when `rootId` is given, because
+   * then there is no rootless rung to fill.
+   */
+  readonly roots?: readonly Category[];
   /**
    * Live results per category id. Unfilled by default and unfillable by this
    * package — see this file's header.
@@ -179,13 +260,18 @@ export function useCategoryCascade(
   options: UseCategoryCascadeOptions = {}
 ): CategoryCascadeBag {
   const {
-    rootId,
+    rootId: rootIdOption,
     value,
     onChange,
     commit,
     counts,
+    roots,
+    includeDeleted,
+    includeInactive,
+    includeTest,
     ...catalogOptions
   } = options;
+  const rootId = rootIdOption ?? null;
   const commitRule = commit ?? "any";
   // Controlled-ness is read from the PRESENCE of the prop, not from its value:
   // an uncontrolled host and a controlled host holding `null` are the same
@@ -193,9 +279,15 @@ export function useCategoryCascade(
   const controlled = value !== undefined;
   const incoming = value ?? null;
 
-  const query = useCategoryCatalog(catalogOptions);
-  const catalog = loadStateFromQuery(query);
-  const index = catalog.status === "ready" ? catalog.data.index : null;
+  const queryClient = useQueryClient();
+  const visibility = useMemo<CategoryBrowseOptions>(
+    () => ({
+      ...(includeDeleted !== undefined ? { includeDeleted } : {}),
+      ...(includeInactive !== undefined ? { includeInactive } : {}),
+      ...(includeTest !== undefined ? { includeTest } : {}),
+    }),
+    [includeDeleted, includeInactive, includeTest]
+  );
 
   // The cursor, and the value it was derived from. One state, so the two can
   // never be reconciled in the wrong order — see this file's header for why
@@ -210,15 +302,90 @@ export function useCategoryCascade(
       ? cursorState.cursor
       : incoming;
 
-  const levels = useMemo<readonly CategoryCascadeLevel[]>(
+  // ── The three reads ───────────────────────────────────────────────────────
+  //
+  // 1. the cursor's own row, for `tn_ancestors_pks` — the chain;
+  // 2. the root's own row, for the top rung's heading;
+  // 3. one `children/` per rung the chain implies.
+  //
+  // Plus the catalogue, and ONLY when the ladder is rootless and the host
+  // supplied no roots of its own. `enabled: false` is not a disabled request,
+  // it is no request: nothing is mounted, nothing is stored, nothing is read.
+  const enabled = options.enabled ?? true;
+  const cursorQuery = useCategory(cursorId, { enabled });
+  const rootQuery = useCategory(rootId, { enabled });
+  const needsCatalogRoots = rootId === null && roots === undefined;
+  const catalogQuery = useCategoryCatalog({
+    ...catalogOptions,
+    ...visibility,
+    enabled: needsCatalogRoots && enabled,
+  });
+
+  const chainIds = useMemo(
     () =>
-      index === null
-        ? []
-        : buildCategoryCascade(index, {
-            rootId: rootId ?? null,
-            cursorId,
-          }),
-    [index, rootId, cursorId]
+      cascadeChainIds(
+        categoryAncestorChain(cursorQuery.data),
+        cursorId,
+        rootId
+      ),
+    [cursorQuery.data, cursorId, rootId]
+  );
+  const parentIds = useMemo(
+    () => cascadeParentIds(rootId, chainIds),
+    [rootId, chainIds]
+  );
+  const levelOptions = useMemo<CategoryBrowseOptions>(
+    () => ({ ...visibility, enabled }),
+    [visibility, enabled]
+  );
+  const levelQueries = useCategoryLevels(parentIds, levelOptions);
+
+  /**
+   * The top rung's options.
+   *
+   * Rooted: the root's children, straight off `children/`. Rootless: whatever
+   * the host handed over, or the catalogue's roots — projected through the
+   * SAME browse predicate either way, so a host that passes raw rows cannot
+   * accidentally offer a tombstone the rest of the pair filters.
+   */
+  const topOptions = useMemo<readonly Category[] | null>(() => {
+    if (rootId !== null) return levelQueries.rows[0] ?? null;
+    if (roots !== undefined) return browsableCategories(roots, visibility);
+    return catalogQuery.data?.index.roots.map((node) => node.category) ?? null;
+  }, [rootId, roots, visibility, levelQueries.rows, catalogQuery.data]);
+
+  /**
+   * The fetched rungs, assembled top-down.
+   *
+   * A rung's PARENT is the option chosen at the rung above it — already in
+   * hand — so only the top rung ever needs a row fetched for its heading.
+   */
+  const sources = useMemo<readonly CategoryCascadeSource[]>(() => {
+    if (topOptions === null) return [];
+    const out: CategoryCascadeSource[] = [
+      { parentId: rootId, parent: rootQuery.data ?? null, options: topOptions },
+    ];
+    for (let depth = 1; depth < parentIds.length; depth += 1) {
+      const parentId = parentIds[depth] ?? null;
+      const rows = levelQueries.rows[depth];
+      // Not answered yet: the ladder simply stops here this render and grows
+      // when the rung lands. It is never a blank screen, because everything
+      // above it is already built.
+      if (rows === undefined || rows === null) break;
+      const previous = out[depth - 1];
+      out.push({
+        parentId,
+        parent:
+          previous?.options.find((row) => row.id === parentId) ?? null,
+        options: rows,
+      });
+    }
+    return out;
+  }, [topOptions, rootId, rootQuery.data, parentIds, levelQueries.rows]);
+
+  const levels = useMemo<readonly CategoryCascadeLevel[]>(
+    () => buildCategoryCascade(sources, chainIds),
+    [sources, chainIds]
   );
 
   const steps = useMemo<readonly CategoryCascadeStep[]>(
@@ -226,55 +393,98 @@ export function useCategoryCascade(
       levels.map((level) => ({
         depth: level.depth,
         parent: level.parent,
-        parentLabel:
-          level.parent === null ? null : categoryLabel(level.parent.category),
-        options: level.options.map((node) => ({
-          node,
-          label: categoryLabel(node.category),
-          isLeaf: node.children.length === 0,
-          count: counts?.get(node.id) ?? null,
+        parentLabel: level.parent === null ? null : categoryLabel(level.parent),
+        options: level.options.map((row) => ({
+          category: row,
+          label: categoryLabel(row),
+          isLeaf: categoryChildIds(row).length === 0,
+          count: counts?.get(row.id) ?? null,
         })),
         chosen: level.chosen,
         chosenLabel:
-          level.chosen === null ? null : categoryLabel(level.chosen.category),
+          level.chosen === null ? null : categoryLabel(level.chosen),
       })),
     [levels, counts]
   );
 
   const selected = cascadeSelection(levels);
-  const atLeaf = cascadeReachedLeaf(levels);
+  const atLeaf = cascadeReachedLeaf(sources, chainIds);
+
+  /**
+   * The ladder's own load state, composed from the reads that produce the TOP
+   * rung and nothing else.
+   *
+   * A rung below it that is still in flight is `isFetching`, never `loading`:
+   * turning the whole control back into a skeleton because its fourth select
+   * is arriving is precisely the spinner-per-rung this design exists to avoid.
+   */
+  const state = useMemo<LoadState<readonly CategoryCascadeStep[]>>(() => {
+    const failure =
+      levelQueries.error ??
+      (needsCatalogRoots ? catalogQuery.error : null) ??
+      (rootId !== null ? rootQuery.error : null) ??
+      cursorQuery.error;
+    if (topOptions === null) {
+      return failure != null ? loadFailed(failure) : loadLoading();
+    }
+    return loadReady(steps);
+  }, [
+    topOptions,
+    steps,
+    levelQueries.error,
+    needsCatalogRoots,
+    catalogQuery.error,
+    rootId,
+    rootQuery.error,
+    cursorQuery.error,
+  ]);
 
   /**
    * Move the cursor and report whatever the commit rule allows, in ONE state
    * write. Both halves have to land together: reporting first and moving the
    * cursor after would let a controlled host re-render against the old cursor
    * and rebuild the ladder the person just left.
+   *
+   * The chosen ROW is written into the per-id cache on the way past. It is the
+   * same row `GET {id}/` would answer with, and seeding it is what keeps a
+   * click from costing a second request just to learn the ancestry of a
+   * category the person picked from a list this hook drew.
    */
-  const moveTo = (node: CategoryNode | null): void => {
+  const moveTo = (category: Category | null): void => {
+    if (category !== null) {
+      queryClient.setQueryData(
+        categoriesQueryKeys.category(category.id),
+        category
+      );
+    }
     const committed =
-      node === null
+      category === null
         ? null
-        : commitRule === "any" || node.children.length === 0
-          ? node
+        : commitRule === "any" || categoryChildIds(category).length === 0
+          ? category
           : null;
-    setCursorState({ cursor: node?.id ?? null, from: committed?.id ?? null });
+    setCursorState({
+      cursor: category?.id ?? null,
+      from: committed?.id ?? null,
+    });
     onChange?.(committed?.id ?? null, committed);
   };
 
   return {
-    state: mapLoad(catalog, () => steps),
+    state,
     selected,
     trail: cascadeTrail(levels),
     atLeaf,
+    isFetching: levelQueries.isPending && levels.length > 0,
     blockedReason:
       selected === null
         ? "nothing_selected"
         : commitRule === "leaf" && !atLeaf
           ? "not_a_leaf"
           : null,
-    choose: (depth, node) => {
-      if (node !== null) {
-        moveTo(node);
+    choose: (depth, category) => {
+      if (category !== null) {
+        moveTo(category);
         return;
       }
       // Un-answering a level goes back to whatever that level hangs off —
@@ -285,7 +495,7 @@ export function useCategoryCascade(
       moveTo(levels[depth]?.parent ?? null);
     },
     refetch: () => {
-      void query.refetch();
+      void queryClient.invalidateQueries({ queryKey: categoriesQueryKeys.all });
     },
   };
 }

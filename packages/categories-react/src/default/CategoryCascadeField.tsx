@@ -55,8 +55,8 @@ import {
   PHONE_CONTROL_HEIGHT,
   SkinTheme,
 } from "@stapel/tokens-antd/skin";
+import type { Category } from "../api/types.js";
 import { categoryLabel, renderCategoryLabel } from "../catalog/labels.js";
-import type { CategoryNode } from "../catalog/tree.js";
 import { CategoryCascade } from "../headless/CategoryCascade.js";
 import type {
   CategoryCascadeBag,
@@ -186,8 +186,8 @@ function Level(props: {
   // keeps its heading, because there the word is not a duplicate of anything.
   const headingHidden = step.parentLabel === null;
 
-  const caption = (node: CategoryNode): string =>
-    renderCategoryLabel(categoryLabel(node.category), t);
+  const caption = (category: Category): string =>
+    renderCategoryLabel(categoryLabel(category), t);
 
   return (
     <Flex
@@ -215,24 +215,24 @@ function Level(props: {
         aria-label={heading}
         data-testid={`categories-cascade-select-${String(step.depth)}`}
         data-analytics="none"
-        data-analytics-reason="walking the synced tree is a local read; the host tracks the search or the submit that consumes the chosen category"
+        data-analytics-reason="a rung is one small children read; the host tracks the search or the submit that consumes the chosen category"
         notFoundContent={t(CATEGORIES_I18N_KEYS.pickerNoMatches)}
         options={step.options.map((option) => ({
-          value: option.node.id,
+          value: option.category.id,
           // `label` is what antd filters and renders in the closed box; the
           // count rides in `title` only when a host supplied one, so an
           // unfilled column adds nothing to the caption rather than a "(—)".
-          label: caption(option.node),
+          label: caption(option.category),
           ...(option.count !== null
-            ? { title: `${caption(option.node)} (${String(option.count)})` }
+            ? { title: `${caption(option.category)} (${String(option.count)})` }
             : {}),
         }))}
         onChange={(id) => {
           const chosen =
             id === undefined || id === null
               ? null
-              : (step.options.find((option) => option.node.id === id)?.node ??
-                null);
+              : (step.options.find((option) => option.category.id === id)
+                  ?.category ?? null);
           bag.choose(step.depth, chosen);
         }}
       />
@@ -249,17 +249,17 @@ function Trail(props: {
   if (bag.trail.length === 0) return null;
   return (
     <Flex gap={spacing[1]} wrap data-testid="categories-cascade-trail">
-      {bag.trail.map((node, depth) => (
+      {bag.trail.map((category, depth) => (
         <Tag
-          key={node.id}
+          key={category.id}
           closable
-          data-testid={`categories-cascade-crumb-${String(node.id)}`}
+          data-testid={`categories-cascade-crumb-${String(category.id)}`}
           onClose={(event) => {
             event.preventDefault();
             bag.clearFrom(depth);
           }}
         >
-          {renderCategoryLabel(categoryLabel(node.category), t)}
+          {renderCategoryLabel(categoryLabel(category), t)}
         </Tag>
       ))}
     </Flex>
@@ -305,7 +305,7 @@ function Verdict(props: {
         category:
           bag.selected === null
             ? ""
-            : renderCategoryLabel(categoryLabel(bag.selected.category), t),
+            : renderCategoryLabel(categoryLabel(bag.selected), t),
       })}
     </Typography.Text>
   );

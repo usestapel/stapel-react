@@ -122,9 +122,9 @@ export function CategoryBreadcrumbsBar(
                       title: crumb.isCurrent
                         ? renderCategoryLabel(crumb.label, t)
                         : crumbLink(
-                            `${base}/${crumb.node.category.slug}`,
+                            `${base}/${crumb.category.slug}`,
                             renderCategoryLabel(crumb.label, t),
-                            crumb.node.category.slug
+                            crumb.category.slug
                           ),
                     })),
                   ]}

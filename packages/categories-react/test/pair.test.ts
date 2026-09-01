@@ -42,13 +42,16 @@ describe("the API surface is the PUBLIC half of the contract", () => {
     createStapelClient({ baseUrl: BASE, fetch: mockServer({}).fetch })
   );
 
-  it("exposes exactly the five anonymous reads", () => {
+  it("exposes exactly the six anonymous reads", () => {
     const methods = Object.keys(api).filter((k) => k !== "client").sort();
     expect(methods).toEqual([
       "carousel",
       "children",
       "features",
       "list",
+      // The cheapest read in the contract, and the one that makes a
+      // server-driven walk possible: one row, its ancestry included.
+      "retrieve",
       "revision",
     ]);
   });

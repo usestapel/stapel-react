@@ -26,6 +26,7 @@ import {
   installViewport,
   mockServer,
   resetViewportListeners,
+  rowRoutes,
   setViewport,
   testStore,
 } from "./harness.js";
@@ -43,6 +44,7 @@ const OK = {
   "/categories/carousel/": { body: [ELECTRONICS] },
   "/features/": { body: FEATURES },
   "/categories/": { body: FULL_PAGE },
+  ...rowRoutes(ROWS),
 };
 
 const CHILD_TILES: readonly CarouselEntry[] = [PHONES, LAPTOPS].map(
@@ -239,12 +241,18 @@ async function renderCategoryPage(
     readonly subcategories?: SubcategoryForm;
     readonly breadcrumbs?: boolean;
     readonly slug?: string;
+    readonly categoryId?: number;
+    readonly server?: ReturnType<typeof mockServer>;
   } = {}
 ) {
-  const { slug = "electronics", ...rest } = props;
+  const { slug = "electronics", categoryId, server, ...rest } = props;
   const result = render(
-    <TestProviders server={mockServer(OK)}>
-      <CategoryPage slug={slug} {...rest} />
+    <TestProviders server={server ?? mockServer(OK)}>
+      {categoryId === undefined ? (
+        <CategoryPage slug={slug} {...rest} />
+      ) : (
+        <CategoryPage categoryId={categoryId} {...rest} />
+      )}
     </TestProviders>
   );
   await waitFor(() => {
@@ -293,16 +301,34 @@ describe("<CategoryPage> renders exactly one form of sub-categories", () => {
     expect(screen.queryByTestId("categories-tile-grid")).toBeNull();
   });
 
-  it("past the cap the tiles arm renders nothing and does NOT fall back to the pane", async () => {
+  it("past the cap the tiles HAND OVER to the cascade — never to nothing, never to the pane", async () => {
     // `phones` is depth 1, so its children are depth 2 — a level the canon
-    // sends to a cascading selector. Falling back to the list here would
-    // reintroduce browsing at exactly the depth the model removed it from.
+    // sends to a cascading selector. Rendering nothing here is what made 2924
+    // of 2924 active leaves unreachable from a phone on a live catalogue;
+    // falling back to the list would reintroduce browsing at exactly the depth
+    // the model removed it from. The ladder is the third answer, and the only
+    // one the canon names.
     await renderCategoryPage({ subcategories: "tiles", slug: "phones" });
     await waitFor(() => {
-      expect(screen.getByTestId("categories-category-page")).toBeTruthy();
+      expect(screen.getByTestId("categories-cascade-select-0")).toBeTruthy();
     });
     expect(screen.queryByTestId("categories-tile-grid")).toBeNull();
     expect(screen.queryByTestId("categories-tree")).toBeNull();
+  });
+
+  it("the handover offers the children the tiles refused to draw", async () => {
+    await renderCategoryPage({ subcategories: "tiles", slug: "phones" });
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-cascade-select-0")).toBeTruthy();
+    });
+    // `used-phones` is the leaf where the feature schema actually lives, one
+    // tap below the page that used to be a dead end.
+    expect(
+      screen
+        .getByTestId("categories-cascade-select-0")
+        .querySelector("input")
+    ).toBeTruthy();
+    expect(screen.queryByTestId("categories-cascade-exhausted")).toBeNull();
   });
 
   it("still says nothing for a LEAF, in either arm", async () => {
@@ -314,6 +340,40 @@ describe("<CategoryPage> renders exactly one form of sub-categories", () => {
       expect(screen.queryByTestId("categories-tile-grid")).toBeNull();
       unmount();
     }
+  });
+});
+
+describe("<CategoryPage> by ID never transfers the catalogue", () => {
+  it("draws the landing from two small reads and asks the list for nothing", async () => {
+    // The whole point of the id address. On a live classified deployment the
+    // list is 36 requests and 1.4 MB before the title can be drawn; this is
+    // `GET {id}/` and `GET {id}/children/`.
+    const server = mockServer(OK);
+    await renderCategoryPage({
+      categoryId: 1,
+      subcategories: "tiles",
+      breadcrumbs: false,
+      server,
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy();
+    });
+    expect(server.queries("/api/v1/categories/?")).toHaveLength(0);
+    const paths = server.calls.map((call) => new URL(call.url).pathname);
+    expect(paths).toContain("/categories/api/v1/categories/1/");
+    expect(paths).toContain("/categories/api/v1/categories/1/children/");
+    expect(paths.filter((p) => p.endsWith("/api/v1/categories/"))).toEqual([]);
+  });
+
+  it("hands over to the cascade past the cap on the id path too", async () => {
+    await renderCategoryPage({
+      categoryId: 2,
+      subcategories: "tiles",
+      breadcrumbs: false,
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-cascade-select-0")).toBeTruthy();
+    });
   });
 });
 

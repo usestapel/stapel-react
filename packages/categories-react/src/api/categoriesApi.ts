@@ -72,6 +72,23 @@ export interface CategoriesApi {
   ): Promise<CategoryPage>;
 
   /**
+   * One category row by id.
+   *
+   * The cheapest question in the contract, and the one that makes a
+   * SERVER-DRIVEN tree walk possible at all: `tn_ancestors_pks` on the answer
+   * is the whole chain from a root down to this row, so a deep link can be
+   * turned into a ladder of `children` reads without transferring a catalogue.
+   *
+   * It takes an ID, not a slug — `lookup_field` is never overridden and the
+   * list endpoint has no slug filter, which is why a slug still costs the
+   * whole tree (see MODULE.md's upstream asks).
+   */
+  retrieve(
+    id: number,
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<Category>;
+
+  /**
    * Non-deleted direct children of one category, `tn_priority` descending.
    *
    * Redundant with the synced tree by construction, and deliberately kept: a
@@ -153,6 +170,11 @@ export function createCategoriesApi(client: StapelClient): CategoriesApi {
     list: (params, options) =>
       client.get("/categories/", {
         query: categoryListParams(params),
+        ...(options?.signal !== undefined ? { signal: options.signal } : {}),
+      }),
+
+    retrieve: (id, options) =>
+      client.get(`/categories/${String(id)}/`, {
         ...(options?.signal !== undefined ? { signal: options.signal } : {}),
       }),
 

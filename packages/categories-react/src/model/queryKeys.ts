@@ -39,6 +39,7 @@ export const categoriesQueryKeys: {
     options: CatalogKeyOptions
   ): readonly ["categories", "catalog", CatalogKeyOptions];
   children(id: number): readonly ["categories", "children", number];
+  category(id: number): readonly ["categories", "category", number];
   readonly carousel: readonly ["categories", "carousel"];
   features(id: number): readonly ["categories", "features", number];
   readonly revision: readonly ["categories", "revision"];
@@ -46,6 +47,7 @@ export const categoriesQueryKeys: {
   all: [ROOT],
   catalog: (options) => [ROOT, "catalog", options],
   children: (id) => [ROOT, "children", id],
+  category: (id) => [ROOT, "category", id],
   carousel: [ROOT, "carousel"],
   features: (id) => [ROOT, "features", id],
   revision: [ROOT, "revision"],
