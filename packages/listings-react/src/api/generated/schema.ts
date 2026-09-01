@@ -408,6 +408,10 @@ export interface components {
             title?: boolean | null;
             badge?: boolean | null;
             translate?: string | null;
+            visibility?: string | null;
+            verification?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -433,6 +437,10 @@ export interface components {
             title?: boolean | null;
             badge?: boolean | null;
             translate?: string | null;
+            visibility?: string | null;
+            verification?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -464,6 +472,10 @@ export interface components {
             title?: boolean | null;
             badge?: boolean | null;
             translate?: string | null;
+            visibility?: string | null;
+            verification?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -539,6 +551,10 @@ export interface components {
             title?: boolean | null;
             badge?: boolean | null;
             translate?: string | null;
+            visibility?: string | null;
+            verification?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -568,6 +584,10 @@ export interface components {
             title?: boolean | null;
             badge?: boolean | null;
             translate?: string | null;
+            visibility?: string | null;
+            verification?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -595,6 +615,10 @@ export interface components {
             title?: boolean | null;
             badge?: boolean | null;
             translate?: string | null;
+            visibility?: string | null;
+            verification?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -618,6 +642,10 @@ export interface components {
             title?: boolean | null;
             badge?: boolean | null;
             translate?: string | null;
+            visibility?: string | null;
+            verification?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -649,6 +677,10 @@ export interface components {
             title?: boolean | null;
             badge?: boolean | null;
             translate?: string | null;
+            visibility?: string | null;
+            verification?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -672,6 +704,10 @@ export interface components {
             title?: boolean | null;
             badge?: boolean | null;
             translate?: string | null;
+            visibility?: string | null;
+            verification?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -707,8 +743,36 @@ export interface components {
             price_base?: string | null;
             currency?: string;
             readonly images: string[] | null;
-            readonly features_title: components["schemas"]["FeatureDao"][];
-            readonly features_badges: components["schemas"]["FeatureDao"][];
+            readonly features_title: (components["schemas"]["FeatureDao"] | {
+                slug?: string;
+                type?: string;
+                name?: string | null;
+                order?: number | null;
+                translate?: string | null;
+                /** @enum {unknown} */
+                visibility?: "owner" | "staff";
+                verification?: {
+                    [key: string]: unknown;
+                };
+                /** @constant */
+                redacted: true;
+                present: boolean;
+            })[];
+            readonly features_badges: (components["schemas"]["FeatureDao"] | {
+                slug?: string;
+                type?: string;
+                name?: string | null;
+                order?: number | null;
+                translate?: string | null;
+                /** @enum {unknown} */
+                visibility?: "owner" | "staff";
+                verification?: {
+                    [key: string]: unknown;
+                };
+                /** @constant */
+                redacted: true;
+                present: boolean;
+            })[];
             location_label?: string;
             geohash?: string;
             /** Format: decimal */
@@ -743,9 +807,51 @@ export interface components {
             lat?: string | null;
             /** Format: decimal */
             lon?: string | null;
-            readonly features: components["schemas"]["FeatureDao"][];
-            readonly features_title: components["schemas"]["FeatureDao"][];
-            readonly features_badges: components["schemas"]["FeatureDao"][];
+            readonly features: (components["schemas"]["FeatureDao"] | {
+                slug?: string;
+                type?: string;
+                name?: string | null;
+                order?: number | null;
+                translate?: string | null;
+                /** @enum {unknown} */
+                visibility?: "owner" | "staff";
+                verification?: {
+                    [key: string]: unknown;
+                };
+                /** @constant */
+                redacted: true;
+                present: boolean;
+            })[];
+            readonly features_title: (components["schemas"]["FeatureDao"] | {
+                slug?: string;
+                type?: string;
+                name?: string | null;
+                order?: number | null;
+                translate?: string | null;
+                /** @enum {unknown} */
+                visibility?: "owner" | "staff";
+                verification?: {
+                    [key: string]: unknown;
+                };
+                /** @constant */
+                redacted: true;
+                present: boolean;
+            })[];
+            readonly features_badges: (components["schemas"]["FeatureDao"] | {
+                slug?: string;
+                type?: string;
+                name?: string | null;
+                order?: number | null;
+                translate?: string | null;
+                /** @enum {unknown} */
+                visibility?: "owner" | "staff";
+                verification?: {
+                    [key: string]: unknown;
+                };
+                /** @constant */
+                redacted: true;
+                present: boolean;
+            })[];
             readonly features_search: unknown;
             status?: components["schemas"]["StatusD41Enum"];
             moderation_status?: components["schemas"]["ModerationStatusEnum"];
@@ -853,8 +959,36 @@ export interface components {
             price_base?: string | null;
             currency?: string;
             readonly images: string[] | null;
-            readonly features_title: components["schemas"]["FeatureDao"][];
-            readonly features_badges: components["schemas"]["FeatureDao"][];
+            readonly features_title: (components["schemas"]["FeatureDao"] | {
+                slug?: string;
+                type?: string;
+                name?: string | null;
+                order?: number | null;
+                translate?: string | null;
+                /** @enum {unknown} */
+                visibility?: "owner" | "staff";
+                verification?: {
+                    [key: string]: unknown;
+                };
+                /** @constant */
+                redacted: true;
+                present: boolean;
+            })[];
+            readonly features_badges: (components["schemas"]["FeatureDao"] | {
+                slug?: string;
+                type?: string;
+                name?: string | null;
+                order?: number | null;
+                translate?: string | null;
+                /** @enum {unknown} */
+                visibility?: "owner" | "staff";
+                verification?: {
+                    [key: string]: unknown;
+                };
+                /** @constant */
+                redacted: true;
+                present: boolean;
+            })[];
             location_label?: string;
             geohash?: string;
             /** Format: decimal */
@@ -955,6 +1089,10 @@ export interface components {
             title?: boolean | null;
             badge?: boolean | null;
             translate?: string | null;
+            visibility?: string | null;
+            verification?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -981,6 +1119,10 @@ export interface components {
             title?: boolean | null;
             badge?: boolean | null;
             translate?: string | null;
+            visibility?: string | null;
+            verification?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -1007,12 +1149,17 @@ export interface components {
             title?: boolean | null;
             badge?: boolean | null;
             translate?: string | null;
+            visibility?: string | null;
+            verification?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             type: "select";
             value?: string[];
+            labels?: string[];
             uiStyle?: (components["schemas"]["UiStyleEnum"] | components["schemas"]["NullEnum"]) | null;
             maxSelected?: number | null;
         };
@@ -1045,6 +1192,10 @@ export interface components {
             title?: boolean | null;
             badge?: boolean | null;
             translate?: string | null;
+            visibility?: string | null;
+            verification?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}

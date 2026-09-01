@@ -175,6 +175,8 @@ export interface components {
             counted: string[];
             /** @description Plan slugs dropped at MAX_FACET_FIELDS — reported, not vanished. */
             skipped: string[];
+            /** @description `f.<slug>`/`r.<slug>` filters this answer did NOT apply, because the category marks the slug non-public (`FeatureDef.visibility` is `owner` or `staff`). A hidden value is not indexed and is not filterable: letting `?f.vin=<value>` through would make the index an exact-match oracle over an identifier. The answer is wider than what was asked for, and says so here rather than silently. */
+            dropped_filters: string[];
             /** @description Range slugs that address a core document column rather than an attribute (`r.price`). Offer them as filters unconditionally: they exist for every document in every category, which is why they are not in the category's own plan. */
             core_ranges: string[];
         };

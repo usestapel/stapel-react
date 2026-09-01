@@ -824,6 +824,14 @@ export interface components {
             show_as_badge?: boolean;
             show_at_title?: boolean;
             /**
+             * @description Who may READ a stored value: 'public' = anyone (the default), 'owner' = the object's owner and staff, 'staff' = staff only. The value is still required, validated and stored either way. A non-public feature is never a title and never a badge.
+             *
+             *     * `public` - Public — anyone may read the value
+             *     * `owner` - Owner (and staff)
+             *     * `staff` - Staff only
+             */
+            visibility?: components["schemas"]["VisibilityD99Enum"];
+            /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
              *     * `all` - All (title + options)
@@ -901,6 +909,14 @@ export interface components {
             mandatory?: boolean;
             show_as_badge?: boolean;
             show_at_title?: boolean;
+            /**
+             * @description Who may READ a stored value: 'public' = anyone (the default), 'owner' = the object's owner and staff, 'staff' = staff only. The value is still required, validated and stored either way. A non-public feature is never a title and never a badge.
+             *
+             *     * `public` - Public — anyone may read the value
+             *     * `owner` - Owner (and staff)
+             *     * `staff` - Staff only
+             */
+            visibility?: components["schemas"]["VisibilityD99Enum"];
             /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
             rules?: unknown;
             /** @description Help text under the field; translation key or literal. */
@@ -939,6 +955,14 @@ export interface components {
             mandatory?: boolean;
             show_as_badge?: boolean;
             show_at_title?: boolean;
+            /**
+             * @description Who may READ a stored value: 'public' = anyone (the default), 'owner' = the object's owner and staff, 'staff' = staff only. The value is still required, validated and stored either way. A non-public feature is never a title and never a badge.
+             *
+             *     * `public` - Public — anyone may read the value
+             *     * `owner` - Owner (and staff)
+             *     * `staff` - Staff only
+             */
+            visibility?: components["schemas"]["VisibilityD99Enum"];
             /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
@@ -1012,6 +1036,14 @@ export interface components {
             mandatory?: boolean;
             show_as_badge?: boolean;
             show_at_title?: boolean;
+            /**
+             * @description Who may READ a stored value: 'public' = anyone (the default), 'owner' = the object's owner and staff, 'staff' = staff only. The value is still required, validated and stored either way. A non-public feature is never a title and never a badge.
+             *
+             *     * `public` - Public — anyone may read the value
+             *     * `owner` - Owner (and staff)
+             *     * `staff` - Staff only
+             */
+            visibility?: components["schemas"]["VisibilityD99Enum"];
             /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
             rules?: unknown;
             /** @description Help text under the field; translation key or literal. */
@@ -1083,6 +1115,15 @@ export interface components {
             /** @default false */
             show_at_title: boolean;
             /**
+             * @description Who may READ a stored value: 'public' = anyone (the default), 'owner' = the object's owner and staff, 'staff' = staff only. The value is still required, validated and stored either way; a non-public feature is simply never a title and never a badge.
+             *
+             *     * `public` - public
+             *     * `owner` - owner
+             *     * `staff` - staff
+             * @default public
+             */
+            visibility: components["schemas"]["FeatureEditorFeatureVisibilityEnum"];
+            /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
              *     * `all` - all
@@ -1117,6 +1158,13 @@ export interface components {
          * @enum {string}
          */
         FeatureEditorFeatureTranslateEnum: "all" | "title" | "none";
+        /**
+         * @description * `public` - public
+         *     * `owner` - owner
+         *     * `staff` - staff
+         * @enum {string}
+         */
+        FeatureEditorFeatureVisibilityEnum: "public" | "owner" | "staff";
         /** @description Item from the feature editor list. */
         FeatureEditorItem: {
             order: number;
@@ -1461,6 +1509,14 @@ export interface components {
             mandatory?: boolean;
             show_as_badge?: boolean;
             show_at_title?: boolean;
+            /**
+             * @description Who may READ a stored value: 'public' = anyone (the default), 'owner' = the object's owner and staff, 'staff' = staff only. The value is still required, validated and stored either way. A non-public feature is never a title and never a badge.
+             *
+             *     * `public` - Public — anyone may read the value
+             *     * `owner` - Owner (and staff)
+             *     * `staff` - Staff only
+             */
+            visibility?: components["schemas"]["VisibilityD99Enum"];
             /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
             rules?: unknown;
             /** @description Help text under the field; translation key or literal. */
@@ -1713,6 +1769,13 @@ export interface components {
             valid: boolean;
             results: components["schemas"]["FeatureValidationResult"][];
         };
+        /**
+         * @description * `public` - Public — anyone may read the value
+         *     * `owner` - Owner (and staff)
+         *     * `staff` - Staff only
+         * @enum {string}
+         */
+        VisibilityD99Enum: "public" | "owner" | "staff";
     };
     responses: never;
     parameters: never;
