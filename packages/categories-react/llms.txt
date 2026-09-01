@@ -1,6 +1,6 @@
-# @stapel/categories-react 0.9.1
+# @stapel/categories-react 0.10.0
 
-Headless React flow pair for stapel-categories (contract >=0.9 <0.10) — business + state, zero visual opinion.
+Headless React flow pair for stapel-categories (contract >=0.11 <0.12) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
