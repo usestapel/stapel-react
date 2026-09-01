@@ -485,7 +485,7 @@
     },
     {
       "package": "@stapel/listings-react",
-      "version": "0.14.0",
+      "version": "0.14.1",
       "entries": [
         {
           "id": "listings.detail",
@@ -862,7 +862,7 @@
     },
     {
       "package": "@stapel/search-react",
-      "version": "0.14.1",
+      "version": "0.14.2",
       "entries": [
         {
           "id": "search.results",
