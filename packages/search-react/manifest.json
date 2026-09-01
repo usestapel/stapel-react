@@ -453,6 +453,24 @@
       "source": "demo/DegradationNotice.demo.tsx"
     },
     {
+      "id": "search.empty-exits",
+      "title": "Empty-result exits",
+      "description": "A search that found nothing, with a way out of every constraint that could have caused it — up a level of the category path, four times the radius, everywhere, drop one named filter, clear everything. Each button removes exactly one constraint and is offered only when that constraint is actually applied, so the row is never a wall of controls that change nothing. Sibling sections with counts are the exit a buyer most wants and the one this package must not build: walking the tree belongs to the categories pair, so it is a host slot rendered above the derived exits.",
+      "component": "EmptyExits",
+      "covers": [
+        "parentCategory"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "every constraint",
+        "only the location",
+        "with the host's siblings"
+      ],
+      "source": "demo/EmptyExits.demo.tsx"
+    },
+    {
       "id": "search.facet-panel-pane",
       "title": "Filter panel",
       "description": "The drill-down facet panel with every count beside its option — including the options you have not chosen, which is what makes them drill-down rather than naive — plus the server's honesty flags said in words: 'these counts are approximate' and the slugs it did not count at all, whose options read 'not counted' and never a zero that looks like an answer.",

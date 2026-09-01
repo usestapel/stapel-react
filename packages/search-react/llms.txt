@@ -78,6 +78,7 @@ const { tracked } = useTracked();
 - search.box → <SearchBox> [empty|typed]  demo/SearchBox.demo.tsx
 - search.classified-filters → <FilterChips> [chips|applied|shapes|views]  demo/ClassifiedFilters.demo.tsx
 - search.degradation-notice → <DegradationNotice> [banner|inline]  demo/DegradationNotice.demo.tsx
+- search.empty-exits → <EmptyExits> [every constraint|only the location|with the host's siblings]  demo/EmptyExits.demo.tsx
 - search.facet-panel-pane → <FacetPanelPane> [open-search|narrowed|in the desktop rail]  demo/FacetPanelPane.demo.tsx
 - search.filter-sheet → <SearchPage> [open]  demo/FilterSheet.demo.tsx
 - search.language-select → <LanguageSelect> [offered|from-a-link]  demo/LanguageSelect.demo.tsx
