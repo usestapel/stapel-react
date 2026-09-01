@@ -34,6 +34,10 @@ visibility, redacted: true, present}` and no `value` key at all — kept in plac
   a separate function rather than a flag so the destructive default is not one
   forgotten argument away.
 
+  The `@stapel/attributes-react` peer floor rises to `>=0.9.0`: the redaction
+  predicates this release reads (`isRedactedValue` and friends) land there, and
+  a range that still admitted 0.5.0 would resolve to a build without them.
+
   `<ListingDetailPane>` reads the spec table through `featureValuesForDisplay`,
   so a withheld row keeps its position and reads "Provided by the seller"; its
   title line filters redacted views before formatting. Both are belts — the
