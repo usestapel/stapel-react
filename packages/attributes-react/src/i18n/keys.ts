@@ -157,7 +157,7 @@ export const attributesI18nBundleEn: I18nDictionary = {
   "attributes.visibility.owner":
     "You and our moderators can see it; buyers cannot.",
   "attributes.visibility.staff":
-    "Only our moderators can see it \u2014 it is not shown back to you either.",
+    "Only our moderators can see it — it is not shown back to you either.",
   "attributes.bool.yes": "Yes",
   "attributes.bool.no": "No",
   "attributes.select.placeholder": "Choose",
