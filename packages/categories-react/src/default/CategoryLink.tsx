@@ -25,6 +25,24 @@ export interface CategoryLinkProps {
   readonly children: ReactNode;
   /** The row's slug, kept on the DOM for hosts and tests that key on it. */
   readonly slug?: string;
+  /**
+   * The row's id, kept on the DOM as `data-category-id`.
+   *
+   * The one thing a host needs to make a category click cheap. `/c/:slug` has
+   * no server-side lookup (`stapel-categories` never overrides `lookup_field`
+   * and its list takes no `slug` filter), so a cold slug costs the whole
+   * catalogue — 36 requests and 23 seconds on a live 3583-row deployment —
+   * while the id costs two small reads. Every link this pair draws KNOWS the
+   * id, because it drew the row; passing it through the seam is what lets a
+   * router host carry it into the destination (`<Link state>`, a query hint,
+   * a cache seed) instead of making the next page re-derive it from nothing.
+   *
+   * A `data-*` attribute rather than a new prop on core's `LinkComponent`:
+   * the contract already has the `data-${string}` index signature, so this
+   * reaches a host component that spreads its rest props and changes no
+   * shared type.
+   */
+  readonly categoryId?: number;
   /** Inline styles for the anchor — how a list row makes the WHOLE row the
    * target instead of a 24px word inside it. */
   readonly style?: CSSProperties;
@@ -34,6 +52,9 @@ export function CategoryLink(props: CategoryLinkProps): ReactElement {
   const Link = props.linkComponent;
   const attributes = {
     ...(props.slug === undefined ? {} : { "data-category-slug": props.slug }),
+    ...(props.categoryId === undefined
+      ? {}
+      : { "data-category-id": String(props.categoryId) }),
     ...(props.style === undefined ? {} : { style: props.style }),
   };
   return Link !== undefined ? (

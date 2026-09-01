@@ -295,6 +295,20 @@ describe("<CategoryPage> renders exactly one form of sub-categories", () => {
     expect(hrefs).toEqual(["/c/phones", "/c/laptops"]);
   });
 
+  it("every tile carries the category's ID, so a host can route without the catalogue", async () => {
+    // `/c/:slug` has no server-side lookup, so a cold slug costs the whole
+    // table. The link that got there knows the id; carrying it is what lets a
+    // router host hand the destination the cheap address.
+    await renderCategoryPage({ subcategories: "tiles" });
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy();
+    });
+    const ids = [
+      ...screen.getByTestId("categories-tile-grid-list").querySelectorAll("a"),
+    ].map((a) => a.getAttribute("data-category-id"));
+    expect(ids).toEqual([String(PHONES.id), String(LAPTOPS.id)]);
+  });
+
   it("mounts NEITHER list when the host draws its own", async () => {
     await renderCategoryPage({ subcategories: "none" });
     expect(screen.queryByTestId("categories-tree")).toBeNull();

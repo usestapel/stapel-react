@@ -98,6 +98,8 @@ export function CategoryCarouselStrip(
                           ? { linkComponent: props.linkComponent }
                           : {})}
                         href={entry.href}
+                        slug={entry.category.slug}
+                        categoryId={entry.category.id}
                       >
                         <Flex align="center" gap={spacing[2]}>
                           {entry.icon !== null && props.renderIcon !== undefined

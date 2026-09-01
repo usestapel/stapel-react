@@ -118,6 +118,7 @@ export function CategoryTreePane(props: CategoryTreePaneProps): ReactElement {
                           : {})}
                         href={`${base}/${node.category.slug}`}
                         slug={node.category.slug}
+                        categoryId={node.id}
                         style={{
                           display: "flex",
                           alignItems: "center",

@@ -80,6 +80,7 @@ export function CategorySearchHits(
                   : {})}
                 href={hit.href}
                 slug={hit.node.category.slug}
+                categoryId={hit.node.id}
                 style={{
                   display: "flex",
                   alignItems: "center",

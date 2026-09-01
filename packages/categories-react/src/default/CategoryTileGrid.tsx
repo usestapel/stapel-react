@@ -209,6 +209,7 @@ function Tile(props: {
   readonly label: string;
   readonly art: ReactNode;
   readonly slug?: string;
+  readonly categoryId?: number;
   readonly linkComponent?: LinkComponent;
   readonly testId?: string;
 }): ReactElement {
@@ -218,6 +219,9 @@ function Tile(props: {
         ? { linkComponent: props.linkComponent }
         : {})}
       {...(props.slug !== undefined ? { slug: props.slug } : {})}
+      {...(props.categoryId !== undefined
+        ? { categoryId: props.categoryId }
+        : {})}
       href={props.href}
       style={tileStyle}
     >
@@ -322,6 +326,7 @@ function TileRow(props: {
             {...linkProps}
             href={entry.href}
             slug={entry.category.slug}
+            categoryId={entry.category.id}
             label={label}
             art={
               entry.icon !== null && props.renderIcon !== undefined ? (

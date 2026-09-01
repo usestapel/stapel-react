@@ -53,7 +53,8 @@ export function CategoryBreadcrumbsBar(
   const crumbLink = (
     href: string,
     label: ReactNode,
-    slug?: string
+    slug?: string,
+    categoryId?: number
   ): ReactElement => (
     <CategoryLink
       {...(props.linkComponent !== undefined
@@ -61,6 +62,7 @@ export function CategoryBreadcrumbsBar(
         : {})}
       href={href}
       {...(slug !== undefined ? { slug } : {})}
+      {...(categoryId !== undefined ? { categoryId } : {})}
     >
       {label}
     </CategoryLink>
@@ -124,7 +126,8 @@ export function CategoryBreadcrumbsBar(
                         : crumbLink(
                             `${base}/${crumb.category.slug}`,
                             renderCategoryLabel(crumb.label, t),
-                            crumb.category.slug
+                            crumb.category.slug,
+                            crumb.category.id
                           ),
                     })),
                   ]}
