@@ -114,6 +114,17 @@ export const CATEGORIES_I18N_KEYS = {
   pickerBlockedNothingSelected: "categories.picker.blocked.nothing_selected",
   pickerBlockedNotALeaf: "categories.picker.blocked.not_a_leaf",
 
+  // ── cascade (the child selector the tiles hand over to) ──────────────────
+  /** The placeholder of one unanswered level. */
+  cascadeChoose: "categories.cascade.choose",
+  /**
+   * The ladder has not been started. A SEPARATE key from the picker's
+   * equivalent on purpose: the picker's sentence tells a person to open a
+   * chooser, and there is no chooser to open here — the control is already on
+   * screen and it is asking.
+   */
+  cascadeBlockedNothingSelected: "categories.cascade.blocked.nothing_selected",
+
   // ── feature schema ───────────────────────────────────────────────────────
   featuresTitle: "categories.features.title",
   featuresLoading: "categories.features.loading",
@@ -241,6 +252,10 @@ export const categoriesI18nBundleEn: Record<string, string> = {
   "categories.picker.blocked.nothing_selected": "Choose a category first",
   "categories.picker.blocked.not_a_leaf":
     "Choose a more specific category — this one has subcategories, and the details asked for depend on which",
+
+  "categories.cascade.choose": "Choose",
+  "categories.cascade.blocked.nothing_selected":
+    "Keep narrowing until you reach the last level",
 
   "categories.features.title": "Details in this category",
   "categories.features.loading": "Loading the details…",

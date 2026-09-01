@@ -88,6 +88,16 @@ export {
   nodeOffersTileGrid,
 } from "./catalog/tiles.js";
 export {
+  buildCategoryCascade,
+  cascadeReachedLeaf,
+  cascadeSelection,
+  cascadeTrail,
+} from "./catalog/cascade.js";
+export type {
+  BuildCategoryCascadeOptions,
+  CategoryCascadeLevel,
+} from "./catalog/cascade.js";
+export {
   CATEGORY_SEARCH_LIMIT,
   foldForSearch,
   rankCategoryMatches,
@@ -188,6 +198,16 @@ export type {
 } from "./headless/CategoryPicker.js";
 export { useCategorySearch } from "./headless/useCategorySearch.js";
 export type { UseCategorySearchOptions } from "./headless/useCategorySearch.js";
+export { CategoryCascade, useCategoryCascade } from "./headless/CategoryCascade.js";
+export type {
+  CategoryCascadeBag,
+  CategoryCascadeBlockedReason,
+  CategoryCascadeCommit,
+  CategoryCascadeOption,
+  CategoryCascadeProps,
+  CategoryCascadeStep,
+  UseCategoryCascadeOptions,
+} from "./headless/CategoryCascade.js";
 export { CategoryFeatures } from "./headless/CategoryFeatures.js";
 export type {
   CategoryFeatureEntry,

@@ -115,6 +115,10 @@ export const categoriesI18nBundleRu: I18nDictionary = {
   "categories.picker.blocked.not_a_leaf":
     "Выберите категорию точнее — у этой есть подкатегории, а от них зависит, какие характеристики спросят.",
 
+  "categories.cascade.choose": "Выберите",
+  "categories.cascade.blocked.nothing_selected":
+    "Уточняйте, пока не дойдёте до последнего уровня.",
+
   "categories.features.title": "Характеристики в этой категории",
   "categories.features.loading": "Загружаем характеристики…",
   "categories.features.load_failed": "Не удалось загрузить характеристики.",

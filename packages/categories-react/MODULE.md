@@ -166,6 +166,54 @@ prop — with a `linkComponent`, `container.querySelectorAll("a[href]")` is empt
 on every one of these screens — and also that the CURRENT crumb stays a label,
 because a link to the page under your feet is not navigation.
 
+## Where the tiles stop, and what starts there
+
+`catalog/tiles.ts` caps tile navigation at the second level of the tree, per the
+owner's model: below it a category is chosen "as a characteristic, through
+cascading child selectors". The cap shipped; the thing it handed over TO did
+not, and the measured consequence on a live classified catalogue was total:
+
+| | |
+|---|---|
+| categories | 3583, of which 3036 are leaves |
+| within the tile cap | 198 rows — 94% of the tree had no route to it |
+| a level-2 category | `GET {id}/features/` → `[]` |
+| its child | 59 features, the whole brand/model/generation chain |
+
+Features are resolved by INHERITANCE — own plus every ancestor's — so a
+category whose own rows are empty legitimately has none, and the level-2 page
+told a person, truthfully, that the category has no characteristics one tap
+above the 59 that make it usable. Tiles stopped and nothing started.
+
+`catalog/cascade.ts` + `headless/CategoryCascade.tsx` + the
+`<CategoryCascadeField>` skin are that missing half — ONE primitive, because
+the model requires the filter and the composer to be the same gesture. The
+ladder is a pure function of (index, root, cursor): a level is derived from the
+chain above it rather than remembered, so changing a rung cannot leave a
+stale answer below it in the query string. `commit` is the only thing the two
+surfaces disagree about — a filter takes any category (the search index matches
+a category path as a PREFIX, so a parent finds its descendants), a composer
+takes only a leaf (a non-leaf inherits the wrong feature set).
+
+**Upstream ask — a child count.** A cascade wants "New (1 240)" beside each
+option and no server can answer it. `GET {id}/children/` sends rows with no
+counts; `stapel-search` counts no category buckets (no facet, no read path);
+`/suggest`'s counts are driven by typed TEXT, not by a subtree. The only
+client-side fill is one search request per option, which is 130 requests at the
+top of a live catalogue. So `counts` is a host prop, unfilled, and the column
+is absent rather than invented. The shape that would close it is either
+`GET {id}/children/?with_counts=1` on this module (reading the search index
+through a comm function) or a `category_children` aggregation on
+`GET /search/api/v1/query` scoped to the current `category` path — the second
+is the better home, because the number a filter chip shows must be counted
+against the same candidate set as the results beside it.
+
+**Also asked upstream: `{id}/features/` does not roll up.** A non-leaf answers
+`[]` even when every one of its descendants declares the same axis. Rolling the
+union DOWN would be wrong (see `catalog/cascade.ts`), but a non-leaf that could
+report the features its children AGREE on would let a level-2 page offer a
+narrowing before the person has picked a child.
+
 ## Notes on the contract, recorded rather than worked around
 
 1. **`FeatureConfig`'s discriminator is malformed, and the generated types are
@@ -201,7 +249,7 @@ because a link to the page under your feet is not navigation.
 
 ## Tests
 
-119 in 9 files (115 in `test`, 4 in `test:pack`).
+275 in 19 files (271 in `test`, 4 in `test:pack`).
 
 | File | What it holds down |
 |---|---|

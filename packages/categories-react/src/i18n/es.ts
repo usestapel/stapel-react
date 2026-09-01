@@ -93,6 +93,10 @@ export const categoriesI18nBundleEs: I18nDictionary = {
   "categories.picker.blocked.not_a_leaf":
     "Elige una categoría más concreta: esta tiene subcategorías, y de ellas dependen los datos que se piden.",
 
+  "categories.cascade.choose": "Elige",
+  "categories.cascade.blocked.nothing_selected":
+    "Sigue concretando hasta llegar al último nivel.",
+
   "categories.features.title": "Datos de esta categoría",
   "categories.features.loading": "Cargando los datos…",
   "categories.features.load_failed": "No pudimos cargar los datos.",

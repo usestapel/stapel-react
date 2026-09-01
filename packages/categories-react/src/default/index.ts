@@ -54,6 +54,8 @@ export type {
 } from "./CategoryQuickSearchPanel.js";
 export { CategoryPickerField } from "./CategoryPickerField.js";
 export type { CategoryPickerFieldProps } from "./CategoryPickerField.js";
+export { CategoryCascadeField } from "./CategoryCascadeField.js";
+export type { CategoryCascadeFieldProps } from "./CategoryCascadeField.js";
 export { CategoryFeatureList } from "./CategoryFeatureList.js";
 export type { CategoryFeatureListProps } from "./CategoryFeatureList.js";
 export { CategoryLink } from "./CategoryLink.js";
