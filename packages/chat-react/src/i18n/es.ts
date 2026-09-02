@@ -126,6 +126,8 @@ export const chatI18nBundleEs: I18nDictionary = {
   "chat.notify.denied":
     "Las notificaciones están desactivadas para este sitio. Vuelve a activarlas en los ajustes del sitio en tu navegador.",
   "chat.notify.from": "Mensaje nuevo",
+  "chat.notify.allow": "Permitir",
+  "chat.notify.not_now": "Ahora no",
 
   "chat.presence.online": "en línea",
   "chat.presence.last_seen": "última vez {when}",

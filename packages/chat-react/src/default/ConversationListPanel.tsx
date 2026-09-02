@@ -118,23 +118,12 @@ function ConversationRow(props: {
   const subjectLabel =
     subject === null ? "" : subjectRowLabel(subject, props.locale);
 
-  const title = openHref ? (
-    <Typography.Link href={openHref(row.id)}>{label}</Typography.Link>
-  ) : onOpen ? (
-    <Button
-      type="link"
-      style={{ padding: 0 }}
-      onClick={() => onOpen(row.id)}
-      data-analytics="none"
-      data-analytics-reason="navigation into a thread — the host app wraps this with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
-    >
-      {label}
-    </Button>
-  ) : (
-    // Neither route given: a title, not a control that goes nowhere. A dead
-    // affordance is worse than none.
-    label
-  );
+  // The name is TEXT, and the whole row is the control (D65 — see `openRow`
+  // below). It used to be the other way round: a link-styled name inside a
+  // 300x80 row, so a click on the preview, the subject or the clock did
+  // nothing. Nesting an anchor inside the row-wide anchor is not an option
+  // (and would not be a fix), so the title stops being interactive.
+  const title = label;
 
   const preview = props.preview;
   const previewText =
@@ -164,7 +153,7 @@ function ConversationRow(props: {
       </>
     );
 
-  return (
+  const inside = (
     <ListRow
       testId="chat-conversation-row"
       leading={
@@ -204,12 +193,77 @@ function ConversationRow(props: {
           }
         : {})}
       trailing={
-        <Typography.Text type="secondary" style={{ whiteSpace: "nowrap" }}>
+        <Typography.Text
+          type="secondary"
+          style={{ whiteSpace: "nowrap" }}
+          data-chat-row-clock=""
+        >
           {relativeTime(props.locale, row.updated_at)}
         </Typography.Text>
       }
     />
   );
+
+  return openRow(inside, row.id, openHref, onOpen);
+}
+
+/**
+ * THE WHOLE ROW IS THE CONTROL (D65).
+ *
+ * An href row becomes a real anchor around the whole row — right-clickable,
+ * middle-clickable, in the browser's own history — and a SPA row becomes a
+ * keyboard-operable button with the same hit area. Neither route given: the
+ * row is drawn as-is, because a dead affordance is worse than none.
+ *
+ * `color: inherit` / `textDecoration: none`: the anchor is a hit area, not a
+ * link's look — the row already says what it is with an avatar, a name and a
+ * clock, and painting all of that link-blue would be a second, worse title.
+ */
+function openRow(
+  inside: ReactElement,
+  conversationId: string,
+  openHref: ((conversationId: string) => string) | undefined,
+  onOpen: ((conversationId: string) => void) | undefined
+): ReactElement {
+  const cover = { display: "block", color: "inherit", textDecoration: "none" };
+  if (openHref) {
+    return (
+      <a
+        href={openHref(conversationId)}
+        style={cover}
+        data-chat-row-open=""
+        data-analytics="none"
+        data-analytics-reason="navigation into a thread — the host app wraps this with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+      >
+        {inside}
+      </a>
+    );
+  }
+  if (onOpen) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        style={{ ...cover, cursor: "pointer" }}
+        data-chat-row-open=""
+        data-analytics="none"
+        data-analytics-reason="navigation into a thread — the host app wraps this with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+        onClick={() => {
+          onOpen(conversationId);
+        }}
+        onKeyDown={(event) => {
+          // Enter and Space are what a button answers to; a div claiming the
+          // role has to answer to them itself.
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          onOpen(conversationId);
+        }}
+      >
+        {inside}
+      </div>
+    );
+  }
+  return inside;
 }
 
 /** The rows, once the names for the whole page have been asked for once. */

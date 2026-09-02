@@ -128,6 +128,8 @@ export const chatI18nBundleRu: I18nDictionary = {
   "chat.notify.denied":
     "Уведомления для сайта отключены. Включите их в настройках сайта в браузере.",
   "chat.notify.from": "Новое сообщение",
+  "chat.notify.allow": "Разрешить",
+  "chat.notify.not_now": "Не сейчас",
 
   "chat.presence.online": "в сети",
   "chat.presence.last_seen": "был(а) в сети {when}",

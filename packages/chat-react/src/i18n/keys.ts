@@ -127,6 +127,10 @@ export const CHAT_I18N_KEYS = {
   notifyBody: "chat.notify.body",
   notifyDenied: "chat.notify.denied",
   notifyFrom: "chat.notify.from",
+  /** The inline ask's two controls (D64): the ask lives above the composer,
+   * so it carries its own buttons rather than a dialog's footer. */
+  notifyAllow: "chat.notify.allow",
+  notifyNotNow: "chat.notify.not_now",
 
   presenceOnline: "chat.presence.online",
   presenceLastSeen: "chat.presence.last_seen",
@@ -264,6 +268,8 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.notify.denied":
     "Notifications are switched off for this site. Turn them back on in your browser's site settings for this page.",
   "chat.notify.from": "New message",
+  "chat.notify.allow": "Allow",
+  "chat.notify.not_now": "Not now",
 
   "chat.presence.online": "Online",
   "chat.presence.last_seen": "Last seen {when}",

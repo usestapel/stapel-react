@@ -18,13 +18,25 @@
  *
  * ── Why it is a pre-prompt and not the browser's ──────────────────────────
  *
- * `PermissionSheet` (`@stapel/tokens-antd/skin`) states what the permission
- * is for and offers "Not now" — a dismissal that is NOT a refusal, so the
- * browser is never asked and the one chance is still there tomorrow. Only
- * "Allow" reaches `Notification.requestPermission`. The state machine
- * underneath is core's `usePermission`, shared with the camera, the
- * microphone and the position, so chat has no second answer to "has this been
- * granted".
+ * The ask states what the permission is for and offers "Not now" — a
+ * dismissal that is NOT a refusal, so the browser is never asked and the one
+ * chance is still there tomorrow. Only "Allow" reaches
+ * `Notification.requestPermission`. The state machine underneath is core's
+ * `usePermission`, shared with the camera, the microphone and the position,
+ * so chat has no second answer to "has this been granted".
+ *
+ * ── Why it is a LINE and not a modal (D64) ────────────────────────────────
+ *
+ * It used to be `PermissionSheet` — a modal. Opening a modal over a thread a
+ * second after the first message means the mask swallows every click outside
+ * its own box: the composer, the message list, the other conversation in the
+ * split. A walker run sat at the input for 30s and failed; a person just
+ * finds the page dead. And the ask has no right to that: nothing is gated
+ * behind it, so refusing to answer must cost nothing.
+ *
+ * So it renders in the thread's own flow, above the composer — an alert with
+ * the two buttons on it. Same moment, same copy, same state machine; no mask,
+ * no portal, nothing intercepting a pointer outside its own box.
  *
  * ── What it never does ────────────────────────────────────────────────────
  *
@@ -36,9 +48,11 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
+import { Alert, Button, Space } from "antd";
+import { spacing } from "@stapel/tokens";
 import { useT, usePermission } from "@stapel/core";
 import type { PermissionBag } from "@stapel/core";
-import { PermissionSheet, permissionIsBlocked } from "@stapel/tokens-antd/skin";
+import { permissionIsBlocked } from "@stapel/tokens-antd/skin";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 
 export interface ChatNotificationsPromptProps {
@@ -86,6 +100,9 @@ export function ChatNotificationsPrompt(
   const permission = props.permission ?? browserPermission;
   const [open, setOpen] = useState(false);
   const [asked, setAsked] = useState(false);
+  // The browser answered "no" to THIS ask: the line stays, saying where the
+  // switch is, with nothing left to press.
+  const [refused, setRefused] = useState(false);
   // The tide mark, taken the moment the thread is LOADED — not at mount. A
   // thread that opens onto fifty existing messages must not read its own
   // first paint as fifty arrivals and ask on sight.
@@ -108,20 +125,61 @@ export function ChatNotificationsPrompt(
 
   if (!open) return null;
 
+  const close = (): void => {
+    setOpen(false);
+  };
+
   return (
-    <PermissionSheet
-      open={open}
-      permission={permission}
-      title={t(CHAT_I18N_KEYS.notifyTitle)}
-      body={t(CHAT_I18N_KEYS.notifyBody)}
-      deniedBody={t(CHAT_I18N_KEYS.notifyDenied)}
-      onClose={() => {
-        setOpen(false);
-      }}
-      onResolved={(next) => {
-        props.onResolved?.(next === "granted");
-      }}
+    <Alert
+      type={refused ? "warning" : "info"}
+      showIcon
+      closable={false}
+      style={{ marginBottom: spacing[2] }}
       data-testid="chat-notifications-prompt"
+      data-stapel-permission={status}
+      title={t(CHAT_I18N_KEYS.notifyTitle)}
+      description={
+        <Space direction="vertical" size={spacing[1]} style={{ display: "flex" }}>
+          <span>
+            {t(refused ? CHAT_I18N_KEYS.notifyDenied : CHAT_I18N_KEYS.notifyBody)}
+          </span>
+          <Space size={spacing[1]}>
+            {refused ? null : (
+            <Button
+              type="primary"
+              size="small"
+              data-testid="chat-notifications-allow"
+              data-analytics="none"
+              data-analytics-reason="permission pre-prompt — the host app wraps this with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+              onClick={() => {
+                void permission.request().then((next) => {
+                  props.onResolved?.(next === "granted");
+                  // Refused: the browser will not ask again, so the line stops
+                  // offering a button that cannot do anything and says where
+                  // the switch is instead. Anything else: the ask is done.
+                  if (permissionIsBlocked(next)) setRefused(true);
+                  else close();
+                });
+              }}
+            >
+              {t(CHAT_I18N_KEYS.notifyAllow)}
+            </Button>
+            )}
+            {/* "Not now" never reaches the browser: a dismissal is not a
+                refusal, and the one chance is still there tomorrow. */}
+            <Button
+              size="small"
+              type="text"
+              data-testid="chat-notifications-dismiss"
+              data-analytics="none"
+              data-analytics-reason="local-ui-dismiss-permission-prompt"
+              onClick={close}
+            >
+              {t(CHAT_I18N_KEYS.notifyNotNow)}
+            </Button>
+          </Space>
+        </Space>
+      }
     />
   );
 }
