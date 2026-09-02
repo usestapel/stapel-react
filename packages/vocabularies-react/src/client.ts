@@ -57,7 +57,8 @@ export interface VocabularyClient {
     level: string,
     query: string,
     parent?: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    offset?: number
   ): Promise<readonly VocabularyTerm[]>;
   /** `{code: label}` for codes already stored somewhere. Unknown codes are
    * omitted by the server, so a caller falls back to the code itself. */
@@ -140,7 +141,7 @@ export function createVocabularyClient(
   }
 
   return {
-    async search(vocabulary, level, query, parent, signal) {
+    async search(vocabulary, level, query, parent, signal, offset) {
       const params = new URLSearchParams();
       params.set("level", level);
       // OMITTED, not empty: `parent=` would ask the server for the children of
@@ -149,6 +150,9 @@ export function createVocabularyClient(
       if (parent !== undefined && parent.length > 0) params.set("parent", parent);
       params.set("q", query);
       params.set("limit", String(limit));
+      // The sheet pages by asking again with the count it already holds.
+      // Omitted at zero: the first page is the first page.
+      if (offset !== undefined && offset > 0) params.set("offset", String(offset));
       const url = `${base}vocabularies/${encodeURIComponent(vocabulary)}/terms/?${params.toString()}`;
       const page = (await read(url, signal)) as TermPage | undefined;
       const results: readonly Term[] = page?.results ?? [];

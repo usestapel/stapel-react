@@ -12,6 +12,7 @@
 import type { FeatureDef, FeaturesDto, FeatureValueDto } from "./types.js";
 import { featureType } from "./types.js";
 import { FeatureRulesError, evaluateRules } from "./rules.js";
+import { undisclosedSlugs } from "./disclosure.js";
 import { isBlank } from "./validate.js";
 
 /**
@@ -59,10 +60,15 @@ export function toFeaturesDto(
     if (!(thrown instanceof FeatureRulesError)) throw thrown;
     hidden = new Set<string>();
   }
+  // A dependent field whose parent is blank was never on screen (progressive
+  // disclosure), so its value — a leftover from before the parent was
+  // cleared — is not part of the declaration either.
+  const undisclosed = undisclosedSlugs(features, values);
   for (const feature of features) {
     const type = featureType(feature);
     if (type === undefined || type === "header") continue;
     if (hidden.has(feature.slug)) continue;
+    if (undisclosed.has(feature.slug)) continue;
     const value = values[feature.slug];
     if (isBlank(value)) continue;
     if (type === "convertible_unit" && value !== null && typeof value === "object") {

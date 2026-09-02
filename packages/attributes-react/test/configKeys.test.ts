@@ -101,6 +101,10 @@ const HELPERS: readonly string[] = [
   "uiStyleOf",
   "toCascaderOptions",
   "optionLabel",
+  // The two halves `makeNumberEditor` dispatches between — reached as JSX,
+  // which is why the follow regex below matches `<Helper` as well as a call.
+  "FreeNumberEditor",
+  "RefIntEditor",
 ];
 
 function keysIn(body: string): Set<string> {
@@ -117,13 +121,24 @@ function keysIn(body: string): Set<string> {
   return keys;
 }
 
-/** Config keys a function reads, following {@link HELPERS} one level. */
+/** Config keys a function reads, following {@link HELPERS} transitively.
+ * The set is closed and hardcoded, so "transitively" still means "only
+ * through names this gate was told about", never arbitrary depth —
+ * `makeNumberEditor` dispatching to `FreeNumberEditor` which calls
+ * `useChoices` is two hops through two listed names. */
 function configKeysRead(sources: readonly string[], name: string): ReadonlySet<string> {
-  const body = functionBody(sources, name);
-  const keys = keysIn(body);
-  for (const helper of HELPERS) {
-    if (!new RegExp(`\\b${helper}\\s*\\(`).test(body)) continue;
-    for (const key of keysIn(functionBody(EDITOR_SOURCES, helper))) keys.add(key);
+  const seen = new Set<string>([name]);
+  const queue: string[] = [functionBody(sources, name)];
+  const keys = new Set<string>();
+  while (queue.length > 0) {
+    const body = queue.pop() as string;
+    for (const key of keysIn(body)) keys.add(key);
+    for (const helper of HELPERS) {
+      if (seen.has(helper)) continue;
+      if (!new RegExp(`(?:\\b${helper}\\s*\\(|<${helper}\\b)`).test(body)) continue;
+      seen.add(helper);
+      queue.push(functionBody(EDITOR_SOURCES, helper));
+    }
   }
   return keys;
 }

@@ -83,6 +83,16 @@ export {
 } from "./rules.js";
 export type { RuleState } from "./rules.js";
 
+// Progressive disclosure and the bake rule — the dependent-field predicates
+// `<FeatureFields>` and `toFeaturesDto` share, exported so a host drawing
+// rows itself (renderRow, a filter panel) gates and bakes identically.
+export {
+  dependencyParentOf,
+  sameAnswer,
+  soleAllowedValue,
+  undisclosedSlugs,
+} from "./disclosure.js";
+
 export {
   VOCABULARY_BACKED_TYPES,
   VocabularyClientProvider,

@@ -159,3 +159,28 @@ export interface RefHierarchicalSelectConfig {
   /** The wire carries more than the canon describes. */
   readonly [key: string]: unknown;
 }
+
+export interface IntConfig {
+  readonly type: "int";
+  readonly min?: number | null;
+  readonly max?: number | null;
+  readonly options?: readonly number[] | null;
+  /** @default true */
+  readonly allowCustom?: boolean;
+  readonly prefix?: string | null;
+  readonly postfix?: string | null;
+  readonly postfix1000?: string | null;
+  readonly placeholder?: string | null;
+  /** @default 1 */
+  readonly precision?: number;
+  /**
+   * Vocabulary-backed allowed set: the value must be a term of `level`
+   * (its code is the value's decimal digits), and with `parentFeature`
+   * filled, a child of the selected parent term. The value stays an
+   * integer on the wire; `min`/`max` keep applying as coarse static
+   * bounds.
+   */
+  readonly optionsRef?: unknown;
+  /** The wire carries more than the canon describes. */
+  readonly [key: string]: unknown;
+}

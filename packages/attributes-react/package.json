@@ -53,9 +53,9 @@
       "limit": "8.5 KB"
     },
     {
-      "name": "default — the antd value editors must stay out of the main bundle (14 → 16 KB: every closed list gained a sheet and a trigger, every reference field a recents section and a chain of rungs)",
+      "name": "default — the antd value editors must stay out of the main bundle (16 → 17.5 KB: progressive disclosure and the bake write-backs on the fields, the vocabulary-backed int editor with its stepper/suggestion combo, and paging on every picker sheet)",
       "path": "dist/default/index.js",
-      "limit": "16 KB"
+      "limit": "17.5 KB"
     },
     {
       "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",

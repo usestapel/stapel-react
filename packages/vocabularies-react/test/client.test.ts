@@ -65,6 +65,16 @@ describe("search — the URL that goes out", () => {
     // is the empty string, which is a level with nothing in it.
     expect(url.searchParams.has("parent")).toBe(false);
     expect(s.urls[0]).not.toContain("parent=");
+    // The first page is the first page — no offset until the sheet pages.
+    expect(url.searchParams.has("offset")).toBe(false);
+  });
+
+  it("sends offset when the sheet pages past the first page", async () => {
+    const s = stub(PAGE);
+    const client = createVocabularyClient({ baseUrl: BASE, fetch: s.fetch });
+    await client.search("phone-models", "Vendor", "", undefined, undefined, 50);
+    const url = new URL(s.urls[0] as string);
+    expect(url.searchParams.get("offset")).toBe("50");
   });
 
   it("sends parent when a parent term is given, and drops an empty one", async () => {

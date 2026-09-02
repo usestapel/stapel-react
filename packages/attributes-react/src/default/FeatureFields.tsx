@@ -29,7 +29,7 @@
  * Treating it as "no rules" would render a conditionally-mandatory field as
  * unconditionally optional because its `require` rule had a typo.
  */
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Alert, Divider, Form, Tag, Typography } from "antd";
 import { useFormatFlowError, useT } from "@stapel/core";
@@ -41,7 +41,19 @@ import { featureConfig, featureName, featureType } from "../types.js";
 import type { FeatureVisibility } from "../visibility.js";
 import { featureVisibility } from "../visibility.js";
 import type { RuleState } from "../rules.js";
-import { VISIBLE_STATE, evaluateRules, narrowFeature, ruleErrors } from "../rules.js";
+import {
+  VISIBLE_STATE,
+  evaluateRules,
+  narrowFeature,
+  ruleErrors,
+  stringify,
+} from "../rules.js";
+import {
+  dependencyParentOf,
+  sameAnswer,
+  soleAllowedValue,
+  undisclosedSlugs,
+} from "../disclosure.js";
 import { resolveValueEditor } from "../registry.js";
 import { VOCABULARY_BACKED_TYPES, useVocabularyClient } from "../vocabulary.js";
 import { BUILTIN_VALUE_EDITORS } from "./editors.js";
@@ -508,16 +520,75 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
   const collapsing = props.groupCollapse === "auto";
   const [openState, setOpenState] = useState<Readonly<Record<string, boolean>>>({});
 
+  // Progressive disclosure: a field whose allowed set is scoped by a sibling
+  // (`optionsRef.parentFeature`) is not DRAWN until that sibling is answered.
+  // The second visibility gate, composed with the rules' — see disclosure.ts.
+  const gated = useMemo(() => undisclosedSlugs(features, values), [features, values]);
+
   const sections = useMemo(
     () =>
       featureSections(features).map((section) => ({
         group: section.group,
         rows: section.rows.filter(
-          (feature) => (states[feature.slug] ?? VISIBLE_STATE).visible
+          (feature) =>
+            (states[feature.slug] ?? VISIBLE_STATE).visible &&
+            !gated.has(feature.slug)
         ),
       })),
-    [features, states]
+    [features, states, gated]
   );
+
+  // ── the two write-backs this component performs ──────────────────────────
+  //
+  // It is otherwise stateless, so both are stated in full:
+  //
+  //  1. RESET a dependent field when its parent MOVES (or empties). The
+  //     child's answer belonged to the old parent, and the row itself may be
+  //     unmounted by the disclosure gate — so an editor-level effect could
+  //     never fire. Guarded by a previous-parent map so a mount does not
+  //     clear a seeded draft.
+  //  2. BAKE the sole allowed value (the bake rule): when the narrowed config
+  //     leaves exactly one answer, commit it through the SAME `onChange` a
+  //     user pick takes, and remember doing so — so that when the collapse
+  //     stops holding, the baked (never-chosen) value is RESET rather than
+  //     left standing as if the person had picked it. A value the person
+  //     picked themselves is never in the baked map and is never cleared.
+  const onChange = props.onChange;
+  const seenParents = useRef(new Map<string, string>());
+  const bakedValues = useRef(new Map<string, unknown>());
+  useEffect(() => {
+    const defined = new Set(features.map((one) => one.slug));
+    for (const feature of features) {
+      const parent = dependencyParentOf(feature);
+      if (parent === undefined || !defined.has(parent)) continue;
+      const canon = stringify(values[parent]).join(" ");
+      const seen = seenParents.current.get(feature.slug);
+      seenParents.current.set(feature.slug, canon);
+      if (seen === undefined || seen === canon) continue;
+      if (stringify(values[feature.slug]).length > 0) {
+        bakedValues.current.delete(feature.slug);
+        onChange(feature.slug, undefined);
+      }
+    }
+    for (const feature of features) {
+      if (broken[feature.slug] !== undefined) continue;
+      const state = states[feature.slug] ?? VISIBLE_STATE;
+      const sole =
+        state.visible && !gated.has(feature.slug)
+          ? soleAllowedValue(narrowFeature(feature, state))
+          : undefined;
+      const current = values[feature.slug];
+      if (sole !== undefined) {
+        bakedValues.current.set(feature.slug, sole);
+        if (!sameAnswer(current, sole)) onChange(feature.slug, sole);
+        continue;
+      }
+      const prior = bakedValues.current.get(feature.slug);
+      if (prior === undefined) continue;
+      bakedValues.current.delete(feature.slug);
+      if (sameAnswer(current, prior)) onChange(feature.slug, undefined);
+    }
+  }, [features, values, states, gated, broken, onChange]);
 
   return (
     <SkinTheme surface="bare">
@@ -569,6 +640,18 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
                   // placeholder — so editors need to know about neither rules
                   // nor form metadata.
                   const drawn = withExample(narrowFeature(feature, state), t);
+                  // Baked (the bake rule): the narrowed config leaves one answer
+                  // and the write-back above has committed it — the control
+                  // greys out and the reason stands beside it, per the house
+                  // rule that nothing is switched off silently. Async
+                  // collapses (a chained ref rung, a vocabulary-backed int)
+                  // render the same notice from inside their editors, which
+                  // are the only holders of the fetched terms.
+                  // On `sole` alone, not on the value having landed: the
+                  // write-back commits it within the same tick, and a control
+                  // that flickered live in between would accept a pick the
+                  // form is about to overwrite.
+                  const baked = !unsupported && soleAllowedValue(drawn) !== undefined;
                   const control = unsupported ? (
                     <UnsupportedValueEditor
                       feature={feature}
@@ -579,16 +662,27 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
                           : {})}
                     />
                   ) : (
-                    <Editor
-                      id={controlId}
-                      feature={drawn}
-                      value={props.values[feature.slug]}
-                      siblings={props.values}
-                      onChange={(value) => props.onChange(feature.slug, value)}
-                      error={errors[feature.slug]}
-                      disabled={props.disabled === true}
-                      required={required}
-                    />
+                    <>
+                      <Editor
+                        id={controlId}
+                        feature={drawn}
+                        value={props.values[feature.slug]}
+                        siblings={props.values}
+                        onChange={(value) => props.onChange(feature.slug, value)}
+                        error={errors[feature.slug]}
+                        disabled={props.disabled === true || baked}
+                        required={required}
+                      />
+                      {baked && (
+                        <Typography.Text
+                          type="secondary"
+                          style={{ display: "block", marginTop: spacing[1] }}
+                          data-testid={`attributes-baked-${feature.slug}`}
+                        >
+                          {t(ATTRIBUTES_I18N_KEYS.bakedByConstraint)}
+                        </Typography.Text>
+                      )}
+                    </>
                   );
                   const description =
                     typeof feature.description === "string" ? feature.description.trim() : "";

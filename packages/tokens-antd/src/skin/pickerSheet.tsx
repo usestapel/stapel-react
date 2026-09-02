@@ -69,6 +69,9 @@ import { PHONE_CONTROL_HEIGHT } from "./theme.js";
 /** How many rows are drawn before the tail row takes over. */
 export const DEFAULT_MAX_ROWS: number = 200;
 
+/** How close to the bottom (px) counts as "the end is on screen". */
+const END_REACHED_SLACK = 120;
+
 /** The picker's search box, for a caller's test and for a shot runner. */
 export const PICKER_SEARCH_TESTID: string = "stapel-picker-search";
 /** The multi-select commit button. */
@@ -140,6 +143,16 @@ interface PickerSheetBase {
   readonly emptyLabel?: string;
   /** The tail row's sentence when the list was capped. Omit to draw no tail. */
   readonly refineLabel?: string;
+  /**
+   * The person scrolled (near) the end of the list — the sheet's half of
+   * paging through a server-paged vocabulary. The CALLER owns the fetch, the
+   * de-duplication and knowing when the level is exhausted; the sheet only
+   * says "the end is on screen", and says it again on every further scroll,
+   * so an idempotent caller is the contract. Fires from whichever ancestor
+   * actually scrolls (the dialog body), which is why it listens in capture
+   * on `window` rather than on the list itself.
+   */
+  readonly onEndReached?: () => void;
   /** Default {@link DEFAULT_MAX_ROWS}. */
   readonly maxRows?: number;
   /** Force a surface (tests). See `SkinDialogProps.surface`. */
@@ -310,8 +323,38 @@ export function SkinPickerSheet(props: SkinPickerSheetProps): ReactElement {
     fontSize: token.fontSize,
   });
 
+  const endAnchor = useRef<HTMLDivElement | null>(null);
+  const onEndReached = props.onEndReached;
+  const sheetOpen = props.open;
+  useEffect(() => {
+    if (onEndReached === undefined || !sheetOpen) return undefined;
+    const handler = (event: Event): void => {
+      const anchor = endAnchor.current;
+      if (anchor === null) return;
+      const target = event.target;
+      const scroller =
+        target instanceof Element
+          ? target
+          : target === document
+            ? document.documentElement
+            : null;
+      if (scroller === null || !scroller.contains(anchor)) return;
+      if (
+        scroller.scrollTop + scroller.clientHeight >=
+        scroller.scrollHeight - END_REACHED_SLACK
+      ) {
+        onEndReached();
+      }
+    };
+    window.addEventListener("scroll", handler, true);
+    return () => {
+      window.removeEventListener("scroll", handler, true);
+    };
+  }, [onEndReached, sheetOpen]);
+
   const list = (
     <div
+      ref={endAnchor}
       data-stapel-picker-list={stale ? "stale" : "fresh"}
       {...(stale ? { "aria-busy": "true" } : {})}
       style={{

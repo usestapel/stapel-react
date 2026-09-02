@@ -110,6 +110,18 @@ export const ATTRIBUTES_I18N_KEYS = {
    * Interpolates `{parent}` — the level's own name, because "choose the
    * previous one first" is not something a person can act on. */
   refParentFirst: "attributes.ref.parent_first",
+  /** A value the form BAKED because the live constraint left exactly one
+   * allowed answer (the bake rule): committed as if picked, drawn grey. The line
+   * is the reason beside the disabled control — the house rule that nothing
+   * is switched off silently. */
+  bakedByConstraint: "attributes.baked",
+  /** A typed number outside the vocabulary-backed allowed set. Interpolates
+   * `{min}` and `{max}` — the ends of the LIVE set, not the static config
+   * bounds. Shown beside the full recovery dropdown. */
+  intOutOfAllowed: "attributes.int.out_of_allowed",
+  /** Accessible names of the two steppers that walk the allowed set. */
+  intStepUp: "attributes.int.step_up",
+  intStepDown: "attributes.int.step_down",
   /** The disclosure that holds a long `description`. The help itself is the
    * catalogue's sentence; this is the handle, and it says what is behind it
    * rather than "More". */
@@ -216,6 +228,10 @@ export const attributesI18nBundleEn: I18nDictionary = {
   "attributes.picker.recent": "Recent",
   "attributes.picker.refine": "Keep typing to narrow the list.",
   "attributes.ref.parent_first": "Choose {parent} first.",
+  "attributes.baked": "Determined by your other selections.",
+  "attributes.int.out_of_allowed": "Outside the allowed range — from {min} to {max}.",
+  "attributes.int.step_up": "Next allowed value",
+  "attributes.int.step_down": "Previous allowed value",
   "attributes.help.more": "How to fill this in",
   "attributes.hint.range": "From {min} to {max}.",
   "attributes.hint.min": "From {min}.",

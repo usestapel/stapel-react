@@ -155,6 +155,10 @@ function useTermSearch(
   readonly query: string;
   search(query: string): void;
   open(): void;
+  /** Fetch the NEXT page of the current answer and append it — what the
+   * sheet's end-of-list scroll asks for. A no-op while unanswered, while a
+   * page is already in flight, and once the level is exhausted. */
+  more(): void;
 } {
   // The answer AND the question it answers, as one value — two states could
   // be written in either order and the pair would be briefly inconsistent,
@@ -162,6 +166,9 @@ function useTermSearch(
   const [answer, setAnswer] = useState<{
     readonly query: string;
     readonly terms: readonly VocabularyTerm[];
+    /** No further pages: the last one came back short, or added nothing new
+     * (an un-paged client returning page one again reads as exhausted). */
+    readonly exhausted: boolean;
   } | null>(null);
   // What the box holds right now. `null` is "nothing has been asked for yet",
   // which is neither loading nor answered.
@@ -186,11 +193,15 @@ function useTermSearch(
         .search(vocabulary, level, query, parent, controller.signal)
         .then((found) => {
           if (controller.signal.aborted || current.current !== query) return;
-          setAnswer({ query, terms: found.slice(0, VOCABULARY_PAGE) });
+          setAnswer({
+            query,
+            terms: found.slice(0, VOCABULARY_PAGE),
+            exhausted: found.length < VOCABULARY_PAGE,
+          });
         })
         .catch(() => {
           if (controller.signal.aborted || current.current !== query) return;
-          setAnswer({ query, terms: [] });
+          setAnswer({ query, terms: [], exhausted: true });
         });
     },
     [client, vocabulary, level, parent]
@@ -257,6 +268,43 @@ function useTermSearch(
     run("");
   }, [run]);
 
+  // One next-page fetch at a time, and never against a superseded answer.
+  // Not an AbortController: a page landing late for a query that still
+  // stands is worth keeping, and the `current` check drops the rest.
+  const pendingMore = useRef(false);
+  const more = useCallback((): void => {
+    if (client === null || vocabulary.length === 0 || level.length === 0) return;
+    const settled = answer;
+    if (
+      settled === null ||
+      settled.exhausted ||
+      pendingMore.current ||
+      current.current !== settled.query
+    ) {
+      return;
+    }
+    pendingMore.current = true;
+    client
+      .search(vocabulary, level, settled.query, parent, undefined, settled.terms.length)
+      .then((found) => {
+        pendingMore.current = false;
+        if (current.current !== settled.query) return;
+        const known = new Set(settled.terms.map((term) => term.code));
+        const fresh = found.filter((term) => !known.has(term.code));
+        setAnswer((latest) => {
+          if (latest === null || latest.query !== settled.query) return latest;
+          return {
+            query: latest.query,
+            terms: [...latest.terms, ...fresh],
+            exhausted: fresh.length === 0 || found.length < VOCABULARY_PAGE,
+          };
+        });
+      })
+      .catch(() => {
+        pendingMore.current = false;
+      });
+  }, [client, vocabulary, level, parent, answer]);
+
   const matched = wanted !== null && answer !== null && answer.query === wanted;
   return {
     terms: matched && answer !== null ? answer.terms : EMPTY_TERMS,
@@ -265,6 +313,7 @@ function useTermSearch(
     query: wanted ?? "",
     search,
     open,
+    more,
   };
 }
 
@@ -381,7 +430,7 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
   );
 
   const sheet = useDisclosure();
-  const { terms, loading, matched, query, search, open } = useTermSearch(
+  const { terms, loading, matched, query, search, open, more } = useTermSearch(
     client,
     vocabulary,
     level,
@@ -405,6 +454,40 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
     seenParent.current = parent;
     onChange(undefined);
   }, [parent, onChange]);
+
+  // Auto-bake (the bake rule): once the parent is answered, probe the rung — a
+  // chained level with exactly ONE child is not a question, so the form
+  // commits the answer and the trigger greys out. Single-choice rungs only:
+  // one available option on a multi-select is not one answer. The probe is
+  // one page-sized fetch per parent landing; only this editor holds the
+  // terms, which is why the collapse cannot be read off the config the way
+  // the synchronous ones are (see disclosure.ts).
+  const single = !multiple;
+  const [soleTerm, setSoleTerm] = useState<VocabularyTerm | undefined>(undefined);
+  useEffect(() => {
+    setSoleTerm(undefined);
+    if (client === null || parentFeature === undefined || parent === undefined || !single) {
+      return;
+    }
+    let stale = false;
+    client
+      .search(vocabulary, level, "", parent)
+      .then((found) => {
+        if (!stale && found.length === 1) setSoleTerm(found[0]);
+      })
+      // A failed probe bakes nothing — the picker stays live and the server
+      // still enforces the edge.
+      .catch(() => undefined);
+    return () => {
+      stale = true;
+    };
+  }, [client, vocabulary, level, parent, parentFeature, single]);
+  useEffect(() => {
+    if (soleTerm === undefined) return;
+    if (codes.length === 1 && codes[0] === soleTerm.code) return;
+    onChange([soleTerm.code]);
+  }, [soleTerm, codes, onChange]);
+  const bakedNow = soleTerm !== undefined;
 
   if (client === null || pointer === undefined) {
     return (
@@ -448,6 +531,7 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
     // different sentences and the second one has rows to say it about.
     listStale: !matched,
     loading: loading && !hasRows,
+    onEndReached: more,
     testId: "attributes-ref-sheet",
   };
 
@@ -465,7 +549,7 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
         <PickerTrigger
           id={props.id}
           expanded={sheet.open}
-          disabled={props.disabled === true}
+          disabled={props.disabled === true || bakedNow}
           placeholder={t(ATTRIBUTES_I18N_KEYS.selectPlaceholder)}
           testId="attributes-ref-trigger"
           touchFloor={touchFloor}
@@ -478,6 +562,15 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
             sheet.show();
           }}
         />
+        {bakedNow && (
+          <Typography.Text
+            type="secondary"
+            style={{ display: "block", marginTop: spacing[1] }}
+            data-testid={`attributes-baked-${props.feature.slug}`}
+          >
+            {t(ATTRIBUTES_I18N_KEYS.bakedByConstraint)}
+          </Typography.Text>
+        )}
         {multiple ? (
           <SkinPickerSheet
             {...shared}
@@ -543,7 +636,7 @@ function RefRung(props: {
 }): ReactElement {
   const t = useT();
   const sheet = useDisclosure();
-  const { terms, loading, matched, query, search, open } = useTermSearch(
+  const { terms, loading, matched, query, search, open, more } = useTermSearch(
     props.client,
     props.vocabulary,
     props.level,
@@ -616,6 +709,7 @@ function RefRung(props: {
         refineLabel={t(ATTRIBUTES_I18N_KEYS.pickerRefine)}
         listStale={!matched}
         loading={loading && !hasRows}
+        onEndReached={more}
         testId={`attributes-ref-rung-sheet-${String(props.depth)}`}
         {...(props.value !== undefined ? { value: props.value } : {})}
         onChange={(next) => {

@@ -63,13 +63,20 @@ export interface VocabularyClient {
    * request with its query and drop an answer whose query is no longer the one
    * in the box, so a client that ignores `signal` costs bandwidth and cannot
    * put the wrong list under somebody's finger.
+   *
+   * `offset` is how the sheet pages: scrolled to the end, it asks again with
+   * the count it already holds. An implementation that ignores it returns
+   * page one again — the editors de-duplicate by code and read "nothing new"
+   * as "no more pages", so an un-paged client degrades to the first page
+   * rather than to an endless loop.
    */
   search(
     vocabulary: string,
     level: string,
     query: string,
     parent?: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    offset?: number
   ): Promise<readonly VocabularyTerm[]>;
   /** `{code: label}` for codes already stored on a listing — the labels a
    * reopened draft shows before anything is searched. Unknown codes are
