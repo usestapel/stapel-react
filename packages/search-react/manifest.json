@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/search-react",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "backend": {
     "module": "stapel-search",
-    "contract": ">=0.9 <0.10"
+    "contract": ">=0.10 <0.11"
   },
   "layers": [
     "api",
@@ -778,6 +778,7 @@
     "search.filters.apply",
     "search.filters.chip_more",
     "search.filters.chips_label",
+    "search.filters.chips_overflow",
     "search.filters.dismiss",
     "search.filters.open",
     "search.filters.short",
