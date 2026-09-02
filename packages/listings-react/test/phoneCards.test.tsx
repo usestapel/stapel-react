@@ -162,7 +162,8 @@ describe("<ListingSerpCard> — the slots and the rail", () => {
       </TestProviders>
     );
     const heart = screen.getByTestId("listings-serp-favorite");
-    expect(heart).toHaveProperty("disabled", true);
+    expect(heart.getAttribute("aria-disabled")).toBe("true");
+    expect(heart).toHaveProperty("disabled", false);
     expect(heart.getAttribute("aria-describedby")).toBeTruthy();
     const gate = screen.getByTestId("listings-serp-favorite-gate");
     expect(gate.getAttribute("data-stapel-gated")).toBe("blocked");

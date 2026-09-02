@@ -439,11 +439,13 @@ export const REF_HIERARCHICAL_FEATURES: readonly FeatureDef[] = [CAR_TREE];
 
 /** The in-memory vocabulary the demo's client answers from: two levels of
  * phones and three of cars, which is the smallest thing that shows a parent
- * narrowing a child and a cascader loading a level at a time. */
+ * narrowing a child and a cascader loading a level at a time. One vendor is
+ * flagged `recommended`, so the sheet's two-band shape is photographable; the
+ * car levels flag nothing, which is the shape every endpoint sends today. */
 const TERMS: Readonly<Record<string, Readonly<Record<string, readonly VocabularyTerm[]>>>> = {
   "phone-models": {
     Vendor: [
-      { code: "apple", label: "Apple", has_children: true },
+      { code: "apple", label: "Apple", has_children: true, recommended: true },
       { code: "samsung", label: "Samsung", has_children: true },
       { code: "xiaomi", label: "Xiaomi", has_children: true },
     ],

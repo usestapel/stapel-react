@@ -93,7 +93,11 @@
  * `<GatedControl>`, which renders it as text linked by `aria-describedby` —
  * a disabled antd button receives no pointer events and is not focusable, so
  * the `Tooltip` this component used to offer as a "quieter" volume was a
- * reason nobody could read on any device. That arm is gone; `blockedReason`
+ * reason nobody could read on any device. The heart itself is never
+ * html-`disabled` in ANY volume for the same reason: it carries
+ * `aria-disabled` and a live handler, and refuses on ACTIVATION (the gate
+ * makes `toggle` a no-op). An inert control cannot be tapped, cannot be
+ * focused, and cannot disclose anything. That arm is gone; `blockedReason`
  * is "text" (reason + door), "line" (reason alone, for a grid), or
  * "popover" — the reason and the door disclosed on the heart itself, with
  * the reason still in the accessibility tree. The third arm is NOT the old
@@ -103,7 +107,7 @@
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Card, Flex, Typography, theme as antdTheme } from "antd";
 import { SkinButton as Button } from "@stapel/tokens-antd/skin";
-import { GatedControl, SkinTheme } from "@stapel/tokens-antd/skin";
+import { ErrorAlert, GatedControl, SkinTheme } from "@stapel/tokens-antd/skin";
 import { useActionGate, useT } from "@stapel/core";
 import type { LinkComponent, SignInCtaProp } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
@@ -112,6 +116,7 @@ import type { ListingCard as ListingCardData } from "../api/types.js";
 import { asFeatureDaoList, featuresDtoFromDaoList, featuresFromDaoList } from "../model/features.js";
 import type { FeatureCopySource } from "../model/features.js";
 import { lifecycleCaption } from "../model/status.js";
+import { isListingViewed } from "../model/engagement.js";
 import { useFavoriteToggle } from "../headless/Favorites.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { GateReasonPopover } from "./GateReasonPopover.js";
@@ -211,6 +216,35 @@ export const CARD_MAIN_CLASS = "stapel-listing-card-main";
  * (`<ListingCard>`), so the row arm gets the inset the stacked arm does not. */
 export const CARD_BLEED_CLASS = "stapel-listing-card-bleed";
 
+/**
+ * The class an ALREADY-SEEN card carries — the mark every mature classified
+ * puts on a result you have opened before, and the reason a shopper on their
+ * third evening of the same search is not re-reading the same twenty offers.
+ *
+ * All three card surfaces take it, and all three take it on their OUTER box,
+ * so the rule below can reach the photo and the reading column while leaving
+ * the favourite heart at full strength: a dimmed heart reads as a disabled
+ * heart, and the one control on the card must not look switched off because
+ * the card behind it is old news.
+ */
+export const CARD_VIEWED_CLASS = "stapel-listing-card-seen";
+
+/**
+ * How far a seen card is dimmed.
+ *
+ * OPACITY and not a colour, which is the whole reason this needs no dark-mode
+ * arm: opacity composites the card against whatever ground the theme painted,
+ * so the same number is a grey card on a white page and a dim card on a black
+ * one. A `color` here would have to be picked twice, and the second pick is
+ * the one nobody photographs. 0.55 is far enough to sort seen from unseen at
+ * a glance and not so far that the price stops being readable — a seen
+ * listing is still a listing, not a disabled control.
+ *
+ * A host that wants another value sets `--listing-viewed-opacity` on any
+ * ancestor; the rule reads the property and falls back to this.
+ */
+export const LISTING_VIEWED_OPACITY = 0.55;
+
 /** The `href` the hoisted card stylesheet is deduplicated by. */
 export const CARD_TARGET_STYLE_HREF = "stapel-listings-card-target";
 
@@ -276,6 +310,12 @@ export function cardTargetCss(): string {
       `${bleed}{padding-block:var(--listing-card-inset);` +
       `padding-inline-start:var(--listing-card-inset)}` +
       `}`,
+    // Already seen. The photo and everything inside the card's anchor dim
+    // together; the heart is outside the anchor and stays as it was — see
+    // CARD_VIEWED_CLASS.
+    `.${CARD_VIEWED_CLASS} .${CARD_TARGET_CLASS},` +
+      `.${CARD_VIEWED_CLASS} .${CARD_MEDIA_CLASS}` +
+      `{opacity:var(--listing-viewed-opacity,${String(LISTING_VIEWED_OPACITY)})}`,
   ].join("");
 }
 
@@ -433,6 +473,18 @@ export function ListingCard(props: ListingCardProps): ReactElement {
 
   const favoriteGate = useActionGate(favorite.gate);
   const blockedReason = props.blockedReason ?? "text";
+  // Absent on every response the fleet answers today, and a plain `false`
+  // when it is — no dimming, no attribute, nothing said about it.
+  const viewed = isListingViewed(listing);
+  // A saved heart is a SOLID accent shape; an unsaved one is the outline it
+  // has always been. `is_favorited: null` reads as unsaved (`favorite`
+  // resolves the third state), never as a look of its own.
+  const heartIcon = (
+    <HeartIcon
+      filled={favorite.favorited}
+      {...(favorite.favorited ? { color: token.colorPrimary } : {})}
+    />
+  );
 
   const favoriteLabel = t(
     favorite.favorited
@@ -521,6 +573,11 @@ export function ListingCard(props: ListingCardProps): ReactElement {
         {...(status !== undefined
           ? { "data-listing-status": status.status }
           : {})}
+        // Both only when the server actually said so: absent and `null` leave
+        // the card byte-identical to what it renders today.
+        {...(viewed
+          ? { className: CARD_VIEWED_CLASS, "data-listing-viewed": "true" }
+          : {})}
         // The body's own padding is zero because the frame fills the card and
         // the photo runs edge to edge when it is stacked: padding here would
         // be a strip of card around a picture. The text block inside the
@@ -588,7 +645,7 @@ export function ListingCard(props: ListingCardProps): ReactElement {
                             data-analytics="none"
                             data-analytics-reason="business action — host app wraps with its own tracked()"
                             onClick={favorite.toggle}
-                            icon={<HeartIcon filled={favorite.favorited} />}
+                            icon={heartIcon}
                           />
                         </Flex>
                       )}
@@ -603,7 +660,7 @@ export function ListingCard(props: ListingCardProps): ReactElement {
                         {(bind) => (
                           <Flex justify="flex-end" style={{ width: "100%" }}>
                             <Button
-                              disabled={bind.disabled}
+                              {...(bind.disabled ? { "aria-disabled": true } : {})}
                               data-disabled-reason="the enclosing <GatedControl> renders the gate's reason beside this button"
                               {...(bind["aria-describedby"] !== undefined
                                 ? { "aria-describedby": bind["aria-describedby"] }
@@ -615,7 +672,7 @@ export function ListingCard(props: ListingCardProps): ReactElement {
                               data-analytics="none"
                               data-analytics-reason="business action — host app wraps with its own tracked()"
                               onClick={favorite.toggle}
-                              icon={<HeartIcon filled={favorite.favorited} />}
+                              icon={heartIcon}
                             />
                           </Flex>
                         )}
@@ -637,6 +694,18 @@ export function ListingCard(props: ListingCardProps): ReactElement {
                       )}
                     </>
                   )}
+
+                  {/* A save that did not save. The heart has already rolled
+                      back to what it was, which is the honest picture but a
+                      silent one — a person who watched the icon flip and flip
+                      back deserves the sentence too. The pair's one error
+                      surface, in its inline volume, because a boxed alert
+                      inside a grid cell would re-lay the whole row. */}
+                  <ErrorAlert
+                    testId="listings-card-favorite-error"
+                    thrown={favorite.error}
+                    variant="inline"
+                  />
                 </div>
               )}
             </div>

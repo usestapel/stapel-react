@@ -184,11 +184,13 @@ describe("<ConversationThreadPanel/>", () => {
       "Live messages are off here — refreshing every few seconds instead."
     );
 
-    // The send button is off, and the reason is on screen as text.
+    // The send button is off because there is nothing to send — and that is
+    // not an error state: an untouched box shows no refusal caption at all.
     expect(screen.getByTestId("chat-composer-send")).toHaveProperty("disabled", true);
-    expect(screen.getByTestId("chat-composer-blocked").textContent).toBe(
-      "Write something first."
+    expect(screen.getByTestId("chat-composer-input").getAttribute("data-pristine")).toBe(
+      "true"
     );
+    expect(screen.queryByTestId("chat-composer-blocked")).toBeNull();
     expectNoRawKeys();
   });
 
@@ -287,7 +289,7 @@ describe("Enter sends (D35)", () => {
     ).toHaveLength(0);
   });
 
-  it("Enter over an empty draft sends nothing", async () => {
+  it("Enter over an empty draft sends nothing — and says why", async () => {
     const server = await threadWithMessage();
     const input = screen.getByTestId("chat-composer-input");
     fireEvent.keyDown(input, { key: "Enter" });
@@ -297,5 +299,40 @@ describe("Enter sends (D35)", () => {
         (c) => c.method === "POST" && c.url.includes("/messages")
       )
     ).toHaveLength(0);
+    // Asking and being refused is what puts the reason on screen; drawing the
+    // field never was.
+    expect(screen.getByTestId("chat-composer-blocked").textContent).toBe(
+      "Write something first."
+    );
+  });
+});
+
+describe("the composer is pristine after a send, not empty-and-invalid", () => {
+  it("drops the refusal caption again once the message has gone", async () => {
+    const server = mockServer({
+      "GET /messages": { body: messagePage([1]) },
+      "POST /read": { body: {} },
+      "POST /messages": { status: 201, body: message(4, { body: "hello" }) },
+    });
+    render(
+      <TestHarness server={server} realtime={{ socketUrl: null }}>
+        <ConversationThreadPanel conversationId={CONVERSATION_ID} viewerId={BUYER} />
+      </TestHarness>
+    );
+    await waitFor(() => expect(screen.getAllByTestId("chat-message")).toHaveLength(1));
+    const input = screen.getByTestId("chat-composer-input");
+    fireEvent.change(input, { target: { value: "hello" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() =>
+      expect(
+        server.calls.filter((c) => c.method === "POST" && c.url.includes("/messages"))
+      ).toHaveLength(1)
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("chat-composer-input").getAttribute("data-pristine")
+      ).toBe("true")
+    );
+    expect(screen.queryByTestId("chat-composer-blocked")).toBeNull();
   });
 });

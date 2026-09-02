@@ -26,8 +26,9 @@
  * list or a grid of these cards should wrap it in one.
  */
 import type { CSSProperties, ReactElement } from "react";
+import { theme as antdTheme } from "antd";
 import { SkinButton as Button } from "@stapel/tokens-antd/skin";
-import { GatedControl } from "@stapel/tokens-antd/skin";
+import { ErrorAlert, GatedControl } from "@stapel/tokens-antd/skin";
 import type { SignInCta } from "@stapel/core";
 import { useActionGate, useT } from "@stapel/core";
 import { useFavoriteToggle } from "../headless/Favorites.js";
@@ -70,22 +71,49 @@ export interface FavoriteHeartProps {
  * (`signIn`) is the surface's business, not this control's — a disabled antd
  * button fires no pointer events, so a tooltip here would be a reason nobody
  * could read on any device (`stapel/no-tooltip-in-skin`).
+ *
+ * ── It is never html-`disabled`, in either volume ─────────────────────────
+ *
+ * `aria-disabled` plus a live handler, always. The refusal happens on
+ * ACTIVATION — `useFavoriteToggle().toggle` is a no-op while the gate is
+ * blocked, so the click cannot write anything — and that is the only shape of
+ * refusal a person can interrogate. A `disabled` DOM button is inert: it
+ * takes no focus, receives no pointer events, and swallows the very tap that
+ * was supposed to explain it. Measured on a phone: a signed-out visitor's
+ * heart produced no toast, no reason and no navigation, and on a touch device
+ * there is no hover to fall back on.
  */
 export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
   const t = useT();
+  const { token } = antdTheme.useToken();
   const favorite = useFavoriteToggle(props.listingId, props.favorited);
   const label = t(
     favorite.favorited
       ? LISTINGS_I18N_KEYS.cardFavoriteRemove
       : LISTINGS_I18N_KEYS.cardFavoriteAdd
   );
+  // Saved is a SOLID accent shape, not-saved is the outline. `is_favorited:
+  // null` — an anonymous read's "nobody asked" — resolves to not-saved in the
+  // bag, so it draws the outline and never a third look of its own.
+  const icon = (
+    <HeartIcon
+      filled={favorite.favorited}
+      {...(favorite.favorited ? { color: token.colorPrimary } : {})}
+    />
+  );
   // The RESOLVED sentence, not the gate's key — `useActionGate` is the one
   // place a blocked reason becomes words in this fleet.
   const reason = useActionGate(favorite.gate).reason;
+  // A failed save, stated where the heart is. The rollback already put the
+  // icon back; this says why it went back.
+  const failure = (
+    <ErrorAlert
+      testId={`${props.testId}-error`}
+      thrown={favorite.error}
+      variant="inline"
+    />
+  );
   if (props.blockedReason === "popover" && reason !== undefined) {
-    // `aria-disabled`, never `disabled`: the gate already refuses the action
-    // (`toggle` is a no-op while blocked), and an html-disabled button
-    // swallows the hover, the focus and the tap the disclosure opens on.
     return (
       <GateReasonPopover
         reason={reason}
@@ -105,7 +133,7 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
             data-analytics="none"
             data-analytics-reason="business action — host app wraps with its own tracked()"
             onClick={favorite.toggle}
-            icon={<HeartIcon filled={favorite.favorited} />}
+            icon={icon}
             {...(props.style !== undefined ? { style: props.style } : {})}
           />
         )}
@@ -120,22 +148,25 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
       {...(props.style !== undefined ? { style: props.style } : {})}
     >
       {(bind) => (
-        <Button
-          shape="circle"
-          disabled={bind.disabled}
-          data-disabled-reason="the enclosing <GatedControl> renders the gate's reason beside this button"
-          {...(bind["aria-describedby"] !== undefined
-            ? { "aria-describedby": bind["aria-describedby"] }
-            : {})}
-          aria-label={label}
-          aria-pressed={favorite.favorited}
-          data-testid={props.testId}
-          data-favorited={String(favorite.favorited)}
-          data-analytics="none"
-          data-analytics-reason="business action — host app wraps with its own tracked()"
-          onClick={favorite.toggle}
-          icon={<HeartIcon filled={favorite.favorited} />}
-        />
+        <>
+          <Button
+            shape="circle"
+            {...(bind.disabled ? { "aria-disabled": true } : {})}
+            data-disabled-reason="the enclosing <GatedControl> renders the gate's reason beside this button"
+            {...(bind["aria-describedby"] !== undefined
+              ? { "aria-describedby": bind["aria-describedby"] }
+              : {})}
+            aria-label={label}
+            aria-pressed={favorite.favorited}
+            data-testid={props.testId}
+            data-favorited={String(favorite.favorited)}
+            data-analytics="none"
+            data-analytics-reason="business action — host app wraps with its own tracked()"
+            onClick={favorite.toggle}
+            icon={icon}
+          />
+          {failure}
+        </>
       )}
     </GatedControl>
   );

@@ -17,8 +17,11 @@
  *
  *  - a HIDDEN row is not rendered at all (and `toFeaturesDto` drops its value,
  *    so the client and the server agree on what the listing says);
- *  - REQUIRED comes from `RuleState.required`, never from `mandatory` alone —
- *    the marker, the mirror and the publish gate all read the same predicate;
+ *  - REQUIRED comes from the evaluated state, never from `mandatory` alone —
+ *    literally the same function call the mirror refuses with
+ *    (`featureRequiredUnder`), so the asterisk and the refusal cannot drift
+ *    apart, and a `require` rule whose condition is not met draws no marker
+ *    and demands nothing;
  *  - the feature's config is NARROWED (`narrowConfig`) before the editor sees
  *    it, so a forbidden option is not offered and a tightened bound is on the
  *    control. **Editors stay rule-unaware**: they receive a `FeatureDef` whose
@@ -54,6 +57,7 @@ import {
   soleAllowedValue,
   undisclosedSlugs,
 } from "../disclosure.js";
+import { featureRequiredUnder } from "../validate.js";
 import { resolveValueEditor } from "../registry.js";
 import { VOCABULARY_BACKED_TYPES, useVocabularyClient } from "../vocabulary.js";
 import { BUILTIN_VALUE_EDITORS } from "./editors.js";
@@ -453,7 +457,7 @@ function sectionOpensByDefault(
 ): boolean {
   return rows.some(
     (feature) =>
-      requiredRow(feature, states[feature.slug] ?? VISIBLE_STATE) ||
+      featureRequiredUnder(feature, states[feature.slug] ?? VISIBLE_STATE) ||
       answered(values[feature.slug])
   );
 }
@@ -634,7 +638,7 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
                     VOCABULARY_BACKED_TYPES.includes(type);
                   const unsupported =
                     invalidRules || noSource || Editor === undefined || Editor === null;
-                  const required = requiredRow(feature, state);
+                  const required = featureRequiredUnder(feature, state);
                   // The editor sees the NARROWED config plus, for the types
                   // that have a text box, the catalogue's `example` as the
                   // placeholder — so editors need to know about neither rules
@@ -789,20 +793,6 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
       </TouchFloorProvider>
     </SkinTheme>
   );
-}
-
-/** Requiredness for one row, from its rule state. Kept beside the renderer
- * (rather than calling `featureAnswerRequired(feature, values)` again) so the
- * row reads the SAME state object the config was narrowed from — two
- * evaluations of the same thing in one render is how a marker and a refusal
- * start disagreeing. */
-function requiredRow(feature: FeatureDef, state: RuleState): boolean {
-  const type = featureType(feature);
-  if (type === "header" || !state.visible) return false;
-  if (state.required) return true;
-  // `hierarchical_select.required` defaults to true — the one type carrying
-  // its own switch beside `mandatory` (see `validate.ts`).
-  return type === "hierarchical_select" && featureConfig(feature)["required"] !== false;
 }
 
 /** `FeatureDef.example` → the control's `placeholder`, for the types that have

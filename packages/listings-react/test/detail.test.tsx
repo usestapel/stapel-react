@@ -261,9 +261,15 @@ describe("the favourite control is blocked, never hidden", () => {
     await waitFor(() => {
       expect(screen.getByTestId("listings-detail-favorite")).toBeTruthy();
     });
+    // `aria-disabled` with a live handler, never the inert html attribute:
+    // the refusal is proved by the request count below, not by the browser
+    // swallowing the click.
+    expect(
+      screen.getByTestId("listings-detail-favorite").getAttribute("aria-disabled")
+    ).toBe("true");
     expect(
       screen.getByTestId("listings-detail-favorite").hasAttribute("disabled")
-    ).toBe(true);
+    ).toBe(false);
     // The reason is the shared gate's, rendered as visible text and pointed at
     // by the control's `aria-describedby` — never a hover.
     expect(

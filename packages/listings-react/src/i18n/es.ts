@@ -102,6 +102,7 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.detail.published_at": "Publicado el {date}",
   "listings.detail.expires_at": "A la venta hasta el {date}",
   "listings.detail.stock": "Disponibles",
+  "listings.detail.views": "Visitas",
   "listings.detail.edit": "Editar el anuncio",
   "listings.detail.take_down": "Retirarlo",
 

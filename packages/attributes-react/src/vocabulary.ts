@@ -41,6 +41,46 @@ export interface VocabularyTerm {
   readonly code: string;
   readonly label: string;
   readonly has_children?: boolean;
+  /**
+   * This term belongs at the TOP of the level's list — the handful of makes,
+   * models or colours most listings actually carry.
+   *
+   * Optional, and absent from every response today: no vocabulary endpoint
+   * emits it yet, so a reader may never treat its absence as `false`-that-was-
+   * measured. It is the ORDER that stays the server's business — this flag
+   * only says which rows form the first band, and the rows keep the order they
+   * arrived in inside each one.
+   */
+  readonly recommended?: boolean;
+}
+
+/**
+ * Is this term one of the recommended few?
+ *
+ * Strictly `true`, never truthiness: a wire that starts sending `0`, `""` or
+ * `null` for "no" must not promote every term into the top band, and a level
+ * where the flag is absent is one plain list rather than an empty heading.
+ */
+export function isRecommendedTerm(term: VocabularyTerm): boolean {
+  return term.recommended === true;
+}
+
+/**
+ * A level's terms split into the two bands a picker draws, each keeping the
+ * server's own order.
+ *
+ * `recommended` is empty whenever nothing carries the flag, which is the
+ * signal a caller reads as "draw one plain list" — see
+ * {@link isRecommendedTerm}.
+ */
+export function partitionRecommended(terms: readonly VocabularyTerm[]): {
+  readonly recommended: readonly VocabularyTerm[];
+  readonly rest: readonly VocabularyTerm[];
+} {
+  const recommended: VocabularyTerm[] = [];
+  const rest: VocabularyTerm[] = [];
+  for (const term of terms) (isRecommendedTerm(term) ? recommended : rest).push(term);
+  return { recommended, rest };
 }
 
 /**

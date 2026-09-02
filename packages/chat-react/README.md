@@ -90,9 +90,13 @@ import { ConversationThread, MessageComposer } from "@stapel/chat-react";
 </ConversationThread>;
 
 <MessageComposer conversationId={id}>
-  {({ value, setValue, availability, send }) => (
-    /* `availability` is blocked-with-a-reason or available — a disabled
-       control here always has a sentence to show. */
+  {({ value, setValue, availability, visibleAvailability, send }) => (
+    /* Two readings of one verdict. `availability` is what the SEND control
+       obeys — blocked-with-a-reason or available, never a dead disabled
+       button. `visibleAvailability` is what a skin PRINTS: the same block,
+       withheld until the person has typed or pressed send, because an
+       untouched box (and a box one tick after a successful send) has failed
+       nothing. */
     ...
   )}
 </MessageComposer>;

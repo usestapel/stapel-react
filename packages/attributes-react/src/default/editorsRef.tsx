@@ -48,7 +48,12 @@ import type { PickerGroup, PickerOption } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 import type { ValueEditor, ValueEditorProps } from "../registry.js";
 import { featureName } from "../types.js";
-import { firstCode, optionsRefOf, useVocabularyClient } from "../vocabulary.js";
+import {
+  firstCode,
+  optionsRefOf,
+  partitionRecommended,
+  useVocabularyClient,
+} from "../vocabulary.js";
 import type { VocabularyClient, VocabularyTerm } from "../vocabulary.js";
 import { ATTRIBUTES_I18N_KEYS } from "../i18n/keys.js";
 import { UnsupportedValueEditor } from "./notice.js";
@@ -87,6 +92,11 @@ const PATH_SEPARATOR = " › ";
 /** Beyond this many rungs the echo elides its middle — see
  * {@link pathEcho}. */
 const PATH_ECHO_MAX_RUNGS = 3;
+
+/** The rule between the recommended band and the rest of the level. The skin's
+ * own neutral border variable — the one every bordered surface in this package
+ * takes — so it follows the host's light and dark palettes. */
+const BAND_SEPARATOR = "var(--stapel-border-subtle, rgba(128,128,128,0.35))";
 
 /**
  * Where a level's recents live.
@@ -363,9 +373,62 @@ function useStoredLabels(
   return labels;
 }
 
-/** The sections one level's sheet draws, in the order a thumb meets them. */
+/**
+ * The heading of a term band, and — for the second one — the RULE between the
+ * two. The line is part of the heading rather than a row of its own because
+ * the sheet draws sections and not separators: a separator that could outlive
+ * the band under it is exactly the "rule with nothing after it" this must
+ * never draw.
+ */
+function BandHeading(props: {
+  readonly band: "recommended" | "rest";
+  readonly separated: boolean;
+  readonly children: string;
+}): ReactElement {
+  return (
+    <span
+      data-attributes-band={props.band}
+      style={{
+        display: "block",
+        // Longhands, not the `border-top` shorthand: a shorthand carrying a
+        // `var()` is dropped whole by strict CSS parsers.
+        ...(props.separated
+          ? {
+              borderTopWidth: 1,
+              borderTopStyle: "solid" as const,
+              borderTopColor: BAND_SEPARATOR,
+              paddingTop: spacing[2],
+              marginTop: spacing[1],
+            }
+          : {}),
+      }}
+    >
+      {props.children}
+    </span>
+  );
+}
+
+/**
+ * The sections one level's sheet draws, in the order a thumb meets them.
+ *
+ * The terms arrive as ONE list in the server's order and are drawn as one
+ * unless some of them are flagged {@link VocabularyTerm.recommended} — no
+ * endpoint sends the flag yet, so the unflagged shape is the one on screen
+ * today and it must stay a plain, headingless list. Flagged, the level splits
+ * into two bands with the recommended few on top, and:
+ *
+ *  - the second band's heading is drawn ONLY beside a first one. A search that
+ *    matches nothing recommended collapses back to the plain list rather than
+ *    putting "All options" and a rule above the whole thing;
+ *  - a band with no surviving match is not emitted at all, so filtering can
+ *    never leave a heading over nothing;
+ *  - the order INSIDE each band is untouched — which terms lead is the
+ *    server's answer, not this file's.
+ */
 function buildGroups(input: {
   readonly recentLabel: string;
+  readonly recommendedLabel: string;
+  readonly allOptionsLabel: string;
   readonly recents: readonly string[];
   readonly held: readonly string[];
   readonly terms: readonly VocabularyTerm[];
@@ -374,6 +437,10 @@ function buildGroups(input: {
 }): readonly PickerGroup[] {
   const listed = new Set(input.terms.map((term) => term.code));
   const row = (code: string): PickerOption => ({ value: code, label: input.labelOf(code) });
+  const termRow = (term: VocabularyTerm): PickerOption => ({
+    value: term.code,
+    label: term.label,
+  });
   const groups: PickerGroup[] = [];
   // The current answer, kept on screen whatever is typed: a person must be
   // able to see what the field holds while they look for its replacement.
@@ -387,11 +454,31 @@ function buildGroups(input: {
       groups.push({ key: "recent", label: input.recentLabel, options: recents.map(row) });
     }
   }
+  const { recommended, rest } = partitionRecommended(input.terms);
+  if (recommended.length === 0) {
+    groups.push({ key: "terms", label: undefined, options: rest.map(termRow) });
+    return groups;
+  }
   groups.push({
-    key: "terms",
-    label: undefined,
-    options: input.terms.map((term) => ({ value: term.code, label: term.label })),
+    key: "terms-recommended",
+    label: (
+      <BandHeading band="recommended" separated={false}>
+        {input.recommendedLabel}
+      </BandHeading>
+    ),
+    options: recommended.map(termRow),
   });
+  if (rest.length > 0) {
+    groups.push({
+      key: "terms",
+      label: (
+        <BandHeading band="rest" separated>
+          {input.allOptionsLabel}
+        </BandHeading>
+      ),
+      options: rest.map(termRow),
+    });
+  }
   return groups;
 }
 
@@ -501,6 +588,8 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
   const labelOf = (code: string): string => labels[code] ?? code;
   const groups = buildGroups({
     recentLabel: t(ATTRIBUTES_I18N_KEYS.pickerRecent),
+    recommendedLabel: t(ATTRIBUTES_I18N_KEYS.pickerRecommended),
+    allOptionsLabel: t(ATTRIBUTES_I18N_KEYS.pickerAllOptions),
     recents,
     held: codes,
     terms,
@@ -662,6 +751,8 @@ function RefRung(props: {
 
   const groups = buildGroups({
     recentLabel: t(ATTRIBUTES_I18N_KEYS.pickerRecent),
+    recommendedLabel: t(ATTRIBUTES_I18N_KEYS.pickerRecommended),
+    allOptionsLabel: t(ATTRIBUTES_I18N_KEYS.pickerAllOptions),
     recents,
     held,
     terms,

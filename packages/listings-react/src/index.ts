@@ -80,6 +80,7 @@ export type {
   ListingDetail as ListingDetailData,
   ListingDraft,
   ListingDraftPatch,
+  ListingEngagementFields,
   ListingFeatureDao,
   ListingFeatureDaoUnion,
   ListingFeatureType,
@@ -154,6 +155,9 @@ export {
   unreadableFeatureCount,
 } from "./model/features.js";
 export type { FeatureCopySource } from "./model/features.js";
+
+// ── model: the engagement axis (already-seen / view count) ───────────────────
+export { isListingViewed, listingViewCount } from "./model/engagement.js";
 
 // ── model: validation, the mirror and the publish-400 split ──────────────────
 export {

@@ -51,7 +51,7 @@
  * and the default `"column"` renders exactly what existing hosts already get.
  */
 import type { ReactElement, ReactNode } from "react";
-import { Descriptions, Divider, Flex, Typography } from "antd";
+import { Descriptions, Divider, Flex, Typography, theme as antdTheme } from "antd";
 import { SkinButton as Button } from "@stapel/tokens-antd/skin";
 import {
   ErrorAlert,
@@ -175,6 +175,7 @@ export interface ListingDetailPaneProps
 export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
   const t = useT();
   const { locale } = useI18n();
+  const { token } = antdTheme.useToken();
   const bag = useListingDetail(props.id, {
     ...(props.viewerId !== undefined ? { viewerId: props.viewerId } : {}),
     ...(props.categoryFeatures !== undefined
@@ -190,9 +191,18 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
   const split = props.layout === "split";
 
   const favoriteLabel = t(
-    bag.isFavorited === true
+    bag.isFavorited
       ? LISTINGS_I18N_KEYS.cardFavoriteRemove
       : LISTINGS_I18N_KEYS.cardFavoriteAdd
+  );
+  // Saved is a SOLID accent shape; not-saved (and `is_favorited: null`, which
+  // is "nobody asked", not "no") is the outline. The bag flips it on the
+  // gesture and rolls it back if the write fails — see `useListingDetail`.
+  const heartIcon = (
+    <HeartIcon
+      filled={bag.isFavorited}
+      {...(bag.isFavorited ? { color: token.colorPrimary } : {})}
+    />
   );
 
   return (
@@ -416,9 +426,10 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                         aria-disabled
                         {...bind}
                         aria-label={favoriteLabel}
-                        aria-pressed={bag.isFavorited === true}
-                        icon={<HeartIcon filled={bag.isFavorited === true} />}
+                        aria-pressed={bag.isFavorited}
+                        icon={heartIcon}
                         data-testid="listings-detail-favorite"
+                        data-favorited={String(bag.isFavorited)}
                         data-analytics="none"
                         data-analytics-reason="business action — host app wraps with its own tracked()"
                         onClick={bag.toggleFavorite}
@@ -435,15 +446,16 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                     >
                       {(bind) => (
                         <Button
-                          disabled={bind.disabled}
+                          {...(bind.disabled ? { "aria-disabled": true } : {})}
                           data-disabled-reason="the enclosing <GatedControl> renders the gate's reason beside this button"
                           {...(bind["aria-describedby"] !== undefined
                             ? { "aria-describedby": bind["aria-describedby"] }
                             : {})}
                           aria-label={favoriteLabel}
-                          aria-pressed={bag.isFavorited === true}
-                          icon={<HeartIcon filled={bag.isFavorited === true} />}
+                          aria-pressed={bag.isFavorited}
+                          icon={heartIcon}
                           data-testid="listings-detail-favorite"
+                          data-favorited={String(bag.isFavorited)}
                           data-analytics="none"
                           data-analytics-reason="business action — host app wraps with its own tracked()"
                           onClick={bag.toggleFavorite}
@@ -470,14 +482,26 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
               </Flex>
             );
 
-            const actionError =
-              actions.error !== undefined && actions.error !== null ? (
+            const actionError = (
+              <>
+                {actions.error !== undefined && actions.error !== null ? (
+                  <ErrorAlert
+                    testId="listings-detail-action-error"
+                    thrown={actions.error}
+                    variant="inline"
+                  />
+                ) : null}
+                {/* A save that did not save. The heart has already rolled
+                    back to the state the tap started from — that is the
+                    honest picture and a silent one, so the sentence goes
+                    beside it. `ErrorAlert` renders nothing for nothing. */}
                 <ErrorAlert
-                  testId="listings-detail-action-error"
-                  thrown={actions.error}
+                  testId="listings-detail-favorite-error"
+                  thrown={bag.favoriteError}
                   variant="inline"
                 />
-              ) : null;
+              </>
+            );
 
             const description = (
               <>
@@ -583,6 +607,17 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                     label={t(LISTINGS_I18N_KEYS.composeLocationLabel)}
                   >
                     {listing.location_label}
+                  </Descriptions.Item>
+                ) : null}
+                {/* How many people opened it. `bag.viewCount` is `undefined`
+                    for a response that carries no such field — which is every
+                    response today — so this row simply is not there, and no
+                    zero stands in for the absence. */}
+                {bag.viewCount !== undefined ? (
+                  <Descriptions.Item label={t(LISTINGS_I18N_KEYS.detailViews)}>
+                    <span data-testid="listings-detail-views">
+                      {bag.viewCount}
+                    </span>
                   </Descriptions.Item>
                 ) : null}
               </Descriptions>

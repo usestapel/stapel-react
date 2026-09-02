@@ -202,16 +202,18 @@ function Composer(props: {
       conversationId={props.conversationId}
       {...(props.maxLength !== undefined ? { maxLength: props.maxLength } : {})}
     >
-      {({ value, setValue, availability, isSending, error, send, maxLength, length }) => (
+      {(bag) => (
         <ComposerBody
-          value={value}
-          setValue={setValue}
-          isSending={isSending}
-          send={send}
-          maxLength={maxLength}
-          length={length}
-          availability={availability}
-          errorNode={<ErrorAlert error={errorDisplay(error)} />}
+          value={bag.value}
+          setValue={bag.setValue}
+          isSending={bag.isSending}
+          send={bag.send}
+          maxLength={bag.maxLength}
+          length={bag.length}
+          availability={bag.availability}
+          visibleAvailability={bag.visibleAvailability}
+          pristine={bag.pristine}
+          errorNode={<ErrorAlert error={errorDisplay(bag.error)} />}
           t={t}
         />
       )}
@@ -228,10 +230,17 @@ function ComposerBody(props: {
   maxLength: number;
   length: number;
   availability: Parameters<typeof useActionGate>[0];
+  visibleAvailability: Parameters<typeof useActionGate>[0];
+  pristine: boolean;
   errorNode: ReactElement | null;
   t: (key: string, params?: Readonly<Record<string, unknown>>) => string;
 }): ReactElement {
+  // Two readings of the same verdict: `gate` switches the control off,
+  // `earned` decides whether the reason is on screen. An untouched box has
+  // failed nothing, so it stays neutral — a disabled send button is not an
+  // error state, and after a successful send the composer is untouched again.
   const gate = useActionGate(props.availability);
+  const earned = useActionGate(props.visibleAvailability);
   const { t } = props;
   return (
     <Space direction="vertical" style={{ width: "100%" }}>
@@ -247,19 +256,23 @@ function ComposerBody(props: {
            its return key inserts the newline without a keydown this handler
            acts on being distinguishable, and the send button sits beside the
            field either way. `isComposing` guards an IME mid-composition,
-           where Enter commits the candidate and must never post it. The gate
-           is the same one the button obeys, so Enter can never send what the
-           button refuses. */
+           where Enter commits the candidate and must never post it. `send()`
+           enforces the same gate the button obeys, so Enter can never post
+           what the button refuses — and pressing it over an empty box asks
+           the question, which is what puts the reason on screen. */
         onKeyDown={(event) => {
           if (event.key !== "Enter" || event.shiftKey) return;
           if (event.nativeEvent.isComposing) return;
           event.preventDefault();
-          if (gate.disabled || props.isSending) return;
+          if (props.isSending) return;
           props.send();
         }}
         placeholder={t(CHAT_I18N_KEYS.composerPlaceholder)}
         autoSize={{ minRows: 2, maxRows: 6 }}
         data-testid="chat-composer-input"
+        /* Measurable neutrality: an untouched box carries no validation
+           state, so a suite asserts the absence rather than a colour. */
+        data-pristine={String(props.pristine)}
         data-analytics="none"
         data-analytics-reason="business action — host app wraps with its own tracked()"
       />
@@ -279,10 +292,11 @@ function ComposerBody(props: {
         </Button>
         {/* A switched-off control states its reason as TEXT: a disabled
             button takes no pointer events, so a tooltip would be a reason
-            nobody can read. */}
-        {gate.reason ? (
+            nobody can read. From the EARNED gate, so a composer nobody has
+            written in yet says nothing at all. */}
+        {earned.reason ? (
           <Typography.Text type="secondary" data-testid="chat-composer-blocked">
-            {gate.reason}
+            {earned.reason}
           </Typography.Text>
         ) : null}
         <Typography.Text type="secondary" style={{ marginLeft: "auto" }}>

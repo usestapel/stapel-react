@@ -124,10 +124,9 @@ describe("saving a listing with auto-anonymous wired", () => {
         <ListingCard listing={CARD} signIn={{ href: "/login" }} />
       </TestProviders>
     );
-    expect(screen.getByTestId("listings-card-favorite")).toHaveProperty(
-      "disabled",
-      true
-    );
+    expect(
+      screen.getByTestId("listings-card-favorite").getAttribute("aria-disabled")
+    ).toBe("true");
     expect(screen.getByTestId("listings-card-favorite-blocked")).toBeTruthy();
   });
 
@@ -202,9 +201,8 @@ describe("saving a listing with auto-anonymous wired", () => {
         <ListingCard listing={CARD} signIn={{ href: "/login" }} />
       </TestProviders>
     );
-    expect(screen.getByTestId("listings-card-favorite")).toHaveProperty(
-      "disabled",
-      true
-    );
+    expect(
+      screen.getByTestId("listings-card-favorite").getAttribute("aria-disabled")
+    ).toBe("true");
   });
 });

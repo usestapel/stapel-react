@@ -103,6 +103,15 @@ export const ATTRIBUTES_I18N_KEYS = {
    * search box is empty — a "recent" list that does not answer the query is
    * the stale list defect wearing a heading. */
   pickerRecent: "attributes.picker.recent",
+  /** The heading of the RECOMMENDED band: the few terms the catalogue puts
+   * first, so a fifty-row make list does not bury the six makes most people
+   * are here for. Drawn only when the level actually flags some — a payload
+   * that flags nothing is one plain list with no heading at all. */
+  pickerRecommended: "attributes.picker.recommended",
+  /** The heading of the band UNDER the recommended one — the rest of the
+   * level, in the server's order. Drawn only beside a recommended band; on
+   * its own it would be a heading over the whole list. */
+  pickerAllOptions: "attributes.picker.all_options",
   /** The tail row of a list too long to draw: more matched than is on
    * screen, so the search box is where the rest of them are. */
   pickerRefine: "attributes.picker.refine",
@@ -226,6 +235,8 @@ export const attributesI18nBundleEn: I18nDictionary = {
   "attributes.picker.done": "Done",
   "attributes.picker.search": "Search",
   "attributes.picker.recent": "Recent",
+  "attributes.picker.recommended": "Recommended",
+  "attributes.picker.all_options": "All options",
   "attributes.picker.refine": "Keep typing to narrow the list.",
   "attributes.ref.parent_first": "Choose {parent} first.",
   "attributes.baked": "Determined by your other selections.",

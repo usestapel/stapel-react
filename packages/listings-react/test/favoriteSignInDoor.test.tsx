@@ -25,8 +25,13 @@ describe("a visitor's favourite control", () => {
 
     // Never hidden (private-space canon §6.3): the heart is there, switched
     // off, because a control that disappears teaches nobody it exists.
+    // Switched off is `aria-disabled` and NEVER the html attribute: an inert
+    // button takes no focus and receives no tap, so it can explain itself to
+    // nobody. The refusal happens on activation — `toggle` is a no-op while
+    // the gate is blocked, asserted below by the request count.
     const heart = screen.getByTestId("listings-card-favorite");
-    expect(heart).toHaveProperty("disabled", true);
+    expect(heart.getAttribute("aria-disabled")).toBe("true");
+    expect(heart).toHaveProperty("disabled", false);
 
     // The reason as TEXT, not as a tooltip on a control that swallows pointer
     // events.

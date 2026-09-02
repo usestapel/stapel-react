@@ -58,6 +58,7 @@ import {
   featureRuleState,
   narrowFeature,
 } from "./rules.js";
+import { undisclosedSlugs } from "./disclosure.js";
 import { ERROR_CODE_TO_KEY } from "./errors.js";
 
 /** `stapel_attributes.types.hex_color.constants.SIMPLE_COLORS` — the closed
@@ -218,14 +219,23 @@ export function featureAnswerRequired(
     values === undefined
       ? { ...VISIBLE_STATE, required: feature.mandatory === true }
       : ruleStateOrStatic(feature, values);
-  return requiredUnder(feature, state);
+  return featureRequiredUnder(feature, state);
 }
 
-/** Requiredness under an already-computed {@link RuleState} — the one place
+/**
+ * Requiredness under an already-computed {@link RuleState} — the ONE place
  * the CATEGORY's answer (`RuleState.required`, which folds `mandatory` and
- * every matching `require` rule) and the TYPE's own switch are combined, so
- * the marker, the mirror and the gate cannot disagree. */
-function requiredUnder(feature: FeatureDef, state: RuleState): boolean {
+ * every matching `require` rule) and the TYPE's own switch are combined.
+ *
+ * Public because the marker and the enforcement must be the same function
+ * call, not two readings of the same paragraph: `<FeatureFields>` draws its
+ * asterisk from it against the state it narrowed the config with,
+ * {@link mirrorValidate} refuses a blank answer with it, and
+ * `missingRequiredFeatures` lists what is still owed with it. A row's
+ * requiredness is a verdict about the CURRENT answers — never
+ * `feature.mandatory` on its own, which is only one of its inputs.
+ */
+export function featureRequiredUnder(feature: FeatureDef, state: RuleState): boolean {
   const type = featureType(feature);
   if (type === "header" || !state.visible) return false;
   if (state.required) return true;
@@ -736,7 +746,12 @@ function failed(feature: FeatureDef, refusal: Refusal): FeatureValidationResult 
  *     as `not_in_options` and a tightened bound as `above_maximum`, through
  *     the ordinary per-type rules and with no error vocabulary of its own.
  *  2. every allowed feature that was never submitted, of which only a REQUIRED
- *     non-header one produces a row.
+ *     non-header one produces a row — and only one that was actually ASKED.
+ *     A dependent field whose parent is still blank is not on screen and its
+ *     value is not in the payload (`toFeaturesDto` drops it, progressive
+ *     disclosure), so demanding it here would refuse a person's form in the
+ *     name of a control they cannot see and name a slug they cannot fill. The
+ *     parent is the question that is actually open.
  *
  * A rule set that breaks the grammar fails the whole batch on `_root` with
  * `invalid_rules` — exactly as `validate_dto_structured` does. The SCHEMA is
@@ -798,7 +813,7 @@ export function mirrorValidate(
     // blank would pass validation and vanish from the DAO.
     if (isBlank(entry.value)) {
       results.push(
-        requiredUnder(feature, state) ? failed(feature, blankRefusal(feature)) : ok(feature)
+        featureRequiredUnder(feature, state) ? failed(feature, blankRefusal(feature)) : ok(feature)
       );
       continue;
     }
@@ -806,10 +821,15 @@ export function mirrorValidate(
     if (result !== undefined) results.push(result);
   }
 
+  // The second visibility gate, read off the same payload the rules were:
+  // `stringify` unwraps a `{type, value}` envelope, so a parent counts as
+  // answered exactly when the DTO carries an answer for it.
+  const undisclosed = undisclosedSlugs(features, dto);
   for (const feature of features) {
     if (seen.has(feature.slug)) continue;
     if (featureType(feature) === "header") continue;
-    if (!requiredUnder(feature, stateOf(feature))) continue;
+    if (undisclosed.has(feature.slug)) continue;
+    if (!featureRequiredUnder(feature, stateOf(feature))) continue;
     results.push(failed(feature, blankRefusal(feature)));
   }
 

@@ -38,11 +38,66 @@ import type { components } from "./generated/schema.js";
 /** The generated schema table — the one source of truth for wire shapes. */
 export type Schemas = components["schemas"];
 
+/**
+ * The ENGAGEMENT siblings of `is_favorited`, declared here because the
+ * generated schema does not carry them yet.
+ *
+ * `api/generated/schema.ts` is emitted from stapel-listings' own
+ * `docs/schema.json` and is never hand-edited — so a field that is LANDING
+ * upstream but not yet published has exactly one honest home: an optional
+ * extension of the row this pair reads, kept beside the generated type rather
+ * than inside it. When the schema grows the two fields the intersection
+ * becomes a no-op and this block is deleted; until then nothing in the pair
+ * has to guess.
+ *
+ * Both are optional AND nullable, and the three states are three different
+ * facts:
+ *
+ *   absent   — this deployment's server does not send the field at all
+ *   `null`   — it sends it, and nobody asked on this person's behalf
+ *              (an anonymous read annotates `Value(None)`, the same way
+ *              `is_favorited` does)
+ *   a value  — the answer
+ *
+ * The first two both mean "draw nothing extra". Only the third can dim a card
+ * or print a number, which is what makes the whole feature a silent no-op on
+ * every response the fleet answers today. `model/engagement.ts` is the one
+ * place that collapses them, and it is where a skin asks.
+ *
+ * ── Two spellings of the same flag, and why both are declared ─────────────
+ *
+ * The already-seen flag is `is_viewed` in the note this pair was built
+ * against and `viewed` in the schema stapel-listings actually emits (it also
+ * grew a batch overlay — see `model/engagement.ts`). Nothing has shipped yet,
+ * so which one lands is still open, and a pair that bet on one name would
+ * silently render nothing for the other: a boolean read off an absent key is
+ * `undefined`, which this pair correctly treats as "no dimming". A defect
+ * with no symptom, on a seam between two repositories, is the exact shape
+ * this fleet keeps paying for.
+ *
+ * Both are therefore declared and both are read, in that order, by
+ * `isListingViewed`. The cost is one `??`; the alternative is a feature that
+ * looks fine in the pair's own tests and does nothing on the deployment.
+ * When the name settles, the loser is deleted here and nowhere else.
+ */
+export interface ListingEngagementFields {
+  /** Has THIS reader already opened this listing? `null` for an anonymous
+   * read — nothing is remembered for a stranger, and `false` would be a
+   * claim rather than an absence. */
+  readonly is_viewed?: boolean | null;
+  /** The same flag under the name stapel-listings' own schema gives it. */
+  readonly viewed?: boolean | null;
+  /** How many distinct viewers have opened it. Public: the same number for
+   * every reader. Declared nullable although the upstream schema is not —
+   * a field that is absent today may arrive annotated. */
+  readonly view_count?: number | null;
+}
+
 /** `GET /listings/{pk}/` 200 — everything a detail page reads. */
-export type ListingDetail = Schemas["ListingDetail"];
+export type ListingDetail = Schemas["ListingDetail"] & ListingEngagementFields;
 
 /** One row of a card list (`GET /listings/`, `GET /listings/my/favorites/`). */
-export type ListingCard = Schemas["ListingCard"];
+export type ListingCard = Schemas["ListingCard"] & ListingEngagementFields;
 
 /** `POST /listings/` request+response and `POST /{pk}/save-draft/` response —
  * the draft twin. Every user-editable field is a `*_draft` one, promoted onto
@@ -93,7 +148,7 @@ export type PaginatedListingCards = Schemas["PaginatedListingCardList"];
  *    tab keyed off them is a column of blank rows. `myListingTitle` /
  *    `myListingPrice` (`model/mine.ts`) are the one place the fallback lives.
  */
-export type MyListingCard = Schemas["MyListingCard"];
+export type MyListingCard = Schemas["MyListingCard"] & ListingEngagementFields;
 
 /** The keyset envelope `GET /listings/my/listings/` comes back in — the same
  * `IDAnchorPagination` shape as {@link PaginatedListingCards}, over the owner

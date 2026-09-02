@@ -145,6 +145,28 @@ the same canon through `pnpm gen:feature-def`.
 config the rules already narrowed — so **editors stay rule-unaware** and a
 host's own registered editor gets rules for free.
 
+## What a host asks before it draws a step
+
+A composer that walks a category in steps needs two answers, and both are
+verdicts about the current ANSWERS rather than about the schema — reading
+`feature.mandatory` and `features.length` produces a step with nothing on it
+and a "Next" that refuses over a control the person cannot see.
+
+```ts
+visibleFeatureGroups(features, values); // the ladder: blocks that still ask something
+hasVisibleFields(block, values);        // "is there anything here?"  (pass the WHOLE sheet)
+visibleFeatures(features, values);      // the rows <FeatureFields> will draw
+missingRequiredFeatures(features, values); // what a Next/Publish may refuse over
+```
+
+A row is on screen when the rules say visible AND progressive disclosure has
+revealed it; a row is required under `featureRequiredUnder(feature, state)` —
+the same call `<FeatureFields>` draws its asterisk from and the same one
+`mirrorValidate` refuses with, so a marker, a step gate and a refusal cannot
+disagree. Rules read their controlling slug off the definitions they are
+given, so hand these functions the whole feature set: a condition pointing at
+a field in another block would otherwise read as unanswered.
+
 ## Form metadata and sections
 
 `FeatureDef` carries what an imported catalogue actually has: `description`

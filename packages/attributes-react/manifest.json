@@ -93,7 +93,12 @@
       "optionsRefOf",
       "firstCode",
       "INVALID_RULES_FEATURE",
-      "featureSections"
+      "featureSections",
+      "featureRequiredUnder",
+      "visibleFeatures",
+      "visibleFeatureGroups",
+      "hasVisibleFields",
+      "missingRequiredFeatures"
     ],
     "types": [
       "FeatureDef",
@@ -125,7 +130,8 @@
       "RenderabilityOptions",
       "VocabularyClient",
       "VocabularyTerm",
-      "FeatureHint"
+      "FeatureHint",
+      "VisibleFeatureGroup"
     ]
   },
   "i18nKeys": [

@@ -97,7 +97,9 @@ export {
   VOCABULARY_BACKED_TYPES,
   VocabularyClientProvider,
   firstCode,
+  isRecommendedTerm,
   optionsRefOf,
+  partitionRecommended,
   useVocabularyClient,
 } from "./vocabulary.js";
 export type { VocabularyClient, VocabularyTerm } from "./vocabulary.js";
@@ -130,11 +132,24 @@ export {
   SIMPLE_COLORS,
   codePointLength,
   featureAnswerRequired,
+  featureRequiredUnder,
   isBlank,
   mirrorValidate,
   patternFullMatch,
   validateFeatureValue,
 } from "./validate.js";
+
+// What a HOST asks before it draws a step: is there anything in this block
+// for the current answers, and what is still owed. Both are verdicts about
+// values — the same two gates the renderer composes and the same requiredness
+// the mirror refuses with — so a step ladder and the form agree.
+export {
+  hasVisibleFields,
+  missingRequiredFeatures,
+  visibleFeatureGroups,
+  visibleFeatures,
+} from "./formShape.js";
+export type { VisibleFeatureGroup } from "./formShape.js";
 
 export {
   defaultFeatureValue,

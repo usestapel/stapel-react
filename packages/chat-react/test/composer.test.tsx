@@ -17,12 +17,18 @@ function ComposerScreen(props: {
   onBag: (bag: MessageComposerBag) => void;
 }): React.ReactElement {
   const gate = useActionGate(props.bag.availability);
+  const earned = useActionGate(props.bag.visibleAvailability);
   const errorDisplay = useErrorDisplay("chat.error.unknown");
   props.onBag(props.bag);
   return (
     <div>
-      <span data-testid="reason">{gate.reason ?? ""}</span>
+      {/* `reason` is what a skin PRINTS (the earned gate); `blockReason` is
+          what the send control obeys. The two are the same verdict, and the
+          only difference is whether the person has addressed the field. */}
+      <span data-testid="reason">{earned.reason ?? ""}</span>
+      <span data-testid="blockReason">{gate.reason ?? ""}</span>
       <span data-testid="disabled">{String(gate.disabled)}</span>
+      <span data-testid="pristine">{String(props.bag.pristine)}</span>
       <span data-testid="count">{`${props.bag.length}/${props.bag.maxLength}`}</span>
       <span data-testid="error">{errorDisplay(props.bag.error)?.message ?? ""}</span>
     </div>
@@ -68,13 +74,40 @@ function renderComposer(
 
 const reason = (): string => screen.getByTestId("reason").textContent ?? "";
 
-describe("a switched-off control states its reason", () => {
-  it("an empty composer says what to do, and it is not a raw key", async () => {
+describe("a PRISTINE composer is neutral, not refused", () => {
+  // The composer used to derive its validation state from "the value is
+  // empty", so an untouched box — and every box one tick after a successful
+  // send — drew a refusal for something nobody had done yet.
+  it("says nothing at all before anyone has touched it", () => {
     renderComposer({});
+    expect(screen.getByTestId("pristine").textContent).toBe("true");
+    expect(reason()).toBe("");
+    // A disabled send control is not an error state: there is genuinely
+    // nothing to send, and the enforcement gate still says so.
     expect(screen.getByTestId("disabled").textContent).toBe("true");
-    expect(reason()).toBe("Write something first.");
-    expect(reason()).not.toContain("chat.composer");
+    expect(screen.getByTestId("blockReason").textContent).toBe(
+      "Write something first."
+    );
   });
+
+  it("pressing send over an empty box earns the sentence", async () => {
+    const { server, bag } = renderComposer({});
+    act(() => bag().send());
+    await waitFor(() => expect(reason()).toBe("Write something first."));
+    expect(reason()).not.toContain("chat.composer");
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it("typing and then clearing the box keeps the refusal on screen", async () => {
+    const { bag } = renderComposer({});
+    act(() => bag().setValue("hi"));
+    await waitFor(() => expect(reason()).toBe(""));
+    act(() => bag().setValue(""));
+    await waitFor(() => expect(reason()).toBe("Write something first."));
+  });
+});
+
+describe("a switched-off control states its reason", () => {
 
   it("whitespace is not a message", async () => {
     const { bag } = renderComposer({});
@@ -104,6 +137,20 @@ describe("the length the SERVER counts", () => {
 });
 
 describe("sending", () => {
+  it("a successful send resets to PRISTINE, not to empty-and-invalid", async () => {
+    const { bag } = renderComposer({
+      "POST /messages": { status: 201, body: message(4, { body: "hello" }) },
+    });
+    act(() => bag().setValue("hello"));
+    await waitFor(() => expect(screen.getByTestId("pristine").textContent).toBe("false"));
+    act(() => bag().send());
+    await waitFor(() => expect(bag().value).toBe(""));
+    // The box is empty again — and that is not a refusal to show anybody.
+    await waitFor(() => expect(screen.getByTestId("pristine").textContent).toBe("true"));
+    expect(reason()).toBe("");
+    expect(screen.getByTestId("disabled").textContent).toBe("true");
+  });
+
   it("posts the body over REST and clears the box", async () => {
     const { server, bag } = renderComposer({
       "POST /messages": { status: 201, body: message(4, { body: "hello" }) },

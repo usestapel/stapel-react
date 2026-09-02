@@ -66,6 +66,15 @@ import type {
 import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
 import type { ThemeModeProp } from "./types.js";
 
+/**
+ * How tall a rung's option list may be, in pixels.
+ *
+ * Ten rows of the skin's 44px touch target plus the list's own padding — the
+ * size of a catalogue's top level, which is the one rung a person must be
+ * able to read whole. antd's 256px default cut it at seven.
+ */
+const CASCADE_LIST_HEIGHT = 456;
+
 export interface CategoryCascadeFieldProps
   extends UseCategoryCascadeOptions,
     ThemeModeProp {
@@ -210,6 +219,21 @@ function Level(props: {
         // The caption, not the key: a person types what they can read.
         optionFilterProp="label"
         style={{ width: "100%", minHeight: PHONE_CONTROL_HEIGHT }}
+        // A short rung must not need a gesture to be read in full.
+        //
+        // antd's dropdown is 256px tall by default. With the touch-sized rows
+        // this skin draws (44px), that shows five and a half of them, and the
+        // seventh row sits flush with the bottom edge — so a ten-option rung
+        // renders with no visual cue that three more exist, behind an 8px
+        // scrollbar. Two separate walkers reported a ten-root catalogue as
+        // "seven roots" from exactly that view, and a scripted `scrollTop`
+        // cannot move it either: a virtualised list keeps `overflow-y:
+        // hidden` on its holder and scrolls itself.
+        //
+        // `listHeight` is the whole fix: a rung of this size now fits. Longer
+        // rungs (fifty manufacturers) still scroll, and they always looked
+        // scrollable because a row is cut by the edge.
+        listHeight={CASCADE_LIST_HEIGHT}
         placeholder={t(CATEGORIES_I18N_KEYS.cascadeChoose)}
         value={step.chosen?.id ?? null}
         aria-label={heading}

@@ -52,6 +52,8 @@ export const attributesI18nBundleRu: I18nDictionary = {
   "attributes.picker.done": "Готово",
   "attributes.picker.search": "Поиск",
   "attributes.picker.recent": "Недавние",
+  "attributes.picker.recommended": "Рекомендуемые",
+  "attributes.picker.all_options": "Все варианты",
   "attributes.picker.refine": "Продолжайте вводить, чтобы сузить список.",
   "attributes.ref.parent_first": "Сначала выберите «{parent}».",
   "attributes.baked": "Определено выбранными параметрами.",

@@ -16,12 +16,16 @@ function ComposerRow(props: {
   value: string;
   setValue: (next: string) => void;
   availability: ActionAvailability;
+  /** The same verdict, withheld until the person has typed or pressed send —
+   * an untouched box has failed nothing. */
+  visibleAvailability: ActionAvailability;
   send: () => void;
   length: number;
   maxLength: number;
 }): ReactElement {
   const t = useT();
   const gate = useActionGate(props.availability);
+  const earned = useActionGate(props.visibleAvailability);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: spacing["2"] }}>
       <input
@@ -52,8 +56,8 @@ function ComposerRow(props: {
         >
           {t("chat.composer.send")}
         </button>
-        {gate.reason ? (
-          <span style={{ color: cssVar("text-muted") }}>{gate.reason}</span>
+        {earned.reason ? (
+          <span style={{ color: cssVar("text-muted") }}>{earned.reason}</span>
         ) : null}
         <span style={{ marginLeft: "auto", color: cssVar("text-muted") }}>
           {`${props.length}/${props.maxLength}`}
@@ -125,14 +129,15 @@ function ThreadBody(): ReactElement {
         )}
       </ConversationThread>
       <MessageComposer conversationId={DEMO_CONVERSATION.id}>
-        {({ value, setValue, availability, send, length, maxLength }) => (
+        {(bag) => (
           <ComposerRow
-            value={value}
-            setValue={setValue}
-            availability={availability}
-            send={send}
-            length={length}
-            maxLength={maxLength}
+            value={bag.value}
+            setValue={bag.setValue}
+            availability={bag.availability}
+            visibleAvailability={bag.visibleAvailability}
+            send={bag.send}
+            length={bag.length}
+            maxLength={bag.maxLength}
           />
         )}
       </MessageComposer>

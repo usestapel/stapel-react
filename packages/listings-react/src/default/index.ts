@@ -39,6 +39,10 @@ export {
   // threshold (and for a test that measures it). See `<ListingCard>`'s header.
   LISTING_CARD_ROW_MIN,
   LISTING_CARD_ROW_MEDIA,
+  // The already-seen mark, for a container that wants to dim its own chrome
+  // on the same rule (and for a test that reads it). All three cards take it.
+  CARD_VIEWED_CLASS,
+  LISTING_VIEWED_OPACITY,
 } from "./ListingCard.js";
 export type {
   ListingCardProps,

@@ -114,6 +114,13 @@ export const LISTINGS_I18N_KEYS = {
    * quantity in the value cell, so this key carries no `{count}` — it used to,
    * and the live page printed the placeholder. */
   detailStock: "listings.detail.stock",
+  /**
+   * The VIEWS row's label. Same shape as the stock row and for the same
+   * reason: `<Descriptions>` renders the label cell and the number separately,
+   * so the key carries no `{count}` — a key that did printed the placeholder
+   * on a live page once already.
+   */
+  detailViews: "listings.detail.views",
   /** The owner's two primaries on their own listing page. */
   detailEdit: "listings.detail.edit",
   detailTakeDown: "listings.detail.take_down",
@@ -318,6 +325,7 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.detail.published_at": "Published {date}",
   "listings.detail.expires_at": "Listed until {date}",
   "listings.detail.stock": "In stock",
+  "listings.detail.views": "Views",
   "listings.detail.edit": "Edit listing",
   "listings.detail.take_down": "Take it down",
 

@@ -185,7 +185,10 @@ describe("the heart is the only separate control, and it is outside the link", (
       </TestProviders>
     );
     const heart = screen.getByTestId("listings-card-favorite");
-    expect(heart).toHaveProperty("disabled", true);
+    // `aria-disabled`, not the html attribute — an inert control cannot be
+    // tapped and therefore cannot disclose why it refused.
+    expect(heart.getAttribute("aria-disabled")).toBe("true");
+    expect(heart).toHaveProperty("disabled", false);
     // The reason is on screen and wired to the control — the whole reason the
     // heart is a row under the card rather than a glyph on the photograph.
     expect(heart.getAttribute("aria-describedby")).toBeTruthy();

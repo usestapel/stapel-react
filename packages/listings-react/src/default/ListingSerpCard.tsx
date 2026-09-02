@@ -88,6 +88,7 @@ import {
 } from "../model/features.js";
 import type { FeatureCopySource } from "../model/features.js";
 import { lifecycleCaption } from "../model/status.js";
+import { isListingViewed } from "../model/engagement.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { PriceTrendIcon } from "./icons.js";
 import { FavoriteHeart } from "./favorite.js";
@@ -97,6 +98,7 @@ import {
   CARD_MEDIA_CLASS,
   CARD_QUERY_CLASS,
   CARD_TARGET_STYLE_HREF,
+  CARD_VIEWED_CLASS,
   CardTarget,
   cardTargetCss,
 } from "./ListingCard.js";
@@ -200,6 +202,8 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
   const photos = listing.images ?? [];
   const currency =
     listing.currency !== undefined ? { currency: listing.currency } : {};
+  // Already seen — `false` for every response that carries no such field.
+  const viewed = isListingViewed(listing);
 
   const rail =
     props.actionsRail !== undefined || props.showFavorite !== false ? (
@@ -239,6 +243,9 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
         data-listing-id={listing.id}
         {...(status !== undefined
           ? { "data-listing-status": status.status }
+          : {})}
+        {...(viewed
+          ? { className: CARD_VIEWED_CLASS, "data-listing-viewed": "true" }
           : {})}
         styles={{ body: { minWidth: 0, padding: token.paddingSM } }}
         style={{ ["--listing-card-focus" as string]: token.colorPrimary }}

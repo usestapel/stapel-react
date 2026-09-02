@@ -45,6 +45,8 @@ export const attributesI18nBundleEs: I18nDictionary = {
   "attributes.picker.done": "Listo",
   "attributes.picker.search": "Buscar",
   "attributes.picker.recent": "Recientes",
+  "attributes.picker.recommended": "Recomendados",
+  "attributes.picker.all_options": "Todas las opciones",
   "attributes.picker.refine": "Sigue escribiendo para acotar la lista.",
   "attributes.ref.parent_first": "Elige antes {parent}.",
   "attributes.baked": "Determinado por tus otras selecciones.",

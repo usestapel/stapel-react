@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import {
   actionAvailable,
@@ -19,6 +19,7 @@ import type {
 import { useListing, useListingStatus } from "../model/queries.js";
 import { useFavoriteListing } from "../model/mutations.js";
 import { asFeatureDaoList, featuresFromDaoList, unreadableFeatureCount } from "../model/features.js";
+import { isListingViewed, listingViewCount } from "../model/engagement.js";
 import type { FeatureCopySource } from "../model/features.js";
 import { listingStatusView } from "../model/status.js";
 import type { ListingStatusView } from "../model/status.js";
@@ -104,12 +105,32 @@ export interface ListingDetailBag {
    * (`resolveImage`), because no contract in this fleet resolves a
    * stranger's reference — see `model/runtime.ts`. */
   readonly images: readonly string[];
-  readonly isFavorited: boolean | undefined;
+  /**
+   * What the heart must DRAW — the prediction while a toggle is in flight,
+   * the row's own answer otherwise, and never `null`. See
+   * {@link ListingDetailBag.favoriteKnown} for the fact `null` carried.
+   */
+  readonly isFavorited: boolean;
+  /**
+   * Whether the row is AUTHORITATIVE about the reader's saved state.
+   * `is_favorited: null` is an anonymous read's "nobody asked", not a
+   * `false`; both draw the outline heart, and only this tells them apart.
+   */
+  readonly favoriteKnown: boolean;
   /** Saving a favourite needs a mandate; the block says which of the four
    * reasons applies. */
   readonly favoriteGate: ActionAvailability;
   toggleFavorite(): void;
   readonly favoriteInFlight: boolean;
+  /** The last favourite write's failure, for the surface to state. The heart
+   * has already rolled back by the time this is set. */
+  readonly favoriteError: unknown;
+  /** Has this reader already opened this listing? See `model/engagement.ts`
+   * — absent on every response today, and `false` when it is. */
+  readonly isViewed: boolean;
+  /** How many times it has been opened, or `undefined` where the server sent
+   * no number. Never a zero standing in for an absence. */
+  readonly viewCount: number | undefined;
   refetch(): void;
 }
 
@@ -220,7 +241,25 @@ export function useListingDetail(
     [detail.data, copy]
   );
 
-  const isFavorited = detail.data?.is_favorited ?? undefined;
+  // The row's own answer, and the third state it is allowed to be in: `null`
+  // means the read was anonymous and nobody asked on this person's behalf.
+  const rowFavorited = detail.data?.is_favorited ?? undefined;
+  const [predicted, setPredicted] = useState<boolean | undefined>(undefined);
+
+  const mintError = elevation.error;
+  useEffect(() => {
+    // A failed mint never reached the write, so no `onError` is coming to
+    // retire the prediction — see `useFavoriteToggle` for the whole argument.
+    if (mintError !== undefined && mintError !== null) setPredicted(undefined);
+  }, [mintError]);
+
+  const isFavorited = predicted ?? rowFavorited === true;
+  // The detail refetch caught up; the prediction is now an opinion about the
+  // past and must stop shadowing a row that may have changed for some other
+  // reason.
+  if (predicted !== undefined && rowFavorited === predicted) {
+    setPredicted(undefined);
+  }
 
   const favoriteGate = firstBlock(
     mandate,
@@ -250,14 +289,35 @@ export function useListingDetail(
     ),
     images: detail.data?.images ?? NO_IMAGES,
     isFavorited,
+    favoriteKnown: rowFavorited === true || rowFavorited === false,
     favoriteGate,
     toggleFavorite: () => {
       if (!favoriteGate.available) return;
+      const next = !isFavorited;
+      const before = isFavorited;
+      // The icon flips on the gesture; the invalidation below is what makes
+      // it true, and the two callbacks are what make it honest if it is not.
+      setPredicted(next);
       // Mints the anonymous account first where the host permits it for this
       // action; a direct call everywhere else.
-      elevation.run(() => favorite.mutate({ id, favorited: isFavorited !== true }));
+      elevation.run(() => {
+        favorite.mutate(
+          { id, favorited: next },
+          {
+            onSuccess: (data) => {
+              setPredicted(data.favorited ?? next);
+            },
+            onError: () => {
+              setPredicted(before);
+            },
+          }
+        );
+      });
     },
     favoriteInFlight: favorite.isPending || elevation.pending,
+    favoriteError: favorite.error ?? elevation.error,
+    isViewed: isListingViewed(detail.data),
+    viewCount: listingViewCount(detail.data),
     refetch: () => {
       void detail.refetch();
       void probe.refetch();

@@ -13,14 +13,32 @@
  */
 import type { ReactElement } from "react";
 
-export function HeartIcon(props: { filled: boolean }): ReactElement {
+export interface HeartIconProps {
+  /** Saved: the glyph is a solid shape rather than an outline. THE state a
+   * person reads off a card, so it is the one prop this icon has. */
+  readonly filled: boolean;
+  /**
+   * The accent a SAVED heart is painted in — an antd theme token the caller
+   * resolved (`token.colorPrimary`), never a literal.
+   *
+   * The icon stays `currentColor` by default, which is what keeps it
+   * theme-neutral in every other state; this is the one place a colour is
+   * warranted, because "filled" and "outline" of the same neutral grey is a
+   * difference a person reads at a glance on a mock-up and misses entirely on
+   * a 170px feed tile in daylight.
+   */
+  readonly color?: string;
+}
+
+export function HeartIcon(props: HeartIconProps): ReactElement {
+  const paint = props.color ?? "currentColor";
   return (
     <svg
       width="16"
       height="16"
       viewBox="0 0 24 24"
-      fill={props.filled ? "currentColor" : "none"}
-      stroke="currentColor"
+      fill={props.filled ? paint : "none"}
+      stroke={paint}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"

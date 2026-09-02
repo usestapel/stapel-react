@@ -24,13 +24,27 @@
  * has no line to spare. A full row of "Sign in to save this" under every one
  * of twenty tiles is not twenty pieces of help — it is the feed.
  *
- * The fleet already has the mechanism for exactly this and it is not "hide the
- * reason": `GateReasonScopeContext` / `<PaneGate>` pool identical reasons and
- * render each ONCE for everything inside the scope, with every control's
- * `aria-describedby` still pointing at that single copy. **A container drawing
- * a feed should wrap `<FeedGrid>` in a `<PaneGate>`.** Unscoped, the reason
- * still renders — over the photo, visible, never behind a hover — because a
- * reason a person cannot read is the one outcome the doctrine forbids.
+ * The answer this card ships with is the INTERACTION DISCLOSURE the grid card
+ * and the SERP card were given in the desktop and mobile fix packs, and it is
+ * this card's DEFAULT rather than an opt-in — a two-column tile is the one
+ * surface in the pair with no line to put a sentence on, so a standing volume
+ * here has to overprint the photograph to exist at all.
+ *
+ * That default is a fix, not a preference. Measured on a live home feed: this
+ * was the last surface still printing "Sign in to do this" as standing copy,
+ * over the picture, under every tile — and the heart under it was html-
+ * `disabled`, so the one gesture that could have replaced the caption was
+ * swallowed by the control. Both halves are gone: nothing stands in the tile,
+ * and a tap on the heart discloses the reason and the container's sign-in
+ * door (`signIn`) while a visually-hidden copy keeps the refusal in the
+ * accessibility tree. A host that genuinely wants the standing sentence back
+ * asks for it by name with `blockedReason="text"`.
+ *
+ * `GateReasonScopeContext` / `<PaneGate>` remain the answer for the STANDING
+ * arm: they pool identical reasons and render each ONCE for everything inside
+ * the scope, with every control's `aria-describedby` still pointing at that
+ * single copy. A container drawing a feed in that arm should wrap
+ * `<FeedGrid>` in a `<PaneGate>`.
  *
  * ── Two lines of title, and then it stops ─────────────────────────────────
  *
@@ -43,14 +57,17 @@
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Flex, Typography } from "antd";
 import { SkinTheme } from "@stapel/tokens-antd/skin";
+import type { SignInCta } from "@stapel/core";
 import { useT } from "@stapel/core";
 import { radii, spacing } from "@stapel/tokens";
 import type { ListingCard as ListingCardData } from "../api/types.js";
 import { lifecycleCaption } from "../model/status.js";
+import { isListingViewed } from "../model/engagement.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { FavoriteHeart } from "./favorite.js";
 import {
   CARD_TARGET_STYLE_HREF,
+  CARD_VIEWED_CLASS,
   CardTarget,
   cardTargetCss,
 } from "./ListingCard.js";
@@ -118,6 +135,16 @@ export interface ListingFeedCardBaseProps extends ThemeModeProp {
   /** Hide the favourite entirely — for a surface where it makes no sense.
    * NOT a way to hide it from visitors. */
   readonly showFavorite?: boolean;
+  /**
+   * How loudly a blocked heart states its refusal. **`"popover"` by default
+   * on this card, unlike the other two** — a feed tile has no line to print a
+   * sentence on, so the standing arm can only overprint the photograph. See
+   * the file header for the measurement that made it the default.
+   */
+  readonly blockedReason?: "text" | "popover";
+  /** The container's sign-in door, rendered INSIDE the disclosure. Absent:
+   * the disclosure holds the reason alone. */
+  readonly signIn?: SignInCta;
 }
 
 export type ListingFeedCardProps = ListingFeedCardBaseProps & ListingCardOpenProps;
@@ -130,6 +157,8 @@ export function ListingFeedCard(props: ListingFeedCardProps): ReactElement {
   const title = listing.title ?? "";
   const targetLabel =
     title.length > 0 ? title : t(LISTINGS_I18N_KEYS.cardUntitled);
+  // Already seen — `false` for every response that carries no such field.
+  const viewed = isListingViewed(listing);
 
   return (
     <SkinTheme
@@ -148,6 +177,9 @@ export function ListingFeedCard(props: ListingFeedCardProps): ReactElement {
         data-listing-id={listing.id}
         {...(status !== undefined
           ? { "data-listing-status": status.status }
+          : {})}
+        {...(viewed
+          ? { className: CARD_VIEWED_CLASS, "data-listing-viewed": "true" }
           : {})}
       >
         {/* One anchor over the whole tile. The photo is a still `<img>`, so
@@ -211,6 +243,8 @@ export function ListingFeedCard(props: ListingFeedCardProps): ReactElement {
             listingId={listing.id}
             favorited={listing.is_favorited}
             testId="listings-feed-favorite"
+            blockedReason={props.blockedReason ?? "popover"}
+            {...(props.signIn !== undefined ? { signIn: props.signIn } : {})}
             style={HEART}
           />
         )}
