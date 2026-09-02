@@ -14,7 +14,8 @@
  * the row.
  */
 import type { ReactElement } from "react";
-import { Button, Flex, Typography, theme as antdTheme } from "antd";
+import { Flex, Typography, theme as antdTheme } from "antd";
+import { SkinButton as Button } from "@stapel/tokens-antd/skin";
 import { ListRow } from "@stapel/tokens-antd/skin";
 import { fontSize, radii, spacing } from "@stapel/tokens-antd";
 import { useI18n, useT } from "@stapel/core";

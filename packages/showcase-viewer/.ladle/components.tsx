@@ -17,6 +17,7 @@ import { useLayoutEffect } from "react";
 import type { GlobalProvider } from "@ladle/react";
 import "@stapel/tokens/tokens.css";
 import "./showcase.css";
+import { MaybeReskin } from "./reskin.js";
 
 const THEME_ATTRIBUTE = "data-theme";
 
@@ -33,5 +34,9 @@ export const Provider: GlobalProvider = ({ children, globalState }) => {
   useLayoutEffect(() => {
     stampTheme(globalState.theme);
   }, [globalState.theme]);
-  return <div className="stapel-showcase-root">{children}</div>;
+  return (
+    <MaybeReskin>
+      <div className="stapel-showcase-root">{children}</div>
+    </MaybeReskin>
+  );
 };

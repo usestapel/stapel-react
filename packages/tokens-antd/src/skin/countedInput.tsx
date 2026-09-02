@@ -43,6 +43,7 @@ import type {
   ReactNode,
 } from "react";
 import { Input, Typography, theme as antdTheme } from "antd";
+import { SkinInput } from "./components.js";
 import { fontFamily } from "@stapel/tokens";
 
 /** The counter element's test id — fixed, so a pair's test finds it. */
@@ -184,7 +185,7 @@ export function CountedInput(props: CountedInputProps): ReactElement {
       {props.multiline === true ? (
         <Input.TextArea {...shared} rows={props.rows ?? 3} />
       ) : (
-        <Input {...shared} />
+        <SkinInput {...shared} />
       )}
       <Typography.Text
         id={counterId}

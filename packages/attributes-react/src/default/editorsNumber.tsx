@@ -31,7 +31,8 @@
  */
 import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
-import { Button, Flex, Select, Typography } from "antd";
+import { Flex, Select, Typography } from "antd";
+import { SkinButton as Button } from "@stapel/tokens-antd/skin";
 import { useT } from "@stapel/core";
 import { SkinNumberField, SkinPickerSheet } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";

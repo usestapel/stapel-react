@@ -33,8 +33,10 @@
  */
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { Button, Flex } from "antd";
-import { SkinDialog, SkinTheme, SkinConfirm } from "@stapel/tokens-antd/skin";
+import { Flex } from "antd";
+import { useQueryClient } from "@tanstack/react-query";
+import { SkinButton as Button } from "@stapel/tokens-antd/skin";
+import { ErrorAlert, SkinDialog, SkinTheme, SkinConfirm } from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
 import { spacing } from "@stapel/tokens-antd";
 import { loadedRowsOrEmpty, loadStateFromQuery, useT } from "@stapel/core";
@@ -53,6 +55,7 @@ import {
 } from "@stapel/docs-react";
 import type { DriveRow } from "../headless/rows.js";
 import { useToggleStar } from "../model/mutations.js";
+import { driveQueryKeys } from "../model/queryKeys.js";
 import { DRIVE_I18N_KEYS } from "../i18n/keys.js";
 import { resolveDriveSkinComponent } from "./slots.js";
 
@@ -101,6 +104,7 @@ function DriveRowActionsBody(props: DriveRowActionsProps): ReactElement {
   // ends up looking for a render prop on a dialog.
   const ShareSheetPanel = resolveDriveSkinComponent("shareSheet");
 
+  const queryClient = useQueryClient();
   const renameDocument = useUpdateDocument();
   const renameFolder = useUpdateFolder();
   const trashDocument = useTrashDocument();
@@ -121,14 +125,45 @@ function DriveRowActionsBody(props: DriveRowActionsProps): ReactElement {
 
   const close = (): void => {
     setPrompt("none");
+    // A dismissed sheet must not reopen still wearing the last refusal.
+    renameDocument.reset();
+    renameFolder.reset();
     onClose();
   };
 
+  /**
+   * The rename settles WITH the write, not before it (meettoday drive e2e,
+   * 2026-09-02 — two live defects):
+   *
+   *  - The PATCH is the docs pair's and invalidates only the DOCS keys. A
+   *    folder row is drawn from THIS pair's per-rung read
+   *    (`driveQueryKeys.children`), and a document's name also rides the
+   *    drive-only starred/search reads — so on success the drive namespace
+   *    is dropped here, the same mechanism create-folder and the upload
+   *    queue already use, and the row shows its new name without a reload.
+   *  - Closing used to happen in the same tick as `mutate`, so a refused
+   *    rename vanished without a trace. Now the prompt stays up (busy) while
+   *    the request is in flight, everything closes only on success, and a
+   *    refusal returns to the actions sheet with the refusal's own sentence
+   *    (`drive-rename-error`) — retry and dismiss both stay reachable.
+   */
   const doRename = (name: string): void => {
     if (row === null) return;
-    if (row.kind === "folder") renameFolder.mutate({ folderId: row.id, patch: { name } });
-    else renameDocument.mutate({ documentId: row.id, patch: { title: name } });
-    close();
+    const settled = {
+      onSuccess: (): void => {
+        void queryClient.invalidateQueries({ queryKey: driveQueryKeys.all });
+        close();
+      },
+      onError: (): void => {
+        // Back to the actions sheet, which renders the reason.
+        setPrompt("none");
+      },
+    };
+    if (row.kind === "folder") {
+      renameFolder.mutate({ folderId: row.id, patch: { name } }, settled);
+    } else {
+      renameDocument.mutate({ documentId: row.id, patch: { title: name } }, settled);
+    }
   };
 
   const doMove = (destinationId: string | null): void => {
@@ -183,6 +218,15 @@ function DriveRowActionsBody(props: DriveRowActionsProps): ReactElement {
         data-testid="drive-row-actions"
       >
         <Flex vertical gap={spacing[2]} style={{ paddingBlock: spacing[2] }}>
+          {/* A refused rename lands back here as its own sentence (see
+              `doRename`) — the sheet stays open, retry and dismiss both
+              reachable. `ErrorAlert` renders nothing while there is no
+              refusal to show. */}
+          <ErrorAlert
+            thrown={renameFolder.error ?? renameDocument.error}
+            variant="inline"
+            testId="drive-rename-error"
+          />
           <Button
             type="text"
             style={actionStyle}

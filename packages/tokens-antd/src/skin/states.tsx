@@ -20,7 +20,8 @@
  */
 import { useId, useRef } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { Alert, Button, Empty, Skeleton, Space, Typography, theme as antdTheme } from "antd";
+import { Alert, Empty, Skeleton, Space, Typography, theme as antdTheme } from "antd";
+import { SkinButton as Button } from "./components.js";
 import { STAPEL_UI_KEYS, matchList, matchLoad } from "@stapel/core";
 import type { FlowErrorDisplay, LoadState, NonEmptyArray } from "@stapel/core";
 import { useDialogSurface } from "./dialog.js";

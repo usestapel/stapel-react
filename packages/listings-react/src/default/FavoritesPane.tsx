@@ -27,7 +27,8 @@
  * direction with nowhere to go is simply not drawn.
  */
 import type { ReactElement, ReactNode } from "react";
-import { Button, Flex, Typography } from "antd";
+import { Flex, Typography } from "antd";
+import { SkinButton as Button } from "@stapel/tokens-antd/skin";
 import {
   EmptyState,
   ErrorAlert,

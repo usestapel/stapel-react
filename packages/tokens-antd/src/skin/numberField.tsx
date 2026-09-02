@@ -38,7 +38,8 @@
  */
 import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { Input, Typography, theme as antdTheme } from "antd";
+import { Typography, theme as antdTheme } from "antd";
+import { SkinInput as Input } from "./components.js";
 
 export interface SkinNumberFieldProps {
   /** The value the caller holds. `undefined` = the field is empty. */

@@ -84,8 +84,10 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactElement, ReactNode } from "react";
 import { ConfigProvider, Drawer, Modal, theme as antdTheme } from "antd";
+import { isDevBuild } from "@stapel/core";
 import { useDialogSurface } from "./dialogSurface.js";
 import type { DialogSurface } from "./dialogSurface.js";
+import { reportContractViolation, useSkinComponents } from "./components.js";
 import { SkinTheme } from "./theme.js";
 
 export { MODAL_MEDIA_QUERY, useDialogSurface } from "./dialogSurface.js";
@@ -209,6 +211,7 @@ export interface SkinDialogProps {
 export function SkinDialog(props: SkinDialogProps): ReactElement {
   const auto = useDialogSurface();
   const surface = props.surface ?? auto;
+  const Override = useSkinComponents().Dialog;
   const {
     open,
     onClose,
@@ -220,6 +223,33 @@ export function SkinDialog(props: SkinDialogProps): ReactElement {
     destroyOnHidden = true,
     dismissible = true,
   } = props;
+  // Dev contract check for an overridden surface: once it is open, the
+  // stamped body must be in the document (the replacement rendered its
+  // children) and inside an element with a dialog role. Checked on a delay so
+  // a replacement's mount animation is not a false report; dev builds only.
+  const stampRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (Override === undefined || !open || !isDevBuild()) return undefined;
+    const id = setTimeout(() => {
+      const stamp = stampRef.current;
+      if (stamp === null || !stamp.isConnected) {
+        reportContractViolation(
+          "Dialog",
+          Override,
+          "it must render its children (the dialog body) whenever `open` is true"
+        );
+        return;
+      }
+      if (stamp.closest('[role="dialog"], [role="alertdialog"]') === null) {
+        reportContractViolation(
+          "Dialog",
+          Override,
+          'the body must sit inside an element with role="dialog" and an accessible name (from `title` or `ariaLabel`)'
+        );
+      }
+    }, 250);
+    return () => clearTimeout(id);
+  }, [Override, open]);
 
   // The inner half of the theming: inside the portal, where the content is
   // actually painted. Under the outer `SkinTheme` this is a plain `<div>` —
@@ -229,6 +259,7 @@ export function SkinDialog(props: SkinDialogProps): ReactElement {
   const body = (
     <SkinTheme surface="bare" style={CONTENTS_STYLE}>
       <div
+        ref={stampRef}
         data-stapel-dialog-surface={surface}
         {...(props["data-testid"] !== undefined ? { "data-testid": props["data-testid"] } : {})}
       >
@@ -237,8 +268,30 @@ export function SkinDialog(props: SkinDialogProps): ReactElement {
     </SkinTheme>
   );
 
+  // A registered Dialog slot replaces the SURFACE (the chrome antd draws),
+  // never what stands around it: the substrate still resolves `surface` from
+  // the viewport, still themes both halves, and still stamps the body — so a
+  // pair's `data-stapel-dialog-surface` assertions hold under any host's
+  // anatomy. Contract: `SkinDialogSlotProps` in ./components.tsx.
   const dialog =
-    surface === "modal" ? (
+    Override !== undefined ? (
+      <Override
+        open={open}
+        onClose={onClose}
+        surface={surface}
+        dismissLabel={dismissLabel}
+        dismissible={dismissible}
+        destroyOnHidden={destroyOnHidden}
+        {...(title !== undefined ? { title } : {})}
+        {...(ariaLabel !== undefined ? { ariaLabel } : {})}
+        {...(footer !== undefined ? { footer } : {})}
+        {...(props.width !== undefined ? { width: props.width } : {})}
+        {...(props.maskClosable !== undefined ? { maskClosable: props.maskClosable } : {})}
+        {...(props.className !== undefined ? { className: props.className } : {})}
+      >
+        {body}
+      </Override>
+    ) : surface === "modal" ? (
       <Modal
         open={open}
         onCancel={onClose}

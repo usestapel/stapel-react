@@ -17,7 +17,8 @@
  */
 import { createContext, useContext, useEffect, useId } from "react";
 import type { Context, CSSProperties, ReactElement, ReactNode } from "react";
-import { Button, Typography, theme as antdTheme } from "antd";
+import { Typography, theme as antdTheme } from "antd";
+import { SkinButton as Button } from "./components.js";
 import type { ButtonProps } from "antd";
 import { useActionGate } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";

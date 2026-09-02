@@ -32,7 +32,8 @@
  */
 import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
-import { Alert, Button, Flex, Input, List, Tag, Typography } from "antd";
+import { Alert, Flex, Input, List, Tag, Typography } from "antd";
+import { SkinButton as Button } from "@stapel/tokens-antd/skin";
 import {
   EmptyState,
   ErrorAlert,

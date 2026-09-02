@@ -101,7 +101,8 @@
  * changed and why.
  */
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { Button, Card, Flex, Typography, theme as antdTheme } from "antd";
+import { Card, Flex, Typography, theme as antdTheme } from "antd";
+import { SkinButton as Button } from "@stapel/tokens-antd/skin";
 import { GatedControl, SkinTheme } from "@stapel/tokens-antd/skin";
 import { useActionGate, useT } from "@stapel/core";
 import type { LinkComponent, SignInCtaProp } from "@stapel/core";

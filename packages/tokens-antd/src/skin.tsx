@@ -16,6 +16,14 @@
  *
  * ## What is here, and the rule each one states once
  *
+ *  - {@link SkinProvider} + {@link SkinButton} / {@link SkinInput} — the
+ *    component REGISTRY, the substrate's second restyle layer (tokens
+ *    re-colour; the registry swaps ANATOMY). A host registers a replacement
+ *    Button / Input / Dialog surface ONCE and every substrate render below —
+ *    `GatedButton`, `ErrorAlert`'s retry, `SkinConfirm`'s arms, `SkinDialog`
+ *    and everything composed on it — draws the host's primitive instead of
+ *    antd's. No provider = today's exact markup. Contracts and duties:
+ *    `docs/skin-component-registry.md`.
  *  - {@link SkinTheme} + {@link useThemeMode} + {@link useHostBrand} — a skin
  *    self-themes from the document's LIVE `data-theme` AND `data-brand` — the
  *    two attributes `tokens.css` keys on — never a hardcoded side or a brand
@@ -79,6 +87,17 @@
  * fails lint on a bare antd `Modal`/`Drawer`/`Popconfirm` under
  * `src/default/**`.
  */
+export { SkinProvider, useSkinComponents, SkinButton, SkinInput } from "./skin/components.js";
+export type {
+  SkinComponents,
+  SkinProviderProps,
+  SkinButtonProps,
+  SkinButtonComponent,
+  SkinInputProps,
+  SkinInputComponent,
+  SkinDialogSlotProps,
+  SkinDialogComponent,
+} from "./skin/components.js";
 export {
   SkinDialog,
   SHEET_MAX_HEIGHT,

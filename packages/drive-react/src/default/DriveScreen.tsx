@@ -29,7 +29,8 @@
  */
 import { useRef, useState } from "react";
 import type { ReactElement } from "react";
-import { Button, Flex, List, Segmented, Tabs } from "antd";
+import { Flex, List, Segmented, Tabs } from "antd";
+import { SkinButton as Button } from "@stapel/tokens-antd/skin";
 import { useQueryClient } from "@tanstack/react-query";
 import { EmptyState, LoadBoundary, SkinDialog, SkinTheme } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens-antd";

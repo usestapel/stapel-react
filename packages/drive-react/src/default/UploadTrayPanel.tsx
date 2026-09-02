@@ -19,7 +19,8 @@
  * `registerDriveSkinComponent("uploadTray", …)`.
  */
 import type { ReactElement } from "react";
-import { Alert, Button, Flex, List, Progress, Typography } from "antd";
+import { Alert, Flex, List, Progress, Typography } from "antd";
+import { SkinButton as Button } from "@stapel/tokens-antd/skin";
 import { EmptyState, ErrorAlert, SkinTheme } from "@stapel/tokens-antd/skin";
 import { fontSize, spacing } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";

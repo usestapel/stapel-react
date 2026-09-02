@@ -72,6 +72,7 @@ the theme mapping never loads a component.
 
 | Export | The rule it states once |
 | --- | --- |
+| `SkinProvider` / `SkinButton` / `SkinInput` / `useSkinComponents()` | The component REGISTRY — the substrate's second restyle layer (tokens re-colour; the registry swaps ANATOMY). A host registers a replacement `Button`, `Input` and/or `Dialog` surface once, at the app root, and every substrate render below it (`GatedButton`, `ErrorAlert`'s retry, `SkinConfirm`'s arms, `RowActions`, `PermissionSheet`, the picker's footer and search, `SkinNumberField`, `CountedInput`, `SkinDialog` and everything composed on it) draws the host's primitive. Contracts (`SkinButtonProps`, `SkinInputProps`, `SkinDialogSlotProps`) document the anatomy duties and are checked in dev with a loud `console.error`; no provider = byte-identical antd defaults. Design doc: `docs/skin-component-registry.md` (repo root). |
 | `SkinTheme` | A skin self-themes from the document's LIVE `data-theme` (never `"light"`), paints its own surface (`raised` default / `base` / `bare`), and on a phone raises antd's `controlHeight` to 44px. |
 | `useThemeMode()` / `subscribeThemeMode()` | The reactive mode read (`useSyncExternalStore` + MutationObserver on `data-theme`), SSR-safe. |
 | `SkinDialog` / `useDialogSurface()` | On a phone a dialog is a bottom sheet; modals are tablet/desktop only. It themes its own portal, so a dialog is on the right side wherever it was declared. |

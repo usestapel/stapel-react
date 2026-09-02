@@ -32,7 +32,8 @@
  */
 import { useCallback, useMemo, useState } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { Button, Typography, theme as antdTheme } from "antd";
+import { Typography, theme as antdTheme } from "antd";
+import { SkinButton as Button } from "@stapel/tokens-antd/skin";
 import { actionBlocked, useT } from "@stapel/core";
 import { ChoiceChips, GatedControl, PHONE_CONTROL_HEIGHT } from "@stapel/tokens-antd/skin";
 import type { ChoiceChipOption, PickerOption } from "@stapel/tokens-antd/skin";

@@ -57,7 +57,8 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { Button, Input, Skeleton, Typography, theme as antdTheme } from "antd";
+import { Skeleton, Typography, theme as antdTheme } from "antd";
+import { SkinButton as Button, SkinInput as Input } from "./components.js";
 import { STAPEL_UI_KEYS } from "@stapel/core";
 import { SkinDialog } from "./dialog.js";
 import type { DialogSurface } from "./dialogSurface.js";

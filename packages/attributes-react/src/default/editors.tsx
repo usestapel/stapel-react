@@ -75,7 +75,8 @@
  */
 import { useCallback, useMemo } from "react";
 import type { ReactElement } from "react";
-import { Button, Cascader, ColorPicker, Flex, Input, Select, Typography } from "antd";
+import { Cascader, ColorPicker, Flex, Select, Typography } from "antd";
+import { SkinButton as Button, SkinInput as Input } from "@stapel/tokens-antd/skin";
 import { actionBlocked, useI18n, useT } from "@stapel/core";
 import {
   GatedControl,

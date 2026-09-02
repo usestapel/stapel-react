@@ -37,7 +37,8 @@
  * lower case exists, and upper-casing would break exactly the fields this
  * helps.
  */
-import { AutoComplete, Flex, Input, Typography } from "antd";
+import { AutoComplete, Flex, Typography } from "antd";
+import { SkinInput as Input } from "@stapel/tokens-antd/skin";
 import { useT } from "@stapel/core";
 import { CountedInput, SkinPickerSheet } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";

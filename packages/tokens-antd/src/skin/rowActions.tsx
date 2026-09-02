@@ -17,7 +17,8 @@
  */
 import { useState } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { Button, Typography, theme as antdTheme } from "antd";
+import { Typography, theme as antdTheme } from "antd";
+import { SkinButton as Button } from "./components.js";
 import { STAPEL_UI_KEYS } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
 import { SkinDialog, useDialogSurface } from "./dialog.js";

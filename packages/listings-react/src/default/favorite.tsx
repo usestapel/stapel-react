@@ -26,7 +26,7 @@
  * list or a grid of these cards should wrap it in one.
  */
 import type { CSSProperties, ReactElement } from "react";
-import { Button } from "antd";
+import { SkinButton as Button } from "@stapel/tokens-antd/skin";
 import { GatedControl } from "@stapel/tokens-antd/skin";
 import { useT } from "@stapel/core";
 import { useFavoriteToggle } from "../headless/Favorites.js";

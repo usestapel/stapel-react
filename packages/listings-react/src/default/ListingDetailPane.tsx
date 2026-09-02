@@ -51,7 +51,8 @@
  * and the default `"column"` renders exactly what existing hosts already get.
  */
 import type { ReactElement, ReactNode } from "react";
-import { Button, Descriptions, Divider, Flex, Typography } from "antd";
+import { Descriptions, Divider, Flex, Typography } from "antd";
+import { SkinButton as Button } from "@stapel/tokens-antd/skin";
 import {
   ErrorAlert,
   EmptyState,

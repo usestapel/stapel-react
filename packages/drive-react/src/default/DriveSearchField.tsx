@@ -17,7 +17,8 @@
  */
 import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
-import { Flex, Input, List, Typography } from "antd";
+import { Flex, List, Typography } from "antd";
+import { SkinInput as Input } from "@stapel/tokens-antd/skin";
 import { EmptyState, LoadBoundary, SkinTheme } from "@stapel/tokens-antd/skin";
 import { fontSize, spacing } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";

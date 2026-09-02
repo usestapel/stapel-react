@@ -43,7 +43,8 @@
  */
 import { useEffect, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { Button, Space, Typography, theme as antdTheme } from "antd";
+import { Space, Typography, theme as antdTheme } from "antd";
+import { SkinButton as Button } from "./components.js";
 import { PERMISSION_COPY_KEYS, STAPEL_UI_KEYS } from "@stapel/core";
 import type { PermissionBag, PermissionStatus } from "@stapel/core";
 import { SkinDialog, useDialogSurface } from "./dialog.js";

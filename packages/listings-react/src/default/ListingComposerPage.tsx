@@ -102,7 +102,6 @@
 import type { ComponentType, ReactElement, ReactNode } from "react";
 import {
   Alert,
-  Button,
   Checkbox,
   Divider,
   Flex,
@@ -111,6 +110,7 @@ import {
   InputNumber,
   Typography,
 } from "antd";
+import { SkinButton as Button } from "@stapel/tokens-antd/skin";
 import {
   ErrorAlert,
   GatedButton,
