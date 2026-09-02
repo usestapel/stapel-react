@@ -294,6 +294,20 @@ describe("form metadata", () => {
     expect(screen.getByText("Measured at the widest point.")).toBeDefined();
   });
 
+  it("suppresses the help line when the description merely repeats the label (D54)", () => {
+    // A live import stamps description == name on nearly every field
+    // ("Producer ... Producer" under each label): a caption that restates
+    // the label is noise, not help, so it is not drawn.
+    const echo = feature(
+      "producer",
+      { type: "int" },
+      { name: "Producer", description: "Producer" }
+    );
+    render(wrap(<FeatureFields features={[echo]} values={{}} onChange={() => {}} />));
+    // Once: the label. Not twice: the label plus a grey echo under the box.
+    expect(screen.getAllByText("Producer")).toHaveLength(1);
+  });
+
   it("uses example as the control's placeholder — for the types that have one", () => {
     render(wrap(<FeatureFields features={[described]} values={{}} onChange={() => {}} />));
     expect(screen.getByLabelText("width").getAttribute("placeholder")).toBe("e.g. 120");

@@ -686,6 +686,20 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
                   );
                   const description =
                     typeof feature.description === "string" ? feature.description.trim() : "";
+                  // A description that merely restates the label is noise, not
+                  // help (D54): live imports stamp `description == name` on
+                  // nearly every field, which drew a grey echo of the label
+                  // under each box. Compared RESOLVED, since both members are
+                  // key-or-literal and either may be the catalogue key of the
+                  // other's text.
+                  const resolvedHelp =
+                    description.length > 0 ? t(description) : undefined;
+                  const help =
+                    resolvedHelp !== undefined &&
+                    resolvedHelp !== featureName(feature) &&
+                    resolvedHelp !== t(featureName(feature))
+                      ? resolvedHelp
+                      : undefined;
                   const row: FeatureRowProps = {
                     feature: drawn,
                     stacked: below.touch ?? false,
@@ -693,7 +707,7 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
                     control,
                     error: errors[feature.slug],
                     required,
-                    help: description.length > 0 ? t(description) : undefined,
+                    help,
                     hints: resolveHints(feature, t),
                     unsupported,
                     // Read off the ORIGINAL definition, not the narrowed one:
