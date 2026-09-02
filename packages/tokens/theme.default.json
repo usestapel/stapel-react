@@ -94,6 +94,11 @@
       "xl": 20,
       "full": 9999
     },
+    "_controlsComment": "Control SHAPE axis (owner escalation 2026-09-02): the height every design-system bridge hands its controls. `height` = the wide seed (antd's own 32); `height-phone` = the fleet's phone touch floor (WCAG 2.5.8 / platform HIGs: 44). Emitted as --stapel-control-height / --stapel-control-height-phone; bridges read them LIVE off the document like every colour role, so a host overrides control height by editing this scale and regenerating. Control radius/font-size need no axis of their own — the bridges read the existing --stapel-radius-md / --stapel-font-size-md live (one dictionary, no twins).",
+    "controls": {
+      "height": 32,
+      "height-phone": 44
+    },
     "breakpoints": {
       "phone": 0,
       "tablet": 768,

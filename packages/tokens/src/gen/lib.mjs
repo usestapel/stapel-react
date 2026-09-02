@@ -277,6 +277,9 @@ function scaleLines(scales) {
   for (const [name, value] of sortedEntries(scales.radii ?? {})) {
     lines.push(`${PREFIX}-radius-${kebab(name)}: ${px(value)};`);
   }
+  for (const [name, value] of sortedEntries(scales.controls ?? {})) {
+    lines.push(`${PREFIX}-control-${kebab(name)}: ${px(value)};`);
+  }
   for (const [name, value] of sortedEntries(scales.breakpoints ?? {})) {
     lines.push(`${PREFIX}-breakpoint-${kebab(name)}: ${px(value)};`);
   }
@@ -507,6 +510,7 @@ export function renderTokensTs(resolved) {
   for (const n of Object.keys(scales.fontWeight ?? {})) scaleVarNames.push(`font-weight-${kebab(n)}`);
   for (const n of Object.keys(scales.spacing ?? {})) scaleVarNames.push(`space-${kebab(n)}`);
   for (const n of Object.keys(scales.radii ?? {})) scaleVarNames.push(`radius-${kebab(n)}`);
+  for (const n of Object.keys(scales.controls ?? {})) scaleVarNames.push(`control-${kebab(n)}`);
   for (const n of Object.keys(scales.breakpoints ?? {})) scaleVarNames.push(`breakpoint-${kebab(n)}`);
   for (const n of Object.keys(elevation)) scaleVarNames.push(`elevation-${kebab(n)}`);
   scaleVarNames.sort();
@@ -563,6 +567,7 @@ export const fontSize = ${lit(scales.fontSize ?? {})} as const;
 export const fontWeight = ${lit(scales.fontWeight ?? {})} as const;
 export const spacing = ${lit(scales.spacing ?? {})} as const;
 export const radii = ${lit(scales.radii ?? {})} as const;
+export const controls = ${lit(scales.controls ?? {})} as const;
 export const breakpoints = ${lit(scales.breakpoints ?? {})} as const;
 
 export interface TypeStep {
@@ -573,6 +578,7 @@ export type FontSizeName = keyof typeof fontSize;
 export type FontWeightName = keyof typeof fontWeight;
 export type SpacingStep = keyof typeof spacing;
 export type RadiusName = keyof typeof radii;
+export type ControlAxisName = keyof typeof controls;
 export type Breakpoint = keyof typeof breakpoints;
 `;
 }
@@ -612,6 +618,7 @@ export function renderManifest(pkg, resolved, ramps) {
         fontWeight: Object.keys(scales.fontWeight ?? {}).sort(),
         spacing: Object.keys(scales.spacing ?? {}).sort(),
         radii: Object.keys(scales.radii ?? {}).sort(),
+        controls: Object.keys(scales.controls ?? {}).sort(),
         breakpoints: Object.keys(scales.breakpoints ?? {}).sort(),
       },
     },

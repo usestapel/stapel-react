@@ -49,6 +49,8 @@ export type StapelVar =
   | "breakpoint-desktop"
   | "breakpoint-phone"
   | "breakpoint-tablet"
+  | "control-height"
+  | "control-height-phone"
   | "elevation-high"
   | "elevation-low"
   | "elevation-medium"
@@ -325,6 +327,10 @@ export const radii = {
   "xl": 20,
   "full": 9999
 } as const;
+export const controls = {
+  "height": 32,
+  "height-phone": 44
+} as const;
 export const breakpoints = {
   "phone": 0,
   "tablet": 768,
@@ -339,4 +345,5 @@ export type FontSizeName = keyof typeof fontSize;
 export type FontWeightName = keyof typeof fontWeight;
 export type SpacingStep = keyof typeof spacing;
 export type RadiusName = keyof typeof radii;
+export type ControlAxisName = keyof typeof controls;
 export type Breakpoint = keyof typeof breakpoints;

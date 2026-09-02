@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   colors,
+  controls,
   cssVar,
   breakpoints,
   breakpointForWidth,
@@ -58,6 +59,26 @@ describe("generated tokens.css (committed artifact — the stable core, §68)", 
     expect(css).toContain("--stapel-radius-md: 8px;");
     expect(css).toContain("--stapel-elevation-low:");
     expect(css).toContain("--stapel-font-size-md: 16px;");
+  });
+
+  it("carries the control axis (host-overridable control shape, same dictionary)", () => {
+    // Defaults = today's values: antd's 32px control seed and the fleet's
+    // 44px phone touch floor. A host regenerates these from its own
+    // stapel.theme.json (`scales.controls`) exactly like every other scale;
+    // the antd bridge reads them live off the document.
+    expect(css).toContain("--stapel-control-height: 32px;");
+    expect(css).toContain("--stapel-control-height-phone: 44px;");
+  });
+});
+
+describe("the controls scale (generated tokens.ts)", () => {
+  it("exports the compiled-in defaults and types their cssVar names", () => {
+    expect(controls.height).toBe(32);
+    expect(controls["height-phone"]).toBe(44);
+    expect(cssVar("control-height")).toBe("var(--stapel-control-height)");
+    expect(cssVar("control-height-phone")).toBe(
+      "var(--stapel-control-height-phone)"
+    );
   });
 });
 

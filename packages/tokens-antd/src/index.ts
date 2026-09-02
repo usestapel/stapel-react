@@ -33,12 +33,13 @@ import {
   bridgeFontSizeRole,
   bridgeRadiusRole,
   colors,
+  controls,
   cssVar,
   fontFamily,
   fontSize,
   radii,
 } from "@stapel/tokens";
-import type { CoreTokenName } from "@stapel/tokens";
+import type { CoreTokenName, StapelVar } from "@stapel/tokens";
 
 /** Light or dark — the half of every role's `{light,dark}` pair. */
 export type ThemeMode = "light" | "dark";
@@ -157,7 +158,7 @@ export function resolveThemeMode(): ThemeMode {
  */
 function readLiveCssVar(
   live: CSSStyleDeclaration | null,
-  name: CoreTokenName,
+  name: StapelVar,
   fallback: string
 ): string {
   if (live === null) return fallback;
@@ -216,6 +217,37 @@ function role(
   mode: ThemeMode
 ): string {
   return readLiveCssVar(live, name, colors[name][mode]);
+}
+
+/**
+ * A live PIXEL scale value (`--stapel-radius-md: 8px` → `8`), or the
+ * compiled-in default where there is nothing live to read or the value does
+ * not parse as a number. The control-SHAPE twin of {@link role}: antd's
+ * `borderRadius`/`fontSize`/`controlHeight` seeds are numbers, and the
+ * generated `tokens.css` emits every scale step with a `px` suffix.
+ */
+function readLivePx(
+  live: CSSStyleDeclaration | null,
+  name: StapelVar,
+  fallback: number
+): number {
+  const raw = readLiveCssVar(live, name, "");
+  if (raw.length === 0) return fallback;
+  const value = Number.parseFloat(raw);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+/**
+ * The host's live phone control height (`--stapel-control-height-phone`),
+ * falling back to the dictionary's compiled-in 44px floor. Read by
+ * `SkinTheme`'s phone touch floor — the same live-scope discipline as every
+ * colour role (only when the document is IN `mode`; see
+ * {@link readLiveCssVar}), so a host raises or lowers the floor by editing
+ * `scales.controls` in its `stapel.theme.json` and regenerating, with no
+ * code on its side.
+ */
+export function livePhoneControlHeight(mode: ThemeMode = resolveThemeMode()): number {
+  return readLivePx(liveScope(mode), "control-height-phone", controls["height-phone"]);
 }
 
 /** The flat antd token map (`ThemeConfig["token"]`), never undefined. */
@@ -280,8 +312,17 @@ export function toAntdTheme(mode: ThemeMode = resolveThemeMode()): AntdThemeToke
     // ~2.6:1 (visual pass VC-B2, every dark primary in the fleet). The
     // `text-on-accent` role is the token JSON's answer — near-black in dark.
     colorTextLightSolid: role(live, "text-on-accent", mode),
-    borderRadius: radii[bridgeRadiusRole],
-    fontSize: fontSize[bridgeFontSizeRole].fontSize,
+    // Control SHAPE (owner escalation 2026-09-02): read LIVE like every
+    // colour role above, so a host that regenerated its tokens.css with a
+    // different radius/type/height scale gets it in every antd control. No
+    // new names for radius and font size — the dictionary already has these
+    // axes (`--stapel-radius-md` / `--stapel-font-size-md`, the §2.4 bridge
+    // roles); control height is the dictionary's own new `controls` scale
+    // (`--stapel-control-height`, default 32 — antd's own seed, so an
+    // un-themed host renders exactly as before).
+    borderRadius: readLivePx(live, `radius-${bridgeRadiusRole}`, radii[bridgeRadiusRole]),
+    fontSize: readLivePx(live, `font-size-${bridgeFontSizeRole}`, fontSize[bridgeFontSizeRole].fontSize),
+    controlHeight: readLivePx(live, "control-height", controls.height),
     fontFamily: fontFamily.sans,
   };
 }

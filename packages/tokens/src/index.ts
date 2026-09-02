@@ -23,11 +23,12 @@ export { typography, fontFamily, fontSize, fontWeight } from "./typography.js";
 export type { Typography } from "./typography.js";
 export type { TypeStep, FontSizeName, FontWeightName } from "./generated/tokens.js";
 
-// ── spacing / radii / elevation ──────────────────────────────────────────────
-export { spacing, radii, elevation } from "./generated/tokens.js";
+// ── spacing / radii / controls / elevation ───────────────────────────────────
+export { spacing, radii, controls, elevation } from "./generated/tokens.js";
 export type {
   SpacingStep,
   RadiusName,
+  ControlAxisName,
   ElevationName,
   ElevationToken,
 } from "./generated/tokens.js";

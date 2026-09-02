@@ -82,6 +82,8 @@
   --stapel-radius-none: 0;
   --stapel-radius-sm: 4px;
   --stapel-radius-xl: 20px;
+  --stapel-control-height: 32px;
+  --stapel-control-height-phone: 44px;
   --stapel-breakpoint-desktop: 1200px;
   --stapel-breakpoint-phone: 0;
   --stapel-breakpoint-tablet: 768px;

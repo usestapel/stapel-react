@@ -34,10 +34,11 @@ import { createContext, useContext, useMemo } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { ConfigProvider } from "antd";
 import type { ThemeConfig } from "antd";
-import { spacing } from "@stapel/tokens";
+import { controls, spacing } from "@stapel/tokens";
 import {
   hostBrandFingerprint,
   hostBrandScope,
+  livePhoneControlHeight,
   resolveThemeMode,
   toAntdThemeConfig,
 } from "../index.js";
@@ -48,9 +49,12 @@ import { useHostBrand, useThemeMode } from "./themeMode.js";
 /**
  * The minimum touch target on a phone (WCAG 2.5.8 / platform HIGs: 44 CSS
  * px). Applied as antd's `controlHeight`, which every control's box derives
- * from.
+ * from. The value is the token dictionary's own `controls["height-phone"]`
+ * (`--stapel-control-height-phone`); at build time a host's LIVE value wins —
+ * see {@link livePhoneControlHeight} — and this constant is the compiled-in
+ * default the fleet ships with.
  */
-export const PHONE_CONTROL_HEIGHT: number = 44;
+export const PHONE_CONTROL_HEIGHT: number = controls["height-phone"];
 
 /**
  * The touch floor beyond `controlHeight`.
@@ -71,20 +75,31 @@ export const PHONE_CONTROL_HEIGHT: number = 44;
  * Exported so a host theming outside `SkinTheme` (a bespoke `ConfigProvider`)
  * can apply the same floor.
  */
+/** The floor's token/components pair for a given control height — the shape
+ * {@link PHONE_TOUCH_FLOOR} freezes at the default 44, built here so a host's
+ * live `--stapel-control-height-phone` produces the same floor at ITS height
+ * (the rate star keeps its glyph and gives the pitch the rest). */
+function phoneTouchFloorFor(height: number): {
+  readonly token: NonNullable<ThemeConfig["token"]>;
+  readonly components: NonNullable<ThemeConfig["components"]>;
+} {
+  return {
+    token: {
+      controlHeight: height,
+      controlHeightSM: height,
+    },
+    components: {
+      Rate: { starSize: spacing["6"], marginXS: height - spacing["6"] },
+      Radio: { radioSize: spacing["5"] },
+      Checkbox: { controlInteractiveSize: spacing["5"] },
+    },
+  };
+}
+
 export const PHONE_TOUCH_FLOOR: {
   readonly token: NonNullable<ThemeConfig["token"]>;
   readonly components: NonNullable<ThemeConfig["components"]>;
-} = {
-  token: {
-    controlHeight: PHONE_CONTROL_HEIGHT,
-    controlHeightSM: PHONE_CONTROL_HEIGHT,
-  },
-  components: {
-    Rate: { starSize: spacing["6"], marginXS: PHONE_CONTROL_HEIGHT - spacing["6"] },
-    Radio: { radioSize: spacing["5"] },
-    Checkbox: { controlInteractiveSize: spacing["5"] },
-  },
-};
+} = phoneTouchFloorFor(PHONE_CONTROL_HEIGHT);
 
 /**
  * The rows and glyph boxes no antd token reaches, as a stylesheet scoped
@@ -96,8 +111,11 @@ export const PHONE_TOUCH_FLOOR: {
  * Rendered by `SkinTheme` as a React 19 hoistable `<style href precedence>`:
  * one element in `<head>` for the whole document however many skins mount.
  */
-export function phoneTouchFloorCss(prefix: string): string {
-  const h = `${String(PHONE_CONTROL_HEIGHT)}px`;
+export function phoneTouchFloorCss(
+  prefix: string,
+  height: number = PHONE_CONTROL_HEIGHT
+): string {
+  const h = `${String(height)}px`;
   const root = `[data-stapel-skin-root][data-stapel-skin-phone]`;
   return [
     `${root} .${prefix}-rate .${prefix}-rate-star{display:inline-flex;align-items:center;min-height:${h}}`,
@@ -191,9 +209,12 @@ const themeConfigCache = new Map<string, ThemeConfig>();
  * see {@link AppliedThemeContext}.
  */
 function skinThemeConfig(mode: ThemeMode, phone: boolean): ThemeConfig {
+  // The phone floor's height is a LIVE read (`--stapel-control-height-phone`,
+  // default 44) — part of the key, so two answers cannot share an entry.
+  const phoneHeight = phone ? livePhoneControlHeight(mode) : 0;
   const key = [
     mode,
-    phone ? "phone" : "wide",
+    phone ? `phone@${String(phoneHeight)}` : "wide",
     resolveThemeMode(),
     hostBrandScope(),
     hostBrandFingerprint(mode),
@@ -201,13 +222,15 @@ function skinThemeConfig(mode: ThemeMode, phone: boolean): ThemeConfig {
   const hit = themeConfigCache.get(key);
   if (hit !== undefined) return hit;
   const base = toAntdThemeConfig(mode);
-  const config: ThemeConfig = phone
-    ? {
-        ...base,
-        token: { ...base.token, ...PHONE_TOUCH_FLOOR.token },
-        components: { ...base.components, ...PHONE_TOUCH_FLOOR.components },
-      }
-    : base;
+  const floor = phone ? phoneTouchFloorFor(phoneHeight) : null;
+  const config: ThemeConfig =
+    floor !== null
+      ? {
+          ...base,
+          token: { ...base.token, ...floor.token },
+          components: { ...base.components, ...floor.components },
+        }
+      : base;
   themeConfigCache.set(key, config);
   return config;
 }
@@ -313,7 +336,7 @@ export function SkinTheme(props: SkinThemeProps): ReactElement {
     <AppliedThemeContext.Provider value={publish}>
       {phone && (
         <style href={PHONE_TOUCH_FLOOR_STYLE_HREF} precedence="default">
-          {phoneTouchFloorCss(getPrefixCls())}
+          {phoneTouchFloorCss(getPrefixCls(), livePhoneControlHeight(mode))}
         </style>
       )}
       <ConfigProvider theme={theme}>{root}</ConfigProvider>
