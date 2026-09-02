@@ -6,6 +6,12 @@
 
 - bf66860: Every value kind gets the control a thumb can answer it with.
 
+  The chip-shaped editors keep the focus contract `featureControlId` promises:
+  the field's id lands on the first chip (a focusable control), so a
+  composer's "go to the first missing field" reaches a chips field the same
+  way it reaches a text box, and the row's label resolves to exactly one
+  element.
+
   The thirteen builtin editors were antd's stock controls: a dropdown for any
   closed list, an `InputNumber` that clamped, a `Segmented` bar that fitted four
   options, a `Cascader` over an 812k-term vocabulary, and a `Switch` that drew

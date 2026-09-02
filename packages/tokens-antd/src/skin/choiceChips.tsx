@@ -66,6 +66,13 @@ interface ChoiceChipsBase {
   readonly columns?: "row" | "grid";
   /** The group's accessible name (the field's label). */
   readonly ariaLabel?: string;
+  /**
+   * Lands on the FIRST chip — the group's focus target, the way a radio
+   * group's label points at its first input. A caller that reveals "the
+   * first unanswered field" by element id gets a focusable control, not a
+   * wrapper `<div>` that swallows the focus call.
+   */
+  readonly id?: string;
   readonly style?: CSSProperties;
   readonly className?: string;
   readonly testId?: string;
@@ -100,6 +107,13 @@ export type ChoiceChipsProps = ChoiceChipsSingleProps | ChoiceChipsMultiProps;
  * columns at 390px and not one column pretending to be a list.
  */
 const GRID_COLUMN_MIN = 140;
+
+/** A chip label as TEXT, for the aria-label the first chip needs: the label
+ * when it is a string, the value when the caller rendered a node (a node has
+ * no derivable name here, and the value is at least stable and unique). */
+function labelText(label: ReactNode): string {
+  return typeof label === "string" || typeof label === "number" ? String(label) : "";
+}
 
 function isSelected(props: ChoiceChipsProps, value: string): boolean {
   return props.mode === "single" ? props.value === value : props.values.includes(value);
@@ -211,13 +225,22 @@ export function ChoiceChips(props: ChoiceChipsProps): ReactElement {
             : { display: "flex", flexWrap: "wrap", gap: token.paddingXS }
         }
       >
-        {props.options.map((option) => {
+        {props.options.map((option, index) => {
           const selected = isSelected(props, option.value);
           const disabled = option.disabled === true;
           const reason = disabled ? option.disabledReason : undefined;
           return (
             <button
               key={option.value}
+              // The id makes the first chip the target of the field's own
+              // <label htmlFor>; without an explicit aria-label that label
+              // would OVERRIDE the chip's accessible name (label-element
+              // beats content in accname computation) and the first answer
+              // would be announced as the question. aria-label outranks the
+              // label element, so the chip keeps saying what it answers.
+              {...(index === 0 && props.id !== undefined
+                ? { id: props.id, "aria-label": labelText(option.label) || option.value }
+                : {})}
               type="button"
               aria-pressed={selected}
               disabled={disabled}

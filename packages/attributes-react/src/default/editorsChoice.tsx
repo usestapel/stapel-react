@@ -136,12 +136,17 @@ const SelectEditor: ValueEditor = (props: ValueEditorProps) => {
 
     if (inline && choices.length > 0) {
       return (
-        <div id={props.id} {...touchFloorMarker(touchFloor)}>
+        <div {...touchFloorMarker(touchFloor)}>
           {multiple ? (
             <ChoiceChips
               mode="multi"
               columns="grid"
-              ariaLabel={featureName(props.feature)}
+              // The row's <label htmlFor> resolves to the first chip; a group
+              // aria-label repeating the field name would make it ambiguous
+              // which element the name belongs to (two matches for one label).
+              {...(props.id !== undefined
+                ? { id: props.id }
+                : { ariaLabel: featureName(props.feature) })}
               options={chipOptions(choices, {
                 touchFloor,
                 disabled: bind.disabled,
@@ -154,7 +159,9 @@ const SelectEditor: ValueEditor = (props: ValueEditorProps) => {
           ) : (
             <ChoiceChips
               mode="single"
-              ariaLabel={featureName(props.feature)}
+              {...(props.id !== undefined
+                ? { id: props.id }
+                : { ariaLabel: featureName(props.feature) })}
               options={chipOptions(choices, { touchFloor, disabled: bind.disabled })}
               testId="attributes-select-chips"
               {...(current[0] !== undefined ? { value: current[0] } : {})}
@@ -298,7 +305,9 @@ const BoolEditor: ValueEditor = (props: ValueEditorProps) => {
     const chips: ReactNode = (
       <ChoiceChips
         mode="single"
-        ariaLabel={featureName(props.feature)}
+        {...(props.id !== undefined
+          ? { id: props.id }
+          : { ariaLabel: featureName(props.feature) })}
         options={chipOptions(
           [
             { value: YES, label: trueLabel },
@@ -313,7 +322,6 @@ const BoolEditor: ValueEditor = (props: ValueEditorProps) => {
     );
     return (
       <div
-        id={props.id}
         data-attributes-bool={answered ? String(on) : "unanswered"}
         {...touchFloorMarker(touchFloor)}
       >

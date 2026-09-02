@@ -6,6 +6,15 @@
 
 - e2ec0f2: The substrate a field-level picker is built out of: one recency hook, four controls.
 
+  `ChoiceChips` also takes the field's `id`, landed on the FIRST chip — the
+  group's focus target, the way a radio group's label points at its first
+  input — with an explicit per-chip accessible name so the field's label
+  cannot override what the chip answers. A composer that reveals "the first
+  unanswered field" by element id gets a focusable control, not a wrapper
+  `<div>` that swallows the focus call. `SkinNumberField` and `CountedInput`
+  accept `ariaRequired` for the same reason: the one attribute a required
+  field owes its own control is contract, not a caller's DOM-poking effect.
+
   Every value kind in the catalogue — 2132 reference selects, 795 inline selects,
   multiselects, numbers with units, VIN-like strings — was being drawn by each
   pair out of raw antd, and the same four decisions were being re-taken with

@@ -178,4 +178,27 @@ describe("ChoiceChips — a chip that cannot be chosen says why", () => {
     );
     expect(screen.getByTestId("plain").querySelector("[data-stapel-chip-reasons]")).toBeNull();
   });
+
+  it("puts the caller's id on the first chip — the group's focus target", () => {
+    render(
+      <Host>
+        <ChoiceChips
+          mode="single"
+          id="field-condition"
+          ariaLabel="Condition"
+          options={[
+            { value: "new", label: "New" },
+            { value: "used", label: "Used" },
+          ]}
+          value={undefined}
+          onChange={() => undefined}
+        />
+      </Host>
+    );
+    const first = document.getElementById("field-condition");
+    expect(first?.tagName).toBe("BUTTON");
+    expect(first?.getAttribute("data-stapel-chip")).toBe("new");
+    (first as HTMLButtonElement).focus();
+    expect(document.activeElement).toBe(first);
+  });
 });
