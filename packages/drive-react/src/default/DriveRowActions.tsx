@@ -113,8 +113,13 @@ function DriveRowActionsBody(props: DriveRowActionsProps): ReactElement {
   const toggleStar = useToggleStar();
 
   // The destination list is read ONLY while the move prompt is open — the
-  // whole-tree read the rest of this product deliberately avoids.
-  const folders = useFolders(props.workspaceId);
+  // whole-tree read the rest of this product deliberately avoids. Gated by
+  // handing the hook an empty scope until then (its own `enabled` rule):
+  // ungated, this tree read fired the moment ANY row's sheet opened and
+  // landed mid-settle of whatever prompt the person actually chose — one of
+  // the stray reads that kept the share sheet re-rendering on a live stand
+  // (live drive e2e walk, 2026-09-02).
+  const folders = useFolders(prompt === "move" ? props.workspaceId : "");
 
   const isFolder = row?.kind === "folder";
   const busy =
@@ -132,7 +137,7 @@ function DriveRowActionsBody(props: DriveRowActionsProps): ReactElement {
   };
 
   /**
-   * The rename settles WITH the write, not before it (meettoday drive e2e,
+   * The rename settles WITH the write, not before it (live drive e2e walk,
    * 2026-09-02 — two live defects):
    *
    *  - The PATCH is the docs pair's and invalidates only the DOCS keys. A
@@ -365,18 +370,20 @@ function DriveRowActionsBody(props: DriveRowActionsProps): ReactElement {
         onClose={close}
       />
 
-      {/* Version history — the docs pair's finished modal, mounted the way
-          NameDialog/MoveDialog are: nothing of the revision surface is
-          re-implemented here. Since docs-react's viewing slice it previews
-          an OLD revision of a media file inline (image/audio/video via the
-          authorized revision content stream), which is what makes History a
-          row action worth having on a drive full of binaries. */}
-      {row !== null && row.kind === "document" && (
-        <RevisionsModal
-          documentId={row.id}
-          open={prompt === "history"}
-          onClose={close}
-        />
+      {/* Version history — the docs pair's finished modal: nothing of the
+          revision surface is re-implemented here. Since docs-react's viewing
+          slice it previews an OLD revision of a media file inline
+          (image/audio/video via the authorized revision content stream),
+          which is what makes History a row action worth having on a drive
+          full of binaries.
+
+          Mounted ON DEMAND, unlike NameDialog/MoveDialog: the modal's own
+          `useDocument` read is not gated on `open`, so keeping it mounted
+          for every document row re-read `GET /documents/:id` the moment the
+          sheet opened — the second stray settle that kept the share sheet
+          re-rendering on a live stand (live drive e2e walk, 2026-09-02). */}
+      {row !== null && row.kind === "document" && prompt === "history" && (
+        <RevisionsModal documentId={row.id} open onClose={close} />
       )}
 
       <ShareSheetPanel
