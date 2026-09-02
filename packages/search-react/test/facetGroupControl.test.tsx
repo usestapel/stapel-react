@@ -241,6 +241,209 @@ describe("a long group folds, and says how much is behind the fold", () => {
   });
 });
 
+/**
+ * Build a group BY HAND, because `buildFacetGroups` never mixes counted and
+ * uncounted options inside one group — but the component's contract is the
+ * `FacetGroup` type, and a host (or a future envelope) can hand it a group
+ * where only some options carry a number. The walker's finding on a live
+ * classified deployment's cars leaf is what these guard against: "not
+ * counted" printed 100+ times down the default view of the rail.
+ */
+function handBuiltGroup(options: {
+  readonly counted: number;
+  readonly uncounted: number;
+  readonly selected?: readonly string[];
+}): FacetGroup {
+  const selected = options.selected ?? [];
+  const countedOptions = Array.from({ length: options.counted }, (_, i) => ({
+    value: `c-${String(i)}`,
+    count: 20 - i,
+    label: `c-${String(i)}`,
+    selected: selected.includes(`c-${String(i)}`),
+  }));
+  const uncountedOptions = Array.from({ length: options.uncounted }, (_, i) => ({
+    value: `u-${String(i)}`,
+    count: null,
+    label: `u-${String(i)}`,
+    selected: selected.includes(`u-${String(i)}`),
+  }));
+  return {
+    slug: "make",
+    label: "Make",
+    feature: undefined,
+    counted: options.counted > 0,
+    // Interleaved on purpose: two uncounted options BEFORE the counted ones,
+    // so an implementation that merely appends nulls at build time (which
+    // `buildFacetGroups` happens to do) does not pass by accident.
+    options: [
+      ...uncountedOptions.slice(0, 2),
+      ...countedOptions,
+      ...uncountedOptions.slice(2),
+    ],
+    selected,
+  };
+}
+
+describe("the group can be a disclosure, and closed it holds nothing in the DOM", () => {
+  it("draws no disclosure at all by default — today's hosts see today's group", async () => {
+    mount(
+      <FacetGroupControl
+        group={groupFor({ brand: MANY_BRANDS }, "brand")}
+        onToggle={() => undefined}
+      />
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("facet-group-brand")).toBeTruthy()
+    );
+    expect(screen.queryByTestId("facet-toggle-brand")).toBeNull();
+    expect(screen.getByTestId("facet-option-brand-brand-0")).toBeTruthy();
+  });
+
+  it("collapsible + defaultOpen=false: a real button, aria-expanded, options ABSENT", async () => {
+    mount(
+      <FacetGroupControl
+        group={groupFor({ brand: MANY_BRANDS }, "brand")}
+        onToggle={() => undefined}
+        collapsible
+        defaultOpen={false}
+      />
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("facet-toggle-brand")).toBeTruthy()
+    );
+    const toggle = screen.getByTestId("facet-toggle-brand");
+    expect(toggle.tagName).toBe("BUTTON");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    // A chevron in the house glyph style, not an icon font.
+    expect(toggle.querySelector("svg")).not.toBeNull();
+    // Collapsed means NOT RENDERED — 118 hidden checkboxes are still 118
+    // checkboxes to a screen reader and to the layout engine.
+    expect(screen.queryByTestId("facet-option-brand-brand-0")).toBeNull();
+    expect(screen.queryByTestId("facet-more-brand")).toBeNull();
+
+    fireEvent.click(toggle);
+    await waitFor(() =>
+      expect(screen.getByTestId("facet-option-brand-brand-0")).toBeTruthy()
+    );
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("collapsible with defaultOpen unset starts open", async () => {
+    mount(
+      <FacetGroupControl
+        group={groupFor({ condition: { new: 7, used: 18 } }, "condition")}
+        onToggle={() => undefined}
+        collapsible
+      />
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("facet-toggle-condition")).toBeTruthy()
+    );
+    expect(
+      screen.getByTestId("facet-toggle-condition").getAttribute("aria-expanded")
+    ).toBe("true");
+    expect(screen.getByTestId("facet-option-condition-new")).toBeTruthy();
+  });
+
+  it("says on the closed header how many values are CHOSEN inside", async () => {
+    mount(
+      <FacetGroupControl
+        group={groupFor(
+          { brand: MANY_BRANDS },
+          "brand",
+          "type=listing&f.brand=brand-0&f.brand=brand-3"
+        )}
+        onToggle={() => undefined}
+        collapsible
+        defaultOpen={false}
+      />
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("facet-toggle-brand")).toBeTruthy()
+    );
+    expect(screen.getByTestId("facet-toggle-count-brand").textContent).toBe("2");
+  });
+
+  it("shows no chosen-count when nothing is chosen", async () => {
+    mount(
+      <FacetGroupControl
+        group={groupFor({ brand: MANY_BRANDS }, "brand")}
+        onToggle={() => undefined}
+        collapsible
+        defaultOpen={false}
+      />
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("facet-toggle-brand")).toBeTruthy()
+    );
+    expect(screen.queryByTestId("facet-toggle-count-brand")).toBeNull();
+  });
+});
+
+describe("uncounted options fold behind 'Show all' when the group has counted ones", () => {
+  it("orders uncounted, unchosen options after every counted one", () => {
+    const nodes = facetOptionNodes(handBuiltGroup({ counted: 5, uncounted: 4 }));
+    expect(nodes.map((node) => node.option.value)).toEqual([
+      "c-0", "c-1", "c-2", "c-3", "c-4",
+      "u-0", "u-1", "u-2", "u-3",
+    ]);
+  });
+
+  it("keeps a CHOSEN uncounted option among the visible ones", () => {
+    const nodes = facetOptionNodes(
+      handBuiltGroup({ counted: 5, uncounted: 4, selected: ["u-1"] })
+    );
+    // The chosen one stays where the evidence is; its unchosen peers trail.
+    expect(nodes.map((node) => node.option.value)).toEqual([
+      "u-1", "c-0", "c-1", "c-2", "c-3", "c-4",
+      "u-0", "u-2", "u-3",
+    ]);
+  });
+
+  it("hides the uncounted tail behind the fold even under the length limit", async () => {
+    // 5 counted + 4 uncounted is nine options — under the "one row over the
+    // limit" exemption by length alone. The tail folds anyway: the exemption
+    // is about not hiding one COUNTED row, and these rows say "not counted".
+    mount(
+      <FacetGroupControl
+        group={handBuiltGroup({ counted: 5, uncounted: 4 })}
+        onToggle={() => undefined}
+      />
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("facet-option-make-c-0")).toBeTruthy()
+    );
+    expect(screen.getByTestId("facet-option-make-c-4")).toBeTruthy();
+    expect(screen.queryByTestId("facet-option-make-u-0")).toBeNull();
+    // Still reachable, and the door still answers "how many are there".
+    const fold = screen.getByTestId("facet-more-make");
+    expect(fold.textContent).toBe("Show all (9)");
+    fireEvent.click(fold);
+    await waitFor(() =>
+      expect(screen.getByTestId("facet-option-make-u-3")).toBeTruthy()
+    );
+    // Revealed, the option is still labelled honestly.
+    expect(screen.getByTestId("facet-count-make-u-3").textContent).toBe(
+      "not counted"
+    );
+  });
+
+  it("leaves a schema-only group (ALL options uncounted) visible as today", async () => {
+    mount(
+      <FacetGroupControl
+        group={handBuiltGroup({ counted: 0, uncounted: 4 })}
+        onToggle={() => undefined}
+      />
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("facet-option-make-u-0")).toBeTruthy()
+    );
+    // Folding everything would leave a header over nothing.
+    expect(screen.getByTestId("facet-option-make-u-3")).toBeTruthy();
+    expect(screen.queryByTestId("facet-more-make")).toBeNull();
+  });
+});
+
 describe("a slug the server skipped still says so, in every shape", () => {
   it("prints 'not counted' rather than a zero", async () => {
     const [group] = buildFacetGroups({

@@ -74,6 +74,17 @@ export interface ListingDetailBag {
   readonly removed: boolean;
   /** The detail 404s and the probe finds nothing either. */
   readonly notFound: boolean;
+  /**
+   * The detail 404s, the probe ANSWERED, and the row is NOT soft-deleted:
+   * a listing taken down on purpose (archived), not deleted and not a typo.
+   *
+   * Measured on a live stand: the probe's whole body for such a row was
+   * `{"is_deleted": false}` — hence the `!== true` below rather than a read
+   * of fields the body may not carry. Without this flag the pane fell into
+   * the generic "could not load / retry" arm: a retry that can never help,
+   * on a row that is gone by its owner's choice.
+   */
+  readonly withdrawn: boolean;
   /** Both axes plus the sentence that comes out of the pair of them. */
   readonly status: ListingStatusView | undefined;
   readonly publiclyVisible: boolean;
@@ -150,6 +161,13 @@ export function useListingDetail(
     detail.status === "error" && errorStatus(detail.error) === 404;
   const removed = detailIs404 && probe.data?.is_deleted === true;
   const notFound = detailIs404 && !removed && probe.status === "error";
+  // The probe ANSWERED and did not say "deleted": the row exists and its
+  // owner took it off the shelf. `!== true` and not `=== false`, because the
+  // live probe body can carry `is_deleted` alone — a body missing the field
+  // must still read as "not deleted", not fall through to the generic arm.
+  const withdrawn =
+    detailIs404 && !removed && probe.data !== undefined &&
+    probe.data.is_deleted !== true;
 
   const status: ListingStatusView | undefined = useMemo(() => {
     if (detail.data !== undefined) {
@@ -220,6 +238,7 @@ export function useListingDetail(
     statusState,
     removed,
     notFound,
+    withdrawn,
     status,
     publiclyVisible: status?.lifecycle.publiclyVisible ?? false,
     viewerIsOwner,

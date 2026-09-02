@@ -139,6 +139,15 @@ const RAIL: CSSProperties = {
   maxHeight: "100dvh",
   overflowY: "auto",
   overscrollBehavior: "contain",
+  // The inner scroll must be VISIBLE. On overlay-scrollbar platforms (every
+  // Mac by default, most phones) an `overflow-y: auto` column shows no
+  // scrollbar until a pointer happens to scroll INSIDE it — so a rail taller
+  // than the window is indistinguishable from a rail that ends at the fold,
+  // and the walker measured 5717px of panel whose tail nothing signposted.
+  // A thin, always-there scrollbar is the sign there is more; the stable
+  // gutter keeps the panel's right edge from jumping when it appears.
+  scrollbarWidth: "thin",
+  scrollbarGutter: "stable",
   // Room for the focus ring of the last control against the scroll edge.
   paddingBlockEnd: spacing[2],
 };
@@ -424,9 +433,14 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
           a hole, just a smaller one. */}
       {/* In the sheet the dialog's own title already says "Filters"; the panel
           repeating it printed the word twice, one line apart. */}
+      {/* Per layout: the sheet gets no second "Filters" title (the dialog owns
+          one) and no footer bar — its own "Show N results" footer is already
+          the count AND the exit. The rail gets the sticky footer bar: desktop
+          filters apply instantly, and without it the only feedback was a
+          result count scrolled out of sight above the fold. */}
       {filtersEmpty ? null : (
         <FacetPanelPane
-          {...(layout === "sheet" ? { heading: null } : {})}
+          {...(layout === "sheet" ? { heading: null } : { footerBar: true })}
           {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
           {...(props.renderEmptyExits !== undefined
             ? { renderEmptyExits: props.renderEmptyExits }

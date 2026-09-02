@@ -84,6 +84,31 @@ describe("a removed listing is not a typo", () => {
     });
   });
 
+  it("says 'taken down' with no retry when the probe still answers for the row", async () => {
+    // The archived-not-deleted case, measured on a live stand: the detail
+    // read 404s (its queryset filters the row out) while the AllowAny probe
+    // answers 200 — and its whole body there was `{"is_deleted": false}`.
+    // The pane used to fall into the generic "could not load / retry" arm: a
+    // retry that could never help, on a row that is gone on purpose.
+    const srv = mockServer({
+      "/listings/7/status/": { body: { is_deleted: false } },
+      "/listings/7/": { status: 404, body: { localizable_error: "error.404.listing_not_found" } },
+    });
+    render(
+      <TestProviders server={srv}>
+        <ListingDetailPane id={7} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-detail-withdrawn")).toBeTruthy();
+    });
+    // Not the removed banner, not the generic error, and above all no retry
+    // control — there is nothing a retry would change.
+    expect(screen.queryByTestId("listings-detail-removed")).toBeNull();
+    expect(screen.queryByTestId("listings-detail-error")).toBeNull();
+    expect(screen.queryByText("Try again")).toBeNull();
+  });
+
   it("says 'no listing at this address' when neither read finds one", async () => {
     const srv = mockServer({
       "/listings/7/status/": { status: 404, body: {} },

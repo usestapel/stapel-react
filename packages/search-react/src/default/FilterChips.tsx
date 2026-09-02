@@ -133,6 +133,7 @@ import type { FacetLabelResolver } from "../headless/useFacetLabels.js";
 import { useSearchState } from "../headless/SearchStateProvider.js";
 import { buildRangeGroups } from "../state/ranges.js";
 import type { RangeGroup } from "../state/ranges.js";
+import { facetCoverage } from "../state/facets.js";
 import type { FacetGroup } from "../state/facets.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { FacetGroupControl } from "./FacetGroupControl.js";
@@ -255,15 +256,6 @@ export function orderChipFilters(
     }
     return 0;
   });
-}
-
-/** How many candidate documents carry ANY value of this axis — the row's
- * "people actually fill this in" evidence. Uncounted options are `null`
- * (never `0` — different sentences) and contribute nothing. */
-function facetCoverage(group: FacetGroup): number {
-  let total = 0;
-  for (const option of group.options) total += option.count ?? 0;
-  return total;
 }
 
 /**

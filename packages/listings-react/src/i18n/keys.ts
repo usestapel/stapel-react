@@ -94,6 +94,11 @@ export const LISTINGS_I18N_KEYS = {
   detailNotFound: "listings.detail.not_found",
   /** Soft-deleted: the status probe answers where the detail 404s. */
   detailRemoved: "listings.detail.removed",
+  /** Taken down on purpose (archived, not deleted): the detail 404s while
+   * the probe still answers and does NOT say "deleted". A different sentence
+   * from `detailRemoved`, and above all not the generic retry arm — a retry
+   * cannot help a row whose owner took it off the shelf. */
+  detailWithdrawn: "listings.detail.withdrawn",
   /** Readable by id, but not on the shelf — and the reader is not the owner. */
   detailNotPublished: "listings.detail.not_published",
   detailOwnerOnlyView: "listings.detail.owner_only_view",
@@ -297,6 +302,7 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.detail.retry": "Try again",
   "listings.detail.not_found": "There is no listing at this address",
   "listings.detail.removed": "This listing was removed",
+  "listings.detail.withdrawn": "This listing is no longer published",
   "listings.detail.not_published":
     "This listing is not on sale right now, so what you see may be out of date",
   "listings.detail.owner_only_view":

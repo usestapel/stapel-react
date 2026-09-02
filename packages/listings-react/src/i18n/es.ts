@@ -86,6 +86,7 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.detail.retry": "Reintentar",
   "listings.detail.not_found": "No hay ningún anuncio en esta dirección",
   "listings.detail.removed": "Este anuncio fue eliminado",
+  "listings.detail.withdrawn": "Este anuncio ya no está publicado",
   "listings.detail.not_published":
     "Este anuncio no está a la venta ahora, así que lo que ves puede estar desactualizado",
   "listings.detail.owner_only_view":

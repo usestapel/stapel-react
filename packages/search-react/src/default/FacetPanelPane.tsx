@@ -35,17 +35,44 @@
  * than a silent absence — and, in every build, any constraint the URL already
  * carries gets a control that REMOVES it. A shared link that narrows to a
  * category or a point must never leave a person with no way to widen it again.
+ *
+ * ── The panel opens what the answer argues for, and closes the rest ────────
+ *
+ * Measured on a live classified deployment's cars leaf at 1440×900: this
+ * panel, in a 280px rail, was 5717px tall — 40 groups, 118 checkboxes, 66
+ * fields, one flat column whose tail no scroll a person actually performs
+ * ever reaches. The phone sheet drew the same column six screens deep.
+ *
+ * So the groups are disclosures now, and WHICH open is decided here, from
+ * evidence the panel already holds: a group with any chosen value is always
+ * open (a constraint must keep its control in sight), and otherwise the top
+ * {@link FACET_OPEN_GROUPS} counted groups by {@link facetCoverage} — the sum
+ * of an axis's counts is the answer's own statement of how many documents
+ * carry it, the same reasoning the chip row sorts its band by. Everything
+ * else starts as a header, one click from whole. A group the server never
+ * counted sums to zero and therefore never opens uninvited, which is what
+ * removes the wall of "not counted" rows from the default view without
+ * deleting one of them.
+ *
+ * From {@link FACET_SEARCH_THRESHOLD} groups up the panel also takes a search
+ * of ITSELF — a person who cannot scan forty headers should not have to open
+ * them one by one to find the axle count. It narrows by group or option
+ * label, opens what it matches, and touches presentation only: the URL is
+ * state and a panel query is not.
  */
+import { useState } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import {
   Alert,
   Button,
   Divider,
   Flex,
+  Input,
   InputNumber,
   Typography,
+  theme,
 } from "antd";
-import { SlotPlaceholder, isDevBuild, useT } from "@stapel/core";
+import { SlotPlaceholder, isDevBuild, useT, useTPlural } from "@stapel/core";
 import {
   EmptyState,
   ErrorAlert,
@@ -59,6 +86,9 @@ import type { SearchGeo } from "../api/types.js";
 import { FacetPanel } from "../headless/FacetPanel.js";
 import type { FacetLabelResolver } from "../headless/useFacetLabels.js";
 import { useSearchState } from "../headless/SearchStateProvider.js";
+import { useAppliedCount } from "../headless/useAppliedCount.js";
+import { facetCoverage } from "../state/facets.js";
+import type { FacetGroup } from "../state/facets.js";
 import { FacetGroupControl } from "./FacetGroupControl.js";
 import { buildRangeGroups } from "../state/ranges.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
@@ -122,6 +152,21 @@ const FACET_CLEAR: CSSProperties = {
   height: "auto",
   textAlign: "start",
 };
+
+/**
+ * How many counted groups open by default — beyond the ones with chosen
+ * values, which always do. Five open groups at the default type step fill
+ * roughly one 900px window of the rail: the panel's first screen is the five
+ * axes this corpus is most narrowed by, and everything after is a header.
+ */
+export const FACET_OPEN_GROUPS = 5;
+
+/**
+ * From how many groups the panel offers a search of itself. Under six the
+ * headers fit a glance and a box would be chrome over nothing; the measured
+ * leaf had forty.
+ */
+export const FACET_SEARCH_THRESHOLD = 6;
 
 /** What a host's category control is handed. */
 export interface CategoryFilterSlotProps {
@@ -210,6 +255,87 @@ export interface FacetPanelPaneProps extends ThemeModeProp {
    * on a staging surface. Nothing else changes with it.
    */
   readonly skippedNotice?: boolean;
+  /**
+   * Draw the sticky footer inside the panel: the live result count as the
+   * bar's strong text, and the clear-all control (which then moves out of the
+   * heading row — one control, not two) beside it. Default `false`.
+   *
+   * `<SearchPage>` turns it on for the desktop RAIL only. Desktop filters
+   * apply instantly, so the bar is FEEDBACK plus the way out, not an apply
+   * button — which is exactly why the phone sheet must not get it: the sheet
+   * already closes through its own "Show N results" footer, and a second
+   * count-bearing bar above that one would be the same sentence twice.
+   */
+  readonly footerBar?: boolean;
+}
+
+/**
+ * The rail's sticky floor: what the filters DID (the live count), and the way
+ * out of them (clear all). It sticks to the bottom of the rail's own scroll,
+ * so however deep the panel goes the answer stays on screen.
+ *
+ * The count reuses `useAppliedCount` — the answer already in cache, never a
+ * second request — and its honesty rules: an exact count gets the counted
+ * noun ("N listings match"), a floor keeps the existing "N+" family, and an
+ * engine that cannot say gets NO number, because a fabricated one on the
+ * surface that reports what filtering did is worse than silence. With
+ * nothing to say and nothing to clear, no bar.
+ */
+function RailFooterBar(props: {
+  readonly activeFilters: number;
+  readonly clearAll: () => void;
+}): ReactElement | null {
+  const t = useT();
+  const tPlural = useTPlural();
+  // The token bag of the nearest theme, so the bar's ground and hairline are
+  // the panel's own in both modes — a hard-coded white floor would glow in
+  // the dark theme.
+  const { token } = theme.useToken();
+  const applied = useAppliedCount();
+  const countText =
+    applied.count === null || applied.kind === "unknown"
+      ? null
+      : tPlural(
+          applied.kind === "at_least"
+            ? SEARCH_I18N_KEYS.resultsCountAtLeast
+            : SEARCH_I18N_KEYS.facetsMatchCount,
+          { count: applied.count }
+        );
+  if (countText === null && props.activeFilters === 0) return null;
+  return (
+    <div
+      data-testid="facets-footer-bar"
+      style={{
+        position: "sticky",
+        bottom: 0,
+        // Opaque, or the options scrolling under the bar read THROUGH it.
+        background: token.colorBgContainer,
+        borderBlockStart: `1px solid ${token.colorSplit}`,
+        paddingBlockStart: spacing[2],
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: spacing[2],
+      }}
+    >
+      {countText !== null && (
+        <Typography.Text strong data-testid="facets-footer-count">
+          {countText}
+        </Typography.Text>
+      )}
+      {props.activeFilters > 0 && (
+        <Button
+          style={FACET_CLEAR}
+          onClick={props.clearAll}
+          data-analytics="none"
+          data-analytics-reason="a filter is a read, not a flow step"
+          data-testid="facets-clear-all"
+        >
+          {t(SEARCH_I18N_KEYS.facetsClearAll, { count: props.activeFilters })}
+        </Button>
+      )}
+    </div>
+  );
 }
 
 /** The category constraint: the host's control, or the door out of it. */
@@ -401,6 +527,10 @@ function skippedNames(
 export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
   const t = useT();
   const { state } = useSearchState();
+  // The panel-search's text. COMPONENT state on purpose: it narrows how the
+  // panel is drawn, never what the search is, so it must not survive into a
+  // shared link the way everything in `useSearchState` does.
+  const [filterQuery, setFilterQuery] = useState("");
 
   return (
     <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
@@ -455,7 +585,10 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                   {props.heading ?? t(SEARCH_I18N_KEYS.facetsTitle)}
                 </Typography.Title>
               )}
-              {bag.activeFilters > 0 && (
+              {/* With the footer bar on, clear-all lives THERE — beside the
+                  count it acts on — and drawing it here too would be two
+                  identical exits one panel apart. */}
+              {bag.activeFilters > 0 && props.footerBar !== true && (
                 <Button
                   style={FACET_CLEAR}
                   onClick={bag.clearAll}
@@ -538,35 +671,103 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 />
               )}
             >
-              {(groups) => (
-                <Flex vertical gap={spacing[4]}>
-                  {/* A group with no options is a heading with nothing under
-                      it. What is left in that state after `buildFacetGroups`
-                      learned to read the schema is the genuinely unanswerable
-                      case: a `ref_select` whose config is a bare pointer into
-                      a vocabulary this pair cannot read. A heading with no
-                      control under it names nothing, so it is not drawn. */}
-                  {/* Each group draws itself the way its own schema says:
-                      pills for a single-choice facet, indented children for a
-                      hierarchical one, a fold for a long one. The panel does
-                      not decide — `facetGroupShape` reads the same config keys
-                      the attributes editor reads, so a facet cannot look one
-                      way here and another way in the composer. */}
-                  {groups
-                    .filter((group) => group.options.length > 0)
-                    .map((group) => (
+              {(groups) => {
+                // A group with no options is a heading with nothing under
+                // it. What is left in that state after `buildFacetGroups`
+                // learned to read the schema is the genuinely unanswerable
+                // case: a `ref_select` whose config is a bare pointer into
+                // a vocabulary this pair cannot read. A heading with no
+                // control under it names nothing, so it is not drawn.
+                const drawable = groups.filter(
+                  (group) => group.options.length > 0
+                );
+                // Which groups OPEN — see the module note. Chosen groups are
+                // open unconditionally below; here the answer's evidence
+                // picks the rest: the top counted groups by coverage, and a
+                // group the server never counted sums to zero, so the wall
+                // of "not counted" rows starts as headers.
+                const openByEvidence = new Set(
+                  drawable
+                    .filter((group) => group.counted)
+                    .map((group) => [group, facetCoverage(group)] as const)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, FACET_OPEN_GROUPS)
+                    .map(([group]) => group.slug)
+                );
+                const searchable = drawable.length >= FACET_SEARCH_THRESHOLD;
+                const needle = searchable
+                  ? filterQuery.trim().toLowerCase()
+                  : "";
+                const matches = (group: FacetGroup): boolean =>
+                  group.label.toLowerCase().includes(needle) ||
+                  group.options.some((option) =>
+                    option.label.toLowerCase().includes(needle)
+                  );
+                const listed =
+                  needle === "" ? drawable : drawable.filter(matches);
+                return (
+                  <Flex vertical gap={spacing[4]}>
+                    {searchable && (
+                      <Input
+                        allowClear
+                        value={filterQuery}
+                        placeholder={t(SEARCH_I18N_KEYS.facetsSearch)}
+                        aria-label={t(SEARCH_I18N_KEYS.facetsSearch)}
+                        data-testid="facets-search"
+                        onChange={(event) => {
+                          setFilterQuery(event.target.value);
+                        }}
+                      />
+                    )}
+                    {/* The query missed. The groups are still there — one
+                        cleared box away — so this is the panel-search's empty
+                        state, not the panel's. */}
+                    {needle !== "" && listed.length === 0 && (
+                      <EmptyState
+                        compact
+                        title={t(SEARCH_I18N_KEYS.facetsSearchEmpty)}
+                        testId="facets-search-empty"
+                      />
+                    )}
+                    {/* Each group draws itself the way its own schema says:
+                        pills for a single-choice facet, indented children for a
+                        hierarchical one, a fold for a long one. The panel does
+                        not decide — `facetGroupShape` reads the same config keys
+                        the attributes editor reads, so a facet cannot look one
+                        way here and another way in the composer. */}
+                    {/* The key changes with the query's presence ON PURPOSE:
+                        `defaultOpen` is an initial value, and a group the
+                        panel-search matched has to render OPEN — a hit behind
+                        a closed header is not an answer. Remounting is the
+                        honest way to re-ask the question; the person's own
+                        opens and closes come back when the box clears. */}
+                    {listed.map((group) => (
                       <FacetGroupControl
-                        key={group.slug}
+                        key={needle === "" ? group.slug : `${group.slug}:match`}
                         group={group}
                         onToggle={bag.toggle}
+                        collapsible
+                        defaultOpen={
+                          needle !== "" ||
+                          group.selected.length > 0 ||
+                          openByEvidence.has(group.slug)
+                        }
                       />
                     ))}
-                  <Typography.Text type="secondary">
-                    {t(SEARCH_I18N_KEYS.facetsDrillDownHint)}
-                  </Typography.Text>
-                </Flex>
-              )}
+                    <Typography.Text type="secondary">
+                      {t(SEARCH_I18N_KEYS.facetsDrillDownHint)}
+                    </Typography.Text>
+                  </Flex>
+                );
+              }}
             </LoadList>
+
+            {props.footerBar === true && (
+              <RailFooterBar
+                activeFilters={bag.activeFilters}
+                clearAll={bag.clearAll}
+              />
+            )}
           </Flex>
           );
         }}

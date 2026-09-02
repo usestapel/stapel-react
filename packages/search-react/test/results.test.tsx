@@ -246,8 +246,11 @@ describe("the results are a grid, and a container can bring its own", () => {
     expect(grid.style.display).toBe("grid");
     // As many columns as fit, each at least a readable card: the whole point
     // is that the column count is the container's width, not a breakpoint.
+    // The floor is 260px — lowered from 280 deliberately: at a 1400px content
+    // measure the grid draws five columns instead of three wide ones, and the
+    // default card still fits its title, price and location at 260.
     expect(grid.style.gridTemplateColumns).toContain("auto-fill");
-    expect(grid.style.gridTemplateColumns).toContain("280px");
+    expect(grid.style.gridTemplateColumns).toContain("260px");
     expect(grid.childElementCount).toBe(2);
   });
 

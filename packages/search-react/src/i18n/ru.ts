@@ -112,6 +112,12 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.facets.range_to_aria": "{feature}, до",
   "search.facets.show_all": "Показать все ({count})",
   "search.facets.show_less": "Свернуть",
+  "search.facets.search": "Найти фильтр",
+  "search.facets.search_empty": "Среди фильтров такого нет",
+  "search.facets.match_count.one": "Найдено {count} объявление",
+  "search.facets.match_count.few": "Найдено {count} объявления",
+  "search.facets.match_count.many": "Найдено {count} объявлений",
+  "search.facets.match_count.other": "Найдено {count} объявления",
   "search.facets.range_invalid":
     "«От» больше, чем «до», — под такой диапазон ничего не подойдёт. Поменяйте значения местами.",
 

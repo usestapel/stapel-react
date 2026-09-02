@@ -94,7 +94,11 @@
  * a disabled antd button receives no pointer events and is not focusable, so
  * the `Tooltip` this component used to offer as a "quieter" volume was a
  * reason nobody could read on any device. That arm is gone; `blockedReason`
- * is now "text" (reason + door) or "line" (reason alone, for a grid).
+ * is "text" (reason + door), "line" (reason alone, for a grid), or
+ * "popover" — the reason and the door disclosed on the heart itself, with
+ * the reason still in the accessibility tree. The third arm is NOT the old
+ * tooltip back under a new name; see `ListingCardBlockedReason` for what
+ * changed and why.
  */
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Button, Card, Flex, Typography, theme as antdTheme } from "antd";
@@ -109,6 +113,7 @@ import type { FeatureCopySource } from "../model/features.js";
 import { lifecycleCaption } from "../model/status.js";
 import { useFavoriteToggle } from "../headless/Favorites.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
+import { GateReasonPopover } from "./GateReasonPopover.js";
 import { HeartIcon } from "./icons.js";
 import { SignInLink } from "./SignInLink.js";
 import { ListingPhotoStrip } from "./ListingPhoto.js";
@@ -166,11 +171,28 @@ export type ListingCardOpenProps =
  * help, it is the loudest thing on the page, and every one of those doors
  * leads where the header's own sign-in button already leads.
  *
- * There is no third setting. The reason is on screen in both, because the only
- * way to make it quieter than a line of text is to hide it behind hover, and
- * hover does not exist on the device most of these cards are read on.
+ * `"popover"` takes the standing copy out of the card's layout entirely: the
+ * reason and the door render in a disclosure anchored to the heart itself,
+ * opening on hover AND focus AND click/tap, while a visually-hidden copy of
+ * the reason stays wired to the button via `aria-describedby`.
+ *
+ * This docstring used to end "there is no third setting", on the argument
+ * that the only way to be quieter than a line of text is to hide the reason
+ * behind hover, and hover does not exist on the device most of these cards
+ * are read on. Half of that argument held up and half was answered. What
+ * held: the desktop walk measured the standing caption printed under EVERY
+ * card — 24 copies per screen — and the product ruling is that the door
+ * belongs on interaction, not as standing copy; a pooled scope and a
+ * per-card line are both still STANDING copy, so neither volume above can
+ * satisfy it. What was answered: the disclosure is not hover-gated (a tap
+ * opens it, so a thumb is one gesture from the reason — the same distance
+ * as a cursor), its anchor is never an html-disabled control (the events
+ * arrive), and the reason never leaves the accessibility tree. Interaction
+ * disclosure keeps the reason one gesture away on both pointer and touch;
+ * what it stops doing is shouting it twenty-four times. Mechanics in
+ * `GateReasonPopover`.
  */
-export type ListingCardBlockedReason = "text" | "line";
+export type ListingCardBlockedReason = "text" | "line" | "popover";
 
 /** The class the whole-card target carries, for {@link cardTargetCss}. */
 export const CARD_TARGET_CLASS = "stapel-listing-card-target";
@@ -539,45 +561,80 @@ export function ListingCard(props: ListingCardProps): ReactElement {
                     paddingBlockEnd: token.paddingSM,
                   }}
                 >
-                  <GatedControl
-                    gate={favorite.gate}
-                    testId="listings-card-actions"
-                    style={{ width: "100%" }}
-                  >
-                    {(bind) => (
-                      <Flex justify="flex-end" style={{ width: "100%" }}>
-                        <Button
-                          disabled={bind.disabled}
-                          data-disabled-reason="the enclosing <GatedControl> renders the gate's reason beside this button"
-                          {...(bind["aria-describedby"] !== undefined
-                            ? { "aria-describedby": bind["aria-describedby"] }
-                            : {})}
-                          aria-label={favoriteLabel}
-                          aria-pressed={favorite.favorited}
-                          data-testid="listings-card-favorite"
-                          data-favorited={String(favorite.favorited)}
-                          data-analytics="none"
-                          data-analytics-reason="business action — host app wraps with its own tracked()"
-                          onClick={favorite.toggle}
-                          icon={<HeartIcon filled={favorite.favorited} />}
-                        />
-                      </Flex>
-                    )}
-                  </GatedControl>
-
-                  {/* The door. `GatedControl` above already prints the reason and
-                      wires `aria-describedby` to it; what it cannot know is WHERE a
-                      visitor signs in, which is the container's business and arrives
-                      as `signIn`. On a grid `blockedReason="line"` drops the door and
-                      keeps the sentence — twenty-four doors to one place is not
-                      twenty-four pieces of help. */}
-                  {favoriteGate.reason === undefined || blockedReason === "line" ? null : (
-                    <Typography.Text
-                      type="secondary"
-                      data-testid="listings-card-favorite-blocked"
+                  {blockedReason === "popover" &&
+                  favoriteGate.reason !== undefined ? (
+                    /* The third volume: nothing standing in the layout. The
+                       heart is `aria-disabled`, NOT `disabled` — the gate
+                       already refuses the action (`toggle` is a no-op while
+                       blocked), and an html-disabled button would swallow
+                       the hover, the focus and the tap the disclosure opens
+                       on, which is the exact grave the old Tooltip died in. */
+                    <GateReasonPopover
+                      reason={favoriteGate.reason}
+                      cta={props.signIn}
+                      testId="listings-card-favorite-reason"
+                      signInTestId="listings-card-sign-in"
                     >
-                      <SignInLink cta={props.signIn} testId="listings-card-sign-in" />
-                    </Typography.Text>
+                      {(bind) => (
+                        <Flex justify="flex-end" style={{ width: "100%" }}>
+                          <Button
+                            aria-disabled
+                            {...bind}
+                            aria-label={favoriteLabel}
+                            aria-pressed={favorite.favorited}
+                            data-testid="listings-card-favorite"
+                            data-favorited={String(favorite.favorited)}
+                            data-analytics="none"
+                            data-analytics-reason="business action — host app wraps with its own tracked()"
+                            onClick={favorite.toggle}
+                            icon={<HeartIcon filled={favorite.favorited} />}
+                          />
+                        </Flex>
+                      )}
+                    </GateReasonPopover>
+                  ) : (
+                    <>
+                      <GatedControl
+                        gate={favorite.gate}
+                        testId="listings-card-actions"
+                        style={{ width: "100%" }}
+                      >
+                        {(bind) => (
+                          <Flex justify="flex-end" style={{ width: "100%" }}>
+                            <Button
+                              disabled={bind.disabled}
+                              data-disabled-reason="the enclosing <GatedControl> renders the gate's reason beside this button"
+                              {...(bind["aria-describedby"] !== undefined
+                                ? { "aria-describedby": bind["aria-describedby"] }
+                                : {})}
+                              aria-label={favoriteLabel}
+                              aria-pressed={favorite.favorited}
+                              data-testid="listings-card-favorite"
+                              data-favorited={String(favorite.favorited)}
+                              data-analytics="none"
+                              data-analytics-reason="business action — host app wraps with its own tracked()"
+                              onClick={favorite.toggle}
+                              icon={<HeartIcon filled={favorite.favorited} />}
+                            />
+                          </Flex>
+                        )}
+                      </GatedControl>
+
+                      {/* The door. `GatedControl` above already prints the reason and
+                          wires `aria-describedby` to it; what it cannot know is WHERE a
+                          visitor signs in, which is the container's business and arrives
+                          as `signIn`. On a grid `blockedReason="line"` drops the door and
+                          keeps the sentence — twenty-four doors to one place is not
+                          twenty-four pieces of help. */}
+                      {favoriteGate.reason === undefined || blockedReason === "line" ? null : (
+                        <Typography.Text
+                          type="secondary"
+                          data-testid="listings-card-favorite-blocked"
+                        >
+                          <SignInLink cta={props.signIn} testId="listings-card-sign-in" />
+                        </Typography.Text>
+                      )}
+                    </>
                   )}
                 </div>
               )}

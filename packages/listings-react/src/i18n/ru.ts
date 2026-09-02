@@ -102,6 +102,7 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.detail.retry": "Повторить",
   "listings.detail.not_found": "По этому адресу объявления нет",
   "listings.detail.removed": "Это объявление удалено",
+  "listings.detail.withdrawn": "Объявление снято с публикации",
   "listings.detail.not_published":
     "Объявление сейчас не в продаже, и то, что вы видите, может быть неактуальным",
   "listings.detail.owner_only_view":

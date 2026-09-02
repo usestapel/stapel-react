@@ -60,9 +60,9 @@
       "limit": "13 KB"
     },
     {
-      "name": "default — the antd skin (three cards, detail, composer, dashboard, the named slots and the delete confirmation) must stay out of the main bundle. Raised 17 -> 19 KB for the mobile wave: <ListingSerpCard> (photo strip + price-first block + action rail), <ListingFeedCard> and <FeedGrid> are two more card surfaces on the same shared target/favourite/photo parts, not three copies of one",
+      "name": "default — the antd skin (three cards, detail, composer, dashboard, the named slots and the delete confirmation) must stay out of the main bundle. Raised 17 -> 19 KB for the mobile wave: <ListingSerpCard> (photo strip + price-first block + action rail), <ListingFeedCard> and <FeedGrid> are two more card surfaces on the same shared target/favourite/photo parts, not three copies of one Raised 19 -> 20 KB for the desktop wave of the detail page: layout=\"split\" is a second ASSEMBLY of the money page (the sticky buy column, the two-column spec table, the widened measure) over the same parts, and GateReasonPopover is the blocked heart's third volume — the reason and the door disclosed on interaction, with the visually-hidden copy that keeps the refusal in the accessibility tree. Both are geometry and wiring, not new widgets",
       "path": "dist/default/index.js",
-      "limit": "19 KB"
+      "limit": "20 KB"
     },
     {
       "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",

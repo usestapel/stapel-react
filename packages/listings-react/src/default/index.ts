@@ -59,7 +59,15 @@ export type {
 } from "./ListingFeedCard.js";
 export { FeedGrid, FEED_GRID_COLUMNS } from "./FeedGrid.js";
 export type { FeedGridProps } from "./FeedGrid.js";
-export { ListingDetailPane, DETAIL_MEASURE, DETAIL_PHOTO_MIN } from "./ListingDetailPane.js";
+export {
+  ListingDetailPane,
+  DETAIL_MEASURE,
+  // The split layout's two geometry constants, for a container laying out
+  // against the same tracks (and for a test that measures them).
+  DETAIL_SPLIT_MEASURE,
+  DETAIL_SPLIT_ASIDE,
+  DETAIL_PHOTO_MIN,
+} from "./ListingDetailPane.js";
 export type { ListingDetailPaneProps } from "./ListingDetailPane.js";
 export {
   ListingComposerPage,

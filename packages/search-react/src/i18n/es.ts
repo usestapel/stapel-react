@@ -87,6 +87,10 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.facets.range_to_aria": "{feature}, hasta",
   "search.facets.show_all": "Ver todos ({count})",
   "search.facets.show_less": "Ver menos",
+  "search.facets.search": "Buscar un filtro",
+  "search.facets.search_empty": "Ningún filtro coincide con esto",
+  "search.facets.match_count.one": "{count} anuncio coincide",
+  "search.facets.match_count.other": "{count} anuncios coinciden",
   "search.facets.range_invalid":
     "«Desde» es mayor que «hasta», así que nada podría coincidir. Intercámbialos para aplicar el rango.",
 

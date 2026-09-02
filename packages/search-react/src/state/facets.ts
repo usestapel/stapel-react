@@ -128,6 +128,25 @@ export interface FacetGroup {
   readonly selected: readonly string[];
 }
 
+/**
+ * How many candidate documents carry ANY value of this axis — the evidence
+ * that people actually fill this field in. Uncounted options are `null`
+ * (never `0` — different sentences) and contribute nothing, so a group the
+ * server did not count sums to zero.
+ *
+ * Two surfaces rank by it, for the same reason: the chip row orders its
+ * counted band by coverage (D16 reopen — an imported catalogue gave the
+ * phones leaf option tables for its wholesale plumbing, and schema order put
+ * them ahead of the brand), and the filter panel opens its top-coverage
+ * groups and collapses the rest (the 5717px rail). One definition, or the
+ * two surfaces drift into two opinions about which axes matter.
+ */
+export function facetCoverage(group: FacetGroup): number {
+  let total = 0;
+  for (const option of group.options) total += option.count ?? 0;
+  return total;
+}
+
 export interface BuildFacetGroupsInput {
   /** The envelope's `facets`: `{slug: {value: count}}`. */
   readonly facets: Readonly<Record<string, Readonly<Record<string, number>>>>;

@@ -138,6 +138,22 @@ export const SEARCH_I18N_KEYS = {
    * tail is longer than one row. */
   facetsShowAll: "search.facets.show_all",
   facetsShowLess: "search.facets.show_less",
+  /** The box that searches the FILTER PANEL itself — drawn from six groups
+   * up, because a panel a person can no longer scan is a panel they have to
+   * query. It narrows presentation only and never touches the URL. */
+  facetsSearch: "search.facets.search",
+  /** Said where the groups were when the panel-search matches none of them.
+   * Distinct from `facetsEmpty`, which says the SEARCH offers no filters —
+   * here the filters exist and the query missed. */
+  facetsSearchEmpty: "search.facets.search_empty",
+  /**
+   * The rail's sticky footer: what the applied filters LEFT — "N listings
+   * match". A PLURAL FAMILY: it counts a noun in words. Desktop filters
+   * apply instantly, so this is feedback, not an apply button; the floor
+   * case (`at_least`) reuses `resultsCountAtLeast` rather than growing a
+   * second family for the same number.
+   */
+  facetsMatchCount: "search.facets.match_count",
 
   // ── the filter panel as a whole (phone sheet + host slots) ───────────────
   filtersOpen: "search.filters.open",
@@ -311,6 +327,7 @@ export const SEARCH_I18N_PLURAL_KEYS: readonly SearchI18nKey[] = [
   SEARCH_I18N_KEYS.filtersShowCount,
   SEARCH_I18N_KEYS.filtersShowCountAtLeast,
   SEARCH_I18N_KEYS.boxCategoryCount,
+  SEARCH_I18N_KEYS.facetsMatchCount,
 ];
 
 /**
@@ -395,6 +412,10 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.facets.range_to_aria": "{feature}, up to",
   "search.facets.show_all": "Show all ({count})",
   "search.facets.show_less": "Show fewer",
+  "search.facets.search": "Find a filter",
+  "search.facets.search_empty": "No filter matches this",
+  "search.facets.match_count.one": "{count} listing matches",
+  "search.facets.match_count.other": "{count} listings match",
   "search.facets.range_invalid":
     "“From” is larger than “to”, so nothing could match. Swap them to apply this range.",
 

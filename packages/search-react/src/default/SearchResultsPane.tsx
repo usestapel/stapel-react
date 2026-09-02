@@ -70,20 +70,33 @@ export type SearchResultsRenderer = (
  * width of whatever it was dropped into — the visual pass measured a 2560px
  * pane with four cards floating at the top of it and a status row 1350px from
  * the buttons that act on it (class C-NOMAXW).
+ *
+ * 1400 and not the 1120 it started at: a card GRID is not prose — its rows
+ * have no line to lose the thread of — so its measure is the fleet's widest
+ * content column, not a paragraph's. At 1120 the cap quietly overrode the
+ * grid's own 260px floor (a 1440px desktop drew three 363px cards inside a
+ * 1392px content column, the very hole the floor was lowered to fill); at
+ * 1400 the floor decides — five columns open, four beside the filter rail —
+ * and the 2560px pane the constant was written against is still capped.
  */
-export const RESULTS_MAX_WIDTH = 1120;
+export const RESULTS_MAX_WIDTH = 1400;
 
 /**
- * The results grid. `auto-fill` + `minmax(280px, 1fr)`: as many columns as fit,
- * each at least a readable card and never wider than its share — a catalogue
- * on a 1400px desktop is four columns, not four full-bleed rows, and the same
+ * The results grid. `auto-fill` + `minmax(260px, 1fr)`: as many columns as fit,
+ * each at least a readable card and never wider than its share — and the same
  * declaration collapses to one column on a phone with no breakpoint to
- * maintain. 280px is the width below which the default card's title, price and
- * location stop fitting on their own lines.
+ * maintain.
+ *
+ * The floor was 280px and is 260 deliberately: at a 1400px content measure the
+ * grid now draws five columns instead of three wide ones, and beside the 280px
+ * filter rail, four. The default card's own minimum — title, price and
+ * location each on their own line — still fits at 260; the 20px the old floor
+ * bought went into card whitespace, not into legibility, and cost a whole
+ * column of listings on the reference desktop.
  */
 const RESULTS_GRID: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+  gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
   gap: spacing[3],
   alignItems: "stretch",
 };
