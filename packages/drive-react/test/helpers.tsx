@@ -35,6 +35,10 @@ export interface RecordedCall {
    * level picked in a select and never put on the request is exactly the bug
    * a rendering assertion cannot see. */
   readonly body: string | null;
+  /** Request headers as sent (lower-cased names) — the archive password
+   * travels in one, and asserting the UI "used" it without looking at the
+   * wire is exactly the gap this harness exists to close. */
+  readonly headers: Readonly<Record<string, string>>;
 }
 
 export interface WireStub {
@@ -76,12 +80,17 @@ export function wire(routes: Readonly<Record<string, RouteAnswer>>): WireStub {
           ? input.href
           : input.url;
     const parsed = new URL(url, BASE);
+    const sentHeaders: Record<string, string> = {};
+    new Headers(init?.headers).forEach((value, name) => {
+      sentHeaders[name.toLowerCase()] = value;
+    });
     calls.push({
       method: init?.method ?? "GET",
       url,
       pathname: parsed.pathname,
       search: parsed.search,
       body: typeof init?.body === "string" ? init.body : null,
+      headers: sentHeaders,
     });
     const method = (init?.method ?? "GET").toUpperCase();
     const usable = entries.filter(

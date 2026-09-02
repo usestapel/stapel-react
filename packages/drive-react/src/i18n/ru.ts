@@ -133,6 +133,25 @@ export const driveI18nBundleRu: I18nDictionary = {
     "Загрузка не продолжится, пока не освободится место — очистите корзину или запросите увеличение квоты.",
 
   "drive.preview.alt": "Предпросмотр",
+
+  "drive.viewer.label": "Просмотр",
+  "drive.viewer.close": "Закрыть просмотр",
+  "drive.viewer.zoom": "Масштаб",
+  "drive.viewer.prev": "Предыдущее фото",
+  "drive.viewer.next": "Следующее фото",
+  "drive.viewer.preparing": "Готовим просмотр…",
+
+  "drive.archive.title": "Архив",
+  "drive.archive.root": "Содержимое архива",
+  "drive.archive.back": "Назад",
+  "drive.archive.empty": "Архив пуст.",
+  "drive.archive.lockedBanner":
+    "Архив защищён паролем. Введите пароль, чтобы открывать его элементы.",
+  "drive.archive.lockedTag": "Защищено",
+  "drive.archive.passwordField": "Пароль архива",
+  "drive.archive.download": "Скачать",
+
+  "drive.action.history": "История версий",
 };
 
 /**

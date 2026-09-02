@@ -2,8 +2,9 @@
  * `<FileCard/>` — the default skin's download/preview card, the surface a
  * document with no resolvable editor gets (`editor_hint: ""` = download-only
  * by contract; also any unknown hint — degrade to a file, never to a crash).
- * Rides the `MediaViewer` headless bag: `image/*` previews inline, `video/*`
- * plays inline, everything else is a download button on the opaque URL.
+ * Rides the `MediaViewer` headless bag: `image/*` previews inline, `audio/*`
+ * and `video/*` play inline, everything else is a download button on the
+ * opaque URL.
  *
  * The download is a `<GatedButton>`, so a URL that could not be minted greys
  * it out WITH the sentence saying so — the button used to go dead on a bare
@@ -127,6 +128,14 @@ function FileCardBody(props: { readonly bag: MediaViewerBag }): ReactElement {
                     <img src={url} alt={doc.title} style={{ maxWidth: "100%" }} />
                   ) : kind === "video" ? (
                     <video src={url} controls style={{ maxWidth: "100%" }} />
+                  ) : kind === "audio" ? (
+                    <audio
+                      src={url}
+                      controls
+                      preload="metadata"
+                      data-testid="docs-file-audio"
+                      style={{ width: "100%" }}
+                    />
                   ) : (
                     <Flex vertical gap="small" align="flex-start">
                       <Typography.Text type="secondary">

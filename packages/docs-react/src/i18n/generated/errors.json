@@ -21,6 +21,34 @@
     "en": "Captcha token is required."
   },
   {
+    "code": "error.400.docs_archive_encryption_unsupported",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "This archive uses an encryption scheme that cannot be opened here"
+  },
+  {
+    "code": "error.400.docs_archive_malformed",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "The archive is damaged and cannot be read"
+  },
+  {
+    "code": "error.400.docs_archive_password_required",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "This archive entry is password-protected"
+  },
+  {
+    "code": "error.400.docs_archive_password_wrong",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "The archive password is not correct"
+  },
+  {
     "code": "error.400.docs_bad_since",
     "status": 400,
     "params": [],
@@ -61,6 +89,13 @@
     "params": [],
     "remediation": "fix_input",
     "en": "The payload is not a valid CRDT update for this document type"
+  },
+  {
+    "code": "error.400.docs_not_an_archive",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "This document is not a browsable archive"
   },
   {
     "code": "error.400.docs_not_trashed",
@@ -397,6 +432,13 @@
     "en": "Share grant not found"
   },
   {
+    "code": "error.404.docs_archive_entry_not_found",
+    "status": 404,
+    "params": [],
+    "remediation": "retry",
+    "en": "No such entry in the archive"
+  },
+  {
     "code": "error.404.docs_document_not_found",
     "status": 404,
     "params": [],
@@ -493,6 +535,34 @@
     "params": [],
     "remediation": "retry",
     "en": "Snapshot saves require an If-Match sequence"
+  },
+  {
+    "code": "error.413.docs_archive_entry_too_large",
+    "status": 413,
+    "params": [],
+    "remediation": "retry",
+    "en": "The archive entry exceeds the extraction size limit"
+  },
+  {
+    "code": "error.413.docs_archive_ratio",
+    "status": 413,
+    "params": [],
+    "remediation": "retry",
+    "en": "The archive entry exceeds the compression ratio limit"
+  },
+  {
+    "code": "error.413.docs_archive_too_many_entries",
+    "status": 413,
+    "params": [],
+    "remediation": "retry",
+    "en": "The archive holds too many entries to browse"
+  },
+  {
+    "code": "error.413.docs_archive_total_too_large",
+    "status": 413,
+    "params": [],
+    "remediation": "retry",
+    "en": "The archive unpacks to more data than may be browsed"
   },
   {
     "code": "error.413.docs_body_too_large",

@@ -36,12 +36,14 @@ import { spacing } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
 import { useT } from "@stapel/core";
 import { useCreateFolder } from "@stapel/docs-react";
+import type { DocDocument } from "@stapel/docs-react";
 import { NameDialog } from "@stapel/docs-react/default";
 import { driveQueryKeys } from "../model/queryKeys.js";
 import { DriveList } from "../headless/DriveList.js";
 import { UploadTray } from "../headless/UploadTray.js";
 import type { UploadTrayBag } from "../headless/UploadTray.js";
 import type { DriveRow } from "../headless/rows.js";
+import { viewerKindFor } from "../model/viewers.js";
 import type { DriveBreadcrumbNode, DriveSearchHit } from "../api/types.js";
 import { DRIVE_I18N_KEYS } from "../i18n/keys.js";
 import { DriveGridTile, DriveListRow } from "./DriveRow.js";
@@ -118,7 +120,18 @@ function DriveScreenBody(props: DriveScreenProps): ReactElement {
   const RecentsPane = resolveDriveSkinComponent("recentsPane");
   const StarredPane = resolveDriveSkinComponent("starredPane");
   const UploadTrayPanel = resolveDriveSkinComponent("uploadTray");
+  const MediaLightboxPanel = resolveDriveSkinComponent("mediaLightbox");
+  const ArchiveSheetPanel = resolveDriveSkinComponent("archiveSheet");
   const [actionRow, setActionRow] = useState<DriveRow | null>(null);
+  // The open in-place viewer. `viewer` carries the document AND the image
+  // siblings captured at open time (the rows were on screen a moment ago —
+  // the same "the trail is free" reasoning as the breadcrumb), so swiping
+  // never refetches the listing it came from.
+  const [viewer, setViewer] = useState<{
+    readonly document: DocDocument;
+    readonly siblings: readonly DocDocument[];
+  } | null>(null);
+  const [archiveDoc, setArchiveDoc] = useState<DocDocument | null>(null);
   const [searching, setSearching] = useState(false);
   // The FAB's action sheet (owner escalation 2026-09-02): the FAB used to
   // open the file picker DIRECTLY, which left the drive with no way to make
@@ -146,10 +159,29 @@ function DriveScreenBody(props: DriveScreenProps): ReactElement {
     setNewFolderOpen(false);
   };
 
-  const openRow = (row: DriveRow): void => {
+  const openRow = (row: DriveRow, siblings: readonly DriveRow[] = []): void => {
     if (row.kind === "folder") {
       setFolderId(row.id);
       setTrail((current) => [...current, { id: row.id, name: row.name }]);
+      return;
+    }
+    // Viewable files open IN PLACE (viewing wave, stapel-docs 0.8.0): a
+    // photo in the lightbox with its listing-mates to swipe through, audio
+    // and video as players, a zip as the archive sheet. Everything else —
+    // editable documents above all — keeps routing to the host's document
+    // surface, exactly as before: the viewers are additive.
+    const kind = viewerKindFor(row.document);
+    if (kind === "archive") {
+      setArchiveDoc(row.document);
+      return;
+    }
+    if (kind !== null) {
+      setViewer({
+        document: row.document,
+        siblings: siblings
+          .filter((sibling) => sibling.kind === "document")
+          .map((sibling) => sibling.document),
+      });
       return;
     }
     props.onOpenDocument?.(row.id);
@@ -274,7 +306,9 @@ function DriveScreenBody(props: DriveScreenProps): ReactElement {
                     <DriveGridTile
                       key={`${row.kind}:${row.id}`}
                       row={row}
-                      onOpen={openRow}
+                      onOpen={(opened) => {
+                        openRow(opened, rows);
+                      }}
                       onActions={setActionRow}
                       onToggleStar={bag.toggleStar}
                     />
@@ -289,7 +323,9 @@ function DriveScreenBody(props: DriveScreenProps): ReactElement {
                     <DriveListRow
                       key={`${row.kind}:${row.id}`}
                       row={row}
-                      onOpen={openRow}
+                      onOpen={(opened) => {
+                        openRow(opened, rows);
+                      }}
                       onActions={setActionRow}
                       onToggleStar={bag.toggleStar}
                     />
@@ -380,6 +416,27 @@ function DriveScreenBody(props: DriveScreenProps): ReactElement {
           {uploadArea}
         </UploadTray>
       )}
+
+      <MediaLightboxPanel
+        document={viewer?.document ?? null}
+        siblings={viewer?.siblings ?? []}
+        onClose={() => {
+          setViewer(null);
+        }}
+        onNavigate={(next) => {
+          setViewer((current) =>
+            current === null ? null : { ...current, document: next }
+          );
+        }}
+      />
+
+      <ArchiveSheetPanel
+        documentId={archiveDoc?.id ?? null}
+        {...(archiveDoc !== null ? { title: archiveDoc.title } : {})}
+        onClose={() => {
+          setArchiveDoc(null);
+        }}
+      />
 
       <DriveRowActions
         workspaceId={props.workspaceId}

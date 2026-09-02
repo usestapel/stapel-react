@@ -53,6 +53,19 @@ export interface StarredListing {
   readonly documents: readonly DocDocument[];
 }
 
+/**
+ * A zip document's central directory as a browsable listing
+ * (`GET /documents/:id/archive`, stapel-docs 0.8.0). Complete or refused —
+ * the backend answers 413 past its entry-count / total-size ceilings rather
+ * than truncating, so a rendered listing is never silently partial.
+ */
+export type ArchiveListing = Schemas["ArchiveListingDTO"];
+
+/** One member of a browsed zip. `mime_type` is guessed from the member's
+ * NAME server-side — a viewer-picking hint, not a promise about the bytes;
+ * `encrypted` marks members whose extraction needs the per-request password. */
+export type ArchiveEntry = Schemas["ArchiveEntryDTO"];
+
 /** The fixed thumbnail ladder (`GET /documents/:id/thumbnail?tier=`). */
 export const THUMBNAIL_TIERS = [160, 480] as const;
 

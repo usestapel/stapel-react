@@ -4,6 +4,38 @@
   "version": "0.3.0",
   "demos": [
     {
+      "id": "drive.archiveSheet",
+      "title": "Archive sheet",
+      "description": "A zip document browsed as a compressed folder (viewing wave, stapel-docs 0.8.0). ONE listing request — the server reads the central directory by ranged storage reads, never the whole object — and the sheet does the folder illusion locally: descending a directory is a prefix filter over the array the first request already paid for. Members extract one at a time under the server's twice-checked ceilings; a viewable member previews inline, everything else downloads. Encryption is a STATE (the lock banner and a per-request password header), and every refusal is the backend's own named sentence.",
+      "component": "ArchiveSheetPanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The root rung of a real archive: a file, two directories (one explicit, one implied by a deeper path — zips are not required to carry directory rows), sizes from the central directory without inflating anything.",
+          "viewport": "phone",
+          "step": "browse"
+        },
+        {
+          "id": "locked",
+          "description": "A password-protected archive. The names are readable (ZipCrypto encrypts data, not the directory), so the sheet lists them with a Locked tag; the password field feeds the X-Docs-Archive-Password header per extraction and is stored nowhere — a wrong one renders the server's own refusal.",
+          "viewport": "phone",
+          "step": "encrypted"
+        },
+        {
+          "id": "refused",
+          "description": "A bomb-shaped archive refused whole (413, too many entries) — complete or refused, never truncated, because a truncated folder looks complete to everyone who renders it.",
+          "viewport": "phone",
+          "step": "refused"
+        }
+      ],
+      "source": {
+        "file": "demo/ArchiveSheetPanel.demo.tsx",
+        "line": 54
+      }
+    },
+    {
       "id": "drive.breadcrumbs",
       "title": "Breadcrumb bar",
       "description": "Sticky, horizontally scrolling, never wrapping onto a second line. The trail is normally FREE — descending pushes the folder that was tapped, and the row was on screen a moment ago — so browsing costs one folder read per rung. Only a cold deep link has no trail, and then the docs pair's ancestor walk answers.",
@@ -35,6 +67,38 @@
       "source": {
         "file": "demo/DriveBreadcrumbBar.demo.tsx",
         "line": 35
+      }
+    },
+    {
+      "id": "drive.mediaLightbox",
+      "title": "Media lightbox",
+      "description": "The in-place viewer a viewable file opens in (viewing wave, stapel-docs 0.8.0): a photo full-size with tap-to-zoom and its listing-mates one swipe away, audio as an inline player, video as a player that can SEEK — the bytes ride the presigned download URL where the store signs one (MinIO/S3 honour Range on it), and the authorized content stream where it cannot (the 503 fallback, dev profile). Editable documents are untouched: they still route to the host's document surface.",
+      "component": "MediaLightboxPanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A photo, full-size, with a second photo in the folder: the arrows (and a horizontal swipe) step through the images the listing already had — no refetch, and Zoom is one tap.",
+          "viewport": "phone",
+          "step": "photo"
+        },
+        {
+          "id": "video",
+          "description": "A video file as a player. `playsInline` keeps a phone from hijacking into fullscreen on play; seeking works because the byte source answers single-range 206s on either transport.",
+          "viewport": "phone",
+          "step": "video"
+        },
+        {
+          "id": "audio",
+          "description": "An audio file as an inline player — a voice note is a file a drive actually holds, and 0.2.0 could only offer it as a download.",
+          "viewport": "phone",
+          "step": "audio"
+        }
+      ],
+      "source": {
+        "file": "demo/MediaLightboxPanel.demo.tsx",
+        "line": 65
       }
     },
     {

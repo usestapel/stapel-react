@@ -26,20 +26,24 @@
  * id, and that is a replacement, not a fork.
  */
 import type { ComponentType } from "react";
+import type { ArchiveSheetPanelProps } from "./ArchiveSheetPanel.js";
 import type { DriveBreadcrumbBarProps } from "./DriveBreadcrumbBar.js";
 import type { DriveRowActionsProps } from "./DriveRowActions.js";
 import type { DriveSearchFieldProps } from "./DriveSearchField.js";
 import type { DriveThumbnailProps } from "./DriveThumbnail.js";
 import type { DriveTrashPaneProps } from "./DriveTrashPane.js";
+import type { MediaLightboxPanelProps } from "./MediaLightboxPanel.js";
 import type { RecentsPaneProps } from "./RecentsPane.js";
 import type { ShareSheetPanelProps } from "./ShareSheetPanel.js";
 import type { StarredPaneProps } from "./StarredPane.js";
 import type { UploadTrayPanelProps } from "./UploadTrayPanel.js";
+import { ArchiveSheetPanel } from "./ArchiveSheetPanel.js";
 import { DriveBreadcrumbBar } from "./DriveBreadcrumbBar.js";
 import { DriveRowActions } from "./DriveRowActions.js";
 import { DriveSearchField } from "./DriveSearchField.js";
 import { DriveThumbnail } from "./DriveThumbnail.js";
 import { DriveTrashPane } from "./DriveTrashPane.js";
+import { MediaLightboxPanel } from "./MediaLightboxPanel.js";
 import { RecentsPane } from "./RecentsPane.js";
 import { ShareSheetPanel } from "./ShareSheetPanel.js";
 import { StarredPane } from "./StarredPane.js";
@@ -54,6 +58,8 @@ export interface DriveSkinSlots {
   readonly trashPane: ComponentType<DriveTrashPaneProps>;
   readonly recentsPane: ComponentType<RecentsPaneProps>;
   readonly shareSheet: ComponentType<ShareSheetPanelProps>;
+  readonly mediaLightbox: ComponentType<MediaLightboxPanelProps>;
+  readonly archiveSheet: ComponentType<ArchiveSheetPanelProps>;
   readonly starredPane: ComponentType<StarredPaneProps>;
   readonly uploadTray: ComponentType<UploadTrayPanelProps>;
 }
@@ -68,6 +74,8 @@ const builtins: DriveSkinSlots = {
   trashPane: DriveTrashPane,
   recentsPane: RecentsPane,
   shareSheet: ShareSheetPanel,
+  mediaLightbox: MediaLightboxPanel,
+  archiveSheet: ArchiveSheetPanel,
   starredPane: StarredPane,
   uploadTray: UploadTrayPanel,
 };

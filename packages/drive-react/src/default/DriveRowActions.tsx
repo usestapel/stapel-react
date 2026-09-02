@@ -41,6 +41,7 @@ import { loadedRowsOrEmpty, loadStateFromQuery, useT } from "@stapel/core";
 import {
   MoveDialog,
   NameDialog,
+  RevisionsModal,
 } from "@stapel/docs-react/default";
 import {
   useExportUrl,
@@ -74,7 +75,7 @@ export interface DriveRowActionsProps {
   readonly mode?: ThemeMode;
 }
 
-type Prompt = "none" | "rename" | "move" | "trash" | "share";
+type Prompt = "none" | "rename" | "move" | "trash" | "share" | "history";
 
 export function DriveRowActions(props: DriveRowActionsProps): ReactElement {
   return (
@@ -254,6 +255,20 @@ function DriveRowActionsBody(props: DriveRowActionsProps): ReactElement {
             <Button
               type="text"
               style={actionStyle}
+              data-testid="drive-action-history"
+              data-analytics="none"
+              data-analytics-reason="the host app wraps drive row actions with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+              onClick={() => {
+                setPrompt("history");
+              }}
+            >
+              {t(DRIVE_I18N_KEYS.actionHistory)}
+            </Button>
+          )}
+          {!isFolder && (
+            <Button
+              type="text"
+              style={actionStyle}
               data-testid="drive-action-share"
               data-analytics="none"
               data-analytics-reason="the host app wraps drive row actions with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
@@ -305,6 +320,20 @@ function DriveRowActionsBody(props: DriveRowActionsProps): ReactElement {
         onConfirm={doMove}
         onClose={close}
       />
+
+      {/* Version history — the docs pair's finished modal, mounted the way
+          NameDialog/MoveDialog are: nothing of the revision surface is
+          re-implemented here. Since docs-react's viewing slice it previews
+          an OLD revision of a media file inline (image/audio/video via the
+          authorized revision content stream), which is what makes History a
+          row action worth having on a drive full of binaries. */}
+      {row !== null && row.kind === "document" && (
+        <RevisionsModal
+          documentId={row.id}
+          open={prompt === "history"}
+          onClose={close}
+        />
+      )}
 
       <ShareSheetPanel
         documentId={

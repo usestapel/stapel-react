@@ -32,8 +32,9 @@ function engineFor(locale: "en" | "ru" | "es") {
 }
 
 describe("the backend registry actually reaches the pair", () => {
-  it("carries the whole 0.7.0 registry, share axis included", () => {
-    expect(DRIVE_ERROR_CODES.length).toBe(85);
+  it("carries the whole 0.8.0 registry, archive keys included", () => {
+    expect(DRIVE_ERROR_CODES.length).toBe(95);
+    expect(DRIVE_ERROR_CODES).toContain("error.400.docs_archive_password_required");
     expect(DOCS_OWNED.length).toBeGreaterThan(0);
     // The three the drive product surfaces by name.
     expect(DRIVE_ERROR_CODES).toContain("error.507.docs_workspace_quota");

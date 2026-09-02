@@ -34,11 +34,14 @@ function engineFor(locale: "en" | "ru" | "es") {
 }
 
 describe("the backend registry actually reaches the pair", () => {
-  it("carries all 85 codes, including the ones only this module raises", () => {
-    expect(DOCS_ERROR_CODES.length).toBe(85);
-    expect(DOCS_OWNED.length).toBe(43);
+  it("carries all 95 codes, including the ones only this module raises", () => {
+    expect(DOCS_ERROR_CODES.length).toBe(95);
+    expect(DOCS_OWNED.length).toBe(53);
     // 0.7.0: the crdt write door refuses a corrupt Y payload by name.
     expect(DOCS_ERROR_CODES).toContain("error.400.docs_invalid_crdt_payload");
+    // 0.8.0: the archive endpoints answer with their own named states.
+    expect(DOCS_ERROR_CODES).toContain("error.400.docs_archive_password_required");
+    expect(DOCS_ERROR_CODES).toContain("error.413.docs_archive_ratio");
     // The two the audit named: a lost save race and an exhausted workspace
     // used to be the same sentence ("Something went wrong").
     expect(DOCS_ERROR_CODES).toContain("error.409.docs_seq_conflict");

@@ -132,6 +132,27 @@ export const DRIVE_I18N_KEYS = {
 
   // Previews
   previewAlt: "drive.preview.alt",
+
+  // The media lightbox (photo / audio / video viewers)
+  viewerLabel: "drive.viewer.label",
+  viewerClose: "drive.viewer.close",
+  viewerZoom: "drive.viewer.zoom",
+  viewerPrev: "drive.viewer.prev",
+  viewerNext: "drive.viewer.next",
+  viewerPreparing: "drive.viewer.preparing",
+
+  // The archive sheet (a zip browsed as a folder)
+  archiveTitle: "drive.archive.title",
+  archiveRoot: "drive.archive.root",
+  archiveBack: "drive.archive.back",
+  archiveEmpty: "drive.archive.empty",
+  archiveLockedBanner: "drive.archive.lockedBanner",
+  archiveLockedTag: "drive.archive.lockedTag",
+  archivePasswordField: "drive.archive.passwordField",
+  archiveDownload: "drive.archive.download",
+
+  // Row actions: version history
+  actionHistory: "drive.action.history",
 } as const;
 
 /** One key of {@link DRIVE_I18N_KEYS}. */
@@ -258,6 +279,24 @@ export const driveI18nBundleEn: I18nDictionary = {
     "Nothing more will upload until room is freed — empty the trash, or ask for a bigger quota.",
 
   "drive.preview.alt": "Preview",
+  "drive.viewer.label": "Preview",
+  "drive.viewer.close": "Close the preview",
+  "drive.viewer.zoom": "Zoom",
+  "drive.viewer.prev": "Previous photo",
+  "drive.viewer.next": "Next photo",
+  "drive.viewer.preparing": "Preparing the preview…",
+
+  "drive.archive.title": "Archive",
+  "drive.archive.root": "Archive contents",
+  "drive.archive.back": "Back",
+  "drive.archive.empty": "The archive is empty.",
+  "drive.archive.lockedBanner":
+    "This archive is password-protected. Enter the password to open its entries.",
+  "drive.archive.lockedTag": "Locked",
+  "drive.archive.passwordField": "Archive password",
+  "drive.archive.download": "Download",
+
+  "drive.action.history": "Version history",
 };
 
 /**

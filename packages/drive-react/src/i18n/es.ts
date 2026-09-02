@@ -131,6 +131,25 @@ export const driveI18nBundleEs: I18nDictionary = {
     "No se subirá nada más hasta que se libere espacio: vacía la papelera o pide más cuota.",
 
   "drive.preview.alt": "Vista previa",
+
+  "drive.viewer.label": "Vista previa",
+  "drive.viewer.close": "Cerrar la vista previa",
+  "drive.viewer.zoom": "Zoom",
+  "drive.viewer.prev": "Foto anterior",
+  "drive.viewer.next": "Foto siguiente",
+  "drive.viewer.preparing": "Preparando la vista previa…",
+
+  "drive.archive.title": "Archivo comprimido",
+  "drive.archive.root": "Contenido del archivo",
+  "drive.archive.back": "Atrás",
+  "drive.archive.empty": "El archivo está vacío.",
+  "drive.archive.lockedBanner":
+    "Este archivo está protegido con contraseña. Introdúcela para abrir sus entradas.",
+  "drive.archive.lockedTag": "Bloqueado",
+  "drive.archive.passwordField": "Contraseña del archivo",
+  "drive.archive.download": "Descargar",
+
+  "drive.action.history": "Historial de versiones",
 };
 
 /**

@@ -50,6 +50,10 @@ export { RecentsPane } from "./RecentsPane.js";
 export type { RecentsPaneProps } from "./RecentsPane.js";
 export { ShareSheetPanel } from "./ShareSheetPanel.js";
 export type { ShareSheetPanelProps } from "./ShareSheetPanel.js";
+export { MediaLightboxPanel } from "./MediaLightboxPanel.js";
+export type { MediaLightboxPanelProps } from "./MediaLightboxPanel.js";
+export { ArchiveSheetPanel, entriesUnder } from "./ArchiveSheetPanel.js";
+export type { ArchiveSheetPanelProps } from "./ArchiveSheetPanel.js";
 export { UploadTrayPanel } from "./UploadTrayPanel.js";
 export type { UploadTrayPanelProps } from "./UploadTrayPanel.js";
 export { DriveTrashPane } from "./DriveTrashPane.js";
@@ -59,4 +63,7 @@ export {
   ROW_THUMBNAIL,
   TILE_THUMBNAIL,
   TILE_MIN_WIDTH,
+  LIGHTBOX_MEDIA_HEIGHT,
+  LIGHTBOX_SWIPE_THRESHOLD,
+  ARCHIVE_PREVIEW_HEIGHT,
 } from "./measure.js";

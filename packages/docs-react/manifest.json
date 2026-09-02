@@ -4,7 +4,7 @@
   "version": "0.8.0",
   "backend": {
     "module": "stapel-docs",
-    "contract": ">=0.7 <0.8"
+    "contract": ">=0.8 <0.9"
   },
   "layers": [
     "api",
@@ -36,6 +36,20 @@
       "tag": "Docs / sharing",
       "request": null,
       "response": null
+    },
+    "docs_api_v1_documents_archive_entry_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/archive/entry",
+      "tag": "Docs / archive",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_archive_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/archive",
+      "tag": "Docs / archive",
+      "request": null,
+      "response": "ArchiveListingDTO"
     },
     "docs_api_v1_documents_content_retrieve": {
       "method": "GET",
@@ -268,6 +282,20 @@
       "request": null,
       "response": null
     },
+    "docs_api_v1_shared_archive_entry_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/shared/{token}/archive/entry",
+      "tag": "Docs / sharing",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_shared_archive_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/shared/{token}/archive",
+      "tag": "Docs / sharing",
+      "request": null,
+      "response": "ArchiveListingDTO"
+    },
     "docs_api_v1_shared_content_retrieve": {
       "method": "GET",
       "path": "/docs/api/v1/shared/{token}/content",
@@ -307,6 +335,13 @@
       "method": "GET",
       "path": "/docs/api/v1/trash",
       "tag": "Docs / trash",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_uploads_content_update": {
+      "method": "PUT",
+      "path": "/docs/api/v1/uploads/{upload_id}/content",
+      "tag": "Docs / uploads",
       "request": null,
       "response": null
     },
@@ -587,6 +622,26 @@
       "params": [],
       "remediation": "retry"
     },
+    "error.400.docs_archive_encryption_unsupported": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_archive_malformed": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_archive_password_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_archive_password_wrong": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
     "error.400.docs_bad_since": {
       "status": 400,
       "params": [],
@@ -613,6 +668,11 @@
       "remediation": "fix_input"
     },
     "error.400.docs_invalid_crdt_payload": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_not_an_archive": {
       "status": 400,
       "params": [],
       "remediation": "fix_input"
@@ -863,6 +923,11 @@
       "params": [],
       "remediation": "retry"
     },
+    "error.404.docs_archive_entry_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.404.docs_document_not_found": {
       "status": 404,
       "params": [],
@@ -930,6 +995,26 @@
     },
     "error.412.docs_missing_if_match": {
       "status": 412,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.docs_archive_entry_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.docs_archive_ratio": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.docs_archive_too_many_entries": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.docs_archive_total_too_large": {
+      "status": 413,
       "params": [],
       "remediation": "retry"
     },
@@ -1373,12 +1458,17 @@
     "error.400.bad_request",
     "error.400.captcha_invalid",
     "error.400.captcha_required",
+    "error.400.docs_archive_encryption_unsupported",
+    "error.400.docs_archive_malformed",
+    "error.400.docs_archive_password_required",
+    "error.400.docs_archive_password_wrong",
     "error.400.docs_bad_since",
     "error.400.docs_duplicate_name",
     "error.400.docs_export_format",
     "error.400.docs_folder_cycle",
     "error.400.docs_folder_depth",
     "error.400.docs_invalid_crdt_payload",
+    "error.400.docs_not_an_archive",
     "error.400.docs_not_trashed",
     "error.400.docs_share_level",
     "error.400.docs_share_mode_disabled",
@@ -1423,6 +1513,7 @@
     "error.403.verification_required",
     "error.404.ad_not_found",
     "error.404.docs_access_not_found",
+    "error.404.docs_archive_entry_not_found",
     "error.404.docs_document_not_found",
     "error.404.docs_folder_not_found",
     "error.404.docs_link_not_found",
@@ -1437,6 +1528,10 @@
     "error.409.docs_seq_conflict",
     "error.410.gone",
     "error.412.docs_missing_if_match",
+    "error.413.docs_archive_entry_too_large",
+    "error.413.docs_archive_ratio",
+    "error.413.docs_archive_too_many_entries",
+    "error.413.docs_archive_total_too_large",
     "error.413.docs_body_too_large",
     "error.413.docs_export_too_large",
     "error.413.docs_update_too_large",

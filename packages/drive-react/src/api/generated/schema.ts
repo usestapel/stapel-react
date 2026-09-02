@@ -119,6 +119,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/docs/api/v1/documents/{document_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description List a zip document's entries like a folder.
+         *
+         *     The central directory is read through ranged storage reads — the
+         *     archive is never downloaded whole to answer a listing. Complete or
+         *     refused (413), never truncated.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["docs_api_v1_documents_archive_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docs/api/v1/documents/{document_id}/archive/entry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description One member of a zip document, extracted server-side under the
+         *     archive ceilings. ``?path=`` names the member; the optional
+         *     ``X-Docs-Archive-Password`` header unlocks ZipCrypto members.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["docs_api_v1_documents_archive_entry_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/docs/api/v1/documents/{document_id}/content": {
         parameters: {
             query?: never;
@@ -609,6 +657,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/docs/api/v1/shared/{token}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The bearer's browse of a shared zip — same listing, same caps. */
+        get: operations["docs_api_v1_shared_archive_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docs/api/v1/shared/{token}/archive/entry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description One member of a shared zip for the bearer — the extraction path and
+         *     every ceiling are identical to the member endpoint (axis §6: a link
+         *     grants the document's viewers, never a wider byte budget).
+         */
+        get: operations["docs_api_v1_shared_archive_entry_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/docs/api/v1/shared/{token}/content": {
         parameters: {
             query?: never;
@@ -735,6 +821,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/docs/api/v1/uploads/{upload_id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * @description Module-intake PUT of the upload body — the direct-to-storage leg for
+         *     backends that cannot accept one (``accepts_direct_put`` False).
+         *
+         *     AllowAny on purpose, and no authenticators at all: the SIGNATURE is the
+         *     auth, exactly like the S3 presigned URL this endpoint stands in for —
+         *     the client contract (drive-react) is a URL it PUTs raw bytes to with no
+         *     Authorization header attached. A leaked URL is bounded the same way a
+         *     leaked presigned URL is: by the ticket's TTL and its single pending
+         *     session — the signature opens exactly one intake, spendable until
+         *     finalize consumes the session. Empty ``authentication_classes`` is also
+         *     what makes CSRF structurally impossible here: DRF enforces CSRF only
+         *     inside ``SessionAuthentication.enforce_csrf``, and with no
+         *     authenticator a cookie-mode browser (the live 0.7.0 repro host) can
+         *     never be 403'd for a token this presigned-style flow has no way to
+         *     carry.
+         *
+         *     Size ceiling aside, the body is NOT judged here: finalize measures the
+         *     stored object (``head_object``) and owns the declared-size/checksum
+         *     verdicts. This view's whole job is to store bytes for the right key.
+         */
+        put: operations["docs_api_v1_uploads_content_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/docs/api/v1/uploads/{upload_id}/finalize": {
         parameters: {
             query?: never;
@@ -778,6 +901,36 @@ export interface components {
         /** @description Outcome of a journal append batch. */
         AppendResultDTO: {
             head_seq: number;
+        };
+        /**
+         * @description One member of a zip document browsed as a folder (viewing wave).
+         *
+         *     ``mime_type`` is guessed from the member's name — a hint for picking
+         *     a viewer, not a promise about the bytes; ``encrypted`` marks members
+         *     whose extraction needs the per-request password.
+         */
+        ArchiveEntryDTO: {
+            path: string;
+            size_bytes: number;
+            compressed_bytes: number;
+            is_dir: boolean;
+            encrypted: boolean;
+            mime_type: string;
+            modified_at?: string | null;
+        };
+        /**
+         * @description A zip document's central directory as a browsable listing.
+         *
+         *     Complete or refused, never truncated: past the entry-count or total-
+         *     size ceilings the whole listing answers 413 — a truncated folder
+         *     looks complete to every client that renders it. ``archive_encrypted``
+         *     is the lock state the UI shows before anyone opens an entry.
+         */
+        ArchiveListingDTO: {
+            entry_count: number;
+            total_uncompressed_bytes: number;
+            archive_encrypted: boolean;
+            entries?: components["schemas"]["ArchiveEntryDTO"][];
         };
         /** @description One ancestor folder on a search hit's path. */
         BreadcrumbNodeDTO: {
@@ -1245,6 +1398,50 @@ export interface operations {
         responses: {
             /** @description No response body */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    docs_api_v1_documents_archive_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveListingDTO"];
+                };
+            };
+        };
+    };
+    docs_api_v1_documents_archive_entry_retrieve: {
+        parameters: {
+            query: {
+                /** @description Member path inside the archive, exactly as listed. */
+                path: string;
+            };
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1896,6 +2093,49 @@ export interface operations {
             };
         };
     };
+    docs_api_v1_shared_archive_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveListingDTO"];
+                };
+            };
+        };
+    };
+    docs_api_v1_shared_archive_entry_retrieve: {
+        parameters: {
+            query: {
+                path: string;
+            };
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     docs_api_v1_shared_content_retrieve: {
         parameters: {
             query?: never;
@@ -2024,6 +2264,26 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["UploadTicketDTO"];
                 };
+            };
+        };
+    };
+    docs_api_v1_uploads_content_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                upload_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -51,6 +51,39 @@ function rawUrl(transport: DocsRawTransport, path: string): string {
   return `${base}${path}`;
 }
 
+/**
+ * The authorized content-stream URL of the document's CURRENT body —
+ * `GET /documents/:id/content` spelled as a string for a media
+ * subresource (`<img src>` / `<video src>` / `<audio src>`). The
+ * browser's own loader carries the `stapel_jwt` cookie exactly as it
+ * does for the thumbnail endpoint, and since stapel-docs 0.8.0 the
+ * stream answers single-range 206s, so a `<video>` can seek. A
+ * header-token host swaps the surface that uses it (the thumbnail-slot
+ * precedent) — a URL cannot carry a header.
+ */
+export function documentContentUrl(
+  transport: DocsRawTransport,
+  documentId: string
+): string {
+  return rawUrl(
+    transport,
+    `/documents/${encodeURIComponent(documentId)}/content`
+  );
+}
+
+/** The authorized content-stream URL of ONE REVISION's bytes — the media
+ * half of a revision preview (`documentContentUrl`'s shape, one rung in). */
+export function revisionContentUrl(
+  transport: DocsRawTransport,
+  documentId: string,
+  revisionId: string
+): string {
+  return rawUrl(
+    transport,
+    `/documents/${encodeURIComponent(documentId)}/revisions/${encodeURIComponent(revisionId)}/content`
+  );
+}
+
 function rawInit(
   transport: DocsRawTransport,
   init: RequestInit & { headers: Headers }

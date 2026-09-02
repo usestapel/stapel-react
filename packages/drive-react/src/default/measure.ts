@@ -40,3 +40,19 @@ export const UPLOAD_ROW_BAR_HEIGHT = 20;
  * run to. One-off geometry (a skeleton's shape is not on the spacing scale).
  */
 export const CRUMB_SKELETON_WIDTHS: readonly [number, number] = [96, 72];
+
+/**
+ * Tallest the lightbox's media area grows before it scrolls (an image) or
+ * letterboxes (a video). A viewport-relative measure, not a pixel count:
+ * the panel is a bottom sheet on a phone and a modal on desktop, and the
+ * media should fill what the dialog was given without pushing the controls
+ * off screen.
+ */
+export const LIGHTBOX_MEDIA_HEIGHT = "70dvh";
+
+/** Horizontal travel that counts as a swipe between siblings — under it a
+ * touch is a tap (the zoom toggle). */
+export const LIGHTBOX_SWIPE_THRESHOLD = 48;
+
+/** Tallest an inline archive-member preview grows inside the sheet. */
+export const ARCHIVE_PREVIEW_HEIGHT = "40dvh";

@@ -54,17 +54,17 @@
   },
   "size-limit": [
     {
-      "name": "index — headless drive pair (the five new operations + hooks + bags + the en key table). Budgeted at the measured 6.6 KB plus headroom, not at a sibling's 12: a budget nothing can reach is not a gate. The docs pair it composes is a PEER and is ignored — measuring it here would report a number no change to this package can move.",
+      "name": "index — headless drive pair (the operations + hooks + bags + the en key table). 8 -> 9 KB for the viewing wave (0.4.0): the generated en error floor grew 85 -> 95 keys with the archive registry and the archive client/hook joined the surface (8.4 KB measured). Budgeted at the measurement plus headroom, not at a sibling's 12: a budget nothing can reach is not a gate. The docs pair it composes is a PEER and is ignored — measuring it here would report a number no change to this package can move.",
       "path": "dist/index.js",
-      "limit": "8 KB",
+      "limit": "9 KB",
       "ignore": [
         "@stapel/docs-react"
       ]
     },
     {
-      "name": "default — the phone-first product skin (antd + the token bridge) must stay out of the main bundle. The share sheet the 0.6.1 slice added spent the earmarked headroom (10.2 -> 12.4 KB) and the 14 KB budget was NOT raised for it; the sibling docs skin's 22 KB is a two-pane file manager, not a target this one grows toward.",
+      "name": "default — the phone-first product skin (antd + the token bridge) must stay out of the main bundle. 14 -> 16 KB for the viewing wave (0.4.0): the media lightbox and the archive sheet are two whole product surfaces (12.4 -> 15.4 KB measured), raised deliberately with ~0.6 KB headroom rather than left as a ceiling every viewer change bounces off; the sibling docs skin's 22 KB is a two-pane file manager, not a target this one grows toward.",
       "path": "dist/default/index.js",
-      "limit": "14 KB",
+      "limit": "16 KB",
       "ignore": [
         "@stapel/docs-react",
         "@stapel/docs-react/default"

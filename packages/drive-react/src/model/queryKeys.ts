@@ -27,6 +27,8 @@ export const driveQueryKeys: {
    * `stapel/query-keys-from-factory` exists to stop. */
   readonly allChildren: readonly ["drive", "children"];
   readonly allStarred: readonly ["drive", "starred"];
+  /** One zip document's browsed listing. */
+  archive(documentId: string): readonly ["drive", "archive", string];
   readonly allRecents: readonly ["drive", "recents"];
   children(
     workspaceId: string,
@@ -41,6 +43,7 @@ export const driveQueryKeys: {
   all: [ROOT],
   allChildren: [ROOT, "children"],
   allStarred: [ROOT, "starred"],
+  archive: (documentId) => [ROOT, "archive", documentId],
   allRecents: [ROOT, "recents"],
   children: (workspaceId, folderId) => [
     ROOT,

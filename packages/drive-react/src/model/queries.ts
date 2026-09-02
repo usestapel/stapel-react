@@ -4,6 +4,7 @@ import { useActiveSessionReady } from "@stapel/core";
 import type { StapelApiError } from "@stapel/core";
 import type { DocDocument, DocFolder } from "@stapel/docs-react";
 import type {
+  ArchiveListing,
   DriveSearchHit,
   DriveSearchParams,
   StarredListing,
@@ -88,5 +89,29 @@ export function useDriveSearch(
     queryFn: () => api.search(params),
     enabled:
       sessionReady && params.workspaceId.length > 0 && params.q.trim().length > 0,
+  });
+}
+
+/**
+ * A zip document browsed as a folder (`GET /documents/:id/archive`).
+ *
+ * `documentId: null` keeps the hook mounted but idle — the archive sheet is
+ * always in the tree (the ShareSheetPanel pattern) and reads only while a
+ * document is open in it. The listing is immutable for a given head (a saved
+ * zip is a NEW blob), so the entry is dropped with the drive root on
+ * content-affecting mutations rather than refetched on a timer.
+ */
+export function useArchiveListing(
+  documentId: string | null
+): UseQueryResult<ArchiveListing, StapelApiError> {
+  const api = useDriveApi();
+  const sessionReady = useActiveSessionReady();
+  return useQuery({
+    queryKey: driveQueryKeys.archive(documentId ?? ""),
+    queryFn: () => api.getArchiveListing(documentId ?? ""),
+    enabled: sessionReady && documentId !== null && documentId.length > 0,
+    // The named 4xx refusals (encrypted, malformed, over a ceiling) are
+    // answers, not outages: retrying them re-asks a settled question.
+    retry: false,
   });
 }

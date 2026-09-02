@@ -2,7 +2,9 @@ import type { StapelClient, StapelRequestOptions } from "@stapel/core";
 import {
   exportDocument,
   getDocumentContent,
+  documentContentUrl,
   getRevisionContent,
+  revisionContentUrl,
   getSharedContent,
   putDocumentContent,
   uploadToPutUrl,
@@ -113,6 +115,11 @@ export interface DocsApi {
   ): Promise<SaveContentResult>;
   /** `GET /documents/:id/download` — an opaque URL to hand to the browser. */
   getDownloadUrl(documentId: string): Promise<DownloadUrl>;
+  /** The authorized content-stream URL as a string — the `src` a media
+   * element loads when the storage cannot mint a signed URL (503) or a
+   * viewer prefers the cookie-authorized stream. Range-capable since
+   * stapel-docs 0.8.0. */
+  documentContentUrl(documentId: string): string;
   exportDocument(
     documentId: string,
     format: string,
@@ -141,6 +148,9 @@ export interface DocsApi {
     documentId: string,
     revisionId: string
   ): Promise<DownloadUrl>;
+  /** The authorized content-stream URL of one revision's bytes — the media
+   * half of a revision preview surface. */
+  revisionContentUrl(documentId: string, revisionId: string): string;
   /** Restore the document's content to this revision (lands as a new head). */
   restoreRevision(documentId: string, revisionId: string): Promise<DocDocument>;
 
@@ -263,6 +273,8 @@ export function createDocsApi(
       putDocumentContent(transport, documentId, body, putOptions),
     getDownloadUrl: (documentId) =>
       client.get(`${documentPath(documentId)}/download`),
+    documentContentUrl: (documentId) =>
+      documentContentUrl(transport, documentId),
     exportDocument: (documentId, format, signal) =>
       exportDocument(transport, documentId, format, signal),
 
@@ -281,6 +293,8 @@ export function createDocsApi(
       client.post(`${documentPath(documentId)}/revisions`, body, mutating()),
     getRevisionContent: (documentId, revisionId, signal) =>
       getRevisionContent(transport, documentId, revisionId, signal),
+    revisionContentUrl: (documentId, revisionId) =>
+      revisionContentUrl(transport, documentId, revisionId),
     getRevisionDownloadUrl: (documentId, revisionId) =>
       client.get(
         `${documentPath(documentId)}/revisions/${encodeURIComponent(revisionId)}/download`

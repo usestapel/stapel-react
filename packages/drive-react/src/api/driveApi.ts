@@ -2,7 +2,10 @@ import type { StapelClient, StapelRequestOptions } from "@stapel/core";
 import { thumbnailUrl } from "./thumbnails.js";
 import { putWithProgress } from "./upload.js";
 import type { PutProgressOptions, PutProgressResult } from "./upload.js";
+import { fetchArchiveEntry } from "./archive.js";
+import type { ArchiveEntryBytes, FetchArchiveEntryOptions } from "./archive.js";
 import type {
+  ArchiveListing,
   DriveSearchHit,
   DriveSearchParams,
   StarTarget,
@@ -94,6 +97,26 @@ export interface DriveApi {
    */
   thumbnailUrl(documentId: string, tier: ThumbnailTier): string;
 
+  // ── archives (zip as a compressed folder, stapel-docs 0.8.0) ──────────────
+  /**
+   * `GET /documents/:id/archive` — the zip's central directory as a listing.
+   * The server reads it by ranged storage reads and refuses (413) past its
+   * ceilings rather than truncating; encryption arrives as STATE
+   * (`archive_encrypted` + per-entry flags), never as an error.
+   */
+  getArchiveListing(documentId: string): Promise<ArchiveListing>;
+  /**
+   * `GET /documents/:id/archive/entry?path=` — one member, extracted
+   * server-side, as a Blob. A blob fetch and not a URL because the ZipCrypto
+   * password travels in a header a media element's `src` cannot carry; the
+   * object URL the caller mints from the blob is what feeds the viewer.
+   */
+  fetchArchiveEntry(
+    documentId: string,
+    path: string,
+    options?: FetchArchiveEntryOptions
+  ): Promise<ArchiveEntryBytes>;
+
   // ── upload transport ───────────────────────────────────────────────────────
   /**
    * Step 2 of the docs upload flow with REAL progress: a raw `PUT` at the
@@ -148,6 +171,26 @@ export function createDriveApi(
 
     thumbnailUrl: (documentId, tier) =>
       thumbnailUrl(client.baseUrl, documentId, tier),
+
+    getArchiveListing: (documentId) =>
+      client.get(`/documents/${encodeURIComponent(documentId)}/archive`),
+
+    fetchArchiveEntry: (documentId, path, entryOptions) =>
+      fetchArchiveEntry(
+        {
+          baseUrl: client.baseUrl,
+          ...(options?.fetch !== undefined ? { fetch: options.fetch } : {}),
+          ...(options?.credentials !== undefined
+            ? { credentials: options.credentials }
+            : {}),
+          ...(options?.defaultHeaders !== undefined
+            ? { headers: options.defaultHeaders }
+            : {}),
+        },
+        documentId,
+        path,
+        entryOptions
+      ),
 
     putWithProgress: (putUrl, blob, putOptions) =>
       putWithProgress(putUrl, blob, {

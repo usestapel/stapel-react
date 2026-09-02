@@ -62,6 +62,54 @@ export interface RevisionsModalProps {
 /** Editor hints whose snapshots are text — inline-previewable. */
 const TEXT_HINTS = new Set(["text", "markdown", "csv"]);
 
+/** The media half of a revision preview: an `image/*`, `audio/*` or
+ * `video/*` file document previews an OLD revision through the authorized
+ * revision content stream (`api.revisionContentUrl`) — the browser's own
+ * loader carries the session cookie exactly as the thumbnail endpoint's
+ * does, and the stream answers Range since stapel-docs 0.8.0, so a video
+ * revision can seek. */
+function mediaKindOf(mimeType: string): "image" | "audio" | "video" | null {
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType.startsWith("audio/")) return "audio";
+  if (mimeType.startsWith("video/")) return "video";
+  return null;
+}
+
+function RevisionMediaPreview(props: {
+  readonly url: string;
+  readonly kind: "image" | "audio" | "video";
+  readonly title: string;
+}): ReactElement {
+  const style = {
+    maxWidth: "100%",
+    maxHeight: PREVIEW_MAX_HEIGHT,
+  } as const;
+  return props.kind === "image" ? (
+    <img
+      src={props.url}
+      alt={props.title}
+      data-testid="docs-revision-media"
+      style={style}
+    />
+  ) : props.kind === "video" ? (
+    <video
+      src={props.url}
+      controls
+      preload="metadata"
+      data-testid="docs-revision-media"
+      style={style}
+    />
+  ) : (
+    <audio
+      src={props.url}
+      controls
+      preload="metadata"
+      data-testid="docs-revision-media"
+      style={{ width: "100%" }}
+    />
+  );
+}
+
 /** The dialog's width on tablet/desktop: two panes side by side. A one-off
  * geometry (no spacing step is a dialog width), named so it changes once. */
 export const REVISIONS_MODAL_WIDTH: number = 720;
@@ -113,6 +161,13 @@ export function RevisionsModal(props: RevisionsModalProps): ReactElement {
   const { containerRef, stacked } = useSplitLayout();
 
   const previewable = TEXT_HINTS.has(documentQuery.data?.editor_hint ?? "");
+  // A media file document's revisions preview through the content stream —
+  // null for text and for genuinely opaque binaries (those keep the
+  // download link).
+  const mediaKind =
+    documentQuery.data !== undefined && documentQuery.data.type === "file"
+      ? mediaKindOf(documentQuery.data.mime_type)
+      : null;
   // The document's current content sequence. `undefined` while the head read
   // is in flight — an unknown head blocks nothing, the same way the preview
   // beside it stays provisional until the read lands.
@@ -269,6 +324,12 @@ export function RevisionsModal(props: RevisionsModalProps): ReactElement {
                       <RevisionPreview
                         documentId={props.documentId}
                         revisionId={selectedId}
+                      />
+                    ) : mediaKind !== null ? (
+                      <RevisionMediaPreview
+                        url={api.revisionContentUrl(props.documentId, selectedId)}
+                        kind={mediaKind}
+                        title={documentQuery.data?.title ?? ""}
                       />
                     ) : (
                       <Flex vertical gap="small" align="flex-start">

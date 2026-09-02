@@ -45,8 +45,16 @@ export type {
   PutProgressResult,
 } from "./api/upload.js";
 export { THUMBNAIL_TIERS } from "./api/types.js";
+export { fetchArchiveEntry, ARCHIVE_PASSWORD_HEADER } from "./api/archive.js";
+export type {
+  ArchiveEntryBytes,
+  ArchiveRawTransport,
+  FetchArchiveEntryOptions,
+} from "./api/archive.js";
 export type {
   Schemas,
+  ArchiveEntry,
+  ArchiveListing,
   DriveBreadcrumbNode,
   DriveSearchHit,
   DriveSearchParams,
@@ -67,11 +75,14 @@ export {
 } from "./model/context.js";
 export { driveQueryKeys } from "./model/queryKeys.js";
 export {
+  useArchiveListing,
   useFolderChildren,
   useStarred,
   useRecents,
   useDriveSearch,
 } from "./model/queries.js";
+export { viewerKindFor } from "./model/viewers.js";
+export type { ViewerKind } from "./model/viewers.js";
 export { useToggleStar } from "./model/mutations.js";
 export type { ToggleStarVariables } from "./model/mutations.js";
 export {

@@ -4,7 +4,7 @@
   "version": "0.3.0",
   "backend": {
     "module": "stapel-docs",
-    "contract": ">=0.7 <0.8"
+    "contract": ">=0.8 <0.9"
   },
   "layers": [
     "api",
@@ -36,6 +36,20 @@
       "tag": "Docs / sharing",
       "request": null,
       "response": null
+    },
+    "docs_api_v1_documents_archive_entry_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/archive/entry",
+      "tag": "Docs / archive",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_archive_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/archive",
+      "tag": "Docs / archive",
+      "request": null,
+      "response": "ArchiveListingDTO"
     },
     "docs_api_v1_documents_content_retrieve": {
       "method": "GET",
@@ -268,6 +282,20 @@
       "request": null,
       "response": null
     },
+    "docs_api_v1_shared_archive_entry_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/shared/{token}/archive/entry",
+      "tag": "Docs / sharing",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_shared_archive_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/shared/{token}/archive",
+      "tag": "Docs / sharing",
+      "request": null,
+      "response": "ArchiveListingDTO"
+    },
     "docs_api_v1_shared_content_retrieve": {
       "method": "GET",
       "path": "/docs/api/v1/shared/{token}/content",
@@ -310,6 +338,13 @@
       "request": null,
       "response": null
     },
+    "docs_api_v1_uploads_content_update": {
+      "method": "PUT",
+      "path": "/docs/api/v1/uploads/{upload_id}/content",
+      "tag": "Docs / uploads",
+      "request": null,
+      "response": null
+    },
     "docs_api_v1_uploads_create": {
       "method": "POST",
       "path": "/docs/api/v1/uploads",
@@ -326,6 +361,15 @@
     }
   },
   "hooks": {
+    "useArchiveListing": {
+      "kind": "query",
+      "operation": "getArchiveListing",
+      "queryKey": [
+        "drive",
+        "archive",
+        "{documentId}"
+      ]
+    },
     "useDriveSearch": {
       "kind": "query",
       "operation": "search",
@@ -389,6 +433,26 @@
       "params": [],
       "remediation": "retry"
     },
+    "error.400.docs_archive_encryption_unsupported": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_archive_malformed": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_archive_password_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_archive_password_wrong": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
     "error.400.docs_bad_since": {
       "status": 400,
       "params": [],
@@ -415,6 +479,11 @@
       "remediation": "fix_input"
     },
     "error.400.docs_invalid_crdt_payload": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_not_an_archive": {
       "status": 400,
       "params": [],
       "remediation": "fix_input"
@@ -665,6 +734,11 @@
       "params": [],
       "remediation": "retry"
     },
+    "error.404.docs_archive_entry_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.404.docs_document_not_found": {
       "status": 404,
       "params": [],
@@ -732,6 +806,26 @@
     },
     "error.412.docs_missing_if_match": {
       "status": 412,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.docs_archive_entry_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.docs_archive_ratio": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.docs_archive_too_many_entries": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.docs_archive_total_too_large": {
+      "status": 413,
       "params": [],
       "remediation": "retry"
     },
@@ -834,6 +928,18 @@
   },
   "demos": [
     {
+      "id": "drive.archiveSheet",
+      "title": "Archive sheet",
+      "description": "A zip document browsed as a compressed folder (viewing wave, stapel-docs 0.8.0). ONE listing request — the server reads the central directory by ranged storage reads, never the whole object — and the sheet does the folder illusion locally: descending a directory is a prefix filter over the array the first request already paid for. Members extract one at a time under the server's twice-checked ceilings; a viewable member previews inline, everything else downloads. Encryption is a STATE (the lock banner and a per-request password header), and every refusal is the backend's own named sentence.",
+      "component": "ArchiveSheetPanel",
+      "variants": [
+        "default",
+        "locked",
+        "refused"
+      ],
+      "source": "demo/ArchiveSheetPanel.demo.tsx"
+    },
+    {
       "id": "drive.breadcrumbs",
       "title": "Breadcrumb bar",
       "description": "Sticky, horizontally scrolling, never wrapping onto a second line. The trail is normally FREE — descending pushes the folder that was tapped, and the row was on screen a moment ago — so browsing costs one folder read per rung. Only a cold deep link has no trail, and then the docs pair's ancestor walk answers.",
@@ -847,6 +953,18 @@
         "loading"
       ],
       "source": "demo/DriveBreadcrumbBar.demo.tsx"
+    },
+    {
+      "id": "drive.mediaLightbox",
+      "title": "Media lightbox",
+      "description": "The in-place viewer a viewable file opens in (viewing wave, stapel-docs 0.8.0): a photo full-size with tap-to-zoom and its listing-mates one swipe away, audio as an inline player, video as a player that can SEEK — the bytes ride the presigned download URL where the store signs one (MinIO/S3 honour Range on it), and the authorized content stream where it cannot (the 503 fallback, dev profile). Editable documents are untouched: they still route to the host's document surface.",
+      "component": "MediaLightboxPanel",
+      "variants": [
+        "default",
+        "video",
+        "audio"
+      ],
+      "source": "demo/MediaLightboxPanel.demo.tsx"
     },
     {
       "id": "drive.recents",
@@ -982,12 +1100,21 @@
   ],
   "i18nKeys": [
     "drive.action.download",
+    "drive.action.history",
     "drive.action.move",
     "drive.action.open",
     "drive.action.rename",
     "drive.action.share",
     "drive.action.trash",
     "drive.actions.label",
+    "drive.archive.back",
+    "drive.archive.download",
+    "drive.archive.empty",
+    "drive.archive.lockedBanner",
+    "drive.archive.lockedTag",
+    "drive.archive.passwordField",
+    "drive.archive.root",
+    "drive.archive.title",
     "drive.create.label",
     "drive.create.newFolder",
     "drive.create.uploadFiles",
@@ -1079,15 +1206,26 @@
     "drive.upload.uploading",
     "drive.view.grid",
     "drive.view.list",
+    "drive.viewer.close",
+    "drive.viewer.label",
+    "drive.viewer.next",
+    "drive.viewer.preparing",
+    "drive.viewer.prev",
+    "drive.viewer.zoom",
     "error.400.bad_request",
     "error.400.captcha_invalid",
     "error.400.captcha_required",
+    "error.400.docs_archive_encryption_unsupported",
+    "error.400.docs_archive_malformed",
+    "error.400.docs_archive_password_required",
+    "error.400.docs_archive_password_wrong",
     "error.400.docs_bad_since",
     "error.400.docs_duplicate_name",
     "error.400.docs_export_format",
     "error.400.docs_folder_cycle",
     "error.400.docs_folder_depth",
     "error.400.docs_invalid_crdt_payload",
+    "error.400.docs_not_an_archive",
     "error.400.docs_not_trashed",
     "error.400.docs_share_level",
     "error.400.docs_share_mode_disabled",
@@ -1132,6 +1270,7 @@
     "error.403.verification_required",
     "error.404.ad_not_found",
     "error.404.docs_access_not_found",
+    "error.404.docs_archive_entry_not_found",
     "error.404.docs_document_not_found",
     "error.404.docs_folder_not_found",
     "error.404.docs_link_not_found",
@@ -1146,6 +1285,10 @@
     "error.409.docs_seq_conflict",
     "error.410.gone",
     "error.412.docs_missing_if_match",
+    "error.413.docs_archive_entry_too_large",
+    "error.413.docs_archive_ratio",
+    "error.413.docs_archive_too_many_entries",
+    "error.413.docs_archive_total_too_large",
     "error.413.docs_body_too_large",
     "error.413.docs_export_too_large",
     "error.413.docs_update_too_large",
@@ -1167,6 +1310,7 @@
   ],
   "exports": {
     "runtime": [
+      "ARCHIVE_PASSWORD_HEADER",
       "DEFAULT_UPLOAD_CONCURRENCY",
       "DRIVE_ERRORS",
       "DRIVE_ERROR_CODES",
@@ -1189,12 +1333,14 @@
       "driveQueryKeys",
       "driveRows",
       "explainDriveError",
+      "fetchArchiveEntry",
       "folderRow",
       "hasImagePreview",
       "putWithProgress",
       "registerDriveI18n",
       "thumbnailTierFor",
       "thumbnailUrl",
+      "useArchiveListing",
       "useDriveAnalytics",
       "useDriveApi",
       "useDriveRuntime",
@@ -1204,9 +1350,14 @@
       "useStarred",
       "useThumbnailUrl",
       "useToggleStar",
-      "useUploadQueue"
+      "useUploadQueue",
+      "viewerKindFor"
     ],
     "types": [
+      "ArchiveEntry",
+      "ArchiveEntryBytes",
+      "ArchiveListing",
+      "ArchiveRawTransport",
       "BreadcrumbBag",
       "CreateDriveRuntimeOptions",
       "DriveApi",
@@ -1221,6 +1372,7 @@
       "DriveSearchBag",
       "DriveSearchHit",
       "DriveSearchParams",
+      "FetchArchiveEntryOptions",
       "PutProgress",
       "PutProgressOptions",
       "PutProgressResult",
@@ -1237,7 +1389,8 @@
       "UploadItemStatus",
       "UploadQueueBag",
       "UploadQueueOptions",
-      "UploadTrayBag"
+      "UploadTrayBag",
+      "ViewerKind"
     ]
   }
 }
