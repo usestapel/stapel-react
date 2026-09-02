@@ -81,6 +81,10 @@ export interface CountedInputProps {
   readonly formatCount?: (count: number, max: number | undefined) => string;
   readonly placeholder?: string;
   readonly ariaLabel?: string;
+  /** `aria-required` on the field. A prop rather than a rest-spread so the
+   * one accessibility attribute a required field owes is a stated part of the
+   * contract, not an accident of forwarding. */
+  readonly ariaRequired?: boolean;
   readonly id?: string;
   readonly status?: "" | "error" | "warning";
   /** The refusal, in words, under the field. */
@@ -164,6 +168,7 @@ export function CountedInput(props: CountedInputProps): ReactElement {
     },
     ...(props.id !== undefined ? { id: props.id } : {}),
     ...(props.ariaLabel !== undefined ? { "aria-label": props.ariaLabel } : {}),
+    ...(props.ariaRequired === true ? { "aria-required": true } : {}),
     ...(props.placeholder !== undefined ? { placeholder: props.placeholder } : {}),
     ...(props.status !== undefined && props.status !== "" ? { status: props.status } : {}),
     ...(fieldStyle !== undefined ? { style: fieldStyle } : {}),

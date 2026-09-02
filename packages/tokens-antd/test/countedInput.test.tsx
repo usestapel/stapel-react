@@ -171,4 +171,20 @@ describe("CountedInput", () => {
     );
     expect(field().getAttribute("aria-describedby")).toContain(counter().id);
   });
+
+  it("carries aria-required only when the caller states it", () => {
+    render(
+      <Host>
+        <CountedInput value="" onChange={() => undefined} ariaLabel="VIN" ariaRequired />
+      </Host>
+    );
+    expect(screen.getByLabelText("VIN").getAttribute("aria-required")).toBe("true");
+    cleanup();
+    render(
+      <Host>
+        <CountedInput value="" onChange={() => undefined} ariaLabel="VIN" />
+      </Host>
+    );
+    expect(screen.getByLabelText("VIN").getAttribute("aria-required")).toBeNull();
+  });
 });

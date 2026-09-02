@@ -72,6 +72,10 @@ export interface SkinNumberFieldProps {
   readonly errorText?: ReactNode;
   readonly disabled?: boolean;
   readonly ariaLabel?: string;
+  /** `aria-required` on the input. A prop rather than a rest-spread so the
+   * one accessibility attribute a required field owes is a stated part of the
+   * contract, not an accident of forwarding. */
+  readonly ariaRequired?: boolean;
   readonly id?: string;
   readonly onBlur?: () => void;
   readonly style?: CSSProperties;
@@ -151,6 +155,7 @@ export function SkinNumberField(props: SkinNumberFieldProps): ReactElement {
         disabled={props.disabled === true}
         {...(props.id !== undefined ? { id: props.id } : {})}
         {...(props.ariaLabel !== undefined ? { "aria-label": props.ariaLabel } : {})}
+        {...(props.ariaRequired === true ? { "aria-required": true } : {})}
         {...(describedBy !== undefined ? { "aria-describedby": describedBy } : {})}
         {...(props.status !== undefined && props.status !== "" ? { status: props.status } : {})}
         {...(props.hintPlaceholder !== undefined ? { placeholder: props.hintPlaceholder } : {})}

@@ -151,4 +151,20 @@ describe("SkinNumberField", () => {
     const message = screen.getByText("Between 20 and 500.");
     expect(field().getAttribute("aria-describedby")).toBe(message.id);
   });
+
+  it("carries aria-required only when the caller states it", () => {
+    render(
+      <Host>
+        <SkinNumberField value={1} onValueChange={() => undefined} ariaLabel="Volume" ariaRequired />
+      </Host>
+    );
+    expect(field().getAttribute("aria-required")).toBe("true");
+    cleanup();
+    render(
+      <Host>
+        <SkinNumberField value={1} onValueChange={() => undefined} ariaLabel="Volume" />
+      </Host>
+    );
+    expect(field().getAttribute("aria-required")).toBeNull();
+  });
 });
