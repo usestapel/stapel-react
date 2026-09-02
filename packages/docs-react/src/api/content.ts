@@ -231,6 +231,42 @@ export async function getRevisionContent(
 }
 
 /**
+ * `GET /shared/:token/content` — the BEARER's read of the current body.
+ *
+ * Read-only by construction: there is no PUT on this path, and an anonymous
+ * presenter could not write through one anyway (axis §6). Otherwise the same
+ * shape as {@link getDocumentContent} — the head sequence still rides
+ * `X-Docs-Head-Seq`, because a bearer at `edit` level who later saves through
+ * a document URL needs the same `If-Match` handshake everyone else does.
+ *
+ * The token goes in the PATH, never in a query string or a header: it is the
+ * URL the person was handed, and re-shaping it here would make the pair's
+ * request differ from the link that was shared.
+ */
+export async function getSharedContent(
+  transport: DocsRawTransport,
+  token: string,
+  signal?: AbortSignal
+): Promise<DocumentContent> {
+  const doFetch = transport.fetch ?? globalThis.fetch;
+  const response = await doFetch(
+    rawUrl(transport, `/shared/${encodeURIComponent(token)}/content`),
+    rawInit(transport, {
+      method: "GET",
+      headers: new Headers(),
+      ...(signal !== undefined ? { signal } : {}),
+    })
+  );
+  if (!response.ok) await throwEnvelope(response);
+  return {
+    blob: await response.blob(),
+    headSeq: headSeqOf(response),
+    etag: response.headers.get("ETag"),
+    mimeType: response.headers.get("Content-Type"),
+  };
+}
+
+/**
  * PUT the file's bytes at an upload session's `put_url` (step 2 of
  * `createUpload` → **PUT** → `finalizeUpload`). The URL points at the object
  * store — generally a DIFFERENT origin, no cookie, no JSON envelope — so this

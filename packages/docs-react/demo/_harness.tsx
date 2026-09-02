@@ -41,17 +41,36 @@ function statusAndBody(value: DemoResponse): [number, unknown] {
  * Build a canned `fetch` from a path-SUFFIX → response map. Suffix, not
  * substring: `/documents/d-1/content` contains `/documents/`, so a substring
  * router would answer a content read with the document list.
+ *
+ * A key may be prefixed with an HTTP METHOD (`"POST /links"`) — needed because
+ * a share sheet's listing and its mint are the SAME path, and a demo that
+ * cannot make one succeed while the other refuses cannot photograph a refused
+ * mint at all. An unprefixed key still answers any method, so every existing
+ * demo is untouched.
  */
 export function mockFetch(handlers: DemoHandlers): typeof globalThis.fetch {
-  const routes = Object.entries(handlers);
-  return ((input: RequestInfo | URL): Promise<Response> => {
+  const routes = Object.entries(handlers).map(([key, value]) => {
+    const parts = /^([A-Z]+)\s+(.*)$/.exec(key);
+    return {
+      method: parts?.[1] ?? null,
+      suffix: parts?.[2] ?? key,
+      value,
+    };
+  });
+  return ((input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const url =
       typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    const method = (
+      init?.method ?? (input instanceof Request ? input.method : "GET")
+    ).toUpperCase();
     const pathname = new URL(url, DEMO_BASE).pathname;
+    const usable = routes.filter(
+      (route) => route.method === null || route.method === method
+    );
     const found =
-      routes.find(([suffix]) => pathname.endsWith(suffix)) ??
-      routes.find(([suffix]) => pathname.includes(suffix));
-    const handler = found?.[1];
+      usable.find((route) => pathname.endsWith(route.suffix)) ??
+      usable.find((route) => pathname.includes(route.suffix));
+    const handler = found?.value;
     if (typeof handler === "function") {
       return Promise.resolve((handler as () => Response | Promise<Response>)());
     }

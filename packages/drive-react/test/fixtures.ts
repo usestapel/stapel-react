@@ -1,5 +1,10 @@
 /** Wire bodies in the shapes the generated schema declares. */
-import type { DocDocument, DocFolder } from "@stapel/docs-react";
+import type {
+  DocDocument,
+  DocFolder,
+  DocumentAccessGrant,
+  DocumentShareLink,
+} from "@stapel/docs-react";
 import { WORKSPACE_ID } from "./helpers.js";
 
 export const FOLDER_A: DocFolder = {
@@ -48,4 +53,31 @@ export const DOC_IN_FOLDER: DocDocument = {
   title: "Nested.txt",
   mime_type: "text/plain",
   folder_id: FOLDER_A.id,
+};
+
+// ── sharing (stapel-docs 0.6) ────────────────────────────────────────────────
+
+export const GRANT_A: DocumentAccessGrant = {
+  id: "acc-a",
+  document_id: DOC_A.id,
+  subject_kind: "user",
+  subject: "u-mira",
+  level: "view",
+  granted_by: "u-owner",
+  suspended: false,
+  created_at: "2026-09-02T10:00:00Z",
+};
+
+export const LINK_A: DocumentShareLink = {
+  id: "lnk-a",
+  document_id: DOC_A.id,
+  token: "0xk3nEXAMPLEtoken",
+  level: "view",
+  status: "active",
+  expires_at: "2026-10-02T10:00:00Z",
+  revoked_at: null,
+  first_redeemed_at: null,
+  created_by: "u-owner",
+  suspended: false,
+  created_at: "2026-09-02T10:00:00Z",
 };

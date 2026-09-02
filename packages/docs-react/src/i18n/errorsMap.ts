@@ -12,7 +12,7 @@
  * (`error.507.docs_workspace_quota`) both rendered as "Something went wrong".
  */
 import { DOCS_ERRORS } from "./generated/errors.gen.js";
-import type { Remediation } from "./generated/errors.gen.js";
+import type { DocsErrorCode, Remediation } from "./generated/errors.gen.js";
 
 export {
   DOCS_ERRORS,
@@ -35,3 +35,26 @@ export function explainDocsError(code: string): Remediation | undefined {
   return (DOCS_ERRORS as Record<string, { remediation: Remediation }>)[code]
     ?.remediation;
 }
+
+/**
+ * The four share refusals a sheet must render BY NAME rather than as
+ * "something went wrong" — each names a different remedy: a mode nobody in
+ * the sheet can switch on, a level to retry one step lower, a form that sent
+ * both subject fields or neither, and a reference kind this host never
+ * registered a resolver for.
+ *
+ * Typed as {@link DocsErrorCode}, so the four are checked against the
+ * GENERATED registry at compile time: if stapel-docs renames one, this stops
+ * building instead of silently falling through to the generic branch.
+ */
+export const DOCS_SHARE_ERROR_CODES: {
+  readonly modeDisabled: DocsErrorCode;
+  readonly level: DocsErrorCode;
+  readonly subject: DocsErrorCode;
+  readonly refKind: DocsErrorCode;
+} = {
+  modeDisabled: "error.400.docs_share_mode_disabled",
+  level: "error.400.docs_share_level",
+  subject: "error.400.docs_share_subject",
+  refKind: "error.400.docs_share_ref_kind",
+};

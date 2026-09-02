@@ -197,6 +197,44 @@
       }
     },
     {
+      "id": "drive.shareSheet",
+      "title": "Share sheet",
+      "description": "Sharing as a bottom sheet, over the docs pair's headless share bag — nothing of the axis is re-implemented here. stapel-docs has two INDEPENDENT grant sources, and a deployment may enable either, both or neither, so the sheet has two sections and each answers for itself. Three properties this drawing is responsible for: a switched-off mode's rows stay VISIBLE under a banner (hiding them tells an admin the access was revoked, and re-enabling the mode would then restore access nobody expected); a section the caller may not administer is absent rather than a dead form; and a refused mint says WHICH refusal it was, because the level ceiling is not published by any endpoint and can only be learned by asking.",
+      "component": "ShareSheetPanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Both halves live: two links (one already opened by somebody, which is stamped once and is evidence rather than a counter) and two grants — a person and a resolver-backed group reference.",
+          "viewport": "phone",
+          "step": "people+links"
+        },
+        {
+          "id": "linksOnly",
+          "description": "Only link sharing is administrable here: the people section says so in one line instead of offering a form whose every submit would be refused.",
+          "viewport": "phone",
+          "step": "links-only"
+        },
+        {
+          "id": "suspended",
+          "description": "Both modes are switched off for this deployment. The rows are still there, tagged Paused, under a banner that says they were not revoked — the kill switch is a display state, never a filter.",
+          "viewport": "phone",
+          "step": "suspended"
+        },
+        {
+          "id": "mintError",
+          "description": "A mint at `edit` refused by SHARING.LINK.MAX_LEVEL. The sentence is the refusal's own ('That access level may not be granted here'), because the remedy — mint one level lower — is specific to it, and no endpoint in 0.6.1 publishes the ceiling for the sheet to check first.",
+          "viewport": "phone",
+          "step": "mint-error"
+        }
+      ],
+      "source": {
+        "file": "demo/ShareSheetPanel.demo.tsx",
+        "line": 56
+      }
+    },
+    {
       "id": "drive.starred",
       "title": "Starred",
       "description": "A star is a bookmark: the backend takes docs.view for it, both verbs answer 204 whatever the previous state was, and the icon flips before the request because the round trip is invisible only if it does. A trashed item drops out of this list but keeps its star until purge — restoring it brings the bookmark back.",

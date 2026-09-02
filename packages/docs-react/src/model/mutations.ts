@@ -8,10 +8,14 @@ import type {
   AppendResult,
   CreateDocumentRequest,
   CreateFolderRequest,
+  CreateLinkRequest,
   DocDocument,
   DocFolder,
   DocRevision,
+  DocumentAccessGrant,
+  DocumentShareLink,
   EmptyTrashRequest,
+  GrantAccessRequest,
   PatchDocumentRequest,
   PatchFolderRequest,
   PostUpdateRequest,
@@ -471,5 +475,140 @@ export function useExportUrl(): UseMutationResult<
         return download.url;
       },
     };
+  return useMutation(options);
+}
+
+// ── sharing (0.6) ────────────────────────────────────────────────────────────
+
+/**
+ * Invalidate ONE share listing — never the module root.
+ *
+ * Every other write in this file drops `docsQueryKeys.all`, because a save or
+ * a move genuinely shifts the list, the tree and the content at once. A share
+ * write shifts neither: granting access moves no document, and dropping the
+ * root would refetch the whole file manager sitting behind the sheet on every
+ * keystroke-sized gesture.
+ */
+function useInvalidateKey(key: readonly unknown[]): () => void {
+  const queryClient = useQueryClient();
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: key });
+  };
+}
+
+/**
+ * `POST /documents/:id/access` — grant the document to one subject at one
+ * level, or re-grant an existing subject at a new one (the backend upserts;
+ * re-granting is the sheet's ordinary gesture, not a duplicate error).
+ *
+ * The refusals worth rendering by name rather than as "something went wrong":
+ * `error.400.docs_share_mode_disabled` (whitelist sharing is switched off for
+ * this deployment), `error.400.docs_share_subject` (a grant names exactly one
+ * subject — a `user_id` OR a `ref`, never both and never neither) and
+ * `error.400.docs_share_ref_kind` (no resolver is registered for that kind of
+ * reference, so the row could only ever deny and is refused at mint).
+ */
+export function useGrantAccess(
+  documentId: string
+): UseMutationResult<DocumentAccessGrant, StapelApiError, GrantAccessRequest> {
+  const api = useDocsApi();
+  const invalidate = useInvalidateKey(docsQueryKeys.access(documentId));
+  const options: UseMutationOptions<
+    DocumentAccessGrant,
+    StapelApiError,
+    GrantAccessRequest
+  > = {
+    mutationFn: (body) => api.grantAccess(documentId, body),
+    onSuccess: invalidate,
+  };
+  return useMutation(options);
+}
+
+/** `DELETE /documents/:id/access/:accessId` — revoke one grant. */
+export function useRevokeAccess(
+  documentId: string
+): UseMutationResult<void, StapelApiError, string> {
+  const api = useDocsApi();
+  const invalidate = useInvalidateKey(docsQueryKeys.access(documentId));
+  const options: UseMutationOptions<void, StapelApiError, string> = {
+    mutationFn: (accessId) => api.revokeAccess(documentId, accessId),
+    onSuccess: invalidate,
+  };
+  return useMutation(options);
+}
+
+/**
+ * `POST /documents/:id/links` — mint a bearer link.
+ *
+ * The level is capped twice server-side: by the deployment's
+ * `SHARING.LINK.MAX_LEVEL` and by the granter's own mandate. Above either,
+ * the backend REFUSES with `error.400.docs_share_level` rather than silently
+ * clamping — so a sheet that offered `edit` says which level was refused
+ * instead of showing a `view` link the person believes is an editing one.
+ *
+ * The minted row carries the token, and the fresh listing does too; there is
+ * no "shown once" secret to stash, and nothing here may be logged.
+ */
+export function useMintShareLink(
+  documentId: string
+): UseMutationResult<
+  DocumentShareLink,
+  StapelApiError,
+  CreateLinkRequest | undefined
+> {
+  const api = useDocsApi();
+  const invalidate = useInvalidateKey(docsQueryKeys.links(documentId));
+  const options: UseMutationOptions<
+    DocumentShareLink,
+    StapelApiError,
+    CreateLinkRequest | undefined
+  > = {
+    mutationFn: (body) => api.createLink(documentId, body),
+    onSuccess: invalidate,
+  };
+  return useMutation(options);
+}
+
+/** `DELETE /documents/:id/links/:linkId` — revoke one link. Terminal: a
+ * revoked link never revives, which is why the skin confirms it. */
+export function useRevokeShareLink(
+  documentId: string
+): UseMutationResult<void, StapelApiError, string> {
+  const api = useDocsApi();
+  const invalidate = useInvalidateKey(docsQueryKeys.links(documentId));
+  const options: UseMutationOptions<void, StapelApiError, string> = {
+    mutationFn: (linkId) => api.revokeLink(documentId, linkId),
+    onSuccess: invalidate,
+  };
+  return useMutation(options);
+}
+
+/** Variables for {@link useSharedDownloadUrl}. */
+export interface SharedDownloadUrlVariables {
+  readonly token: string;
+}
+
+/**
+ * Mint a fresh presigned URL for a BEARER (`GET /shared/:token/download`).
+ * Mutation-shaped for the same reason {@link useExportUrl} is: the URL is
+ * opaque and expires, so it is resolved on the click and handed straight to
+ * the browser rather than parked in a `href` that goes stale in the DOM.
+ */
+export function useSharedDownloadUrl(): UseMutationResult<
+  string,
+  StapelApiError,
+  SharedDownloadUrlVariables
+> {
+  const api = useDocsApi();
+  const options: UseMutationOptions<
+    string,
+    StapelApiError,
+    SharedDownloadUrlVariables
+  > = {
+    mutationFn: async (vars) => {
+      const download = await api.getSharedDownloadUrl(vars.token);
+      return download.url;
+    },
+  };
   return useMutation(options);
 }

@@ -64,6 +64,61 @@ export interface paths {
         patch: operations["docs_api_v1_documents_partial_update"];
         trace?: never;
     };
+    "/docs/api/v1/documents/{document_id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The whitelist half of the share sheet: who has access, and grant one.
+         *
+         *     Both methods are gated on ``docs.share.whitelist`` — the sheet lists
+         *     other people, so seeing it is itself a sharing-administration act, not
+         *     a document read.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["docs_api_v1_documents_access_list"];
+        put?: never;
+        /**
+         * @description The whitelist half of the share sheet: who has access, and grant one.
+         *
+         *     Both methods are gated on ``docs.share.whitelist`` — the sheet lists
+         *     other people, so seeing it is itself a sharing-administration act, not
+         *     a document read.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        post: operations["docs_api_v1_documents_access_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docs/api/v1/documents/{document_id}/access/{access_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * @description Revoke one whitelist grant.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        delete: operations["docs_api_v1_documents_access_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/docs/api/v1/documents/{document_id}/content": {
         parameters: {
             query?: never;
@@ -129,6 +184,61 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docs/api/v1/documents/{document_id}/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The bearer-link half of the share sheet: list links, mint one.
+         *
+         *     The listing carries live tokens (a sheet that cannot re-show the link it
+         *     minted makes people mint a second one), which is precisely why GET is
+         *     gated on ``docs.share.link`` and not on document view.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["docs_api_v1_documents_links_list"];
+        put?: never;
+        /**
+         * @description The bearer-link half of the share sheet: list links, mint one.
+         *
+         *     The listing carries live tokens (a sheet that cannot re-show the link it
+         *     minted makes people mint a second one), which is precisely why GET is
+         *     gated on ``docs.share.link`` and not on document view.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        post: operations["docs_api_v1_documents_links_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docs/api/v1/documents/{document_id}/links/{link_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * @description Revoke one bearer link (terminal — a revoked link never revives).
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        delete: operations["docs_api_v1_documents_links_destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -476,6 +586,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/docs/api/v1/shared/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The bearer's view of a document — stripped (axis §6).
+         *
+         *     Title, type and shape; no tree, no workspace, no owner, no revisions. A
+         *     link grants a document, not a seat, and history is withheld besides:
+         *     an old revision can hold text that was deleted on purpose since.
+         */
+        get: operations["docs_api_v1_shared_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docs/api/v1/shared/{token}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The bearer's read of the current body. Read-only by construction:
+         *     there is no PUT here, and an anonymous presenter could not write through
+         *     one anyway (axis §6).
+         */
+        get: operations["docs_api_v1_shared_content_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docs/api/v1/shared/{token}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Presigned GET URL for the bearer's copy of the current body. */
+        get: operations["docs_api_v1_shared_download_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/docs/api/v1/starred": {
         parameters: {
             query?: never;
@@ -589,6 +760,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description ``POST /documents/<id>/access`` — exactly one subject, one level.
+         *
+         *     ``subject_kind`` is explicit rather than inferred from which field is
+         *     present: an ACL write that guesses its own meaning is one typo away
+         *     from granting to a subject the caller did not name.
+         */
+        AccessGrant: {
+            subject_kind: components["schemas"]["SubjectKindEnum"];
+            /** Format: uuid */
+            user_id?: string | null;
+            ref?: string;
+            /** @default view */
+            level: components["schemas"]["LevelEnum"];
+        };
         /** @description Outcome of a journal append batch. */
         AppendResultDTO: {
             head_seq: number;
@@ -597,6 +783,28 @@ export interface components {
         BreadcrumbNodeDTO: {
             id: string;
             name: string;
+        };
+        /**
+         * @description Presents one whitelist grant as a share-sheet row.
+         *
+         *     ``suspended`` is the kill-switch state (axis §3): true when the row
+         *     exists but its mode is switched off, so the sheet says "paused by
+         *     configuration" instead of hiding a grant the admin would then believe
+         *     was revoked.
+         */
+        DocumentAccessPresenterDTO: {
+            /** @description subject kind */
+            subject_kind: string;
+            /** @description level */
+            level: string;
+            id: string;
+            document_id: string;
+            /** @description The user id for subject_kind=user, the container reference for subject_kind=ref. */
+            subject: string;
+            created_at: string;
+            granted_by?: string | null;
+            /** @description The grant exists but its sharing mode is switched off for this deployment — inert, not revoked. */
+            suspended?: boolean;
         };
         DocumentCreate: {
             /** Format: uuid */
@@ -607,6 +815,32 @@ export interface components {
             folder_id?: string | null;
             metadata?: unknown;
             body?: string;
+        };
+        /**
+         * @description Presents one bearer link to whoever may administer sharing.
+         *
+         *     The token IS in this envelope — a share sheet that cannot re-show the
+         *     link it minted is a sheet that makes people mint a second one — which is
+         *     exactly why the listing endpoint is gated on ``docs.share.link`` and why
+         *     no ``document.share.*`` EVENT carries it.
+         */
+        DocumentLinkPresenterDTO: {
+            /** @description token */
+            token: string;
+            /** @description level */
+            level: string;
+            id: string;
+            document_id: string;
+            /** @description Derived: "revoked" beats "expired" beats "active". */
+            status: string;
+            expires_at: string;
+            created_at: string;
+            revoked_at?: string | null;
+            /** @description When the link was first opened successfully; stamped once. */
+            first_redeemed_at?: string | null;
+            created_by?: string | null;
+            /** @description The link exists but link sharing is switched off for this deployment — inert, not revoked. */
+            suspended?: boolean;
         };
         /**
          * @description Presents a Document row as the API envelope. The three registry-derived
@@ -679,6 +913,17 @@ export interface components {
             author_id: string | null;
             created_at: string;
         };
+        /**
+         * @description * `view` - view
+         *     * `edit` - edit
+         * @enum {string}
+         */
+        LevelEnum: "view" | "edit";
+        /** @description ``POST /documents/<id>/links`` — the level, capped by LINK.MAX_LEVEL. */
+        LinkCreate: {
+            /** @default view */
+            level: components["schemas"]["LevelEnum"];
+        };
         NamedRevision: {
             name: string;
         };
@@ -732,6 +977,38 @@ export interface components {
             is_starred?: boolean | null;
             breadcrumb?: components["schemas"]["BreadcrumbNodeDTO"][];
         };
+        /**
+         * @description What a link BEARER sees: the document, and nothing around it.
+         *
+         *     The stripped envelope of axis §6 — no workspace, no folder, no owner,
+         *     no star state, no revision history. A link grants a document, not a
+         *     seat: anything that would let the holder infer the shape of the
+         *     workspace (its tree, who is in it, what else it contains) is deliberately
+         *     absent, and history is absent besides, because an old revision can hold
+         *     text that was deleted on purpose since.
+         *
+         *     ``level`` is what the presenter may DO with it, so a client can render
+         *     a read-only editor without guessing from a 403 it has not hit yet.
+         */
+        SharedDocumentDTO: {
+            id: string;
+            type: string;
+            title: string;
+            head_seq: number;
+            size_bytes: number;
+            mime_type: string;
+            editor_hint: string;
+            collab: string;
+            diffable: boolean;
+            level: string;
+            updated_at: string;
+        };
+        /**
+         * @description * `user` - user
+         *     * `ref` - ref
+         * @enum {string}
+         */
+        SubjectKindEnum: "user" | "ref";
         TrashEmpty: {
             /** Format: uuid */
             workspace_id: string;
@@ -904,6 +1181,75 @@ export interface operations {
             };
         };
     };
+    docs_api_v1_documents_access_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentAccessPresenterDTO"][];
+                };
+            };
+        };
+    };
+    docs_api_v1_documents_access_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessGrant"];
+                "application/x-www-form-urlencoded": components["schemas"]["AccessGrant"];
+                "multipart/form-data": components["schemas"]["AccessGrant"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentAccessPresenterDTO"];
+                };
+            };
+        };
+    };
+    docs_api_v1_documents_access_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                access_id: string;
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     docs_api_v1_documents_content_retrieve: {
         parameters: {
             query?: never;
@@ -981,6 +1327,75 @@ export interface operations {
         responses: {
             /** @description No response body */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    docs_api_v1_documents_links_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentLinkPresenterDTO"][];
+                };
+            };
+        };
+    };
+    docs_api_v1_documents_links_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["LinkCreate"];
+                "application/x-www-form-urlencoded": components["schemas"]["LinkCreate"];
+                "multipart/form-data": components["schemas"]["LinkCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentLinkPresenterDTO"];
+                };
+            };
+        };
+    };
+    docs_api_v1_documents_links_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                link_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1454,6 +1869,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchHitDTO"][];
+                };
+            };
+        };
+    };
+    docs_api_v1_shared_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedDocumentDTO"];
+                };
+            };
+        };
+    };
+    docs_api_v1_shared_content_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    docs_api_v1_shared_download_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DownloadUrlDTO"];
                 };
             };
         };

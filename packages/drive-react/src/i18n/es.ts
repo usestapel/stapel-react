@@ -10,7 +10,7 @@ export { driveErrorBundleEs } from "./generated/errors.es.gen.js";
  * entry does not import this module — gated by size-limit and the
  * bundle-purity test).
  *
- * Same two halves as `ru.ts`: the generated `driveErrorBundleEs` covers all 77
+ * Same two halves as `ru.ts`: the generated `driveErrorBundleEs` covers all 84
  * backend codes from stapel-docs' own `translations/errors.es.json`, and the
  * UI copy below is this pair's.
  */
@@ -73,6 +73,41 @@ export const driveI18nBundleEs: I18nDictionary = {
   "drive.move.submit": "Mover",
   "drive.move.sameFolder": "Ya está ahí.",
   "drive.trash.confirm": "¿Mover esto a la papelera?",
+
+  "drive.action.share": "Compartir",
+  "drive.share.title": "Compartir",
+  "drive.share.links": "Enlaces",
+  "drive.share.people": "Personas con acceso",
+  "drive.share.mint": "Crear un enlace",
+  "drive.share.copy": "Copiar",
+  "drive.share.copied": "Enlace copiado.",
+  "drive.share.revokeLink": "Revocar",
+  "drive.share.revokeLinkConfirm":
+    "¿Revocar este enlace? Quien lo tenga perderá el acceso y no se puede recuperar.",
+  "drive.share.expires": "Dejará de funcionar el {date}",
+  "drive.share.opened": "Se abrió por primera vez el {date}",
+  "drive.share.neverOpened": "Todavía sin abrir",
+  "drive.share.linksEmpty": "Aún no hay enlaces.",
+  "drive.share.peopleEmpty": "Nadie más tiene acceso.",
+  "drive.share.level": "Nivel de acceso",
+  "drive.share.levelView": "Puede ver",
+  "drive.share.levelEdit": "Puede editar",
+  "drive.share.statusActive": "Activo",
+  "drive.share.statusExpired": "Caducado",
+  "drive.share.statusRevoked": "Revocado",
+  "drive.share.subjectKind": "Dar acceso a",
+  "drive.share.subjectUser": "Una persona",
+  "drive.share.subjectRef": "Un grupo",
+  "drive.share.subjectField": "Quién",
+  "drive.share.subjectPlaceholderUser": "Identificador de usuario",
+  "drive.share.subjectPlaceholderRef": "Referencia del grupo",
+  "drive.share.subjectEmpty": "Indica primero quién recibe el acceso.",
+  "drive.share.add": "Dar acceso",
+  "drive.share.remove": "Quitar",
+  "drive.share.suspended": "En pausa",
+  "drive.share.suspendedBanner":
+    "Esta forma de compartir está desactivada en esta instalación. Las filas de abajo no conceden nada ahora mismo: no se revocaron, y al volver a activarla el acceso regresa.",
+  "drive.share.unavailable": "No puedes administrar esta forma de compartir.",
 
   "drive.upload.action": "Subir",
   "drive.upload.trayTitle": "Subidas",

@@ -11,7 +11,7 @@
  *  - The parts, each mountable on its own AND swappable through the slot
  *    registry: `DriveBreadcrumbBar`, `DriveRowActions`, `DriveSearchField`,
  *    `DriveThumbnail`, `StarredPane`, `RecentsPane`, `UploadTrayPanel`,
- *    `DriveTrashPane`.
+ *    `ShareSheetPanel`, `DriveTrashPane`.
  *
  * Two hard properties (fleet scars):
  *  - SELF-THEMING: every surface wraps itself in the SHARED `SkinTheme`
@@ -48,6 +48,8 @@ export { StarredPane } from "./StarredPane.js";
 export type { StarredPaneProps } from "./StarredPane.js";
 export { RecentsPane } from "./RecentsPane.js";
 export type { RecentsPaneProps } from "./RecentsPane.js";
+export { ShareSheetPanel } from "./ShareSheetPanel.js";
+export type { ShareSheetPanelProps } from "./ShareSheetPanel.js";
 export { UploadTrayPanel } from "./UploadTrayPanel.js";
 export type { UploadTrayPanelProps } from "./UploadTrayPanel.js";
 export { DriveTrashPane } from "./DriveTrashPane.js";

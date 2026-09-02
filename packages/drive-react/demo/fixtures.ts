@@ -5,7 +5,12 @@
  * not send. `collab` is the discipline string, never a boolean; `is_starred`
  * is `true`/`false`/absent, never a stand-in for "unknown".
  */
-import type { DocDocument, DocFolder } from "@stapel/docs-react";
+import type {
+  DocDocument,
+  DocFolder,
+  DocumentAccessGrant,
+  DocumentShareLink,
+} from "@stapel/docs-react";
 import type { DriveSearchHit } from "../src/index.js";
 
 export const WORKSPACE_ID = "ws-demo";
@@ -99,3 +104,65 @@ export const SEARCH_HITS: readonly DriveSearchHit[] = [
     breadcrumb: [],
   },
 ];
+
+// ── sharing (stapel-docs 0.6) ────────────────────────────────────────────────
+
+export const GRANT_MIRA: DocumentAccessGrant = {
+  id: "acc-1",
+  document_id: DOC_BUDGET.id,
+  subject_kind: "user",
+  subject: "u-mira",
+  level: "view",
+  granted_by: "u-owner",
+  suspended: false,
+  created_at: "2026-08-30T10:00:00Z",
+};
+
+export const GRANT_TEAM: DocumentAccessGrant = {
+  ...GRANT_MIRA,
+  id: "acc-2",
+  subject_kind: "ref",
+  subject: "chat:conversation:c-77",
+  level: "edit",
+};
+
+/** The kill-switch row: listed, marked inert, NOT hidden. */
+export const GRANT_PAUSED: DocumentAccessGrant = {
+  ...GRANT_MIRA,
+  id: "acc-3",
+  subject: "u-boris",
+  suspended: true,
+};
+
+export const LINK_FRESH: DocumentShareLink = {
+  id: "lnk-1",
+  document_id: DOC_BUDGET.id,
+  token: "0xk3nEXAMPLEtoken",
+  level: "view",
+  status: "active",
+  expires_at: "2026-10-02T10:00:00Z",
+  revoked_at: null,
+  first_redeemed_at: null,
+  created_by: "u-owner",
+  suspended: false,
+  created_at: "2026-09-02T10:00:00Z",
+};
+
+/** Somebody has actually opened this one — evidence, stamped once. */
+export const LINK_OPENED: DocumentShareLink = {
+  ...LINK_FRESH,
+  id: "lnk-2",
+  token: "9pQ2EXAMPLEtoken",
+  first_redeemed_at: "2026-09-02T14:31:00Z",
+};
+
+export const LINK_PAUSED: DocumentShareLink = {
+  ...LINK_FRESH,
+  id: "lnk-3",
+  token: "z7mHEXAMPLEtoken",
+  suspended: true,
+};
+
+/** The host's bearer route, as a demo's stand-in for the real one. */
+export const shareLinkUrl = (token: string): string =>
+  `https://drive.example.com/s/${token}`;

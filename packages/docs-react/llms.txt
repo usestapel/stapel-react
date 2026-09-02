@@ -1,6 +1,6 @@
 # @stapel/docs-react 0.6.0
 
-Headless React flow pair for stapel-docs (contract >=0.5 <0.6) — business + state, zero visual opinion.
+Headless React flow pair for stapel-docs (contract >=0.6 <0.7) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -21,12 +21,18 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 ## Operations (typed; use the named op, never a path string)
 Request/response schema names are in manifest.json + the generated types.
 Paths are relative to `/docs/api/v1/`.
+- docs_api_v1_documents_access_create: POST /documents/{document_id}/access
+- docs_api_v1_documents_access_destroy: DELETE /documents/{document_id}/access/{access_id}
+- docs_api_v1_documents_access_list: GET /documents/{document_id}/access
 - docs_api_v1_documents_content_retrieve: GET /documents/{document_id}/content
 - docs_api_v1_documents_content_update: PUT /documents/{document_id}/content
 - docs_api_v1_documents_create: POST /documents
 - docs_api_v1_documents_destroy: DELETE /documents/{document_id}
 - docs_api_v1_documents_download_retrieve: GET /documents/{document_id}/download
 - docs_api_v1_documents_export_retrieve: GET /documents/{document_id}/export
+- docs_api_v1_documents_links_create: POST /documents/{document_id}/links
+- docs_api_v1_documents_links_destroy: DELETE /documents/{document_id}/links/{link_id}
+- docs_api_v1_documents_links_list: GET /documents/{document_id}/links
 - docs_api_v1_documents_list: GET /documents
 - docs_api_v1_documents_partial_update: PATCH /documents/{document_id}
 - docs_api_v1_documents_restore_create: POST /documents/{document_id}/restore
@@ -51,6 +57,9 @@ Paths are relative to `/docs/api/v1/`.
 - docs_api_v1_folders_star_destroy: DELETE /folders/{folder_id}/star
 - docs_api_v1_recents_list: GET /recents
 - docs_api_v1_search_list: GET /search
+- docs_api_v1_shared_content_retrieve: GET /shared/{token}/content
+- docs_api_v1_shared_download_retrieve: GET /shared/{token}/download
+- docs_api_v1_shared_retrieve: GET /shared/{token}
 - docs_api_v1_starred_retrieve: GET /starred
 - docs_api_v1_trash_empty_create: POST /trash/empty
 - docs_api_v1_trash_retrieve: GET /trash
@@ -63,17 +72,26 @@ Paths are relative to `/docs/api/v1/`.
 - useCreateFolder (mutation) → createFolder
 - useCreateRevision (mutation) → createRevision
 - useDocument (query) → getDocument
+- useDocumentAccess (query) → listAccess
 - useDocumentContent (query) → getContent
+- useDocumentLinks (query) → listLinks
 - useDocuments (query) → listDocuments
 - useDocUpdates (query) → getUpdates
 - useDownloadUrl (query) → getDownloadUrl
 - useExportUrl (mutation) → getDownloadUrl
 - useFolders (query) → listFolders
 - useFolderTree (query) → listFolders
+- useGrantAccess (mutation) → grantAccess
+- useMintShareLink (mutation) → createLink
 - useRestoreRevision (mutation) → restoreRevision
 - useRevisionContent (query) → getRevisionContent
 - useRevisions (query) → listRevisions
+- useRevokeAccess (mutation) → revokeAccess
+- useRevokeShareLink (mutation) → revokeLink
 - useSaveContent (mutation) → putContent
+- useSharedDocument (query) → getSharedDocument
+- useSharedDocumentContent (query) → getSharedContent
+- useSharedDownloadUrl (mutation) → getSharedDownloadUrl
 - useTrash (query) → listTrash
 - useTrashActions (mutation) → emptyTrash+restoreDocument+restoreFolder
 - useTrashDocument (mutation) → deleteDocument
@@ -83,7 +101,7 @@ Paths are relative to `/docs/api/v1/`.
 - useUpload (mutation) → createUpload+finalizeUpload+getDocument+putContent+uploadToPutUrl
 
 ## Errors (render t(code, params); UX from remediation)
-77 keys (full catalog: manifest.json §errors). By remediation: fix_input 34 · retry 30 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+84 keys (full catalog: manifest.json §errors). By remediation: fix_input 38 · retry 32 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 2.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -128,6 +146,8 @@ const { tracked } = useTracked();
 - docs.folder-tree → <FolderTreePane> [default|empty|failed]  demo/FolderTreePane.demo.tsx
 - docs.revisions → <RevisionsModal> [default|empty|binary]  demo/RevisionsModal.demo.tsx
 - docs.richEditors → <EditorChrome> [default|markdown-source|text-codemirror|engine-missing]  demo/richEditors.demo.tsx
+- docs.share-sheet → <ShareSheet> [default|linksOnly|suspended|mintRefused]  demo/ShareSheet.demo.tsx
+- docs.shared-document → <SharedDocumentView> [default|dead|signIn]  demo/SharedDocumentView.demo.tsx
 - docs.trash → <TrashPane> [default|empty|failed]  demo/TrashPane.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 

@@ -11,7 +11,7 @@ export { docsErrorBundleRu } from "./generated/errors.ru.gen.js";
  *
  * ONE source, unlike the reviews/listings precedent: stapel-docs DOES ship
  * `translations/errors.ru.json`, so the generated `docsErrorBundleRu` covers
- * all 74 registry codes — module-owned ones included. Nothing is authored by
+ * all 84 registry codes — module-owned ones included. Nothing is authored by
  * hand here except this pair's own UI copy, which no backend catalogue can
  * own. `test/i18n.test.ts` gates both halves in both directions.
  */
@@ -125,6 +125,41 @@ export const docsI18nBundleRu: I18nDictionary = {
     "Редактор не запустился — правим обычный исходник.",
   "docs.editor.modeSource": "Править исходник",
   "docs.editor.modeRich": "Править как текст",
+  "docs.share.title": "Доступ",
+  "docs.share.people": "У кого есть доступ",
+  "docs.share.links": "Ссылки",
+  "docs.share.mintLink": "Создать ссылку",
+  "docs.share.copyLink": "Скопировать ссылку",
+  "docs.share.linkCopied": "Ссылка скопирована.",
+  "docs.share.revokeLink": "Отозвать ссылку",
+  "docs.share.expires": "Перестанет работать {date}",
+  "docs.share.firstOpened": "Впервые открыли {date}",
+  "docs.share.neverOpened": "Ещё не открывали",
+  "docs.share.linksEmpty": "Ссылок пока нет.",
+  "docs.share.peopleEmpty": "Больше ни у кого нет доступа.",
+  "docs.share.levelView": "Может смотреть",
+  "docs.share.levelEdit": "Может редактировать",
+  "docs.share.statusActive": "Действует",
+  "docs.share.statusExpired": "Истекла",
+  "docs.share.statusRevoked": "Отозвана",
+  "docs.share.addPerson": "Выдать доступ",
+  "docs.share.subjectUser": "Человек",
+  "docs.share.subjectRef": "Группа",
+  "docs.share.subjectPlaceholder": "Идентификатор пользователя",
+  "docs.share.removePerson": "Забрать доступ",
+  "docs.share.suspended": "Приостановлено настройками",
+  "docs.share.suspendedHint":
+    "Этот способ доступа отключён в этой установке, поэтому сейчас запись ничего не даёт. Её не отзывали — если способ включить обратно, доступ вернётся.",
+  "docs.share.unavailable": "Вы не можете управлять этим способом доступа.",
+  "docs.share.loading": "Загружаем доступы…",
+  "docs.share.error": "Не удалось загрузить доступы.",
+  "docs.shared.readOnly": "С вами поделились — только чтение.",
+  "docs.shared.notFound": "По этой ссылке ничего не открывается.",
+  "docs.shared.notFoundHint":
+    "Возможно, она истекла или её отозвали. Попросите новую у того, кто ей поделился.",
+  "docs.shared.authRequired": "Войдите, чтобы открыть этот документ.",
+  "docs.shared.download": "Скачать",
+  "docs.shared.loading": "Открываем документ…",
   "docs.nav.files": "Документы",
   "docs.nav.document": "Документ",
 };

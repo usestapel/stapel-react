@@ -1,7 +1,7 @@
 {
   "name": "@stapel/docs-react",
   "version": "0.6.0",
-  "description": "Headless React flow pair for stapel-docs: typed API client, TanStack Query hooks, snapshot-save discipline (If-Match head_seq), the editor_hint registry (registerDocEditor), headless components (documents / folder tree / editor / revisions / trash / upload / media), and i18n keys. Zero visual opinion in the main entry; an opt-in /default subpath ships the self-themed antd skin (file manager, context menus, revision modal, editors) — every part swappable via the skin slot registry. Real editing engines live behind their own subpaths as OPTIONAL peers loaded with import(): /editors/codemirror (byte-stable source editing) and /editors/milkdown (markdown WYSIWYG with a source mode), so no editor engine is ever in the main entry.",
+  "description": "Headless React flow pair for stapel-docs: typed API client, TanStack Query hooks, snapshot-save discipline (If-Match head_seq), the editor_hint registry (registerDocEditor), headless components (documents / folder tree / editor / revisions / trash / upload / media / sharing), and i18n keys. Zero visual opinion in the main entry; an opt-in /default subpath ships the self-themed antd skin (file manager, context menus, revision modal, editors) — every part swappable via the skin slot registry. Real editing engines live behind their own subpaths as OPTIONAL peers loaded with import(): /editors/codemirror (byte-stable source editing) and /editors/milkdown (markdown WYSIWYG with a source mode), so no editor engine is ever in the main entry.",
   "license": "MIT",
   "repository": {
     "type": "git",

@@ -30,6 +30,11 @@ export interface RecordedCall {
   readonly url: string;
   readonly pathname: string;
   readonly search: string;
+  /** The request body as sent, for a write. `null` for a read. Recorded so a
+   * test can assert what the wire SAW rather than what a component meant — a
+   * level picked in a select and never put on the request is exactly the bug
+   * a rendering assertion cannot see. */
+  readonly body: string | null;
 }
 
 export interface WireStub {
@@ -46,10 +51,23 @@ export type RouteAnswer =
  *
  * Suffix, not substring: `/documents/d-1/star` contains `/documents/`, and a
  * substring router would answer a star with the document list.
+ *
+ * A key may be prefixed with an HTTP METHOD (`"POST /links"`). The share
+ * sheet's listing and its mint are the SAME path, so without this a test
+ * could not make the listing succeed while the mint is refused — which is
+ * exactly the state the sheet's most interesting branch renders. An
+ * unprefixed key still answers any method.
  */
 export function wire(routes: Readonly<Record<string, RouteAnswer>>): WireStub {
   const calls: RecordedCall[] = [];
-  const entries = Object.entries(routes);
+  const entries = Object.entries(routes).map(([key, answer]) => {
+    const parts = /^([A-Z]+)\s+(.*)$/.exec(key);
+    return {
+      method: parts?.[1] ?? null,
+      suffix: parts?.[2] ?? key,
+      answer,
+    };
+  });
   const impl = ((input: RequestInfo | URL, init?: RequestInit) => {
     const url =
       typeof input === "string"
@@ -63,11 +81,16 @@ export function wire(routes: Readonly<Record<string, RouteAnswer>>): WireStub {
       url,
       pathname: parsed.pathname,
       search: parsed.search,
+      body: typeof init?.body === "string" ? init.body : null,
     });
+    const method = (init?.method ?? "GET").toUpperCase();
+    const usable = entries.filter(
+      (entry) => entry.method === null || entry.method === method
+    );
     const found =
-      entries.find(([suffix]) => parsed.pathname.endsWith(suffix)) ??
-      entries.find(([suffix]) => parsed.pathname.includes(suffix));
-    const answer = found?.[1];
+      usable.find((entry) => parsed.pathname.endsWith(entry.suffix)) ??
+      usable.find((entry) => parsed.pathname.includes(entry.suffix));
+    const answer = found?.answer;
     if (typeof answer === "function") return Promise.resolve(answer());
     const status = answer?.status ?? 200;
     if (status === 204) {

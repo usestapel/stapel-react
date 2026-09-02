@@ -4,6 +4,12 @@
  * on `@stapel/core`'s StapelClient (verification-403 interception, token
  * refresh, i18n, analytics, query layer).
  *
+ * The 0.6 SHARE AXIS lives here too: `<ShareSheet>` composes the whitelist and
+ * the bearer links into one bag (the capability IS the listing's 403; a
+ * suspended row is shown, never filtered), and `<SharedDocumentView>` is the
+ * seam a host's shared-link page is built on. The product sheet is
+ * `@stapel/drive-react/default`'s — this pair ships no share skin.
+ *
  * The pair's distinctive surface is the EDITOR REGISTRY: a document's
  * `editor_hint` resolves to an editor component (explicit registration >
  * builtin > null = download-only), so a customer adds an editor for a new
@@ -14,7 +20,7 @@
  *
  * CONTRACT: the pair is generated against stapel-docs' own committed
  * artifacts (`docs/{schema,flows,errors}.json`) — `src/api/generated/schema.ts`
- * (27 operations), `src/i18n/generated/errors*.ts` (74 codes, en/ru/es) and
+ * (44 operations), `src/i18n/generated/errors*.ts` (84 codes, en/ru/es) and
  * `manifest.json` + `llms.txt` are all emitted by the root `gen:*` drivers and
  * drift-gated. `flows.json` is `[]` (this module declares no flows), so
  * `DOCS_FLOWS` is empty by construction rather than by omission.
@@ -29,6 +35,7 @@ export {
   putDocumentContent,
   exportDocument,
   getRevisionContent,
+  getSharedContent,
   uploadToPutUrl,
 } from "./api/content.js";
 export type { DocsRawTransport, PutContentOptions } from "./api/content.js";
@@ -61,6 +68,14 @@ export type {
   SaveContentResult,
   DocumentContent,
   TrashListing,
+  DocShareLevel,
+  DocShareSubjectKind,
+  DocShareLinkStatus,
+  DocumentAccessGrant,
+  DocumentShareLink,
+  SharedDocument,
+  GrantAccessRequest,
+  CreateLinkRequest,
 } from "./api/types.js";
 
 // ── flows ────────────────────────────────────────────────────────────────────
@@ -102,6 +117,10 @@ export {
   useRevisionContent,
   useTrash,
   useDownloadUrl,
+  useDocumentAccess,
+  useDocumentLinks,
+  useSharedDocument,
+  useSharedDocumentContent,
 } from "./model/queries.js";
 export type { DocumentText, RevisionText } from "./model/queries.js";
 export { DOC_UPDATES_INTERVAL_MS, useDocUpdates } from "./model/updates.js";
@@ -120,6 +139,11 @@ export {
   useCreateDocument,
   useUpdateDocument,
   useTrashDocument,
+  useGrantAccess,
+  useRevokeAccess,
+  useMintShareLink,
+  useRevokeShareLink,
+  useSharedDownloadUrl,
 } from "./model/mutations.js";
 export type {
   SaveContentVariables,
@@ -131,6 +155,7 @@ export type {
   ExportUrlVariables,
   UpdateFolderVariables,
   UpdateDocumentVariables,
+  SharedDownloadUrlVariables,
 } from "./model/mutations.js";
 
 // ── editor registry (the customer seam) + builtin editors ────────────────────
@@ -168,6 +193,10 @@ export { TrashBin } from "./headless/TrashBin.js";
 export type { TrashBag } from "./headless/TrashBin.js";
 export { DocUploader } from "./headless/DocUploader.js";
 export type { UploadBag } from "./headless/DocUploader.js";
+export { ShareSheet } from "./headless/ShareSheet.js";
+export type { ShareSheetBag, ShareGrantInput } from "./headless/ShareSheet.js";
+export { SharedDocumentView } from "./headless/SharedDocumentView.js";
+export type { SharedDocumentViewBag } from "./headless/SharedDocumentView.js";
 export { MediaViewer } from "./headless/MediaViewer.js";
 export type {
   MediaViewerBag,
@@ -187,6 +216,7 @@ export type { DocsI18nKey } from "./i18n/keys.js";
 export {
   DOCS_ERRORS,
   DOCS_ERROR_CODES,
+  DOCS_SHARE_ERROR_CODES,
   docsErrorBundleEn,
   explainDocsError,
 } from "./i18n/errorsMap.js";

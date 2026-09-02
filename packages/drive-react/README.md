@@ -1,7 +1,7 @@
 # @stapel/drive-react
 
-The **phone-first Drive product** over `stapel-docs` 0.5 — the drive wave of
-that module, drawn. It is not a second documents pair: `@stapel/docs-react` is
+The **phone-first Drive product** over `stapel-docs` 0.6 — the drive wave of
+that module, drawn, plus its share axis. It is not a second documents pair: `@stapel/docs-react` is
 a **peer**, and this package reuses its client, its model hooks, its dialogs
 and its trash rather than reimplementing any of them.
 
@@ -15,15 +15,17 @@ What is genuinely here, and nowhere else in the fleet:
   state of its own;
 - **server-driven folder navigation** — one request per rung, one cache entry
   per folder id, never a whole-tree sync;
+- **a share sheet** over the docs pair's headless share axis — bearer links
+  (mint at a level, copy, expiry, first-opened, revoke) and whitelist grants,
+  with a switched-off mode's rows shown under a banner rather than hidden;
 - **a single-column product skin** behind `/default` — sticky breadcrumb bar,
   list/grid toggle, bottom action sheet, FAB + tray, Starred/Recent/Trash tabs.
 
 > **Contract.** Generated against stapel-docs' own committed artifacts at the
-> pinned **v0.5.0** ref (`contract-pins.json`): `src/api/generated/schema.ts`,
-> `src/i18n/generated/errors*.ts` (77 codes, en/ru/es) and
+> pinned **v0.6.1** ref (`contract-pins.json`): `src/api/generated/schema.ts`,
+> `src/i18n/generated/errors*.ts` (84 codes, en/ru/es) and
 > `manifest.json` + `llms.txt` are emitted by the root `gen:*` drivers and
-> drift-gated. Share-sheet surfaces are **not** in this release; they land
-> after stapel-docs 0.6.0 (spec §3.5).
+> drift-gated.
 
 ## Install
 
@@ -124,10 +126,37 @@ store refused this file" from "the network died".
 gets its own banner with the two remedies, and the failed rows deliberately
 offer no Retry — a button that cannot work is worse than no button.
 
+## Sharing
+
+`ShareSheetPanel` (a row's **Share** action, and a slot:
+`registerDriveSkinComponent("shareSheet", …)`) draws
+`@stapel/docs-react`'s headless `ShareSheet`. Two sections, because
+stapel-docs has two independent grant sources and a deployment may enable
+either, both or neither — and three things it is responsible for getting
+right:
+
+- a **switched-off mode's rows stay visible**, tagged Paused, under a banner
+  saying they were not revoked. Hiding them tells an admin the access was
+  taken away, and re-enabling the mode then restores access nobody expected;
+- a **section the caller may not administer is absent**, not a dead form: both
+  listings are themselves the capability gates, so a 403 is the answer;
+- a **refused mint says which refusal it was.** `SHARING.LINK.MAX_LEVEL` is
+  published by no endpoint in 0.6.1, so the sheet cannot check the ceiling
+  before asking; it renders `error.400.docs_share_level`'s own sentence.
+
+Share is offered on a **document**, not a folder — a folder has no `/access`
+or `/links` route at all.
+
+The bearer PAGE is not here. Its URL shape and chrome are host composition;
+`@stapel/docs-react`'s `SharedDocumentView` is the seam it is built on. Pass
+`shareLinkUrl` (on `DriveScreen` or `ShareSheetPanel`) to turn a minted token
+into the URL your app serves — without it, Copy copies the bare token rather
+than a guessed origin and path.
+
 ## i18n
 
 English ships in the main entry (UI keys **and** the generated en floor for all
-77 backend codes, so a host that registers only this pair still gets a sentence
+84 backend codes, so a host that registers only this pair still gets a sentence
 for every refusal). `ru` and `es` are opt-in subpaths:
 
 ```ts

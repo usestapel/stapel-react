@@ -18,10 +18,12 @@
  * Everything else in this table is here because a product skin's parts should
  * be replaceable one at a time rather than by forking the screen.
  *
- * The share sheet is NOT in this table. Sharing lands with stapel-docs 0.6.0
- * (spec §3.5), and a slot for a component that does not exist would be a
- * promise this package cannot keep — the seam it will need is a new entry
- * here plus a new `/default` export, both additive.
+ * `shareSheet` joined the table when stapel-docs 0.6.1 shipped the sharing
+ * mechanism — additively, exactly as this note promised: one entry here and
+ * one `/default` export. It is the slot most likely to be swapped after
+ * `thumbnail`: a host that resolves group references (`subject_kind: "ref"`)
+ * against its own directory wants a people picker where this one takes a raw
+ * id, and that is a replacement, not a fork.
  */
 import type { ComponentType } from "react";
 import type { DriveBreadcrumbBarProps } from "./DriveBreadcrumbBar.js";
@@ -30,6 +32,7 @@ import type { DriveSearchFieldProps } from "./DriveSearchField.js";
 import type { DriveThumbnailProps } from "./DriveThumbnail.js";
 import type { DriveTrashPaneProps } from "./DriveTrashPane.js";
 import type { RecentsPaneProps } from "./RecentsPane.js";
+import type { ShareSheetPanelProps } from "./ShareSheetPanel.js";
 import type { StarredPaneProps } from "./StarredPane.js";
 import type { UploadTrayPanelProps } from "./UploadTrayPanel.js";
 import { DriveBreadcrumbBar } from "./DriveBreadcrumbBar.js";
@@ -38,6 +41,7 @@ import { DriveSearchField } from "./DriveSearchField.js";
 import { DriveThumbnail } from "./DriveThumbnail.js";
 import { DriveTrashPane } from "./DriveTrashPane.js";
 import { RecentsPane } from "./RecentsPane.js";
+import { ShareSheetPanel } from "./ShareSheetPanel.js";
 import { StarredPane } from "./StarredPane.js";
 import { UploadTrayPanel } from "./UploadTrayPanel.js";
 
@@ -49,6 +53,7 @@ export interface DriveSkinSlots {
   readonly thumbnail: ComponentType<DriveThumbnailProps>;
   readonly trashPane: ComponentType<DriveTrashPaneProps>;
   readonly recentsPane: ComponentType<RecentsPaneProps>;
+  readonly shareSheet: ComponentType<ShareSheetPanelProps>;
   readonly starredPane: ComponentType<StarredPaneProps>;
   readonly uploadTray: ComponentType<UploadTrayPanelProps>;
 }
@@ -62,6 +67,7 @@ const builtins: DriveSkinSlots = {
   thumbnail: DriveThumbnail,
   trashPane: DriveTrashPane,
   recentsPane: RecentsPane,
+  shareSheet: ShareSheetPanel,
   starredPane: StarredPane,
   uploadTray: UploadTrayPanel,
 };

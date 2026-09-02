@@ -188,3 +188,86 @@ export interface DocumentContent {
   readonly etag: string | null;
   readonly mimeType: string | null;
 }
+
+// ── sharing (stapel-docs 0.6 — the share axis) ───────────────────────────────
+
+/**
+ * What a grant or a link may let its holder DO. `"manage"` is deliberately
+ * absent: the backend's anti-escalation invariant is that no share source can
+ * ever grant it (`capabilities.json`, axis "Document sharing beyond the
+ * workspace"), so it is not a value this wire carries.
+ */
+export type DocShareLevel = Schemas["LevelEnum"];
+
+/** Who a whitelist grant names: a user id, or an opaque container reference
+ * resolved by a host-registered resolver (`SHARING['RESOLVERS']`). */
+export type DocShareSubjectKind = Schemas["SubjectKindEnum"];
+
+/**
+ * The derived liveness of a bearer link. The contract computes it —
+ * `DocumentLinkPresenterDTO.status`'s own description says "Derived:
+ * 'revoked' beats 'expired' beats 'active'" — so a client that re-derives it
+ * from `revoked_at`/`expires_at` is writing a second answer to a question the
+ * server already answered, which is how a share mode ships half-enforced.
+ *
+ * DOCUMENTED CORRECTION (the calendar-react precedent): the schema field is a
+ * bare `string` because the presenter builds it in Python; the three values
+ * are enumerated in the contract's own description, and narrowing them is
+ * what lets a skin `switch` exhaustively instead of falling through.
+ */
+export type DocShareLinkStatus = "active" | "expired" | "revoked";
+
+/**
+ * One whitelist grant, as the share sheet lists it.
+ *
+ * `suspended` is the kill-switch state and NOT a filter: a grant whose mode
+ * is switched off for the deployment stays in the listing marked inert, so an
+ * operator can see (and revoke) what re-enabling the mode would restore. A
+ * sheet that hides it makes the admin believe it was revoked.
+ *
+ * `subject_kind`/`level` are narrowed from the schema's bare `string` to the
+ * two enums the same contract declares for the WRITE side (`AccessGrant`) —
+ * the read and the write of one field cannot legitimately have two vocabularies.
+ */
+export type DocumentAccessGrant = Omit<
+  Schemas["DocumentAccessPresenterDTO"],
+  "subject_kind" | "level"
+> & {
+  readonly subject_kind: DocShareSubjectKind;
+  readonly level: DocShareLevel;
+};
+
+/**
+ * One bearer link. The envelope CARRIES THE TOKEN — a sheet that cannot
+ * re-show the link it minted is a sheet that makes people mint a second one —
+ * which is exactly why the listing endpoint is gated on `docs.share.link`
+ * rather than on document view, and why nothing may log this row.
+ *
+ * `expires_at` is always set (the backend turns a perpetual TTL into a
+ * century, not a null), so a skin never special-cases an absent deadline.
+ */
+export type DocumentShareLink = Omit<
+  Schemas["DocumentLinkPresenterDTO"],
+  "level" | "status"
+> & {
+  readonly level: DocShareLevel;
+  readonly status: DocShareLinkStatus;
+};
+
+/**
+ * What a link BEARER sees: the document, and nothing around it (axis §6).
+ * No workspace, no folder, no owner, no star state, no revision history —
+ * a link grants a document, not a seat. `level` is what the presenter may
+ * DO with it, so a bearer surface renders read-only from the envelope
+ * instead of guessing from a 403 it has not hit yet.
+ */
+export type SharedDocument = Omit<Schemas["SharedDocumentDTO"], "collab" | "level"> & {
+  readonly collab: DocCollab;
+  readonly level: DocShareLevel;
+};
+
+/** `POST /documents/:id/access` — exactly one subject, one level. */
+export type GrantAccessRequest = Schemas["AccessGrant"];
+
+/** `POST /documents/:id/links` — the level, capped by `LINK.MAX_LEVEL`. */
+export type CreateLinkRequest = Schemas["LinkCreate"];

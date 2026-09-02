@@ -5,7 +5,7 @@ import { docsErrorBundleEn } from "./errorsMap.js";
  * docs-react's own translation KEYS (frontend-standard §4.2): headless
  * components never render literal strings — hosts resolve these via core's
  * i18n engine (`useT`). Backend error codes flow through the SAME contour:
- * the generated en floor for all 74 codes of `stapel-docs/docs/errors.json`
+ * the generated en floor for all 84 codes of `stapel-docs/docs/errors.json`
  * spreads UNDER this bundle (see `errorsMap.ts`). All UI keys live under the
  * `docs.` namespace; `ru` and `es` mirror this file key-for-key
  * (`src/i18n/{ru,es}.ts`, gated by `test/i18n.test.ts`).
@@ -160,6 +160,49 @@ export const DOCS_I18N_KEYS = {
   editorModeSource: "docs.editor.modeSource",
   /** Switch the markdown surface back to rich text (Milkdown). */
   editorModeRich: "docs.editor.modeRich",
+  // Sharing (ShareSheet headless — the share axis of stapel-docs 0.6)
+  shareTitle: "docs.share.title",
+  sharePeopleSection: "docs.share.people",
+  shareLinksSection: "docs.share.links",
+  shareMintLink: "docs.share.mintLink",
+  shareCopyLink: "docs.share.copyLink",
+  shareLinkCopied: "docs.share.linkCopied",
+  shareRevokeLink: "docs.share.revokeLink",
+  /** The instant the link stops opening. Always present — the backend turns
+   * a perpetual TTL into a century rather than a null. */
+  shareExpires: "docs.share.expires",
+  /** Stamped once, the first time somebody actually opened the link. */
+  shareFirstOpened: "docs.share.firstOpened",
+  shareNeverOpened: "docs.share.neverOpened",
+  shareLinksEmpty: "docs.share.linksEmpty",
+  sharePeopleEmpty: "docs.share.peopleEmpty",
+  shareLevelView: "docs.share.levelView",
+  shareLevelEdit: "docs.share.levelEdit",
+  shareStatusActive: "docs.share.statusActive",
+  shareStatusExpired: "docs.share.statusExpired",
+  shareStatusRevoked: "docs.share.statusRevoked",
+  shareAddPerson: "docs.share.addPerson",
+  shareSubjectUser: "docs.share.subjectUser",
+  shareSubjectRef: "docs.share.subjectRef",
+  shareSubjectPlaceholder: "docs.share.subjectPlaceholder",
+  shareRemovePerson: "docs.share.removePerson",
+  /** The row exists but its mode is switched off for this deployment: inert,
+   * NOT revoked. Shown on the row — hiding it makes an admin believe the
+   * access was taken away. */
+  shareSuspended: "docs.share.suspended",
+  shareSuspendedHint: "docs.share.suspendedHint",
+  /** This caller may not administer this way of sharing at all (the listing
+   * endpoint refused). A section that is absent, not one that is dead. */
+  shareUnavailable: "docs.share.unavailable",
+  shareLoading: "docs.share.loading",
+  shareError: "docs.share.error",
+  // The bearer surface (SharedDocumentView headless)
+  sharedReadOnly: "docs.shared.readOnly",
+  sharedNotFound: "docs.shared.notFound",
+  sharedNotFoundHint: "docs.shared.notFoundHint",
+  sharedAuthRequired: "docs.shared.authRequired",
+  sharedDownload: "docs.shared.download",
+  sharedLoading: "docs.shared.loading",
   // Navigation (src/nav/manifest.ts — the scripted-fullstack nav contract)
   navFiles: "docs.nav.files",
   navDocument: "docs.nav.document",
@@ -174,7 +217,7 @@ export type DocsI18nKey = (typeof DOCS_I18N_KEYS)[keyof typeof DOCS_I18N_KEYS];
  * below overrides the generated English for the keys users see most.
  */
 export const docsI18nBundleEn: I18nDictionary = {
-  // Backend error codes — the generated en floor (all 74).
+  // Backend error codes — the generated en floor (all 84).
   ...docsErrorBundleEn,
 
   // docs-react UI
@@ -285,6 +328,41 @@ export const docsI18nBundleEn: I18nDictionary = {
     "The editor could not start — editing the plain source instead.",
   "docs.editor.modeSource": "Edit source",
   "docs.editor.modeRich": "Edit rich text",
+  "docs.share.title": "Share",
+  "docs.share.people": "People with access",
+  "docs.share.links": "Links",
+  "docs.share.mintLink": "Create a link",
+  "docs.share.copyLink": "Copy link",
+  "docs.share.linkCopied": "Link copied.",
+  "docs.share.revokeLink": "Revoke link",
+  "docs.share.expires": "Stops working on {date}",
+  "docs.share.firstOpened": "First opened {date}",
+  "docs.share.neverOpened": "Not opened yet",
+  "docs.share.linksEmpty": "No links yet.",
+  "docs.share.peopleEmpty": "Nobody else has access.",
+  "docs.share.levelView": "Can view",
+  "docs.share.levelEdit": "Can edit",
+  "docs.share.statusActive": "Active",
+  "docs.share.statusExpired": "Expired",
+  "docs.share.statusRevoked": "Revoked",
+  "docs.share.addPerson": "Give access",
+  "docs.share.subjectUser": "A person",
+  "docs.share.subjectRef": "A group",
+  "docs.share.subjectPlaceholder": "User id",
+  "docs.share.removePerson": "Remove access",
+  "docs.share.suspended": "Paused by configuration",
+  "docs.share.suspendedHint":
+    "This way of sharing is switched off for this deployment, so the row grants nothing right now. It was not revoked — switching the mode back on restores it.",
+  "docs.share.unavailable": "You cannot manage this kind of sharing.",
+  "docs.share.loading": "Loading sharing…",
+  "docs.share.error": "Sharing could not be loaded.",
+  "docs.shared.readOnly": "Shared with you — read only.",
+  "docs.shared.notFound": "This link does not open anything.",
+  "docs.shared.notFoundHint":
+    "It may have expired or been revoked. Ask whoever shared it for a new one.",
+  "docs.shared.authRequired": "Sign in to open this shared document.",
+  "docs.shared.download": "Download",
+  "docs.shared.loading": "Opening the shared document…",
   "docs.nav.files": "Documents",
   "docs.nav.document": "Document",
 };

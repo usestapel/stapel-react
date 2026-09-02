@@ -62,9 +62,10 @@ describe("self-description (frontend-core §2.4 — manifest)", () => {
     const manifest = JSON.parse(readFileSync("manifest.json", "utf8"));
     expect(manifest.package).toBe("@stapel/drive-react");
     expect(manifest.backend.module).toBe("stapel-docs");
-    // The whole reason this package exists is the 0.5 surface; a manifest
-    // announcing an older range would be announcing a wire it cannot call.
-    expect(manifest.backend.contract).toBe(">=0.5 <0.6");
+    // This package was born on the 0.5 surface and grew a share sheet on the
+    // 0.6 one; a manifest announcing an older range would be announcing a wire
+    // it cannot call.
+    expect(manifest.backend.contract).toBe(">=0.6 <0.7");
     expect(Array.isArray(manifest.layers)).toBe(true);
   });
 

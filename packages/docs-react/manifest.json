@@ -4,7 +4,7 @@
   "version": "0.6.0",
   "backend": {
     "module": "stapel-docs",
-    "contract": ">=0.5 <0.6"
+    "contract": ">=0.6 <0.7"
   },
   "layers": [
     "api",
@@ -16,6 +16,27 @@
   "flows": {},
   "machines": [],
   "operations": {
+    "docs_api_v1_documents_access_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/documents/{document_id}/access",
+      "tag": "Docs / sharing",
+      "request": "AccessGrant",
+      "response": "DocumentAccessPresenterDTO"
+    },
+    "docs_api_v1_documents_access_destroy": {
+      "method": "DELETE",
+      "path": "/docs/api/v1/documents/{document_id}/access/{access_id}",
+      "tag": "Docs / sharing",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_access_list": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/access",
+      "tag": "Docs / sharing",
+      "request": null,
+      "response": null
+    },
     "docs_api_v1_documents_content_retrieve": {
       "method": "GET",
       "path": "/docs/api/v1/documents/{document_id}/content",
@@ -55,6 +76,27 @@
       "method": "GET",
       "path": "/docs/api/v1/documents/{document_id}/export",
       "tag": "Docs / content",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_links_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/documents/{document_id}/links",
+      "tag": "Docs / sharing",
+      "request": "LinkCreate",
+      "response": "DocumentLinkPresenterDTO"
+    },
+    "docs_api_v1_documents_links_destroy": {
+      "method": "DELETE",
+      "path": "/docs/api/v1/documents/{document_id}/links/{link_id}",
+      "tag": "Docs / sharing",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_links_list": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/links",
+      "tag": "Docs / sharing",
       "request": null,
       "response": null
     },
@@ -226,6 +268,27 @@
       "request": null,
       "response": null
     },
+    "docs_api_v1_shared_content_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/shared/{token}/content",
+      "tag": "Docs / sharing",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_shared_download_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/shared/{token}/download",
+      "tag": "Docs / sharing",
+      "request": null,
+      "response": "DownloadUrlDTO"
+    },
+    "docs_api_v1_shared_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/shared/{token}",
+      "tag": "Docs / sharing",
+      "request": null,
+      "response": "SharedDocumentDTO"
+    },
     "docs_api_v1_starred_retrieve": {
       "method": "GET",
       "path": "/docs/api/v1/starred",
@@ -295,12 +358,30 @@
         "{documentId}"
       ]
     },
+    "useDocumentAccess": {
+      "kind": "query",
+      "operation": "listAccess",
+      "queryKey": [
+        "docs",
+        "access",
+        "{documentId}"
+      ]
+    },
     "useDocumentContent": {
       "kind": "query",
       "operation": "getContent",
       "queryKey": [
         "docs",
         "content",
+        "{documentId}"
+      ]
+    },
+    "useDocumentLinks": {
+      "kind": "query",
+      "operation": "listLinks",
+      "queryKey": [
+        "docs",
+        "links",
         "{documentId}"
       ]
     },
@@ -353,6 +434,28 @@
         "{workspaceId}"
       ]
     },
+    "useGrantAccess": {
+      "kind": "mutation",
+      "operation": "grantAccess",
+      "invalidates": [
+        [
+          "docs",
+          "access",
+          "{documentId}"
+        ]
+      ]
+    },
+    "useMintShareLink": {
+      "kind": "mutation",
+      "operation": "createLink",
+      "invalidates": [
+        [
+          "docs",
+          "links",
+          "{documentId}"
+        ]
+      ]
+    },
     "useRestoreRevision": {
       "kind": "mutation",
       "operation": "restoreRevision"
@@ -376,9 +479,53 @@
         "{documentId}"
       ]
     },
+    "useRevokeAccess": {
+      "kind": "mutation",
+      "operation": "revokeAccess",
+      "invalidates": [
+        [
+          "docs",
+          "access",
+          "{documentId}"
+        ]
+      ]
+    },
+    "useRevokeShareLink": {
+      "kind": "mutation",
+      "operation": "revokeLink",
+      "invalidates": [
+        [
+          "docs",
+          "links",
+          "{documentId}"
+        ]
+      ]
+    },
     "useSaveContent": {
       "kind": "mutation",
       "operation": "putContent"
+    },
+    "useSharedDocument": {
+      "kind": "query",
+      "operation": "getSharedDocument",
+      "queryKey": [
+        "docs",
+        "shared",
+        "{token}"
+      ]
+    },
+    "useSharedDocumentContent": {
+      "kind": "query",
+      "operation": "getSharedContent",
+      "queryKey": [
+        "docs",
+        "sharedContent",
+        "{token}"
+      ]
+    },
+    "useSharedDownloadUrl": {
+      "kind": "mutation",
+      "operation": "getSharedDownloadUrl"
     },
     "useTrash": {
       "kind": "query",
@@ -466,6 +613,26 @@
       "remediation": "fix_input"
     },
     "error.400.docs_not_trashed": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_share_level": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_share_mode_disabled": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_share_ref_kind": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_share_subject": {
       "status": 400,
       "params": [],
       "remediation": "fix_input"
@@ -636,6 +803,11 @@
       "params": [],
       "remediation": "verify"
     },
+    "error.401.docs_share_auth_required": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
     "error.401.unauthorized": {
       "status": 401,
       "params": [],
@@ -681,12 +853,22 @@
       "params": [],
       "remediation": "retry"
     },
+    "error.404.docs_access_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.404.docs_document_not_found": {
       "status": 404,
       "params": [],
       "remediation": "retry"
     },
     "error.404.docs_folder_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.docs_link_not_found": {
       "status": 404,
       "params": [],
       "remediation": "retry"
@@ -1007,6 +1189,31 @@
       "source": "demo/richEditors.demo.tsx"
     },
     {
+      "id": "docs.share-sheet",
+      "title": "Share sheet (headless)",
+      "description": "The two halves of the share axis in one bag: the whitelist and the bearer links, each with its own capability answer and its own suspended-by-configuration state. Two properties survive re-skinning. A 403 on a listing IS the capability — both endpoints are the gates, so the pair never invents a second source for 'may this person share'. And a suspended row is SHOWN, never filtered: the kill switch is a display state, and an operator who cannot see an inert grant believes it was revoked.",
+      "component": "ShareSheet",
+      "variants": [
+        "default",
+        "linksOnly",
+        "suspended",
+        "mintRefused"
+      ],
+      "source": "demo/ShareSheet.demo.tsx"
+    },
+    {
+      "id": "docs.shared-document",
+      "title": "Shared document (headless)",
+      "description": "What a link BEARER sees: title, type and body, and nothing around them — no workspace, no folder, no owner, no revision history. A link grants a document, not a seat. The three ways a token can fail to open (expired, revoked, never existed) all answer 404 deliberately, so that the endpoint is not an oracle for guessing tokens; the page says the one true sentence instead of inventing a more specific one. The exception is a deployment that admits no anonymous bearers, which names a remedy the holder can act on.",
+      "component": "SharedDocumentView",
+      "variants": [
+        "default",
+        "dead",
+        "signIn"
+      ],
+      "source": "demo/SharedDocumentView.demo.tsx"
+    },
+    {
       "id": "docs.trash",
       "title": "Trash",
       "description": "Three states that a boolean `disabled` used to blur into one grey button: the read is in flight, the read failed, or the trash is genuinely empty. Each says which, in a sentence beside the control that aria-describedby points at. Delete-forever is confirmed through SkinConfirm — a bottom sheet on a phone, never a popover clipped against the screen edge.",
@@ -1104,6 +1311,39 @@
     "docs.revisions.rollbackBlockedHead",
     "docs.revisions.rollbackConfirm",
     "docs.revisions.title",
+    "docs.share.addPerson",
+    "docs.share.copyLink",
+    "docs.share.error",
+    "docs.share.expires",
+    "docs.share.firstOpened",
+    "docs.share.levelEdit",
+    "docs.share.levelView",
+    "docs.share.linkCopied",
+    "docs.share.links",
+    "docs.share.linksEmpty",
+    "docs.share.loading",
+    "docs.share.mintLink",
+    "docs.share.neverOpened",
+    "docs.share.people",
+    "docs.share.peopleEmpty",
+    "docs.share.removePerson",
+    "docs.share.revokeLink",
+    "docs.share.statusActive",
+    "docs.share.statusExpired",
+    "docs.share.statusRevoked",
+    "docs.share.subjectPlaceholder",
+    "docs.share.subjectRef",
+    "docs.share.subjectUser",
+    "docs.share.suspended",
+    "docs.share.suspendedHint",
+    "docs.share.title",
+    "docs.share.unavailable",
+    "docs.shared.authRequired",
+    "docs.shared.download",
+    "docs.shared.loading",
+    "docs.shared.notFound",
+    "docs.shared.notFoundHint",
+    "docs.shared.readOnly",
     "docs.trash.emptyAction",
     "docs.trash.emptyBlocked",
     "docs.trash.emptyConfirm",
@@ -1132,6 +1372,10 @@
     "error.400.docs_folder_cycle",
     "error.400.docs_folder_depth",
     "error.400.docs_not_trashed",
+    "error.400.docs_share_level",
+    "error.400.docs_share_mode_disabled",
+    "error.400.docs_share_ref_kind",
+    "error.400.docs_share_subject",
     "error.400.docs_thumbnail_tier",
     "error.400.docs_thumbnail_unsupported",
     "error.400.docs_too_many_updates",
@@ -1160,6 +1404,7 @@
     "error.400.validation_error",
     "error.400.verification_failed",
     "error.400.verification_invalid_factor",
+    "error.401.docs_share_auth_required",
     "error.401.unauthorized",
     "error.402.payment_required",
     "error.403.docs_forbidden",
@@ -1169,8 +1414,10 @@
     "error.403.verification_enrollment_required",
     "error.403.verification_required",
     "error.404.ad_not_found",
+    "error.404.docs_access_not_found",
     "error.404.docs_document_not_found",
     "error.404.docs_folder_not_found",
+    "error.404.docs_link_not_found",
     "error.404.docs_revision_not_found",
     "error.404.docs_upload_not_found",
     "error.404.not_found",
@@ -1211,6 +1458,7 @@
       "DOCS_FLOWS",
       "DOCS_HEAD_SEQ_HEADER",
       "DOCS_I18N_KEYS",
+      "DOCS_SHARE_ERROR_CODES",
       "DOC_UPDATES_INTERVAL_MS",
       "DocEditor",
       "DocUploader",
@@ -1221,6 +1469,8 @@
       "MarkdownEditor",
       "MediaViewer",
       "RevisionHistory",
+      "ShareSheet",
+      "SharedDocumentView",
       "TextEditor",
       "TrashBin",
       "buildFolderTree",
@@ -1240,6 +1490,7 @@
       "formatDateTime",
       "getDocumentContent",
       "getRevisionContent",
+      "getSharedContent",
       "isErrorCode",
       "isUpdatesResync",
       "parseCsv",
@@ -1261,17 +1512,26 @@
       "useDocsApi",
       "useDocsRuntime",
       "useDocument",
+      "useDocumentAccess",
       "useDocumentContent",
+      "useDocumentLinks",
       "useDocuments",
       "useDownloadUrl",
       "useExportUrl",
       "useFlow",
       "useFolderTree",
       "useFolders",
+      "useGrantAccess",
+      "useMintShareLink",
       "useRestoreRevision",
       "useRevisionContent",
       "useRevisions",
+      "useRevokeAccess",
+      "useRevokeShareLink",
       "useSaveContent",
+      "useSharedDocument",
+      "useSharedDocumentContent",
+      "useSharedDownloadUrl",
       "useTrash",
       "useTrashActions",
       "useTrashDocument",
@@ -1287,6 +1547,7 @@
       "CreateDocsRuntimeOptions",
       "CreateDocumentRequest",
       "CreateFolderRequest",
+      "CreateLinkRequest",
       "CreateRevisionRequest",
       "CreateRevisionVariables",
       "CreateUploadRequest",
@@ -1300,6 +1561,9 @@
       "DocEditorWrapProps",
       "DocFolder",
       "DocRevision",
+      "DocShareLevel",
+      "DocShareLinkStatus",
+      "DocShareSubjectKind",
       "DocUpdate",
       "DocUpdatesBag",
       "DocUpdatesFeed",
@@ -1315,9 +1579,11 @@
       "DocsI18nKey",
       "DocsRawTransport",
       "DocsRuntime",
+      "DocumentAccessGrant",
       "DocumentContent",
       "DocumentListBag",
       "DocumentListParams",
+      "DocumentShareLink",
       "DocumentText",
       "DocumentTypeOption",
       "DownloadUrl",
@@ -1331,6 +1597,7 @@
       "FolderTreeBag",
       "FolderTreeNode",
       "FolderTreeView",
+      "GrantAccessRequest",
       "MediaKind",
       "MediaPresentation",
       "MediaViewerBag",
@@ -1347,6 +1614,11 @@
       "SaveContentResult",
       "SaveContentVariables",
       "Schemas",
+      "ShareGrantInput",
+      "ShareSheetBag",
+      "SharedDocument",
+      "SharedDocumentViewBag",
+      "SharedDownloadUrlVariables",
       "TrashActions",
       "TrashBag",
       "TrashListing",

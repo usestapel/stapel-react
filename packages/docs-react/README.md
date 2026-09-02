@@ -2,18 +2,21 @@
 
 Headless React flow pair for **stapel-docs** (frontend-standard §2): typed API
 client, TanStack Query hooks, snapshot-save discipline (`If-Match: head_seq`),
-the **editor registry** (`registerDocEditor`), headless render-prop components,
-and i18n keys. Business + state only, zero visual opinion — any design layers
+the **editor registry** (`registerDocEditor`), headless render-prop components
+(including the 0.6 **share axis** — grants, bearer links, and the bearer's own
+stripped view), and i18n keys. Business + state only, zero visual opinion — any design layers
 on top. Built on `@stapel/core` (typed client + `StapelApiError` envelope,
 token refresh, verification-403 interception, i18n engine, analytics seam,
 TanStack Query).
 
-> **Contract note.** stapel-docs has not committed its contract artifacts
-> (`docs/schema.json` / `flows.json` / `errors.json`) yet. The api layer is
-> hand-typed to the module's endpoint table, this pair is not enrolled in the
-> monorepo `gen:*` drivers, and `manifest.json`/`llms.txt` are hand-authored.
-> Enrolling the pair + regenerating those surfaces is a mandatory follow-up
-> once the backend contract lands (see `src/api/types.ts`).
+> **Contract.** Generated against stapel-docs' own committed artifacts at the
+> pinned **v0.6.1** ref (`contract-pins.json`): `src/api/generated/schema.ts`
+> (44 operations), `src/i18n/generated/errors*.ts` (84 codes, en/ru/es) and
+> `manifest.json` + `llms.txt` are emitted by the root `gen:*` drivers and
+> drift-gated. `flows.json` is `[]` — this module declares no flows, so
+> `DOCS_FLOWS` is empty by construction rather than by omission. The api
+> layer's endpoint strings are hand-authored (the `stapel/no-string-paths`
+> carve-out); every SHAPE they carry is an alias of the generated schema.
 
 ## Install
 
@@ -198,10 +201,41 @@ src/
   editors/    the registry (registerDocEditor/resolveDocEditor) + builtins + csv codec
               codemirror/ · milkdown/  — optional-peer engines, own subpaths, lazy import()
   headless/   DocumentList · FolderTree · Breadcrumbs · DocEditor · RevisionHistory
-              · TrashBin · DocUploader · MediaViewer  (render-prop bags)
-  flows/      zero-flow shim (stapel-docs documents no flows yet)
-  i18n/       keys + en bundle (+ empty error map until the backend registry lands)
+              · TrashBin · DocUploader · MediaViewer · ShareSheet
+              · SharedDocumentView  (render-prop bags)
+  flows/      zero-flow shim (stapel-docs documents no flows)
+  i18n/       keys + en/ru/es bundles over the generated 84-code error registry
 ```
+
+## Sharing — the 0.6 axis
+
+`<ShareSheet documentId>` composes both grant sources into one bag: the
+whitelist (`GET/POST /documents/<id>/access`) and bearer links
+(`GET/POST /documents/<id>/links`), each with its own capability answer, its
+own suspended-by-configuration state and its own writes.
+
+- **The capability IS the 403.** Both listings are themselves gated
+  (`docs.share.whitelist` names other people; `docs.share.link` hands back live
+  tokens), so a refusal to list is the honest "you may not administer this".
+  There is no capabilities endpoint and the document envelope carries no
+  "can share" flag — the pair does not invent a second source for it.
+- **A suspended row is shown, never filtered.** The kill switch is a display
+  state: an operator who cannot see an inert grant believes it was revoked.
+- **The four share 400s are surfaced by name** (`DOCS_SHARE_ERROR_CODES`),
+  because each names a different remedy.
+
+**Known gap (backend).** `SHARING.LINK.MAX_LEVEL` is published by no endpoint
+in 0.6.1, so the ceiling on a minted link's level cannot be known before the
+mint. `ShareSheetBag.levelRefused` reports the backend's refusal
+(`error.400.docs_share_level`) instead — a client-side cap invented from
+nothing would be a second answer to an authorization question.
+
+`<SharedDocumentView token>` is the seam for the shared-link page — the
+stripped envelope (no workspace, folder, owner, star or revisions), the level
+the link carries, and one honest sentence for a dead token, because expired,
+revoked and never-existed all answer 404 so that the endpoint is not an oracle.
+The PAGE itself is host composition. The product share sheet lives in
+`@stapel/drive-react/default`; this pair ships no share skin.
 
 ## Uploads
 

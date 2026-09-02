@@ -63,6 +63,14 @@ export interface DriveScreenProps {
    * tray mid-flight, which is a consequence of the seam, not its reason.
    */
   readonly uploads?: UploadTrayBag;
+  /**
+   * Turn a minted share token into the URL people paste, for the share sheet
+   * a row action opens. The bearer route is the HOST's — `@stapel/docs-react`'s
+   * `<SharedDocumentView>` is the seam it is built on — so this screen forwards
+   * the function instead of assembling an origin and a path it cannot know.
+   * Omitted, the sheet copies the bare token.
+   */
+  readonly shareLinkUrl?: (token: string) => string;
   /** Pin a theme side. Omitted, the document's live mode wins. */
   readonly mode?: ThemeMode;
 }
@@ -330,6 +338,9 @@ function DriveScreenBody(props: DriveScreenProps): ReactElement {
         workspaceId={props.workspaceId}
         row={actionRow}
         onOpen={openRow}
+        {...(props.shareLinkUrl !== undefined
+          ? { shareLinkUrl: props.shareLinkUrl }
+          : {})}
         onClose={() => {
           setActionRow(null);
         }}

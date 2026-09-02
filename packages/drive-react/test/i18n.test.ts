@@ -32,8 +32,8 @@ function engineFor(locale: "en" | "ru" | "es") {
 }
 
 describe("the backend registry actually reaches the pair", () => {
-  it("carries the whole 0.5.0 registry, drive wave codes included", () => {
-    expect(DRIVE_ERROR_CODES.length).toBe(77);
+  it("carries the whole 0.6.1 registry, share axis included", () => {
+    expect(DRIVE_ERROR_CODES.length).toBe(84);
     expect(DOCS_OWNED.length).toBeGreaterThan(0);
     // The three the drive product surfaces by name.
     expect(DRIVE_ERROR_CODES).toContain("error.507.docs_workspace_quota");

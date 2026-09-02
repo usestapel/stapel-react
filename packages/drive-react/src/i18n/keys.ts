@@ -5,7 +5,7 @@ import { driveErrorBundleEn } from "./errorsMap.js";
  * drive-react's own translation KEYS (frontend-standard §4.2): nothing in
  * this package renders a literal string — hosts resolve these through core's
  * i18n engine (`useT`). Backend error codes flow through the SAME contour:
- * the generated en floor for all 77 codes of stapel-docs' registry spreads
+ * the generated en floor for all 84 codes of stapel-docs' registry spreads
  * UNDER this bundle (see `errorsMap.ts`). All UI keys live under the `drive.`
  * namespace; `ru` and `es` mirror this file key-for-key
  * (`src/i18n/{ru,es}.ts`, gated by `test/i18n.test.ts` AND by
@@ -74,6 +74,40 @@ export const DRIVE_I18N_KEYS = {
   moveSameFolder: "drive.move.sameFolder",
   trashConfirm: "drive.trash.confirm",
 
+  // Share sheet (the docs 0.6 share axis, drawn)
+  actionShare: "drive.action.share",
+  shareTitle: "drive.share.title",
+  shareLinksSection: "drive.share.links",
+  sharePeopleSection: "drive.share.people",
+  shareMint: "drive.share.mint",
+  shareCopy: "drive.share.copy",
+  shareCopied: "drive.share.copied",
+  shareRevokeLink: "drive.share.revokeLink",
+  shareRevokeLinkConfirm: "drive.share.revokeLinkConfirm",
+  shareExpires: "drive.share.expires",
+  shareOpened: "drive.share.opened",
+  shareNeverOpened: "drive.share.neverOpened",
+  shareLinksEmpty: "drive.share.linksEmpty",
+  sharePeopleEmpty: "drive.share.peopleEmpty",
+  shareLevel: "drive.share.level",
+  shareLevelView: "drive.share.levelView",
+  shareLevelEdit: "drive.share.levelEdit",
+  shareStatusActive: "drive.share.statusActive",
+  shareStatusExpired: "drive.share.statusExpired",
+  shareStatusRevoked: "drive.share.statusRevoked",
+  shareSubjectKind: "drive.share.subjectKind",
+  shareSubjectUser: "drive.share.subjectUser",
+  shareSubjectRef: "drive.share.subjectRef",
+  shareSubjectField: "drive.share.subjectField",
+  shareSubjectPlaceholderUser: "drive.share.subjectPlaceholderUser",
+  shareSubjectPlaceholderRef: "drive.share.subjectPlaceholderRef",
+  shareSubjectEmpty: "drive.share.subjectEmpty",
+  shareAdd: "drive.share.add",
+  shareRemove: "drive.share.remove",
+  shareSuspended: "drive.share.suspended",
+  shareSuspendedBanner: "drive.share.suspendedBanner",
+  shareUnavailable: "drive.share.unavailable",
+
   // Upload (the FAB + the tray)
   uploadAction: "drive.upload.action",
   uploadTrayTitle: "drive.upload.trayTitle",
@@ -97,7 +131,7 @@ export const DRIVE_I18N_KEYS = {
 export type DriveI18nKey = (typeof DRIVE_I18N_KEYS)[keyof typeof DRIVE_I18N_KEYS];
 
 /**
- * The English bundle: the generated backend-error floor for all 77 codes,
+ * The English bundle: the generated backend-error floor for all 84 codes,
  * then this pair's own UI copy on top.
  */
 export const driveI18nBundleEn: I18nDictionary = {
@@ -159,6 +193,41 @@ export const driveI18nBundleEn: I18nDictionary = {
   "drive.move.submit": "Move",
   "drive.move.sameFolder": "It is already there.",
   "drive.trash.confirm": "Move this to the trash?",
+
+  "drive.action.share": "Share",
+  "drive.share.title": "Share",
+  "drive.share.links": "Links",
+  "drive.share.people": "People with access",
+  "drive.share.mint": "Create a link",
+  "drive.share.copy": "Copy",
+  "drive.share.copied": "Link copied.",
+  "drive.share.revokeLink": "Revoke",
+  "drive.share.revokeLinkConfirm":
+    "Revoke this link? Anyone holding it loses access, and it cannot be brought back.",
+  "drive.share.expires": "Stops working {date}",
+  "drive.share.opened": "First opened {date}",
+  "drive.share.neverOpened": "Not opened yet",
+  "drive.share.linksEmpty": "No links yet.",
+  "drive.share.peopleEmpty": "Nobody else has access.",
+  "drive.share.level": "Access level",
+  "drive.share.levelView": "Can view",
+  "drive.share.levelEdit": "Can edit",
+  "drive.share.statusActive": "Active",
+  "drive.share.statusExpired": "Expired",
+  "drive.share.statusRevoked": "Revoked",
+  "drive.share.subjectKind": "Give access to",
+  "drive.share.subjectUser": "A person",
+  "drive.share.subjectRef": "A group",
+  "drive.share.subjectField": "Who",
+  "drive.share.subjectPlaceholderUser": "User id",
+  "drive.share.subjectPlaceholderRef": "Group reference",
+  "drive.share.subjectEmpty": "Name who gets access first.",
+  "drive.share.add": "Give access",
+  "drive.share.remove": "Remove",
+  "drive.share.suspended": "Paused",
+  "drive.share.suspendedBanner":
+    "This way of sharing is switched off for this deployment. The rows below grant nothing right now — they were not revoked, and switching the mode back on restores them.",
+  "drive.share.unavailable": "You cannot manage this kind of sharing.",
 
   "drive.upload.action": "Upload",
   "drive.upload.trayTitle": "Uploads",

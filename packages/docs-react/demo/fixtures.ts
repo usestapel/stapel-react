@@ -4,7 +4,14 @@
  * `RevisionPresenterDTO`), so a demo cannot quietly document a field the
  * server does not send. `collab` is the discipline string, never a boolean.
  */
-import type { DocDocument, DocFolder, DocRevision } from "../src/index.js";
+import type {
+  DocDocument,
+  DocFolder,
+  DocRevision,
+  DocumentAccessGrant,
+  DocumentShareLink,
+  SharedDocument,
+} from "../src/index.js";
 
 export const WORKSPACE_ID = "ws-demo";
 
@@ -99,3 +106,76 @@ export const REVISION_NAMED: DocRevision = {
 
 export const MARKDOWN_BODY = "# Release notes\n\n- Faster uploads\n- Trash retention\n";
 export const CSV_BODY = "region,revenue\nEU,120400\nUS,98150\n";
+
+// ── sharing (stapel-docs 0.6) ────────────────────────────────────────────────
+
+export const GRANT_USER: DocumentAccessGrant = {
+  id: "acc-1",
+  document_id: DOC_NOTES.id,
+  subject_kind: "user",
+  subject: "u-mira",
+  level: "view",
+  granted_by: "u-owner",
+  suspended: false,
+  created_at: "2026-08-30T10:00:00Z",
+};
+
+export const GRANT_REF: DocumentAccessGrant = {
+  ...GRANT_USER,
+  id: "acc-2",
+  subject_kind: "ref",
+  subject: "chat:conversation:c-77",
+  level: "edit",
+};
+
+/** The kill-switch row: listed, marked inert, NOT hidden. */
+export const GRANT_SUSPENDED: DocumentAccessGrant = {
+  ...GRANT_USER,
+  id: "acc-3",
+  subject: "u-boris",
+  suspended: true,
+};
+
+export const LINK_ACTIVE: DocumentShareLink = {
+  id: "lnk-1",
+  document_id: DOC_NOTES.id,
+  token: "0xk3nEXAMPLEtoken",
+  level: "view",
+  status: "active",
+  expires_at: "2026-10-02T10:00:00Z",
+  revoked_at: null,
+  first_redeemed_at: null,
+  created_by: "u-owner",
+  suspended: false,
+  created_at: "2026-09-02T10:00:00Z",
+};
+
+/** Somebody actually opened this one — the stamp is evidence, not a counter. */
+export const LINK_REDEEMED: DocumentShareLink = {
+  ...LINK_ACTIVE,
+  id: "lnk-2",
+  token: "9pQ2EXAMPLEtoken",
+  first_redeemed_at: "2026-09-02T14:31:00Z",
+};
+
+export const LINK_SUSPENDED: DocumentShareLink = {
+  ...LINK_ACTIVE,
+  id: "lnk-3",
+  token: "z7mHEXAMPLEtoken",
+  suspended: true,
+};
+
+/** The bearer's stripped envelope — no workspace, no folder, no owner. */
+export const SHARED_NOTES: SharedDocument = {
+  id: DOC_NOTES.id,
+  type: DOC_NOTES.type,
+  title: DOC_NOTES.title,
+  head_seq: DOC_NOTES.head_seq,
+  size_bytes: DOC_NOTES.size_bytes,
+  mime_type: DOC_NOTES.mime_type,
+  editor_hint: DOC_NOTES.editor_hint,
+  collab: "snapshot",
+  diffable: true,
+  level: "view",
+  updated_at: DOC_NOTES.updated_at,
+};

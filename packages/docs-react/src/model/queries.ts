@@ -6,8 +6,11 @@ import type {
   DocDocument,
   DocFolder,
   DocRevision,
+  DocumentAccessGrant,
   DocumentListParams,
+  DocumentShareLink,
   DownloadUrl,
+  SharedDocument,
   TrashListing,
 } from "../api/types.js";
 import { useDocsApi } from "./context.js";
@@ -193,5 +196,115 @@ export function useDownloadUrl(
     queryFn: () => api.getDownloadUrl(documentId),
     enabled:
       sessionReady && documentId.length > 0 && (options?.enabled ?? true),
+  });
+}
+
+// ── sharing (0.6) ────────────────────────────────────────────────────────────
+
+/**
+ * The whitelist half of a document's share sheet: who has been granted it.
+ *
+ * The endpoint is gated on `docs.share.whitelist`, so a caller who may read
+ * the document but not administer its sharing gets a 403 here — and that
+ * refusal is INFORMATION, not noise: it is how a sheet learns not to offer a
+ * people section. Hence `retry: false`; retrying a settled "you may not"
+ * three times only delays the answer.
+ *
+ * Rows of a switched-off mode arrive marked `suspended` rather than filtered
+ * out — the kill switch is a display state, and an operator who cannot see an
+ * inert grant believes it was revoked.
+ */
+export function useDocumentAccess(
+  documentId: string,
+  options?: { readonly enabled?: boolean }
+): UseQueryResult<DocumentAccessGrant[], StapelApiError> {
+  const api = useDocsApi();
+  const sessionReady = useActiveSessionReady();
+  return useQuery({
+    queryKey: docsQueryKeys.access(documentId),
+    queryFn: () => api.listAccess(documentId),
+    retry: false,
+    enabled:
+      sessionReady && documentId.length > 0 && (options?.enabled ?? true),
+  });
+}
+
+/**
+ * The bearer-link half of the share sheet.
+ *
+ * The response CARRIES LIVE TOKENS (that is the point — a sheet that cannot
+ * re-show what it minted makes people mint a second link), which is why the
+ * endpoint is gated on `docs.share.link` and why a 403 here is the same kind
+ * of information as above rather than a failure to retry.
+ */
+export function useDocumentLinks(
+  documentId: string,
+  options?: { readonly enabled?: boolean }
+): UseQueryResult<DocumentShareLink[], StapelApiError> {
+  const api = useDocsApi();
+  const sessionReady = useActiveSessionReady();
+  return useQuery({
+    queryKey: docsQueryKeys.links(documentId),
+    queryFn: () => api.listLinks(documentId),
+    retry: false,
+    enabled:
+      sessionReady && documentId.length > 0 && (options?.enabled ?? true),
+  });
+}
+
+/**
+ * `GET /shared/:token` — the BEARER's view of a document: title, type and
+ * shape, plus the `level` the link carries. No tree, no workspace, no owner,
+ * no revisions (axis §6).
+ *
+ * Every refusal on this path answers 404 on purpose — an expired, revoked or
+ * unknown token must not be distinguishable, or the endpoint becomes an
+ * oracle for guessing tokens. So a failed read here means "this link does not
+ * open anything", and a bearer surface says exactly that instead of inventing
+ * a reason. The one exception the registry does carry is
+ * `error.401.docs_share_auth_required`: a deployment that has not enabled
+ * anonymous redemption asks the holder to sign in first.
+ */
+export function useSharedDocument(
+  token: string
+): UseQueryResult<SharedDocument, StapelApiError> {
+  const api = useDocsApi();
+  const sessionReady = useActiveSessionReady();
+  return useQuery({
+    queryKey: docsQueryKeys.shared(token),
+    queryFn: () => api.getSharedDocument(token),
+    retry: false,
+    enabled: sessionReady && token.length > 0,
+  });
+}
+
+/**
+ * The bearer's read of the body, decoded as text — the same projection
+ * {@link useDocumentContent} makes, on the token path. Binary documents
+ * belong to the bearer download URL, not this hook.
+ *
+ * Deliberately opt-in via `enabled`: a bearer page renders the envelope
+ * first (title, type, size) and only fetches bytes for a type it can show,
+ * so a 40 MB video is not downloaded to draw a filename.
+ */
+export function useSharedDocumentContent(
+  token: string,
+  options?: { readonly enabled?: boolean }
+): UseQueryResult<DocumentText, StapelApiError> {
+  const api = useDocsApi();
+  const sessionReady = useActiveSessionReady();
+  return useQuery({
+    queryKey: docsQueryKeys.sharedContent(token),
+    queryFn: async (): Promise<DocumentText> => {
+      const content = await api.getSharedContent(token);
+      return {
+        text: await content.blob.text(),
+        headSeq: content.headSeq,
+        mimeType: content.mimeType,
+        etag: content.etag,
+      };
+    },
+    retry: false,
+    enabled: sessionReady && token.length > 0 && (options?.enabled ?? true),
   });
 }

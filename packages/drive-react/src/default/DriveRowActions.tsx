@@ -53,6 +53,7 @@ import {
 import type { DriveRow } from "../headless/rows.js";
 import { useToggleStar } from "../model/mutations.js";
 import { DRIVE_I18N_KEYS } from "../i18n/keys.js";
+import { resolveDriveSkinComponent } from "./slots.js";
 
 export interface DriveRowActionsProps {
   readonly workspaceId: string;
@@ -61,13 +62,19 @@ export interface DriveRowActionsProps {
   onClose(): void;
   /** Open the row (a folder navigates, a document routes to the docs pair). */
   onOpen?(row: DriveRow): void;
+  /**
+   * Turn a minted share token into the URL people paste. Forwarded to the
+   * share sheet — the bearer route belongs to the HOST (see
+   * `ShareSheetPanel`), so this package never assembles one.
+   */
+  readonly shareLinkUrl?: (token: string) => string;
   /** Pin a theme side. Omitted, the document's live mode wins — this is a
    * dialog, which portals out of the tree and would otherwise be served
    * antd's compiled-in light palette. */
   readonly mode?: ThemeMode;
 }
 
-type Prompt = "none" | "rename" | "move" | "trash";
+type Prompt = "none" | "rename" | "move" | "trash" | "share";
 
 export function DriveRowActions(props: DriveRowActionsProps): ReactElement {
   return (
@@ -85,6 +92,13 @@ function DriveRowActionsBody(props: DriveRowActionsProps): ReactElement {
   const t = useT();
   const [prompt, setPrompt] = useState<Prompt>("none");
   const { row, onClose } = props;
+  // Through the registry, so a host that swapped the share sheet gets ITS
+  // sheet from the row action too — a slot resolved at one call site and
+  // hardcoded at another is a slot only half the product honours. Named for
+  // the SKIN component, not for the docs pair's headless `ShareSheet` it is
+  // drawn over: two different things, and one name for both is how a reader
+  // ends up looking for a render prop on a dialog.
+  const ShareSheetPanel = resolveDriveSkinComponent("shareSheet");
 
   const renameDocument = useUpdateDocument();
   const renameFolder = useUpdateFolder();
@@ -236,6 +250,20 @@ function DriveRowActionsBody(props: DriveRowActionsProps): ReactElement {
               {t(DRIVE_I18N_KEYS.actionDownload)}
             </Button>
           )}
+          {!isFolder && (
+            <Button
+              type="text"
+              style={actionStyle}
+              data-testid="drive-action-share"
+              data-analytics="none"
+              data-analytics-reason="the host app wraps drive row actions with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
+              onClick={() => {
+                setPrompt("share");
+              }}
+            >
+              {t(DRIVE_I18N_KEYS.actionShare)}
+            </Button>
+          )}
           <Button
             type="text"
             danger
@@ -275,6 +303,19 @@ function DriveRowActionsBody(props: DriveRowActionsProps): ReactElement {
         excludedIds={new Set(row?.kind === "folder" ? [row.id] : [])}
         busy={busy}
         onConfirm={doMove}
+        onClose={close}
+      />
+
+      <ShareSheetPanel
+        documentId={
+          row !== null && row.kind === "document" && prompt === "share"
+            ? row.id
+            : null
+        }
+        {...(row !== null ? { title: row.name } : {})}
+        {...(props.shareLinkUrl !== undefined
+          ? { linkUrl: props.shareLinkUrl }
+          : {})}
         onClose={close}
       />
 

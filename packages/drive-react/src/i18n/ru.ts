@@ -10,7 +10,7 @@ export { driveErrorBundleRu } from "./generated/errors.ru.gen.js";
  * entry does not import this module — gated by size-limit and the
  * bundle-purity test).
  *
- * Two halves, as everywhere: the generated `driveErrorBundleRu` covers all 77
+ * Two halves, as everywhere: the generated `driveErrorBundleRu` covers all 84
  * codes of stapel-docs' registry (the module ships
  * `translations/errors.ru.json`), and the UI copy below is this pair's own,
  * which no backend catalogue can own.
@@ -75,6 +75,41 @@ export const driveI18nBundleRu: I18nDictionary = {
   "drive.move.submit": "Переместить",
   "drive.move.sameFolder": "Уже находится здесь.",
   "drive.trash.confirm": "Переместить в корзину?",
+
+  "drive.action.share": "Поделиться",
+  "drive.share.title": "Доступ",
+  "drive.share.links": "Ссылки",
+  "drive.share.people": "У кого есть доступ",
+  "drive.share.mint": "Создать ссылку",
+  "drive.share.copy": "Скопировать",
+  "drive.share.copied": "Ссылка скопирована.",
+  "drive.share.revokeLink": "Отозвать",
+  "drive.share.revokeLinkConfirm":
+    "Отозвать ссылку? Все, у кого она есть, потеряют доступ, и вернуть её будет нельзя.",
+  "drive.share.expires": "Перестанет работать {date}",
+  "drive.share.opened": "Впервые открыли {date}",
+  "drive.share.neverOpened": "Ещё не открывали",
+  "drive.share.linksEmpty": "Ссылок пока нет.",
+  "drive.share.peopleEmpty": "Больше ни у кого нет доступа.",
+  "drive.share.level": "Уровень доступа",
+  "drive.share.levelView": "Может смотреть",
+  "drive.share.levelEdit": "Может редактировать",
+  "drive.share.statusActive": "Действует",
+  "drive.share.statusExpired": "Истекла",
+  "drive.share.statusRevoked": "Отозвана",
+  "drive.share.subjectKind": "Кому выдать доступ",
+  "drive.share.subjectUser": "Человеку",
+  "drive.share.subjectRef": "Группе",
+  "drive.share.subjectField": "Кому",
+  "drive.share.subjectPlaceholderUser": "Идентификатор пользователя",
+  "drive.share.subjectPlaceholderRef": "Ссылка на группу",
+  "drive.share.subjectEmpty": "Сначала укажите, кому выдать доступ.",
+  "drive.share.add": "Выдать доступ",
+  "drive.share.remove": "Убрать",
+  "drive.share.suspended": "На паузе",
+  "drive.share.suspendedBanner":
+    "Этот способ доступа отключён в этой установке. Записи ниже сейчас ничего не дают — их не отзывали, и если способ включить обратно, доступ вернётся.",
+  "drive.share.unavailable": "Вы не можете управлять этим способом доступа.",
 
   "drive.upload.action": "Загрузить",
   "drive.upload.trayTitle": "Загрузки",

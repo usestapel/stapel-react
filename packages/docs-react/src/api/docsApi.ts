@@ -3,6 +3,7 @@ import {
   exportDocument,
   getDocumentContent,
   getRevisionContent,
+  getSharedContent,
   putDocumentContent,
   uploadToPutUrl,
 } from "./content.js";
@@ -12,20 +13,25 @@ import type {
   CreateDocumentRequest,
   CreateFolderRequest,
   CreateRevisionRequest,
+  CreateLinkRequest,
   CreateUploadRequest,
   CreateUploadResponse,
   DocDocument,
   DocFolder,
   DocRevision,
   DocUpdatesResponse,
+  DocumentAccessGrant,
   DocumentContent,
   DocumentListParams,
+  DocumentShareLink,
   DownloadUrl,
   EmptyTrashRequest,
+  GrantAccessRequest,
   PatchDocumentRequest,
   PatchFolderRequest,
   PostUpdateRequest,
   SaveContentResult,
+  SharedDocument,
   TrashListing,
   TrashPurgeResult,
 } from "./types.js";
@@ -143,6 +149,47 @@ export interface DocsApi {
   /** Answers how many folders / documents were irreversibly purged. */
   emptyTrash(body: EmptyTrashRequest): Promise<TrashPurgeResult>;
 
+  // ── sharing (0.6: whitelist grants, bearer links, the bearer's own read) ──
+  /**
+   * `GET /documents/:id/access` — who has been granted this document.
+   *
+   * Gated server-side on `docs.share.whitelist`: the listing names OTHER
+   * PEOPLE, so seeing it is itself a sharing-administration act rather than a
+   * document read, and a caller without the capability gets a 403 — which is
+   * the honest signal a share sheet reads to decide whether to offer the
+   * people section at all.
+   */
+  listAccess(documentId: string): Promise<DocumentAccessGrant[]>;
+  /** `POST /documents/:id/access` — grant, or re-grant at a new level
+   * (upsert: re-granting is the sheet's ordinary gesture, not an error). */
+  grantAccess(
+    documentId: string,
+    body: GrantAccessRequest
+  ): Promise<DocumentAccessGrant>;
+  /** `DELETE /documents/:id/access/:accessId` — revoke one grant. */
+  revokeAccess(documentId: string, accessId: string): Promise<void>;
+  /**
+   * `GET /documents/:id/links` — the bearer links minted for this document,
+   * TOKENS INCLUDED. Gated on `docs.share.link` for exactly that reason.
+   */
+  listLinks(documentId: string): Promise<DocumentShareLink[]>;
+  /** `POST /documents/:id/links` — mint one. The level is capped by the
+   * deployment's `SHARING.LINK.MAX_LEVEL`; above it the backend REFUSES
+   * (`error.400.docs_share_level`) rather than silently clamping. */
+  createLink(
+    documentId: string,
+    body?: CreateLinkRequest
+  ): Promise<DocumentShareLink>;
+  /** `DELETE /documents/:id/links/:linkId` — revoke one link. Terminal: a
+   * revoked link never revives. */
+  revokeLink(documentId: string, linkId: string): Promise<void>;
+  /** `GET /shared/:token` — the bearer's stripped view of the document. */
+  getSharedDocument(token: string): Promise<SharedDocument>;
+  /** `GET /shared/:token/content` — the bearer's read of the body (bytes). */
+  getSharedContent(token: string, signal?: AbortSignal): Promise<DocumentContent>;
+  /** `GET /shared/:token/download` — an opaque presigned URL for the bearer. */
+  getSharedDownloadUrl(token: string): Promise<DownloadUrl>;
+
   // ── uploads ────────────────────────────────────────────────────────────────
   createUpload(body: CreateUploadRequest): Promise<CreateUploadResponse>;
   finalizeUpload(uploadId: string): Promise<DocDocument>;
@@ -173,6 +220,8 @@ export function createDocsApi(
     `/folders/${encodeURIComponent(folderId)}`;
   const documentPath = (documentId: string): string =>
     `/documents/${encodeURIComponent(documentId)}`;
+  const sharedPath = (token: string): string =>
+    `/shared/${encodeURIComponent(token)}`;
 
   return {
     client,
@@ -247,6 +296,28 @@ export function createDocsApi(
     listTrash: (workspaceId) =>
       client.get("/trash", { query: { workspace_id: workspaceId } }),
     emptyTrash: (body) => client.post("/trash/empty", body, mutating()),
+
+    // sharing
+    listAccess: (documentId) => client.get(`${documentPath(documentId)}/access`),
+    grantAccess: (documentId, body) =>
+      client.post(`${documentPath(documentId)}/access`, body, mutating()),
+    revokeAccess: (documentId, accessId) =>
+      client.delete(
+        `${documentPath(documentId)}/access/${encodeURIComponent(accessId)}`,
+        mutating()
+      ),
+    listLinks: (documentId) => client.get(`${documentPath(documentId)}/links`),
+    createLink: (documentId, body) =>
+      client.post(`${documentPath(documentId)}/links`, body ?? {}, mutating()),
+    revokeLink: (documentId, linkId) =>
+      client.delete(
+        `${documentPath(documentId)}/links/${encodeURIComponent(linkId)}`,
+        mutating()
+      ),
+    getSharedDocument: (token) => client.get(sharedPath(token)),
+    getSharedContent: (token, signal) =>
+      getSharedContent(transport, token, signal),
+    getSharedDownloadUrl: (token) => client.get(`${sharedPath(token)}/download`),
 
     // uploads
     createUpload: (body) => client.post("/uploads", body, mutating()),

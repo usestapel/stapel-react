@@ -376,6 +376,76 @@
       }
     },
     {
+      "id": "docs.share-sheet",
+      "title": "Share sheet (headless)",
+      "description": "The two halves of the share axis in one bag: the whitelist and the bearer links, each with its own capability answer and its own suspended-by-configuration state. Two properties survive re-skinning. A 403 on a listing IS the capability — both endpoints are the gates, so the pair never invents a second source for 'may this person share'. And a suspended row is SHOWN, never filtered: the kill switch is a display state, and an operator who cannot see an inert grant believes it was revoked.",
+      "component": "ShareSheet",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Both halves live: two grants (one a user, one a resolver-backed group reference) and two links, one of which somebody has already opened.",
+          "viewport": "phone",
+          "step": "people+links"
+        },
+        {
+          "id": "linksOnly",
+          "description": "The whitelist listing answered 403 — this caller may mint links but may not administer people. The section is absent, not a dead form whose every submit is refused.",
+          "viewport": "phone",
+          "step": "links-only"
+        },
+        {
+          "id": "suspended",
+          "description": "Both modes are switched off for this deployment. The rows stay listed and say so — hiding them would tell the admin the access was revoked, and re-enabling the mode would then restore access nobody expected.",
+          "viewport": "phone",
+          "step": "suspended"
+        },
+        {
+          "id": "mintRefused",
+          "description": "The mint asked for `edit` and the deployment caps links at `view`: the refusal is rendered by its own code rather than as 'something went wrong', because the remedy — mint one level lower — is specific to it. The cap itself cannot be known before the attempt; stapel-docs 0.6.1 publishes no endpoint that states LINK.MAX_LEVEL.",
+          "viewport": "phone",
+          "step": "mint-refused"
+        }
+      ],
+      "source": {
+        "file": "demo/ShareSheet.demo.tsx",
+        "line": 144
+      }
+    },
+    {
+      "id": "docs.shared-document",
+      "title": "Shared document (headless)",
+      "description": "What a link BEARER sees: title, type and body, and nothing around them — no workspace, no folder, no owner, no revision history. A link grants a document, not a seat. The three ways a token can fail to open (expired, revoked, never existed) all answer 404 deliberately, so that the endpoint is not an oracle for guessing tokens; the page says the one true sentence instead of inventing a more specific one. The exception is a deployment that admits no anonymous bearers, which names a remedy the holder can act on.",
+      "component": "SharedDocumentView",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A live view-level link: the stripped envelope plus the body, read-only by construction — there is no PUT on the token path at all.",
+          "viewport": "phone",
+          "step": "live"
+        },
+        {
+          "id": "dead",
+          "description": "The link does not open anything. Which of the three reasons it is stays deliberately unsaid.",
+          "viewport": "phone",
+          "step": "dead"
+        },
+        {
+          "id": "signIn",
+          "description": "Anonymous redemption is off in this deployment: sign in and the same URL works. A different remedy from a dead link, so a different sentence.",
+          "viewport": "phone",
+          "step": "sign-in"
+        }
+      ],
+      "source": {
+        "file": "demo/SharedDocumentView.demo.tsx",
+        "line": 78
+      }
+    },
+    {
       "id": "docs.trash",
       "title": "Trash",
       "description": "Three states that a boolean `disabled` used to blur into one grey button: the read is in flight, the read failed, or the trash is genuinely empty. Each says which, in a sentence beside the control that aria-describedby points at. Delete-forever is confirmed through SkinConfirm — a bottom sheet on a phone, never a popover clipped against the screen edge.",

@@ -1,6 +1,6 @@
 /**
  * `@stapel/drive-react` — the phone-first Drive PRODUCT surface over
- * stapel-docs 0.5.
+ * stapel-docs 0.6.
  *
  * ── What this package is, in one paragraph ────────────────────────────────
  *
@@ -8,9 +8,10 @@
  * desktop-ish file-manager skin. This package is the opinionated product on
  * top of it: the surfaces stapel-docs 0.5.0 added (starred, recents, name
  * search, image thumbnails), the one machine a drive needs that a pair does
- * not (a multi-file upload queue with real per-file progress), and a
- * single-column phone-first screen that composes them with the docs pair's
- * existing rows, dialogs and trash. It peer-depends on `@stapel/docs-react`
+ * not (a multi-file upload queue with real per-file progress), a share sheet
+ * drawn over that pair's 0.6 share axis, and a single-column phone-first
+ * screen that composes them with the docs pair's existing rows, dialogs and
+ * trash. It peer-depends on `@stapel/docs-react`
  * and duplicates NOTHING of it — no second client, no second folder model, no
  * second trash. Adding a second implementation of a shipped surface is the
  * integration-seam defect this whole design exists to avoid.
@@ -24,8 +25,8 @@
  * provide because it cannot observe request-body progress.
  *
  * CONTRACT: generated against stapel-docs' own committed artifacts at the
- * PINNED v0.5.0 ref — `src/api/generated/schema.ts`,
- * `src/i18n/generated/errors*.ts` (77 codes, en/ru/es) and `manifest.json` +
+ * PINNED v0.6.1 ref — `src/api/generated/schema.ts`,
+ * `src/i18n/generated/errors*.ts` (84 codes, en/ru/es) and `manifest.json` +
  * `llms.txt` are emitted by the root `gen:*` drivers and drift-gated.
  *
  * MOUNTING: `<DriveProvider>` goes inside `<DocsProvider>`; both runtimes take

@@ -99,8 +99,8 @@
       "note": "release v0.1.1 — 2026-08-24 pair wave: the pair regenerated schema/errors against this contract. "
     },
     "stapel-docs": {
-      "ref": "a6d1a28ee267f235cb2f12256bd31401ac272fb9",
-      "note": "release v0.5.0 — the drive wave contract (starred / recents / search / thumbnails: 27 → 35 operations, 74 → 77 error codes). Bumped FOR @stapel/drive-react 0.1.0, whose entire reason to exist is those five endpoints; the v0.3.0 pin was already two minors behind and check:gates was failing on it. One pin per module is this file's shape, so docs-react regenerates from the same ref — additively: its committed schema.ts gains the new paths and its manifest range becomes >=0.5 <0.6, which is the range it was already being run against."
+      "ref": "b974f9e557ce050a5c2091b88ce5f46559d4f6d2",
+      "note": "release v0.6.1 — the sharing mechanism (whitelist grants, bearer links, the stripped /shared/<token> surface: 35 → 44 operations, 77 → 84 error codes). Bumped FOR the share-sheet slice: @stapel/docs-react 0.7.0 gains the access/link/shared client methods, hooks and headless bags, and @stapel/drive-react its default-skin ShareSheet — neither could exist against >=0.5 <0.6, and check:gates was reporting both pairs as \"backend moved ahead\". 0.6.1 rather than 0.6.0 on purpose: 0.6.0 shipped the mechanism with `authorize()` called without the document at every document-scoped view, so a whitelist grantee was refused by every URL that would have honoured the grant — a pair built against 0.6.0 would have rendered a share sheet whose grants did nothing. Both pairs regenerate from the same ref (one pin per module is this file's shape); their manifest range becomes >=0.6 <0.7."
     },
     "stapel-vocabularies": {
       "ref": "a89ff92ef6afe9d2cf3edf6dc2359fcb9516e6a5",

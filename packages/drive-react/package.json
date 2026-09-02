@@ -1,7 +1,7 @@
 {
   "name": "@stapel/drive-react",
   "version": "0.1.0",
-  "description": "Phone-first Drive product over stapel-docs 0.5: starred / recents / name search / thumbnails, an upload queue with real per-file progress (XHR PUT, concurrency 2, quota-507 state), folder navigation one rung per request, and an antd skin behind /default. Composes @stapel/docs-react as a peer; duplicates none of it.",
+  "description": "Phone-first Drive product over stapel-docs 0.6: starred / recents / name search / thumbnails, a share sheet over the docs pair's share axis, an upload queue with real per-file progress (XHR PUT, concurrency 2, quota-507 state), folder navigation one rung per request, and an antd skin behind /default. Composes @stapel/docs-react as a peer; duplicates none of it.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -62,7 +62,7 @@
       ]
     },
     {
-      "name": "default — the phone-first product skin (antd + the token bridge) must stay out of the main bundle. Measured 10.2 KB; the headroom is for the share sheet the docs 0.6.0 slice adds, and nothing else.",
+      "name": "default — the phone-first product skin (antd + the token bridge) must stay out of the main bundle. The share sheet the 0.6.1 slice added spent the earmarked headroom (10.2 -> 12.4 KB) and the 14 KB budget was NOT raised for it; the sibling docs skin's 22 KB is a two-pane file manager, not a target this one grows toward.",
       "path": "dist/default/index.js",
       "limit": "14 KB",
       "ignore": [
@@ -83,7 +83,7 @@
   ],
   "peerDependencies": {
     "@stapel/core": ">=0.22.0 <1.0.0",
-    "@stapel/docs-react": ">=0.5.0",
+    "@stapel/docs-react": ">=0.7.0",
     "@stapel/tokens": ">=0.6.0",
     "@stapel/tokens-antd": ">=0.11.0",
     "@tanstack/react-query": "^5.0.0",

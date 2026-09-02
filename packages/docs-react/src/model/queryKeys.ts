@@ -29,6 +29,10 @@ export const docsQueryKeys: {
   ): readonly ["docs", "revisionContent", string, string];
   downloadUrl(documentId: string): readonly ["docs", "downloadUrl", string];
   trash(workspaceId: string): readonly ["docs", "trash", string];
+  access(documentId: string): readonly ["docs", "access", string];
+  links(documentId: string): readonly ["docs", "links", string];
+  shared(token: string): readonly ["docs", "shared", string];
+  sharedContent(token: string): readonly ["docs", "sharedContent", string];
 } = {
   all: [ROOT],
   folders: (workspaceId) => [ROOT, "folders", workspaceId],
@@ -51,4 +55,15 @@ export const docsQueryKeys: {
   ],
   downloadUrl: (documentId) => [ROOT, "downloadUrl", documentId],
   trash: (workspaceId) => [ROOT, "trash", workspaceId],
+  // The two share-sheet listings. Their keys are per-document and per-SURFACE:
+  // a mint invalidates the link list and nothing else, because minting a link
+  // moves no document, no content and no revision. Dropping the module root
+  // for a share write would refetch the whole file manager behind the sheet.
+  access: (documentId) => [ROOT, "access", documentId],
+  links: (documentId) => [ROOT, "links", documentId],
+  // The bearer surface is keyed by the TOKEN, not by a document id: the
+  // bearer has not been told one, and two tokens for the same document are
+  // two different levels of access.
+  shared: (token) => [ROOT, "shared", token],
+  sharedContent: (token) => [ROOT, "sharedContent", token],
 };

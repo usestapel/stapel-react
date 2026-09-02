@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "backend": {
     "module": "stapel-docs",
-    "contract": ">=0.5 <0.6"
+    "contract": ">=0.6 <0.7"
   },
   "layers": [
     "api",
@@ -16,6 +16,27 @@
   "flows": {},
   "machines": [],
   "operations": {
+    "docs_api_v1_documents_access_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/documents/{document_id}/access",
+      "tag": "Docs / sharing",
+      "request": "AccessGrant",
+      "response": "DocumentAccessPresenterDTO"
+    },
+    "docs_api_v1_documents_access_destroy": {
+      "method": "DELETE",
+      "path": "/docs/api/v1/documents/{document_id}/access/{access_id}",
+      "tag": "Docs / sharing",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_access_list": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/access",
+      "tag": "Docs / sharing",
+      "request": null,
+      "response": null
+    },
     "docs_api_v1_documents_content_retrieve": {
       "method": "GET",
       "path": "/docs/api/v1/documents/{document_id}/content",
@@ -55,6 +76,27 @@
       "method": "GET",
       "path": "/docs/api/v1/documents/{document_id}/export",
       "tag": "Docs / content",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_links_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/documents/{document_id}/links",
+      "tag": "Docs / sharing",
+      "request": "LinkCreate",
+      "response": "DocumentLinkPresenterDTO"
+    },
+    "docs_api_v1_documents_links_destroy": {
+      "method": "DELETE",
+      "path": "/docs/api/v1/documents/{document_id}/links/{link_id}",
+      "tag": "Docs / sharing",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_links_list": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/links",
+      "tag": "Docs / sharing",
       "request": null,
       "response": null
     },
@@ -226,6 +268,27 @@
       "request": null,
       "response": null
     },
+    "docs_api_v1_shared_content_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/shared/{token}/content",
+      "tag": "Docs / sharing",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_shared_download_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/shared/{token}/download",
+      "tag": "Docs / sharing",
+      "request": null,
+      "response": "DownloadUrlDTO"
+    },
+    "docs_api_v1_shared_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/shared/{token}",
+      "tag": "Docs / sharing",
+      "request": null,
+      "response": "SharedDocumentDTO"
+    },
     "docs_api_v1_starred_retrieve": {
       "method": "GET",
       "path": "/docs/api/v1/starred",
@@ -352,6 +415,26 @@
       "remediation": "fix_input"
     },
     "error.400.docs_not_trashed": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_share_level": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_share_mode_disabled": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_share_ref_kind": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_share_subject": {
       "status": 400,
       "params": [],
       "remediation": "fix_input"
@@ -522,6 +605,11 @@
       "params": [],
       "remediation": "verify"
     },
+    "error.401.docs_share_auth_required": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
     "error.401.unauthorized": {
       "status": 401,
       "params": [],
@@ -567,12 +655,22 @@
       "params": [],
       "remediation": "retry"
     },
+    "error.404.docs_access_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.404.docs_document_not_found": {
       "status": 404,
       "params": [],
       "remediation": "retry"
     },
     "error.404.docs_folder_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.docs_link_not_found": {
       "status": 404,
       "params": [],
       "remediation": "retry"
@@ -813,6 +911,19 @@
       "source": "demo/DriveSearchField.demo.tsx"
     },
     {
+      "id": "drive.shareSheet",
+      "title": "Share sheet",
+      "description": "Sharing as a bottom sheet, over the docs pair's headless share bag — nothing of the axis is re-implemented here. stapel-docs has two INDEPENDENT grant sources, and a deployment may enable either, both or neither, so the sheet has two sections and each answers for itself. Three properties this drawing is responsible for: a switched-off mode's rows stay VISIBLE under a banner (hiding them tells an admin the access was revoked, and re-enabling the mode would then restore access nobody expected); a section the caller may not administer is absent rather than a dead form; and a refused mint says WHICH refusal it was, because the level ceiling is not published by any endpoint and can only be learned by asking.",
+      "component": "ShareSheetPanel",
+      "variants": [
+        "default",
+        "linksOnly",
+        "suspended",
+        "mintError"
+      ],
+      "source": "demo/ShareSheetPanel.demo.tsx"
+    },
+    {
       "id": "drive.starred",
       "title": "Starred",
       "description": "A star is a bookmark: the backend takes docs.view for it, both verbs answer 204 whatever the previous state was, and the icon flips before the request because the round trip is invisible only if it does. A trashed item drops out of this list but keeps its star until purge — restoring it brings the bookmark back.",
@@ -869,6 +980,7 @@
     "drive.action.move",
     "drive.action.open",
     "drive.action.rename",
+    "drive.action.share",
     "drive.action.trash",
     "drive.actions.label",
     "drive.crumb.label",
@@ -901,6 +1013,37 @@
     "drive.search.inRoot",
     "drive.search.label",
     "drive.search.placeholder",
+    "drive.share.add",
+    "drive.share.copied",
+    "drive.share.copy",
+    "drive.share.expires",
+    "drive.share.level",
+    "drive.share.levelEdit",
+    "drive.share.levelView",
+    "drive.share.links",
+    "drive.share.linksEmpty",
+    "drive.share.mint",
+    "drive.share.neverOpened",
+    "drive.share.opened",
+    "drive.share.people",
+    "drive.share.peopleEmpty",
+    "drive.share.remove",
+    "drive.share.revokeLink",
+    "drive.share.revokeLinkConfirm",
+    "drive.share.statusActive",
+    "drive.share.statusExpired",
+    "drive.share.statusRevoked",
+    "drive.share.subjectEmpty",
+    "drive.share.subjectField",
+    "drive.share.subjectKind",
+    "drive.share.subjectPlaceholderRef",
+    "drive.share.subjectPlaceholderUser",
+    "drive.share.subjectRef",
+    "drive.share.subjectUser",
+    "drive.share.suspended",
+    "drive.share.suspendedBanner",
+    "drive.share.title",
+    "drive.share.unavailable",
     "drive.star.add",
     "drive.star.remove",
     "drive.starred.empty",
@@ -935,6 +1078,10 @@
     "error.400.docs_folder_cycle",
     "error.400.docs_folder_depth",
     "error.400.docs_not_trashed",
+    "error.400.docs_share_level",
+    "error.400.docs_share_mode_disabled",
+    "error.400.docs_share_ref_kind",
+    "error.400.docs_share_subject",
     "error.400.docs_thumbnail_tier",
     "error.400.docs_thumbnail_unsupported",
     "error.400.docs_too_many_updates",
@@ -963,6 +1110,7 @@
     "error.400.validation_error",
     "error.400.verification_failed",
     "error.400.verification_invalid_factor",
+    "error.401.docs_share_auth_required",
     "error.401.unauthorized",
     "error.402.payment_required",
     "error.403.docs_forbidden",
@@ -972,8 +1120,10 @@
     "error.403.verification_enrollment_required",
     "error.403.verification_required",
     "error.404.ad_not_found",
+    "error.404.docs_access_not_found",
     "error.404.docs_document_not_found",
     "error.404.docs_folder_not_found",
+    "error.404.docs_link_not_found",
     "error.404.docs_revision_not_found",
     "error.404.docs_upload_not_found",
     "error.404.not_found",
